@@ -10,6 +10,7 @@ NEW_RULE_INVALID = "{'conditions': [{'id': 'sentry.rules.conditions.first_seen_e
 REGRESSION_RULE_VALID = "eJzTSCkw5ApWT87PS8ksyczPK1bnKjDi0sgpMObSSCkwAUplpgCFTIGM4tS8kqJKvaLSnNRiPYQGvaLU9KLU4mIgOz61DKhGLwgu4AriO8OUAs0x4ypOLA5WT0yG2WUOsssCZJclVzqGLVB1enn5JZlplVDj/cAcsNGOyVBzDQ1ABusBAD+xRzo="
 REGRESSION_RULE_INVALID = "{'conditions': [{'id': 'sentry.rules.conditions.regression_event.RegressionEventCondition'}], 'actions': [{'id': 'sentry.rules.actions.notify_event.NotifyEventAction'}]}"
 
+
 class Migration(DataMigration):
     """
     At one point the migrations didn't correctly reference GzippedDictField
@@ -19,9 +20,9 @@ class Migration(DataMigration):
 
     def forwards(self, orm):
         db.execute('UPDATE sentry_rule SET data = %s WHERE data = %s',
-                  [NEW_RULE_VALID, NEW_RULE_INVALID]);
+                   [NEW_RULE_VALID, NEW_RULE_INVALID])
         db.execute('UPDATE sentry_rule SET data = %s WHERE data = %s',
-                  [REGRESSION_RULE_VALID, REGRESSION_RULE_INVALID]);
+                   [REGRESSION_RULE_VALID, REGRESSION_RULE_INVALID])
 
     def backwards(self, orm):
         pass

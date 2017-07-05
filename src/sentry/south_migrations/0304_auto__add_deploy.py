@@ -11,21 +11,23 @@ class Migration(SchemaMigration):
         # Adding model 'Deploy'
         db.create_table('sentry_deploy', (
             ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
-            ('organization_id', self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')(db_index=True)),
-            ('release', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.Release'])),
-            ('environment_id', self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')(db_index=True)),
-            ('date_finished', self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)),
+            ('organization_id', self.gf(
+                'sentry.db.models.fields.bounded.BoundedPositiveIntegerField')(db_index=True)),
+            ('release', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(
+                to=orm['sentry.Release'])),
+            ('environment_id', self.gf(
+                'sentry.db.models.fields.bounded.BoundedPositiveIntegerField')(db_index=True)),
+            ('date_finished', self.gf('django.db.models.fields.DateTimeField')(
+                default=datetime.datetime.now)),
             ('date_started', self.gf('django.db.models.fields.DateTimeField')(null=True, blank=True)),
             ('name', self.gf('django.db.models.fields.CharField')(max_length=64, null=True, blank=True)),
             ('url', self.gf('django.db.models.fields.URLField')(max_length=200, null=True, blank=True)),
         ))
         db.send_create_signal('sentry', ['Deploy'])
 
-
     def backwards(self, orm):
         # Deleting model 'Deploy'
         db.delete_table('sentry_deploy')
-
 
     models = {
         'sentry.activity': {

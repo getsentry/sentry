@@ -109,4 +109,5 @@ class GroupTagValue(Model):
             last_seen__gte=cutoff,
         ).order_by('-times_seen')[:limit])
 
+
 GroupTag = GroupTagValue

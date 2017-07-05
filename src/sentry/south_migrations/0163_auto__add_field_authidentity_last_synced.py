@@ -10,14 +10,13 @@ class Migration(SchemaMigration):
     def forwards(self, orm):
         # Adding field 'AuthIdentity.last_synced'
         db.add_column('sentry_authidentity', 'last_synced',
-                      self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now),
+                      self.gf('django.db.models.fields.DateTimeField')(
+                          default=datetime.datetime.now),
                       keep_default=False)
-
 
     def backwards(self, orm):
         # Deleting field 'AuthIdentity.last_synced'
         db.delete_column('sentry_authidentity', 'last_synced')
-
 
     models = {
         'sentry.accessgroup': {

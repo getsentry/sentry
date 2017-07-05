@@ -7,6 +7,7 @@ from django.db import connection, models, IntegrityError, transaction
 from sentry.plugins import plugins
 from sentry.plugins import IssueTrackingPlugin, NotificationPlugin
 
+
 class Migration(DataMigration):
 
     def forwards(self, orm):
@@ -164,7 +165,6 @@ class Migration(DataMigration):
                         )
                 except IntegrityError:
                     pass
-
 
     def backwards(self, orm):
         "Write your backwards methods here."

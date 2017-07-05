@@ -11,8 +11,10 @@ class Migration(SchemaMigration):
         # Adding model 'EventMapping'
         db.create_table('sentry_eventmapping', (
             ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
-            ('project', self.gf('sentry.db.models.fields.FlexibleForeignKey')(to=orm['sentry.Project'])),
-            ('group', self.gf('sentry.db.models.fields.FlexibleForeignKey')(to=orm['sentry.Group'])),
+            ('project', self.gf('sentry.db.models.fields.FlexibleForeignKey')(
+                to=orm['sentry.Project'])),
+            ('group', self.gf('sentry.db.models.fields.FlexibleForeignKey')(
+                to=orm['sentry.Group'])),
             ('event_id', self.gf('django.db.models.fields.CharField')(max_length=32)),
             ('date_added', self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)),
         ))
@@ -21,14 +23,12 @@ class Migration(SchemaMigration):
         # Adding unique constraint on 'EventMapping', fields ['project', 'event_id']
         db.create_unique('sentry_eventmapping', ['project_id', 'event_id'])
 
-
     def backwards(self, orm):
         # Removing unique constraint on 'EventMapping', fields ['project', 'event_id']
         db.delete_unique('sentry_eventmapping', ['project_id', 'event_id'])
 
         # Deleting model 'EventMapping'
         db.delete_table('sentry_eventmapping')
-
 
     models = {
         'sentry.user': {

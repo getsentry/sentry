@@ -10,7 +10,8 @@ class Migration(SchemaMigration):
     def forwards(self, orm):
         # Adding field 'AuthIdentity.last_verified'
         db.add_column('sentry_authidentity', 'last_verified',
-                      self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now),
+                      self.gf('django.db.models.fields.DateTimeField')(
+                          default=datetime.datetime.now),
                       keep_default=False)
 
         # Adding field 'OrganizationMember.flags'
@@ -18,14 +19,12 @@ class Migration(SchemaMigration):
                       self.gf('django.db.models.fields.BigIntegerField')(default=0),
                       keep_default=False)
 
-
     def backwards(self, orm):
         # Deleting field 'AuthIdentity.last_verified'
         db.delete_column('sentry_authidentity', 'last_verified')
 
         # Deleting field 'OrganizationMember.flags'
         db.delete_column('sentry_organizationmember', 'flags')
-
 
     models = {
         'sentry.accessgroup': {

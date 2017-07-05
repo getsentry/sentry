@@ -82,7 +82,8 @@ class Organization(Model):
         (OrganizationStatus.DELETION_IN_PROGRESS, _('Deletion in Progress')),
     ), default=OrganizationStatus.VISIBLE)
     date_added = models.DateTimeField(default=timezone.now)
-    members = models.ManyToManyField(settings.AUTH_USER_MODEL, through='sentry.OrganizationMember', related_name='org_memberships')
+    members = models.ManyToManyField(
+        settings.AUTH_USER_MODEL, through='sentry.OrganizationMember', related_name='org_memberships')
     default_role = models.CharField(
         choices=roles.get_choices(),
         max_length=32,

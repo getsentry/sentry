@@ -13,11 +13,9 @@ class Migration(SchemaMigration):
                       self.gf('django.db.models.fields.CharField')(max_length=32, null=True),
                       keep_default=False)
 
-
     def backwards(self, orm):
         # Deleting field 'Project.platform'
         db.delete_column('sentry_project', 'platform')
-
 
     models = {
         'sentry.user': {

@@ -114,7 +114,8 @@ class SentryInternalClient(DjangoClient):
             message = kwargs.get('message')
             if not message:
                 msg_interface = kwargs.get('sentry.interface.Message', {})
-                message = msg_interface.get('formatted', msg_interface.get('message', 'unknown error'))
+                message = msg_interface.get(
+                    'formatted', msg_interface.get('message', 'unknown error'))
             self.error_logger.error(
                 'Unable to record event: %s\nEvent was: %r', e,
                 message, exc_info=True)

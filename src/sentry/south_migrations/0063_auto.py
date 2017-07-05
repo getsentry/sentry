@@ -11,11 +11,9 @@ class Migration(SchemaMigration):
         # Adding index on 'MessageCountByMinute', fields ['date']
         db.create_index('sentry_messagecountbyminute', ['date'])
 
-
     def backwards(self, orm):
         # Removing index on 'MessageCountByMinute', fields ['date']
         db.delete_index('sentry_messagecountbyminute', ['date'])
-
 
     models = {
         'sentry.user': {

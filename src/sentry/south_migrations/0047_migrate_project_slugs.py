@@ -29,7 +29,6 @@ class Migration(DataMigration):
     def backwards(self, orm):
         pass
 
-
     models = {
         'sentry.user': {
             'Meta': {'object_name': 'User', 'db_table': "'auth_user'"},

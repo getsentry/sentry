@@ -11,19 +11,19 @@ class Migration(SchemaMigration):
         # Adding model 'ApiToken'
         db.create_table('sentry_apitoken', (
             ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
-            ('key', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.ApiKey'], null=True)),
-            ('user', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.User'])),
+            ('key', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(
+                to=orm['sentry.ApiKey'], null=True)),
+            ('user', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(
+                to=orm['sentry.User'])),
             ('token', self.gf('django.db.models.fields.CharField')(unique=True, max_length=64)),
             ('scopes', self.gf('django.db.models.fields.BigIntegerField')(default=None)),
             ('date_added', self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)),
         ))
         db.send_create_signal('sentry', ['ApiToken'])
 
-
     def backwards(self, orm):
         # Deleting model 'ApiToken'
         db.delete_table('sentry_apitoken')
-
 
     models = {
         'sentry.activity': {

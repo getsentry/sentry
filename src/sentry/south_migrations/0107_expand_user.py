@@ -8,10 +8,12 @@ from django.db import models
 class Migration(SchemaMigration):
 
     def forwards(self, orm):
-        db.alter_column('auth_user', 'username', self.gf('django.db.models.fields.CharField')(max_length=128, unique=True))
+        db.alter_column('auth_user', 'username', self.gf(
+            'django.db.models.fields.CharField')(max_length=128, unique=True))
 
     def backwards(self, orm):
-        db.alter_column('auth_user', 'username', self.gf('django.db.models.fields.CharField')(max_length=30, unique=True))
+        db.alter_column('auth_user', 'username', self.gf(
+            'django.db.models.fields.CharField')(max_length=30, unique=True))
 
     models = {
         u'auth.group': {

@@ -13,4 +13,5 @@ class OrganizationCreatedEvent(analytics.Event):
         analytics.Attribute('actor_id', required=False),
     )
 
+
 analytics.register(OrganizationCreatedEvent)

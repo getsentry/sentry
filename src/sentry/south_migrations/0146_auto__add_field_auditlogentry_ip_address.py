@@ -10,14 +10,13 @@ class Migration(SchemaMigration):
     def forwards(self, orm):
         # Adding field 'AuditLogEntry.ip_address'
         db.add_column('sentry_auditlogentry', 'ip_address',
-                      self.gf('django.db.models.fields.GenericIPAddressField')(max_length=39, null=True),
+                      self.gf('django.db.models.fields.GenericIPAddressField')(
+                          max_length=39, null=True),
                       keep_default=False)
-
 
     def backwards(self, orm):
         # Deleting field 'AuditLogEntry.ip_address'
         db.delete_column('sentry_auditlogentry', 'ip_address')
-
 
     models = {
         'sentry.accessgroup': {

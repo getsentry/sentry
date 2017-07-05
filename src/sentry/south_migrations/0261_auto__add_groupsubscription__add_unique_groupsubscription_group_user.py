@@ -11,18 +11,21 @@ class Migration(SchemaMigration):
         # Adding model 'GroupSubscription'
         db.create_table('sentry_groupsubscription', (
             ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
-            ('project', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(related_name='subscription_set', to=orm['sentry.Project'])),
-            ('group', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(related_name='subscription_set', to=orm['sentry.Group'])),
-            ('user', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.User'])),
+            ('project', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(
+                related_name='subscription_set', to=orm['sentry.Project'])),
+            ('group', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(
+                related_name='subscription_set', to=orm['sentry.Group'])),
+            ('user', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(
+                to=orm['sentry.User'])),
             ('is_active', self.gf('django.db.models.fields.BooleanField')(default=True)),
             ('reason', self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')(default=0)),
-            ('date_added', self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now, null=True)),
+            ('date_added', self.gf('django.db.models.fields.DateTimeField')(
+                default=datetime.datetime.now, null=True)),
         ))
         db.send_create_signal('sentry', ['GroupSubscription'])
 
         # Adding unique constraint on 'GroupSubscription', fields ['group', 'user']
         db.create_unique('sentry_groupsubscription', ['group_id', 'user_id'])
-
 
     def backwards(self, orm):
         # Removing unique constraint on 'GroupSubscription', fields ['group', 'user']
@@ -30,7 +33,6 @@ class Migration(SchemaMigration):
 
         # Deleting model 'GroupSubscription'
         db.delete_table('sentry_groupsubscription')
-
 
     models = {
         'sentry.activity': {

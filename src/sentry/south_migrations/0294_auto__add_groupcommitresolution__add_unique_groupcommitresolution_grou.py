@@ -13,13 +13,13 @@ class Migration(SchemaMigration):
             ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
             ('group_id', self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')()),
             ('commit_id', self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')()),
-            ('datetime', self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now, db_index=True)),
+            ('datetime', self.gf('django.db.models.fields.DateTimeField')(
+                default=datetime.datetime.now, db_index=True)),
         ))
         db.send_create_signal('sentry', ['GroupCommitResolution'])
 
         # Adding unique constraint on 'GroupCommitResolution', fields ['group_id', 'commit_id']
         db.create_unique('sentry_groupcommitresolution', ['group_id', 'commit_id'])
-
 
     def backwards(self, orm):
         # Removing unique constraint on 'GroupCommitResolution', fields ['group_id', 'commit_id']
@@ -27,7 +27,6 @@ class Migration(SchemaMigration):
 
         # Deleting model 'GroupCommitResolution'
         db.delete_table('sentry_groupcommitresolution')
-
 
     models = {
         'sentry.activity': {

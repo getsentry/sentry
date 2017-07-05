@@ -13,11 +13,9 @@ class Migration(SchemaMigration):
                       self.gf('django.db.models.fields.DateTimeField')(null=True),
                       keep_default=False)
 
-
     def backwards(self, orm):
         # Deleting field 'GroupRuleStatus.last_active'
         db.delete_column('sentry_grouprulestatus', 'last_active')
-
 
     models = {
         'sentry.accessgroup': {

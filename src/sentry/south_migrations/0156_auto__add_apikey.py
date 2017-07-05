@@ -11,20 +11,21 @@ class Migration(SchemaMigration):
         # Adding model 'ApiKey'
         db.create_table('sentry_apikey', (
             ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
-            ('organization', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(related_name='key_set', to=orm['sentry.Organization'])),
-            ('label', self.gf('django.db.models.fields.CharField')(default='Default', max_length=64, blank=True)),
+            ('organization', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(
+                related_name='key_set', to=orm['sentry.Organization'])),
+            ('label', self.gf('django.db.models.fields.CharField')(
+                default='Default', max_length=64, blank=True)),
             ('key', self.gf('django.db.models.fields.CharField')(unique=True, max_length=32)),
             ('scopes', self.gf('django.db.models.fields.BigIntegerField')(default=None)),
-            ('status', self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')(default=0, db_index=True)),
+            ('status', self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')(
+                default=0, db_index=True)),
             ('date_added', self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)),
         ))
         db.send_create_signal('sentry', ['ApiKey'])
 
-
     def backwards(self, orm):
         # Deleting model 'ApiKey'
         db.delete_table('sentry_apikey')
-
 
     models = {
         'sentry.accessgroup': {

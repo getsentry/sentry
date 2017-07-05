@@ -11,16 +11,15 @@ class Migration(SchemaMigration):
         # Adding model 'GroupSnooze'
         db.create_table('sentry_groupsnooze', (
             ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
-            ('group', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.Group'], unique=True)),
+            ('group', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(
+                to=orm['sentry.Group'], unique=True)),
             ('until', self.gf('django.db.models.fields.DateTimeField')()),
         ))
         db.send_create_signal('sentry', ['GroupSnooze'])
 
-
     def backwards(self, orm):
         # Deleting model 'GroupSnooze'
         db.delete_table('sentry_groupsnooze')
-
 
     models = {
         'sentry.activity': {

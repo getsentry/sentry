@@ -11,18 +11,19 @@ class Migration(SchemaMigration):
         # Adding model 'GroupAssignee'
         db.create_table('sentry_groupasignee', (
             ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
-            ('project', self.gf('sentry.db.models.fields.FlexibleForeignKey')(related_name='assignee_set', to=orm['sentry.Project'])),
-            ('group', self.gf('sentry.db.models.fields.FlexibleForeignKey')(related_name='assignee_set', unique=True, to=orm['sentry.Group'])),
-            ('user', self.gf('sentry.db.models.fields.FlexibleForeignKey')(related_name='sentry_assignee_set', to=orm['sentry.User'])),
+            ('project', self.gf('sentry.db.models.fields.FlexibleForeignKey')(
+                related_name='assignee_set', to=orm['sentry.Project'])),
+            ('group', self.gf('sentry.db.models.fields.FlexibleForeignKey')
+             (related_name='assignee_set', unique=True, to=orm['sentry.Group'])),
+            ('user', self.gf('sentry.db.models.fields.FlexibleForeignKey')
+             (related_name='sentry_assignee_set', to=orm['sentry.User'])),
             ('date_added', self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)),
         ))
         db.send_create_signal('sentry', ['GroupAssignee'])
 
-
     def backwards(self, orm):
         # Deleting model 'GroupAssignee'
         db.delete_table('sentry_groupasignee')
-
 
     models = {
         'sentry.accessgroup': {

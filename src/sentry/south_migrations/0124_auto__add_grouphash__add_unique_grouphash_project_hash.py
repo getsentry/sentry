@@ -11,15 +11,16 @@ class Migration(SchemaMigration):
         # Adding model 'GroupHash'
         db.create_table('sentry_grouphash', (
             ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
-            ('project', self.gf('sentry.db.models.fields.FlexibleForeignKey')(to=orm['sentry.Project'], null=True)),
+            ('project', self.gf('sentry.db.models.fields.FlexibleForeignKey')(
+                to=orm['sentry.Project'], null=True)),
             ('hash', self.gf('django.db.models.fields.CharField')(max_length=32, db_index=True)),
-            ('group', self.gf('sentry.db.models.fields.FlexibleForeignKey')(to=orm['sentry.Group'], null=True)),
+            ('group', self.gf('sentry.db.models.fields.FlexibleForeignKey')(
+                to=orm['sentry.Group'], null=True)),
         ))
         db.send_create_signal('sentry', ['GroupHash'])
 
         # Adding unique constraint on 'GroupHash', fields ['project', 'hash']
         db.create_unique('sentry_grouphash', ['project_id', 'hash'])
-
 
     def backwards(self, orm):
         # Removing unique constraint on 'GroupHash', fields ['project', 'hash']
@@ -27,7 +28,6 @@ class Migration(SchemaMigration):
 
         # Deleting model 'GroupHash'
         db.delete_table('sentry_grouphash')
-
 
     models = {
         'sentry.accessgroup': {

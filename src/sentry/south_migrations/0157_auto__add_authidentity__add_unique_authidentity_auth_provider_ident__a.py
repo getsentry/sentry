@@ -11,8 +11,10 @@ class Migration(SchemaMigration):
         # Adding model 'AuthIdentity'
         db.create_table('sentry_authidentity', (
             ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
-            ('user', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.User'])),
-            ('auth_provider', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.AuthProvider'])),
+            ('user', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(
+                to=orm['sentry.User'])),
+            ('auth_provider', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(
+                to=orm['sentry.AuthProvider'])),
             ('ident', self.gf('django.db.models.fields.CharField')(max_length=128)),
             ('data', self.gf('sentry.db.models.fields.gzippeddict.GzippedDictField')()),
             ('date_added', self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)),
@@ -25,7 +27,8 @@ class Migration(SchemaMigration):
         # Adding model 'AuthProvider'
         db.create_table('sentry_authprovider', (
             ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
-            ('organization', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.Organization'], unique=True)),
+            ('organization', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(
+                to=orm['sentry.Organization'], unique=True)),
             ('provider', self.gf('django.db.models.fields.CharField')(max_length=128)),
             ('config', self.gf('sentry.db.models.fields.gzippeddict.GzippedDictField')()),
             ('date_added', self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)),
@@ -34,7 +37,6 @@ class Migration(SchemaMigration):
             ('default_role', self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')(default=50)),
         ))
         db.send_create_signal('sentry', ['AuthProvider'])
-
 
     def backwards(self, orm):
         # Removing unique constraint on 'AuthIdentity', fields ['auth_provider', 'ident']
@@ -45,7 +47,6 @@ class Migration(SchemaMigration):
 
         # Deleting model 'AuthProvider'
         db.delete_table('sentry_authprovider')
-
 
     models = {
         'sentry.accessgroup': {

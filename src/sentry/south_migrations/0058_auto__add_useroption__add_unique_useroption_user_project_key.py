@@ -12,7 +12,8 @@ class Migration(SchemaMigration):
         db.create_table('sentry_useroption', (
             ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
             ('user', self.gf('sentry.db.models.fields.FlexibleForeignKey')(to=orm['sentry.User'])),
-            ('project', self.gf('sentry.db.models.fields.FlexibleForeignKey')(to=orm['sentry.Project'], null=True)),
+            ('project', self.gf('sentry.db.models.fields.FlexibleForeignKey')(
+                to=orm['sentry.Project'], null=True)),
             ('key', self.gf('django.db.models.fields.CharField')(max_length=64)),
             ('value', self.gf('picklefield.fields.PickledObjectField')()),
         ))
@@ -21,14 +22,12 @@ class Migration(SchemaMigration):
         # Adding unique constraint on 'UserOption', fields ['user', 'project', 'key']
         db.create_unique('sentry_useroption', ['user_id', 'project_id', 'key'])
 
-
     def backwards(self, orm):
         # Removing unique constraint on 'UserOption', fields ['user', 'project', 'key']
         db.delete_unique('sentry_useroption', ['user_id', 'project_id', 'key'])
 
         # Deleting model 'UserOption'
         db.delete_table('sentry_useroption')
-
 
     models = {
         'sentry.user': {

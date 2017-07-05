@@ -4,37 +4,43 @@ from south.db import db
 from south.v2 import SchemaMigration
 from django.db import models
 
+
 class Migration(SchemaMigration):
 
     def forwards(self, orm):
 
         # Changing field 'Message.view'
-        db.alter_column('sentry_message', 'view', self.gf('django.db.models.fields.CharField')(max_length=200, null=True))
+        db.alter_column('sentry_message', 'view', self.gf(
+            'django.db.models.fields.CharField')(max_length=200, null=True))
 
         # Adding field 'GroupedMessage.data'
-        db.add_column('sentry_groupedmessage', 'data', self.gf('django.db.models.fields.TextField')(null=True, blank=True), keep_default=False)
+        db.add_column('sentry_groupedmessage', 'data', self.gf(
+            'django.db.models.fields.TextField')(null=True, blank=True), keep_default=False)
 
         # Changing field 'GroupedMessage.view'
-        db.alter_column('sentry_groupedmessage', 'view', self.gf('django.db.models.fields.CharField')(max_length=200, null=True))
+        db.alter_column('sentry_groupedmessage', 'view', self.gf(
+            'django.db.models.fields.CharField')(max_length=200, null=True))
 
         # Changing field 'FilterValue.value'
-        db.alter_column('sentry_filtervalue', 'value', self.gf('django.db.models.fields.CharField')(max_length=200))
-
+        db.alter_column('sentry_filtervalue', 'value', self.gf(
+            'django.db.models.fields.CharField')(max_length=200))
 
     def backwards(self, orm):
 
         # Changing field 'Message.view'
-        db.alter_column('sentry_message', 'view', self.gf('django.db.models.fields.CharField')(max_length=255, null=True))
+        db.alter_column('sentry_message', 'view', self.gf(
+            'django.db.models.fields.CharField')(max_length=255, null=True))
 
         # Deleting field 'GroupedMessage.data'
         db.delete_column('sentry_groupedmessage', 'data')
 
         # Changing field 'GroupedMessage.view'
-        db.alter_column('sentry_groupedmessage', 'view', self.gf('django.db.models.fields.CharField')(max_length=255, null=True))
+        db.alter_column('sentry_groupedmessage', 'view', self.gf(
+            'django.db.models.fields.CharField')(max_length=255, null=True))
 
         # Changing field 'FilterValue.value'
-        db.alter_column('sentry_filtervalue', 'value', self.gf('django.db.models.fields.CharField')(max_length=255))
-
+        db.alter_column('sentry_filtervalue', 'value', self.gf(
+            'django.db.models.fields.CharField')(max_length=255))
 
     models = {
         'sentry.filtervalue': {

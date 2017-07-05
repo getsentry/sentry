@@ -16,9 +16,11 @@ class EncryptionManager(object):
     def __init__(self, schemes=()):
         for key, value in schemes:
             if not isinstance(key, six.string_types):
-                raise ValueError('Encryption scheme type must be a string. Value was: {!r}'.format(value))
+                raise ValueError(
+                    'Encryption scheme type must be a string. Value was: {!r}'.format(value))
             if not hasattr(value, 'encrypt') or not hasattr(value, 'decrypt'):
-                raise ValueError('Encryption scheme value must have \'encrypt\' and \'decrypt\' callables. Value was: {!r}'.format(value))
+                raise ValueError(
+                    'Encryption scheme value must have \'encrypt\' and \'decrypt\' callables. Value was: {!r}'.format(value))
         self.schemes = OrderedDict(schemes)
         if not schemes:
             self.default_scheme = None
@@ -55,6 +57,7 @@ class EncryptionManager(object):
         except KeyError:
             raise ValueError('Unknown encryption scheme: {!r}'.format(enc_method))
         return scheme.decrypt(enc_data)
+
 
 default_manager = EncryptionManager(settings.SENTRY_ENCRYPTION_SCHEMES)
 

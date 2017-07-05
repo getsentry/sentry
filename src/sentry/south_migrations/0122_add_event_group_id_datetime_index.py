@@ -18,7 +18,6 @@ class Migration(SchemaMigration):
         db.create_index('sentry_message', ['group_id'])
         db.delete_index('sentry_message', ['group_id', 'datetime'])
 
-
     models = {
         'sentry.accessgroup': {
             'Meta': {'unique_together': "(('team', 'name'),)", 'object_name': 'AccessGroup'},

@@ -11,18 +11,19 @@ class Migration(SchemaMigration):
         # Adding model 'UserAvatar'
         db.create_table('sentry_useravatar', (
             ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
-            ('user', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(related_name='avatar', unique=True, to=orm['sentry.User'])),
-            ('file', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.File'], unique=True, null=True, on_delete=models.SET_NULL)),
-            ('ident', self.gf('django.db.models.fields.CharField')(unique=True, max_length=32, db_index=True)),
+            ('user', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(
+                related_name='avatar', unique=True, to=orm['sentry.User'])),
+            ('file', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')
+             (to=orm['sentry.File'], unique=True, null=True, on_delete=models.SET_NULL)),
+            ('ident', self.gf('django.db.models.fields.CharField')(
+                unique=True, max_length=32, db_index=True)),
             ('avatar_type', self.gf('django.db.models.fields.PositiveSmallIntegerField')(default=0)),
         ))
         db.send_create_signal('sentry', ['UserAvatar'])
 
-
     def backwards(self, orm):
         # Deleting model 'UserAvatar'
         db.delete_table('sentry_useravatar')
-
 
     models = {
         'sentry.activity': {

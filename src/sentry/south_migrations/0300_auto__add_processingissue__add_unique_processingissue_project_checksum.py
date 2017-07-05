@@ -11,7 +11,8 @@ class Migration(SchemaMigration):
         # Adding model 'ProcessingIssue'
         db.create_table('sentry_processingissue', (
             ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
-            ('project', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.Project'])),
+            ('project', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(
+                to=orm['sentry.Project'])),
             ('checksum', self.gf('django.db.models.fields.CharField')(max_length=40, db_index=True)),
             ('type', self.gf('django.db.models.fields.CharField')(max_length=30)),
             ('data', self.gf('sentry.db.models.fields.gzippeddict.GzippedDictField')()),
@@ -25,7 +26,8 @@ class Migration(SchemaMigration):
         # Adding model 'ReprocessingReport'
         db.create_table('sentry_reprocessingreport', (
             ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
-            ('project', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.Project'])),
+            ('project', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(
+                to=orm['sentry.Project'])),
             ('event_id', self.gf('django.db.models.fields.CharField')(max_length=32, null=True)),
             ('datetime', self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)),
         ))
@@ -37,7 +39,8 @@ class Migration(SchemaMigration):
         # Adding model 'RawEvent'
         db.create_table('sentry_rawevent', (
             ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
-            ('project', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.Project'])),
+            ('project', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(
+                to=orm['sentry.Project'])),
             ('event_id', self.gf('django.db.models.fields.CharField')(max_length=32, null=True)),
             ('datetime', self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)),
             ('data', self.gf('sentry.db.models.fields.node.NodeField')(null=True, blank=True)),
@@ -50,14 +53,15 @@ class Migration(SchemaMigration):
         # Adding model 'EventProcessingIssue'
         db.create_table('sentry_eventprocessingissue', (
             ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
-            ('raw_event', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.RawEvent'])),
-            ('processing_issue', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.ProcessingIssue'])),
+            ('raw_event', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(
+                to=orm['sentry.RawEvent'])),
+            ('processing_issue', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(
+                to=orm['sentry.ProcessingIssue'])),
         ))
         db.send_create_signal('sentry', ['EventProcessingIssue'])
 
         # Adding unique constraint on 'EventProcessingIssue', fields ['raw_event', 'processing_issue']
         db.create_unique('sentry_eventprocessingissue', ['raw_event_id', 'processing_issue_id'])
-
 
     def backwards(self, orm):
         # Removing unique constraint on 'EventProcessingIssue', fields ['raw_event', 'processing_issue']
@@ -83,7 +87,6 @@ class Migration(SchemaMigration):
 
         # Deleting model 'EventProcessingIssue'
         db.delete_table('sentry_eventprocessingissue')
-
 
     models = {
         'sentry.activity': {

@@ -10,14 +10,13 @@ class Migration(SchemaMigration):
     def forwards(self, orm):
         # Adding field 'AffectedUserByGroup.tuser'
         db.add_column('sentry_affecteduserbygroup', 'tuser',
-                      self.gf('sentry.db.models.fields.FlexibleForeignKey')(to=orm['sentry.TrackedUser'], null=True),
+                      self.gf('sentry.db.models.fields.FlexibleForeignKey')(
+                          to=orm['sentry.TrackedUser'], null=True),
                       keep_default=False)
-
 
     def backwards(self, orm):
         # Deleting field 'AffectedUserByGroup.tuser'
         db.delete_column('sentry_affecteduserbygroup', 'tuser_id')
-
 
     models = {
         'sentry.user': {

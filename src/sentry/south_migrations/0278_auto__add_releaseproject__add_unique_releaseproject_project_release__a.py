@@ -11,8 +11,10 @@ class Migration(SchemaMigration):
         # Adding model 'ReleaseProject'
         db.create_table('sentry_release_project', (
             ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
-            ('project', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.Project'])),
-            ('release', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.Release'])),
+            ('project', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(
+                to=orm['sentry.Project'])),
+            ('release', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(
+                to=orm['sentry.Release'])),
         ))
         db.send_create_signal('sentry', ['ReleaseProject'])
 
@@ -21,9 +23,9 @@ class Migration(SchemaMigration):
 
         # Adding field 'Release.organization'
         db.add_column('sentry_release', 'organization',
-                      self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.Organization'], null=True, blank=True),
+                      self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(
+                          to=orm['sentry.Organization'], null=True, blank=True),
                       keep_default=False)
-
 
     def backwards(self, orm):
         # Removing unique constraint on 'ReleaseProject', fields ['project', 'release']
@@ -34,7 +36,6 @@ class Migration(SchemaMigration):
 
         # Deleting field 'Release.organization'
         db.delete_column('sentry_release', 'organization_id')
-
 
     models = {
         'sentry.activity': {

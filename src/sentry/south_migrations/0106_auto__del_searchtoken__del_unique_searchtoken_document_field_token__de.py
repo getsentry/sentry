@@ -16,7 +16,6 @@ class Migration(SchemaMigration):
     def backwards(self, orm):
         pass
 
-
     models = {
         u'auth.group': {
             'Meta': {'object_name': 'Group'},

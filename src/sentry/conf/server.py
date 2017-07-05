@@ -23,7 +23,9 @@ from sentry.utils.types import type_from_value
 from datetime import timedelta
 from six.moves.urllib.parse import urlparse
 
-gettext_noop = lambda s: s
+
+def gettext_noop(s): return s
+
 
 socket.setdefaulttimeout(5)
 
@@ -424,7 +426,11 @@ AUTH_PROVIDER_LABELS = {
 
 import random
 
-SOCIAL_AUTH_DEFAULT_USERNAME = lambda: random.choice(['Darth Vader', 'Obi-Wan Kenobi', 'R2-D2', 'C-3PO', 'Yoda'])
+
+def SOCIAL_AUTH_DEFAULT_USERNAME(): return random.choice(
+    ['Darth Vader', 'Obi-Wan Kenobi', 'R2-D2', 'C-3PO', 'Yoda'])
+
+
 SOCIAL_AUTH_PROTECTED_USER_FIELDS = ['email']
 SOCIAL_AUTH_FORCE_POST_DISCONNECT = True
 
@@ -515,6 +521,7 @@ def create_partitioned_queues(name):
             '{0}-{1}'.format(name, num),
             exchange=exchange,
         ))
+
 
 create_partitioned_queues('counters')
 create_partitioned_queues('triggers')
@@ -1157,7 +1164,7 @@ SENTRY_API_RESPONSE_DELAY = 150 if IS_DEV else None
 # webpack.config.js is not part of Sentry's datafiles
 SENTRY_WATCHERS = (
     ('webpack', [os.path.join(NODE_MODULES_ROOT, '.bin', 'webpack'), '--output-pathinfo', '--watch',
-     "--config={}".format(os.path.normpath(os.path.join(PROJECT_ROOT, os.pardir, os.pardir, "webpack.config.js")))]),
+                 "--config={}".format(os.path.normpath(os.path.join(PROJECT_ROOT, os.pardir, os.pardir, "webpack.config.js")))]),
 )
 
 # Max file size for avatar photo uploads
@@ -1186,6 +1193,7 @@ def get_raven_config():
             'sentry',
         ],
     }
+
 
 RAVEN_CONFIG = get_raven_config()
 

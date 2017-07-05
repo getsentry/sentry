@@ -20,7 +20,6 @@ class Migration(SchemaMigration):
         else:
             db.create_unique('sentry_environment', ['organization_id', 'name'])
 
-
     def backwards(self, orm):
         # Removing unique constraint on 'Environment', fields ['organization_id', 'name']
         if is_postgres():
@@ -31,7 +30,6 @@ class Migration(SchemaMigration):
             db.start_transaction()
         else:
             db.delete_unique('sentry_environment', ['organization_id', 'name'])
-
 
     models = {
         'sentry.activity': {

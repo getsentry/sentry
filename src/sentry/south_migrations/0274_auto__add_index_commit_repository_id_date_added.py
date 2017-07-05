@@ -11,11 +11,9 @@ class Migration(SchemaMigration):
         # Adding index on 'Commit', fields ['repository_id', 'date_added']
         db.create_index('sentry_commit', ['repository_id', 'date_added'])
 
-
     def backwards(self, orm):
         # Removing index on 'Commit', fields ['repository_id', 'date_added']
         db.delete_index('sentry_commit', ['repository_id', 'date_added'])
-
 
     models = {
         'sentry.activity': {

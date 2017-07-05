@@ -4,6 +4,7 @@ from south.db import db
 from south.v2 import SchemaMigration
 from django.db import models
 
+
 class Migration(SchemaMigration):
 
     def forwards(self, orm):
@@ -11,7 +12,8 @@ class Migration(SchemaMigration):
         # Adding model 'GroupMeta'
         db.create_table('sentry_groupmeta', (
             ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
-            ('group', self.gf('sentry.db.models.fields.FlexibleForeignKey')(to=orm['sentry.Group'])),
+            ('group', self.gf('sentry.db.models.fields.FlexibleForeignKey')(
+                to=orm['sentry.Group'])),
             ('key', self.gf('django.db.models.fields.CharField')(max_length=64)),
             ('value', self.gf('django.db.models.fields.TextField')()),
         ))
@@ -20,7 +22,6 @@ class Migration(SchemaMigration):
         # Adding unique constraint on 'GroupMeta', fields ['group', 'key', 'value']
         db.create_unique('sentry_groupmeta', ['group_id', 'key'])
 
-
     def backwards(self, orm):
 
         # Removing unique constraint on 'GroupMeta', fields ['group', 'key', 'value']
@@ -28,7 +29,6 @@ class Migration(SchemaMigration):
 
         # Deleting model 'GroupMeta'
         db.delete_table('sentry_groupmeta')
-
 
     models = {
         'sentry.user': {

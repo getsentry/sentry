@@ -19,11 +19,9 @@ class Migration(SchemaMigration):
         ))
         db.send_create_signal('sentry', ['Broadcast'])
 
-
     def backwards(self, orm):
         # Deleting model 'Broadcast'
         db.delete_table('sentry_broadcast')
-
 
     models = {
         'sentry.accessgroup': {

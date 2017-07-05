@@ -4,6 +4,7 @@ from south.db import db
 from south.v2 import SchemaMigration
 from django.db import models
 
+
 class Migration(SchemaMigration):
 
     def forwards(self, orm):
@@ -11,7 +12,8 @@ class Migration(SchemaMigration):
         # Adding model 'MessageCountByMinute'
         db.create_table('sentry_messagecountbyminute', (
             ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
-            ('group', self.gf('sentry.db.models.fields.FlexibleForeignKey')(to=orm['sentry.GroupedMessage'])),
+            ('group', self.gf('sentry.db.models.fields.FlexibleForeignKey')(
+                to=orm['sentry.GroupedMessage'])),
             ('date', self.gf('django.db.models.fields.DateTimeField')()),
             ('times_seen', self.gf('django.db.models.fields.PositiveIntegerField')(default=0)),
         ))
@@ -23,7 +25,8 @@ class Migration(SchemaMigration):
         # Adding model 'MessageFilterValue'
         db.create_table('sentry_messagefiltervalue', (
             ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
-            ('group', self.gf('sentry.db.models.fields.FlexibleForeignKey')(to=orm['sentry.GroupedMessage'])),
+            ('group', self.gf('sentry.db.models.fields.FlexibleForeignKey')(
+                to=orm['sentry.GroupedMessage'])),
             ('times_seen', self.gf('django.db.models.fields.PositiveIntegerField')(default=0)),
             ('key', self.gf('django.db.models.fields.CharField')(max_length=32)),
             ('value', self.gf('django.db.models.fields.CharField')(max_length=200)),
@@ -32,7 +35,6 @@ class Migration(SchemaMigration):
 
         # Adding unique constraint on 'MessageFilterValue', fields ['key', 'value', 'group']
         db.create_unique('sentry_messagefiltervalue', ['key', 'value', 'group_id'])
-
 
     def backwards(self, orm):
 
@@ -47,7 +49,6 @@ class Migration(SchemaMigration):
 
         # Deleting model 'MessageFilterValue'
         db.delete_table('sentry_messagefiltervalue')
-
 
     models = {
         'sentry.filtervalue': {

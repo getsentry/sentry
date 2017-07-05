@@ -11,17 +11,16 @@ class Migration(SchemaMigration):
         # Adding model 'LostPasswordHash'
         db.create_table('sentry_lostpasswordhash', (
             ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
-            ('user', self.gf('sentry.db.models.fields.FlexibleForeignKey')(to=orm['sentry.User'], unique=True)),
+            ('user', self.gf('sentry.db.models.fields.FlexibleForeignKey')(
+                to=orm['sentry.User'], unique=True)),
             ('hash', self.gf('django.db.models.fields.CharField')(max_length=32)),
             ('date_added', self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)),
         ))
         db.send_create_signal('sentry', ['LostPasswordHash'])
 
-
     def backwards(self, orm):
         # Deleting model 'LostPasswordHash'
         db.delete_table('sentry_lostpasswordhash')
-
 
     models = {
         'sentry.user': {

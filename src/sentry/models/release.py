@@ -346,7 +346,8 @@ class Release(Model):
             commit_author_by_commit = {}
             latest_commit = None
             for idx, data in enumerate(commit_list):
-                repo_name = data.get('repository') or 'organization-{}'.format(self.organization_id)
+                repo_name = data.get(
+                    'repository') or 'organization-{}'.format(self.organization_id)
                 if repo_name not in repos:
                     repos[repo_name] = repo = Repository.objects.get_or_create(
                         organization_id=self.organization_id,

@@ -16,11 +16,9 @@ class Migration(SchemaMigration):
         ))
         db.send_create_signal('sentry', ['GroupRedirect'])
 
-
     def backwards(self, orm):
         # Deleting model 'GroupRedirect'
         db.delete_table('sentry_groupredirect')
-
 
     models = {
         'sentry.activity': {

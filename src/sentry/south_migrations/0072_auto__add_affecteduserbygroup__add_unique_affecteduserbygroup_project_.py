@@ -11,18 +11,21 @@ class Migration(SchemaMigration):
         # Adding model 'AffectedUserByGroup'
         db.create_table('sentry_affecteduserbygroup', (
             ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
-            ('project', self.gf('sentry.db.models.fields.FlexibleForeignKey')(to=orm['sentry.Project'])),
-            ('group', self.gf('sentry.db.models.fields.FlexibleForeignKey')(to=orm['sentry.Group'])),
+            ('project', self.gf('sentry.db.models.fields.FlexibleForeignKey')(
+                to=orm['sentry.Project'])),
+            ('group', self.gf('sentry.db.models.fields.FlexibleForeignKey')(
+                to=orm['sentry.Group'])),
             ('ident', self.gf('django.db.models.fields.CharField')(max_length=200)),
             ('times_seen', self.gf('django.db.models.fields.PositiveIntegerField')(default=0)),
-            ('last_seen', self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now, db_index=True)),
-            ('first_seen', self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now, db_index=True)),
+            ('last_seen', self.gf('django.db.models.fields.DateTimeField')(
+                default=datetime.datetime.now, db_index=True)),
+            ('first_seen', self.gf('django.db.models.fields.DateTimeField')(
+                default=datetime.datetime.now, db_index=True)),
         ))
         db.send_create_signal('sentry', ['AffectedUserByGroup'])
 
         # Adding unique constraint on 'AffectedUserByGroup', fields ['project', 'ident', 'group']
         db.create_unique('sentry_affecteduserbygroup', ['project_id', 'ident', 'group_id'])
-
 
     def backwards(self, orm):
         # Removing unique constraint on 'AffectedUserByGroup', fields ['project', 'ident', 'group']
@@ -30,7 +33,6 @@ class Migration(SchemaMigration):
 
         # Deleting model 'AffectedUserByGroup'
         db.delete_table('sentry_affecteduserbygroup')
-
 
     models = {
         'sentry.user': {

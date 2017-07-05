@@ -11,10 +11,12 @@ class Migration(SchemaMigration):
         # Adding model 'ProjectDSymFile'
         db.create_table('sentry_projectdsymfile', (
             ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
-            ('file', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.File'])),
+            ('file', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(
+                to=orm['sentry.File'])),
             ('object_name', self.gf('django.db.models.fields.TextField')()),
             ('cpu_name', self.gf('django.db.models.fields.CharField')(max_length=40)),
-            ('project', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.Project'], null=True)),
+            ('project', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(
+                to=orm['sentry.Project'], null=True)),
             ('uuid', self.gf('django.db.models.fields.CharField')(max_length=36)),
         ))
         db.send_create_signal('sentry', ['ProjectDSymFile'])
@@ -25,13 +27,13 @@ class Migration(SchemaMigration):
         # Adding model 'GlobalDSymFile'
         db.create_table('sentry_globaldsymfile', (
             ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
-            ('file', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.File'])),
+            ('file', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(
+                to=orm['sentry.File'])),
             ('object_name', self.gf('django.db.models.fields.TextField')()),
             ('cpu_name', self.gf('django.db.models.fields.CharField')(max_length=40)),
             ('uuid', self.gf('django.db.models.fields.CharField')(unique=True, max_length=36)),
         ))
         db.send_create_signal('sentry', ['GlobalDSymFile'])
-
 
     def backwards(self, orm):
         # Removing unique constraint on 'ProjectDSymFile', fields ['project', 'uuid']
@@ -42,7 +44,6 @@ class Migration(SchemaMigration):
 
         # Deleting model 'GlobalDSymFile'
         db.delete_table('sentry_globaldsymfile')
-
 
     models = {
         'sentry.activity': {

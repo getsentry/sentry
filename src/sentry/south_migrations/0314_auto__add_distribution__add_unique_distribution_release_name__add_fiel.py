@@ -11,8 +11,10 @@ class Migration(SchemaMigration):
         # Adding model 'Distribution'
         db.create_table('sentry_distribution', (
             ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
-            ('organization_id', self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')(db_index=True)),
-            ('release', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.Release'])),
+            ('organization_id', self.gf(
+                'sentry.db.models.fields.bounded.BoundedPositiveIntegerField')(db_index=True)),
+            ('release', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(
+                to=orm['sentry.Release'])),
             ('name', self.gf('django.db.models.fields.CharField')(max_length=64)),
             ('date_added', self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)),
         ))
@@ -23,9 +25,9 @@ class Migration(SchemaMigration):
 
         # Adding field 'ReleaseFile.dist'
         db.add_column('sentry_releasefile', 'dist',
-                      self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.Distribution'], null=True),
+                      self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(
+                          to=orm['sentry.Distribution'], null=True),
                       keep_default=False)
-
 
     def backwards(self, orm):
         # Removing unique constraint on 'Distribution', fields ['release', 'name']
@@ -36,7 +38,6 @@ class Migration(SchemaMigration):
 
         # Deleting field 'ReleaseFile.dist'
         db.delete_column('sentry_releasefile', 'dist_id')
-
 
     models = {
         'sentry.activity': {

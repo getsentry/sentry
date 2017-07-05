@@ -93,9 +93,9 @@ def sort_dependencies(app_list):
                 skipped.append((model, deps))
         if not changed:
             raise RuntimeError("Can't resolve dependencies for %s in serialized app list." %
-                ', '.join('%s.%s' % (model._meta.app_label, model._meta.object_name)
-                for model, deps in sorted(skipped, key=lambda obj: obj[0].__name__))
-            )
+                               ', '.join('%s.%s' % (model._meta.app_label, model._meta.object_name)
+                                         for model, deps in sorted(skipped, key=lambda obj: obj[0].__name__))
+                               )
         model_dependencies = skipped
 
     return model_list

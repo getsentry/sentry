@@ -7,6 +7,7 @@ from django.db import IntegrityError, models, transaction
 from django.db.models import Min, Max
 from django.utils import timezone
 
+
 class Migration(DataMigration):
 
     def forwards(self, orm):

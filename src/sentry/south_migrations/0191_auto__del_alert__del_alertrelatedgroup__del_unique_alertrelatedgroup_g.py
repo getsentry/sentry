@@ -17,13 +17,15 @@ class Migration(SchemaMigration):
         # Deleting model 'AlertRelatedGroup'
         db.delete_table(u'sentry_alertrelatedgroup')
 
-
     def backwards(self, orm):
         # Adding model 'Alert'
         db.create_table(u'sentry_alert', (
-            ('project', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.Project'])),
-            ('status', self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')(default=0, db_index=True)),
-            ('group', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.Group'], null=True)),
+            ('project', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(
+                to=orm['sentry.Project'])),
+            ('status', self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')(
+                default=0, db_index=True)),
+            ('group', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(
+                to=orm['sentry.Group'], null=True)),
             ('message', self.gf('django.db.models.fields.TextField')()),
             ('data', self.gf('sentry.db.models.fields.gzippeddict.GzippedDictField')(null=True)),
             ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
@@ -33,16 +35,17 @@ class Migration(SchemaMigration):
 
         # Adding model 'AlertRelatedGroup'
         db.create_table(u'sentry_alertrelatedgroup', (
-            ('group', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.Group'])),
+            ('group', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(
+                to=orm['sentry.Group'])),
             ('data', self.gf('sentry.db.models.fields.gzippeddict.GzippedDictField')(null=True)),
             ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
-            ('alert', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.Alert'])),
+            ('alert', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(
+                to=orm['sentry.Alert'])),
         ))
         db.send_create_signal('sentry', ['AlertRelatedGroup'])
 
         # Adding unique constraint on 'AlertRelatedGroup', fields ['group', 'alert']
         db.create_unique(u'sentry_alertrelatedgroup', ['group_id', 'alert_id'])
-
 
     models = {
         'sentry.accessgroup': {

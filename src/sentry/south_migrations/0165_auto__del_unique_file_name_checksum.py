@@ -11,11 +11,9 @@ class Migration(SchemaMigration):
         # Removing unique constraint on 'File', fields ['name', 'checksum']
         db.delete_unique(u'sentry_file', ['name', 'checksum'])
 
-
     def backwards(self, orm):
         # Adding unique constraint on 'File', fields ['name', 'checksum']
         db.create_unique(u'sentry_file', ['name', 'checksum'])
-
 
     models = {
         'sentry.accessgroup': {

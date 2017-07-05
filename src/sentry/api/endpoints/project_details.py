@@ -89,7 +89,8 @@ class ProjectAdminSerializer(serializers.Serializer):
 
     def validate_digestsMaxDelay(self, attrs, source):
         if attrs[source] < attrs['digestsMinDelay']:
-            raise serializers.ValidationError('The maximum delay on digests must be higher than the minimum.')
+            raise serializers.ValidationError(
+                'The maximum delay on digests must be higher than the minimum.')
         return attrs
 
 
@@ -251,7 +252,8 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             if 'sentry:scrub_data' in options:
                 project.update_option('sentry:scrub_data', bool(options['sentry:scrub_data']))
             if 'sentry:scrub_defaults' in options:
-                project.update_option('sentry:scrub_defaults', bool(options['sentry:scrub_defaults']))
+                project.update_option('sentry:scrub_defaults', bool(
+                    options['sentry:scrub_defaults']))
             if 'sentry:safe_fields' in options:
                 project.update_option(
                     'sentry:safe_fields',
@@ -263,16 +265,18 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                     [s.strip().lower() for s in options['sentry:sensitive_fields']]
                 )
             if 'sentry:csp_ignored_sources_defaults' in options:
-                project.update_option('sentry:csp_ignored_sources_defaults', bool(options['sentry:csp_ignored_sources_defaults']))
+                project.update_option('sentry:csp_ignored_sources_defaults', bool(
+                    options['sentry:csp_ignored_sources_defaults']))
             if 'sentry:csp_ignored_sources' in options:
                 project.update_option(
                     'sentry:csp_ignored_sources',
                     clean_newline_inputs(options['sentry:csp_ignored_sources']))
             if 'feedback:branding' in options:
-                project.update_option('feedback:branding', '1' if options['feedback:branding'] else '0')
+                project.update_option('feedback:branding',
+                                      '1' if options['feedback:branding'] else '0')
             if 'sentry:reprocessing_active' in options:
                 project.update_option('sentry:reprocessing_active',
-                    bool(options['sentry:reprocessing_active']))
+                                      bool(options['sentry:reprocessing_active']))
             if 'filters:blacklisted_ips' in options:
                 project.update_option(
                     'sentry:blacklisted_ips',

@@ -52,8 +52,8 @@ class MailPlugin(NotificationPlugin):
         return options.get('mail.subject-prefix')
 
     def _build_message(self, project, subject, template=None, html_template=None,
-                   body=None, reference=None, reply_reference=None, headers=None,
-                   context=None, send_to=None, type=None):
+                       body=None, reference=None, reply_reference=None, headers=None,
+                       context=None, send_to=None, type=None):
         if send_to is None:
             send_to = self.get_send_to(project)
         if not send_to:
@@ -121,9 +121,9 @@ class MailPlugin(NotificationPlugin):
 
     def add_unsubscribe_link(self, context, user_id, project):
         context['unsubscribe_link'] = generate_signed_link(user_id,
-            'sentry-account-email-unsubscribe-project', kwargs={
-                'project_id': project.id,
-            })
+                                                           'sentry-account-email-unsubscribe-project', kwargs={
+                                                               'project_id': project.id,
+                                                           })
 
     def notify(self, notification):
         event = notification.event

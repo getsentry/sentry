@@ -11,13 +11,12 @@ class Migration(SchemaMigration):
         # Deleting field 'Organization.owner'
         db.delete_column(u'sentry_organization', 'owner_id')
 
-
     def backwards(self, orm):
         # Adding field 'Organization.owner'
         db.add_column(u'sentry_organization', 'owner',
-                      self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.User'], null=True),
+                      self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(
+                          to=orm['sentry.User'], null=True),
                       keep_default=False)
-
 
     models = {
         'sentry.accessgroup': {

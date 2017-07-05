@@ -11,8 +11,10 @@ class Migration(SchemaMigration):
         # Adding model 'VersionDSymFile'
         db.create_table('sentry_versiondsymfile', (
             ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
-            ('dsym_file', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.ProjectDSymFile'], null=True)),
-            ('dsym_app', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.DSymApp'])),
+            ('dsym_file', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(
+                to=orm['sentry.ProjectDSymFile'], null=True)),
+            ('dsym_app', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(
+                to=orm['sentry.DSymApp'])),
             ('version', self.gf('django.db.models.fields.CharField')(max_length=32)),
             ('build', self.gf('django.db.models.fields.CharField')(max_length=32, null=True)),
             ('date_added', self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)),
@@ -25,7 +27,8 @@ class Migration(SchemaMigration):
         # Adding model 'DSymApp'
         db.create_table('sentry_dsymapp', (
             ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
-            ('project', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.Project'])),
+            ('project', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(
+                to=orm['sentry.Project'])),
             ('app_id', self.gf('django.db.models.fields.CharField')(max_length=64)),
             ('sync_id', self.gf('django.db.models.fields.CharField')(max_length=64, null=True)),
             ('data', self.gf('jsonfield.fields.JSONField')(default={})),
@@ -37,7 +40,6 @@ class Migration(SchemaMigration):
 
         # Adding unique constraint on 'DSymApp', fields ['project', 'platform', 'app_id']
         db.create_unique('sentry_dsymapp', ['project_id', 'platform', 'app_id'])
-
 
     def backwards(self, orm):
         # Removing unique constraint on 'DSymApp', fields ['project', 'platform', 'app_id']
@@ -51,7 +53,6 @@ class Migration(SchemaMigration):
 
         # Deleting model 'DSymApp'
         db.delete_table('sentry_dsymapp')
-
 
     models = {
         'sentry.activity': {

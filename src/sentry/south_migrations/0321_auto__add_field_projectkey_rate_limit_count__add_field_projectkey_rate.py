@@ -18,14 +18,12 @@ class Migration(SchemaMigration):
                       self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')(null=True),
                       keep_default=False)
 
-
     def backwards(self, orm):
         # Deleting field 'ProjectKey.rate_limit_count'
         db.delete_column('sentry_projectkey', 'rate_limit_count')
 
         # Deleting field 'ProjectKey.rate_limit_window'
         db.delete_column('sentry_projectkey', 'rate_limit_window')
-
 
     models = {
         'sentry.activity': {

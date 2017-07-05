@@ -11,18 +11,17 @@ class Migration(SchemaMigration):
         # Adding model 'Rule'
         db.create_table('sentry_rule', (
             ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
-            ('project', self.gf('sentry.db.models.fields.FlexibleForeignKey')(to=orm['sentry.Project'])),
+            ('project', self.gf('sentry.db.models.fields.FlexibleForeignKey')(
+                to=orm['sentry.Project'])),
             ('label', self.gf('django.db.models.fields.CharField')(max_length=64)),
             ('data', self.gf('sentry.db.models.fields.gzippeddict.GzippedDictField')()),
             ('date_added', self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)),
         ))
         db.send_create_signal('sentry', ['Rule'])
 
-
     def backwards(self, orm):
         # Deleting model 'Rule'
         db.delete_table('sentry_rule')
-
 
     models = {
         'sentry.accessgroup': {

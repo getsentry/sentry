@@ -50,13 +50,13 @@ def log_options(default=None):
 
         @click.pass_context
         @click.option('--loglevel', '-l', default=default,
-            help='Global logging level. Use wisely.',
-            envvar='SENTRY_LOG_LEVEL',
-            type=CaseInsensitiveChoice(LOG_LEVELS))
+                      help='Global logging level. Use wisely.',
+                      envvar='SENTRY_LOG_LEVEL',
+                      type=CaseInsensitiveChoice(LOG_LEVELS))
         @click.option('--logformat', default=default,
-            help='Log line format.',
-            envvar='SENTRY_LOG_FORMAT',
-            type=CaseInsensitiveChoice(formats))
+                      help='Log line format.',
+                      envvar='SENTRY_LOG_FORMAT',
+                      type=CaseInsensitiveChoice(formats))
         def inner(ctx, loglevel=None, logformat=None, *args, **kwargs):
             if loglevel:
                 os.environ['SENTRY_LOG_LEVEL'] = loglevel

@@ -13,11 +13,9 @@ class Migration(SchemaMigration):
                       self.gf('django.db.models.fields.DateTimeField')(null=True),
                       keep_default=False)
 
-
     def backwards(self, orm):
         # Deleting field 'Project.first_event'
         db.delete_column('sentry_project', 'first_event')
-
 
     models = {
         'sentry.activity': {

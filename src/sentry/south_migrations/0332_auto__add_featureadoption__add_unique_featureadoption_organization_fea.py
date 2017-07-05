@@ -11,9 +11,11 @@ class Migration(SchemaMigration):
         # Adding model 'FeatureAdoption'
         db.create_table('sentry_featureadoption', (
             ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
-            ('organization', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.Organization'])),
+            ('organization', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(
+                to=orm['sentry.Organization'])),
             ('feature_id', self.gf('django.db.models.fields.PositiveIntegerField')()),
-            ('date_completed', self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)),
+            ('date_completed', self.gf('django.db.models.fields.DateTimeField')(
+                default=datetime.datetime.now)),
             ('complete', self.gf('django.db.models.fields.BooleanField')(default=False)),
             ('applicable', self.gf('django.db.models.fields.BooleanField')(default=True)),
             ('data', self.gf('jsonfield.fields.JSONField')(default={})),
@@ -23,14 +25,12 @@ class Migration(SchemaMigration):
         # Adding unique constraint on 'FeatureAdoption', fields ['organization', 'feature_id']
         db.create_unique('sentry_featureadoption', ['organization_id', 'feature_id'])
 
-
     def backwards(self, orm):
         # Removing unique constraint on 'FeatureAdoption', fields ['organization', 'feature_id']
         db.delete_unique('sentry_featureadoption', ['organization_id', 'feature_id'])
 
         # Deleting model 'FeatureAdoption'
         db.delete_table('sentry_featureadoption')
-
 
     models = {
         'sentry.activity': {

@@ -6,6 +6,7 @@ from django.db import models, IntegrityError, transaction
 from django.db.models import Q
 from django.utils import timezone
 
+
 class Migration(DataMigration):
 
     def forwards(self, orm):
@@ -19,7 +20,8 @@ class Migration(DataMigration):
         queryset = Organization.objects.all()
 
         for organization in RangeQuerySetWrapperWithProgressBar(queryset):
-            completed = set(OrganizationOnboardingTask.objects.filter(Q(organization=organization) & (Q(status=OnboardingTaskStatus.COMPLETE) | Q(status=OnboardingTaskStatus.SKIPPED))).values_list('task', flat=True))
+            completed = set(OrganizationOnboardingTask.objects.filter(Q(organization=organization) & (
+                Q(status=OnboardingTaskStatus.COMPLETE) | Q(status=OnboardingTaskStatus.SKIPPED))).values_list('task', flat=True))
             if completed >= OnboardingTask.REQUIRED_ONBOARDING_TASKS:
                 try:
                     with transaction.atomic():
@@ -30,7 +32,6 @@ class Migration(DataMigration):
                         )
                 except IntegrityError:
                     pass
-
 
     def backwards(self, orm):
         "Write your backwards methods here."

@@ -4,6 +4,7 @@ from south.db import db
 from south.v2 import DataMigration
 from django.db import models
 
+
 class Migration(DataMigration):
 
     def forwards(self, orm):
@@ -16,7 +17,6 @@ class Migration(DataMigration):
         for project in orm['sentry.Project'].objects.filter(models.Q(slug='') | models.Q(slug__isnull=True)):
             slugify_instance(project, project.name)
             project.save()
-
 
     def backwards(self, orm):
         "Write your backwards methods here."

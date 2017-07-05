@@ -11,9 +11,12 @@ class Migration(SchemaMigration):
         # Adding model 'GroupSeen'
         db.create_table(u'sentry_groupseen', (
             ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
-            ('project', self.gf('sentry.db.models.fields.FlexibleForeignKey')(to=orm['sentry.Project'])),
-            ('group', self.gf('sentry.db.models.fields.FlexibleForeignKey')(to=orm['sentry.Group'])),
-            ('user', self.gf('sentry.db.models.fields.FlexibleForeignKey')(to=orm['sentry.User'], db_index=False)),
+            ('project', self.gf('sentry.db.models.fields.FlexibleForeignKey')(
+                to=orm['sentry.Project'])),
+            ('group', self.gf('sentry.db.models.fields.FlexibleForeignKey')(
+                to=orm['sentry.Group'])),
+            ('user', self.gf('sentry.db.models.fields.FlexibleForeignKey')(
+                to=orm['sentry.User'], db_index=False)),
             ('last_seen', self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)),
         ))
         db.send_create_signal(u'sentry', ['GroupSeen'])
@@ -21,14 +24,12 @@ class Migration(SchemaMigration):
         # Adding unique constraint on 'GroupSeen', fields ['group', 'user']
         db.create_unique(u'sentry_groupseen', ['user_id', 'group_id'])
 
-
     def backwards(self, orm):
         # Removing unique constraint on 'GroupSeen', fields ['group', 'user']
         db.delete_unique(u'sentry_groupseen', ['user_id', 'group_id'])
 
         # Deleting model 'GroupSeen'
         db.delete_table(u'sentry_groupseen')
-
 
     models = {
         u'auth.group': {

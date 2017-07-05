@@ -16,14 +16,12 @@ class Migration(SchemaMigration):
         # Adding unique constraint on 'Group', fields ['project', 'checksum']
         db.create_unique('sentry_groupedmessage', ['project_id', 'checksum'])
 
-
     def backwards(self, orm):
         # Removing unique constraint on 'Group', fields ['project', 'checksum']
         db.delete_unique('sentry_groupedmessage', ['project_id', 'checksum'])
 
         # Adding unique constraint on 'Group', fields ['project', 'checksum', 'logger', 'culprit']
         db.create_unique('sentry_groupedmessage', ['project_id', 'checksum', 'logger', 'view'])
-
 
     models = {
         'sentry.user': {

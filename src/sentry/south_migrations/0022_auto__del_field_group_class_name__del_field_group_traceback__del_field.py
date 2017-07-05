@@ -4,6 +4,7 @@ from south.db import db
 from south.v2 import SchemaMigration
 from django.db import models
 
+
 class Migration(SchemaMigration):
 
     def forwards(self, orm):
@@ -23,24 +24,27 @@ class Migration(SchemaMigration):
         # Deleting field 'Event.url'
         db.delete_column('sentry_message', 'url')
 
-
     def backwards(self, orm):
 
         # Adding field 'Group.class_name'
-        db.add_column('sentry_groupedmessage', 'class_name', self.gf('django.db.models.fields.CharField')(blank=True, max_length=128, null=True, db_index=True), keep_default=False)
+        db.add_column('sentry_groupedmessage', 'class_name', self.gf('django.db.models.fields.CharField')(
+            blank=True, max_length=128, null=True, db_index=True), keep_default=False)
 
         # Adding field 'Group.traceback'
-        db.add_column('sentry_groupedmessage', 'traceback', self.gf('django.db.models.fields.TextField')(null=True, blank=True), keep_default=False)
+        db.add_column('sentry_groupedmessage', 'traceback', self.gf(
+            'django.db.models.fields.TextField')(null=True, blank=True), keep_default=False)
 
         # Adding field 'Event.class_name'
-        db.add_column('sentry_message', 'class_name', self.gf('django.db.models.fields.CharField')(blank=True, max_length=128, null=True, db_index=True), keep_default=False)
+        db.add_column('sentry_message', 'class_name', self.gf('django.db.models.fields.CharField')(
+            blank=True, max_length=128, null=True, db_index=True), keep_default=False)
 
         # Adding field 'Event.traceback'
-        db.add_column('sentry_message', 'traceback', self.gf('django.db.models.fields.TextField')(null=True, blank=True), keep_default=False)
+        db.add_column('sentry_message', 'traceback', self.gf(
+            'django.db.models.fields.TextField')(null=True, blank=True), keep_default=False)
 
         # Adding field 'Event.url'
-        db.add_column('sentry_message', 'url', self.gf('django.db.models.fields.URLField')(max_length=200, null=True, blank=True), keep_default=False)
-
+        db.add_column('sentry_message', 'url', self.gf('django.db.models.fields.URLField')(
+            max_length=200, null=True, blank=True), keep_default=False)
 
     models = {
         'sentry.user': {

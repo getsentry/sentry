@@ -10,14 +10,13 @@ class Migration(SchemaMigration):
     def forwards(self, orm):
         # Adding field 'Organization.slug'
         db.add_column('sentry_organization', 'slug',
-                      self.gf('django.db.models.fields.SlugField')(max_length=50, unique=True, null=True),
+                      self.gf('django.db.models.fields.SlugField')(
+                          max_length=50, unique=True, null=True),
                       keep_default=False)
-
 
     def backwards(self, orm):
         # Deleting field 'Organization.slug'
         db.delete_column('sentry_organization', 'slug')
-
 
     models = {
         'sentry.accessgroup': {

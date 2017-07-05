@@ -11,13 +11,12 @@ class Migration(SchemaMigration):
         # Deleting field 'Activity.event'
         db.delete_column(u'sentry_activity', 'event_id')
 
-
     def backwards(self, orm):
         # Adding field 'Activity.event'
         db.add_column(u'sentry_activity', 'event',
-                      self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.Event'], null=True),
+                      self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(
+                          to=orm['sentry.Event'], null=True),
                       keep_default=False)
-
 
     models = {
         'sentry.activity': {

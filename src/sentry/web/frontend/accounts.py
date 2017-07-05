@@ -493,9 +493,9 @@ def show_emails(request):
 
         if User.objects.filter(Q(email__iexact=new_primary) | Q(username__iexact=new_primary)).exclude(id=user.id).exists():
             messages.add_message(request,
-                messages.ERROR,
-                _("That email is already in use for another user")
-            )
+                                 messages.ERROR,
+                                 _("That email is already in use for another user")
+                                 )
 
         elif new_primary != user.email:
 

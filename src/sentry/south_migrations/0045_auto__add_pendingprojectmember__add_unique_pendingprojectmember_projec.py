@@ -4,6 +4,7 @@ from south.db import db
 from south.v2 import SchemaMigration
 from django.db import models
 
+
 class Migration(SchemaMigration):
 
     def forwards(self, orm):
@@ -11,7 +12,8 @@ class Migration(SchemaMigration):
         # Adding model 'PendingProjectMember'
         db.create_table('sentry_pendingprojectmember', (
             ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
-            ('project', self.gf('sentry.db.models.fields.FlexibleForeignKey')(related_name='pending_member_set', to=orm['sentry.Project'])),
+            ('project', self.gf('sentry.db.models.fields.FlexibleForeignKey')(
+                related_name='pending_member_set', to=orm['sentry.Project'])),
             ('email', self.gf('django.db.models.fields.EmailField')(max_length=75)),
             ('type', self.gf('django.db.models.fields.IntegerField')(default=0)),
             ('date_added', self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)),
@@ -21,7 +23,6 @@ class Migration(SchemaMigration):
         # Adding unique constraint on 'PendingProjectMember', fields ['project', 'email']
         db.create_unique('sentry_pendingprojectmember', ['project_id', 'email'])
 
-
     def backwards(self, orm):
 
         # Removing unique constraint on 'PendingProjectMember', fields ['project', 'email']
@@ -29,7 +30,6 @@ class Migration(SchemaMigration):
 
         # Deleting model 'PendingProjectMember'
         db.delete_table('sentry_pendingprojectmember')
-
 
     models = {
         'sentry.user': {

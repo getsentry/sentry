@@ -13,11 +13,9 @@ class Migration(SchemaMigration):
                       self.gf('django.db.models.fields.DateTimeField')(null=True),
                       keep_default=False)
 
-
     def backwards(self, orm):
         # Deleting field 'Release.date_released'
         db.delete_column('sentry_release', 'date_released')
-
 
     models = {
         'sentry.accessgroup': {

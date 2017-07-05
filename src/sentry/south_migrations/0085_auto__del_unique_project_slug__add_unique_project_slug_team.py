@@ -14,14 +14,12 @@ class Migration(SchemaMigration):
         # Adding unique constraint on 'Project', fields ['slug', 'team']
         db.create_unique('sentry_project', ['slug', 'team_id'])
 
-
     def backwards(self, orm):
         # Removing unique constraint on 'Project', fields ['slug', 'team']
         db.delete_unique('sentry_project', ['slug', 'team_id'])
 
         # Adding unique constraint on 'Project', fields ['slug']
         db.create_unique('sentry_project', ['slug'])
-
 
     models = {
         'sentry.user': {

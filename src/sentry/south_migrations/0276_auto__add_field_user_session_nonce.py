@@ -13,11 +13,9 @@ class Migration(SchemaMigration):
                       self.gf('django.db.models.fields.CharField')(max_length=12, null=True),
                       keep_default=False)
 
-
     def backwards(self, orm):
         # Deleting field 'User.session_nonce'
         db.delete_column('auth_user', 'session_nonce')
-
 
     models = {
         'sentry.activity': {

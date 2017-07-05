@@ -192,4 +192,5 @@ class NoAccess(BaseAccess):
     memberships = ()
     scopes = frozenset()
 
+
 DEFAULT = NoAccess()

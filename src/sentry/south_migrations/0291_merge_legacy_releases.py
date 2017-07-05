@@ -269,7 +269,6 @@ class Migration(DataMigration):
 
         db.start_transaction()
 
-
     def backwards(self, orm):
         "Write your backwards methods here."
         pass

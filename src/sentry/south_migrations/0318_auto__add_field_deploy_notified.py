@@ -13,11 +13,9 @@ class Migration(SchemaMigration):
                       self.gf('django.db.models.fields.NullBooleanField')(null=True, blank=True),
                       keep_default=False)
 
-
     def backwards(self, orm):
         # Deleting field 'Deploy.notified'
         db.delete_column('sentry_deploy', 'notified')
-
 
     models = {
         'sentry.activity': {

@@ -74,7 +74,7 @@ class AuditLogEntry(Model):
     actor_key = FlexibleForeignKey('sentry.ApiKey', null=True, blank=True)
     target_object = BoundedPositiveIntegerField(null=True)
     target_user = FlexibleForeignKey('sentry.User', null=True, blank=True,
-                                    related_name='audit_targets')
+                                     related_name='audit_targets')
     # TODO(dcramer): we want to compile this mapping into JSX for the UI
     event = BoundedPositiveIntegerField(choices=(
         # We emulate github a bit with event naming

@@ -32,16 +32,20 @@ class Migration(SchemaMigration):
         # Adding M2M table for field groups on 'User'
         db.create_table('auth_user_groups', (
             ('id', models.AutoField(verbose_name='ID', primary_key=True, auto_created=True)),
-            ('user', self.gf('sentry.db.models.fields.FlexibleForeignKey')(orm[u'sentry.user'], null=False)),
-            ('group', self.gf('sentry.db.models.fields.FlexibleForeignKey')(orm[u'auth.group'], null=False))
+            ('user', self.gf('sentry.db.models.fields.FlexibleForeignKey')(
+                orm[u'sentry.user'], null=False)),
+            ('group', self.gf('sentry.db.models.fields.FlexibleForeignKey')(
+                orm[u'auth.group'], null=False))
         ))
         db.create_unique('auth_user_groups', ['user_id', 'group_id'])
 
         # Adding M2M table for field user_permissions on 'User'
         db.create_table('auth_user_user_permissions', (
             ('id', models.AutoField(verbose_name='ID', primary_key=True, auto_created=True)),
-            ('user', self.gf('sentry.db.models.fields.FlexibleForeignKey')(orm[u'sentry.user'], null=False)),
-            ('permission', self.gf('sentry.db.models.fields.FlexibleForeignKey')(orm[u'auth.permission'], null=False))
+            ('user', self.gf('sentry.db.models.fields.FlexibleForeignKey')(
+                orm[u'sentry.user'], null=False)),
+            ('permission', self.gf('sentry.db.models.fields.FlexibleForeignKey')(
+                orm[u'auth.permission'], null=False))
         ))
         db.create_unique('auth_user_user_permissions', ['user_id', 'permission_id'])
 

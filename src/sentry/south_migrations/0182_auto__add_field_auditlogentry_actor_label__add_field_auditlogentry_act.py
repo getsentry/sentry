@@ -10,17 +10,19 @@ class Migration(SchemaMigration):
     def forwards(self, orm):
         # Adding field 'AuditLogEntry.actor_label'
         db.add_column('sentry_auditlogentry', 'actor_label',
-                      self.gf('django.db.models.fields.CharField')(max_length=64, null=True, blank=True),
+                      self.gf('django.db.models.fields.CharField')(
+                          max_length=64, null=True, blank=True),
                       keep_default=False)
 
         # Adding field 'AuditLogEntry.actor_key'
         db.add_column('sentry_auditlogentry', 'actor_key',
-                      self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.ApiKey'], null=True, blank=True),
+                      self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(
+                          to=orm['sentry.ApiKey'], null=True, blank=True),
                       keep_default=False)
 
-
         # Changing field 'AuditLogEntry.actor'
-        db.alter_column('sentry_auditlogentry', 'actor_id', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(null=True, to=orm['sentry.User']))
+        db.alter_column('sentry_auditlogentry', 'actor_id', self.gf(
+            'sentry.db.models.fields.foreignkey.FlexibleForeignKey')(null=True, to=orm['sentry.User']))
 
     def backwards(self, orm):
         # Deleting field 'AuditLogEntry.actor_label'
@@ -29,13 +31,14 @@ class Migration(SchemaMigration):
         # Deleting field 'AuditLogEntry.actor_key'
         db.delete_column('sentry_auditlogentry', 'actor_key_id')
 
-
         # User chose to not deal with backwards NULL issues for 'AuditLogEntry.actor'
-        raise RuntimeError("Cannot reverse this migration. 'AuditLogEntry.actor' and its values cannot be restored.")
-        
+        raise RuntimeError(
+            "Cannot reverse this migration. 'AuditLogEntry.actor' and its values cannot be restored.")
+
         # The following code is provided here to aid in writing a correct migration
         # Changing field 'AuditLogEntry.actor'
-        db.alter_column('sentry_auditlogentry', 'actor_id', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.User']))
+        db.alter_column('sentry_auditlogentry', 'actor_id', self.gf(
+            'sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.User']))
 
     models = {
         'sentry.accessgroup': {

@@ -4,16 +4,18 @@ from south.db import db
 from south.v2 import SchemaMigration
 from django.db import models
 
+
 class Migration(SchemaMigration):
 
     def forwards(self, orm):
 
         # Adding field 'Group.time_spent_total'
-        db.add_column('sentry_groupedmessage', 'time_spent_total', self.gf('django.db.models.fields.FloatField')(default=0), keep_default=False)
+        db.add_column('sentry_groupedmessage', 'time_spent_total', self.gf(
+            'django.db.models.fields.FloatField')(default=0), keep_default=False)
 
         # Adding field 'Group.time_spent_count'
-        db.add_column('sentry_groupedmessage', 'time_spent_count', self.gf('django.db.models.fields.IntegerField')(default=0), keep_default=False)
-
+        db.add_column('sentry_groupedmessage', 'time_spent_count', self.gf(
+            'django.db.models.fields.IntegerField')(default=0), keep_default=False)
 
     def backwards(self, orm):
 
@@ -22,7 +24,6 @@ class Migration(SchemaMigration):
 
         # Deleting field 'Group.time_spent_count'
         db.delete_column('sentry_groupedmessage', 'time_spent_count')
-
 
     models = {
         'sentry.user': {

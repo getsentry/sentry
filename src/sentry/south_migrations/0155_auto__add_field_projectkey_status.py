@@ -10,14 +10,13 @@ class Migration(SchemaMigration):
     def forwards(self, orm):
         # Adding field 'ProjectKey.status'
         db.add_column('sentry_projectkey', 'status',
-                      self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')(default=0, db_index=True),
+                      self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')(
+                          default=0, db_index=True),
                       keep_default=False)
-
 
     def backwards(self, orm):
         # Deleting field 'ProjectKey.status'
         db.delete_column('sentry_projectkey', 'status')
-
 
     models = {
         'sentry.accessgroup': {

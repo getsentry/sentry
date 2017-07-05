@@ -131,7 +131,8 @@ def get_group_backfill_attributes(caches, group, events):
                 {name: f(caches, data, event) for name, f in backfill_fields.items()},
             ]),
             events,
-            {name: getattr(group, name) for name in set(initial_fields.keys()) | set(backfill_fields.keys())},
+            {name: getattr(group, name)
+             for name in set(initial_fields.keys()) | set(backfill_fields.keys())},
         ).items()
         if k in backfill_fields
     }

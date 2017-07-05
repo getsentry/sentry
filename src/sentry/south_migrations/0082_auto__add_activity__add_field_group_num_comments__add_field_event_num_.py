@@ -11,12 +11,16 @@ class Migration(SchemaMigration):
         # Adding model 'Activity'
         db.create_table('sentry_activity', (
             ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
-            ('project', self.gf('sentry.db.models.fields.FlexibleForeignKey')(to=orm['sentry.Project'])),
-            ('group', self.gf('sentry.db.models.fields.FlexibleForeignKey')(to=orm['sentry.Group'], null=True)),
-            ('event', self.gf('sentry.db.models.fields.FlexibleForeignKey')(to=orm['sentry.Event'], null=True)),
+            ('project', self.gf('sentry.db.models.fields.FlexibleForeignKey')(
+                to=orm['sentry.Project'])),
+            ('group', self.gf('sentry.db.models.fields.FlexibleForeignKey')(
+                to=orm['sentry.Group'], null=True)),
+            ('event', self.gf('sentry.db.models.fields.FlexibleForeignKey')(
+                to=orm['sentry.Event'], null=True)),
             ('type', self.gf('django.db.models.fields.PositiveIntegerField')()),
             ('ident', self.gf('django.db.models.fields.CharField')(max_length=64, null=True)),
-            ('user', self.gf('sentry.db.models.fields.FlexibleForeignKey')(to=orm['sentry.User'], null=True)),
+            ('user', self.gf('sentry.db.models.fields.FlexibleForeignKey')(
+                to=orm['sentry.User'], null=True)),
             ('datetime', self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)),
             ('data', self.gf('django.db.models.fields.TextField')(null=True)),
         ))
@@ -24,14 +28,15 @@ class Migration(SchemaMigration):
 
         # Adding field 'Group.num_comments'
         db.add_column('sentry_groupedmessage', 'num_comments',
-                      self.gf('django.db.models.fields.PositiveIntegerField')(default=0, null=True),
+                      self.gf('django.db.models.fields.PositiveIntegerField')(
+                          default=0, null=True),
                       keep_default=False)
 
         # Adding field 'Event.num_comments'
         db.add_column('sentry_message', 'num_comments',
-                      self.gf('django.db.models.fields.PositiveIntegerField')(default=0, null=True),
+                      self.gf('django.db.models.fields.PositiveIntegerField')(
+                          default=0, null=True),
                       keep_default=False)
-
 
     def backwards(self, orm):
         # Deleting model 'Activity'
@@ -42,7 +47,6 @@ class Migration(SchemaMigration):
 
         # Deleting field 'Event.num_comments'
         db.delete_column('sentry_message', 'num_comments')
-
 
     models = {
         'sentry.user': {

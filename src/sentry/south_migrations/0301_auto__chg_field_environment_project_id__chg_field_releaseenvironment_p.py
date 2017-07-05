@@ -6,6 +6,7 @@ from django.db import models
 
 from sentry.utils.db import is_postgres
 
+
 class Migration(SchemaMigration):
 
     def forwards(self, orm):
@@ -14,29 +15,35 @@ class Migration(SchemaMigration):
         if is_postgres():
             db.execute("ALTER TABLE sentry_environment ALTER COLUMN project_id DROP NOT NULL")
         else:
-            db.alter_column('sentry_environment', 'project_id', self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')(null=True))
+            db.alter_column('sentry_environment', 'project_id', self.gf(
+                'sentry.db.models.fields.bounded.BoundedPositiveIntegerField')(null=True))
 
         # Changing field 'ReleaseEnvironment.project_id'
         if is_postgres():
             db.execute("ALTER TABLE sentry_environmentrelease ALTER COLUMN project_id DROP NOT NULL")
         else:
-            db.alter_column('sentry_environmentrelease', 'project_id', self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')(null=True))
+            db.alter_column('sentry_environmentrelease', 'project_id', self.gf(
+                'sentry.db.models.fields.bounded.BoundedPositiveIntegerField')(null=True))
 
     def backwards(self, orm):
 
         # User chose to not deal with backwards NULL issues for 'Environment.project_id'
-        raise RuntimeError("Cannot reverse this migration. 'Environment.project_id' and its values cannot be restored.")
+        raise RuntimeError(
+            "Cannot reverse this migration. 'Environment.project_id' and its values cannot be restored.")
 
         # The following code is provided here to aid in writing a correct migration
         # Changing field 'Environment.project_id'
-        db.alter_column('sentry_environment', 'project_id', self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')())
+        db.alter_column('sentry_environment', 'project_id', self.gf(
+            'sentry.db.models.fields.bounded.BoundedPositiveIntegerField')())
 
         # User chose to not deal with backwards NULL issues for 'ReleaseEnvironment.project_id'
-        raise RuntimeError("Cannot reverse this migration. 'ReleaseEnvironment.project_id' and its values cannot be restored.")
+        raise RuntimeError(
+            "Cannot reverse this migration. 'ReleaseEnvironment.project_id' and its values cannot be restored.")
 
         # The following code is provided here to aid in writing a correct migration
         # Changing field 'ReleaseEnvironment.project_id'
-        db.alter_column('sentry_environmentrelease', 'project_id', self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')())
+        db.alter_column('sentry_environmentrelease', 'project_id', self.gf(
+            'sentry.db.models.fields.bounded.BoundedPositiveIntegerField')())
 
     models = {
         'sentry.activity': {

@@ -23,14 +23,12 @@ class Migration(SchemaMigration):
         ))
         db.create_unique(m2m_table_name, ['authprovider_id', 'team_id'])
 
-
     def backwards(self, orm):
         # Deleting field 'AuthProvider.default_global_access'
         db.delete_column('sentry_authprovider', 'default_global_access')
 
         # Removing M2M table for field default_teams on 'AuthProvider'
         db.delete_table(db.shorten_name('sentry_authprovider_default_teams'))
-
 
     models = {
         'sentry.accessgroup': {

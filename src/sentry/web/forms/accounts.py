@@ -42,6 +42,7 @@ def _get_timezone_choices():
         results[i] = results[i][1:]
     return results
 
+
 TIMEZONE_CHOICES = _get_timezone_choices()
 
 
@@ -49,12 +50,12 @@ class AuthenticationForm(forms.Form):
     username = forms.CharField(
         label=_('Account'), max_length=128, widget=forms.TextInput(
             attrs={'placeholder': _('username or email'),
-        }),
+                   }),
     )
     password = forms.CharField(
         label=_('Password'), widget=forms.PasswordInput(
             attrs={'placeholder': _('password'),
-        }),
+                   }),
     )
 
     error_messages = {
@@ -190,7 +191,8 @@ class RegistrationForm(forms.ModelForm):
         if not value:
             return
         if User.objects.filter(username__iexact=value).exists():
-            raise forms.ValidationError(_('An account is already registered with that email address.'))
+            raise forms.ValidationError(
+                _('An account is already registered with that email address.'))
         return value.lower()
 
     def clean_password(self):
@@ -223,10 +225,12 @@ class RecoverPasswordForm(forms.Form):
 
         users = [u for u in users if not u.is_managed]
         if not users:
-            raise forms.ValidationError(_("The account you are trying to recover is managed and does not support password recovery."))
+            raise forms.ValidationError(
+                _("The account you are trying to recover is managed and does not support password recovery."))
 
         if len(users) > 1:
-            raise forms.ValidationError(_("Multiple accounts were found matching this email address."))
+            raise forms.ValidationError(
+                _("Multiple accounts were found matching this email address."))
         return users[0]
 
 
@@ -268,7 +272,8 @@ class EmailForm(forms.Form):
         if value and not self.user.check_password(value):
             raise forms.ValidationError(_('The password you entered is not correct.'))
         elif not value:
-            raise forms.ValidationError(_('You must confirm your current password to make changes.'))
+            raise forms.ValidationError(
+                _('You must confirm your current password to make changes.'))
         return value
 
 
@@ -321,7 +326,7 @@ class AccountSettingsForm(forms.Form):
 
     def _clean_managed_field(self, field):
         if self.user.is_managed and (field == 'username' or
-                field in settings.SENTRY_MANAGED_USER_FIELDS):
+                                     field in settings.SENTRY_MANAGED_USER_FIELDS):
             return getattr(self.user, field)
         return self.cleaned_data[field]
 
@@ -538,13 +543,15 @@ class NotificationSettingsForm(forms.Form):
 
     subscribe_by_default = forms.BooleanField(
         label=_('Automatically subscribe to alerts for new projects'),
-        help_text=_("When enabled, you'll automatically subscribe to alerts when you create or join a project."),
+        help_text=_(
+            "When enabled, you'll automatically subscribe to alerts when you create or join a project."),
         required=False,
     )
 
     workflow_notifications = forms.BooleanField(
         label=_('Automatically subscribe to workflow notifications for new projects'),
-        help_text=_("When enabled, you'll automatically subscribe to workflow notifications when you create or join a project."),
+        help_text=_(
+            "When enabled, you'll automatically subscribe to workflow notifications when you create or join a project."),
         required=False,
     )
     self_notifications = forms.BooleanField(
@@ -555,7 +562,8 @@ class NotificationSettingsForm(forms.Form):
 
     self_assign_issue = forms.BooleanField(
         label=_('Claim unassigned issues when resolving them'),
-        help_text=_("When enabled, you'll automatically be assigned to unassigned issues when marking them as resolved."),
+        help_text=_(
+            "When enabled, you'll automatically be assigned to unassigned issues when marking them as resolved."),
         required=False,
     )
 
@@ -642,7 +650,7 @@ class ProjectEmailOptionsForm(forms.Form):
     alert = forms.BooleanField(required=False)
     workflow = forms.BooleanField(required=False)
     email = forms.ChoiceField(label="", choices=(), required=False,
-        widget=forms.Select())
+                              widget=forms.Select())
 
     def __init__(self, project, user, *args, **kwargs):
         self.project = project
@@ -679,7 +687,8 @@ class ProjectEmailOptionsForm(forms.Form):
         UserOption.objects.set_value(
             user=self.user,
             key='workflow:notifications',
-            value=UserOptionValue.all_conversations if self.cleaned_data['workflow'] else UserOptionValue.participating_only,
+            value=UserOptionValue.all_conversations if self.cleaned_data[
+                'workflow'] else UserOptionValue.participating_only,
             project=self.project,
         )
 
@@ -700,7 +709,7 @@ class TwoFactorForm(forms.Form):
         label=_('One-time password'), max_length=20, widget=forms.TextInput(
             attrs={'placeholder': _('Code from authenticator'),
                    'autofocus': True,
-        }),
+                   }),
     )
 
 
@@ -726,5 +735,6 @@ class ConfirmPasswordForm(forms.Form):
         if value and not self.user.check_password(value):
             raise forms.ValidationError(_('The password you entered is not correct.'))
         elif not value:
-            raise forms.ValidationError(_('You must confirm your current password to make changes.'))
+            raise forms.ValidationError(
+                _('You must confirm your current password to make changes.'))
         return value

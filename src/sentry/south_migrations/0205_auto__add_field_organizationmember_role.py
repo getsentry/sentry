@@ -10,14 +10,13 @@ class Migration(SchemaMigration):
     def forwards(self, orm):
         # Adding field 'OrganizationMember.role'
         db.add_column('sentry_organizationmember', 'role',
-                      self.gf('django.db.models.fields.CharField')(default='member', max_length=32),
+                      self.gf('django.db.models.fields.CharField')(
+                          default='member', max_length=32),
                       keep_default=False)
-
 
     def backwards(self, orm):
         # Deleting field 'OrganizationMember.role'
         db.delete_column('sentry_organizationmember', 'role')
-
 
     models = {
         'sentry.activity': {

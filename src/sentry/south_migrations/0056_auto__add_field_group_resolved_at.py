@@ -4,19 +4,19 @@ from south.db import db
 from south.v2 import SchemaMigration
 from django.db import models
 
+
 class Migration(SchemaMigration):
 
     def forwards(self, orm):
 
         # Adding field 'Group.resolved_at'
-        db.add_column('sentry_groupedmessage', 'resolved_at', self.gf('django.db.models.fields.DateTimeField')(null=True, db_index=True), keep_default=False)
-
+        db.add_column('sentry_groupedmessage', 'resolved_at', self.gf(
+            'django.db.models.fields.DateTimeField')(null=True, db_index=True), keep_default=False)
 
     def backwards(self, orm):
 
         # Deleting field 'Group.resolved_at'
         db.delete_column('sentry_groupedmessage', 'resolved_at')
-
 
     models = {
         'sentry.user': {

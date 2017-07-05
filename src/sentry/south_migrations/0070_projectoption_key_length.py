@@ -8,7 +8,8 @@ from django.db import models
 class Migration(SchemaMigration):
 
     def forwards(self, orm):
-        db.alter_column('sentry_projectoptions', 'key', self.gf('django.db.models.fields.CharField')(max_length=64))
+        db.alter_column('sentry_projectoptions', 'key', self.gf(
+            'django.db.models.fields.CharField')(max_length=64))
 
     def backwards(self, orm):
         pass

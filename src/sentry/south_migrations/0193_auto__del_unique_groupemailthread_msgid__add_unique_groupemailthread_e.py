@@ -14,14 +14,12 @@ class Migration(SchemaMigration):
         # Adding unique constraint on 'GroupEmailThread', fields ['email', 'msgid']
         db.create_unique('sentry_groupemailthread', ['email', 'msgid'])
 
-
     def backwards(self, orm):
         # Removing unique constraint on 'GroupEmailThread', fields ['email', 'msgid']
         db.delete_unique('sentry_groupemailthread', ['email', 'msgid'])
 
         # Adding unique constraint on 'GroupEmailThread', fields ['msgid']
         db.create_unique(u'sentry_groupemailthread', ['msgid'])
-
 
     models = {
         'sentry.accessgroup': {

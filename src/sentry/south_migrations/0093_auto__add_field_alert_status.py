@@ -10,14 +10,13 @@ class Migration(SchemaMigration):
     def forwards(self, orm):
         # Adding field 'Alert.status'
         db.add_column('sentry_alert', 'status',
-                      self.gf('django.db.models.fields.PositiveIntegerField')(default=0, db_index=True),
+                      self.gf('django.db.models.fields.PositiveIntegerField')(
+                          default=0, db_index=True),
                       keep_default=False)
-
 
     def backwards(self, orm):
         # Deleting field 'Alert.status'
         db.delete_column('sentry_alert', 'status')
-
 
     models = {
         'sentry.user': {

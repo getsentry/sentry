@@ -18,14 +18,12 @@ class Migration(SchemaMigration):
                       self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')(null=True),
                       keep_default=False)
 
-
     def backwards(self, orm):
         # Deleting field 'GroupResolution.type'
         db.delete_column('sentry_groupresolution', 'type')
 
         # Deleting field 'GroupResolution.actor_id'
         db.delete_column('sentry_groupresolution', 'actor_id')
-
 
     models = {
         'sentry.activity': {

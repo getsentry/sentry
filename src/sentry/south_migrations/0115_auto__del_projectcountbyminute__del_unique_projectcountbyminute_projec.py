@@ -14,13 +14,13 @@ class Migration(SchemaMigration):
         # Deleting model 'GroupCountByMinute'
         db.delete_table('sentry_messagecountbyminute')
 
-
     def backwards(self, orm):
         # Adding model 'ProjectCountByMinute'
         db.create_table(u'sentry_projectcountbyminute', (
             ('time_spent_count', self.gf('django.db.models.fields.PositiveIntegerField')(default=0)),
             ('times_seen', self.gf('django.db.models.fields.PositiveIntegerField')(default=0)),
-            ('project', self.gf('sentry.db.models.fields.FlexibleForeignKey')(to=orm['sentry.Project'], null=True)),
+            ('project', self.gf('sentry.db.models.fields.FlexibleForeignKey')(
+                to=orm['sentry.Project'], null=True)),
             ('time_spent_total', self.gf('django.db.models.fields.PositiveIntegerField')(default=0)),
             ('date', self.gf('django.db.models.fields.DateTimeField')()),
             ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
@@ -32,9 +32,11 @@ class Migration(SchemaMigration):
 
         # Adding model 'GroupCountByMinute'
         db.create_table('sentry_messagecountbyminute', (
-            ('project', self.gf('sentry.db.models.fields.FlexibleForeignKey')(to=orm['sentry.Project'], null=True)),
+            ('project', self.gf('sentry.db.models.fields.FlexibleForeignKey')(
+                to=orm['sentry.Project'], null=True)),
             ('time_spent_total', self.gf('django.db.models.fields.PositiveIntegerField')(default=0)),
-            ('group', self.gf('sentry.db.models.fields.FlexibleForeignKey')(to=orm['sentry.Group'])),
+            ('group', self.gf('sentry.db.models.fields.FlexibleForeignKey')(
+                to=orm['sentry.Group'])),
             ('time_spent_count', self.gf('django.db.models.fields.PositiveIntegerField')(default=0)),
             ('date', self.gf('django.db.models.fields.DateTimeField')(db_index=True)),
             ('times_seen', self.gf('django.db.models.fields.PositiveIntegerField')(default=0)),
@@ -44,7 +46,6 @@ class Migration(SchemaMigration):
 
         # Adding unique constraint on 'GroupCountByMinute', fields ['project', 'group', 'date']
         db.create_unique('sentry_messagecountbyminute', ['project_id', 'group_id', 'date'])
-
 
     models = {
         'sentry.accessgroup': {

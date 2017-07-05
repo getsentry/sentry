@@ -11,7 +11,8 @@ class Migration(SchemaMigration):
         # Adding model 'Authenticator'
         db.create_table('auth_authenticator', (
             ('id', self.gf('sentry.db.models.fields.bounded.BoundedAutoField')(primary_key=True)),
-            ('user', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.User'])),
+            ('user', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(
+                to=orm['sentry.User'])),
             ('created_at', self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)),
             ('last_used_at', self.gf('django.db.models.fields.DateTimeField')(null=True)),
             ('type', self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')()),
@@ -19,11 +20,9 @@ class Migration(SchemaMigration):
         ))
         db.send_create_signal('sentry', ['Authenticator'])
 
-
     def backwards(self, orm):
         # Deleting model 'Authenticator'
         db.delete_table('auth_authenticator')
-
 
     models = {
         'sentry.activity': {

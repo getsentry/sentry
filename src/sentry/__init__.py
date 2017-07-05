@@ -59,6 +59,7 @@ def is_docker():
     # a git based image.
     return 'SENTRY_VERSION' in os.environ or 'SENTRY_BUILD' in os.environ
 
+
 __version__ = VERSION
 __build__ = get_revision()
 __docformat__ = 'restructuredtext en'

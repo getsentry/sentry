@@ -11,15 +11,17 @@ class Migration(SchemaMigration):
         # Adding model 'SavedSearchUserDefault'
         db.create_table('sentry_savedsearch_userdefault', (
             ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
-            ('savedsearch', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.SavedSearch'])),
-            ('project', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.Project'])),
-            ('user', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.User'])),
+            ('savedsearch', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(
+                to=orm['sentry.SavedSearch'])),
+            ('project', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(
+                to=orm['sentry.Project'])),
+            ('user', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(
+                to=orm['sentry.User'])),
         ))
         db.send_create_signal('sentry', ['SavedSearchUserDefault'])
 
         # Adding unique constraint on 'SavedSearchUserDefault', fields ['project', 'user']
         db.create_unique('sentry_savedsearch_userdefault', ['project_id', 'user_id'])
-
 
     def backwards(self, orm):
         # Removing unique constraint on 'SavedSearchUserDefault', fields ['project', 'user']
@@ -27,7 +29,6 @@ class Migration(SchemaMigration):
 
         # Deleting model 'SavedSearchUserDefault'
         db.delete_table('sentry_savedsearch_userdefault')
-
 
     models = {
         'sentry.activity': {

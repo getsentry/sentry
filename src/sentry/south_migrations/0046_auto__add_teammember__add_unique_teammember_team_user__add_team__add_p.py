@@ -4,6 +4,7 @@ from south.db import db
 from south.v2 import SchemaMigration
 from django.db import models
 
+
 class Migration(SchemaMigration):
 
     def forwards(self, orm):
@@ -12,7 +13,8 @@ class Migration(SchemaMigration):
         db.create_table('sentry_teammember', (
             ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
             ('team', self.gf('sentry.db.models.fields.FlexibleForeignKey')(to=orm['sentry.Team'])),
-            ('user', self.gf('sentry.db.models.fields.FlexibleForeignKey')(related_name='sentry_teammember_set', to=orm['sentry.User'])),
+            ('user', self.gf('sentry.db.models.fields.FlexibleForeignKey')
+             (related_name='sentry_teammember_set', to=orm['sentry.User'])),
             ('is_active', self.gf('django.db.models.fields.BooleanField')(default=True)),
             ('type', self.gf('django.db.models.fields.IntegerField')(default=0)),
             ('date_added', self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)),
@@ -25,28 +27,35 @@ class Migration(SchemaMigration):
         # Adding model 'Team'
         db.create_table('sentry_team', (
             ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
-            ('slug', self.gf('django.db.models.fields.SlugField')(unique=True, max_length=50, db_index=True)),
+            ('slug', self.gf('django.db.models.fields.SlugField')(
+                unique=True, max_length=50, db_index=True)),
             ('name', self.gf('django.db.models.fields.CharField')(max_length=64)),
-            ('owner', self.gf('sentry.db.models.fields.FlexibleForeignKey')(to=orm['sentry.User'])),
+            ('owner', self.gf('sentry.db.models.fields.FlexibleForeignKey')(
+                to=orm['sentry.User'])),
         ))
         db.send_create_signal('sentry', ['Team'])
 
         # Adding model 'ProjectKey'
         db.create_table('sentry_projectkey', (
             ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
-            ('project', self.gf('sentry.db.models.fields.FlexibleForeignKey')(to=orm['sentry.Project'])),
-            ('public_key', self.gf('django.db.models.fields.CharField')(max_length=32, unique=True, null=True)),
-            ('secret_key', self.gf('django.db.models.fields.CharField')(max_length=32, unique=True, null=True)),
-            ('user', self.gf('sentry.db.models.fields.FlexibleForeignKey')(to=orm['sentry.User'], null=True)),
+            ('project', self.gf('sentry.db.models.fields.FlexibleForeignKey')(
+                to=orm['sentry.Project'])),
+            ('public_key', self.gf('django.db.models.fields.CharField')(
+                max_length=32, unique=True, null=True)),
+            ('secret_key', self.gf('django.db.models.fields.CharField')(
+                max_length=32, unique=True, null=True)),
+            ('user', self.gf('sentry.db.models.fields.FlexibleForeignKey')(
+                to=orm['sentry.User'], null=True)),
         ))
         db.send_create_signal('sentry', ['ProjectKey'])
 
         # Adding field 'Project.slug'
-        db.add_column('sentry_project', 'slug', self.gf('django.db.models.fields.SlugField')(max_length=50, unique=True, null=True, db_index=True), keep_default=False)
+        db.add_column('sentry_project', 'slug', self.gf('django.db.models.fields.SlugField')(
+            max_length=50, unique=True, null=True, db_index=True), keep_default=False)
 
         # Adding field 'Project.team'
-        db.add_column('sentry_project', 'team', self.gf('sentry.db.models.fields.FlexibleForeignKey')(to=orm['sentry.Team'], null=True), keep_default=False)
-
+        db.add_column('sentry_project', 'team', self.gf('sentry.db.models.fields.FlexibleForeignKey')(
+            to=orm['sentry.Team'], null=True), keep_default=False)
 
     def backwards(self, orm):
 
@@ -67,7 +76,6 @@ class Migration(SchemaMigration):
 
         # Deleting field 'Project.team'
         db.delete_column('sentry_project', 'team_id')
-
 
     models = {
         'sentry.user': {

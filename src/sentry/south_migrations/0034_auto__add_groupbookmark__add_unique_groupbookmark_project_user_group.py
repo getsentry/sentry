@@ -4,6 +4,7 @@ from south.db import db
 from south.v2 import SchemaMigration
 from django.db import models
 
+
 class Migration(SchemaMigration):
 
     def forwards(self, orm):
@@ -11,15 +12,16 @@ class Migration(SchemaMigration):
         # Adding model 'GroupBookmark'
         db.create_table('sentry_groupbookmark', (
             ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
-            ('project', self.gf('sentry.db.models.fields.FlexibleForeignKey')(to=orm['sentry.Project'])),
-            ('group', self.gf('sentry.db.models.fields.FlexibleForeignKey')(to=orm['sentry.Group'])),
+            ('project', self.gf('sentry.db.models.fields.FlexibleForeignKey')(
+                to=orm['sentry.Project'])),
+            ('group', self.gf('sentry.db.models.fields.FlexibleForeignKey')(
+                to=orm['sentry.Group'])),
             ('user', self.gf('sentry.db.models.fields.FlexibleForeignKey')(to=orm['sentry.User'])),
         ))
         db.send_create_signal('sentry', ['GroupBookmark'])
 
         # Adding unique constraint on 'GroupBookmark', fields ['project', 'user', 'group']
         db.create_unique('sentry_groupbookmark', ['project_id', 'user_id', 'group_id'])
-
 
     def backwards(self, orm):
 
@@ -28,7 +30,6 @@ class Migration(SchemaMigration):
 
         # Deleting model 'GroupBookmark'
         db.delete_table('sentry_groupbookmark')
-
 
     models = {
         'sentry.user': {

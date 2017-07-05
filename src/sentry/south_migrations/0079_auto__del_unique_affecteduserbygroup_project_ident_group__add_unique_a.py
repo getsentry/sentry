@@ -19,7 +19,6 @@ class Migration(SchemaMigration):
                       self.gf('django.db.models.fields.PositiveIntegerField')(default=0),
                       keep_default=False)
 
-
     def backwards(self, orm):
         # Removing unique constraint on 'AffectedUserByGroup', fields ['project', 'tuser', 'group']
         db.delete_unique('sentry_affecteduserbygroup', ['project_id', 'tuser_id', 'group_id'])
@@ -29,7 +28,6 @@ class Migration(SchemaMigration):
 
         # Deleting field 'TrackedUser.num_events'
         db.delete_column('sentry_trackeduser', 'num_events')
-
 
     models = {
         'sentry.user': {

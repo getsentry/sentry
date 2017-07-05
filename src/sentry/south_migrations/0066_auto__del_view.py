@@ -14,7 +14,6 @@ class Migration(SchemaMigration):
         # Removing M2M table for field views on 'Group'
         db.delete_table('sentry_groupedmessage_views')
 
-
     def backwards(self, orm):
         # Adding model 'View'
         db.create_table('sentry_view', (
@@ -28,11 +27,12 @@ class Migration(SchemaMigration):
         # Adding M2M table for field views on 'Group'
         db.create_table('sentry_groupedmessage_views', (
             ('id', models.AutoField(verbose_name='ID', primary_key=True, auto_created=True)),
-            ('group', self.gf('sentry.db.models.fields.FlexibleForeignKey')(orm['sentry.group'], null=False)),
-            ('view', self.gf('sentry.db.models.fields.FlexibleForeignKey')(orm['sentry.view'], null=False))
+            ('group', self.gf('sentry.db.models.fields.FlexibleForeignKey')(
+                orm['sentry.group'], null=False)),
+            ('view', self.gf('sentry.db.models.fields.FlexibleForeignKey')(
+                orm['sentry.view'], null=False))
         ))
         db.create_unique('sentry_groupedmessage_views', ['group_id', 'view_id'])
-
 
     models = {
         'sentry.user': {

@@ -12,12 +12,14 @@ class Migration(SchemaMigration):
         if is_postgres():
             db.commit_transaction()
             db.execute("CREATE INDEX CONCURRENTLY {} ON sentry_messagefiltervalue (project_id, key, value, last_seen)".format(
-                db.create_index_name('sentry_messagefiltervalue', ['project_id', 'key', 'value', 'last_seen']),
+                db.create_index_name('sentry_messagefiltervalue', [
+                                     'project_id', 'key', 'value', 'last_seen']),
             ))
             db.start_transaction()
         else:
             # Adding index on 'GroupTagValue', fields ['project', 'key', 'value', 'last_seen']
-            db.create_index('sentry_messagefiltervalue', ['project_id', 'key', 'value', 'last_seen'])
+            db.create_index('sentry_messagefiltervalue', [
+                            'project_id', 'key', 'value', 'last_seen'])
 
         # Removing index on 'GroupTagValue', fields ['project', 'key', 'value']
         db.delete_index('sentry_messagefiltervalue', ['project_id', 'key', 'value'])
@@ -28,7 +30,6 @@ class Migration(SchemaMigration):
 
         # Removing index on 'GroupTagValue', fields ['project', 'key', 'value', 'last_seen']
         db.delete_index('sentry_messagefiltervalue', ['project_id', 'key', 'value', 'last_seen'])
-
 
     models = {
         'sentry.activity': {

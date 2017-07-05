@@ -20,8 +20,8 @@ class Migration(SchemaMigration):
         db.delete_column(u'sentry_file', 'storage')
 
     def backwards(self, orm):
-        raise RuntimeError("Cannot reverse this migration. 'FileBlob.storage' and its values cannot be restored.")
-
+        raise RuntimeError(
+            "Cannot reverse this migration. 'FileBlob.storage' and its values cannot be restored.")
 
     models = {
         'sentry.activity': {

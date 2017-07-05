@@ -22,14 +22,12 @@ class Migration(SchemaMigration):
         # Adding unique constraint on 'EventTag', fields ['event_id', 'key_id', 'value_id']
         db.create_unique('sentry_eventtag', ['event_id', 'key_id', 'value_id'])
 
-
     def backwards(self, orm):
         # Removing unique constraint on 'EventTag', fields ['event_id', 'key_id', 'value_id']
         db.delete_unique('sentry_eventtag', ['event_id', 'key_id', 'value_id'])
 
         # Deleting model 'EventTag'
         db.delete_table('sentry_eventtag')
-
 
     models = {
         'sentry.activity': {

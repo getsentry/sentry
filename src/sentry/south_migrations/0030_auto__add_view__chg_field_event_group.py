@@ -5,6 +5,7 @@ from south.db import db
 from south.v2 import SchemaMigration
 from django.db import models
 
+
 class Migration(SchemaMigration):
 
     def forwards(self, orm):
@@ -19,11 +20,12 @@ class Migration(SchemaMigration):
         # Adding M2M table for field views on 'Group'
         db.create_table('sentry_groupedmessage_views', (
             ('id', models.AutoField(verbose_name='ID', primary_key=True, auto_created=True)),
-            ('group', self.gf('sentry.db.models.fields.FlexibleForeignKey')(orm['sentry.group'], null=False)),
-            ('view', self.gf('sentry.db.models.fields.FlexibleForeignKey')(orm['sentry.view'], null=False))
+            ('group', self.gf('sentry.db.models.fields.FlexibleForeignKey')(
+                orm['sentry.group'], null=False)),
+            ('view', self.gf('sentry.db.models.fields.FlexibleForeignKey')(
+                orm['sentry.view'], null=False))
         ))
         db.create_unique('sentry_groupedmessage_views', ['group_id', 'view_id'])
-
 
     def backwards(self, orm):
 
@@ -32,7 +34,6 @@ class Migration(SchemaMigration):
 
         # Removing M2M table for field views on 'Group'
         db.delete_table('sentry_groupedmessage_views')
-
 
     models = {
         'sentry.user': {

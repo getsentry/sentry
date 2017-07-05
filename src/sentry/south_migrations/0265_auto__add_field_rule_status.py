@@ -10,14 +10,13 @@ class Migration(SchemaMigration):
     def forwards(self, orm):
         # Adding field 'Rule.status'
         db.add_column('sentry_rule', 'status',
-                      self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')(default=0, db_index=True),
+                      self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')(
+                          default=0, db_index=True),
                       keep_default=False)
-
 
     def backwards(self, orm):
         # Deleting field 'Rule.status'
         db.delete_column('sentry_rule', 'status')
-
 
     models = {
         'sentry.activity': {

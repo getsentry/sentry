@@ -13,15 +13,15 @@ class Migration(SchemaMigration):
                       self.gf('django.db.models.fields.EmailField')(max_length=75, null=True),
                       keep_default=False)
 
-
         # Changing field 'OrganizationMember.user'
-        db.alter_column('sentry_organizationmember', 'user_id', self.gf('sentry.db.models.fields.FlexibleForeignKey')(null=True, to=orm['sentry.User']))
+        db.alter_column('sentry_organizationmember', 'user_id', self.gf(
+            'sentry.db.models.fields.FlexibleForeignKey')(null=True, to=orm['sentry.User']))
         # Adding unique constraint on 'OrganizationMember', fields ['organization', 'email']
         db.create_unique('sentry_organizationmember', ['organization_id', 'email'])
 
-
     def backwards(self, orm):
-        raise RuntimeError("Cannot reverse this migration. 'OrganizationMember.user' and its values cannot be restored.")
+        raise RuntimeError(
+            "Cannot reverse this migration. 'OrganizationMember.user' and its values cannot be restored.")
 
     models = {
         'sentry.accessgroup': {

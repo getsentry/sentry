@@ -18,26 +18,32 @@ class Migration(SchemaMigration):
             db.execute("ALTER TABLE sentry_releasefile ALTER COLUMN project_id DROP NOT NULL")
         else:
             # Changing field 'Release.project_id'
-            db.alter_column('sentry_release', 'project_id', self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')(null=True))
+            db.alter_column('sentry_release', 'project_id', self.gf(
+                'sentry.db.models.fields.bounded.BoundedPositiveIntegerField')(null=True))
 
             # Changing field 'ReleaseFile.project_id'
-            db.alter_column('sentry_releasefile', 'project_id', self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')(null=True))
+            db.alter_column('sentry_releasefile', 'project_id', self.gf(
+                'sentry.db.models.fields.bounded.BoundedPositiveIntegerField')(null=True))
 
     def backwards(self, orm):
 
         # User chose to not deal with backwards NULL issues for 'Release.project_id'
-        raise RuntimeError("Cannot reverse this migration. 'Release.project_id' and its values cannot be restored.")
+        raise RuntimeError(
+            "Cannot reverse this migration. 'Release.project_id' and its values cannot be restored.")
 
         # The following code is provided here to aid in writing a correct migration
         # Changing field 'Release.project_id'
-        db.alter_column('sentry_release', 'project_id', self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')())
+        db.alter_column('sentry_release', 'project_id', self.gf(
+            'sentry.db.models.fields.bounded.BoundedPositiveIntegerField')())
 
         # User chose to not deal with backwards NULL issues for 'ReleaseFile.project_id'
-        raise RuntimeError("Cannot reverse this migration. 'ReleaseFile.project_id' and its values cannot be restored.")
+        raise RuntimeError(
+            "Cannot reverse this migration. 'ReleaseFile.project_id' and its values cannot be restored.")
 
         # The following code is provided here to aid in writing a correct migration
         # Changing field 'ReleaseFile.project_id'
-        db.alter_column('sentry_releasefile', 'project_id', self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')())
+        db.alter_column('sentry_releasefile', 'project_id', self.gf(
+            'sentry.db.models.fields.bounded.BoundedPositiveIntegerField')())
 
     models = {
         'sentry.activity': {

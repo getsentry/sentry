@@ -32,6 +32,7 @@ class AddressParamType(click.ParamType):
             port = None
         return host, port
 
+
 Address = AddressParamType()
 
 
@@ -155,7 +156,8 @@ def worker(**options):
     "Run background worker instance."
     from django.conf import settings
     if settings.CELERY_ALWAYS_EAGER:
-        raise click.ClickException('Disable CELERY_ALWAYS_EAGER in your settings file to spawn workers.')
+        raise click.ClickException(
+            'Disable CELERY_ALWAYS_EAGER in your settings file to spawn workers.')
 
     from sentry.celery import app
     worker = app.Worker(
@@ -194,7 +196,8 @@ def cron(**options):
     "Run periodic task dispatcher."
     from django.conf import settings
     if settings.CELERY_ALWAYS_EAGER:
-        raise click.ClickException('Disable CELERY_ALWAYS_EAGER in your settings file to spawn workers.')
+        raise click.ClickException(
+            'Disable CELERY_ALWAYS_EAGER in your settings file to spawn workers.')
 
     from sentry.celery import app
     app.Beat(

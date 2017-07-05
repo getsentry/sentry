@@ -90,7 +90,7 @@ class OrganizationMemberSettingsView(OrganizationView):
             member = form.save(request.user, organization, request.META['REMOTE_ADDR'])
 
             messages.add_message(request, messages.SUCCESS,
-                _('Your changes were saved.'))
+                                 _('Your changes were saved.'))
 
             redirect = reverse('sentry-organization-member-settings',
                                args=[organization.slug, member.id])

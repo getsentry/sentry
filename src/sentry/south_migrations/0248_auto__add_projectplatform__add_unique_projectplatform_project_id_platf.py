@@ -21,14 +21,12 @@ class Migration(SchemaMigration):
         # Adding unique constraint on 'ProjectPlatform', fields ['project_id', 'platform']
         db.create_unique('sentry_projectplatform', ['project_id', 'platform'])
 
-
     def backwards(self, orm):
         # Removing unique constraint on 'ProjectPlatform', fields ['project_id', 'platform']
         db.delete_unique('sentry_projectplatform', ['project_id', 'platform'])
 
         # Deleting model 'ProjectPlatform'
         db.delete_table('sentry_projectplatform')
-
 
     models = {
         'sentry.activity': {

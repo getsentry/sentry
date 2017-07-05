@@ -67,6 +67,7 @@ class _CaseInsensitiveSigner(Signer):
     clients, coughAirmailcough, treat email addresses as being case-insensitive,
     and sends the value as all lowercase.
     """
+
     def signature(self, value):
         sig = super(_CaseInsensitiveSigner, self).signature(value)
         return sig.lower()
@@ -177,7 +178,8 @@ def get_email_addresses(user_ids, project=None):
                 pending.discard(user_id)
 
     if pending:
-        logger.warning('Could not resolve email addresses for user IDs in %r, discarding...', pending)
+        logger.warning(
+            'Could not resolve email addresses for user IDs in %r, discarding...', pending)
 
     return results
 
@@ -462,6 +464,7 @@ class PreviewBackend(BaseEmailBackend):
 
     Probably only works on OS X.
     """
+
     def send_messages(self, email_messages):
         for message in email_messages:
             content = six.binary_type(message.message())

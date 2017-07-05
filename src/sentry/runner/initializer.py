@@ -31,7 +31,8 @@ def register_plugins(settings):
             plugin = ep.load()
         except Exception:
             import traceback
-            click.echo("Failed to load plugin %r:\n%s" % (ep.name, traceback.format_exc()), err=True)
+            click.echo("Failed to load plugin %r:\n%s" %
+                       (ep.name, traceback.format_exc()), err=True)
         else:
             plugins.register(plugin)
 
@@ -413,7 +414,8 @@ def apply_legacy_settings(settings):
 
     if hasattr(settings, 'SENTRY_REDIS_OPTIONS'):
         if 'redis.clusters' in settings.SENTRY_OPTIONS:
-            raise Exception("Cannot specify both SENTRY_OPTIONS['redis.clusters'] option and SENTRY_REDIS_OPTIONS setting.")
+            raise Exception(
+                "Cannot specify both SENTRY_OPTIONS['redis.clusters'] option and SENTRY_REDIS_OPTIONS setting.")
         else:
             warnings.warn(
                 DeprecatedSettingWarning(
@@ -449,7 +451,8 @@ def apply_legacy_settings(settings):
         settings.ALLOWED_HOSTS = ['*']
 
     if hasattr(settings, 'SENTRY_ALLOW_REGISTRATION'):
-        warnings.warn(DeprecatedSettingWarning('SENTRY_ALLOW_REGISTRATION', 'SENTRY_FEATURES["auth:register"]'))
+        warnings.warn(DeprecatedSettingWarning(
+            'SENTRY_ALLOW_REGISTRATION', 'SENTRY_FEATURES["auth:register"]'))
         settings.SENTRY_FEATURES['auth:register'] = settings.SENTRY_ALLOW_REGISTRATION
 
     settings.DEFAULT_FROM_EMAIL = settings.SENTRY_OPTIONS.get(
@@ -461,7 +464,8 @@ def apply_legacy_settings(settings):
     # trigger the Installation Wizard, not abort startup.
     if not settings.SENTRY_OPTIONS.get('system.secret-key'):
         from .importer import ConfigurationError
-        raise ConfigurationError("`system.secret-key` MUST be set. Use 'sentry config generate-secret-key' to get one.")
+        raise ConfigurationError(
+            "`system.secret-key` MUST be set. Use 'sentry config generate-secret-key' to get one.")
 
 
 def skip_migration_if_applied(settings, app_name, table_name,

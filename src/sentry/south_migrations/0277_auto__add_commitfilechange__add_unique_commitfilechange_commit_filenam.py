@@ -11,8 +11,10 @@ class Migration(SchemaMigration):
         # Adding model 'CommitFileChange'
         db.create_table('sentry_commitfilechange', (
             ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
-            ('organization_id', self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')(db_index=True)),
-            ('commit', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.Commit'])),
+            ('organization_id', self.gf(
+                'sentry.db.models.fields.bounded.BoundedPositiveIntegerField')(db_index=True)),
+            ('commit', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(
+                to=orm['sentry.Commit'])),
             ('filename', self.gf('django.db.models.fields.CharField')(max_length=255)),
             ('type', self.gf('django.db.models.fields.CharField')(max_length=1)),
         ))
@@ -43,12 +45,12 @@ class Migration(SchemaMigration):
 
         # Adding field 'Repository.status'
         db.add_column('sentry_repository', 'status',
-                      self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')(default=0, db_index=True),
+                      self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')(
+                          default=0, db_index=True),
                       keep_default=False)
 
         # Adding unique constraint on 'Repository', fields ['organization_id', 'provider', 'external_id']
         db.create_unique('sentry_repository', ['organization_id', 'provider', 'external_id'])
-
 
     def backwards(self, orm):
         # Removing unique constraint on 'Repository', fields ['organization_id', 'provider', 'external_id']
@@ -74,7 +76,6 @@ class Migration(SchemaMigration):
 
         # Deleting field 'Repository.status'
         db.delete_column('sentry_repository', 'status')
-
 
     models = {
         'sentry.activity': {

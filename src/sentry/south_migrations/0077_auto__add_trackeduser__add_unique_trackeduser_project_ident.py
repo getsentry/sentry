@@ -11,18 +11,20 @@ class Migration(SchemaMigration):
         # Adding model 'TrackedUser'
         db.create_table('sentry_trackeduser', (
             ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
-            ('project', self.gf('sentry.db.models.fields.FlexibleForeignKey')(to=orm['sentry.Project'])),
+            ('project', self.gf('sentry.db.models.fields.FlexibleForeignKey')(
+                to=orm['sentry.Project'])),
             ('ident', self.gf('django.db.models.fields.CharField')(max_length=200)),
             ('email', self.gf('django.db.models.fields.EmailField')(max_length=75, null=True)),
             ('data', self.gf('django.db.models.fields.TextField')(null=True, blank=True)),
-            ('last_seen', self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now, db_index=True)),
-            ('first_seen', self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now, db_index=True)),
+            ('last_seen', self.gf('django.db.models.fields.DateTimeField')(
+                default=datetime.datetime.now, db_index=True)),
+            ('first_seen', self.gf('django.db.models.fields.DateTimeField')(
+                default=datetime.datetime.now, db_index=True)),
         ))
         db.send_create_signal('sentry', ['TrackedUser'])
 
         # Adding unique constraint on 'TrackedUser', fields ['project', 'ident']
         db.create_unique('sentry_trackeduser', ['project_id', 'ident'])
-
 
     def backwards(self, orm):
         # Removing unique constraint on 'TrackedUser', fields ['project', 'ident']
@@ -30,7 +32,6 @@ class Migration(SchemaMigration):
 
         # Deleting model 'TrackedUser'
         db.delete_table('sentry_trackeduser')
-
 
     models = {
         'sentry.user': {

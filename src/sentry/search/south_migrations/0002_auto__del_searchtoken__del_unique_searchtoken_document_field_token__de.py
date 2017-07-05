@@ -20,14 +20,14 @@ class Migration(SchemaMigration):
         # Deleting model 'SearchDocument'
         db.delete_table('sentry_searchdocument')
 
-
     def backwards(self, orm):
         # Adding model 'SearchToken'
         db.create_table('sentry_searchtoken', (
             ('times_seen', self.gf('django.db.models.fields.PositiveIntegerField')(default=1)),
             ('field', self.gf('django.db.models.fields.CharField')(default='text', max_length=64)),
             ('token', self.gf('django.db.models.fields.CharField')(max_length=128)),
-            ('document', self.gf('sentry.db.models.fields.FlexibleForeignKey')(related_name='token_set', to=orm['search.SearchDocument'])),
+            ('document', self.gf('sentry.db.models.fields.FlexibleForeignKey')(
+                related_name='token_set', to=orm['search.SearchDocument'])),
             ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
         ))
         db.send_create_signal(u'search', ['SearchToken'])
@@ -37,10 +37,12 @@ class Migration(SchemaMigration):
 
         # Adding model 'SearchDocument'
         db.create_table('sentry_searchdocument', (
-            ('project', self.gf('sentry.db.models.fields.FlexibleForeignKey')(to=orm['sentry.Project'])),
+            ('project', self.gf('sentry.db.models.fields.FlexibleForeignKey')(
+                to=orm['sentry.Project'])),
             ('status', self.gf('django.db.models.fields.PositiveIntegerField')(default=0)),
             ('total_events', self.gf('django.db.models.fields.PositiveIntegerField')(default=1)),
-            ('group', self.gf('sentry.db.models.fields.FlexibleForeignKey')(to=orm['sentry.Group'])),
+            ('group', self.gf('sentry.db.models.fields.FlexibleForeignKey')(
+                to=orm['sentry.Group'])),
             ('date_changed', self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)),
             ('date_added', self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)),
             ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
@@ -50,9 +52,8 @@ class Migration(SchemaMigration):
         # Adding unique constraint on 'SearchDocument', fields ['project', 'group']
         db.create_unique('sentry_searchdocument', ['project_id', 'group_id'])
 
-
     models = {
-        
+
     }
 
     complete_apps = ['search']

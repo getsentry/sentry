@@ -13,11 +13,9 @@ class Migration(SchemaMigration):
                       self.gf('django.db.models.fields.CharField')(max_length=6, null=True),
                       keep_default=False)
 
-
     def backwards(self, orm):
         # Deleting field 'Project.forced_color'
         db.delete_column('sentry_project', 'forced_color')
-
 
     models = {
         'sentry.activity': {

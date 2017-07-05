@@ -4,19 +4,20 @@ from south.db import db
 from south.v2 import SchemaMigration
 from django.db import models
 
+
 class Migration(SchemaMigration):
 
     def forwards(self, orm):
 
         # Changing field 'Event.server_name'
-        db.alter_column('sentry_message', 'server_name', self.gf('django.db.models.fields.CharField')(max_length=128, null=True))
-
+        db.alter_column('sentry_message', 'server_name', self.gf(
+            'django.db.models.fields.CharField')(max_length=128, null=True))
 
     def backwards(self, orm):
 
         # User chose to not deal with backwards NULL issues for 'Event.server_name'
-        raise RuntimeError("Cannot reverse this migration. 'Event.server_name' and its values cannot be restored.")
-
+        raise RuntimeError(
+            "Cannot reverse this migration. 'Event.server_name' and its values cannot be restored.")
 
     models = {
         'sentry.user': {

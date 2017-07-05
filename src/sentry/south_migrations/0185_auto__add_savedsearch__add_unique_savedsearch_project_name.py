@@ -11,7 +11,8 @@ class Migration(SchemaMigration):
         # Adding model 'SavedSearch'
         db.create_table('sentry_savedsearch', (
             ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
-            ('project', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.Project'])),
+            ('project', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(
+                to=orm['sentry.Project'])),
             ('name', self.gf('django.db.models.fields.CharField')(max_length=128)),
             ('query', self.gf('django.db.models.fields.TextField')()),
             ('date_added', self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)),
@@ -21,14 +22,12 @@ class Migration(SchemaMigration):
         # Adding unique constraint on 'SavedSearch', fields ['project', 'name']
         db.create_unique('sentry_savedsearch', ['project_id', 'name'])
 
-
     def backwards(self, orm):
         # Removing unique constraint on 'SavedSearch', fields ['project', 'name']
         db.delete_unique('sentry_savedsearch', ['project_id', 'name'])
 
         # Deleting model 'SavedSearch'
         db.delete_table('sentry_savedsearch')
-
 
     models = {
         'sentry.accessgroup': {

@@ -58,7 +58,8 @@ class Command(BaseCommand):
     help = 'Sends fake data to the internal Sentry project'
 
     option_list = BaseCommand.option_list + (
-        make_option('--project', dest='project', help="project ID or organization-slug/project-slug"),
+        make_option('--project', dest='project',
+                    help="project ID or organization-slug/project-slug"),
         make_option('--num', dest='num_events', type=int),
     )
 
@@ -76,7 +77,8 @@ class Command(BaseCommand):
                 o_slug, p_slug = options['project'].split('/', 1)
                 project = Project.objects.get(slug=p_slug, organization__slug=o_slug)
             else:
-                raise CommandError('Project must be specified as organization-slug/project-slug or a project id')
+                raise CommandError(
+                    'Project must be specified as organization-slug/project-slug or a project id')
 
         client.project = project.id
 

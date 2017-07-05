@@ -13,11 +13,9 @@ class Migration(SchemaMigration):
                       self.gf('django.db.models.fields.BooleanField')(default=False),
                       keep_default=False)
 
-
     def backwards(self, orm):
         # Deleting field 'User.is_managed'
         db.delete_column('auth_user', 'is_managed')
-
 
     models = {
         'sentry.accessgroup': {

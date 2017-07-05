@@ -11,13 +11,12 @@ class Migration(SchemaMigration):
         # Deleting field 'Broadcast.badge'
         db.delete_column(u'sentry_broadcast', 'badge')
 
-
     def backwards(self, orm):
         # Adding field 'Broadcast.badge'
         db.add_column(u'sentry_broadcast', 'badge',
-                      self.gf('django.db.models.fields.CharField')(max_length=32, null=True, blank=True),
+                      self.gf('django.db.models.fields.CharField')(
+                          max_length=32, null=True, blank=True),
                       keep_default=False)
-
 
     models = {
         'sentry.activity': {

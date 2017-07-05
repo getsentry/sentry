@@ -10,14 +10,13 @@ class Migration(SchemaMigration):
     def forwards(self, orm):
         # Adding field 'ReleaseCommit.organization_id'
         db.add_column('sentry_releasecommit', 'organization_id',
-                      self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')(null=True, db_index=True),
+                      self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')(
+                          null=True, db_index=True),
                       keep_default=False)
-
 
     def backwards(self, orm):
         # Deleting field 'ReleaseCommit.organization_id'
         db.delete_column('sentry_releasecommit', 'organization_id')
-
 
     models = {
         'sentry.activity': {

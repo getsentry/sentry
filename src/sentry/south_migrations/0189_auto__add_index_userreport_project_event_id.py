@@ -11,11 +11,9 @@ class Migration(SchemaMigration):
         # Adding index on 'UserReport', fields ['project', 'event_id']
         db.create_index('sentry_userreport', ['project_id', 'event_id'])
 
-
     def backwards(self, orm):
         # Removing index on 'UserReport', fields ['project', 'event_id']
         db.delete_index('sentry_userreport', ['project_id', 'event_id'])
-
 
     models = {
         'sentry.accessgroup': {

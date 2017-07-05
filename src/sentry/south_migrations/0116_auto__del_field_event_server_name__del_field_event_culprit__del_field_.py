@@ -23,33 +23,36 @@ class Migration(SchemaMigration):
         # Deleting field 'Event.logger'
         db.delete_column('sentry_message', 'logger')
 
-
     def backwards(self, orm):
         # Adding field 'Event.server_name'
         db.add_column('sentry_message', 'server_name',
-                      self.gf('django.db.models.fields.CharField')(max_length=128, null=True, db_index=True),
+                      self.gf('django.db.models.fields.CharField')(
+                          max_length=128, null=True, db_index=True),
                       keep_default=False)
 
         # Adding field 'Event.culprit'
         db.add_column('sentry_message', 'culprit',
-                      self.gf('django.db.models.fields.CharField')(max_length=200, null=True, db_column='view', blank=True),
+                      self.gf('django.db.models.fields.CharField')(
+                          max_length=200, null=True, db_column='view', blank=True),
                       keep_default=False)
 
         # Adding field 'Event.level'
         db.add_column('sentry_message', 'level',
-                      self.gf('django.db.models.fields.PositiveIntegerField')(default=40, blank=True, db_index=True),
+                      self.gf('django.db.models.fields.PositiveIntegerField')(
+                          default=40, blank=True, db_index=True),
                       keep_default=False)
 
         # Adding field 'Event.site'
         db.add_column('sentry_message', 'site',
-                      self.gf('django.db.models.fields.CharField')(max_length=128, null=True, db_index=True),
+                      self.gf('django.db.models.fields.CharField')(
+                          max_length=128, null=True, db_index=True),
                       keep_default=False)
 
         # Adding field 'Event.logger'
         db.add_column('sentry_message', 'logger',
-                      self.gf('django.db.models.fields.CharField')(default='root', max_length=64, blank=True, db_index=True),
+                      self.gf('django.db.models.fields.CharField')(
+                          default='root', max_length=64, blank=True, db_index=True),
                       keep_default=False)
-
 
     models = {
         'sentry.accessgroup': {

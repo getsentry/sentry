@@ -193,7 +193,8 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
             if concurrency > 1:
                 threads = []
                 for shard_id in range(concurrency):
-                    t = Thread(target=lambda shard_id=shard_id: query.execute_sharded(concurrency, shard_id))
+                    t = Thread(target=lambda shard_id=shard_id: query.execute_sharded(
+                        concurrency, shard_id))
                     t.start()
                     threads.append(t)
 

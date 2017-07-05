@@ -4,19 +4,19 @@ from south.db import db
 from south.v2 import SchemaMigration
 from django.db import models
 
+
 class Migration(SchemaMigration):
 
     def forwards(self, orm):
 
         # Adding field 'Event.time_spent'
-        db.add_column('sentry_message', 'time_spent', self.gf('django.db.models.fields.FloatField')(null=True), keep_default=False)
-
+        db.add_column('sentry_message', 'time_spent', self.gf(
+            'django.db.models.fields.FloatField')(null=True), keep_default=False)
 
     def backwards(self, orm):
 
         # Deleting field 'Event.time_spent'
         db.delete_column('sentry_message', 'time_spent')
-
 
     models = {
         'sentry.user': {

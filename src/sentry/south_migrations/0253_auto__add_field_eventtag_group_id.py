@@ -13,11 +13,9 @@ class Migration(SchemaMigration):
                       self.gf('sentry.db.models.fields.bounded.BoundedBigIntegerField')(null=True),
                       keep_default=False)
 
-
     def backwards(self, orm):
         # Deleting field 'EventTag.group_id'
         db.delete_column('sentry_eventtag', 'group_id')
-
 
     models = {
         'sentry.activity': {

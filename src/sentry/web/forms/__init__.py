@@ -21,7 +21,7 @@ class BaseUserForm(forms.ModelForm):
 
 class NewUserForm(BaseUserForm):
     send_welcome_mail = forms.BooleanField(required=False,
-        help_text=_("Send this user a welcome email which will contain their generated password."))
+                                           help_text=_("Send this user a welcome email which will contain their generated password."))
 
     class Meta:
         fields = ('name', 'username', 'email')
@@ -30,10 +30,10 @@ class NewUserForm(BaseUserForm):
 
 class ChangeUserForm(BaseUserForm):
     is_staff = forms.BooleanField(required=False, label=_('Admin'),
-        help_text=_("Designates whether this user can perform administrative functions."))
+                                  help_text=_("Designates whether this user can perform administrative functions."))
     is_superuser = forms.BooleanField(required=False, label=_('Superuser'),
-        help_text=_('Designates whether this user has all permissions without '
-                    'explicitly assigning them.'))
+                                      help_text=_('Designates whether this user has all permissions without '
+                                                  'explicitly assigning them.'))
 
     class Meta:
         fields = ('name', 'username', 'email', 'is_active', 'is_staff',
@@ -64,7 +64,8 @@ class TestEmailForm(forms.Form):
 
 
 class NewNoteForm(forms.Form):
-    text = forms.CharField(widget=forms.Textarea(attrs={'rows': '1', 'placeholder': 'Type a note and press enter...'}))
+    text = forms.CharField(widget=forms.Textarea(
+        attrs={'rows': '1', 'placeholder': 'Type a note and press enter...'}))
 
     def save(self, group, user, event=None):
         activity = Activity.objects.create(

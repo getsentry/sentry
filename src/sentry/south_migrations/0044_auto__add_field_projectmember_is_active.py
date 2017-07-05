@@ -4,19 +4,19 @@ from south.db import db
 from south.v2 import SchemaMigration
 from django.db import models
 
+
 class Migration(SchemaMigration):
 
     def forwards(self, orm):
 
         # Adding field 'ProjectMember.is_active'
-        db.add_column('sentry_projectmember', 'is_active', self.gf('django.db.models.fields.BooleanField')(default=True), keep_default=False)
-
+        db.add_column('sentry_projectmember', 'is_active', self.gf(
+            'django.db.models.fields.BooleanField')(default=True), keep_default=False)
 
     def backwards(self, orm):
 
         # Deleting field 'ProjectMember.is_active'
         db.delete_column('sentry_projectmember', 'is_active')
-
 
     models = {
         'sentry.user': {

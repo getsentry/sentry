@@ -23,22 +23,24 @@ BLANK_CHOICE = [("", "")]
 
 class EditProjectForm(forms.ModelForm):
     name = forms.CharField(label=_('Project Name'), max_length=200,
-        widget=forms.TextInput(attrs={'placeholder': _('Production')}))
+                           widget=forms.TextInput(attrs={'placeholder': _('Production')}))
     slug = forms.SlugField(
         label=_('Short name'),
         help_text=_('A unique ID used to identify this project.'),
     )
     team = CustomTypedChoiceField(choices=(), coerce=int, required=False)
     origins = OriginsField(label=_('Allowed Domains'), required=False,
-        help_text=_('Separate multiple entries with a newline.'))
+                           help_text=_('Separate multiple entries with a newline.'))
     token = forms.CharField(
         label=_('Security token'),
-        help_text=_('Outbound requests matching Allowed Domains will have the header "{token_header}: {token}" appended.'),
+        help_text=_(
+            'Outbound requests matching Allowed Domains will have the header "{token_header}: {token}" appended.'),
         required=True,
     )
     token_header = forms.CharField(
         label=_('Security token header'),
-        help_text=_('Outbound requests matching Allowed Domains will have the header "{token_header}: {token}" appended.'),
+        help_text=_(
+            'Outbound requests matching Allowed Domains will have the header "{token_header}: {token}" appended.'),
         widget=forms.TextInput(attrs={
             'placeholder': _('X-Sentry-Token'),
         }),
@@ -50,8 +52,8 @@ class EditProjectForm(forms.ModelForm):
         required=False,
     )
     resolve_age = RangeField(label=_('Auto resolve'), required=False,
-        min_value=0, max_value=720, step_value=1,
-        help_text=_('Automatically resolve an issue if it hasn\'t been seen for this amount of time.'))
+                             min_value=0, max_value=720, step_value=1,
+                             help_text=_('Automatically resolve an issue if it hasn\'t been seen for this amount of time.'))
     scrub_data = forms.BooleanField(
         label=_('Data Scrubber'),
         help_text=_('Enable server-side data scrubbing.'),
@@ -59,12 +61,14 @@ class EditProjectForm(forms.ModelForm):
     )
     scrub_defaults = forms.BooleanField(
         label=_('Use Default Scrubbers'),
-        help_text=_('Apply default scrubbers to prevent things like passwords and credit cards from being stored.'),
+        help_text=_(
+            'Apply default scrubbers to prevent things like passwords and credit cards from being stored.'),
         required=False
     )
     sensitive_fields = forms.CharField(
         label=_('Additional sensitive fields'),
-        help_text=_('Additional field names to match against when scrubbing data. Separate multiple entries with a newline.'),
+        help_text=_(
+            'Additional field names to match against when scrubbing data. Separate multiple entries with a newline.'),
         widget=forms.Textarea(attrs={
             'placeholder': mark_safe(_('e.g. email')),
             'class': 'span8',
@@ -309,7 +313,8 @@ class ProjectSettingsView(ProjectView):
                 request, messages.SUCCESS,
                 _('Changes to your project were saved.'))
 
-            redirect = reverse('sentry-manage-project', args=[project.organization.slug, project.slug])
+            redirect = reverse('sentry-manage-project',
+                               args=[project.organization.slug, project.slug])
 
             return HttpResponseRedirect(redirect)
 

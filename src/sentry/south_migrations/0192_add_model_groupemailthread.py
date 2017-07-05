@@ -12,18 +12,19 @@ class Migration(SchemaMigration):
         db.create_table('sentry_groupemailthread', (
             ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
             ('email', self.gf('django.db.models.fields.EmailField')(max_length=75)),
-            ('project', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(related_name='groupemail_set', to=orm['sentry.Project'])),
-            ('group', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(related_name='groupemail_set', to=orm['sentry.Group'])),
+            ('project', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(
+                related_name='groupemail_set', to=orm['sentry.Project'])),
+            ('group', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(
+                related_name='groupemail_set', to=orm['sentry.Group'])),
             ('msgid', self.gf('django.db.models.fields.CharField')(unique=True, max_length=100)),
-            ('date', self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now, db_index=True)),
+            ('date', self.gf('django.db.models.fields.DateTimeField')(
+                default=datetime.datetime.now, db_index=True)),
         ))
         db.send_create_signal('sentry', ['GroupEmailThread'])
-
 
     def backwards(self, orm):
         # Deleting model 'GroupEmailThread'
         db.delete_table('sentry_groupemailthread')
-
 
     models = {
         'sentry.accessgroup': {

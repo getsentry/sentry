@@ -10,24 +10,27 @@ class Migration(SchemaMigration):
     def forwards(self, orm):
         # Adding field 'ApiGrant.scope_list'
         db.add_column('sentry_apigrant', 'scope_list',
-                      self.gf('sentry.db.models.fields.array.ArrayField')(of=('django.db.models.fields.TextField', [], {})),
+                      self.gf('sentry.db.models.fields.array.ArrayField')(
+                          of=('django.db.models.fields.TextField', [], {})),
                       keep_default=False)
 
         # Adding field 'ApiToken.scope_list'
         db.add_column('sentry_apitoken', 'scope_list',
-                      self.gf('sentry.db.models.fields.array.ArrayField')(of=('django.db.models.fields.TextField', [], {})),
+                      self.gf('sentry.db.models.fields.array.ArrayField')(
+                          of=('django.db.models.fields.TextField', [], {})),
                       keep_default=False)
 
         # Adding field 'ApiAuthorization.scope_list'
         db.add_column('sentry_apiauthorization', 'scope_list',
-                      self.gf('sentry.db.models.fields.array.ArrayField')(of=('django.db.models.fields.TextField', [], {})),
+                      self.gf('sentry.db.models.fields.array.ArrayField')(
+                          of=('django.db.models.fields.TextField', [], {})),
                       keep_default=False)
 
         # Adding field 'ApiKey.scope_list'
         db.add_column('sentry_apikey', 'scope_list',
-                      self.gf('sentry.db.models.fields.array.ArrayField')(of=('django.db.models.fields.TextField', [], {})),
+                      self.gf('sentry.db.models.fields.array.ArrayField')(
+                          of=('django.db.models.fields.TextField', [], {})),
                       keep_default=False)
-
 
     def backwards(self, orm):
         # Deleting field 'ApiGrant.scope_list'
@@ -41,7 +44,6 @@ class Migration(SchemaMigration):
 
         # Deleting field 'ApiKey.scope_list'
         db.delete_column('sentry_apikey', 'scope_list')
-
 
     models = {
         'sentry.activity': {

@@ -14,12 +14,13 @@ class Migration(SchemaMigration):
         # Deleting model 'TeamMember'
         db.delete_table(u'sentry_teammember')
 
-
     def backwards(self, orm):
         # Adding model 'TeamMember'
         db.create_table(u'sentry_teammember', (
-            ('user', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.User'])),
-            ('team', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.Team'])),
+            ('user', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(
+                to=orm['sentry.User'])),
+            ('team', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(
+                to=orm['sentry.Team'])),
             ('date_added', self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)),
             ('type', self.gf('sentry.db.models.fields.bounded.BoundedIntegerField')(default=50)),
             ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
@@ -28,7 +29,6 @@ class Migration(SchemaMigration):
 
         # Adding unique constraint on 'TeamMember', fields ['team', 'user']
         db.create_unique(u'sentry_teammember', ['team_id', 'user_id'])
-
 
     models = {
         'sentry.accessgroup': {

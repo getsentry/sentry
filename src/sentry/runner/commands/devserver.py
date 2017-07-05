@@ -76,7 +76,8 @@ def devserver(reload, watchers, workers, browser_reload, environment, bind):
 
     if workers:
         if settings.CELERY_ALWAYS_EAGER:
-            raise click.ClickException('Disable CELERY_ALWAYS_EAGER in your settings file to spawn workers.')
+            raise click.ClickException(
+                'Disable CELERY_ALWAYS_EAGER in your settings file to spawn workers.')
 
         daemons += [
             ('worker', ['sentry', 'run', 'worker', '-c', '1', '--autoreload']),

@@ -52,7 +52,7 @@ class EventAppleCrashReportEndpoint(Endpoint):
         symbolicated = (request.GET.get('minified') not in ('1', 'true'))
         debug_images = None
         if (event.data.get('debug_meta') and
-           event.data.get('debug_meta').get('images')):
+                event.data.get('debug_meta').get('images')):
             debug_images = event.data.get('debug_meta').get('images')
 
         apple_crash_report_string = six.text_type(AppleCrashReport(

@@ -11,7 +11,6 @@ class Migration(SchemaMigration):
         # Deleting model 'HelpPage'
         db.delete_table(u'sentry_helppage')
 
-
     def backwards(self, orm):
         # Adding model 'HelpPage'
         db.create_table(u'sentry_helppage', (
@@ -24,7 +23,6 @@ class Migration(SchemaMigration):
             ('priority', self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')(default=50)),
         ))
         db.send_create_signal('sentry', ['HelpPage'])
-
 
     models = {
         'sentry.activity': {

@@ -11,7 +11,8 @@ class Migration(SchemaMigration):
         # Adding model 'FilterKey'
         db.create_table('sentry_filterkey', (
             ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
-            ('project', self.gf('sentry.db.models.fields.FlexibleForeignKey')(to=orm['sentry.Project'])),
+            ('project', self.gf('sentry.db.models.fields.FlexibleForeignKey')(
+                to=orm['sentry.Project'])),
             ('key', self.gf('django.db.models.fields.CharField')(max_length=32)),
         ))
         db.send_create_signal('sentry', ['FilterKey'])
@@ -19,14 +20,12 @@ class Migration(SchemaMigration):
         # Adding unique constraint on 'FilterKey', fields ['project', 'key']
         db.create_unique('sentry_filterkey', ['project_id', 'key'])
 
-
     def backwards(self, orm):
         # Removing unique constraint on 'FilterKey', fields ['project', 'key']
         db.delete_unique('sentry_filterkey', ['project_id', 'key'])
 
         # Deleting model 'FilterKey'
         db.delete_table('sentry_filterkey')
-
 
     models = {
         'sentry.user': {

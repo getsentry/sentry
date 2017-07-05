@@ -11,12 +11,14 @@ class Migration(SchemaMigration):
         # Adding model 'EventUser'
         db.create_table('sentry_eventuser', (
             ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
-            ('project', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.Project'])),
+            ('project', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(
+                to=orm['sentry.Project'])),
             ('ident', self.gf('django.db.models.fields.CharField')(max_length=64, null=True)),
             ('email', self.gf('django.db.models.fields.EmailField')(max_length=75, null=True)),
             ('username', self.gf('django.db.models.fields.CharField')(max_length=64, null=True)),
             ('ip_address', self.gf('django.db.models.fields.GenericIPAddressField')(max_length=39, null=True)),
-            ('date_added', self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now, db_index=True)),
+            ('date_added', self.gf('django.db.models.fields.DateTimeField')(
+                default=datetime.datetime.now, db_index=True)),
         ))
         db.send_create_signal('sentry', ['EventUser'])
 
@@ -31,7 +33,6 @@ class Migration(SchemaMigration):
 
         # Adding index on 'EventUser', fields ['project', 'ip_address']
         db.create_index('sentry_eventuser', ['project_id', 'ip_address'])
-
 
     def backwards(self, orm):
         # Removing index on 'EventUser', fields ['project', 'ip_address']
@@ -48,7 +49,6 @@ class Migration(SchemaMigration):
 
         # Deleting model 'EventUser'
         db.delete_table('sentry_eventuser')
-
 
     models = {
         'sentry.activity': {

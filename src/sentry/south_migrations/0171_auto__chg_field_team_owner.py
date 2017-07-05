@@ -9,11 +9,13 @@ class Migration(SchemaMigration):
 
     def forwards(self, orm):
         # Changing field 'Team.owner'
-        db.alter_column('sentry_team', 'owner_id', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.User'], null=True))
+        db.alter_column('sentry_team', 'owner_id', self.gf(
+            'sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.User'], null=True))
 
     def backwards(self, orm):
         # User chose to not deal with backwards NULL issues for 'Team.owner'
-        raise RuntimeError("Cannot reverse this migration. 'Team.owner' and its values cannot be restored.")
+        raise RuntimeError(
+            "Cannot reverse this migration. 'Team.owner' and its values cannot be restored.")
 
     models = {
         'sentry.accessgroup': {

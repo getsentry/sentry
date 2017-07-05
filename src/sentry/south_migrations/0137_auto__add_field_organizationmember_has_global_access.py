@@ -17,11 +17,12 @@ class Migration(SchemaMigration):
         m2m_table_name = db.shorten_name('sentry_organizationmember_teams')
         db.create_table(m2m_table_name, (
             ('id', models.AutoField(verbose_name='ID', primary_key=True, auto_created=True)),
-            ('organizationmember', self.gf('sentry.db.models.fields.FlexibleForeignKey')(orm['sentry.organizationmember'], null=False)),
-            ('team', self.gf('sentry.db.models.fields.FlexibleForeignKey')(orm['sentry.team'], null=False))
+            ('organizationmember', self.gf('sentry.db.models.fields.FlexibleForeignKey')(
+                orm['sentry.organizationmember'], null=False)),
+            ('team', self.gf('sentry.db.models.fields.FlexibleForeignKey')(
+                orm['sentry.team'], null=False))
         ))
         db.create_unique(m2m_table_name, ['organizationmember_id', 'team_id'])
-
 
     def backwards(self, orm):
         # Deleting field 'OrganizationMember.has_global_access'
@@ -29,7 +30,6 @@ class Migration(SchemaMigration):
 
         # Removing M2M table for field teams on 'OrganizationMember'
         db.delete_table(db.shorten_name('sentry_organizationmember_teams'))
-
 
     models = {
         'sentry.accessgroup': {

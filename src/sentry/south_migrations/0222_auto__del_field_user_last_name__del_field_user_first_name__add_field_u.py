@@ -10,13 +10,12 @@ class Migration(SchemaMigration):
     def forwards(self, orm):
         db.delete_column('auth_user', 'last_name')
 
-
     def backwards(self, orm):
         # Adding field 'User.last_name'
         db.add_column('auth_user', 'last_name',
-                      self.gf('django.db.models.fields.CharField')(default='', max_length=30, blank=True),
+                      self.gf('django.db.models.fields.CharField')(
+                          default='', max_length=30, blank=True),
                       keep_default=False)
-
 
     models = {
         'sentry.activity': {

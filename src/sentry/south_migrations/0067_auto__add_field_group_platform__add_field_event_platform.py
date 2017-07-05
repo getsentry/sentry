@@ -16,14 +16,12 @@ class Migration(SchemaMigration):
         db.add_column('sentry_message', 'platform',
                       self.gf('django.db.models.fields.CharField')(max_length=64, null=True))
 
-
     def backwards(self, orm):
         # Deleting field 'Group.platform'
         db.delete_column('sentry_groupedmessage', 'platform')
 
         # Deleting field 'Event.platform'
         db.delete_column('sentry_message', 'platform')
-
 
     models = {
         'sentry.user': {
