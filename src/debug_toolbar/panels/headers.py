@@ -1,5 +1,7 @@
 from __future__ import absolute_import, unicode_literals
 
+import six
+
 from django.utils.translation import ugettext_lazy as _
 
 from debug_toolbar.compat import OrderedDict
@@ -57,7 +59,7 @@ class HeadersPanel(Panel):
 def is_http_header(wsgi_key):
     # The WSGI spec says that keys should be str objects in the environ dict,
     # but this isn't true in practice. See issues #449 and #482.
-    return isinstance(wsgi_key, str) and wsgi_key.startswith('HTTP_')
+    return isinstance(wsgi_key, six.string_types) and wsgi_key.startswith('HTTP_')
 
 
 def unmangle(wsgi_key):
