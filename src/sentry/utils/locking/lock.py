@@ -33,7 +33,8 @@ class Lock(object):
         try:
             self.backend.acquire(self.key, self.duration, self.routing_key)
         except Exception as error:
-            six.raise_from(UnableToAcquireLock('Unable to acquire {!r} due to error: {}'.format(self, error)), error)
+            six.raise_from(UnableToAcquireLock(
+                'Unable to acquire {!r} due to error: {}'.format(self, error)), error)
 
         @contextmanager
         def releaser():

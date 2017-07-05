@@ -18,11 +18,9 @@ class Migration(SchemaMigration):
         ))
         db.send_create_signal('sentry', ['ScheduledJob'])
 
-
     def backwards(self, orm):
         # Deleting model 'ScheduledJob'
         db.delete_table('sentry_scheduledjob')
-
 
     models = {
         'sentry.activity': {

@@ -10,14 +10,13 @@ class Migration(SchemaMigration):
     def forwards(self, orm):
         # Adding field 'Group.users_seen'
         db.add_column('sentry_groupedmessage', 'users_seen',
-                      self.gf('django.db.models.fields.PositiveIntegerField')(default=0, db_index=True),
+                      self.gf('django.db.models.fields.PositiveIntegerField')(
+                          default=0, db_index=True),
                       keep_default=False)
-
 
     def backwards(self, orm):
         # Deleting field 'Group.users_seen'
         db.delete_column('sentry_groupedmessage', 'users_seen')
-
 
     models = {
         'sentry.user': {

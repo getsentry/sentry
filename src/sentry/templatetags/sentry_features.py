@@ -11,7 +11,8 @@ register = template.Library()
 def feature(parser, token):
     bits = token.split_contents()
     if len(bits) < 2:
-        raise template.TemplateSyntaxError("%r tag requires an argument" % token.contents.split()[0])
+        raise template.TemplateSyntaxError(
+            "%r tag requires an argument" % token.contents.split()[0])
 
     name = bits[1]
     params = bits[2:]

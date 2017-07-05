@@ -11,13 +11,11 @@ class Migration(SchemaMigration):
         # Deleting field 'TeamMember.is_active'
         db.delete_column(u'sentry_teammember', 'is_active')
 
-
     def backwards(self, orm):
         # Adding field 'TeamMember.is_active'
         db.add_column(u'sentry_teammember', 'is_active',
                       self.gf('django.db.models.fields.BooleanField')(default=True),
                       keep_default=False)
-
 
     models = {
         u'auth.group': {

@@ -14,16 +14,18 @@ class Migration(SchemaMigration):
             db.execute("ALTER TABLE sentry_release DROP CONSTRAINT IF EXISTS project_id_refs_id_21d237e2")
 
             # Changing field 'ReleaseFile.project_id'
-            db.execute("ALTER TABLE sentry_releasefile DROP CONSTRAINT IF EXISTS project_id_refs_id_878696ea")
+            db.execute(
+                "ALTER TABLE sentry_releasefile DROP CONSTRAINT IF EXISTS project_id_refs_id_878696ea")
 
     def backwards(self, orm):
         if is_postgres():
             # Changing field 'Release.project_id'
-            db.execute("ALTER TABLE sentry_release ADD CONSTRAINT project_id_refs_id_21d237e2 FOREIGN KEY (project_id) REFERENCES sentry_project(id)")
+            db.execute(
+                "ALTER TABLE sentry_release ADD CONSTRAINT project_id_refs_id_21d237e2 FOREIGN KEY (project_id) REFERENCES sentry_project(id)")
 
             # Changing field 'ReleaseFile.project_id'
-            db.execute("ALTER TABLE sentry_releasefile ADD CONSTRAINT project_id_refs_id_878696ea FOREIGN KEY (project_id) REFERENCES sentry_project(id)")
-
+            db.execute(
+                "ALTER TABLE sentry_releasefile ADD CONSTRAINT project_id_refs_id_878696ea FOREIGN KEY (project_id) REFERENCES sentry_project(id)")
 
     models = {
         'sentry.activity': {

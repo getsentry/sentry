@@ -11,8 +11,10 @@ class Migration(SchemaMigration):
         # Adding model 'GroupTagKey'
         db.create_table('sentry_grouptagkey', (
             ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
-            ('project', self.gf('sentry.db.models.fields.FlexibleForeignKey')(to=orm['sentry.Project'], null=True)),
-            ('group', self.gf('sentry.db.models.fields.FlexibleForeignKey')(to=orm['sentry.Group'])),
+            ('project', self.gf('sentry.db.models.fields.FlexibleForeignKey')(
+                to=orm['sentry.Project'], null=True)),
+            ('group', self.gf('sentry.db.models.fields.FlexibleForeignKey')(
+                to=orm['sentry.Group'])),
             ('key', self.gf('django.db.models.fields.CharField')(max_length=32)),
             ('values_seen', self.gf('django.db.models.fields.PositiveIntegerField')(default=0)),
         ))
@@ -28,19 +30,20 @@ class Migration(SchemaMigration):
 
         # Adding field 'FilterValue.last_seen'
         db.add_column('sentry_filtervalue', 'last_seen',
-                      self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now, null=True, db_index=True),
+                      self.gf('django.db.models.fields.DateTimeField')(
+                          default=datetime.datetime.now, null=True, db_index=True),
                       keep_default=False)
 
         # Adding field 'FilterValue.first_seen'
         db.add_column('sentry_filtervalue', 'first_seen',
-                      self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now, null=True, db_index=True),
+                      self.gf('django.db.models.fields.DateTimeField')(
+                          default=datetime.datetime.now, null=True, db_index=True),
                       keep_default=False)
 
         # Adding field 'FilterKey.values_seen'
         db.add_column('sentry_filterkey', 'values_seen',
                       self.gf('django.db.models.fields.PositiveIntegerField')(default=0),
                       keep_default=False)
-
 
     def backwards(self, orm):
         # Removing unique constraint on 'GroupTagKey', fields ['project', 'group', 'key']
@@ -60,7 +63,6 @@ class Migration(SchemaMigration):
 
         # Deleting field 'FilterKey.values_seen'
         db.delete_column('sentry_filterkey', 'values_seen')
-
 
     models = {
         'sentry.user': {

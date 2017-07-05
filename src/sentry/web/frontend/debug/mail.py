@@ -66,7 +66,8 @@ def make_group_metadata(random, group):
         'type': 'error',
         'metadata': {
             'type': '{}Error'.format(
-                ''.join(word.title() for word in random.sample(loremipsum.words, random.randint(1, 3))),
+                ''.join(word.title() for word in random.sample(
+                    loremipsum.words, random.randint(1, 3))),
             ),
             'value': make_message(random),
         }

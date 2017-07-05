@@ -82,26 +82,26 @@ class Migration(DataMigration):
                     defaults['first_seen'] = data['first_seen']
 
                 create_or_update(orm['sentry.MessageFilterValue'],
-                    project=group.project,
-                    group=group,
-                    key=key,
-                    value=value,
-                    values=values,
-                )
+                                 project=group.project,
+                                 group=group,
+                                 key=key,
+                                 value=value,
+                                 values=values,
+                                 )
 
             orm['sentry.MessageFilterValue'].objects.filter(group__in=matches).delete()
 
             # migrate counts
             for date, data in six.iteritems(counts):
                 create_or_update(orm['sentry.MessageCountByMinute'],
-                    project=group.project,
-                    group=group,
-                    date=date,
-                    values={
-                        'times_seen': F('times_seen') + data['times_seen'],
-                        'time_spent_total': F('time_spent_total') + data['time_spent_total'],
-                        'time_spent_count': F('time_spent_count') + data['time_spent_count'],
-                    }
+                                 project=group.project,
+                                 group=group,
+                                 date=date,
+                                 values={
+                    'times_seen': F('times_seen') + data['times_seen'],
+                    'time_spent_total': F('time_spent_total') + data['time_spent_total'],
+                    'time_spent_count': F('time_spent_count') + data['time_spent_count'],
+                }
                 )
 
             orm['sentry.MessageCountByMinute'].objects.filter(group__in=matches).delete()

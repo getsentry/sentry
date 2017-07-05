@@ -20,11 +20,9 @@ class Migration(SchemaMigration):
         ))
         db.send_create_signal('sentry', ['HelpPage'])
 
-
     def backwards(self, orm):
         # Deleting model 'HelpPage'
         db.delete_table('sentry_helppage')
-
 
     models = {
         'sentry.accessgroup': {

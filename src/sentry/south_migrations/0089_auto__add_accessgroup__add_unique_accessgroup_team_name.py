@@ -23,22 +23,25 @@ class Migration(SchemaMigration):
         # Adding M2M table for field projects on 'AccessGroup'
         db.create_table('sentry_accessgroup_projects', (
             ('id', models.AutoField(verbose_name='ID', primary_key=True, auto_created=True)),
-            ('accessgroup', self.gf('sentry.db.models.fields.FlexibleForeignKey')(orm['sentry.accessgroup'], null=False)),
-            ('project', self.gf('sentry.db.models.fields.FlexibleForeignKey')(orm['sentry.project'], null=False))
+            ('accessgroup', self.gf('sentry.db.models.fields.FlexibleForeignKey')(
+                orm['sentry.accessgroup'], null=False)),
+            ('project', self.gf('sentry.db.models.fields.FlexibleForeignKey')(
+                orm['sentry.project'], null=False))
         ))
         db.create_unique('sentry_accessgroup_projects', ['accessgroup_id', 'project_id'])
 
         # Adding M2M table for field members on 'AccessGroup'
         db.create_table('sentry_accessgroup_members', (
             ('id', models.AutoField(verbose_name='ID', primary_key=True, auto_created=True)),
-            ('accessgroup', self.gf('sentry.db.models.fields.FlexibleForeignKey')(orm['sentry.accessgroup'], null=False)),
-            ('user', self.gf('sentry.db.models.fields.FlexibleForeignKey')(orm['sentry.user'], null=False))
+            ('accessgroup', self.gf('sentry.db.models.fields.FlexibleForeignKey')(
+                orm['sentry.accessgroup'], null=False)),
+            ('user', self.gf('sentry.db.models.fields.FlexibleForeignKey')(
+                orm['sentry.user'], null=False))
         ))
         db.create_unique('sentry_accessgroup_members', ['accessgroup_id', 'user_id'])
 
         # Adding unique constraint on 'AccessGroup', fields ['team', 'name']
         db.create_unique('sentry_accessgroup', ['team_id', 'name'])
-
 
     def backwards(self, orm):
         # Removing unique constraint on 'AccessGroup', fields ['team', 'name']
@@ -52,7 +55,6 @@ class Migration(SchemaMigration):
 
         # Removing M2M table for field members on 'AccessGroup'
         db.delete_table('sentry_accessgroup_members')
-
 
     models = {
         'sentry.user': {

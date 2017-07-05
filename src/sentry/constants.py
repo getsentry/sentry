@@ -31,6 +31,7 @@ def get_all_languages():
         results.append(path)
     return results
 
+
 MODULE_ROOT = os.path.dirname(__import__('sentry').__file__)
 DATA_ROOT = os.path.join(MODULE_ROOT, 'data')
 

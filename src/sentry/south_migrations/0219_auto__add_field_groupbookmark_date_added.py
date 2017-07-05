@@ -10,14 +10,13 @@ class Migration(SchemaMigration):
     def forwards(self, orm):
         # Adding field 'GroupBookmark.date_added'
         db.add_column('sentry_groupbookmark', 'date_added',
-                      self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now, null=True),
+                      self.gf('django.db.models.fields.DateTimeField')(
+                          default=datetime.datetime.now, null=True),
                       keep_default=False)
-
 
     def backwards(self, orm):
         # Deleting field 'GroupBookmark.date_added'
         db.delete_column('sentry_groupbookmark', 'date_added')
-
 
     models = {
         'sentry.activity': {

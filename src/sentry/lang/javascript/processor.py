@@ -268,7 +268,8 @@ def fetch_release_file(filename, release, dist=None):
             encoding = result[3]
         except IndexError:
             encoding = None
-        result = http.UrlResult(filename, result[0], zlib.decompress(result[1]), result[2], encoding)
+        result = http.UrlResult(filename, result[0], zlib.decompress(
+            result[1]), result[2], encoding)
 
     return result
 
@@ -316,7 +317,8 @@ def fetch_file(url, project=None, release=None, dist=None,
                 encoding = None
             # We got a cache hit, but the body is compressed, so we
             # need to decompress it before handing it off
-            result = http.UrlResult(result[0], result[1], zlib.decompress(result[2]), result[3], encoding)
+            result = http.UrlResult(result[0], result[1], zlib.decompress(
+                result[2]), result[3], encoding)
 
     if result is None:
         headers = {}
@@ -342,7 +344,8 @@ def fetch_file(url, project=None, release=None, dist=None,
     # binary and say utf8 encoding.
     if not isinstance(result.body, six.binary_type):
         try:
-            result = http.UrlResult(result.url, result.headers, result.body.encode('utf8'), result.status, result.encoding)
+            result = http.UrlResult(result.url, result.headers, result.body.encode(
+                'utf8'), result.status, result.encoding)
         except UnicodeEncodeError:
             error = {
                 'type': EventError.FETCH_INVALID_ENCODING,
@@ -357,7 +360,8 @@ def fetch_file(url, project=None, release=None, dist=None,
         # Check if response is HTML by looking if the first non-whitespace character is an open tag ('<').
         # This cannot parse as valid JS/JSON.
         # NOTE: not relying on Content-Type header because apps often don't set this correctly
-        body_start = result.body[:20].lstrip()  # Discard leading whitespace (often found before doctype)
+        # Discard leading whitespace (often found before doctype)
+        body_start = result.body[:20].lstrip()
 
         if body_start[:1] == u'<':
             error = {

@@ -16,15 +16,16 @@ class Migration(SchemaMigration):
             ('path', self.gf('django.db.models.fields.TextField')(null=True)),
             ('size', self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')(null=True)),
             ('checksum', self.gf('django.db.models.fields.CharField')(unique=True, max_length=40)),
-            ('timestamp', self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now, db_index=True)),
+            ('timestamp', self.gf('django.db.models.fields.DateTimeField')(
+                default=datetime.datetime.now, db_index=True)),
         ))
         db.send_create_signal('sentry', ['FileBlob'])
 
         # Adding field 'File.blob'
         db.add_column('sentry_file', 'blob',
-                      self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.FileBlob'], null=True),
+                      self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(
+                          to=orm['sentry.FileBlob'], null=True),
                       keep_default=False)
-
 
     def backwards(self, orm):
         # Deleting model 'FileBlob'
@@ -32,7 +33,6 @@ class Migration(SchemaMigration):
 
         # Deleting field 'File.blob'
         db.delete_column('sentry_file', 'blob_id')
-
 
     models = {
         'sentry.activity': {

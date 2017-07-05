@@ -58,15 +58,18 @@ class Migration(SchemaMigration):
             try:
                 self.fix_missing_teams(orm)
             except Exception as e:
-                import traceback; traceback.print_exc()
+                import traceback
+                traceback.print_exc()
                 raise
 
         # Changing field 'Project.team'
-        db.alter_column('sentry_project', 'team_id', self.gf('sentry.db.models.fields.FlexibleForeignKey')(to=orm['sentry.Team']))
+        db.alter_column('sentry_project', 'team_id', self.gf(
+            'sentry.db.models.fields.FlexibleForeignKey')(to=orm['sentry.Team']))
 
     def backwards(self, orm):
         # Changing field 'Project.team'
-        db.alter_column('sentry_project', 'team_id', self.gf('sentry.db.models.fields.FlexibleForeignKey')(to=orm['sentry.Team'], null=True))
+        db.alter_column('sentry_project', 'team_id', self.gf(
+            'sentry.db.models.fields.FlexibleForeignKey')(to=orm['sentry.Team'], null=True))
 
     models = {
         'sentry.accessgroup': {

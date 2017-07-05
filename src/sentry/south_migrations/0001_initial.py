@@ -4,6 +4,7 @@ from south.db import db
 from south.v2 import SchemaMigration
 from django.db import models
 
+
 class Migration(SchemaMigration):
 
     def forwards(self, orm):
@@ -11,9 +12,12 @@ class Migration(SchemaMigration):
         # Adding model 'GroupedMessage'
         db.create_table('sentry_groupedmessage', (
             ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
-            ('logger', self.gf('django.db.models.fields.CharField')(default='root', max_length=64, db_index=True, blank=True)),
-            ('class_name', self.gf('django.db.models.fields.CharField')(db_index=True, max_length=128, null=True, blank=True)),
-            ('level', self.gf('django.db.models.fields.PositiveIntegerField')(default=40, db_index=True, blank=True)),
+            ('logger', self.gf('django.db.models.fields.CharField')
+             (default='root', max_length=64, db_index=True, blank=True)),
+            ('class_name', self.gf('django.db.models.fields.CharField')(
+                db_index=True, max_length=128, null=True, blank=True)),
+            ('level', self.gf('django.db.models.fields.PositiveIntegerField')(
+                default=40, db_index=True, blank=True)),
             ('message', self.gf('django.db.models.fields.TextField')()),
             ('traceback', self.gf('django.db.models.fields.TextField')(null=True, blank=True)),
             ('view', self.gf('django.db.models.fields.CharField')(max_length=200, db_index=True)),
@@ -22,8 +26,10 @@ class Migration(SchemaMigration):
             ('checksum', self.gf('django.db.models.fields.CharField')(max_length=32, db_index=True)),
             ('status', self.gf('django.db.models.fields.PositiveIntegerField')(default=0)),
             ('times_seen', self.gf('django.db.models.fields.PositiveIntegerField')(default=1)),
-            ('last_seen', self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now, db_index=True)),
-            ('first_seen', self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now, db_index=True)),
+            ('last_seen', self.gf('django.db.models.fields.DateTimeField')(
+                default=datetime.datetime.now, db_index=True)),
+            ('first_seen', self.gf('django.db.models.fields.DateTimeField')(
+                default=datetime.datetime.now, db_index=True)),
         ))
         db.send_create_signal('sentry', ['GroupedMessage'])
 
@@ -33,16 +39,20 @@ class Migration(SchemaMigration):
         # Adding model 'Message'
         db.create_table('sentry_message', (
             ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
-            ('logger', self.gf('django.db.models.fields.CharField')(default='root', max_length=64, db_index=True, blank=True)),
-            ('class_name', self.gf('django.db.models.fields.CharField')(db_index=True, max_length=128, null=True, blank=True)),
-            ('level', self.gf('django.db.models.fields.PositiveIntegerField')(default=40, db_index=True, blank=True)),
+            ('logger', self.gf('django.db.models.fields.CharField')
+             (default='root', max_length=64, db_index=True, blank=True)),
+            ('class_name', self.gf('django.db.models.fields.CharField')(
+                db_index=True, max_length=128, null=True, blank=True)),
+            ('level', self.gf('django.db.models.fields.PositiveIntegerField')(
+                default=40, db_index=True, blank=True)),
             ('message', self.gf('django.db.models.fields.TextField')()),
             ('traceback', self.gf('django.db.models.fields.TextField')(null=True, blank=True)),
             ('view', self.gf('django.db.models.fields.CharField')(max_length=200, db_index=True)),
             ('url', self.gf('django.db.models.fields.URLField')(max_length=200, null=True, blank=True)),
             ('server_name', self.gf('django.db.models.fields.CharField')(max_length=128, db_index=True)),
             ('checksum', self.gf('django.db.models.fields.CharField')(max_length=32, db_index=True)),
-            ('datetime', self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now, db_index=True)),
+            ('datetime', self.gf('django.db.models.fields.DateTimeField')(
+                default=datetime.datetime.now, db_index=True)),
             ('data', self.gf('django.db.models.fields.TextField')(null=True, blank=True)),
         ))
         db.send_create_signal('sentry', ['Message'])

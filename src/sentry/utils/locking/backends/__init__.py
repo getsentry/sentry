@@ -6,6 +6,7 @@ class LockBackend(object):
     Interface for providing lock behavior that is used by the
     ``sentry.utils.locking.Lock`` class.
     """
+
     def acquire(self, key, duration, routing_key=None):
         """
         Acquire a lock, represented by the given key for the given duration (in

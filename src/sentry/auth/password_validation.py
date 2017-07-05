@@ -74,6 +74,8 @@ def _password_validators_help_text_html(password_validators=None):
     help_texts = password_validators_help_texts(password_validators)
     help_items = [format_html('<li>{}</li>', help_text) for help_text in help_texts]
     return '<ul>%s</ul>' % ''.join(help_items) if help_items else ''
+
+
 password_validators_help_text_html = lazy(_password_validators_help_text_html, text_type)
 
 
@@ -81,6 +83,7 @@ class MinimumLengthValidator(object):
     """
     Validate whether the password is of a minimum length.
     """
+
     def __init__(self, min_length=8):
         self.min_length = min_length
 
@@ -108,6 +111,7 @@ class MaximumLengthValidator(object):
     """
     Validate whether the password is of a maximum length.
     """
+
     def __init__(self, max_length=256):
         self.max_length = max_length
 
@@ -135,6 +139,7 @@ class NumericPasswordValidator(object):
     """
     Validate whether the password is alphanumeric.
     """
+
     def validate(self, password):
         if password.isdigit():
             raise ValidationError(

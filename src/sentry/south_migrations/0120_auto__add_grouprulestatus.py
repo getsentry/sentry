@@ -11,19 +11,19 @@ class Migration(SchemaMigration):
         # Adding model 'GroupRuleStatus'
         db.create_table('sentry_grouprulestatus', (
             ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
-            ('project', self.gf('sentry.db.models.fields.FlexibleForeignKey')(to=orm['sentry.Project'])),
+            ('project', self.gf('sentry.db.models.fields.FlexibleForeignKey')(
+                to=orm['sentry.Project'])),
             ('rule', self.gf('sentry.db.models.fields.FlexibleForeignKey')(to=orm['sentry.Rule'])),
-            ('group', self.gf('sentry.db.models.fields.FlexibleForeignKey')(to=orm['sentry.Group'])),
+            ('group', self.gf('sentry.db.models.fields.FlexibleForeignKey')(
+                to=orm['sentry.Group'])),
             ('status', self.gf('django.db.models.fields.PositiveSmallIntegerField')(default=0)),
             ('date_added', self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)),
         ))
         db.send_create_signal('sentry', ['GroupRuleStatus'])
 
-
     def backwards(self, orm):
         # Deleting model 'GroupRuleStatus'
         db.delete_table('sentry_grouprulestatus')
-
 
     models = {
         'sentry.accessgroup': {

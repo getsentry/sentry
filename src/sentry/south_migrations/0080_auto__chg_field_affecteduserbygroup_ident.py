@@ -10,12 +10,14 @@ class Migration(SchemaMigration):
     def forwards(self, orm):
 
         # Changing field 'AffectedUserByGroup.ident'
-        db.alter_column('sentry_affecteduserbygroup', 'ident', self.gf('django.db.models.fields.CharField')(max_length=200, null=True))
+        db.alter_column('sentry_affecteduserbygroup', 'ident', self.gf(
+            'django.db.models.fields.CharField')(max_length=200, null=True))
 
     def backwards(self, orm):
 
         # User chose to not deal with backwards NULL issues for 'AffectedUserByGroup.ident'
-        raise RuntimeError("Cannot reverse this migration. 'AffectedUserByGroup.ident' and its values cannot be restored.")
+        raise RuntimeError(
+            "Cannot reverse this migration. 'AffectedUserByGroup.ident' and its values cannot be restored.")
 
     models = {
         'sentry.user': {

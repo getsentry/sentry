@@ -10,14 +10,13 @@ class Migration(SchemaMigration):
     def forwards(self, orm):
         # Adding field 'User.last_active'
         db.add_column('auth_user', 'last_active',
-                      self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now, null=True),
+                      self.gf('django.db.models.fields.DateTimeField')(
+                          default=datetime.datetime.now, null=True),
                       keep_default=False)
-
 
     def backwards(self, orm):
         # Deleting field 'User.last_active'
         db.delete_column('auth_user', 'last_active')
-
 
     models = {
         'sentry.activity': {

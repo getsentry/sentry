@@ -4,6 +4,7 @@ from south.db import db
 from south.v2 import SchemaMigration
 from django.db import models
 
+
 class Migration(SchemaMigration):
 
     def forwards(self, orm):
@@ -11,7 +12,8 @@ class Migration(SchemaMigration):
         # Adding model 'ProjectOptions'
         db.create_table('sentry_projectoptions', (
             ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
-            ('project', self.gf('sentry.db.models.fields.FlexibleForeignKey')(to=orm['sentry.Project'])),
+            ('project', self.gf('sentry.db.models.fields.FlexibleForeignKey')(
+                to=orm['sentry.Project'])),
             ('key', self.gf('django.db.models.fields.CharField')(max_length=32)),
             ('value', self.gf('django.db.models.fields.CharField')(max_length=200)),
         ))
@@ -20,7 +22,6 @@ class Migration(SchemaMigration):
         # Adding unique constraint on 'ProjectOptions', fields ['project', 'key', 'value']
         db.create_unique('sentry_projectoptions', ['project_id', 'key', 'value'])
 
-
     def backwards(self, orm):
 
         # Removing unique constraint on 'ProjectOptions', fields ['project', 'key', 'value']
@@ -28,7 +29,6 @@ class Migration(SchemaMigration):
 
         # Deleting model 'ProjectOptions'
         db.delete_table('sentry_projectoptions')
-
 
     models = {
         'sentry.user': {

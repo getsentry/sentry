@@ -13,11 +13,9 @@ class Migration(SchemaMigration):
                       self.gf('django.db.models.fields.BigIntegerField')(default=0),
                       keep_default=False)
 
-
     def backwards(self, orm):
         # Deleting field 'AuthProvider.flags'
         db.delete_column('sentry_authprovider', 'flags')
-
 
     models = {
         'sentry.accessgroup': {

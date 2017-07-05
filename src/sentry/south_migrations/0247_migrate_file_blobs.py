@@ -4,6 +4,7 @@ from south.db import db
 from south.v2 import DataMigration
 from django.db import IntegrityError, models, transaction
 
+
 class Migration(DataMigration):
 
     def forwards(self, orm):

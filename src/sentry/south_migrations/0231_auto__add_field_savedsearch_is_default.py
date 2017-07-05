@@ -13,11 +13,9 @@ class Migration(SchemaMigration):
                       self.gf('django.db.models.fields.BooleanField')(default=False),
                       keep_default=False)
 
-
     def backwards(self, orm):
         # Deleting field 'SavedSearch.is_default'
         db.delete_column('sentry_savedsearch', 'is_default')
-
 
     models = {
         'sentry.activity': {

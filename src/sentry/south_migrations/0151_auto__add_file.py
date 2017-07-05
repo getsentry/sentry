@@ -17,15 +17,14 @@ class Migration(SchemaMigration):
             ('path', self.gf('django.db.models.fields.TextField')(null=True)),
             ('type', self.gf('django.db.models.fields.CharField')(max_length=64)),
             ('size', self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')(null=True)),
-            ('timestamp', self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now, db_index=True)),
+            ('timestamp', self.gf('django.db.models.fields.DateTimeField')(
+                default=datetime.datetime.now, db_index=True)),
         ))
         db.send_create_signal('sentry', ['File'])
-
 
     def backwards(self, orm):
         # Deleting model 'File'
         db.delete_table('sentry_file')
-
 
     models = {
         'sentry.accessgroup': {

@@ -11,8 +11,10 @@ class Migration(SchemaMigration):
         # Adding model 'OrganizationMember'
         db.create_table('sentry_organizationmember', (
             ('id', self.gf('sentry.db.models.fields.BoundedBigAutoField')(primary_key=True)),
-            ('organization', self.gf('sentry.db.models.fields.FlexibleForeignKey')(related_name='member_set', to=orm['sentry.Organization'])),
-            ('user', self.gf('sentry.db.models.fields.FlexibleForeignKey')(related_name='sentry_orgmember_set', to=orm['sentry.User'])),
+            ('organization', self.gf('sentry.db.models.fields.FlexibleForeignKey')(
+                related_name='member_set', to=orm['sentry.Organization'])),
+            ('user', self.gf('sentry.db.models.fields.FlexibleForeignKey')
+             (related_name='sentry_orgmember_set', to=orm['sentry.User'])),
             ('type', self.gf('django.db.models.fields.PositiveIntegerField')(default=50)),
             ('date_added', self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)),
         ))
@@ -25,7 +27,8 @@ class Migration(SchemaMigration):
         db.create_table('sentry_organization', (
             ('id', self.gf('sentry.db.models.fields.BoundedBigAutoField')(primary_key=True)),
             ('name', self.gf('django.db.models.fields.CharField')(max_length=64)),
-            ('owner', self.gf('sentry.db.models.fields.FlexibleForeignKey')(to=orm['sentry.User'])),
+            ('owner', self.gf('sentry.db.models.fields.FlexibleForeignKey')(
+                to=orm['sentry.User'])),
             ('status', self.gf('django.db.models.fields.PositiveIntegerField')(default=0)),
             ('date_added', self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)),
         ))
@@ -33,9 +36,9 @@ class Migration(SchemaMigration):
 
         # Adding field 'Team.organization'
         db.add_column('sentry_team', 'organization',
-                      self.gf('sentry.db.models.fields.FlexibleForeignKey')(to=orm['sentry.Organization'], null=True),
+                      self.gf('sentry.db.models.fields.FlexibleForeignKey')(
+                          to=orm['sentry.Organization'], null=True),
                       keep_default=False)
-
 
     def backwards(self, orm):
         # Removing unique constraint on 'OrganizationMember', fields ['organization', 'user']
@@ -49,7 +52,6 @@ class Migration(SchemaMigration):
 
         # Deleting field 'Team.organization'
         db.delete_column('sentry_team', 'organization_id')
-
 
     models = {
         'sentry.accessgroup': {

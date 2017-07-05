@@ -4,6 +4,7 @@ from south.db import db
 from south.v2 import DataMigration
 from django.db import models
 
+
 class Migration(DataMigration):
 
     def forwards(self, orm):
@@ -23,7 +24,6 @@ class Migration(DataMigration):
             slugify_instance(project.team, project.team.name)
             project.team.save()
             project.save()
-
 
     def backwards(self, orm):
         pass

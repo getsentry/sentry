@@ -5,6 +5,7 @@ from south.v2 import DataMigration
 from django.db import IntegrityError, models, transaction, connection
 from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
 
+
 class Migration(DataMigration):
 
     def forwards(self, orm):
@@ -25,7 +26,6 @@ class Migration(DataMigration):
 
     def backwards(self, orm):
         "Write your backwards methods here."
-
 
     models = {
         'sentry.activity': {

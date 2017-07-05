@@ -13,11 +13,9 @@ class Migration(SchemaMigration):
                       self.gf('django.db.models.fields.PositiveIntegerField')(default=0),
                       keep_default=False)
 
-
     def backwards(self, orm):
         # Deleting field 'Team.status'
         db.delete_column('sentry_team', 'status')
-
 
     models = {
         'sentry.accessgroup': {

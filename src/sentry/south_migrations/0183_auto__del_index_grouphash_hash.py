@@ -17,11 +17,9 @@ class Migration(SchemaMigration):
             except Exception:
                 pass
 
-
     def backwards(self, orm):
         # Adding index on 'GroupHash', fields ['hash']
         db.create_index(u'sentry_grouphash', ['hash'])
-
 
     models = {
         'sentry.accessgroup': {

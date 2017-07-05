@@ -14,12 +14,12 @@ class Migration(SchemaMigration):
         # Deleting model 'PendingTeamMember'
         db.delete_table(u'sentry_pendingteammember')
 
-
     def backwards(self, orm):
         # Adding model 'PendingTeamMember'
         db.create_table(u'sentry_pendingteammember', (
             ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
-            ('team', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(related_name='pending_member_set', to=orm['sentry.Team'])),
+            ('team', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(
+                related_name='pending_member_set', to=orm['sentry.Team'])),
             ('date_added', self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)),
             ('type', self.gf('sentry.db.models.fields.bounded.BoundedIntegerField')(default=50)),
             ('email', self.gf('django.db.models.fields.EmailField')(max_length=75)),
@@ -28,7 +28,6 @@ class Migration(SchemaMigration):
 
         # Adding unique constraint on 'PendingTeamMember', fields ['team', 'email']
         db.create_unique(u'sentry_pendingteammember', ['team_id', 'email'])
-
 
     models = {
         'sentry.accessgroup': {

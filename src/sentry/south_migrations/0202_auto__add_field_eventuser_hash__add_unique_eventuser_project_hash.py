@@ -16,10 +16,8 @@ class Migration(SchemaMigration):
         # Adding unique constraint on 'EventUser', fields ['project', 'hash']
         db.create_unique('sentry_eventuser', ['project_id', 'hash'])
 
-
     def backwards(self, orm):
         raise NotImplementedError
-
 
     models = {
         'sentry.activity': {

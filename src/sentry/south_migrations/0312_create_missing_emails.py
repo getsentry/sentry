@@ -6,6 +6,7 @@ from django.db import models
 
 from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
 
+
 class Migration(DataMigration):
 
     def forwards(self, orm):
@@ -26,7 +27,8 @@ class Migration(DataMigration):
     def _forwards(self, orm):
         "Write your forwards methods here."
 
-        users = orm.User.objects.exclude(email__in=orm.UserEmail.objects.all().values_list('email', flat=True))
+        users = orm.User.objects.exclude(
+            email__in=orm.UserEmail.objects.all().values_list('email', flat=True))
 
         for user in RangeQuerySetWrapperWithProgressBar(users):
             orm.UserEmail.objects.get_or_create(

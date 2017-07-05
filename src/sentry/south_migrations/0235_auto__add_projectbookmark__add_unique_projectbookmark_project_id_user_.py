@@ -11,9 +11,12 @@ class Migration(SchemaMigration):
         # Adding model 'ProjectBookmark'
         db.create_table('sentry_projectbookmark', (
             ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
-            ('project_id', self.gf('sentry.db.models.fields.bounded.BoundedBigIntegerField')(null=True, blank=True)),
-            ('user', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.User'])),
-            ('date_added', self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now, null=True)),
+            ('project_id', self.gf('sentry.db.models.fields.bounded.BoundedBigIntegerField')(
+                null=True, blank=True)),
+            ('user', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(
+                to=orm['sentry.User'])),
+            ('date_added', self.gf('django.db.models.fields.DateTimeField')(
+                default=datetime.datetime.now, null=True)),
         ))
         db.send_create_signal('sentry', ['ProjectBookmark'])
 
@@ -26,7 +29,6 @@ class Migration(SchemaMigration):
 
         # Deleting model 'ProjectBookmark'
         db.delete_table('sentry_projectbookmark')
-
 
     models = {
         'sentry.activity': {

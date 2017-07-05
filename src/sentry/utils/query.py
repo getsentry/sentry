@@ -29,6 +29,7 @@ class RangeQuerySetWrapper(object):
 
     Very efficient, but ORDER BY statements will not work.
     """
+
     def __init__(self, queryset, step=1000, limit=None, min_id=None,
                  order_by='pk', callbacks=()):
         # Support for slicing
@@ -151,6 +152,7 @@ class EverythingCollector(Collector):
     More or less identical to the default Django collector except we always
     return relations (even when they shouldn't matter).
     """
+
     def collect(self, objs, source=None, nullable=False, collect_related=True,
                 source_attr=None, reverse_dependency=False):
         new_objs = self.add(objs)

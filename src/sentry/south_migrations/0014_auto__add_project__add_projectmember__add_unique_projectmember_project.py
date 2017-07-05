@@ -4,6 +4,7 @@ from south.db import db
 from south.v2 import SchemaMigration
 from django.db import models
 
+
 class Migration(SchemaMigration):
 
     def forwards(self, orm):
@@ -12,7 +13,8 @@ class Migration(SchemaMigration):
         db.create_table('sentry_project', (
             ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
             ('name', self.gf('django.db.models.fields.CharField')(max_length=200)),
-            ('owner', self.gf('sentry.db.models.fields.FlexibleForeignKey')(to=orm['sentry.User'])),
+            ('owner', self.gf('sentry.db.models.fields.FlexibleForeignKey')(
+                to=orm['sentry.User'])),
             ('public', self.gf('django.db.models.fields.BooleanField')(default=False)),
             ('date_added', self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)),
         ))
@@ -21,7 +23,8 @@ class Migration(SchemaMigration):
         # Adding model 'ProjectMember'
         db.create_table('sentry_projectmember', (
             ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
-            ('project', self.gf('sentry.db.models.fields.FlexibleForeignKey')(to=orm['sentry.Project'])),
+            ('project', self.gf('sentry.db.models.fields.FlexibleForeignKey')(
+                to=orm['sentry.Project'])),
             ('user', self.gf('sentry.db.models.fields.FlexibleForeignKey')(to=orm['sentry.User'])),
             ('permissions', self.gf('django.db.models.fields.BigIntegerField')()),
             ('date_added', self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)),
@@ -30,7 +33,6 @@ class Migration(SchemaMigration):
 
         # Adding unique constraint on 'ProjectMember', fields ['project', 'user']
         db.create_unique('sentry_projectmember', ['project_id', 'user_id'])
-
 
     def backwards(self, orm):
 
@@ -42,7 +44,6 @@ class Migration(SchemaMigration):
 
         # Deleting model 'ProjectMember'
         db.delete_table('sentry_projectmember')
-
 
     models = {
         'sentry.user': {
@@ -158,6 +159,6 @@ class Migration(SchemaMigration):
             'last_name': ('django.db.models.fields.CharField', [], {'max_length': '30', 'blank': 'True'}),
             'password': ('django.db.models.fields.CharField', [], {'max_length': '128'}),
             'username': ('django.db.models.fields.CharField', [], {'unique': 'True', 'max_length': '128'})
-        },    }
+        }, }
 
     complete_apps = ['sentry']

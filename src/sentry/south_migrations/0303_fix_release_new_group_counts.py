@@ -6,6 +6,7 @@ from django.db import models
 
 from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
 
+
 class Migration(DataMigration):
 
     def forwards(self, orm):

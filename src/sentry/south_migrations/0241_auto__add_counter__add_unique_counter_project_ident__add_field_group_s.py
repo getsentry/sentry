@@ -11,7 +11,8 @@ class Migration(SchemaMigration):
         # Adding model 'Counter'
         db.create_table('sentry_projectcounter', (
             ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
-            ('project', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.Project'], unique=True)),
+            ('project', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(
+                to=orm['sentry.Project'], unique=True)),
             ('value', self.gf('sentry.db.models.fields.bounded.BoundedBigIntegerField')()),
         ))
         db.send_create_signal('sentry', ['Counter'])
@@ -33,7 +34,6 @@ class Migration(SchemaMigration):
 
         # Deleting field 'Group.short_id'
         db.delete_column('sentry_groupedmessage', 'short_id')
-
 
     models = {
         'sentry.activity': {

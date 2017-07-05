@@ -10,14 +10,13 @@ class Migration(SchemaMigration):
     def forwards(self, orm):
         # Adding field 'Group.first_release'
         db.add_column('sentry_groupedmessage', 'first_release',
-                      self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.Release'], null=True),
+                      self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(
+                          to=orm['sentry.Release'], null=True),
                       keep_default=False)
-
 
     def backwards(self, orm):
         # Deleting field 'Group.first_release'
         db.delete_column('sentry_groupedmessage', 'first_release_id')
-
 
     models = {
         'sentry.accessgroup': {

@@ -4,6 +4,7 @@ from south.db import db
 from south.v2 import SchemaMigration
 from django.db import models
 
+
 class Migration(SchemaMigration):
 
     def forwards(self, orm):
@@ -11,7 +12,8 @@ class Migration(SchemaMigration):
         # Adding model 'ProjectCountByMinute'
         db.create_table('sentry_projectcountbyminute', (
             ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
-            ('project', self.gf('sentry.db.models.fields.FlexibleForeignKey')(to=orm['sentry.Project'], null=True)),
+            ('project', self.gf('sentry.db.models.fields.FlexibleForeignKey')(
+                to=orm['sentry.Project'], null=True)),
             ('date', self.gf('django.db.models.fields.DateTimeField')()),
             ('times_seen', self.gf('django.db.models.fields.PositiveIntegerField')(default=0)),
             ('time_spent_total', self.gf('django.db.models.fields.FloatField')(default=0)),
@@ -22,7 +24,6 @@ class Migration(SchemaMigration):
         # Adding unique constraint on 'ProjectCountByMinute', fields ['project', 'date']
         db.create_unique('sentry_projectcountbyminute', ['project_id', 'date'])
 
-
     def backwards(self, orm):
 
         # Removing unique constraint on 'ProjectCountByMinute', fields ['project', 'date']
@@ -30,7 +31,6 @@ class Migration(SchemaMigration):
 
         # Deleting model 'ProjectCountByMinute'
         db.delete_table('sentry_projectcountbyminute')
-
 
     models = {
         'sentry.user': {

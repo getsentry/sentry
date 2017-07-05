@@ -84,6 +84,7 @@ def init_all_applications():
         except Exception:
             continue
 
+
 init_all_applications()
 
 # Only create one instance of the ReactPageView since it's duplicated errywhere

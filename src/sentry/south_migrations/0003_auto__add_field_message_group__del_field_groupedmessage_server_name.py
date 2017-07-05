@@ -4,16 +4,17 @@ from south.db import db
 from south.v2 import SchemaMigration
 from django.db import models
 
+
 class Migration(SchemaMigration):
 
     def forwards(self, orm):
 
         # Adding field 'Message.group'
-        db.add_column('sentry_message', 'group', self.gf('sentry.db.models.fields.FlexibleForeignKey')(blank=True, related_name='message_set', null=True, to=orm['sentry.GroupedMessage']), keep_default=False)
+        db.add_column('sentry_message', 'group', self.gf('sentry.db.models.fields.FlexibleForeignKey')(
+            blank=True, related_name='message_set', null=True, to=orm['sentry.GroupedMessage']), keep_default=False)
 
         # Deleting field 'GroupedMessage.server_name'
         db.delete_column('sentry_groupedmessage', 'server_name')
-
 
     def backwards(self, orm):
 
@@ -21,8 +22,8 @@ class Migration(SchemaMigration):
         db.delete_column('sentry_message', 'group_id')
 
         # Adding field 'GroupedMessage.server_name'
-        db.add_column('sentry_groupedmessage', 'server_name', self.gf('django.db.models.fields.CharField')(default='', max_length=128, db_index=True), keep_default=False)
-
+        db.add_column('sentry_groupedmessage', 'server_name', self.gf('django.db.models.fields.CharField')(
+            default='', max_length=128, db_index=True), keep_default=False)
 
     models = {
         'sentry.groupedmessage': {

@@ -4,6 +4,7 @@ from south.db import db
 from south.v2 import SchemaMigration
 from django.db import models
 
+
 class Migration(SchemaMigration):
 
     def forwards(self, orm):
@@ -11,7 +12,8 @@ class Migration(SchemaMigration):
         # Adding model 'SearchToken'
         db.create_table('sentry_searchtoken', (
             ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
-            ('document', self.gf('sentry.db.models.fields.FlexibleForeignKey')(related_name='token_set', to=orm['sentry.SearchDocument'])),
+            ('document', self.gf('sentry.db.models.fields.FlexibleForeignKey')(
+                related_name='token_set', to=orm['sentry.SearchDocument'])),
             ('field', self.gf('django.db.models.fields.CharField')(default='text', max_length=64)),
             ('token', self.gf('django.db.models.fields.CharField')(max_length=128)),
             ('times_seen', self.gf('django.db.models.fields.PositiveIntegerField')(default=1)),
@@ -24,8 +26,10 @@ class Migration(SchemaMigration):
         # Adding model 'SearchDocument'
         db.create_table('sentry_searchdocument', (
             ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
-            ('project', self.gf('sentry.db.models.fields.FlexibleForeignKey')(to=orm['sentry.Project'])),
-            ('group', self.gf('sentry.db.models.fields.FlexibleForeignKey')(to=orm['sentry.Group'])),
+            ('project', self.gf('sentry.db.models.fields.FlexibleForeignKey')(
+                to=orm['sentry.Project'])),
+            ('group', self.gf('sentry.db.models.fields.FlexibleForeignKey')(
+                to=orm['sentry.Group'])),
             ('total_events', self.gf('django.db.models.fields.PositiveIntegerField')(default=1)),
             ('date_added', self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)),
             ('date_changed', self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)),
@@ -34,7 +38,6 @@ class Migration(SchemaMigration):
 
         # Adding unique constraint on 'SearchDocument', fields ['project', 'group']
         db.create_unique('sentry_searchdocument', ['project_id', 'group_id'])
-
 
     def backwards(self, orm):
 
@@ -49,7 +52,6 @@ class Migration(SchemaMigration):
 
         # Deleting model 'SearchDocument'
         db.delete_table('sentry_searchdocument')
-
 
     models = {
         'sentry.user': {

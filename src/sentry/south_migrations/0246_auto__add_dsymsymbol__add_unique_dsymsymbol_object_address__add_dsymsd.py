@@ -12,7 +12,8 @@ class Migration(SchemaMigration):
         # Adding model 'DSymSymbol'
         db.create_table('sentry_dsymsymbol', (
             ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
-            ('object', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.DSymObject'])),
+            ('object', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(
+                to=orm['sentry.DSymObject'])),
             ('address', self.gf('sentry.db.models.fields.bounded.BoundedBigIntegerField')(db_index=True)),
             ('symbol', self.gf('django.db.models.fields.TextField')()),
         ))
@@ -34,7 +35,8 @@ class Migration(SchemaMigration):
         db.send_create_signal('sentry', ['DSymSDK'])
 
         # Adding index on 'DSymSDK', fields ['version_major', 'version_minor', 'version_patchlevel', 'version_build']
-        db.create_index('sentry_dsymsdk', ['version_major', 'version_minor', 'version_patchlevel', 'version_build'])
+        db.create_index('sentry_dsymsdk', ['version_major',
+                                           'version_minor', 'version_patchlevel', 'version_build'])
 
         # Adding model 'DSymObject'
         db.create_table('sentry_dsymobject', (
@@ -61,15 +63,17 @@ class Migration(SchemaMigration):
         # Adding model 'DSymBundle'
         db.create_table('sentry_dsymbundle', (
             ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
-            ('sdk', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.DSymSDK'])),
-            ('object', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.DSymObject'])),
+            ('sdk', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(
+                to=orm['sentry.DSymSDK'])),
+            ('object', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(
+                to=orm['sentry.DSymObject'])),
         ))
         db.send_create_signal('sentry', ['DSymBundle'])
 
-
     def backwards(self, orm):
         # Removing index on 'DSymSDK', fields ['version_major', 'version_minor', 'version_patchlevel', 'version_build']
-        db.delete_index('sentry_dsymsdk', ['version_major', 'version_minor', 'version_patchlevel', 'version_build'])
+        db.delete_index('sentry_dsymsdk', ['version_major',
+                                           'version_minor', 'version_patchlevel', 'version_build'])
 
         # Removing unique constraint on 'DSymSymbol', fields ['object', 'address']
         db.delete_unique('sentry_dsymsymbol', ['object_id', 'address'])
@@ -85,7 +89,6 @@ class Migration(SchemaMigration):
 
         # Deleting model 'DSymBundle'
         db.delete_table('sentry_dsymbundle')
-
 
     models = {
         'sentry.activity': {

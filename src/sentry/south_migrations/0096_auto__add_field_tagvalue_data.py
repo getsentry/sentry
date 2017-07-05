@@ -13,11 +13,9 @@ class Migration(SchemaMigration):
                       self.gf('django.db.models.fields.TextField')(null=True, blank=True),
                       keep_default=False)
 
-
     def backwards(self, orm):
         # Deleting field 'TagValue.data'
         db.delete_column('sentry_filtervalue', 'data')
-
 
     models = {
         'sentry.user': {

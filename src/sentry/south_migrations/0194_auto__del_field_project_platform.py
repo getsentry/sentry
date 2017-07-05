@@ -11,13 +11,11 @@ class Migration(SchemaMigration):
         # Deleting field 'Project.platform'
         db.delete_column(u'sentry_project', 'platform')
 
-
     def backwards(self, orm):
         # Adding field 'Project.platform'
         db.add_column(u'sentry_project', 'platform',
                       self.gf('django.db.models.fields.CharField')(max_length=32, null=True),
                       keep_default=False)
-
 
     models = {
         'sentry.accessgroup': {

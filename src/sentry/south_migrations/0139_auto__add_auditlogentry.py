@@ -11,21 +11,22 @@ class Migration(SchemaMigration):
         # Adding model 'AuditLogEntry'
         db.create_table('sentry_auditlogentry', (
             ('id', self.gf('sentry.db.models.fields.BoundedBigAutoField')(primary_key=True)),
-            ('organization', self.gf('sentry.db.models.fields.FlexibleForeignKey')(to=orm['sentry.Organization'])),
-            ('actor', self.gf('sentry.db.models.fields.FlexibleForeignKey')(related_name='audit_actors', to=orm['sentry.User'])),
+            ('organization', self.gf('sentry.db.models.fields.FlexibleForeignKey')(
+                to=orm['sentry.Organization'])),
+            ('actor', self.gf('sentry.db.models.fields.FlexibleForeignKey')(
+                related_name='audit_actors', to=orm['sentry.User'])),
             ('target_object', self.gf('django.db.models.fields.PositiveIntegerField')(null=True)),
-            ('target_user', self.gf('sentry.db.models.fields.FlexibleForeignKey')(related_name='audit_targets', null=True, to=orm['sentry.User'])),
+            ('target_user', self.gf('sentry.db.models.fields.FlexibleForeignKey')(
+                related_name='audit_targets', null=True, to=orm['sentry.User'])),
             ('event', self.gf('django.db.models.fields.PositiveIntegerField')()),
             ('data', self.gf('sentry.db.models.fields.gzippeddict.GzippedDictField')()),
             ('datetime', self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)),
         ))
         db.send_create_signal('sentry', ['AuditLogEntry'])
 
-
     def backwards(self, orm):
         # Deleting model 'AuditLogEntry'
         db.delete_table('sentry_auditlogentry')
-
 
     models = {
         'sentry.accessgroup': {

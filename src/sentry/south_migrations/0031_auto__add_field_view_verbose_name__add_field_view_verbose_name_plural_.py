@@ -4,16 +4,18 @@ from south.db import db
 from south.v2 import SchemaMigration
 from django.db import models
 
+
 class Migration(SchemaMigration):
 
     def forwards(self, orm):
 
         # Adding field 'View.verbose_name'
-        db.add_column('sentry_view', 'verbose_name', self.gf('django.db.models.fields.CharField')(max_length=200, null=True), keep_default=False)
+        db.add_column('sentry_view', 'verbose_name', self.gf(
+            'django.db.models.fields.CharField')(max_length=200, null=True), keep_default=False)
 
         # Adding field 'View.verbose_name_plural'
-        db.add_column('sentry_view', 'verbose_name_plural', self.gf('django.db.models.fields.CharField')(max_length=200, null=True), keep_default=False)
-
+        db.add_column('sentry_view', 'verbose_name_plural', self.gf(
+            'django.db.models.fields.CharField')(max_length=200, null=True), keep_default=False)
 
     def backwards(self, orm):
 
@@ -22,7 +24,6 @@ class Migration(SchemaMigration):
 
         # Deleting field 'View.verbose_name_plural'
         db.delete_column('sentry_view', 'verbose_name_plural')
-
 
     models = {
         'sentry.user': {

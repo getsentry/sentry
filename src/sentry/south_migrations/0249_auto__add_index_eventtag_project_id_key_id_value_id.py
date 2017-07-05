@@ -19,11 +19,9 @@ class Migration(SchemaMigration):
         else:
             db.create_index('sentry_eventtag', ['project_id', 'key_id', 'value_id'])
 
-
     def backwards(self, orm):
         # Removing index on 'EventTag', fields ['project_id', 'key_id', 'value_id']
         db.delete_index('sentry_eventtag', ['project_id', 'key_id', 'value_id'])
-
 
     models = {
         'sentry.activity': {

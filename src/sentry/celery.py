@@ -51,6 +51,8 @@ def patch_thread_ident():
         patch_thread_ident.called = True
     except ImportError:
         pass
+
+
 patch_thread_ident()
 
 

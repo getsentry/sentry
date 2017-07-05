@@ -44,9 +44,9 @@ class HumanRenderer(object):
     def __call__(self, logger, name, event_dict):
         level = event_dict.pop('level')
         real_level = (level.upper()
-            if isinstance(level, six.string_types)
-            else logging.getLevelName(level)
-        )
+                      if isinstance(level, six.string_types)
+                      else logging.getLevelName(level)
+                      )
         base = '%s [%s] %s: %s' % (
             now().strftime('%H:%M:%S'),
             real_level,
@@ -54,7 +54,7 @@ class HumanRenderer(object):
             event_dict.pop('event', ''),
         )
         join = ' '.join(k + '=' + repr(v)
-               for k, v in six.iteritems(event_dict))
+                        for k, v in six.iteritems(event_dict))
         return '%s%s' % (base, (' (%s)' % join if join else ''))
 
 

@@ -11,11 +11,9 @@ class Migration(SchemaMigration):
         # Adding unique constraint on 'Authenticator', fields ['user', 'type']
         db.create_unique('auth_authenticator', ['user_id', 'type'])
 
-
     def backwards(self, orm):
         # Removing unique constraint on 'Authenticator', fields ['user', 'type']
         db.delete_unique('auth_authenticator', ['user_id', 'type'])
-
 
     models = {
         'sentry.activity': {

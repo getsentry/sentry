@@ -9,7 +9,8 @@ class Migration(SchemaMigration):
 
     def forwards(self, orm):
         # Removing index on 'DSymSDK', fields ['version_major', 'version_minor', 'version_patchlevel', 'version_build']
-        db.delete_index(u'sentry_dsymsdk', ['version_major', 'version_minor', 'version_patchlevel', 'version_build'])
+        db.delete_index(u'sentry_dsymsdk', ['version_major',
+                                            'version_minor', 'version_patchlevel', 'version_build'])
 
         # Removing unique constraint on 'DSymSymbol', fields ['object', 'address']
         db.delete_unique(u'sentry_dsymsymbol', ['object_id', 'address'])
@@ -31,13 +32,15 @@ class Migration(SchemaMigration):
 
     def backwards(self, orm):
         # Adding index on 'DSymSDK', fields ['version_major', 'version_minor', 'version_patchlevel', 'version_build']
-        db.create_index(u'sentry_dsymsdk', ['version_major', 'version_minor', 'version_patchlevel', 'version_build'])
+        db.create_index(u'sentry_dsymsdk', ['version_major',
+                                            'version_minor', 'version_patchlevel', 'version_build'])
 
         # Adding model 'DSymSymbol'
         db.create_table(u'sentry_dsymsymbol', (
             ('symbol', self.gf('django.db.models.fields.TextField')()),
             ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
-            ('object', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.DSymObject'])),
+            ('object', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(
+                to=orm['sentry.DSymObject'])),
             ('address', self.gf('sentry.db.models.fields.bounded.BoundedBigIntegerField')(db_index=True)),
         ))
         db.send_create_signal('sentry', ['DSymSymbol'])
@@ -50,7 +53,8 @@ class Migration(SchemaMigration):
             ('uuid', self.gf('django.db.models.fields.CharField')(max_length=36, unique=True)),
             ('cpu_name', self.gf('django.db.models.fields.CharField')(max_length=40)),
             ('object_name', self.gf('django.db.models.fields.TextField')()),
-            ('file', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.File'])),
+            ('file', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(
+                to=orm['sentry.File'])),
             ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
         ))
         db.send_create_signal('sentry', ['GlobalDSymFile'])
@@ -58,8 +62,10 @@ class Migration(SchemaMigration):
         # Adding model 'DSymBundle'
         db.create_table(u'sentry_dsymbundle', (
             ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
-            ('object', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.DSymObject'])),
-            ('sdk', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.DSymSDK'])),
+            ('object', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(
+                to=orm['sentry.DSymObject'])),
+            ('sdk', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(
+                to=orm['sentry.DSymSDK'])),
         ))
         db.send_create_signal('sentry', ['DSymBundle'])
 
@@ -85,7 +91,6 @@ class Migration(SchemaMigration):
             ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
         ))
         db.send_create_signal('sentry', ['DSymSDK'])
-
 
     models = {
         'sentry.activity': {

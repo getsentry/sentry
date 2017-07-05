@@ -122,6 +122,7 @@ class RedisBackend(Backend):
         2) "1444847638"
 
     """
+
     def __init__(self, **options):
         self.cluster, options = get_cluster_from_options('SENTRY_DIGESTS_OPTIONS', options)
         self.locks = LockManager(RedisLockBackend(self.cluster))
@@ -325,7 +326,8 @@ class RedisBackend(Backend):
             for result in map(try_lock, entries):
                 can_reschedule[result[0] is not None].append(result)
 
-            logger.debug('Fetched %s items, able to reschedule %s.', len(entries), len(can_reschedule[True]))
+            logger.debug('Fetched %s items, able to reschedule %s.',
+                         len(entries), len(can_reschedule[True]))
 
             # Set the start position for the next query. (If there are no
             # items, we don't need to worry about this, since there won't
@@ -467,7 +469,8 @@ class RedisBackend(Backend):
                 raise InvalidState('Timeline is not in the ready state.')
 
             with connection.pipeline() as pipeline:
-                pipeline.watch(digest_key)  # This shouldn't be necessary, but better safe than sorry?
+                # This shouldn't be necessary, but better safe than sorry?
+                pipeline.watch(digest_key)
 
                 if pipeline.exists(digest_key):
                     pipeline.multi()
@@ -483,7 +486,8 @@ class RedisBackend(Backend):
                         pipeline.execute()
                     except ResponseError as error:
                         if 'no such key' in six.text_type(error):
-                            logger.debug('Could not move timeline for digestion (likely has no contents.)')
+                            logger.debug(
+                                'Could not move timeline for digestion (likely has no contents.)')
                         else:
                             raise
 
@@ -512,18 +516,22 @@ class RedisBackend(Backend):
             yield itertools.islice(get_records_for_digest(), self.capacity)
 
             def cleanup_records(pipeline):
-                record_keys = [make_record_key(timeline_key, record_key) for record_key, score in records]
+                record_keys = [make_record_key(timeline_key, record_key)
+                               for record_key, score in records]
                 pipeline.delete(digest_key, *record_keys)
 
             def reschedule():
                 with connection.pipeline() as pipeline:
-                    pipeline.watch(digest_key)  # This shouldn't be necessary, but better safe than sorry?
+                    # This shouldn't be necessary, but better safe than sorry?
+                    pipeline.watch(digest_key)
                     pipeline.multi()
 
                     cleanup_records(pipeline)
                     pipeline.zrem(make_schedule_key(self.namespace, SCHEDULE_STATE_READY), key)
-                    pipeline.zadd(make_schedule_key(self.namespace, SCHEDULE_STATE_WAITING), time.time() + minimum_delay, key)
-                    pipeline.setex(make_last_processed_timestamp_key(timeline_key), self.ttl, int(time.time()))
+                    pipeline.zadd(make_schedule_key(self.namespace,
+                                                    SCHEDULE_STATE_WAITING), time.time() + minimum_delay, key)
+                    pipeline.setex(make_last_processed_timestamp_key(
+                        timeline_key), self.ttl, int(time.time()))
                     pipeline.execute()
 
             def unschedule():
@@ -536,7 +544,8 @@ class RedisBackend(Backend):
                         cleanup_records(pipeline)
                         pipeline.delete(make_last_processed_timestamp_key(timeline_key))
                         pipeline.zrem(make_schedule_key(self.namespace, SCHEDULE_STATE_READY), key)
-                        pipeline.zrem(make_schedule_key(self.namespace, SCHEDULE_STATE_WAITING), key)
+                        pipeline.zrem(make_schedule_key(
+                            self.namespace, SCHEDULE_STATE_WAITING), key)
                         pipeline.execute()
 
             # If there were records in the digest, we need to schedule it so

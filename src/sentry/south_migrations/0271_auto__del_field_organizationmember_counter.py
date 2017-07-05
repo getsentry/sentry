@@ -11,13 +11,12 @@ class Migration(SchemaMigration):
         # Deleting field 'OrganizationMember.counter'
         db.delete_column(u'sentry_organizationmember', 'counter')
 
-
     def backwards(self, orm):
         # Adding field 'OrganizationMember.counter'
         db.add_column(u'sentry_organizationmember', 'counter',
-                      self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')(null=True, blank=True),
+                      self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')(
+                          null=True, blank=True),
                       keep_default=False)
-
 
     models = {
         'sentry.activity': {

@@ -12,16 +12,15 @@ class Migration(SchemaMigration):
         # Adding index on 'Group', fields ['project', 'first_release']
         if is_postgres():
             db.commit_transaction()
-            db.execute("CREATE INDEX CONCURRENTLY sentry_groupedmessage_project_id_31335ae34c8ef983 ON sentry_groupedmessage (project_id, first_release_id)")
+            db.execute(
+                "CREATE INDEX CONCURRENTLY sentry_groupedmessage_project_id_31335ae34c8ef983 ON sentry_groupedmessage (project_id, first_release_id)")
             db.start_transaction()
         else:
             db.create_index('sentry_groupedmessage', ['project_id', 'first_release_id'])
 
-
     def backwards(self, orm):
         # Removing index on 'Group', fields ['project', 'first_release']
         db.delete_index('sentry_groupedmessage', ['project_id', 'first_release_id'])
-
 
     models = {
         'sentry.accessgroup': {

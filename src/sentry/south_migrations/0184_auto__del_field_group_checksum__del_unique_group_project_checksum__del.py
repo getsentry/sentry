@@ -17,12 +17,12 @@ class Migration(SchemaMigration):
         # Deleting field 'Event.checksum'
         db.delete_column('sentry_message', 'checksum')
 
-
     def backwards(self, orm):
 
         # User chose to not deal with backwards NULL issues for 'Group.checksum'
-        raise RuntimeError("Cannot reverse this migration. 'Group.checksum' and its values cannot be restored.")
-        
+        raise RuntimeError(
+            "Cannot reverse this migration. 'Group.checksum' and its values cannot be restored.")
+
         # The following code is provided here to aid in writing a correct migration        # Adding field 'Group.checksum'
         db.add_column('sentry_groupedmessage', 'checksum',
                       self.gf('django.db.models.fields.CharField')(max_length=32, db_index=True),
@@ -31,15 +31,14 @@ class Migration(SchemaMigration):
         # Adding unique constraint on 'Group', fields ['project', 'checksum']
         db.create_unique('sentry_groupedmessage', ['project_id', 'checksum'])
 
-
         # User chose to not deal with backwards NULL issues for 'Event.checksum'
-        raise RuntimeError("Cannot reverse this migration. 'Event.checksum' and its values cannot be restored.")
-        
+        raise RuntimeError(
+            "Cannot reverse this migration. 'Event.checksum' and its values cannot be restored.")
+
         # The following code is provided here to aid in writing a correct migration        # Adding field 'Event.checksum'
         db.add_column('sentry_message', 'checksum',
                       self.gf('django.db.models.fields.CharField')(max_length=32, db_index=True),
                       keep_default=False)
-
 
     models = {
         'sentry.accessgroup': {

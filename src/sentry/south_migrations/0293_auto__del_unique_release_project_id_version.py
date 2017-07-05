@@ -11,11 +11,9 @@ class Migration(SchemaMigration):
         # Removing unique constraint on 'Release', fields ['project_id', 'version']
         db.delete_unique(u'sentry_release', ['project_id', 'version'])
 
-
     def backwards(self, orm):
         # Adding unique constraint on 'Release', fields ['project_id', 'version']
         db.create_unique(u'sentry_release', ['project_id', 'version'])
-
 
     models = {
         'sentry.activity': {

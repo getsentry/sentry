@@ -37,6 +37,7 @@ class RiakNodeStorage(NodeStorage):
 
     >>> RiakNodeStorage(nodes=[{'host':'127.0.0.1','port':8098}])
     """
+
     def __init__(self, nodes, bucket='nodes', timeout=1, cooldown=5,
                  max_retries=3, multiget_pool_size=5, tcp_keepalive=True,
                  protocol=None):

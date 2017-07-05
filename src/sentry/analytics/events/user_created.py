@@ -12,4 +12,5 @@ class UserCreatedEvent(analytics.Event):
         analytics.Attribute('email'),
     )
 
+
 analytics.register(UserCreatedEvent)

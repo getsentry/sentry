@@ -6,6 +6,7 @@ from south.db import db
 from south.v2 import DataMigration
 from django.db import models
 
+
 def make_handler(value):
     return BitHandler(
         keys=(
@@ -28,6 +29,7 @@ def make_handler(value):
         ),
         value=value,
     )
+
 
 class Migration(DataMigration):
 

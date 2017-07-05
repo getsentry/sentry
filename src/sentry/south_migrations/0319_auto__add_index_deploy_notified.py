@@ -20,7 +20,6 @@ class Migration(SchemaMigration):
         else:
             db.create_index('sentry_deploy', ['notified'])
 
-
     def backwards(self, orm):
         # Removing index on 'Deploy', fields ['notified']
         if is_postgres():
@@ -31,7 +30,6 @@ class Migration(SchemaMigration):
             db.start_transaction()
         else:
             db.delete_index('sentry_deploy', ['notified'])
-
 
     models = {
         'sentry.activity': {

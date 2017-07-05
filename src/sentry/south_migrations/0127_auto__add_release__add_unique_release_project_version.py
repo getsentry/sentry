@@ -11,7 +11,8 @@ class Migration(SchemaMigration):
         # Adding model 'Release'
         db.create_table('sentry_release', (
             ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
-            ('project', self.gf('sentry.db.models.fields.FlexibleForeignKey')(to=orm['sentry.Project'])),
+            ('project', self.gf('sentry.db.models.fields.FlexibleForeignKey')(
+                to=orm['sentry.Project'])),
             ('version', self.gf('django.db.models.fields.CharField')(max_length=64)),
             ('date_added', self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)),
         ))
@@ -20,14 +21,12 @@ class Migration(SchemaMigration):
         # Adding unique constraint on 'Release', fields ['project', 'version']
         db.create_unique('sentry_release', ['project_id', 'version'])
 
-
     def backwards(self, orm):
         # Removing unique constraint on 'Release', fields ['project', 'version']
         db.delete_unique('sentry_release', ['project_id', 'version'])
 
         # Deleting model 'Release'
         db.delete_table('sentry_release')
-
 
     models = {
         'sentry.accessgroup': {

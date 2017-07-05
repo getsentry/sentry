@@ -11,7 +11,8 @@ class Migration(SchemaMigration):
         # Adding model 'OrganizationOption'
         db.create_table('sentry_organizationoptions', (
             ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
-            ('organization', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.Organization'])),
+            ('organization', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(
+                to=orm['sentry.Organization'])),
             ('key', self.gf('django.db.models.fields.CharField')(max_length=64)),
             ('value', self.gf('sentry.db.models.fields.pickle.UnicodePickledObjectField')()),
         ))
@@ -20,14 +21,12 @@ class Migration(SchemaMigration):
         # Adding unique constraint on 'OrganizationOption', fields ['organization', 'key']
         db.create_unique('sentry_organizationoptions', ['organization_id', 'key'])
 
-
     def backwards(self, orm):
         # Removing unique constraint on 'OrganizationOption', fields ['organization', 'key']
         db.delete_unique('sentry_organizationoptions', ['organization_id', 'key'])
 
         # Deleting model 'OrganizationOption'
         db.delete_table('sentry_organizationoptions')
-
 
     models = {
         'sentry.activity': {

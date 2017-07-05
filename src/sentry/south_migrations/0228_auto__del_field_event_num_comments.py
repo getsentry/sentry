@@ -11,13 +11,12 @@ class Migration(SchemaMigration):
         # Deleting field 'Event.num_comments'
         db.delete_column('sentry_message', 'num_comments')
 
-
     def backwards(self, orm):
         # Adding field 'Event.num_comments'
         db.add_column('sentry_message', 'num_comments',
-                      self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')(default=0, null=True),
+                      self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')(
+                          default=0, null=True),
                       keep_default=False)
-
 
     models = {
         'sentry.activity': {

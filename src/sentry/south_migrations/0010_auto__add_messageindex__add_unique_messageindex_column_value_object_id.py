@@ -4,6 +4,7 @@ from south.db import db
 from south.v2 import SchemaMigration
 from django.db import models
 
+
 class Migration(SchemaMigration):
 
     def forwards(self, orm):
@@ -20,7 +21,6 @@ class Migration(SchemaMigration):
         # Adding unique constraint on 'MessageIndex', fields ['column', 'value', 'object_id']
         db.create_unique('sentry_messageindex', ['column', 'value', 'object_id'])
 
-
     def backwards(self, orm):
 
         # Removing unique constraint on 'MessageIndex', fields ['column', 'value', 'object_id']
@@ -28,7 +28,6 @@ class Migration(SchemaMigration):
 
         # Deleting model 'MessageIndex'
         db.delete_table('sentry_messageindex')
-
 
     models = {
         'sentry.filtervalue': {

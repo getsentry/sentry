@@ -50,26 +50,31 @@ manager.add(27, "zope", "Zope", "integration", prerequisite=["python"])
 # Configuration
 manager.add(40, "first_event", "First Event", "code", prerequisite=["first_project"])
 manager.add(41, "release_tracking", "Release Tracking", "code", prerequisite=["first_event"])
-manager.add(42, "environment_tracking", "Environment Tracking", "code", prerequisite=["first_event"])
+manager.add(42, "environment_tracking", "Environment Tracking",
+            "code", prerequisite=["first_event"])
 manager.add(43, "user_tracking", "User Tracking", "code", prerequisite=["first_event"])
 manager.add(44, "custom_tags", "Custom Tags", "code", prerequisite=["first_event"])
 manager.add(45, "source_maps", "Source Maps", "code", prerequisite=["first_event", "javascript"])
 manager.add(46, "user_feedback", "User Feedback", "code", prerequisite=["user_tracking"])
 # manager.add(47, "api", "API", "code", prerequisite=["first_event"])  # Challenging to determine what organization (i.e. api/0/organizations/)
-manager.add(48, "breadcrumbs", "Breadcrumbs", "code", prerequisite=["first_event", ("python", "javascript", "node", "php")])
+manager.add(48, "breadcrumbs", "Breadcrumbs", "code", prerequisite=[
+            "first_event", ("python", "javascript", "node", "php")])
 # TODO(ehfeng) manager.add("resolve_in_commit", "Resolve in Commit", "code", prerequisite=["first_event", "releases"])
 
 # Web UI
 manager.add(60, "first_project", "First Project", "web")
 manager.add(61, "invite_team", "Invite Team", "web", prerequisite=["first_project"])
 manager.add(62, "assignment", "Assign Issue", "web", prerequisite=["invite_team", "first_event"])
-manager.add(63, "resolved_in_release", "Resolve in Next Release", "web", prerequisite=["release_tracking"])
+manager.add(63, "resolved_in_release", "Resolve in Next Release",
+            "web", prerequisite=["release_tracking"])
 manager.add(64, "advanced_search", "Advanced Search", "web", prerequisite=["first_event"])
 manager.add(65, "saved_search", "Saved Search", "web", prerequisite=["advanced_search"])
 manager.add(66, "inbound_filters", "Inbound Filters", "web", prerequisite=["first_event"])
 manager.add(67, "alert_rules", "Alert Rules", "web", prerequisite=["first_event"])
-manager.add(68, "issue_tracker_integration", "Issue Tracker Integration", "web", prerequisite=["first_project"])
-manager.add(69, "notification_integration", "Notification Integration", "web", prerequisite=["first_project"])
+manager.add(68, "issue_tracker_integration", "Issue Tracker Integration",
+            "web", prerequisite=["first_project"])
+manager.add(69, "notification_integration", "Notification Integration",
+            "web", prerequisite=["first_project"])
 # TODO(ehfeng) manager.add("snooze", "Snooze Issue", "web", prerequisite=["first_event"])
 # TODO(ehfeng) manager.add("merge", "Merge Issues", "web", prerequisite=["first_event"])
 # TODO(ehfeng) manager.add("releases", "Releases", "web", prerequisite=["first_project"])

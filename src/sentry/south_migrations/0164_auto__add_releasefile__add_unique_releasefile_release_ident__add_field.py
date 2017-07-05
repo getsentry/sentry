@@ -11,9 +11,12 @@ class Migration(SchemaMigration):
         # Adding model 'ReleaseFile'
         db.create_table('sentry_releasefile', (
             ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
-            ('project', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.Project'])),
-            ('release', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.Release'])),
-            ('file', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.File'])),
+            ('project', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(
+                to=orm['sentry.Project'])),
+            ('release', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(
+                to=orm['sentry.Release'])),
+            ('file', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(
+                to=orm['sentry.File'])),
             ('ident', self.gf('django.db.models.fields.CharField')(max_length=40)),
             ('name', self.gf('django.db.models.fields.TextField')()),
         ))
@@ -27,12 +30,12 @@ class Migration(SchemaMigration):
                       self.gf('jsonfield.fields.JSONField')(default={}),
                       keep_default=False)
 
-
         # Changing field 'File.storage_options'
         db.alter_column('sentry_file', 'storage_options', self.gf('jsonfield.fields.JSONField')())
 
         # Changing field 'File.checksum'
-        db.alter_column('sentry_file', 'checksum', self.gf('django.db.models.fields.CharField')(max_length=40, null=True))
+        db.alter_column('sentry_file', 'checksum', self.gf(
+            'django.db.models.fields.CharField')(max_length=40, null=True))
 
     def backwards(self, orm):
         # Removing unique constraint on 'ReleaseFile', fields ['release', 'ident']
@@ -44,12 +47,13 @@ class Migration(SchemaMigration):
         # Deleting field 'File.headers'
         db.delete_column('sentry_file', 'headers')
 
-
         # Changing field 'File.storage_options'
-        db.alter_column('sentry_file', 'storage_options', self.gf('sentry.db.models.fields.gzippeddict.GzippedDictField')())
+        db.alter_column('sentry_file', 'storage_options', self.gf(
+            'sentry.db.models.fields.gzippeddict.GzippedDictField')())
 
         # Changing field 'File.checksum'
-        db.alter_column('sentry_file', 'checksum', self.gf('django.db.models.fields.CharField')(max_length=32, null=True))
+        db.alter_column('sentry_file', 'checksum', self.gf(
+            'django.db.models.fields.CharField')(max_length=32, null=True))
 
     models = {
         'sentry.accessgroup': {

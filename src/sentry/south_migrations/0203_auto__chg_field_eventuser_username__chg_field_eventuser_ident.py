@@ -10,18 +10,22 @@ class Migration(SchemaMigration):
     def forwards(self, orm):
 
         # Changing field 'EventUser.username'
-        db.alter_column('sentry_eventuser', 'username', self.gf('django.db.models.fields.CharField')(max_length=128, null=True))
+        db.alter_column('sentry_eventuser', 'username', self.gf(
+            'django.db.models.fields.CharField')(max_length=128, null=True))
 
         # Changing field 'EventUser.ident'
-        db.alter_column('sentry_eventuser', 'ident', self.gf('django.db.models.fields.CharField')(max_length=128, null=True))
+        db.alter_column('sentry_eventuser', 'ident', self.gf(
+            'django.db.models.fields.CharField')(max_length=128, null=True))
 
     def backwards(self, orm):
 
         # Changing field 'EventUser.username'
-        db.alter_column('sentry_eventuser', 'username', self.gf('django.db.models.fields.CharField')(max_length=64, null=True))
+        db.alter_column('sentry_eventuser', 'username', self.gf(
+            'django.db.models.fields.CharField')(max_length=64, null=True))
 
         # Changing field 'EventUser.ident'
-        db.alter_column('sentry_eventuser', 'ident', self.gf('django.db.models.fields.CharField')(max_length=64, null=True))
+        db.alter_column('sentry_eventuser', 'ident', self.gf(
+            'django.db.models.fields.CharField')(max_length=64, null=True))
 
     models = {
         'sentry.activity': {

@@ -4,19 +4,20 @@ from south.db import db
 from south.v2 import SchemaMigration
 from django.db import models
 
+
 class Migration(SchemaMigration):
 
     def forwards(self, orm):
 
         # Changing field 'Project.owner'
-        db.alter_column('sentry_project', 'owner_id', self.gf('sentry.db.models.fields.FlexibleForeignKey')(null=True, to=orm['sentry.User']))
-
+        db.alter_column('sentry_project', 'owner_id', self.gf(
+            'sentry.db.models.fields.FlexibleForeignKey')(null=True, to=orm['sentry.User']))
 
     def backwards(self, orm):
 
         # User chose to not deal with backwards NULL issues for 'Project.owner'
-        raise RuntimeError("Cannot reverse this migration. 'Project.owner' and its values cannot be restored.")
-
+        raise RuntimeError(
+            "Cannot reverse this migration. 'Project.owner' and its values cannot be restored.")
 
     models = {
         'sentry.user': {

@@ -4,6 +4,7 @@ from south.db import db
 from south.v2 import DataMigration
 from django.db import models, transaction
 
+
 class Migration(DataMigration):
     def forwards(self, orm):
         db.commit_transaction()
@@ -19,7 +20,6 @@ class Migration(DataMigration):
             db.start_transaction()
             raise
         db.start_transaction()
-
 
     def _forwards(self, orm):
         from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
@@ -45,7 +45,6 @@ class Migration(DataMigration):
                     commit_count=ReleaseCommit.objects.filter(release=release).count(),
                     last_commit_id=last_commit.commit_id if last_commit else None,
                 )
-
 
     def backwards(self, orm):
         pass

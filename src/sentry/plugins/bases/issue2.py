@@ -85,7 +85,7 @@ class IssueTrackingPlugin2(Plugin):
                     PluginGroupEndpoint.as_view(
                         view=getattr(self, view_method_name),
                     ),
-                )
+                    )
             )
         return _urls
 
@@ -232,7 +232,8 @@ class IssueTrackingPlugin2(Plugin):
             data=issue_information,
         )
 
-        issue_tracker_used.send(plugin=self, project=group.project, user=request.user, sender=IssueTrackingPlugin2)
+        issue_tracker_used.send(plugin=self, project=group.project,
+                                user=request.user, sender=IssueTrackingPlugin2)
         return Response({'issue_url': self.get_issue_url(group=group, issue_id=issue_id)})
 
     def view_unlink(self, request, group, **kwargs):
@@ -362,10 +363,11 @@ class IssueTrackingPlugin2(Plugin):
             return tag_list
 
         tag_list.append(format_html('<a href="{}">{}</a>',
-            self.get_issue_url(group=group, issue_id=issue_id),
-            self.get_issue_label(group=group, issue_id=issue_id),
-        ))
+                                    self.get_issue_url(group=group, issue_id=issue_id),
+                                    self.get_issue_label(group=group, issue_id=issue_id),
+                                    ))
 
         return tag_list
+
 
 IssuePlugin2 = IssueTrackingPlugin2

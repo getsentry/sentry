@@ -13,11 +13,9 @@ class Migration(SchemaMigration):
                       self.gf('django.db.models.fields.BigIntegerField')(default=1),
                       keep_default=False)
 
-
     def backwards(self, orm):
         # Deleting field 'ProjectKey.roles'
         db.delete_column('sentry_projectkey', 'roles')
-
 
     models = {
         'sentry.accessgroup': {

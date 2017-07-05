@@ -9,36 +9,46 @@ class Migration(SchemaMigration):
 
     def forwards(self, orm):
         # Changing field 'Release.organization'
-        db.alter_column('sentry_release', 'organization_id', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.Organization']))
+        db.alter_column('sentry_release', 'organization_id', self.gf(
+            'sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.Organization']))
 
         # Changing field 'ReleaseFile.organization'
-        db.alter_column('sentry_releasefile', 'organization_id', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.Organization']))
+        db.alter_column('sentry_releasefile', 'organization_id', self.gf(
+            'sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.Organization']))
 
         # Changing field 'ReleaseCommit.organization_id'
-        db.alter_column('sentry_releasecommit', 'organization_id', self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')())
+        db.alter_column('sentry_releasecommit', 'organization_id', self.gf(
+            'sentry.db.models.fields.bounded.BoundedPositiveIntegerField')())
 
         # Changing field 'ReleaseCommit.project_id'
-        db.alter_column('sentry_releasecommit', 'project_id', self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')(null=True))
+        db.alter_column('sentry_releasecommit', 'project_id', self.gf(
+            'sentry.db.models.fields.bounded.BoundedPositiveIntegerField')(null=True))
 
         # Changing field 'ReleaseEnvironment.organization_id'
-        db.alter_column('sentry_environmentrelease', 'organization_id', self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')())
+        db.alter_column('sentry_environmentrelease', 'organization_id', self.gf(
+            'sentry.db.models.fields.bounded.BoundedPositiveIntegerField')())
 
     def backwards(self, orm):
         # Changing field 'Release.organization'
-        db.alter_column('sentry_release', 'organization_id', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.Organization'], null=True))
+        db.alter_column('sentry_release', 'organization_id', self.gf(
+            'sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.Organization'], null=True))
 
         # Changing field 'ReleaseFile.organization'
-        db.alter_column('sentry_releasefile', 'organization_id', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.Organization'], null=True))
+        db.alter_column('sentry_releasefile', 'organization_id', self.gf(
+            'sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.Organization'], null=True))
 
         # Changing field 'ReleaseCommit.organization_id'
-        db.alter_column('sentry_releasecommit', 'organization_id', self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')(null=True))
+        db.alter_column('sentry_releasecommit', 'organization_id', self.gf(
+            'sentry.db.models.fields.bounded.BoundedPositiveIntegerField')(null=True))
 
         # The following code is provided here to aid in writing a correct migration
         # Changing field 'ReleaseCommit.project_id'
-        db.alter_column('sentry_releasecommit', 'project_id', self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')())
+        db.alter_column('sentry_releasecommit', 'project_id', self.gf(
+            'sentry.db.models.fields.bounded.BoundedPositiveIntegerField')())
 
         # Changing field 'ReleaseEnvironment.organization_id'
-        db.alter_column('sentry_environmentrelease', 'organization_id', self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')(null=True))
+        db.alter_column('sentry_environmentrelease', 'organization_id', self.gf(
+            'sentry.db.models.fields.bounded.BoundedPositiveIntegerField')(null=True))
 
     models = {
         'sentry.activity': {

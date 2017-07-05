@@ -22,6 +22,7 @@ class InMemoryTSDB(BaseTSDB):
 
     This should not be used in production as it will leak memory.
     """
+
     def __init__(self, *args, **kwargs):
         super(InMemoryTSDB, self).__init__(*args, **kwargs)
         self.flush()

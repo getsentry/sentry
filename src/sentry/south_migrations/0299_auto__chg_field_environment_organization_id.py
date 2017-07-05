@@ -10,12 +10,14 @@ class Migration(SchemaMigration):
     def forwards(self, orm):
 
         # Changing field 'Environment.organization_id'
-        db.alter_column('sentry_environment', 'organization_id', self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')())
+        db.alter_column('sentry_environment', 'organization_id', self.gf(
+            'sentry.db.models.fields.bounded.BoundedPositiveIntegerField')())
 
     def backwards(self, orm):
 
         # Changing field 'Environment.organization_id'
-        db.alter_column('sentry_environment', 'organization_id', self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')(null=True))
+        db.alter_column('sentry_environment', 'organization_id', self.gf(
+            'sentry.db.models.fields.bounded.BoundedPositiveIntegerField')(null=True))
 
     models = {
         'sentry.activity': {

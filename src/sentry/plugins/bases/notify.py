@@ -72,12 +72,13 @@ class NotificationPlugin(Plugin):
             extra['rule_id'] = future.rule.id
             if not future.kwargs:
                 continue
-            raise NotImplementedError('The default behavior for notification de-duplication does not support args')
+            raise NotImplementedError(
+                'The default behavior for notification de-duplication does not support args')
 
         project = event.group.project
         extra['project_id'] = project.id
         if hasattr(self, 'notify_digest') and digests.enabled(project):
-            get_digest_option = lambda key: ProjectOption.objects.get_value(
+            def get_digest_option(key): return ProjectOption.objects.get_value(
                 project,
                 get_digest_option_key(self.get_conf_key(), key),
             )

@@ -7,11 +7,13 @@ from django.db.utils import ProgrammingError
 
 from sentry.utils.db import is_postgres
 
+
 class Migration(SchemaMigration):
 
     def forwards(self, orm):
         # Removing unique constraint on 'ReleaseEnvironment', fields ['project_id', 'release_id', 'environment_id']
-        db.delete_unique('sentry_environmentrelease', ['project_id', 'release_id', 'environment_id'])
+        db.delete_unique('sentry_environmentrelease', [
+                         'project_id', 'release_id', 'environment_id'])
 
         if is_postgres():
             db.commit_transaction()
@@ -50,8 +52,8 @@ class Migration(SchemaMigration):
         db.create_index(u'sentry_releasecommit', ['project_id'])
 
         # Adding unique constraint on 'ReleaseEnvironment', fields ['project_id', 'release_id', 'environment_id']
-        db.create_unique('sentry_environmentrelease', ['project_id', 'release_id', 'environment_id'])
-
+        db.create_unique('sentry_environmentrelease', [
+                         'project_id', 'release_id', 'environment_id'])
 
     models = {
         'sentry.activity': {

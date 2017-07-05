@@ -11,7 +11,8 @@ class Migration(SchemaMigration):
         # Adding model 'Repository'
         db.create_table('sentry_repository', (
             ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
-            ('organization_id', self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')(db_index=True)),
+            ('organization_id', self.gf(
+                'sentry.db.models.fields.bounded.BoundedPositiveIntegerField')(db_index=True)),
             ('name', self.gf('django.db.models.fields.CharField')(max_length=200)),
             ('date_added', self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)),
         ))
@@ -23,11 +24,13 @@ class Migration(SchemaMigration):
         # Adding model 'Commit'
         db.create_table('sentry_commit', (
             ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
-            ('organization_id', self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')(db_index=True)),
+            ('organization_id', self.gf(
+                'sentry.db.models.fields.bounded.BoundedPositiveIntegerField')(db_index=True)),
             ('repository_id', self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')()),
             ('key', self.gf('django.db.models.fields.CharField')(max_length=64)),
             ('date_added', self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)),
-            ('author', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.CommitAuthor'], null=True)),
+            ('author', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(
+                to=orm['sentry.CommitAuthor'], null=True)),
             ('message', self.gf('django.db.models.fields.TextField')(null=True)),
         ))
         db.send_create_signal('sentry', ['Commit'])
@@ -39,8 +42,10 @@ class Migration(SchemaMigration):
         db.create_table('sentry_releasecommit', (
             ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
             ('project_id', self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')(db_index=True)),
-            ('release', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.Release'])),
-            ('commit', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.Commit'])),
+            ('release', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(
+                to=orm['sentry.Release'])),
+            ('commit', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(
+                to=orm['sentry.Commit'])),
             ('order', self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')()),
         ))
         db.send_create_signal('sentry', ['ReleaseCommit'])
@@ -54,7 +59,8 @@ class Migration(SchemaMigration):
         # Adding model 'CommitAuthor'
         db.create_table('sentry_commitauthor', (
             ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
-            ('organization_id', self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')(db_index=True)),
+            ('organization_id', self.gf(
+                'sentry.db.models.fields.bounded.BoundedPositiveIntegerField')(db_index=True)),
             ('name', self.gf('django.db.models.fields.CharField')(max_length=128, null=True)),
             ('email', self.gf('django.db.models.fields.EmailField')(max_length=75)),
         ))
@@ -62,7 +68,6 @@ class Migration(SchemaMigration):
 
         # Adding unique constraint on 'CommitAuthor', fields ['organization_id', 'email']
         db.create_unique('sentry_commitauthor', ['organization_id', 'email'])
-
 
     def backwards(self, orm):
         # Removing unique constraint on 'CommitAuthor', fields ['organization_id', 'email']
@@ -91,7 +96,6 @@ class Migration(SchemaMigration):
 
         # Deleting model 'CommitAuthor'
         db.delete_table('sentry_commitauthor')
-
 
     models = {
         'sentry.activity': {

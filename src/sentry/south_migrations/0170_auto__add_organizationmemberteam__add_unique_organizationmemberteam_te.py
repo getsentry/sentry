@@ -9,7 +9,8 @@ class Migration(SchemaMigration):
 
     def forwards(self, orm):
         # Adding model 'OrganizationMemberTeam'
-        db.add_column('sentry_organizationmember_teams', 'is_active', self.gf('django.db.models.fields.BooleanField')(default=True), keep_default=False)
+        db.add_column('sentry_organizationmember_teams', 'is_active', self.gf(
+            'django.db.models.fields.BooleanField')(default=True), keep_default=False)
 
         db.send_create_signal('sentry', ['OrganizationMemberTeam'])
 
@@ -21,8 +22,10 @@ class Migration(SchemaMigration):
         # Adding model 'OrganizationAccessRequest'
         db.create_table('sentry_organizationaccessrequest', (
             ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
-            ('team', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.Team'])),
-            ('member', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.OrganizationMember'])),
+            ('team', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(
+                to=orm['sentry.Team'])),
+            ('member', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(
+                to=orm['sentry.OrganizationMember'])),
         ))
         db.send_create_signal('sentry', ['OrganizationAccessRequest'])
 

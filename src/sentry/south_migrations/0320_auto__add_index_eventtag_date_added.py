@@ -19,11 +19,9 @@ class Migration(SchemaMigration):
         else:
             db.create_index('sentry_eventtag', ['date_added'])
 
-
     def backwards(self, orm):
         # Removing index on 'EventTag', fields ['date_added']
         db.delete_index('sentry_eventtag', ['date_added'])
-
 
     models = {
         'sentry.activity': {

@@ -11,8 +11,10 @@ class Migration(SchemaMigration):
         # Adding model 'EnvironmentProject'
         db.create_table('sentry_environmentproject', (
             ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
-            ('project', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.Project'])),
-            ('environment', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.Environment'])),
+            ('project', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(
+                to=orm['sentry.Project'])),
+            ('environment', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(
+                to=orm['sentry.Environment'])),
         ))
         db.send_create_signal('sentry', ['EnvironmentProject'])
 
@@ -24,7 +26,6 @@ class Migration(SchemaMigration):
                       self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')(null=True),
                       keep_default=False)
 
-
     def backwards(self, orm):
         # Removing unique constraint on 'EnvironmentProject', fields ['project', 'environment']
         db.delete_unique('sentry_environmentproject', ['project_id', 'environment_id'])
@@ -34,7 +35,6 @@ class Migration(SchemaMigration):
 
         # Deleting field 'Environment.organization_id'
         db.delete_column('sentry_environment', 'organization_id')
-
 
     models = {
         'sentry.activity': {

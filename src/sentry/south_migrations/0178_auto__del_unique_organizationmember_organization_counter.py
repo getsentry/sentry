@@ -11,11 +11,9 @@ class Migration(SchemaMigration):
         # Removing unique constraint on 'OrganizationMember', fields ['organization', 'counter']
         db.delete_unique(u'sentry_organizationmember', ['organization_id', 'counter'])
 
-
     def backwards(self, orm):
         # Adding unique constraint on 'OrganizationMember', fields ['organization', 'counter']
         db.create_unique(u'sentry_organizationmember', ['organization_id', 'counter'])
-
 
     models = {
         'sentry.accessgroup': {

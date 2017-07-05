@@ -46,7 +46,8 @@ class OrganizationSettingsForm(forms.ModelForm):
     )
     require_scrub_defaults = forms.BooleanField(
         label=_('Require Using Default Scrubbers'),
-        help_text=_('Require the default scrubbers be applied to prevent things like passwords and credit cards from being stored for all projects.'),
+        help_text=_(
+            'Require the default scrubbers be applied to prevent things like passwords and credit cards from being stored for all projects.'),
         required=False
     )
     sensitive_fields = forms.CharField(
@@ -163,7 +164,7 @@ class OrganizationSettingsView(OrganizationView):
             )
 
             messages.add_message(request, messages.SUCCESS,
-                _('Changes to your organization were saved.'))
+                                 _('Changes to your organization were saved.'))
 
             if any((scrubbing_field in form.cleaned_data for scrubbing_field in data_scrubbing_options)):
                 data_scrubber_enabled.send(organization=organization, sender=request.user)

@@ -20,14 +20,14 @@ class Migration(SchemaMigration):
         # Removing M2M table for field projects on 'AccessGroup'
         db.delete_table(db.shorten_name(u'sentry_accessgroup_projects'))
 
-
     def backwards(self, orm):
         # Adding model 'AccessGroup'
         db.create_table(u'sentry_accessgroup', (
             ('type', self.gf('sentry.db.models.fields.bounded.BoundedIntegerField')(default=50)),
             ('managed', self.gf('django.db.models.fields.BooleanField')(default=False)),
             ('name', self.gf('django.db.models.fields.CharField')(max_length=64)),
-            ('team', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.Team'])),
+            ('team', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(
+                to=orm['sentry.Team'])),
             ('date_added', self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)),
             ('data', self.gf('sentry.db.models.fields.gzippeddict.GzippedDictField')(null=True, blank=True)),
             ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
@@ -54,7 +54,6 @@ class Migration(SchemaMigration):
 
         # Adding unique constraint on 'AccessGroup', fields ['team', 'name']
         db.create_unique(u'sentry_accessgroup', ['team_id', 'name'])
-
 
     models = {
         'sentry.activity': {

@@ -16,14 +16,12 @@ class Migration(SchemaMigration):
         db.add_column('sentry_projectkey', 'date_added',
                       self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now, null=True))
 
-
     def backwards(self, orm):
         # Deleting field 'ProjectKey.user_added'
         db.delete_column('sentry_projectkey', 'user_added_id')
 
         # Deleting field 'ProjectKey.date_added'
         db.delete_column('sentry_projectkey', 'date_added')
-
 
     models = {
         'sentry.user': {

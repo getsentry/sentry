@@ -124,11 +124,14 @@ def configure(ctx, py, yaml, skip_service_validation=False):
         # directly to a file, in which case, this file must exist
         if not os.path.exists(py):
             if ctx:
-                raise click.ClickException("Configuration file does not exist. Use 'sentry init' to initialize the file.")
-            raise ValueError("Configuration file does not exist at '%s'" % click.format_filename(py))
+                raise click.ClickException(
+                    "Configuration file does not exist. Use 'sentry init' to initialize the file.")
+            raise ValueError("Configuration file does not exist at '%s'" %
+                             click.format_filename(py))
     elif not os.path.exists(yaml) and not os.path.exists(py):
         if ctx:
-            raise click.ClickException("Configuration file does not exist. Use 'sentry init' to initialize the file.")
+            raise click.ClickException(
+                "Configuration file does not exist. Use 'sentry init' to initialize the file.")
         raise ValueError("Configuration file does not exist at '%s'" % click.format_filename(yaml))
 
     # Add autoreload for config.yml file if needed

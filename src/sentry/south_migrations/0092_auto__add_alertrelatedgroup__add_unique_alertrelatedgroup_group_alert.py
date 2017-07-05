@@ -11,8 +11,10 @@ class Migration(SchemaMigration):
         # Adding model 'AlertRelatedGroup'
         db.create_table('sentry_alertrelatedgroup', (
             ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
-            ('group', self.gf('sentry.db.models.fields.FlexibleForeignKey')(to=orm['sentry.Group'])),
-            ('alert', self.gf('sentry.db.models.fields.FlexibleForeignKey')(to=orm['sentry.Alert'])),
+            ('group', self.gf('sentry.db.models.fields.FlexibleForeignKey')(
+                to=orm['sentry.Group'])),
+            ('alert', self.gf('sentry.db.models.fields.FlexibleForeignKey')(
+                to=orm['sentry.Alert'])),
             ('data', self.gf('django.db.models.fields.TextField')(null=True)),
         ))
         db.send_create_signal('sentry', ['AlertRelatedGroup'])
@@ -20,14 +22,12 @@ class Migration(SchemaMigration):
         # Adding unique constraint on 'AlertRelatedGroup', fields ['group', 'alert']
         db.create_unique('sentry_alertrelatedgroup', ['group_id', 'alert_id'])
 
-
     def backwards(self, orm):
         # Removing unique constraint on 'AlertRelatedGroup', fields ['group', 'alert']
         db.delete_unique('sentry_alertrelatedgroup', ['group_id', 'alert_id'])
 
         # Deleting model 'AlertRelatedGroup'
         db.delete_table('sentry_alertrelatedgroup')
-
 
     models = {
         'sentry.user': {

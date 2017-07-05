@@ -10,14 +10,13 @@ class Migration(SchemaMigration):
     def forwards(self, orm):
         # Adding field 'Team.date_added'
         db.add_column('sentry_team', 'date_added',
-                      self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now, null=True),
+                      self.gf('django.db.models.fields.DateTimeField')(
+                          default=datetime.datetime.now, null=True),
                       keep_default=False)
-
 
     def backwards(self, orm):
         # Deleting field 'Team.date_added'
         db.delete_column('sentry_team', 'date_added')
-
 
     models = {
         'sentry.user': {

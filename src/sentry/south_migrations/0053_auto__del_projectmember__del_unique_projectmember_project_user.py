@@ -4,6 +4,7 @@ from south.db import db
 from south.v2 import SchemaMigration
 from django.db import models
 
+
 class Migration(SchemaMigration):
 
     def forwards(self, orm):
@@ -14,14 +15,15 @@ class Migration(SchemaMigration):
         # Deleting model 'ProjectMember'
         db.delete_table('sentry_projectmember')
 
-
     def backwards(self, orm):
 
         # Adding model 'ProjectMember'
         db.create_table('sentry_projectmember', (
             ('is_active', self.gf('django.db.models.fields.BooleanField')(default=True)),
-            ('project', self.gf('sentry.db.models.fields.FlexibleForeignKey')(related_name='member_set', to=orm['sentry.Project'])),
-            ('user', self.gf('sentry.db.models.fields.FlexibleForeignKey')(related_name='sentry_project_set', to=orm['sentry.User'])),
+            ('project', self.gf('sentry.db.models.fields.FlexibleForeignKey')(
+                related_name='member_set', to=orm['sentry.Project'])),
+            ('user', self.gf('sentry.db.models.fields.FlexibleForeignKey')(
+                related_name='sentry_project_set', to=orm['sentry.User'])),
             ('date_added', self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)),
             ('type', self.gf('django.db.models.fields.IntegerField')(default=0)),
             ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
@@ -30,7 +32,6 @@ class Migration(SchemaMigration):
 
         # Adding unique constraint on 'ProjectMember', fields ['project', 'user']
         db.create_unique('sentry_projectmember', ['project_id', 'user_id'])
-
 
     models = {
         'sentry.user': {

@@ -16,14 +16,12 @@ class Migration(SchemaMigration):
         # Adding unique constraint on 'CommitAuthor', fields ['organization_id', 'external_id']
         db.create_unique('sentry_commitauthor', ['organization_id', 'external_id'])
 
-
     def backwards(self, orm):
         # Removing unique constraint on 'CommitAuthor', fields ['organization_id', 'external_id']
         db.delete_unique('sentry_commitauthor', ['organization_id', 'external_id'])
 
         # Deleting field 'CommitAuthor.external_id'
         db.delete_column('sentry_commitauthor', 'external_id')
-
 
     models = {
         'sentry.activity': {

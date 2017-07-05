@@ -11,12 +11,14 @@ class Migration(SchemaMigration):
         # Adding model 'ScheduledDeletion'
         db.create_table('sentry_scheduleddeletion', (
             ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
-            ('guid', self.gf('django.db.models.fields.CharField')(default='0f48946df37c4f379644acf3df31bf69', unique=True, max_length=32)),
+            ('guid', self.gf('django.db.models.fields.CharField')
+             (default='0f48946df37c4f379644acf3df31bf69', unique=True, max_length=32)),
             ('app_label', self.gf('django.db.models.fields.CharField')(max_length=64)),
             ('model_name', self.gf('django.db.models.fields.CharField')(max_length=64)),
             ('object_id', self.gf('sentry.db.models.fields.bounded.BoundedBigIntegerField')()),
             ('date_added', self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)),
-            ('date_scheduled', self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime(2017, 6, 30, 0, 0))),
+            ('date_scheduled', self.gf('django.db.models.fields.DateTimeField')(
+                default=datetime.datetime(2017, 6, 30, 0, 0))),
             ('actor_id', self.gf('sentry.db.models.fields.bounded.BoundedBigIntegerField')(null=True)),
             ('data', self.gf('jsonfield.fields.JSONField')(default={})),
             ('in_progress', self.gf('django.db.models.fields.BooleanField')(default=False)),
@@ -27,14 +29,12 @@ class Migration(SchemaMigration):
         # Adding unique constraint on 'ScheduledDeletion', fields ['app_label', 'model_name', 'object_id']
         db.create_unique('sentry_scheduleddeletion', ['app_label', 'model_name', 'object_id'])
 
-
     def backwards(self, orm):
         # Removing unique constraint on 'ScheduledDeletion', fields ['app_label', 'model_name', 'object_id']
         db.delete_unique('sentry_scheduleddeletion', ['app_label', 'model_name', 'object_id'])
 
         # Deleting model 'ScheduledDeletion'
         db.delete_table('sentry_scheduleddeletion')
-
 
     models = {
         'sentry.activity': {

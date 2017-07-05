@@ -11,8 +11,10 @@ class Migration(SchemaMigration):
         # Adding model 'UserReport'
         db.create_table('sentry_userreport', (
             ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
-            ('project', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.Project'])),
-            ('group', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.Group'], null=True)),
+            ('project', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(
+                to=orm['sentry.Project'])),
+            ('group', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(
+                to=orm['sentry.Group'], null=True)),
             ('event_id', self.gf('django.db.models.fields.CharField')(max_length=32)),
             ('name', self.gf('django.db.models.fields.CharField')(max_length=128)),
             ('email', self.gf('django.db.models.fields.EmailField')(max_length=75)),
@@ -21,11 +23,9 @@ class Migration(SchemaMigration):
         ))
         db.send_create_signal('sentry', ['UserReport'])
 
-
     def backwards(self, orm):
         # Deleting model 'UserReport'
         db.delete_table('sentry_userreport')
-
 
     models = {
         'sentry.accessgroup': {

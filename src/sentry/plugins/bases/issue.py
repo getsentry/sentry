@@ -250,7 +250,8 @@ class IssueTrackingPlugin(Plugin):
                     data=issue_information,
                 )
 
-                issue_tracker_used.send(plugin=self, project=group.project, user=request.user, sender=IssueTrackingPlugin)
+                issue_tracker_used.send(plugin=self, project=group.project,
+                                        user=request.user, sender=IssueTrackingPlugin)
                 return self.redirect(group.get_absolute_url())
 
         elif op == 'link':
@@ -317,13 +318,14 @@ class IssueTrackingPlugin(Plugin):
             return tag_list
 
         tag_list.append(format_html('<a href="{}" rel="noreferrer">{}</a>',
-            self.get_issue_url(group=group, issue_id=issue_id),
-            self.get_issue_label(group=group, issue_id=issue_id),
-        ))
+                                    self.get_issue_url(group=group, issue_id=issue_id),
+                                    self.get_issue_label(group=group, issue_id=issue_id),
+                                    ))
 
         return tag_list
 
     def get_issue_doc_html(self, **kwargs):
         return ""
+
 
 IssuePlugin = IssueTrackingPlugin

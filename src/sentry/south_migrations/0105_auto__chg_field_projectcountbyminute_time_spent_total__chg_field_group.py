@@ -10,30 +10,38 @@ class Migration(SchemaMigration):
     def forwards(self, orm):
 
         # Changing field 'ProjectCountByMinute.time_spent_total'
-        db.alter_column(u'sentry_projectcountbyminute', 'time_spent_total', self.gf('django.db.models.fields.IntegerField')())
+        db.alter_column(u'sentry_projectcountbyminute', 'time_spent_total',
+                        self.gf('django.db.models.fields.IntegerField')())
 
         # Changing field 'Group.time_spent_total'
-        db.alter_column('sentry_groupedmessage', 'time_spent_total', self.gf('django.db.models.fields.IntegerField')())
+        db.alter_column('sentry_groupedmessage', 'time_spent_total',
+                        self.gf('django.db.models.fields.IntegerField')())
 
         # Changing field 'GroupCountByMinute.time_spent_total'
-        db.alter_column('sentry_messagecountbyminute', 'time_spent_total', self.gf('django.db.models.fields.IntegerField')())
+        db.alter_column('sentry_messagecountbyminute', 'time_spent_total',
+                        self.gf('django.db.models.fields.IntegerField')())
 
         # Changing field 'Event.time_spent'
-        db.alter_column('sentry_message', 'time_spent', self.gf('django.db.models.fields.IntegerField')(null=True))
+        db.alter_column('sentry_message', 'time_spent', self.gf(
+            'django.db.models.fields.IntegerField')(null=True))
 
     def backwards(self, orm):
 
         # Changing field 'ProjectCountByMinute.time_spent_total'
-        db.alter_column(u'sentry_projectcountbyminute', 'time_spent_total', self.gf('django.db.models.fields.FloatField')())
+        db.alter_column(u'sentry_projectcountbyminute', 'time_spent_total',
+                        self.gf('django.db.models.fields.FloatField')())
 
         # Changing field 'Group.time_spent_total'
-        db.alter_column('sentry_groupedmessage', 'time_spent_total', self.gf('django.db.models.fields.FloatField')())
+        db.alter_column('sentry_groupedmessage', 'time_spent_total',
+                        self.gf('django.db.models.fields.FloatField')())
 
         # Changing field 'GroupCountByMinute.time_spent_total'
-        db.alter_column('sentry_messagecountbyminute', 'time_spent_total', self.gf('django.db.models.fields.FloatField')())
+        db.alter_column('sentry_messagecountbyminute', 'time_spent_total',
+                        self.gf('django.db.models.fields.FloatField')())
 
         # Changing field 'Event.time_spent'
-        db.alter_column('sentry_message', 'time_spent', self.gf('django.db.models.fields.FloatField')(null=True))
+        db.alter_column('sentry_message', 'time_spent', self.gf(
+            'django.db.models.fields.FloatField')(null=True))
 
     models = {
         u'auth.group': {

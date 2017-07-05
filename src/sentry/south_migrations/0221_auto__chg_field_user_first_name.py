@@ -10,12 +10,14 @@ class Migration(SchemaMigration):
     def forwards(self, orm):
 
         # Changing field 'User.first_name'
-        db.alter_column('auth_user', 'first_name', self.gf('django.db.models.fields.CharField')(max_length=200))
+        db.alter_column('auth_user', 'first_name', self.gf(
+            'django.db.models.fields.CharField')(max_length=200))
 
     def backwards(self, orm):
 
         # Changing field 'User.first_name'
-        db.alter_column('auth_user', 'first_name', self.gf('django.db.models.fields.CharField')(max_length=30))
+        db.alter_column('auth_user', 'first_name', self.gf(
+            'django.db.models.fields.CharField')(max_length=30))
 
     models = {
         'sentry.activity': {

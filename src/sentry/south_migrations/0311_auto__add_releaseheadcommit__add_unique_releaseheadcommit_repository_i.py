@@ -11,16 +11,18 @@ class Migration(SchemaMigration):
         # Adding model 'ReleaseHeadCommit'
         db.create_table('sentry_releaseheadcommit', (
             ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
-            ('organization_id', self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')(db_index=True)),
+            ('organization_id', self.gf(
+                'sentry.db.models.fields.bounded.BoundedPositiveIntegerField')(db_index=True)),
             ('repository_id', self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')()),
-            ('release', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.Release'])),
-            ('commit', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.Commit'])),
+            ('release', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(
+                to=orm['sentry.Release'])),
+            ('commit', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(
+                to=orm['sentry.Commit'])),
         ))
         db.send_create_signal('sentry', ['ReleaseHeadCommit'])
 
         # Adding unique constraint on 'ReleaseHeadCommit', fields ['repository_id', 'release']
         db.create_unique('sentry_releaseheadcommit', ['repository_id', 'release_id'])
-
 
     def backwards(self, orm):
         # Removing unique constraint on 'ReleaseHeadCommit', fields ['repository_id', 'release']
@@ -28,7 +30,6 @@ class Migration(SchemaMigration):
 
         # Deleting model 'ReleaseHeadCommit'
         db.delete_table('sentry_releaseheadcommit')
-
 
     models = {
         'sentry.activity': {

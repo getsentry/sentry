@@ -75,6 +75,7 @@ class BrowserPlugin(UserAgentPlugin):
 
         return tag
 
+
 register(BrowserPlugin)
 
 
@@ -104,6 +105,7 @@ class OsPlugin(UserAgentPlugin):
 
         return tag
 
+
 register(OsPlugin)
 
 
@@ -118,5 +120,6 @@ class DevicePlugin(UserAgentPlugin):
 
     def get_tag_from_ua(self, ua):
         return ua['device']['family']
+
 
 register(DevicePlugin)

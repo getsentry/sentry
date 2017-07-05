@@ -13,11 +13,9 @@ class Migration(SchemaMigration):
                       self.gf('django.db.models.fields.CharField')(max_length=64, null=True),
                       keep_default=False)
 
-
     def backwards(self, orm):
         # Deleting field 'ProjectKey.label'
         db.delete_column('sentry_projectkey', 'label')
-
 
     models = {
         'sentry.accessgroup': {

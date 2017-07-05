@@ -102,5 +102,6 @@ class ArrayField(models.Field):
             },
         )
 
+
 if hasattr(models, 'SubfieldBase'):
     ArrayField = six.add_metaclass(models.SubfieldBase)(ArrayField)

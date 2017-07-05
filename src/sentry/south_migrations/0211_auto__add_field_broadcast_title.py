@@ -13,11 +13,9 @@ class Migration(SchemaMigration):
                       self.gf('django.db.models.fields.CharField')(default='', max_length=32),
                       keep_default=False)
 
-
     def backwards(self, orm):
         # Deleting field 'Broadcast.title'
         db.delete_column('sentry_broadcast', 'title')
-
 
     models = {
         'sentry.activity': {

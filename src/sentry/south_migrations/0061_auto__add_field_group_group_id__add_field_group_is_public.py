@@ -10,14 +10,13 @@ class Migration(SchemaMigration):
     def forwards(self, orm):
         # Adding field 'Group.is_public'
         db.add_column('sentry_groupedmessage', 'is_public',
-                      self.gf('django.db.models.fields.NullBooleanField')(default=False, null=True, blank=True),
+                      self.gf('django.db.models.fields.NullBooleanField')(
+                          default=False, null=True, blank=True),
                       keep_default=False)
-
 
     def backwards(self, orm):
         # Deleting field 'Group.is_public'
         db.delete_column('sentry_groupedmessage', 'is_public')
-
 
     models = {
         'sentry.user': {

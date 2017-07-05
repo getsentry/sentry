@@ -10,14 +10,13 @@ class Migration(SchemaMigration):
     def forwards(self, orm):
         # Adding field 'SavedSearch.owner'
         db.add_column('sentry_savedsearch', 'owner',
-                      self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.User'], null=True),
+                      self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(
+                          to=orm['sentry.User'], null=True),
                       keep_default=False)
-
 
     def backwards(self, orm):
         # Deleting field 'SavedSearch.owner'
         db.delete_column('sentry_savedsearch', 'owner_id')
-
 
     models = {
         'sentry.activity': {

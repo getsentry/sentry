@@ -11,8 +11,10 @@ class Migration(SchemaMigration):
         # Adding model 'ApiGrant'
         db.create_table('sentry_apigrant', (
             ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
-            ('user', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.User'])),
-            ('application', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.ApiApplication'])),
+            ('user', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(
+                to=orm['sentry.User'])),
+            ('application', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(
+                to=orm['sentry.ApiApplication'])),
             ('code', self.gf('django.db.models.fields.CharField')(max_length=64, db_index=True)),
             ('expires_at', self.gf('django.db.models.fields.DateTimeField')(db_index=True)),
             ('redirect_uri', self.gf('django.db.models.fields.CharField')(max_length=255)),
@@ -23,8 +25,10 @@ class Migration(SchemaMigration):
         # Adding model 'ApiAuthorization'
         db.create_table('sentry_apiauthorization', (
             ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
-            ('application', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.ApiApplication'], null=True)),
-            ('user', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.User'])),
+            ('application', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(
+                to=orm['sentry.ApiApplication'], null=True)),
+            ('user', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(
+                to=orm['sentry.User'])),
             ('scopes', self.gf('django.db.models.fields.BigIntegerField')(default=None)),
             ('date_added', self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)),
         ))
@@ -38,9 +42,11 @@ class Migration(SchemaMigration):
             ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
             ('client_id', self.gf('django.db.models.fields.CharField')(unique=True, max_length=64)),
             ('client_secret', self.gf('sentry.db.models.fields.encrypted.EncryptedTextField')()),
-            ('owner', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.User'])),
+            ('owner', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(
+                to=orm['sentry.User'])),
             ('name', self.gf('django.db.models.fields.CharField')(max_length=64, blank=True)),
-            ('status', self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')(default=0, db_index=True)),
+            ('status', self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')(
+                default=0, db_index=True)),
             ('allowed_origins', self.gf('django.db.models.fields.TextField')(null=True, blank=True)),
             ('redirect_uris', self.gf('django.db.models.fields.TextField')()),
             ('homepage_url', self.gf('django.db.models.fields.URLField')(max_length=200, null=True)),
@@ -55,19 +61,20 @@ class Migration(SchemaMigration):
 
         # Adding field 'ApiToken.application'
         db.add_column('sentry_apitoken', 'application',
-                      self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.ApiApplication'], null=True),
+                      self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(
+                          to=orm['sentry.ApiApplication'], null=True),
                       keep_default=False)
 
         # Adding field 'ApiToken.refresh_token'
         db.add_column('sentry_apitoken', 'refresh_token',
-                      self.gf('django.db.models.fields.CharField')(max_length=64, unique=True, null=True),
+                      self.gf('django.db.models.fields.CharField')(
+                          max_length=64, unique=True, null=True),
                       keep_default=False)
 
         # Adding field 'ApiToken.expires_at'
         db.add_column('sentry_apitoken', 'expires_at',
                       self.gf('django.db.models.fields.DateTimeField')(null=True),
                       keep_default=False)
-
 
     def backwards(self, orm):
         # Removing unique constraint on 'ApiAuthorization', fields ['user', 'application']
@@ -84,7 +91,8 @@ class Migration(SchemaMigration):
 
         # Adding field 'ApiToken.key'
         db.add_column(u'sentry_apitoken', 'key',
-                      self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.ApiKey'], null=True),
+                      self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(
+                          to=orm['sentry.ApiKey'], null=True),
                       keep_default=False)
 
         # Deleting field 'ApiToken.application'
@@ -95,7 +103,6 @@ class Migration(SchemaMigration):
 
         # Deleting field 'ApiToken.expires_at'
         db.delete_column('sentry_apitoken', 'expires_at')
-
 
     models = {
         'sentry.activity': {

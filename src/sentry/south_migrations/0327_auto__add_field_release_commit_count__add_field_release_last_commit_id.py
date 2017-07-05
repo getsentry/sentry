@@ -20,7 +20,8 @@ class Migration(SchemaMigration):
 
         # Adding field 'Release.authors'
         db.add_column('sentry_release', 'authors',
-                      self.gf('sentry.db.models.fields.array.ArrayField')(of=('django.db.models.fields.TextField', [], {})),
+                      self.gf('sentry.db.models.fields.array.ArrayField')(
+                          of=('django.db.models.fields.TextField', [], {})),
                       keep_default=False)
 
         # Adding field 'Release.total_deploys'
@@ -32,7 +33,6 @@ class Migration(SchemaMigration):
         db.add_column('sentry_release', 'last_deploy_id',
                       self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')(null=True),
                       keep_default=False)
-
 
     def backwards(self, orm):
         # Deleting field 'Release.commit_count'
@@ -49,7 +49,6 @@ class Migration(SchemaMigration):
 
         # Deleting field 'Release.last_deploy_id'
         db.delete_column('sentry_release', 'last_deploy_id')
-
 
     models = {
         'sentry.activity': {

@@ -19,6 +19,7 @@ def record_instance_creation(instance, created, **kwargs):
 
     metrics.incr('objects.created', instance=instance._meta.db_table)
 
+
 post_save.connect(
     record_instance_creation,
     weak=False,

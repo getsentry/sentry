@@ -4,19 +4,19 @@ from south.db import db
 from south.v2 import SchemaMigration
 from django.db import models
 
+
 class Migration(SchemaMigration):
 
     def forwards(self, orm):
 
         # Adding field 'GroupedMessage.score'
-        db.add_column('sentry_groupedmessage', 'score', self.gf('django.db.models.fields.IntegerField')(default=0), keep_default=False)
-
+        db.add_column('sentry_groupedmessage', 'score', self.gf(
+            'django.db.models.fields.IntegerField')(default=0), keep_default=False)
 
     def backwards(self, orm):
 
         # Deleting field 'GroupedMessage.score'
         db.delete_column('sentry_groupedmessage', 'score')
-
 
     models = {
         'sentry.filtervalue': {

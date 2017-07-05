@@ -11,10 +11,12 @@ class Migration(SchemaMigration):
         # Adding model 'UserEmail'
         db.create_table('sentry_useremail', (
             ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
-            ('user', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(related_name='emails', to=orm['sentry.User'])),
+            ('user', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(
+                related_name='emails', to=orm['sentry.User'])),
             ('email', self.gf('django.db.models.fields.EmailField')(max_length=75)),
             ('validation_hash', self.gf('django.db.models.fields.CharField')(max_length=32)),
-            ('date_hash_added', self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)),
+            ('date_hash_added', self.gf('django.db.models.fields.DateTimeField')(
+                default=datetime.datetime.now)),
             ('is_verified', self.gf('django.db.models.fields.BooleanField')(default=False)),
         ))
         db.send_create_signal('sentry', ['UserEmail'])
@@ -22,14 +24,12 @@ class Migration(SchemaMigration):
         # Adding unique constraint on 'UserEmail', fields ['user', 'email']
         db.create_unique('sentry_useremail', ['user_id', 'email'])
 
-
     def backwards(self, orm):
         # Removing unique constraint on 'UserEmail', fields ['user', 'email']
         db.delete_unique('sentry_useremail', ['user_id', 'email'])
 
         # Deleting model 'UserEmail'
         db.delete_table('sentry_useremail')
-
 
     models = {
         'sentry.activity': {

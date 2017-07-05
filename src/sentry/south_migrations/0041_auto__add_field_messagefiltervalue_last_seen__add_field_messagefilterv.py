@@ -4,16 +4,18 @@ from south.db import db
 from south.v2 import SchemaMigration
 from django.db import models
 
+
 class Migration(SchemaMigration):
 
     def forwards(self, orm):
 
         # Adding field 'MessageFilterValue.last_seen'
-        db.add_column('sentry_messagefiltervalue', 'last_seen', self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now, null=True, db_index=True), keep_default=False)
+        db.add_column('sentry_messagefiltervalue', 'last_seen', self.gf('django.db.models.fields.DateTimeField')(
+            default=datetime.datetime.now, null=True, db_index=True), keep_default=False)
 
         # Adding field 'MessageFilterValue.first_seen'
-        db.add_column('sentry_messagefiltervalue', 'first_seen', self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now, null=True, db_index=True), keep_default=False)
-
+        db.add_column('sentry_messagefiltervalue', 'first_seen', self.gf('django.db.models.fields.DateTimeField')(
+            default=datetime.datetime.now, null=True, db_index=True), keep_default=False)
 
     def backwards(self, orm):
 
@@ -22,7 +24,6 @@ class Migration(SchemaMigration):
 
         # Deleting field 'MessageFilterValue.first_seen'
         db.delete_column('sentry_messagefiltervalue', 'first_seen')
-
 
     models = {
         'sentry.user': {

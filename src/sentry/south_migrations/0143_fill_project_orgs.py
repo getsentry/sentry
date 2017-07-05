@@ -4,6 +4,7 @@ from south.db import db
 from south.v2 import DataMigration
 from django.db import IntegrityError, models, transaction
 
+
 def atomic_save(model):
     try:
         with transaction.atomic():
@@ -11,6 +12,7 @@ def atomic_save(model):
     except transaction.TransactionManagementError:
         # sqlite isn't happy
         model.save()
+
 
 class Migration(DataMigration):
 

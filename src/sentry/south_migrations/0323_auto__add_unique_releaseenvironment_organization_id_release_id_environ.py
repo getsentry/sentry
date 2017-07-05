@@ -14,24 +14,26 @@ class Migration(SchemaMigration):
         if is_postgres():
             db.commit_transaction()
             db.execute("CREATE UNIQUE INDEX CONCURRENTLY {} ON sentry_environmentrelease (organization_id, release_id, environment_id)".format(
-                db.create_index_name('sentry_environmentrelease', ['organization_id', 'release_id', 'environment_id']),
+                db.create_index_name('sentry_environmentrelease', [
+                                     'organization_id', 'release_id', 'environment_id']),
             ))
             db.start_transaction()
         else:
-            db.create_unique('sentry_environmentrelease', ['organization_id', 'release_id', 'environment_id'])
-
+            db.create_unique('sentry_environmentrelease', [
+                             'organization_id', 'release_id', 'environment_id'])
 
     def backwards(self, orm):
         # Removing unique constraint on 'ReleaseEnvironment', fields ['organization_id', 'release_id', 'environment_id']
         if is_postgres():
             db.commit_transaction()
             db.execute("DROP INDEX CONCURRENTLY {}".format(
-                db.create_index_name('sentry_environmentrelease', ['organization_id', 'release_id', 'environment_id']),
+                db.create_index_name('sentry_environmentrelease', [
+                                     'organization_id', 'release_id', 'environment_id']),
             ))
             db.start_transaction()
         else:
-            db.delete_unique('sentry_environmentrelease', ['organization_id', 'release_id', 'environment_id'])
-
+            db.delete_unique('sentry_environmentrelease', [
+                             'organization_id', 'release_id', 'environment_id'])
 
     models = {
         'sentry.activity': {

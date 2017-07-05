@@ -33,7 +33,6 @@ class Migration(SchemaMigration):
         else:
             db.create_index('sentry_messagefiltervalue', ['project_id', 'key', 'value'])
 
-
     def backwards(self, orm):
         # Removing index on 'GroupTagValue', fields ['project', 'key', 'value']
         db.delete_index('sentry_messagefiltervalue', ['project_id', 'key', 'value'])
@@ -43,7 +42,6 @@ class Migration(SchemaMigration):
 
         # Adding unique constraint on 'GroupTagValue', fields ['project', 'key', 'value', 'group']
         db.create_unique('sentry_messagefiltervalue', ['project_id', 'key', 'value', 'group_id'])
-
 
     models = {
         'sentry.activity': {

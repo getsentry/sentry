@@ -13,12 +13,11 @@ class Migration(SchemaMigration):
                       self.gf('django.db.models.fields.CharField')(max_length=32, null=True),
                       keep_default=False)
 
-
         # Changing field 'File.name'
-        db.alter_column('sentry_file', 'name', self.gf('django.db.models.fields.CharField')(max_length=128))
+        db.alter_column('sentry_file', 'name', self.gf(
+            'django.db.models.fields.CharField')(max_length=128))
         # Adding unique constraint on 'File', fields ['name', 'checksum']
         db.create_unique('sentry_file', ['name', 'checksum'])
-
 
     def backwards(self, orm):
         # Removing unique constraint on 'File', fields ['name', 'checksum']
@@ -27,9 +26,9 @@ class Migration(SchemaMigration):
         # Deleting field 'File.checksum'
         db.delete_column('sentry_file', 'checksum')
 
-
         # Changing field 'File.name'
-        db.alter_column('sentry_file', 'name', self.gf('django.db.models.fields.CharField')(max_length=256))
+        db.alter_column('sentry_file', 'name', self.gf(
+            'django.db.models.fields.CharField')(max_length=256))
 
     models = {
         'sentry.accessgroup': {

@@ -10,12 +10,12 @@ class Migration(SchemaMigration):
     def forwards(self, orm):
         # Adding field 'Project.organization'
         db.add_column('sentry_project', 'organization',
-                      self.gf('sentry.db.models.fields.FlexibleForeignKey')(to=orm['sentry.Organization'], null=True),
+                      self.gf('sentry.db.models.fields.FlexibleForeignKey')(
+                          to=orm['sentry.Organization'], null=True),
                       keep_default=False)
 
         # Adding unique constraint on 'Project', fields ['organization', 'slug']
         db.create_unique('sentry_project', ['organization_id', 'slug'])
-
 
     def backwards(self, orm):
         # Removing unique constraint on 'Project', fields ['organization', 'slug']
@@ -23,7 +23,6 @@ class Migration(SchemaMigration):
 
         # Deleting field 'Project.organization'
         db.delete_column('sentry_project', 'organization_id')
-
 
     models = {
         'sentry.accessgroup': {

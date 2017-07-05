@@ -39,10 +39,11 @@ class TimedRetryPolicy(RetryPolicy):
     The ``delay`` function accepts one argument, a number which represents the
     number of this attempt (starting at 1.)
     """
+
     def __init__(self, timeout, delay=None, exceptions=(Exception,)):
         if delay is None:
             # 100ms +/- 50ms of randomized jitter
-            delay = lambda i: 0.1 + ((random.random() - 0.5) / 10)
+            def delay(i): return 0.1 + ((random.random() - 0.5) / 10)
 
         self.timeout = timeout
         self.delay = delay
@@ -59,7 +60,8 @@ class TimedRetryPolicy(RetryPolicy):
                 now = self.clock.time()
                 if (now + delay) > (start + self.timeout):
                     raise RetryException(
-                        'Could not successfully execute %r within %.3f seconds (%s attempts.)' % (function, now - start, i),
+                        'Could not successfully execute %r within %.3f seconds (%s attempts.)' % (
+                            function, now - start, i),
                         error,
                     )
                 else:

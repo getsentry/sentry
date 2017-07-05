@@ -4,6 +4,7 @@ from south.db import db
 from south.v2 import SchemaMigration
 from django.db import models
 
+
 class Migration(SchemaMigration):
 
     def forwards(self, orm):
@@ -15,20 +16,21 @@ class Migration(SchemaMigration):
         db.delete_column('sentry_projectmember', 'permissions')
 
         # Adding field 'ProjectMember.type'
-        db.add_column('sentry_projectmember', 'type', self.gf('django.db.models.fields.IntegerField')(default=0), keep_default=False)
-
+        db.add_column('sentry_projectmember', 'type', self.gf(
+            'django.db.models.fields.IntegerField')(default=0), keep_default=False)
 
     def backwards(self, orm):
 
         # Adding field 'ProjectMember.is_superuser'
-        db.add_column('sentry_projectmember', 'is_superuser', self.gf('django.db.models.fields.BooleanField')(default=False), keep_default=False)
+        db.add_column('sentry_projectmember', 'is_superuser', self.gf(
+            'django.db.models.fields.BooleanField')(default=False), keep_default=False)
 
         # User chose to not deal with backwards NULL issues for 'ProjectMember.permissions'
-        raise RuntimeError("Cannot reverse this migration. 'ProjectMember.permissions' and its values cannot be restored.")
+        raise RuntimeError(
+            "Cannot reverse this migration. 'ProjectMember.permissions' and its values cannot be restored.")
 
         # Deleting field 'ProjectMember.type'
         db.delete_column('sentry_projectmember', 'type')
-
 
     models = {
         'sentry.user': {

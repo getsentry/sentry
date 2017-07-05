@@ -33,6 +33,7 @@ class BroadcastAdmin(admin.ModelAdmin):
     search_fields = ('title', 'message', 'link')
     readonly_fields = ('upstream_id', 'date_added')
 
+
 admin.site.register(Broadcast, BroadcastAdmin)
 
 
@@ -61,6 +62,7 @@ class ProjectAdmin(admin.ModelAdmin):
                      'team__name', 'slug')
     raw_id_fields = ('team', 'organization')
     readonly_fields = ('first_event', 'date_added')
+
 
 admin.site.register(Project, ProjectAdmin)
 
@@ -108,6 +110,7 @@ class OrganizationAdmin(admin.ModelAdmin):
     inlines = (OrganizationMemberInline, OrganizationTeamInline,
                OrganizationProjectInline, OrganizationApiKeyInline)
 
+
 admin.site.register(Organization, OrganizationAdmin)
 
 
@@ -116,6 +119,7 @@ class AuthProviderAdmin(admin.ModelAdmin):
     search_fields = ('organization__name',)
     raw_id_fields = ('organization', 'default_teams')
     list_filter = ('provider',)
+
 
 admin.site.register(AuthProvider, AuthProviderAdmin)
 
@@ -126,6 +130,7 @@ class AuthIdentityAdmin(admin.ModelAdmin):
     search_fields = ('user__email', 'user__username',
                      'auth_provider__organization__name')
     raw_id_fields = ('user', 'auth_provider')
+
 
 admin.site.register(AuthIdentity, AuthIdentityAdmin)
 
@@ -154,6 +159,7 @@ class TeamAdmin(admin.ModelAdmin):
             return
 
         obj.transfer_to(obj.organization)
+
 
 admin.site.register(Team, TeamAdmin)
 
@@ -225,9 +231,9 @@ class UserAdmin(admin.ModelAdmin):
     def get_urls(self):
         from django.conf.urls import patterns
         return patterns('',
-            (r'^(\d+)/password/$',
-             self.admin_site.admin_view(self.user_change_password))
-        ) + super(UserAdmin, self).get_urls()
+                        (r'^(\d+)/password/$',
+                         self.admin_site.admin_view(self.user_change_password))
+                        ) + super(UserAdmin, self).get_urls()
 
     def lookup_allowed(self, lookup, value):
         # See #20078: we don't want to allow any lookups involving passwords.
@@ -301,9 +307,9 @@ class UserAdmin(admin.ModelAdmin):
             'show_save': True,
         }
         return TemplateResponse(request,
-            self.change_user_password_template or
-            'admin/auth/user/change_password.html',
-            context, current_app=self.admin_site.name)
+                                self.change_user_password_template or
+                                'admin/auth/user/change_password.html',
+                                context, current_app=self.admin_site.name)
 
     def response_add(self, request, obj, post_url_continue=None):
         """
@@ -321,6 +327,7 @@ class UserAdmin(admin.ModelAdmin):
         return super(UserAdmin, self).response_add(request, obj,
                                                    post_url_continue)
 
+
 admin.site.register(User, UserAdmin)
 
 
@@ -331,5 +338,6 @@ class AuditLogEntryAdmin(admin.ModelAdmin):
     raw_id_fields = ('organization', 'actor', 'target_user')
     readonly_fields = ('organization', 'actor', 'actor_key', 'target_object',
                        'target_user', 'event', 'ip_address', 'data', 'datetime')
+
 
 admin.site.register(AuditLogEntry, AuditLogEntryAdmin)

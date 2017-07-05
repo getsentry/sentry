@@ -10,14 +10,13 @@ class Migration(SchemaMigration):
     def forwards(self, orm):
         # Adding field 'Option.last_updated'
         db.add_column('sentry_option', 'last_updated',
-                      self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now),
+                      self.gf('django.db.models.fields.DateTimeField')(
+                          default=datetime.datetime.now),
                       keep_default=False)
-
 
     def backwards(self, orm):
         # Deleting field 'Option.last_updated'
         db.delete_column('sentry_option', 'last_updated')
-
 
     models = {
         'sentry.accessgroup': {

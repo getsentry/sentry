@@ -11,8 +11,10 @@ class Migration(SchemaMigration):
         # Adding model 'FileBlobIndex'
         db.create_table('sentry_fileblobindex', (
             ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
-            ('file', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.File'])),
-            ('blob', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.FileBlob'])),
+            ('file', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(
+                to=orm['sentry.File'])),
+            ('blob', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(
+                to=orm['sentry.FileBlob'])),
             ('offset', self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')()),
         ))
         db.send_create_signal('sentry', ['FileBlobIndex'])
@@ -20,14 +22,12 @@ class Migration(SchemaMigration):
         # Adding unique constraint on 'FileBlobIndex', fields ['file', 'blob', 'offset']
         db.create_unique('sentry_fileblobindex', ['file_id', 'blob_id', 'offset'])
 
-
     def backwards(self, orm):
         # Removing unique constraint on 'FileBlobIndex', fields ['file', 'blob', 'offset']
         db.delete_unique('sentry_fileblobindex', ['file_id', 'blob_id', 'offset'])
 
         # Deleting model 'FileBlobIndex'
         db.delete_table('sentry_fileblobindex')
-
 
     models = {
         'sentry.activity': {

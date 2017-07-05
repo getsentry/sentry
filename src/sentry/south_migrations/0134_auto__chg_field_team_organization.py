@@ -9,11 +9,13 @@ class Migration(SchemaMigration):
 
     def forwards(self, orm):
         # Changing field 'Team.organization'
-        db.alter_column('sentry_team', 'organization_id', self.gf('sentry.db.models.fields.FlexibleForeignKey')(to=orm['sentry.Organization']))
+        db.alter_column('sentry_team', 'organization_id', self.gf(
+            'sentry.db.models.fields.FlexibleForeignKey')(to=orm['sentry.Organization']))
 
     def backwards(self, orm):
         # Changing field 'Team.organization'
-        db.alter_column('sentry_team', 'organization_id', self.gf('sentry.db.models.fields.FlexibleForeignKey')(to=orm['sentry.Organization'], null=True))
+        db.alter_column('sentry_team', 'organization_id', self.gf(
+            'sentry.db.models.fields.FlexibleForeignKey')(to=orm['sentry.Organization'], null=True))
 
     models = {
         'sentry.accessgroup': {

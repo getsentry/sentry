@@ -4,6 +4,7 @@ from south.db import db
 from south.v2 import SchemaMigration
 from django.db import models
 
+
 class Migration(SchemaMigration):
 
     def forwards(self, orm):
@@ -21,32 +22,36 @@ class Migration(SchemaMigration):
         db.delete_unique('sentry_messagecountbyminute', ['date', 'group_id'])
 
         # Adding field 'Message.project'
-        db.add_column('sentry_message', 'project', self.gf('sentry.db.models.fields.FlexibleForeignKey')(to=orm['sentry.Project'], null=True), keep_default=False)
+        db.add_column('sentry_message', 'project', self.gf('sentry.db.models.fields.FlexibleForeignKey')(
+            to=orm['sentry.Project'], null=True), keep_default=False)
 
         # Adding field 'MessageCountByMinute.project'
-        db.add_column('sentry_messagecountbyminute', 'project', self.gf('sentry.db.models.fields.FlexibleForeignKey')(to=orm['sentry.Project'], null=True), keep_default=False)
+        db.add_column('sentry_messagecountbyminute', 'project', self.gf(
+            'sentry.db.models.fields.FlexibleForeignKey')(to=orm['sentry.Project'], null=True), keep_default=False)
 
         # Adding unique constraint on 'MessageCountByMinute', fields ['project', 'date', 'group']
         db.create_unique('sentry_messagecountbyminute', ['project_id', 'date', 'group_id'])
 
         # Adding field 'FilterValue.project'
-        db.add_column('sentry_filtervalue', 'project', self.gf('sentry.db.models.fields.FlexibleForeignKey')(to=orm['sentry.Project'], null=True), keep_default=False)
+        db.add_column('sentry_filtervalue', 'project', self.gf('sentry.db.models.fields.FlexibleForeignKey')(
+            to=orm['sentry.Project'], null=True), keep_default=False)
 
         # Adding unique constraint on 'FilterValue', fields ['project', 'value', 'key']
         db.create_unique('sentry_filtervalue', ['project_id', 'value', 'key'])
 
         # Adding field 'MessageFilterValue.project'
-        db.add_column('sentry_messagefiltervalue', 'project', self.gf('sentry.db.models.fields.FlexibleForeignKey')(to=orm['sentry.Project'], null=True), keep_default=False)
+        db.add_column('sentry_messagefiltervalue', 'project', self.gf(
+            'sentry.db.models.fields.FlexibleForeignKey')(to=orm['sentry.Project'], null=True), keep_default=False)
 
         # Adding unique constraint on 'MessageFilterValue', fields ['project', 'group', 'value', 'key']
         db.create_unique('sentry_messagefiltervalue', ['project_id', 'group_id', 'value', 'key'])
 
         # Adding field 'GroupedMessage.project'
-        db.add_column('sentry_groupedmessage', 'project', self.gf('sentry.db.models.fields.FlexibleForeignKey')(to=orm['sentry.Project'], null=True), keep_default=False)
+        db.add_column('sentry_groupedmessage', 'project', self.gf('sentry.db.models.fields.FlexibleForeignKey')(
+            to=orm['sentry.Project'], null=True), keep_default=False)
 
         # Adding unique constraint on 'GroupedMessage', fields ['project', 'checksum', 'logger', 'view']
         db.create_unique('sentry_groupedmessage', ['project_id', 'checksum', 'logger', 'view'])
-
 
     def backwards(self, orm):
 
@@ -88,7 +93,6 @@ class Migration(SchemaMigration):
 
         # Adding unique constraint on 'GroupedMessage', fields ['checksum', 'logger', 'view']
         db.create_unique('sentry_groupedmessage', ['checksum', 'logger', 'view'])
-
 
     models = {
         'sentry.user': {

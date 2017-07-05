@@ -28,6 +28,7 @@ class ProjectSerializer(Serializer):
     This is primarily used to summarize projects. We utilize it when doing bulk loads for things
     such as "show all projects for this organization", and its attributes be kept to a minimum.
     """
+
     def get_attrs(self, item_list, user):
         project_ids = [i.id for i in item_list]
         if user.is_authenticated() and item_list:

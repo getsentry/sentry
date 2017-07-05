@@ -11,19 +11,19 @@ class Migration(SchemaMigration):
         # Adding model 'Alert'
         db.create_table('sentry_alert', (
             ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
-            ('project', self.gf('sentry.db.models.fields.FlexibleForeignKey')(to=orm['sentry.Project'])),
-            ('group', self.gf('sentry.db.models.fields.FlexibleForeignKey')(to=orm['sentry.Group'], null=True)),
+            ('project', self.gf('sentry.db.models.fields.FlexibleForeignKey')(
+                to=orm['sentry.Project'])),
+            ('group', self.gf('sentry.db.models.fields.FlexibleForeignKey')(
+                to=orm['sentry.Group'], null=True)),
             ('datetime', self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)),
             ('message', self.gf('django.db.models.fields.TextField')()),
             ('data', self.gf('django.db.models.fields.TextField')(null=True)),
         ))
         db.send_create_signal('sentry', ['Alert'])
 
-
     def backwards(self, orm):
         # Deleting model 'Alert'
         db.delete_table('sentry_alert')
-
 
     models = {
         'sentry.user': {

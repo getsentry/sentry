@@ -25,19 +25,22 @@ class Migration(SchemaMigration):
             ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
             ('project_id', self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')(db_index=True)),
             ('release_id', self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')(db_index=True)),
-            ('environment_id', self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')(db_index=True)),
+            ('environment_id', self.gf(
+                'sentry.db.models.fields.bounded.BoundedPositiveIntegerField')(db_index=True)),
             ('first_seen', self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)),
-            ('last_seen', self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now, db_index=True)),
+            ('last_seen', self.gf('django.db.models.fields.DateTimeField')(
+                default=datetime.datetime.now, db_index=True)),
         ))
         db.send_create_signal('sentry', ['ReleaseEnvironment'])
 
         # Adding unique constraint on 'ReleaseEnvironment', fields ['project_id', 'release_id', 'environment_id']
-        db.create_unique('sentry_environmentrelease', ['project_id', 'release_id', 'environment_id'])
-
+        db.create_unique('sentry_environmentrelease', [
+                         'project_id', 'release_id', 'environment_id'])
 
     def backwards(self, orm):
         # Removing unique constraint on 'ReleaseEnvironment', fields ['project_id', 'release_id', 'environment_id']
-        db.delete_unique('sentry_environmentrelease', ['project_id', 'release_id', 'environment_id'])
+        db.delete_unique('sentry_environmentrelease', [
+                         'project_id', 'release_id', 'environment_id'])
 
         # Removing unique constraint on 'Environment', fields ['project_id', 'name']
         db.delete_unique('sentry_environment', ['project_id', 'name'])
@@ -47,7 +50,6 @@ class Migration(SchemaMigration):
 
         # Deleting model 'ReleaseEnvironment'
         db.delete_table('sentry_environmentrelease')
-
 
     models = {
         'sentry.activity': {

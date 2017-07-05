@@ -10,14 +10,13 @@ class Migration(SchemaMigration):
     def forwards(self, orm):
         # Adding field 'OrganizationMember.token'
         db.add_column('sentry_organizationmember', 'token',
-                      self.gf('django.db.models.fields.CharField')(max_length=64, unique=True, null=True, blank=True),
+                      self.gf('django.db.models.fields.CharField')(
+                          max_length=64, unique=True, null=True, blank=True),
                       keep_default=False)
-
 
     def backwards(self, orm):
         # Deleting field 'OrganizationMember.token'
         db.delete_column('sentry_organizationmember', 'token')
-
 
     models = {
         'sentry.activity': {

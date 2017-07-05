@@ -15,7 +15,8 @@ class Migration(SchemaMigration):
             # before adding in the unique constraint. This isn't the most efficient
             # way to do this, but the volume of data is very low, so it's negligable
             seen = set()
-            dupe_ids = UserReport.objects.values('event_id').annotate(models.Count('id')).values('event_id').filter(id__count__gt=1)
+            dupe_ids = UserReport.objects.values('event_id').annotate(
+                models.Count('id')).values('event_id').filter(id__count__gt=1)
             for report in UserReport.objects.filter(event_id__in=dupe_ids).order_by('-date_added'):
                 event_id = report.event_id
                 if event_id in seen:
@@ -26,11 +27,9 @@ class Migration(SchemaMigration):
         # Adding unique constraint on 'UserReport', fields ['project', 'event_id']
         db.create_unique('sentry_userreport', ['project_id', 'event_id'])
 
-
     def backwards(self, orm):
         # Removing unique constraint on 'UserReport', fields ['project', 'event_id']
         db.delete_unique('sentry_userreport', ['project_id', 'event_id'])
-
 
     models = {
         'sentry.activity': {

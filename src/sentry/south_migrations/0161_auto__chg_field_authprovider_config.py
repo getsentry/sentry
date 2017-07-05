@@ -15,7 +15,8 @@ class Migration(SchemaMigration):
     def backwards(self, orm):
 
         # Changing field 'AuthProvider.config'
-        db.alter_column('sentry_authprovider', 'config', self.gf('sentry.db.models.fields.gzippeddict.GzippedDictField')())
+        db.alter_column('sentry_authprovider', 'config', self.gf(
+            'sentry.db.models.fields.gzippeddict.GzippedDictField')())
 
     models = {
         'sentry.accessgroup': {

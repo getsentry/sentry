@@ -75,7 +75,7 @@ class RemoveOrganizationView(OrganizationView):
                 })
 
             messages.add_message(request, messages.SUCCESS,
-                MSG_REMOVE_SUCCESS % (organization.name,))
+                                 MSG_REMOVE_SUCCESS % (organization.name,))
 
             return self.redirect(reverse('sentry'))
 

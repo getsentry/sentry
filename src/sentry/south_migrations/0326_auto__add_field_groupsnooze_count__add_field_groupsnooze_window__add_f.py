@@ -33,12 +33,13 @@ class Migration(SchemaMigration):
                       self.gf('jsonfield.fields.JSONField')(null=True),
                       keep_default=False)
 
-
         # Changing field 'GroupSnooze.until'
-        db.alter_column('sentry_groupsnooze', 'until', self.gf('django.db.models.fields.DateTimeField')(null=True))
+        db.alter_column('sentry_groupsnooze', 'until', self.gf(
+            'django.db.models.fields.DateTimeField')(null=True))
 
     def backwards(self, orm):
-        raise RuntimeError("Cannot reverse this migration. 'GroupSnooze.until' and its values cannot be restored.")
+        raise RuntimeError(
+            "Cannot reverse this migration. 'GroupSnooze.until' and its values cannot be restored.")
 
     models = {
         'sentry.activity': {

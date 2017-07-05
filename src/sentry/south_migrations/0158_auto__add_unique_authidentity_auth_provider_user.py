@@ -11,11 +11,9 @@ class Migration(SchemaMigration):
         # Adding unique constraint on 'AuthIdentity', fields ['auth_provider', 'user']
         db.create_unique('sentry_authidentity', ['auth_provider_id', 'user_id'])
 
-
     def backwards(self, orm):
         # Removing unique constraint on 'AuthIdentity', fields ['auth_provider', 'user']
         db.delete_unique('sentry_authidentity', ['auth_provider_id', 'user_id'])
-
 
     models = {
         'sentry.accessgroup': {

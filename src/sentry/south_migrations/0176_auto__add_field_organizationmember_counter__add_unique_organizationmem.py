@@ -10,12 +10,12 @@ class Migration(SchemaMigration):
     def forwards(self, orm):
         # Adding field 'OrganizationMember.counter'
         db.add_column('sentry_organizationmember', 'counter',
-                      self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')(null=True, blank=True),
+                      self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')(
+                          null=True, blank=True),
                       keep_default=False)
 
         # Adding unique constraint on 'OrganizationMember', fields ['organization', 'counter']
         db.create_unique('sentry_organizationmember', ['organization_id', 'counter'])
-
 
     def backwards(self, orm):
         # Removing unique constraint on 'OrganizationMember', fields ['organization', 'counter']
@@ -23,7 +23,6 @@ class Migration(SchemaMigration):
 
         # Deleting field 'OrganizationMember.counter'
         db.delete_column('sentry_organizationmember', 'counter')
-
 
     models = {
         'sentry.accessgroup': {

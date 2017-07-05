@@ -28,7 +28,8 @@ def check_for_onboarding_complete(organization_id):
     if OrganizationOption.objects.filter(organization_id=organization_id, key="onboarding:complete").exists():
         return
 
-    completed = set(OrganizationOnboardingTask.objects.filter(Q(organization_id=organization_id) & (Q(status=OnboardingTaskStatus.COMPLETE) | Q(status=OnboardingTaskStatus.SKIPPED))).values_list('task', flat=True))
+    completed = set(OrganizationOnboardingTask.objects.filter(Q(organization_id=organization_id) & (
+        Q(status=OnboardingTaskStatus.COMPLETE) | Q(status=OnboardingTaskStatus.SKIPPED))).values_list('task', flat=True))
     if completed >= OnboardingTask.REQUIRED_ONBOARDING_TASKS:
         try:
             with transaction.atomic():

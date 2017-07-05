@@ -17,19 +17,18 @@ class Migration(SchemaMigration):
         # Adding unique constraint on 'Release', fields ['project', 'version']
         db.create_unique('sentry_release', ['project_id', 'version'])
 
-
     def backwards(self, orm):
         # Removing unique constraint on 'Release', fields ['project', 'version']
         db.delete_unique('sentry_release', ['project_id', 'version'])
 
         # Adding field 'Release.environment'
         db.add_column(u'sentry_release', 'environment',
-                      self.gf('django.db.models.fields.CharField')(default='production', max_length=64),
+                      self.gf('django.db.models.fields.CharField')(
+                          default='production', max_length=64),
                       keep_default=False)
 
         # Adding unique constraint on 'Release', fields ['project', 'version', 'environment']
         db.create_unique(u'sentry_release', ['project_id', 'version', 'environment'])
-
 
     models = {
         'sentry.accessgroup': {

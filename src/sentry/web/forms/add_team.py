@@ -11,12 +11,12 @@ from sentry.models import (
 
 class AddTeamForm(forms.ModelForm):
     name = forms.CharField(label=_('Name'), max_length=200,
-        widget=forms.TextInput(attrs={
-            'placeholder': _('E.g. Operations, Web, Desktop, ...'),
-            'required': '',
-        }),
-        help_text='The team name has no significant impact and can be changed later.',
-    )
+                           widget=forms.TextInput(attrs={
+                               'placeholder': _('E.g. Operations, Web, Desktop, ...'),
+                               'required': '',
+                           }),
+                           help_text='The team name has no significant impact and can be changed later.',
+                           )
 
     class Meta:
         fields = ('name',)

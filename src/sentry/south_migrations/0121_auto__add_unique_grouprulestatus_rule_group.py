@@ -11,11 +11,9 @@ class Migration(SchemaMigration):
         # Adding unique constraint on 'GroupRuleStatus', fields ['rule', 'group']
         db.create_unique('sentry_grouprulestatus', ['rule_id', 'group_id'])
 
-
     def backwards(self, orm):
         # Removing unique constraint on 'GroupRuleStatus', fields ['rule', 'group']
         db.delete_unique('sentry_grouprulestatus', ['rule_id', 'group_id'])
-
 
     models = {
         'sentry.accessgroup': {

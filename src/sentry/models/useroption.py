@@ -26,6 +26,7 @@ class UserOptionValue(object):
     committed_deploys_only = '3'
     no_deploys = '4'
 
+
 option_scope_error = 'this is not a supported use case, scope to project OR organization'
 
 

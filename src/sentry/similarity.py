@@ -91,7 +91,8 @@ class MinHashIndex(object):
 
         for idx, features in items:
             arguments.append(idx)
-            arguments.extend([','.join(map('{}'.format, band)) for band in self.get_signature(features)])
+            arguments.extend([','.join(map('{}'.format, band))
+                              for band in self.get_signature(features)])
 
         return index(
             self.cluster.get_local_client_for_key(scope),
@@ -278,7 +279,8 @@ def get_exception_frames(exception):
         frames = []
     else:
         if not isinstance(frames, Sequence):
-            logger.info('Expected frames to be a sequence but got %r, returning empty sequence instead.', type(frames))
+            logger.info(
+                'Expected frames to be a sequence but got %r, returning empty sequence instead.', type(frames))
             frames = []
 
     return frames
@@ -310,16 +312,19 @@ class ExceptionFeature(object):
         try:
             exceptions = event.data['sentry.interfaces.Exception']['values']
         except KeyError as error:
-            logger.info('Could not extract characteristic(s) from %r due to error: %r', event, error, exc_info=True)
+            logger.info('Could not extract characteristic(s) from %r due to error: %r',
+                        event, error, exc_info=True)
             return
 
         for exception in exceptions:
             try:
                 yield self.function(exception)
             except InsufficientContext as error:
-                logger.debug('Could not extract characteristic(s) from exception in %r due to expected error: %r', event, error)
+                logger.debug(
+                    'Could not extract characteristic(s) from exception in %r due to expected error: %r', event, error)
             except Exception as error:
-                logger.exception('Could not extract characteristic(s) from exception in %r due to error: %r', event, error)
+                logger.exception(
+                    'Could not extract characteristic(s) from exception in %r due to error: %r', event, error)
 
 
 class MessageFeature(object):
@@ -330,13 +335,15 @@ class MessageFeature(object):
         try:
             message = event.data['sentry.interfaces.Message']
         except KeyError as error:
-            logger.info('Could not extract characteristic(s) from %r due to error: %r', event, error, exc_info=True)
+            logger.info('Could not extract characteristic(s) from %r due to error: %r',
+                        event, error, exc_info=True)
             return
 
         try:
             yield self.function(message)
         except Exception as error:
-            logger.exception('Could not extract characteristic(s) from message of %r due to error: %r', event, error)
+            logger.exception(
+                'Could not extract characteristic(s) from message of %r due to error: %r', event, error)
 
 
 class FeatureSet(object):
@@ -408,7 +415,8 @@ class FeatureSet(object):
 
         unsafe_scopes = set(scopes.keys()) - set([self.__get_scope(destination)])
         if unsafe_scopes and not allow_unsafe:
-            raise ValueError('all groups must belong to same project if unsafe merges are not allowed')
+            raise ValueError(
+                'all groups must belong to same project if unsafe merges are not allowed')
 
         destination_scope = self.__get_scope(destination)
         destination_key = self.__get_key(destination)

@@ -67,13 +67,15 @@ def render_activity(item):
     if item.user:
         user = item.user
         name = user.name or user.email
-        output += '<span class="avatar"><img src="%s"></span> ' % (get_gravatar_url(user.email, size=20),)
+        output += '<span class="avatar"><img src="%s"></span> ' % (
+            get_gravatar_url(user.email, size=20),)
         output += '<strong>%s</strong> %s' % (escape(name), action_str)
     else:
         output += '<span class="avatar sentry"></span> '
         output += 'The system %s' % (action_str,)
 
-    output += ' <span class="sep">&mdash;</span> <span class="time">%s</span>' % (timesince(item.datetime),)
+    output += ' <span class="sep">&mdash;</span> <span class="time">%s</span>' % (
+        timesince(item.datetime),)
 
     if item.type == Activity.NOTE:
         output += linebreaks(urlize(escape(item.data['text'])))

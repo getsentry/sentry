@@ -4,6 +4,7 @@ from south.db import db
 from south.v2 import SchemaMigration
 from django.db import models
 
+
 class Migration(SchemaMigration):
 
     def forwards(self, orm):
@@ -19,7 +20,6 @@ class Migration(SchemaMigration):
         # Adding unique constraint on 'Option', fields ['key', 'value']
         db.create_unique('sentry_option', ['key'])
 
-
     def backwards(self, orm):
 
         # Removing unique constraint on 'Option', fields ['key', 'value']
@@ -27,7 +27,6 @@ class Migration(SchemaMigration):
 
         # Deleting model 'Option'
         db.delete_table('sentry_option')
-
 
     models = {
         'sentry.user': {

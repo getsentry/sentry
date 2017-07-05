@@ -11,17 +11,18 @@ class Migration(SchemaMigration):
         # Adding model 'GroupResolution'
         db.create_table('sentry_groupresolution', (
             ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
-            ('group', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.Group'], unique=True)),
-            ('release', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.Release'])),
-            ('datetime', self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now, db_index=True)),
+            ('group', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(
+                to=orm['sentry.Group'], unique=True)),
+            ('release', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(
+                to=orm['sentry.Release'])),
+            ('datetime', self.gf('django.db.models.fields.DateTimeField')(
+                default=datetime.datetime.now, db_index=True)),
         ))
         db.send_create_signal('sentry', ['GroupResolution'])
-
 
     def backwards(self, orm):
         # Deleting model 'GroupResolution'
         db.delete_table('sentry_groupresolution')
-
 
     models = {
         'sentry.activity': {

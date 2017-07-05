@@ -11,12 +11,16 @@ class Migration(SchemaMigration):
         # Adding model 'OrganizationOnboardingTask'
         db.create_table('sentry_organizationonboardingtask', (
             ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
-            ('organization', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.Organization'])),
-            ('user', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.User'], null=True)),
+            ('organization', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(
+                to=orm['sentry.Organization'])),
+            ('user', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(
+                to=orm['sentry.User'], null=True)),
             ('task', self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')()),
             ('status', self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')()),
-            ('date_completed', self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)),
-            ('project_id', self.gf('sentry.db.models.fields.bounded.BoundedBigIntegerField')(null=True, blank=True)),
+            ('date_completed', self.gf('django.db.models.fields.DateTimeField')(
+                default=datetime.datetime.now)),
+            ('project_id', self.gf('sentry.db.models.fields.bounded.BoundedBigIntegerField')(
+                null=True, blank=True)),
             ('data', self.gf('jsonfield.fields.JSONField')(default={})),
         ))
         db.send_create_signal('sentry', ['OrganizationOnboardingTask'])
@@ -24,14 +28,12 @@ class Migration(SchemaMigration):
         # Adding unique constraint on 'OrganizationOnboardingTask', fields ['organization', 'task']
         db.create_unique('sentry_organizationonboardingtask', ['organization_id', 'task'])
 
-
     def backwards(self, orm):
         # Removing unique constraint on 'OrganizationOnboardingTask', fields ['organization', 'task']
         db.delete_unique('sentry_organizationonboardingtask', ['organization_id', 'task'])
 
         # Deleting model 'OrganizationOnboardingTask'
         db.delete_table('sentry_organizationonboardingtask')
-
 
     models = {
         'sentry.activity': {

@@ -22,7 +22,8 @@ ERR_NO_SSO = _('The SSO feature is not enabled for this organization.')
 
 OK_PROVIDER_DISABLED = _('SSO authentication has been disabled.')
 
-OK_REMINDERS_SENT = _('A reminder email has been sent to members who have not yet linked their accounts.')
+OK_REMINDERS_SENT = _(
+    'A reminder email has been sent to members who have not yet linked their accounts.')
 
 
 class AuthProviderSettingsForm(forms.Form):

@@ -13,11 +13,9 @@ class Migration(SchemaMigration):
                       self.gf('django.db.models.fields.BigIntegerField')(default=0, null=True),
                       keep_default=False)
 
-
     def backwards(self, orm):
         # Deleting field 'Project.flags'
         db.delete_column('sentry_project', 'flags')
-
 
     models = {
         'sentry.activity': {

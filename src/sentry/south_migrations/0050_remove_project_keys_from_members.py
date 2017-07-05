@@ -4,6 +4,7 @@ from south.db import db
 from south.v2 import SchemaMigration
 from django.db import models
 
+
 class Migration(SchemaMigration):
 
     def forwards(self, orm):
@@ -14,15 +15,15 @@ class Migration(SchemaMigration):
         # Deleting field 'ProjectMember.secret_key'
         db.delete_column('sentry_projectmember', 'secret_key')
 
-
     def backwards(self, orm):
 
         # Adding field 'ProjectMember.public_key'
-        db.add_column('sentry_projectmember', 'public_key', self.gf('django.db.models.fields.CharField')(unique=True, max_length=32, null=True), keep_default=False)
+        db.add_column('sentry_projectmember', 'public_key', self.gf('django.db.models.fields.CharField')(
+            unique=True, max_length=32, null=True), keep_default=False)
 
         # Adding field 'ProjectMember.secret_key'
-        db.add_column('sentry_projectmember', 'secret_key', self.gf('django.db.models.fields.CharField')(unique=True, max_length=32, null=True), keep_default=False)
-
+        db.add_column('sentry_projectmember', 'secret_key', self.gf('django.db.models.fields.CharField')(
+            unique=True, max_length=32, null=True), keep_default=False)
 
     models = {
         'sentry.user': {

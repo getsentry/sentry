@@ -4,16 +4,18 @@ from south.db import db
 from south.v2 import SchemaMigration
 from django.db import models
 
+
 class Migration(SchemaMigration):
 
     def forwards(self, orm):
 
         # Changing field 'Option.value'
-        db.alter_column('sentry_option', 'value', self.gf('picklefield.fields.PickledObjectField')())
+        db.alter_column('sentry_option', 'value', self.gf(
+            'picklefield.fields.PickledObjectField')())
 
         # Changing field 'ProjectOption.value'
-        db.alter_column('sentry_projectoptions', 'value', self.gf('picklefield.fields.PickledObjectField')())
-
+        db.alter_column('sentry_projectoptions', 'value', self.gf(
+            'picklefield.fields.PickledObjectField')())
 
     def backwards(self, orm):
 
@@ -21,8 +23,8 @@ class Migration(SchemaMigration):
         db.alter_column('sentry_option', 'value', self.gf('django.db.models.fields.TextField')())
 
         # Changing field 'ProjectOption.value'
-        db.alter_column('sentry_projectoptions', 'value', self.gf('django.db.models.fields.TextField')())
-
+        db.alter_column('sentry_projectoptions', 'value',
+                        self.gf('django.db.models.fields.TextField')())
 
     models = {
         'sentry.user': {

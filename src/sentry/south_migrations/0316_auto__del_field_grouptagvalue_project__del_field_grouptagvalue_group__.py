@@ -13,7 +13,6 @@ class Migration(SchemaMigration):
     def backwards(self, orm):
         pass
 
-
     models = {
         'sentry.activity': {
             'Meta': {'object_name': 'Activity'},

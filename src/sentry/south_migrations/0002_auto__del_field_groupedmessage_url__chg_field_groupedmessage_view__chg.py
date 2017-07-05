@@ -4,6 +4,7 @@ from south.db import db
 from south.v2 import SchemaMigration
 from django.db import models
 
+
 class Migration(SchemaMigration):
 
     def forwards(self, orm):
@@ -12,23 +13,26 @@ class Migration(SchemaMigration):
         db.delete_column('sentry_groupedmessage', 'url')
 
         # Changing field 'GroupedMessage.view'
-        db.alter_column('sentry_groupedmessage', 'view', self.gf('django.db.models.fields.CharField')(max_length=200, null=True, blank=True))
+        db.alter_column('sentry_groupedmessage', 'view', self.gf(
+            'django.db.models.fields.CharField')(max_length=200, null=True, blank=True))
 
         # Changing field 'Message.view'
-        db.alter_column('sentry_message', 'view', self.gf('django.db.models.fields.CharField')(max_length=200, null=True, blank=True))
-
+        db.alter_column('sentry_message', 'view', self.gf(
+            'django.db.models.fields.CharField')(max_length=200, null=True, blank=True))
 
     def backwards(self, orm):
 
         # Adding field 'GroupedMessage.url'
-        db.add_column('sentry_groupedmessage', 'url', self.gf('django.db.models.fields.URLField')(max_length=200, null=True, blank=True), keep_default=False)
+        db.add_column('sentry_groupedmessage', 'url', self.gf('django.db.models.fields.URLField')(
+            max_length=200, null=True, blank=True), keep_default=False)
 
         # Changing field 'GroupedMessage.view'
-        db.alter_column('sentry_groupedmessage', 'view', self.gf('django.db.models.fields.CharField')(max_length=200))
+        db.alter_column('sentry_groupedmessage', 'view', self.gf(
+            'django.db.models.fields.CharField')(max_length=200))
 
         # Changing field 'Message.view'
-        db.alter_column('sentry_message', 'view', self.gf('django.db.models.fields.CharField')(max_length=200))
-
+        db.alter_column('sentry_message', 'view', self.gf(
+            'django.db.models.fields.CharField')(max_length=200))
 
     models = {
         'sentry.groupedmessage': {
