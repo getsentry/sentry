@@ -55,7 +55,7 @@ def get_caches():
             ),
         ),
         'Project': cache(
-            lambda id: Project.objects.get(id=id),
+            lambda id: Project.objects.unconstrained_unsafe().get(id=id),
         ),
         'Release': cache(
             lambda organization_id, version: Release.objects.get(

@@ -8,7 +8,6 @@ from exam import fixture
 from django.http import HttpRequest
 
 from sentry import options
-from sentry.models import Project
 from sentry.testutils import TestCase
 from sentry.utils.http import (
     is_same_domain, is_valid_origin, get_origins, absolute_uri, is_valid_ip,
@@ -46,14 +45,14 @@ class SameDomainTestCase(TestCase):
 
 class GetOriginsTestCase(TestCase):
     def test_project_default(self):
-        project = Project.objects.get()
+        project = self.create_project()
 
         with self.settings(SENTRY_ALLOW_ORIGIN=None):
             result = get_origins(project)
             self.assertEquals(result, frozenset(['*']))
 
     def test_project(self):
-        project = Project.objects.get()
+        project = self.create_project()
         project.update_option('sentry:origins', [u'http://foo.example'])
 
         with self.settings(SENTRY_ALLOW_ORIGIN=None):
@@ -61,7 +60,7 @@ class GetOriginsTestCase(TestCase):
             self.assertEquals(result, frozenset(['http://foo.example']))
 
     def test_project_and_setting(self):
-        project = Project.objects.get()
+        project = self.create_project()
         project.update_option('sentry:origins', [u'http://foo.example'])
 
         with self.settings(SENTRY_ALLOW_ORIGIN='http://example.com'):
