@@ -183,23 +183,43 @@ class GroupTransformer(Transformer):
         version = int(version.strftime('%s'))
 
         d = {
-            'id': six.text_type(obj.id),
-            'count': six.text_type(obj.times_seen),
-            'title': escape(obj.title),
-            'message': escape(obj.get_legacy_message()),
+            'id': six.text_type(
+                obj.id),
+            'count': six.text_type(
+                obj.times_seen),
+            'title': escape(
+                obj.title),
+            'message': escape(
+                obj.get_legacy_message()),
             'level': obj.level,
-            'levelName': escape(obj.get_level_display()),
-            'logger': escape(obj.logger),
-            'permalink': absolute_uri(reverse('sentry-group', args=[obj.organization.slug, obj.project.slug, obj.id])),
-            'firstSeen': self.localize_datetime(obj.first_seen, request=request),
-            'lastSeen': self.localize_datetime(obj.last_seen, request=request),
+            'levelName': escape(
+                obj.get_level_display()),
+            'logger': escape(
+                obj.logger),
+            'permalink': absolute_uri(
+                reverse(
+                    'sentry-group',
+                    args=[
+                        obj.organization.slug,
+                        obj.project.slug,
+                        obj.id])),
+            'firstSeen': self.localize_datetime(
+                obj.first_seen,
+                request=request),
+            'lastSeen': self.localize_datetime(
+                obj.last_seen,
+                request=request),
             'canResolve': request and request.user.is_authenticated(),
             'status': status_label,
             'isResolved': obj.get_status() == GroupStatus.RESOLVED,
             'isPublic': obj.is_public,
-            'score': getattr(obj, 'sort_value', 0),
+            'score': getattr(
+                obj,
+                'sort_value',
+                0),
             'project': {
-                'name': escape(obj.project.name),
+                'name': escape(
+                    obj.project.name),
                 'slug': obj.project.slug,
             },
             'version': version,

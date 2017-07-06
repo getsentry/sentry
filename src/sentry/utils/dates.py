@@ -72,7 +72,8 @@ def get_sql_date_trunc(col, db='default', grouper='hour'):
     engine = get_db_engine(db)
     # TODO: does extract work for sqlite?
     if engine.startswith('oracle'):
-        method = DATE_TRUNC_GROUPERS['oracle'].get(grouper, DATE_TRUNC_GROUPERS['default'][grouper])
+        method = DATE_TRUNC_GROUPERS['oracle'].get(
+            grouper, DATE_TRUNC_GROUPERS['default'][grouper])
         if '"' not in col:
             col = '"%s"' % col.upper()
     else:
@@ -113,7 +114,7 @@ def parse_timestamp(value):
     if len(value) == 2:
         try:
             rv = rv.replace(microsecond=int(value[1]
-                            .ljust(6, '0')[:6]))
+                                            .ljust(6, '0')[:6]))
         except ValueError:
             rv = None
     return rv.replace(tzinfo=pytz.utc)

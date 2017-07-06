@@ -48,7 +48,7 @@ from sentry.utils.distutils import (
 )
 
 # The version of sentry
-VERSION = '8.18.0.dev0'
+VERSION = '8.19.0.dev0'
 
 # Hack to prevent stupid "TypeError: 'NoneType' object is not callable" error
 # in multiprocessing/util.py _exit_function when running `python
@@ -63,6 +63,7 @@ for m in ('multiprocessing', 'billiard'):
 IS_LIGHT_BUILD = os.environ.get('SENTRY_LIGHT_BUILD') == '1'
 
 dev_requires = [
+    'autopep8',
     'Babel',
     'flake8>=2.6,<2.7',
     'pycodestyle>=2.0,<2.1',
@@ -174,6 +175,7 @@ class SentryDevelopCommand(DevelopCommand):
         if not IS_LIGHT_BUILD:
             self.run_command('build_assets')
             self.run_command('build_integration_docs')
+
 
 cmdclass = {
     'sdist': SentrySDistCommand,

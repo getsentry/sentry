@@ -141,7 +141,8 @@ class OAuthAuthorizeView(BaseView):
                         pending_scopes.remove(scope)
 
             if pending_scopes:
-                raise NotImplementedError('{} scopes did not have descriptions'.format(pending_scopes))
+                raise NotImplementedError(
+                    '{} scopes did not have descriptions'.format(pending_scopes))
 
         context = {
             'user': request.user,
@@ -155,14 +156,14 @@ class OAuthAuthorizeView(BaseView):
         try:
             payload = request.session['oa2']
         except KeyError:
-            return self.respond('sentry/oauth-error.html', {
-                'error': 'We were unable to complete your request. Please re-initiate the authorization flow.',
-            })
+            return self.respond(
+                'sentry/oauth-error.html', {
+                    'error': 'We were unable to complete your request. Please re-initiate the authorization flow.', })
 
         if payload['uid'] != request.user.id:
-            return self.respond('sentry/oauth-error.html', {
-                'error': 'We were unable to complete your request. Please re-initiate the authorization flow.',
-            })
+            return self.respond(
+                'sentry/oauth-error.html', {
+                    'error': 'We were unable to complete your request. Please re-initiate the authorization flow.', })
 
         try:
             application = ApiApplication.objects.get(

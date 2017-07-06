@@ -62,6 +62,7 @@ class BitFieldCreator(object):
     an older version of the instance and a newer version of the class is
     available (usually during deploys).
     """
+
     def __init__(self, field):
         self.field = field
 
@@ -87,7 +88,10 @@ class BitField(BigIntegerField):
     def __init__(self, flags, default=None, *args, **kwargs):
         if isinstance(flags, dict):
             # Get only integer keys in correct range
-            valid_keys = (k for k in flags.keys() if isinstance(k, int) and (0 <= k < MAX_FLAG_COUNT))
+            valid_keys = (
+                k for k in flags.keys() if isinstance(
+                    k, int) and (
+                    0 <= k < MAX_FLAG_COUNT))
             if not valid_keys:
                 raise ValueError('Wrong keys or empty dictionary')
             # Fill list with values from dict or with empty values
@@ -151,7 +155,8 @@ class BitField(BigIntegerField):
                 # Django 1.7+
                 return [value.mask]
             else:
-                return BitQueryLookupWrapper(self.model._meta.db_table, self.db_column or self.name, value)
+                return BitQueryLookupWrapper(
+                    self.model._meta.db_table, self.db_column or self.name, value)
         return BigIntegerField.get_db_prep_lookup(self, lookup_type=lookup_type, value=value,
                                                   connection=connection, prepared=prepared)
 

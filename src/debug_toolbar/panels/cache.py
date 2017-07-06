@@ -1,6 +1,7 @@
 from __future__ import absolute_import, unicode_literals
 
 import inspect
+import six
 import sys
 import time
 
@@ -49,11 +50,12 @@ def send_signal(method):
 
 class CacheStatTracker(BaseCache):
     """A small class used to track cache calls."""
+
     def __init__(self, cache):
         self.cache = cache
 
     def __repr__(self):
-        return str("<CacheStatTracker for %s>") % repr(self.cache)
+        return six.text_type("<CacheStatTracker for %s>") % repr(self.cache)
 
     def _get_func_info(self):
         frame = sys._getframe(3)

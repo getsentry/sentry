@@ -37,6 +37,7 @@ class FileWrapperWSGIHandler(WSGIHandler):
 
     Note: this was added natively into Django 1.8, so if by some reason,
     we upgraded, this wouldn't be relevant anymore."""
+
     def __call__(self, environ, start_response):
         response = super(FileWrapperWSGIHandler, self).__call__(environ, start_response)
         if hasattr(response, 'streaming') and response.streaming:

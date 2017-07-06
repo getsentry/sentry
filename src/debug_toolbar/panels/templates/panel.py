@@ -108,6 +108,7 @@ class TemplatesPanel(Panel):
     """
     A panel that lists all templates used during processing of a response.
     """
+
     def __init__(self, *args, **kwargs):
         super(TemplatesPanel, self).__init__(*args, **kwargs)
         self.templates = []

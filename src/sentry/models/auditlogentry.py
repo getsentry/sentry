@@ -74,7 +74,7 @@ class AuditLogEntry(Model):
     actor_key = FlexibleForeignKey('sentry.ApiKey', null=True, blank=True)
     target_object = BoundedPositiveIntegerField(null=True)
     target_user = FlexibleForeignKey('sentry.User', null=True, blank=True,
-                                    related_name='audit_targets')
+                                     related_name='audit_targets')
     # TODO(dcramer): we want to compile this mapping into JSX for the UI
     event = BoundedPositiveIntegerField(choices=(
         # We emulate github a bit with event naming
@@ -160,9 +160,11 @@ class AuditLogEntry(Model):
         elif self.event == AuditLogEntryEvent.MEMBER_REMOVE:
             if self.target_user == self.actor:
                 return 'left the organization'
-            return 'removed member %s' % (self.data.get('email') or self.target_user.get_display_name(),)
+            return 'removed member %s' % (self.data.get(
+                'email') or self.target_user.get_display_name(),)
         elif self.event == AuditLogEntryEvent.MEMBER_EDIT:
-            return 'edited member %s' % (self.data.get('email') or self.target_user.get_display_name(),)
+            return 'edited member %s' % (self.data.get(
+                'email') or self.target_user.get_display_name(),)
         elif self.event == AuditLogEntryEvent.MEMBER_JOIN_TEAM:
             if self.target_user == self.actor:
                 return 'joined team %s' % (self.data['team_slug'],)

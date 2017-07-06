@@ -30,8 +30,12 @@ class MailPluginTest(TestCase):
     def plugin(self):
         return MailPlugin()
 
-    @mock.patch('sentry.models.ProjectOption.objects.get_value', Mock(side_effect=lambda p, k, d: d))
-    @mock.patch('sentry.plugins.sentry_mail.models.MailPlugin.get_sendable_users', Mock(return_value=[]))
+    @mock.patch('sentry.models.ProjectOption.objects.get_value',
+                Mock(side_effect=lambda p, k, d: d))
+    @mock.patch(
+        'sentry.plugins.sentry_mail.models.MailPlugin.get_sendable_users',
+        Mock(
+            return_value=[]))
     def test_should_notify_no_sendable_users(self):
         assert not self.plugin.should_notify(group=Mock(), event=Mock())
 
@@ -214,7 +218,7 @@ class MailPluginTest(TestCase):
 
         # disabled by default user4
         uo1 = UserOption.objects.create(key='subscribe_by_default', value='0',
-                                  project=project, user=user4)
+                                        project=project, user=user4)
 
         assert user4.pk not in self.plugin.get_sendable_users(project)
 

@@ -29,7 +29,8 @@ from . import manager
 
 OK_LINK_IDENTITY = _('You have successfully linked your account to your SSO provider.')
 
-OK_SETUP_SSO = _('SSO has been configured for your organization and any existing members have been sent an email to link their accounts.')
+OK_SETUP_SSO = _(
+    'SSO has been configured for your organization and any existing members have been sent an email to link their accounts.')
 
 ERR_UID_MISMATCH = _('There was an error encountered during authentication.')
 
@@ -677,7 +678,10 @@ class AuthHelper(object):
             redirect_uri = reverse('sentry-auth-organization', args=[self.organization.slug])
 
         elif session['flow'] == self.FLOW_SETUP_PROVIDER:
-            redirect_uri = reverse('sentry-organization-auth-settings', args=[self.organization.slug])
+            redirect_uri = reverse(
+                'sentry-organization-auth-settings',
+                args=[
+                    self.organization.slug])
 
         messages.add_message(
             self.request, messages.ERROR,

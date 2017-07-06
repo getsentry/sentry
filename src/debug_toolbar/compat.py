@@ -4,6 +4,7 @@ This file exists to contain all Django and Python compatibility issues.
 In order to avoid circular references, nothing should be imported from
 debug_toolbar.
 """
+from __future__ import absolute_import
 
 import django
 from django.conf import settings

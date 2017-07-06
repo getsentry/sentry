@@ -858,7 +858,8 @@ class EventManager(object):
         # ``GroupHash`` instance, since we only want to record this for events
         # that not only include the hash but were also placed into the
         # associated group.)
-        relevant_group_hashes = set([instance for instance in all_hashes if instance.group_id == group.id])
+        relevant_group_hashes = set(
+            [instance for instance in all_hashes if instance.group_id == group.id])
 
         # If all hashes are brand new we treat this event as new
         is_new = False

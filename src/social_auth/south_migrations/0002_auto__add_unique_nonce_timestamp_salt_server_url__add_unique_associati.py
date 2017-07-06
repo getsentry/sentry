@@ -43,7 +43,6 @@ class Migration(SchemaMigration):
         # Removing index on 'Nonce', fields ['timestamp']
         db.delete_index('social_auth_nonce', ['timestamp'])
 
-
     models = {
         'auth.group': {
             'Meta': {'object_name': 'Group'},

@@ -68,5 +68,5 @@ class BitQuerySaveWrapper(BitQueryLookupWrapper):
         if self.bit:
             return ("%s.%s | %d" % (qn(self.table_alias), qn(self.column), self.bit.mask),
                     [])
-        return ("%s.%s %s %d" % (qn(self.table_alias), qn(self.column), XOR_OPERATOR, self.bit.mask),
-                [])
+        return ("%s.%s %s %d" % (qn(self.table_alias), qn(
+            self.column), XOR_OPERATOR, self.bit.mask), [])

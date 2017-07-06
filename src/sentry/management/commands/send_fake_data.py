@@ -34,7 +34,9 @@ def funcs():
 
     # def query(client):
     #     duration = random.randint(0, 10000) / 1000.0
-    #     return client.capture('Query', query=queries.next(), engine=engine.next(), time_spent=duration, data={'logger': loggers.next(), 'site': 'sql'})
+    # return client.capture('Query', query=queries.next(),
+    # engine=engine.next(), time_spent=duration, data={'logger':
+    # loggers.next(), 'site': 'sql'})
 
     def exception(client):
         timestamp = datetime.datetime.utcnow() - datetime.timedelta(seconds=six.next(timestamps))
@@ -58,8 +60,14 @@ class Command(BaseCommand):
     help = 'Sends fake data to the internal Sentry project'
 
     option_list = BaseCommand.option_list + (
-        make_option('--project', dest='project', help="project ID or organization-slug/project-slug"),
-        make_option('--num', dest='num_events', type=int),
+        make_option(
+            '--project',
+            dest='project',
+            help="project ID or organization-slug/project-slug"),
+        make_option(
+            '--num',
+            dest='num_events',
+            type=int),
     )
 
     def handle(self, **options):
@@ -76,7 +84,8 @@ class Command(BaseCommand):
                 o_slug, p_slug = options['project'].split('/', 1)
                 project = Project.objects.get(slug=p_slug, organization__slug=o_slug)
             else:
-                raise CommandError('Project must be specified as organization-slug/project-slug or a project id')
+                raise CommandError(
+                    'Project must be specified as organization-slug/project-slug or a project id')
 
         client.project = project.id
 
