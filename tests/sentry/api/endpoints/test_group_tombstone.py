@@ -40,11 +40,11 @@ class GroupTombstoneTest(APITestCase):
         )
 
         path = reverse('sentry-api-0-group-tombstone',
-            kwargs={
-                'organization_slug': self.org.slug,
-                'project_slug': self.project.slug,
-            }
-        )
+                       kwargs={
+                           'organization_slug': self.org.slug,
+                           'project_slug': self.project.slug,
+                       }
+                       )
 
         response = self.client.get(path)
         assert response.status_code == 200, response
