@@ -85,7 +85,7 @@ class IssueTrackingPlugin2(Plugin):
                     PluginGroupEndpoint.as_view(
                         view=getattr(self, view_method_name),
                     ),
-                )
+                    )
             )
         return _urls
 
@@ -114,7 +114,8 @@ class IssueTrackingPlugin2(Plugin):
         if not request.user.is_authenticated():
             return True
 
-        return not UserSocialAuth.objects.filter(user=request.user, provider=self.auth_provider).exists()
+        return not UserSocialAuth.objects.filter(
+            user=request.user, provider=self.auth_provider).exists()
 
     def get_new_issue_fields(self, request, group, event, **kwargs):
         """
@@ -232,7 +233,11 @@ class IssueTrackingPlugin2(Plugin):
             data=issue_information,
         )
 
-        issue_tracker_used.send(plugin=self, project=group.project, user=request.user, sender=IssueTrackingPlugin2)
+        issue_tracker_used.send(
+            plugin=self,
+            project=group.project,
+            user=request.user,
+            sender=IssueTrackingPlugin2)
         return Response({'issue_url': self.get_issue_url(group=group, issue_id=issue_id)})
 
     def view_unlink(self, request, group, **kwargs):
@@ -308,7 +313,10 @@ class IssueTrackingPlugin2(Plugin):
 
     def check_config_and_auth(self, request, group):
         has_auth_configured = self.has_auth_configured()
-        if not (has_auth_configured and self.is_configured(project=group.project, request=request)):
+        if not (
+            has_auth_configured and self.is_configured(
+                project=group.project,
+                request=request)):
             if self.auth_provider:
                 required_auth_settings = settings.AUTH_PROVIDERS[self.auth_provider]
             else:
@@ -362,9 +370,9 @@ class IssueTrackingPlugin2(Plugin):
             return tag_list
 
         tag_list.append(format_html('<a href="{}">{}</a>',
-            self.get_issue_url(group=group, issue_id=issue_id),
-            self.get_issue_label(group=group, issue_id=issue_id),
-        ))
+                                    self.get_issue_url(group=group, issue_id=issue_id),
+                                    self.get_issue_label(group=group, issue_id=issue_id),
+                                    ))
 
         return tag_list
 

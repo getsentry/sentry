@@ -66,7 +66,8 @@ class Importer(object):
 
         settings_mod = imp.new_module(self.name)
 
-        # Django doesn't play too nice without the config file living as a real file, so let's fake it.
+        # Django doesn't play too nice without the config file living as a real
+        # file, so let's fake it.
         settings_mod.__file__ = self.config_path
 
         # install the default settings for this app
@@ -125,7 +126,11 @@ def add_settings(mod, settings):
             continue
 
         setting_value = getattr(mod, setting)
-        if setting in ('INSTALLED_APPS', 'TEMPLATE_DIRS') and isinstance(setting_value, six.string_types):
+        if setting in (
+                'INSTALLED_APPS',
+                'TEMPLATE_DIRS') and isinstance(
+                setting_value,
+                six.string_types):
             setting_value = (setting_value,)  # In case the user forgot the comma.
 
         # Any setting that starts with EXTRA_ and matches a setting that is a list or tuple

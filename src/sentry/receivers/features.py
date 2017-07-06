@@ -23,11 +23,35 @@ from sentry.signals import (
 )
 from sentry.utils.javascript import has_sourcemap
 
-DEFAULT_TAGS = frozenset(['level', 'logger', 'transaction', 'url', 'browser', 'sentry:user',
-    'os', 'server_name', 'device', 'os.name', 'browser.name', 'sentry:release', 'environment',
-    'device.family', 'site', 'version', 'interface_type', 'rake_task', 'runtime', 'runtime.name',
-    'type', 'php_version', 'app', 'app.device', 'locale', 'os_version', 'device_model',
-    'deviceModel', 'sentry_version'])
+DEFAULT_TAGS = frozenset(['level',
+                          'logger',
+                          'transaction',
+                          'url',
+                          'browser',
+                          'sentry:user',
+                          'os',
+                          'server_name',
+                          'device',
+                          'os.name',
+                          'browser.name',
+                          'sentry:release',
+                          'environment',
+                          'device.family',
+                          'site',
+                          'version',
+                          'interface_type',
+                          'rake_task',
+                          'runtime',
+                          'runtime.name',
+                          'type',
+                          'php_version',
+                          'app',
+                          'app.device',
+                          'locale',
+                          'os_version',
+                          'device_model',
+                          'deviceModel',
+                          'sentry_version'])
 
 
 # First Event

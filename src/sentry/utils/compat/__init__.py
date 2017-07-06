@@ -7,7 +7,8 @@ try:
 except ImportError:
     import pickle  # NOQA
 
-_identity = lambda x: x
+
+def _identity(x): return x
 
 if six.PY2:
     # https://github.com/pallets/werkzeug/blob/master/werkzeug/_compat.py

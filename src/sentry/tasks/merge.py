@@ -102,7 +102,8 @@ def merge_group(from_object_id=None, to_object_id=None, transaction_id=None,
     for model in [tsdb.models.users_affected_by_group]:
         tsdb.merge_distinct_counts(model, new_group.id, [group.id])
 
-    for model in [tsdb.models.frequent_releases_by_group, tsdb.models.frequent_environments_by_group]:
+    for model in [tsdb.models.frequent_releases_by_group,
+                  tsdb.models.frequent_environments_by_group]:
         tsdb.merge_frequencies(model, new_group.id, [group.id])
 
     previous_group_id = group.id

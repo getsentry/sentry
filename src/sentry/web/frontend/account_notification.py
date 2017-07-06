@@ -74,8 +74,13 @@ class AccountNotificationView(BaseView):
         ext_forms = []
         for plugin in plugins.all():
             for form in safe_execute(plugin.get_notification_forms, _with_transaction=False) or ():
-                form = safe_execute(form, plugin, request.user, request.POST or None, prefix=plugin.slug,
-                                    _with_transaction=False)
+                form = safe_execute(
+                    form,
+                    plugin,
+                    request.user,
+                    request.POST or None,
+                    prefix=plugin.slug,
+                    _with_transaction=False)
                 if not form:
                     continue
                 ext_forms.append(form)

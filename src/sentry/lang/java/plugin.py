@@ -70,13 +70,13 @@ class JavaStacktraceProcessor(StacktraceProcessor):
                 'mapping_uuid': image_uuid,
             })
             report_processing_issue(self.data,
-                scope='proguard',
-                object='mapping:%s' % image_uuid,
-                type=error_type,
-                data={
-                    'mapping_uuid': image_uuid,
-                }
-            )
+                                    scope='proguard',
+                                    object='mapping:%s' % image_uuid,
+                                    type=error_type,
+                                    data={
+                                        'mapping_uuid': image_uuid,
+                                    }
+                                    )
 
     def process_frame(self, processable_frame, processing_task):
         new_module = None

@@ -55,7 +55,7 @@ def _do_preprocess_event(cache_key, data, start_time, event_id,
     if data is None:
         metrics.incr('events.failed', tags={'reason': 'cache', 'stage': 'pre'})
         error_logger.error('preprocess.failed.empty',
-            extra={'cache_key': cache_key})
+                           extra={'cache_key': cache_key})
         return
 
     project = data['project']
@@ -65,7 +65,7 @@ def _do_preprocess_event(cache_key, data, start_time, event_id,
 
     if should_process(data):
         process_event.delay(cache_key=cache_key, start_time=start_time,
-            event_id=event_id)
+                            event_id=event_id)
         return
 
     # If we get here, that means the event had no preprocessing needed to be done
@@ -73,7 +73,7 @@ def _do_preprocess_event(cache_key, data, start_time, event_id,
     if cache_key:
         data = None
     save_event.delay(cache_key=cache_key, data=data, start_time=start_time,
-        event_id=event_id)
+                     event_id=event_id)
 
 
 @instrumented_task(
@@ -107,7 +107,7 @@ def _do_process_event(cache_key, start_time, event_id):
     if data is None:
         metrics.incr('events.failed', tags={'reason': 'cache', 'stage': 'process'})
         error_logger.error('process.failed.empty',
-            extra={'cache_key': cache_key})
+                           extra={'cache_key': cache_key})
         return
 
     project = data['project']
@@ -145,7 +145,7 @@ def _do_process_event(cache_key, start_time, event_id):
         default_cache.set(cache_key, data, 3600)
 
     save_event.delay(cache_key=cache_key, data=None, start_time=start_time,
-        event_id=event_id)
+                     event_id=event_id)
 
 
 @instrumented_task(
@@ -171,7 +171,7 @@ def process_event_from_reprocessing(cache_key, start_time=None, event_id=None, *
 def delete_raw_event(project_id, event_id, allow_hint_clear=False):
     if event_id is None:
         error_logger.error('process.failed_delete_raw_event',
-            extra={'project_id': project_id})
+                           extra={'project_id': project_id})
         return
     from sentry.models import RawEvent, ReprocessingReport
     RawEvent.objects.filter(

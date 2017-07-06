@@ -496,7 +496,15 @@ def unlock_hashes(project_id, fingerprints):
 
 
 @instrumented_task(name='sentry.tasks.unmerge', queue='unmerge')
-def unmerge(project_id, source_id, destination_id, fingerprints, actor_id, cursor=None, batch_size=500, source_fields_reset=False):
+def unmerge(
+        project_id,
+        source_id,
+        destination_id,
+        fingerprints,
+        actor_id,
+        cursor=None,
+        batch_size=500,
+        source_fields_reset=False):
     # XXX: The queryset chunking logic below is awfully similar to
     # ``RangeQuerySetWrapper``. Ideally that could be refactored to be able to
     # be run without iteration by passing around a state object and we could
