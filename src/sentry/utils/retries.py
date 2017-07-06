@@ -43,7 +43,8 @@ class TimedRetryPolicy(RetryPolicy):
     def __init__(self, timeout, delay=None, exceptions=(Exception,)):
         if delay is None:
             # 100ms +/- 50ms of randomized jitter
-            def delay(i): return 0.1 + ((random.random() - 0.5) / 10)
+            def delay(i):
+                return 0.1 + ((random.random() - 0.5) / 10)
 
         self.timeout = timeout
         self.delay = delay
