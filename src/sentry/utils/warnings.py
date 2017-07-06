@@ -85,7 +85,7 @@ class WarningSet(collections.Set):
         return len(self.__warnings)
 
     def __iter__(self):
-        return six.itervalues(self.__warnings)
+        return sorted(six.itervalues(self.__warnings))
 
     def __get_key(self, warning):
         return (
