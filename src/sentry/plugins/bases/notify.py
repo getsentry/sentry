@@ -79,10 +79,11 @@ class NotificationPlugin(Plugin):
         project = event.group.project
         extra['project_id'] = project.id
         if hasattr(self, 'notify_digest') and digests.enabled(project):
-            def get_digest_option(key): return ProjectOption.objects.get_value(
-                project,
-                get_digest_option_key(self.get_conf_key(), key),
-            )
+            def get_digest_option(key):
+                return ProjectOption.objects.get_value(
+                    project,
+                    get_digest_option_key(self.get_conf_key(), key),
+                )
             digest_key = unsplit_key(self, event.group.project)
             extra['digest_key'] = digest_key
             immediate_delivery = digests.add(

@@ -509,9 +509,8 @@ class UnmergeTestCase(TestCase):
 
         def get_expected_series_values(rollup, events, function=None):
             if function is None:
-                def function(
-                    aggregate, event): return (
-                    aggregate if aggregate is not None else 0) + 1
+                def function(aggregate, event):
+                    return (aggregate if aggregate is not None else 0) + 1
 
             expected = {}
             for event in events:

@@ -203,7 +203,8 @@ class OptionsManager(object):
         if not callable(default):
             default_value = default
 
-            def default(): return default_value
+            def default():
+                return default_value
         else:
             default_value = default()
 
@@ -214,7 +215,8 @@ class OptionsManager(object):
             if default_value is None:
                 default_value = u''
 
-                def default(): return default_value
+                def default():
+                    return default_value
             type = type_from_value(default_value)
 
         # We disallow None as a value for options since this is ambiguous and doesn't

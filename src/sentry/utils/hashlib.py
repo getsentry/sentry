@@ -13,7 +13,9 @@ from hashlib import sha1 as _sha1
 from django.utils.encoding import force_bytes
 
 
-def md5_text(x): return _md5(force_bytes(x, errors='replace'))
+def md5_text(x):
+    return _md5(force_bytes(x, errors='replace'))
 
 
-def sha1_text(x): return _sha1(force_bytes(x, errors='replace'))
+def sha1_text(x):
+    return _sha1(force_bytes(x, errors='replace'))
