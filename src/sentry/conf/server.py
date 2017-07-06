@@ -24,7 +24,8 @@ from datetime import timedelta
 from six.moves.urllib.parse import urlparse
 
 
-def gettext_noop(s): return s
+def gettext_noop(s):
+    return s
 
 socket.setdefaulttimeout(5)
 
@@ -426,8 +427,10 @@ AUTH_PROVIDER_LABELS = {
 import random
 
 
-def SOCIAL_AUTH_DEFAULT_USERNAME(): return random.choice(
-    ['Darth Vader', 'Obi-Wan Kenobi', 'R2-D2', 'C-3PO', 'Yoda'])
+def SOCIAL_AUTH_DEFAULT_USERNAME():
+    return random.choice(['Darth Vader', 'Obi-Wan Kenobi', 'R2-D2', 'C-3PO', 'Yoda'])
+
+
 SOCIAL_AUTH_PROTECTED_USER_FIELDS = ['email']
 SOCIAL_AUTH_FORCE_POST_DISCONNECT = True
 
