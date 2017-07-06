@@ -38,7 +38,7 @@ class Tenant(object):
         if not self.user_id:
             return []
         return list(OrganizationMemberTeam.objects.filter(
-            user=self.user_id,
+            organizationmember__user=self.user_id,
         ).values_list('team', flat=True))
 
     @memoize
