@@ -917,11 +917,10 @@ class EventManager(object):
         if not group.is_resolved():
             return
 
-        elif release:
-            # we only mark it as a regression if the event's release is newer than
-            # the release which we originally marked this as resolved
-            if GroupResolution.has_resolution(group, release):
-                return
+        # we only mark it as a regression if the event's release is newer than
+        # the release which we originally marked this as resolved
+        elif GroupResolution.has_resolution(group, release):
+            return
 
         if not plugin_is_regression(group, event):
             return

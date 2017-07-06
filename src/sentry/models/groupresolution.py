@@ -64,6 +64,11 @@ class GroupResolution(Model):
         except IndexError:
             return False
 
+        # if no release is present, we assume we've gone from "no release" to "some release"
+        # in application configuration, and thus this must be older
+        if not release:
+            return True
+
         if res_type in (None, cls.Type.in_next_release):
             if res_release == release.id:
                 return True
