@@ -3,6 +3,7 @@ import _ from 'lodash';
 
 import ApiMixin from '../mixins/apiMixin';
 import IndicatorStore from '../stores/indicatorStore';
+import AdditionalGroupFilters from '../components/additionalGroupFilters';
 import GroupTombstones from '../components/groupTombstones';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
