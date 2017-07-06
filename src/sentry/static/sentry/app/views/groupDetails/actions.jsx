@@ -448,6 +448,7 @@ export default React.createClass({
     let group = this.getGroup();
     let project = this.getProject();
     let org = this.getOrganization();
+    let features = new Set(project.features);
 
     let bookmarkClassName = 'group-bookmark btn btn-default btn-sm';
     if (group.isBookmarked) {
@@ -490,21 +491,23 @@ export default React.createClass({
             <span className="icon-trash" />
           </LinkWithConfirmation>
         </div>
-        <div className="btn-group">
-          {/* TODO(jess): we need an icon for discard. Maybe an octogon/stop-sign like icon? */}
-          <LinkWithConfirmation
-            className="group-remove btn btn-default btn-sm"
-            title={t('Discard')}
-            message={t(
-              'Discarding this event will result in the deletion ' +
-                'of most data associated with this issue and future ' +
-                'events being discarded before reaching your stream. ' +
-                'Are you sure you wish to continue?'
-            )}
-            onConfirm={this.onDiscard}>
-            <span className="icon-stop">X</span>
-          </LinkWithConfirmation>
-        </div>
+        {features.has('custom-filters') &&
+          <div className="btn-group">
+            {/* TODO(jess): we need an icon for discard. Maybe an octogon/stop-sign like icon? */}
+            <LinkWithConfirmation
+              className="group-remove btn btn-default btn-sm"
+              title={t('Discard')}
+              message={t(
+                'Discarding this event will result in the deletion ' +
+                  'of most data associated with this issue and future ' +
+                  'events being discarded before reaching your stream. ' +
+                  'Are you sure you wish to continue?'
+              )}
+              onConfirm={this.onDiscard}>
+              <span className="icon-stop">X</span>
+            </LinkWithConfirmation>
+          </div>
+        }
         {group.pluginActions.length > 1
           ? <div className="btn-group more">
               <DropdownLink className="btn btn-default btn-sm" title={t('More')}>
