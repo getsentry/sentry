@@ -12,8 +12,8 @@ SHY = u'\u00ad'  # soft hyphen
 
 
 def test_soft_break():
-    assert soft_break('com.example.package.method(argument).anotherMethod(argument)', 15) == \
-        ZWSP.join(['com.', 'example.', 'package.', 'method(', 'argument).', 'anotherMethod(', 'argument)'])
+    assert soft_break('com.example.package.method(argument).anotherMethod(argument)', 15) == ZWSP.join(
+        ['com.', 'example.', 'package.', 'method(', 'argument).', 'anotherMethod(', 'argument)'])
 
 
 def test_soft_break_and_hyphenate():

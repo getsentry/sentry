@@ -273,7 +273,8 @@ class JavascriptIntegrationTest(TestCase):
         assert resp.status_code, 200
 
         event = Event.objects.get()
-        assert event.data['errors'] == [{'type': 'js_no_source', 'url': 'http//example.com/index.html'}]
+        assert event.data['errors'] == [
+            {'type': 'js_no_source', 'url': 'http//example.com/index.html'}]
 
         exception = event.interfaces['sentry.interfaces.Exception']
         frame_list = exception.values[0].stacktrace.frames
@@ -343,7 +344,8 @@ class JavascriptIntegrationTest(TestCase):
         assert resp.status_code, 200
 
         event = Event.objects.get()
-        assert event.data['errors'] == [{'type': 'js_no_source', 'url': 'http//example.com/index.html'}]
+        assert event.data['errors'] == [
+            {'type': 'js_no_source', 'url': 'http//example.com/index.html'}]
 
         exception = event.interfaces['sentry.interfaces.Exception']
         frame_list = exception.values[0].stacktrace.frames
@@ -426,8 +428,7 @@ class JavascriptIntegrationTest(TestCase):
         assert raw_frame.post_context == [
             'function multiply(a,b){"use strict";return a*b}function divide(a,b){"use strict";try{return multiply(add(a,b),a,b)/c}catch(e){Raven.captureE {snip}',
             '//# sourceMappingURL=indexed.sourcemap.js',
-            ''
-        ]
+            '']
         assert raw_frame.lineno == 1
 
         frame = frame_list[1]
@@ -803,7 +804,8 @@ class JavascriptIntegrationTest(TestCase):
         assert resp.status_code, 200
 
         event = Event.objects.get()
-        assert event.data['errors'] == [{'url': u'http://example.com/file1.js', 'type': 'fetch_invalid_http_code', 'value': 404}]
+        assert event.data['errors'] == [
+            {'url': u'http://example.com/file1.js', 'type': 'fetch_invalid_http_code', 'value': 404}]
 
         exception = event.interfaces['sentry.interfaces.Exception']
         frame_list = exception.values[0].stacktrace.frames
@@ -857,7 +859,8 @@ class JavascriptIntegrationTest(TestCase):
         assert resp.status_code, 200
 
         event = Event.objects.get()
-        assert event.data['errors'] == [{'url': u'http://example.com/unsupported.sourcemap.js', 'type': 'js_invalid_source'}]
+        assert event.data['errors'] == [
+            {'url': u'http://example.com/unsupported.sourcemap.js', 'type': 'js_invalid_source'}]
 
     def test_failed_sourcemap_expansion_data_url(self):
         data = {
@@ -892,8 +895,10 @@ class JavascriptIntegrationTest(TestCase):
                       body='       <!DOCTYPE html><html><head></head><body></body></html>')
         responses.add(responses.GET, 'http://example.com/file2.js',
                       body='<!doctype html><html><head></head><body></body></html>')
-        responses.add(responses.GET, 'http://example.com/file.html',
-                      body='<!doctype html><html><head></head><body><script>/*legit case*/</script></body></html>')
+        responses.add(
+            responses.GET,
+            'http://example.com/file.html',
+            body='<!doctype html><html><head></head><body><script>/*legit case*/</script></body></html>')
 
         data = {
             'message': 'hello',

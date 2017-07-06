@@ -77,23 +77,58 @@ class FindSourceTest(TestCase):
         smap_view = view_from_json(sourcemap)
 
         result = smap_view.lookup_token(0, 56)
-        assert result == Token(dst_line=0, dst_col=50, src='foo/file2.js', src_line=0, src_col=9, src_id=1, name='multiply')
+        assert result == Token(
+            dst_line=0,
+            dst_col=50,
+            src='foo/file2.js',
+            src_line=0,
+            src_col=9,
+            src_id=1,
+            name='multiply')
 
         # Start of minified file (exact match first line/col tuple)
         result = smap_view.lookup_token(0, 0)
-        assert result == Token(dst_line=0, dst_col=0, src='foo/file1.js', src_line=0, src_col=0, src_id=0, name=None)
+        assert result == Token(
+            dst_line=0,
+            dst_col=0,
+            src='foo/file1.js',
+            src_line=0,
+            src_col=0,
+            src_id=0,
+            name=None)
 
         # Last character in mapping
         result = smap_view.lookup_token(0, 36)
-        assert result == Token(dst_line=0, dst_col=30, src='foo/file1.js', src_line=2, src_col=1, src_id=0, name=None)
+        assert result == Token(
+            dst_line=0,
+            dst_col=30,
+            src='foo/file1.js',
+            src_line=2,
+            src_col=1,
+            src_id=0,
+            name=None)
 
         # First character in mapping (exact match line/col tuple)
         result = smap_view.lookup_token(0, 37)
-        assert result == Token(dst_line=0, dst_col=37, src='foo/file1.js', src_line=2, src_col=8, src_id=0, name='a')
+        assert result == Token(
+            dst_line=0,
+            dst_col=37,
+            src='foo/file1.js',
+            src_line=2,
+            src_col=8,
+            src_id=0,
+            name='a')
 
         # End of minified file (character *beyond* last line/col tuple)
         result = smap_view.lookup_token(0, 192)
-        assert result == Token(dst_line=0, dst_col=191, src='foo/file2.js', src_line=9, src_col=25, src_id=1, name='e')
+        assert result == Token(
+            dst_line=0,
+            dst_col=191,
+            src='foo/file2.js',
+            src_line=9,
+            src_col=25,
+            src_id=1,
+            name='e')
 
 
 class IterSourcesTest(TestCase):
@@ -176,20 +211,68 @@ class ParseIndexedSourcemapTest(TestCase):
         smap_view = view_from_json(indexed_sourcemap_example)
 
         # one.js
-        assert smap_view.lookup_token(0, 1) == \
-            Token(dst_line=0, dst_col=1, src='/the/root/one.js', src_line=0, src_col=1, src_id=0, name=None)
-        assert smap_view.lookup_token(0, 18) == \
-            Token(dst_line=0, dst_col=18, src='/the/root/one.js', src_line=0, src_col=21, src_id=0, name='bar')
-        assert smap_view.lookup_token(0, 28) == \
-            Token(dst_line=0, dst_col=28, src='/the/root/one.js', src_line=1, src_col=10, src_id=0, name='baz')
+        assert smap_view.lookup_token(
+            0,
+            1) == Token(
+            dst_line=0,
+            dst_col=1,
+            src='/the/root/one.js',
+            src_line=0,
+            src_col=1,
+            src_id=0,
+            name=None)
+        assert smap_view.lookup_token(
+            0,
+            18) == Token(
+            dst_line=0,
+            dst_col=18,
+            src='/the/root/one.js',
+            src_line=0,
+            src_col=21,
+            src_id=0,
+            name='bar')
+        assert smap_view.lookup_token(
+            0,
+            28) == Token(
+            dst_line=0,
+            dst_col=28,
+            src='/the/root/one.js',
+            src_line=1,
+            src_col=10,
+            src_id=0,
+            name='baz')
 
         # two.js
-        assert smap_view.lookup_token(1, 18) == \
-            Token(dst_line=1, dst_col=18, src='/the/root/two.js', src_line=0, src_col=21, src_id=1, name='n')
-        assert smap_view.lookup_token(1, 21) == \
-            Token(dst_line=1, dst_col=21, src='/the/root/two.js', src_line=1, src_col=3, src_id=1, name=None)
-        assert smap_view.lookup_token(1, 21) == \
-            Token(dst_line=1, dst_col=21, src='/the/root/two.js', src_line=1, src_col=3, src_id=1, name=None)
+        assert smap_view.lookup_token(
+            1,
+            18) == Token(
+            dst_line=1,
+            dst_col=18,
+            src='/the/root/two.js',
+            src_line=0,
+            src_col=21,
+            src_id=1,
+            name='n')
+        assert smap_view.lookup_token(
+            1,
+            21) == Token(
+            dst_line=1,
+            dst_col=21,
+            src='/the/root/two.js',
+            src_line=1,
+            src_col=3,
+            src_id=1,
+            name=None)
+        assert smap_view.lookup_token(
+            1,
+            21) == Token(
+            dst_line=1,
+            dst_col=21,
+            src='/the/root/two.js',
+            src_line=1,
+            src_col=3,
+            src_id=1,
+            name=None)
 
     # Tests lookups that fall inside source map token boundaries
     # https://github.com/mozilla/source-map/blob/master/test/test-source-map-consumer.js#181
@@ -197,9 +280,33 @@ class ParseIndexedSourcemapTest(TestCase):
         smap_view = view_from_json(indexed_sourcemap_example)
 
         # one.js
-        assert smap_view.lookup_token(0, 20) == \
-            Token(dst_line=0, dst_col=18, src='/the/root/one.js', src_line=0, src_col=21, src_id=0, name='bar')
-        assert smap_view.lookup_token(0, 30) == \
-            Token(dst_line=0, dst_col=28, src='/the/root/one.js', src_line=1, src_col=10, src_id=0, name='baz')
-        assert smap_view.lookup_token(1, 12) == \
-            Token(dst_line=1, dst_col=9, src='/the/root/two.js', src_line=0, src_col=11, src_id=1, name=None)
+        assert smap_view.lookup_token(
+            0,
+            20) == Token(
+            dst_line=0,
+            dst_col=18,
+            src='/the/root/one.js',
+            src_line=0,
+            src_col=21,
+            src_id=0,
+            name='bar')
+        assert smap_view.lookup_token(
+            0,
+            30) == Token(
+            dst_line=0,
+            dst_col=28,
+            src='/the/root/one.js',
+            src_line=1,
+            src_col=10,
+            src_id=0,
+            name='baz')
+        assert smap_view.lookup_token(
+            1,
+            12) == Token(
+            dst_line=1,
+            dst_col=9,
+            src='/the/root/two.js',
+            src_line=0,
+            src_col=11,
+            src_id=1,
+            name=None)

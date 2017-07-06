@@ -168,7 +168,9 @@ class Project(Model):
 
     def is_internal_project(self):
         for value in (settings.SENTRY_FRONTEND_PROJECT, settings.SENTRY_PROJECT):
-            if six.text_type(self.id) == six.text_type(value) or six.text_type(self.slug) == six.text_type(value):
+            if six.text_type(
+                    self.id) == six.text_type(value) or six.text_type(
+                    self.slug) == six.text_type(value):
                 return True
         return False
 

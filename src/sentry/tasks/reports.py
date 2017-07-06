@@ -737,9 +737,9 @@ def deliver_organization_user_report(timestamp, duration, organization_id, user_
 
     if not reports:
         logger.debug('Skipping report for %r to %r, no qualifying reports to deliver.',
-            organization,
-            user,
-        )
+                     organization,
+                     user,
+                     )
         return Skipped.NoReports
 
     message = build_message(

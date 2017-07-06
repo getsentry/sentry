@@ -77,7 +77,9 @@ class Command(BaseCommand):
             sys.stdout.write("No users with duplicate accounts found for merging.\n")
             return
 
-        sys.stdout.write("Found {} unique account(s) with duplicate identities.\n".format(len(unique_users)))
+        sys.stdout.write(
+            "Found {} unique account(s) with duplicate identities.\n".format(
+                len(unique_users)))
 
         for user_list in unique_users:
             user_list.sort(key=lambda x: (x.is_superuser, not x.managed, x.date_joined))

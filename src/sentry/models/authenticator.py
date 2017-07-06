@@ -64,7 +64,8 @@ class AuthenticatorManager(BaseManager):
         has enabled.  If `return_missing` is set to `True` then all
         interfaces are returned even if not enabled.
         """
-        _sort = lambda x: sorted(x, key=lambda x: (x.type == 0, x.type))
+        def _sort(x):
+            return sorted(x, key=lambda x: (x.type == 0, x.type))
 
         # Collect interfaces user is enrolled in
         ifaces = [x.interface for x in Authenticator.objects.filter(

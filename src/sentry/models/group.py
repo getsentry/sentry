@@ -295,7 +295,13 @@ class Group(Model):
         return cls.objects.get(project=project_id, id=group_id)
 
     def get_score(self):
-        return int(math.log(self.times_seen) * 600 + float(time.mktime(self.last_seen.timetuple())))
+        return int(
+            math.log(
+                self.times_seen) *
+            600 +
+            float(
+                time.mktime(
+                    self.last_seen.timetuple())))
 
     def get_latest_event(self):
         from sentry.models import Event

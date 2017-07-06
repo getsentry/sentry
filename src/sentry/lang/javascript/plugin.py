@@ -27,7 +27,7 @@ def generate_modules(data):
                 continue
             abs_path = frame.get('abs_path')
             if abs_path and abs_path.startswith(('http:', 'https:',
-                    'webpack:', 'app:')):
+                                                 'webpack:', 'app:')):
                 frame['module'] = generate_module(abs_path)
 
 

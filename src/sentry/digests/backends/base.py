@@ -101,7 +101,8 @@ class Backend(Service):
             self.truncation_chance = options.pop('truncation_chance', 1.0 / self.capacity)
         else:
             if options.get('truncation_chance') is not None:
-                raise TypeError('No timeline capacity has been set, "truncation_chance" must be None.')
+                raise TypeError(
+                    'No timeline capacity has been set, "truncation_chance" must be None.')
             else:
                 self.truncation_chance = 0.0
 

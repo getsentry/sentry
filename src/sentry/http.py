@@ -42,8 +42,8 @@ MAX_URL_LENGTH = 150
 
 # UrlResult.body **must** be bytes
 UrlResult = namedtuple('UrlResult',
-    ['url', 'headers', 'body', 'status', 'encoding']
-)
+                       ['url', 'headers', 'body', 'status', 'encoding']
+                       )
 
 
 # In case SSL is unavailable (light builds) we can't import this here.

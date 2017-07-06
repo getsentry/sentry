@@ -77,7 +77,10 @@ class APIView(BaseView):
         auth = helper.auth_from_request(request)
 
         if auth.version not in PROTOCOL_VERSIONS:
-            raise APIError('Client using unsupported server protocol version (%r)' % six.text_type(auth.version or ''))
+            raise APIError(
+                'Client using unsupported server protocol version (%r)' %
+                six.text_type(
+                    auth.version or ''))
 
         if not auth.client:
             raise APIError("Client did not send 'client' identifier")
@@ -214,7 +217,8 @@ class APIView(BaseView):
                     # un-authenticated CORS checks for POST, we basially
                     # are obsoleting our need for a secret key entirely.
                     if origin is None and request.method != 'GET':
-                        raise APIForbidden('Missing required attribute in authentication header: sentry_secret')
+                        raise APIForbidden(
+                            'Missing required attribute in authentication header: sentry_secret')
 
                     if not is_valid_origin(origin, project):
                         raise APIForbidden('Missing required Origin or Referer header')
@@ -282,6 +286,7 @@ class StoreView(APIView):
        the user be authenticated, and a project_id be sent in the GET variables.
 
     """
+
     def post(self, request, **kwargs):
         try:
             data = request.body

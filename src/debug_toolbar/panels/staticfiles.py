@@ -24,6 +24,7 @@ class StaticFile(object):
     """
     Representing the different properties of a static file.
     """
+
     def __init__(self, path):
         self.path = path
 
@@ -55,6 +56,7 @@ class DebugConfiguredStorage(LazyObject):
     are resolved by using the {% static %} template tag (which uses the
     `url` method).
     """
+
     def _setup(self):
 
         configured_storage_cls = get_storage_class(settings.STATICFILES_STORAGE)

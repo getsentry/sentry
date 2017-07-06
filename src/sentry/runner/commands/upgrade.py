@@ -39,8 +39,10 @@ def _upgrade(interactive, traceback, verbosity, repair):
 @click.command()
 @click.option('--verbosity', '-v', default=1, help='Verbosity level.')
 @click.option('--traceback', default=True, is_flag=True, help='Raise on exception.')
-@click.option('--noinput', default=False, is_flag=True, help='Do not prompt the user for input of any kind.')
-@click.option('--lock', default=False, is_flag=True, help='Hold a global lock and limit upgrade to one concurrent.')
+@click.option('--noinput', default=False, is_flag=True,
+              help='Do not prompt the user for input of any kind.')
+@click.option('--lock', default=False, is_flag=True,
+              help='Hold a global lock and limit upgrade to one concurrent.')
 @click.option('--no-repair', default=False, is_flag=True, help='Skip repair step.')
 @configuration
 @click.pass_context

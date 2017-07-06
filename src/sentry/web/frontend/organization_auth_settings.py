@@ -22,7 +22,8 @@ ERR_NO_SSO = _('The SSO feature is not enabled for this organization.')
 
 OK_PROVIDER_DISABLED = _('SSO authentication has been disabled.')
 
-OK_REMINDERS_SENT = _('A reminder email has been sent to members who have not yet linked their accounts.')
+OK_REMINDERS_SENT = _(
+    'A reminder email has been sent to members who have not yet linked their accounts.')
 
 
 class AuthProviderSettingsForm(forms.Form):
@@ -132,7 +133,11 @@ class OrganizationAuthSettingsView(OrganizationView):
         context = {
             'form': form,
             'pending_links_count': pending_links_count,
-            'login_url': absolute_uri(reverse('sentry-organization-home', args=[organization.slug])),
+            'login_url': absolute_uri(
+                reverse(
+                    'sentry-organization-home',
+                    args=[
+                        organization.slug])),
             'auth_provider': auth_provider,
             'provider_name': provider.name,
             'content': response,
@@ -157,7 +162,11 @@ class OrganizationAuthSettingsView(OrganizationView):
                 request, messages.ERROR,
                 ERR_NO_SSO,
             )
-            return HttpResponseRedirect(reverse('sentry-organization-home', args=[organization.slug]))
+            return HttpResponseRedirect(
+                reverse(
+                    'sentry-organization-home',
+                    args=[
+                        organization.slug]))
 
         try:
             auth_provider = AuthProvider.objects.get(

@@ -35,6 +35,7 @@ class ProfileMiddleware(object):
 
     WARNING: It uses hotshot profiler which is not thread safe.
     """
+
     def can(self, request):
         if 'prof' not in request.GET:
             return False

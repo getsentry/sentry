@@ -491,11 +491,12 @@ def show_emails(request):
     if 'primary' in request.POST:
         new_primary = request.POST['new_primary_email'].lower()
 
-        if User.objects.filter(Q(email__iexact=new_primary) | Q(username__iexact=new_primary)).exclude(id=user.id).exists():
+        if User.objects.filter(Q(email__iexact=new_primary) | Q(
+                username__iexact=new_primary)).exclude(id=user.id).exists():
             messages.add_message(request,
-                messages.ERROR,
-                _("That email is already in use for another user")
-            )
+                                 messages.ERROR,
+                                 _("That email is already in use for another user")
+                                 )
 
         elif new_primary != user.email:
 
@@ -531,7 +532,8 @@ def show_emails(request):
         alternative_email = email_form.cleaned_data['alt_email'].lower()
 
         # check if this alternative email already exists for user
-        if alternative_email and not UserEmail.objects.filter(user=user, email__iexact=alternative_email):
+        if alternative_email and not UserEmail.objects.filter(
+                user=user, email__iexact=alternative_email):
             # create alternative email for user
             try:
                 with transaction.atomic():

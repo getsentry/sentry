@@ -5,8 +5,15 @@ from mock import patch
 from uuid import uuid4
 
 from sentry.models import (
-    Commit, CommitAuthor, GroupAssignee, GroupCommitResolution, OrganizationMember, Release, Repository, TagValue, UserEmail
-)
+    Commit,
+    CommitAuthor,
+    GroupAssignee,
+    GroupCommitResolution,
+    OrganizationMember,
+    Release,
+    Repository,
+    TagValue,
+    UserEmail)
 from sentry.testutils import TestCase
 
 

@@ -72,7 +72,7 @@ class LostPasswordTest(TestCase):
         assert msg.to == [self.user.email]
         assert msg.subject == '[Sentry] Password Recovery'
         url = 'http://testserver' + reverse('sentry-account-recover-confirm',
-            args=[self.password_hash.user_id, self.password_hash.hash])
+                                            args=[self.password_hash.user_id, self.password_hash.hash])
         assert url in msg.body
 
 

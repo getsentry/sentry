@@ -39,6 +39,7 @@ class LazyServiceWrapper(LazyObject):
     >>> service = LazyServiceWrapper(...)
     >>> service.expose(locals())
     """
+
     def __init__(self, backend_base, backend_path, options, dangerous=()):
         super(LazyServiceWrapper, self).__init__()
         self.__dict__.update({

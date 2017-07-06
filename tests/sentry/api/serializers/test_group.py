@@ -195,7 +195,9 @@ class GroupSerializerTest(TestCase):
             default_value, project_value = options
             maybe_set_value(None, default_value)
             maybe_set_value(group.project, project_value)
-            assert serialize(group, user)['isSubscribed'] is expected_result, 'expected {!r} for {!r}'.format(expected_result, options)
+            assert serialize(
+                group, user)['isSubscribed'] is expected_result, 'expected {!r} for {!r}'.format(
+                expected_result, options)
 
     def test_no_user_unsubscribed(self):
         group = self.create_group()

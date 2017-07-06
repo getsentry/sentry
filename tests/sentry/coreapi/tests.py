@@ -632,12 +632,12 @@ class CspApiHelperTest(BaseAPITest):
             "violated-directive": "img-src https://45.55.25.245:8123/",
             "effective-directive": "img-src",
             "original-policy": "default-src  https://45.55.25.245:8123/; child-src  https://45.55.25.245:8123/; connect-src  https://45.55.25.245:8123/; font-src  https://45.55.25.245:8123/; img-src  https://45.55.25.245:8123/; media-src  https://45.55.25.245:8123/; object-src  https://45.55.25.245:8123/; script-src  https://45.55.25.245:8123/; style-src  https://45.55.25.245:8123/; form-action  https://45.55.25.245:8123/; frame-ancestors 'none'; plugin-types 'none'; report-uri http://45.55.25.245:8123/csp-report?os=OS%20X&device=&browser_version=43.0&browser=chrome&os_version=Lion",
-            "blocked-uri": "v" * 201,
+            "blocked-uri": "v" *
+            201,
             "status-code": 200,
             "_meta": {
                 "release": "abc123",
-            }
-        }
+            }}
         result = self.helper.validate_data(self.project, report)
         assert result['tags'] == [
             ('effective-directive', 'img-src'),
@@ -668,14 +668,14 @@ class CspApiHelperTest(BaseAPITest):
             "document-uri": "http://45.55.25.245:8123/csp",
             "referrer": "http://example.com",
             "violated-directive": "img-src https://45.55.25.245:8123/",
-            "effective-directive": "v" * 201,
+            "effective-directive": "v" *
+            201,
             "original-policy": "default-src  https://45.55.25.245:8123/; child-src  https://45.55.25.245:8123/; connect-src  https://45.55.25.245:8123/; font-src  https://45.55.25.245:8123/; img-src  https://45.55.25.245:8123/; media-src  https://45.55.25.245:8123/; object-src  https://45.55.25.245:8123/; script-src  https://45.55.25.245:8123/; style-src  https://45.55.25.245:8123/; form-action  https://45.55.25.245:8123/; frame-ancestors 'none'; plugin-types 'none'; report-uri http://45.55.25.245:8123/csp-report?os=OS%20X&device=&browser_version=43.0&browser=chrome&os_version=Lion",
             "blocked-uri": "http://google.com\n",
             "status-code": 200,
             "_meta": {
                 "release": "abc123",
-            }
-        }
+            }}
         result = self.helper.validate_data(self.project, report)
         assert 'tags' not in result
         assert len(result['errors']) == 2

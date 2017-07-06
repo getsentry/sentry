@@ -25,6 +25,6 @@ def enqueue_scheduled_jobs(**kwargs):
 
         for job in job_list:
             logger.debug('Sending scheduled job %s with payload %r',
-                        job.name, job.payload)
+                         job.name, job.payload)
             app.send_task(job.name, kwargs=job.payload)
             job.delete()

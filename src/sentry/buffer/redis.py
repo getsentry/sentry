@@ -79,7 +79,7 @@ class RedisBuffer(Buffer):
             model._meta,
             md5_text(
                 '&'.join('%s=%s' % (k, self._coerce_val(v))
-                    for k, v in sorted(six.iteritems(filters)))
+                         for k, v in sorted(six.iteritems(filters)))
             ).hexdigest(),
         )
 

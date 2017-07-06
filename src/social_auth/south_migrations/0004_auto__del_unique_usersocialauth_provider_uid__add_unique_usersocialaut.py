@@ -14,14 +14,12 @@ class Migration(SchemaMigration):
         # Adding unique constraint on 'UserSocialAuth', fields ['provider', 'uid', 'user']
         db.create_unique(u'social_auth_usersocialauth', ['provider', 'uid', 'user_id'])
 
-
     def backwards(self, orm):
         # Removing unique constraint on 'UserSocialAuth', fields ['provider', 'uid', 'user']
         db.delete_unique(u'social_auth_usersocialauth', ['provider', 'uid', 'user_id'])
 
         # Adding unique constraint on 'UserSocialAuth', fields ['provider', 'uid']
         db.create_unique(u'social_auth_usersocialauth', ['provider', 'uid'])
-
 
     models = {
         'sentry.user': {

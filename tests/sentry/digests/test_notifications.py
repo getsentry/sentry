@@ -82,7 +82,8 @@ class GroupRecordsTestCase(TestCase):
 
     def test_success(self):
         events = [self.create_event(group=self.group) for _ in range(3)]
-        records = [Record(event.id, Notification(event, [self.rule]), event.datetime) for event in events]
+        records = [Record(event.id, Notification(event, [self.rule]), event.datetime)
+                   for event in events]
         assert reduce(group_records, records, defaultdict(lambda: defaultdict(list))) == {
             self.rule: {
                 self.group: records,

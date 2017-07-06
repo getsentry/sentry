@@ -136,6 +136,7 @@ def url_add_parameters(url, params):
 
 class LazyDict(SimpleLazyObject):
     """Lazy dict initialization."""
+
     def __getitem__(self, name):
         if self._wrapped is empty:
             self._setup()

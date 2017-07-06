@@ -667,11 +667,16 @@ class OrganizationReleaseCreateTest(APITestCase):
             organization=org,
             scope_list=['project:read'],
         )
-        response = self.client.post(url,
+        response = self.client.post(
+            url,
             data={
                 'version': '1.2.1',
-                'projects': [project1.slug]
-            }, HTTP_AUTHORIZATION='Basic ' + b64encode('{}:'.format(bad_api_key.key)))
+                'projects': [
+                    project1.slug]},
+            HTTP_AUTHORIZATION='Basic ' +
+            b64encode(
+                '{}:'.format(
+                    bad_api_key.key)))
         assert response.status_code == 403
 
         # test wrong org, right permissions level
@@ -679,11 +684,16 @@ class OrganizationReleaseCreateTest(APITestCase):
             organization=org2,
             scope_list=['project:write'],
         )
-        response = self.client.post(url,
+        response = self.client.post(
+            url,
             data={
                 'version': '1.2.1',
-                'projects': [project1.slug]
-            }, HTTP_AUTHORIZATION='Basic ' + b64encode('{}:'.format(wrong_org_api_key.key)))
+                'projects': [
+                    project1.slug]},
+            HTTP_AUTHORIZATION='Basic ' +
+            b64encode(
+                '{}:'.format(
+                    wrong_org_api_key.key)))
         assert response.status_code == 403
 
         # test right org, right permissions level
@@ -691,11 +701,16 @@ class OrganizationReleaseCreateTest(APITestCase):
             organization=org,
             scope_list=['project:write'],
         )
-        response = self.client.post(url,
+        response = self.client.post(
+            url,
             data={
                 'version': '1.2.1',
-                'projects': [project1.slug]
-            }, HTTP_AUTHORIZATION='Basic ' + b64encode('{}:'.format(good_api_key.key)))
+                'projects': [
+                    project1.slug]},
+            HTTP_AUTHORIZATION='Basic ' +
+            b64encode(
+                '{}:'.format(
+                    good_api_key.key)))
         assert response.status_code == 201, response.content
 
     @patch('sentry.tasks.commits.fetch_commits')
