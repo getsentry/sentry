@@ -1,9 +1,9 @@
 from __future__ import absolute_import
 
 import itertools
+import time
 
 import mmh3
-import time
 
 from sentry.utils.redis import load_script
 
