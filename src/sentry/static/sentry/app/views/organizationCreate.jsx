@@ -9,7 +9,7 @@ export default class OrganizationCreate extends AsyncView {
   onSubmitSuccess = data => {
     // redirect to project creation
     // browserHistory.pushState(null, `/organizations/${data.slug}/projects/new/`);
-    window.location.href = `/organizations/${data.slug}/projects/new/`;
+    window.location.href = `/organizations/${data.slug}/onboarding/`;
   };
 
   getTitle() {
