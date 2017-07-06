@@ -11,11 +11,15 @@ class Migration(SchemaMigration):
         # Adding model 'GroupTombstone'
         db.create_table('sentry_grouptombstone', (
             ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
-            ('previous_group_id', self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')(unique=True)),
-            ('project', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.Project'])),
-            ('level', self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')(default=40, db_index=True, blank=True)),
+            ('previous_group_id', self.gf(
+                'sentry.db.models.fields.bounded.BoundedPositiveIntegerField')(unique=True)),
+            ('project', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(
+                to=orm['sentry.Project'])),
+            ('level', self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')(
+                default=40, db_index=True, blank=True)),
             ('message', self.gf('django.db.models.fields.TextField')()),
-            ('culprit', self.gf('django.db.models.fields.CharField')(max_length=200, null=True, blank=True)),
+            ('culprit', self.gf('django.db.models.fields.CharField')(
+                max_length=200, null=True, blank=True)),
             ('type', self.gf('django.db.models.fields.TextField')()),
             ('actor_id', self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')(null=True)),
         ))
@@ -23,9 +27,9 @@ class Migration(SchemaMigration):
 
         # Adding field 'GroupHash.group_tombstone'
         db.add_column('sentry_grouphash', 'group_tombstone',
-                      self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.GroupTombstone'], null=True),
+                      self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(
+                          to=orm['sentry.GroupTombstone'], null=True),
                       keep_default=False)
-
 
     def backwards(self, orm):
         # Deleting model 'GroupTombstone'
@@ -33,7 +37,6 @@ class Migration(SchemaMigration):
 
         # Deleting field 'GroupHash.group_tombstone'
         db.delete_column('sentry_grouphash', 'group_tombstone_id')
-
 
     models = {
         'sentry.activity': {
