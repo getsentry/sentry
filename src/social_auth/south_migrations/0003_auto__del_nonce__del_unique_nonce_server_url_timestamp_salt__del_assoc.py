@@ -20,7 +20,6 @@ class Migration(SchemaMigration):
         # Deleting model 'Association'
         db.delete_table(u'social_auth_association')
 
-
     def backwards(self, orm):
         # Adding model 'Nonce'
         db.create_table(u'social_auth_nonce', (
@@ -48,7 +47,6 @@ class Migration(SchemaMigration):
 
         # Adding unique constraint on 'Association', fields ['server_url', 'handle']
         db.create_unique(u'social_auth_association', ['server_url', 'handle'])
-
 
     models = {
         'sentry.user': {
