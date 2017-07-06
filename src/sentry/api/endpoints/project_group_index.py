@@ -473,6 +473,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
                             message=group.message,
                             culprit=group.culprit,
                             type=group.get_event_type(),
+                            actor_id=acting_user.id if acting_user else None,
                         )
                     except IntegrityError:
                         continue
