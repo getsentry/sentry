@@ -44,7 +44,7 @@ from sentry.constants import MODULE_ROOT
 from sentry.models import GroupMeta, ProjectOption
 from sentry.plugins import plugins
 from sentry.rules import EventState
-from sentry.utils import json
+from sentry.utils import json, tenants
 from sentry.utils.auth import SSO_SESSION_KEY
 
 from .fixtures import Fixtures
@@ -234,6 +234,12 @@ class BaseTestCase(Fixtures, Exam):
         back to the original value when exiting the context.
         """
         return override_options(options)
+
+    def tenant(self, tenant):
+        return tenants.TenantContext(tenant)
+
+    def unrestricted_tenant(self):
+        return self.tenant(tenants.UnrestrictedTenant)
 
     @contextmanager
     def dsn(self, dsn):

@@ -35,7 +35,7 @@ class TeamUpdateTest(APITestCase):
             'slug': 'foobar',
         })
         assert resp.status_code == 200, resp.content
-        team = Team.objects.unconstrained_unsafe().get(id=team.id)
+        team = Team.objects.unrestricted_unsafe().get(id=team.id)
         assert team.name == 'hello world'
         assert team.slug == 'foobar'
 
@@ -72,7 +72,7 @@ class TeamDeleteTest(APITestCase):
         with self.settings(SENTRY_PROJECT=0):
             response = self.client.delete(url)
 
-        team = Team.objects.unconstrained_unsafe().get(id=team.id)
+        team = Team.objects.unrestricted_unsafe().get(id=team.id)
 
         assert response.status_code == 204, response.data
 

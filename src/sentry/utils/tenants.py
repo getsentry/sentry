@@ -4,8 +4,11 @@ from sentry.app import env
 from sentry.utils.cache import memoize
 
 
+ALL = object()
+
+
 class Tenant(object):
-    def __init__(self, user_id=None, organization_ids=None):
+    def __init__(self, user_id=None):
         self.user_id = user_id
 
     @classmethod
@@ -45,6 +48,15 @@ class Tenant(object):
         ).values_list('id', flat=True))
 
 
+class UnrestrictedTenant(object):
+    organization_ids = ALL
+    team_ids = ALL
+    project_ids = ALL
+
+
+UnrestrictedTenant = UnrestrictedTenant()
+
+
 def get_current_user():
     if not env.request:
         return None
@@ -66,3 +78,15 @@ def get_current_tenant():
 
 def set_current_tenant(tenant):
     env.tenant = tenant
+
+
+class TenantContext(object):
+    def __init__(self, tenant):
+        self.tenant = tenant
+
+    def __enter__(self):
+        self.current_tenant = get_current_tenant()
+        set_current_tenant(self.tenant)
+
+    def __exit__(self, *exc_info):
+        set_current_tenant(self.current_tenant)

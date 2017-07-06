@@ -52,7 +52,7 @@ class CreateProjectTest(TestCase):
         })
         assert resp.status_code == 302, resp.context['form'].errors
 
-        project = Project.objects.unconstrained_unsafe().get(
+        project = Project.objects.unrestricted_unsafe().get(
             team__organization=organization, name='bar')
 
         assert project.team == team
@@ -75,7 +75,7 @@ class CreateProjectTest(TestCase):
         })
         assert resp.status_code == 302, resp.context['form'].errors
 
-        project = Project.objects.unconstrained_unsafe().get(
+        project = Project.objects.unrestricted_unsafe().get(
             team__organization=organization, name='bar')
 
         assert project.team == team

@@ -27,7 +27,7 @@ def get_project(value):
         return Project.objects.get_from_cache(
             organization__slug=org,
             slug=proj,
-            unconstrained_unsafe=True,
+            unrestricted_unsafe=True,
         ).id
     except Project.DoesNotExist:
         return None

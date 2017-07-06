@@ -28,7 +28,7 @@ class BaseOrganizationMemberFormTest(TestCase):
             'teams': [team2.id],
             'role': 'member'
         },
-            all_teams=Team.objects.unconstrained_unsafe().filter(organization=organization),
+            all_teams=Team.objects.unrestricted_unsafe().filter(organization=organization),
             allowed_roles=[Role(1, 'member', 'Member')]
         )
         assert form.is_valid()

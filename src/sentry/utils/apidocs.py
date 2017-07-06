@@ -288,7 +288,7 @@ class MockUtils(object):
 
     def create_team(self, name, org):
         from sentry.models import Team
-        return Team.objects.unconstrained_unsafe().get_or_create(
+        return Team.objects.unrestricted_unsafe().get_or_create(
             name=name,
             defaults={
                 'organization': org,
@@ -297,7 +297,7 @@ class MockUtils(object):
 
     def create_project(self, name, team, org):
         from sentry.models import Project
-        return Project.objects.unconstrained_unsafe().get_or_create(
+        return Project.objects.unrestricted_unsafe().get_or_create(
             team=team,
             name=name,
             defaults={
@@ -441,7 +441,7 @@ class Runner(object):
                 project__organization=org,
             ).delete()
             Event.objects.filter(
-                project_id__in=Project.objects.unconstrained_unsafe().filter(
+                project_id__in=Project.objects.unrestricted_unsafe().filter(
                     organization=org,
                 ).values('id'),
             ).delete()

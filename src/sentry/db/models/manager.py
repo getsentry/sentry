@@ -27,7 +27,8 @@ from sentry.utils.hashlib import md5_text
 from .query import create_or_update
 from .queryset import BoundQuerySet
 
-__all__ = ('BaseManager', 'BoundManager', 'OrganizationBoundManager', 'ProjectBoundManager')
+__all__ = ('BaseManager', 'BoundManager',
+           'OrganizationBoundManager', 'ProjectBoundManager')
 
 logger = logging.getLogger('sentry')
 
@@ -224,15 +225,15 @@ class BaseManager(Manager):
         class_prepared.connect(self.__class_prepared, sender=model)
 
     # TODO(dcramer): we're hijacking this method and adding
-    # unconstrained_unsafe to avoid refactoring right now
-    def get_from_cache(self, unconstrained_unsafe=False, **kwargs):
+    # unrestricted_unsafe to avoid refactoring right now
+    def get_from_cache(self, unrestricted_unsafe=False, **kwargs):
         """
         Wrapper around QuerySet.get which supports caching of the
         intermediate value.  Callee is responsible for making sure
         the cache key is cleared on save.
         """
-        if unconstrained_unsafe:
-            queryset = self.unconstrained_unsafe()
+        if unrestricted_unsafe:
+            queryset = self.unrestricted_unsafe()
         else:
             queryset = self
 
@@ -269,14 +270,17 @@ class BaseManager(Manager):
 
             if type(retval) != self.model:
                 if settings.DEBUG:
-                    raise ValueError('Unexpected value type returned from cache')
-                logger.error('Cache response returned invalid value %r', retval)
+                    raise ValueError(
+                        'Unexpected value type returned from cache')
+                logger.error(
+                    'Cache response returned invalid value %r', retval)
                 return queryset.get(**kwargs)
 
             if key == pk_name and int(value) != retval.pk:
                 if settings.DEBUG:
                     raise ValueError('Unexpected value returned from cache')
-                logger.error('Cache response returned invalid value %r', retval)
+                logger.error(
+                    'Cache response returned invalid value %r', retval)
                 return queryset.get(**kwargs)
 
             retval._state.db = router.db_for_read(self.model, **kwargs)
@@ -336,8 +340,8 @@ class BoundManager(BaseManager):
             binding_criteria_fn=self.get_binding_criteria,
         )
 
-    def unconstrained_unsafe(self):
-        return self.get_queryset().unconstrained_unsafe()
+    def unrestricted_unsafe(self):
+        return self.get_queryset().unrestricted_unsafe()
 
 
 class OrganizationBoundManager(BoundManager):
@@ -346,6 +350,8 @@ class OrganizationBoundManager(BoundManager):
         tenant = tenants.get_current_tenant()
         if not tenant or not tenant.organization_ids:
             return
+        elif tenant.organization_ids == tenants.ALL:
+            return Q()
         return Q(organization_id__in=tenant.organization_ids)
 
 
@@ -355,4 +361,6 @@ class ProjectBoundManager(BoundManager):
         tenant = tenants.get_current_tenant()
         if not tenant or not tenant.project_ids:
             return
+        elif tenant.project_ids == tenants.ALL:
+            return Q()
         return Q(project_id__in=tenant.project_ids)

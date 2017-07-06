@@ -10,6 +10,7 @@ from sentry.models import (
 from sentry.search.base import ANY
 from sentry.search.django.backend import DjangoSearchBackend
 from sentry.testutils import TestCase
+from sentry.utils import tenants
 
 
 class DjangoSearchBackendTest(TestCase):
@@ -110,6 +111,8 @@ class DjangoSearchBackendTest(TestCase):
             project=self.group2.project,
             is_active=False,
         )
+
+        tenants.set_current_tenant(tenants.UnrestrictedTenant)
 
     def test_query(self):
         results = self.backend.query(self.project1, query='foo')

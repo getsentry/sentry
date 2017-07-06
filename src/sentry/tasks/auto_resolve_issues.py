@@ -50,7 +50,7 @@ def schedule_auto_resolution():
                    soft_time_limit=60)
 def auto_resolve_project_issues(project_id, cutoff=None, chunk_size=1000,
                                 **kwargs):
-    project = Project.objects.get_from_cache(id=project_id, unconstrained_unsafe=True)
+    project = Project.objects.get_from_cache(id=project_id, unrestricted_unsafe=True)
 
     age = project.get_option('sentry:resolve_age', None)
     if not age:

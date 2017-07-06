@@ -86,7 +86,7 @@ class OrganizationTest(TestCase):
             role='owner',
         ).exists()
 
-        team = Team.objects.unconstrained_unsafe().get(id=from_team.id)
+        team = Team.objects.unrestricted_unsafe().get(id=from_team.id)
         assert team.organization == to_org
 
         member = OrganizationMember.objects.get(
@@ -102,20 +102,20 @@ class OrganizationTest(TestCase):
             team=from_team,
         ).exists()
 
-        from_team_two = Team.objects.unconstrained_unsafe().get(id=from_team_two.id)
+        from_team_two = Team.objects.unrestricted_unsafe().get(id=from_team_two.id)
         assert from_team_two.slug != 'bizzy'
         assert from_team_two.organization == to_org
 
-        from_project_two = Project.objects.unconstrained_unsafe().get(id=from_project_two.id)
+        from_project_two = Project.objects.unrestricted_unsafe().get(id=from_project_two.id)
         assert from_project_two.slug != 'bizzy'
         assert from_project_two.organization == to_org
         assert from_project_two.team == from_team_two
 
-        to_team_two = Team.objects.unconstrained_unsafe().get(id=to_team_two.id)
+        to_team_two = Team.objects.unrestricted_unsafe().get(id=to_team_two.id)
         assert to_team_two.slug == 'bizzy'
         assert to_team_two.organization == to_org
 
-        to_project_two = Project.objects.unconstrained_unsafe().get(id=to_project_two.id)
+        to_project_two = Project.objects.unrestricted_unsafe().get(id=to_project_two.id)
         assert to_project_two.slug == 'bizzy'
         assert to_project_two.organization == to_org
         assert to_project_two.team == to_team_two

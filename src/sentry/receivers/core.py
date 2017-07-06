@@ -58,7 +58,7 @@ def create_default_projects(created_models, verbosity=2, **kwargs):
 
 
 def create_default_project(id, name, slug, verbosity=2, **kwargs):
-    if Project.objects.unconstrained_unsafe().filter(id=id).exists():
+    if Project.objects.unrestricted_unsafe().filter(id=id).exists():
         return
 
     try:
@@ -80,7 +80,7 @@ def create_default_project(id, name, slug, verbosity=2, **kwargs):
             role='owner',
         )
 
-    team, _ = Team.objects.unconstrained_unsafe().get_or_create(
+    team, _ = Team.objects.unrestricted_unsafe().get_or_create(
         organization=org,
         slug='sentry',
         defaults={

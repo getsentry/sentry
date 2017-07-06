@@ -19,4 +19,4 @@ class DeleteTeamTest(TestCase):
         with self.tasks():
             run_deletion(deletion.id)
 
-        assert not Team.objects.unconstrained_unsafe().filter(id=team.id).exists()
+        assert not Team.objects.unrestricted_unsafe().filter(id=team.id).exists()

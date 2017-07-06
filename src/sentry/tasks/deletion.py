@@ -163,7 +163,7 @@ def delete_team(object_id, transaction_id=None, **kwargs):
     from sentry.models import Team, TeamStatus
 
     try:
-        instance = Team.objects.unconstrained_unsafe().get(id=object_id)
+        instance = Team.objects.unrestricted_unsafe().get(id=object_id)
     except Team.DoesNotExist:
         return
 
@@ -193,7 +193,7 @@ def delete_project(object_id, transaction_id=None, **kwargs):
     from sentry.models import Project, ProjectStatus
 
     try:
-        instance = Project.objects.unconstrained_unsafe().get(id=object_id)
+        instance = Project.objects.unrestricted_unsafe().get(id=object_id)
     except Project.DoesNotExist:
         return
 

@@ -25,8 +25,8 @@ def bound_queryset(cls, prefix='Bound'):
 
         # XXX(dcramer): this cloning stuff is expensive -- we could,
         # alternatively, just bind an attribute
-        def _clone(self, klass=None, unconstrained_unsafe=False, *args, **kwargs):
-            if klass and not unconstrained_unsafe:
+        def _clone(self, klass=None, unrestricted_unsafe=False, *args, **kwargs):
+            if klass and not unrestricted_unsafe:
                 try:
                     klass = CLASS_MAPPING[klass]
                 except KeyError:
@@ -73,11 +73,11 @@ def bound_queryset(cls, prefix='Bound'):
         def latest(self, *args, **kwargs):
             raise NotImplementedError
 
-        def unconstrained_unsafe(self):
+        def unrestricted_unsafe(self):
             return cls._clone(
                 self,
                 klass=REVERSE_CLASS_MAPPING[type(self)],
-                unconstrained_unsafe=True,
+                unrestricted_unsafe=True,
             )
 
         def get_binding_criteria(self):

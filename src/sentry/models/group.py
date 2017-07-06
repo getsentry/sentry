@@ -56,23 +56,23 @@ class GroupStatus(object):
     MUTED = IGNORED
 
 
-def get_group_with_redirect(id, queryset=None, unconstrained_unsafe=False):
+def get_group_with_redirect(id, queryset=None, unrestricted_unsafe=False):
     """
     Retrieve a group by ID, checking the redirect table if the requested group
     does not exist. Returns a two-tuple of ``(object, redirected)``.
     """
     if queryset is None:
-        if unconstrained_unsafe:
-            queryset = Group.objects.unconstrained_unsafe()
+        if unrestricted_unsafe:
+            queryset = Group.objects.unrestricted_unsafe()
         else:
             queryset = Group.objects.all()
 
         # When not passing a queryset, we want to read from cache
         getter = Group.objects.get_from_cache
-        getter_kwargs = {'unconstrained_unsafe': True}
+        getter_kwargs = {'unrestricted_unsafe': True}
     else:
-        if unconstrained_unsafe:
-            queryset = queryset.unconstrained_unsafe()
+        if unrestricted_unsafe:
+            queryset = queryset.unrestricted_unsafe()
         getter = queryset.get
         getter_kwargs = {}
 

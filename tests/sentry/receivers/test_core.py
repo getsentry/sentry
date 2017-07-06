@@ -17,13 +17,13 @@ class CreateDefaultProjectsTest(TestCase):
             'username': 'test'
         })
         Organization.objects.all().delete()
-        Team.objects.unconstrained_unsafe().filter(slug='sentry').delete()
-        Project.objects.unconstrained_unsafe().filter(
+        Team.objects.unrestricted_unsafe().filter(slug='sentry').delete()
+        Project.objects.unrestricted_unsafe().filter(
             id=settings.SENTRY_PROJECT).delete()
 
         create_default_projects(created_models=[Project])
 
-        project = Project.objects.unconstrained_unsafe().get(id=settings.SENTRY_PROJECT)
+        project = Project.objects.unrestricted_unsafe().get(id=settings.SENTRY_PROJECT)
         assert project.public is False
         assert project.name == 'Internal'
         assert project.slug == 'internal'
@@ -39,13 +39,13 @@ class CreateDefaultProjectsTest(TestCase):
 
     def test_without_user(self):
         User.objects.filter(is_superuser=True).delete()
-        Team.objects.unconstrained_unsafe().filter(slug='sentry').delete()
-        Project.objects.unconstrained_unsafe().filter(
+        Team.objects.unrestricted_unsafe().filter(slug='sentry').delete()
+        Project.objects.unrestricted_unsafe().filter(
             id=settings.SENTRY_PROJECT).delete()
 
         create_default_projects(created_models=[Project])
 
-        project = Project.objects.unconstrained_unsafe().get(id=settings.SENTRY_PROJECT)
+        project = Project.objects.unrestricted_unsafe().get(id=settings.SENTRY_PROJECT)
         assert project.public is False
         assert project.name == 'Internal'
         assert project.slug == 'internal'

@@ -115,7 +115,7 @@ class StacktraceProcessor(object):
         self.data = data
         self.stacktrace_infos = stacktrace_infos
         if project is None:
-            project = Project.objects.get_from_cache(id=data['project'], unconstrained_unsafe=True)
+            project = Project.objects.get_from_cache(id=data['project'], unrestricted_unsafe=True)
         self.project = project
 
     def close(self):
@@ -272,7 +272,7 @@ def get_processors_for_stacktraces(data, infos):
                                        _with_transaction=False) or ())
 
     if processors:
-        project = Project.objects.get_from_cache(id=data['project'], unconstrained_unsafe=True)
+        project = Project.objects.get_from_cache(id=data['project'], unrestricted_unsafe=True)
         processors = [x(data, infos, project) for x in processors]
 
     return processors

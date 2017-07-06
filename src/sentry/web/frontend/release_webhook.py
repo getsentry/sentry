@@ -75,7 +75,7 @@ class ReleaseWebhookView(View):
         )
 
     def post(self, request, plugin_id, project_id, signature):
-        project = Project.objects.get_from_cache(id=project_id, unconstrained_unsafe=True)
+        project = Project.objects.get_from_cache(id=project_id, unrestricted_unsafe=True)
 
         token = ProjectOption.objects.get_value(project, 'sentry:release-token')
 

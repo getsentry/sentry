@@ -76,7 +76,7 @@ class SentryInternalClient(DjangoClient):
 
         try:
             project = Project.objects.get_from_cache(
-                id=settings.SENTRY_PROJECT, unconstrained_unsafe=True)
+                id=settings.SENTRY_PROJECT, unrestricted_unsafe=True)
         except DatabaseError:
             self.error_logger.error('Unable to fetch internal project',
                                     exc_info=True)

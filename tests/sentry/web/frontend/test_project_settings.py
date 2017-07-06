@@ -85,5 +85,5 @@ class ProjectSettingsTest(TestCase):
         })
         assert resp.status_code == 302
         self.assertEquals(resp['Location'], 'http://testserver' + self.path)
-        project = Project.objects.unconstrained_unsafe().get(id=self.project.id)
+        project = Project.objects.unrestricted_unsafe().get(id=self.project.id)
         assert project.name == 'bar'

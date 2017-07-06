@@ -108,7 +108,7 @@ class DeleteTeamTest(TestCase):
         with self.tasks():
             delete_team(object_id=team.id)
 
-        assert not Team.objects.unconstrained_unsafe().filter(id=team.id).exists()
+        assert not Team.objects.unrestricted_unsafe().filter(id=team.id).exists()
 
     def test_cancels_without_pending_status(self):
         team = self.create_team(
@@ -122,7 +122,7 @@ class DeleteTeamTest(TestCase):
             with self.tasks():
                 delete_team(object_id=team.id)
 
-        assert Team.objects.unconstrained_unsafe().filter(id=team.id).exists()
+        assert Team.objects.unrestricted_unsafe().filter(id=team.id).exists()
 
 
 class DeleteProjectTest(TestCase):
@@ -171,7 +171,7 @@ class DeleteProjectTest(TestCase):
         with self.tasks():
             delete_project(object_id=project.id)
 
-        assert not Project.objects.unconstrained_unsafe().filter(id=project.id).exists()
+        assert not Project.objects.unrestricted_unsafe().filter(id=project.id).exists()
         assert not EnvironmentProject.objects.filter(
             project_id=project.id,
             environment_id=env.id
@@ -190,7 +190,7 @@ class DeleteProjectTest(TestCase):
             with self.tasks():
                 delete_project(object_id=project.id)
 
-        assert Project.objects.unconstrained_unsafe().filter(id=project.id).exists()
+        assert Project.objects.unrestricted_unsafe().filter(id=project.id).exists()
 
 
 class DeleteTagKeyTest(TestCase):
@@ -379,7 +379,7 @@ class GenericDeleteTest(TestCase):
             with pytest.raises(DeleteAborted):
                 generic_delete('sentry', 'project', object_id=project.id)
 
-        project = Project.objects.unconstrained_unsafe().get(id=project.id)
+        project = Project.objects.unrestricted_unsafe().get(id=project.id)
         assert project.status == ObjectStatus.VISIBLE
 
     def test_deletes(self):
@@ -390,7 +390,7 @@ class GenericDeleteTest(TestCase):
         with self.tasks():
             generic_delete('sentry', 'project', object_id=project.id)
 
-        assert not Project.objects.unconstrained_unsafe().filter(id=project.id).exists()
+        assert not Project.objects.unrestricted_unsafe().filter(id=project.id).exists()
 
 
 class DeleteRepoTest(TestCase):

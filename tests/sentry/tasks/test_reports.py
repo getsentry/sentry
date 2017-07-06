@@ -229,7 +229,7 @@ def test_calendar_range():
 
 class ReportTestCase(TestCase):
     def test_integration(self):
-        Project.objects.unconstrained_unsafe().all().delete()
+        Project.objects.unrestricted_unsafe().all().delete()
 
         now = datetime(2016, 9, 12, tzinfo=pytz.utc)
 
