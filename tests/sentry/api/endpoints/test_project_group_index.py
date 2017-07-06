@@ -549,7 +549,7 @@ class GroupUpdateTest(APITestCase):
                                          version='a')
         release.add_project(self.project)
         release2 = Release.objects.create(organization_id=self.project.organization_id,
-                                         version='b')
+                                          version='b')
         release2.add_project(self.project)
 
         group = self.create_group(
@@ -815,7 +815,8 @@ class GroupUpdateTest(APITestCase):
         assert snooze.window is None
 
         # Drop microsecond value for MySQL
-        response.data['statusDetails']['ignoreUntil'] = response.data['statusDetails']['ignoreUntil'].replace(microsecond=0)
+        response.data['statusDetails']['ignoreUntil'] = response.data['statusDetails']['ignoreUntil'].replace(
+            microsecond=0)
 
         assert response.data['status'] == 'ignored'
         assert response.data['statusDetails']['ignoreCount'] == snooze.count

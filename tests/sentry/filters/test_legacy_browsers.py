@@ -201,7 +201,8 @@ class LegacyBrowsersFilterTest(TestCase):
             key='filters:legacy-browsers',
             value='1',
         )
-        data = self.get_mock_data('Mozilla/5.0 (Linux; Android 4.0.4; Galaxy Nexus Build/IMM76B) AppleWebKit/535.19 (KHTML, like Gecko) Chrome/18.0.1025.133 Mobile Safari/535.19')
+        data = self.get_mock_data(
+            'Mozilla/5.0 (Linux; Android 4.0.4; Galaxy Nexus Build/IMM76B) AppleWebKit/535.19 (KHTML, like Gecko) Chrome/18.0.1025.133 Mobile Safari/535.19')
         assert self.apply_filter(data) is False
 
     def test_filters_ie_9_by_default(self):
@@ -228,7 +229,8 @@ class LegacyBrowsersFilterTest(TestCase):
             key='filters:legacy-browsers',
             value='1',
         )
-        data = self.get_mock_data('Opera/9.80 (X11; Linux i686; Ubuntu/14.10) Presto/2.12.388 Version/12.16')
+        data = self.get_mock_data(
+            'Opera/9.80 (X11; Linux i686; Ubuntu/14.10) Presto/2.12.388 Version/12.16')
         assert self.apply_filter(data) is True
 
     def test_does_not_filter_chrome_by_default(self):
@@ -237,7 +239,8 @@ class LegacyBrowsersFilterTest(TestCase):
             key='filters:legacy-browsers',
             value='1',
         )
-        data = self.get_mock_data('Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36')
+        data = self.get_mock_data(
+            'Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36')
         assert self.apply_filter(data) is False
 
     def test_does_not_filter_edge_by_default(self):
@@ -246,7 +249,8 @@ class LegacyBrowsersFilterTest(TestCase):
             key='filters:legacy-browsers',
             value='1',
         )
-        data = self.get_mock_data('Mozilla/5.0 (Windows NT 10.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/42.0.2311.135 Safari/537.36 Edge/12.10136')
+        data = self.get_mock_data(
+            'Mozilla/5.0 (Windows NT 10.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/42.0.2311.135 Safari/537.36 Edge/12.10136')
         assert self.apply_filter(data) is False
 
     def test_filter_opera(self):
