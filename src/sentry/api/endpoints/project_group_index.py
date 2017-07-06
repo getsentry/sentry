@@ -10,6 +10,7 @@ from django.utils import timezone
 from rest_framework import serializers
 from rest_framework.response import Response
 
+from sentry import features
 from sentry import search
 from sentry.api.base import DocSection
 from sentry.api.bases.project import ProjectEndpoint, ProjectEventPermission
@@ -472,6 +473,8 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
 
         discard = result.get('discard')
         if discard:
+            if not features.has('projects:custom-filters', project, actor=request.user):
+                return Response({'detail': ['You do not have that feature enabled']}, status=400)
             group_list = list(queryset)
             for group in group_list:
                 with transaction.atomic():

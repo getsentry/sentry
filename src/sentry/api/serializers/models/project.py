@@ -66,7 +66,7 @@ class ProjectSerializer(Serializer):
         from sentry import features
 
         feature_list = []
-        for feature in ('global-events', 'data-forwarding', 'rate-limits'):
+        for feature in ('global-events', 'data-forwarding', 'rate-limits', 'custom-filters'):
             if features.has('projects:' + feature, obj, actor=user):
                 feature_list.append(feature)
 
