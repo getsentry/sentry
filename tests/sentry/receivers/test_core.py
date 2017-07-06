@@ -17,7 +17,7 @@ class CreateDefaultProjectsTest(TestCase):
             'username': 'test'
         })
         Organization.objects.all().delete()
-        Team.objects.filter(slug='sentry').delete()
+        Team.objects.unconstrained_unsafe().filter(slug='sentry').delete()
         Project.objects.unconstrained_unsafe().filter(
             id=settings.SENTRY_PROJECT).delete()
 
@@ -39,7 +39,7 @@ class CreateDefaultProjectsTest(TestCase):
 
     def test_without_user(self):
         User.objects.filter(is_superuser=True).delete()
-        Team.objects.filter(slug='sentry').delete()
+        Team.objects.unconstrained_unsafe().filter(slug='sentry').delete()
         Project.objects.unconstrained_unsafe().filter(
             id=settings.SENTRY_PROJECT).delete()
 

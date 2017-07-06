@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 from mock import Mock
 
+from sentry.app import env
 from sentry.api.bases.project import ProjectPermission
 from sentry.models import ApiKey
 from sentry.testutils import TestCase
@@ -21,6 +22,8 @@ class ProjectPermissionBase(TestCase):
         request.user = user
         request.method = method
         request.is_superuser = lambda: is_superuser if is_superuser is not None else user.is_superuser
+        # bind request for tenants
+        env.request = request
         return (
             perm.has_permission(request, None) and
             perm.has_object_permission(request, None, obj)

@@ -107,7 +107,7 @@ def createuser(email, password, superuser, no_password, no_input):
 
         # if we've only got a single team let's go ahead and give
         # access to that team as its likely the desired outcome
-        teams = list(Team.objects.filter(organization=org)[0:2])
+        teams = list(Team.objects.unconstrained_unsafe().filter(organization=org)[0:2])
         if len(teams) == 1:
             OrganizationMemberTeam.objects.create(
                 team=teams[0],

@@ -75,10 +75,10 @@ class Project(OrganizationBoundMixin, Model):
     """
     __core__ = True
 
+    organization = FlexibleForeignKey('sentry.Organization', related_name=None)
     slug = models.SlugField(null=True)
     name = models.CharField(max_length=200)
     forced_color = models.CharField(max_length=6, null=True, blank=True)
-    organization = FlexibleForeignKey('sentry.Organization')
     team = FlexibleForeignKey('sentry.Team')
     public = models.BooleanField(default=False)
     date_added = models.DateTimeField(default=timezone.now)

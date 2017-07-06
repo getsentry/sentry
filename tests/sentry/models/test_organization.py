@@ -50,7 +50,8 @@ class OrganizationTest(TestCase):
         from_user = self.create_user('baz@example.com')
         other_user = self.create_user('bizbaz@example.com')
         self.create_member(organization=from_org, user=from_user)
-        other_member = self.create_member(organization=from_org, user=other_user)
+        other_member = self.create_member(
+            organization=from_org, user=other_user)
 
         OrganizationMemberTeam.objects.create(
             organizationmember=other_member,
@@ -85,7 +86,7 @@ class OrganizationTest(TestCase):
             role='owner',
         ).exists()
 
-        team = Team.objects.get(id=from_team.id)
+        team = Team.objects.unconstrained_unsafe().get(id=from_team.id)
         assert team.organization == to_org
 
         member = OrganizationMember.objects.get(
@@ -101,30 +102,35 @@ class OrganizationTest(TestCase):
             team=from_team,
         ).exists()
 
-        from_team_two = Team.objects.get(id=from_team_two.id)
+        from_team_two = Team.objects.unconstrained_unsafe().get(id=from_team_two.id)
         assert from_team_two.slug != 'bizzy'
         assert from_team_two.organization == to_org
 
-        from_project_two = Project.objects.get(id=from_project_two.id)
+        from_project_two = Project.objects.unconstrained_unsafe().get(id=from_project_two.id)
         assert from_project_two.slug != 'bizzy'
         assert from_project_two.organization == to_org
         assert from_project_two.team == from_team_two
 
-        to_team_two = Team.objects.get(id=to_team_two.id)
+        to_team_two = Team.objects.unconstrained_unsafe().get(id=to_team_two.id)
         assert to_team_two.slug == 'bizzy'
         assert to_team_two.organization == to_org
 
-        to_project_two = Project.objects.get(id=to_project_two.id)
+        to_project_two = Project.objects.unconstrained_unsafe().get(id=to_project_two.id)
         assert to_project_two.slug == 'bizzy'
         assert to_project_two.organization == to_org
         assert to_project_two.team == to_team_two
 
         assert not Release.objects.filter(id=from_release.id).exists()
-        assert ReleaseFile.objects.get(id=from_release_file.id).organization == to_org
-        assert ReleaseFile.objects.get(id=from_release_file.id).release == to_release
-        assert Commit.objects.get(id=from_commit.id).organization_id == to_org.id
-        assert ReleaseCommit.objects.get(id=from_release_commit.id).organization_id == to_org.id
-        assert ReleaseCommit.objects.get(id=from_release_commit.id).release == to_release
+        assert ReleaseFile.objects.get(
+            id=from_release_file.id).organization == to_org
+        assert ReleaseFile.objects.get(
+            id=from_release_file.id).release == to_release
+        assert Commit.objects.get(
+            id=from_commit.id).organization_id == to_org.id
+        assert ReleaseCommit.objects.get(
+            id=from_release_commit.id).organization_id == to_org.id
+        assert ReleaseCommit.objects.get(
+            id=from_release_commit.id).release == to_release
         assert ReleaseEnvironment.objects.get(
             id=from_release_environment.id
         ).organization_id == to_org.id

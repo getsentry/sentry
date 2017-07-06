@@ -108,7 +108,7 @@ class DeleteTeamTest(TestCase):
         with self.tasks():
             delete_team(object_id=team.id)
 
-        assert not Team.objects.filter(id=team.id).exists()
+        assert not Team.objects.unconstrained_unsafe().filter(id=team.id).exists()
 
     def test_cancels_without_pending_status(self):
         team = self.create_team(
@@ -122,7 +122,7 @@ class DeleteTeamTest(TestCase):
             with self.tasks():
                 delete_team(object_id=team.id)
 
-        assert Team.objects.filter(id=team.id).exists()
+        assert Team.objects.unconstrained_unsafe().filter(id=team.id).exists()
 
 
 class DeleteProjectTest(TestCase):

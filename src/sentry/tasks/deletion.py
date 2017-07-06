@@ -163,7 +163,7 @@ def delete_team(object_id, transaction_id=None, **kwargs):
     from sentry.models import Team, TeamStatus
 
     try:
-        instance = Team.objects.get(id=object_id)
+        instance = Team.objects.unconstrained_unsafe().get(id=object_id)
     except Team.DoesNotExist:
         return
 

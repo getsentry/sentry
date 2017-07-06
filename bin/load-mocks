@@ -303,7 +303,7 @@ def main(num_events=1, extra_events=False):
 
     for team_name, project_names in mocks:
         print('> Mocking team {}'.format(team_name))
-        team, _ = Team.objects.get_or_create(
+        team, _ = Team.objects.unconstrained_unsafe().get_or_create(
             name=team_name,
             defaults={
                 'organization': org,

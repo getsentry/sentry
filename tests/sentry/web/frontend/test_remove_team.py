@@ -42,6 +42,6 @@ class RemoveTeamTest(TestCase):
         assert resp.status_code == 302
         assert resp['Location'] == 'http://testserver' + reverse('sentry')
 
-        team = Team.objects.get(id=self.team.id)
+        team = Team.objects.unconstrained_unsafe().get(id=self.team.id)
 
         assert team.status == TeamStatus.PENDING_DELETION

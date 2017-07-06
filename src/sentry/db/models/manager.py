@@ -27,7 +27,7 @@ from sentry.utils.hashlib import md5_text
 from .query import create_or_update
 from .queryset import BoundQuerySet
 
-__all__ = ('BaseManager', 'OrganizationBoundManager')
+__all__ = ('BaseManager', 'BoundManager', 'OrganizationBoundManager')
 
 logger = logging.getLogger('sentry')
 
@@ -323,7 +323,7 @@ class BaseManager(Manager):
         """
 
 
-class OrganizationBoundManager(BaseManager):
+class BoundManager(BaseManager):
     # TODO(dcramer): its not clear to me that we actually need to
     # use BaseManager ever on related_fields (other this changes
     # that behavior)
@@ -339,6 +339,8 @@ class OrganizationBoundManager(BaseManager):
     def unconstrained_unsafe(self):
         return self.get_queryset().unconstrained_unsafe()
 
+
+class OrganizationBoundManager(BoundManager):
     def get_binding_criteria(self):
         from sentry.utils import tenants
         tenant = tenants.get_current_tenant()

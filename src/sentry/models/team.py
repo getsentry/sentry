@@ -11,19 +11,27 @@ import warnings
 
 from django.conf import settings
 from django.db import connections, IntegrityError, models, router, transaction
+from django.db.models import Q
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
 from sentry.app import env, locks
 from sentry.db.models import (
-    BaseManager, BoundedPositiveIntegerField, FlexibleForeignKey, Model,
-    sane_repr
+    BoundedPositiveIntegerField, FlexibleForeignKey, Model,
+    BoundManager, sane_repr
 )
 from sentry.db.models.utils import slugify_instance
 from sentry.utils.retries import TimedRetryPolicy
 
 
-class TeamManager(BaseManager):
+class TeamManager(BoundManager):
+    def get_binding_criteria(self):
+        from sentry.utils import tenants
+        tenant = tenants.get_current_tenant()
+        if not tenant or not tenant.team_ids:
+            return
+        return Q(id__in=tenant.team_ids)
+
     def get_for_user(self, organization, user, scope=None, with_projects=False):
         """
         Returns a list of all teams a user has some level of access to.
@@ -100,7 +108,7 @@ class Team(Model):
     """
     __core__ = True
 
-    organization = FlexibleForeignKey('sentry.Organization')
+    organization = FlexibleForeignKey('sentry.Organization', related_name=None)
     slug = models.SlugField()
     name = models.CharField(max_length=64)
     status = BoundedPositiveIntegerField(choices=(

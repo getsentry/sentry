@@ -86,10 +86,10 @@ class TransferTest(TestCase):
         team.transfer_to(org2)
 
         assert team.organization == org2
-        team = Team.objects.get(id=team.id)
+        team = Team.objects.unconstrained_unsafe().get(id=team.id)
         assert team.organization == org2
 
-        project = Project.objects.get(id=project.id)
+        project = Project.objects.unconstrained_unsafe().get(id=project.id)
         assert project.organization == org2
 
         # owner does not exist on new org, so should not be transferred
@@ -127,7 +127,7 @@ class TransferTest(TestCase):
         project = self.create_project(team=team)
         team.transfer_to(org2)
 
-        project = Project.objects.get(id=project.id)
+        project = Project.objects.unconstrained_unsafe().get(id=project.id)
         assert project.team == team2
 
-        assert not Team.objects.filter(id=team.id).exists()
+        assert not Team.objects.unconstrained_unsafe().filter(id=team.id).exists()

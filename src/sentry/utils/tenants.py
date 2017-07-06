@@ -20,12 +20,20 @@ class Tenant(object):
     @memoize
     def organization_ids(self):
         from sentry.models import OrganizationMember
-        # this should be cached on first access
         if not self.user_id:
             return []
         return list(OrganizationMember.objects.filter(
             user=self.user_id,
         ).values_list('organization', flat=True))
+
+    @memoize
+    def team_ids(self):
+        from sentry.models import OrganizationMemberTeam
+        if not self.user_id:
+            return []
+        return list(OrganizationMemberTeam.objects.filter(
+            user=self.user_id,
+        ).values_list('team', flat=True))
 
 
 def get_current_user():

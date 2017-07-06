@@ -13,6 +13,7 @@ from bitfield import BitField
 from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.db import IntegrityError, models, transaction
+from django.db.models import Q
 from django.utils import timezone
 from django.utils.functional import cached_property
 from django.utils.translation import ugettext_lazy as _
@@ -21,7 +22,7 @@ from sentry import roles
 from sentry.app import locks
 from sentry.constants import RESERVED_ORGANIZATION_SLUGS
 from sentry.db.models import (
-    BaseManager, BoundedPositiveIntegerField, Model, sane_repr
+    BoundManager, BoundedPositiveIntegerField, Model, sane_repr
 )
 from sentry.db.models.utils import slugify_instance
 from sentry.utils.http import absolute_uri
@@ -35,9 +36,16 @@ class OrganizationStatus(object):
     DELETION_IN_PROGRESS = 2
 
 
-class OrganizationManager(BaseManager):
+class OrganizationManager(BoundManager):
     # def get_by_natural_key(self, slug):
     #     return self.get(slug=slug)
+
+    def get_binding_criteria(self):
+        from sentry.utils import tenants
+        tenant = tenants.get_current_tenant()
+        if not tenant or not tenant.organization_ids:
+            return
+        return Q(id__in=tenant.organization_ids)
 
     def get_for_user(self, user, scope=None, only_visible=True):
         """

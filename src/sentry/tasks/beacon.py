@@ -65,8 +65,8 @@ def send_beacon():
             # TODO(dcramer): we'd also like to get an idea about the throughput
             # of the system (i.e. events in 24h)
             'users': User.objects.count(),
-            'projects': Project.objects.count(),
-            'teams': Team.objects.count(),
+            'projects': Project.objects.unconstrained_unsafe().count(),
+            'teams': Team.objects.unconstrained_unsafe().count(),
             'organizations': Organization.objects.count(),
             'events.24h': events_24h,
         },

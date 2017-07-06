@@ -80,7 +80,7 @@ def create_default_project(id, name, slug, verbosity=2, **kwargs):
             role='owner',
         )
 
-    team, _ = Team.objects.get_or_create(
+    team, _ = Team.objects.unconstrained_unsafe().get_or_create(
         organization=org,
         slug='sentry',
         defaults={
