@@ -10,6 +10,7 @@ from sqlparse import tokens as T
 
 class BoldKeywordFilter:
     """sqlparse filter to bold SQL keywords"""
+
     def process(self, stack, stream):
         """Process the token stream"""
         for token_type, value in stream:
