@@ -18,7 +18,8 @@ def get_latest_events(group_hash_list):
 
     events_by_group_hash = {}
     for project_id, group_hash_list_chunk in group_hashes_by_project_id.items():
-        event_id_list = GroupHash.fetch_last_processed_event_id(project_id, [i.id for i in group_hash_list_chunk])
+        event_id_list = GroupHash.fetch_last_processed_event_id(
+            project_id, [i.id for i in group_hash_list_chunk])
         event_by_event_id = {
             event.event_id: event
             for event in

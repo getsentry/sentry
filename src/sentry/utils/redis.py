@@ -89,7 +89,8 @@ def get_cluster_from_options(setting, options, cluster_manager=clusters):
     cluster_constructor_option_names = frozenset(('hosts',))
 
     options = options.copy()
-    cluster_options = {key: options.pop(key) for key in set(options.keys()).intersection(cluster_constructor_option_names)}
+    cluster_options = {key: options.pop(key) for key in set(
+        options.keys()).intersection(cluster_constructor_option_names)}
     if cluster_options:
         if cluster_option_name in options:
             raise InvalidConfiguration(

@@ -81,6 +81,7 @@ class MinimumLengthValidator(object):
     """
     Validate whether the password is of a minimum length.
     """
+
     def __init__(self, min_length=8):
         self.min_length = min_length
 
@@ -90,10 +91,10 @@ class MinimumLengthValidator(object):
                 ungettext(
                     "This password is too short. It must contain at least %(min_length)d character.",
                     "This password is too short. It must contain at least %(min_length)d characters.",
-                    self.min_length
-                ),
+                    self.min_length),
                 code='password_too_short',
-                params={'min_length': self.min_length},
+                params={
+                    'min_length': self.min_length},
             )
 
     def get_help_text(self):
@@ -108,6 +109,7 @@ class MaximumLengthValidator(object):
     """
     Validate whether the password is of a maximum length.
     """
+
     def __init__(self, max_length=256):
         self.max_length = max_length
 
@@ -117,10 +119,10 @@ class MaximumLengthValidator(object):
                 ungettext(
                     "This password is too long. It must contain no more than %(max_length)d character.",
                     "This password is too long. It must contain no more than %(max_length)d characters.",
-                    self.max_length
-                ),
+                    self.max_length),
                 code='password_too_long',
-                params={'max_length': self.max_length},
+                params={
+                    'max_length': self.max_length},
             )
 
     def get_help_text(self):
@@ -135,6 +137,7 @@ class NumericPasswordValidator(object):
     """
     Validate whether the password is alphanumeric.
     """
+
     def validate(self, password):
         if password.isdigit():
             raise ValidationError(

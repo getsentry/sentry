@@ -332,7 +332,8 @@ class RedisTSDB(BaseTSDB):
                         ),
                     ))
 
-        return {key: [(timestamp, promise.value) for timestamp, promise in value] for key, value in six.iteritems(responses)}
+        return {key: [(timestamp, promise.value) for timestamp, promise in value]
+                for key, value in six.iteritems(responses)}
 
     def get_distinct_counts_totals(self, model, keys, start, end=None, rollup=None):
         """
@@ -656,7 +657,9 @@ class RedisTSDB(BaseTSDB):
 
         responses = {}
 
-        for key, series in six.iteritems(self.get_frequency_series(model, items, start, end, rollup)):
+        for key, series in six.iteritems(
+            self.get_frequency_series(
+                model, items, start, end, rollup)):
             response = responses[key] = {}
             for timestamp, results in series:
                 for member, value in results.items():
@@ -728,5 +731,6 @@ class RedisTSDB(BaseTSDB):
                     for model in models:
                         for key in keys:
                             c = client.target_key(key)
-                            for k in self.make_frequency_table_keys(model, rollup, to_timestamp(timestamp), key):
+                            for k in self.make_frequency_table_keys(
+                                    model, rollup, to_timestamp(timestamp), key):
                                 c.delete(k)

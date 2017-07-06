@@ -66,7 +66,8 @@ def validate_dependency(settings, dependency_type, dependency, package):
     try:
         import_string(package)
     except ImportError:
-        msg = ConfigurationError.get_error_message("%s %s" % (dependency_type, dependency), package)
+        msg = ConfigurationError.get_error_message(
+            "%s %s" % (dependency_type, dependency), package)
         reraise_as(ConfigurationError(msg))
 
 
@@ -78,6 +79,4 @@ class ConfigurationError(ValueError):
     @classmethod
     def get_error_message(cls, dependency, package):
         return """Python could not find %(package)s in your current environment (required by %(dependency)s). If you have it installed, maybe you are using the wrong python binary to run sentry?""" % {
-            "dependency": dependency,
-            "package": package
-        }
+            "dependency": dependency, "package": package}

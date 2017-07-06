@@ -66,11 +66,15 @@ def make_group_metadata(random, group):
         'type': 'error',
         'metadata': {
             'type': '{}Error'.format(
-                ''.join(word.title() for word in random.sample(loremipsum.words, random.randint(1, 3))),
+                ''.join(
+                    word.title() for word in random.sample(
+                        loremipsum.words,
+                        random.randint(
+                            1,
+                            3))),
             ),
             'value': make_message(random),
-        }
-    }
+        }}
 
 
 def make_group_generator(random, project):
@@ -492,8 +496,12 @@ def report(request):
         ) for i in xrange(0, 7)]
 
         aggregates = [
-            random.randint(0, daily_maximum * 7) if random.random() < 0.9 else None for _ in xrange(0, 4)
-        ]
+            random.randint(
+                0,
+                daily_maximum *
+                7) if random.random() < 0.9 else None for _ in xrange(
+                0,
+                4)]
 
         return reports.Report(
             series,

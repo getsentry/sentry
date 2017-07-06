@@ -211,16 +211,16 @@ class NativeStacktraceProcessor(StacktraceProcessor):
                 # issues
                 if e.is_user_fixable and e.is_fatal:
                     report_processing_issue(self.data,
-                        scope='native',
-                        object='dsym:%s' % e.image_uuid,
-                        type=e.type,
-                        data={
-                            'image_path': e.image_path,
-                            'image_uuid': e.image_uuid,
-                            'image_arch': e.image_arch,
-                            'message': e.message,
-                        }
-                    )
+                                            scope='native',
+                                            object='dsym:%s' % e.image_uuid,
+                                            type=e.type,
+                                            data={
+                                                'image_path': e.image_path,
+                                                'image_uuid': e.image_uuid,
+                                                'image_arch': e.image_arch,
+                                                'message': e.message,
+                                            }
+                                            )
 
                 # This in many ways currently does not really do anything.
                 # The reason is that once a processing issue is reported
@@ -265,7 +265,7 @@ class NativeStacktraceProcessor(StacktraceProcessor):
                 new_frame['package'] = sfrm['package']
             if new_frame.get('in_app') is None:
                 new_frame['in_app'] = (in_app and
-                    not self.sym.is_internal_function(new_frame['function']))
+                                       not self.sym.is_internal_function(new_frame['function']))
             new_frames.append(new_frame)
 
         return new_frames, [raw_frame], []

@@ -5,6 +5,7 @@ class SecurityHeadersMiddleware(object):
     """
     Ensure that we have proper security headers set
     """
+
     def process_response(self, request, response):
         # NOTE: there is no `response.setdefault()`
         if 'X-Frame-Options' not in response:

@@ -44,8 +44,9 @@ class BaseNotificationUserOptionsForm(forms.Form):
 
 
 class NotificationPlugin(Plugin):
-    description = ('Notify project members when a new event is seen for the first time, or when an '
-                   'already resolved event has changed back to unresolved.')
+    description = (
+        'Notify project members when a new event is seen for the first time, or when an '
+        'already resolved event has changed back to unresolved.')
     # site_conf_form = NotificationConfigurationForm
     project_conf_form = NotificationConfigurationForm
 
@@ -72,12 +73,13 @@ class NotificationPlugin(Plugin):
             extra['rule_id'] = future.rule.id
             if not future.kwargs:
                 continue
-            raise NotImplementedError('The default behavior for notification de-duplication does not support args')
+            raise NotImplementedError(
+                'The default behavior for notification de-duplication does not support args')
 
         project = event.group.project
         extra['project_id'] = project.id
         if hasattr(self, 'notify_digest') and digests.enabled(project):
-            get_digest_option = lambda key: ProjectOption.objects.get_value(
+            def get_digest_option(key): return ProjectOption.objects.get_value(
                 project,
                 get_digest_option_key(self.get_conf_key(), key),
             )
@@ -138,7 +140,12 @@ class NotificationPlugin(Plugin):
         # If the plugin doesn't support digests or they are not enabled,
         # perform rate limit checks to support backwards compatibility with
         # older plugins.
-        if not (hasattr(self, 'notify_digest') and digests.enabled(project)) and self.__is_rate_limited(group, event):
+        if not (
+                hasattr(
+                    self,
+                    'notify_digest') and digests.enabled(project)) and self.__is_rate_limited(
+                group,
+                event):
             logger = logging.getLogger('sentry.plugins.{0}'.format(self.get_conf_key()))
             logger.info('notification.rate_limited', extra={'project_id': project.id})
             return False

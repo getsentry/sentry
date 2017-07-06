@@ -110,4 +110,5 @@ if 'south' in settings.INSTALLED_APPS:
     add_introspection_rules([], ["^sentry\.db\.models\.fields\.bounded\.BoundedBigAutoField"])
     add_introspection_rules([], ["^sentry\.db\.models\.fields\.bounded\.BoundedIntegerField"])
     add_introspection_rules([], ["^sentry\.db\.models\.fields\.bounded\.BoundedBigIntegerField"])
-    add_introspection_rules([], ["^sentry\.db\.models\.fields\.bounded\.BoundedPositiveIntegerField"])
+    add_introspection_rules(
+        [], ["^sentry\.db\.models\.fields\.bounded\.BoundedPositiveIntegerField"])

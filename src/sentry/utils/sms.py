@@ -24,7 +24,7 @@ def send_sms(body, to, from_=None):
     url = 'https://api.twilio.com/2010-04-01/Accounts/%s/Messages.json' % \
         quote(account)
     rv = requests.post(url, auth=(account,
-                             options.get('sms.twilio-token')), data={
+                                  options.get('sms.twilio-token')), data={
         'To': to,
         'From': options.get('sms.twilio-number'),
         'Body': body,

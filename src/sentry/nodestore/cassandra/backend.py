@@ -24,6 +24,7 @@ class CassandraNodeStorage(NodeStorage):
     ...     columnfamily='nodestore',
     ... )
     """
+
     def __init__(self, servers, keyspace='sentry',
                  columnfamily='nodestore', **kwargs):
         self.servers = servers

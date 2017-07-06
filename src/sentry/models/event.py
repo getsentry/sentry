@@ -178,7 +178,9 @@ class Event(Model):
 
             result.append((key, value))
 
-        return OrderedDict((k, v) for k, v in sorted(result, key=lambda x: x[1].get_score(), reverse=True))
+        return OrderedDict(
+            (k, v) for k, v in sorted(
+                result, key=lambda x: x[1].get_score(), reverse=True))
 
     @memoize
     def interfaces(self):

@@ -52,6 +52,7 @@ class cached_for_request(memoize):
     >>>     def func(self):
     >>>         return 'foo'
     """
+
     def _get_key(self, args, kwargs):
         return (self, tuple(args), tuple(kwargs.items()))
 

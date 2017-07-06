@@ -115,6 +115,7 @@ class NodeField(GzippedDictField):
     Similar to the gzippedictfield except that it stores a reference
     to an external node.
     """
+
     def __init__(self, *args, **kwargs):
         self.ref_func = kwargs.pop('ref_func', None)
         self.ref_version = kwargs.pop('ref_version', None)
