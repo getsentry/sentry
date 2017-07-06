@@ -26,9 +26,9 @@ from sentry.constants import (
     DEFAULT_LOGGER_NAME, EVENT_ORDERING_KEY, LOG_LEVELS, MAX_CULPRIT_LENGTH
 )
 from sentry.db.models import (
-    BaseManager, BoundedBigIntegerField, BoundedIntegerField,
+    BoundedBigIntegerField, BoundedIntegerField,
     BoundedPositiveIntegerField, FlexibleForeignKey, GzippedDictField, Model,
-    sane_repr
+    ProjectBoundManager, ProjectBoundMixin, sane_repr
 )
 from sentry.utils.http import absolute_uri
 from sentry.utils.numbers import base32_decode, base32_encode
@@ -56,32 +56,40 @@ class GroupStatus(object):
     MUTED = IGNORED
 
 
-def get_group_with_redirect(id, queryset=None):
+def get_group_with_redirect(id, queryset=None, unconstrained_unsafe=False):
     """
     Retrieve a group by ID, checking the redirect table if the requested group
     does not exist. Returns a two-tuple of ``(object, redirected)``.
     """
     if queryset is None:
-        queryset = Group.objects.all()
+        if unconstrained_unsafe:
+            queryset = Group.objects.unconstrained_unsafe()
+        else:
+            queryset = Group.objects.all()
+
         # When not passing a queryset, we want to read from cache
         getter = Group.objects.get_from_cache
+        getter_kwargs = {'unconstrained_unsafe': True}
     else:
+        if unconstrained_unsafe:
+            queryset = queryset.unconstrained_unsafe()
         getter = queryset.get
+        getter_kwargs = {}
 
     try:
-        return getter(id=id), False
+        return getter(id=id, **getter_kwargs), False
     except Group.DoesNotExist as error:
         from sentry.models import GroupRedirect
-        qs = GroupRedirect.objects.filter(previous_group_id=id).values_list('group_id', flat=True)
+        redirected_to_id = GroupRedirect.objects.filter(
+            previous_group_id=id,
+        ).values_list('group_id', flat=True)
         try:
-            return queryset.get(id=qs), True
+            return getter(id=redirected_to_id, **getter_kwargs), True
         except Group.DoesNotExist:
             raise error  # raise original `DoesNotExist`
 
 
-class GroupManager(BaseManager):
-    use_for_related_fields = True
-
+class GroupManager(ProjectBoundManager):
     def by_qualified_short_id(self, organization_id, short_id):
         match = _short_id_re.match(short_id.strip())
         if match is None:
@@ -145,13 +153,14 @@ class GroupManager(BaseManager):
             })
 
 
-class Group(Model):
+class Group(ProjectBoundMixin, Model):
     """
     Aggregated message which summarizes a set of Events.
     """
     __core__ = False
 
-    project = FlexibleForeignKey('sentry.Project', null=True)
+    project = FlexibleForeignKey(
+        'sentry.Project', null=True, related_name=None)
     logger = models.CharField(
         max_length=64, blank=True, default=DEFAULT_LOGGER_NAME, db_index=True)
     level = BoundedPositiveIntegerField(
@@ -279,7 +288,8 @@ class Group(Model):
         if not share_id:
             raise cls.DoesNotExist
         try:
-            project_id, group_id = b16decode(share_id.upper()).decode('utf-8').split('.')
+            project_id, group_id = b16decode(
+                share_id.upper()).decode('utf-8').split('.')
         except (ValueError, TypeError):
             raise cls.DoesNotExist
         if not (project_id.isdigit() and group_id.isdigit()):

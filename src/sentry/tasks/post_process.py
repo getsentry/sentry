@@ -55,7 +55,7 @@ def post_process_group(event, is_new, is_regression, is_sample, **kwargs):
 
     # Re-bind Group since we're pickling the whole Event object
     # which may contain a stale Group.
-    event.group, _ = get_group_with_redirect(event.group_id)
+    event.group, _ = get_group_with_redirect(event.group_id, unconstrained_unsafe=True)
     event.group_id = event.group.id
 
     project_id = event.group.project_id

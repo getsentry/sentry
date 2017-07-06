@@ -35,6 +35,15 @@ class Tenant(object):
             user=self.user_id,
         ).values_list('team', flat=True))
 
+    @memoize
+    def project_ids(self):
+        from sentry.models import Project
+        if not self.user_id:
+            return []
+        return list(Project.objects.filter(
+            team__in=self.team_ids,
+        ).values_list('id', flat=True))
+
 
 def get_current_user():
     if not env.request:

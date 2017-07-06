@@ -27,7 +27,7 @@ from sentry.utils.hashlib import md5_text
 from .query import create_or_update
 from .queryset import BoundQuerySet
 
-__all__ = ('BaseManager', 'BoundManager', 'OrganizationBoundManager')
+__all__ = ('BaseManager', 'BoundManager', 'OrganizationBoundManager', 'ProjectBoundManager')
 
 logger = logging.getLogger('sentry')
 
@@ -347,3 +347,12 @@ class OrganizationBoundManager(BoundManager):
         if not tenant or not tenant.organization_ids:
             return
         return Q(organization_id__in=tenant.organization_ids)
+
+
+class ProjectBoundManager(BoundManager):
+    def get_binding_criteria(self):
+        from sentry.utils import tenants
+        tenant = tenants.get_current_tenant()
+        if not tenant or not tenant.project_ids:
+            return
+        return Q(project_id__in=tenant.project_ids)
