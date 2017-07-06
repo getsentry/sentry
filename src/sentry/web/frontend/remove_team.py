@@ -7,6 +7,7 @@ from django.http import HttpResponseRedirect
 from django.utils.translation import ugettext_lazy as _
 
 from sentry.api import client
+from sentry.models import Project
 from sentry.web.frontend.base import TeamView
 
 
@@ -38,7 +39,7 @@ class RemoveTeamView(TeamView):
 
         context = {
             'form': form,
-            'project_list': team.project_set.all(),
+            'project_list': list(Project.objects.filter(team=team)),
         }
 
         return self.respond('sentry/teams/remove.html', context)

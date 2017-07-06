@@ -7,6 +7,6 @@ from .manager import OrganizationBoundManager
 
 
 class OrganizationBoundMixin(object):
-    organization = FlexibleForeignKey('sentry.Organization')
+    organization = FlexibleForeignKey('sentry.Organization', related_name=None)
 
     objects = OrganizationBoundManager()

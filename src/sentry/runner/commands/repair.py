@@ -72,7 +72,7 @@ def repair_callsigns():
     queryset = Organization.objects.all()
 
     for org in RangeQuerySetWrapperWithProgressBar(queryset):
-        projects = list(org.project_set.all())
+        projects = list(Project.objects.unconstrained_unsafe())
         callsigns = get_callsigns(projects)
         for project in projects:
             if project.callsign is None:

@@ -37,7 +37,8 @@ class SlugsUpdateEndpoint(OrganizationEndpoint):
         if len(slugs) != len(set(slugs.values())):
             return Response({'detail': 'Duplicate slugs'}, status=400)
 
-        project_q = organization.project_set.filter(
+        project_q = Project.objects.filter(
+            organization=organization,
             pk__in=[int(x) for x in slugs]
         )
 

@@ -55,9 +55,11 @@ class Command(BaseCommand):
         if not (options['project'] or options['organization']):
             raise CommandError('Must specify either a project or organization')
 
-        from sentry.models import Project, Organization
+        from sentry.models import Project
         if options['organization']:
-            projects = list(Organization.objects.get(pk=options['organization']).project_set.all())
+            projects = list(Project.objects.filter(
+                organization=options['organization'],
+            ))
         else:
             projects = [Project.objects.get(pk=options['project'])]
 

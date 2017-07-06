@@ -4,16 +4,17 @@ from south.db import db
 from south.v2 import DataMigration
 from django.db import models
 
+
 class Migration(DataMigration):
 
     def forwards(self, orm):
+        Project = orm['sentry.Project']
         for tm in orm['sentry.TeamMember'].objects.all():
-            for p in tm.team.project_set.all():
+            for p in Project.objects.filter(team=tm.team_id):
                 orm['sentry.ProjectKey'].objects.get_or_create(user=tm.user, project=p)
 
     def backwards(self, orm):
         "Write your backwards methods here."
-
 
     models = {
         'sentry.user': {

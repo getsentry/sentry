@@ -503,7 +503,7 @@ class RedisReportBackend(ReportBackend):
 
     def prepare(self, timestamp, duration, organization):
         reports = {}
-        for project in organization.project_set.all():
+        for project in Project.objects.unconstrained_unsafe().filter(organization=organization):
             reports[project.id] = self.__encode(
                 self.build(timestamp, duration, project),
             )

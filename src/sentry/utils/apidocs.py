@@ -430,7 +430,7 @@ class Runner(object):
 
     @contextmanager
     def isolated_org(self, org_name):
-        from sentry.models import Group, Event
+        from sentry.models import Project, Group, Event
 
         org = self.utils.create_org(org_name, owner=self.me)
         try:
@@ -441,7 +441,9 @@ class Runner(object):
                 project__organization=org,
             ).delete()
             Event.objects.filter(
-                project_id__in=org.project_set.values('id'),
+                project_id__in=Project.objects.unconstrained_unsafe().filter(
+                    organization=org,
+                ).values('id'),
             ).delete()
             org.delete()
 
