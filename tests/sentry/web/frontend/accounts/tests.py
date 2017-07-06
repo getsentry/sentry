@@ -250,7 +250,11 @@ class RecoverPasswordConfirmTest(TestCase):
 
     @fixture
     def path(self):
-        return reverse('sentry-account-recover-confirm', args=[self.user.id, self.password_hash.hash])
+        return reverse(
+            'sentry-account-recover-confirm',
+            args=[
+                self.user.id,
+                self.password_hash.hash])
 
     def test_valid_token(self):
         resp = self.client.get(self.path)
@@ -295,8 +299,8 @@ class ConfirmEmailSendTest(TestCase):
         email.save()
         self.login_as(user)
         self.client.post(reverse('sentry-account-confirm-email-send'),
-                        data={'primary-email': '', 'email': 'foo@example.com'},
-                        follow=True)
+                         data={'primary-email': '', 'email': 'foo@example.com'},
+                         follow=True)
         send_confirm_email.assert_called_once_with(UserEmail.get_primary_email(user))
 
 

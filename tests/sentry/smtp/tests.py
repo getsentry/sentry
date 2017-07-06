@@ -24,21 +24,39 @@ class SentrySMTPTest(TestCase):
 
     def test_process_message(self):
         with self.tasks():
-            self.assertEqual(self.server.process_message('', self.user.email, [self.mailto], fixture), STATUS[200])
+            self.assertEqual(
+                self.server.process_message(
+                    '', self.user.email, [
+                        self.mailto], fixture), STATUS[200])
         self.assertEqual(Activity.objects.filter(type=Activity.NOTE)[0].data, {'text': 'sup'})
 
     def test_process_message_no_recipients(self):
         with self.tasks():
-            self.assertEqual(self.server.process_message('', self.user.email, [], fixture), STATUS[550])
+            self.assertEqual(
+                self.server.process_message(
+                    '',
+                    self.user.email,
+                    [],
+                    fixture),
+                STATUS[550])
 
     def test_process_message_too_long(self):
         with self.tasks():
-            self.assertEqual(self.server.process_message('', self.user.email, [self.mailto], fixture * 100), STATUS[552])
+            self.assertEqual(
+                self.server.process_message(
+                    '', self.user.email, [
+                        self.mailto], fixture * 100), STATUS[552])
         self.assertEqual(Activity.objects.count(), 0)
 
     def test_process_message_invalid_email(self):
         with self.tasks():
-            self.assertEqual(self.server.process_message('', self.user.email, ['lol@localhost'], fixture), STATUS[550])
+            self.assertEqual(
+                self.server.process_message(
+                    '',
+                    self.user.email,
+                    ['lol@localhost'],
+                    fixture),
+                STATUS[550])
 
 
 class CaseInsensitiveSignerTests(TestCase):

@@ -258,11 +258,8 @@ class UnmergeTestCase(TestCase):
                 hash=fingerprint,
             )
 
-        assert set(GroupTagKey.objects.filter(group=source).values_list('key', 'values_seen')) == set([
-            (u'color', 3),
-            (u'environment', 1),
-            (u'sentry:release', 1),
-        ])
+        assert set(GroupTagKey.objects.filter(group=source).values_list('key', 'values_seen')) == set(
+            [(u'color', 3), (u'environment', 1), (u'sentry:release', 1), ])
 
         assert set(
             GroupTagValue.objects.filter(
@@ -374,11 +371,8 @@ class UnmergeTestCase(TestCase):
             ),
         ])
 
-        assert set(GroupTagKey.objects.filter(group=source).values_list('key', 'values_seen')) == set([
-            (u'color', 3),
-            (u'environment', 1),
-            (u'sentry:release', 1),
-        ])
+        assert set(GroupTagKey.objects.filter(group=source).values_list('key', 'values_seen')) == set(
+            [(u'color', 3), (u'environment', 1), (u'sentry:release', 1), ])
 
         assert set(
             GroupTagValue.objects.filter(
@@ -461,11 +455,8 @@ class UnmergeTestCase(TestCase):
             ),
         ])
 
-        assert set(GroupTagKey.objects.filter(group=destination).values_list('key', 'values_seen')) == set([
-            (u'color', 3),
-            (u'environment', 1),
-            (u'sentry:release', 1),
-        ])
+        assert set(GroupTagKey.objects.filter(group=destination).values_list('key', 'values_seen')) == set(
+            [(u'color', 3), (u'environment', 1), (u'sentry:release', 1), ])
 
         assert set(
             GroupTagValue.objects.filter(
@@ -518,7 +509,9 @@ class UnmergeTestCase(TestCase):
 
         def get_expected_series_values(rollup, events, function=None):
             if function is None:
-                function = lambda aggregate, event: (aggregate if aggregate is not None else 0) + 1
+                def function(
+                    aggregate, event): return (
+                    aggregate if aggregate is not None else 0) + 1
 
             expected = {}
             for event in events:

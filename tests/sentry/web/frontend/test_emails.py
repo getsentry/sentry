@@ -82,7 +82,12 @@ class EmailsTest(TestCase):
         email.save()
         resp = self.client.get(self.path)
         self.assertIn('bar@example.com', resp.content)
-        resp = self.client.post(self.path, data={'remove': '', 'email': 'bar@example.com'}, follow=True)
+        resp = self.client.post(
+            self.path,
+            data={
+                'remove': '',
+                'email': 'bar@example.com'},
+            follow=True)
         self.assertNotIn('bar@example.com', resp.content)
         assert 'bar@example.com' not in (email.email for email in user.emails.all())
 
@@ -92,10 +97,10 @@ class EmailsTest(TestCase):
         resp = self.client.get(self.path)
         self.assertIn('foo@example.com', resp.content)
         resp = self.client.post(self.path,
-            {'primary': '',
-             'new_primary_email': 'bar@example.com'},
-            follow=True
-        )
+                                {'primary': '',
+                                 'new_primary_email': 'bar@example.com'},
+                                follow=True
+                                )
         self.assertIn('bar@example.com', resp.content)
         user = User.objects.get(id=user.id)
         assert user.email != 'foo@example.com'
@@ -106,7 +111,12 @@ class EmailsTest(TestCase):
         self.login_as(user)
         email = UserEmail(user=user, email='bar@example.com')
         email.save()
-        self.client.post(self.path, data={'primary': '', 'new_primary_email': 'bar@example.com'}, follow=True)
+        self.client.post(
+            self.path,
+            data={
+                'primary': '',
+                'new_primary_email': 'bar@example.com'},
+            follow=True)
         user = User.objects.get(id=user.id)
         assert user.username != 'foo@example.com'
         assert user.username == 'bar@example.com'

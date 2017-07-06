@@ -11,7 +11,7 @@ from uuid import uuid4
 from sentry.api.endpoints.organization_releases import ReleaseSerializerWithProjects
 from sentry.api.serializers import serialize
 from sentry.models import (Commit, CommitAuthor, Deploy, Environment,
-    Release, ReleaseCommit, ReleaseProject, TagValue, User, UserEmail,)
+                           Release, ReleaseCommit, ReleaseProject, TagValue, User, UserEmail,)
 from sentry.testutils import TestCase
 
 
