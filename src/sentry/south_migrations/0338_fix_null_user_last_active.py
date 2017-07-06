@@ -27,7 +27,7 @@ class Migration(DataMigration):
 
         User = orm['sentry.User']
 
-        queryset = User.objects.filter(last_active__isnull=False)
+        queryset = User.objects.all()
         for user in RangeQuerySetWrapperWithProgressBar(queryset):          
             User.objects.filter(
                 id=user.id,
