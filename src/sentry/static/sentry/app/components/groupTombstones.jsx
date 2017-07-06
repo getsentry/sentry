@@ -57,36 +57,49 @@ const GroupTombstones = React.createClass({
               ? <ul className="group-list">
                   {tombstones.map(data => {
                     return (
-                      <li key={data.id} className={data.level}>
-                        <div className="event-details">
-                          <span className="error-level truncate" title={data.level} />
-                          <h3 className="truncate">
-                            <span style={{marginRight: 10}}>{data.type}</span>
-                            <em>{data.culprit}</em><br />
-                          </h3>
-
-                          <div className="event-extra">
+                      <li
+                        key={data.id}
+                        className={`group row level-${data.level} type-${data.type}`}>
+                        <div className="col-md-7 col-xs-8 event-details">
+                          <div>
+                            <h3 className="truncate">
+                              <span className="error-level truncate" title={data.level}>
+                                {data.level}
+                              </span>
+                              <span>
+                                <span style={{marginRight: 10}}>{data.type}</span>
+                                <em>{data.culprit}</em><br />
+                              </span>
+                            </h3>
                             <div className="event-message truncate">
                               <span className="message">{data.message}</span>
                             </div>
-                            <LinkWithConfirmation
-                              title={t('Undiscard')}
-                              className="btn btn-warning btn-xs"
-                              message={t(
-                                'Undiscarding this group means that ' +
-                                  'incoming events that match this will no longer be discarded. ' +
-                                  'New incoming events will count toward your event quota ' +
-                                  'and will display on your issues dashboard. ' +
-                                  'Are you sure you wish to continue?'
-                              )}
-                              onConfirm={() => {
-                                this.undiscard(data.id);
-                              }}>
-                              <span>{t('Undiscard')}</span>
-                            </LinkWithConfirmation>
+                            <div className="event-extra">
+
+                              <LinkWithConfirmation
+                                title={t('Undiscard')}
+                                className="btn btn-warning btn-xs"
+                                message={t(
+                                  'Undiscarding this group means that ' +
+                                    'incoming events that match this will no longer be discarded. ' +
+                                    'New incoming events will count toward your event quota ' +
+                                    'and will display on your issues dashboard. ' +
+                                    'Are you sure you wish to continue?'
+                                )}
+                                onConfirm={() => {
+                                  this.undiscard(data.id);
+                                }}>
+                                <span>{t('Undiscard')}</span>
+                              </LinkWithConfirmation>
+                              {data.actor &&
+                                <span
+                                  style={{marginLeft: 10}}
+                                  className="event-message actor">
+                                  {t(`discarded by ${data.actor.name}`)}
+                                </span>}
+                            </div>
                           </div>
                         </div>
-                        {data.user && <span>`discarded by ${data.user.name}`</span>}
                       </li>
                     );
                   })}
