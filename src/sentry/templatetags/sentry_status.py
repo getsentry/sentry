@@ -4,15 +4,16 @@ import itertools
 
 from django import template
 
-from sentry import status_checks
+from sentry import status_checks, sort_by_severity
 
 register = template.Library()
 
 
 @register.inclusion_tag('sentry/partial/system-status.html', takes_context=True)
 def show_system_status(context):
-    problems = list(itertools.chain.from_iterable(status_checks.check_all().values()))
-
+    problems = itertools.chain.from_iterable(
+        status_checks.check_all().values(),
+    )
     return {
-        'problems': problems,
+        'problems': sort_by_severity(problems),
     }
