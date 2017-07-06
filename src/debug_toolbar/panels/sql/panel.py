@@ -51,6 +51,7 @@ class SQLPanel(Panel):
     Panel that displays information about the SQL queries run while processing
     the request.
     """
+
     def __init__(self, *args, **kwargs):
         super(SQLPanel, self).__init__(*args, **kwargs)
         self._offset = dict((k, len(connections[k].queries)) for k in connections)

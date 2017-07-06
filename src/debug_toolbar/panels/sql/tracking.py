@@ -56,6 +56,7 @@ class ExceptionCursorWrapper(object):
     Wraps a cursor and raises an exception on any operation.
     Used in Templates panel.
     """
+
     def __init__(self, cursor, db, logger):
         pass
 

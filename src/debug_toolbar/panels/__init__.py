@@ -12,6 +12,7 @@ class Panel(object):
     """
     Base class for panels.
     """
+
     def __init__(self, toolbar):
         self.toolbar = toolbar
 
