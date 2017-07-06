@@ -4,7 +4,8 @@ import itertools
 
 from rest_framework.response import Response
 
-from sentry import sort_by_severity, status_checks
+from sentry import status_checks
+from sentry.status_checks import sort_by_severity
 from sentry.api.base import Endpoint
 from sentry.api.permissions import SuperuserPermission
 from sentry.utils.hashlib import md5_text
