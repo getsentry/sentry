@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+from celery.signals import task_postrun
 from django.core.signals import request_finished
 
 from sentry.app import env
@@ -17,3 +18,4 @@ def clear_request(**kwargs):
     env.tenant = None
 
 request_finished.connect(clear_request)
+task_postrun.connect(clear_request)
