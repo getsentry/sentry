@@ -4,7 +4,7 @@ import itertools
 
 from django import template
 
-from sentry import status_checks, sort_by_severity
+from sentry import sort_by_severity, status_checks
 
 register = template.Library()
 
