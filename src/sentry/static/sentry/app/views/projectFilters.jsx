@@ -6,6 +6,7 @@ import IndicatorStore from '../stores/indicatorStore';
 import GroupTombstones from '../components/groupTombstones';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
+import ProjectState from '../mixins/projectState';
 import StackedBarChart from '../components/stackedBarChart';
 import Switch from '../components/switch';
 import {FormState, TextareaField} from '../components/forms';
@@ -323,7 +324,7 @@ const ProjectFiltersSettingsForm = React.createClass({
 });
 
 const ProjectFilters = React.createClass({
-  mixins: [ApiMixin],
+  mixins: [ApiMixin, ProjectState],
 
   getInitialState() {
     let until = Math.floor(new Date().getTime() / 1000);
@@ -550,6 +551,7 @@ const ProjectFilters = React.createClass({
 
   renderResults() {
     let navSection = this.state.activeSection;
+    let features = this.getProjectFeatures();
 
     return (
       <div>
@@ -576,24 +578,25 @@ const ProjectFilters = React.createClass({
                 </div>
               </div>}
         </div>
-        <div className="sub-header flex flex-container flex-vertically-centered">
-          <div className="p-t-1">
-            <ul className="nav nav-tabs">
-              <li
-                className={`col-xs-5  ${navSection == 'data-filters' ? 'active ' : ''}`}>
-                <a onClick={() => this.setProjectNavSection('data-filters')}>
-                  {t('Data Filters')}
-                </a>
-              </li>
-              <li
-                className={`col-xs-5 align-right ${navSection == 'discarded-groups' ? 'active ' : ''}`}>
-                <a onClick={() => this.setProjectNavSection('discarded-groups')}>
-                  {t('Discarded Groups')}
-                </a>
-              </li>
-            </ul>
-          </div>
-        </div>
+        {features.has('custom-filters') &&
+          <div className="sub-header flex flex-container flex-vertically-centered">
+            <div className="p-t-1">
+              <ul className="nav nav-tabs">
+                <li
+                  className={`col-xs-5  ${navSection == 'data-filters' ? 'active ' : ''}`}>
+                  <a onClick={() => this.setProjectNavSection('data-filters')}>
+                    {t('Data Filters')}
+                  </a>
+                </li>
+                <li
+                  className={`col-xs-5 align-right ${navSection == 'discarded-groups' ? 'active ' : ''}`}>
+                  <a onClick={() => this.setProjectNavSection('discarded-groups')}>
+                    {t('Discarded Groups')}
+                  </a>
+                </li>
+              </ul>
+            </div>
+          </div>}
         {this.renderSection()}
       </div>
     );
