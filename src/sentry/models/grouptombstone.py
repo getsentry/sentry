@@ -11,7 +11,8 @@ from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, Mo
 class GroupTombstone(Model):
     __core__ = False
 
-    project = FlexibleForeignKey('sentry.Project', null=True)
+    previous_group_id = BoundedPositiveIntegerField(unique=True)
+    project = FlexibleForeignKey('sentry.Project')
     level = BoundedPositiveIntegerField(
         choices=LOG_LEVELS.items(), default=logging.ERROR, blank=True,
         db_index=True)

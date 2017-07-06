@@ -5,7 +5,7 @@ import logging
 from uuid import uuid4
 
 import six
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from django.utils import timezone
 from rest_framework import serializers
 from rest_framework.response import Response
@@ -464,15 +464,19 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
         if discard:
             group_list = list(queryset)
             for group in group_list:
-                # TODO(jess): do we want a lock here to prevent
-                # multiple tombstones from being created from a group?
-                tombstone = GroupTombstone.objects.create(
-                    project_id=group.project_id,
-                    level=group.level,
-                    message=group.message,
-                    culprit=group.culprit,
-                    type=group.get_event_type(),
-                )
+                with transaction.atomic():
+                    try:
+                        tombstone = GroupTombstone.objects.create(
+                            previous_group_id=group.id,
+                            project_id=group.project_id,
+                            level=group.level,
+                            message=group.message,
+                            culprit=group.culprit,
+                            type=group.get_event_type(),
+                        )
+                    except IntegrityError:
+                        continue
+
                 GroupHash.objects.filter(
                     group=group,
                 ).update(
