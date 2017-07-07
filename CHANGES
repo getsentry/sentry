@@ -1,5 +1,6 @@
 Version 8.19 (Unreleased)
 -------------------------
+- Hide project filter when there are no projects to list.
 
 Version 8.18
 ------------
