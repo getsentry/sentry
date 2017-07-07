@@ -9,6 +9,11 @@ from django.db.models.query import DateQuerySet, DateTimeQuerySet, QuerySet, Val
 
 
 def bound_queryset(cls, prefix='Bound'):
+    """
+    Creates a new QuerySet class which will be bound to the critiria supplied in
+    ``binding_criteria_fn``. This is for ensuring that all queries are scoped
+    to a tenants access.
+    """
     class new_cls(cls):
         def __init__(self, *args, **kwargs):
             # this must be optional for _clone
@@ -50,8 +55,12 @@ def bound_queryset(cls, prefix='Bound'):
             criteria = self.get_binding_criteria()
             if criteria is None:
                 rv = self.none()
-            else:
+            # we support passing an empty Q() object to allow unrestricted queries,
+            # and its wasteful to clone the queryset just for that
+            elif criteria.children:
                 rv = self.filter(criteria)
+            else:
+                rv = self
             rv._constraints_applied = True
             return rv
 
