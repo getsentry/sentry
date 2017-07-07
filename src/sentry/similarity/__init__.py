@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import itertools
+
 from django.conf import settings
 
 from sentry.utils import redis
@@ -8,15 +10,18 @@ from sentry.utils.iterators import shingle
 
 from sentry.similarity.index import MinHashIndex
 from sentry.similarity.features import (
-    FRAME_SEPARATOR,
     FeatureSet,
     ExceptionFeature,
     MessageFeature,
-    serialize_frame,
-    serialize_text_shingle,
     get_application_chunks,
-    get_exception_frames,
 )
+
+
+def text_shingle(n, value):
+    return itertools.imap(
+        u''.join,
+        shingle(n, value),
+    )
 
 
 features = FeatureSet(
@@ -42,44 +47,24 @@ features = FeatureSet(
     }),
     {
         'exception:message:character-shingles': ExceptionFeature(
-            lambda exception: map(
-                serialize_text_shingle,
-                shingle(
-                    13,
-                    exception.get('value') or '',
-                ),
-            )
-        ),
-        'exception:stacktrace:application-chunks': ExceptionFeature(
-            lambda exception: map(
-                lambda frames: FRAME_SEPARATOR.join(
-                    map(
-                        serialize_frame,
-                        frames,
-                    ),
-                ),
-                get_application_chunks(exception),
+            lambda exception: text_shingle(
+                13,
+                exception.value,
             ),
         ),
+        'exception:stacktrace:application-chunks': ExceptionFeature(
+            lambda exception: get_application_chunks(exception),
+        ),
         'exception:stacktrace:pairs': ExceptionFeature(
-            lambda exception: map(
-                FRAME_SEPARATOR.join,
-                shingle(
-                    2,
-                    map(
-                        serialize_frame,
-                        get_exception_frames(exception),
-                    ),
-                ),
+            lambda exception: shingle(
+                2,
+                exception.stacktrace.frames,
             ),
         ),
         'message:message:character-shingles': MessageFeature(
-            lambda message: map(
-                serialize_text_shingle,
-                shingle(
-                    13,
-                    message['message'],
-                ),
+            lambda message: text_shingle(
+                13,
+                message.message,
             ),
         ),
     }

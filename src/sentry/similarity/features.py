@@ -2,115 +2,11 @@ from __future__ import absolute_import
 
 import itertools
 import logging
-import operator
-import struct
-from collections import Sequence
 
-import mmh3
-import six
 
 from sentry.utils.dates import to_timestamp
 
 logger = logging.getLogger('sentry.similarity')
-
-
-FRAME_ITEM_SEPARATOR = b'\x00'
-FRAME_PAIR_SEPARATOR = b'\x01'
-FRAME_SEPARATOR = b'\x02'
-
-FRAME_FUNCTION_KEY = b'\x10'
-FRAME_MODULE_KEY = b'\x11'
-FRAME_FILENAME_KEY = b'\x12'
-FRAME_SIGNATURE_KEY = b'\x13'
-
-
-class InsufficientContext(Exception):
-    """\
-    Exception raised when a signature cannot be generated for a frame due to
-    insufficient context.
-    """
-
-
-def get_frame_signature(frame, lines=5):
-    """\
-    Creates a "signature" for a frame from the surrounding context lines,
-    reading up to ``lines`` values from each side.
-    """
-    try:
-        attributes = (frame.get('pre_context') or [])[-lines:] + \
-            [frame['context_line']] + \
-            (frame.get('post_context') or [])[:lines]
-    except KeyError as error:
-        six.raise_from(
-            InsufficientContext(),
-            error,
-        )
-
-    return struct.pack(
-        '>i',
-        mmh3.hash(
-            u'\n'.join(attributes).encode('utf8')
-        ),
-    )
-
-
-def serialize_frame(frame):
-    """\
-    Convert a frame value from a ``Stacktrace`` interface into a bytes object.
-    """
-    # TODO(tkaemming): This should likely result in an intermediate data
-    # structure that is easier to introspect than this one, and a separate
-    # serialization step before hashing.
-    # TODO(tkaemming): These frame values need platform-specific normalization.
-    # This probably should be done prior to this method being called...?
-    attributes = {}
-
-    function_name = frame.get('function')
-    if function_name in set(['<lambda>', None]):
-        attributes[FRAME_SIGNATURE_KEY] = get_frame_signature(frame)
-    else:
-        attributes[FRAME_FUNCTION_KEY] = function_name.encode('utf8')
-
-    scopes = (
-        (FRAME_MODULE_KEY, 'module'),
-        (FRAME_FILENAME_KEY, 'filename'),
-    )
-
-    for key, name in scopes:
-        value = frame.get(name)
-        if value:
-            attributes[key] = value.encode('utf8')
-            break
-
-    return FRAME_ITEM_SEPARATOR.join(
-        map(
-            FRAME_PAIR_SEPARATOR.join,
-            attributes.items(),
-        ),
-    )
-
-
-def get_exception_frames(exception):
-    """\
-    Extracts frames from an ``Exception`` interface, returning an empty
-    sequence if no frame value was provided or if the value is of an invalid or
-    unexpected type.
-    """
-    try:
-        frames = exception['stacktrace']['frames']
-    except (TypeError, KeyError):
-        logger.info(
-            'Could not extract frames from exception, returning empty sequence.',
-            exc_info=True)
-        frames = []
-    else:
-        if not isinstance(frames, Sequence):
-            logger.info(
-                'Expected frames to be a sequence but got %r, returning empty sequence instead.',
-                type(frames))
-            frames = []
-
-    return frames
 
 
 def get_application_chunks(exception):
@@ -124,8 +20,8 @@ def get_application_chunks(exception):
         itertools.ifilter(
             lambda (in_app, frames): in_app,
             itertools.groupby(
-                get_exception_frames(exception),
-                key=lambda frame: frame.get('in_app', False),
+                exception.stacktrace.frames,
+                key=lambda frame: frame.in_app,
             )
         )
     )
@@ -137,7 +33,7 @@ class ExceptionFeature(object):
 
     def extract(self, event):
         try:
-            exceptions = event.data['sentry.interfaces.Exception']['values']
+            exceptions = event.interfaces['sentry.interfaces.Exception'].values
         except KeyError as error:
             logger.info(
                 'Could not extract characteristic(s) from %r due to error: %r',
@@ -149,11 +45,6 @@ class ExceptionFeature(object):
         for exception in exceptions:
             try:
                 yield self.function(exception)
-            except InsufficientContext as error:
-                logger.debug(
-                    'Could not extract characteristic(s) from exception in %r due to expected error: %r',
-                    event,
-                    error)
             except Exception as error:
                 logger.exception(
                     'Could not extract characteristic(s) from exception in %r due to error: %r',
@@ -167,7 +58,7 @@ class MessageFeature(object):
 
     def extract(self, event):
         try:
-            message = event.data['sentry.interfaces.Message']
+            message = event.interfaces['sentry.interfaces.Message']
         except KeyError as error:
             logger.info(
                 'Could not extract characteristic(s) from %r due to error: %r',
@@ -293,15 +184,3 @@ class FeatureSet(object):
             self.__get_scope(group),
             [(self.aliases[label], key) for label in self.features.keys()],
         )
-
-
-def serialize_text_shingle(value, separator=b''):
-    """\
-    Convert a sequence of Unicode strings into a bytes object.
-    """
-    return separator.join(
-        map(
-            operator.methodcaller('encode', 'utf8'),
-            value,
-        ),
-    )
