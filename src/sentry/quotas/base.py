@@ -39,6 +39,33 @@ class RateLimited(RateLimit):
         super(RateLimited, self).__init__(True, **kwargs)
 
 
+class BasicQuota(object):
+    __slots__ = ['key', 'limit', 'window', 'reason_code', 'enforce']
+
+    def __init__(self, key, limit=0, window=60, reason_code=None,
+                 enforce=True):
+        # the key is effectively the unique identifier for enforcing this quota
+        self.key = key
+        # maximum number of events in the given window, 0 indicates "no limit"
+        self.limit = limit
+        # time in seconds that this quota reflects
+        self.window = window
+        # a machine readable string
+        self.reason_code = reason_code
+        # should this quota be hard-enforced (or just tracked)
+        self.enforce = enforce
+
+    def __eq__(self, other):
+        return isinstance(other, BasicQuota) and hash(self) == hash(other)
+
+    def __hash__(self):
+        return hash((self.key, self.limit, self.window, self.reason_code, self.enforce))
+
+    def __repr__(self):
+        return u'<{} key={} limit={} window={}>'.format(
+            type(self).__name__, self.key, self.limit, self.window)
+
+
 class Quota(Service):
     """
     Quotas handle tracking a project's event usage (at a per minute tick) and
@@ -47,11 +74,58 @@ class Quota(Service):
     """
     __all__ = (
         'get_maximum_quota', 'get_organization_quota', 'get_project_quota',
-        'is_rate_limited', 'translate_quota', 'validate',
+        'get_quotas', 'is_rate_limited', 'translate_quota', 'validate',
     )
 
     def __init__(self, **options):
         pass
+
+    def get_actionable_quotas(self, project, key=None):
+        """
+        Return all implemented quotas which are enabled and actionable.
+
+        This simply suppresses any configured quotas which aren't enabled.
+        """
+        return [
+            quota
+            for quota in self.get_quotas(project, key=key)
+            # a zero limit means "no limit", not "reject all"
+            if quota.limit > 0
+            and quota.window > 0
+        ]
+
+    def get_quotas(self, project, key=None):
+        """
+        Return a list of all configured quotas, even ones which aren't
+        enabled.
+        """
+        if key:
+            key.project = project
+        pquota = self.get_project_quota(project)
+        oquota = self.get_organization_quota(project.organization)
+        results = [
+            BasicQuota(
+                key='p:{}'.format(project.id),
+                limit=pquota[0],
+                window=pquota[1],
+                reason_code='project_quota',
+            ),
+            BasicQuota(
+                key='o:{}'.format(project.organization.id),
+                limit=oquota[0],
+                window=oquota[1],
+                reason_code='org_quota',
+            ),
+        ]
+        if key:
+            kquota = self.get_key_quota(key)
+            results.append(BasicQuota(
+                key='k:{}'.format(key.id),
+                limit=kquota[0],
+                window=kquota[1],
+                reason_code='key_quota',
+            ))
+        return results
 
     def is_rate_limited(self, project, key=None):
         return NotRateLimited()
@@ -79,7 +153,8 @@ class Quota(Service):
 
         org = getattr(project, '_organization_cache', None)
         if not org:
-            org = Organization.objects.get_from_cache(id=project.organization_id)
+            org = Organization.objects.get_from_cache(
+                id=project.organization_id)
             project._organization_cache = org
 
         max_quota_share = int(OrganizationOption.objects.get_value(

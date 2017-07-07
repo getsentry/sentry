@@ -13,26 +13,13 @@ import six
 from time import time
 
 from sentry.exceptions import InvalidConfiguration
-from sentry.quotas.base import NotRateLimited, Quota, RateLimited
+from sentry.quotas.base import BasicQuota, NotRateLimited, Quota, RateLimited
 from sentry.utils.redis import get_cluster_from_options, load_script
 
 is_rate_limited = load_script('quotas/is_rate_limited.lua')
 
 
-class BasicRedisQuota(object):
-    __slots__ = ['key', 'limit', 'window', 'reason_code', 'enforce']
-
-    def __init__(self, key, limit=0, window=60, reason_code=None,
-                 enforce=True):
-        self.key = key
-        # maximum number of events in the given window, 0 indicates "no limit"
-        self.limit = limit
-        # time in seconds that this quota reflects
-        self.window = window
-        # a machine readable string
-        self.reason_code = reason_code
-        # should this quota be hard-enforced (or just tracked)
-        self.enforce = enforce
+BasicRedisQuota = BasicQuota
 
 
 class RedisQuota(Quota):
@@ -59,35 +46,6 @@ class RedisQuota(Quota):
             key,
             int((timestamp - shift) // interval),
         )
-
-    def get_quotas(self, project, key=None):
-        if key:
-            key.project = project
-        pquota = self.get_project_quota(project)
-        oquota = self.get_organization_quota(project.organization)
-        results = [
-            BasicRedisQuota(
-                key='p:{}'.format(project.id),
-                limit=pquota[0],
-                window=pquota[1],
-                reason_code='project_quota',
-            ),
-            BasicRedisQuota(
-                key='o:{}'.format(project.organization.id),
-                limit=oquota[0],
-                window=oquota[1],
-                reason_code='org_quota',
-            ),
-        ]
-        if key:
-            kquota = self.get_key_quota(key)
-            results.append(BasicRedisQuota(
-                key='k:{}'.format(key.id),
-                limit=kquota[0],
-                window=kquota[1],
-                reason_code='key_quota',
-            ))
-        return results
 
     def get_usage(self, organization_id, quotas, timestamp=None):
         if timestamp is None:
@@ -132,12 +90,7 @@ class RedisQuota(Quota):
         if timestamp is None:
             timestamp = time()
 
-        quotas = [
-            quota
-            for quota in self.get_quotas(project, key=key)
-            # x = (key, limit, interval)
-            if quota.limit > 0  # a zero limit means "no limit", not "reject all"
-        ]
+        quotas = self.get_actionable_quotas(project, key)
 
         # If there are no quotas to actually check, skip the trip to the database.
         if not quotas:

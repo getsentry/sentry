@@ -112,6 +112,9 @@ def pytest_configure(config):
         'system.url-prefix': 'http://testserver',
     })
 
+    settings.SENTRY_QUOTAS = 'sentry.quotas.redis.RedisQuota'
+    settings.SENTRY_QUOTA_OPTIONS = {'cluster': 'default'}
+
     # django mail uses socket.getfqdn which doesn't play nice if our
     # networking isn't stable
     patcher = mock.patch('socket.getfqdn', return_value='localhost')
