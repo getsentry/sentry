@@ -20,7 +20,7 @@ class PrintQueryWrapper(db_backends_util.CursorDebugWrapper):
             end_time = time()
             duration = (end_time - start_time) * 1000
             formatted_sql = sqlparse.format(raw_sql, reindent=True)
-            print('%s [%.2fms]' % (formatted_sql, duration))
+            print('%s [%.2fms]' % (formatted_sql, duration))  # NOQA
 
 
 db_backends_util.CursorDebugWrapper = PrintQueryWrapper

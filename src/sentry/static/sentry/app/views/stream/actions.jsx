@@ -9,9 +9,11 @@ import MenuItem from '../../components/menuItem';
 import PureRenderMixin from 'react-addons-pure-render-mixin';
 import SelectedGroupStore from '../../stores/selectedGroupStore';
 import {t, tn} from '../../locale';
+import {getShortVersion} from '../../utils';
 
 import CustomIgnoreCountModal from '../../components/customIgnoreCountModal';
 import CustomIgnoreDurationModal from '../../components/customIgnoreDurationModal';
+import CustomResolutionModal from '../../components/customResolutionModal';
 
 const IgnoreActions = React.createClass({
   propTypes: {
@@ -243,6 +245,125 @@ const IgnoreActions = React.createClass({
   }
 });
 
+const ResolveActions = React.createClass({
+  propTypes: {
+    orgId: React.PropTypes.string.isRequired,
+    projectId: React.PropTypes.string.isRequired,
+    hasRelease: React.PropTypes.bool.isRequired,
+    latestRelease: React.PropTypes.object,
+    anySelected: React.PropTypes.bool.isRequired,
+    allInQuerySelected: React.PropTypes.bool.isRequired,
+    pageSelected: React.PropTypes.bool.isRequired,
+    onUpdate: React.PropTypes.func.isRequired,
+    query: React.PropTypes.string
+  },
+
+  getInitialState() {
+    return {
+      modal: false
+    };
+  },
+
+  onCustomResolution(statusDetails) {
+    this.setState({
+      modal: false
+    });
+    this.props.onUpdate({
+      status: 'resolved',
+      statusDetails: statusDetails
+    });
+  },
+
+  render() {
+    let {hasRelease, latestRelease, projectId, orgId} = this.props;
+    let extraDescription = null;
+    if (this.state.allInQuerySelected) {
+      extraDescription = this.props.query
+        ? (<div>
+            <p>{t('This will apply to the current search query:')}</p>
+            <pre>{this.props.query}</pre>
+          </div>)
+        : (<p className="error">
+            <strong>{t('This will apply to ALL issues in this project!')}</strong>
+          </p>);
+    }
+    let linkClassName = 'group-resolve btn btn-default btn-sm';
+    let actionLinkProps = {
+      onlyIfBulk: true,
+      disabled: !this.props.anySelected,
+      selectAllActive: this.props.pageSelected,
+      extraDescription: extraDescription,
+      buttonTitle: t('Resolve'),
+      confirmationQuestion: this.state.allInQuerySelected
+        ? t('Are you sure you want to resolve all issues matching this search query?')
+        : count =>
+            tn(
+              'Are you sure you want to resolve this %d issue?',
+              'Are you sure you want to resolve these %d issues?',
+              count
+            ),
+      confirmLabel: this.props.allInQuerySelected
+        ? t('Ignore all issues')
+        : count => tn('Resolve %d selected issue', 'Resolve %d selected issues', count)
+    };
+    return (
+      <div style={{display: 'inline-block'}}>
+        <CustomResolutionModal
+          show={this.state.modal}
+          onSelected={this.onCustomResolution}
+          onCanceled={() => this.setState({modal: false})}
+          orgId={orgId}
+          projectId={projectId}
+        />
+        <div className="btn-group">
+          <ActionLink
+            onAction={() => this.props.onUpdate({status: 'resolved'})}
+            className={linkClassName}
+            {...actionLinkProps}>
+            <span className="icon-checkmark" style={{marginRight: 5}} />
+            {t('Resolve')}
+          </ActionLink>
+          <DropdownLink
+            key="resolve-dropdown"
+            caret={true}
+            className={linkClassName}
+            title=""
+            disabled={!this.props.anySelected}>
+            <MenuItem header={true}>{t('Resolved In')}</MenuItem>
+            <MenuItem noAnchor={true}>
+              <ActionLink
+                onAction={() =>
+                  this.props.onUpdate({
+                    status: 'resolved',
+                    statusDetails: {inNextRelease: true}
+                  })}
+                {...actionLinkProps}>
+                {t('The next release')}
+              </ActionLink>
+              <ActionLink
+                onAction={() =>
+                  this.props.onUpdate({
+                    status: 'resolved',
+                    statusDetails: {
+                      inRelease: latestRelease ? latestRelease.version : 'latest'
+                    }
+                  })}
+                {...actionLinkProps}>
+                {latestRelease
+                  ? t('The current release (%s)', getShortVersion(latestRelease.version))
+                  : t('The current release')}
+              </ActionLink>
+              <a onClick={() => hasRelease && this.setState({modal: true})}>
+                {t('Another version ...')}
+              </a>
+            </MenuItem>
+          </DropdownLink>
+        </div>
+      </div>
+    );
+  }
+});
+
 const StreamActions = React.createClass({
   propTypes: {
     allResultsVisible: React.PropTypes.bool,
@@ -254,7 +375,8 @@ const StreamActions = React.createClass({
     realtimeActive: React.PropTypes.bool.isRequired,
     statsPeriod: React.PropTypes.string.isRequired,
     query: React.PropTypes.string.isRequired,
-    hasReleases: React.PropTypes.bool
+    hasReleases: React.PropTypes.bool,
+    latestRelease: React.PropTypes.object
   },
 
   mixins: [
@@ -262,6 +384,10 @@ const StreamActions = React.createClass({
     Reflux.listenTo(SelectedGroupStore, 'onSelectedGroupChange'),
     PureRenderMixin
   ],
+
+  getDefaultProps() {
+    return {hasReleases: false, latestRelease: null};
+  },
 
   getInitialState() {
     return {
@@ -385,8 +511,6 @@ const StreamActions = React.createClass({
   render() {
     // TODO(mitsuhiko): very unclear how to translate this
     let numIssues = SelectedGroupStore.getSelectedIds().size;
-    let hasRelease = this.props.hasReleases;
-    let releaseTrackingUrl = `/${this.props.orgId}/${this.props.projectId}/settings/release-tracking/`;
     let extraDescription = null;
     if (this.state.allInQuerySelected) {
       extraDescription = this.props.query
@@ -411,104 +535,17 @@ const StreamActions = React.createClass({
                 checked={this.state.pageSelected}
               />
             </div>
-            <div className="btn-group">
-              <ActionLink
-                className="btn btn-default btn-sm action-resolve"
-                disabled={!this.state.anySelected}
-                onAction={this.onUpdate.bind(this, {status: 'resolved'})}
-                buttonTitle={t('Resolve')}
-                extraDescription={extraDescription}
-                confirmationQuestion={
-                  this.state.allInQuerySelected
-                    ? t(
-                        'Are you sure you want to resolve all issues matching this search query?'
-                      )
-                    : count =>
-                        tn(
-                          'Are you sure you want to resolve this %d issue?',
-                          'Are you sure you want to resolve these %d issues?',
-                          count
-                        )
-                }
-                confirmLabel={
-                  this.state.allInQuerySelected
-                    ? t('Resolve all issues')
-                    : count =>
-                        tn(
-                          'Resolve %d selected issue',
-                          'Resolve %d selected issues',
-                          count
-                        )
-                }
-                tooltip={t('Set Status to Resolved')}
-                onlyIfBulk={true}
-                selectAllActive={this.state.pageSelected}>
-                <span className="icon-checkmark" style={{marginRight: 5}} />
-                {t('Resolve')}
-              </ActionLink>
-              <DropdownLink
-                caret={true}
-                className="btn btn-default btn-sm action-resolve"
-                topLevelClasses="resolve-dropdown"
-                disabled={!this.state.anySelected}
-                title="">
-                <MenuItem noAnchor={true}>
-                  {hasRelease
-                    ? <ActionLink
-                        disabled={!this.state.anySelected}
-                        onAction={this.onUpdate.bind(this, {
-                          status: 'resolvedInNextRelease'
-                        })}
-                        buttonTitle={t('Resolve')}
-                        tooltip=""
-                        extraDescription={extraDescription}
-                        confirmationQuestion={
-                          this.state.allInQuerySelected
-                            ? t(
-                                'Are you sure you want to resolve all issues matching this search query?'
-                              )
-                            : count =>
-                                tn(
-                                  'Are you sure you want to resolve this %d issue?',
-                                  'Are you sure you want to resolve these %d issues?',
-                                  count
-                                )
-                        }
-                        confirmLabel={
-                          this.state.allInQuerySelected
-                            ? t('Resolve all issues')
-                            : count =>
-                                tn(
-                                  'Resolve %d selected issue',
-                                  'Resolve %d selected issues',
-                                  count
-                                )
-                        }
-                        onlyIfBulk={true}
-                        selectAllActive={this.state.pageSelected}>
-                        <strong>{t('Resolved in next release')}</strong>
-                        <div className="help-text">
-                          {t(
-                            'Snooze notifications until this issue reoccurs in a future release.'
-                          )}
-                        </div>
-                      </ActionLink>
-                    : <a
-                        href={releaseTrackingUrl}
-                        className="disabled tip"
-                        title={t(
-                          'Set up release tracking in order to use this feature.'
-                        )}>
-                        <strong>{t('Resolved in next release.')}</strong>
-                        <div className="help-text">
-                          {t(
-                            'Snooze notifications until this issue reoccurs in a future release.'
-                          )}
-                        </div>
-                      </a>}
-                </MenuItem>
-              </DropdownLink>
-            </div>
+            <ResolveActions
+              hasRelease={this.props.hasReleases}
+              latestRelease={this.props.latestRelease}
+              anySelected={this.state.anySelected}
+              onUpdate={this.onUpdate}
+              allInQuerySelected={this.state.allInQuerySelected}
+              pageSelected={this.state.pageSelected}
+              query={this.props.query}
+              orgId={this.props.orgId}
+              projectId={this.props.projectId}
+            />
             <IgnoreActions
               anySelected={this.state.anySelected}
               onUpdate={this.onUpdate}

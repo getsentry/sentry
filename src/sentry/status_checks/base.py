@@ -2,13 +2,23 @@ from __future__ import absolute_import
 
 import six
 
-from functools import total_ordering
-
 from sentry.utils.compat import implements_to_string
 
 
+def sort_by_severity(problems):
+    """\
+    Sort an iterable of ``Problem``s by their severity, from most severe to least severe.
+    """
+    return sorted(
+        problems,
+        key=lambda i: (
+            -Problem.SEVERITY_LEVELS[i.severity],
+            i.message,
+        ),
+    )
+
+
 @implements_to_string
-@total_ordering
 class Problem(object):
 
     # Used for issues that may render the system inoperable or have effects on
@@ -34,12 +44,6 @@ class Problem(object):
         self.message = six.text_type(message)
         self.severity = severity
         self.url = url
-
-    def __eq__(self, other):
-        return self.SEVERITY_LEVELS[self.severity] == self.SEVERITY_LEVELS[other.severity]
-
-    def __lt__(self, other):
-        return self.SEVERITY_LEVELS[self.severity] < self.SEVERITY_LEVELS[other.severity]
 
     def __str__(self):
         return self.message

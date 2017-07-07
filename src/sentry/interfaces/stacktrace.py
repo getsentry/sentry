@@ -794,13 +794,17 @@ class Stacktrace(Interface):
             start, stop = None, None
 
         if not newest_first and visible_frames < num_frames:
-            result.extend(('(%d additional frame(s) were not displayed)' % (num_frames - visible_frames,), '...'))
+            result.extend(
+                ('(%d additional frame(s) were not displayed)' %
+                 (num_frames - visible_frames,), '...'))
 
         for frame in frames[start:stop]:
             result.append(frame.to_string(event))
 
         if newest_first and visible_frames < num_frames:
-            result.extend(('...', '(%d additional frame(s) were not displayed)' % (num_frames - visible_frames,)))
+            result.extend(
+                ('...', '(%d additional frame(s) were not displayed)' %
+                 (num_frames - visible_frames,)))
 
         return '\n'.join(result)
 

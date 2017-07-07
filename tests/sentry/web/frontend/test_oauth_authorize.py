@@ -69,10 +69,9 @@ class OAuthAuthorizeCodeTest(TestCase):
     def test_invalid_redirect_uri(self):
         self.login_as(self.user)
 
-        resp = self.client.get('{}?response_type=code&redirect_uri=https://google.com&client_id={}'.format(
-            self.path,
-            self.application.client_id,
-        ))
+        resp = self.client.get(
+            '{}?response_type=code&redirect_uri=https://google.com&client_id={}'.format(
+                self.path, self.application.client_id, ))
 
         assert resp.status_code == 200
         self.assertTemplateUsed('sentry/oauth-error.html')
@@ -135,10 +134,9 @@ class OAuthAuthorizeCodeTest(TestCase):
     def test_rich_params(self):
         self.login_as(self.user)
 
-        resp = self.client.get('{}?response_type=code&client_id={}&scope=org%3Aread&state=foo'.format(
-            self.path,
-            self.application.client_id,
-        ))
+        resp = self.client.get(
+            '{}?response_type=code&client_id={}&scope=org%3Aread&state=foo'.format(
+                self.path, self.application.client_id, ))
 
         assert resp.status_code == 200
         self.assertTemplateUsed('sentry/oauth-authorize.html')
@@ -233,16 +231,16 @@ class OAuthAuthorizeCodeTest(TestCase):
             application=self.application,
         )
 
-        resp = self.client.get('{}?response_type=code&client_id={}&scope=member:read member:admin'.format(
-            self.path,
-            self.application.client_id,
-        ))
+        resp = self.client.get(
+            '{}?response_type=code&client_id={}&scope=member:read member:admin'.format(
+                self.path, self.application.client_id, ))
 
         assert resp.status_code == 200
         self.assertTemplateUsed('sentry/oauth-authorize.html')
         assert resp.context['application'] == self.application
         assert resp.context['scopes'] == ['member:read', 'member:admin']
-        assert resp.context['permissions'] == ['Read, write, and admin access to organization members.']
+        assert resp.context['permissions'] == [
+            'Read, write, and admin access to organization members.']
 
 
 class OAuthAuthorizeTokenTest(TestCase):

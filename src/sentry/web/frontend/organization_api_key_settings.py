@@ -13,7 +13,7 @@ from sentry.web.frontend.base import OrganizationView
 
 class ApiKeyForm(forms.ModelForm):
     allowed_origins = OriginsField(label=_('Allowed Domains'), required=False,
-        help_text=_('Separate multiple entries with a newline.'))
+                                   help_text=_('Separate multiple entries with a newline.'))
 
     class Meta:
         model = ApiKey

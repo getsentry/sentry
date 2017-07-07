@@ -1,0 +1,128 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`AdminSettings render() renders 1`] = `
+<DocumentTitle
+  title="Sentry"
+>
+  <div>
+    <h3>
+      Settings
+    </h3>
+    <ApiForm
+      apiEndpoint="/internal/options/"
+      apiMethod="PUT"
+      cancelLabel="Cancel"
+      className="form-stacked"
+      footerClass="form-actions align-right"
+      initialData={
+        Object {
+          "api.rate-limit.org-create": 25,
+          "auth.allow-registration": true,
+          "auth.ip-rate-limit": 25,
+          "auth.user-rate-limit": 25,
+          "system.admin-email": "foo@example.com",
+          "system.rate-limit": 25,
+          "system.security-email": "foo@example.com",
+          "system.support-email": "foo@example.com",
+          "system.url-prefix": "https://sentry.example.com",
+        }
+      }
+      requireChanges={true}
+      submitDisabled={false}
+      submitLabel="Save Changes"
+    >
+      <h4>
+        General
+      </h4>
+      <TextField
+        defaultValue="about://"
+        disabled={true}
+        disabledReason="This setting is defined in config.yml and may not be changed via the web UI."
+        help="The root web address which is used to communicate with the Sentry backend."
+        label="Root URL"
+        name="system.url-prefix"
+        placeholder="https://sentry.example.com"
+        required={false}
+      />
+      <EmailField
+        defaultValue="foo@example.com"
+        disabled={true}
+        disabledReason="This setting is defined in config.yml and may not be changed via the web UI."
+        help="The technical contact for this Sentry installation."
+        label="Admin Email"
+        name="system.admin-email"
+        placeholder="admin@example.com"
+        required={true}
+      />
+      <EmailField
+        defaultValue="foo@example.com"
+        disabled={true}
+        disabledReason="This setting is defined in config.yml and may not be changed via the web UI."
+        help="The support contact for this Sentry installation."
+        label="Support Email"
+        name="system.support-email"
+        placeholder="support@example.com"
+        required={true}
+      />
+      <EmailField
+        defaultValue="foo@example.com"
+        disabled={true}
+        disabledReason="This setting is defined in config.yml and may not be changed via the web UI."
+        help="The security contact for this Sentry installation."
+        label="Security Email"
+        name="system.security-email"
+        placeholder="security@example.com"
+        required={true}
+      />
+      <TextField
+        disabled={true}
+        disabledReason="This setting is defined in config.yml and may not be changed via the web UI."
+        help="The maximum number of events the system should accept per minute. A value of 0 will disable the default rate limit."
+        label="Rate Limit"
+        name="system.rate-limit"
+        placeholder="e.g. 500"
+        required={true}
+      />
+      <h4>
+        Security & Abuse
+      </h4>
+      <BooleanField
+        defaultValue={false}
+        disabled={true}
+        disabledReason="This setting is defined in config.yml and may not be changed via the web UI."
+        help="Allow anyone to create an account and access this Sentry installation."
+        label="Allow Registration"
+        name="auth.allow-registration"
+        required={true}
+      />
+      <TextField
+        disabled={true}
+        disabledReason="This setting is defined in config.yml and may not be changed via the web UI."
+        help="The maximum number of times an authentication attempt may be made by a single IP address in a 60 second window."
+        label="IP Rate Limit"
+        name="auth.ip-rate-limit"
+        placeholder="e.g. 10"
+        required={true}
+      />
+      <TextField
+        disabled={true}
+        disabledReason="This setting is defined in config.yml and may not be changed via the web UI."
+        help="The maximum number of times an authentication attempt may be made against a single account in a 60 second window."
+        label="User Rate Limit"
+        name="auth.user-rate-limit"
+        placeholder="e.g. 10"
+        required={true}
+      />
+      <TextField
+        disabled={true}
+        disabledReason="This setting is defined in config.yml and may not be changed via the web UI."
+        help="The maximum number of organizations which may be created by a single account in a one hour window."
+        label="Organization Creation Rate Limit"
+        name="api.rate-limit.org-create"
+        placeholder="e.g. 5"
+        required={true}
+      />
+    </ApiForm>
+  </div>
+</DocumentTitle>
+`;

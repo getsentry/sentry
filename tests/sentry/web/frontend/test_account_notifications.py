@@ -31,7 +31,8 @@ class NotificationSettingsTest(TestCase):
         team = self.create_team(organization=organization)
         project = self.create_project(organization=organization, team=team)
         team2 = self.create_team(organization=organization)
-        self.create_project(organization=organization, team=team, status=ProjectStatus.PENDING_DELETION)
+        self.create_project(organization=organization, team=team,
+                            status=ProjectStatus.PENDING_DELETION)
         self.create_project(organization=organization, team=team2)
         self.create_member(organization=organization, user=user, teams=[project.team])
         self.login_as(user)

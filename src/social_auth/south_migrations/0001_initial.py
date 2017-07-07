@@ -19,25 +19,33 @@ class Migration(SchemaMigration):
 
     def forwards(self, orm):
         # Adding model 'UserSocialAuth'
-        db.create_table('social_auth_usersocialauth', (
-            ('id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
-            ('user', self.gf('django.db.models.fields.related.ForeignKey')(related_name='social_auth', to=orm[USER_MODEL])),
-            ('provider', self.gf('django.db.models.fields.CharField')(max_length=32)),
-            ('uid', self.gf('django.db.models.fields.CharField')(max_length=UID_LENGTH)),
-            ('extra_data', self.gf('social_auth.fields.JSONField')(default='{}')),
-        ))
+        db.create_table(
+            'social_auth_usersocialauth', (('id', self.gf('django.db.models.fields.AutoField')(
+                primary_key=True)), ('user', self.gf('django.db.models.fields.related.ForeignKey')(
+                    related_name='social_auth', to=orm[USER_MODEL])), ('provider', self.gf('django.db.models.fields.CharField')(
+                        max_length=32)), ('uid', self.gf('django.db.models.fields.CharField')(
+                            max_length=UID_LENGTH)), ('extra_data', self.gf('social_auth.fields.JSONField')(
+                                default='{}')), ))
         db.send_create_signal('social_auth', ['UserSocialAuth'])
 
         # Adding unique constraint on 'UserSocialAuth', fields ['provider', 'uid']
         db.create_unique('social_auth_usersocialauth', ['provider', 'uid'])
 
         # Adding model 'Nonce'
-        db.create_table('social_auth_nonce', (
-            ('id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
-            ('server_url', self.gf('django.db.models.fields.CharField')(max_length=NONCE_SERVER_URL_LENGTH)),
-            ('timestamp', self.gf('django.db.models.fields.IntegerField')()),
-            ('salt', self.gf('django.db.models.fields.CharField')(max_length=40)),
-        ))
+        db.create_table(
+            'social_auth_nonce',
+            (('id',
+              self.gf('django.db.models.fields.AutoField')(
+                  primary_key=True)),
+                ('server_url',
+                 self.gf('django.db.models.fields.CharField')(
+                     max_length=NONCE_SERVER_URL_LENGTH)),
+                ('timestamp',
+                 self.gf('django.db.models.fields.IntegerField')()),
+                ('salt',
+                 self.gf('django.db.models.fields.CharField')(
+                     max_length=40)),
+             ))
         db.send_create_signal('social_auth', ['Nonce'])
 
         # Adding model 'Association'
@@ -52,7 +60,6 @@ class Migration(SchemaMigration):
         ))
         db.send_create_signal('social_auth', ['Association'])
 
-
     def backwards(self, orm):
         # Removing unique constraint on 'UserSocialAuth', fields ['provider', 'uid']
         db.delete_unique('social_auth_usersocialauth', ['provider', 'uid'])
@@ -65,7 +72,6 @@ class Migration(SchemaMigration):
 
         # Deleting model 'Association'
         db.delete_table('social_auth_association')
-
 
     models = {
         'auth.group': {

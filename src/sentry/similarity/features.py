@@ -4,189 +4,14 @@ import itertools
 import logging
 import operator
 import struct
-import time
 from collections import Sequence
 
 import mmh3
 import six
-from django.conf import settings
 
-from sentry.utils import redis
-from sentry.utils.datastructures import BidirectionalMapping
 from sentry.utils.dates import to_timestamp
-from sentry.utils.iterators import shingle
-from sentry.utils.redis import load_script
-
-index = load_script('similarity/index.lua')
-
 
 logger = logging.getLogger('sentry.similarity')
-
-
-class MinHashIndex(object):
-    def __init__(self, cluster, rows, bands, buckets, interval, retention):
-        self.cluster = cluster
-        self.rows = rows
-
-        sequence = itertools.count()
-        self.bands = [[next(sequence) for j in xrange(buckets)] for i in xrange(bands)]
-        self.buckets = buckets
-        self.interval = interval
-        self.retention = retention
-
-    def get_signature(self, value):
-        """Generate a signature for a value."""
-        return map(
-            lambda band: map(
-                lambda bucket: min(
-                    map(
-                        lambda item: mmh3.hash(item, bucket) % self.rows,
-                        value,
-                    ),
-                ),
-                band,
-            ),
-            self.bands,
-        )
-
-    def query(self, scope, key, indices, timestamp=None):
-        if timestamp is None:
-            timestamp = int(time.time())
-
-        arguments = [
-            'QUERY',
-            timestamp,
-            len(self.bands),
-            self.interval,
-            self.retention,
-            scope,
-            key,
-        ]
-
-        arguments.extend(indices)
-
-        return [
-            [(item, float(score)) for item, score in result]
-            for result in
-            index(
-                self.cluster.get_local_client_for_key(scope),
-                [],
-                arguments,
-            )
-        ]
-
-    def record(self, scope, key, items, timestamp=None):
-        if timestamp is None:
-            timestamp = int(time.time())
-
-        arguments = [
-            'RECORD',
-            timestamp,
-            len(self.bands),
-            self.interval,
-            self.retention,
-            scope,
-            key,
-        ]
-
-        for idx, features in items:
-            arguments.append(idx)
-            arguments.extend([','.join(map('{}'.format, band)) for band in self.get_signature(features)])
-
-        return index(
-            self.cluster.get_local_client_for_key(scope),
-            [],
-            arguments,
-        )
-
-    def merge(self, scope, destination, items, timestamp=None):
-        if timestamp is None:
-            timestamp = int(time.time())
-
-        arguments = [
-            'MERGE',
-            timestamp,
-            len(self.bands),
-            self.interval,
-            self.retention,
-            scope,
-            destination,
-        ]
-
-        for idx, source in items:
-            arguments.extend([idx, source])
-
-        return index(
-            self.cluster.get_local_client_for_key(scope),
-            [],
-            arguments,
-        )
-
-    def delete(self, scope, items, timestamp=None):
-        if timestamp is None:
-            timestamp = int(time.time())
-
-        arguments = [
-            'DELETE',
-            timestamp,
-            len(self.bands),
-            self.interval,
-            self.retention,
-            scope,
-        ]
-
-        for idx, key in items:
-            arguments.extend([idx, key])
-
-        return index(
-            self.cluster.get_local_client_for_key(scope),
-            [],
-            arguments,
-        )
-
-    def export(self, scope, items, timestamp=None):
-        if timestamp is None:
-            timestamp = int(time.time())
-
-        arguments = [
-            'EXPORT',
-            timestamp,
-            len(self.bands),
-            self.interval,
-            self.retention,
-            scope,
-        ]
-
-        for idx, key in items:
-            arguments.extend([idx, key])
-
-        return index(
-            self.cluster.get_local_client_for_key(scope),
-            [],
-            arguments,
-        )
-
-    def import_(self, scope, items, timestamp=None):
-        if timestamp is None:
-            timestamp = int(time.time())
-
-        arguments = [
-            'IMPORT',
-            timestamp,
-            len(self.bands),
-            self.interval,
-            self.retention,
-            scope,
-        ]
-
-        for idx, key, data in items:
-            arguments.extend([idx, key, data])
-
-        return index(
-            self.cluster.get_local_client_for_key(scope),
-            [],
-            arguments,
-        )
 
 
 FRAME_ITEM_SEPARATOR = b'\x00'
@@ -274,11 +99,15 @@ def get_exception_frames(exception):
     try:
         frames = exception['stacktrace']['frames']
     except (TypeError, KeyError):
-        logger.info('Could not extract frames from exception, returning empty sequence.', exc_info=True)
+        logger.info(
+            'Could not extract frames from exception, returning empty sequence.',
+            exc_info=True)
         frames = []
     else:
         if not isinstance(frames, Sequence):
-            logger.info('Expected frames to be a sequence but got %r, returning empty sequence instead.', type(frames))
+            logger.info(
+                'Expected frames to be a sequence but got %r, returning empty sequence instead.',
+                type(frames))
             frames = []
 
     return frames
@@ -310,16 +139,26 @@ class ExceptionFeature(object):
         try:
             exceptions = event.data['sentry.interfaces.Exception']['values']
         except KeyError as error:
-            logger.info('Could not extract characteristic(s) from %r due to error: %r', event, error, exc_info=True)
+            logger.info(
+                'Could not extract characteristic(s) from %r due to error: %r',
+                event,
+                error,
+                exc_info=True)
             return
 
         for exception in exceptions:
             try:
                 yield self.function(exception)
             except InsufficientContext as error:
-                logger.debug('Could not extract characteristic(s) from exception in %r due to expected error: %r', event, error)
+                logger.debug(
+                    'Could not extract characteristic(s) from exception in %r due to expected error: %r',
+                    event,
+                    error)
             except Exception as error:
-                logger.exception('Could not extract characteristic(s) from exception in %r due to error: %r', event, error)
+                logger.exception(
+                    'Could not extract characteristic(s) from exception in %r due to error: %r',
+                    event,
+                    error)
 
 
 class MessageFeature(object):
@@ -330,13 +169,20 @@ class MessageFeature(object):
         try:
             message = event.data['sentry.interfaces.Message']
         except KeyError as error:
-            logger.info('Could not extract characteristic(s) from %r due to error: %r', event, error, exc_info=True)
+            logger.info(
+                'Could not extract characteristic(s) from %r due to error: %r',
+                event,
+                error,
+                exc_info=True)
             return
 
         try:
             yield self.function(message)
         except Exception as error:
-            logger.exception('Could not extract characteristic(s) from message of %r due to error: %r', event, error)
+            logger.exception(
+                'Could not extract characteristic(s) from message of %r due to error: %r',
+                event,
+                error)
 
 
 class FeatureSet(object):
@@ -408,7 +254,8 @@ class FeatureSet(object):
 
         unsafe_scopes = set(scopes.keys()) - set([self.__get_scope(destination)])
         if unsafe_scopes and not allow_unsafe:
-            raise ValueError('all groups must belong to same project if unsafe merges are not allowed')
+            raise ValueError(
+                'all groups must belong to same project if unsafe merges are not allowed')
 
         destination_scope = self.__get_scope(destination)
         destination_key = self.__get_key(destination)
@@ -458,70 +305,3 @@ def serialize_text_shingle(value, separator=b''):
             value,
         ),
     )
-
-
-features = FeatureSet(
-    MinHashIndex(
-        redis.clusters.get(
-            getattr(
-                settings,
-                'SENTRY_SIMILARITY_INDEX_REDIS_CLUSTER',
-                'default',
-            ),
-        ),
-        0xFFFF,
-        8,
-        2,
-        60 * 60 * 24 * 30,
-        3,
-    ),
-    BidirectionalMapping({
-        'exception:message:character-shingles': 'a',
-        'exception:stacktrace:application-chunks': 'b',
-        'exception:stacktrace:pairs': 'c',
-        'message:message:character-shingles': 'd',
-    }),
-    {
-        'exception:message:character-shingles': ExceptionFeature(
-            lambda exception: map(
-                serialize_text_shingle,
-                shingle(
-                    13,
-                    exception.get('value') or '',
-                ),
-            )
-        ),
-        'exception:stacktrace:application-chunks': ExceptionFeature(
-            lambda exception: map(
-                lambda frames: FRAME_SEPARATOR.join(
-                    map(
-                        serialize_frame,
-                        frames,
-                    ),
-                ),
-                get_application_chunks(exception),
-            ),
-        ),
-        'exception:stacktrace:pairs': ExceptionFeature(
-            lambda exception: map(
-                FRAME_SEPARATOR.join,
-                shingle(
-                    2,
-                    map(
-                        serialize_frame,
-                        get_exception_frames(exception),
-                    ),
-                ),
-            ),
-        ),
-        'message:message:character-shingles': MessageFeature(
-            lambda message: map(
-                serialize_text_shingle,
-                shingle(
-                    13,
-                    message['message'],
-                ),
-            ),
-        ),
-    }
-)

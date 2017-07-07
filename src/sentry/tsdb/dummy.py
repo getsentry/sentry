@@ -14,6 +14,7 @@ class DummyTSDB(BaseTSDB):
     """
     A no-op time-series storage.
     """
+
     def incr(self, model, key, timestamp=None, count=1):
         pass
 

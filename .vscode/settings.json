@@ -13,6 +13,7 @@
         "src/sentry/static/sentry/dist/": true
     },
     "files.trimTrailingWhitespace": true,
+    "files.ensureSingleFinalNewline": true,
 
     "prettier.bracketSpacing": false,
     "prettier.singleQuote": true,
@@ -27,11 +28,18 @@
         "editor.formatOnSave": true
     },
 
+    "[python]": {
+        "editor.formatOnSave": true
+    },
+
     "python.linting.pylintEnabled": false,
     "python.linting.flake8Enabled": true,
 
+    "python.formatting.provider": "autopep8",
     "python.pythonPath": "${env.WORKON_HOME}/sentry/bin/python",
-    "python.unitTest.pyTestEnabled": true,
+    // test discovery is sluggish and the UI around running
+    // tests is often in your way and misclicked
+    "python.unitTest.pyTestEnabled": false,
     "python.unitTest.unittestEnabled": false,
     "python.unitTest.nosetestsEnabled": false
 }

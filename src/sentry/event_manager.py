@@ -847,7 +847,8 @@ class EventManager(object):
         # ``GroupHash`` instance, since we only want to record this for events
         # that not only include the hash but were also placed into the
         # associated group.)
-        relevant_group_hashes = set([instance for instance in all_hashes if instance.group_id == group.id])
+        relevant_group_hashes = set(
+            [instance for instance in all_hashes if instance.group_id == group.id])
 
         # If all hashes are brand new we treat this event as new
         is_new = False
@@ -916,11 +917,10 @@ class EventManager(object):
         if not group.is_resolved():
             return
 
-        elif release:
-            # we only mark it as a regression if the event's release is newer than
-            # the release which we originally marked this as resolved
-            if GroupResolution.has_resolution(group, release):
-                return
+        # we only mark it as a regression if the event's release is newer than
+        # the release which we originally marked this as resolved
+        elif GroupResolution.has_resolution(group, release):
+            return
 
         if not plugin_is_regression(group, event):
             return

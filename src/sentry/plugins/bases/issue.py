@@ -99,7 +99,10 @@ class IssueTrackingPlugin(Plugin):
         if not request.user.is_authenticated():
             return True
 
-        return bool(not UserSocialAuth.objects.filter(user=request.user, provider=self.auth_provider).exists())
+        return bool(
+            not UserSocialAuth.objects.filter(
+                user=request.user,
+                provider=self.auth_provider).exists())
 
     def get_new_issue_title(self, **kwargs):
         """
@@ -117,7 +120,12 @@ class IssueTrackingPlugin(Plugin):
         """
         Return a Form for the "Create new issue" page.
         """
-        return self.new_issue_form(request.POST or None, initial=self.get_initial_form_data(request, group, event))
+        return self.new_issue_form(
+            request.POST or None,
+            initial=self.get_initial_form_data(
+                request,
+                group,
+                event))
 
     def get_new_issue_read_only_fields(self, *args, **kwargs):
         """
@@ -187,7 +195,10 @@ class IssueTrackingPlugin(Plugin):
 
     def view(self, request, group, **kwargs):
         has_auth_configured = self.has_auth_configured()
-        if not (has_auth_configured and self.is_configured(project=group.project, request=request)):
+        if not (
+            has_auth_configured and self.is_configured(
+                project=group.project,
+                request=request)):
             if self.auth_provider:
                 required_auth_settings = settings.AUTH_PROVIDERS[self.auth_provider]
             else:
@@ -250,7 +261,11 @@ class IssueTrackingPlugin(Plugin):
                     data=issue_information,
                 )
 
-                issue_tracker_used.send(plugin=self, project=group.project, user=request.user, sender=IssueTrackingPlugin)
+                issue_tracker_used.send(
+                    plugin=self,
+                    project=group.project,
+                    user=request.user,
+                    sender=IssueTrackingPlugin)
                 return self.redirect(group.get_absolute_url())
 
         elif op == 'link':
@@ -317,9 +332,9 @@ class IssueTrackingPlugin(Plugin):
             return tag_list
 
         tag_list.append(format_html('<a href="{}" rel="noreferrer">{}</a>',
-            self.get_issue_url(group=group, issue_id=issue_id),
-            self.get_issue_label(group=group, issue_id=issue_id),
-        ))
+                                    self.get_issue_url(group=group, issue_id=issue_id),
+                                    self.get_issue_label(group=group, issue_id=issue_id),
+                                    ))
 
         return tag_list
 

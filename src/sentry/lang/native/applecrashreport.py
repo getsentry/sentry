@@ -13,7 +13,7 @@ REPORT_VERSION = '104'
 class AppleCrashReport(object):
 
     def __init__(self, threads=None, context=None, debug_images=None,
-            symbolicated=False, exception=None):
+                 symbolicated=False, exception=None):
         self.threads = threads
         self.context = context
         self.debug_images = debug_images
@@ -65,7 +65,7 @@ class AppleCrashReport(object):
 
             if exception.get('value'):
                 rv.append('\nApplication Specific Information:\n%s' %
-                    exception['value'])
+                          exception['value'])
 
         return '\n'.join(rv)
 
@@ -153,9 +153,9 @@ class AppleCrashReport(object):
         if self.symbolicated or self.debug_images is None:
             return ''
         binary_images = map(lambda i:
-            self._convert_debug_meta_to_binary_image_row(debug_image=i),
-            sorted(self.debug_images, key=lambda i: parse_addr(i['image_addr'])
-        ))
+                            self._convert_debug_meta_to_binary_image_row(debug_image=i),
+                            sorted(self.debug_images, key=lambda i: parse_addr(i['image_addr'])
+                                   ))
         return 'Binary Images:\n' + '\n'.join(binary_images)
 
     def _convert_debug_meta_to_binary_image_row(self, debug_image):

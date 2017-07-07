@@ -42,6 +42,7 @@ class SimpleThreadedWorkerPool(object):
     Manages a simple threaded worker pool. The pool will be started when the
     first job is submitted, and will run to process completion.
     """
+
     def __init__(self, size):
         assert size > 0, 'pool must have at laest one worker thread'
 
@@ -84,6 +85,7 @@ class RiakClient(object):
     A thread-safe simple light-weight riak client that does only
     the bare minimum.
     """
+
     def __init__(self, multiget_pool_size=5, **kwargs):
         self.manager = ConnectionManager(**kwargs)
         self.pool = SimpleThreadedWorkerPool(multiget_pool_size)
@@ -179,6 +181,7 @@ class ConnectionManager(object):
     """
     A thread-safe multi-host http connection manager.
     """
+
     def __init__(self, hosts=DEFAULT_NODES, strategy=RoundRobinStrategy, randomize=True,
                  timeout=3, cooldown=5, max_retries=None, tcp_keepalive=True):
         assert hosts

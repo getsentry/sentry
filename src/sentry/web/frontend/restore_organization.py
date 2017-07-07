@@ -81,7 +81,7 @@ class RestoreOrganizationView(OrganizationView):
                 'model': Organization.__name__,
             })
             messages.add_message(request, messages.SUCCESS,
-                MSG_RESTORE_SUCCESS)
+                                 MSG_RESTORE_SUCCESS)
 
         return self.redirect(
             reverse('sentry-organization-home', args=[organization.slug])

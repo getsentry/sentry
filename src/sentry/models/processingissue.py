@@ -61,9 +61,9 @@ class ProcessingIssueManager(BaseManager):
         """
         from sentry.models import RawEvent
         rv = list(RawEvent.objects
-            .filter(project_id=project_id)
-            .annotate(eventissue_count=Count('eventprocessingissue'))
-            .filter(eventissue_count=0)[:limit])
+                  .filter(project_id=project_id)
+                  .annotate(eventissue_count=Count('eventprocessingissue'))
+                  .filter(eventissue_count=0)[:limit])
         if len(rv) > limit:
             rv = rv[:limit]
             has_more = True

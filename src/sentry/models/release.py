@@ -30,7 +30,7 @@ logger = logging.getLogger(__name__)
 
 
 _sha1_re = re.compile(r'^[a-f0-9]{40}$')
-_dotted_path_prefix_re = re.compile(r'^([a-z][a-z0-9-]+)(\.[a-z][a-z0-9-]+)+-')
+_dotted_path_prefix_re = re.compile(r'^([a-zA-Z][a-zA-Z0-9-]+)(\.[a-zA-Z][a-zA-Z0-9-]+)+-')
 BAD_RELEASE_CHARS = '\n\f\t/'
 
 
@@ -89,7 +89,8 @@ class Release(Model):
 
     @staticmethod
     def is_valid_version(value):
-        return not (any(c in value for c in BAD_RELEASE_CHARS) or value in ('.', '..') or not value)
+        return not (any(c in value for c in BAD_RELEASE_CHARS)
+                    or value in ('.', '..') or not value)
 
     @classmethod
     def get_cache_key(cls, organization_id, version):
@@ -346,7 +347,8 @@ class Release(Model):
             commit_author_by_commit = {}
             latest_commit = None
             for idx, data in enumerate(commit_list):
-                repo_name = data.get('repository') or 'organization-{}'.format(self.organization_id)
+                repo_name = data.get(
+                    'repository') or 'organization-{}'.format(self.organization_id)
                 if repo_name not in repos:
                     repos[repo_name] = repo = Repository.objects.get_or_create(
                         organization_id=self.organization_id,
@@ -357,8 +359,12 @@ class Release(Model):
 
                 author_email = data.get('author_email')
                 if author_email is None and data.get('author_name'):
-                    author_email = (re.sub(r'[^a-zA-Z0-9\-_\.]*', '', data['author_name']).lower() +
-                                    '@localhost')
+                    author_email = (
+                        re.sub(
+                            r'[^a-zA-Z0-9\-_\.]*',
+                            '',
+                            data['author_name']).lower() +
+                        '@localhost')
 
                 if not author_email:
                     author = None

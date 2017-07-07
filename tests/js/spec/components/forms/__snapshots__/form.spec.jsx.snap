@@ -16,7 +16,7 @@ exports[`Form render() renders with children 1`] = `
   >
     <button
       className="btn btn-primary"
-      disabled={true}
+      disabled={false}
       type="submit"
     >
       Save Changes

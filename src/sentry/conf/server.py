@@ -23,7 +23,9 @@ from sentry.utils.types import type_from_value
 from datetime import timedelta
 from six.moves.urllib.parse import urlparse
 
-gettext_noop = lambda s: s
+
+def gettext_noop(s):
+    return s
 
 socket.setdefaulttimeout(5)
 
@@ -243,6 +245,7 @@ MIDDLEWARE_CLASSES = (
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'sentry.middleware.auth.AuthenticationMiddleware',
+    'sentry.middleware.user.UserActiveMiddleware',
     'sentry.middleware.sudo.SudoMiddleware',
     'sentry.middleware.superuser.SuperuserMiddleware',
     'sentry.middleware.locale.SentryLocaleMiddleware',
@@ -344,6 +347,7 @@ AUTHENTICATION_BACKENDS = (
     'social_auth.backends.bitbucket.BitbucketBackend',
     'social_auth.backends.trello.TrelloBackend',
     'social_auth.backends.asana.AsanaBackend',
+    'social_auth.backends.slack.SlackBackend',
 )
 
 AUTH_PASSWORD_VALIDATORS = [
@@ -368,6 +372,7 @@ SOCIAL_AUTH_AUTHENTICATION_BACKENDS = (
     'social_auth.backends.bitbucket.BitbucketBackend',
     'social_auth.backends.trello.TrelloBackend',
     'social_auth.backends.asana.AsanaBackend',
+    'social_auth.backends.slack.SlackBackend',
 )
 
 SESSION_ENGINE = "django.contrib.sessions.backends.signed_cookies"
@@ -408,18 +413,24 @@ AUTH_PROVIDERS = {
     'trello': ('TRELLO_API_KEY', 'TRELLO_API_SECRET'),
     'bitbucket': ('BITBUCKET_CONSUMER_KEY', 'BITBUCKET_CONSUMER_SECRET'),
     'asana': ('ASANA_CLIENT_ID', 'ASANA_CLIENT_SECRET'),
+    'slack': ('SLACK_CLIENT_ID', 'SLACK_CLIENT_SECRET'),
 }
 
 AUTH_PROVIDER_LABELS = {
     'github': 'GitHub',
     'trello': 'Trello',
     'bitbucket': 'Bitbucket',
-    'asana': 'Asana'
+    'asana': 'Asana',
+    'slack': 'Slack'
 }
 
 import random
 
-SOCIAL_AUTH_DEFAULT_USERNAME = lambda: random.choice(['Darth Vader', 'Obi-Wan Kenobi', 'R2-D2', 'C-3PO', 'Yoda'])
+
+def SOCIAL_AUTH_DEFAULT_USERNAME():
+    return random.choice(['Darth Vader', 'Obi-Wan Kenobi', 'R2-D2', 'C-3PO', 'Yoda'])
+
+
 SOCIAL_AUTH_PROTECTED_USER_FIELDS = ['email']
 SOCIAL_AUTH_FORCE_POST_DISCONNECT = True
 
@@ -466,6 +477,7 @@ CELERY_IMPORTS = (
     'sentry.tasks.process_buffer',
     'sentry.tasks.reports',
     'sentry.tasks.reprocessing',
+    'sentry.tasks.scheduler',
     'sentry.tasks.store',
     'sentry.tasks.unmerge',
 )
@@ -524,6 +536,13 @@ CELERYBEAT_SCHEDULE = {
             'expires': 60,
             'queue': 'auth',
         }
+    },
+    'enqueue-scheduled-jobs': {
+        'task': 'sentry.tasks.enqueue_scheduled_jobs',
+        'schedule': timedelta(minutes=1),
+        'options': {
+            'expires': 60,
+        },
     },
     'send-beacon': {
         'task': 'sentry.tasks.send_beacon',
@@ -1070,54 +1089,80 @@ SENTRY_DEFAULT_ROLE = 'member'
 # they're presented in the UI. This is primarily important in that a member
 # that is earlier in the chain cannot manage the settings of a member later
 # in the chain (they still require the appropriate scope).
-SENTRY_ROLES = (
-    {
-        'id': 'member',
-        'name': 'Member',
-        'desc': 'Members can view and act on events, as well as view most other data within the organization.',
-        'scopes': set([
-            'event:read', 'event:write', 'event:admin', 'project:releases',
-            'project:read', 'org:read', 'member:read', 'team:read',
-        ]),
-    },
-    {
-        'id': 'admin',
-        'name': 'Admin',
-        'desc': 'Admin privileges on any teams of which they\'re a member. They can create new teams and projects, as well as remove teams and projects which they already hold membership on.',
-        'scopes': set([
-            'event:read', 'event:write', 'event:admin',
-            'org:read', 'member:read',
-            'project:read', 'project:write', 'project:admin', 'project:releases',
-            'team:read', 'team:write', 'team:admin',
-        ]),
-    },
-    {
-        'id': 'manager',
-        'name': 'Manager',
-        'desc': 'Gains admin access on all teams as well as the ability to add and remove members.',
-        'is_global': True,
-        'scopes': set([
-            'event:read', 'event:write', 'event:admin',
-            'member:read', 'member:write', 'member:admin',
-            'project:read', 'project:write', 'project:admin', 'project:releases',
-            'team:read', 'team:write', 'team:admin',
-            'org:read', 'org:write',
-        ]),
-    },
-    {
-        'id': 'owner',
-        'name': 'Owner',
-        'desc': 'Gains full permission across the organization. Can manage members as well as perform catastrophic operations such as removing the organization.',
-        'is_global': True,
-        'scopes': set([
-            'org:read', 'org:write', 'org:admin',
-            'member:read', 'member:write', 'member:admin',
-            'team:read', 'team:write', 'team:admin',
-            'project:read', 'project:write', 'project:admin', 'project:releases',
-            'event:read', 'event:write', 'event:admin',
-        ]),
-    },
-)
+SENTRY_ROLES = ({'id': 'member',
+                 'name': 'Member',
+                 'desc': 'Members can view and act on events, as well as view most other data within the organization.',
+                 'scopes': set(['event:read',
+                                'event:write',
+                                'event:admin',
+                                'project:releases',
+                                'project:read',
+                                'org:read',
+                                'member:read',
+                                'team:read',
+                                ]),
+                 },
+                {'id': 'admin',
+                 'name': 'Admin',
+                 'desc': 'Admin privileges on any teams of which they\'re a member. They can create new teams and projects, as well as remove teams and projects which they already hold membership on.',
+                 'scopes': set(['event:read',
+                                'event:write',
+                                'event:admin',
+                                'org:read',
+                                'member:read',
+                                'project:read',
+                                'project:write',
+                                'project:admin',
+                                'project:releases',
+                                'team:read',
+                                'team:write',
+                                'team:admin',
+                                ]),
+                 },
+                {'id': 'manager',
+                 'name': 'Manager',
+                 'desc': 'Gains admin access on all teams as well as the ability to add and remove members.',
+                 'is_global': True,
+                 'scopes': set(['event:read',
+                                'event:write',
+                                'event:admin',
+                                'member:read',
+                                'member:write',
+                                'member:admin',
+                                'project:read',
+                                'project:write',
+                                'project:admin',
+                                'project:releases',
+                                'team:read',
+                                'team:write',
+                                'team:admin',
+                                'org:read',
+                                'org:write',
+                                ]),
+                 },
+                {'id': 'owner',
+                 'name': 'Owner',
+                 'desc': 'Gains full permission across the organization. Can manage members as well as perform catastrophic operations such as removing the organization.',
+                 'is_global': True,
+                 'scopes': set(['org:read',
+                                'org:write',
+                                'org:admin',
+                                'member:read',
+                                'member:write',
+                                'member:admin',
+                                'team:read',
+                                'team:write',
+                                'team:admin',
+                                'project:read',
+                                'project:write',
+                                'project:admin',
+                                'project:releases',
+                                'event:read',
+                                'event:write',
+                                'event:admin',
+                                ]),
+                 },
+                )
 
 # See sentry/options/__init__.py for more information
 SENTRY_OPTIONS = {}
@@ -1143,9 +1188,12 @@ SENTRY_API_RESPONSE_DELAY = 150 if IS_DEV else None
 # XXX(dcramer): this doesn't work outside of a source distribution as the
 # webpack.config.js is not part of Sentry's datafiles
 SENTRY_WATCHERS = (
-    ('webpack', [os.path.join(NODE_MODULES_ROOT, '.bin', 'webpack'), '--output-pathinfo', '--watch',
-     "--config={}".format(os.path.normpath(os.path.join(PROJECT_ROOT, os.pardir, os.pardir, "webpack.config.js")))]),
-)
+    ('webpack', [
+        os.path.join(
+            NODE_MODULES_ROOT, '.bin', 'webpack'), '--output-pathinfo', '--watch', "--config={}".format(
+                os.path.normpath(
+                    os.path.join(
+                        PROJECT_ROOT, os.pardir, os.pardir, "webpack.config.js")))]), )
 
 # Max file size for avatar photo uploads
 SENTRY_MAX_AVATAR_SIZE = 5000000
