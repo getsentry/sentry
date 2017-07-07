@@ -6,7 +6,7 @@ import ProjectActions from '../actions/projectActions';
 const ProjectStore = Reflux.createStore({
   init() {
     this.reset();
-
+    this.listenTo(ProjectActions.createSuccess, this.onCreateSuccess);
     this.listenTo(ProjectActions.updateSuccess, this.onUpdateSuccess);
     this.listenTo(ProjectActions.loadStatsSuccess, this.onStatsLoadSuccess);
   },
@@ -23,6 +23,12 @@ const ProjectStore = Reflux.createStore({
       return map;
     }, {});
     this.trigger(new Set(Object.keys(this.itemsById)));
+  },
+
+  onCreateSuccess(project) {
+    this.items.push(project);
+    this.itemsById[project.id] = project;
+    this.trigger(new Set([project.id]));
   },
 
   onUpdateSuccess(data) {

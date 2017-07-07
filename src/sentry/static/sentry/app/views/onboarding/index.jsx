@@ -1,27 +1,35 @@
 import React from 'react';
 import DocumentTitle from 'react-document-title';
+import {browserHistory} from 'react-router';
 
 import ApiMixin from '../../mixins/apiMixin';
-
-import Project from './project/';
-import Configure from './configure/';
-import Next from './next/';
+// import OrganizationActions from '../../actions/organizationActions';
 
 import ProgressNodes from './progress';
 import {onboardingSteps} from './utils';
+import ProjectActions from '../../actions/projectActions';
 
 const OnboardingWizard = React.createClass({
+  contextTypes: {
+    organization: React.PropTypes.object,
+    reloadOrgContext: React.PropTypes.func
+  },
+
   mixins: [ApiMixin],
 
   getInitialState() {
     return {
       loading: true,
       error: false,
-      step: onboardingSteps.project,
       platform: '',
-      projectName: '',
-      project: null
+      projectName: ''
     };
+  },
+
+  inferStep() {
+    let {projectId} = this.props.params;
+    if (!projectId) return onboardingSteps.project;
+    return onboardingSteps.configure;
   },
 
   renderStep() {
@@ -30,45 +38,42 @@ const OnboardingWizard = React.createClass({
       platform: this.state.platform,
       setPlatform: p => this.setState({platform: p}),
       name: this.state.projectName,
-      setName: n => this.setState({projectName: n}),
-      project: this.state.project,
-      params: this.props.params
+      setName: n => this.setState({projectName: n})
+      // project: this.props.params.projectId
     };
-    return (
-      <div>
-        {
-          [
-            //eslint-disable-next-line react/jsx-key
-            <Project {...stepProps} />,
-            //eslint-disable-next-line react/jsx-key
-            <Configure {...stepProps} />,
-            //eslint-disable-next-line react/jsx-key
-            <Next {...stepProps} />
-          ][this.state.step]
-        }
-      </div>
-    );
+    return React.cloneElement(this.props.children, stepProps);
   },
 
-  createProject(callback) {
-    let org = this.props.params.orgId;
-    this.api.request(`/teams/${org}/${org}/projects/`, {
+  getProjectUrlProps(project) {
+    let org = this.context.organization;
+    let path = `/organizations/${org.slug}/onboarding/${project.slug}/configure/${this.state.platform}`;
+    return path;
+  },
+
+  createProject() {
+    let {orgId} = this.props.params;
+    // NOTE: in onboarding, team name matches org name so can
+    //        make this assumption
+    this.api.request(`/teams/${orgId}/${orgId}/projects/`, {
       method: 'POST',
       data: {
         name: this.state.projectName,
         platform: this.state.platform
       },
       success: data => {
-        console.log(data);
-        this.setState({
-          project: data,
-          loading: false,
-          error: false
-        });
-        callback();
+        data = {
+          ...data,
+          orgId: orgId,
+          teamId: orgId
+        };
+
+        ProjectActions.createSuccess(data);
+
+        // navigate to new url _now_
+        const url = this.getProjectUrlProps(data);
+        browserHistory.push(url);
       },
       error: err => {
-        console.log(err);
         this.setState({
           loading: false,
           error: true
@@ -78,11 +83,11 @@ const OnboardingWizard = React.createClass({
   },
 
   next() {
-    if (this.state.step === onboardingSteps.project) {
-      this.createProject(() => {
-        this.setState({step: this.state.step + 1}); //TODO(maxbittker) clean this up
-      });
-    } else this.setState({step: this.state.step + 1});
+    if (this.context.organization) {
+      this.createProject();
+    } else {
+      browserHistory.push('another route');
+    }
   },
 
   render() {
@@ -91,13 +96,7 @@ const OnboardingWizard = React.createClass({
         <DocumentTitle title={'Sentry'} />
         <h1>ONBOARDING</h1>
         <div className="step-container">
-          <ProgressNodes step={this.state.step} />
-          <div
-            className="btn"
-            onClick={() => {
-              this.setState({step: this.state.step + 1});
-            }}
-          />
+          <ProgressNodes step={this.inferStep()} />
           <div>
             <this.renderStep />
           </div>

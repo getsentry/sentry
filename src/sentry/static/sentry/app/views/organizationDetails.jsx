@@ -1,4 +1,6 @@
 import React from 'react';
+import Reflux from 'reflux';
+
 import ApiMixin from '../mixins/apiMixin';
 import DocumentTitle from 'react-document-title';
 import Footer from '../components/footer';
@@ -11,6 +13,7 @@ import moment from 'moment';
 import PropTypes from '../proptypes';
 import TeamStore from '../stores/teamStore';
 import ProjectStore from '../stores/projectStore';
+import ProjectActions from '../actions/projectActions';
 import ConfigStore from '../stores/configStore';
 
 import OrganizationState from '../mixins/organizationState';
@@ -30,7 +33,11 @@ const OrganizationDetails = React.createClass({
     organization: PropTypes.Organization
   },
 
-  mixins: [ApiMixin, OrganizationState],
+  mixins: [
+    ApiMixin,
+    OrganizationState,
+    Reflux.listenTo(ProjectActions.createSuccess, 'onProjectCreation')
+  ],
 
   getInitialState() {
     return {
@@ -67,6 +74,13 @@ const OrganizationDetails = React.createClass({
 
   remountComponent() {
     this.setState(this.getInitialState(), this.fetchData);
+  },
+
+  onProjectCreation(project) {
+    // If a new project was created, we need to re-fetch the
+    // org details endpoint, which will propagate re-rendering
+    // for the entire component tree
+    this.remountComponent();
   },
 
   fetchData() {
