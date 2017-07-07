@@ -35,11 +35,14 @@ def get_project(value):
 @click.command()
 @click.option('--days', default=30, show_default=True, help='Numbers of days to truncate on.')
 @click.option('--project', help='Limit truncation to only entries from project.')
-@click.option('--concurrency', type=int, default=1, show_default=True, help='The number of concurrent workers to run.')
-@click.option('--silent', '-q', default=False, is_flag=True, help='Run quietly. No output on success.')
+@click.option('--concurrency', type=int, default=1, show_default=True,
+              help='The number of concurrent workers to run.')
+@click.option('--silent', '-q', default=False, is_flag=True,
+              help='Run quietly. No output on success.')
 @click.option('--model', '-m', multiple=True)
 @click.option('--router', '-r', default=None, help='Database router')
-@click.option('--timed', '-t', default=False, is_flag=True, help='Send the duration of this command to internal metrics.')
+@click.option('--timed', '-t', default=False, is_flag=True,
+              help='Send the duration of this command to internal metrics.')
 @configuration
 def cleanup(days, project, concurrency, silent, model, router, timed):
     """Delete a portion of trailing data based on creation date.
@@ -193,7 +196,9 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
             if concurrency > 1:
                 threads = []
                 for shard_id in range(concurrency):
-                    t = Thread(target=lambda shard_id=shard_id: query.execute_sharded(concurrency, shard_id))
+                    t = Thread(
+                        target=lambda shard_id=shard_id: query.execute_sharded(
+                            concurrency, shard_id))
                     t.start()
                     threads.append(t)
 

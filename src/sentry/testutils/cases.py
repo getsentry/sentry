@@ -428,7 +428,9 @@ class PluginTestCase(TestCase):
                 ep_path = ep.module_name
                 if ep_path == path:
                     return
-                self.fail('Found app in entry_points, but wrong class. Got %r, expected %r' % (ep_path, path))
+                self.fail(
+                    'Found app in entry_points, but wrong class. Got %r, expected %r' %
+                    (ep_path, path))
         self.fail('Missing app from entry_points: %r' % (name,))
 
     def assertPluginInstalled(self, name, plugin):
@@ -438,7 +440,9 @@ class PluginTestCase(TestCase):
                 ep_path = ep.module_name + ':' + '.'.join(ep.attrs)
                 if ep_path == path:
                     return
-                self.fail('Found plugin in entry_points, but wrong class. Got %r, expected %r' % (ep_path, path))
+                self.fail(
+                    'Found plugin in entry_points, but wrong class. Got %r, expected %r' %
+                    (ep_path, path))
         self.fail('Missing plugin from entry_points: %r' % (name,))
 
 

@@ -281,6 +281,7 @@ class EmailAuthBackend(ModelBackend):
 
     Supports authenticating via an email address or a username.
     """
+
     def authenticate(self, username=None, password=None):
         users = find_users(username)
         if users:

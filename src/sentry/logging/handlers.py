@@ -27,7 +27,8 @@ _default_encoder = JSONEncoder(
 ).encode
 
 # These are values that come default from logging.LogRecord.
-# They are defined here: https://github.com/python/cpython/blob/2.7/Lib/logging/__init__.py#L237-L310
+# They are defined here:
+# https://github.com/python/cpython/blob/2.7/Lib/logging/__init__.py#L237-L310
 throwaways = frozenset((
     'threadName', 'thread', 'created', 'process', 'processName', 'args',
     'module', 'filename', 'levelno', 'exc_text', 'msg', 'pathname', 'lineno',
@@ -44,9 +45,9 @@ class HumanRenderer(object):
     def __call__(self, logger, name, event_dict):
         level = event_dict.pop('level')
         real_level = (level.upper()
-            if isinstance(level, six.string_types)
-            else logging.getLevelName(level)
-        )
+                      if isinstance(level, six.string_types)
+                      else logging.getLevelName(level)
+                      )
         base = '%s [%s] %s: %s' % (
             now().strftime('%H:%M:%S'),
             real_level,
@@ -54,7 +55,7 @@ class HumanRenderer(object):
             event_dict.pop('event', ''),
         )
         join = ' '.join(k + '=' + repr(v)
-               for k, v in six.iteritems(event_dict))
+                        for k, v in six.iteritems(event_dict))
         return '%s%s' % (base, (' (%s)' % join if join else ''))
 
 

@@ -35,6 +35,7 @@ class BaseOrganizationMemberFormTest(TestCase):
 
         form.save_team_assignments(user_org_membership)
 
-        assigned_teams = OrganizationMemberTeam.objects.filter(organizationmember=user_org_membership)
+        assigned_teams = OrganizationMemberTeam.objects.filter(
+            organizationmember=user_org_membership)
         assert len(assigned_teams) == 1
         assert assigned_teams[0].team_id == team2.id

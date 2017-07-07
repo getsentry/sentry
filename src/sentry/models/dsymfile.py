@@ -111,12 +111,12 @@ class DSymAppManager(BaseManager):
             return existing_app
 
         return BaseManager.create(self,
-            sync_id=sync_id,
-            app_id=app_id,
-            data=data,
-            project=project,
-            platform=platform
-        )
+                                  sync_id=sync_id,
+                                  app_id=app_id,
+                                  data=data,
+                                  project=project,
+                                  platform=platform
+                                  )
 
 
 class DSymApp(Model):
@@ -349,7 +349,7 @@ class DSymCache(object):
         rv = {}
         for image_uuid in uuids:
             path = self.fetch_dsym(project, image_uuid,
-                on_dsym_file_referenced=on_dsym_file_referenced)
+                                   on_dsym_file_referenced=on_dsym_file_referenced)
             if path is not None:
                 rv[image_uuid] = path
         return rv

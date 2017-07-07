@@ -14,9 +14,11 @@ exports[`TeamCreate render() renders correctly 1`] = `
     <ApiForm
       apiEndpoint="/organizations/org/teams/"
       apiMethod="POST"
+      cancelLabel="Cancel"
       className="form-stacked"
       footerClass="form-actions align-right"
       onSubmitSuccess={[Function]}
+      requireChanges={true}
       submitDisabled={false}
       submitLabel="Save Changes"
     >

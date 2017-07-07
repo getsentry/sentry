@@ -191,9 +191,9 @@ valid_dot_atom_characters = frozenset(
 def is_valid_dot_atom(value):
     """Validate an input string as an RFC 2822 dot-atom-text value."""
     return (isinstance(value, six.string_types)  # must be a string type
-        and not value[0] == '.'
-        and not value[-1] == '.'  # cannot start or end with a dot
-        and set(value).issubset(valid_dot_atom_characters))  # can only contain valid characters
+            and not value[0] == '.'
+            and not value[-1] == '.'  # cannot start or end with a dot
+            and set(value).issubset(valid_dot_atom_characters))  # can only contain valid characters
 
 
 def count_sprintf_parameters(string):

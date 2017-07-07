@@ -42,7 +42,7 @@
     "platformicons": "0.1.1",
     "po-catalog-loader": "^1.2.0",
     "query-string": "2.4.2",
-    "raven-js": "3.15.0",
+    "raven-js": "3.16.1",
     "react": "15.3.2",
     "react-addons-css-transition-group": "15.3.2",
     "react-addons-pure-render-mixin": "15.3.2",
@@ -104,5 +104,8 @@
     "sinon": "1.17.2",
     "sinon-chai": "2.8.0",
     "webpack-livereload-plugin": "^0.11.0"
+  },
+  "optionalDependencies": {
+    "fsevents": "^1.1.2"
   }
 }

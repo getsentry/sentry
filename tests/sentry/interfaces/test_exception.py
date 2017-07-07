@@ -293,7 +293,7 @@ class SlimExceptionDataTest(TestCase):
         interface = Exception.to_python({'values': [
             {'value': 'foo',
              'stacktrace': {'frames': [{'filename': 'foo'}]},
-            }
+             }
         ]})
         slim_exception_data(interface)
         assert len(interface.values[0].stacktrace.frames) == 1

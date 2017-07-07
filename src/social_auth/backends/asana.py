@@ -61,7 +61,7 @@ class AsanaAuth(BaseOAuth2):
         params = self.auth_complete_params(self.validate_state())
         try:
             response = requests.post(self.ACCESS_TOKEN_URL, data=params,
-                              headers=self.auth_headers())
+                                     headers=self.auth_headers())
             response.raise_for_status()
         except requests.exceptions.HTTPError as e:
             if e.code == 400:

@@ -27,6 +27,9 @@ class DebugOAuthAuthorizeView(View):
 
 class DebugOAuthAuthorizeErrorView(View):
     def get(self, request):
-        return render_to_response('sentry/oauth-error.html', {
-            'error': 'We were unable to complete your request. Please re-initiate the authorization flow.',
-        }, request)
+        return render_to_response(
+            'sentry/oauth-error.html',
+            {
+                'error': 'We were unable to complete your request. Please re-initiate the authorization flow.',
+            },
+            request)

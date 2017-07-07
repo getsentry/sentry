@@ -29,32 +29,37 @@ export default class FormField extends React.Component {
     form: React.PropTypes.object
   };
 
-  static childContextTypes = {
-    form: React.PropTypes.object
-  };
-
-  constructor(props) {
+  constructor(props, context) {
     super(props);
 
     this.state = {
-      value: this.getValue(props)
+      value: this.getValue(props, context)
     };
   }
 
-  getValue(props) {
-    let form = (this.context || {}).form;
+  componentWillReceiveProps(nextProps, nextContext) {
+    if (
+      this.props.value !== nextProps.value ||
+      (!defined(this.context.form) && defined(nextContext.form))
+    ) {
+      this.setState({value: this.getValue(nextProps, nextContext)});
+    }
+  }
+
+  getValue(props, context) {
+    let form = (context || this.context || {}).form;
     props = props || this.props;
     if (defined(props.value)) {
       return props.value;
     }
-    if (form) {
-      return idx(form, _ => _.data[props.name]);
+    if (form && form.data.hasOwnProperty(props.name)) {
+      return form.data[props.name];
     }
     return props.defaultValue || '';
   }
 
-  getError(props) {
-    let form = (this.context || {}).form;
+  getError(props, context) {
+    let form = (context || this.context || {}).form;
     props = props || this.props;
     if (defined(props.error)) {
       return props.error;
@@ -66,15 +71,24 @@ export default class FormField extends React.Component {
     return `id-${this.props.name}`;
   }
 
+  coerceValue(value) {
+    return value;
+  }
+
   onChange = e => {
+    let value = e.target.value;
+    this.setValue(value);
+  };
+
+  setValue = value => {
     let form = (this.context || {}).form;
     this.setState(
       {
-        value: e.target.value
+        value: value
       },
       () => {
-        this.props.onChange && this.props.onChange(this.state.value);
-        form && form.onFieldChange(this.props.name, this.state.value);
+        this.props.onChange && this.props.onChange(this.coerceValue(this.state.value));
+        form && form.onFieldChange(this.props.name, this.coerceValue(this.state.value));
       }
     );
   };

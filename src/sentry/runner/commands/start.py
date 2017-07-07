@@ -19,9 +19,14 @@ SERVICES = {
 
 @click.command()
 @click.option('--bind', '-b', default=None, help='Bind address.', metavar='ADDRESS')
-@click.option('--workers', '-w', default=0, help='The number of worker processes for handling requests.')
+@click.option(
+    '--workers',
+    '-w',
+    default=0,
+    help='The number of worker processes for handling requests.')
 @click.option('--upgrade', default=False, is_flag=True, help='Upgrade before starting.')
-@click.option('--noinput', default=False, is_flag=True, help='Do not prompt the user for input of any kind.')
+@click.option('--noinput', default=False, is_flag=True,
+              help='Do not prompt the user for input of any kind.')
 @click.argument('service', default='http', type=click.Choice(sorted(SERVICES.keys())))
 @configuration
 @click.pass_context

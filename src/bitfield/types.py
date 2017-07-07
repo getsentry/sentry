@@ -15,6 +15,7 @@ class Bit(object):
     """
     Represents a single Bit.
     """
+
     def __init__(self, number, is_set=True):
         self.number = number
         self.is_set = bool(is_set)
@@ -122,6 +123,7 @@ class BitHandler(object):
     """
     Represents an array of bits, each as a ``Bit`` object.
     """
+
     def __init__(self, value, keys, labels=None):
         # TODO: change to bitarray?
         if value:
@@ -152,7 +154,8 @@ class BitHandler(object):
         return cmp(self._value, other)
 
     def __repr__(self):
-        return '<%s: %s>' % (self.__class__.__name__, ', '.join('%s=%s' % (k, self.get_bit(n).is_set) for n, k in enumerate(self._keys)),)
+        return '<%s: %s>' % (self.__class__.__name__, ', '.join('%s=%s' %
+                                                                (k, self.get_bit(n).is_set) for n, k in enumerate(self._keys)),)
 
     def __str__(self):
         return six.text_type(self._value)
@@ -265,6 +268,7 @@ if django.VERSION[:2] >= (1, 8):
     try:
         from django.db.backends.postgresql_psycopg2.base import Database
         Database.extensions.register_adapter(Bit, lambda x: Database.extensions.AsIs(int(x)))
-        Database.extensions.register_adapter(BitHandler, lambda x: Database.extensions.AsIs(int(x)))
+        Database.extensions.register_adapter(
+            BitHandler, lambda x: Database.extensions.AsIs(int(x)))
     except ImproperlyConfigured:
         pass

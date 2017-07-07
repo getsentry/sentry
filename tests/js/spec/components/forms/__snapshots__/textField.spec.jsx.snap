@@ -14,7 +14,7 @@ exports[`TextField render() renders with form context 1`] = `
       onChange={[Function]}
       required={false}
       type="text"
-      value=""
+      value="fieldValue"
     />
   </div>
 </div>

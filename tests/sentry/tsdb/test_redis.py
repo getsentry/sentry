@@ -390,17 +390,29 @@ class RedisTSDBTest(TestCase):
         assert self.db.get_frequency_totals(
             model,
             {
-                'organization:1': ("project:1", "project:2", "project:3", "project:4", "project:5"),
-                'organization:2': ("project:1",),
+                'organization:1': (
+                    "project:1",
+                    "project:2",
+                    "project:3",
+                    "project:4",
+                    "project:5"),
+                'organization:2': (
+                    "project:1",
+                ),
             },
-            now - timedelta(hours=1),
+            now -
+            timedelta(
+                hours=1),
             now,
             rollup=rollup,
         ) == {
             'organization:1': {
-                "project:1": 1.0 + 1.0,
-                "project:2": 2.0 + 2.0,
-                "project:3": 3.0 + 3.0,
+                "project:1": 1.0 +
+                1.0,
+                "project:2": 2.0 +
+                2.0,
+                "project:3": 3.0 +
+                3.0,
                 "project:4": 4.0,
                 "project:5": 0.0,
             },

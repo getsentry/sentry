@@ -89,7 +89,8 @@ class OrganizationOnboardingTask(Model):
     __core__ = False
 
     TASK_CHOICES = (
-        (OnboardingTask.FIRST_EVENT, 'First event'),  # Send an organization's first event to Sentry
+        # Send an organization's first event to Sentry
+        (OnboardingTask.FIRST_EVENT, 'First event'),
         (OnboardingTask.INVITE_MEMBER, 'Invite member'),  # Add a second member to your Sentry org.
         (OnboardingTask.ISSUE_TRACKER, 'Issue tracker'),  # Hook up an external issue tracker.
         (OnboardingTask.NOTIFICATION_SERVICE, 'Notification services'),  # Setup a notification services
