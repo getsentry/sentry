@@ -30,6 +30,8 @@ class TeamManager(BoundManager):
         tenant = tenants.get_current_tenant()
         if not tenant or not tenant.team_ids:
             return
+        elif tenant.team_ids == tenants.ALL:
+            return Q()
         return Q(id__in=tenant.team_ids)
 
     def get_for_user(self, organization, user, scope=None, with_projects=False):
@@ -137,7 +139,8 @@ class Team(Model):
         if not self.slug:
             lock = locks.get('slug:team', duration=5)
             with TimedRetryPolicy(10)(lock.acquire):
-                slugify_instance(self, self.name, organization=self.organization)
+                slugify_instance(
+                    self, self.name, organization=self.organization)
             super(Team, self).save(*args, **kwargs)
         else:
             super(Team, self).save(*args, **kwargs)
@@ -249,7 +252,8 @@ class Team(Model):
             # we use a cursor here to avoid automatic cascading of relations
             # in Django
             try:
-                cursor.execute('DELETE FROM sentry_team WHERE id = %s', [self.id])
+                cursor.execute(
+                    'DELETE FROM sentry_team WHERE id = %s', [self.id])
             finally:
                 cursor.close()
 

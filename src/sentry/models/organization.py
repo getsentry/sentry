@@ -45,6 +45,8 @@ class OrganizationManager(BoundManager):
         tenant = tenants.get_current_tenant()
         if not tenant or not tenant.organization_ids:
             return
+        elif tenant.organization_ids == tenants.ALL:
+            return Q()
         return Q(id__in=tenant.organization_ids)
 
     def get_for_user(self, user, scope=None, only_visible=True):
