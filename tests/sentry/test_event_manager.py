@@ -22,9 +22,14 @@ from sentry.models import (
     EventMapping, Release
 )
 from sentry.testutils import TestCase, TransactionTestCase
+from sentry.utils import tenants
 
 
 class EventManagerTest(TransactionTestCase):
+    def setUp(self):
+        super(EventManagerTest, self).setUp()
+        tenants.set_current_tenant(tenants.UnrestrictedTenant)
+
     def make_event(self, **kwargs):
         result = {
             'event_id': 'a' * 32,
