@@ -4,6 +4,93 @@
 {% load i18n %}
 {% load sentry_assets %}
 
+{% block scripts %}
+{{ block.super }}
+
+<script>
+  (function() {
+    var ZXCVBN_SRC = "{% asset_url 'sentry' 'js/zxcvbn.js' %}";
+
+    var async_load = function() {
+      var first, s;
+      s = document.createElement('script');
+      s.src = ZXCVBN_SRC;
+      s.type = 'text/javascript';
+      s.async = true;
+      first = document.getElementsByTagName('script')[0];
+      return first.parentNode.insertBefore(s, first);
+    };
+
+    if (window.attachEvent != null) {
+      window.attachEvent('onload', async_load);
+    } else {
+      window.addEventListener('load', async_load, false);
+    }
+  }).call(this);
+
+  $(function() {
+    var $progress = $('.password-strength .progress-bar');
+    var setStrength = function(score) {
+      var MAX = 5;
+      if (score > -1 && score <= MAX) {
+        var percent = score === 0 ? 0 : score / MAX;
+        var color;
+        var labels = [
+          '',
+          'Weak',
+          'Weak',
+          'Weak',
+          'OK',
+          'Strong',
+        ];
+
+        switch (score) {
+          case 1:
+          case 2:
+            color = 'red';
+            break;
+          case 3:
+            color = 'yellow';
+            break;
+          case 4:
+          case 5:
+            color = 'green';
+            break;
+          default:
+            color = 'transparent';
+        }
+
+        $progress.css({
+          'width': Math.round(percent * 100) + '%',
+          'background-color': color,
+        });
+
+        $('#strength-label').text(labels[score]).css({
+          color: color,
+        });
+
+      }
+    }
+
+    $('#register #id_password').on('input', window.underscore.throttle(function() {
+      if (window.zxcvbn) {
+        var val = $(this).val();
+        if (val) {
+          var result = window.zxcvbn(val);
+          $('.password-warnings').text(result.feedback.warning);
+          // Score is 0 indexed
+          var score = result.score + 1;
+          setStrength(score);
+        } else {
+          setStrength(0);
+        }
+      }
+    }, 150));
+  });
+</script>
+{% endblock %}
+
+
 {% block title %}{% trans "Login" %} | {{ block.super }}{% endblock %}
 
 {% block auth_main %}
@@ -67,6 +154,24 @@
           {% for field in register_form %}
             {{ field|as_crispy_field }}
           {% endfor %}
+
+          <div class="password-strength">
+            <div>
+              <div style="font-weight: bold;">
+                Password Strength: <span id="strength-label"></span>
+              </div>
+            </div>
+
+            <div class="progress">
+              <div class="progress-bar" role="progressbar" aria-valuenow="60" aria-valuemin="0" aria-valuemax="100" style="width: 60%; height: 14px;">
+                <span class="sr-only">60% Complete</span>
+              </div>
+            </div>
+
+            <div class="password-warnings" style="opacity: 0.8; font-size: 0.9em; font-style: italic;">
+            </div>
+
+          </div>
 
           <fieldset class="form-actions">
             <button type="submit" class="btn btn-primary">{% trans "Register" %}</button>
