@@ -368,10 +368,11 @@ class ClientApiHelper(object):
             'version': version,
         }
 
-    def should_filter(self, project, data, ip_address=None, release=None):
+    def should_filter(self, project, data, ip_address=None):
         # TODO(dcramer): read filters from options such as:
         # - ignore errors from spiders/bots
         # - ignore errors from legacy browsers
+        release = data.get('release')
         if release and not is_valid_release(release, project):
             return True
 
@@ -828,10 +829,10 @@ class CspApiHelper(ClientApiHelper):
         auth.client = request.META.get('HTTP_USER_AGENT')
         return auth
 
-    def should_filter(self, project, data, ip_address=None, release=None):
+    def should_filter(self, project, data, ip_address=None):
         if not is_valid_csp_report(data['sentry.interfaces.Csp'], project):
             return True
-        return super(CspApiHelper, self).should_filter(project, data, ip_address, release)
+        return super(CspApiHelper, self).should_filter(project, data, ip_address)
 
     def validate_data(self, project, data):
         # pop off our meta data used to hold Sentry specific stuff
