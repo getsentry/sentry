@@ -417,10 +417,8 @@ const ProjectFilters = React.createClass({
 
     this.api.request(`/projects/${orgId}/${projectId}/tombstone/`, {
       method: 'GET',
-      success: data => {
-        this.setState({
-          tombstones: data
-        });
+      success: tombstones => {
+        this.setState({tombstones});
       },
       error: () => {
         this.setState({
@@ -544,6 +542,7 @@ const ProjectFilters = React.createClass({
           projectId={projectId}
           tombstones={this.state.tombstones}
           tombstoneError={this.state.tombstoneError}
+          fetchData={this.fetchData}
         />
       );
     }
