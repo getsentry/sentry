@@ -89,10 +89,6 @@ function appendTrailingSlash(nextState, replaceState) {
   }
 }
 
-function loadRoute(cb) {
-  return module => cb(null, module.default);
-}
-
 function routes() {
   let hooksRoutes = [];
   HookStore.get('routes').forEach(cb => {
@@ -135,22 +131,6 @@ function routes() {
         <Route path="settings/" component={errorHandler(AdminSettings)} />
         <Route path="users/" component={errorHandler(AdminUsers)} />
         {hooksAdminRoutes}
-      </Route>
-
-      <Route
-        path="/styleguide/"
-        getComponent={(loc, cb) => {
-          import('./views/styleguide').then(loadRoute(cb));
-        }}>
-        {
-          <IndexRoute
-            getComponent={(loc, cb) => {
-              import('./views/styleguide/styleguideComponents').then(loadRoute(cb));
-            }}
-          />
-        }
-        {/* StyleguideColors */}
-        {/* StyleguideIcons */}
       </Route>
 
       <Redirect from="/share/group/:shareId/" to="/share/issue/:shareId/" />
