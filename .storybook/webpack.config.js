@@ -5,10 +5,13 @@ const componentPath = path.resolve(staticPath, 'app', 'components');
 
 const [appConfig, legacyCssConfig] = require('../webpack.config');
 
-console.log(legacyCssConfig);
 module.exports = {
   module: {
     rules: [
+      {
+        test: /\.css$/,
+        use: ['style-loader', 'css-loader']
+      },
       {
         test: /\.less$/,
         include: staticPath,
