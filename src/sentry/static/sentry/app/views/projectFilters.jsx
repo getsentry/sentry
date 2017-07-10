@@ -298,16 +298,6 @@ const ProjectFiltersSettingsForm = React.createClass({
             )}
           </div>}
         <fieldset>
-          <div className="pull-right">
-
-            <button
-              type="submit"
-              className="btn btn-sm btn-primary"
-              disabled={isSaving || !this.state.hasChanged}>
-              {t('Save Changes')}
-            </button>
-
-          </div>
           <h5>{t('Filter errors from these IP addresses:')}</h5>
           <TextareaField
             key="ip"
@@ -318,6 +308,27 @@ const ProjectFiltersSettingsForm = React.createClass({
             error={errors['filters:blacklisted_ips']}
             onChange={this.onFieldChange.bind(this, 'filters:blacklisted_ips')}
           />
+        </fieldset>
+        <fieldset>
+          <h5>{t('Filter errors from these releases:')}</h5>
+          <TextareaField
+            key="release"
+            name="release"
+            help={t('Separate multiple entries with a newline.')}
+            placeholder="e.g. 0c44ee03391a51696087b3e84ae83b315c20a18d"
+            value={this.state.formData['filters:releases']}
+            error={errors['filters:releases']}
+            onChange={this.onFieldChange.bind(this, 'filters:releases')}
+          />
+          <div className="pull-right">
+            <button
+              type="submit"
+              className="btn btn-sm btn-primary"
+              disabled={isSaving || !this.state.hasChanged}>
+              {t('Save Changes')}
+            </button>
+
+          </div>
         </fieldset>
       </form>
     );

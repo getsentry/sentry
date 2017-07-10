@@ -238,6 +238,23 @@ def is_valid_ip(ip_address, project):
     return True
 
 
+def is_valid_release(release, project):
+    """
+    Verify that a project has not filtered errors from the release
+    """
+
+    invalid_releases = project.get_option('sentry:releases')
+    if not invalid_releases:
+        return True
+
+    for r in invalid_releases:
+        # We want to error fast if it's an exact match
+        if release == r:
+            return False
+
+    return True
+
+
 def origin_from_request(request):
     """
     Returns either the Origin or Referer value from the request headers,

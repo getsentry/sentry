@@ -137,6 +137,7 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             'sentry:default_environment',
             'sentry:reprocessing_active',
             'sentry:blacklisted_ips',
+            'sentry:releases',
             'feedback:branding',
             'digests:mail:minimum_delay',
             'digests:mail:maximum_delay',
@@ -247,6 +248,8 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                     bool(attrs['options'].get('sentry:reprocessing_active', False)),
                     'filters:blacklisted_ips':
                     '\n'.join(attrs['options'].get('sentry:blacklisted_ips', [])),
+                    'filters:releases':
+                    '\n'.join(attrs['options'].get('sentry:releases', [])),
                     'feedback:branding':
                     attrs['options'].get('feedback:branding', '1') == '1',
                 },

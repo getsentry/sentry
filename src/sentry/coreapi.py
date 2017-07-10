@@ -41,7 +41,7 @@ from sentry.tasks.store import preprocess_event, \
 from sentry.utils import json
 from sentry.utils.auth import parse_auth_header
 from sentry.utils.csp import is_valid_csp_report
-from sentry.utils.http import is_valid_ip, origin_from_request
+from sentry.utils.http import is_valid_ip, origin_from_request, is_valid_release
 from sentry.utils.strings import decompress
 from sentry.utils.validators import is_float, is_event_id
 
@@ -368,10 +368,13 @@ class ClientApiHelper(object):
             'version': version,
         }
 
-    def should_filter(self, project, data, ip_address=None):
+    def should_filter(self, project, data, ip_address=None, release=None):
         # TODO(dcramer): read filters from options such as:
         # - ignore errors from spiders/bots
         # - ignore errors from legacy browsers
+        if release and not is_valid_release(release, project):
+            return True
+
         if ip_address and not is_valid_ip(ip_address, project):
             return True
 
@@ -825,10 +828,10 @@ class CspApiHelper(ClientApiHelper):
         auth.client = request.META.get('HTTP_USER_AGENT')
         return auth
 
-    def should_filter(self, project, data, ip_address=None):
+    def should_filter(self, project, data, ip_address=None, release=None):
         if not is_valid_csp_report(data['sentry.interfaces.Csp'], project):
             return True
-        return super(CspApiHelper, self).should_filter(project, data, ip_address)
+        return super(CspApiHelper, self).should_filter(project, data, ip_address, release)
 
     def validate_data(self, project, data):
         # pop off our meta data used to hold Sentry specific stuff
