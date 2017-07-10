@@ -227,7 +227,7 @@ var legacyCssConfig = {
   },
   plugins: [new ExtractTextPlugin('[name].css')],
   resolve: {
-    extensions: ['less'],
+    extensions: ['.less'],
     modules: [path.join(__dirname, staticPrefix), 'node_modules']
   },
   module: {
