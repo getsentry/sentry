@@ -77,7 +77,8 @@
   "scripts": {
     "test": "NODE_ENV=test node_modules/.bin/jest tests/js/spec",
     "test-watch": "NODE_ENV=test node_modules/.bin/jest tests/js/spec --watch",
-    "lint": "node_modules/.bin/eslint tests/js src/sentry/static/sentry/app --ext .jsx"
+    "lint": "node_modules/.bin/eslint tests/js src/sentry/static/sentry/app --ext .jsx",
+    "storybook": "start-storybook -p 9001 -c .storybook"
   },
   "jest": {
     "modulePaths": [
@@ -92,6 +93,9 @@
     ]
   },
   "devDependencies": {
+    "@storybook/addon-actions": "^3.1.8",
+    "@storybook/addon-info": "^3.1.6",
+    "@storybook/react": "^3.1.8",
     "babel-eslint": "7.1.1",
     "babel-jest": "^19.0.0",
     "chai": "3.4.1",
