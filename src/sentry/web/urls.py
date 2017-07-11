@@ -235,8 +235,6 @@ urlpatterns += patterns(
     url(r'^manage/', react_page_view,
         name='sentry-admin-overview'),
 
-    url(r'^styleguide/$', react_page_view),
-
     # Legacy Redirects
     url(r'^docs/?$',
         RedirectView.as_view(url='https://docs.sentry.io/hosted/', permanent=False),
