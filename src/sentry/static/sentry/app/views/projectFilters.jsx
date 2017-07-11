@@ -415,7 +415,7 @@ const ProjectFilters = React.createClass({
       }
     });
 
-    this.api.request(`/projects/${orgId}/${projectId}/tombstone/`, {
+    this.api.request(`/projects/${orgId}/${projectId}/tombstones/`, {
       method: 'GET',
       success: tombstones => {
         this.setState({tombstones});

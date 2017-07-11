@@ -3,6 +3,7 @@ from __future__ import absolute_import
 import six
 
 from sentry.api.serializers import Serializer, register, serialize
+from sentry.constants import LOG_LEVELS
 from sentry.models import (
     GroupTombstone, User
 )
@@ -19,7 +20,7 @@ class GroupTombstoneSerializer(Serializer):
         user_list = list(User.objects.filter(id__in=[item.actor_id for item in item_list]))
         users = {
             d['id']: d
-            for d in serialize(user_list)
+            for d in serialize(user_list, user)
         }
 
         attrs = {}
@@ -31,15 +32,13 @@ class GroupTombstoneSerializer(Serializer):
         return attrs
 
     def serialize(self, obj, attrs, user):
-        d = {
+        return {
             'id': six.text_type(obj.id),
-            'project': attrs.get('project'),
-            'level': six.text_type(obj.level),
+            'project': attrs['project'],
+            'level': LOG_LEVELS.get(obj.level, 'unknown'),
             'message': obj.message,
             'culprit': obj.culprit,
             'type': obj.get_event_type(),
             'actor': attrs.get('user'),
 
         }
-
-        return d

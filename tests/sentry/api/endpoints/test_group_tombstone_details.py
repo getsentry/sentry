@@ -1,4 +1,5 @@
 from __future__ import absolute_import, print_function
+from django.core.urlresolvers import reverse
 
 from sentry.models import GroupHash, GroupTombstone
 from sentry.testutils import APITestCase
@@ -7,6 +8,20 @@ from sentry.testutils import APITestCase
 class GroupTombstoneDetailsTest(APITestCase):
 
     def test_delete(self):
+        self.user = self.create_user('foo@example.com')
+        self.org = self.create_organization(
+            owner=self.user,
+            name='Rowdy Tiger'
+        )
+        self.team = self.create_team(
+            organization=self.org,
+            name='Mariachi Band'
+        )
+        self.project = self.create_project(
+            organization=self.org,
+            team=self.team,
+            name='Bengal',
+        )
         self.login_as(user=self.user)
 
         group = self.create_group()
@@ -25,9 +40,14 @@ class GroupTombstoneDetailsTest(APITestCase):
             group_tombstone=tombstone
         )
         assert GroupHash.objects.filter(group_tombstone=tombstone).exists()
-
-        path = '/api/0/tombstone/{}/'.format(tombstone.id)
+        path = reverse('sentry-api-0-group-tombstone-details',
+                       kwargs={
+                           'organization_slug': self.org.slug,
+                           'project_slug': self.project.slug,
+                           'tombstone_id': tombstone.id,
+                       }
+                       )
         response = self.client.delete(path)
 
-        assert response.status_code == 202, response
+        assert response.status_code == 204, response
         assert not GroupHash.objects.filter(group_tombstone=tombstone).exists()
