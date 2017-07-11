@@ -9,6 +9,14 @@ module.exports = {
   module: {
     rules: [
       {
+        test: /\.po$/,
+        loader: 'po-catalog-loader',
+        query: {
+          referenceExtensions: ['.js', '.jsx'],
+          domain: 'sentry'
+        }
+      },
+      {
         test: /\.css$/,
         use: ['style-loader', 'css-loader']
       },
@@ -33,8 +41,8 @@ module.exports = {
     ]
   },
   resolve: {
-    alias: {
+    alias: Object.assign({}, appConfig.resolve.alias, {
       'sentry-ui': componentPath
-    }
+    })
   }
 };
