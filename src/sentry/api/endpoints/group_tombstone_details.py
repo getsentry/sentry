@@ -2,18 +2,16 @@ from __future__ import absolute_import
 
 from rest_framework.response import Response
 
-from sentry.api.bases import Endpoint
-from sentry.api.bases.group import GroupPermission
+from sentry.api.bases import ProjectEndpoint
 
 from sentry.models import (
     GroupHash, GroupTombstone,
 )
 
 
-class GroupTombstoneDetailsEndpoint(Endpoint):
-    permission_classes = (GroupPermission,)
+class GroupTombstoneDetailsEndpoint(ProjectEndpoint):
 
-    def delete(self, request, tombstone_id):
+    def delete(self, request, project, tombstone_id):
         """
         Remove a GroupTombstone
         ```````````````
@@ -36,4 +34,4 @@ class GroupTombstoneDetailsEndpoint(Endpoint):
         except GroupTombstone.DoesNotExist:
             pass
 
-        return Response(status=202)
+        return Response(status=204)

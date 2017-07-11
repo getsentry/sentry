@@ -4,9 +4,7 @@ from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 
-from sentry.models import (
-    GroupHash, GroupTombstone
-)
+from sentry.models import GroupTombstone
 
 
 class GroupTombstoneEndpoint(ProjectEndpoint):
@@ -24,9 +22,7 @@ class GroupTombstoneEndpoint(ProjectEndpoint):
         :auth: required
         """
         queryset = GroupTombstone.objects.filter(
-            id__in=GroupHash.objects.filter(
-                project=project
-            ).values_list('group_tombstone', flat=True)
+            project=project
         )
 
         return self.paginate(

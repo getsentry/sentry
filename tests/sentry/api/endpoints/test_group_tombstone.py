@@ -40,7 +40,7 @@ class GroupTombstoneTest(APITestCase):
             group_tombstone=tombstone
         )
 
-        path = reverse('sentry-api-0-group-tombstone',
+        path = reverse('sentry-api-0-group-tombstones',
                        kwargs={
                            'organization_slug': self.org.slug,
                            'project_slug': self.project.slug,
