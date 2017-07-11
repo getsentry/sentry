@@ -2,6 +2,8 @@ import React from 'react';
 import DocumentTitle from 'react-document-title';
 import {browserHistory} from 'react-router';
 
+// import OrganizationContext from './views/organizationContext';
+
 import ApiMixin from '../../mixins/apiMixin';
 // import OrganizationActions from '../../actions/organizationActions';
 
@@ -46,7 +48,7 @@ const OnboardingWizard = React.createClass({
 
   getProjectUrlProps(project) {
     let org = this.context.organization;
-    let path = `/organizations/${org.slug}/onboarding/${project.slug}/configure/${this.state.platform}`;
+    let path = `/onboarding/${org.slug}/${project.slug}/configure/${this.state.platform}`;
     return path;
   },
 
@@ -94,7 +96,6 @@ const OnboardingWizard = React.createClass({
     return (
       <div className="onboarding-container">
         <DocumentTitle title={'Sentry'} />
-        <h1>ONBOARDING</h1>
         <div className="step-container">
           <ProgressNodes step={this.inferStep()} />
           <div>

@@ -1,6 +1,6 @@
 import React from 'react';
 import classNames from 'classnames';
-import {onboardingSteps} from './utils';
+import {onboardingSteps, stepDescriptions} from './utils';
 
 const ProgressNodes = React.createClass({
   propTypes: {
@@ -14,10 +14,10 @@ const ProgressNodes = React.createClass({
       done: i < this.props.step,
       active: i === this.props.step
     });
-
     return (
       <div className={nodeClass} key={i}>
-        {step}
+        <span className={nodeClass} />
+        {stepDescriptions[step]}
       </div>
     );
   },
@@ -25,16 +25,18 @@ const ProgressNodes = React.createClass({
     return (
       <div className="onboarding-sidebar">
         <div className="sentry-flag">
-          <span href="/" className="icon-sentry-logo"> Sentry</span>
+          <span href="/" className="icon-sentry-logo" />
+          <h4>Sentry</h4>
         </div>
         <div className="progress-nodes">
           {this.steps.map(this.node)}
         </div>
         <div className="stuck">
+          {/*
           <p> Stuck?</p>
           <p> Chat with a real person</p>
+        */}
         </div>
-
       </div>
     );
   }

@@ -24,37 +24,49 @@
     background-color: #e03e2f;
     width: 100px;
     padding:5px 15px;
-
+    h4{
+      display: inline;
+      padding:  0 5px;
+      font-size: 15px;
+      text-transform: uppercase;
+    }
   }
   .progress-nodes{
-    .node{
+    div.node{
       width: 190px;
       margin:auto;
       margin-bottom: 30px;
       display: flex;
-      color: #ccc;      
-      // justify-content: center;
-      // align-content: flex-end;
-      &::before{
-        content:'';
-        // background-color: black;
-        border-radius: 100%;
-        width:30px;
-        height:30px;      
-        margin-right: 8px;
-        border: 3px solid #ccc;      
-      }
+      color:@50;
+      position: relative;
+      padding-left: 30px;
+      border-color: @50;
 
       &.active{
         color: white;
-        &::before{
-          border-color: white;      
+          &::before{
+          border-color: white;
         }
       }
-      &.done{
+
+      span.node {
         &::before{
-          content: '●';
-          text-align: center;
+          content:'';
+          position: absolute;
+          left:-15px;
+          border-radius: 100%;
+          width:30px;
+          height:30px;
+          margin-top: 10px;
+          margin-right: 8px;
+          border: 3px solid;
+        }
+
+        &.done{
+          &::before{
+            content: '●';
+            text-align: center;
+          }
         }
       }
     }
@@ -72,7 +84,15 @@
 }
 
 .platform-picker{
-  
+  max-width: 90%;
+  .nav-tabs{
+    border-bottom: 1px solid @20;
+  }
+  .platform-filter{
+    border-radius: 5px;
+    border: 1px solid @20;
+
+  }
   .platform-tiles{
     display: flex;
     flex-wrap: wrap;

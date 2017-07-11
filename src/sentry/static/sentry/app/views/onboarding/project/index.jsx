@@ -1,5 +1,6 @@
 import React from 'react';
 import PlatformPicker from './platformpicker';
+import PlatformCard from './platformCard';
 
 const Project = React.createClass({
   propTypes: {
@@ -17,22 +18,17 @@ const Project = React.createClass({
   render() {
     return (
       <div className="onboarding-info">
-        <h2>Select a language or framework</h2>
+        <h2>Choose a language or framework</h2>
         <PlatformPicker {...this.props} />
-        <div style={{display: 'flex'}}>
+        <div style={{display: 'flex', height: '3em'}}>
           <div className="client-platform-list">
-            <span className={`platformicon platformicon-${this.props.platform}`} />
-            <span
-              className={`platformicon  platformicon-${this.props.platform.split('-')[0]}`}
-            />
+            <PlatformCard platform={this.props.platform} />
           </div>
-
           <input
             type="text"
             name="name"
             label="Project Name"
             placeholder="project name"
-            value={this.props.name}
             onChange={e => this.props.setName(e.target.value)}
           />
           <div className="btn btn-primary" onClick={this.submit}>

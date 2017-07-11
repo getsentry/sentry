@@ -35,6 +35,7 @@ import OrganizationAuditLog from './views/organizationAuditLog';
 import OrganizationCreate from './views/organizationCreate';
 import OrganizationDashboard from './views/organizationDashboard';
 import OrganizationDetails from './views/organizationDetails';
+import OrganizationContext from './views/organizationContext';
 import OrganizationRateLimits from './views/organizationRateLimits';
 import OrganizationRepositories from './views/organizationRepositories';
 import OrganizationSettings from './views/organizationSettings';
@@ -143,18 +144,18 @@ function routes() {
 
       <Route path="/organizations/new/" component={errorHandler(OrganizationCreate)} />
 
-      <Route path="/:orgId/" component={errorHandler(OrganizationDetails)}>
-        <IndexRoute component={errorHandler(OrganizationDashboard)} />
-        <Route
-          path="/organizations/:orgId/onboarding/"
-          component={errorHandler(OnboardingWizard)}>
+      <Route path="/onboarding/:orgId/" component={errorHandler(OrganizationContext)}>
+        <Route path="" component={errorHandler(OnboardingWizard)}>
           <IndexRoute component={errorHandler(OnboardingProject)} />
           <Route
             path=":projectId/configure/:platform/"
             component={errorHandler(OnboardingConfigure)}
           />
         </Route>
+      </Route>
 
+      <Route path="/:orgId/" component={errorHandler(OrganizationDetails)}>
+        <IndexRoute component={errorHandler(OrganizationDashboard)} />
         <Route
           path="/organizations/:orgId/audit-log/"
           component={errorHandler(OrganizationAuditLog)}

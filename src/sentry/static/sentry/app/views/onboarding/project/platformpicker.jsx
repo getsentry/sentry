@@ -1,18 +1,13 @@
 import React from 'react';
-import TextField from '../../../components/forms/textField';
 import ListLink from '../../../components/listLink';
 import classnames from 'classnames';
-import {platforms} from '../../../../../../integration-docs/_platforms.json';
+// import {platforms} from '../../../../../../integration-docs/_platforms.json';
+import {flattenedPlatforms} from '../utils';
+import PlatformiconTile from './platformiconTile';
+
 const categoryList = ['Popular', 'Frontend', 'Backend', 'Mobile', 'All'];
 
-const flattened = [].concat(
-  [],
-  ...platforms.map(language => {
-    return language.integrations.map(i => {
-      return {...i, language: language.id};
-    });
-  })
-);
+const languages = flattenedPlatforms.filter(p => p.type === 'language');
 
 const PlatFormPicker = React.createClass({
   propTypes: {
@@ -22,30 +17,83 @@ const PlatFormPicker = React.createClass({
 
   getInitialState() {
     return {
-      tab: categoryList[0],
+      tab: categoryList[4],
       filter: ''
     };
   },
 
   renderPlatformList() {
-    const filtered = flattened.filter(platform => {
+    const filtered = flattenedPlatforms.filter(platform => {
       return (platform.id + ' ' + platform.platform).includes(this.state.filter);
     });
     return (
       <ul className="client-platform-list platform-tiles">
         {filtered.map((platform, idx) => {
           return (
-            <li
-              className={classnames('platform-tile', platform.language, platform.id, {
+            <PlatformiconTile
+              platform={platform.id}
+              className={classnames({
                 selected: this.props.platform === platform.id
               })}
               key={idx}
               onClick={() => {
                 this.props.setPlatform(platform.id);
-              }}>
-              <span className={`platformicon platformicon-${platform.id}`} />
-              {platform.name}
-            </li>
+              }}
+            />
+          );
+        })}
+      </ul>
+    );
+  },
+
+  renderLanguageList() {
+    const filtered = languages.filter(platform => {
+      return (platform.id + ' ' + platform.platform).includes(this.state.filter);
+    });
+    return (
+      <ul className="client-platform-list platform-tiles">
+        {filtered.map((platform, idx) => {
+          return (
+            <PlatformiconTile
+              platform={platform.id}
+              className={classnames({
+                selected: this.props.platform === platform.id
+              })}
+              key={idx}
+              onClick={() => {
+                this.props.setPlatform(platform.id);
+              }}
+            />
+          );
+        })}
+      </ul>
+    );
+  },
+
+  renderExtended() {
+    if (!this.props.platform) return false;
+
+    const language = this.props.platform.split('-')[0];
+
+    const variants = flattenedPlatforms.filter(i => i.language === language);
+    const filtered = variants.filter(platform => {
+      return (platform.id + ' ' + platform.platform).includes(this.state.filter);
+    });
+
+    return (
+      <ul className="client-platform-list platform-tiles">
+        {filtered.map((platform, idx) => {
+          return (
+            <PlatformiconTile
+              platform={platform.id}
+              className={classnames({
+                selected: this.props.platform === platform.id
+              })}
+              key={idx}
+              onClick={() => {
+                this.props.setPlatform(platform.id);
+              }}
+            />
           );
         })}
       </ul>
@@ -71,15 +119,21 @@ const PlatFormPicker = React.createClass({
             );
           })}
           <li>
-            <TextField
+            <span className="icon icon-search" />
+            <input
+              type="text"
               className="platform-filter"
-              name="filter"
+              label="Filter"
               placeholder="Filter"
-              onChange={v => this.setState({filter: v})}
+              onChange={e => this.setState({filter: e.target.value})}
             />
           </li>
         </ul>
-        {this.renderPlatformList()}
+        {this.renderLanguageList()}
+        <hr />
+        {this.renderExtended()}
+        <hr />
+
       </div>
     );
   }
