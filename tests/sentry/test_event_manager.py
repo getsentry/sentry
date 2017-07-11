@@ -14,7 +14,7 @@ from time import time
 from sentry.app import tsdb
 from sentry.constants import MAX_CULPRIT_LENGTH, DEFAULT_LOGGER_NAME
 from sentry.event_manager import (
-    DiscardedHash, EventManager, EventUser, get_hashes_for_event, get_hashes_from_fingerprint,
+    HashDiscarded, EventManager, EventUser, get_hashes_for_event, get_hashes_from_fingerprint,
     generate_culprit, md5_from_hash
 )
 from sentry.models import (
@@ -775,6 +775,7 @@ class EventManagerTest(TransactionTestCase):
             message=group.message,
             culprit=group.culprit,
             type=group.get_event_type(),
+            previous_group_id=group.id,
         )
         GroupHash.objects.filter(
             group=group,
@@ -789,7 +790,7 @@ class EventManagerTest(TransactionTestCase):
         ))
 
         with self.tasks():
-            with self.assertRaises(DiscardedHash):
+            with self.assertRaises(HashDiscarded):
                 event = manager.save(1)
 
 

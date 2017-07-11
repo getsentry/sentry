@@ -1194,9 +1194,10 @@ class GroupUpdateTest(APITestCase):
             group1=group1,
         )
         with self.tasks():
-            response = self.client.put(url, data={
-                'discard': True,
-            })
+            with self.feature('projects:custom-filters', True):
+                response = self.client.put(url, data={
+                    'discard': True,
+                })
 
         assert response.status_code == 204
         assert not Group.objects.filter(
