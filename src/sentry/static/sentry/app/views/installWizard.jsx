@@ -19,7 +19,7 @@ const InstallWizardSettings = React.createClass({
   getInitialState() {
     let options = {...this.props.options};
     let requiredOptions = Object.keys(
-      _.pick(options, option => {
+      _.pickBy(options, option => {
         return option.field.required && !option.field.disabled;
       })
     );
@@ -164,7 +164,7 @@ const InstallWizard = React.createClass({
 
     // We only want to send back the values which weren't disabled
     let data = _.mapValues(
-      _.pick(options, option => !option.field.disabled),
+      _.pickBy(options, option => !option.field.disabled),
       option => option.value
     );
     this.api.request('/internal/options/', {

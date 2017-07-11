@@ -15,7 +15,7 @@ const CrumbTable = React.createClass({
     if (!this.props.kvData) {
       return null;
     }
-    return _.map(this.props.kvData, (val, key) => [val, key]).map(([val, key]) => {
+    return _.map(this.props.kvData, (val, key) => {
       return (
         <tr key={key}>
           <td className="key">{key}</td>

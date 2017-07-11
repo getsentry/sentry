@@ -1,6 +1,5 @@
 import React from 'react';
-import lodash from 'lodash';
-
+import _ from 'lodash';
 
 import FormState from './state';
 import {t} from '../../locale';
@@ -96,7 +95,7 @@ export default class Form extends React.Component {
     let {initialData, data} = this.state;
     let {requireChanges} = this.props;
     let hasChanges = requireChanges
-      ? Object.keys(data).length && !lodash.isEqual(data, initialData)
+      ? Object.keys(data).length && !_.isEqual(data, initialData)
       : true;
     return (
       <form onSubmit={this.onSubmit} className={this.props.className}>

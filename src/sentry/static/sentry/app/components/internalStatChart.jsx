@@ -1,6 +1,6 @@
 /*eslint getsentry/jsx-needs-il8n:0*/
 import React from 'react';
-import underscore from 'lodash';
+import _ from 'lodash';
 
 import ApiMixin from '../mixins/apiMixin';
 import BarChart from '../components/barChart';
@@ -37,7 +37,7 @@ export default React.createClass({
   },
 
   componentWillReceiveProps(nextProps) {
-    if (!underscore.isEqual(nextProps, this.props)) {
+    if (!_.isEqual(nextProps, this.props)) {
       this.setState(
         {
           loading: true

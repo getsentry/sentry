@@ -1,5 +1,5 @@
 import moment from 'moment';
-import underscore from 'lodash';
+import _ from 'lodash';
 import React from 'react';
 import TooltipMixin from '../mixins/tooltip';
 import Count from './count';
@@ -156,7 +156,7 @@ const StackedBarChart = React.createClass({
   },
 
   shouldComponentUpdate(nextProps, nextState) {
-    return !underscore.isEqual(this.props, nextProps, true);
+    return !_.isEqual(this.props, nextProps, true);
   },
 
   use24Hours() {
