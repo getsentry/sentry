@@ -42,6 +42,7 @@ delete_logger = logging.getLogger('sentry.deletions.api')
 
 ERR_INVALID_STATS_PERIOD = "Invalid stats_period. Valid choices are '', '24h', and '14d'"
 SAVED_SEARCH_QUERIES = set([s['query'] for s in DEFAULT_SAVED_SEARCHES])
+TOMBSTONE_FIELDS_FROM_GROUP = ('project_id', 'level', 'message', 'culprit')
 
 
 @scenario('BulkUpdateIssues')
@@ -169,11 +170,10 @@ class GroupValidator(serializers.Serializer):
 
     def validate(self, attrs):
         attrs = super(GroupValidator, self).validate(attrs)
-        if 'discard' in attrs:
-            if len(attrs) > 1:
-                raise serializers.ValidationError(
-                    'Other attributes cannot be updated when discarding'
-                )
+        if 'discard' in attrs and len(attrs) > 1:
+            raise serializers.ValidationError(
+                'Other attributes cannot be updated when discarding'
+            )
         return attrs
 
 
@@ -473,31 +473,37 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
 
         discard = result.get('discard')
         if discard:
+
             if not features.has('projects:custom-filters', project, actor=request.user):
                 return Response({'detail': ['You do not have that feature enabled']}, status=400)
+
             group_list = list(queryset)
+            groups_to_delete = []
+
             for group in group_list:
                 with transaction.atomic():
                     try:
                         tombstone = GroupTombstone.objects.create(
                             previous_group_id=group.id,
-                            project_id=group.project_id,
-                            level=group.level,
-                            message=group.message,
-                            culprit=group.culprit,
                             type=group.get_event_type(),
                             actor_id=acting_user.id if acting_user else None,
+                            **{name: getattr(group, name) for name in TOMBSTONE_FIELDS_FROM_GROUP}
                         )
                     except IntegrityError:
-                        continue
+                        # in this case, a tombstone has already been created
+                        # for a group, so no hash updates are necessary
+                        pass
+                    else:
+                        groups_to_delete.append(group)
 
-                GroupHash.objects.filter(
-                    group=group,
-                ).update(
-                    group=None,
-                    group_tombstone=tombstone,
-                )
-            self._delete_groups(request, project, group_list)
+                        GroupHash.objects.filter(
+                            group=group,
+                        ).update(
+                            group=None,
+                            group_tombstone=tombstone,
+                        )
+
+            self._delete_groups(request, project, groups_to_delete)
 
             return Response(status=204)
 
