@@ -48,7 +48,7 @@ from sentry.utils.distutils import (
 )
 
 # The version of sentry
-VERSION = '8.18.0.dev0'
+VERSION = '8.19.0.dev0'
 
 # Hack to prevent stupid "TypeError: 'NoneType' object is not callable" error
 # in multiprocessing/util.py _exit_function when running `python
@@ -63,6 +63,7 @@ for m in ('multiprocessing', 'billiard'):
 IS_LIGHT_BUILD = os.environ.get('SENTRY_LIGHT_BUILD') == '1'
 
 dev_requires = [
+    'autopep8',
     'Babel',
     'flake8>=2.6,<2.7',
     'pycodestyle>=2.0,<2.1',
@@ -88,6 +89,7 @@ tests_require = [
 
 
 install_requires = [
+    'botocore<1.5.71',
     'boto3>=1.4.1,<1.5',
     'celery>=3.1.8,<3.1.19',
     'click>=5.0,<7.0',
@@ -95,7 +97,6 @@ install_requires = [
     'cssutils>=0.9.9,<0.10.0',
     'Django>=1.6.0,<1.7',
     'django-crispy-forms>=1.4.0,<1.5.0',
-    'django-debug-toolbar>=1.3.2,<1.4.0',
     'django-jsonfield>=0.9.13,<0.9.14',
     'django-picklefield>=0.3.0,<0.4.0',
     'django-sudo>=2.1.0,<3.0.0',
@@ -111,12 +112,12 @@ install_requires = [
     'lxml>=3.4.1',
 
     'ipaddress>=1.0.16,<1.1.0',
-    'libsourcemap>=0.5.0,<0.6.0',
+    'libsourcemap>=0.7.2,<0.8.0',
     'loremipsum>=1.0.5,<1.1.0',
     'mock>=0.8.0,<1.1',
     'mmh3>=2.3.1,<2.4',
     'oauth2>=1.5.167',
-    'percy>=0.4.4',
+    'percy>=0.4.5',
     'petname>=2.0,<2.1',
     'Pillow>=3.2.0,<3.3.0',
     'progressbar2>=3.10,<3.11',
@@ -131,19 +132,20 @@ install_requires = [
     'raven>=5.29.0,<6.0.0',
     'redis>=2.10.3,<2.11.0',
     'requests[security]>=2.9.1,<2.13.0',
-    'selenium==3.0.0b3',
+    'selenium==3.4.3',
     'simplejson>=3.2.0,<3.9.0',
     'six>=1.10.0,<1.11.0',
     'setproctitle>=1.1.7,<1.2.0',
     'statsd>=3.1.0,<3.2.0',
     'structlog==16.1.0',
     'South==1.0.1',
+    'sqlparse>=0.1.16,<0.2.0',
     'symsynd>=3.0.0,<4.0.0',
     'toronado>=0.0.11,<0.1.0',
     'ua-parser>=0.6.1,<0.8.0',
     'urllib3>=1.14,<1.17',
     'uwsgi>2.0.0,<2.1.0',
-    'rb>=1.6.0,<2.0.0',
+    'rb>=1.7.0,<2.0.0',
     'qrcode>=5.2.2,<6.0.0',
     'python-u2flib-server>=4.0.1,<4.1.0',
 ]
@@ -173,6 +175,7 @@ class SentryDevelopCommand(DevelopCommand):
         if not IS_LIGHT_BUILD:
             self.run_command('build_assets')
             self.run_command('build_integration_docs')
+
 
 cmdclass = {
     'sdist': SentrySDistCommand,

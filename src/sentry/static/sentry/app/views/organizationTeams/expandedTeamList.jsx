@@ -144,7 +144,7 @@ const ExpandedTeamList = React.createClass({
         </td>
         <td className="align-right project-chart">
           {chartData &&
-            <LazyLoad><BarChart points={chartData} className="sparkline" /></LazyLoad>}
+            <LazyLoad><BarChart points={chartData} label="events" /></LazyLoad>}
         </td>
       </tr>
     );
@@ -163,7 +163,7 @@ const ExpandedTeamList = React.createClass({
                       to={`/organizations/${this.props.organization.slug}/all-teams/`}
                     />
                   ),
-                  createLink: <a href={this.urlPrefix() + '/teams/new/'} />
+                  createLink: <Link to={this.urlPrefix() + '/teams/new/'} />
                 }
               )
             : tct('You are not a member of any teams. [joinLink:Join a team].', {
@@ -181,7 +181,7 @@ const ExpandedTeamList = React.createClass({
         {tct(
           'You dont have any teams for this organization yet. Get started by [link:creating your first team].',
           {
-            link: <a href={this.urlPrefix() + '/teams/new/'} />
+            link: <Link to={this.urlPrefix() + '/teams/new/'} />
           }
         )}
       </p>

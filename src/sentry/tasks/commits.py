@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
 import logging
-import six
 
 from sentry.exceptions import InvalidIdentity, PluginError
 from sentry.models import Deploy, Release, ReleaseHeadCommit, Repository, User
@@ -34,6 +33,11 @@ def fetch_commits(release_id, user_id, refs, prev_release_id=None, **kwargs):
                 name=ref['repository'],
             )
         except Repository.DoesNotExist:
+            logger.info('repository.missing', extra={
+                'organization_id': release.organization_id,
+                'user_id': user_id,
+                'repository': ref['repository'],
+            })
             continue
 
         try:
@@ -59,15 +63,30 @@ def fetch_commits(release_id, user_id, refs, prev_release_id=None, **kwargs):
 
         end_sha = ref['commit']
         provider = provider_cls(id=repo.provider)
+
         try:
             repo_commits = provider.compare_commits(
                 repo, start_sha, end_sha, actor=user
             )
         except NotImplementedError:
             pass
-        except (PluginError, InvalidIdentity) as e:
-            logger.exception(six.text_type(e))
+        except (PluginError, InvalidIdentity):
+            logger.exception('fetch_commits.error', exc_info=True, extra={
+                'organization_id': repo.organization_id,
+                'user_id': user_id,
+                'repository': repo.name,
+                'end_sha': end_sha,
+                'start_sha': start_sha,
+            })
         else:
+            logger.info('fetch_commits.complete', extra={
+                'organization_id': repo.organization_id,
+                'user_id': user_id,
+                'repository': repo.name,
+                'end_sha': end_sha,
+                'start_sha': start_sha,
+                'num_commits': len(repo_commits or []),
+            })
             commit_list.extend(repo_commits)
 
     if commit_list:

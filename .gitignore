@@ -33,3 +33,4 @@ example/db.sqlite
 /test_cli/
 Gemfile.lock
 .idea/
+.vscode/tags

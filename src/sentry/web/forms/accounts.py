@@ -49,12 +49,12 @@ class AuthenticationForm(forms.Form):
     username = forms.CharField(
         label=_('Account'), max_length=128, widget=forms.TextInput(
             attrs={'placeholder': _('username or email'),
-        }),
+                   }),
     )
     password = forms.CharField(
         label=_('Password'), widget=forms.PasswordInput(
             attrs={'placeholder': _('password'),
-        }),
+                   }),
     )
 
     error_messages = {
@@ -159,10 +159,16 @@ class AuthenticationForm(forms.Form):
 
 
 class RegistrationForm(forms.ModelForm):
+    name = forms.CharField(
+        label=_('Name'), max_length=30,
+        widget=forms.TextInput(attrs={'placeholder': 'Jane Doe'}),
+        required=True)
     username = forms.EmailField(
         label=_('Email'), max_length=128,
-        widget=forms.TextInput(attrs={'placeholder': 'you@example.com'}))
+        widget=forms.TextInput(attrs={'placeholder': 'you@example.com'}),
+        required=True)
     password = forms.CharField(
+        required=True,
         widget=forms.PasswordInput(attrs={'placeholder': 'something super secret'}))
     subscribe = forms.BooleanField(
         label=_('Subscribe to product updates newsletter'),
@@ -176,7 +182,7 @@ class RegistrationForm(forms.ModelForm):
             del self.fields['subscribe']
 
     class Meta:
-        fields = ('username',)
+        fields = ('username', 'name')
         model = User
 
     def clean_username(self):
@@ -184,7 +190,8 @@ class RegistrationForm(forms.ModelForm):
         if not value:
             return
         if User.objects.filter(username__iexact=value).exists():
-            raise forms.ValidationError(_('An account is already registered with that email address.'))
+            raise forms.ValidationError(
+                _('An account is already registered with that email address.'))
         return value.lower()
 
     def clean_password(self):
@@ -217,10 +224,12 @@ class RecoverPasswordForm(forms.Form):
 
         users = [u for u in users if not u.is_managed]
         if not users:
-            raise forms.ValidationError(_("The account you are trying to recover is managed and does not support password recovery."))
+            raise forms.ValidationError(
+                _("The account you are trying to recover is managed and does not support password recovery."))
 
         if len(users) > 1:
-            raise forms.ValidationError(_("Multiple accounts were found matching this email address."))
+            raise forms.ValidationError(
+                _("Multiple accounts were found matching this email address."))
         return users[0]
 
 
@@ -262,7 +271,8 @@ class EmailForm(forms.Form):
         if value and not self.user.check_password(value):
             raise forms.ValidationError(_('The password you entered is not correct.'))
         elif not value:
-            raise forms.ValidationError(_('You must confirm your current password to make changes.'))
+            raise forms.ValidationError(
+                _('You must confirm your current password to make changes.'))
         return value
 
 
@@ -315,13 +325,16 @@ class AccountSettingsForm(forms.Form):
 
     def _clean_managed_field(self, field):
         if self.user.is_managed and (field == 'username' or
-                field in settings.SENTRY_MANAGED_USER_FIELDS):
+                                     field in settings.SENTRY_MANAGED_USER_FIELDS):
             return getattr(self.user, field)
         return self.cleaned_data[field]
 
     def clean_email(self):
         value = self._clean_managed_field('email').lower()
-        if User.objects.filter(Q(email__iexact=value) | Q(username__iexact=value)).exclude(id=self.user.id).exists():
+        if self.user.email.lower() == value:
+            return value
+        if User.objects.filter(Q(email__iexact=value) | Q(
+                username__iexact=value)).exclude(id=self.user.id).exists():
             raise forms.ValidationError(
                 _("There was an error adding %s: that email is already in use")
                 % self.cleaned_data['email']
@@ -634,7 +647,7 @@ class ProjectEmailOptionsForm(forms.Form):
     alert = forms.BooleanField(required=False)
     workflow = forms.BooleanField(required=False)
     email = forms.ChoiceField(label="", choices=(), required=False,
-        widget=forms.Select())
+                              widget=forms.Select())
 
     def __init__(self, project, user, *args, **kwargs):
         self.project = project
@@ -692,7 +705,7 @@ class TwoFactorForm(forms.Form):
         label=_('One-time password'), max_length=20, widget=forms.TextInput(
             attrs={'placeholder': _('Code from authenticator'),
                    'autofocus': True,
-        }),
+                   }),
     )
 
 
@@ -718,5 +731,6 @@ class ConfirmPasswordForm(forms.Form):
         if value and not self.user.check_password(value):
             raise forms.ValidationError(_('The password you entered is not correct.'))
         elif not value:
-            raise forms.ValidationError(_('You must confirm your current password to make changes.'))
+            raise forms.ValidationError(
+                _('You must confirm your current password to make changes.'))
         return value

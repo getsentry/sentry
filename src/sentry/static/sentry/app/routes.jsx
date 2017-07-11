@@ -11,11 +11,12 @@ import ApiApplicationDetails from './views/apiApplicationDetails';
 import ApiLayout from './views/apiLayout';
 import ApiNewToken from './views/apiNewToken';
 import ApiTokens from './views/apiTokens';
-import Admin from './views/admin';
 import AdminBuffer from './views/adminBuffer';
+import AdminLayout from './views/adminLayout';
 import AdminOrganizations from './views/adminOrganizations';
 import AdminOverview from './views/adminOverview';
 import AdminProjects from './views/adminProjects';
+import AdminQueue from './views/adminQueue';
 import AdminSettings from './views/adminSettings';
 import AdminUsers from './views/adminUsers';
 import App from './views/app';
@@ -31,6 +32,7 @@ import MyIssuesAssignedToMe from './views/myIssues/assignedToMe';
 import MyIssuesBookmarked from './views/myIssues/bookmarked';
 import MyIssuesViewed from './views/myIssues/viewed';
 import OrganizationAuditLog from './views/organizationAuditLog';
+import OrganizationCreate from './views/organizationCreate';
 import OrganizationDashboard from './views/organizationDashboard';
 import OrganizationDetails from './views/organizationDetails';
 import OrganizationRateLimits from './views/organizationRateLimits';
@@ -71,6 +73,7 @@ import ReleaseOverview from './views/releases/releaseOverview';
 import RouteNotFound from './views/routeNotFound';
 import SharedGroupDetails from './views/sharedGroupDetails';
 import Stream from './views/stream';
+import TeamCreate from './views/teamCreate';
 import TeamDetails from './views/teamDetails';
 import TeamMembers from './views/teamMembers';
 import TeamSettings from './views/teamSettings';
@@ -123,11 +126,12 @@ function routes() {
 
       <Route path="/api/new-token/" component={errorHandler(ApiNewToken)} />
 
-      <Route path="/manage/" component={errorHandler(Admin)}>
+      <Route path="/manage/" component={errorHandler(AdminLayout)}>
         <IndexRoute component={errorHandler(AdminOverview)} />
         <Route path="buffer/" component={errorHandler(AdminBuffer)} />
         <Route path="organizations/" component={errorHandler(AdminOrganizations)} />
         <Route path="projects/" component={errorHandler(AdminProjects)} />
+        <Route path="queue/" component={errorHandler(AdminQueue)} />
         <Route path="settings/" component={errorHandler(AdminSettings)} />
         <Route path="users/" component={errorHandler(AdminUsers)} />
         {hooksAdminRoutes}
@@ -152,6 +156,7 @@ function routes() {
       <Redirect from="/share/group/:shareId/" to="/share/issue/:shareId/" />
       <Route path="/share/issue/:shareId/" component={errorHandler(SharedGroupDetails)} />
 
+      <Route path="/organizations/new/" component={errorHandler(OrganizationCreate)} />
       <Route path="/:orgId/" component={errorHandler(OrganizationDetails)}>
         <IndexRoute component={errorHandler(OrganizationDashboard)} />
 
@@ -170,6 +175,10 @@ function routes() {
         <Route
           path="/organizations/:orgId/teams/"
           component={errorHandler(OrganizationTeams)}
+        />
+        <Route
+          path="/organizations/:orgId/teams/new/"
+          component={errorHandler(TeamCreate)}
         />
         <Route
           path="/organizations/:orgId/teams/:teamId/"

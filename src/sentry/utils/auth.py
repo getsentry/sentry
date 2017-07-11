@@ -269,12 +269,19 @@ def log_auth_failure(request, username=None):
     })
 
 
+def has_user_registration():
+    from sentry import features, options
+
+    return features.has('auth:register') and options.get('auth.allow-registration')
+
+
 class EmailAuthBackend(ModelBackend):
     """
     Authenticate against django.contrib.auth.models.User.
 
     Supports authenticating via an email address or a username.
     """
+
     def authenticate(self, username=None, password=None):
         users = find_users(username)
         if users:

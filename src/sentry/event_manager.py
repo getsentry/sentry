@@ -15,7 +15,6 @@ from datetime import datetime, timedelta
 from collections import OrderedDict
 from django.conf import settings
 from django.db import connection, IntegrityError, router, transaction
-from django.db.models import Q
 from django.utils import timezone
 from django.utils.encoding import force_bytes, force_text
 from hashlib import md5
@@ -789,6 +788,8 @@ class EventManager(object):
     def _ensure_hashes_merged(self, group, hash_list):
         # TODO(dcramer): there is a race condition with selecting/updating
         # in that another group could take ownership of the hash
+        # XXX: This function is currently unused, and hasn't been updated to
+        # take `GroupHash.state` into account.
         bad_hashes = GroupHash.objects.filter(
             id__in=[h.id for h in hash_list],
         ).exclude(
@@ -846,7 +847,8 @@ class EventManager(object):
         # ``GroupHash`` instance, since we only want to record this for events
         # that not only include the hash but were also placed into the
         # associated group.)
-        relevant_group_hashes = set([instance for instance in all_hashes if instance.group_id == group.id])
+        relevant_group_hashes = set(
+            [instance for instance in all_hashes if instance.group_id == group.id])
 
         # If all hashes are brand new we treat this event as new
         is_new = False
@@ -863,6 +865,8 @@ class EventManager(object):
             # as well as GH-5085.
             GroupHash.objects.filter(
                 id__in=[h.id for h in new_hashes],
+            ).exclude(
+                state=GroupHash.State.LOCKED_IN_MIGRATION,
             ).update(group=group)
 
             if group_is_new and len(new_hashes) == len(all_hashes):
@@ -913,18 +917,10 @@ class EventManager(object):
         if not group.is_resolved():
             return
 
-        elif release:
-            # we only mark it as a regression if the event's release is newer than
-            # the release which we originally marked this as resolved
-            has_resolution = GroupResolution.objects.filter(
-                Q(release__date_added__gt=release.date_added) | Q(release=release),
-                group=group,
-            ).exists()
-            if has_resolution:
-                return
-
-        else:
-            has_resolution = False
+        # we only mark it as a regression if the event's release is newer than
+        # the release which we originally marked this as resolved
+        elif GroupResolution.has_resolution(group, release):
+            return
 
         if not plugin_is_regression(group, event):
             return

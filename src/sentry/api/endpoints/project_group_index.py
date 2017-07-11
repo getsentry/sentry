@@ -5,7 +5,7 @@ import logging
 from uuid import uuid4
 
 import six
-from django.db import IntegrityError, transaction
+from django.db import transaction
 from django.utils import timezone
 from rest_framework import serializers
 from rest_framework.response import Response
@@ -112,7 +112,8 @@ class StatusDetailsValidator(serializers.Serializer):
                     organization_id=project.organization_id,
                 ).order_by('-date_added')[0]
             except IndexError:
-                raise serializers.ValidationError('No release data present in the system to form a basis for \'Next Release\'')
+                raise serializers.ValidationError(
+                    'No release data present in the system to form a basis for \'Next Release\'')
         else:
             try:
                 attrs[source] = Release.objects.get(
@@ -121,7 +122,8 @@ class StatusDetailsValidator(serializers.Serializer):
                     version=value,
                 )
             except Release.DoesNotExist:
-                raise serializers.ValidationError('Unable to find a release with the given version.')
+                raise serializers.ValidationError(
+                    'Unable to find a release with the given version.')
         return attrs
 
     def validate_inNextRelease(self, attrs, source):
@@ -130,7 +132,8 @@ class StatusDetailsValidator(serializers.Serializer):
             projects=project,
             organization_id=project.organization_id,
         ).exists():
-            raise serializers.ValidationError('No release data present in the system to form a basis for \'Next Release\'')
+            raise serializers.ValidationError(
+                'No release data present in the system to form a basis for \'Next Release\'')
         return attrs
 
 
@@ -215,7 +218,9 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
             try:
                 query_kwargs.update(parse_query(project, query, request.user))
             except InvalidQuery as e:
-                raise ValidationError(u'Your search query could not be parsed: {}'.format(e.message))
+                raise ValidationError(
+                    u'Your search query could not be parsed: {}'.format(
+                        e.message))
 
         return query_kwargs
 
@@ -315,11 +320,16 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
                     matching_group = None
 
             if matching_group is not None:
-                response = Response(serialize(
-                    [matching_group], request.user, StreamGroupSerializer(
-                        stats_period=stats_period, matching_event_id=getattr(matching_event, 'id', None)
-                    )
-                ))
+                response = Response(
+                    serialize(
+                        [matching_group],
+                        request.user,
+                        StreamGroupSerializer(
+                            stats_period=stats_period,
+                            matching_event_id=getattr(
+                                matching_event,
+                                'id',
+                                None))))
                 response['X-Sentry-Direct-Hit'] = '1'
                 return response
 
@@ -465,7 +475,10 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
                 }
                 status_details = {
                     'inNextRelease': True,
+                    'actor': serialize(extract_lazy_object(request.user), request.user),
                 }
+                res_type = GroupResolution.Type.in_next_release
+                res_status = GroupResolution.Status.pending
             elif statusDetails.get('inRelease'):
                 release = statusDetails['inRelease']
                 activity_type = Activity.SET_RESOLVED_IN_RELEASE
@@ -475,7 +488,10 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
                 }
                 status_details = {
                     'inRelease': release.version,
+                    'actor': serialize(extract_lazy_object(request.user), request.user),
                 }
+                res_type = GroupResolution.Type.in_release
+                res_status = GroupResolution.Status.resolved
             else:
                 release = None
                 activity_type = Activity.SET_RESOLVED
@@ -487,23 +503,26 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
             for group in group_list:
                 with transaction.atomic():
                     if release:
-                        try:
-                            with transaction.atomic():
-                                resolution, created = GroupResolution.objects.create(
-                                    group=group,
-                                    release=release,
-                                ), True
-                        except IntegrityError:
-                            resolution, created = GroupResolution.objects.get(
-                                group=group,
-                            ), False
+                        resolution_params = {
+                            'release': release,
+                            'type': res_type,
+                            'status': res_status,
+                            'actor_id': request.user.id if request.user.is_authenticated() else None,
+                        }
+                        resolution, created = GroupResolution.objects.get_or_create(
+                            group=group,
+                            defaults=resolution_params,
+                        )
+                        if not created:
+                            resolution.update(
+                                datetime=timezone.now(),
+                                **resolution_params
+                            )
                     else:
                         resolution = None
 
                     affected = Group.objects.filter(
                         id=group.id,
-                    ).exclude(
-                        status=GroupStatus.RESOLVED,
                     ).update(
                         status=GroupStatus.RESOLVED,
                         resolved_at=now,
@@ -588,14 +607,18 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
                                     'user_count': ignore_user_count,
                                     'user_window': ignore_user_window,
                                     'state': state,
-                                }
-                            )
+                                    'actor_id': request.user.id if request.user.is_authenticated() else None,
+                                })
                             result['statusDetails'] = {
                                 'ignoreCount': ignore_count,
                                 'ignoreUntil': ignore_until,
                                 'ignoreUserCount': ignore_user_count,
                                 'ignoreUserWindow': ignore_user_window,
                                 'ignoreWindow': ignore_window,
+                                'actor': serialize(
+                                    extract_lazy_object(
+                                        request.user),
+                                    request.user),
                             }
                     else:
                         GroupSnooze.objects.filter(
@@ -821,7 +844,9 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
             group_ids = [g.id for g in group_list]
         else:
             # missing any kind of filter
-            return Response('{"detail": "You must specify a list of IDs for this operation"}', status=400)
+            return Response(
+                '{"detail": "You must specify a list of IDs for this operation"}',
+                status=400)
 
         if not group_ids:
             return Response(status=204)

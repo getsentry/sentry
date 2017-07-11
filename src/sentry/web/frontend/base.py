@@ -64,7 +64,7 @@ class OrganizationMixin(object):
                         raise Organization.DoesNotExist
                 except Organization.DoesNotExist:
                     logger.info('Active organization [%s] not found',
-                        organization_slug)
+                                organization_slug)
 
         if active_organization is None:
             organizations = Organization.objects.get_for_user(
@@ -79,7 +79,7 @@ class OrganizationMixin(object):
                 )
             except StopIteration:
                 logger.info('Active organization [%s] not found in scope',
-                    organization_slug)
+                            organization_slug)
                 if is_implicit:
                     del request.session['activeorg']
                 active_organization = None
@@ -150,7 +150,7 @@ class OrganizationMixin(object):
         elif not features.has('organizations:create'):
             return self.respond('sentry/no-organization-access.html', status=403)
         else:
-            url = reverse('sentry-create-organization')
+            url = '/organizations/new/'
         return HttpResponseRedirect(url)
 
 
@@ -309,7 +309,7 @@ class OrganizationView(BaseView):
                 return False
         if self.required_scope and not request.access.has_scope(self.required_scope):
             logger.info('User %s does not have %s permission to access organization %s',
-                request.user, self.required_scope, organization)
+                        request.user, self.required_scope, organization)
             return False
         return True
 
@@ -410,6 +410,7 @@ class TeamView(OrganizationView):
     - organization
     - team
     """
+
     def get_context_data(self, request, organization, team, **kwargs):
         context = super(TeamView, self).get_context_data(request, organization)
         context['team'] = team
@@ -424,11 +425,11 @@ class TeamView(OrganizationView):
         if self.required_scope:
             if not request.access.has_team_scope(team, self.required_scope):
                 logger.info('User %s does not have %s permission to access team %s',
-                    request.user, self.required_scope, team)
+                            request.user, self.required_scope, team)
                 return False
         elif not request.access.has_team(team):
             logger.info('User %s does not have access to team %s',
-                request.user, team)
+                        request.user, team)
             return False
         return True
 
@@ -464,6 +465,7 @@ class ProjectView(TeamView):
     - team
     - project
     """
+
     def get_context_data(self, request, organization, team, project, **kwargs):
         context = super(ProjectView, self).get_context_data(request, organization, team)
         context['project'] = project
@@ -481,11 +483,11 @@ class ProjectView(TeamView):
         if self.required_scope:
             if not request.access.has_team_scope(team, self.required_scope):
                 logger.info('User %s does not have %s permission to access project %s',
-                    request.user, self.required_scope, project)
+                            request.user, self.required_scope, project)
                 return False
         elif not request.access.has_team(team):
             logger.info('User %s does not have access to project %s',
-                request.user, project)
+                        request.user, project)
             return False
         return True
 

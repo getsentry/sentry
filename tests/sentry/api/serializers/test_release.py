@@ -3,14 +3,15 @@
 from __future__ import absolute_import
 
 import datetime
+import six
 
 from django.utils import timezone
 from uuid import uuid4
 
 from sentry.api.endpoints.organization_releases import ReleaseSerializerWithProjects
 from sentry.api.serializers import serialize
-from sentry.models import (Commit, CommitAuthor,
-    Release, ReleaseCommit, ReleaseProject, TagValue, User, UserEmail,)
+from sentry.models import (Commit, CommitAuthor, Deploy, Environment,
+                           Release, ReleaseCommit, ReleaseProject, TagValue, User, UserEmail,)
 from sentry.testutils import TestCase
 
 
@@ -67,6 +68,11 @@ class ReleaseSerializerTest(TestCase):
             release=release,
             commit=commit,
             order=1,
+        )
+        release.update(
+            authors=[six.text_type(commit_author.id)],
+            commit_count=1,
+            last_commit_id=commit.id,
         )
 
         result = serialize(release, user)
@@ -155,6 +161,11 @@ class ReleaseSerializerTest(TestCase):
             commit=commit,
             order=1,
         )
+        release.update(
+            authors=[six.text_type(commit_author.id)],
+            commit_count=1,
+            last_commit_id=commit.id,
+        )
 
         result = serialize(release, user)
         result_author = result['authors'][0]
@@ -199,6 +210,12 @@ class ReleaseSerializerTest(TestCase):
             order=1,
         )
 
+        release.update(
+            authors=[six.text_type(commit_author.id)],
+            commit_count=1,
+            last_commit_id=commit.id,
+        )
+
         result = serialize(release, user)
         assert len(result['authors']) == 1
         result_author = result['authors'][0]
@@ -241,6 +258,12 @@ class ReleaseSerializerTest(TestCase):
             release=release,
             commit=commit,
             order=1,
+        )
+
+        release.update(
+            authors=[six.text_type(commit_author.id)],
+            commit_count=1,
+            last_commit_id=commit.id,
         )
 
         assert email.id < otheremail.id
@@ -334,9 +357,46 @@ class ReleaseSerializerTest(TestCase):
             commit=commit2,
             order=2,
         )
+        release.update(
+            authors=[
+                six.text_type(commit_author1.id),
+                six.text_type(commit_author2.id),
+            ],
+            commit_count=2,
+            last_commit_id=commit2.id,
+        )
         result = serialize(release, user)
         assert len(result['authors']) == 1
         assert result['authors'][0]['email'] == 'stebe@sentry.io'
+
+    def test_with_deploy(self):
+        user = self.create_user()
+        project = self.create_project()
+        release = Release.objects.create(
+            organization_id=project.organization_id,
+            version=uuid4().hex
+        )
+        release.add_project(project)
+        ReleaseProject.objects.filter(
+            release=release,
+            project=project
+        ).update(new_groups=1)
+        env = Environment.objects.create(
+            organization_id=project.organization_id,
+            name='production',
+        )
+        env.add_project(project)
+        deploy = Deploy.objects.create(
+            organization_id=project.organization_id,
+            release=release,
+            environment_id=env.id,
+        )
+        release.update(total_deploys=1, last_deploy_id=deploy.id)
+
+        result = serialize(release, user)
+        assert result['version'] == release.version
+        assert result['deployCount'] == 1
+        assert result['lastDeploy']['id'] == six.text_type(deploy.id)
 
 
 class ReleaseRefsSerializerTest(TestCase):

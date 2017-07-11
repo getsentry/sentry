@@ -41,6 +41,7 @@ import moment from 'moment';
 import Raven from 'raven-js';
 import React from 'react';
 import ReactDOM from 'react-dom';
+import {renderToStaticMarkup} from 'react-dom/server';
 import Reflux from 'reflux';
 import * as Router from 'react-router';
 import underscore from 'underscore';
@@ -54,7 +55,13 @@ export default {
   moment: moment,
   Raven: Raven,
   React: React,
-  ReactDOM: ReactDOM,
+  ReactDOM: {
+    findDOMNode: ReactDOM.findDOMNode,
+    render: ReactDOM.render
+  },
+  ReactDOMServer: {
+    renderToStaticMarkup: renderToStaticMarkup
+  },
   ReactBootstrap: {
     Modal: ReactBootstrapModal
   },
@@ -95,7 +102,6 @@ export default {
     Count: require('./components/count').default,
     DateTime: require('./components/dateTime').default,
     DropdownLink: require('./components/dropdownLink').default,
-    FlotChart: require('./components/flotChart').default,
     Form: require('./components/forms/form').default,
     FormState: require('./components/forms/index').FormState,
     HookStore: require('./stores/hookStore').default,

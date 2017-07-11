@@ -27,14 +27,18 @@
           </div>
         {% endif %}
 
-        <p>{% blocktrans %}You have been invited to join this organization, which manages <strong>{{ project_count }}</strong> project(s), including:{% endblocktrans %}</p>
-        <ul>
-          {% for project in project_list|slice:"5" %}
-            <li>
-              {{ project.team.name }} &#47; {{ project.name }}
-            </li>
-          {% endfor %}
-        </ul>
+        {% if project_count %}
+          <p>{% blocktrans %}You have been invited to join this organization, which manages <strong>{{ project_count }}</strong> project(s), including:{% endblocktrans %}</p>
+          <ul>
+            {% for project in project_list|slice:"5" %}
+              <li>
+                {{ project.team.name }} &#47; {{ project.name }}
+              </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <p>{% blocktrans %}You have been invited to join this organization.{% endblocktrans %}</p>
+        {% endif %}
 
         {% if needs_authentication %}
           <p>{% trans "To continue, you must either login to your existing account, or create a new one." %}</p>

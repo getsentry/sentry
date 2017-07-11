@@ -26,7 +26,8 @@ class UpdateOrganizationAccessRequestTest(APITestCase):
             team=team,
         )
 
-        path = reverse('sentry-api-0-organization-access-request-details', args=[organization.slug, access_request.id])
+        path = reverse('sentry-api-0-organization-access-request-details',
+                       args=[organization.slug, access_request.id])
 
         self.login_as(self.user)
 
@@ -61,7 +62,8 @@ class UpdateOrganizationAccessRequestTest(APITestCase):
             team=team,
         )
 
-        path = reverse('sentry-api-0-organization-access-request-details', args=[organization.slug, access_request.id])
+        path = reverse('sentry-api-0-organization-access-request-details',
+                       args=[organization.slug, access_request.id])
 
         self.login_as(self.user)
 
@@ -104,7 +106,8 @@ class UpdateOrganizationAccessRequestTest(APITestCase):
             teams=[team],
         )
 
-        path = reverse('sentry-api-0-organization-access-request-details', args=[organization.slug, access_request.id])
+        path = reverse('sentry-api-0-organization-access-request-details',
+                       args=[organization.slug, access_request.id])
 
         self.login_as(admin_user)
 
@@ -141,7 +144,8 @@ class UpdateOrganizationAccessRequestTest(APITestCase):
             teams=[],
         )
 
-        path = reverse('sentry-api-0-organization-access-request-details', args=[organization.slug, access_request.id])
+        path = reverse('sentry-api-0-organization-access-request-details',
+                       args=[organization.slug, access_request.id])
 
         self.login_as(admin_user)
 

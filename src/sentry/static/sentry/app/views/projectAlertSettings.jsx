@@ -1,80 +1,21 @@
 import React from 'react';
-import underscore from 'underscore';
 
-import ApiMixin from '../mixins/apiMixin';
-import IndicatorStore from '../stores/indicatorStore';
+import AsyncView from './asyncView';
 import ListLink from '../components/listLink';
 import PluginList from '../components/pluginList';
-import {FormState, RangeField, TextField} from '../components/forms';
+import {ApiForm, RangeField, TextField} from '../components/forms';
 import {t, tct} from '../locale';
 
-const DigestSettings = React.createClass({
-  propTypes: {
+class DigestSettings extends React.Component {
+  static propTypes = {
     orgId: React.PropTypes.string.isRequired,
     projectId: React.PropTypes.string.isRequired,
-    initialData: React.PropTypes.object,
+    initialData: React.PropTypes.object.isRequired,
     onSave: React.PropTypes.func.isRequired
-  },
-
-  mixins: [ApiMixin],
-
-  getInitialState() {
-    return {
-      formData: Object.assign({}, this.props.initialData),
-      errors: {}
-    };
-  },
-
-  onFieldChange(name, value) {
-    this.setState({
-      formData: {
-        ...this.state.formData,
-        [name]: value
-      }
-    });
-  },
-
-  onSubmit(e) {
-    e.preventDefault();
-
-    if (this.state.state == FormState.SAVING) {
-      return;
-    }
-    this.setState(
-      {
-        state: FormState.SAVING
-      },
-      () => {
-        let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
-        let {orgId, projectId} = this.props;
-        this.api.request(`/projects/${orgId}/${projectId}/`, {
-          method: 'PUT',
-          data: this.state.formData,
-          success: data => {
-            this.props.onSave(data);
-            this.setState({
-              state: FormState.READY,
-              errors: {}
-            });
-          },
-          error: error => {
-            this.setState({
-              state: FormState.ERROR,
-              errors: error.responseJSON
-            });
-          },
-          complete: () => {
-            IndicatorStore.remove(loadingIndicator);
-          }
-        });
-      }
-    );
-  },
+  };
 
   render() {
-    let isSaving = this.state.state === FormState.SAVING;
-    let {errors, formData} = this.state;
-    let hasChanges = !underscore.isEqual(this.props.initialData, formData);
+    let {orgId, projectId, initialData, onSave} = this.props;
     return (
       <div className="box">
         <div className="box-header">
@@ -90,13 +31,12 @@ const DigestSettings = React.createClass({
                 'the sliders below.'
             )}
           </p>
-          <form onSubmit={this.onSubmit} className="form-stacked">
-            {this.state.state === FormState.ERROR &&
-              <div className="alert alert-error alert-block">
-                {t(
-                  'Unable to save your changes. Please ensure all fields are valid and try again.'
-                )}
-              </div>}
+          <ApiForm
+            onSubmitSuccess={onSave}
+            apiMethod="PUT"
+            apiEndpoint={`/projects/${orgId}/${projectId}/`}
+            initialData={initialData}
+            requireChanges={true}>
             <div className="row">
               <div className="col-md-6">
                 <RangeField
@@ -107,10 +47,7 @@ const DigestSettings = React.createClass({
                   label={t('Minimum delivery interval')}
                   help={t('Notifications will be delivered at most this often.')}
                   name="digestsMinDelay"
-                  value={formData.digestsMinDelay}
-                  error={errors.digestsMinDelay}
                   formatLabel={RangeField.formatMinutes}
-                  onChange={this.onFieldChange.bind(this, 'digestsMinDelay')}
                 />
               </div>
               <div className="col-md-6">
@@ -122,96 +59,27 @@ const DigestSettings = React.createClass({
                   label={t('Maximum delivery interval')}
                   help={t('Notifications will be delivered at least this often.')}
                   name="digestsMaxDelay"
-                  value={formData.digestsMaxDelay}
-                  error={errors.digestsMaxDelay}
                   formatLabel={RangeField.formatMinutes}
-                  onChange={this.onFieldChange.bind(this, 'digestsMaxDelay')}
                 />
               </div>
             </div>
-
-            <fieldset className="form-actions align-right">
-              <button
-                type="submit"
-                className="btn btn-primary"
-                disabled={isSaving || !hasChanges}>
-                {t('Save Changes')}
-              </button>
-            </fieldset>
-          </form>
+          </ApiForm>
         </div>
       </div>
     );
   }
-});
+}
 
-const GeneralSettings = React.createClass({
-  propTypes: {
+class GeneralSettings extends React.Component {
+  static propTypes = {
     orgId: React.PropTypes.string.isRequired,
     projectId: React.PropTypes.string.isRequired,
     initialData: React.PropTypes.object,
     onSave: React.PropTypes.func.isRequired
-  },
-
-  mixins: [ApiMixin],
-
-  getInitialState() {
-    return {
-      formData: Object.assign({}, this.props.initialData),
-      errors: {}
-    };
-  },
-
-  onFieldChange(name, value) {
-    this.setState({
-      formData: {
-        ...this.state.formData,
-        [name]: value
-      }
-    });
-  },
-
-  onSubmit(e) {
-    e.preventDefault();
-
-    if (this.state.state == FormState.SAVING) {
-      return;
-    }
-    this.setState(
-      {
-        state: FormState.SAVING
-      },
-      () => {
-        let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
-        let {orgId, projectId} = this.props;
-        this.api.request(`/projects/${orgId}/${projectId}/`, {
-          method: 'PUT',
-          data: this.state.formData,
-          success: data => {
-            this.props.onSave(data);
-            this.setState({
-              state: FormState.READY,
-              errors: {}
-            });
-          },
-          error: error => {
-            this.setState({
-              state: FormState.ERROR,
-              errors: error.responseJSON
-            });
-          },
-          complete: () => {
-            IndicatorStore.remove(loadingIndicator);
-          }
-        });
-      }
-    );
-  },
+  };
 
   render() {
-    let isSaving = this.state.state === FormState.SAVING;
-    let {errors, formData} = this.state;
-    let hasChanges = !underscore.isEqual(this.props.initialData, formData);
+    let {orgId, projectId, initialData, onSave} = this.props;
     return (
       <div className="box">
         <div className="box-header">
@@ -219,103 +87,66 @@ const GeneralSettings = React.createClass({
         </div>
 
         <div className="box-content with-padding">
-          <form onSubmit={this.onSubmit} className="form-stacked">
-            {this.state.state === FormState.ERROR &&
-              <div className="alert alert-error alert-block">
-                {t(
-                  'Unable to save your changes. Please ensure all fields are valid and try again.'
-                )}
-              </div>}
-
+          <ApiForm
+            onSubmitSuccess={onSave}
+            apiMethod="PUT"
+            apiEndpoint={`/projects/${orgId}/${projectId}/`}
+            initialData={initialData}
+            requireChanges={true}>
             <TextField
-              key="subjectTemplate"
+              name="subjectTemplate"
               label={t('Subject template')}
-              value={formData.subjectTemplate}
               required={false}
-              error={errors.subjectTemplate}
-              onChange={this.onFieldChange.bind(this, 'subjectTemplate')}
-              help="The email subject to use (excluding the prefix) for individual alerts. Usable variables include: $project, $title, and ${tag:key}, such as ${tag:environment} or ${tag:release}."
+              help={t(
+                'The email subject to use (excluding the prefix) for individual alerts. Usable variables include: $project, $title, and ${tag:key}, such as ${tag:environment} or ${tag:release}.'
+              )}
             />
-
-            <fieldset className="form-actions align-right">
-              <button
-                type="submit"
-                className="btn btn-primary"
-                disabled={isSaving || !hasChanges}>
-                {t('Save Changes')}
-              </button>
-            </fieldset>
-          </form>
+          </ApiForm>
         </div>
       </div>
     );
   }
-});
+}
 
-const ProjectAlertSettings = React.createClass({
-  propTypes: {
+export default class ProjectAlertSettings extends AsyncView {
+  static propTypes = {
+    ...AsyncView.propTypes,
     // these are not declared as required of issues with cloned elements
     // not initially defining them (though they are bound before) ever
     // rendered
     organization: React.PropTypes.object,
     project: React.PropTypes.object
-  },
+  };
 
-  mixins: [ApiMixin],
-
-  getInitialState() {
-    return {
-      loading: true,
-      error: false,
-      pluginList: []
-    };
-  },
-
-  componentDidMount() {
-    this.fetchData();
-  },
-
-  fetchData() {
+  getEndpoints() {
     let {orgId, projectId} = this.props.params;
-    this.api.request(`/projects/${orgId}/${projectId}/plugins/`, {
-      success: (data, _, jqXHR) => {
-        this.setState({
-          error: false,
-          loading: false,
-          pluginList: data.filter(p => p.type === 'notification'),
-        });
-      },
-      error: () => {
-        this.setState({
-          error: true,
-          loading: false
-        });
-      }
-    });
-  },
+    return [
+      ['project', `/projects/${orgId}/${projectId}/`],
+      ['pluginList', `/projects/${orgId}/${projectId}/plugins/`]
+    ];
+  }
 
-  onDigestsChange(data) {
+  onDigestsChange = data => {
     // TODO(dcramer): propagate this in a more correct way
     this.setState({
       project: {
         ...this.state.project,
-        digestsMinDelay: data.digestsMinDelay,
-        digestsMaxDelay: data.digestsMaxDelay
+        ...data
       }
     });
-  },
+  };
 
-  onGeneralChange(data) {
+  onGeneralChange = data => {
     // TODO(dcramer): propagate this in a more correct way
     this.setState({
       project: {
         ...this.state.project,
-        subjectTemplate: data.subjectTemplate
+        ...data
       }
     });
-  },
+  };
 
-  onEnablePlugin(plugin) {
+  onEnablePlugin = plugin => {
     this.setState({
       pluginList: this.state.pluginList.map(p => {
         if (p.id !== plugin.id) return p;
@@ -325,9 +156,9 @@ const ProjectAlertSettings = React.createClass({
         };
       })
     });
-  },
+  };
 
-  onDisablePlugin(plugin) {
+  onDisablePlugin = plugin => {
     this.setState({
       pluginList: this.state.pluginList.map(p => {
         if (p.id !== plugin.id) return p;
@@ -337,12 +168,15 @@ const ProjectAlertSettings = React.createClass({
         };
       })
     });
-  },
+  };
 
-  render() {
+  getTitle() {
+    return 'Project Alert Settings';
+  }
+
+  renderBody() {
     let {orgId, projectId} = this.props.params;
-    let {organization, project} = this.props;
-    let {pluginList} = this.state;
+    let {organization} = this.props;
     return (
       <div>
         <a
@@ -377,7 +211,7 @@ const ProjectAlertSettings = React.createClass({
           orgId={orgId}
           projectId={projectId}
           initialData={{
-            subjectTemplate: project.subjectTemplate
+            subjectTemplate: this.state.project.subjectTemplate
           }}
           onSave={this.onGeneralChange}
         />
@@ -386,22 +220,20 @@ const ProjectAlertSettings = React.createClass({
           orgId={orgId}
           projectId={projectId}
           initialData={{
-            digestsMinDelay: project.digestsMinDelay,
-            digestsMaxDelay: project.digestsMaxDelay
+            digestsMinDelay: this.state.project.digestsMinDelay,
+            digestsMaxDelay: this.state.project.digestsMaxDelay
           }}
           onSave={this.onDigestsChange}
         />
 
         <PluginList
           organization={organization}
-          project={project}
-          pluginList={pluginList}
+          project={this.state.project}
+          pluginList={this.state.pluginList.filter(p => p.type === 'notification')}
           onEnablePlugin={this.onEnablePlugin}
           onDisablePlugin={this.onDisablePlugin}
         />
       </div>
     );
   }
-});
-
-export default ProjectAlertSettings;
+}

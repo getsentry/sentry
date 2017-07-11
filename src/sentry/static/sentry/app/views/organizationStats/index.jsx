@@ -262,8 +262,9 @@ const OrganizationStats = React.createClass({
                     <StackedBarChart
                       points={this.state.orgStats}
                       height={150}
+                      label="events"
+                      className="standard-barchart"
                       barClasses={['accepted', 'rate-limited', 'black-listed']}
-                      className="sparkline"
                       tooltip={this.renderTooltip}
                     />
                   </div>}

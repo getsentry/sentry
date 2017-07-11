@@ -1,4 +1,6 @@
 import React from 'react';
+import {Link} from 'react-router';
+
 import OrganizationHomeSidebar from './homeSidebar';
 import OrganizationState from '../../mixins/organizationState';
 import ProjectSelector from '../projectHeader/projectSelector';
@@ -43,7 +45,7 @@ const HomeContainer = React.createClass({
                   {t('New Project')}
                 </Button>}
             {access.has('team:write')
-              ? <Button href={`/organizations/${org.slug}/teams/new/`} priority="primary">
+              ? <Button to={`/organizations/${org.slug}/teams/new/`} priority="primary">
                   {t('New Team')}
                 </Button>
               : <Button

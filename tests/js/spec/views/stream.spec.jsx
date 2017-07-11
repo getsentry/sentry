@@ -1,3 +1,4 @@
+jest.unmock('app/api');
 jest.mock('app/stores/groupStore');
 
 import React from 'react';

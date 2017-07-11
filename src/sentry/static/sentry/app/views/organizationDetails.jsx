@@ -21,23 +21,8 @@ let ERROR_TYPES = {
   ORG_NOT_FOUND: 'ORG_NOT_FOUND'
 };
 
-function doProjectsNeedShortId(teams) {
-  for (let i = 0; i < teams.length; i++) {
-    for (let j = 0; j < teams[i].projects.length; j++) {
-      if (!teams[i].projects[j].callSignReviewed) {
-        return true;
-      }
-    }
-  }
-  return false;
-}
-
 function getRequiredAdminActions(org) {
-  let rv = [];
-  if (doProjectsNeedShortId(org.teams)) {
-    rv.push('SET_SHORT_IDS');
-  }
-  return rv;
+  return [];
 }
 
 const OrganizationDetails = React.createClass({

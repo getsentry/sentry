@@ -13,13 +13,11 @@ from sentry.api.base import DocSection
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.api.decorators import sudo_required
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.plugin import PluginSerializer
-from sentry.digests import backend as digests
+from sentry.api.serializers.models.project import DetailedProjectSerializer
 from sentry.models import (
     AuditLogEntryEvent, Group, GroupStatus, Project, ProjectBookmark,
-    ProjectStatus, UserOption, DEFAULT_SUBJECT_TEMPLATE
+    ProjectStatus, UserOption
 )
-from sentry.plugins import plugins
 from sentry.tasks.deletion import delete_project
 from sentry.utils.apidocs import scenario, attach_scenarios
 
@@ -55,6 +53,7 @@ def update_project_scenario(runner):
             data={
                 'name': 'Plane Proxy',
                 'slug': 'plane-proxy',
+                'platform': 'javascript',
                 'options': {
                     'sentry:origins': 'http://example.com\nhttp://example.invalid',
                 }
@@ -74,6 +73,7 @@ def clean_newline_inputs(value):
 class ProjectMemberSerializer(serializers.Serializer):
     isBookmarked = serializers.BooleanField()
     isSubscribed = serializers.BooleanField()
+    platform = serializers.CharField(required=False)
 
 
 class ProjectAdminSerializer(serializers.Serializer):
@@ -85,10 +85,12 @@ class ProjectAdminSerializer(serializers.Serializer):
     digestsMaxDelay = serializers.IntegerField(min_value=60, max_value=3600)
     subjectPrefix = serializers.CharField(max_length=200)
     subjectTemplate = serializers.CharField(max_length=200)
+    platform = serializers.CharField(required=False)
 
     def validate_digestsMaxDelay(self, attrs, source):
         if attrs[source] < attrs['digestsMinDelay']:
-            raise serializers.ValidationError('The maximum delay on digests must be higher than the minimum.')
+            raise serializers.ValidationError(
+                'The maximum delay on digests must be higher than the minimum.')
         return attrs
 
 
@@ -133,39 +135,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         :pparam string project_slug: the slug of the project to delete.
         :auth: required
         """
-        data = serialize(project, request.user)
-        data['options'] = {
-            'sentry:origins': '\n'.join(project.get_option('sentry:origins', ['*']) or []),
-            'sentry:resolve_age': int(project.get_option('sentry:resolve_age', 0)),
-            'sentry:scrub_data': bool(project.get_option('sentry:scrub_data', True)),
-            'sentry:scrub_defaults': bool(project.get_option('sentry:scrub_defaults', True)),
-            'sentry:safe_fields': project.get_option('sentry:safe_fields', []),
-            'sentry:sensitive_fields': project.get_option('sentry:sensitive_fields', []),
-            'sentry:csp_ignored_sources_defaults': bool(project.get_option('sentry:csp_ignored_sources_defaults', True)),
-            'sentry:csp_ignored_sources': '\n'.join(project.get_option('sentry:csp_ignored_sources', []) or []),
-            'sentry:default_environment': project.get_option('sentry:default_environment'),
-            'sentry:reprocessing_active': bool(project.get_option('sentry:reprocessing_active', False)),
-            'filters:blacklisted_ips': '\n'.join(project.get_option('sentry:blacklisted_ips', [])),
-            'feedback:branding': project.get_option('feedback:branding', '1') == '1',
-        }
-        data['plugins'] = serialize([
-            plugin
-            for plugin in plugins.configurable_for_project(project, version=None)
-            if plugin.has_project_conf()
-        ], request.user, PluginSerializer(project))
-        data['team'] = serialize(project.team, request.user)
-        data['organization'] = serialize(project.organization, request.user)
-
-        data.update({
-            'digestsMinDelay': project.get_option(
-                'digests:mail:minimum_delay', digests.minimum_delay,
-            ),
-            'digestsMaxDelay': project.get_option(
-                'digests:mail:maximum_delay', digests.maximum_delay,
-            ),
-            'subjectPrefix': project.get_option('mail:subject_prefix'),
-            'subjectTemplate': project.get_option('mail:subject_template') or DEFAULT_SUBJECT_TEMPLATE.template,
-        })
+        data = serialize(project, request.user, DetailedProjectSerializer())
 
         include = set(filter(bool, request.GET.get('include', '').split(',')))
         if 'stats' in include:
@@ -189,6 +159,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         :pparam string project_slug: the slug of the project to delete.
         :param string name: the new name for the project.
         :param string slug: the new slug for the project.
+        :param string platform: the new platform for the project.
         :param boolean isBookmarked: in case this API call is invoked with a
                                      user context this allows changing of
                                      the bookmark flag.
@@ -221,6 +192,10 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
 
         if result.get('name'):
             project.name = result['name']
+            changed = True
+
+        if result.get('platform'):
+            project.platform = result['platform']
             changed = True
 
         if changed:
@@ -277,7 +252,9 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             if 'sentry:scrub_data' in options:
                 project.update_option('sentry:scrub_data', bool(options['sentry:scrub_data']))
             if 'sentry:scrub_defaults' in options:
-                project.update_option('sentry:scrub_defaults', bool(options['sentry:scrub_defaults']))
+                project.update_option(
+                    'sentry:scrub_defaults', bool(
+                        options['sentry:scrub_defaults']))
             if 'sentry:safe_fields' in options:
                 project.update_option(
                     'sentry:safe_fields',
@@ -289,16 +266,20 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                     [s.strip().lower() for s in options['sentry:sensitive_fields']]
                 )
             if 'sentry:csp_ignored_sources_defaults' in options:
-                project.update_option('sentry:csp_ignored_sources_defaults', bool(options['sentry:csp_ignored_sources_defaults']))
+                project.update_option(
+                    'sentry:csp_ignored_sources_defaults', bool(
+                        options['sentry:csp_ignored_sources_defaults']))
             if 'sentry:csp_ignored_sources' in options:
                 project.update_option(
                     'sentry:csp_ignored_sources',
                     clean_newline_inputs(options['sentry:csp_ignored_sources']))
             if 'feedback:branding' in options:
-                project.update_option('feedback:branding', '1' if options['feedback:branding'] else '0')
+                project.update_option(
+                    'feedback:branding',
+                    '1' if options['feedback:branding'] else '0')
             if 'sentry:reprocessing_active' in options:
                 project.update_option('sentry:reprocessing_active',
-                    bool(options['sentry:reprocessing_active']))
+                                      bool(options['sentry:reprocessing_active']))
             if 'filters:blacklisted_ips' in options:
                 project.update_option(
                     'sentry:blacklisted_ips',
@@ -312,22 +293,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 data=project.get_audit_log_data(),
             )
 
-        data = serialize(project, request.user)
-        data['options'] = {
-            'sentry:origins': '\n'.join(project.get_option('sentry:origins', ['*']) or []),
-            'sentry:resolve_age': int(project.get_option('sentry:resolve_age', 0)),
-        }
-        data.update({
-            'digestsMinDelay': project.get_option(
-                'digests:mail:minimum_delay', digests.minimum_delay,
-            ),
-            'digestsMaxDelay': project.get_option(
-                'digests:mail:maximum_delay', digests.maximum_delay,
-            ),
-            'subjectPrefix': project.get_option('mail:subject_prefix'),
-            'subjectTemplate': project.get_option('mail:subject_template') or DEFAULT_SUBJECT_TEMPLATE.template,
-        })
-
+        data = serialize(project, request.user, DetailedProjectSerializer())
         return Response(data)
 
     @attach_scenarios([delete_project_scenario])

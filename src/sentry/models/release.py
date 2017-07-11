@@ -20,6 +20,9 @@ from sentry.db.models import (
     ArrayField, BoundedPositiveIntegerField, FlexibleForeignKey, Model,
     sane_repr
 )
+
+from sentry.models import CommitFileChange
+
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import md5_text
 
@@ -27,7 +30,7 @@ logger = logging.getLogger(__name__)
 
 
 _sha1_re = re.compile(r'^[a-f0-9]{40}$')
-_dotted_path_prefix_re = re.compile(r'^([a-z][a-z0-9-]+)(\.[a-z][a-z0-9-]+)+-')
+_dotted_path_prefix_re = re.compile(r'^([a-zA-Z][a-zA-Z0-9-]+)(\.[a-zA-Z][a-zA-Z0-9-]+)+-')
 BAD_RELEASE_CHARS = '\n\f\t/'
 
 
@@ -54,6 +57,7 @@ class Release(Model):
     organization = FlexibleForeignKey('sentry.Organization')
     projects = models.ManyToManyField('sentry.Project', related_name='releases',
                                       through=ReleaseProject)
+    # DEPRECATED
     project_id = BoundedPositiveIntegerField(null=True)
     version = models.CharField(max_length=64)
     # ref might be the branch name being released
@@ -85,7 +89,8 @@ class Release(Model):
 
     @staticmethod
     def is_valid_version(value):
-        return not (any(c in value for c in BAD_RELEASE_CHARS) or value in ('.', '..') or not value)
+        return not (any(c in value for c in BAD_RELEASE_CHARS)
+                    or value in ('.', '..') or not value)
 
     @classmethod
     def get_cache_key(cls, organization_id, version):
@@ -321,7 +326,7 @@ class Release(Model):
         """
         from sentry.models import (
             Commit, CommitAuthor, Group, GroupCommitResolution, GroupResolution,
-            GroupResolutionStatus, GroupStatus, ReleaseCommit, Repository
+            GroupStatus, ReleaseCommit, Repository
         )
         from sentry.plugins.providers.repository import RepositoryProvider
 
@@ -339,9 +344,11 @@ class Release(Model):
 
             authors = {}
             repos = {}
+            commit_author_by_commit = {}
             latest_commit = None
             for idx, data in enumerate(commit_list):
-                repo_name = data.get('repository') or 'organization-{}'.format(self.organization_id)
+                repo_name = data.get(
+                    'repository') or 'organization-{}'.format(self.organization_id)
                 if repo_name not in repos:
                     repos[repo_name] = repo = Repository.objects.get_or_create(
                         organization_id=self.organization_id,
@@ -352,8 +359,12 @@ class Release(Model):
 
                 author_email = data.get('author_email')
                 if author_email is None and data.get('author_name'):
-                    author_email = (re.sub(r'[^a-zA-Z0-9\-_\.]*', '', data['author_name']).lower() +
-                                    '@localhost')
+                    author_email = (
+                        re.sub(
+                            r'[^a-zA-Z0-9\-_\.]*',
+                            '',
+                            data['author_name']).lower() +
+                        '@localhost')
 
                 if not author_email:
                     author = None
@@ -381,6 +392,21 @@ class Release(Model):
                     key=data['id'],
                     defaults=defaults,
                 )
+                if author is None:
+                    author = commit.author
+
+                commit_author_by_commit[commit.id] = author
+
+                patch_set = data.get('patch_set', [])
+
+                for patched_file in patch_set:
+                    CommitFileChange.objects.get_or_create(
+                        organization_id=self.organization.id,
+                        commit=commit,
+                        filename=patched_file['path'],
+                        type=patched_file['type'],
+                    )
+
                 if not created:
                     update_kwargs = {}
                     if commit.message is None and defaults['message'] is not None:
@@ -401,25 +427,40 @@ class Release(Model):
 
             self.update(
                 commit_count=len(commit_list),
-                authors=[six.text_type(a.id) for a in six.itervalues(authors)],
+                authors=[six.text_type(a_id) for a_id in ReleaseCommit.objects.filter(
+                    release=self,
+                    commit__author_id__isnull=False,
+                ).values_list('commit__author_id', flat=True).distinct()],
                 last_commit_id=latest_commit.id if latest_commit else None,
             )
 
-        group_ids = list(GroupCommitResolution.objects.filter(
+        commit_resolutions = list(GroupCommitResolution.objects.filter(
             commit_id__in=ReleaseCommit.objects.filter(
                 release=self
             ).values_list('commit_id', flat=True),
-        ).values_list('group_id', flat=True))
-        for group_id in group_ids:
-            GroupResolution.objects.create_or_update(
-                group_id=group_id,
-                release=self,
-                values={
-                    'status': GroupResolutionStatus.RESOLVED,
-                },
-            )
+        ).values_list('group_id', 'commit_id'))
+        user_by_author = {None: None}
+        for group_id, commit_id in commit_resolutions:
+            author = commit_author_by_commit.get(commit_id)
+            if author not in user_by_author:
+                try:
+                    user_by_author[author] = author.find_users()[0]
+                except IndexError:
+                    user_by_author[author] = None
+            actor = user_by_author[author]
 
-        if group_ids:
-            Group.objects.filter(
-                id__in=group_ids,
-            ).update(status=GroupStatus.RESOLVED)
+            with transaction.atomic():
+                GroupResolution.objects.create_or_update(
+                    group_id=group_id,
+                    values={
+                        'release': self,
+                        'type': GroupResolution.Type.in_release,
+                        'status': GroupResolution.Status.resolved,
+                        'actor_id': actor.id if actor else None,
+                    },
+                )
+                Group.objects.filter(
+                    id=group_id,
+                ).update(
+                    status=GroupStatus.RESOLVED
+                )

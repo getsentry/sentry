@@ -12,7 +12,8 @@ class OrganizationMemberSettingsPermissionTest(PermissionTestCase):
         super(OrganizationMemberSettingsPermissionTest, self).setUp()
         member = self.create_user()
         om = self.create_member(user=member, organization=self.organization)
-        self.path = reverse('sentry-organization-member-settings', args=[self.organization.slug, om.id])
+        self.path = reverse('sentry-organization-member-settings',
+                            args=[self.organization.slug, om.id])
 
     def test_non_member_cannot_load(self):
         self.assert_non_member_cannot_access(self.path)

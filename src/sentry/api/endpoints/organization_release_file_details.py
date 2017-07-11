@@ -33,7 +33,8 @@ class OrganizationReleaseFileDetailsEndpoint(OrganizationReleasesBaseEndpoint):
             content_type=file.headers.get('content-type', 'application/octet-stream'),
         )
         response['Content-Length'] = file.size
-        response['Content-Disposition'] = 'attachment; filename="%s"' % posixpath.basename(" ".join(releasefile.name.split()))
+        response['Content-Disposition'] = 'attachment; filename="%s"' % posixpath.basename(
+            " ".join(releasefile.name.split()))
         return response
 
     def get(self, request, organization, version, file_id):

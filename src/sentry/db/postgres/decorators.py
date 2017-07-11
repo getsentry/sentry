@@ -57,7 +57,8 @@ def capture_transaction_exceptions(func):
     some cruft about transaction aborted.
     """
     def raise_the_exception(conn, exc):
-        if 'current transaction is aborted, commands ignored until end of transaction block' in six.text_type(exc):
+        if 'current transaction is aborted, commands ignored until end of transaction block' in six.text_type(
+                exc):
             exc_info = getattr(conn, '_last_exception', None)
             if exc_info is None:
                 raise

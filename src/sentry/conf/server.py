@@ -23,7 +23,9 @@ from sentry.utils.types import type_from_value
 from datetime import timedelta
 from six.moves.urllib.parse import urlparse
 
-gettext_noop = lambda s: s
+
+def gettext_noop(s):
+    return s
 
 socket.setdefaulttimeout(5)
 
@@ -58,8 +60,11 @@ def env(key, default='', type=None):
 
 env._cache = {}
 
+ENVIRONMENT = os.environ.get('SENTRY_ENVIRONMENT', 'production')
 
-DEBUG = False
+IS_DEV = ENVIRONMENT == 'development'
+
+DEBUG = IS_DEV
 TEMPLATE_DEBUG = True
 MAINTENANCE = False
 
@@ -240,6 +245,7 @@ MIDDLEWARE_CLASSES = (
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'sentry.middleware.auth.AuthenticationMiddleware',
+    'sentry.middleware.user.UserActiveMiddleware',
     'sentry.middleware.sudo.SudoMiddleware',
     'sentry.middleware.superuser.SuperuserMiddleware',
     'sentry.middleware.locale.SentryLocaleMiddleware',
@@ -287,6 +293,7 @@ INSTALLED_APPS = (
     'sentry.analytics.events',
     'sentry.nodestore',
     'sentry.search',
+    'sentry.lang.java',
     'sentry.lang.javascript',
     'sentry.lang.native',
     'sentry.plugins.sentry_interface_types',
@@ -340,6 +347,7 @@ AUTHENTICATION_BACKENDS = (
     'social_auth.backends.bitbucket.BitbucketBackend',
     'social_auth.backends.trello.TrelloBackend',
     'social_auth.backends.asana.AsanaBackend',
+    'social_auth.backends.slack.SlackBackend',
 )
 
 AUTH_PASSWORD_VALIDATORS = [
@@ -364,6 +372,7 @@ SOCIAL_AUTH_AUTHENTICATION_BACKENDS = (
     'social_auth.backends.bitbucket.BitbucketBackend',
     'social_auth.backends.trello.TrelloBackend',
     'social_auth.backends.asana.AsanaBackend',
+    'social_auth.backends.slack.SlackBackend',
 )
 
 SESSION_ENGINE = "django.contrib.sessions.backends.signed_cookies"
@@ -404,18 +413,24 @@ AUTH_PROVIDERS = {
     'trello': ('TRELLO_API_KEY', 'TRELLO_API_SECRET'),
     'bitbucket': ('BITBUCKET_CONSUMER_KEY', 'BITBUCKET_CONSUMER_SECRET'),
     'asana': ('ASANA_CLIENT_ID', 'ASANA_CLIENT_SECRET'),
+    'slack': ('SLACK_CLIENT_ID', 'SLACK_CLIENT_SECRET'),
 }
 
 AUTH_PROVIDER_LABELS = {
     'github': 'GitHub',
     'trello': 'Trello',
     'bitbucket': 'Bitbucket',
-    'asana': 'Asana'
+    'asana': 'Asana',
+    'slack': 'Slack'
 }
 
 import random
 
-SOCIAL_AUTH_DEFAULT_USERNAME = lambda: random.choice(['Darth Vader', 'Obi-Wan Kenobi', 'R2-D2', 'C-3PO', 'Yoda'])
+
+def SOCIAL_AUTH_DEFAULT_USERNAME():
+    return random.choice(['Darth Vader', 'Obi-Wan Kenobi', 'R2-D2', 'C-3PO', 'Yoda'])
+
+
 SOCIAL_AUTH_PROTECTED_USER_FIELDS = ['email']
 SOCIAL_AUTH_FORCE_POST_DISCONNECT = True
 
@@ -462,6 +477,7 @@ CELERY_IMPORTS = (
     'sentry.tasks.process_buffer',
     'sentry.tasks.reports',
     'sentry.tasks.reprocessing',
+    'sentry.tasks.scheduler',
     'sentry.tasks.store',
     'sentry.tasks.unmerge',
 )
@@ -520,6 +536,13 @@ CELERYBEAT_SCHEDULE = {
             'expires': 60,
             'queue': 'auth',
         }
+    },
+    'enqueue-scheduled-jobs': {
+        'task': 'sentry.tasks.enqueue_scheduled_jobs',
+        'schedule': timedelta(minutes=1),
+        'options': {
+            'expires': 60,
+        },
     },
     'send-beacon': {
         'task': 'sentry.tasks.send_beacon',
@@ -753,6 +776,7 @@ SENTRY_FEATURES = {
     'organizations:create': True,
     'organizations:sso': True,
     'organizations:callsigns': True,
+    'organizations:group-unmerge': False,
     'projects:global-events': False,
     'projects:plugins': True,
     'projects:dsym': False,
@@ -766,7 +790,7 @@ SENTRY_FEATURES = {
 SENTRY_DEFAULT_TIME_ZONE = 'UTC'
 
 # Enable the Sentry Debugger (Beta)
-SENTRY_DEBUGGER = False
+SENTRY_DEBUGGER = DEBUG
 
 SENTRY_IGNORE_EXCEPTIONS = (
     'OperationalError',
@@ -1065,54 +1089,80 @@ SENTRY_DEFAULT_ROLE = 'member'
 # they're presented in the UI. This is primarily important in that a member
 # that is earlier in the chain cannot manage the settings of a member later
 # in the chain (they still require the appropriate scope).
-SENTRY_ROLES = (
-    {
-        'id': 'member',
-        'name': 'Member',
-        'desc': 'Members can view and act on events, as well as view most other data within the organization.',
-        'scopes': set([
-            'event:read', 'event:write', 'event:admin', 'project:releases',
-            'project:read', 'org:read', 'member:read', 'team:read',
-        ]),
-    },
-    {
-        'id': 'admin',
-        'name': 'Admin',
-        'desc': 'Admin privileges on any teams of which they\'re a member. They can create new teams and projects, as well as remove teams and projects which they already hold membership on.',
-        'scopes': set([
-            'event:read', 'event:write', 'event:admin',
-            'org:read', 'member:read',
-            'project:read', 'project:write', 'project:admin', 'project:releases',
-            'team:read', 'team:write', 'team:admin',
-        ]),
-    },
-    {
-        'id': 'manager',
-        'name': 'Manager',
-        'desc': 'Gains admin access on all teams as well as the ability to add and remove members.',
-        'is_global': True,
-        'scopes': set([
-            'event:read', 'event:write', 'event:admin',
-            'member:read', 'member:write', 'member:admin',
-            'project:read', 'project:write', 'project:admin', 'project:releases',
-            'team:read', 'team:write', 'team:admin',
-            'org:read', 'org:write',
-        ]),
-    },
-    {
-        'id': 'owner',
-        'name': 'Owner',
-        'desc': 'Gains full permission across the organization. Can manage members as well as perform catastrophic operations such as removing the organization.',
-        'is_global': True,
-        'scopes': set([
-            'org:read', 'org:write', 'org:admin',
-            'member:read', 'member:write', 'member:admin',
-            'team:read', 'team:write', 'team:admin',
-            'project:read', 'project:write', 'project:admin', 'project:releases',
-            'event:read', 'event:write', 'event:admin',
-        ]),
-    },
-)
+SENTRY_ROLES = ({'id': 'member',
+                 'name': 'Member',
+                 'desc': 'Members can view and act on events, as well as view most other data within the organization.',
+                 'scopes': set(['event:read',
+                                'event:write',
+                                'event:admin',
+                                'project:releases',
+                                'project:read',
+                                'org:read',
+                                'member:read',
+                                'team:read',
+                                ]),
+                 },
+                {'id': 'admin',
+                 'name': 'Admin',
+                 'desc': 'Admin privileges on any teams of which they\'re a member. They can create new teams and projects, as well as remove teams and projects which they already hold membership on.',
+                 'scopes': set(['event:read',
+                                'event:write',
+                                'event:admin',
+                                'org:read',
+                                'member:read',
+                                'project:read',
+                                'project:write',
+                                'project:admin',
+                                'project:releases',
+                                'team:read',
+                                'team:write',
+                                'team:admin',
+                                ]),
+                 },
+                {'id': 'manager',
+                 'name': 'Manager',
+                 'desc': 'Gains admin access on all teams as well as the ability to add and remove members.',
+                 'is_global': True,
+                 'scopes': set(['event:read',
+                                'event:write',
+                                'event:admin',
+                                'member:read',
+                                'member:write',
+                                'member:admin',
+                                'project:read',
+                                'project:write',
+                                'project:admin',
+                                'project:releases',
+                                'team:read',
+                                'team:write',
+                                'team:admin',
+                                'org:read',
+                                'org:write',
+                                ]),
+                 },
+                {'id': 'owner',
+                 'name': 'Owner',
+                 'desc': 'Gains full permission across the organization. Can manage members as well as perform catastrophic operations such as removing the organization.',
+                 'is_global': True,
+                 'scopes': set(['org:read',
+                                'org:write',
+                                'org:admin',
+                                'member:read',
+                                'member:write',
+                                'member:admin',
+                                'team:read',
+                                'team:write',
+                                'team:admin',
+                                'project:read',
+                                'project:write',
+                                'project:admin',
+                                'project:releases',
+                                'event:read',
+                                'event:write',
+                                'event:admin',
+                                ]),
+                 },
+                )
 
 # See sentry/options/__init__.py for more information
 SENTRY_OPTIONS = {}
@@ -1132,15 +1182,18 @@ SENTRY_ENCRYPTION_SCHEMES = (
 )
 
 # Delay (in ms) to induce on API responses
-SENTRY_API_RESPONSE_DELAY = 0
+SENTRY_API_RESPONSE_DELAY = 150 if IS_DEV else None
 
 # Watchers for various application purposes (such as compiling static media)
 # XXX(dcramer): this doesn't work outside of a source distribution as the
 # webpack.config.js is not part of Sentry's datafiles
 SENTRY_WATCHERS = (
-    ('webpack', [os.path.join(NODE_MODULES_ROOT, '.bin', 'webpack'), '--output-pathinfo', '--watch',
-     "--config={}".format(os.path.normpath(os.path.join(PROJECT_ROOT, os.pardir, os.pardir, "webpack.config.js")))]),
-)
+    ('webpack', [
+        os.path.join(
+            NODE_MODULES_ROOT, '.bin', 'webpack'), '--output-pathinfo', '--watch', "--config={}".format(
+                os.path.normpath(
+                    os.path.join(
+                        PROJECT_ROOT, os.pardir, os.pardir, "webpack.config.js")))]), )
 
 # Max file size for avatar photo uploads
 SENTRY_MAX_AVATAR_SIZE = 5000000
@@ -1163,6 +1216,7 @@ def get_raven_config():
     return {
         'release': sentry.__build__,
         'register_signals': True,
+        'environment': ENVIRONMENT,
         'include_paths': [
             'sentry',
         ],
@@ -1189,27 +1243,23 @@ SUDO_URL = 'sentry-sudo'
 
 # TODO(dcramer): move this to sentry.io so it can be automated
 SDK_VERSIONS = {
-    'raven-java': '8.0.0',
-    'raven-js': '3.15.0',
-    'raven-node': '1.1.4',
-    'raven-python': '6.0.0',
-    'raven-ruby': '2.4.0',
-    'sentry-laravel': '0.6.1',
-    'sentry-php': '1.6.2',
-    'sentry-swift': '2.1.2',
+    'raven-js': '3.16.0',
+    'raven-node': '2.1.0',
+    'raven-python': '6.1.0',
+    'raven-ruby': '2.5.3',
+    'sentry-cocoa': '3.1.2',
+    'sentry-java': '1.2.0',
+    'sentry-laravel': '0.7.0',
+    'sentry-php': '1.7.0',
 }
 
 SDK_URLS = {
-    'raven-java': 'https://docs.sentry.io/clients/java/',
-    'raven-java:android': 'https://docs.sentry.io/clients/java/modules/android/',
-    'raven-java:log4j': 'https://docs.sentry.io/clients/java/modules/log4j/',
-    'raven-java:log4j2': 'https://docs.sentry.io/clients/java/modules/log4j2/',
-    'raven-java:logback': 'https://docs.sentry.io/clients/java/modules/logback/',
     'raven-js': 'https://docs.sentry.io/clients/javascript/',
     'raven-node': 'https://docs.sentry.io/clients/node/',
     'raven-python': 'https://docs.sentry.io/clients/python/',
     'raven-ruby': 'https://docs.sentry.io/clients/ruby/',
     'raven-swift': 'https://docs.sentry.io/clients/cocoa/',
+    'sentry-java': 'https://docs.sentry.io/clients/java/',
     'sentry-php': 'https://docs.sentry.io/clients/php/',
     'sentry-laravel': 'https://docs.sentry.io/clients/php/integrations/laravel/',
     'sentry-swift': 'https://docs.sentry.io/clients/cocoa/',
@@ -1217,9 +1267,16 @@ SDK_URLS = {
 
 DEPRECATED_SDKS = {
     # sdk name => new sdk name
+    'raven-java': 'sentry-java',
+    'raven-java:android': 'sentry-java',
+    'raven-java:log4j': 'sentry-java',
+    'raven-java:log4j2': 'sentry-java',
+    'raven-java:logback': 'sentry-java',
     'raven-objc': 'sentry-swift',
     'raven-php': 'sentry-php',
     'sentry-android': 'raven-java',
+    'sentry-swift': 'sentry-cocoa',
+
     # The Ruby SDK used to go by the name 'sentry-raven'...
     'sentry-raven': 'raven-ruby',
 }

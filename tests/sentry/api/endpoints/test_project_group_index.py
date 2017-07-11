@@ -294,6 +294,11 @@ class GroupUpdateTest(APITestCase):
             self.project.slug,
         )
 
+    def assertNoResolution(self, group):
+        assert not GroupResolution.objects.filter(
+            group=group,
+        ).exists()
+
     def test_global_resolve(self):
         group1 = self.create_group(checksum='a' * 32, status=GroupStatus.RESOLVED)
         group2 = self.create_group(checksum='b' * 32, status=GroupStatus.UNRESOLVED)
@@ -468,7 +473,8 @@ class GroupUpdateTest(APITestCase):
         }
 
         new_group1 = Group.objects.get(id=group1.id)
-        assert new_group1.resolved_at is None
+        assert new_group1.resolved_at is not None
+        assert new_group1.status == GroupStatus.RESOLVED
 
         new_group2 = Group.objects.get(id=group2.id)
         assert new_group2.resolved_at is not None
@@ -511,20 +517,20 @@ class GroupUpdateTest(APITestCase):
             },
         }, format='json')
         assert response.status_code == 200
-        assert response.data == {
-            'status': 'resolved',
-            'statusDetails': {
-                'inRelease': release.version,
-            },
-        }
+        assert response.data['status'] == 'resolved'
+        assert response.data['statusDetails']['inRelease'] == release.version
+        assert response.data['statusDetails']['actor']['id'] == six.text_type(self.user.id)
 
         group = Group.objects.get(id=group.id)
         assert group.status == GroupStatus.RESOLVED
 
-        assert GroupResolution.objects.filter(
+        resolution = GroupResolution.objects.get(
             group=group,
-            release=release,
-        ).exists()
+        )
+        assert resolution.release == release
+        assert resolution.type == GroupResolution.Type.in_release
+        assert resolution.status == GroupResolution.Status.resolved
+        assert resolution.actor_id == self.user.id
 
         assert GroupSubscription.objects.filter(
             user=self.user,
@@ -543,7 +549,7 @@ class GroupUpdateTest(APITestCase):
                                          version='a')
         release.add_project(self.project)
         release2 = Release.objects.create(organization_id=self.project.organization_id,
-                                         version='b')
+                                          version='b')
         release2.add_project(self.project)
 
         group = self.create_group(
@@ -564,20 +570,20 @@ class GroupUpdateTest(APITestCase):
             },
         }, format='json')
         assert response.status_code == 200
-        assert response.data == {
-            'status': 'resolved',
-            'statusDetails': {
-                'inRelease': release.version,
-            },
-        }
+        assert response.data['status'] == 'resolved'
+        assert response.data['statusDetails']['inRelease'] == release.version
+        assert response.data['statusDetails']['actor']['id'] == six.text_type(self.user.id)
 
         group = Group.objects.get(id=group.id)
         assert group.status == GroupStatus.RESOLVED
 
-        assert GroupResolution.objects.filter(
+        resolution = GroupResolution.objects.get(
             group=group,
-            release=release,
-        ).exists()
+        )
+        assert resolution.release == release
+        assert resolution.type == GroupResolution.Type.in_release
+        assert resolution.status == GroupResolution.Status.resolved
+        assert resolution.actor_id == self.user.id
 
         assert GroupSubscription.objects.filter(
             user=self.user,
@@ -614,20 +620,20 @@ class GroupUpdateTest(APITestCase):
             },
         }, format='json')
         assert response.status_code == 200
-        assert response.data == {
-            'status': 'resolved',
-            'statusDetails': {
-                'inNextRelease': True,
-            },
-        }
+        assert response.data['status'] == 'resolved'
+        assert response.data['statusDetails']['inNextRelease']
+        assert response.data['statusDetails']['actor']['id'] == six.text_type(self.user.id)
 
         group = Group.objects.get(id=group.id)
         assert group.status == GroupStatus.RESOLVED
 
-        assert GroupResolution.objects.filter(
+        resolution = GroupResolution.objects.get(
             group=group,
-            release=release,
-        ).exists()
+        )
+        assert resolution.release == release
+        assert resolution.type == GroupResolution.Type.in_next_release
+        assert resolution.status == GroupResolution.Status.pending
+        assert resolution.actor_id == self.user.id
 
         assert GroupSubscription.objects.filter(
             user=self.user,
@@ -661,20 +667,20 @@ class GroupUpdateTest(APITestCase):
             'status': 'resolvedInNextRelease',
         }, format='json')
         assert response.status_code == 200
-        assert response.data == {
-            'status': 'resolved',
-            'statusDetails': {
-                'inNextRelease': True,
-            },
-        }
+        assert response.data['status'] == 'resolved'
+        assert response.data['statusDetails']['inNextRelease']
+        assert response.data['statusDetails']['actor']['id'] == six.text_type(self.user.id)
 
         group = Group.objects.get(id=group.id)
         assert group.status == GroupStatus.RESOLVED
 
-        assert GroupResolution.objects.filter(
+        resolution = GroupResolution.objects.get(
             group=group,
-            release=release,
-        ).exists()
+        )
+        assert resolution.release == release
+        assert resolution.type == GroupResolution.Type.in_next_release
+        assert resolution.status == GroupResolution.Status.pending
+        assert resolution.actor_id == self.user.id
 
         assert GroupSubscription.objects.filter(
             user=self.user,
@@ -689,7 +695,12 @@ class GroupUpdateTest(APITestCase):
         assert activity.data['version'] == ''
 
     def test_set_unresolved(self):
+        release = self.create_release(project=self.project, version='abc')
         group = self.create_group(checksum='a' * 32, status=GroupStatus.RESOLVED)
+        GroupResolution.objects.create(
+            group=group,
+            release=release,
+        )
 
         self.login_as(user=self.user)
 
@@ -708,6 +719,8 @@ class GroupUpdateTest(APITestCase):
 
         group = Group.objects.get(id=group.id)
         assert group.status == GroupStatus.UNRESOLVED
+
+        self.assertNoResolution(group)
 
         assert GroupSubscription.objects.filter(
             user=self.user,
@@ -802,18 +815,16 @@ class GroupUpdateTest(APITestCase):
         assert snooze.window is None
 
         # Drop microsecond value for MySQL
-        response.data['statusDetails']['ignoreUntil'] = response.data['statusDetails']['ignoreUntil'].replace(microsecond=0)
+        response.data['statusDetails']['ignoreUntil'] = response.data['statusDetails']['ignoreUntil'].replace(
+            microsecond=0)
 
-        assert response.data == {
-            'status': 'ignored',
-            'statusDetails': {
-                'ignoreCount': snooze.count,
-                'ignoreWindow': snooze.window,
-                'ignoreUntil': snooze.until,
-                'ignoreUserCount': snooze.user_count,
-                'ignoreUserWindow': snooze.user_window,
-            },
-        }
+        assert response.data['status'] == 'ignored'
+        assert response.data['statusDetails']['ignoreCount'] == snooze.count
+        assert response.data['statusDetails']['ignoreWindow'] == snooze.window
+        assert response.data['statusDetails']['ignoreUserCount'] == snooze.user_count
+        assert response.data['statusDetails']['ignoreUserWindow'] == snooze.user_window
+        assert response.data['statusDetails']['ignoreUntil'] == snooze.until
+        assert response.data['statusDetails']['actor']['id'] == six.text_type(self.user.id)
 
     def test_snooze_count(self):
         group = self.create_group(
@@ -843,16 +854,13 @@ class GroupUpdateTest(APITestCase):
         assert snooze.window is None
         assert snooze.state['times_seen'] == 1
 
-        assert response.data == {
-            'status': 'ignored',
-            'statusDetails': {
-                'ignoreCount': snooze.count,
-                'ignoreWindow': snooze.window,
-                'ignoreUntil': snooze.until,
-                'ignoreUserCount': snooze.user_count,
-                'ignoreUserWindow': snooze.user_window,
-            },
-        }
+        assert response.data['status'] == 'ignored'
+        assert response.data['statusDetails']['ignoreCount'] == snooze.count
+        assert response.data['statusDetails']['ignoreWindow'] == snooze.window
+        assert response.data['statusDetails']['ignoreUserCount'] == snooze.user_count
+        assert response.data['statusDetails']['ignoreUserWindow'] == snooze.user_window
+        assert response.data['statusDetails']['ignoreUntil'] == snooze.until
+        assert response.data['statusDetails']['actor']['id'] == six.text_type(self.user.id)
 
     def test_snooze_user_count(self):
         group = self.create_group(
@@ -886,16 +894,13 @@ class GroupUpdateTest(APITestCase):
         assert snooze.window is None
         assert snooze.state['users_seen'] == 100
 
-        assert response.data == {
-            'status': 'ignored',
-            'statusDetails': {
-                'ignoreCount': snooze.count,
-                'ignoreWindow': snooze.window,
-                'ignoreUntil': snooze.until,
-                'ignoreUserCount': snooze.user_count,
-                'ignoreUserWindow': snooze.user_window,
-            },
-        }
+        assert response.data['status'] == 'ignored'
+        assert response.data['statusDetails']['ignoreCount'] == snooze.count
+        assert response.data['statusDetails']['ignoreWindow'] == snooze.window
+        assert response.data['statusDetails']['ignoreUserCount'] == snooze.user_count
+        assert response.data['statusDetails']['ignoreUserWindow'] == snooze.user_window
+        assert response.data['statusDetails']['ignoreUntil'] == snooze.until
+        assert response.data['statusDetails']['actor']['id'] == six.text_type(self.user.id)
 
     def test_set_bookmarked(self):
         group1 = self.create_group(checksum='a' * 32, status=GroupStatus.RESOLVED)

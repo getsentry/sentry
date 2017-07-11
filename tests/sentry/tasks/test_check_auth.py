@@ -39,7 +39,9 @@ class CheckAuthTest(TestCase):
         updated_ai = AuthIdentity.objects.get(id=ai.id)
         assert updated_ai.last_synced != ai.last_synced
         # mysql doesnt store ms
-        assert updated_ai.last_verified.replace(microsecond=0) == ai.last_verified.replace(microsecond=0)
+        assert updated_ai.last_verified.replace(
+            microsecond=0) == ai.last_verified.replace(
+            microsecond=0)
 
         mock_check_auth_identity.apply_async.assert_called_once_with(
             kwargs={'auth_identity_id': ai.id},

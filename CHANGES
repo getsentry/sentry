@@ -1,7 +1,25 @@
-Version 8.18 (Unreleased)
+Version 8.19 (Unreleased)
 -------------------------
+- Hide project filter when there are no projects to list.
+
+Version 8.18
+------------
 
 - Expanded resolution options to allow current and explicit versions.
+- Added proguard support
+- Removed support for global dsyms.
+- Moved Queue admin page to React.
+- Replaced usage of jQuery Flot library with internal graphs.
+- Expanded ignore actions to include deltas and rates for both occurances and
+  users impacted.
+- Add a new option (`auth.allow-registration`) for determining whether registration
+  is allowed on an installation.
+- Moved "create organization" into React.
+- Expanded React Form components (Form, ApiForm).
+- Moved "create team" into React.
+- add Slack to supported auth backends in social auth (for plugins)
+- Expanded resolution actions (on stream) to include current release and explicit
+  release.
 
 Schema Changes
 ~~~~~~~~~~~~~~
@@ -11,6 +29,30 @@ Schema Changes
 - Added Release.authors
 - Added Release.total_deploys
 - Added Release.last_deploy_id
+- Added ``FeatureAdoption`` model
+- Removed DSymBundle
+- Removed DSymObject
+- Removed DSymSDK
+- Removed DSymSymbol
+- Removed GlobalDSymFile
+- Added GroupHash.state
+- Drop index on ``ReleaseEnvironment(project_id)``
+- Drop index on ``ReleaseCommit(project_id)``
+- Drop unique constraint on ``ReleaseEnvironment(project_id, release_id, environment_id)``
+- Added GroupResolution.type
+- Added GroupResolution.actor_id
+- Added Project.platform
+- Added GroupSnooze.actor_id
+- Added ScheduledJob
+- Added GroupResolution.actor_id
+- Added ``ScheduledJob`` model
+- Added User.last_active
+
+API Changes
+~~~~~~~~~~~
+
+- Project keys endpoint will include all available keys by default. Use
+  ``status=active`` to retain the old behavior.
 
 Version 8.17
 ------------

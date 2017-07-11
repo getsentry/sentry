@@ -24,7 +24,6 @@ SWIFT_OBJECT_NAME = (
 )
 
 SDK_INFO = {
-    "dsym_type": "macho",
     "sdk_name": "iOS",
     "version_major": 9,
     "version_minor": 3,
@@ -32,7 +31,7 @@ SDK_INFO = {
 }
 
 
-def patched_symbolize_app_frame(self, instruction_addr, img):
+def patched_symbolize_app_frame(self, instruction_addr, img, sdk_info=None):
     return [{
         'filename': 'Foo.swift',
         'abs_path': 'Foo.swift',

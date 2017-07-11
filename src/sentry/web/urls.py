@@ -18,7 +18,6 @@ from sentry.web.frontend.accept_organization_invite import \
     AcceptOrganizationInviteView
 from sentry.web.frontend.account_security import AccountSecurityView
 from sentry.web.frontend.account_notification import AccountNotificationView
-from sentry.web.frontend.admin_queue import AdminQueueView
 from sentry.web.frontend.auth_login import AuthLoginView
 from sentry.web.frontend.twofactor import TwoFactorAuthView, u2f_appid
 from sentry.web.frontend.auth_logout import AuthLogoutView
@@ -26,11 +25,9 @@ from sentry.web.frontend.auth_organization_login import \
     AuthOrganizationLoginView
 from sentry.web.frontend.auth_provider_login import AuthProviderLoginView
 from sentry.web.frontend.auth_close import AuthCloseView
-from sentry.web.frontend.create_organization import CreateOrganizationView
 from sentry.web.frontend.create_organization_member import \
     CreateOrganizationMemberView
 from sentry.web.frontend.create_project import CreateProjectView
-from sentry.web.frontend.create_team import CreateTeamView
 from sentry.web.frontend.error_page_embed import ErrorPageEmbedView
 from sentry.web.frontend.group_event_json import GroupEventJsonView
 from sentry.web.frontend.group_plugin_action import GroupPluginActionView
@@ -214,8 +211,6 @@ urlpatterns += patterns(
     url(r'^account/', generic_react_page_view),
 
     # Admin
-    url(r'^manage/queue/$', AdminQueueView.as_view(),
-        name='sentry-admin-queue'),
     url(r'^manage/status/environment/$', admin.status_env,
         name='sentry-admin-status'),
     url(r'^manage/status/packages/$', admin.status_packages,
@@ -258,8 +253,7 @@ urlpatterns += patterns(
     # Organizations
     url(r'^(?P<organization_slug>[\w_-]+)/$', react_page_view,
         name='sentry-organization-home'),
-    url(r'^organizations/new/$', CreateOrganizationView.as_view(),
-        name='sentry-create-organization'),
+    url(r'^organizations/new/$', generic_react_page_view),
     url(r'^organizations/(?P<organization_slug>[\w_-]+)/api-keys/$', OrganizationApiKeysView.as_view(),
         name='sentry-organization-api-keys'),
     url(r'^organizations/(?P<organization_slug>[\w_-]+)/api-keys/(?P<key_id>[\w_-]+)/$', OrganizationApiKeySettingsView.as_view(),
@@ -276,8 +270,7 @@ urlpatterns += patterns(
         name='sentry-organization-stats'),
     url(r'^organizations/(?P<organization_slug>[\w_-]+)/teams/(?P<team_slug>[\w_-]+)/remove/$', RemoveTeamView.as_view(),
         name='sentry-remove-team'),
-    url(r'^organizations/(?P<organization_slug>[\w_-]+)/teams/new/$', CreateTeamView.as_view(),
-        name='sentry-create-team'),
+    url(r'^organizations/(?P<organization_slug>[\w_-]+)/teams/new/$', react_page_view),
     url(r'^organizations/(?P<organization_slug>[\w_-]+)/projects/new/$', CreateProjectView.as_view(),
         name='sentry-create-project'),
     url(r'^organizations/(?P<organization_slug>[\w_-]+)/remove/$', RemoveOrganizationView.as_view(),

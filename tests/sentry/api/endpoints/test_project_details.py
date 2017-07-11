@@ -69,11 +69,13 @@ class ProjectUpdateTest(APITestCase):
         resp = self.client.put(url, data={
             'name': 'hello world',
             'slug': 'foobar',
+            'platform': 'cocoa',
         })
         assert resp.status_code == 200, resp.content
         project = Project.objects.get(id=project.id)
         assert project.name == 'hello world'
         assert project.slug == 'foobar'
+        assert project.platform == 'cocoa'
 
     def test_member_changes(self):
         project = self.create_project()
@@ -126,11 +128,18 @@ class ProjectUpdateTest(APITestCase):
         assert project.get_option('sentry:origins', []) == options['sentry:origins'].split('\n')
         assert project.get_option('sentry:resolve_age', 0) == options['sentry:resolve_age']
         assert project.get_option('sentry:scrub_data', True) == options['sentry:scrub_data']
-        assert project.get_option('sentry:scrub_defaults', True) == options['sentry:scrub_defaults']
-        assert project.get_option('sentry:sensitive_fields', []) == options['sentry:sensitive_fields']
+        assert project.get_option(
+            'sentry:scrub_defaults',
+            True) == options['sentry:scrub_defaults']
+        assert project.get_option(
+            'sentry:sensitive_fields',
+            []) == options['sentry:sensitive_fields']
         assert project.get_option('sentry:safe_fields', []) == options['sentry:safe_fields']
-        assert project.get_option('sentry:csp_ignored_sources_defaults', True) == options['sentry:csp_ignored_sources_defaults']
-        assert project.get_option('sentry:csp_ignored_sources', []) == options['sentry:csp_ignored_sources'].split('\n')
+        assert project.get_option(
+            'sentry:csp_ignored_sources_defaults',
+            True) == options['sentry:csp_ignored_sources_defaults']
+        assert project.get_option('sentry:csp_ignored_sources',
+                                  []) == options['sentry:csp_ignored_sources'].split('\n')
 
     def test_bookmarks(self):
         project = self.project  # force creation

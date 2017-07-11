@@ -34,7 +34,7 @@ def reprocess_events(project_id, **kwargs):
                     helper.insert_data_to_database(raw_event.data.data,
                                                    from_reprocessing=True)
                     create_reprocessing_report(project_id=project_id,
-                        event_id=raw_event.event_id)
+                                               event_id=raw_event.event_id)
                     raw_event.delete()
     except UnableToAcquireLock as error:
         logger.warning('reprocess_events.fail', extra={'error': error})

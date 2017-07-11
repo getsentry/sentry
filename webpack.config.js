@@ -50,16 +50,15 @@ var appEntry = {
     'moment',
     'moment-timezone',
     'raven-js',
+    'react',
+    'react-dom',
+    'react-dom/server',
     'react-document-title',
     'react-router',
     'react-bootstrap/lib/Modal',
     'react-sparklines',
     'reflux',
     'select2',
-    'flot/jquery.flot',
-    'flot/jquery.flot.stack',
-    'flot/jquery.flot.time',
-    'flot-tooltip/jquery.flot.tooltip',
     'vendor/simple-slider/simple-slider',
     'underscore',
     'ios-device-list'
@@ -159,8 +158,6 @@ var appConfig = {
   ],
   resolve: {
     alias: {
-      flot: path.join(__dirname, staticPrefix, 'vendor', 'jquery-flot'),
-      'flot-tooltip': path.join(__dirname, staticPrefix, 'vendor', 'jquery-flot-tooltip'),
       'sentry-locale': path.join(__dirname, 'src', 'sentry', 'locale')
     },
     modules: [path.join(__dirname, staticPrefix), 'node_modules'],

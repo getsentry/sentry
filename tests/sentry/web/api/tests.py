@@ -32,28 +32,28 @@ class CspReportViewTest(TestCase):
 
     def test_missing_csp_report(self):
         resp = self.client.post(self.path,
-            content_type='application/csp-report',
-            data='{"lol":1}',
-            HTTP_USER_AGENT='awesome',
-        )
+                                content_type='application/csp-report',
+                                data='{"lol":1}',
+                                HTTP_USER_AGENT='awesome',
+                                )
         assert resp.status_code == 400, resp.content
 
     @mock.patch('sentry.utils.http.get_origins')
     def test_bad_origin(self, get_origins):
         get_origins.return_value = ['example.com']
         resp = self.client.post(self.path,
-            content_type='application/csp-report',
-            data='{"csp-report":{"document-uri":"http://lolnope.com"}}',
-            HTTP_USER_AGENT='awesome',
-        )
+                                content_type='application/csp-report',
+                                data='{"csp-report":{"document-uri":"http://lolnope.com"}}',
+                                HTTP_USER_AGENT='awesome',
+                                )
         assert resp.status_code == 403, resp.content
 
         get_origins.return_value = ['*']
         resp = self.client.post(self.path,
-            content_type='application/csp-report',
-            data='{"csp-report":{"document-uri":"about:blank"}}',
-            HTTP_USER_AGENT='awesome',
-        )
+                                content_type='application/csp-report',
+                                data='{"csp-report":{"document-uri":"about:blank"}}',
+                                HTTP_USER_AGENT='awesome',
+                                )
         assert resp.status_code == 403, resp.content
 
     @mock.patch('sentry.web.api.is_valid_origin', mock.Mock(return_value=True))
@@ -382,8 +382,10 @@ class CrossDomainXmlTest(TestCase):
         self.assertEquals(resp.status_code, 200)
         self.assertEquals(resp['Content-Type'], 'application/xml')
         self.assertTemplateUsed(resp, 'sentry/crossdomain.xml')
-        assert '<allow-access-from domain="disqus.com" secure="false" />' in resp.content.decode('utf-8')
-        assert '<allow-access-from domain="www.disqus.com" secure="false" />' in resp.content.decode('utf-8')
+        assert '<allow-access-from domain="disqus.com" secure="false" />' in resp.content.decode(
+            'utf-8')
+        assert '<allow-access-from domain="www.disqus.com" secure="false" />' in resp.content.decode(
+            'utf-8')
 
     @mock.patch('sentry.web.api.get_origins')
     def test_output_with_no_origins(self, get_origins):
@@ -400,7 +402,8 @@ class CrossDomainXmlTest(TestCase):
         self.assertEquals(resp.status_code, 200)
         self.assertEquals(resp['Content-Type'], 'application/xml')
         self.assertTemplateUsed(resp, 'sentry/crossdomain.xml')
-        assert '<allow-http-request-headers-from domain="*" headers="*" secure="false" />' in resp.content.decode('utf-8')
+        assert '<allow-http-request-headers-from domain="*" headers="*" secure="false" />' in resp.content.decode(
+            'utf-8')
 
 
 class CrossDomainXmlIndexTest(TestCase):
@@ -413,7 +416,8 @@ class CrossDomainXmlIndexTest(TestCase):
         self.assertEquals(resp.status_code, 200)
         self.assertEquals(resp['Content-Type'], 'application/xml')
         self.assertTemplateUsed(resp, 'sentry/crossdomain_index.xml')
-        assert '<site-control permitted-cross-domain-policies="all" />' in resp.content.decode('utf-8')
+        assert '<site-control permitted-cross-domain-policies="all" />' in resp.content.decode(
+            'utf-8')
 
 
 class RobotsTxtTest(TestCase):

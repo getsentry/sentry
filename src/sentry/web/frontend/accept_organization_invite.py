@@ -101,7 +101,9 @@ class AcceptOrganizationInviteView(BaseView):
 
         form = self.get_form(request)
         if form.is_valid():
-            if OrganizationMember.objects.filter(organization=organization, user=request.user).exists():
+            if OrganizationMember.objects.filter(
+                    organization=organization,
+                    user=request.user).exists():
                 messages.add_message(
                     request, messages.SUCCESS,
                     _('You are already a member of the %r organization.') % (

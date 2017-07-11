@@ -18,7 +18,8 @@ def get_latest_events(group_hash_list):
 
     events_by_group_hash = {}
     for project_id, group_hash_list_chunk in group_hashes_by_project_id.items():
-        event_id_list = GroupHash.fetch_last_processed_event_id(project_id, [i.id for i in group_hash_list_chunk])
+        event_id_list = GroupHash.fetch_last_processed_event_id(
+            project_id, [i.id for i in group_hash_list_chunk])
         event_by_event_id = {
             event.event_id: event
             for event in
@@ -38,6 +39,11 @@ def get_latest_events(group_hash_list):
 
 @register(GroupHash)
 class GroupHashSerializer(Serializer):
+    state_text_map = {
+        None: 'unlocked',
+        GroupHash.State.LOCKED_IN_MIGRATION: 'locked',
+    }
+
     def get_attrs(self, item_list, user, *args, **kwargs):
         return {
             item: {'latest_event': latest_event}
@@ -54,5 +60,6 @@ class GroupHashSerializer(Serializer):
     def serialize(self, obj, attrs, user):
         return {
             'id': obj.hash,
-            'latest_event': attrs['latest_event'],
+            'latestEvent': attrs['latest_event'],
+            'state': self.state_text_map[obj.state],
         }

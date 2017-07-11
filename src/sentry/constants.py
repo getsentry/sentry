@@ -82,7 +82,7 @@ RESERVED_ORGANIZATION_SLUGS = frozenset((
     'subscribe', 'enterprise', 'about', 'jobs', 'thanks', 'guide',
     'privacy', 'security', 'terms', 'from', 'sponsorship', 'for',
     'at', 'platforms', 'branding', 'vs', 'answers', '_admin',
-    'support', 'styleguide'
+    'support', 'styleguide', 'contact',
 ))
 
 LOG_LEVELS = {
@@ -226,7 +226,8 @@ MAX_SYM = 256
 
 # Known dsym mimetypes
 KNOWN_DSYM_TYPES = {
-    'application/x-mach-binary': 'macho'
+    'application/x-mach-binary': 'macho',
+    'text/x-proguard+plain': 'proguard',
 }
 
 NATIVE_UNKNOWN_STRING = '<unknown>'

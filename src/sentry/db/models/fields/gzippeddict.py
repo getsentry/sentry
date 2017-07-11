@@ -27,6 +27,7 @@ class GzippedDictField(models.TextField):
     Slightly different from a JSONField in the sense that the default
     value is a dictionary.
     """
+
     def to_python(self, value):
         if isinstance(value, six.string_types) and value:
             try:

@@ -82,19 +82,28 @@ class Organization(Model):
         (OrganizationStatus.DELETION_IN_PROGRESS, _('Deletion in Progress')),
     ), default=OrganizationStatus.VISIBLE)
     date_added = models.DateTimeField(default=timezone.now)
-    members = models.ManyToManyField(settings.AUTH_USER_MODEL, through='sentry.OrganizationMember', related_name='org_memberships')
+    members = models.ManyToManyField(
+        settings.AUTH_USER_MODEL,
+        through='sentry.OrganizationMember',
+        related_name='org_memberships')
     default_role = models.CharField(
         choices=roles.get_choices(),
         max_length=32,
         default=roles.get_default().id,
     )
 
-    flags = BitField(flags=(
-        ('allow_joinleave', 'Allow members to join and leave teams without requiring approval.'),
-        ('enhanced_privacy', 'Enable enhanced privacy controls to limit personally identifiable information (PII) as well as source code in things like notifications.'),
-        ('disable_shared_issues', 'Disable sharing of limited details on issues to anonymous users.'),
-        ('early_adopter', 'Enable early adopter status, gaining access to features prior to public release.'),
-    ), default=1)
+    flags = BitField(
+        flags=(
+            ('allow_joinleave',
+             'Allow members to join and leave teams without requiring approval.'),
+            ('enhanced_privacy',
+             'Enable enhanced privacy controls to limit personally identifiable information (PII) as well as source code in things like notifications.'),
+            ('disable_shared_issues',
+             'Disable sharing of limited details on issues to anonymous users.'),
+            ('early_adopter',
+             'Enable early adopter status, gaining access to features prior to public release.'),
+        ),
+        default=1)
 
     objects = OrganizationManager(cache_fields=(
         'pk',
@@ -189,7 +198,8 @@ class Organization(Model):
             Repository, Team, Environment,
         )
 
-        for from_member in OrganizationMember.objects.filter(organization=from_org, user__isnull=False):
+        for from_member in OrganizationMember.objects.filter(
+                organization=from_org, user__isnull=False):
             try:
                 to_member = OrganizationMember.objects.get(
                     organization=to_org,
