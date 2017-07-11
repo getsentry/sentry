@@ -26,6 +26,7 @@ class GroupTombstoneSerializerTest(TestCase):
             culprit=group.culprit,
             type=group.get_event_type(),
             actor_id=self.user.id,
+            previous_group_id=group.id,
         )
         GroupHash.objects.create(
             project=group.project,

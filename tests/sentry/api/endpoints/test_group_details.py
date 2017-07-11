@@ -284,9 +284,10 @@ class GroupUpdateTest(APITestCase):
         url = '/api/0/issues/{}/'.format(group.id)
 
         with self.tasks():
-            resp = self.client.put(url, data={
-                'discard': True,
-            })
+            with self.feature('projects:custom-filters', True):
+                resp = self.client.put(url, data={
+                    'discard': True,
+                })
 
         assert resp.status_code == 204
         assert not Group.objects.filter(
