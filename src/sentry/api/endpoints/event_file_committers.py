@@ -41,7 +41,7 @@ class EventFileCommittersEndpoint(ProjectEndpoint):
         except KeyError:
             try:
                 frames = data['sentry.interfaces.Exception']['values'][0]['stacktrace']['frames']
-            except KeyError:
+            except (KeyError, TypeError):
                 return []  # can't find stacktrace information
 
         return frames
