@@ -190,7 +190,7 @@ def plugin_is_regression(group, event):
     return True
 
 
-class DiscardedHash(Exception):
+class HashDiscarded(Exception):
     pass
 
 
@@ -823,17 +823,13 @@ class EventManager(object):
         # attempt to find a matching hash
         all_hashes = self._find_hashes(project, hashes)
 
-        try:
-            existing_group_id, existing_tombstone_id = six.next(
-                (h.group_id, h.group_tombstone_id)
-                for h in all_hashes if h.group_id is not None or h.group_tombstone_id is not None
-            )
-        except StopIteration:
-            existing_group_id = None
-            existing_tombstone_id = None
-
-        if existing_tombstone_id is not None:
-            raise DiscardedHash('Matches discarded group %s' % existing_tombstone_id)
+        existing_group_id = None
+        for h in all_hashes:
+            if h.group_id is not None:
+                existing_group_id = h.group_id
+                break
+            if h.group_tombstone_id is not None:
+                raise HashDiscarded('Matches discarded group %s' % h.group_tombstone_id)
 
         # XXX(dcramer): this has the opportunity to create duplicate groups
         # it should be resolved by the hash merging function later but this

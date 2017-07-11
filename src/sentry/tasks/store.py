@@ -270,7 +270,7 @@ def save_event(cache_key=None, data=None, start_time=None, event_id=None, **kwar
     """
     Saves an event to the database.
     """
-    from sentry.event_manager import DiscardedHash, EventManager
+    from sentry.event_manager import HashDiscarded, EventManager
 
     if cache_key:
         data = default_cache.get(cache_key)
@@ -293,7 +293,7 @@ def save_event(cache_key=None, data=None, start_time=None, event_id=None, **kwar
     try:
         manager = EventManager(data)
         manager.save(project)
-    except DiscardedHash as exc:
+    except HashDiscarded as exc:
         error_logger.info('discarded.hash', extra={
             'project_id': project.id,
             'message': exc.message,
