@@ -37,7 +37,7 @@ class GroupTombstoneSerializer(Serializer):
             'level': six.text_type(obj.level),
             'message': obj.message,
             'culprit': obj.culprit,
-            'type': obj.type,
+            'type': obj.get_event_type(),
             'actor': attrs.get('user'),
 
         }

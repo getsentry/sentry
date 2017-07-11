@@ -15,7 +15,7 @@ class GroupTombstoneDetailsTest(APITestCase):
             level=group.level,
             message=group.message,
             culprit=group.culprit,
-            type=group.get_event_type(),
+            data=group.data,
             previous_group_id=group.id,
         )
         GroupHash.objects.create(

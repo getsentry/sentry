@@ -24,7 +24,7 @@ class GroupTombstoneSerializerTest(TestCase):
             level=group.level,
             message=group.message,
             culprit=group.culprit,
-            type=group.get_event_type(),
+            data=group.data,
             actor_id=self.user.id,
             previous_group_id=group.id,
         )
