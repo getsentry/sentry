@@ -307,8 +307,6 @@ const ProjectFiltersSettingsForm = React.createClass({
             error={errors['filters:blacklisted_ips']}
             onChange={this.onFieldChange.bind(this, 'filters:blacklisted_ips')}
           />
-        </fieldset>
-        <fieldset>
           <h5>{t('Filter errors from these releases:')}</h5>
           <TextareaField
             key="release"
