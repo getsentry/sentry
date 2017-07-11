@@ -1,5 +1,4 @@
 import React from 'react';
-import {onboardingSteps} from '../utils';
 import Waiting from './waiting';
 import {browserHistory} from 'react-router';
 import ApiMixin from '../../../mixins/apiMixin';
@@ -11,15 +10,16 @@ import ProjectInstallPlatform from '../../projectInstall/platform';
 // import {platforms} from '../../../../../../integration-docs/_platforms.json';
 
 const Configure = React.createClass({
-  mixins: [ApiMixin],
-
-
   propTypes: {
     next: React.PropTypes.func
   },
 
+  mixins: [ApiMixin],
+
   componentDidMount() {
-    this.timer = setInterval(() => { this.fetchEventData() }, 5000);
+    this.timer = setInterval(() => {
+      this.fetchEventData();
+    }, 2000);
   },
 
   componentWillUnmount() {
@@ -27,15 +27,15 @@ const Configure = React.createClass({
   },
 
   redirectUrl() {
-    let orgId= this.props.params.orgId;
-    let projectId= this.props.params.projectId;
+    let orgId = this.props.params.orgId;
+    let projectId = this.props.params.projectId;
     const url = `/${orgId}/${projectId}/#welcome`;
     browserHistory.push(url);
   },
 
   fetchEventData() {
-    let orgId= this.props.params.orgId;
-    let projectId= this.props.params.projectId;
+    let orgId = this.props.params.orgId;
+    let projectId = this.props.params.projectId;
     this.api.request(`/projects/${orgId}/${projectId}/events/`, {
       method: 'GET',
       success: data => {
@@ -48,7 +48,7 @@ const Configure = React.createClass({
   },
 
   checkFirstEvent(data) {
-    if (data.length>1){
+    if (data.length > 1) {
       this.redirectUrl();
     }
   },
@@ -57,16 +57,22 @@ const Configure = React.createClass({
     this.redirectUrl();
   },
 
-  steps: Object.keys(onboardingSteps),
   render() {
     return (
       <div className="onboarding-Configure">
-        <Waiting/>
+        <Waiting />
         <ProjectContext
           projectId={this.props.params.projectId}
           orgId={this.props.params.orgId}>
           <ProjectDocsContext>
-            <ProjectInstallPlatform platformData={{}} params={this.props.params} />
+            <ProjectInstallPlatform
+              platformData={{
+                hack: 'actually set by ProjectDocsContext, this object is here to avoid proptypes warnings'
+              }}
+              params={this.props.params}
+              linkPath={(orgId, projectId, platform) =>
+                `/onboarding/${orgId}/${projectId}/configure/${platform}/`}
+            />
           </ProjectDocsContext>
         </ProjectContext>
         <div className="btn btn-primary" onClick={this.submit}>

@@ -16,7 +16,6 @@ const Waiting = React.createClass({
     this.fetchData();
   },
 
-
   fetchData(callback) {
     this.api.request('/internal/options/?query=is:required', {
       method: 'GET',
@@ -43,7 +42,18 @@ const Waiting = React.createClass({
   render() {
     return (
       <div className="waiting-indicator">
-        <h1>Waiting for your event</h1>
+
+        <div className="awaiting-event">
+          <div className="configure-text col-sm-4">
+            <h2>Configure your application</h2>
+          </div>
+          <div className="wrap col-sm-8">
+            <span class="icon-spinner spin" />
+
+            <div className="waiting-text"><h3>Waiting for your event</h3></div>
+            <div className="robot"><span className="eye" /></div>
+          </div>
+        </div>
 
       </div>
     );

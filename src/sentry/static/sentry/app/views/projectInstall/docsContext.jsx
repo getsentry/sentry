@@ -31,8 +31,6 @@ const ProjectDocsContext = React.createClass({
     let orgId = org.slug;
     let projectId = this.context.project.slug;
 
-    // console.log(orgId, projectId);
-    // debugger;
     this.api.request(`/projects/${orgId}/${projectId}/docs/`, {
       success: data => {
         console.log(data);
@@ -51,7 +49,7 @@ const ProjectDocsContext = React.createClass({
     let data = this.state.data;
     console.log(this.state.data);
     return React.cloneElement(this.props.children, {
-      platformData: data // {...this.props}
+      platformData: data 
     });
   }
 });

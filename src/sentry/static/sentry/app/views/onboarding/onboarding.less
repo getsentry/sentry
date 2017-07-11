@@ -7,6 +7,73 @@
   padding: 10px;
 }
 
+
+.awaiting-event {
+  max-height: 100px;
+  padding-left: 10px;
+
+  .configure-text {
+  // display: inline-block;
+  // left: 0;
+    padding-top: 10px;
+    padding-left: 10px;
+    float: left;
+  }
+ // border-radius: 0;
+  // padding: 30px 20px 30px 0;
+  // #gradient > .vertical(#F8F9FA, #ffffff);
+  // box-shadow: inset 0 1px 3px rgba(0,0,0, .08);
+  // border-radius: 0 0 3px 3px;
+  // padding: 10x;
+  // left: 10px;
+  // margin-left: 15px;
+
+
+   .wrap {
+     position: relative;
+     // max-width: 1060px;
+     margin: 0 auto;
+     // padding: 30px 0 20px 10px;
+     font-size: 18px;
+     // min-height: 130px;
+     // max-width: 500px;
+     // max-height: 100px;
+     left: 300px;
+   }
+
+   .waiting-text {
+    // padding: 20px 20px 20px 70px;
+    // max-height: 100px;
+
+   }
+
+    .robot {
+     position: absolute;
+     left: 0;
+     top: 0;
+     padding-bottom: 5px;
+     width: 55px;
+     height: 65px;
+     background: url(../../../images/sentry-robot.png);
+     background-size: cover;
+
+     .eye {
+       display: block;
+       .square(3px);
+       border-radius: 6px;
+       position: absolute;
+       top: 17px;
+       left: 20px;
+
+        -webkit-animation: blink-eye .6s infinite;
+        -moz-animation:    blink-eye .6s infinite;
+        -o-animation:      blink-eye .6s infinite;
+        animation:         blink-eye .6s infinite;
+      }
+    }
+  }
+
+
 .onboarding-sidebar{
   width: 250px;
   height: 100%;
