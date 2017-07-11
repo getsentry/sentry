@@ -145,7 +145,7 @@ class RedisQuota(Quota):
 
         def get_next_period_start(interval, shift):
             """Return the timestamp when the next rate limit period begins for an interval."""
-            return ((timestamp // interval) + 1) * interval - shift
+            return (((timestamp - shift) // interval) + 1) * interval + shift
 
         keys = []
         args = []

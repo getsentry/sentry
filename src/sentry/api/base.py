@@ -221,6 +221,10 @@ class Endpoint(APIView):
             results = on_results(cursor_result.results)
 
         headers = {}
+        if cursor_result.hits is not None:
+            headers['X-Hits'] = cursor_result.hits
+        if cursor_result.max_hits is not None:
+            headers['X-Max-Hits'] = cursor_result.max_hits
         headers['Link'] = ', '.join([
             self.build_cursor_link(request, 'previous', cursor_result.prev),
             self.build_cursor_link(request, 'next', cursor_result.next),
