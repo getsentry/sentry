@@ -131,6 +131,36 @@ class StoreViewTest(TestCase):
         resp = self._postWithHeader({})
         assert resp.status_code == 403, (resp.status_code, resp.content)
 
+    @mock.patch('sentry.coreapi.is_valid_release', mock.Mock(return_value=False))
+    def test_request_with_invalid_release_mock(self):
+        body = {
+            "release": "abcdefg",
+            "message": "foo bar",
+            "sentry.interfaces.User": {"ip_address": "127.0.0.1"},
+            "sentry.interfaces.Http": {
+                "method": "GET",
+                "url": "http://example.com/",
+                "env": {"REMOTE_ADDR": "127.0.0.1"}
+            },
+        }
+        resp = self._postWithHeader(body)
+        assert resp.status_code == 403, (resp.status_code, resp.content)
+
+    def test_request_with_invalid_release(self):
+        self.project.update_option('sentry:releases', ['abcdefg'])
+        body = {
+            "release": "abcdefg",
+            "message": "foo bar",
+            "sentry.interfaces.User": {"ip_address": "127.0.0.1"},
+            "sentry.interfaces.Http": {
+                "method": "GET",
+                "url": "http://example.com/",
+                "env": {"REMOTE_ADDR": "127.0.0.1"}
+            },
+        }
+        resp = self._postWithHeader(body)
+        assert resp.status_code == 403, (resp.status_code, resp.content)
+
     @mock.patch('sentry.coreapi.ClientApiHelper.insert_data_to_database')
     def test_scrubs_ip_address(self, mock_insert_data_to_database):
         self.project.update_option('sentry:scrub_ip_address', True)
