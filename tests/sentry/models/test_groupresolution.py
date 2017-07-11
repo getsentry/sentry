@@ -72,3 +72,14 @@ class GroupResolutionTest(TestCase):
             type=GroupResolution.Type.in_release,
         )
         assert GroupResolution.has_resolution(self.group, self.old_release)
+
+    def test_no_release_with_resolution(self):
+        GroupResolution.objects.create(
+            release=self.new_release,
+            group=self.group,
+            type=GroupResolution.Type.in_release,
+        )
+        assert GroupResolution.has_resolution(self.group, None)
+
+    def test_no_release_with_no_resolution(self):
+        assert not GroupResolution.has_resolution(self.group, None)

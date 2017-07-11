@@ -5,6 +5,7 @@ import itertools
 from rest_framework.response import Response
 
 from sentry import status_checks
+from sentry.status_checks import sort_by_severity
 from sentry.api.base import Endpoint
 from sentry.api.permissions import SuperuserPermission
 from sentry.utils.hashlib import md5_text
@@ -23,8 +24,8 @@ class SystemHealthEndpoint(Endpoint):
                     'severity': problem.severity,
                     'url': problem.url,
                 }
-                for problem in sorted(itertools.chain.from_iterable(results.values()),
-                                      reverse=True)
+                for problem in
+                sort_by_severity(itertools.chain.from_iterable(results.values()))
             ],
             'healthy': {type(check).__name__: not problems for check, problems in results.items()},
         })
