@@ -3,8 +3,8 @@ from __future__ import absolute_import
 import itertools
 import logging
 
-
 from sentry.utils.dates import to_timestamp
+
 
 logger = logging.getLogger('sentry.similarity')
 

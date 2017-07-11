@@ -7,6 +7,7 @@ import mmh3
 
 from sentry.utils.redis import load_script
 
+
 index = load_script('similarity/index.lua')
 
 

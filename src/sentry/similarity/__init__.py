@@ -4,10 +4,6 @@ import itertools
 
 from django.conf import settings
 
-from sentry.utils import redis
-from sentry.utils.datastructures import BidirectionalMapping
-from sentry.utils.iterators import shingle
-
 from sentry.similarity.index import MinHashIndex
 from sentry.similarity.features import (
     FeatureSet,
@@ -15,6 +11,9 @@ from sentry.similarity.features import (
     MessageFeature,
     get_application_chunks,
 )
+from sentry.utils import redis
+from sentry.utils.datastructures import BidirectionalMapping
+from sentry.utils.iterators import shingle
 
 
 def text_shingle(n, value):
