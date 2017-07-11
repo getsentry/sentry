@@ -300,7 +300,7 @@ class GroupUpdateTest(APITestCase):
         assert tombstone.message == group.message
         assert tombstone.culprit == group.culprit
         assert tombstone.project == group.project
-        assert tombstone.type == group.get_event_type()
+        assert tombstone.data == group.data
 
 
 class GroupDeleteTest(APITestCase):

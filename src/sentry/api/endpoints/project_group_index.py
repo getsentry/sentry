@@ -42,7 +42,7 @@ delete_logger = logging.getLogger('sentry.deletions.api')
 
 ERR_INVALID_STATS_PERIOD = "Invalid stats_period. Valid choices are '', '24h', and '14d'"
 SAVED_SEARCH_QUERIES = set([s['query'] for s in DEFAULT_SAVED_SEARCHES])
-TOMBSTONE_FIELDS_FROM_GROUP = ('project_id', 'level', 'message', 'culprit')
+TOMBSTONE_FIELDS_FROM_GROUP = ('project_id', 'level', 'message', 'culprit', 'data')
 
 
 @scenario('BulkUpdateIssues')
@@ -485,7 +485,6 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
                     try:
                         tombstone = GroupTombstone.objects.create(
                             previous_group_id=group.id,
-                            type=group.get_event_type(),
                             actor_id=acting_user.id if acting_user else None,
                             **{name: getattr(group, name) for name in TOMBSTONE_FIELDS_FROM_GROUP}
                         )

@@ -1213,7 +1213,7 @@ class GroupUpdateTest(APITestCase):
         assert tombstone.message == group1.message
         assert tombstone.culprit == group1.culprit
         assert tombstone.project == group1.project
-        assert tombstone.type == group1.get_event_type()
+        assert tombstone.data == group1.data
 
 
 class GroupDeleteTest(APITestCase):
