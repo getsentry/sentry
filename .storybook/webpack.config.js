@@ -14,8 +14,17 @@ module.exports = {
       },
       {
         test: /\.less$/,
-        include: staticPath,
-        loader: 'css-loader!less-loader'
+        use: [
+          {
+            loader: 'style-loader'
+          },
+          {
+            loader: 'css-loader'
+          },
+          {
+            loader: 'less-loader'
+          }
+        ]
       },
       {
         test: /\.(woff|woff2|ttf|eot|svg|png|gif|ico|jpg)($|\?)/,
