@@ -1,4 +1,5 @@
 const path = require('path');
+const webpack = require('webpack');
 
 const staticPath = path.resolve(__dirname, '..', 'src', 'sentry', 'static', 'sentry');
 const componentPath = path.resolve(staticPath, 'app', 'components');
@@ -40,6 +41,17 @@ module.exports = {
       }
     ]
   },
+  plugins: [
+    new webpack.ProvidePlugin({
+      $: 'jquery',
+      jQuery: 'jquery',
+      'window.jQuery': 'jquery',
+      'root.jQuery': 'jquery',
+      Raven: 'raven-js',
+      underscore: 'underscore',
+      _: 'underscore'
+    })
+  ],
   resolve: {
     alias: Object.assign({}, appConfig.resolve.alias, {
       'sentry-ui': componentPath
