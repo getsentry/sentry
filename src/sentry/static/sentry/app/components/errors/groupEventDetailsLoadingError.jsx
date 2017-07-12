@@ -13,10 +13,10 @@ const GroupEventDetailsLoadingError = ({onRetry}) => {
   return (
     <DetailedError
       onRetry={onRetry}
-      heading="Sorry, the events for this issue could not be found."
+      heading={t('Sorry, the events for this issue could not be found.')}
       message={
         <div>
-          <p>This could be due to a handful of reasons:</p>
+          <p>{t('This could be due to a handful of reasons:')}</p>
           <ol className="detailed-error-list">
             {reasons.map((reason, i) => (
               <li key={i}>
