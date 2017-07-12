@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+from itertools import izip
 import six
 
 from sentry.api.serializers import Serializer, register, serialize
@@ -13,21 +14,21 @@ from sentry.models import (
 class GroupTombstoneSerializer(Serializer):
 
     def get_attrs(self, item_list, user):
+        project_set = set(i.project for i in item_list)
         projects = {
-            d['id']: d
-            for d in serialize(set(i.project for i in item_list), user)
+            p.id: d for p, d in izip(project_set, serialize(project_set, user))
         }
+
         user_list = list(User.objects.filter(id__in=[item.actor_id for item in item_list]))
         users = {
-            d['id']: d
-            for d in serialize(user_list, user)
+            u.id: d for u, d in izip(user_list, serialize(user_list, user))
         }
 
         attrs = {}
         for item in item_list:
             attrs[item] = {
-                'project': projects.get(six.text_type(item.project_id), {}),
-                'user': users.get(six.text_type(item.actor_id), {}),
+                'project': projects.get(item.project_id, {}),
+                'user': users.get(item.actor_id, {}),
             }
         return attrs
 
