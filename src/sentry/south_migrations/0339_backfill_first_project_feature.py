@@ -43,10 +43,6 @@ class Migration(DataMigration):
                         complete=True,
                     )
 
-                    org_key = 'organization-feature-adoption:{}'.format(organization_id)
-                    with redis.clusters.get('default').map() as client:
-                        client.sadd(org_key, feature_id)
-
             except IntegrityError:
                 pass
 
