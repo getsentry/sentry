@@ -77,8 +77,9 @@ class MessageFeature(object):
 
 
 class FeatureSet(object):
-    def __init__(self, index, aliases, features):
+    def __init__(self, index, encoder, aliases, features):
         self.index = index
+        self.encoder = encoder
         self.aliases = aliases
         self.features = features
         assert set(self.aliases) == set(self.features)
@@ -93,6 +94,7 @@ class FeatureSet(object):
         items = []
         for label, feature in self.features.items():
             for characteristics in feature.extract(event):
+                characteristics = map(self.encoder.dumps, characteristics)
                 if characteristics:
                     items.append((
                         self.aliases[label],

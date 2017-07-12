@@ -4,6 +4,8 @@ import itertools
 
 from django.conf import settings
 
+from sentry.interfaces.stacktrace import Frame
+from sentry.similarity.encoder import Encoder
 from sentry.similarity.index import MinHashIndex
 from sentry.similarity.features import (
     FeatureSet,
@@ -23,6 +25,27 @@ def text_shingle(n, value):
     )
 
 
+def get_frame_attributes(frame):
+    attributes = {}
+
+    if frame.function in set(['<lambda>', None]):
+        attributes['signature'] = (
+            (frame.pre_context or [])[-5:] +
+            [frame.context_line] +
+            (frame.post_context or [])[:5]
+        )
+    else:
+        attributes['function'] = frame.function
+
+    for name in ('module', 'filename'):
+        value = getattr(frame, name)
+        if value:
+            attributes[name] = value
+            break
+
+    return attributes
+
+
 features = FeatureSet(
     MinHashIndex(
         redis.clusters.get(
@@ -38,6 +61,9 @@ features = FeatureSet(
         60 * 60 * 24 * 30,
         3,
     ),
+    Encoder({
+        Frame: get_frame_attributes,
+    }),
     BidirectionalMapping({
         'exception:message:character-shingles': 'a',
         'exception:stacktrace:application-chunks': 'b',
