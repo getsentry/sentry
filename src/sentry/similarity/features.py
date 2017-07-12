@@ -90,16 +90,20 @@ class FeatureSet(object):
     def __get_key(self, group):
         return '{}'.format(group.id)
 
+    def extract(self, event):
+        return {
+            label: feature.extract(event) for label, feature in self.features.items()
+        }
+
     def record(self, event):
         items = []
-        for label, feature in self.features.items():
-            for characteristics in feature.extract(event):
-                characteristics = map(self.encoder.dumps, characteristics)
-                if characteristics:
-                    items.append((
-                        self.aliases[label],
-                        characteristics,
-                    ))
+        for label, characteristics in self.extract(event).items():
+            characteristics = map(self.encoder.dumps, characteristics)
+            if characteristics:
+                items.append((
+                    self.aliases[label],
+                    characteristics,
+                ))
         return self.index.record(
             self.__get_scope(event.group),
             self.__get_key(event.group),
