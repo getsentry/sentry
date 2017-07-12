@@ -1038,7 +1038,9 @@
 .event-toolbar {
   position: relative;
   margin-bottom: -5px;
-  z-index: 1;
+  // z-index seems unnecessary, but increasing (instead of removing) just in case(billy)
+  // Fixes tooltips in toolbar having lower z-index than .btn-group .btn.active
+  z-index: 3;
   .clearfix;
   padding: 20px 30px 20px 40px;
 
