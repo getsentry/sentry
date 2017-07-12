@@ -52,6 +52,12 @@ const Stream = React.createClass({
 
   getInitialState() {
     let searchId = this.props.params.searchId || null;
+    let project = this.getProject();
+    let realtimeActiveCookie = Cookies.get('realtimeActive');
+    let realtimeActive = typeof realtimeActiveCookie === 'undefined'
+      ? project && !project.firstEvent
+      : realtimeActiveCookie === 'true';
+
     return {
       groupIds: [],
       isDefaultSearch: null,
@@ -64,7 +70,7 @@ const Stream = React.createClass({
       multiSelected: false,
       anySelected: false,
       statsPeriod: this.props.defaultStatsPeriod,
-      realtimeActive: Cookies.get('realtimeActive') === 'true',
+      realtimeActive,
       pageLinks: '',
       dataLoading: true,
       error: false,
@@ -571,10 +577,8 @@ const Stream = React.createClass({
       );
       showButton = true;
     } else {
-      /* we should not go here but what do we know */
-      return null;
+      /* we should not go here but what do we know */ return null;
     }
-
     return (
       <div className={classNames(className)}>
         {showButton &&
@@ -590,7 +594,6 @@ const Stream = React.createClass({
       </div>
     );
   },
-
   renderGroupNodes(ids, statsPeriod) {
     let {orgId, projectId} = this.props.params;
     let groupNodes = ids.map(id => {
@@ -604,15 +607,12 @@ const Stream = React.createClass({
         />
       );
     });
-
     return <ul className="group-list" ref="groupList">{groupNodes}</ul>;
   },
-
   renderAwaitingEvents() {
     let org = this.getOrganization();
     let project = this.getProject();
     let sampleLink = null;
-
     if (this.state.groupIds.length > 0) {
       let sampleIssueId = this.state.groupIds[0];
       sampleLink = (
@@ -623,7 +623,6 @@ const Stream = React.createClass({
         </p>
       );
     }
-
     return (
       <div className="box awaiting-events">
         <div className="wrap">
@@ -632,7 +631,9 @@ const Stream = React.createClass({
           <p>
             {tct(
               'Our error robot is waiting to [cross:devour] receive your first event.',
-              {cross: <span className="strikethrough" />}
+              {
+                cross: <span className="strikethrough" />
+              }
             )}
           </p>
           <p>
@@ -647,7 +648,6 @@ const Stream = React.createClass({
       </div>
     );
   },
-
   renderEmpty() {
     return (
       <div className="box empty-stream">
@@ -656,7 +656,6 @@ const Stream = React.createClass({
       </div>
     );
   },
-
   renderLoading() {
     return (
       <div className="box">
@@ -664,10 +663,8 @@ const Stream = React.createClass({
       </div>
     );
   },
-
   renderStreamBody() {
     let body;
-
     let project = this.getProject();
     if (this.state.dataLoading) {
       body = this.renderLoading();
@@ -680,26 +677,20 @@ const Stream = React.createClass({
     } else {
       body = this.renderEmpty();
     }
-
     return body;
   },
-
   render() {
     // global loading
     if (this.state.loading) {
       return this.renderLoading();
     }
-
     let params = this.props.params;
-
     let classes = ['stream-row'];
     if (this.state.isSidebarVisible) classes.push('show-sidebar');
-
     let {orgId, projectId} = this.props.params;
     let searchId = this.state.searchId;
     let access = this.getAccess();
     let projectFeatures = this.getProjectFeatures();
-
     return (
       <StickyContainer>
         <div className={classNames(classes)}>
@@ -756,5 +747,4 @@ const Stream = React.createClass({
     );
   }
 });
-
 export default Stream;
