@@ -19,7 +19,9 @@ class GroupTombstoneDetailsEndpoint(ProjectEndpoint):
         Undiscards a group such that new events in that group will be captured.
         This does not restore any previous data.
 
-        :pparam string issue_id: the ID of the issue to delete.
+        :pparam string organization_slug: the slug of the organization.
+        :pparam string project_slug: the slug of the project to which this tombstone belongs.
+        :pparam string issue_id: the ID of the tombstone to remove.
         :auth: required
         """
         GroupHash.objects.filter(
