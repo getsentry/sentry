@@ -178,7 +178,9 @@ class FeatureAdoptionManager(BaseManager):
         except IntegrityError as e:
             # This can occur if redis somehow loses the set of complete features and
             # we attempt to insert duplicate (org_id, feature_id) rows
-            logger.exception(e)
+            # This also will happen if we get parallel processes running `bulk_record` and
+            # `get_all_cache` returns in the second process before the first process
+            # can `bulk_set_cache`.
             return False
         finally:
             return self.bulk_set_cache(organization_id, *incomplete_feature_ids)
