@@ -315,3 +315,23 @@ div.u2f-box {
       opacity: .1;
     }
 }
+
+.password-strength-heading {
+  font-weight: bold;
+}
+
+.password-warnings {
+  opacity: 0.8;
+  font-size: 0.9em;
+  font-style: italic;
+}
+
+.password-strength {
+  display: none;
+  &.visible {
+    display: block;
+  }
+  .progress-bar {
+    height: 14px;
+  }
+}
