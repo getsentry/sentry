@@ -1,10 +1,12 @@
 import React, {PropTypes} from 'react';
+import classNames from 'classnames';
 
 import {t} from '../../locale';
 import IconCircleExclamation from '../../icons/icon-circle-exclamation';
 
 const DetailedError = React.createClass({
   propTypes: {
+    className: PropTypes.string,
     /* Retry callback */
     onRetry: PropTypes.func,
     /* Error heading */
@@ -22,12 +24,13 @@ const DetailedError = React.createClass({
   },
 
   render() {
-    const {heading, message, onRetry, hideSupportLinks} = this.props;
+    const {className, heading, message, onRetry, hideSupportLinks} = this.props;
+    const cx = classNames('detailed-error', className);
 
     const showFooter = !!onRetry || !hideSupportLinks;
 
     return (
-      <div className="detailed-error">
+      <div className={cx}>
         <div className="detailed-error-icon">
           <IconCircleExclamation />
         </div>
