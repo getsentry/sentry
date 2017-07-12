@@ -13,6 +13,7 @@ from sentry.similarity.features import (
     MessageFeature,
     get_application_chunks,
 )
+from sentry.similarity.signatures import MinHashSignatureBuilder
 from sentry.utils import redis
 from sentry.utils.datastructures import BidirectionalMapping
 from sentry.utils.iterators import shingle
@@ -55,9 +56,7 @@ features = FeatureSet(
                 'default',
             ),
         ),
-        0xFFFF,
-        8,
-        2,
+        MinHashSignatureBuilder(8, 2, 0xFFFF),
         60 * 60 * 24 * 30,
         3,
     ),
