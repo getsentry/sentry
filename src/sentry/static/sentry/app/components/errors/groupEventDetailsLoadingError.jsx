@@ -12,6 +12,7 @@ const GroupEventDetailsLoadingError = ({onRetry}) => {
 
   return (
     <DetailedError
+      className="group-event-details-error"
       onRetry={onRetry}
       heading={t('Sorry, the events for this issue could not be found.')}
       message={
