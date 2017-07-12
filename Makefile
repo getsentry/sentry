@@ -110,7 +110,7 @@ test-js:
 	@echo "--> Building static assets"
 	@${NPM_ROOT}/.bin/webpack
 	@echo "--> Running JavaScript tests"
-	@npm run test
+	@npm run test-ci
 	@echo ""
 
 test-python:
