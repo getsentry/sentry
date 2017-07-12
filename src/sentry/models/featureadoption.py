@@ -175,7 +175,7 @@ class FeatureAdoptionManager(BaseManager):
                 self.bulk_create(features)
                 return True
 
-        except IntegrityError as e:
+        except IntegrityError:
             # This can occur if redis somehow loses the set of complete features and
             # we attempt to insert duplicate (org_id, feature_id) rows
             # This also will happen if we get parallel processes running `bulk_record` and
