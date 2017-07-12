@@ -189,32 +189,59 @@ if (!IS_PRODUCTION && REFRESH) {
   );
 }
 
+/**
+ * Webpack entry for password strength checker
+ */
+var pwConfig = {
+  entry: {
+    pwstrength: './index'
+  },
+  context: path.resolve(path.join(__dirname, staticPrefix), 'js', 'pwstrength'),
+  module: {},
+  plugins: [],
+  resolve: {
+    modules: [path.join(__dirname, staticPrefix), 'node_modules'],
+    extensions: ['.js']
+  },
+  output: {
+    path: distPath,
+    filename: '[name].js',
+    libraryTarget: 'window',
+    library: 'sentrypw',
+    sourceMapFilename: '[name].js.map'
+  },
+  devtool: IS_PRODUCTION ? '#source-map' : '#cheap-source-map'
+};
+
 if (IS_PRODUCTION) {
   // This compression-webpack-plugin generates pre-compressed files
   // ending in .gz, to be picked up and served by our internal static media
   // server as well as nginx when paired with the gzip_static module.
-  config.plugins.push(
-    new (require('compression-webpack-plugin'))({
-      algorithm: function(buffer, options, callback) {
-        require('zlib').gzip(buffer, callback);
-      },
-      regExp: /\.(js|map|css|svg|html|txt|ico|eot|ttf)$/
-    })
-  );
+  var compressionPlugin = new (require('compression-webpack-plugin'))({
+    algorithm: function(buffer, options, callback) {
+      require('zlib').gzip(buffer, callback);
+    },
+    regExp: /\.(js|map|css|svg|html|txt|ico|eot|ttf)$/
+  });
 
   // Disable annoying UglifyJS warnings that pollute Travis log output
   // NOTE: This breaks -p in webpack 2. Must call webpack w/ NODE_ENV=production for minification.
-  config.plugins.push(
-    new webpack.optimize.UglifyJsPlugin({
-      compress: {
-        warnings: false
-      },
-      // https://github.com/webpack/webpack/blob/951a7603d279c93c936e4b8b801a355dc3e26292/bin/convert-argv.js#L442
-      sourceMap: config.devtool &&
-        (config.devtool.indexOf('sourcemap') >= 0 ||
-          config.devtool.indexOf('source-map') >= 0)
-    })
-  );
+  var uglifyPlugin = new webpack.optimize.UglifyJsPlugin({
+    compress: {
+      warnings: false
+    },
+    // https://github.com/webpack/webpack/blob/951a7603d279c93c936e4b8b801a355dc3e26292/bin/convert-argv.js#L442
+    sourceMap: config.devtool &&
+      (config.devtool.indexOf('sourcemap') >= 0 ||
+        config.devtool.indexOf('source-map') >= 0)
+  });
+
+  config.plugins.push(compressionPlugin);
+  config.plugins.push(uglifyPlugin);
+
+  // Add plugins for password strength entry as well
+  pwConfig.plugins.push(compressionPlugin);
+  pwConfig.plugins.push(uglifyPlugin);
 }
 
-module.exports = config;
+module.exports = [pwConfig, config];
