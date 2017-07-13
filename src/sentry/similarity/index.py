@@ -2,16 +2,23 @@ from __future__ import absolute_import
 
 import time
 
+from sentry.utils.iterators import chunked
 from sentry.utils.redis import load_script
 
 
 index = load_script('similarity/index.lua')
 
 
+def band(n, value):
+    assert len(value) % n == 0
+    return list(chunked(value, len(value) / n))
+
+
 class MinHashIndex(object):
-    def __init__(self, cluster, signature_builder, interval, retention):
+    def __init__(self, cluster, signature_builder, bands, interval, retention):
         self.cluster = cluster
         self.signature_builder = signature_builder
+        self.bands = bands
         self.interval = interval
         self.retention = retention
 
@@ -22,7 +29,7 @@ class MinHashIndex(object):
         arguments = [
             'QUERY',
             timestamp,
-            self.signature_builder.bands,
+            self.bands,
             self.interval,
             self.retention,
             scope,
@@ -48,7 +55,7 @@ class MinHashIndex(object):
         arguments = [
             'RECORD',
             timestamp,
-            self.signature_builder.bands,
+            self.bands,
             self.interval,
             self.retention,
             scope,
@@ -57,8 +64,11 @@ class MinHashIndex(object):
 
         for idx, features in items:
             arguments.append(idx)
-            arguments.extend([','.join(map('{}'.format, band))
-                              for band in self.signature_builder(features)])
+            arguments.extend([
+                ','.join(map('{}'.format, b))
+                for b in
+                band(self.bands, self.signature_builder(features))
+            ])
 
         return index(
             self.cluster.get_local_client_for_key(scope),
@@ -73,7 +83,7 @@ class MinHashIndex(object):
         arguments = [
             'MERGE',
             timestamp,
-            self.signature_builder.bands,
+            self.bands,
             self.interval,
             self.retention,
             scope,
@@ -96,7 +106,7 @@ class MinHashIndex(object):
         arguments = [
             'DELETE',
             timestamp,
-            self.signature_builder.bands,
+            self.bands,
             self.interval,
             self.retention,
             scope,
@@ -118,7 +128,7 @@ class MinHashIndex(object):
         arguments = [
             'EXPORT',
             timestamp,
-            self.signature_builder.bands,
+            self.bands,
             self.interval,
             self.retention,
             scope,
@@ -140,7 +150,7 @@ class MinHashIndex(object):
         arguments = [
             'IMPORT',
             timestamp,
-            self.signature_builder.bands,
+            self.bands,
             self.interval,
             self.retention,
             scope,

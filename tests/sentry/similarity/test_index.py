@@ -10,11 +10,7 @@ from sentry.testutils import TestCase
 from sentry.utils import redis
 
 
-signature_builder = MinHashSignatureBuilder(
-    8,
-    2,
-    0xFFFF,
-)
+signature_builder = MinHashSignatureBuilder(16, 0xFFFF)
 
 
 class MinHashIndexTestCase(TestCase):
@@ -22,6 +18,7 @@ class MinHashIndexTestCase(TestCase):
         index = MinHashIndex(
             redis.clusters.get('default'),
             signature_builder,
+            8,
             60 * 60,
             12,
         )
@@ -50,6 +47,7 @@ class MinHashIndexTestCase(TestCase):
         index = MinHashIndex(
             redis.clusters.get('default'),
             signature_builder,
+            8,
             60 * 60,
             retention,
         )
@@ -61,7 +59,7 @@ class MinHashIndexTestCase(TestCase):
         assert len(result) == 1
 
         data = msgpack.unpackb(result[0])
-        assert len(data) == signature_builder.bands
+        assert len(data) == index.bands
 
         for band in data:
             assert len(band) == (retention + 1)
@@ -88,7 +86,7 @@ class MinHashIndexTestCase(TestCase):
         assert len(result) == 1
 
         data = msgpack.unpackb(result[0])
-        assert len(data) == signature_builder.bands
+        assert len(data) == index.bands
 
         for band in data:
             assert len(band) == (retention + 1)

@@ -4,27 +4,20 @@ import mmh3
 
 
 class MinHashSignatureBuilder(object):
-    def __init__(self, bands, buckets, rows):
-        self.bands = bands
-        self.buckets = buckets
+    def __init__(self, columns, rows):
+        self.columns = columns
         self.rows = rows
 
     def __call__(self, features):
         return map(
-            lambda band: map(
-                lambda bucket: min(
-                    map(
-                        lambda feature: mmh3.hash(
-                            feature,
-                            bucket,
-                        ) % self.rows,
-                        features,
-                    ),
-                ),
-                range(
-                    self.buckets * band,
-                    self.buckets * (band + 1),
+            lambda column: min(
+                map(
+                    lambda feature: mmh3.hash(
+                        feature,
+                        column,
+                    ) % self.rows,
+                    features,
                 ),
             ),
-            range(self.bands),
+            range(self.columns),
         )
