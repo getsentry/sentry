@@ -113,7 +113,7 @@ const PluginConfig = React.createClass({
             <div className="pull-right">
               {data.isTestable &&
                 <a onClick={this.testPlugin} className="btn btn-sm btn-default">
-                  Test Plugin
+                  {t('Test Plugin')}
                 </a>}
               <a className="btn btn-sm btn-default" onClick={this.disablePlugin}>
                 {t('Disable')}
