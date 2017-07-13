@@ -81,6 +81,23 @@ const PluginConfig = React.createClass({
     });
   },
 
+  testPlugin() {
+    let loadingIndicator = IndicatorStore.add(t('Sending test..'));
+    this.api.request(this.getPluginEndpoint(), {
+      method: 'POST',
+      data: {
+        test: true
+      },
+      success: data => {
+        IndicatorStore.remove(loadingIndicator);
+        IndicatorStore.add(t('Test Complete!'), 'success');
+      },
+      error: error => {
+        IndicatorStore.add(t('Something is wrong. Please try again.'), 'error');
+      }
+    });
+  },
+
   createMarkup() {
     return {__html: this.props.data.doc};
   },
@@ -94,6 +111,10 @@ const PluginConfig = React.createClass({
           {data.canDisable &&
             data.enabled &&
             <div className="pull-right">
+              {data.isTestable &&
+                <a onClick={this.testPlugin} className="btn btn-sm btn-default">
+                  Test Plugin
+                </a>}
               <a className="btn btn-sm btn-default" onClick={this.disablePlugin}>
                 {t('Disable')}
               </a>
