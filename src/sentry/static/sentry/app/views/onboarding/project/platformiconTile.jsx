@@ -9,7 +9,7 @@ const PlatformiconTile = React.createClass({
   render() {
     return (
       <li
-        className={`platform-tile ${this.props.platform} ${this.props.platform.split('-')[0]} ${this.props.className}`}
+        className={`platform-tile list-unstyled ${this.props.platform} ${this.props.platform.split('-')[0]} ${this.props.className}`}
         onClick={this.props.onClick}>
         <span className={`platformicon platformicon-${this.props.platform}`} />
       </li>

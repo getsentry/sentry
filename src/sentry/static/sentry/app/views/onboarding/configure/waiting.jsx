@@ -48,8 +48,7 @@ const Waiting = React.createClass({
             <h2>Configure your application</h2>
           </div>
           <div className="wrap col-sm-8">
-            <span class="icon-spinner spin" />
-
+            <span className="icon-spinner spin" />
             <div className="waiting-text"><h3>Waiting for your event</h3></div>
             <div className="robot"><span className="eye" /></div>
           </div>

@@ -8,13 +8,12 @@ import ApiMixin from '../../mixins/apiMixin';
 // import OrganizationActions from '../../actions/organizationActions';
 
 import ProgressNodes from './progress';
-import {onboardingSteps} from './utils';
+// import {onboardingSteps} from './utils';
 import ProjectActions from '../../actions/projectActions';
 
 const OnboardingWizard = React.createClass({
   contextTypes: {
-    organization: React.PropTypes.object,
-    reloadOrgContext: React.PropTypes.func
+    organization: React.PropTypes.object
   },
 
   mixins: [ApiMixin],
@@ -28,12 +27,6 @@ const OnboardingWizard = React.createClass({
     };
   },
 
-  inferStep() {
-    let {projectId} = this.props.params;
-    if (!projectId) return onboardingSteps.project;
-    return onboardingSteps.configure;
-  },
-
   renderStep() {
     const stepProps = {
       next: this.next,
@@ -41,7 +34,6 @@ const OnboardingWizard = React.createClass({
       setPlatform: p => this.setState({platform: p}),
       name: this.state.projectName,
       setName: n => this.setState({projectName: n})
-      // project: this.props.params.projectId
     };
     return React.cloneElement(this.props.children, stepProps);
   },
@@ -97,7 +89,7 @@ const OnboardingWizard = React.createClass({
       <div className="onboarding-container">
         <DocumentTitle title={'Sentry'} />
         <div className="step-container">
-          <ProgressNodes step={this.inferStep()} />
+          <ProgressNodes params={this.props.params} />
           <div>
             <this.renderStep />
           </div>

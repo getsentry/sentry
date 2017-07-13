@@ -3,6 +3,7 @@
 }
 
 .step-container{
+  max-width: 800px;
   display: flex;
   padding: 10px;
 }
@@ -151,9 +152,9 @@
 }
 
 .platform-picker{
-  max-width: 90%;
-  .nav-tabs{
+  .nav-tabs {
     border-bottom: 1px solid @20;
+    margin: 0px;
   }
   .platform-filter{
     border-radius: 5px;
@@ -161,13 +162,38 @@
 
   }
   .platform-tiles{
+    margin: auto;
     display: flex;
     flex-wrap: wrap;
+    border-bottom: 1px solid @20;
+
+    .platform-card {
+      display: flex;
+      flex-direction: column;
+      min-width: 105px;
+      &.selected{
+      background-color:  #aeb;
+     }
+    }
+
+    &.client-platform-list li {
+      margin: 0 auto;
+    }
+    &.client-platform-list.shade{
+      background-color: @40;
+      filter: brightness(0.4);
+    }
   }
 
+  h5{
+    text-align: center;
+  }
+}
+
+.project-name{
+  margin-top: 10px;
   .platform-tile{
-    &.selected{
-      background-color:  #aeb;
-    }
+    display: inline-block;
+    vertical-align: middle;
   }
 }

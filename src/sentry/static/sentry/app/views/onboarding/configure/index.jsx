@@ -16,6 +16,15 @@ const Configure = React.createClass({
 
   mixins: [ApiMixin],
 
+  componentWillMount() {
+    const {platform} = this.props.params;
+    //TODO(maxbittker) redirect if platform is not known.
+    if (!platform || platform === 'other') {
+      console.log('XXXXXXXXXXXXX');
+      this.redirectToNeutralDocs();
+    }
+  },
+
   componentDidMount() {
     this.timer = setInterval(() => {
       this.fetchEventData();
@@ -57,21 +66,28 @@ const Configure = React.createClass({
     this.redirectUrl();
   },
 
+  redirectToNeutralDocs() {
+    const {orgId, projectId} = this.props.params;
+    console.log('BBBBBBBB');
+    const url = `/${orgId}/${projectId}/getting-started`;
+    browserHistory.push(url);
+  },
+
   render() {
+    const {orgId, projectId} = this.props.params;
+
     return (
       <div className="onboarding-Configure">
         <Waiting />
-        <ProjectContext
-          projectId={this.props.params.projectId}
-          orgId={this.props.params.orgId}>
+        <ProjectContext projectId={projectId} orgId={orgId}>
           <ProjectDocsContext>
             <ProjectInstallPlatform
               platformData={{
                 hack: 'actually set by ProjectDocsContext, this object is here to avoid proptypes warnings'
               }}
               params={this.props.params}
-              linkPath={(orgId, projectId, platform) =>
-                `/onboarding/${orgId}/${projectId}/configure/${platform}/`}
+              linkPath={(_orgId, _projectId, _platform) =>
+                `/onboarding/${_orgId}/${_projectId}/configure/${_platform}/`}
             />
           </ProjectDocsContext>
         </ProjectContext>

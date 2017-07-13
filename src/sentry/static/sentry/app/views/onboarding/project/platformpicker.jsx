@@ -2,14 +2,15 @@ import React from 'react';
 import ListLink from '../../../components/listLink';
 import classnames from 'classnames';
 // import {platforms} from '../../../../../../integration-docs/_platforms.json';
-import {flattenedPlatforms} from '../utils';
-import PlatformiconTile from './platformiconTile';
+import {flattenedPlatforms, categoryLists} from '../utils';
+import PlatformCard from './platformCard';
 
-const categoryList = ['Popular', 'Frontend', 'Backend', 'Mobile', 'All'];
+const categoryList = Object.keys(categoryLists).concat('All');
+//  {'Popular', 'Frontend', 'Backend', 'Mobile', 'All'];
 
 const languages = flattenedPlatforms.filter(p => p.type === 'language');
 
-const PlatFormPicker = React.createClass({
+const PlatformPicker = React.createClass({
   propTypes: {
     setPlatform: React.PropTypes.func,
     platform: React.PropTypes.string
@@ -17,20 +18,36 @@ const PlatFormPicker = React.createClass({
 
   getInitialState() {
     return {
-      tab: categoryList[4],
+      tab: categoryList[2],
       filter: ''
     };
   },
 
   renderPlatformList() {
-    const filtered = flattenedPlatforms.filter(platform => {
-      return (platform.id + ' ' + platform.platform).includes(this.state.filter);
-    });
+    let {tab} = this.state;
+
+    const tabSubset = flattenedPlatforms.filter(
+      platform => tab === 'All' || categoryLists[tab].includes(platform.id)
+    );
+
+    let subsetMatch = platform =>
+      (platform.id + ' ' + platform.platform).includes(this.state.filter);
+
+    let filtered = tabSubset.filter(subsetMatch);
+
+    if (!filtered.length) {
+      filtered = flattenedPlatforms.filter(subsetMatch);
+    }
+
+    if (!filtered.length) {
+      return <p>Not finding your platform? we have a lot of community SDKs as well.</p>;
+    }
+
     return (
       <ul className="client-platform-list platform-tiles">
         {filtered.map((platform, idx) => {
           return (
-            <PlatformiconTile
+            <PlatformCard
               platform={platform.id}
               className={classnames({
                 selected: this.props.platform === platform.id
@@ -50,11 +67,16 @@ const PlatFormPicker = React.createClass({
     const filtered = languages.filter(platform => {
       return (platform.id + ' ' + platform.platform).includes(this.state.filter);
     });
+    const hasLang = this.props.platform;
+
     return (
-      <ul className="client-platform-list platform-tiles">
+      <ul
+        className={classnames('client-platform-list', 'platform-tiles', {
+          shade: hasLang
+        })}>
         {filtered.map((platform, idx) => {
           return (
-            <PlatformiconTile
+            <PlatformCard
               platform={platform.id}
               className={classnames({
                 selected: this.props.platform === platform.id
@@ -84,7 +106,7 @@ const PlatFormPicker = React.createClass({
       <ul className="client-platform-list platform-tiles">
         {filtered.map((platform, idx) => {
           return (
-            <PlatformiconTile
+            <PlatformCard
               platform={platform.id}
               className={classnames({
                 selected: this.props.platform === platform.id
@@ -129,14 +151,12 @@ const PlatFormPicker = React.createClass({
             />
           </li>
         </ul>
-        {this.renderLanguageList()}
-        <hr />
-        {this.renderExtended()}
-        <hr />
-
+        {this.renderPlatformList()}
+        {/* {this.renderLanguageList()} */}
+        {/* {this.renderExtended()} */}
       </div>
     );
   }
 });
 
-export default PlatFormPicker;
+export default PlatformPicker;

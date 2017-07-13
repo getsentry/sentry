@@ -1,0 +1,99 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`ProgressNodes render() should render step 0 if no projectId 1`] = `
+<div
+  className="onboarding-sidebar"
+>
+  <div
+    className="sentry-flag"
+  >
+    <span
+      className="icon-sentry-logo"
+      href="/"
+    />
+    <h4>
+      Sentry
+    </h4>
+  </div>
+  <div
+    className="progress-nodes"
+  >
+    <div
+      className="node done"
+    >
+      <span
+        className="node done"
+      />
+      Create an Organization in Sentry
+    </div>
+    <div
+      className="node active"
+    >
+      <span
+        className="node active"
+      />
+      Tell us about your project
+    </div>
+    <div
+      className="node"
+    >
+      <span
+        className="node"
+      />
+      Configure your application and send an event
+    </div>
+  </div>
+  <div
+    className="stuck"
+  />
+</div>
+`;
+
+exports[`ProgressNodes render() should render step 1 if has projectId 1`] = `
+<div
+  className="onboarding-sidebar"
+>
+  <div
+    className="sentry-flag"
+  >
+    <span
+      className="icon-sentry-logo"
+      href="/"
+    />
+    <h4>
+      Sentry
+    </h4>
+  </div>
+  <div
+    className="progress-nodes"
+  >
+    <div
+      className="node done"
+    >
+      <span
+        className="node done"
+      />
+      Create an Organization in Sentry
+    </div>
+    <div
+      className="node done"
+    >
+      <span
+        className="node done"
+      />
+      Tell us about your project
+    </div>
+    <div
+      className="node active"
+    >
+      <span
+        className="node active"
+      />
+      Configure your application and send an event
+    </div>
+  </div>
+  <div
+    className="stuck"
+  />
+</div>
+`;

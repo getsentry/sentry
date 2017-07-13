@@ -4,15 +4,21 @@ import {onboardingSteps, stepDescriptions} from './utils';
 
 const ProgressNodes = React.createClass({
   propTypes: {
-    step: React.PropTypes.number.isRequired
+    params: React.PropTypes.object
   },
 
   steps: Object.keys(onboardingSteps),
 
+  inferStep() {
+    let {projectId} = this.props.params;
+    if (!projectId) return onboardingSteps.project;
+    return onboardingSteps.configure;
+  },
+
   node(step, i) {
     let nodeClass = classNames('node', {
-      done: i < this.props.step,
-      active: i === this.props.step
+      done: i < this.inferStep(),
+      active: i === this.inferStep()
     });
     return (
       <div className={nodeClass} key={i}>

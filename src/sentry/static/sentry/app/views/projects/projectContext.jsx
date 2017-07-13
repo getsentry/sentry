@@ -131,6 +131,7 @@ const ProjectContext = React.createClass({
     let activeProject = null;
     let activeTeam = null;
     let org = this.context.organization;
+    console.log(this.context);
     org.teams.forEach(team => {
       team.projects.forEach(project => {
         if (project.slug == projectSlug) {
