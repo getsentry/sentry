@@ -358,6 +358,48 @@ const IgnoreActions = React.createClass({
   }
 });
 
+const DeleteActions = React.createClass({
+  propTypes: {
+    project: React.PropTypes.object.isRequired,
+    onDelete: React.PropTypes.func.isRequired,
+    onDiscard: React.PropTypes.func.isRequired
+  },
+
+  render() {
+    let features = new Set(this.props.project.features);
+    return (
+      <div className="btn-group">
+        <LinkWithConfirmation
+          className="group-remove btn btn-default btn-sm"
+          title={t('Delete')}
+          message={t(
+            'Deleting this event is permanent. Are you sure you wish to continue?'
+          )}
+          onConfirm={this.props.onDelete}>
+          <span className="icon-trash" />
+        </LinkWithConfirmation>
+        {features.has('custom-filters') &&
+          <DropdownLink caret={true} className="group-delete btn btn-default btn-sm">
+            <MenuItem header={true}>Delete and</MenuItem>
+            <li>
+              <LinkWithConfirmation
+                title={t('Discard')}
+                message={t(
+                  'Discarding this event will result in the deletion ' +
+                    'of most data associated with this issue and future ' +
+                    'events being discarded before reaching your stream. ' +
+                    'Are you sure you wish to continue?'
+                )}
+                onConfirm={this.props.onDiscard}>
+                <span>Discard future events</span>
+              </LinkWithConfirmation>
+            </li>
+          </DropdownLink>}
+      </div>
+    );
+  }
+});
+
 export default React.createClass({
   mixins: [
     ApiMixin,
@@ -448,7 +490,6 @@ export default React.createClass({
     let group = this.getGroup();
     let project = this.getProject();
     let org = this.getOrganization();
-    let features = new Set(project.features);
 
     let bookmarkClassName = 'group-bookmark btn btn-default btn-sm';
     if (group.isBookmarked) {
@@ -480,34 +521,11 @@ export default React.createClass({
             <span className="icon-star-solid" />
           </a>
         </div>
-        <div className="btn-group">
-          <LinkWithConfirmation
-            className="group-remove btn btn-default btn-sm"
-            title={t('Delete')}
-            message={t(
-              'Deleting this event is permanent. Are you sure you wish to continue?'
-            )}
-            onConfirm={this.onDelete}>
-            <span className="icon-trash" />
-          </LinkWithConfirmation>
-        </div>
-        {features.has('custom-filters') &&
-          <div className="btn-group">
-            {/* TODO(jess): we need an icon for discard. Maybe an octogon/stop-sign like icon? */}
-            <LinkWithConfirmation
-              className="group-remove btn btn-default btn-sm"
-              title={t('Discard')}
-              message={t(
-                'Discarding this event will result in the deletion ' +
-                  'of most data associated with this issue and future ' +
-                  'events being discarded before reaching your stream. ' +
-                  'Are you sure you wish to continue?'
-              )}
-              onConfirm={this.onDiscard}>
-              <span className="icon-stop">X</span>
-            </LinkWithConfirmation>
-          </div>
-        }
+        <DeleteActions
+          project={project}
+          onDelete={this.onDelete}
+          onDiscard={this.onDiscard}
+        />
         {group.pluginActions.length > 1
           ? <div className="btn-group more">
               <DropdownLink className="btn btn-default btn-sm" title={t('More')}>
