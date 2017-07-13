@@ -12,7 +12,7 @@ from mock import patch
 from sentry.models import (
     Activity, EventMapping, Group, GroupAssignee, GroupBookmark, GroupHash,
     GroupResolution, GroupSeen, GroupSnooze, GroupStatus, GroupSubscription,
-    GroupTagKey, GroupTagValue, Release, UserOption
+    GroupTagKey, GroupTagValue, GroupTombstone, Release, UserOption
 )
 from sentry.models.event import Event
 from sentry.testutils import APITestCase
@@ -1209,7 +1209,9 @@ class GroupUpdateTest(APITestCase):
         assert GroupHash.objects.filter(
             id=group_hash.id,
         ).exists()
-        tombstone = GroupHash.objects.get(id=group_hash.id).group_tombstone
+        tombstone = GroupTombstone.objects.get(
+            id=GroupHash.objects.get(id=group_hash.id).group_tombstone_id,
+        )
         assert tombstone.message == group1.message
         assert tombstone.culprit == group1.culprit
         assert tombstone.project == group1.project
