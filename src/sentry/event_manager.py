@@ -829,7 +829,7 @@ class EventManager(object):
                 existing_group_id = h.group_id
                 break
             if h.group_tombstone_id is not None:
-                raise HashDiscarded('Matches discarded group %s' % h.group_tombstone_id)
+                raise HashDiscarded('Matches group tombstone %s' % h.group_tombstone_id)
 
         # XXX(dcramer): this has the opportunity to create duplicate groups
         # it should be resolved by the hash merging function later but this
