@@ -32,7 +32,7 @@ class GroupTombstoneSerializerTest(TestCase):
             project=group.project,
             hash='x' * 32,
             group=group,
-            group_tombstone=tombstone
+            group_tombstone_id=tombstone.id,
         )
         result = serialize(tombstone, self.user)
 

@@ -8,7 +8,7 @@ from django.utils import timezone
 from sentry.models import (
     Activity, Group, GroupHash, GroupAssignee, GroupBookmark, GroupResolution,
     GroupSeen, GroupSnooze, GroupSubscription, GroupStatus, GroupTagValue,
-    Release
+    GroupTombstone, Release
 )
 from sentry.testutils import APITestCase
 
@@ -296,7 +296,9 @@ class GroupUpdateTest(APITestCase):
         assert GroupHash.objects.filter(
             id=group_hash.id,
         ).exists()
-        tombstone = GroupHash.objects.get(id=group_hash.id).group_tombstone
+        tombstone = GroupTombstone.objects.get(
+            id=GroupHash.objects.get(id=group_hash.id).group_tombstone_id,
+        )
         assert tombstone.message == group.message
         assert tombstone.culprit == group.culprit
         assert tombstone.project == group.project

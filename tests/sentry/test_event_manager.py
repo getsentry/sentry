@@ -781,7 +781,7 @@ class EventManagerTest(TransactionTestCase):
             group=group,
         ).update(
             group=None,
-            group_tombstone=tombstone,
+            group_tombstone_id=tombstone.id,
         )
 
         manager = EventManager(self.make_event(

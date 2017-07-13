@@ -37,7 +37,7 @@ class GroupTombstoneTest(APITestCase):
             project=group.project,
             hash='x' * 32,
             group=group,
-            group_tombstone=tombstone
+            group_tombstone_id=tombstone.id,
         )
 
         path = reverse('sentry-api-0-group-tombstones',

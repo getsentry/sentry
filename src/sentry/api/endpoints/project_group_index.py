@@ -499,7 +499,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
                             group=group,
                         ).update(
                             group=None,
-                            group_tombstone=tombstone,
+                            group_tombstone_id=tombstone.id,
                         )
 
             self._delete_groups(request, project, groups_to_delete)

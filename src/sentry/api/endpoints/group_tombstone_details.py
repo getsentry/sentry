@@ -26,10 +26,10 @@ class GroupTombstoneDetailsEndpoint(ProjectEndpoint):
         """
         GroupHash.objects.filter(
             project_id=project.id,
-            group_tombstone=tombstone_id,
+            group_tombstone_id=tombstone_id,
         ).update(
             # will allow new events to be captured
-            group_tombstone=None,
+            group_tombstone_id=None,
         )
 
         try:
