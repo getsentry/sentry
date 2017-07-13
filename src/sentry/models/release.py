@@ -16,6 +16,7 @@ from django.db.models import F
 from django.utils import timezone
 from jsonfield import JSONField
 
+from sentry.app import locks
 from sentry.db.models import (
     ArrayField, BoundedPositiveIntegerField, FlexibleForeignKey, Model,
     sane_repr
@@ -25,6 +26,7 @@ from sentry.models import CommitFileChange
 
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import md5_text
+from sentry.utils.retries import TimedRetryPolicy
 
 logger = logging.getLogger(__name__)
 
@@ -95,6 +97,10 @@ class Release(Model):
     @classmethod
     def get_cache_key(cls, organization_id, version):
         return 'release:3:%s:%s' % (organization_id, md5_text(version).hexdigest())
+
+    @classmethod
+    def get_lock_key(cls, organization_id, release_id):
+        return 'releasecommits:{}:{}'.format(organization_id, release_id)
 
     @classmethod
     def get(cls, project, version):
@@ -335,104 +341,107 @@ class Release(Model):
             if not RepositoryProvider.should_ignore_commit(c.get('message', ''))
         ]
 
-        with transaction.atomic():
-            # TODO(dcramer): would be good to optimize the logic to avoid these
-            # deletes but not overly important
-            ReleaseCommit.objects.filter(
-                release=self,
-            ).delete()
+        lock_key = type(self).get_lock_key(self.organization_id, self.id)
+        lock = locks.get(lock_key, duration=10)
+        with TimedRetryPolicy(10)(lock.acquire):
+            with transaction.atomic():
+                # TODO(dcramer): would be good to optimize the logic to avoid these
+                # deletes but not overly important
+                ReleaseCommit.objects.filter(
+                    release=self,
+                ).delete()
 
-            authors = {}
-            repos = {}
-            commit_author_by_commit = {}
-            latest_commit = None
-            for idx, data in enumerate(commit_list):
-                repo_name = data.get(
-                    'repository') or 'organization-{}'.format(self.organization_id)
-                if repo_name not in repos:
-                    repos[repo_name] = repo = Repository.objects.get_or_create(
+                authors = {}
+                repos = {}
+                commit_author_by_commit = {}
+                latest_commit = None
+                for idx, data in enumerate(commit_list):
+                    repo_name = data.get(
+                        'repository') or 'organization-{}'.format(self.organization_id)
+                    if repo_name not in repos:
+                        repos[repo_name] = repo = Repository.objects.get_or_create(
+                            organization_id=self.organization_id,
+                            name=repo_name,
+                        )[0]
+                    else:
+                        repo = repos[repo_name]
+
+                    author_email = data.get('author_email')
+                    if author_email is None and data.get('author_name'):
+                        author_email = (
+                            re.sub(
+                                r'[^a-zA-Z0-9\-_\.]*',
+                                '',
+                                data['author_name']).lower() +
+                            '@localhost')
+
+                    if not author_email:
+                        author = None
+                    elif author_email not in authors:
+                        authors[author_email] = author = CommitAuthor.objects.get_or_create(
+                            organization_id=self.organization_id,
+                            email=author_email,
+                            defaults={
+                                'name': data.get('author_name'),
+                            }
+                        )[0]
+                        if data.get('author_name') and author.name != data['author_name']:
+                            author.update(name=data['author_name'])
+                    else:
+                        author = authors[author_email]
+
+                    defaults = {
+                        'message': data.get('message'),
+                        'author': author,
+                        'date_added': data.get('timestamp') or timezone.now(),
+                    }
+                    commit, created = Commit.objects.get_or_create(
                         organization_id=self.organization_id,
-                        name=repo_name,
-                    )[0]
-                else:
-                    repo = repos[repo_name]
-
-                author_email = data.get('author_email')
-                if author_email is None and data.get('author_name'):
-                    author_email = (
-                        re.sub(
-                            r'[^a-zA-Z0-9\-_\.]*',
-                            '',
-                            data['author_name']).lower() +
-                        '@localhost')
-
-                if not author_email:
-                    author = None
-                elif author_email not in authors:
-                    authors[author_email] = author = CommitAuthor.objects.get_or_create(
-                        organization_id=self.organization_id,
-                        email=author_email,
-                        defaults={
-                            'name': data.get('author_name'),
-                        }
-                    )[0]
-                    if data.get('author_name') and author.name != data['author_name']:
-                        author.update(name=data['author_name'])
-                else:
-                    author = authors[author_email]
-
-                defaults = {
-                    'message': data.get('message'),
-                    'author': author,
-                    'date_added': data.get('timestamp') or timezone.now(),
-                }
-                commit, created = Commit.objects.get_or_create(
-                    organization_id=self.organization_id,
-                    repository_id=repo.id,
-                    key=data['id'],
-                    defaults=defaults,
-                )
-                if author is None:
-                    author = commit.author
-
-                commit_author_by_commit[commit.id] = author
-
-                patch_set = data.get('patch_set', [])
-
-                for patched_file in patch_set:
-                    CommitFileChange.objects.get_or_create(
-                        organization_id=self.organization.id,
-                        commit=commit,
-                        filename=patched_file['path'],
-                        type=patched_file['type'],
+                        repository_id=repo.id,
+                        key=data['id'],
+                        defaults=defaults,
                     )
+                    if author is None:
+                        author = commit.author
 
-                if not created:
-                    update_kwargs = {}
-                    if commit.message is None and defaults['message'] is not None:
-                        update_kwargs['message'] = defaults['message']
-                    if commit.author_id is None and defaults['author'] is not None:
-                        update_kwargs['author'] = defaults['author']
-                    if update_kwargs:
-                        commit.update(**update_kwargs)
+                    commit_author_by_commit[commit.id] = author
 
-                ReleaseCommit.objects.create(
-                    organization_id=self.organization_id,
-                    release=self,
-                    commit=commit,
-                    order=idx,
+                    patch_set = data.get('patch_set', [])
+
+                    for patched_file in patch_set:
+                        CommitFileChange.objects.get_or_create(
+                            organization_id=self.organization.id,
+                            commit=commit,
+                            filename=patched_file['path'],
+                            type=patched_file['type'],
+                        )
+
+                    if not created:
+                        update_kwargs = {}
+                        if commit.message is None and defaults['message'] is not None:
+                            update_kwargs['message'] = defaults['message']
+                        if commit.author_id is None and defaults['author'] is not None:
+                            update_kwargs['author'] = defaults['author']
+                        if update_kwargs:
+                            commit.update(**update_kwargs)
+
+                    ReleaseCommit.objects.create(
+                        organization_id=self.organization_id,
+                        release=self,
+                        commit=commit,
+                        order=idx,
+                    )
+                    if latest_commit is None:
+                        latest_commit = commit
+
+                self.update(
+                    commit_count=len(commit_list),
+                    authors=[six.text_type(a_id) for a_id in ReleaseCommit.objects.filter(
+                        release=self,
+                        commit__author_id__isnull=False,
+                    ).values_list('commit__author_id', flat=True).distinct()],
+                    last_commit_id=latest_commit.id if latest_commit else None,
                 )
-                if latest_commit is None:
-                    latest_commit = commit
-
-            self.update(
-                commit_count=len(commit_list),
-                authors=[six.text_type(a_id) for a_id in ReleaseCommit.objects.filter(
-                    release=self,
-                    commit__author_id__isnull=False,
-                ).values_list('commit__author_id', flat=True).distinct()],
-                last_commit_id=latest_commit.id if latest_commit else None,
-            )
 
         commit_resolutions = list(GroupCommitResolution.objects.filter(
             commit_id__in=ReleaseCommit.objects.filter(
