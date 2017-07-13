@@ -174,7 +174,7 @@ class Team(Model):
         """
         from sentry.models import (
             OrganizationAccessRequest, OrganizationMember,
-            OrganizationMemberTeam, Project
+            OrganizationMemberTeam, Project, ReleaseProject
         )
 
         try:
@@ -190,10 +190,19 @@ class Team(Model):
         else:
             new_team = self
 
-        Project.objects.filter(
+        project_ids = list(Project.objects.filter(
             team=self,
         ).exclude(
             organization=organization,
+        ).values_list('id', flat=True))
+
+        # remove associations with releases from other org
+        ReleaseProject.objects.filter(
+            project_id__in=project_ids,
+        ).delete()
+
+        Project.objects.filter(
+            id__in=project_ids,
         ).update(
             team=new_team,
             organization=organization,
