@@ -38,5 +38,4 @@ class GroupTombstoneSerializerTest(TestCase):
 
         assert result['message'] == group.message
         assert result['culprit'] == group.culprit
-        assert result['project']['name'] == 'CoolProj'
         assert result['actor']['email'] == 'foo@example.com'

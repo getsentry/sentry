@@ -21,10 +21,11 @@ class GroupTombstoneDetailsEndpoint(ProjectEndpoint):
 
         :pparam string organization_slug: the slug of the organization.
         :pparam string project_slug: the slug of the project to which this tombstone belongs.
-        :pparam string issue_id: the ID of the tombstone to remove.
+        :pparam string tombstone_id: the ID of the tombstone to remove.
         :auth: required
         """
         GroupHash.objects.filter(
+            project_id=project.id,
             group_tombstone=tombstone_id,
         ).update(
             # will allow new events to be captured
@@ -32,7 +33,10 @@ class GroupTombstoneDetailsEndpoint(ProjectEndpoint):
         )
 
         try:
-            GroupTombstone.objects.get(id=tombstone_id).delete()
+            GroupTombstone.objects.get(
+                project_id=project.id,
+                id=tombstone_id
+            ).delete()
         except GroupTombstone.DoesNotExist:
             pass
 
