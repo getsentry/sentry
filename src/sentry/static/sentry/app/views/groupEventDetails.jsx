@@ -5,7 +5,8 @@ import GroupEventToolbar from './groupDetails/eventToolbar';
 import GroupSidebar from '../components/group/sidebar';
 import GroupState from '../mixins/groupState';
 import MutedBox from '../components/mutedBox';
-import LoadingError from '../components/loadingError';
+import GroupEventDetailsLoadingError
+  from '../components/errors/groupEventDetailsLoadingError';
 import LoadingIndicator from '../components/loadingIndicator';
 import ResolutionBox from '../components/resolutionBox';
 
@@ -94,7 +95,7 @@ const GroupEventDetails = React.createClass({
             {this.state.loading
               ? <LoadingIndicator />
               : this.state.error
-                  ? <LoadingError onRetry={this.fetchData} />
+                  ? <GroupEventDetailsLoadingError onRetry={this.fetchData} />
                   : <EventEntries
                       group={group}
                       event={evt}
