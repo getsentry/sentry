@@ -97,13 +97,14 @@ class FeatureSet(object):
 
     def record(self, event):
         items = []
-        for label, characteristics in self.extract(event).items():
-            characteristics = map(self.encoder.dumps, characteristics)
-            if characteristics:
-                items.append((
-                    self.aliases[label],
-                    characteristics,
-                ))
+        for label, characteristics_list in self.extract(event).items():
+            for characteristics in characteristics_list:
+                characteristics = map(self.encoder.dumps, characteristics)
+                if characteristics:
+                    items.append((
+                        self.aliases[label],
+                        characteristics,
+                    ))
         return self.index.record(
             self.__get_scope(event.group),
             self.__get_key(event.group),
