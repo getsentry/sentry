@@ -14,11 +14,6 @@ from sentry.models import (
 class GroupTombstoneSerializer(Serializer):
 
     def get_attrs(self, item_list, user):
-        project_set = set(i.project for i in item_list)
-        projects = {
-            p.id: d for p, d in izip(project_set, serialize(project_set, user))
-        }
-
         user_list = list(User.objects.filter(id__in=[item.actor_id for item in item_list]))
         users = {
             u.id: d for u, d in izip(user_list, serialize(user_list, user))
@@ -27,7 +22,6 @@ class GroupTombstoneSerializer(Serializer):
         attrs = {}
         for item in item_list:
             attrs[item] = {
-                'project': projects.get(item.project_id, {}),
                 'user': users.get(item.actor_id, {}),
             }
         return attrs
@@ -35,7 +29,6 @@ class GroupTombstoneSerializer(Serializer):
     def serialize(self, obj, attrs, user):
         return {
             'id': six.text_type(obj.id),
-            'project': attrs['project'],
             'level': LOG_LEVELS.get(obj.level, 'unknown'),
             'message': obj.message,
             'culprit': obj.culprit,
