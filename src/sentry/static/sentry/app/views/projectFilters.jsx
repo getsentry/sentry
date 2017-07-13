@@ -317,6 +317,26 @@ const ProjectFiltersSettingsForm = React.createClass({
             error={errors['filters:releases']}
             onChange={this.onFieldChange.bind(this, 'filters:releases')}
           />
+          <h5>{t('Filter errors from these environments:')}</h5>
+          <TextareaField
+            key="environment"
+            name="environment"
+            help={t('Separate multiple entries with a newline.')}
+            placeholder="e.g. dev"
+            value={this.state.formData['filters:environments']}
+            error={errors['filters:environments']}
+            onChange={this.onFieldChange.bind(this, 'filters:environments')}
+          />
+          <h5>{t('Filter errors by error class:')}</h5>
+          <TextareaField
+            key="errorClass"
+            name="errorClass"
+            help={t('Separate multiple entries with a newline.')}
+            placeholder="e.g. TypeError"
+            value={this.state.formData['filters:error_classes']}
+            error={errors['filters:error_classes']}
+            onChange={this.onFieldChange.bind(this, 'filters:error_classes')}
+          />
           <div className="pull-right">
             <button
               type="submit"
