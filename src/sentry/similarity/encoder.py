@@ -6,8 +6,13 @@ import six
 
 
 class Encoder(object):
-    def __init__(self, types):
-        self.types = types
+    try:
+        number_types = (int, long, float)  # noqa
+    except NameError:
+        number_types = (int, float)
+
+    def __init__(self, types=None):
+        self.types = types if types is not None else {}
 
     def dumps(self, value):
         for cls, function in self.types.items():
@@ -18,6 +23,8 @@ class Encoder(object):
             return value
         elif isinstance(value, six.text_type):
             return value.encode('utf8')
+        elif isinstance(value, self.number_types):
+            return six.text_type(value).encode('utf8')
         elif isinstance(value, Set):
             return '\x00'.join(
                 sorted(
