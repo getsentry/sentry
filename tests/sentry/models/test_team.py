@@ -3,7 +3,8 @@
 from __future__ import absolute_import
 
 from sentry.models import (
-    OrganizationMember, OrganizationMemberTeam, Project, Team
+    OrganizationMember, OrganizationMemberTeam,
+    Project, Release, ReleaseProject, Team
 )
 from sentry.testutils import TestCase
 
@@ -131,3 +132,31 @@ class TransferTest(TestCase):
         assert project.team == team2
 
         assert not Team.objects.filter(id=team.id).exists()
+
+    def test_release_projects(self):
+        user = self.create_user()
+        org = self.create_organization(name='foo', owner=user)
+        org2 = self.create_organization(name='bar', owner=None)
+        team = self.create_team(organization=org)
+        project = self.create_project(team=team)
+
+        release = Release.objects.create(
+            version='a' * 7,
+            organization=org,
+        )
+
+        release.add_project(project)
+
+        assert ReleaseProject.objects.filter(
+            release=release,
+            project=project,
+        ).exists()
+
+        team.transfer_to(org2)
+
+        assert Release.objects.filter(id=release.id).exists()
+
+        assert not ReleaseProject.objects.filter(
+            release=release,
+            project=project,
+        ).exists()
