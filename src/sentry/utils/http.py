@@ -22,7 +22,8 @@ ParsedUriMatch = namedtuple('ParsedUriMatch', ['scheme', 'domain', 'path'])
 def absolute_uri(url=None):
     if not url:
         return options.get('system.url-prefix')
-    return urljoin(options.get('system.url-prefix').rstrip('/') + '/', url.lstrip('/'))
+    return urljoin(
+        options.get('system.url-prefix').rstrip('/') + '/', url.lstrip('/'))
 
 
 def origin_from_url(url):
@@ -85,7 +86,8 @@ def get_origins(project=None):
 
     # lowercase and strip the trailing slash from all origin values
     # filter out empty values
-    return frozenset(filter(bool, map(lambda x: x.lower().rstrip('/'), result)))
+    return frozenset(
+        filter(bool, map(lambda x: x.lower().rstrip('/'), result)))
 
 
 def parse_uri_match(value):
@@ -174,8 +176,7 @@ def is_valid_origin(origin, project=None, allowed=None):
             # Explicit hostname + port name
             '%s:%d' % (parsed_hostname, parsed.port),
             # Wildcard hostname with explicit port
-            '*:%d' % parsed.port,
-        )
+            '*:%d' % parsed.port, )
     else:
         domain_matches = ('*', parsed_hostname)
 
@@ -192,7 +193,8 @@ def is_valid_origin(origin, project=None, allowed=None):
 
         # domain supports exact, any, and prefix match
         if bits.domain[:2] == '*.':
-            if parsed_hostname.endswith(bits.domain[1:]) or parsed_hostname == bits.domain[2:]:
+            if parsed_hostname.endswith(
+                    bits.domain[1:]) or parsed_hostname == bits.domain[2:]:
                 return True
             continue
         elif bits.domain not in domain_matches:
@@ -209,48 +211,37 @@ def is_valid_origin(origin, project=None, allowed=None):
     return False
 
 
-def is_valid_ip(ip_address, project):
+def is_valid_for_processing(value, filter_type, project):
     """
-    Verify that an IP address is not being blacklisted
-    for the given project.
+    Verify that an exception is valid and is not disallowed for the project
+    based on specified filters
+    value is the exact value to be checked for validity in the list of project filters
+
+    filter_type is the type of filter and can be:
+    'blacklisted_ips'
+    'releases'
+    'environments'
+    'error_classes'
     """
-    blacklist = project.get_option('sentry:blacklisted_ips')
-    if not blacklist:
+    disallowed_options = project.get_option(('sentry:{}').format(filter_type))
+    if not disallowed_options:
         return True
 
-    for addr in blacklist:
+    for option in disallowed_options:
         # We want to error fast if it's an exact match
-        if ip_address == addr:
+        if value.lower() == option:
             return False
 
-        # Check to make sure it's actually a range before
-        try:
-            if '/' in addr and (
-                ipaddress.ip_address(six.text_type(ip_address)) in ipaddress.ip_network(
-                    six.text_type(addr), strict=False
-                )
-            ):
-                return False
-        except ValueError:
-            # Ignore invalid values here
-            pass
-
-    return True
-
-
-def is_valid_release(release, project):
-    """
-    Verify that a project has not filtered errors from the release
-    """
-
-    invalid_releases = project.get_option('sentry:releases')
-    if not invalid_releases:
-        return True
-
-    for r in invalid_releases:
-        # We want to error fast if it's an exact match
-        if release == r:
-            return False
+        if filter_type == 'blacklisted_ips':
+            # Check to make sure it's actually a range before
+            try:
+                if '/' in option and ipaddress.ip_address(
+                        six.text_type(value)) in ipaddress.ip_network(
+                            six.text_type(option), strict=False):
+                    return False
+            except ValueError:
+                # Ignore invalid values here
+                pass
 
     return True
 

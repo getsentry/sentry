@@ -15,9 +15,8 @@ from sentry.utils.http import (
     is_valid_origin,
     get_origins,
     absolute_uri,
-    is_valid_ip,
     origin_from_request,
-    is_valid_release,
+    is_valid_for_processing,
 )
 
 
@@ -238,39 +237,78 @@ class IsValidOriginTestCase(TestCase):
 
 
 class IsValidIPTestCase(TestCase):
-    def is_valid_ip(self, ip, inputs):
+    def is_valid_for_processing(self, value, inputs):
         self.project.update_option('sentry:blacklisted_ips', inputs)
-        return is_valid_ip(ip, self.project)
+        return is_valid_for_processing(value, 'blacklisted_ips', self.project)
 
     def test_not_in_blacklist(self):
-        assert self.is_valid_ip('127.0.0.1', [])
-        assert self.is_valid_ip('127.0.0.1', ['0.0.0.0', '192.168.1.1', '10.0.0.0/8'])
+        assert self.is_valid_for_processing('127.0.0.1', [])
+        assert self.is_valid_for_processing('127.0.0.1', ['0.0.0.0', '192.168.1.1', '10.0.0.0/8'])
 
     def test_match_blacklist(self):
-        assert not self.is_valid_ip('127.0.0.1', ['127.0.0.1'])
-        assert not self.is_valid_ip('127.0.0.1', ['0.0.0.0', '127.0.0.1', '192.168.1.1'])
+        assert not self.is_valid_for_processing('127.0.0.1', ['127.0.0.1'])
+        assert not self.is_valid_for_processing(
+            '127.0.0.1', ['0.0.0.0', '127.0.0.1', '192.168.1.1'])
 
     def test_match_blacklist_range(self):
-        assert not self.is_valid_ip('127.0.0.1', ['127.0.0.0/8'])
-        assert not self.is_valid_ip('127.0.0.1', ['0.0.0.0', '127.0.0.0/8', '192.168.1.0/8'])
+        assert not self.is_valid_for_processing('127.0.0.1', ['127.0.0.0/8'])
+        assert not self.is_valid_for_processing(
+            '127.0.0.1', ['0.0.0.0', '127.0.0.0/8', '192.168.1.0/8'])
 
     def test_garbage_input(self):
-        assert self.is_valid_ip('127.0.0.1', ['lol/bar'])
+        assert self.is_valid_for_processing('127.0.0.1', ['lol/bar'])
 
 
 class IsValidReleaseTestCase(TestCase):
-    def is_valid_release(self, version, releases):
-        self.project.update_option('sentry:releases', releases)
-        return is_valid_release(version, self.project)
+    def is_valid_for_processing(self, value, inputs):
+        self.project.update_option('sentry:releases', inputs)
+        return is_valid_for_processing(value, 'releases', self.project)
 
-    def test_not_in_list(self):
-        assert self.is_valid_release('abcdefg', None)
-        assert self.is_valid_release('abcdefg', [])
-        assert self.is_valid_release('abcdefg', ['hijklmn', 'opqrstu', 'vwxyzab'])
+    def test_release_not_in_list(self):
+        assert self.is_valid_for_processing('abcdefg', None)
+        assert self.is_valid_for_processing('abcdefg', [])
+        assert self.is_valid_for_processing('abcdefg', ['hijklmn', 'opqrstu', 'vwxyzab'])
 
-    def test_match_list(self):
-        assert not self.is_valid_release('abcdefg', ['abcdefg'])
-        assert not self.is_valid_release('abcdefg', ['hijklmn', 'opqrstu', 'abcdefg'])
+    def test_release_match_list(self):
+        assert not self.is_valid_for_processing('abcdefg', ['abcdefg'])
+        assert not self.is_valid_for_processing('abcdefg', ['hijklmn', 'opqrstu', 'abcdefg'])
+
+
+class IsValidEnvironmentTestCase(TestCase):
+    def is_valid_for_processing(self, value, inputs):
+        self.project.update_option('sentry:environments', inputs)
+        return is_valid_for_processing(value, 'environments', self.project)
+
+    def test_environment_not_in_list(self):
+        assert self.is_valid_for_processing('prod', None)
+        assert self.is_valid_for_processing('prod', [])
+        assert self.is_valid_for_processing('prod', ['dev', 'qa'])
+
+    def test_environment_match_list(self):
+        assert not self.is_valid_for_processing('dev', ['dev'])
+        assert not self.is_valid_for_processing('dev', ['prod', 'dev', 'qa'])
+
+
+class IsValidErrorClassTestCase(TestCase):
+    def is_valid_for_processing(self, value, inputs):
+        self.project.update_option('sentry:error_classes', inputs)
+        return is_valid_for_processing(value, 'error_classes', self.project)
+
+    def test_error_class_not_in_list(self):
+        assert self.is_valid_for_processing('TypeError', None)
+        assert self.is_valid_for_processing('TypeError', [])
+        assert self.is_valid_for_processing('TypeError', ['zerodivisionerror', 'valueerror'])
+
+    def test_error_class_match_list(self):
+        assert not self.is_valid_for_processing('TypeError', ['typeerror'])
+        assert not self.is_valid_for_processing(
+            'TypeError', ['valueerror', 'typeerror', 'zerodivisionerror'])
+
+
+class IsValidForProcessingTestCase(TestCase):
+    def is_valid_for_processing(self, value, filter_type, inputs):
+        self.project.update_option('sentry:{}'.format(filter_type), inputs)
+        return is_valid_for_processing(value, filter_type, self.project)
 
 
 class OriginFromRequestTestCase(TestCase):

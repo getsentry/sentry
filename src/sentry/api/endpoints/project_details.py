@@ -279,6 +279,16 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                     'sentry:releases',
                     clean_newline_inputs(options['filters:releases'])
                 )
+            if 'filters:environments' in options:
+                project.update_option(
+                    'sentry:environments',
+                    clean_newline_inputs(options['filters:environments'])
+                )
+            if 'filters:error_classes' in options:
+                project.update_option(
+                    'sentry:error_classes',
+                    clean_newline_inputs(options['filters:error_classes'])
+                )
 
             self.create_audit_entry(
                 request=request,

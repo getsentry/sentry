@@ -138,6 +138,11 @@ class ProjectUpdateTest(APITestCase):
             'sentry:safe_fields': ['token'],
             'sentry:csp_ignored_sources_defaults': False,
             'sentry:csp_ignored_sources': 'foo\nbar',
+            'filters:blacklisted_ips': '127.0.0.1\n198.51.100.0',
+            'filters:releases': 'abcdefg\nhijklmn',
+            'filters:environments': 'dev\nqa',
+            'filters:error_classes': 'TypeError\nValueError',
+
         }
         resp = self.client.put(url, data={'options': options})
         assert resp.status_code == 200, resp.content
@@ -153,6 +158,10 @@ class ProjectUpdateTest(APITestCase):
                                   True) == options['sentry:csp_ignored_sources_defaults']
         assert project.get_option('sentry:csp_ignored_sources',
                                   []) == options['sentry:csp_ignored_sources'].split('\n')
+        assert project.get_option('sentry:blacklisted_ips') == ['127.0.0.1', '198.51.100.0']
+        assert project.get_option('sentry:releases') == ['abcdefg', 'hijklmn']
+        assert project.get_option('sentry:environments') == ['dev', 'qa']
+        assert project.get_option('sentry:error_classes') == ['typeerror', 'valueerror']
 
     def test_bookmarks(self):
         project = self.project  # force creation

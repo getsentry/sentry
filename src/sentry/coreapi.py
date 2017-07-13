@@ -41,7 +41,9 @@ from sentry.tasks.store import preprocess_event, \
 from sentry.utils import json
 from sentry.utils.auth import parse_auth_header
 from sentry.utils.csp import is_valid_csp_report
-from sentry.utils.http import is_valid_ip, origin_from_request, is_valid_release
+from sentry.utils.http import (origin_from_request,
+                               is_valid_for_processing,
+                               )
 from sentry.utils.strings import decompress
 from sentry.utils.validators import is_float, is_event_id
 
@@ -372,12 +374,23 @@ class ClientApiHelper(object):
         # TODO(dcramer): read filters from options such as:
         # - ignore errors from spiders/bots
         # - ignore errors from legacy browsers
-        release = data.get('release')
-        if release and not is_valid_release(release, project):
-            return True
 
-        if ip_address and not is_valid_ip(ip_address, project):
-            return True
+        filter_types = {
+            'error_classes': data.get('sentry.interfaces.Exception', {}).get('values', []),
+            'environments': data.get('environment'),
+            'releases': data.get('release'),
+            'blacklisted_ips': ip_address
+        }
+
+        for key, value in six.iteritems(filter_types):
+            if key == 'error_classes':
+                for item in value:
+                    if item.get('type') and not is_valid_for_processing(
+                            item.get('type'), key, project):
+                        return True
+            else:
+                if value and not is_valid_for_processing(value, key, project):
+                    return True
 
         for filter_cls in filters.all():
             filter_obj = filter_cls(project)
