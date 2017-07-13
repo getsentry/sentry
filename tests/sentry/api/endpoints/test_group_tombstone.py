@@ -50,4 +50,3 @@ class GroupTombstoneTest(APITestCase):
         response = self.client.get(path)
         assert response.status_code == 200, response
         assert response.data[0]['message'] == group.message
-        assert response.data[0]['project']['name'] == self.project.name
