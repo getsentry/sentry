@@ -162,7 +162,7 @@ class StoreViewTest(TestCase):
         assert resp.status_code == 403, (resp.status_code, resp.content)
 
     def test_request_with_invalid_error_class(self):
-        self.project.update_option('sentry:error_classes', ['zerodivisionerror'])
+        self.project.update_option('sentry:error_classes', ['ZeroDivisionError'])
         body = {
             "release": "abcdefg",
             "message": "foo bar",
@@ -183,7 +183,7 @@ class StoreViewTest(TestCase):
         assert resp.status_code == 403, (resp.status_code, resp.content)
 
     def test_request_with_multiple_error_classes(self):
-        self.project.update_option('sentry:error_classes', ['zerodivisionerror'])
+        self.project.update_option('sentry:error_classes', ['ZeroDivisionError'])
         body = {
             "release": "abcdefg",
             "message": "foo bar",

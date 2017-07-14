@@ -53,10 +53,13 @@ def update_project_scenario(runner):
         )
 
 
-def clean_newline_inputs(value):
+def clean_newline_inputs(value, should_lower=True):
     result = []
     for v in value.split('\n'):
-        v = v.lower().strip()
+        if should_lower:
+            v = v.lower().strip()
+        else:
+            v = v.strip()
         if v:
             result.append(v)
     return result
@@ -287,7 +290,8 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             if 'filters:error_classes' in options:
                 project.update_option(
                     'sentry:error_classes',
-                    clean_newline_inputs(options['filters:error_classes'])
+
+                    clean_newline_inputs(options['filters:error_classes'], should_lower=False)
                 )
 
             self.create_audit_entry(

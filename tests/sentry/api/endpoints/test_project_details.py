@@ -161,7 +161,7 @@ class ProjectUpdateTest(APITestCase):
         assert project.get_option('sentry:blacklisted_ips') == ['127.0.0.1', '198.51.100.0']
         assert project.get_option('sentry:releases') == ['abcdefg', 'hijklmn']
         assert project.get_option('sentry:environments') == ['dev', 'qa']
-        assert project.get_option('sentry:error_classes') == ['typeerror', 'valueerror']
+        assert project.get_option('sentry:error_classes') == ['TypeError', 'ValueError']
 
     def test_bookmarks(self):
         project = self.project  # force creation

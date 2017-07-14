@@ -229,7 +229,7 @@ def is_valid_for_processing(value, filter_type, project):
 
     for option in disallowed_options:
         # We want to error fast if it's an exact match
-        if value.lower() == option:
+        if value.lower() == option.lower():
             return False
 
         if filter_type == 'blacklisted_ips':

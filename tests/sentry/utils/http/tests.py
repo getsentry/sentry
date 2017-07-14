@@ -297,12 +297,12 @@ class IsValidErrorClassTestCase(TestCase):
     def test_error_class_not_in_list(self):
         assert self.is_valid_for_processing('TypeError', None)
         assert self.is_valid_for_processing('TypeError', [])
-        assert self.is_valid_for_processing('TypeError', ['zerodivisionerror', 'valueerror'])
+        assert self.is_valid_for_processing('TypeError', ['ZeroDivisionError', 'ValueError'])
 
     def test_error_class_match_list(self):
         assert not self.is_valid_for_processing('TypeError', ['typeerror'])
         assert not self.is_valid_for_processing(
-            'TypeError', ['valueerror', 'typeerror', 'zerodivisionerror'])
+            'TypeError', ['ValueError', 'TypeError', 'ZeroDivisionError'])
 
 
 class IsValidForProcessingTestCase(TestCase):
