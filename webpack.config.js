@@ -112,8 +112,17 @@ var appConfig = {
       // loader for dynamic styles imported into components (embedded as js)
       {
         test: /\.less$/,
-        include: path.join(__dirname, staticPrefix),
-        loader: 'css-loader' + (IS_PRODUCTION ? '?minimize=true' : '') + '!less-loader'
+        use: [
+          {
+            loader: 'style-loader'
+          },
+          {
+            loader: 'css-loader' + (IS_PRODUCTION ? '?minimize=true' : '')
+          },
+          {
+            loader: 'less-loader'
+          }
+        ]
       },
       {
         test: /\.(woff|woff2|ttf|eot|svg|png|gif|ico|jpg)($|\?)/,
