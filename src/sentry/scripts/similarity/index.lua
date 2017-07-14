@@ -318,6 +318,45 @@ local function parse_signatures(configuration, arguments)
     return entries.completed
 end
 
+-- Fetch all of the bucket frequencies for a key from a specific
+-- index from all active time series chunks. This returns a table
+-- containing n tables (where n is the number of bands) mapping
+-- bucket identifiers to counts.
+local function fetch_bucket_frequencies(configuration, time_series, index, key)
+    return table.imap(
+        range(1, configuration.bands),
+        function (band)
+            return table.ireduce(
+                table.imap(
+                    time_series,
+                    function (time)
+                        return redis_hgetall_response_to_table(
+                            redis.call(
+                                'HGETALL',
+                                get_bucket_frequency_key(
+                                    configuration,
+                                    index,
+                                    time,
+                                    band,
+                                    key
+                                )
+                            ),
+                            tonumber
+                        )
+                    end
+                ),
+                function (result, response)
+                    for bucket, count in pairs(response) do
+                        result[bucket] = (result[bucket] or 0) + count
+                    end
+                    return result
+                end,
+                {}
+            )
+        end
+    )
+end
+
 local function fetch_candidates(configuration, time_series, index, frequencies)
     local candidates = {}  -- acts as a set
     for band, buckets in ipairs(frequencies) do
@@ -415,51 +454,12 @@ local commands = {
                 configuration.timestamp
             )
 
-            -- Fetch all of the bucket frequencies for a key from a specific
-            -- index from all active time series chunks. This returns a table
-            -- containing n tables (where n is the number of bands) mapping
-            -- bucket identifiers to counts.
-            local fetch_bucket_frequencies = function (index, key)
-                return table.imap(
-                    range(1, configuration.bands),
-                    function (band)
-                        return table.ireduce(
-                            table.imap(
-                                time_series,
-                                function (time)
-                                    return redis_hgetall_response_to_table(
-                                        redis.call(
-                                            'HGETALL',
-                                            get_bucket_frequency_key(
-                                                configuration,
-                                                index,
-                                                time,
-                                                band,
-                                                key
-                                            )
-                                        ),
-                                        tonumber
-                                    )
-                                end
-                            ),
-                            function (result, response)
-                                for bucket, count in pairs(response) do
-                                    result[bucket] = (result[bucket] or 0) + count
-                                end
-                                return result
-                            end,
-                            {}
-                        )
-                    end
-                )
-            end
-
             return table.imap(
                 indices,
                 function (index)
                     -- First, identify the which buckets that the key we are
                     -- querying is present in.
-                    local item_frequencies = fetch_bucket_frequencies(index, item_key)
+                    local item_frequencies = fetch_bucket_frequencies(configuration, time_series, index, item_key)
 
                     -- Then, find all iterms that also exist within those
                     -- buckets and fetch their frequencies.
@@ -467,6 +467,8 @@ local commands = {
                     local candidate_frequencies = {}
                     for candidate_key, _ in pairs(candidates) do
                         candidate_frequencies[candidate_key] = fetch_bucket_frequencies(
+                            configuration,
+                            time_series,
                             index,
                             candidate_key
                         )
