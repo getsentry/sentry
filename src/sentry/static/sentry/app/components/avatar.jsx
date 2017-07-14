@@ -7,7 +7,7 @@ import UserLetterAvatar from '../components/userLetterAvatar';
 const Avatar = React.createClass({
   propTypes: {
     user: React.PropTypes.shape({
-      id: React.PropTypes.number,
+      id: React.PropTypes.oneOfType([React.PropTypes.number, React.PropTypes.string]),
       name: React.PropTypes.string,
       email: React.PropTypes.string,
       avatar: React.PropTypes.shape({
