@@ -361,6 +361,11 @@ local commands = {
             )
         end
     ),
+    CLASSIFY = takes_configuration(
+        function (configuration, arguments)
+            error('not implemented')
+        end
+    ),
     COMPARE = takes_configuration(
         function (configuration, arguments)
             local item_key = arguments[1]

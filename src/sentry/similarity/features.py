@@ -111,6 +111,22 @@ class FeatureSet(object):
             timestamp=to_timestamp(event.datetime),
         )
 
+    def classify(self, project, event):
+        items = []
+        for label, characteristics_list in self.extract(event).items():
+            for characteristics in characteristics_list:
+                characteristics = map(self.encoder.dumps, characteristics)
+                if characteristics:
+                    items.append((
+                        self.aliases[label],
+                        characteristics,
+                    ))
+        return self.index.classify(
+            '{}'.format(project.id),  # XXX: BAD
+            items,
+            timestamp=to_timestamp(event.datetime),
+        )
+
     def compare(self, group):
         features = list(self.features.keys())
 

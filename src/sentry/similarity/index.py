@@ -23,6 +23,37 @@ class MinHashIndex(object):
         self.interval = interval
         self.retention = retention
 
+    def classify(self, scope, items, timestamp=None):
+        if timestamp is None:
+            timestamp = int(time.time())
+
+        arguments = [
+            'CLASSIFY',
+            timestamp,
+            self.bands,
+            self.interval,
+            self.retention,
+            scope,
+        ]
+
+        for idx, features in items:
+            arguments.append(idx)
+            arguments.extend([
+                ','.join(map('{}'.format, b))
+                for b in
+                band(self.bands, self.signature_builder(features))
+            ])
+
+        return [
+            [(item, float(score)) for item, score in result]
+            for result in
+            index(
+                self.cluster.get_local_client_for_key(scope),
+                [],
+                arguments,
+            )
+        ]
+
     def compare(self, scope, key, indices, timestamp=None):
         if timestamp is None:
             timestamp = int(time.time())
