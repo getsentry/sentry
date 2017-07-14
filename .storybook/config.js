@@ -1,5 +1,6 @@
 import {configure, setAddon} from '@storybook/react';
 import infoAddon, {setDefaults} from '@storybook/addon-info';
+import './storybook.less';
 
 setDefaults({
   inline: true,
