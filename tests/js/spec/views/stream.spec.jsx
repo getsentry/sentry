@@ -196,6 +196,64 @@ describe('Stream', function() {
 
       this.context.project.firstEvent = true; // Reset for other tests
     });
+
+    it('does not have real time event updates when events exist', function() {
+      let wrapper = shallow(<Stream {...this.wrapper.instance().props} />, {
+        context: {
+          ...this.context,
+          project: {
+            ...this.context.project,
+            firstEvent: true
+          }
+        }
+      });
+
+      expect(wrapper.state('realtimeActive')).toBe(false);
+    });
+
+    it('does not have real time event updates enabled when cookie is present (even if there are no events)', function() {
+      Cookies.set('realtimeActive', 'false');
+      let wrapper = shallow(<Stream {...this.wrapper.instance().props} />, {
+        context: {
+          ...this.context,
+          project: {
+            ...this.context.project,
+            firstEvent: false
+          }
+        }
+      });
+
+      wrapper.setState({
+        error: false,
+        groupIds: [],
+        loading: false,
+        dataLoading: false
+      });
+
+      Cookies.remove('realtimeActive');
+      expect(wrapper.state('realtimeActive')).toBe(false);
+    });
+
+    it('has real time event updates enabled when there are no events', function() {
+      let wrapper = shallow(<Stream {...this.wrapper.instance().props} />, {
+        context: {
+          ...this.context,
+          project: {
+            ...this.context.project,
+            firstEvent: false
+          }
+        }
+      });
+
+      wrapper.setState({
+        error: false,
+        groupIds: [],
+        loading: false,
+        dataLoading: false
+      });
+
+      expect(wrapper.state('realtimeActive')).toBe(true);
+    });
   });
 
   describe('componentWillMount()', function() {

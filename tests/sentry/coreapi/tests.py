@@ -25,7 +25,7 @@ class BaseAPITest(TestCase):
         self.team = self.create_team(name='Foo')
         self.project = self.create_project(team=self.team)
         self.pk = self.project.key_set.get_or_create()[0]
-        self.helper = self.helper_cls(agent='Awesome Browser', ip_address='69.69.69.69')
+        self.helper = self.helper_cls(agent='Awesome Browser', ip_address='198.51.100.0')
 
 
 class AuthFromRequestTest(BaseAPITest):
@@ -611,7 +611,7 @@ class CspApiHelperTest(BaseAPITest):
             ('effective-directive', 'img-src'),
             ('blocked-uri', 'http://google.com'),
         ]
-        assert result['sentry.interfaces.User'] == {'ip_address': '69.69.69.69'}
+        assert result['sentry.interfaces.User'] == {'ip_address': '198.51.100.0'}
         assert result['sentry.interfaces.Http'] == {
             'url': 'http://45.55.25.245:8123/csp',
             'headers': {

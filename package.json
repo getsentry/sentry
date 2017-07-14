@@ -74,6 +74,7 @@
   "proxyURL": "http://localhost:8000",
   "scripts": {
     "test": "NODE_ENV=test node_modules/.bin/jest tests/js/spec",
+    "test-ci": "NODE_ENV=test node_modules/.bin/jest tests/js/spec --runInBand",
     "test-watch": "NODE_ENV=test node_modules/.bin/jest tests/js/spec --watch",
     "lint": "node_modules/.bin/eslint tests/js src/sentry/static/sentry/app --ext .jsx",
     "storybook": "start-storybook -p 9001 -c .storybook"
