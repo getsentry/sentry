@@ -46,7 +46,7 @@ class ProjectPluginDetailsEndpoint(ProjectEndpoint):
 
     def post(self, request, project, plugin_id):
         """
-        Enable plugin
+        Enable plugin or Test plugin
         """
         plugin = self._get_plugin(plugin_id)
 
