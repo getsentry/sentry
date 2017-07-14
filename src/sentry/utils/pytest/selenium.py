@@ -164,7 +164,10 @@ def percy(request):
     )
     percy_config = percy.Config(default_widths=settings.PERCY_DEFAULT_TESTING_WIDTHS)
     percy = percy.Runner(loader=loader, config=percy_config)
-    percy.initialize_build()
+    try:
+        percy.initialize_build()
+    except:
+        print(percy._current_build)
 
     request.addfinalizer(percy.finalize_build)
     return percy
