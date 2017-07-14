@@ -121,10 +121,17 @@ class FeatureSet(object):
                         self.aliases[label],
                         characteristics,
                     ))
-        return self.index.classify(
+        results = self.index.classify(
             '{}'.format(project.id),  # XXX: BAD
             items,
             timestamp=to_timestamp(event.datetime),
+        )
+        return zip(
+            map(
+                lambda (alias, characteristics): self.aliases.get_key(alias),
+                items,
+            ),
+            results,
         )
 
     def compare(self, group):

@@ -30,6 +30,7 @@ class MinHashIndex(object):
         arguments = [
             'CLASSIFY',
             timestamp,
+            self.namespace,
             self.bands,
             self.interval,
             self.retention,

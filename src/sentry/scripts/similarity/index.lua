@@ -502,7 +502,55 @@ local commands = {
     ),
     CLASSIFY = takes_configuration(
         function (configuration, arguments)
-            error('not implemented')
+            local signatures = parse_signatures(
+                configuration,
+                arguments
+            )
+            local time_series = get_active_indices(
+                configuration.interval,
+                configuration.retention,
+                configuration.timestamp
+            )
+
+            return table.imap(
+                signatures,
+                function (signature)
+                    local results = fetch_similar(
+                        configuration,
+                        time_series,
+                        signature.index,
+                        table.imap(
+                            signature.buckets,
+                            function (band)
+                                local item = {}
+                                item[band] = 1
+                                return item
+                            end
+                        )
+                    )
+
+                    -- Sort the results in descending order (most similar first.)
+                    table.sort(
+                        results,
+                        function (left, right)
+                            return left[2] > right[2]
+                        end
+                    )
+
+                    return table.imap(
+                        results,
+                        function (item)
+                            return {
+                                item[1],
+                                string.format(
+                                    '%f',  -- converting floats to strings avoids truncation
+                                    item[2]
+                                ),
+                            }
+                        end
+                    )
+                end
+            )
         end
     ),
     COMPARE = takes_configuration(
