@@ -80,6 +80,9 @@
     "storybook": "start-storybook -p 9001 -c .storybook"
   },
   "jest": {
+    "moduleNameMapper": {
+      "\\.(css|less)$": "<rootDir>/tests/js/helpers/importStyleMock.js"
+    },
     "modulePaths": [
       "<rootDir>/src/sentry/static/sentry"
     ],

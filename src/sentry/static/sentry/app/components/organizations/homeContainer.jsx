@@ -1,5 +1,4 @@
 import React from 'react';
-import {Link} from 'react-router';
 
 import OrganizationHomeSidebar from './homeSidebar';
 import OrganizationState from '../../mixins/organizationState';

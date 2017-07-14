@@ -1,7 +1,7 @@
 import React, {PropTypes} from 'react';
 import {Link} from 'react-router';
 
-import 'style-loader!./styles.less';
+import './styles.less';
 
 /*
 
