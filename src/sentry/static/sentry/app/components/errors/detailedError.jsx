@@ -7,13 +7,13 @@ import IconCircleExclamation from '../../icons/icon-circle-exclamation';
 const DetailedError = React.createClass({
   propTypes: {
     className: PropTypes.string,
-    /* Retry callback */
+    /** Retry callback */
     onRetry: PropTypes.func,
-    /* Error heading */
+    /** Error heading */
     heading: PropTypes.string.isRequired,
-    /* Detailed error explanation */
+    /** Detailed error explanation */
     message: PropTypes.node,
-    /* Hide support links in footer of error message */
+    /** Hide support links in footer of error message */
     hideSupportLinks: PropTypes.bool
   },
 
