@@ -384,7 +384,6 @@ local function fetch_candidates(configuration, time_series, index, frequencies)
     return candidates
 end
 
-
 -- Then, calculate the similarity for each candidate based
 -- on their frequencies.
 local function calculate_similiarity(configuration, item_frequencies, candidate_frequencies)
@@ -425,6 +424,27 @@ local function calculate_similiarity(configuration, item_frequencies, candidate_
         )
     end
     return results
+end
+
+local function fetch_similar(configuration, time_series, index, item_frequencies)
+    -- Then, find all iterms that also exist within those
+    -- buckets and fetch their frequencies.
+    local candidates = fetch_candidates(configuration, time_series, index, item_frequencies)
+    local candidate_frequencies = {}
+    for candidate_key, _ in pairs(candidates) do
+        candidate_frequencies[candidate_key] = fetch_bucket_frequencies(
+            configuration,
+            time_series,
+            index,
+            candidate_key
+        )
+    end
+
+    return calculate_similiarity(
+        configuration,
+        item_frequencies,
+        candidate_frequencies
+    )
 end
 
 -- Command Parsing
@@ -499,27 +519,16 @@ local commands = {
             return table.imap(
                 indices,
                 function (index)
-                    -- First, identify the which buckets that the key we are
-                    -- querying is present in.
-                    local item_frequencies = fetch_bucket_frequencies(configuration, time_series, index, item_key)
-
-                    -- Then, find all iterms that also exist within those
-                    -- buckets and fetch their frequencies.
-                    local candidates = fetch_candidates(configuration, time_series, index, item_frequencies)
-                    local candidate_frequencies = {}
-                    for candidate_key, _ in pairs(candidates) do
-                        candidate_frequencies[candidate_key] = fetch_bucket_frequencies(
+                    local results = fetch_similar(
+                        configuration,
+                        time_series,
+                        index,
+                        fetch_bucket_frequencies(
                             configuration,
                             time_series,
                             index,
-                            candidate_key
+                            item_key
                         )
-                    end
-
-                    local results = calculate_similiarity(
-                        configuration,
-                        item_frequencies,
-                        candidate_frequencies
                     )
 
                     -- Sort the results in descending order (most similar first.)
