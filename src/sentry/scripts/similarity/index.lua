@@ -385,6 +385,48 @@ local function fetch_candidates(configuration, time_series, index, frequencies)
 end
 
 
+-- Then, calculate the similarity for each candidate based
+-- on their frequencies.
+local function calculate_similiarity(configuration, item_frequencies, candidate_frequencies)
+    local results = {}
+    for key, value in pairs(candidate_frequencies) do
+        table.insert(
+            results,
+            {
+                key,
+                table.ireduce(  -- sum, then avg
+                    table.imap(  -- calculate similarity
+                        table.izip(
+                            item_frequencies,
+                            value
+                        ),
+                        function (v)
+                            -- We calculate the "similarity"
+                            -- between two items by comparing
+                            -- how often their contents exist
+                            -- in the same buckets for a band.
+                            local dist = get_manhattan_distance(
+                                scale_to_total(v[1]),
+                                scale_to_total(v[2])
+                            )
+                            -- Since this is a measure of
+                            -- similarity (and not distance) we
+                            -- normalize the result to [0, 1]
+                            -- scale.
+                            return 1 - (dist / 2)
+                        end
+                    ),
+                    function (total, item)
+                        return total + item
+                    end,
+                    0
+                ) / configuration.bands
+            }
+        )
+    end
+    return results
+end
+
 -- Command Parsing
 
 local commands = {
@@ -474,44 +516,11 @@ local commands = {
                         )
                     end
 
-                    -- Then, calculate the similarity for each candidate based
-                    -- on their frequencies.
-                    local results = {}
-                    for key, value in pairs(candidate_frequencies) do
-                        table.insert(
-                            results,
-                            {
-                                key,
-                                table.ireduce(  -- sum, then avg
-                                    table.imap(  -- calculate similarity
-                                        table.izip(
-                                            item_frequencies,
-                                            value
-                                        ),
-                                        function (v)
-                                            -- We calculate the "similarity"
-                                            -- between two items by comparing
-                                            -- how often their contents exist
-                                            -- in the same buckets for a band.
-                                            local dist = get_manhattan_distance(
-                                                scale_to_total(v[1]),
-                                                scale_to_total(v[2])
-                                            )
-                                            -- Since this is a measure of
-                                            -- similarity (and not distance) we
-                                            -- normalize the result to [0, 1]
-                                            -- scale.
-                                            return 1 - (dist / 2)
-                                        end
-                                    ),
-                                    function (total, item)
-                                        return total + item
-                                    end,
-                                    0
-                                ) / configuration.bands
-                            }
-                        )
-                    end
+                    local results = calculate_similiarity(
+                        configuration,
+                        item_frequencies,
+                        candidate_frequencies
+                    )
 
                     -- Sort the results in descending order (most similar first.)
                     table.sort(
