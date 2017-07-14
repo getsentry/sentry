@@ -19,6 +19,8 @@ from django.conf import settings
 from django.utils.translation import ugettext_lazy as _
 from operator import attrgetter
 
+from sentry.utils.integrationdocs import load_doc
+
 
 def get_all_languages():
     results = []
@@ -231,6 +233,41 @@ KNOWN_DSYM_TYPES = {
 }
 
 NATIVE_UNKNOWN_STRING = '<unknown>'
+
+# to go from a marketing page slug like /for/android/ to the integration id
+# (in _platforms.json), for looking up documentation urls, etc.
+MARKETING_SLUG_TO_INTEGRATION_ID = {
+    # java
+    "java": "java",
+    "kotlin": "java",
+    "scala": "java",
+    "android": "java-android",
+
+    # TODO: add more...
+}
+
+# ???
+# via Eric: sdk name -> "server/product/event pipeline" slug
+# via Eric: python.flask -> whatever you'd send in the `integration` field in the events
+
+# to go from an integration id (in _platforms.json) to the platform
+# data, such as documentation url or humanized name.
+# example: java-logback -> {"type": "framework",
+#                           "link": "https://docs.getsentry.com/hosted/clients/java/modules/logback/",
+#                           "id": "java-logback",
+#                           "name": "Logback"}
+INTEGRATION_ID_TO_PLATFORM_DATA = {}
+
+
+def _load_platform_data():
+    data = load_doc('_platforms')
+    for platform in data['platforms']:
+        integrations = platform.pop('integrations')
+        if integrations is not None:
+            for integration in integrations:
+                INTEGRATION_ID_TO_PLATFORM_DATA[integration['id']] = integration
+
+_load_platform_data()
 
 
 class ObjectStatus(object):
