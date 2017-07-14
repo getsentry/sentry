@@ -4,7 +4,9 @@ const webpack = require('webpack');
 const staticPath = path.resolve(__dirname, '..', 'src', 'sentry', 'static', 'sentry');
 const componentPath = path.resolve(staticPath, 'app', 'components');
 
-const [appConfig, legacyCssConfig] = require('../webpack.config');
+const sentryConfig = require('../webpack.config');
+const appConfig = sentryConfig[0];
+const legacyCssConfig = sentryConfig[1];
 
 module.exports = {
   module: {

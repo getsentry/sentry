@@ -16,3 +16,7 @@ configure(function() {
   require('../docs-ui/index.js');
   req.keys().forEach(filename => req(filename));
 }, module);
+
+// For percy integration
+if (typeof window === 'object')
+  window.__storybook_stories__ = require('@storybook/react').getStorybook();

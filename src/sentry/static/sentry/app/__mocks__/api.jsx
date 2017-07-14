@@ -25,6 +25,7 @@ export class Client {
   request(url, options) {
     let response = Client.findMockResponse(url, options);
     if (!response) {
+      // eslint-disable-next-line no-console
       console.error(
         'No mocked response found for request.',
         url,
