@@ -198,6 +198,8 @@ setup(
     packages=find_packages('src'),
     zip_safe=False,
     install_requires=install_requires,
+    dependency_links=[
+        'https://github.com/getsentry/python-percy-client/tarball/master#egg=percy-1.0.1'],
     extras_require={
         'dev': dev_requires,
         'postgres': [],
