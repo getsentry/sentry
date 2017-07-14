@@ -31,7 +31,7 @@ class MinHashIndexTestCase(TestCase):
         index.record('example', '4', [('index', 'mellow world')])
         index.record('example', '5', [('index', 'pizza world')])
 
-        results = index.query('example', '1', ['index'])[0]
+        results = index.compare('example', '1', ['index'])[0]
         assert results[0] == ('1', 1.0)
         assert results[1] == ('2', 1.0)  # identical contents
         assert results[2][0] in ('3', '4')  # equidistant pairs, order doesn't really matter
@@ -39,7 +39,7 @@ class MinHashIndexTestCase(TestCase):
         assert results[4][0] == '5'
 
         index.delete('example', [('index', '3')])
-        assert [key for key, _ in index.query('example', '1', ['index'])[0]] == [
+        assert [key for key, _ in index.compare('example', '1', ['index'])[0]] == [
             '1', '2', '4', '5'
         ]
 

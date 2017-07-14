@@ -111,10 +111,10 @@ class FeatureSet(object):
             timestamp=to_timestamp(event.datetime),
         )
 
-    def query(self, group):
+    def compare(self, group):
         features = list(self.features.keys())
 
-        results = self.index.query(
+        results = self.index.compare(
             self.__get_scope(group),
             self.__get_key(group),
             [self.aliases[label] for label in features],
