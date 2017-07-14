@@ -19,7 +19,8 @@ function LoadingIndicator(props) {
 
 LoadingIndicator.propTypes = {
   mini: React.PropTypes.bool,
-  triangle: React.PropTypes.bool
+  triangle: React.PropTypes.bool,
+  children: React.PropTypes.node
 };
 
 export default LoadingIndicator;

@@ -1,33 +1,34 @@
 import React from 'react';
 import {storiesOf} from '@storybook/react';
-import {action} from '@storybook/addon-actions';
+// import {action} from '@storybook/addon-actions';
 
-import DetailedError from 'sentry-ui/errors/detailedError';
+import Button from 'sentry-ui/buttons/button';
 
 // eslint-disable-next-line
-storiesOf('Error.Detailed')
-  .addWithInfo('default', 'Displays a detailed error message', () => (
-    <DetailedError heading="Error heading" message="Error message" />
+storiesOf('Buttons')
+  .addWithInfo('priorities', 'Different button priorities', () => (
+    <div>
+      <Button priority="primary">
+        Primary Button
+      </Button>
+      <Button priority="danger">
+        Danger Button
+      </Button>
+    </div>
   ))
-  .addWithInfo(
-    'with retry',
-    'If `onRetry` callback is supplied, will show a "Retry" button in footer',
-    () => (
-      <DetailedError
-        onRetry={action('onRetry')}
-        heading="Error heading"
-        message="Error message"
-      />
-    )
-  )
-  .addWithInfo('hides support links', 'Hides support links', () => (
-    <DetailedError
-      onRetry={action('onRetry')}
-      hideSupportLinks
-      heading="Error heading"
-      message="Error message"
-    />
-  ))
-  .addWithInfo('hides footer', 'Hides footer if no support links or retry', () => (
-    <DetailedError hideSupportLinks heading="Error heading" message="Error message" />
+  .addWithInfo('sizes', 'Different buttons sizes', () => (
+    <div>
+      <Button size="xs">
+        Extra Small
+      </Button>
+      <Button size="sm">
+        Small
+      </Button>
+      <Button>
+        Normal
+      </Button>
+      <Button size="lg">
+        Large
+      </Button>
+    </div>
   ));
