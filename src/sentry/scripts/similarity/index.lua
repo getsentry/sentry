@@ -281,43 +281,54 @@ local function collect_index_key_pairs(arguments, validator)
 end
 
 
+-- Signature Parsing
+
+local function parse_signatures(configuration, arguments)
+    local entries = table.ireduce(
+        arguments,
+        function (state, token)
+            if state.active == nil then
+                -- When there is no active entry, we need to initialize
+                -- a new one. The first token is the index identifier.
+                state.active = {index = token, buckets = {}}
+            else
+                -- If there is an active entry, we need to add the
+                -- current token to the feature list.
+                table.insert(state.active.buckets, token)
+
+                -- When we've seen the same number of buckets as there
+                -- are bands, we're done recording and need to mark the
+                -- current entry as completed, and reset the current
+                -- active entry.
+                if #state.active.buckets == configuration.bands then
+                    table.insert(state.completed, state.active)
+                    state.active = nil
+                end
+            end
+            return state
+        end,
+        {active = nil, completed = {}}
+    )
+
+    -- If there are any entries in progress when we are completed, that
+    -- means the input was in an incorrect format and we should error
+    -- before we record any bad data.
+    assert(entries.active == nil, 'unexpected end of input')
+
+    return entries.completed
+end
+
+
 -- Command Parsing
 
 local commands = {
     RECORD = takes_configuration(
         function (configuration, arguments)
             local key = arguments[1]
-
-            local entries = table.ireduce(
-                table.slice(arguments, 2),
-                function (state, token)
-                    if state.active == nil then
-                        -- When there is no active entry, we need to initialize
-                        -- a new one. The first token is the index identifier.
-                        state.active = {index = token, buckets = {}}
-                    else
-                        -- If there is an active entry, we need to add the
-                        -- current token to the feature list.
-                        table.insert(state.active.buckets, token)
-
-                        -- When we've seen the same number of buckets as there
-                        -- are bands, we're done recording and need to mark the
-                        -- current entry as completed, and reset the current
-                        -- active entry.
-                        if #state.active.buckets == configuration.bands then
-                            table.insert(state.completed, state.active)
-                            state.active = nil
-                        end
-                    end
-                    return state
-                end,
-                {active = nil, completed = {}}
+            local signatures = parse_signatures(
+                configuration,
+                table.slice(arguments, 2)
             )
-
-            -- If there are any entries in progress when we are completed, that
-            -- means the input was in an incorrect format and we should error
-            -- before we record any bad data.
-            assert(entries.active == nil, 'unexpected end of input')
 
             local time = math.floor(configuration.timestamp / configuration.interval)
             local expiration = get_index_expiration_time(
@@ -327,7 +338,7 @@ local commands = {
             )
 
             return table.imap(
-                entries.completed,
+                signatures,
                 function (entry)
                     local results = {}
 
