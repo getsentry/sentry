@@ -199,6 +199,16 @@ class Endpoint(APIView):
         response['Access-Control-Allow-Origin'] = request.META['HTTP_ORIGIN']
         response['Access-Control-Allow-Methods'] = ', '.join(self.http_method_names)
 
+    def add_cursor_headers(self, request, response, cursor_result):
+        if cursor_result.hits is not None:
+            response['X-Hits'] = cursor_result.hits
+        if cursor_result.max_hits is not None:
+            response['X-Max-Hits'] = cursor_result.max_hits
+        response['Link'] = ', '.join([
+            self.build_cursor_link(request, 'previous', cursor_result.prev),
+            self.build_cursor_link(request, 'next', cursor_result.next),
+        ])
+
     def paginate(self, request, on_results=None, paginator_cls=Paginator,
                  default_per_page=100, **kwargs):
         per_page = int(request.GET.get('per_page', default_per_page))
@@ -220,17 +230,9 @@ class Endpoint(APIView):
         if on_results:
             results = on_results(cursor_result.results)
 
-        headers = {}
-        if cursor_result.hits is not None:
-            headers['X-Hits'] = cursor_result.hits
-        if cursor_result.max_hits is not None:
-            headers['X-Max-Hits'] = cursor_result.max_hits
-        headers['Link'] = ', '.join([
-            self.build_cursor_link(request, 'previous', cursor_result.prev),
-            self.build_cursor_link(request, 'next', cursor_result.next),
-        ])
-
-        return Response(results, headers=headers)
+        response = Response(results)
+        self.add_cursor_headers(request, response, cursor_result)
+        return response
 
 
 class StatsMixin(object):
