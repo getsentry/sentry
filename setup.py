@@ -204,7 +204,7 @@ setup(
         'tests': tests_require,
     },
     cmdclass=cmdclass,
-    license='BSD',
+    license='Apache 2.0',
     include_package_data=True,
     entry_points={
         'console_scripts': [
