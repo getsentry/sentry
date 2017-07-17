@@ -232,6 +232,7 @@ class Endpoint(APIView):
 
         response = Response(results)
         self.add_cursor_headers(request, response, cursor_result)
+        return response
 
 
 class StatsMixin(object):
