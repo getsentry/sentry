@@ -1,14 +1,21 @@
 from __future__ import absolute_import
 
-from sentry.constants import INTEGRATION_ID_TO_PLATFORM_DATA, get_integration_id_for_marketing_slug, \
+from sentry.constants import INTEGRATION_ID_TO_PLATFORM_DATA, MARKETING_SLUG_TO_INTEGRATION_ID, \
+    PLATFORM_INTEGRATION_TO_INTEGRATION_ID, get_integration_id_for_marketing_slug, \
     get_integration_id_for_event
 from sentry.testutils import TestCase
 
 
 class ConstantsTest(TestCase):
     def test_constants(self):
-        # verify keys exist in other structures
-        pass
+        # verify all values of MARKETING_SLUG_TO_INTEGRATION_ID are valid integration ids
+        for integration_id in MARKETING_SLUG_TO_INTEGRATION_ID.values():
+            assert integration_id in INTEGRATION_ID_TO_PLATFORM_DATA
+
+        # verify all integration ids in PLATFORM_INTEGRATION_TO_INTEGRATION_ID are valid
+        for key in PLATFORM_INTEGRATION_TO_INTEGRATION_ID.keys():
+            for integration_id in PLATFORM_INTEGRATION_TO_INTEGRATION_ID[key].values():
+                assert integration_id in INTEGRATION_ID_TO_PLATFORM_DATA
 
     def test_load_platform_data(self):
         # verify platform data was successfully loaded into constants
