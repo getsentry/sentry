@@ -245,10 +245,15 @@ INTEGRATION_ID_TO_PLATFORM_DATA = {}
 
 
 def _load_platform_data():
+    INTEGRATION_ID_TO_PLATFORM_DATA.clear()
     data = load_doc('_platforms')
+
+    if not data:
+        return
+
     for platform in data['platforms']:
         integrations = platform.pop('integrations')
-        if integrations is not None:
+        if integrations:
             for integration in integrations:
                 integration_id = integration.pop('id')
                 INTEGRATION_ID_TO_PLATFORM_DATA[integration_id] = integration
