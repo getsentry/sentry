@@ -5,6 +5,12 @@ Version 8.19 (Unreleased)
 - Added lookup methods to constants to get a unique `integration_id` for a given
   event, and to get information (documention url, human readable name) from that id.
 
+Schema Changes
+~~~~~~~~~~~~~~
+
+- Added ``Integration``, ``OrganizationIntegration``, and ``ProjectIntegration`` models
+- Added ``Repository(integration_id)`` column
+
 Version 8.18
 ------------
 
@@ -24,7 +30,6 @@ Version 8.18
 - Expanded resolution actions (on stream) to include current release and explicit
   release.
 - Removed support for global dsyms
-- Added support for new GitHub apps
 
 Schema Changes
 ~~~~~~~~~~~~~~
@@ -52,7 +57,6 @@ Schema Changes
 - Added GroupResolution.actor_id
 - Added ``ScheduledJob`` model
 - Added User.last_active
-- Added Installation, OrganizationInstallation
 
 API Changes
 ~~~~~~~~~~~
