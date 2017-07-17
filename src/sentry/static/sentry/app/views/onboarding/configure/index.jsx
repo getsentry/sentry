@@ -77,22 +77,25 @@ const Configure = React.createClass({
     const {orgId, projectId} = this.props.params;
 
     return (
-      <div className="onboarding-Configure">
+      <div>
         <Waiting />
-        <ProjectContext projectId={projectId} orgId={orgId}>
-          <ProjectDocsContext>
-            <ProjectInstallPlatform
-              platformData={{
-                hack: 'actually set by ProjectDocsContext, this object is here to avoid proptypes warnings'
-              }}
-              params={this.props.params}
-              linkPath={(_orgId, _projectId, _platform) =>
-                `/onboarding/${_orgId}/${_projectId}/configure/${_platform}/`}
-            />
-          </ProjectDocsContext>
-        </ProjectContext>
-        <div className="btn btn-primary" onClick={this.submit}>
-          next step
+        <div className="onboarding-Configure">
+
+          <ProjectContext projectId={projectId} orgId={orgId}>
+            <ProjectDocsContext>
+              <ProjectInstallPlatform
+                platformData={{
+                  hack: 'actually set by ProjectDocsContext, this object is here to avoid proptypes warnings'
+                }}
+                params={this.props.params}
+                linkPath={(_orgId, _projectId, _platform) =>
+                  `/onboarding/${_orgId}/${_projectId}/configure/${_platform}/`}
+              />
+            </ProjectDocsContext>
+          </ProjectContext>
+          <div className="btn btn-primary" onClick={this.submit}>
+            skip configure
+          </div>
         </div>
       </div>
     );
