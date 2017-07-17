@@ -46,7 +46,8 @@ class RiakNodeStorage(NodeStorage):
         max_retries=3,
         multiget_pool_size=5,
         tcp_keepalive=True,
-        protocol=None
+        protocol=None,
+        automatic_expiry=False
     ):
         # protocol being defined is useless, but is needed for backwards
         # compatability and leveraged as an opportunity to yell at the user
@@ -63,6 +64,7 @@ class RiakNodeStorage(NodeStorage):
             cooldown=cooldown,
             tcp_keepalive=tcp_keepalive,
         )
+        self.automatic_expiry = automatic_expiry
 
     def set(self, id, data):
         self.conn.put(self.bucket, id, json_dumps(data), returnbody='false')
@@ -95,6 +97,5 @@ class RiakNodeStorage(NodeStorage):
         return results
 
     def cleanup(self, cutoff_timestamp):
-        # TODO(dcramer): we should either index timestamps or have this run
-        # a map/reduce (probably the latter)
-        raise NotImplementedError
+        if not self.automatic_expiry:
+            raise NotImplementedError
