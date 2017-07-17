@@ -234,21 +234,6 @@ KNOWN_DSYM_TYPES = {
 
 NATIVE_UNKNOWN_STRING = '<unknown>'
 
-# to go from a marketing page slug like /for/android/ to the integration id
-# (in _platforms.json), for looking up documentation urls, etc.
-MARKETING_SLUG_TO_INTEGRATION_ID = {
-    # java
-    "java": "java",
-    "kotlin": "java",
-    "scala": "java",
-    "android": "java-android",
-
-    # TODO: add more...
-}
-
-# ???
-# via Eric: sdk name -> "server/product/event pipeline" slug
-# via Eric: python.flask -> whatever you'd send in the `integration` field in the events
 
 # to go from an integration id (in _platforms.json) to the platform
 # data, such as documentation url or humanized name.
@@ -268,6 +253,66 @@ def _load_platform_data():
                 INTEGRATION_ID_TO_PLATFORM_DATA[integration['id']] = integration
 
 _load_platform_data()
+
+
+# special cases where the marketing slug differs from the integration id
+# (in _platforms.json). missing values (for example: "java") should assume
+# the marketing slug is the same as the integration id.
+MARKETING_SLUG_TO_INTEGRATION_ID = {
+    "kotlin": "java",
+    "scala": "java",
+    "android": "java-android",
+
+    # TODO: add more...
+}
+
+
+# to go from a marketing page slug like /for/android/ to the integration id
+# (in _platforms.json), for looking up documentation urls, etc.
+def get_integration_id_for_marketing_slug(slug):
+    if MARKETING_SLUG_TO_INTEGRATION_ID[slug]:
+        return MARKETING_SLUG_TO_INTEGRATION_ID[slug]
+
+    if slug in INTEGRATION_ID_TO_PLATFORM_DATA:
+        return INTEGRATION_ID_TO_PLATFORM_DATA[slug]
+
+
+# special cases where the integration sent with the SDK differ from
+# the integration id (in _platforms.json)
+# {PLATFORM: {INTEGRATION_SENT: integration_id, ...}, ...}
+PLATFORM_INTEGRATION_TO_INTEGRATION_ID = {
+    "java": {
+        "java.util.logging": "java-logging",
+    },
+}
+
+
+# to go from event data to the integration id (in _platforms.json),
+# for example an event like:
+# {"platform": "java",
+#  "sdk": {"name": "sentry-java",
+#          "integrations": ["java.util.logging"]}} -> java-logging
+def get_integration_id_for_event(platform, sdk_name, integrations):
+    if integrations:
+        for integration in integrations:
+            # check special cases
+            if PLATFORM_INTEGRATION_TO_INTEGRATION_ID[platform] and \
+                    PLATFORM_INTEGRATION_TO_INTEGRATION_ID[platform][integration]:
+                return PLATFORM_INTEGRATION_TO_INTEGRATION_ID[platform][integration]
+
+            # try <platform>-<integration>, for example "java-log4j"
+            integration_id = "%s-%s" % (platform, integration)
+            if integration_id in INTEGRATION_ID_TO_PLATFORM_DATA:
+                return integration_id
+
+    # try sdk name, for example "sentry-java" -> "java" or "raven-java:log4j" -> "java-log4j"
+    sdk_name = sdk_name.lowercase().replace("sentry-", "").replace("raven-", "").replace(":", "-")
+    if sdk_name in INTEGRATION_ID_TO_PLATFORM_DATA:
+        return sdk_name
+
+    # try platform name, for example "java"
+    if platform in INTEGRATION_ID_TO_PLATFORM_DATA:
+        return platform
 
 
 class ObjectStatus(object):
