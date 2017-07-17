@@ -8,16 +8,19 @@ from django.db import connections, router
 from django.utils import timezone
 
 from sentry.utils import db
+from sentry.db.models.fields.node import NodeField
 
 
 class BulkDeleteQuery(object):
-    def __init__(self, model, project_id=None, dtfield=None, days=None, order_by=None):
+    def __init__(self, model, project_id=None, dtfield=None, days=None,
+                 order_by=None, skip_nodestore=False):
         self.model = model
         self.project_id = int(project_id) if project_id else None
         self.dtfield = dtfield
         self.days = int(days) if days is not None else None
         self.order_by = order_by
         self.using = router.db_for_write(model)
+        self.skip_nodestore = skip_nodestore
 
     def execute_postgres(self, chunk_size=10000):
         quote_name = connections[self.using].ops.quote_name
@@ -97,12 +100,24 @@ class BulkDeleteQuery(object):
         return qs
 
     def _continuous_generic_query(self, query, chunk_size):
+        # Detect which fields, if any, should be ignored
+        # from nodestore deletion.
+        node_fields = []
+        if self.skip_nodestore:
+            for f in self.model._meta.fields:
+                if isinstance(f, NodeField):
+                    node_fields.append(f.name)
         # XXX: we step through because the deletion collector will pull all
         # relations into memory
         exists = True
         while exists:
             exists = False
             for item in query[:chunk_size].iterator():
+                # Setting nodestore ids to None will prevent
+                # deletion. This is used in the case when nodestore
+                # has it's own cleanup.
+                for f in node_fields:
+                    getattr(item, f).id = None
                 item.delete()
                 exists = True
 
