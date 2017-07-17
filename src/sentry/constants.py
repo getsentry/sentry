@@ -250,7 +250,8 @@ def _load_platform_data():
         integrations = platform.pop('integrations')
         if integrations is not None:
             for integration in integrations:
-                INTEGRATION_ID_TO_PLATFORM_DATA[integration['id']] = integration
+                integration_id = integration.pop('id')
+                INTEGRATION_ID_TO_PLATFORM_DATA[integration_id] = integration
 
 _load_platform_data()
 
@@ -263,18 +264,18 @@ MARKETING_SLUG_TO_INTEGRATION_ID = {
     "scala": "java",
     "android": "java-android",
 
-    # TODO: add more...
+    # TODO: add more special cases...
 }
 
 
 # to go from a marketing page slug like /for/android/ to the integration id
 # (in _platforms.json), for looking up documentation urls, etc.
 def get_integration_id_for_marketing_slug(slug):
-    if MARKETING_SLUG_TO_INTEGRATION_ID[slug]:
+    if slug in MARKETING_SLUG_TO_INTEGRATION_ID:
         return MARKETING_SLUG_TO_INTEGRATION_ID[slug]
 
     if slug in INTEGRATION_ID_TO_PLATFORM_DATA:
-        return INTEGRATION_ID_TO_PLATFORM_DATA[slug]
+        return slug
 
 
 # special cases where the integration sent with the SDK differ from
@@ -284,6 +285,8 @@ PLATFORM_INTEGRATION_TO_INTEGRATION_ID = {
     "java": {
         "java.util.logging": "java-logging",
     },
+
+    # TODO: add more special cases...
 }
 
 
@@ -296,8 +299,8 @@ def get_integration_id_for_event(platform, sdk_name, integrations):
     if integrations:
         for integration in integrations:
             # check special cases
-            if PLATFORM_INTEGRATION_TO_INTEGRATION_ID[platform] and \
-                    PLATFORM_INTEGRATION_TO_INTEGRATION_ID[platform][integration]:
+            if platform in PLATFORM_INTEGRATION_TO_INTEGRATION_ID and \
+                    integration in PLATFORM_INTEGRATION_TO_INTEGRATION_ID[platform]:
                 return PLATFORM_INTEGRATION_TO_INTEGRATION_ID[platform][integration]
 
             # try <platform>-<integration>, for example "java-log4j"
@@ -306,7 +309,7 @@ def get_integration_id_for_event(platform, sdk_name, integrations):
                 return integration_id
 
     # try sdk name, for example "sentry-java" -> "java" or "raven-java:log4j" -> "java-log4j"
-    sdk_name = sdk_name.lowercase().replace("sentry-", "").replace("raven-", "").replace(":", "-")
+    sdk_name = sdk_name.lower().replace("sentry-", "").replace("raven-", "").replace(":", "-")
     if sdk_name in INTEGRATION_ID_TO_PLATFORM_DATA:
         return sdk_name
 
