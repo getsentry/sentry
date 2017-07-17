@@ -30,6 +30,7 @@ def get_frame_attributes(frame):
     attributes = {}
 
     if frame.function in set(['<lambda>', None]):
+        assert frame.context_line is not None, 'no context to generate signature'
         attributes['signature'] = (
             (frame.pre_context or [])[-5:] +
             [frame.context_line] +
@@ -43,6 +44,8 @@ def get_frame_attributes(frame):
         if value:
             attributes[name] = value
             break
+    else:
+        assert False, 'no way to scope frame'
 
     return attributes
 

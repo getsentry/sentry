@@ -49,6 +49,9 @@ class MinHashIndex(object):
         ]
 
     def record(self, scope, key, items, timestamp=None):
+        if not items:
+            return  # nothing to do
+
         if timestamp is None:
             timestamp = int(time.time())
 

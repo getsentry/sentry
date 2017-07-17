@@ -79,12 +79,22 @@ class FeatureSet(object):
     def record(self, event):
         items = []
         for label, features in self.extract(event).items():
-            features = map(self.encoder.dumps, features)
-            if features:
-                items.append((
-                    self.aliases[label],
-                    features,
-                ))
+            try:
+                features = map(self.encoder.dumps, features)
+            except Exception as error:
+                logger.warning(
+                    'Could not encode features from %r for %r due to error: %r',
+                    event,
+                    label,
+                    error,
+                    exc_info=True,
+                )
+            else:
+                if features:
+                    items.append((
+                        self.aliases[label],
+                        features,
+                    ))
         return self.index.record(
             self.__get_scope(event.group),
             self.__get_key(event.group),
