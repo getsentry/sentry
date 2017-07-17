@@ -5,7 +5,7 @@ from rest_framework import serializers, status
 from rest_framework.response import Response
 
 from sentry.api.base import DocSection
-from sentry.api.bases.organization import OrganizationEndpoint
+from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.team import TeamWithProjectsSerializer
 from sentry.models import (
@@ -34,6 +34,13 @@ def list_organization_teams_scenario(runner):
     )
 
 
+# OrganizationPermission + team:write
+class OrganizationTeamsPermission(OrganizationPermission):
+    def __init__(self):
+        for m in 'POST', 'PUT', 'DELETE':
+            self.scope_map[m].append('team:write')
+
+
 class TeamSerializer(serializers.Serializer):
     name = serializers.CharField(max_length=200, required=True)
     slug = serializers.RegexField(r'^[a-z0-9_\-]+$', max_length=50,
@@ -41,6 +48,7 @@ class TeamSerializer(serializers.Serializer):
 
 
 class OrganizationTeamsEndpoint(OrganizationEndpoint):
+    permission_classes = (OrganizationTeamsPermission,)
     doc_section = DocSection.TEAMS
 
     @attach_scenarios([list_organization_teams_scenario])
