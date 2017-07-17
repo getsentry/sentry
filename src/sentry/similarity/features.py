@@ -32,24 +32,9 @@ class ExceptionFeature(object):
         self.function = function
 
     def extract(self, event):
-        try:
-            exceptions = event.interfaces['sentry.interfaces.Exception'].values
-        except KeyError as error:
-            logger.info(
-                'Could not extract characteristic(s) from %r due to error: %r',
-                event,
-                error,
-                exc_info=True)
-            return
-
-        for exception in exceptions:
-            try:
-                yield self.function(exception)
-            except Exception as error:
-                logger.exception(
-                    'Could not extract characteristic(s) from exception in %r due to error: %r',
-                    event,
-                    error)
+        return self.function(
+            event.interfaces['sentry.interfaces.Exception'].values[0],
+        )
 
 
 class MessageFeature(object):
@@ -57,23 +42,9 @@ class MessageFeature(object):
         self.function = function
 
     def extract(self, event):
-        try:
-            message = event.interfaces['sentry.interfaces.Message']
-        except KeyError as error:
-            logger.info(
-                'Could not extract characteristic(s) from %r due to error: %r',
-                event,
-                error,
-                exc_info=True)
-            return
-
-        try:
-            yield self.function(message)
-        except Exception as error:
-            logger.exception(
-                'Could not extract characteristic(s) from message of %r due to error: %r',
-                event,
-                error)
+        return self.function(
+            event.interfaces['sentry.interfaces.Message'],
+        )
 
 
 class FeatureSet(object):
@@ -91,20 +62,29 @@ class FeatureSet(object):
         return '{}'.format(group.id)
 
     def extract(self, event):
-        return {
-            label: feature.extract(event) for label, feature in self.features.items()
-        }
+        results = {}
+        for label, strategy in self.features.items():
+            try:
+                results[label] = strategy.extract(event)
+            except Exception as error:
+                logger.warning(
+                    'Could not extract features from %r for %r due to error: %r',
+                    event,
+                    label,
+                    error,
+                    exc_info=True,
+                )
+        return results
 
     def record(self, event):
         items = []
-        for label, characteristics_list in self.extract(event).items():
-            for characteristics in characteristics_list:
-                characteristics = map(self.encoder.dumps, characteristics)
-                if characteristics:
-                    items.append((
-                        self.aliases[label],
-                        characteristics,
-                    ))
+        for label, features in self.extract(event).items():
+            features = map(self.encoder.dumps, features)
+            if features:
+                items.append((
+                    self.aliases[label],
+                    features,
+                ))
         return self.index.record(
             self.__get_scope(event.group),
             self.__get_key(event.group),
