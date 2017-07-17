@@ -5,7 +5,7 @@ import toJson from 'enzyme-to-json';
 import {Client} from 'app/api';
 import Configure from 'app/views/onboarding/Configure';
 
-describe('Configure should render good', function() {
+describe('Configure should render correctly', function() {
   beforeEach(function() {
     this.sandbox = sinon.sandbox.create();
     this.stubbedApiRequest = this.sandbox.stub(Client.prototype, 'request');
@@ -56,7 +56,15 @@ describe('Configure should render good', function() {
       };
       props.params.platform = 'other';
 
-      let handleSubmitStub = sinon.stub(Configure.prototype, 'redirectToNeutralDocs');
+      let handleSubmitStub = this.sandbox.stub(
+        Configure.prototype,
+        'redirectToNeutralDocs'
+      );
+
+      // 👺 ⚠️ this is a hack to defeat the method auto binding so we can fully stub the method. It would not be neccessary with es6 class components and it relies on react internals so it's fragile - maxbittker
+      const index =
+        Configure.prototype.__reactAutoBindPairs.indexOf('redirectToNeutralDocs') + 1;
+      Configure.prototype.__reactAutoBindPairs[index] = handleSubmitStub;
 
       let wrapper = shallow(<Configure {...props} />, {
         context: {
@@ -68,13 +76,7 @@ describe('Configure should render good', function() {
         }
       });
 
-      const component = wrapper.instance();
-
-      component.forceUpdate();
-      wrapper.update();
-
       expect(toJson(wrapper)).toMatchSnapshot();
-
       expect(handleSubmitStub.callCount).toEqual(1);
     });
   });

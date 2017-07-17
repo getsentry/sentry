@@ -1,6 +1,6 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`Configure should render good render() should redirect to if no matching platform 1`] = `
+exports[`Configure should render correctly render() should redirect to if no matching platform 1`] = `
 <div
   className="onboarding-Configure"
 >
@@ -36,43 +36,7 @@ exports[`Configure should render good render() should redirect to if no matching
 </div>
 `;
 
-exports[`Configure should render good render() should redirect to if no matching platform 2`] = `
-<div
-  className="onboarding-Configure"
->
-  <Waiting />
-  <ProjectContext
-    orgId="testOrg"
-    projectId="testProject"
-  >
-    <ProjectDocsContext>
-      <ProjectInstallPlatform
-        linkPath={[Function]}
-        params={
-          Object {
-            "orgId": "testOrg",
-            "platform": "other",
-            "projectId": "testProject",
-          }
-        }
-        platformData={
-          Object {
-            "hack": "actually set by ProjectDocsContext, this object is here to avoid proptypes warnings",
-          }
-        }
-      />
-    </ProjectDocsContext>
-  </ProjectContext>
-  <div
-    className="btn btn-primary"
-    onClick={[Function]}
-  >
-    next step
-  </div>
-</div>
-`;
-
-exports[`Configure should render good render() should render platform docs 1`] = `
+exports[`Configure should render correctly render() should render platform docs 1`] = `
 <div
   className="onboarding-Configure"
 >

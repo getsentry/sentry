@@ -20,7 +20,6 @@ const Configure = React.createClass({
     const {platform} = this.props.params;
     //TODO(maxbittker) redirect if platform is not known.
     if (!platform || platform === 'other') {
-      console.log('XXXXXXXXXXXXX');
       this.redirectToNeutralDocs();
     }
   },
@@ -68,7 +67,6 @@ const Configure = React.createClass({
 
   redirectToNeutralDocs() {
     const {orgId, projectId} = this.props.params;
-    console.log('BBBBBBBB');
     const url = `/${orgId}/${projectId}/getting-started`;
     browserHistory.push(url);
   },

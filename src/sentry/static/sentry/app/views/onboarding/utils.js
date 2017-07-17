@@ -1,5 +1,4 @@
 import {platforms} from '../../../../../integration-docs/_platforms.json';
-// let platforms = [];
 
 const Popular = [
   'javascript',
@@ -20,7 +19,9 @@ const Frontend = [
   'javascript-ember',
   'javascript-vue'
 ];
+
 const Mobile = ['objc', 'swift', 'java-android', 'cocoa'];
+
 const Backend = [
   'go',
   'go-http',
