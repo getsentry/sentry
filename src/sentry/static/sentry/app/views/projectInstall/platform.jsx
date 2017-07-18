@@ -14,13 +14,14 @@ const ProjectInstallPlatform = React.createClass({
     linkPath: React.PropTypes.func
   },
 
-  getDefaultProps(){
-    return {
-      linkPath: (orgId, projectId, platform) => `/${orgId}/${projectId}/settings/install/${platform}/`
-    }
-  },
-
   mixins: [ApiMixin],
+
+  getDefaultProps() {
+    return {
+      linkPath: (orgId, projectId, platform) =>
+        `/${orgId}/${projectId}/settings/install/${platform}/`
+    };
+  },
 
   getInitialState(props) {
     props = props || this.props;
@@ -89,10 +90,7 @@ const ProjectInstallPlatform = React.createClass({
     let {orgId, projectId} = this.props.params;
     let path = this.props.linkPath(orgId, projectId, platform);
     return (
-      <Link
-        key={platform}
-        to={path}
-        className="list-group-item">
+      <Link key={platform} to={path} className="list-group-item">
         {display || platform}
       </Link>
     );

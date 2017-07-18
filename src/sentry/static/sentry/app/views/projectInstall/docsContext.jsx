@@ -33,7 +33,6 @@ const ProjectDocsContext = React.createClass({
 
     this.api.request(`/projects/${orgId}/${projectId}/docs/`, {
       success: data => {
-        console.log(data);
         this.setState({
           loading: false,
           data: data
@@ -47,9 +46,8 @@ const ProjectDocsContext = React.createClass({
     else if (this.state.error) return <LoadingError onRetry={this.fetchData} />;
 
     let data = this.state.data;
-    console.log(this.state.data);
     return React.cloneElement(this.props.children, {
-      platformData: data 
+      platformData: data
     });
   }
 });

@@ -1,5 +1,5 @@
 import React from 'react';
-import PlatformPicker from './platformPicker';
+import PlatformPicker from './platformpicker';
 import PlatformiconTile from './platformiconTile';
 
 const Project = React.createClass({
