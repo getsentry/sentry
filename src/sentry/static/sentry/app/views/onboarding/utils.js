@@ -7,7 +7,7 @@ const Popular = [
   'node-express',
   'php-laravel',
   'php-symfony2',
-  'java-log4j'
+  'java'
 ];
 
 const Frontend = [

@@ -18,7 +18,7 @@ const PlatformPicker = React.createClass({
 
   getInitialState() {
     return {
-      tab: categoryList[2],
+      tab: categoryList[0],
       filter: ''
     };
   },
@@ -101,9 +101,10 @@ const PlatformPicker = React.createClass({
     const filtered = variants.filter(platform => {
       return (platform.id + ' ' + platform.platform).includes(this.state.filter);
     });
-
+    if (filtered.length < 2) return null;
     return (
       <ul className="client-platform-list platform-tiles">
+        <span className="platform-card"><h5>Related:</h5></span>
         {filtered.map((platform, idx) => {
           return (
             <PlatformCard
@@ -155,7 +156,7 @@ const PlatformPicker = React.createClass({
         </ul>
         {this.renderPlatformList()}
         {/* {this.renderLanguageList()} */}
-        {/* {this.renderExtended()} */}
+        {this.renderExtended()}
       </div>
     );
   }

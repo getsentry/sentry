@@ -1,9 +1,10 @@
 import React from 'react';
-import {shallow} from 'enzyme';
+import {shallow, mount} from 'enzyme';
 import toJson from 'enzyme-to-json';
 
 import {Client} from 'app/api';
 import Configure from 'app/views/onboarding/Configure';
+import PropTypes from '../../../../../../src/sentry/static/sentry/app/proptypes';
 
 describe('Configure should render correctly', function() {
   beforeEach(function() {
@@ -24,14 +25,15 @@ describe('Configure should render correctly', function() {
       }
     };
 
-    it('should render platform docs', function() {
+    it("shouldn't redirect for a found platform", function() {
       let props = {
         ...baseProps
       };
       props.params.platform = 'node';
 
       let wrapper = shallow(<Configure {...props} />, {
-        context: {organization: {id: '1337', slug: 'testOrg', teams: [['testProject']]}}
+        context: {organization: {id: '1337', slug: 'testOrg', teams: [['testProject']]}},
+        childContextTypes: {organization: PropTypes.Organization}
       });
 
       const component = wrapper.instance();
@@ -78,6 +80,37 @@ describe('Configure should render correctly', function() {
 
       expect(toJson(wrapper)).toMatchSnapshot();
       expect(handleSubmitStub.callCount).toEqual(1);
+    });
+
+    it('should render platform docs', function() {
+      let props = {
+        ...baseProps
+      };
+      props.params.platform = 'node';
+
+      let wrapper = mount(<Configure {...props} />, {
+        context: {
+          organization: {
+            id: '1337',
+            slug: 'testOrg',
+            teams: [
+              {
+                id: 'coolteam',
+                hasAccess: true,
+                projects: [
+                  {
+                    slug: 'testProject',
+                    id: 'testProject'
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        childContextTypes: {organization: PropTypes.Organization}
+      });
+      expect(toJson(wrapper)).toMatchSnapshot();
+      expect(this.stubbedApiRequest.callCount).toEqual(5);
     });
   });
 });
