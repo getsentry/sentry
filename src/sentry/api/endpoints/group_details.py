@@ -251,6 +251,8 @@ class GroupDetailsEndpoint(GroupEndpoint):
         :param boolean isSubscribed:
         :auth: required
         """
+        discard = request.DATA.get('discard')
+
         # TODO(dcramer): we need to implement assignedTo in the bulk mutation
         # endpoint
         response = client.put(
@@ -264,6 +266,10 @@ class GroupDetailsEndpoint(GroupEndpoint):
             data=request.DATA,
             request=request,
         )
+
+        # if action was discard, there isn't a group to serialize anymore
+        if discard:
+            return response
 
         # we need to fetch the object against as the bulk mutation endpoint
         # only returns a delta, and object mutation returns a complete updated

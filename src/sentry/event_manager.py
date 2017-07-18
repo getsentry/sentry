@@ -190,6 +190,10 @@ def plugin_is_regression(group, event):
     return True
 
 
+class HashDiscarded(Exception):
+    pass
+
+
 class ScoreClause(object):
     def __init__(self, group):
         self.group = group
@@ -819,10 +823,13 @@ class EventManager(object):
         # attempt to find a matching hash
         all_hashes = self._find_hashes(project, hashes)
 
-        try:
-            existing_group_id = six.next(h.group_id for h in all_hashes if h.group_id is not None)
-        except StopIteration:
-            existing_group_id = None
+        existing_group_id = None
+        for h in all_hashes:
+            if h.group_id is not None:
+                existing_group_id = h.group_id
+                break
+            if h.group_tombstone_id is not None:
+                raise HashDiscarded('Matches group tombstone %s' % h.group_tombstone_id)
 
         # XXX(dcramer): this has the opportunity to create duplicate groups
         # it should be resolved by the hash merging function later but this
