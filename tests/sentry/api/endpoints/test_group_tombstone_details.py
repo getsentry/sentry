@@ -101,6 +101,6 @@ class GroupTombstoneDetailsTest(APITestCase):
                        )
         response = self.client.delete(path)
 
-        assert response.status_code == 204, response
+        assert response.status_code == 404, response
         assert GroupHash.objects.filter(group_tombstone_id=tombstone.id).exists()
         assert GroupTombstone.objects.filter(project_id=self.project.id, id=tombstone.id).exists()
