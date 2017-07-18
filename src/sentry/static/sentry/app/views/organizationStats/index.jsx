@@ -6,6 +6,7 @@ import LoadingIndicator from '../../components/loadingIndicator';
 import OrganizationHomeContainer from '../../components/organizations/homeContainer';
 import StackedBarChart from '../../components/stackedBarChart';
 import OrganizationState from '../../mixins/organizationState';
+import Pagination from '../../components/pagination';
 
 import ProjectTable from './projectTable';
 import {t} from '../../locale';
@@ -40,6 +41,19 @@ const OrganizationStats = React.createClass({
     this.fetchData();
   },
 
+  componentWillReceiveProps(nextProps) {
+    // If query string changes, it will be due to pagination.
+    // Intentionally only fetch projects since stats are fetched for a fixed period during
+    // the initial payload
+    if (nextProps.location.search !== this.props.location.search) {
+      this.setState({
+        projectsError: false,
+        projectsRequestsPending: 1,
+        projectsLoading: true
+      });
+    }
+  },
+
   componentDidUpdate(prevProps) {
     let prevParams = prevProps.params, currentParams = this.props.params;
 
@@ -47,6 +61,15 @@ const OrganizationStats = React.createClass({
       this.fetchData();
     }
 
+    // Query string is changed, probably due to pagination, re-fetch only project data
+    if (prevProps.location.search !== this.props.location.search) {
+      // Not sure why, but when we use pagination and the new results load and re-render,
+      // the scroll position does not reset to top like in Audit Log
+      if (window.scrollTo) {
+        window.scrollTo(0, 0);
+      }
+      this.fetchProjectData();
+    }
     let state = this.state;
     if (state.statsLoading && !state.statsRequestsPending) {
       this.processOrgData();
@@ -54,6 +77,31 @@ const OrganizationStats = React.createClass({
     if (state.projectsLoading && !state.projectsRequestsPending) {
       this.processProjectData();
     }
+  },
+
+  fetchProjectData() {
+    this.api.request(this.getOrganizationProjectsEndpoint(), {
+      query: this.props.location.query,
+      success: (data, textStatus, jqxhr) => {
+        let projectMap = {};
+        data.forEach(project => {
+          projectMap[project.id] = project;
+        });
+
+        this.state.projectsRequestsPending -= 1;
+
+        this.setState({
+          pageLinks: jqxhr.getResponseHeader('Link'),
+          projectMap: projectMap,
+          projectsRequestsPending: this.state.projectsRequestsPending
+        });
+      },
+      error: () => {
+        this.setState({
+          projectsError: true
+        });
+      }
+    });
   },
 
   fetchData() {
@@ -116,25 +164,7 @@ const OrganizationStats = React.createClass({
       });
     });
 
-    this.api.request(this.getOrganizationProjectsEndpoint(), {
-      success: data => {
-        let projectMap = {};
-        data.forEach(project => {
-          projectMap[project.id] = project;
-        });
-
-        this.state.projectsRequestsPending -= 1;
-        this.setState({
-          projectMap: projectMap,
-          projectsRequestsPending: this.state.projectsRequestsPending
-        });
-      },
-      error: () => {
-        this.setState({
-          projectsError: true
-        });
-      }
-    });
+    this.fetchProjectData();
   },
 
   getOrganizationStatsEndpoint() {
@@ -286,7 +316,10 @@ const OrganizationStats = React.createClass({
                       projectMap={this.state.projectMap}
                     />}
           </div>
+
         </div>
+        {this.state.pageLinks &&
+          <Pagination pageLinks={this.state.pageLinks} {...this.props} />}
       </OrganizationHomeContainer>
     );
   }
