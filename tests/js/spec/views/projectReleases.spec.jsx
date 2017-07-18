@@ -49,7 +49,7 @@ describe('ProjectReleases', function() {
 
       projectReleases.instance().onSearch('searchquery');
 
-      expect(browserHistory.pushState.calledOnce).toBeTruthy;
+      expect(browserHistory.pushState.calledOnce).toBeTruthy();
       expect(browserHistory.pushState.args[0]).toEqual([
         null,
         '/123/456/releases/',
@@ -75,7 +75,7 @@ describe('ProjectReleases', function() {
       };
       projectReleases.componentWillReceiveProps(newProps);
 
-      expect(setState.calledOnce).toBeTruthy;
+      expect(setState.calledOnce).toBeTruthy();
       expect(setState.getCall(0).args[0]).toEqual({
         query: 'newquery'
       });
