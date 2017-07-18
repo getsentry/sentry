@@ -73,7 +73,6 @@ const GroupTombstones = React.createClass({
   mixins: [ApiMixin],
 
   undiscard(tombstoneId) {
-    // TODO (kt): update this when you scope the API endpoint to the project
     let {orgId, projectId} = this.props;
     let path = `/projects/${orgId}/${projectId}/tombstones/${tombstoneId}/`;
     this.api.request(path, {
