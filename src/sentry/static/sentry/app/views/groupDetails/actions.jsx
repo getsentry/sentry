@@ -380,7 +380,6 @@ const DeleteActions = React.createClass({
         </LinkWithConfirmation>
         {features.has('custom-filters') &&
           <DropdownLink caret={true} className="group-delete btn btn-default btn-sm">
-            <MenuItem header={true}>Delete and</MenuItem>
             <li>
               <LinkWithConfirmation
                 title={t('Discard')}
@@ -391,7 +390,7 @@ const DeleteActions = React.createClass({
                     'Are you sure you wish to continue?'
                 )}
                 onConfirm={this.props.onDiscard}>
-                <span>Discard future events</span>
+                <span>{t('Delete and discard future events')}</span>
               </LinkWithConfirmation>
             </li>
           </DropdownLink>}
