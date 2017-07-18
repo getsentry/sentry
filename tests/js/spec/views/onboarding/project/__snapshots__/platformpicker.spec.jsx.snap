@@ -1,0 +1,355 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`PlatformPicker render() should only render Mobile platforms under Mobile tab 1`] = `
+<div
+  className="platform-picker"
+>
+  <ul
+    className="nav nav-tabs"
+  >
+    <li
+      style={
+        Object {
+          "float": "right",
+          "marginRight": 0,
+        }
+      }
+    >
+      <div
+        className="platform-filter-container"
+      >
+        <span
+          className="icon icon-search"
+        />
+        <input
+          className="platform-filter"
+          label="Filter"
+          onChange={[Function]}
+          placeholder="Filter"
+          type="text"
+        />
+      </div>
+    </li>
+    <ListLink
+      activeClassName="active"
+      index={false}
+      isActive={[Function]}
+      onClick={[Function]}
+      to=""
+    >
+      Popular
+    </ListLink>
+    <ListLink
+      activeClassName="active"
+      index={false}
+      isActive={[Function]}
+      onClick={[Function]}
+      to=""
+    >
+      Frontend
+    </ListLink>
+    <ListLink
+      activeClassName="active"
+      index={false}
+      isActive={[Function]}
+      onClick={[Function]}
+      to=""
+    >
+      Mobile
+    </ListLink>
+    <ListLink
+      activeClassName="active"
+      index={false}
+      isActive={[Function]}
+      onClick={[Function]}
+      to=""
+    >
+      Backend
+    </ListLink>
+    <ListLink
+      activeClassName="active"
+      index={false}
+      isActive={[Function]}
+      onClick={[Function]}
+      to=""
+    >
+      All
+    </ListLink>
+  </ul>
+  <ul
+    className="client-platform-list platform-tiles"
+  >
+    <PlatformCard
+      className=""
+      onClick={[Function]}
+      platform="java"
+    />
+    <PlatformCard
+      className=""
+      onClick={[Function]}
+      platform="javascript"
+    />
+    <PlatformCard
+      className=""
+      onClick={[Function]}
+      platform="node-express"
+    />
+    <PlatformCard
+      className=""
+      onClick={[Function]}
+      platform="php-laravel"
+    />
+    <PlatformCard
+      className=""
+      onClick={[Function]}
+      platform="php-symfony2"
+    />
+    <PlatformCard
+      className=""
+      onClick={[Function]}
+      platform="python-django"
+    />
+    <PlatformCard
+      className=""
+      onClick={[Function]}
+      platform="ruby-rails"
+    />
+  </ul>
+</div>
+`;
+
+exports[`PlatformPicker render() should render renderPlatformList with Python when filtered with P 1`] = `
+<div
+  className="platform-picker"
+>
+  <ul
+    className="nav nav-tabs"
+  >
+    <li
+      style={
+        Object {
+          "float": "right",
+          "marginRight": 0,
+        }
+      }
+    >
+      <div
+        className="platform-filter-container"
+      >
+        <span
+          className="icon icon-search"
+        />
+        <input
+          className="platform-filter"
+          label="Filter"
+          onChange={[Function]}
+          placeholder="Filter"
+          type="text"
+        />
+      </div>
+    </li>
+    <ListLink
+      activeClassName="active"
+      index={false}
+      isActive={[Function]}
+      onClick={[Function]}
+      to=""
+    >
+      Popular
+    </ListLink>
+    <ListLink
+      activeClassName="active"
+      index={false}
+      isActive={[Function]}
+      onClick={[Function]}
+      to=""
+    >
+      Frontend
+    </ListLink>
+    <ListLink
+      activeClassName="active"
+      index={false}
+      isActive={[Function]}
+      onClick={[Function]}
+      to=""
+    >
+      Mobile
+    </ListLink>
+    <ListLink
+      activeClassName="active"
+      index={false}
+      isActive={[Function]}
+      onClick={[Function]}
+      to=""
+    >
+      Backend
+    </ListLink>
+    <ListLink
+      activeClassName="active"
+      index={false}
+      isActive={[Function]}
+      onClick={[Function]}
+      to=""
+    >
+      All
+    </ListLink>
+  </ul>
+  <ul
+    className="client-platform-list platform-tiles"
+  >
+    <PlatformCard
+      className=""
+      onClick={[Function]}
+      platform="java"
+    />
+    <PlatformCard
+      className=""
+      onClick={[Function]}
+      platform="javascript"
+    />
+    <PlatformCard
+      className=""
+      onClick={[Function]}
+      platform="node-express"
+    />
+    <PlatformCard
+      className=""
+      onClick={[Function]}
+      platform="php-laravel"
+    />
+    <PlatformCard
+      className=""
+      onClick={[Function]}
+      platform="php-symfony2"
+    />
+    <PlatformCard
+      className=""
+      onClick={[Function]}
+      platform="python-django"
+    />
+    <PlatformCard
+      className=""
+      onClick={[Function]}
+      platform="ruby-rails"
+    />
+  </ul>
+</div>
+`;
+
+exports[`PlatformPicker render() should render renderPlatformList with community SDKs message if platform not found 1`] = `
+<div
+  className="platform-picker"
+>
+  <ul
+    className="nav nav-tabs"
+  >
+    <li
+      style={
+        Object {
+          "float": "right",
+          "marginRight": 0,
+        }
+      }
+    >
+      <div
+        className="platform-filter-container"
+      >
+        <span
+          className="icon icon-search"
+        />
+        <input
+          className="platform-filter"
+          label="Filter"
+          onChange={[Function]}
+          placeholder="Filter"
+          type="text"
+        />
+      </div>
+    </li>
+    <ListLink
+      activeClassName="active"
+      index={false}
+      isActive={[Function]}
+      onClick={[Function]}
+      to=""
+    >
+      Popular
+    </ListLink>
+    <ListLink
+      activeClassName="active"
+      index={false}
+      isActive={[Function]}
+      onClick={[Function]}
+      to=""
+    >
+      Frontend
+    </ListLink>
+    <ListLink
+      activeClassName="active"
+      index={false}
+      isActive={[Function]}
+      onClick={[Function]}
+      to=""
+    >
+      Mobile
+    </ListLink>
+    <ListLink
+      activeClassName="active"
+      index={false}
+      isActive={[Function]}
+      onClick={[Function]}
+      to=""
+    >
+      Backend
+    </ListLink>
+    <ListLink
+      activeClassName="active"
+      index={false}
+      isActive={[Function]}
+      onClick={[Function]}
+      to=""
+    >
+      All
+    </ListLink>
+  </ul>
+  <ul
+    className="client-platform-list platform-tiles"
+  >
+    <PlatformCard
+      className=""
+      onClick={[Function]}
+      platform="java"
+    />
+    <PlatformCard
+      className=""
+      onClick={[Function]}
+      platform="javascript"
+    />
+    <PlatformCard
+      className=""
+      onClick={[Function]}
+      platform="node-express"
+    />
+    <PlatformCard
+      className=""
+      onClick={[Function]}
+      platform="php-laravel"
+    />
+    <PlatformCard
+      className=""
+      onClick={[Function]}
+      platform="php-symfony2"
+    />
+    <PlatformCard
+      className=""
+      onClick={[Function]}
+      platform="python-django"
+    />
+    <PlatformCard
+      className=""
+      onClick={[Function]}
+      platform="ruby-rails"
+    />
+  </ul>
+</div>
+`;
