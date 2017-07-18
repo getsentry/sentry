@@ -72,9 +72,10 @@
   "APIMethod": "stub",
   "proxyURL": "http://localhost:8000",
   "scripts": {
-    "test": "NODE_ENV=test node_modules/.bin/jest tests/js/spec",
-    "test-ci": "NODE_ENV=test node_modules/.bin/jest tests/js/spec --runInBand",
-    "test-watch": "NODE_ENV=test node_modules/.bin/jest tests/js/spec --watch",
+    "test": "npm run jest -- tests/js/spec",
+    "test-ci": "npm run test -- --runInBand",
+    "test-watch": "npm run test -- --watch",
+    "jest": "NODE_ENV=test node_modules/.bin/jest",
     "lint": "node_modules/.bin/eslint tests/js src/sentry/static/sentry/app --ext .jsx"
   },
   "jest": {
