@@ -8,7 +8,6 @@ from sentry.models import GroupTombstone
 
 
 class GroupTombstoneEndpoint(ProjectEndpoint):
-    # TODO (katie): figure out correct permissions
 
     def get(self, request, project):
         """

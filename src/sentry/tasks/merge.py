@@ -201,7 +201,6 @@ def _rehash_group_events(group, limit=100):
 
         # XXX(dcramer): doesnt support checksums as they're not stored
         hashes = map(md5_from_hash, get_hashes_from_fingerprint(event, fingerprint))
-        # TODO(jess): should we be worried about hitting a discarded hash here?
         for hash in hashes:
             new_group, _, _, _ = manager._save_aggregate(
                 event=event,
