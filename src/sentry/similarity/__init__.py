@@ -26,11 +26,18 @@ def text_shingle(n, value):
     )
 
 
+class FrameEncodingError(ValueError):
+    pass
+
+
 def get_frame_attributes(frame):
     attributes = {}
 
     if frame.function in set(['<lambda>', None]):
-        assert frame.context_line is not None, 'no context to generate signature'
+        if frame.context_line is None:
+            raise FrameEncodingError(
+                'Cannot create a signature for frame without a `context_line` value.')
+
         attributes['signature'] = (
             (frame.pre_context or [])[-5:] +
             [frame.context_line] +
@@ -45,7 +52,7 @@ def get_frame_attributes(frame):
             attributes[name] = value
             break
     else:
-        assert False, 'no way to scope frame'
+        raise FrameEncodingError('Cannot encode a frame without a `module` or `filename` value.')
 
     return attributes
 
@@ -95,5 +102,8 @@ features = FeatureSet(
                 message.message,
             ),
         ),
-    }
+    },
+    expected_encoding_errors=frozenset([
+        FrameEncodingError,
+    ]),
 )

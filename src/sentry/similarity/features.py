@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import functools
 import itertools
 import logging
 
@@ -48,11 +49,12 @@ class MessageFeature(object):
 
 
 class FeatureSet(object):
-    def __init__(self, index, encoder, aliases, features):
+    def __init__(self, index, encoder, aliases, features, expected_encoding_errors):
         self.index = index
         self.encoder = encoder
         self.aliases = aliases
         self.features = features
+        self.expected_encoding_errors = expected_encoding_errors
         assert set(self.aliases) == set(self.features)
 
     def __get_scope(self, group):
@@ -82,12 +84,19 @@ class FeatureSet(object):
             try:
                 features = map(self.encoder.dumps, features)
             except Exception as error:
-                logger.warning(
+                log = (
+                    logger.debug
+                    if isinstance(error, self.expected_encoding_errors) else
+                    functools.partial(
+                        logger.warning,
+                        exc_info=True
+                    )
+                )
+                log(
                     'Could not encode features from %r for %r due to error: %r',
                     event,
                     label,
                     error,
-                    exc_info=True,
                 )
             else:
                 if features:
