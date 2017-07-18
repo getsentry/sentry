@@ -36,7 +36,7 @@ import OrganizationCreate from './views/organizationCreate';
 import OrganizationDashboard from './views/organizationDashboard';
 import OrganizationDetails from './views/organizationDetails';
 import OrganizationContext from './views/organizationContext';
-import OrganizationInstallations from './views/organizationInstallations';
+import OrganizationIntegrations from './views/organizationIntegrations';
 import OrganizationRateLimits from './views/organizationRateLimits';
 import OrganizationRepositories from './views/organizationRepositories';
 import OrganizationSettings from './views/organizationSettings';
@@ -166,8 +166,8 @@ function routes() {
           component={errorHandler(OrganizationRepositories)}
         />
         <Route
-          path="/organizations/:orgId/installations/"
-          component={errorHandler(OrganizationInstallations)}
+          path="/organizations/:orgId/integrations/"
+          component={errorHandler(OrganizationIntegrations)}
         />
         <Route
           path="/organizations/:orgId/settings/"
