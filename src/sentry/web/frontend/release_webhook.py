@@ -77,10 +77,14 @@ class ReleaseWebhookView(View):
     def post(self, request, plugin_id, project_id, signature):
         project = Project.objects.get_from_cache(id=project_id)
 
-        token = ProjectOption.objects.get_value(project, 'sentry:release-token')
-
         logger.info('Incoming webhook for project_id=%s, plugin_id=%s',
                     project_id, plugin_id)
+
+        token = ProjectOption.objects.get_value(project, 'sentry:release-token')
+
+        if token is None:
+            logger.warn('No token for release hook')
+            return HttpResponse(status=403)
 
         if not self.verify(plugin_id, project_id, token, signature):
             logger.warn('Unable to verify signature for release hook')
