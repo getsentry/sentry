@@ -10,8 +10,7 @@ from django.utils import timezone
 from rest_framework import serializers
 from rest_framework.response import Response
 
-from sentry import features
-from sentry import search
+from sentry import features, search
 from sentry.api.base import DocSection
 from sentry.api.bases.project import ProjectEndpoint, ProjectEventPermission
 from sentry.api.fields import UserField
@@ -349,7 +348,12 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
         except ValidationError as exc:
             return Response({'detail': six.text_type(exc)}, status=400)
 
-        cursor_result = search.query(**query_kwargs)
+        count_hits = features.has(
+            'projects:stream-hit-counts',
+            project=project,
+            actor=request.user)
+
+        cursor_result = search.query(count_hits=count_hits, **query_kwargs)
 
         results = list(cursor_result)
 
@@ -367,10 +371,8 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
             ]
 
         response = Response(context)
-        response['Link'] = ', '.join([
-            self.build_cursor_link(request, 'previous', cursor_result.prev),
-            self.build_cursor_link(request, 'next', cursor_result.next),
-        ])
+
+        self.add_cursor_headers(request, response, cursor_result)
 
         if results and query not in SAVED_SEARCH_QUERIES:
             advanced_search.send(project=project, sender=request.user)

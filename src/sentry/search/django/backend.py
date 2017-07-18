@@ -259,7 +259,7 @@ class DjangoSearchBackend(SearchBackend):
         )
         return queryset
 
-    def query(self, project, **kwargs):
+    def query(self, project, count_hits=False, **kwargs):
         queryset = self._build_queryset(project=project, **kwargs)
 
         sort_by = kwargs.get('sort_by', 'date')
@@ -285,4 +285,4 @@ class DjangoSearchBackend(SearchBackend):
 
         queryset = queryset.order_by(sort_clause)
         paginator = paginator_cls(queryset, sort_clause)
-        return paginator.get_result(limit, cursor)
+        return paginator.get_result(limit, cursor, count_hits=count_hits)

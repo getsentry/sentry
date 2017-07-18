@@ -784,6 +784,7 @@ SENTRY_FEATURES = {
     'projects:data-forwarding': True,
     'projects:rate-limits': True,
     'projects:custom-filters': False,
+    'projects:stream-hit-counts': False,
 }
 
 # Default time zone for localization in the UI.
