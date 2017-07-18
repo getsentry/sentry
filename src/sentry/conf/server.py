@@ -783,6 +783,7 @@ SENTRY_FEATURES = {
     'projects:sample-events': True,
     'projects:data-forwarding': True,
     'projects:rate-limits': True,
+    'projects:custom-filters': False,
     'projects:stream-hit-counts': False,
 }
 

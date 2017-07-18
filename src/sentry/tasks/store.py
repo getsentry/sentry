@@ -25,7 +25,7 @@ from sentry.utils.dates import to_datetime
 from sentry.models import ProjectOption, Activity, Project
 
 error_logger = logging.getLogger('sentry.errors.events')
-
+info_logger = logging.getLogger('sentry.store')
 
 # Is reprocessing on or off by default?
 REPROCESSING_DEFAULT = False
@@ -270,7 +270,7 @@ def save_event(cache_key=None, data=None, start_time=None, event_id=None, **kwar
     """
     Saves an event to the database.
     """
-    from sentry.event_manager import EventManager
+    from sentry.event_manager import HashDiscarded, EventManager
 
     if cache_key:
         data = default_cache.get(cache_key)
@@ -293,6 +293,11 @@ def save_event(cache_key=None, data=None, start_time=None, event_id=None, **kwar
     try:
         manager = EventManager(data)
         manager.save(project)
+    except HashDiscarded as exc:
+        info_logger.info('discarded.hash', extra={
+            'project_id': project.id,
+            'message': exc.message,
+        })
     finally:
         if cache_key:
             default_cache.delete(cache_key)

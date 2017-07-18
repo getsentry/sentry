@@ -12,7 +12,7 @@ from mock import patch
 from sentry.models import (
     Activity, EventMapping, Group, GroupAssignee, GroupBookmark, GroupHash,
     GroupResolution, GroupSeen, GroupSnooze, GroupStatus, GroupSubscription,
-    GroupTagKey, GroupTagValue, Release, UserOption
+    GroupTagKey, GroupTagValue, GroupTombstone, Release, UserOption
 )
 from sentry.models.event import Event
 from sentry.testutils import APITestCase
@@ -1177,6 +1177,45 @@ class GroupUpdateTest(APITestCase):
         }, format='json')
 
         assert response.status_code == 400, response.content
+
+    def test_discard(self):
+        group1 = self.create_group(checksum='a' * 32, is_public=True)
+        group2 = self.create_group(checksum='b' * 32, is_public=True)
+        group_hash = GroupHash.objects.create(
+            hash='x' * 32,
+            project=group1.project,
+            group=group1,
+        )
+        user = self.user
+
+        self.login_as(user=user)
+        url = '{url}?id={group1.id}'.format(
+            url=self.path,
+            group1=group1,
+        )
+        with self.tasks():
+            with self.feature('projects:custom-filters', True):
+                response = self.client.put(url, data={
+                    'discard': True,
+                })
+
+        assert response.status_code == 204
+        assert not Group.objects.filter(
+            id=group1.id,
+        ).exists()
+        assert Group.objects.filter(
+            id=group2.id,
+        ).exists()
+        assert GroupHash.objects.filter(
+            id=group_hash.id,
+        ).exists()
+        tombstone = GroupTombstone.objects.get(
+            id=GroupHash.objects.get(id=group_hash.id).group_tombstone_id,
+        )
+        assert tombstone.message == group1.message
+        assert tombstone.culprit == group1.culprit
+        assert tombstone.project == group1.project
+        assert tombstone.data == group1.data
 
 
 class GroupDeleteTest(APITestCase):
