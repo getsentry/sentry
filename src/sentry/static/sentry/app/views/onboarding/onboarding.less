@@ -1,10 +1,12 @@
+@onboarding-sidebar-width: 300px;
+
 .onboarding-container{
-  margin-left: 240px;
+  margin-left: @onboarding-sidebar-width - @sidebar-width;
 }
 
 .step-container{
   max-width: 920px;
-  padding: 10px;
+  padding: 10px 50px;
 }
 
 /**
@@ -72,42 +74,43 @@
 }
 
 .onboarding-sidebar{
-  width: 250px;
+  width: 300px;
   height: 100%;
   position: fixed;
   z-index: 10000;
   top: 0;
   left:0;
   color: whitesmoke;
-  background: url(../../../images/sentry-pattern.png);
-  background-color: #493e54;
+  background: url(../../../images/sentry-pattern-dark.png);
+  background-color: #3B3247;
   background-size: 400px;
 
-  .sentry-flag{
-    margin: 50px 0px;
+  .sentry-flag {
+    font-size: 24px;
+    line-height: 1;
+    width: 150px;
+    margin: 30px 0px;
     background-color: #e03e2f;
-    width: 100px;
-    padding:5px 15px;
-    h4{
-      display: inline;
-      padding:  0 5px;
-      font-size: 15px;
-      text-transform: uppercase;
-    }
+    padding: 14px 20px 11px;
   }
+
   .progress-nodes{
     div.node{
       width: 190px;
-      margin:auto;
+      margin: auto;
       margin-bottom: 30px;
       display: flex;
-      color:@50;
+      color: @50;
       position: relative;
-      padding-left: 30px;
+      padding-left: 26px;
       border-color: @50;
+      line-height: 1.2;
+      text-shadow: 0 2px 5px rgba(0,0,0, .3);
 
       &.active{
         color: white;
+        font-weight: 600;
+
           &::before{
           border-color: white;
         }
@@ -117,19 +120,20 @@
         &::before{
           content:'';
           position: absolute;
-          left:-15px;
+          left: -10px;
           border-radius: 100%;
-          width:30px;
-          height:30px;
-          margin-top: 10px;
-          margin-right: 8px;
+          width: 22px;
+          height: 22px;
+          margin: 1px 8px 0 0;
           border: 3px solid;
         }
 
         &.done{
           &::before{
+            font-size: 14px;
             content: '●';
             text-align: center;
+            line-height: 16px;
           }
         }
       }

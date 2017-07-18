@@ -31,8 +31,7 @@ const ProgressNodes = React.createClass({
     return (
       <div className="onboarding-sidebar">
         <div className="sentry-flag">
-          <span href="/" className="icon-sentry-logo" />
-          <h4>Sentry</h4>
+          <span href="/" className="icon-sentry-logo-full" />
         </div>
         <div className="progress-nodes">
           {this.steps.map(this.node)}
