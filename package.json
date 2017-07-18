@@ -11,7 +11,6 @@
     "babel-loader": "^7.0.0",
     "babel-plugin-add-module-exports": "^0.2.1",
     "babel-plugin-idx": "^1.5.1",
-    "babel-plugin-syntax-dynamic-import": "^6.18.0",
     "babel-plugin-transform-builtin-extend": "^1.1.0",
     "babel-plugin-transform-class-properties": "^6.24.1",
     "babel-plugin-transform-object-rest-spread": "^6.20.2",
