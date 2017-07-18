@@ -35,6 +35,16 @@ class ReleaseWebhookTest(TestCase):
             'signature': self.signature,
         })
 
+    def test_no_token(self):
+        project = self.create_project(team=self.team)
+        path = reverse('sentry-release-hook', kwargs={
+            'project_id': project.id,
+            'plugin_id': 'dummy',
+            'signature': self.signature,
+        })
+        resp = self.client.post(path)
+        assert resp.status_code == 403
+
     def test_invalid_signature(self):
         path = reverse('sentry-release-hook', kwargs={
             'project_id': self.project.id,
