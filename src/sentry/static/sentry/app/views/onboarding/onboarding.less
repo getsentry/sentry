@@ -1,10 +1,9 @@
 .onboarding-container{
-  margin-left: 250px;
+  margin-left: 240px;
 }
 
 .step-container{
-  max-width: 800px;
-  display: flex;
+  max-width: 920px;
   padding: 10px;
 }
 
@@ -71,7 +70,7 @@
     animation:         blink-eye .6s infinite;
   }
 }
-  
+
 .onboarding-sidebar{
   width: 250px;
   height: 100%;
@@ -150,27 +149,52 @@
 
 .platform-picker{
   .nav-tabs {
-    border-bottom: 1px solid @20;
-    margin: 0px;
+    border-bottom: 1px solid @trim;
+    margin: 0 0 15px;
   }
-  .platform-filter{
-    border-radius: 5px;
-    border: 1px solid @20;
+  .platform-filter-container {
+    background: #fff;
+    border-radius: 22px;
+    border: 1px solid @trim-dark;
+    box-shadow: inset 0 2px 0 rgba(0,0,0, .03);
+    padding: 0 8px;
+    position: relative;
+    top: -4px;
 
+    .icon-search {
+      color: @30;
+      font-size: 12px;
+      margin-right: 4px;
+    }
+  }
+  .platform-filter {
+    background: transparent;
+    border: none;
+    font-size: 14px;
+    &::placeholder {
+      color: @50;
+    }
   }
   .platform-tiles{
     margin: auto;
     display: flex;
     flex-wrap: wrap;
-    border-bottom: 1px solid @20;
+    padding: 0 0 15px;
 
     .platform-card {
       display: flex;
       flex-direction: column;
-      width: 115px;
+      width: 120px;
+      padding: 0 0 14px;
+      cursor: pointer;
+      border-radius: 4px;
 
-      &.selected{
-        background-color:  #aeb;
+      &:hover {
+        background: #f7f5fa;
+      }
+
+      &.selected {
+        background: darken(@alert-info-bg-color, 2);
      }
     }
 
@@ -183,13 +207,22 @@
     }
   }
 
-  h5{
+  h5 {
     text-align: center;
+    margin: 0;
+    font-size: 15px;
+    .truncate;
+    line-height: 1.2;
   }
 }
 
 .project-name{
-  margin-top: 10px;
+  background: #fff;
+  box-shadow: 0 -1px 0 rgba(0,0,0, .1);
+  padding: 20px 0;
+  position: sticky;
+  bottom: 0;
+
   .platform-tile{
     display: inline-block;
     vertical-align: middle;

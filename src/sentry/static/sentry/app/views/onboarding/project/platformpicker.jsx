@@ -126,6 +126,18 @@ const PlatformPicker = React.createClass({
     return (
       <div className="platform-picker">
         <ul className="nav nav-tabs">
+          <li style={{float: 'right', marginRight: 0}}>
+            <div className="platform-filter-container">
+              <span className="icon icon-search" />
+              <input
+                type="text"
+                className="platform-filter"
+                label="Filter"
+                placeholder="Filter"
+                onChange={e => this.setState({filter: e.target.value})}
+              />
+            </div>
+          </li>
           {categoryList.map(c => {
             return (
               <ListLink
@@ -140,16 +152,6 @@ const PlatformPicker = React.createClass({
               </ListLink>
             );
           })}
-          <li>
-            <span className="icon icon-search" />
-            <input
-              type="text"
-              className="platform-filter"
-              label="Filter"
-              placeholder="Filter"
-              onChange={e => this.setState({filter: e.target.value})}
-            />
-          </li>
         </ul>
         {this.renderPlatformList()}
         {/* {this.renderLanguageList()} */}
