@@ -10,7 +10,7 @@ from sentry.testutils import TestCase
 from sentry.utils import redis
 
 
-signature_builder = MinHashSignatureBuilder(16, 0xFFFF)
+signature_builder = MinHashSignatureBuilder(32, 0xFFFF)
 
 
 class MinHashIndexTestCase(TestCase):
@@ -19,7 +19,7 @@ class MinHashIndexTestCase(TestCase):
             redis.clusters.get('default'),
             'sim',
             signature_builder,
-            8,
+            16,
             60 * 60,
             12,
         )
@@ -38,6 +38,12 @@ class MinHashIndexTestCase(TestCase):
         assert results[3][0] in ('3', '4')
         assert results[4][0] == '5'
 
+        results = index.classify('example', [('index', 'hello world')])[0]
+        assert results[0:2] == [('1', 1.0), ('2', 1.0)]
+        assert results[2][0] in ('3', '4')  # equidistant pairs, order doesn't really matter
+        assert results[3][0] in ('3', '4')
+        assert results[4][0] == '5'
+
         index.delete('example', [('index', '3')])
         assert [key for key, _ in index.compare('example', '1', ['index'])[0]] == [
             '1', '2', '4', '5'
@@ -50,7 +56,7 @@ class MinHashIndexTestCase(TestCase):
             8,
             60 * 60,
             12,
-        ).query('example', '1', ['index']) == [[]]
+        ).compare('example', '1', ['index']) == [[]]
 
     def test_export_import(self):
         retention = 12
