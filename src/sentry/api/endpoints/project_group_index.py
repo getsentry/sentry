@@ -169,7 +169,7 @@ class GroupValidator(serializers.Serializer):
 
     def validate(self, attrs):
         attrs = super(GroupValidator, self).validate(attrs)
-        if 'discard' in attrs and len(attrs) > 1:
+        if len(attrs) > 1 and 'discard' in attrs:
             raise serializers.ValidationError(
                 'Other attributes cannot be updated when discarding'
             )
