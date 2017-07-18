@@ -3,6 +3,7 @@ from __future__ import absolute_import
 from rest_framework.response import Response
 
 from sentry.api.bases import ProjectEndpoint
+from sentry.api.exceptions import ResourceDoesNotExist
 
 from sentry.models import (
     GroupHash, GroupTombstone,
@@ -24,6 +25,15 @@ class GroupTombstoneDetailsEndpoint(ProjectEndpoint):
         :pparam string tombstone_id: the ID of the tombstone to remove.
         :auth: required
         """
+
+        try:
+            tombstone = GroupTombstone.objects.get(
+                project_id=project.id,
+                id=tombstone_id
+            )
+        except GroupTombstone.DoesNotExist:
+            raise ResourceDoesNotExist
+
         GroupHash.objects.filter(
             project_id=project.id,
             group_tombstone_id=tombstone_id,
@@ -32,12 +42,6 @@ class GroupTombstoneDetailsEndpoint(ProjectEndpoint):
             group_tombstone_id=None,
         )
 
-        try:
-            GroupTombstone.objects.get(
-                project_id=project.id,
-                id=tombstone_id
-            ).delete()
-        except GroupTombstone.DoesNotExist:
-            pass
+        tombstone.delete()
 
         return Response(status=204)
