@@ -69,13 +69,14 @@ def post_process_group(event, is_new, is_regression, is_sample, **kwargs):
 
     _capture_stats(event, is_new)
 
+    # we process snoozes before rules as it might create a regression
+    process_snoozes(event.group)
+
     rp = RuleProcessor(event, is_new, is_regression, is_sample)
     # TODO(dcramer): ideally this would fanout, but serializing giant
     # objects back and forth isn't super efficient
     for callback, futures in rp.apply():
         safe_execute(callback, event, futures)
-
-    process_snoozes(event.group)
 
     for plugin in plugins.for_project(event.project):
         plugin_post_process_group(
@@ -99,13 +100,14 @@ def record_additional_tags(event):
 
     added_tags = []
     for plugin in plugins.for_project(event.project, version=2):
-        added_tags.extend(safe_execute(plugin.get_tags, event, _with_transaction=False) or ())
+        added_tags.extend(safe_execute(
+            plugin.get_tags, event, _with_transaction=False) or ())
     if added_tags:
         Group.objects.add_tags(event.group, added_tags)
 
 
 def process_snoozes(group):
-    from sentry.models import GroupSnooze
+    from sentry.models import GroupSnooze, GroupStatus
 
     try:
         snooze = GroupSnooze.objects.get_from_cache(
@@ -116,6 +118,7 @@ def process_snoozes(group):
 
     if not snooze.is_valid(group, test_rates=True):
         snooze.delete()
+        group.update(status=GroupStatus.UNRESOLVED)
 
 
 @instrumented_task(
@@ -141,7 +144,8 @@ def record_affected_user(event, **kwargs):
         'project': event.project_id,
     })
 
-    user_data = event.data.get('sentry.interfaces.User', event.data.get('user'))
+    user_data = event.data.get(
+        'sentry.interfaces.User', event.data.get('user'))
     if not user_data:
         logger.info('No user data found for event_id=%s', event.event_id)
         return
