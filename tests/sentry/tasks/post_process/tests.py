@@ -6,7 +6,7 @@ from datetime import timedelta
 from django.utils import timezone
 from mock import Mock, patch
 
-from sentry.models import EventTag, GroupSnooze, TagKey, TagValue
+from sentry.models import EventTag, Group, GroupSnooze, GroupStatus, TagKey, TagValue
 from sentry.testutils import TestCase
 from sentry.tasks.merge import merge_group
 from sentry.tasks.post_process import index_event_tags, post_process_group
@@ -70,7 +70,7 @@ class PostProcessGroupTest(TestCase):
 
     @patch('sentry.tasks.post_process.record_affected_user', Mock())
     def test_invalidates_snooze(self):
-        group = self.create_group(project=self.project)
+        group = self.create_group(project=self.project, status=GroupStatus.IGNORED)
         event = self.create_event(group=group)
         snooze = GroupSnooze.objects.create(
             group=group,
@@ -87,6 +87,9 @@ class PostProcessGroupTest(TestCase):
         assert not GroupSnooze.objects.filter(
             id=snooze.id,
         ).exists()
+
+        group = Group.objects.get(id=group.id)
+        assert group.status == GroupStatus.UNRESOLVED
 
     @patch('sentry.tasks.post_process.record_affected_user', Mock())
     def test_maintains_valid_snooze(self):
