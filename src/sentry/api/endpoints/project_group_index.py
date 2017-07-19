@@ -5,12 +5,12 @@ import logging
 from uuid import uuid4
 
 import six
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from django.utils import timezone
 from rest_framework import serializers
 from rest_framework.response import Response
 
-from sentry import search
+from sentry import features, search
 from sentry.api.base import DocSection
 from sentry.api.bases.project import ProjectEndpoint, ProjectEventPermission
 from sentry.api.fields import UserField
@@ -23,7 +23,7 @@ from sentry.db.models.query import create_or_update
 from sentry.models import (
     Activity, EventMapping, Group, GroupAssignee, GroupBookmark, GroupHash,
     GroupResolution, GroupSeen, GroupSnooze, GroupStatus, GroupSubscription,
-    GroupSubscriptionReason, Release, TagKey, UserOption
+    GroupSubscriptionReason, GroupTombstone, Release, TagKey, UserOption
 )
 from sentry.models.event import Event
 from sentry.models.group import looks_like_short_id
@@ -41,6 +41,7 @@ delete_logger = logging.getLogger('sentry.deletions.api')
 
 ERR_INVALID_STATS_PERIOD = "Invalid stats_period. Valid choices are '', '24h', and '14d'"
 SAVED_SEARCH_QUERIES = set([s['query'] for s in DEFAULT_SAVED_SEARCHES])
+TOMBSTONE_FIELDS_FROM_GROUP = ('project_id', 'level', 'message', 'culprit', 'data')
 
 
 @scenario('BulkUpdateIssues')
@@ -147,6 +148,7 @@ class GroupValidator(serializers.Serializer):
     isPublic = serializers.BooleanField()
     isSubscribed = serializers.BooleanField()
     merge = serializers.BooleanField()
+    discard = serializers.BooleanField()
     ignoreDuration = serializers.IntegerField()
     ignoreCount = serializers.IntegerField()
     # in hours, max of one week
@@ -163,6 +165,14 @@ class GroupValidator(serializers.Serializer):
         value = attrs[source]
         if value and not self.context['project'].member_set.filter(user=value).exists():
             raise serializers.ValidationError('Cannot assign to non-team member')
+        return attrs
+
+    def validate(self, attrs):
+        attrs = super(GroupValidator, self).validate(attrs)
+        if len(attrs) > 1 and 'discard' in attrs:
+            raise serializers.ValidationError(
+                'Other attributes cannot be updated when discarding'
+            )
         return attrs
 
 
@@ -338,7 +348,12 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
         except ValidationError as exc:
             return Response({'detail': six.text_type(exc)}, status=400)
 
-        cursor_result = search.query(**query_kwargs)
+        count_hits = features.has(
+            'projects:stream-hit-counts',
+            project=project,
+            actor=request.user)
+
+        cursor_result = search.query(count_hits=count_hits, **query_kwargs)
 
         results = list(cursor_result)
 
@@ -356,10 +371,8 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
             ]
 
         response = Response(context)
-        response['Link'] = ', '.join([
-            self.build_cursor_link(request, 'previous', cursor_result.prev),
-            self.build_cursor_link(request, 'next', cursor_result.next),
-        ])
+
+        self.add_cursor_headers(request, response, cursor_result)
 
         if results and query not in SAVED_SEARCH_QUERIES:
             advanced_search.send(project=project, sender=request.user)
@@ -459,6 +472,41 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
         queryset = Group.objects.filter(
             id__in=group_ids,
         )
+
+        discard = result.get('discard')
+        if discard:
+
+            if not features.has('projects:custom-filters', project, actor=request.user):
+                return Response({'detail': ['You do not have that feature enabled']}, status=400)
+
+            group_list = list(queryset)
+            groups_to_delete = []
+
+            for group in group_list:
+                with transaction.atomic():
+                    try:
+                        tombstone = GroupTombstone.objects.create(
+                            previous_group_id=group.id,
+                            actor_id=acting_user.id if acting_user else None,
+                            **{name: getattr(group, name) for name in TOMBSTONE_FIELDS_FROM_GROUP}
+                        )
+                    except IntegrityError:
+                        # in this case, a tombstone has already been created
+                        # for a group, so no hash updates are necessary
+                        pass
+                    else:
+                        groups_to_delete.append(group)
+
+                        GroupHash.objects.filter(
+                            group=group,
+                        ).update(
+                            group=None,
+                            group_tombstone_id=tombstone.id,
+                        )
+
+            self._delete_groups(request, project, groups_to_delete)
+
+            return Response(status=204)
 
         statusDetails = result.pop('statusDetails', result)
         status = result.get('status')
@@ -840,16 +888,21 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
                     GroupStatus.DELETION_IN_PROGRESS,
                 ]
             ))
-            # filter down group ids to only valid matches
-            group_ids = [g.id for g in group_list]
         else:
             # missing any kind of filter
             return Response(
                 '{"detail": "You must specify a list of IDs for this operation"}',
                 status=400)
 
-        if not group_ids:
+        if not group_list:
             return Response(status=204)
+
+        self._delete_groups(request, project, group_list)
+
+        return Response(status=204)
+
+    def _delete_groups(self, request, project, group_list):
+        group_ids = [g.id for g in group_list]
 
         Group.objects.filter(
             id__in=group_ids,
@@ -884,5 +937,3 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
                 'transaction_id': transaction_id,
                 'model': type(group).__name__,
             })
-
-        return Response(status=204)

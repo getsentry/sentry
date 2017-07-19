@@ -199,6 +199,7 @@ end
 
 local configuration_parser = build_argument_parser({
     {"timestamp", parse_integer},
+    {"namespace", identity},
     {"bands", parse_integer},
     {"interval", parse_integer},
     {"retention", parse_integer},  -- how many previous intervals to store (does not include current interval)
@@ -218,11 +219,11 @@ end
 
 -- Key Generation
 
-local function get_bucket_frequency_key(scope, index, time, band, item)
+local function get_bucket_frequency_key(configuration, index, time, band, item)
     return string.format(
         '%s:%s:f:%s:%s:%s:%s',
-        'sim',
-        scope,
+        configuration.namespace,
+        configuration.scope,
         index,
         time,
         band,
@@ -230,11 +231,11 @@ local function get_bucket_frequency_key(scope, index, time, band, item)
     )
 end
 
-local function get_bucket_membership_key(scope, index, time, band, bucket)
+local function get_bucket_membership_key(configuration, index, time, band, bucket)
     return string.format(
         '%s:%s:m:%s:%s:%s:%s',
-        'sim',
-        scope,
+        configuration.namespace,
+        configuration.scope,
         index,
         time,
         band,
@@ -332,7 +333,7 @@ local commands = {
 
                     for band, bucket in ipairs(entry.buckets) do
                         local bucket_membership_key = get_bucket_membership_key(
-                            configuration.scope,
+                            configuration,
                             entry.index,
                             time,
                             band,
@@ -342,7 +343,7 @@ local commands = {
                         redis.call('EXPIREAT', bucket_membership_key, expiration)
 
                         local bucket_frequency_key = get_bucket_frequency_key(
-                            configuration.scope,
+                            configuration,
                             entry.index,
                             time,
                             band,
@@ -387,7 +388,7 @@ local commands = {
                                         redis.call(
                                             'HGETALL',
                                             get_bucket_frequency_key(
-                                                configuration.scope,
+                                                configuration,
                                                 index,
                                                 time,
                                                 band,
@@ -421,7 +422,7 @@ local commands = {
                             local members = redis.call(
                                 'SMEMBERS',
                                 get_bucket_membership_key(
-                                    configuration.scope,
+                                    configuration,
                                     index,
                                     time,
                                     band,
@@ -539,14 +540,14 @@ local commands = {
                 for band = 1, configuration.bands do
                     for _, time in ipairs(time_series) do
                         local source_bucket_frequency_key = get_bucket_frequency_key(
-                            configuration.scope,
+                            configuration,
                             source.index,
                             time,
                             band,
                             source.key
                         )
                         local destination_bucket_frequency_key = get_bucket_frequency_key(
-                            configuration.scope,
+                            configuration,
                             source.index,
                             time,
                             band,
@@ -571,7 +572,7 @@ local commands = {
                             -- set, and add the destination to the membership
                             -- set.
                             local bucket_membership_key = get_bucket_membership_key(
-                                configuration.scope,
+                                configuration,
                                 source.index,
                                 time,
                                 band,
@@ -620,7 +621,7 @@ local commands = {
                 for band = 1, configuration.bands do
                     for _, time in ipairs(time_series) do
                         local source_bucket_frequency_key = get_bucket_frequency_key(
-                            configuration.scope,
+                            configuration,
                             source.index,
                             time,
                             band,
@@ -636,7 +637,7 @@ local commands = {
                             redis.call(
                                 'SREM',
                                 get_bucket_membership_key(
-                                    configuration.scope,
+                                    configuration,
                                     source.index,
                                     time,
                                     band,
@@ -681,7 +682,7 @@ local commands = {
                             time
                         )
                         local destination_bucket_frequency_key = get_bucket_frequency_key(
-                            configuration.scope,
+                            configuration,
                             entry.index,
                             time,
                             band,
@@ -690,7 +691,7 @@ local commands = {
 
                         for bucket, count in pairs(buckets) do
                             local bucket_membership_key = get_bucket_membership_key(
-                                configuration.scope,
+                                configuration,
                                 entry.index,
                                 time,
                                 band,
@@ -762,7 +763,7 @@ local commands = {
                                                 redis.call(
                                                     'HGETALL',
                                                     get_bucket_frequency_key(
-                                                        configuration.scope,
+                                                        configuration,
                                                         source.index,
                                                         time,
                                                         band,

@@ -45,6 +45,7 @@ class ReleaseTokenGetTest(APITestCase):
 
         assert response.status_code == 200, response.content
         assert response.data['token'] is not None
+        assert ProjectOption.objects.get_value(project, 'sentry:release-token') is not None
 
     def test_regenerates_token(self):
         project = self.create_project(

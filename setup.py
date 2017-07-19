@@ -138,7 +138,6 @@ install_requires = [
     'setproctitle>=1.1.7,<1.2.0',
     'statsd>=3.1.0,<3.2.0',
     'structlog==16.1.0',
-    'South==1.0.1',
     'sqlparse>=0.1.16,<0.2.0',
     'symsynd>=3.0.0,<4.0.0',
     'toronado>=0.0.11,<0.1.0',
