@@ -50,7 +50,7 @@ class ProjectPluginDetailsEndpoint(ProjectEndpoint):
         """
         plugin = self._get_plugin(plugin_id)
 
-        if request.DATA.get('test', False) and plugin.is_testable():
+        if request.DATA.get('test') and plugin.is_testable():
             try:
                 test_results = plugin.test_configuration(project)
             except Exception as exc:

@@ -89,11 +89,15 @@ const PluginConfig = React.createClass({
         test: true
       },
       success: data => {
+        let results = data.detail;
         IndicatorStore.remove(loadingIndicator);
-        IndicatorStore.add(t('Test Complete!'), 'success');
+        IndicatorStore.add(t(`${results}`), 'success');
       },
       error: error => {
-        IndicatorStore.add(t('Something is wrong. Please try again.'), 'error');
+        IndicatorStore.add(
+          t('An unexpected error occurred while testing your plugin. Please try again.'),
+          'error'
+        );
       }
     });
   },
