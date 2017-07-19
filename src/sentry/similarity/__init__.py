@@ -66,6 +66,7 @@ features = FeatureSet(
                 'default',
             ),
         ),
+        'sim:1',
         MinHashSignatureBuilder(16, 0xFFFF),
         8,
         60 * 60 * 24 * 30,

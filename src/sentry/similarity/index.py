@@ -15,8 +15,9 @@ def band(n, value):
 
 
 class MinHashIndex(object):
-    def __init__(self, cluster, signature_builder, bands, interval, retention):
+    def __init__(self, cluster, namespace, signature_builder, bands, interval, retention):
         self.cluster = cluster
+        self.namespace = namespace
         self.signature_builder = signature_builder
         self.bands = bands
         self.interval = interval
@@ -29,6 +30,7 @@ class MinHashIndex(object):
         arguments = [
             'QUERY',
             timestamp,
+            self.namespace,
             self.bands,
             self.interval,
             self.retention,
@@ -58,6 +60,7 @@ class MinHashIndex(object):
         arguments = [
             'RECORD',
             timestamp,
+            self.namespace,
             self.bands,
             self.interval,
             self.retention,
@@ -86,6 +89,7 @@ class MinHashIndex(object):
         arguments = [
             'MERGE',
             timestamp,
+            self.namespace,
             self.bands,
             self.interval,
             self.retention,
@@ -109,6 +113,7 @@ class MinHashIndex(object):
         arguments = [
             'DELETE',
             timestamp,
+            self.namespace,
             self.bands,
             self.interval,
             self.retention,
@@ -131,6 +136,7 @@ class MinHashIndex(object):
         arguments = [
             'EXPORT',
             timestamp,
+            self.namespace,
             self.bands,
             self.interval,
             self.retention,
@@ -153,6 +159,7 @@ class MinHashIndex(object):
         arguments = [
             'IMPORT',
             timestamp,
+            self.namespace,
             self.bands,
             self.interval,
             self.retention,

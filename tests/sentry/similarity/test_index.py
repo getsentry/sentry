@@ -17,6 +17,7 @@ class MinHashIndexTestCase(TestCase):
     def test_index(self):
         index = MinHashIndex(
             redis.clusters.get('default'),
+            'sim',
             signature_builder,
             8,
             60 * 60,
@@ -42,10 +43,20 @@ class MinHashIndexTestCase(TestCase):
             '1', '2', '4', '5'
         ]
 
+        assert MinHashIndex(
+            redis.clusters.get('default'),
+            'sim2',
+            signature_builder,
+            8,
+            60 * 60,
+            12,
+        ).query('example', '1', ['index']) == [[]]
+
     def test_export_import(self):
         retention = 12
         index = MinHashIndex(
             redis.clusters.get('default'),
+            'sim',
             signature_builder,
             8,
             60 * 60,
