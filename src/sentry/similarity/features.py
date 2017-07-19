@@ -27,14 +27,20 @@ def get_application_chunks(exception):
     )
 
 
+class InterfaceDoesNotExist(KeyError):
+    pass
+
+
 class ExceptionFeature(object):
     def __init__(self, function):
         self.function = function
 
     def extract(self, event):
-        return self.function(
-            event.interfaces['sentry.interfaces.Exception'].values[0],
-        )
+        try:
+            interface = event.interfaces['sentry.interfaces.Exception']
+        except KeyError:
+            raise InterfaceDoesNotExist()
+        return self.function(interface.values[0])
 
 
 class MessageFeature(object):
@@ -42,17 +48,21 @@ class MessageFeature(object):
         self.function = function
 
     def extract(self, event):
-        return self.function(
-            event.interfaces['sentry.interfaces.Message'],
-        )
+        try:
+            interface = event.interfaces['sentry.interfaces.Message']
+        except KeyError:
+            raise InterfaceDoesNotExist()
+        return self.function(interface)
 
 
 class FeatureSet(object):
-    def __init__(self, index, encoder, aliases, features, expected_encoding_errors):
+    def __init__(self, index, encoder, aliases, features,
+                 expected_extraction_errors, expected_encoding_errors):
         self.index = index
         self.encoder = encoder
         self.aliases = aliases
         self.features = features
+        self.expected_extraction_errors = expected_extraction_errors
         self.expected_encoding_errors = expected_encoding_errors
         assert set(self.aliases) == set(self.features)
 
@@ -68,7 +78,15 @@ class FeatureSet(object):
             try:
                 results[label] = strategy.extract(event)
             except Exception as error:
-                logger.warning(
+                log = (
+                    logger.debug
+                    if isinstance(error, self.expected_extraction_errors) else
+                    functools.partial(
+                        logger.warning,
+                        exc_info=True
+                    )
+                )
+                log(
                     'Could not extract features from %r for %r due to error: %r',
                     event,
                     label,
