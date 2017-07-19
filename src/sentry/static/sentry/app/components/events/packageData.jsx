@@ -22,10 +22,10 @@ const EventPackageData = React.createClass({
 
     return (
       <EventDataSection
-          group={this.props.group}
-          event={this.props.event}
-          type="packages"
-          title={t('Packages')}>
+        group={this.props.group}
+        event={this.props.event}
+        type="packages"
+        title={t('Packages')}>
         <ClippedBox>
           <KeyValueList data={packages} />
         </ClippedBox>

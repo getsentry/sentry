@@ -23,14 +23,13 @@ const LetterAvatar = React.createClass({
     '#6c5fc7', // purple
     '#4e3fb4', // purple_dark
     '#57b1be', // teal
-    '#847a8c'  // gray
+    '#847a8c' // gray
   ],
 
   getColor() {
     let id = this.hashIdentifier(this.props.identifier);
     return this.COLORS[id % this.COLORS.length];
   },
-
 
   hashIdentifier(identifier) {
     identifier += '';
@@ -50,9 +49,24 @@ const LetterAvatar = React.createClass({
   render() {
     return (
       <svg viewBox="0 0 120 120" className={this.props.className}>
-        <rect x="0" y="0" width="120" height="120" rx="15" ry="15" fill={this.getColor()}/>
-        <text x="50%" y="50%" fontSize="65" style={{'dominantBaseline': 'central'}}
-              textAnchor="middle" fill="#FFFFFF">{this.getInitials()}</text>
+        <rect
+          x="0"
+          y="0"
+          width="120"
+          height="120"
+          rx="15"
+          ry="15"
+          fill={this.getColor()}
+        />
+        <text
+          x="50%"
+          y="50%"
+          fontSize="65"
+          style={{dominantBaseline: 'central'}}
+          textAnchor="middle"
+          fill="#FFFFFF">
+          {this.getInitials()}
+        </text>
       </svg>
     );
   }

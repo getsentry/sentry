@@ -8,18 +8,18 @@ from sentry.api.permissions import ScopedPermission
 from sentry.app import raven
 from sentry.auth import access
 from sentry.models import (
-    Organization, OrganizationMemberTeam, OrganizationStatus, Project, ReleaseProject, Team
+    ApiKey, Organization, OrganizationMemberTeam, OrganizationStatus,
+    Project, ReleaseProject, Team
 )
-from sentry.models.apikey import ROOT_KEY
 from sentry.utils import auth
 
 
 class OrganizationPermission(ScopedPermission):
     scope_map = {
-        'GET': ['org:read', 'org:write', 'org:delete'],
-        'POST': ['org:write', 'org:delete'],
-        'PUT': ['org:write', 'org:delete'],
-        'DELETE': ['org:delete'],
+        'GET': ['org:read', 'org:write', 'org:admin'],
+        'POST': ['org:write', 'org:admin'],
+        'PUT': ['org:write', 'org:admin'],
+        'DELETE': ['org:admin'],
     }
 
     def needs_sso(self, request, organization):
@@ -40,8 +40,6 @@ class OrganizationPermission(ScopedPermission):
             )
 
         elif request.auth:
-            if request.auth is ROOT_KEY:
-                return True
             return request.auth.organization_id == organization.id
 
         else:
@@ -63,10 +61,10 @@ class OrganizationPermission(ScopedPermission):
 # associated with projects people have access to
 class OrganizationReleasePermission(OrganizationPermission):
     scope_map = {
-        'GET': ['project:read', 'project:write', 'project:delete', 'project:releases'],
-        'POST': ['project:write', 'project:delete', 'project:releases'],
-        'PUT': ['project:write', 'project:delete', 'project:releases'],
-        'DELETE': ['project:delete', 'project:releases'],
+        'GET': ['project:read', 'project:write', 'project:admin', 'project:releases'],
+        'POST': ['project:write', 'project:admin', 'project:releases'],
+        'PUT': ['project:write', 'project:admin', 'project:releases'],
+        'DELETE': ['project:admin', 'project:releases'],
     }
 
 
@@ -98,10 +96,17 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationReleasePermission,)
 
     def get_allowed_projects(self, request, organization):
-        if not request.user.is_authenticated():
+        has_valid_api_key = False
+        if isinstance(request.auth, ApiKey):
+            if request.auth.organization_id != organization.id:
+                return []
+            has_valid_api_key = request.auth.has_scope('project:releases') or \
+                request.auth.has_scope('project:write')
+
+        if not (has_valid_api_key or request.user.is_authenticated()):
             return []
 
-        if request.is_superuser() or organization.flags.allow_joinleave:
+        if has_valid_api_key or request.is_superuser() or organization.flags.allow_joinleave:
             allowed_teams = Team.objects.filter(
                 organization=organization
             ).values_list('id', flat=True)

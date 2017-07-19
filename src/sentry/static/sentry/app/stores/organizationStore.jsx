@@ -35,4 +35,3 @@ const OrganizationStore = Reflux.createStore({
 });
 
 export default OrganizationStore;
-

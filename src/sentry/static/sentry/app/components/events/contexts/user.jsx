@@ -7,7 +7,7 @@ import KeyValueList from '../interfaces/keyValueList';
 
 const UserContextType = React.createClass({
   propTypes: {
-    data: React.PropTypes.object.isRequired,
+    data: React.PropTypes.object.isRequired
   },
 
   render() {
@@ -17,17 +17,19 @@ const UserContextType = React.createClass({
 
     // Handle our native attributes special
     user.id && builtins.push(['ID', <pre>{user.id}</pre>]);
-    user.email && builtins.push([
-      'Email',
-      <pre>
-        {user.email}
-        <a href={`mailto:${user.email}`} className="external-icon">
-          <em className="icon-envelope" />
-        </a>
-      </pre>
-    ]);
+    user.email &&
+      builtins.push([
+        'Email',
+        <pre>
+          {user.email}
+          <a href={`mailto:${user.email}`} target="_blank" className="external-icon">
+            <em className="icon-envelope" />
+          </a>
+        </pre>
+      ]);
     user.username && builtins.push(['Username', <pre>{user.username}</pre>]);
     user.ip_address && builtins.push(['IP Address', <pre>{user.ip_address}</pre>]);
+    user.name && builtins.push(['Name', <pre>{user.name}</pre>]);
 
     // We also attach user supplied data as 'user.data'
     _.each(user.data, function(value, key) {
@@ -49,9 +51,7 @@ const UserContextType = React.createClass({
             );
           })}
         </table>
-        {children &&
-          <KeyValueList data={children} isContextData={true} />
-        }
+        {children && <KeyValueList data={children} isContextData={true} />}
       </div>
     );
   }

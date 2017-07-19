@@ -3,6 +3,7 @@ from __future__ import absolute_import
 import logging
 
 from sentry.utils.imports import import_string
+from sentry.utils.services import Service
 
 
 logger = logging.getLogger('sentry.digests')
@@ -24,7 +25,7 @@ class InvalidState(Exception):
     """
 
 
-class Backend(object):
+class Backend(Service):
     """
     A digest backend coordinates the addition of records to timelines, as well
     as scheduling their digestion (processing.) This allows for summarizations
@@ -56,6 +57,11 @@ class Backend(object):
     be preempted by a new record being added to the timeline, requiring it to
     be transitioned to "waiting" instead.)
     """
+    __all__ = (
+        'add', 'delete', 'digest', 'enabled', 'maintenance', 'schedule',
+        'validate'
+    )
+
     def __init__(self, **options):
         # The ``minimum_delay`` option defines the default minimum amount of
         # time (in seconds) to wait between scheduling digests for delivery
@@ -95,12 +101,10 @@ class Backend(object):
             self.truncation_chance = options.pop('truncation_chance', 1.0 / self.capacity)
         else:
             if options.get('truncation_chance') is not None:
-                raise TypeError('No timeline capacity has been set, "truncation_chance" must be None.')
+                raise TypeError(
+                    'No timeline capacity has been set, "truncation_chance" must be None.')
             else:
                 self.truncation_chance = 0.0
-
-    def validate(self):
-        pass
 
     def enabled(self, project):
         """

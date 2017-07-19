@@ -11,9 +11,7 @@ const TimeSince = React.createClass({
     suffix: React.PropTypes.string
   },
 
-  mixins: [
-    PureRenderMixin
-  ],
+  mixins: [PureRenderMixin],
 
   statics: {
     getDateObj(date) {
@@ -81,10 +79,11 @@ const TimeSince = React.createClass({
       <time
         dateTime={date.toISOString()}
         title={moment(date).format(format)}
-        className={this.props.className} >{this.state.relative}</time>
+        className={this.props.className}>
+        {this.state.relative}
+      </time>
     );
   }
 });
 
 export default TimeSince;
-

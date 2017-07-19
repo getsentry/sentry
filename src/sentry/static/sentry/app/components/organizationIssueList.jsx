@@ -29,11 +29,11 @@ const OrganizationIssueList = React.createClass({
 
   getQueryStringState(props) {
     let location = props.location;
-    let status = (location.query.hasOwnProperty('status')
+    let status = location.query.hasOwnProperty('status')
       ? location.query.status
-      : 'unresolved');
+      : 'unresolved';
     return {
-      status: status,
+      status: status
     };
   },
 
@@ -44,22 +44,31 @@ const OrganizationIssueList = React.createClass({
       <OrganizationHomeContainer>
         <div className="pull-right">
           <div className="btn-group">
-            <Link to={path}
-                  className={'btn btn-sm btn-default' + (status === 'unresolved' ? ' active' : '')}>
+            <Link
+              to={path}
+              className={
+                'btn btn-sm btn-default' + (status === 'unresolved' ? ' active' : '')
+              }>
               {t('Unresolved')}
             </Link>
-            <Link to={{pathname: path, query: {status: ''}}}
-                  className={'btn btn-sm btn-default' + (status === '' ? ' active' : '')}>
+            <Link
+              to={{pathname: path, query: {status: ''}}}
+              className={'btn btn-sm btn-default' + (status === '' ? ' active' : '')}>
               {t('All Issues')}
             </Link>
           </div>
         </div>
         <h3>{this.props.title}</h3>
-        <IssueList endpoint={this.props.endpoint} query={{
-          status: this.state.status,
-          statsPeriod: '24h',
-          per_page: this.props.pageSize || 25,
-        }} statsPeriod="24h" {...this.props} />
+        <IssueList
+          endpoint={this.props.endpoint}
+          query={{
+            status: this.state.status,
+            statsPeriod: '24h',
+            per_page: this.props.pageSize || 25
+          }}
+          statsPeriod="24h"
+          {...this.props}
+        />
       </OrganizationHomeContainer>
     );
   }

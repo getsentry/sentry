@@ -10,14 +10,14 @@ const ExceptionInterface = React.createClass({
     group: PropTypes.Group.isRequired,
     event: PropTypes.Event.isRequired,
     type: React.PropTypes.string.isRequired,
-    data: React.PropTypes.object.isRequired,
+    data: React.PropTypes.object.isRequired
   },
 
   getInitialState() {
     return {
       stackView: this.props.data.hasSystemFrames ? 'app' : 'full',
       newestFirst: isStacktraceNewestFirst(),
-      stackType: 'original',
+      stackType: 'original'
     };
   },
 
@@ -48,7 +48,7 @@ const ExceptionInterface = React.createClass({
         stackView={stackView}
         newestFirst={newestFirst}
         stackType={stackType}
-        onChange={(newState) => {
+        onChange={newState => {
           this.setState(newState);
         }}
       />
@@ -56,18 +56,19 @@ const ExceptionInterface = React.createClass({
 
     return (
       <GroupEventDataSection
-          group={group}
-          event={event}
-          type={this.props.type}
-          title={title}
-          wrapTitle={false}>
+        group={group}
+        event={event}
+        type={this.props.type}
+        title={title}
+        wrapTitle={false}>
         <CrashContent
           group={group}
           event={event}
           stackType={stackType}
           stackView={stackView}
           newestFirst={newestFirst}
-          exception={data} />
+          exception={data}
+        />
       </GroupEventDataSection>
     );
   }

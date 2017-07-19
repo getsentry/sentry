@@ -14,7 +14,7 @@ const CompactIssueHeader = React.createClass({
   propTypes: {
     data: React.PropTypes.object.isRequired,
     orgId: React.PropTypes.string.isRequired,
-    projectId: React.PropTypes.string.isRequired,
+    projectId: React.PropTypes.string.isRequired
   },
 
   getTitle() {
@@ -25,14 +25,14 @@ const CompactIssueHeader = React.createClass({
         return (
           <span>
             <span style={{marginRight: 10}}>{metadata.type}</span>
-            <em>{data.culprit}</em><br/>
+            <em>{data.culprit}</em><br />
           </span>
         );
       case 'csp':
         return (
           <span>
             <span style={{marginRight: 10}}>{metadata.directive}</span>
-            <em>{metadata.uri}</em><br/>
+            <em>{metadata.uri}</em><br />
           </span>
         );
       case 'default':
@@ -57,6 +57,11 @@ const CompactIssueHeader = React.createClass({
 
   render() {
     let {orgId, projectId, data} = this.props;
+
+    let styles = {};
+    if (data.subscriptionDetails && data.subscriptionDetails.reason === 'mentioned') {
+      styles = {color: '#57be8c'};
+    }
     return (
       <div>
         <span className="error-level truncate" title={data.level} />
@@ -73,12 +78,13 @@ const CompactIssueHeader = React.createClass({
           </span>
           {data.numComments !== 0 &&
             <span>
-              <Link to={`/${orgId}/${projectId}/issues/${data.id}/activity/`} className="comments">
-                <span className="icon icon-comments" />
+              <Link
+                to={`/${orgId}/${projectId}/issues/${data.id}/activity/`}
+                className="comments">
+                <span className="icon icon-comments" style={styles} />
                 <span className="tag-count">{data.numComments}</span>
               </Link>
-            </span>
-          }
+            </span>}
           <span className="culprit">{this.getMessage()}</span>
         </div>
       </div>
@@ -95,10 +101,7 @@ const CompactIssue = React.createClass({
     showActions: React.PropTypes.bool
   },
 
-  mixins: [
-    ApiMixin,
-    Reflux.listenTo(GroupStore, 'onGroupChange')
-  ],
+  mixins: [ApiMixin, Reflux.listenTo(GroupStore, 'onGroupChange')],
 
   getInitialState() {
     return {
@@ -121,7 +124,7 @@ const CompactIssue = React.createClass({
     let id = this.props.id;
     let issue = GroupStore.get(id);
     this.setState({
-      issue: issue,
+      issue: issue
     });
   },
 
@@ -130,8 +133,7 @@ const CompactIssue = React.createClass({
       status: 'ignored'
     };
 
-    if (duration)
-      data.ignoreDuration = duration;
+    if (duration) data.ignoreDuration = duration;
 
     this.onUpdate(data);
   },
@@ -140,16 +142,19 @@ const CompactIssue = React.createClass({
     let issue = this.state.issue;
     let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
 
-    this.api.bulkUpdate({
-      orgId: this.props.orgId,
-      projectId: issue.project.slug,
-      itemIds: [issue.id],
-        data: data,
-    }, {
-      complete: () => {
-        IndicatorStore.remove(loadingIndicator);
+    this.api.bulkUpdate(
+      {
+        orgId: this.props.orgId,
+        projectId: issue.project.slug,
+        itemIds: [issue.id],
+        data: data
+      },
+      {
+        complete: () => {
+          IndicatorStore.remove(loadingIndicator);
+        }
       }
-    });
+    );
   },
 
   render() {
@@ -177,16 +182,19 @@ const CompactIssue = React.createClass({
 
     let {id, orgId} = this.props;
     let projectId = issue.project.slug;
-    let title = <span className="icon-more"></span>;
+    let title = <span className="icon-more" />;
 
     return (
       <li className={className} onClick={this.toggleSelect}>
         <CompactIssueHeader data={issue} orgId={orgId} projectId={projectId} />
         {this.props.statsPeriod &&
           <div className="event-graph">
-            <GroupChart id={id} statsPeriod={this.props.statsPeriod} data={this.props.data}/>
-          </div>
-        }
+            <GroupChart
+              id={id}
+              statsPeriod={this.props.statsPeriod}
+              data={this.props.data}
+            />
+          </div>}
         {this.props.showActions &&
           <div className="more-menu-container align-right">
             <DropdownLink
@@ -195,13 +203,17 @@ const CompactIssue = React.createClass({
               caret={false}
               title={title}>
               <li>
-                <a onClick={this.onUpdate.bind(this, {status: issue.status !== 'resolved' ? 'resolved' : 'unresolved'})}>
-                  <span className="icon-checkmark"/>
+                <a
+                  onClick={this.onUpdate.bind(this, {
+                    status: issue.status !== 'resolved' ? 'resolved' : 'unresolved'
+                  })}>
+                  <span className="icon-checkmark" />
                 </a>
               </li>
               <li>
-                <a onClick={this.onUpdate.bind(this, {isBookmarked: !issue.isBookmarked})}>
-                  <span className="icon-star-solid"/>
+                <a
+                  onClick={this.onUpdate.bind(this, {isBookmarked: !issue.isBookmarked})}>
+                  <span className="icon-star-solid" />
                 </a>
               </li>
               <li>
@@ -209,14 +221,12 @@ const CompactIssue = React.createClass({
                   orgId={orgId}
                   projectId={projectId}
                   groupId={id}
-                  onSnooze={this.onSnooze}/>
+                  onSnooze={this.onSnooze}
+                />
               </li>
-              {false &&
-              <li><a href="#"><span className="icon-user"/></a></li>
-              }
+              {false && <li><a href="#"><span className="icon-user" /></a></li>}
             </DropdownLink>
-          </div>
-        }
+          </div>}
         {this.props.children}
       </li>
     );

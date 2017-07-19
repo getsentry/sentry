@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
     name='sentry.tasks.digests.schedule_digests',
     queue='digests.scheduling')
 def schedule_digests():
-    from sentry.app import digests
+    from sentry import digests
 
     deadline = time.time()
 
@@ -46,7 +46,7 @@ def schedule_digests():
     name='sentry.tasks.digests.deliver_digest',
     queue='digests.delivery')
 def deliver_digest(key, schedule_timestamp=None):
-    from sentry.app import digests
+    from sentry import digests
 
     try:
         plugin, project = split_key(key)

@@ -8,7 +8,7 @@ from django.utils import timezone
 from sentry.models import (
     Activity, Group, GroupHash, GroupAssignee, GroupBookmark, GroupResolution,
     GroupSeen, GroupSnooze, GroupSubscription, GroupStatus, GroupTagValue,
-    Release
+    GroupTombstone, Release
 )
 from sentry.testutils import APITestCase
 
@@ -36,8 +36,8 @@ class GroupDetailsTest(APITestCase):
         )
         release.add_project(group.project)
         GroupTagValue.objects.create(
-            group=group,
-            project=group.project,
+            group_id=group.id,
+            project_id=group.project_id,
             key='sentry:release',
             value=release.version,
         )
@@ -270,6 +270,39 @@ class GroupUpdateTest(APITestCase):
             group=group,
             is_active=False,
         ).exists()
+
+    def test_discard(self):
+        self.login_as(user=self.user)
+        group = self.create_group()
+
+        group_hash = GroupHash.objects.create(
+            hash='x' * 32,
+            project=group.project,
+            group=group,
+        )
+
+        url = '/api/0/issues/{}/'.format(group.id)
+
+        with self.tasks():
+            with self.feature('projects:custom-filters', True):
+                resp = self.client.put(url, data={
+                    'discard': True,
+                })
+
+        assert resp.status_code == 204
+        assert not Group.objects.filter(
+            id=group.id,
+        ).exists()
+        assert GroupHash.objects.filter(
+            id=group_hash.id,
+        ).exists()
+        tombstone = GroupTombstone.objects.get(
+            id=GroupHash.objects.get(id=group_hash.id).group_tombstone_id,
+        )
+        assert tombstone.message == group.message
+        assert tombstone.culprit == group.culprit
+        assert tombstone.project == group.project
+        assert tombstone.data == group.data
 
 
 class GroupDeleteTest(APITestCase):

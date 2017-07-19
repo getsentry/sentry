@@ -10,7 +10,7 @@ const RawExceptionContent = React.createClass({
     type: React.PropTypes.oneOf(['original', 'minified']),
     platform: React.PropTypes.string,
     eventId: React.PropTypes.string,
-    values: React.PropTypes.array.isRequired,
+    values: React.PropTypes.array.isRequired
   },
 
   mixins: [ApiMixin],
@@ -48,7 +48,7 @@ const RawExceptionContent = React.createClass({
     });
     this.api.request(this.getAppleCrashReportEndpoint(), {
       method: 'GET',
-      success: (data) => {
+      success: data => {
         this.setState({
           error: false,
           loading: false,
@@ -68,29 +68,36 @@ const RawExceptionContent = React.createClass({
     let {type} = this.props;
     let downloadButton;
     let children = this.props.values.map((exc, excIdx) => {
-      let content = exc.stacktrace && rawStacktraceContent(type === 'original' ? exc.stacktrace : exc.rawStacktrace, this.props.platform, exc);
+      let content =
+        exc.stacktrace &&
+        rawStacktraceContent(
+          type === 'original' ? exc.stacktrace : exc.rawStacktrace,
+          this.props.platform,
+          exc
+        );
       if (this.props.platform == 'cocoa') {
-        if (this.state.loading)
-          content = <LoadingIndicator />;
-        else if (this.state.error)
-          content = <LoadingError onRetry={this.fetchData} />;
+        if (this.state.loading) content = <LoadingIndicator />;
+        else if (this.state.error) content = <LoadingError onRetry={this.fetchData} />;
         else if (!this.state.loading && this.state.crashReport != '') {
-          content = (<ClippedBox clipHeight={250}>
-            {this.state.crashReport}
-          </ClippedBox>);
-          downloadButton = (<a
-            href={this.api.baseUrl + this.getAppleCrashReportEndpoint() + `&download=1`}
-            className="btn btn-default btn-sm pull-right">
+          content = (
+            <ClippedBox clipHeight={250}>
+              {this.state.crashReport}
+            </ClippedBox>
+          );
+          downloadButton = (
+            <a
+              href={this.api.baseUrl + this.getAppleCrashReportEndpoint() + '&download=1'}
+              className="btn btn-default btn-sm pull-right">
               Download
-          </a>);
+            </a>
+          );
         }
-
       }
 
       return (
-        <div>
+        <div key={excIdx}>
           {downloadButton}
-          <pre key={excIdx} className="traceback plain">
+          <pre className="traceback plain">
             {content}
           </pre>
         </div>

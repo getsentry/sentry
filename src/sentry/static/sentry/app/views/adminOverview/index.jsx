@@ -4,7 +4,7 @@ import React from 'react';
 import ApiChart from './apiChart';
 import EventChart from './eventChart';
 
-const AdminOverview = React.createClass({
+export default React.createClass({
   getInitialState() {
     return {
       since: new Date().getTime() / 1000 - 3600 * 24 * 7,
@@ -21,27 +21,19 @@ const AdminOverview = React.createClass({
           <div className="box-header">
             <h4>
               Event Throughput
-              <span id="rate" className="pull-right"></span>
+              <span id="rate" className="pull-right" />
             </h4>
           </div>
-          <div className="box-content with-padding">
-            <EventChart since={this.state.since}
-                        resolution={this.state.resolution} />
-          </div>
+          <EventChart since={this.state.since} resolution={this.state.resolution} />
         </div>
 
         <div className="box">
           <div className="box-header">
             <h4>API Responses</h4>
           </div>
-          <div className="box-content with-padding">
-            <ApiChart since={this.state.since}
-                      resolution={this.state.resolution} />
-          </div>
+          <ApiChart since={this.state.since} resolution={this.state.resolution} />
         </div>
       </div>
     );
   }
 });
-
-export default AdminOverview;

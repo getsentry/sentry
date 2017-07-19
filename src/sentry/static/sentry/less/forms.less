@@ -33,6 +33,16 @@
   }
 }
 
+.form-stacked .required .controls label {
+  &:after {
+    margin-left: 10px;
+    content: '[required]';
+    font-size: 12px;
+    color: #999;
+    text-transform: uppercase;
+  }
+}
+
 .form-group, .control-group {
   margin-bottom: 15px;
 }
@@ -82,7 +92,7 @@ legend {
 label {
   font-weight: 600;
 
-  &.checkbox {
+  &.checkbox, &.radio {
     padding-left: 25px;
     position: relative;
 
@@ -147,5 +157,17 @@ textarea.form-control[disabled] {
     a {
       margin-left: 10px;
     }
+  }
+}
+
+.deploy-form {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+
+   .controls {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-around;
   }
 }

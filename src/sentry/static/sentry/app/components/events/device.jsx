@@ -5,7 +5,7 @@ import PropTypes from '../../proptypes';
 import {t} from '../../locale';
 import ContextData from '../contextData';
 
-// TODO(hazat): Is this interface used somewhere? If not delete it? 
+// TODO(hazat): Is this interface used somewhere? If not delete it?
 const DeviceInterface = React.createClass({
   propTypes: {
     group: PropTypes.Group.isRequired,
@@ -19,7 +19,7 @@ const DeviceInterface = React.createClass({
   render() {
     let {group, event} = this.props;
     let data = event.device;
-    let extras = Object.keys(data.data || {}).map((key) => {
+    let extras = Object.keys(data.data || {}).map(key => {
       let value = data.data[key];
       return (
         <tr key={key}>
@@ -43,7 +43,7 @@ const DeviceInterface = React.createClass({
                 <td className="key">Name</td>
                 <td className="value"><pre>{data.name}</pre></td>
               </tr>}
-            {data.version && 
+            {data.version &&
               <tr>
                 <td className="key">Version</td>
                 <td className="value"><pre>{data.version}</pre></td>

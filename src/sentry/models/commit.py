@@ -10,7 +10,9 @@ from sentry.db.models import (
 )
 from sentry.utils.cache import memoize
 
-_fixes_re = re.compile(r'\bFixes\s+([A-Za-z0-9_\-\s\,]+)\b', re.I)
+_fixes_re = re.compile(
+    r'\b(?:Fix|Fixes|Fixed|Close|Closes|Closed|Resolve|Resolves|Resolved)\s+([A-Za-z0-9_\-\s\,]+)\b',
+    re.I)
 _short_id_re = re.compile(r'\b([A-Z0-9_-]+-[A-Z0-9]+)\b', re.I)
 
 
@@ -47,7 +49,7 @@ class Commit(Model):
     @memoize
     def short_id(self):
         if len(self.key) == 40:
-            return self.key[:12]
+            return self.key[:7]
         return self.key
 
     def find_referenced_groups(self):

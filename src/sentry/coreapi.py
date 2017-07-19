@@ -15,6 +15,7 @@ import logging
 import six
 import uuid
 import zlib
+import re
 
 from collections import MutableMapping
 from datetime import datetime, timedelta
@@ -53,6 +54,9 @@ try:
     import ujson as json  # noqa
 except ImportError:
     from sentry.utils import json
+
+
+_dist_re = re.compile(r'^[a-zA-Z0-9_.-]+$')
 
 
 class APIError(Exception):
@@ -216,9 +220,11 @@ class ClientApiHelper(object):
         """
         Returns either the Origin or Referer value from the request headers.
         """
+        if request.META.get('HTTP_ORIGIN') == 'null':
+            return 'null'
         return origin_from_request(request)
 
-    def project_id_from_auth(self, auth):
+    def project_key_from_auth(self, auth):
         if not auth.public_key:
             raise APIUnauthorized('Invalid api key')
 
@@ -243,7 +249,10 @@ class ClientApiHelper(object):
         if not pk.roles.store:
             raise APIUnauthorized('Key does not allow event storage access')
 
-        return pk.project_id
+        return pk
+
+    def project_id_from_auth(self, auth):
+        return self.project_key_from_auth(auth).project_id
 
     def decode_data(self, encoded_data):
         try:
@@ -280,8 +289,8 @@ class ClientApiHelper(object):
             # bug somewhere in the client's code.
             self.log.debug(six.text_type(e), exc_info=True)
             raise APIError('Bad data decoding request (%s, %s)' %
-                (type(e).__name__, e)
-            )
+                           (type(e).__name__, e)
+                           )
 
     def decode_and_decompress_data(self, encoded_data):
         try:
@@ -294,8 +303,8 @@ class ClientApiHelper(object):
             # bug somewhere in the client's code.
             self.log.debug(six.text_type(e), exc_info=True)
             raise APIError('Bad data decoding request (%s, %s)' %
-                (type(e).__name__, e)
-            )
+                           (type(e).__name__, e)
+                           )
 
     def safely_load_json_string(self, json_string):
         try:
@@ -308,8 +317,8 @@ class ClientApiHelper(object):
             # bug somewhere in the client's code.
             self.log.debug(six.text_type(e), exc_info=True)
             raise APIError('Bad data reconstructing object (%s, %s)' %
-                (type(e).__name__, e)
-            )
+                           (type(e).__name__, e)
+                           )
         return obj
 
     def _process_data_timestamp(self, data, current_datetime=None):
@@ -526,7 +535,7 @@ class ClientApiHelper(object):
                         v = six.text_type(v)
                     except Exception:
                         self.log.debug('Discarded invalid tag value: %s=%r',
-                                      k, type(v))
+                                       k, type(v))
                         data['errors'].append({
                             'type': EventError.INVALID_DATA,
                             'name': 'tags',
@@ -691,6 +700,25 @@ class ClientApiHelper(object):
                 })
                 del data['release']
 
+        if data.get('dist'):
+            data['dist'] = six.text_type(data['dist']).strip()
+            if not data.get('release'):
+                data['dist'] = None
+            elif len(data['dist']) > 64:
+                data['errors'].append({
+                    'type': EventError.VALUE_TOO_LONG,
+                    'name': 'dist',
+                    'value': data['dist'],
+                })
+                del data['dist']
+            elif _dist_re.match(data['dist']) is None:
+                data['errors'].append({
+                    'type': EventError.INVALID_DATA,
+                    'name': 'dist',
+                    'value': data['dist'],
+                })
+                del data['dist']
+
         if data.get('environment'):
             data['environment'] = six.text_type(data['environment'])
             if len(data['environment']) > 64:
@@ -757,7 +785,7 @@ class ClientApiHelper(object):
         task = from_reprocessing and \
             preprocess_event_from_reprocessing or preprocess_event
         task.delay(cache_key=cache_key, start_time=time(),
-            event_id=data['event_id'])
+                   event_id=data['event_id'])
 
 
 class CspApiHelper(ClientApiHelper):

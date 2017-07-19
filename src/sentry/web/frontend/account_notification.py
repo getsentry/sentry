@@ -7,18 +7,17 @@ from django.core.context_processors import csrf
 from django.db import transaction
 from django.http import HttpResponseRedirect
 from django.views.decorators.cache import never_cache
-from django.views.decorators.csrf import csrf_protect
 from django.utils.decorators import method_decorator
 
 from sudo.decorators import sudo_required
 
 from sentry.models import (
-    Project, ProjectStatus
+    Project, ProjectStatus, Organization, OrganizationStatus
 )
 from sentry.plugins import plugins
 from sentry.web.forms.accounts import (
     ProjectEmailOptionsForm, NotificationSettingsForm,
-    NotificationReportSettingsForm
+    NotificationReportSettingsForm, NotificationDeploySettingsForm
 )
 from sentry.web.decorators import login_required
 from sentry.web.frontend.base import BaseView
@@ -30,7 +29,6 @@ from sentry.utils.safe import safe_execute
 class AccountNotificationView(BaseView):
     notification_settings_form = NotificationSettingsForm
 
-    @method_decorator(csrf_protect)
     @method_decorator(never_cache)
     @method_decorator(login_required)
     @method_decorator(sudo_required)
@@ -41,6 +39,21 @@ class AccountNotificationView(BaseView):
         reports_form = NotificationReportSettingsForm(
             request.user, request.POST or None,
             prefix='reports')
+
+        org_list = list(Organization.objects.filter(
+            status=OrganizationStatus.VISIBLE,
+            member_set__user=request.user,
+        ).distinct())
+
+        org_forms = [
+            (org, NotificationDeploySettingsForm(
+                request.user,
+                org,
+                request.POST or None,
+                prefix='deploys-org-%s' % (org.id,)
+            ))
+            for org in sorted(org_list, key=lambda o: o.name)
+        ]
 
         project_list = list(Project.objects.filter(
             team__organizationmemberteam__organizationmember__user=request.user,
@@ -61,8 +74,13 @@ class AccountNotificationView(BaseView):
         ext_forms = []
         for plugin in plugins.all():
             for form in safe_execute(plugin.get_notification_forms, _with_transaction=False) or ():
-                form = safe_execute(form, plugin, request.user, request.POST or None, prefix=plugin.slug,
-                                    _with_transaction=False)
+                form = safe_execute(
+                    form,
+                    plugin,
+                    request.user,
+                    request.POST or None,
+                    prefix=plugin.slug,
+                    _with_transaction=False)
                 if not form:
                     continue
                 ext_forms.append(form)
@@ -71,7 +89,8 @@ class AccountNotificationView(BaseView):
             all_forms = list(itertools.chain(
                 [settings_form, reports_form],
                 ext_forms,
-                (f for _, f in project_forms)
+                (f for _, f in project_forms),
+                (f for _, f in org_forms)
             ))
             if all(f.is_valid() for f in all_forms):
                 for form in all_forms:
@@ -83,6 +102,7 @@ class AccountNotificationView(BaseView):
         context.update({
             'settings_form': settings_form,
             'project_forms': project_forms,
+            'org_forms': org_forms,
             'reports_form': reports_form,
             'ext_forms': ext_forms,
             'page': 'notifications',

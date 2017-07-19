@@ -10,6 +10,7 @@ from sentry.utils.csp import is_valid_csp_report
     {'effective_directive': 'lolnotreal'},
     {'effective_directive': 'style-src'},
     {'effective_directive': 'style-src', 'blocked_uri': 'about'},
+    {'effective_directive': 'style-src', 'blocked_uri': 'ms-browser-extension'},
     {'effective_directive': 'style-src', 'source_file': 'chrome-extension://fdsa'},
     {'effective_directive': 'style-src', 'source_file': 'http://localhost:8000'},
     {'effective_directive': 'style-src', 'source_file': 'http://localhost'},

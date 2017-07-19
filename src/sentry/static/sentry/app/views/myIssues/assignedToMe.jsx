@@ -17,9 +17,10 @@ const AssignedToMe = React.createClass({
       <OrganizationIssueList
         title={this.getTitle()}
         endpoint={this.getEndpoint()}
-        {...this.props} />
+        {...this.props}
+      />
     );
-  },
+  }
 });
 
 export default AssignedToMe;

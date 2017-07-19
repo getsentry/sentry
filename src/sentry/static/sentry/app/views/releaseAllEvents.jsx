@@ -1,7 +1,7 @@
 import React from 'react';
 import {Link} from 'react-router';
 import GroupList from '../components/groupList';
-import{t} from '../locale';
+import {t} from '../locale';
 
 const ReleaseAllEvents = React.createClass({
   contextTypes: {
@@ -13,11 +13,12 @@ const ReleaseAllEvents = React.createClass({
     return (
       <div>
         <div className="alert alert-block">
-          <Link to={{
-                  pathname: `/${orgId}/${projectId}/`,
-                  query: {query: 'release:' + this.context.release.version}
-                }}>
-            <span className="icon icon-open"></span>
+          <Link
+            to={{
+              pathname: `/${orgId}/${projectId}/`,
+              query: {query: 'release:' + this.context.release.version}
+            }}>
+            <span className="icon icon-open" />
             {t('View all events seen in this release in the stream')}
           </Link>
         </div>
@@ -25,7 +26,9 @@ const ReleaseAllEvents = React.createClass({
           orgId={orgId}
           projectId={projectId}
           query={'release:"' + this.context.release.version + '"'}
-          canSelectGroups={false} bulkActions={false} />
+          canSelectGroups={false}
+          bulkActions={false}
+        />
       </div>
     );
   }

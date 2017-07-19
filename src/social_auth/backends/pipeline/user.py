@@ -28,7 +28,7 @@ def get_username(details, user=None,
     if email_as_username and details.get('email'):
         username = details['email']
     elif details.get('username'):
-        username = unicode(details['username'])
+        username = six.text_type(details['username'])
     else:
         username = uuid4().get_hex()
 

@@ -62,7 +62,8 @@ class UpdateProjectRuleTest(APITestCase):
         rule = Rule.objects.get(id=rule.id)
         assert rule.label == 'hello world'
         assert rule.data['action_match'] == 'any'
-        assert rule.data['actions'] == [{'id': 'sentry.rules.actions.notify_event.NotifyEventAction'}]
+        assert rule.data['actions'] == [
+            {'id': 'sentry.rules.actions.notify_event.NotifyEventAction'}]
         assert rule.data['conditions'] == conditions
 
     def test_invalid_rule_node_type(self):

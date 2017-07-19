@@ -12,7 +12,7 @@ const StreamTagFilter = React.createClass({
   },
 
   statics: {
-    tagValueToSelect2Format: (key) => {
+    tagValueToSelect2Format: key => {
       return {
         id: key,
         text: key
@@ -60,7 +60,9 @@ const StreamTagFilter = React.createClass({
           results: (data, page) => {
             // parse the results into the format expected by Select2
             return {
-              results: _.map(data, (val) => StreamTagFilter.tagValueToSelect2Format(val.value))
+              results: _.map(data, val =>
+                StreamTagFilter.tagValueToSelect2Format(val.value)
+              )
             };
           },
           cache: true
@@ -76,12 +78,15 @@ const StreamTagFilter = React.createClass({
 
   componentWillReceiveProps(nextProps) {
     if (nextProps.value !== this.state.value) {
-      this.setState({
-        value: nextProps.value
-      }, () => {
-        let select = this.refs.select;
-        $(select).select2('val', this.state.value);
-      });
+      this.setState(
+        {
+          value: nextProps.value
+        },
+        () => {
+          let select = this.refs.select;
+          $(select).select2('val', this.state.value);
+        }
+      );
     }
   },
 
@@ -112,18 +117,14 @@ const StreamTagFilter = React.createClass({
       <div className="stream-tag-filter">
         <h6 className="nav-header">{tag.name}</h6>
 
-        {this.props.tag.predefined ?
-
-          <select ref="select" onChange={function(){}}>
-            <option key="empty"></option>
-            {this.props.tag.values.map((val) => {
-              return (
-                <option key={val}>{val}</option>
-              );
-            })}
-          </select> :
-          <input type="hidden" ref="select" value={this.props.value}/>
-        }
+        {this.props.tag.predefined
+          ? <select ref="select" onChange={function() {}}>
+              <option key="empty" />
+              {this.props.tag.values.map(val => {
+                return <option key={val}>{val}</option>;
+              })}
+            </select>
+          : <input type="hidden" ref="select" value={this.props.value} />}
 
       </div>
     );

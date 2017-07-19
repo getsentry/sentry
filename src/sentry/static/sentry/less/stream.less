@@ -246,8 +246,18 @@
     background: #fff;
     .transition(all .4s ease-in-out);
 
+    &.hoverable {
+      cursor: pointer;
+      .transition(all .0s ease-in-out);
+      &:hover {
+        background-color: @white-dark;
+      }
+    }
+
     .short-id {
       font-weight: bold;
+      font-family: @font-family-code;
+      font-size: 11px;
     }
 
     .icon-star-solid, .icon-soundoff {
@@ -532,7 +542,7 @@
   }
 
   .event-graph {
-    .sparkline a {
+    .barchart {
       height: 24px;
     }
   }
@@ -594,6 +604,18 @@
   text-align: center;
 }
 
+.app-icon {
+  width: 28px;
+  height: 28px;
+  background: url(../images/icons/empty-app-icon-180x180.png) center no-repeat;
+  margin-right: 8px;
+  display: inline-block;
+  background-size: contain;
+  vertical-align: middle;
+  border-radius: 6px;
+  box-shadow: 0px 0px 2px #e3e3e3;
+}
+
 .dashboard-widget {
   .box-header {
     font-size: 12px;
@@ -604,7 +626,13 @@
       font-size: 12px;
       text-transform: uppercase;
       margin-left: -5px;
+      &.debug-symbols {
+        text-transform: none;
+        padding-left: 12px;
+      }
     }
+
+
 
     .align-right {
       text-transform: uppercase;
@@ -1221,11 +1249,14 @@
   border-radius: 0 0 2px 2px;
   text-align: center;
   font-size: 22px;
-  padding: 48px 0 48px;
+  padding: 48px 0;
 
   p {
     line-height: 1.2;
-    margin: 0 auto 10px;
+    margin: 0 auto 20px;
+    &:last-child {
+      margin-bottom: 0;
+    }
   }
 
   .icon {
@@ -1236,7 +1267,6 @@
     margin-bottom: 20px;
   }
 }
-
 
 
 /**

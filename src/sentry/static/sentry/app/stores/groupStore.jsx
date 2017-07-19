@@ -1,11 +1,9 @@
-import jQuery from 'jquery';
 import Reflux from 'reflux';
 import GroupActions from '../actions/groupActions';
 import IndicatorStore from './indicatorStore';
-import utils from '../utils';
+import PendingChangeQueue from '../utils/pendingChangeQueue';
 import {t} from '../locale';
 import _ from 'underscore';
-
 
 function showAlert(msg, type) {
   IndicatorStore.add(msg, type, {
@@ -17,15 +15,13 @@ const GroupStore = Reflux.createStore({
   listenables: [GroupActions],
 
   init() {
-    this.items = [];
-    this.statuses = {};
-    this.pendingChanges = new utils.PendingChangeQueue();
+    this.reset();
   },
 
   reset() {
     this.items = [];
     this.statuses = {};
-    this.pendingChanges.clear();
+    this.pendingChanges = new PendingChangeQueue();
   },
 
   // TODO(dcramer): this should actually come from an action of some sorts
@@ -33,7 +29,7 @@ const GroupStore = Reflux.createStore({
     this.reset();
 
     let itemIds = new Set();
-    items.forEach((item) => {
+    items.forEach(item => {
       itemIds.add(item.id);
       this.items.push(item);
     });
@@ -48,7 +44,7 @@ const GroupStore = Reflux.createStore({
 
     let itemsById = {};
     let itemIds = new Set();
-    items.forEach((item) => {
+    items.forEach(item => {
       itemsById[item.id] = item;
       itemIds.add(item.id);
     });
@@ -56,7 +52,10 @@ const GroupStore = Reflux.createStore({
     // See if any existing items are updated by this new set of items
     this.items.forEach((item, idx) => {
       if (itemsById[item.id]) {
-        this.items[idx] = jQuery.extend(true, {}, item, itemsById[item.id]);
+        this.items[idx] = {
+          ...item,
+          ...itemsById[item.id]
+        };
         delete itemsById[item.id];
       }
     });
@@ -122,8 +121,7 @@ const GroupStore = Reflux.createStore({
     } else {
       group.activity.splice(index, 0, data);
     }
-    if (data.type === 'note')
-      group.numComments++;
+    if (data.type === 'note') group.numComments++;
 
     this.trigger(new Set([id]));
   },
@@ -151,8 +149,7 @@ const GroupStore = Reflux.createStore({
 
     let activity = group.activity.splice(index, 1);
 
-    if (activity[0].type === 'note')
-      group.numComments--;
+    if (activity[0].type === 'note') group.numComments--;
 
     this.trigger(new Set([group.id]));
     return index;
@@ -171,19 +168,23 @@ const GroupStore = Reflux.createStore({
         let rItem = this.items[i];
         if (pendingForId.length) {
           // copy the object so dirty state doesnt mutate original
-          rItem = jQuery.extend(true, {}, rItem);
+          rItem = {...rItem};
 
           for (let c = 0; c < pendingForId.length; c++) {
-            rItem = jQuery.extend(true, rItem, pendingForId[c].params);
+            rItem = {
+              ...rItem,
+              ...pendingForId[c].params
+            };
           }
         }
         return rItem;
       }
     }
+    return undefined;
   },
 
   getAllItemIds() {
-    return this.items.map((item) => item.id);
+    return this.items.map(item => item.id);
   },
 
   getAllItems() {
@@ -200,9 +201,12 @@ const GroupStore = Reflux.createStore({
       let rItem = item;
       if (!_.isUndefined(pendingById[item.id])) {
         // copy the object so dirty state doesnt mutate original
-        rItem = jQuery.extend(true, {}, rItem);
+        rItem = {...rItem};
         pendingById[item.id].forEach(change => {
-          rItem = jQuery.extend(true, rItem, change.params);
+          rItem = {
+            ...rItem,
+            ...change.params
+          };
         });
       }
       return rItem;
@@ -251,9 +255,28 @@ const GroupStore = Reflux.createStore({
       delete this.statuses[itemId];
       this.clearStatus(itemId, 'delete');
     });
-    this.items = this.items.filter((item) => !itemIdSet.has(item.id));
+    this.items = this.items.filter(item => !itemIdSet.has(item.id));
     showAlert(t('The selected events have been scheduled for deletion.'), 'success');
     this.trigger(new Set(itemIds));
+  },
+
+  onDiscard(changeId, itemId) {
+    this.addStatus(itemId, 'discard');
+    this.trigger(new Set([itemId]));
+  },
+
+  onDiscardError(changeId, itemId, response) {
+    this.clearStatus(itemId, 'discard');
+    showAlert(t('Unable to discard event. Please try again.'), 'error');
+    this.trigger(new Set([itemId]));
+  },
+
+  onDiscardSuccess(changeId, itemId, response) {
+    delete this.statuses[itemId];
+    this.clearStatus(itemId, 'discard');
+    this.items = this.items.filter(item => item.id !== itemId);
+    showAlert(t('Similar events will be filtered and discarded.'), 'success');
+    this.trigger(new Set([itemId]));
   },
 
   onMerge(changeId, itemIds) {
@@ -285,7 +308,7 @@ const GroupStore = Reflux.createStore({
     // Remove all but parent id (items were merged into this one)
     let mergedIdSet = new Set(mergedIds);
     this.items = this.items.filter(
-      (item) => !mergedIdSet.has(item.id) || item.id === response.merge.parent
+      item => !mergedIdSet.has(item.id) || item.id === response.merge.parent
     );
 
     showAlert(t('The selected events have been scheduled for merge.'), 'success');
@@ -330,14 +353,16 @@ const GroupStore = Reflux.createStore({
 
     this.items.forEach((item, idx) => {
       if (itemIds.indexOf(item.id) !== -1) {
-        this.items[idx] = jQuery.extend(true, {}, item, response);
+        this.items[idx] = {
+          ...item,
+          ...response
+        };
         this.clearStatus(item.id, 'update');
       }
     });
     this.pendingChanges.remove(changeId);
     this.trigger(new Set(itemIds));
   }
-
 });
 
 export default GroupStore;

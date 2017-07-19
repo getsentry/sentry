@@ -3,6 +3,7 @@ from __future__ import absolute_import
 __all__ = ['Filter']
 
 from sentry.models import ProjectOption
+from sentry.signals import inbound_filter_toggled
 from rest_framework import serializers
 
 
@@ -36,6 +37,9 @@ class Filter(object):
             key='filters:{}'.format(self.id),
             value='1' if value.get('active', False) else '0',
         )
+
+        if value:
+            inbound_filter_toggled.send(project=self.project, sender=self)
 
     def disable(self):
         return self.enable(False)

@@ -17,9 +17,7 @@ const RuleEditor = React.createClass({
     organization: React.PropTypes.object.isRequired
   },
 
-  mixins: [
-    ApiMixin
-  ],
+  mixins: [ApiMixin],
 
   getInitialState() {
     return {
@@ -75,14 +73,14 @@ const RuleEditor = React.createClass({
 
     let loadingIndicator = IndicatorStore.add('Saving...');
     this.api.request(endpoint, {
-      method: (rule.id ? 'PUT' : 'POST'),
+      method: rule.id ? 'PUT' : 'POST',
       data: data,
       success: () => {
         window.location.href = '../';
       },
-      error: (response) => {
+      error: response => {
         this.setState({
-          error: response.responseJSON || {'__all__': 'Unknown error'},
+          error: response.responseJSON || {__all__: 'Unknown error'},
           loading: false
         });
       },
@@ -114,28 +112,36 @@ const RuleEditor = React.createClass({
           <div className="box-content with-padding">
             {error &&
               <div className="alert alert-block alert-error">
-                <p>{t('There was an error saving your changes. Make sure all fields are valid and try again.')}</p>
-              </div>
-            }
+                <p>
+                  {t(
+                    'There was an error saving your changes. Make sure all fields are valid and try again.'
+                  )}
+                </p>
+              </div>}
             <h6>{t('Rule name')}:</h6>
             <div className="control-group">
-              <input ref="name"
-                     type="text" className="form-control"
-                     defaultValue={name}
-                     required={true}
-                     placeholder={t('My Rule Name')} />
+              <input
+                ref="name"
+                type="text"
+                className="form-control"
+                defaultValue={name}
+                required={true}
+                placeholder={t('My Rule Name')}
+              />
             </div>
 
             <hr />
 
             <div className="node-match-selector">
               <h6>
-                {t('Every time %s of these conditions are met:',
-                  <SelectInput ref="actionMatch"
-                        className={(this.hasError('actionMatch') ? ' error' : '')}
-                        value={actionMatch}
-                        style={{width:80}}
-                        required={true}>
+                {t(
+                  'Every time %s of these conditions are met:',
+                  <SelectInput
+                    ref="actionMatch"
+                    className={this.hasError('actionMatch') ? ' error' : ''}
+                    value={actionMatch}
+                    style={{width: 80}}
+                    required={true}>
                     <option value="all">{t('all')}</option>
                     <option value="any">{t('any')}</option>
                     <option value="none">{t('none')}</option>
@@ -145,56 +151,71 @@ const RuleEditor = React.createClass({
             </div>
 
             {this.hasError('conditions') &&
-              <p className="error">{t('Ensure at least one condition is enabled and all required fields are filled in.')}</p>
-            }
+              <p className="error">
+                {t(
+                  'Ensure at least one condition is enabled and all required fields are filled in.'
+                )}
+              </p>}
 
-            <RuleNodeList nodes={this.props.conditions}
+            <RuleNodeList
+              nodes={this.props.conditions}
               initialItems={conditions}
               className="rule-condition-list"
-              onChange={this.onConditionsChange} />
+              onChange={this.onConditionsChange}
+            />
 
             <hr />
 
             <h6>{t('Take these actions:')}</h6>
 
             {this.hasError('actions') &&
-              <p className="error">{t('Ensure at least one action is enabled and all required fields are filled in.')}</p>
-            }
+              <p className="error">
+                {t(
+                  'Ensure at least one action is enabled and all required fields are filled in.'
+                )}
+              </p>}
 
-            <RuleNodeList nodes={this.props.actions}
+            <RuleNodeList
+              nodes={this.props.actions}
               initialItems={actions}
               className="rule-action-list"
-              onChange={this.onActionsChange} />
+              onChange={this.onActionsChange}
+            />
 
             <hr />
 
             <div className="node-frequency-selector">
               <h6>
-                {tct('Perform these actions at most once every [frequency] for an issue.', {
-                  frequency: (
-                    <SelectInput ref="frequency"
-                          className={(this.hasError('frequency') ? ' error' : '')}
-                          value={frequency}
-                          style={{width:150}}
-                          required={true}>
-                      <option value="5">{t('5 minutes')}</option>
-                      <option value="10">{t('10 minutes')}</option>
-                      <option value="30">{t('30 minutes')}</option>
-                      <option value="60">{t('60 minutes')}</option>
-                      <option value="180">{t('3 hours')}</option>
-                      <option value="720">{t('12 hours')}</option>
-                      <option value="1440">{t('24 hours')}</option>
-                      <option value="10080">{t('one week')}</option>
-                      <option value="43200">{t('30 days')}</option>
-                    </SelectInput>
-                  )
-                })}
+                {tct(
+                  'Perform these actions at most once every [frequency] for an issue.',
+                  {
+                    frequency: (
+                      <SelectInput
+                        ref="frequency"
+                        className={this.hasError('frequency') ? ' error' : ''}
+                        value={frequency}
+                        style={{width: 150}}
+                        required={true}>
+                        <option value="5">{t('5 minutes')}</option>
+                        <option value="10">{t('10 minutes')}</option>
+                        <option value="30">{t('30 minutes')}</option>
+                        <option value="60">{t('60 minutes')}</option>
+                        <option value="180">{t('3 hours')}</option>
+                        <option value="720">{t('12 hours')}</option>
+                        <option value="1440">{t('24 hours')}</option>
+                        <option value="10080">{t('one week')}</option>
+                        <option value="43200">{t('30 days')}</option>
+                      </SelectInput>
+                    )
+                  }
+                )}
               </h6>
             </div>
 
             <div className="actions">
-              <button className="btn btn-primary btn-lg"
-                      disabled={loading}>{t('Save Rule')}</button>
+              <button className="btn btn-primary btn-lg" disabled={loading}>
+                {t('Save Rule')}
+              </button>
             </div>
           </div>
         </div>

@@ -8,11 +8,24 @@
   padding: 5px 10px;
   box-shadow: 0 1px 4px rgba(0,0,0, .15);
 
+  hr {
+    border: 0px;
+    margin: 10px auto;
+    width: 80px;
+    border-bottom: 2px solid @90;
+  }
+
   dl {
     margin: 0 !important;
   }
   dd, dt {
     padding: 0 !important;
+  }
+
+  .commit-list{
+    margin-top: 5px;
+    display: flex;
+    flex-direction: column;
   }
 
   .time-label {
@@ -101,6 +114,82 @@
       float: none;
       text-align: right;
       margin: 0 0 0 80px;
+    }
+  }
+}
+
+// Owners
+
+.tooltip-owners {
+  max-width: 310px !important;
+  text-align: left;
+  font-weight: normal;
+  font-size: 13px;
+  padding: 6px 15px;
+
+  .tooltip-owners-heading {
+    .clearfix;
+    margin-bottom: 2px;
+  }
+
+  .tooltip-owners-name, .tooltip-owners-date {
+    font-size: 12px;
+  }
+
+  .tooltip-owners-name {
+    font-weight: bold;
+  }
+
+  .tooltip-owners-date {
+    color: @40;
+  }
+
+  ul.tooltip-owners-commits {
+    .list-unstyled;
+    margin: 0 0 5px;
+
+    li.tooltip-owners-commit {
+      position: relative;
+      line-height: 1.4;
+      margin-bottom: 4px;
+
+      &:before {
+        display: block;
+        position: absolute;
+        content: "";
+        left: -15px;
+        top: 8px;
+        width: 5px;
+        height: 2px;
+        background: @70;
+      }
+    }
+  }
+
+  // Unknown member
+
+  .tooltip-owners-unknown {
+    padding: 14px 0 0;
+    text-align: center;
+
+    .icon-circle-cross {
+      font-size: 18px;
+      color: @red;
+      vertical-align: text-top;
+      margin-right: 6px;
+    }
+
+    .tooltip-owners-unknown-email {
+      font-size: 15px;
+    }
+
+    p {
+      line-height: 1.4;
+      margin: 0 0 10px;
+
+      &:last-child {
+        margin-bottom: 0;
+      }
     }
   }
 }

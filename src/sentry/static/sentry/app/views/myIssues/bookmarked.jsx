@@ -17,9 +17,10 @@ const Bookmarked = React.createClass({
       <OrganizationIssueList
         title={this.getTitle()}
         endpoint={this.getEndpoint()}
-        {...this.props} />
+        {...this.props}
+      />
     );
-  },
+  }
 });
 
 export default Bookmarked;

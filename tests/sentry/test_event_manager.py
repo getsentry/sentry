@@ -14,12 +14,12 @@ from time import time
 from sentry.app import tsdb
 from sentry.constants import MAX_CULPRIT_LENGTH, DEFAULT_LOGGER_NAME
 from sentry.event_manager import (
-    EventManager, EventUser, get_hashes_for_event, get_hashes_from_fingerprint,
+    HashDiscarded, EventManager, EventUser, get_hashes_for_event, get_hashes_from_fingerprint,
     generate_culprit, md5_from_hash
 )
 from sentry.models import (
-    Activity, Event, Group, GroupRelease, GroupResolution, GroupStatus,
-    EventMapping, Release
+    Activity, Event, Group, GroupHash, GroupRelease, GroupResolution,
+    GroupStatus, GroupTombstone, EventMapping, Release
 )
 from sentry.testutils import TestCase, TransactionTestCase
 
@@ -556,7 +556,8 @@ class EventManagerTest(TransactionTestCase):
             }
         }))
         manager.normalize()
-        event = manager.save(self.project.id)
+        with self.tasks():
+            event = manager.save(self.project.id)
 
         assert tsdb.get_distinct_counts_totals(
             tsdb.models.users_affected_by_group,
@@ -576,26 +577,27 @@ class EventManagerTest(TransactionTestCase):
             event.project.id: 1,
         }
 
-        assert EventUser.objects.filter(
+        euser = EventUser.objects.get(
             project=self.project,
             ident='1',
-        ).exists()
-        assert 'sentry:user' in dict(event.tags)
+        )
+        assert event.get_tag('sentry:user') == euser.tag_value
 
         # ensure event user is mapped to tags in second attempt
         manager = EventManager(self.make_event(**{
             'sentry.interfaces.User': {
                 'id': '1',
+                'name': 'jane',
             }
         }))
         manager.normalize()
-        event = manager.save(self.project.id)
+        with self.tasks():
+            event = manager.save(self.project.id)
 
-        assert EventUser.objects.filter(
-            project=self.project,
-            ident='1',
-        ).exists()
-        assert 'sentry:user' in dict(event.tags)
+        euser = EventUser.objects.get(id=euser.id)
+        assert event.get_tag('sentry:user') == euser.tag_value
+        assert euser.name == 'jane'
+        assert euser.ident == '1'
 
     def test_event_user_unicode_identifier(self):
         manager = EventManager(self.make_event(**{
@@ -604,7 +606,8 @@ class EventManagerTest(TransactionTestCase):
             }
         }))
         manager.normalize()
-        manager.save(self.project.id)
+        with self.tasks():
+            manager.save(self.project.id)
         euser = EventUser.objects.get(
             project=self.project,
         )
@@ -756,6 +759,39 @@ class EventManagerTest(TransactionTestCase):
             'message': 'hello world',
             'formatted': 'world hello',
         }
+
+    def test_trows_when_matches_discarded_hash(self):
+        manager = EventManager(self.make_event(
+            message='foo', event_id='a' * 32,
+            fingerprint=['a' * 32],
+        ))
+        with self.tasks():
+            event = manager.save(1)
+
+        group = Group.objects.get(id=event.group_id)
+        tombstone = GroupTombstone.objects.create(
+            project_id=group.project_id,
+            level=group.level,
+            message=group.message,
+            culprit=group.culprit,
+            data=group.data,
+            previous_group_id=group.id,
+        )
+        GroupHash.objects.filter(
+            group=group,
+        ).update(
+            group=None,
+            group_tombstone_id=tombstone.id,
+        )
+
+        manager = EventManager(self.make_event(
+            message='foo', event_id='a' * 32,
+            fingerprint=['a' * 32],
+        ))
+
+        with self.tasks():
+            with self.assertRaises(HashDiscarded):
+                event = manager.save(1)
 
 
 class GetHashesFromEventTest(TestCase):

@@ -6,65 +6,65 @@ from sentry.lang.native.applecrashreport import AppleCrashReport
 def test_get_threads_apple_string():
     acr = AppleCrashReport(threads=[
         {'crashed': True,
-        'current': True,
-        'id': 1,
-        'name': None,
-        'stacktrace': {'frames': [
-            {'abs_path': '/Users/haza/Projects/sentry-swift/Sources/ios/SentrySwizzle.swift',
-             'colno': 0,
-             'filename': 'SentrySwizzle.swift',
-             'function': '@objc UIApplication.sentryClient_sendAction(Selector, to : AnyObject?, from : AnyObject?, for : UIEvent?) -> Bool',
-             'image_addr': '0x2c8000',
-             'in_app': False,
-             'instruction_addr': '0x31caa4',
-             'lineno': 0,
-             'object_addr': '0x2c8000',
-             'package': '/private/var/containers/Bundle/Application/06EA18D0-49C5-452C-B431-92B1098FB4AD/SwiftExample.app/Frameworks/SentrySwift.framework/SentrySwift',
-             'symbol': '_TToFE11SentrySwiftCSo13UIApplication23sentryClient_sendActionfTV10ObjectiveC8Selector2toGSqPs9AnyObject__4fromGSqPS3___3forGSqCSo7UIEvent__Sb',
-             'symbol_addr': '0x31ca38'},
-            {'abs_path': '/Users/haza/Projects/sentry-swift/Sources/ios/SentrySwizzle.swift',
-             'colno': 84,
-             'filename': 'SentrySwizzle.swift',
-             'function': 'UIApplication.sentryClient_sendAction(Selector, to : AnyObject?, from : AnyObject?, for : UIEvent?) -> Bool',
-             'image_addr': '0x2c8000',
-             'in_app': False,
-             'instruction_addr': '0x31c3e8',
-             'lineno': 92,
-             'object_addr': '0x2c8000',
-             'package': '/private/var/containers/Bundle/Application/06EA18D0-49C5-452C-B431-92B1098FB4AD/SwiftExample.app/Frameworks/SentrySwift.framework/SentrySwift',
-             'symbol': '_TFE11SentrySwiftCSo13UIApplication23sentryClient_sendActionfTV10ObjectiveC8Selector2toGSqPs9AnyObject__4fromGSqPS3___3forGSqCSo7UIEvent__Sb',
-             'symbol_addr': '0x31b9f8'}]
-        }},
+         'current': True,
+         'id': 1,
+         'name': None,
+         'stacktrace': {'frames': [
+             {'abs_path': '/Users/haza/Projects/sentry-swift/Sources/ios/SentrySwizzle.swift',
+              'colno': 0,
+              'filename': 'SentrySwizzle.swift',
+              'function': '@objc UIApplication.sentryClient_sendAction(Selector, to : AnyObject?, from : AnyObject?, for : UIEvent?) -> Bool',
+              'image_addr': '0x2c8000',
+              'in_app': False,
+              'instruction_addr': '0x31caa4',
+              'lineno': 0,
+              'object_addr': '0x2c8000',
+              'package': '/private/var/containers/Bundle/Application/06EA18D0-49C5-452C-B431-92B1098FB4AD/SwiftExample.app/Frameworks/SentrySwift.framework/SentrySwift',
+              'symbol': '_TToFE11SentrySwiftCSo13UIApplication23sentryClient_sendActionfTV10ObjectiveC8Selector2toGSqPs9AnyObject__4fromGSqPS3___3forGSqCSo7UIEvent__Sb',
+              'symbol_addr': '0x31ca38'},
+             {'abs_path': '/Users/haza/Projects/sentry-swift/Sources/ios/SentrySwizzle.swift',
+                 'colno': 84,
+                 'filename': 'SentrySwizzle.swift',
+                 'function': 'UIApplication.sentryClient_sendAction(Selector, to : AnyObject?, from : AnyObject?, for : UIEvent?) -> Bool',
+                 'image_addr': '0x2c8000',
+                 'in_app': False,
+                 'instruction_addr': '0x31c3e8',
+                 'lineno': 92,
+                 'object_addr': '0x2c8000',
+                 'package': '/private/var/containers/Bundle/Application/06EA18D0-49C5-452C-B431-92B1098FB4AD/SwiftExample.app/Frameworks/SentrySwift.framework/SentrySwift',
+                 'symbol': '_TFE11SentrySwiftCSo13UIApplication23sentryClient_sendActionfTV10ObjectiveC8Selector2toGSqPs9AnyObject__4fromGSqPS3___3forGSqCSo7UIEvent__Sb',
+                 'symbol_addr': '0x31b9f8'}]
+         }},
         {'crashed': False,
-        'current': False,
-        'id': 2,
-        'name': 'com.apple.test',
-        'stacktrace': {'frames': [
-            {'abs_path': '/Users/haza/Projects/sentry-swift/Examples/SwiftExample/SwiftExample/ViewController.swift',
-             'colno': 0,
-             'filename': 'ViewController.swift',
-             'function': '@objc ViewController.onClickFatalError(AnyObject) -> ()',
-             'image_addr': '0xf0000',
-             'in_app': True,
-             'instruction_addr': '0xf6cd4',
-             'lineno': 0,
-             'object_addr': '0xf0000',
-             'package': '/var/containers/Bundle/Application/06EA18D0-49C5-452C-B431-92B1098FB4AD/SwiftExample.app/SwiftExample',
-             'symbol': '_TToFC12SwiftExample14ViewController17onClickFatalErrorfPs9AnyObject_T_',
-             'symbol_addr': '0xf6c98'},
-            {'abs_path': '/Users/haza/Projects/sentry-swift/Examples/SwiftExample/SwiftExample/ViewController.swift',
-             'colno': 36,
-             'filename': 'ViewController.swift',
-             'function': 'ViewController.onClickFatalError(AnyObject) -> ()',
-             'image_addr': '0xf0000',
-             'in_app': True,
-             'instruction_addr': '0xf6c78',
-             'lineno': 110,
-             'object_addr': '0xf0000',
-             'package': '/var/containers/Bundle/Application/06EA18D0-49C5-452C-B431-92B1098FB4AD/SwiftExample.app/SwiftExample',
-             'symbol': '_TFC12SwiftExample14ViewController17onClickFatalErrorfPs9AnyObject_T_',
-             'symbol_addr': '0xf6c04'}]
-        }},
+         'current': False,
+         'id': 2,
+         'name': 'com.apple.test',
+         'stacktrace': {'frames': [
+             {'abs_path': '/Users/haza/Projects/sentry-swift/Examples/SwiftExample/SwiftExample/ViewController.swift',
+              'colno': 0,
+              'filename': 'ViewController.swift',
+              'function': '@objc ViewController.onClickFatalError(AnyObject) -> ()',
+              'image_addr': '0xf0000',
+              'in_app': True,
+              'instruction_addr': '0xf6cd4',
+              'lineno': 0,
+              'object_addr': '0xf0000',
+              'package': '/var/containers/Bundle/Application/06EA18D0-49C5-452C-B431-92B1098FB4AD/SwiftExample.app/SwiftExample',
+              'symbol': '_TToFC12SwiftExample14ViewController17onClickFatalErrorfPs9AnyObject_T_',
+              'symbol_addr': '0xf6c98'},
+             {'abs_path': '/Users/haza/Projects/sentry-swift/Examples/SwiftExample/SwiftExample/ViewController.swift',
+                 'colno': 36,
+                 'filename': 'ViewController.swift',
+                 'function': 'ViewController.onClickFatalError(AnyObject) -> ()',
+                 'image_addr': '0xf0000',
+                 'in_app': True,
+                 'instruction_addr': '0xf6c78',
+                 'lineno': 110,
+                 'object_addr': '0xf0000',
+                 'package': '/var/containers/Bundle/Application/06EA18D0-49C5-452C-B431-92B1098FB4AD/SwiftExample.app/SwiftExample',
+                 'symbol': '_TFC12SwiftExample14ViewController17onClickFatalErrorfPs9AnyObject_T_',
+                 'symbol_addr': '0xf6c04'}]
+         }},
     ])
     threads = acr.get_threads_apple_string()
     assert threads == 'Thread 1 name: \n\
@@ -79,60 +79,60 @@ Thread 2 name: com.apple.test\n\
 def test_get_threads_apple_string_symbolicated():
     acr = AppleCrashReport(symbolicated=True, threads=[
         {'crashed': True,
-        'current': True,
-        'id': 1,
-        'name': None,
-        'stacktrace': {'frames': [
-            {'abs_path': '/Users/haza/Projects/sentry-swift/Sources/ios/SentrySwizzle.swift',
-             'colno': 0,
-             'filename': 'SentrySwizzle.swift',
-             'function': '@objc UIApplication.sentryClient_sendAction(Selector, to : AnyObject?, from : AnyObject?, for : UIEvent?) -> Bool',
-             'image_addr': '0x2c8000',
-             'in_app': False,
-             'instruction_addr': '0x31caa4',
-             'lineno': 0,
-             'object_addr': '0x2c8000',
-             'package': '/private/var/containers/Bundle/Application/06EA18D0-49C5-452C-B431-92B1098FB4AD/SwiftExample.app/Frameworks/SentrySwift.framework/SentrySwift',
-             'symbol': '_TToFE11SentrySwiftCSo13UIApplication23sentryClient_sendActionfTV10ObjectiveC8Selector2toGSqPs9AnyObject__4fromGSqPS3___3forGSqCSo7UIEvent__Sb',
-             'symbol_addr': '0x31ca38'},
-            {'abs_path': '/Users/haza/Projects/sentry-swift/Sources/ios/SentrySwizzle.swift',
-             'colno': 84,
-             'filename': 'SentrySwizzle.swift',
-             'function': 'UIApplication.sentryClient_sendAction(Selector, to : AnyObject?, from : AnyObject?, for : UIEvent?) -> Bool',
-             'image_addr': '0x2c8000',
-             'in_app': False,
-             'instruction_addr': '0x31c3e8',
-             'lineno': 92,
-             'object_addr': '0x2c8000',
-             'package': '/private/var/containers/Bundle/Application/06EA18D0-49C5-452C-B431-92B1098FB4AD/SwiftExample.app/Frameworks/SentrySwift.framework/SentrySwift',
-             'symbol': '_TFE11SentrySwiftCSo13UIApplication23sentryClient_sendActionfTV10ObjectiveC8Selector2toGSqPs9AnyObject__4fromGSqPS3___3forGSqCSo7UIEvent__Sb',
-             'symbol_addr': '0x31b9f8'}]
-        }},
+         'current': True,
+         'id': 1,
+         'name': None,
+         'stacktrace': {'frames': [
+             {'abs_path': '/Users/haza/Projects/sentry-swift/Sources/ios/SentrySwizzle.swift',
+              'colno': 0,
+              'filename': 'SentrySwizzle.swift',
+              'function': '@objc UIApplication.sentryClient_sendAction(Selector, to : AnyObject?, from : AnyObject?, for : UIEvent?) -> Bool',
+              'image_addr': '0x2c8000',
+              'in_app': False,
+              'instruction_addr': '0x31caa4',
+              'lineno': 0,
+              'object_addr': '0x2c8000',
+              'package': '/private/var/containers/Bundle/Application/06EA18D0-49C5-452C-B431-92B1098FB4AD/SwiftExample.app/Frameworks/SentrySwift.framework/SentrySwift',
+              'symbol': '_TToFE11SentrySwiftCSo13UIApplication23sentryClient_sendActionfTV10ObjectiveC8Selector2toGSqPs9AnyObject__4fromGSqPS3___3forGSqCSo7UIEvent__Sb',
+              'symbol_addr': '0x31ca38'},
+             {'abs_path': '/Users/haza/Projects/sentry-swift/Sources/ios/SentrySwizzle.swift',
+                 'colno': 84,
+                 'filename': 'SentrySwizzle.swift',
+                 'function': 'UIApplication.sentryClient_sendAction(Selector, to : AnyObject?, from : AnyObject?, for : UIEvent?) -> Bool',
+                 'image_addr': '0x2c8000',
+                 'in_app': False,
+                 'instruction_addr': '0x31c3e8',
+                 'lineno': 92,
+                 'object_addr': '0x2c8000',
+                 'package': '/private/var/containers/Bundle/Application/06EA18D0-49C5-452C-B431-92B1098FB4AD/SwiftExample.app/Frameworks/SentrySwift.framework/SentrySwift',
+                 'symbol': '_TFE11SentrySwiftCSo13UIApplication23sentryClient_sendActionfTV10ObjectiveC8Selector2toGSqPs9AnyObject__4fromGSqPS3___3forGSqCSo7UIEvent__Sb',
+                 'symbol_addr': '0x31b9f8'}]
+         }},
         {'crashed': False,
-        'current': False,
-        'id': 2,
-        'name': 'com.apple.test',
-        'stacktrace': {'frames': [
-            {'abs_path': '/Users/haza/Projects/sentry-swift/Examples/SwiftExample/SwiftExample/ViewController.swift',
-             'colno': 0,
-             'filename': 'ViewController.swift',
-             'function': '@objc ViewController.onClickFatalError(AnyObject) -> ()',
-             'image_addr': '0xf0000',
-             'in_app': True,
-             'instruction_addr': '0xf6cd4',
-             'lineno': 0,
-             'object_addr': '0xf0000',
-             'package': '/var/containers/Bundle/Application/06EA18D0-49C5-452C-B431-92B1098FB4AD/SwiftExample.app/SwiftExample',
-             'symbol': '_TToFC12SwiftExample14ViewController17onClickFatalErrorfPs9AnyObject_T_',
-             'symbol_addr': '0xf6c98'},
-            {'colno': 36,
-             'image_addr': '0xf0000',
-             'in_app': True,
-             'instruction_addr': '0xf6c78',
-             'lineno': 110,
-             'object_addr': '0xf0000',
-             'symbol_addr': '0xf6c04'}]
-        }},
+         'current': False,
+         'id': 2,
+         'name': 'com.apple.test',
+         'stacktrace': {'frames': [
+             {'abs_path': '/Users/haza/Projects/sentry-swift/Examples/SwiftExample/SwiftExample/ViewController.swift',
+              'colno': 0,
+              'filename': 'ViewController.swift',
+              'function': '@objc ViewController.onClickFatalError(AnyObject) -> ()',
+              'image_addr': '0xf0000',
+              'in_app': True,
+              'instruction_addr': '0xf6cd4',
+              'lineno': 0,
+              'object_addr': '0xf0000',
+              'package': '/var/containers/Bundle/Application/06EA18D0-49C5-452C-B431-92B1098FB4AD/SwiftExample.app/SwiftExample',
+              'symbol': '_TToFC12SwiftExample14ViewController17onClickFatalErrorfPs9AnyObject_T_',
+              'symbol_addr': '0xf6c98'},
+             {'colno': 36,
+                 'image_addr': '0xf0000',
+                 'in_app': True,
+                 'instruction_addr': '0xf6c78',
+                 'lineno': 110,
+                 'object_addr': '0xf0000',
+                 'symbol_addr': '0xf6c04'}]
+         }},
     ])
     threads = acr.get_threads_apple_string()
     assert threads.rstrip() == '''\
@@ -153,7 +153,9 @@ Thread 2 name: com.apple.test
 # 4   SwiftExample                    0x00000001000f6cd4 @objc ViewController.onClickFatalError(AnyObject) -> () (ViewController.swift:0)
 # 5   UIKit                           0x000000018755fd30 -[UIApplication sendAction:to:from:forEvent:] + 96
 # 6   SentrySwift                     0x000000010031c3e8 UIApplication.sentryClient_sendAction(Selector, to : AnyObject?, from : AnyObject?, for : UIEvent?) -> Bool (SentrySwizzle.swift:92)
-# 7   SentrySwift                     0x000000010031caa4 @objc UIApplication.sentryClient_sendAction(Selector, to : AnyObject?, from : AnyObject?, for : UIEvent?) -> Bool (SentrySwizzle.swift:0)
+# 7   SentrySwift                     0x000000010031caa4 @objc
+# UIApplication.sentryClient_sendAction(Selector, to : AnyObject?, from :
+# AnyObject?, for : UIEvent?) -> Bool (SentrySwizzle.swift:0)
 
 # 0   libswiftCore.dylib              0x0000000100556cc4 0x1003f8000 + 1436868
 # 1   libswiftCore.dylib              0x0000000100556cc4 0x1003f8000 + 1436868
@@ -268,59 +270,62 @@ Thread 1 Crashed:\n\
 
 def test__convert_frame_to_apple_string():
     acr = AppleCrashReport()
-    frame = acr._convert_frame_to_apple_string(frame={'abs_path': None,
-        'colno': 0,
-        'function': 'SentryClient.crash() -> ()',
-        'image_addr': '0xabd7000',
-        'in_app': False,
-        'instruction_addr': '0xac24ab6',
-        'lineno': 0,
-        'package': '/Users/haza/Library/Developer/CoreSimulator/Devices/DDB32F4C-97CF-4E2B-BD10-EB940553F223/data/Containers/Bundle/Application/4C903BE8-ED5E-414A-AC42-2D4ACCACE781/SwiftExample.app/Frameworks/SentrySwift.framework/SentrySwift',
-        'symbol': '_TFC11SentrySwift12SentryClient5crashfT_T_',
-        'symbol_addr': '0xac24a10'
-    })
+    frame = acr._convert_frame_to_apple_string(
+        frame={
+            'abs_path': None,
+            'colno': 0,
+            'function': 'SentryClient.crash() -> ()',
+            'image_addr': '0xabd7000',
+            'in_app': False,
+            'instruction_addr': '0xac24ab6',
+            'lineno': 0,
+            'package': '/Users/haza/Library/Developer/CoreSimulator/Devices/DDB32F4C-97CF-4E2B-BD10-EB940553F223/data/Containers/Bundle/Application/4C903BE8-ED5E-414A-AC42-2D4ACCACE781/SwiftExample.app/Frameworks/SentrySwift.framework/SentrySwift',
+            'symbol': '_TFC11SentrySwift12SentryClient5crashfT_T_',
+            'symbol_addr': '0xac24a10'})
     assert frame == '0   SentrySwift                     0xac24ab6           0xabd7000 + 166'
     acr2 = AppleCrashReport(symbolicated=True)
-    frame_symbolicated = acr2._convert_frame_to_apple_string(frame={'abs_path': None,
-        'colno': 0,
-        'function': 'SentryClient.crash() -> ()',
-        'image_addr': '0xabd7000',
-        'in_app': False,
-        'instruction_addr': '0xac24ab6',
-        'lineno': 0,
-        'package': '/Users/haza/Library/Developer/CoreSimulator/Devices/DDB32F4C-97CF-4E2B-BD10-EB940553F223/data/Containers/Bundle/Application/4C903BE8-ED5E-414A-AC42-2D4ACCACE781/SwiftExample.app/Frameworks/SentrySwift.framework/SentrySwift',
-        'symbol': '_TFC11SentrySwift12SentryClient5crashfT_T_',
-        'symbol_addr': '0xac24a10'
-    }, number=1)
+    frame_symbolicated = acr2._convert_frame_to_apple_string(
+        frame={
+            'abs_path': None,
+            'colno': 0,
+            'function': 'SentryClient.crash() -> ()',
+            'image_addr': '0xabd7000',
+            'in_app': False,
+            'instruction_addr': '0xac24ab6',
+            'lineno': 0,
+            'package': '/Users/haza/Library/Developer/CoreSimulator/Devices/DDB32F4C-97CF-4E2B-BD10-EB940553F223/data/Containers/Bundle/Application/4C903BE8-ED5E-414A-AC42-2D4ACCACE781/SwiftExample.app/Frameworks/SentrySwift.framework/SentrySwift',
+            'symbol': '_TFC11SentrySwift12SentryClient5crashfT_T_',
+            'symbol_addr': '0xac24a10'},
+        number=1)
     assert frame_symbolicated == '1   SentrySwift                     0xac24ab6           SentryClient.crash() -> ()'
 
 
 def test_get_binary_images_apple_string():
     acr = AppleCrashReport(debug_images=[
         {'cpu_subtype': 3,
-        'cpu_type': 16777223,
-        'image_addr': '0x141c5000',
-        'image_size': 20480,
-        'image_vmaddr': '0x0',
-        'name': '/Users/haza/Library/Developer/CoreSimulator/Devices/DDB32F4C-97CF-4E2B-BD10-EB940553F223/data/Containers/Bundle/Application/8C286977-D498-44FF-B7BE-42BFE3DE38BD/SwiftExample.app/Frameworks/libswiftContacts.dylib',
-        'type': 'apple',
-        'uuid': '4B5A054F-B7A1-3AD0-81E1-513B4DBE2A33'},
+         'cpu_type': 16777223,
+         'image_addr': '0x141c5000',
+         'image_size': 20480,
+         'image_vmaddr': '0x0',
+         'name': '/Users/haza/Library/Developer/CoreSimulator/Devices/DDB32F4C-97CF-4E2B-BD10-EB940553F223/data/Containers/Bundle/Application/8C286977-D498-44FF-B7BE-42BFE3DE38BD/SwiftExample.app/Frameworks/libswiftContacts.dylib',
+         'type': 'apple',
+         'uuid': '4B5A054F-B7A1-3AD0-81E1-513B4DBE2A33'},
         {'cpu_subtype': 3,
-        'cpu_type': 16777223,
-        'image_addr': '0x1400c000',
-        'image_size': 266240,
-        'image_vmaddr': '0x0',
-        'name': '/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator.sdk/System/Library/PrivateFrameworks/ContentIndex.framework/ContentIndex',
-        'type': 'apple',
-        'uuid': '766DFB14-72EE-32D2-8961-687D32548F2B'},
+         'cpu_type': 16777223,
+         'image_addr': '0x1400c000',
+         'image_size': 266240,
+         'image_vmaddr': '0x0',
+         'name': '/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator.sdk/System/Library/PrivateFrameworks/ContentIndex.framework/ContentIndex',
+         'type': 'apple',
+         'uuid': '766DFB14-72EE-32D2-8961-687D32548F2B'},
         {'cpu_subtype': 3,
-        'cpu_type': 16777223,
-        'image_addr': '0x1406f000',
-        'image_size': 913408,
-        'image_vmaddr': '0x0',
-        'name': '/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator.sdk/System/Library/PrivateFrameworks/CorePDF.framework/CorePDF',
-        'type': 'apple',
-        'uuid': 'BE602DC1-D3A0-3389-B8F4-922C37DEA3DC'}
+         'cpu_type': 16777223,
+         'image_addr': '0x1406f000',
+         'image_size': 913408,
+         'image_vmaddr': '0x0',
+         'name': '/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator.sdk/System/Library/PrivateFrameworks/CorePDF.framework/CorePDF',
+         'type': 'apple',
+         'uuid': 'BE602DC1-D3A0-3389-B8F4-922C37DEA3DC'}
     ], context={
         'device': {
             'arch': 'x86',
@@ -351,36 +356,36 @@ def test_get_binary_images_apple_string():
 
 
 def test__convert_debug_meta_to_binary_image_row():
-    acr = AppleCrashReport(context={'device':
-        {'arch': 'x86',
-         'family': 'iPhone',
-         'freeMemory': 169684992,
-         'memorySize': 17179869184,
-         'model': 'iPhone9,1',
-         'simulator': True,
-         'storageSize': 249695305728,
-         'type': 'device',
-         'usableMemory': 14919622656
-         },
-        'os': {'build': '16C67',
-         'bundleID': 'com.rokkincat.SentryExample',
-         'bundleVersion': '2',
-         'kernel_version': 'Darwin Kernel Version 16.3.0: Thu Nov 17 20:23:58 PST 2016; root:xnu-3789.31.2~1/RELEASE_X86_64',
-         'name': 'iOS',
-         'type': 'os',
-         'version': '10.2'
-         }
-    })
-    binary_image = acr._convert_debug_meta_to_binary_image_row(debug_image={
-        'cpu_subtype': 3,
-        'cpu_type': 16777223,
-        'image_addr': '0xd69a000',
-        'image_size': 495616,
-        'image_vmaddr': '0x0',
-        'name': '/Users/haza/Library/Developer/CoreSimulator/Devices/DDB32F4C-97CF-4E2B-BD10-EB940553F223/data/Containers/Bundle/Application/8F8140DF-B25B-4088-B5FB-57F474A49CD6/SwiftExample.app/Frameworks/SentrySwift.framework/SentrySwift',
-        'type': 'apple',
-        'uuid': 'B427AE1D-BF36-3B50-936F-D78A7D1C8340'
-    })
+    acr = AppleCrashReport(
+        context={
+            'device': {
+                'arch': 'x86',
+                'family': 'iPhone',
+                'freeMemory': 169684992,
+                'memorySize': 17179869184,
+                'model': 'iPhone9,1',
+                'simulator': True,
+                'storageSize': 249695305728,
+                'type': 'device',
+                'usableMemory': 14919622656},
+            'os': {
+                'build': '16C67',
+                'bundleID': 'com.rokkincat.SentryExample',
+                'bundleVersion': '2',
+                'kernel_version': 'Darwin Kernel Version 16.3.0: Thu Nov 17 20:23:58 PST 2016; root:xnu-3789.31.2~1/RELEASE_X86_64',
+                'name': 'iOS',
+                'type': 'os',
+                'version': '10.2'}})
+    binary_image = acr._convert_debug_meta_to_binary_image_row(
+        debug_image={
+            'cpu_subtype': 3,
+            'cpu_type': 16777223,
+            'image_addr': '0xd69a000',
+            'image_size': 495616,
+            'image_vmaddr': '0x0',
+            'name': '/Users/haza/Library/Developer/CoreSimulator/Devices/DDB32F4C-97CF-4E2B-BD10-EB940553F223/data/Containers/Bundle/Application/8F8140DF-B25B-4088-B5FB-57F474A49CD6/SwiftExample.app/Frameworks/SentrySwift.framework/SentrySwift',
+            'type': 'apple',
+            'uuid': 'B427AE1D-BF36-3B50-936F-D78A7D1C8340'})
     assert binary_image == '0xd69a000 - 0xd712fff SentrySwift x86  <b427ae1dbf363b50936fd78a7d1c8340> /Users/haza/Library/Developer/CoreSimulator/Devices/DDB32F4C-97CF-4E2B-BD10-EB940553F223/data/Containers/Bundle/Application/8F8140DF-B25B-4088-B5FB-57F474A49CD6/SwiftExample.app/Frameworks/SentrySwift.framework/SentrySwift'
 
 
@@ -408,6 +413,23 @@ def test__get_exception_info():
     exception_info = acr._get_exception_info()
     assert exception_info == 'Exception Type: EXC_BAD_ACCESS (SIGBUS)\n\
 Exception Codes: BUS_NOOP at 0x10\n\
+Crashed Thread: 0\n\n\
+Application Specific Information:\n\
+Attempted to dereference garbage pointer 0x10.'
+
+
+def test__get_exception_info_partial():
+    acr = AppleCrashReport(exception=[{
+        "value": "Attempted to dereference garbage pointer 0x10.",
+        "mechanism": {
+            "posix_signal": None,
+            "mach_exception": None,
+        },
+        "type": "EXC_BAD_ACCESS",
+        "thread_id": 0
+    }])
+    exception_info = acr._get_exception_info()
+    assert exception_info == '\
 Crashed Thread: 0\n\n\
 Application Specific Information:\n\
 Attempted to dereference garbage pointer 0x10.'

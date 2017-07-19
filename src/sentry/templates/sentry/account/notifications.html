@@ -82,6 +82,8 @@
 
         {{ settings_form.workflow_notifications|as_crispy_field }}
 
+        {{ settings_form.self_assign_issue|as_crispy_field }}
+
         {{ settings_form.self_notifications|as_crispy_field }}
 
         <p>
@@ -103,6 +105,25 @@
         {{ reports_form.organizations|as_crispy_field }}
 
         <hr />
+
+        {% if org_forms %}
+          <h4>{% trans "Deploys" %}</h4>
+
+          <p>{% blocktrans %}Deploy emails include release, environment and commit overviews. Choose to receive emails for:{% endblocktrans %}</p>
+
+          {% for org, form in org_forms %}
+              {{ form|as_crispy_errors }}
+          {% endfor %}
+
+          {% for org, form in org_forms %}
+            <div class="deploy-form">
+                <h5>{{org.name}}</h5>
+                {{ form.notifications|as_crispy_field }}
+            </div>
+          {% endfor %}
+
+          <hr />
+        {% endif %}
 
         <h4>{% trans "Fine Tuning" %}</h4>
 
@@ -168,33 +189,35 @@
         </fieldset>
     </form>
     <script>
-    $(function(){
+    $(function() {
+  function findCheckboxes(parent, match) {
+    return $(parent)
+      .parents('table')
+      .find('tbody input[type="checkbox"]')
+      .filter(function() {
+        return this.name.indexOf(match) !== -1;
+      });
+  }
 
-      function findCheckboxes(parent, match) {
-        return $(parent).parents('table')
-          .find('tbody input[type="checkbox"]')
-          .filter(function() {
-            return this.name.indexOf(match) !== -1;
-          });
-      }
-
-      function setupChecker(pattern) {
-        $('form a[data-toggle="' + pattern + '"]').click(function(e){
-          var checked = $(this).data('checked');
-          findCheckboxes(this, pattern).prop('checked', !checked);
-          $(this).data('checked', !checked);
-        }).each(function() {
-          var boxes = findCheckboxes(this, pattern);
-          var checkedBoxes = boxes.filter(function(){
-            return $(this).is(':checked');
-          });
-          var defaultChecked = (boxes.length === checkedBoxes.length);
-          $(this).data('checked', defaultChecked);
+  function setupChecker(pattern) {
+    $('form a[data-toggle="' + pattern + '"]')
+      .click(function(e) {
+        var checked = $(this).data('checked');
+        findCheckboxes(this, pattern).prop('checked', !checked);
+        $(this).data('checked', !checked);
+      })
+      .each(function() {
+        var boxes = findCheckboxes(this, pattern);
+        var checkedBoxes = boxes.filter(function() {
+          return $(this).is(':checked');
         });
-      }
+        var defaultChecked = boxes.length === checkedBoxes.length;
+        $(this).data('checked', defaultChecked);
+      });
+  }
 
-      setupChecker('alert');
-      setupChecker('workflow');
-    });
-    </script>
+  setupChecker('alert');
+  setupChecker('workflow');
+});
+</script>
 {% endblock %}

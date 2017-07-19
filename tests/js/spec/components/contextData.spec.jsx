@@ -1,24 +1,18 @@
 import React from 'react';
-import ReactDOM from 'react-dom';
-import TestUtils from 'react-addons-test-utils';
+import {shallow} from 'enzyme';
 
 import ContextData from 'app/components/contextData';
 
 describe('ContextData', function() {
-
   describe('render()', function() {
-    describe('strings', function () {
-      it('should render urls w/ an additional <a> link', function () {
+    describe('strings', function() {
+      it('should render urls w/ an additional <a> link', function() {
         const URL = 'https://example.org/foo/bar/';
-        let ctxData = TestUtils.renderIntoDocument(<ContextData data={URL}/>);
+        let wrapper = shallow(<ContextData data={URL} />);
 
-        let node = ReactDOM.findDOMNode(ctxData);
-
-        expect(node.getElementsByTagName('span')[0]).to.have.property('textContent', URL);
-        expect(node.getElementsByTagName('a')[0]).to.have.property('href', URL);
+        expect(wrapper.find('span').at(0).text()).toEqual(URL);
+        expect(wrapper.find('a').at(0).prop('href')).toEqual(URL);
       });
     });
   });
-
 });
-

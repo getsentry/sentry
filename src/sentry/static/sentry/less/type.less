@@ -88,11 +88,11 @@ th, dt, strong {
 }
 
 .text-light {
-  color: @60;
+  color: @60 !important;
 }
 
 .text-dark {
-  color: @100;
+  color: @100 !important;
 }
 
 /**
@@ -102,14 +102,17 @@ th, dt, strong {
 
 .align-left {
   text-align: left;
+  justify-content: flex-start;
 }
 
 .align-center {
   text-align: center;
+  justify-content: center;
 }
 
 .align-right {
   text-align: right;
+  justify-content: flex-end;
 }
 
 hr {
@@ -141,6 +144,10 @@ pre, code {
   background-color: @white-darker;
   color: @gray-darker;
   border-radius: 3px;
+
+  &.small {
+    font-size: 12px;
+  }
 
   span {
     display: inline-block;

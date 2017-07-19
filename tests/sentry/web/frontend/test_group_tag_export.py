@@ -9,7 +9,7 @@ from sentry.testutils import TestCase
 
 class GroupTagExportTest(TestCase):
     def test_simple(self):
-        key, value = 'foo', 'bar'
+        key, value = 'foo', u'b\xe4r'
 
         # Drop microsecond value for MySQL
         now = timezone.now().replace(microsecond=0)
@@ -23,8 +23,8 @@ class GroupTagExportTest(TestCase):
             value=value,
         )
         group_tag_value = GroupTagValue.objects.create(
-            project=project,
-            group=group,
+            project_id=project.id,
+            group_id=group.id,
             key=key,
             value=value,
             times_seen=1,

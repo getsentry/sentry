@@ -44,7 +44,6 @@ class ActivityEmail(object):
         if self.activity.user is not None and self.activity.user in participants:
             receive_own_activity = UserOption.objects.get_value(
                 user=self.activity.user,
-                project=None,
                 key='self_notifications',
                 default='0'
             ) == '1'
@@ -134,6 +133,10 @@ class ActivityEmail(object):
             'html_description': self.description_as_html(
                 description, html_params),
         }
+
+    def get_user_context(self, user):
+        # use in case context of email changes depending on user
+        return {}
 
     def get_headers(self):
         project = self.project
@@ -263,6 +266,11 @@ class ActivityEmail(object):
                         kwargs={'issue_id': group.id},
                     ),
                 })
+            user_context = self.get_user_context(user)
+            if user_context:
+                user_context.update(context)
+            else:
+                user_context = context
 
             msg = MessageBuilder(
                 subject=self.get_subject_with_prefix(),
@@ -270,7 +278,7 @@ class ActivityEmail(object):
                 html_template=html_template,
                 headers=headers,
                 type=email_type,
-                context=context,
+                context=user_context,
                 reference=activity,
                 reply_reference=group,
             )

@@ -7,7 +7,7 @@ from rest_framework.response import Response
 from sentry.api.bases.user import UserEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.user import DetailedUserSerializer
-from sentry.models import User
+from sentry.models import User, UserOption
 
 
 class BaseUserSerializer(serializers.ModelSerializer):
@@ -73,10 +73,18 @@ class UserDetailsEndpoint(UserEndpoint):
             serializer_cls = AdminUserSerializer
         else:
             serializer_cls = UserSerializer
-
         serializer = serializer_cls(user, data=request.DATA, partial=True)
+
         if serializer.is_valid():
             user = serializer.save()
+
+            options = request.DATA.get('options', {})
+            if options.get('seenReleaseBroadcast'):
+                UserOption.objects.set_value(
+                    user=user,
+                    key='seen_release_broadcast',
+                    value=options.get('seenReleaseBroadcast'),
+                )
             return Response(serialize(user, request.user))
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

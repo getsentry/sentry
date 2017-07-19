@@ -27,8 +27,10 @@ from django.utils.functional import cached_property
 from django.core.urlresolvers import reverse
 
 from sentry import options
-from sentry.db.models import BaseManager, BaseModel, BoundedAutoField, \
-    FlexibleForeignKey, BoundedPositiveIntegerField, UnicodePickledObjectField
+from sentry.db.models import (
+    BaseManager, BaseModel, BoundedAutoField, BoundedPositiveIntegerField,
+    EncryptedPickledObjectField, FlexibleForeignKey
+)
 from sentry.utils.decorators import classproperty
 from sentry.utils.otp import generate_secret_key, TOTP
 from sentry.utils.sms import send_sms, sms_available
@@ -62,7 +64,8 @@ class AuthenticatorManager(BaseManager):
         has enabled.  If `return_missing` is set to `True` then all
         interfaces are returned even if not enabled.
         """
-        _sort = lambda x: sorted(x, key=lambda x: (x.type == 0, x.type))
+        def _sort(x):
+            return sorted(x, key=lambda x: (x.type == 0, x.type))
 
         # Collect interfaces user is enrolled in
         ifaces = [x.interface for x in Authenticator.objects.filter(
@@ -560,7 +563,7 @@ class Authenticator(BaseModel):
     created_at = models.DateTimeField(_('created at'), default=timezone.now)
     last_used_at = models.DateTimeField(_('last used at'), null=True)
     type = BoundedPositiveIntegerField(choices=AUTHENTICATOR_CHOICES)
-    config = UnicodePickledObjectField()
+    config = EncryptedPickledObjectField()
 
     objects = AuthenticatorManager()
 

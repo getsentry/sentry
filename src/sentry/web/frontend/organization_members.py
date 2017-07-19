@@ -43,7 +43,7 @@ class OrganizationMembersView(OrganizationView):
         # TODO(dcramer): ideally member:write could approve
         can_approve_requests_globally = request.access.has_scope('org:write')
         can_add_members = request.access.has_scope('org:write')
-        can_remove_members = request.access.has_scope('member:delete')
+        can_remove_members = request.access.has_scope('member:admin')
 
         # pending requests
         if can_approve_requests_globally:

@@ -11,7 +11,7 @@ const Note = React.createClass({
     author: React.PropTypes.object.isRequired,
     item: React.PropTypes.object.isRequired,
     onEdit: React.PropTypes.func.isRequired,
-    onDelete: React.PropTypes.func.isRequired,
+    onDelete: React.PropTypes.func.isRequired
   },
 
   canEdit() {
@@ -26,16 +26,18 @@ const Note = React.createClass({
     return (
       <div>
         <TimeSince date={item.dateCreated} />
-        <div className="activity-author">{author.name}
-        {this.canEdit() &&
-          <span className="editor-tools">
-            <a onClick={onEdit}>{t('Edit')}</a>
-            <LinkWithConfirmation
-              className="danger"
-              message={t('Are you sure you wish to delete this comment?')}
-              onConfirm={onDelete}>{t('Remove')}</LinkWithConfirmation>
-          </span>
-        }
+        <div className="activity-author">
+          {author.name}
+          {this.canEdit() &&
+            <span className="editor-tools">
+              <a onClick={onEdit}>{t('Edit')}</a>
+              <LinkWithConfirmation
+                className="danger"
+                message={t('Are you sure you wish to delete this comment?')}
+                onConfirm={onDelete}>
+                {t('Remove')}
+              </LinkWithConfirmation>
+            </span>}
         </div>
         <div dangerouslySetInnerHTML={{__html: noteBody}} />
       </div>

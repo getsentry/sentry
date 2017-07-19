@@ -27,11 +27,9 @@ class GenericField extends React.Component {
       disabled: config.readonly,
       key: config.name,
       formState: this.props.formState,
-      help: (
-        (defined(config.help) && config.help !== '')
-          ? <span dangerouslySetInnerHTML={{__html: config.help}}/>
-          : null
-      ),
+      help: defined(config.help) && config.help !== ''
+        ? <span dangerouslySetInnerHTML={{__html: config.help}} />
+        : null
     });
 
     switch (config.type) {
@@ -68,11 +66,11 @@ class GenericField extends React.Component {
 }
 
 GenericField.propTypes = {
-    config: React.PropTypes.object.isRequired,
-    formData: React.PropTypes.object,
-    formErrors: React.PropTypes.object,
-    formState: React.PropTypes.string.isRequired,
-    onChange: React.PropTypes.func,
+  config: React.PropTypes.object.isRequired,
+  formData: React.PropTypes.object,
+  formErrors: React.PropTypes.object,
+  formState: React.PropTypes.string.isRequired,
+  onChange: React.PropTypes.func
 };
 
 export default GenericField;

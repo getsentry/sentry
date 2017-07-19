@@ -8,16 +8,13 @@ import OrganizationState from '../mixins/organizationState';
 import {t} from '../locale';
 
 const TeamMembers = React.createClass({
-  mixins: [
-    ApiMixin,
-    OrganizationState
-  ],
+  mixins: [ApiMixin, OrganizationState],
 
   getInitialState() {
     return {
       loading: true,
       error: false,
-      memberList: null,
+      memberList: null
     };
   },
 
@@ -27,12 +24,17 @@ const TeamMembers = React.createClass({
 
   componentWillReceiveProps(nextProps) {
     let params = this.props.params;
-    if (nextProps.params.teamId !== params.teamId ||
-        nextProps.params.orgId !== params.orgId) {
-      this.setState({
-        loading: true,
-        error: false
-      }, this.fetchData);
+    if (
+      nextProps.params.teamId !== params.teamId ||
+      nextProps.params.orgId !== params.orgId
+    ) {
+      this.setState(
+        {
+          loading: true,
+          error: false
+        },
+        this.fetchData
+      );
     }
   },
 
@@ -40,7 +42,7 @@ const TeamMembers = React.createClass({
     let params = this.props.params;
 
     this.api.request(`/teams/${params.orgId}/${params.teamId}/members/`, {
-      success: (data) => {
+      success: data => {
         this.setState({
           memberList: data,
           loading: false,
@@ -57,10 +59,8 @@ const TeamMembers = React.createClass({
   },
 
   render() {
-    if (this.state.loading)
-      return <LoadingIndicator />;
-    else if (this.state.error)
-      return <LoadingError onRetry={this.fetchData} />;
+    if (this.state.loading) return <LoadingIndicator />;
+    else if (this.state.error) return <LoadingError onRetry={this.fetchData} />;
 
     let {orgId} = this.props.params;
     let memberPrefix = `/organizations/${orgId}/members`;
@@ -69,22 +69,23 @@ const TeamMembers = React.createClass({
     return (
       <div>
         <div style={{marginBottom: 20}} className="clearfix">
-          {access.has('org:write') ?
-            <a className="btn btn-primary btn-sm pull-right" href={`${memberPrefix}/new/`}>
-              <span className="icon-plus" /> {t('Invite Member')}
-            </a>
-          :
-            <a className="btn btn-primary btn-sm btn-disabled tip pull-right"
-               title={t('You do not have enough permission to add new members')}>
-              <span className="icon-plus" /> {t('Invite Member')}
-            </a>
-          }
+          {access.has('org:write')
+            ? <a
+                className="btn btn-primary btn-sm pull-right"
+                href={`${memberPrefix}/new/`}>
+                <span className="icon-plus" /> {t('Invite Member')}
+              </a>
+            : <a
+                className="btn btn-primary btn-sm btn-disabled tip pull-right"
+                title={t('You do not have enough permission to add new members')}>
+                <span className="icon-plus" /> {t('Invite Member')}
+              </a>}
         </div>
 
         <table className="table member-list">
           <colgroup>
             <col />
-            <col width="150"/>
+            <col width="150" />
           </colgroup>
           <thead>
             <tr>
@@ -93,9 +94,9 @@ const TeamMembers = React.createClass({
             </tr>
           </thead>
           <tbody>
-            {this.state.memberList.map((member) => {
+            {this.state.memberList.map((member, i) => {
               return (
-                <tr>
+                <tr key={i}>
                   <td className="table-user-info">
                     <Avatar user={member} size={80} />
                     <h5><a href={`${memberPrefix}/${member.id}/`}>{member.email}</a></h5>

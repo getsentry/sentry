@@ -17,10 +17,14 @@ import warnings
 from django.utils.text import slugify
 from exam import fixture
 from uuid import uuid4
+import os
+from django.utils import timezone
+
 
 from sentry.models import (
     Activity, Event, EventError, EventMapping, Group, Organization,
-    OrganizationMember, OrganizationMemberTeam, Project, Team, User
+    OrganizationMember, OrganizationMemberTeam, Project, Team, User, UserEmail,
+    Release, Commit, ReleaseCommit, CommitAuthor, Repository, CommitFileChange
 )
 
 DEFAULT_EVENT_DATA = {
@@ -45,6 +49,43 @@ DEFAULT_EVENT_DATA = {
     },
     'sentry.interfaces.Stacktrace': {
         'frames': [
+            {
+                'abs_path': 'www/src/sentry/models/foo.py',
+                'context_line': '                        string_max_length=self.string_max_length)',
+                'filename': 'raven/base.py',
+                'function': 'build_msg',
+                'in_app': True,
+                'lineno': 29,
+                'module': 'raven.base',
+                'post_context': [
+                    '                },',
+                    '            })',
+                    '',
+                    "        if 'sentry.interfaces.Stacktrace' in data:",
+                    '            if self.include_paths:'
+                ],
+                'pre_context': [
+                    '',
+                    '            data.update({',
+                    "                'sentry.interfaces.Stacktrace': {",
+                    "                    'frames': get_stack_info(frames,",
+                    '                        list_max_length=self.list_max_length,'],
+                'vars': {
+                    'culprit': 'raven.scripts.runner',
+                    'date': 'datetime.datetime(2013, 2, 14, 20, 6, 33, 479471)',
+                    'event_id': '598fb19363e745ec8be665e6ba88b1b2',
+                    'event_type': 'raven.events.Message',
+                    'frames': '<generator object iter_stack_frames at 0x103fef050>',
+                    'handler': '<raven.events.Message object at 0x103feb710>',
+                    'k': 'sentry.interfaces.Message',
+                    'public_key': None,
+                    'result': {'sentry.interfaces.Message': "{'message': 'This is a test message generated using ``raven test``', 'params': []}"},
+                    'self': '<raven.base.Client object at 0x104397f10>',
+                    'stack': True,
+                    'tags': None,
+                    'time_spent': None,
+                },
+            },
             {
                 'abs_path': '/Users/dcramer/.virtualenvs/sentry/lib/python2.7/site-packages/raven/base.py',
                 'context_line': '                        string_max_length=self.string_max_length)',
@@ -155,7 +196,7 @@ class Fixtures(object):
 
     def create_organization(self, **kwargs):
         if not kwargs.get('name'):
-            kwargs['name'] = petname.Generate(2, ' ').title()
+            kwargs['name'] = petname.Generate(2, ' ', letters=10).title()
 
         owner = kwargs.pop('owner', -1)
         if owner is -1:
@@ -185,7 +226,7 @@ class Fixtures(object):
 
     def create_team(self, **kwargs):
         if not kwargs.get('name'):
-            kwargs['name'] = petname.Generate(2, ' ').title()
+            kwargs['name'] = petname.Generate(2, ' ', letters=10).title()
         if not kwargs.get('slug'):
             kwargs['slug'] = slugify(six.text_type(kwargs['name']))
         if not kwargs.get('organization'):
@@ -195,7 +236,7 @@ class Fixtures(object):
 
     def create_project(self, **kwargs):
         if not kwargs.get('name'):
-            kwargs['name'] = petname.Generate(2, ' ').title()
+            kwargs['name'] = petname.Generate(2, ' ', letters=10).title()
         if not kwargs.get('slug'):
             kwargs['slug'] = slugify(six.text_type(kwargs['name']))
         if not kwargs.get('team'):
@@ -207,6 +248,93 @@ class Fixtures(object):
 
     def create_project_key(self, project):
         return project.key_set.get_or_create()[0]
+
+    # TODO(maxbittker) make new fixtures less hardcoded
+    def create_release(self, project, user=None, version=None):
+        if version is None:
+            version = os.urandom(20).encode('hex')
+
+        release = Release.objects.create(
+            version=version,
+            organization_id=project.organization_id,
+        )
+
+        release.add_project(project)
+
+        Activity.objects.create(
+            type=Activity.RELEASE,
+            project=project,
+            ident=version,
+            user=user,
+            data={'version': version},
+        )
+
+        # add commits
+        if user:
+            author = self.create_commit_author(project, user)
+            repo = self.create_repo(project)
+            commit = self.create_commit(project, repo, author, release)
+
+            release.update(
+                authors=[six.text_type(author.id)],
+                commit_count=1,
+                last_commit_id=commit.id,
+            )
+
+        return release
+
+    def create_repo(self, project):
+        repo = Repository.objects.create(
+            organization_id=project.organization_id,
+            name='organization-{}'.format(project.name),
+        )
+        return repo
+
+    def create_commit(self, project, repo, author, release):
+        commit = Commit.objects.get_or_create(
+            organization_id=project.organization_id,
+            repository_id=repo.id,
+            key='deadbeef',
+            defaults={
+                'message': 'placeholder commit message',
+                'author': author,
+                'date_added': timezone.now(),
+            }
+        )[0]
+
+        # add it to release
+        ReleaseCommit.objects.create(
+            organization_id=project.organization_id,
+            project_id=project.id,
+            release=release,
+            commit=commit,
+            order=1,
+        )
+
+        self.create_commit_file_change(commit, release, project, '/models/foo.py')
+        self.create_commit_file_change(commit, release, project, '/worsematch/foo.py')
+        self.create_commit_file_change(commit, release, project, '/models/other.py')
+
+        return commit
+
+    def create_commit_author(self, project, user):
+        commit_author = CommitAuthor.objects.get_or_create(
+            organization_id=project.organization_id,
+            email=user,
+            defaults={
+                'name': user,
+            }
+        )[0]
+        return commit_author
+
+    def create_commit_file_change(self, commit, release, project, filename):
+        commit_file_change = CommitFileChange.objects.get_or_create(
+            organization_id=project.organization_id,
+            commit=commit,
+            filename=filename,
+            type='M',
+        )
+        return commit_file_change
 
     def create_user(self, email=None, **kwargs):
         if not email:
@@ -220,6 +348,12 @@ class Fixtures(object):
         user = User(email=email, **kwargs)
         user.set_password('admin')
         user.save()
+
+        # UserEmail is created by a signal
+        UserEmail.objects.filter(
+            user=user,
+            email=email,
+        ).update(is_verified=True)
 
         return user
 
@@ -302,7 +436,6 @@ class Fixtures(object):
                     "exc_omitted": null,
                     "values": [{
                         "stacktrace": {
-                            "has_system_frames": false,
                             "frames": [{
                                 "function": "batchedUpdates",
                                 "abs_path": "webpack:////usr/src/getsentry/src/sentry/~/react/lib/ReactUpdates.js",
@@ -342,9 +475,27 @@ class Fixtures(object):
                     "id": "41656",
                     "email": "test@example.com"
                 },
-                "version": "7"
+                "version": "7",
+                "sentry.interfaces.Breadcrumbs": {
+                    "values": [
+                        {
+                            "category": "xhr",
+                            "timestamp": 1496395011.63,
+                            "type": "http",
+                            "data": {
+                                "url": "/api/path/here",
+                                "status_code": "500",
+                                "method": "POST"
+                            }
+                        }
+                    ]
+                }
             }"""
-        return self.create_event(event_id=event_id, platform='javascript', data=json.loads(payload))
+
+        return self.create_event(
+            event_id=event_id,
+            platform='javascript',
+            data=json.loads(payload))
 
     def create_group(self, project=None, checksum=None, **kwargs):
         if checksum:

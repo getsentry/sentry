@@ -1,3 +1,5 @@
-{{ release.short_version }} was released for {{ project.name }} on {{ release.date_added }}.
+Version {{ release.short_version }} was deployed to {{ environment }} on {{ deploy.date_finished }}
 
-{{ release_link }}
+{% for project, release_link, resolved_issue_count in projects %}
+    {{ release_link }}
+{% endfor %}

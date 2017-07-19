@@ -12,9 +12,7 @@ import {isUrl, percent, deviceNameMapper} from '../utils';
 import {t} from '../locale';
 
 const GroupTagValues = React.createClass({
-  mixins: [
-    ApiMixin
-  ],
+  mixins: [ApiMixin],
 
   getInitialState() {
     return {
@@ -31,8 +29,10 @@ const GroupTagValues = React.createClass({
   },
 
   componentDidUpdate(prevProps) {
-    if (prevProps.location.search !== this.props.location.search ||
-      prevProps.params.tagKey !== this.props.params.tagKey) {
+    if (
+      prevProps.location.search !== this.props.location.search ||
+      prevProps.params.tagKey !== this.props.params.tagKey
+    ) {
       this.fetchData();
     }
   },
@@ -48,13 +48,13 @@ const GroupTagValues = React.createClass({
     });
 
     this.api.request(`/issues/${params.groupId}/tags/${params.tagKey}/`, {
-      success: (data) => {
+      success: data => {
         this.setState({
           tagKey: data,
           loading: this.state.tagValueList === null
         });
       },
-      error: (error) => {
+      error: error => {
         this.setState({
           error: true,
           loading: false
@@ -62,21 +62,24 @@ const GroupTagValues = React.createClass({
       }
     });
 
-    this.api.request(`/issues/${params.groupId}/tags/${params.tagKey}/values/?${querystring}`, {
-      success: (data, _, jqXHR) => {
-        this.setState({
-          tagValueList: data,
-          loading: this.state.tagKey === null,
-          pageLinks: jqXHR.getResponseHeader('Link')
-        });
-      },
-      error: (error) => {
-        this.setState({
-          error: true,
-          loading: false
-        });
+    this.api.request(
+      `/issues/${params.groupId}/tags/${params.tagKey}/values/?${querystring}`,
+      {
+        success: (data, _, jqXHR) => {
+          this.setState({
+            tagValueList: data,
+            loading: this.state.tagKey === null,
+            pageLinks: jqXHR.getResponseHeader('Link')
+          });
+        },
+        error: error => {
+          this.setState({
+            error: true,
+            loading: false
+          });
+        }
       }
-    });
+    );
   },
 
   getUserDisplayName(item) {
@@ -97,32 +100,35 @@ const GroupTagValues = React.createClass({
       return (
         <tr key={tagValueIdx}>
           <td className="bar-cell">
-            <span className="bar" style={{width: pct + '%'}}></span>
+            <span className="bar" style={{width: pct + '%'}} />
             <span className="label">{pct}%</span>
           </td>
           <td>
             <Link
-                to={{
-                  pathname: `/${orgId}/${projectId}/`,
-                  query: {query: `${tagKey.key}:"${tagValue.value}"`}
-                }}>
-              {tagKey.key === 'user' ? [
-                <Avatar user={tagValue} size={20} className="avatar" />,
-                <span style={{marginLeft: 10}}>{this.getUserDisplayName(tagValue)}</span>
-              ] :
-                deviceNameMapper(tagValue.name)
-              }
+              to={{
+                pathname: `/${orgId}/${projectId}/`,
+                query: {query: `${tagKey.key}:"${tagValue.value}"`}
+              }}>
+              {tagKey.key === 'user'
+                ? [
+                    <Avatar user={tagValue} size={20} className="avatar" />,
+                    <span style={{marginLeft: 10}}>
+                      {this.getUserDisplayName(tagValue)}
+                    </span>
+                  ]
+                : deviceNameMapper(tagValue.name)}
             </Link>
             {tagValue.email &&
-              <a href={`mailto:${tagValue.email}`} className="external-icon">
+              <a
+                href={`mailto:${tagValue.email}`}
+                target="_blank"
+                className="external-icon">
                 <em className="icon-envelope" />
-              </a>
-            }
+              </a>}
             {isUrl(tagValue.value) &&
               <a href={tagValue.value} className="external-icon">
                 <em className="icon-open" />
-              </a>
-            }
+              </a>}
           </td>
           <td>
             <TimeSince date={tagValue.lastSeen} />
@@ -135,14 +141,15 @@ const GroupTagValues = React.createClass({
       <div>
         <h3>
           {tagKey.key == 'user' ? t('Affected Users') : tagKey.name}
-          <a href="export/" className="btn btn-default btn-sm"
-             style={{marginLeft: 10}}>{t('Export to CSV')}</a>
+          <a href="export/" className="btn btn-default btn-sm" style={{marginLeft: 10}}>
+            {t('Export to CSV')}
+          </a>
         </h3>
         <table className="table table-striped">
           <thead>
             <tr>
               <th style={{width: 30}}>%</th>
-              <th></th>
+              <th />
               <th style={{width: 200}}>{t('Last Seen')}</th>
             </tr>
           </thead>
@@ -150,8 +157,12 @@ const GroupTagValues = React.createClass({
             {children}
           </tbody>
         </table>
-        <Pagination pageLinks={this.state.pageLinks}/>
-        <p><small>{t('Note: Percentage of issue is based on events seen in the last 7 days.')}</small></p>
+        <Pagination pageLinks={this.state.pageLinks} />
+        <p>
+          <small>
+            {t('Note: Percentage of issue is based on events seen in the last 7 days.')}
+          </small>
+        </p>
       </div>
     );
   }

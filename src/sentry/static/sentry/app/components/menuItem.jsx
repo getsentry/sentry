@@ -17,7 +17,7 @@ const MenuItem = React.createClass({
     to: React.PropTypes.string,
     query: React.PropTypes.object,
     linkClassName: React.PropTypes.string,
-    onClick: React.PropTypes.func,
+    onClick: React.PropTypes.func
   },
 
   handleClick(e) {
@@ -31,19 +31,22 @@ const MenuItem = React.createClass({
     if (this.props.to) {
       return (
         <Link
-            to={{pathname: this.props.to, query: this.props.query}}
-            title={this.props.title}
-            onClick={this.handleClick}
-            className={this.props.linkClassName}
-            tabIndex="-1">
+          to={{pathname: this.props.to, query: this.props.query}}
+          title={this.props.title}
+          onClick={this.handleClick}
+          className={this.props.linkClassName}
+          tabIndex="-1">
           {this.props.children}
         </Link>
       );
     }
     return (
-      <a title={this.props.title} onClick={this.handleClick}
-          href={this.props.href} className={this.props.linkClassName}
-          tabIndex="-1">
+      <a
+        title={this.props.title}
+        onClick={this.handleClick}
+        href={this.props.href}
+        className={this.props.linkClassName}
+        tabIndex="-1">
         {this.props.children}
       </a>
     );
@@ -52,8 +55,8 @@ const MenuItem = React.createClass({
   render() {
     let classes = {
       'dropdown-header': this.props.header,
-      'divider': this.props.divider,
-      'active': this.props.isActive
+      divider: this.props.divider,
+      active: this.props.isActive
     };
 
     let children = null;
@@ -65,9 +68,11 @@ const MenuItem = React.createClass({
       children = this.renderAnchor();
     }
 
-
     return (
-      <li role="presentation" title={null} href={null}
+      <li
+        role="presentation"
+        title={null}
+        href={null}
         className={classNames(this.props.className, classes)}
         onClick={this.props.onClick}>
         {children}

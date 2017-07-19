@@ -38,7 +38,7 @@ class ProjectSerializer(serializers.Serializer):
     name = serializers.CharField(max_length=64, required=True)
     slug = serializers.RegexField(r'^[a-z0-9_\-]+$', max_length=50,
                                   required=False)
-
+    platform = serializers.CharField(required=False)
 
 # While currently the UI suggests teams are a parent of a project, in reality
 # the project is the core component, and which team it is on is simply an
@@ -46,12 +46,14 @@ class ProjectSerializer(serializers.Serializer):
 # it, and because Sentry intends to remove teams as a hierarchy item, we
 # allow you to view a teams projects, as well as create a new project as long
 # as you are a member of that team and have project scoped permissions.
+
+
 class TeamProjectPermission(TeamPermission):
     scope_map = {
-        'GET': ['project:read', 'project:write', 'project:delete'],
-        'POST': ['project:write', 'project:delete'],
-        'PUT': ['project:write', 'project:delete'],
-        'DELETE': ['project:delete'],
+        'GET': ['project:read', 'project:write', 'project:admin'],
+        'POST': ['project:write', 'project:admin'],
+        'PUT': ['project:write', 'project:admin'],
+        'DELETE': ['project:admin'],
     }
 
 
@@ -112,7 +114,8 @@ class TeamProjectIndexEndpoint(TeamEndpoint):
                         name=result['name'],
                         slug=result.get('slug'),
                         organization=team.organization,
-                        team=team
+                        team=team,
+                        platform=result.get('platform')
                     )
             except IntegrityError:
                 return Response(

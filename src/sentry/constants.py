@@ -82,7 +82,7 @@ RESERVED_ORGANIZATION_SLUGS = frozenset((
     'subscribe', 'enterprise', 'about', 'jobs', 'thanks', 'guide',
     'privacy', 'security', 'terms', 'from', 'sponsorship', 'for',
     'at', 'platforms', 'branding', 'vs', 'answers', '_admin',
-    'support',
+    'support', 'contact',
 ))
 
 LOG_LEVELS = {
@@ -118,6 +118,7 @@ TAG_LABELS = {
     'sentry:filename': 'File',
     'sentry:function': 'Function',
     'sentry:release': 'Release',
+    'sentry:dist': 'Distribution',
     'os': 'OS',
     'url': 'URL',
     'server_name': 'Server',
@@ -160,6 +161,7 @@ CLIENT_RESERVED_ATTRS = (
     'tags',
     'platform',
     'release',
+    'dist',
     'environment',
 )
 
@@ -167,13 +169,23 @@ DEFAULT_SCRUBBED_FIELDS = (
     'password',
     'secret',
     'passwd',
-    'authorization',
     'api_key',
     'apikey',
     'access_token',
     'auth',
     'credentials',
+    'mysql_pwd',
+    'stripeToken',
 )
+
+NOT_SCRUBBED_VALUES = set([
+    True,
+    False,
+    'true',
+    'false',
+    'null',
+    'undefined',
+])
 
 VALID_PLATFORMS = set([
     'as3',
@@ -214,7 +226,8 @@ MAX_SYM = 256
 
 # Known dsym mimetypes
 KNOWN_DSYM_TYPES = {
-    'application/x-mach-binary': 'macho'
+    'application/x-mach-binary': 'macho',
+    'text/x-proguard+plain': 'proguard',
 }
 
 NATIVE_UNKNOWN_STRING = '<unknown>'

@@ -1,9 +1,7 @@
 // zh-cn => zh_CN
 function convertToDjangoLocaleFormat(language) {
   let [left, right] = language.split('-');
-  return left + (
-    right ? '_' + right.toUpperCase() : ''
-  );
+  return left + (right ? '_' + right.toUpperCase() : '');
 }
 
 export function getTranslations(language) {

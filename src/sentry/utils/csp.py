@@ -73,6 +73,12 @@ ALLOWED_DIRECTIVES = frozenset((
     # 'sandbox',
 ))
 
+# URIs that are pure noise and will never be actionable
+DISALLOWED_BLOCKED_URIS = frozenset((
+    'about',
+    'ms-browser-extension',
+))
+
 
 def is_valid_csp_report(report, project=None):
     # Some reports from Chrome report blocked-uri as just 'about'.
@@ -82,7 +88,7 @@ def is_valid_csp_report(report, project=None):
         return False
 
     blocked_uri = report.get('blocked_uri')
-    if blocked_uri == 'about':
+    if blocked_uri in DISALLOWED_BLOCKED_URIS:
         return False
 
     source_file = report.get('source_file')

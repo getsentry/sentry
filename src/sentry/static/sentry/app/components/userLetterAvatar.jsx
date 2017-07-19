@@ -20,7 +20,8 @@ const UserLetterAvatar = React.createClass({
     return (
       <LetterAvatar
         identifier={this.getIdentifier()}
-        displayName={this.getDisplayName()}/>
+        displayName={this.getDisplayName()}
+      />
     );
   }
 });

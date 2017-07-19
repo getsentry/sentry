@@ -3,7 +3,7 @@ from __future__ import absolute_import
 from rest_framework import serializers
 from rest_framework.response import Response
 
-from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
+from sentry.api.bases.project import ProjectEndpoint, RelaxedSearchPermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.models import SavedSearch, SavedSearchUserDefault
@@ -18,16 +18,6 @@ class SavedSearchSerializer(serializers.Serializer):
     query = serializers.CharField(required=True)
     isDefault = serializers.BooleanField(required=False)
     isUserDefault = serializers.BooleanField(required=False)
-
-
-class RelaxedSearchPermission(ProjectPermission):
-    scope_map = {
-        'GET': ['project:read', 'project:write', 'project:delete'],
-        'POST': ['project:write', 'project:delete'],
-        # members can do partial writes
-        'PUT': ['project:write', 'project:delete', 'project:read'],
-        'DELETE': ['project:delete'],
-    }
 
 
 class ProjectSearchDetailsEndpoint(ProjectEndpoint):

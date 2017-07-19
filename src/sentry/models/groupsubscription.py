@@ -12,23 +12,29 @@ from sentry.db.models import (
 
 
 class GroupSubscriptionReason(object):
-    committed = -2  # not for use as a persisted field value
     implicit = -1   # not for use as a persisted field value
+    committed = -2  # not for use as a persisted field value
+    processing_issue = -3  # not for use as a persisted field value
 
     unknown = 0
     comment = 1
     assigned = 2
     bookmark = 3
     status_change = 4
+    deploy_setting = 5
+    mentioned = 6
 
     descriptions = {
         implicit: u"have opted to receive updates for all issues within "
                   "projects that you are a member of",
         committed: u"were involved in a commit that is part of this release",
+        processing_issue: u"are subscribed to alerts for this project",
         comment: u"have commented on this issue",
         assigned: u"have been assigned to this issue",
         bookmark: u"have bookmarked this issue",
         status_change: u"have changed the resolution status of this issue",
+        deploy_setting: u"opted to receive all deploy notifications for this organization",
+        mentioned: u"have been mentioned in this issue",
     }
 
 
@@ -88,19 +94,21 @@ class GroupSubscriptionManager(BaseManager):
 
         # Find users which by default do not subscribe.
         participating_only = set(
-            UserOption.objects.filter(
+            uo.user_id for uo in UserOption.objects.filter(
                 Q(project__isnull=True) | Q(project=group.project),
                 user__in=users,
                 key='workflow:notifications',
-                value=UserOptionValue.participating_only,
             ).exclude(
-                user__in=UserOption.objects.filter(
-                    user__in=users,
-                    key='workflow:notifications',
-                    project=group.project,
-                    value=UserOptionValue.all_conversations,
-                )
-            ).values_list('user', flat=True)
+                user__in=[
+                    uo.user_id for uo in UserOption.objects.filter(
+                        project=group.project,
+                        user__in=users,
+                        key='workflow:notifications',
+                    )
+                    if uo.value == UserOptionValue.all_conversations
+                ]
+            )
+            if uo.value == UserOptionValue.participating_only
         )
 
         if participating_only:

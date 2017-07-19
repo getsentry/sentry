@@ -244,15 +244,18 @@ class SensitiveDataFilterTest(TestCase):
         assert result == "'redis://redis:%s@localhost:6379/0'" % FILTER_MASK
         result = proc.sanitize('foo', "foo redis://redis:foo@localhost:6379/0 bar")
         assert result == "foo redis://redis:%s@localhost:6379/0 bar" % FILTER_MASK
-        result = proc.sanitize('foo', "foo redis://redis:foo@localhost:6379/0 bar pg://matt:foo@localhost/1")
-        assert result == "foo redis://redis:%s@localhost:6379/0 bar pg://matt:%s@localhost/1" % (FILTER_MASK, FILTER_MASK)
+        result = proc.sanitize(
+            'foo', "foo redis://redis:foo@localhost:6379/0 bar pg://matt:foo@localhost/1")
+        assert result == "foo redis://redis:%s@localhost:6379/0 bar pg://matt:%s@localhost/1" % (
+            FILTER_MASK, FILTER_MASK)
         # Make sure we don't mess up any other url.
         # This url specifically if passed through urlunsplit(urlsplit()),
         # it'll change the value.
         result = proc.sanitize('foo', 'postgres:///path')
         assert result == 'postgres:///path'
         # Don't be too overly eager within JSON strings an catch the right field.
-        result = proc.sanitize('foo', '{"a":"https://localhost","b":"foo@localhost","c":"pg://matt:pass@localhost/1","d":"lol"}')
+        result = proc.sanitize(
+            'foo', '{"a":"https://localhost","b":"foo@localhost","c":"pg://matt:pass@localhost/1","d":"lol"}')
         assert result == '{"a":"https://localhost","b":"foo@localhost","c":"pg://matt:%s@localhost/1","d":"lol"}' % FILTER_MASK
 
     def test_sanitize_http_body(self):
@@ -366,3 +369,20 @@ class SensitiveDataFilterTest(TestCase):
         proc = SensitiveDataFilter(fields=[''])
         proc.apply(data)
         assert data['extra'] == {'foobar': 'xxx'}
+
+    def test_should_have_mysql_pwd_as_a_default(self):
+        proc = SensitiveDataFilter(include_defaults=True)
+        assert proc.sanitize('MYSQL_PWD', 'the one') == FILTER_MASK
+        assert proc.sanitize('mysql_pwd', 'the two') == FILTER_MASK
+
+    def test_authorization_scrubbing(self):
+        proc = SensitiveDataFilter(include_defaults=True)
+        assert proc.sanitize('authorization', 'foobar') == FILTER_MASK
+        assert proc.sanitize('auth', 'foobar') == FILTER_MASK
+        assert proc.sanitize('auXth', 'foobar') == 'foobar'
+
+    def test_doesnt_scrub_not_scrubbed(self):
+        proc = SensitiveDataFilter(include_defaults=True)
+        assert proc.sanitize('is_authenticated', 'foobar') == FILTER_MASK
+        assert proc.sanitize('is_authenticated', 'null') == 'null'
+        assert proc.sanitize('is_authenticated', True) is True

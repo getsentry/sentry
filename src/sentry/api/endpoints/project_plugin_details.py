@@ -15,6 +15,7 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.plugin import (
     PluginSerializer, PluginWithConfigSerializer, serialize_field
 )
+from sentry.signals import plugin_enabled
 
 ERR_ALWAYS_ENABLED = 'This plugin is always enabled.'
 ERR_FIELD_REQUIRED = 'This field is required.'
@@ -131,5 +132,7 @@ class ProjectPluginDetailsEndpoint(ProjectEndpoint):
 
         context = serialize(
             plugin, request.user, PluginWithConfigSerializer(project))
+
+        plugin_enabled.send(plugin=plugin, project=project, user=request.user, sender=self)
 
         return Response(context)

@@ -7,20 +7,22 @@ import ResultGrid from '../components/resultGrid';
 import {t} from '../locale';
 
 export const prettyDate = function(x) {
-    return moment(x).format('ll');
+  return moment(x).format('ll');
 };
 
 const AdminProjects = React.createClass({
   getRow(row) {
     return [
       <td>
-        <strong><a href={`/${row.organization.slug}/${row.slug}/`}>
-          {row.name}
-        </a></strong><br />
+        <strong>
+          <a href={`/${row.organization.slug}/${row.slug}/`}>
+            {row.name}
+          </a>
+        </strong><br />
         <small>{row.organization.name}</small>
       </td>,
       <td style={{textAlign: 'center'}}>{row.status}</td>,
-      <td style={{textAlign: 'right'}}>{prettyDate(row.dateCreated)}</td>,
+      <td style={{textAlign: 'right'}}>{prettyDate(row.dateCreated)}</td>
     ];
   },
 
@@ -28,7 +30,7 @@ const AdminProjects = React.createClass({
     let columns = [
       <th>Project</th>,
       <th style={{width: 150, textAlign: 'center'}}>Status</th>,
-      <th style={{width: 200, textAlign: 'right'}}>Created</th>,
+      <th style={{width: 200, textAlign: 'right'}}>Created</th>
     ];
 
     return (
@@ -36,7 +38,7 @@ const AdminProjects = React.createClass({
         <h3>{t('Projects')}</h3>
         <ResultGrid
           path="/manage/projects/"
-          endpoint={`/projects/`}
+          endpoint={'/projects/'}
           method="GET"
           columns={columns}
           columnsForRow={this.getRow}
@@ -44,20 +46,16 @@ const AdminProjects = React.createClass({
           filters={{
             status: {
               name: 'Status',
-              options: [
-                ['active', 'Active'],
-                ['deleted', 'Deleted'],
-              ],
-            },
+              options: [['active', 'Active'], ['deleted', 'Deleted']]
+            }
           }}
-          sortOptions={[
-            ['date', 'Date Created'],
-          ]}
+          sortOptions={[['date', 'Date Created']]}
           defaultSort="date"
-          {...this.props} />
+          {...this.props}
+        />
       </div>
     );
-  },
+  }
 });
 
 export default AdminProjects;

@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 from rest_framework.response import Response
 
-from sentry.app import tsdb
+from sentry import tsdb
 from sentry.api.base import DocSection, StatsMixin
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.utils.apidocs import scenario, attach_scenarios
@@ -59,6 +59,8 @@ class ProjectStatsEndpoint(ProjectEndpoint, StatsMixin):
             stat_model = tsdb.models.project_total_blacklisted
         elif stat == 'generated':
             stat_model = tsdb.models.project
+        elif stat == 'forwarded':
+            stat_model = tsdb.models.project_total_forwarded
         else:
             raise ValueError('Invalid stat: %s' % stat)
 

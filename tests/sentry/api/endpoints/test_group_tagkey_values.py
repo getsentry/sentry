@@ -17,8 +17,8 @@ class GroupTagKeyValuesTest(APITestCase):
             value=value,
         )
         GroupTagValue.objects.create(
-            project=project,
-            group=group,
+            project_id=project.id,
+            group_id=group.id,
             key=key,
             value=value,
         )
@@ -54,8 +54,8 @@ class GroupTagKeyValuesTest(APITestCase):
             value=euser.tag_value,
         )
         GroupTagValue.objects.create(
-            project=project,
-            group=group,
+            project_id=project.id,
+            group_id=group.id,
             key='sentry:user',
             value=euser.tag_value,
         )

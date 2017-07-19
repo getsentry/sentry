@@ -30,8 +30,7 @@ const AssigneeSelector = React.createClass({
 
   statics: {
     filterMembers(memberList, filter) {
-      if (!filter)
-        return memberList;
+      if (!filter) return memberList;
 
       filter = filter.toLowerCase();
       return memberList.filter(item => {
@@ -44,10 +43,11 @@ const AssigneeSelector = React.createClass({
     putSessionUserFirst(members) {
       // If session user is in the filtered list of members, put them at the top
       let sessionUser = ConfigStore.get('user');
-      let sessionUserIndex = members.findIndex(member => sessionUser && member.id === sessionUser.id);
+      let sessionUserIndex = members.findIndex(
+        member => sessionUser && member.id === sessionUser.id
+      );
 
-      if (sessionUserIndex === -1)
-        return members;
+      if (sessionUserIndex === -1) return members;
 
       return [members[sessionUserIndex]]
         .concat(members.slice(0, sessionUserIndex))
@@ -136,7 +136,10 @@ const AssigneeSelector = React.createClass({
 
   onFilterKeyDown(evt) {
     if (evt.key === 'Enter' && this.state.filter) {
-      let members = AssigneeSelector.filterMembers(this.state.memberList, this.state.filter);
+      let members = AssigneeSelector.filterMembers(
+        this.state.memberList,
+        this.state.filter
+      );
       if (members.length > 0) {
         this.assignTo(members[0]);
       }
@@ -182,14 +185,18 @@ const AssigneeSelector = React.createClass({
       className += ' unassigned';
     }
 
-    let members = AssigneeSelector.filterMembers(this.state.memberList, this.state.filter);
+    let members = AssigneeSelector.filterMembers(
+      this.state.memberList,
+      this.state.filter
+    );
     members = AssigneeSelector.putSessionUserFirst(members);
 
-    let memberNodes = members.map((item) => {
+    let memberNodes = members.map(item => {
       return (
-        <MenuItem key={item.id}
-                  disabled={loading}
-                  onSelect={this.assignTo.bind(this, item)} >
+        <MenuItem
+          key={item.id}
+          disabled={loading}
+          onSelect={this.assignTo.bind(this, item)}>
           <Avatar user={item} className="avatar" size={48} />
           {this.highlight(item.name || item.email, this.state.filter)}
         </MenuItem>
@@ -198,7 +205,9 @@ const AssigneeSelector = React.createClass({
 
     if (memberNodes.length === 0) {
       memberNodes = [
-        <li className="not-found" key="no-user"><span>{t('No matching users found.')}</span></li>
+        <li className="not-found" key="no-user">
+          <span>{t('No matching users found.')}</span>
+        </li>
       ];
     }
 
@@ -209,39 +218,42 @@ const AssigneeSelector = React.createClass({
 
     return (
       <div ref="container">
-        <div className={classNames(className, 'tip')} title={tooltipTitle} >
-          {loading ?
-            <LoadingIndicator mini={true} />
-          :
-            <DropdownLink
-              ref="dropdown"
-              className="assignee-selector-toggle"
-              onOpen={this.onDropdownOpen}
-              onClose={this.onDropdownClose}
-              title={assignedTo ?
-                <Avatar user={assignedTo} className="avatar" size={48} />
-                :
-                <span className="icon-user" />
-              }>
-              <MenuItem noAnchor={true} key="filter">
-                <input type="text" className="form-control input-sm"
-                       placeholder={t('Filter people')} ref="filter"
-                       onKeyDown={this.onFilterKeyDown}
-                       onKeyUp={this.onFilterKeyUp} />
-              </MenuItem>
-              {assignedTo ?
-                <MenuItem key="clear"
-                          className="clear-assignee"
-                          disabled={!loading}
-                          onSelect={this.clearAssignTo}>
-                  <span className="icon-circle-cross"/> {t('Clear Assignee')}
+        <div className={classNames(className, 'tip')} title={tooltipTitle}>
+          {loading
+            ? <LoadingIndicator mini={true} />
+            : <DropdownLink
+                ref="dropdown"
+                className="assignee-selector-toggle"
+                onOpen={this.onDropdownOpen}
+                onClose={this.onDropdownClose}
+                title={
+                  assignedTo
+                    ? <Avatar user={assignedTo} className="avatar" size={48} />
+                    : <span className="icon-user" />
+                }>
+                <MenuItem noAnchor={true} key="filter">
+                  <input
+                    type="text"
+                    className="form-control input-sm"
+                    placeholder={t('Filter people')}
+                    ref="filter"
+                    onKeyDown={this.onFilterKeyDown}
+                    onKeyUp={this.onFilterKeyUp}
+                  />
                 </MenuItem>
-              : ''}
-              <li>
-                <ul>{memberNodes}</ul>
-              </li>
-            </DropdownLink>
-          }
+                {assignedTo
+                  ? <MenuItem
+                      key="clear"
+                      className="clear-assignee"
+                      disabled={!loading}
+                      onSelect={this.clearAssignTo}>
+                      <span className="icon-circle-cross" /> {t('Clear Assignee')}
+                    </MenuItem>
+                  : ''}
+                <li>
+                  <ul>{memberNodes}</ul>
+                </li>
+              </DropdownLink>}
         </div>
       </div>
     );

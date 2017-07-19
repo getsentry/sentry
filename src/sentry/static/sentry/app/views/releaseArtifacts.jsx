@@ -47,7 +47,7 @@ const ReleaseArtifacts = React.createClass({
 
   getFilesEndpoint() {
     let params = this.props.params;
-    return `/projects/${params.orgId}/${params.projectId}/releases/${params.version}/files/`;
+    return `/projects/${params.orgId}/${params.projectId}/releases/${encodeURIComponent(params.version)}/files/`;
   },
 
   fetchData() {
@@ -83,7 +83,7 @@ const ReleaseArtifacts = React.createClass({
     this.api.request(this.getFilesEndpoint() + `${id}/`, {
       method: 'DELETE',
       success: () => {
-        let fileList = this.state.fileList.filter((file) => {
+        let fileList = this.state.fileList.filter(file => {
           return file.id !== id;
         });
 
@@ -107,14 +107,12 @@ const ReleaseArtifacts = React.createClass({
   },
 
   render() {
-    if (this.state.loading)
-      return <LoadingIndicator />;
-    else if (this.state.error)
-      return <LoadingError onRetry={this.fetchData} />;
+    if (this.state.loading) return <LoadingIndicator />;
+    else if (this.state.error) return <LoadingError onRetry={this.fetchData} />;
     else if (this.state.fileList.length === 0)
       return (
         <div className="box empty-stream">
-          <span className="icon icon-exclamation"></span>
+          <span className="icon icon-exclamation" />
           <p>{t('There are no artifacts uploaded for this release.')}</p>
         </div>
       );
@@ -127,48 +125,61 @@ const ReleaseArtifacts = React.createClass({
         <div className="panel panel-default">
           <div className="panel-heading panel-heading-bold">
             <div className="row">
-              <div className="col-sm-8 col-xs-7">{'Name'}</div>
-              <div className="col-sm-2 col-xs-2">{'Size'}</div>
-              <div className="col-sm-2 col-xs-3 align-right"></div>
+              <div className="col-lg-7 col-sm-6">{'Name'}</div>
+              <div className="col-lg-2 col-sm-2">{'Distribution'}</div>
+              <div className="col-lg-1 col-sm-2">{'Size'}</div>
+              <div className="col-lg-2 col-sm-2 align-right" />
             </div>
           </div>
           <ul className="list-group">
-          {this.state.fileList.map((file) => {
-            return (
-              <li className="list-group-item" key={file.id}>
-                <div className="row row-flex row-center-vertically">
-                  <div className="col-md-8 col-sm-9" style={{wordWrap: 'break-word'}}><strong>{file.name || '(empty)'}</strong></div>
-                  <div className="col-md-2 col-sm-12"><FileSize bytes={file.size} /></div>
-                  <div className="col-md-2 col-sm-3 align-right list-group-actions">
-                    {access.has('project:write') ?
-                      <a
-                          href={this.api.baseUrl + this.getFilesEndpoint() + `${file.id}/?download=1`}
-                          className="btn btn-sm btn-default">
-                          <span className="icon icon-open" />
-                      </a>
-                      :
-                      <div
-                        className="btn btn-sm btn-default disabled tip" title={t('You do not have the required permission to download this artifact.')}>
-                        <span className="icon icon-open" />
-                      </div>
-                    }
-                    <LinkWithConfirmation
-                      className="btn btn-sm btn-default"
-                      title={t('Delete artifact')}
-                      message={t('Are you sure you want to remove this artifact?')}
-                      onConfirm={this.handleRemove.bind(this, file.id)}>
+            {this.state.fileList.map(file => {
+              return (
+                <li className="list-group-item" key={file.id}>
+                  <div className="row row-flex row-center-vertically">
+                    <div className="col-lg-7 col-sm-6" style={{wordWrap: 'break-word'}}>
+                      <strong>{file.name || '(empty)'}</strong>
+                    </div>
+                    <div className="col-lg-2 col-sm-2">
+                      {file.dist || <span className="text-light">{t('None')}</span>}
+                    </div>
+                    <div className="col-lg-1 col-sm-2">
+                      <FileSize bytes={file.size} />
+                    </div>
+                    <div className="col-lg-2 col-sm-2 align-right list-group-actions">
+                      {access.has('project:write')
+                        ? <a
+                            href={
+                              this.api.baseUrl +
+                                this.getFilesEndpoint() +
+                                `${file.id}/?download=1`
+                            }
+                            className="btn btn-sm btn-default">
+                            <span className="icon icon-open" />
+                          </a>
+                        : <div
+                            className="btn btn-sm btn-default disabled tip"
+                            title={t(
+                              'You do not have the required permission to download this artifact.'
+                            )}>
+                            <span className="icon icon-open" />
+                          </div>}
+                      <LinkWithConfirmation
+                        className="btn btn-sm btn-default"
+                        title={t('Delete artifact')}
+                        message={t('Are you sure you want to remove this artifact?')}
+                        onConfirm={this.handleRemove.bind(this, file.id)}>
 
-                      <span className="icon icon-trash" />
-                    </LinkWithConfirmation>
+                        <span className="icon icon-trash" />
+                      </LinkWithConfirmation>
+                    </div>
                   </div>
-                </div>
-              </li>
-            );
-          })}
-        </ul>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+        <Pagination pageLinks={this.state.pageLinks} />
       </div>
-      <Pagination pageLinks={this.state.pageLinks}/>
-    </div>
     );
   }
 });

@@ -9,8 +9,12 @@ from sentry.models import User
 def create_first_user(app, created_models, verbosity, db, **kwargs):
     if User not in created_models:
         return
-    if not router.allow_syncdb(db, User):
-        return
+    if hasattr(router, 'allow_migrate'):
+        if not router.allow_migrate(db, User):
+            return
+    else:
+        if not router.allow_syncdb(db, User):
+            return
     if not kwargs.get('interactive', True):
         return
 

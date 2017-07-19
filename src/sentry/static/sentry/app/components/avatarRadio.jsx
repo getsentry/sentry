@@ -2,7 +2,6 @@ import React from 'react';
 
 import {t} from '../locale';
 
-
 const AvatarRadio = React.createClass({
   propTypes: {
     user: React.PropTypes.object.isRequired,
@@ -27,8 +26,13 @@ const AvatarRadio = React.createClass({
       radios.push(
         <li className="radio" key={opt}>
           <label>
-            <input type="radio" name="avatar-type" value={opt} onChange={this.onChange}
-                   checked={this.props.user.avatar.avatarType === opt}/>
+            <input
+              type="radio"
+              name="avatar-type"
+              value={opt}
+              onChange={this.onChange}
+              checked={this.props.user.avatar.avatarType === opt}
+            />
             {this.OPTIONS[opt]}
           </label>
         </li>

@@ -18,38 +18,38 @@ const DropdownLink = React.createClass({
   getDefaultProps() {
     return {
       disabled: false,
-      caret: true,
+      caret: true
     };
   },
   getInitialState() {
     return {
-      isOpen: false,
+      isOpen: false
     };
   },
 
   componentDidMount() {
     jQuery(this.refs.dropdownToggle).dropdown();
-    jQuery(this.refs.dropdownToggle.parentNode).on(
-      'shown.bs.dropdown', (e) => {
+    jQuery(this.refs.dropdownToggle.parentNode)
+      .on('shown.bs.dropdown', e => {
         this.setState({
-          isOpen: true,
+          isOpen: true
         });
         this.props.onOpen && this.props.onOpen(e);
-      }).on(
-      'hidden.bs.dropdown', (e) => {
+      })
+      .on('hidden.bs.dropdown', e => {
         setTimeout(() => {
           if (!this.isMounted()) {
             return;
           }
           this.setState({
-            isOpen: false,
+            isOpen: false
           });
           this.props.onClose && this.props.onClose(e);
         });
       });
   },
 
-  componentWillUnmount(){
+  componentWillUnmount() {
     jQuery(this.refs.dropdownToggle.parentNode).off();
   },
 
@@ -60,23 +60,22 @@ const DropdownLink = React.createClass({
   render() {
     let className = classNames({
       'dropdown-toggle': true,
-      'disabled': this.props.disabled,
+      disabled: this.props.disabled
     });
 
     let topLevelClasses = classNames({
-      'dropdown' : true,
-      'open': this.state.isOpen,
+      dropdown: true,
+      open: this.state.isOpen
     });
 
     return (
       <span className={classNames(this.props.topLevelClasses, topLevelClasses)}>
-        <a className={classNames(this.props.className, className)}
-           data-toggle="dropdown"
-           ref="dropdownToggle">
+        <a
+          className={classNames(this.props.className, className)}
+          data-toggle="dropdown"
+          ref="dropdownToggle">
           {this.props.title}
-          {this.props.caret &&
-            <i className="icon-arrow-down" />
-          }
+          {this.props.caret && <i className="icon-arrow-down" />}
         </a>
         <ul className={classNames(this.props.menuClasses, 'dropdown-menu')}>
           {this.props.children}

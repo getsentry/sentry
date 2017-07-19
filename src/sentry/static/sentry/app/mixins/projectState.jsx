@@ -5,7 +5,7 @@ let ProjectState = {
   mixins: [TeamState],
 
   contextTypes: {
-    project: PropTypes.Project,
+    project: PropTypes.Project
   },
 
   getProjectFeatures() {
@@ -18,4 +18,3 @@ let ProjectState = {
 };
 
 export default ProjectState;
-

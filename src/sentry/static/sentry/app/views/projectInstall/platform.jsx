@@ -13,9 +13,7 @@ const ProjectInstallPlatform = React.createClass({
     platformData: React.PropTypes.object.isRequired
   },
 
-  mixins: [
-    ApiMixin
-  ],
+  mixins: [ApiMixin],
 
   getInitialState(props) {
     props = props || this.props;
@@ -24,11 +22,11 @@ const ProjectInstallPlatform = React.createClass({
     let integration;
     let platform;
 
-    props.platformData.platforms.forEach((p_item) => {
+    props.platformData.platforms.forEach(p_item => {
       if (integration) {
         return;
       }
-      integration = p_item.integrations.filter((i_item) => {
+      integration = p_item.integrations.filter(i_item => {
         return i_item.id == key;
       })[0];
       if (integration) {
@@ -64,7 +62,7 @@ const ProjectInstallPlatform = React.createClass({
   fetchData() {
     let {orgId, projectId, platform} = this.props.params;
     this.api.request(`/projects/${orgId}/${projectId}/docs/${platform}/`, {
-      success: (data) => {
+      success: data => {
         this.setState({
           loading: false,
           error: false,
@@ -87,7 +85,7 @@ const ProjectInstallPlatform = React.createClass({
         key={platform}
         to={`/${orgId}/${projectId}/settings/install/${platform}/`}
         className="list-group-item">
-          {display || platform}
+        {display || platform}
       </Link>
     );
   },
@@ -96,11 +94,17 @@ const ProjectInstallPlatform = React.createClass({
     let platform = this.state.platform;
     return (
       <div className="install-sidebar col-md-2">
-        {this.props.platformData.platforms.map((p_item) => {
+        {this.props.platformData.platforms.map(p_item => {
           return (
-            <LanguageNav key={p_item.id} name={p_item.name} active={platform && platform.id === p_item.id}>
-              {p_item.integrations.map((i_item) => {
-                return this.getPlatformLink(i_item.id, (i_item.id === p_item.id ? t('Generic') : i_item.name));
+            <LanguageNav
+              key={p_item.id}
+              name={p_item.name}
+              active={platform && platform.id === p_item.id}>
+              {p_item.integrations.map(i_item => {
+                return this.getPlatformLink(
+                  i_item.id,
+                  i_item.id === p_item.id ? t('Generic') : i_item.name
+                );
               })}
             </LanguageNav>
           );
@@ -121,30 +125,33 @@ const ProjectInstallPlatform = React.createClass({
       <div className="box">
         <div className="box-header">
           <div className="pull-right">
-            <a href={integration.link} className="btn btn-sm btn-default">{t('Full Documentation')}</a>
+            <a href={integration.link} className="btn btn-sm btn-default">
+              {t('Full Documentation')}
+            </a>
           </div>
 
           <h3>{t('Configure %(integration)s', {integration: integration.name})}</h3>
         </div>
         <div className="box-content with-padding">
           <p>
-            {tct(`
+            {tct(
+              `
              This is a quick getting started guide. For in-depth instructions
              on integrating Sentry with [integration], view
              [docLink:our complete documentation].
-            `, {
-              integration: integration.name,
-              docLink: <a href={integration.link} />
-            })}
+            `,
+              {
+                integration: integration.name,
+                docLink: <a href={integration.link} />
+              }
+            )}
           </p>
 
-          {this.state.loading ?
-            <LoadingIndicator />
-          : (this.state.error ?
-            <LoadingError onRetry={this.fetchData} />
-          :
-            <div dangerouslySetInnerHTML={{__html: this.state.html}}/>
-          )}
+          {this.state.loading
+            ? <LoadingIndicator />
+            : this.state.error
+                ? <LoadingError onRetry={this.fetchData} />
+                : <div dangerouslySetInnerHTML={{__html: this.state.html}} />}
 
           {this.isGettingStarted() &&
             // Using <a /> instead of <Link /> as hashchange events are not
@@ -153,7 +160,7 @@ const ProjectInstallPlatform = React.createClass({
               <Link
                 to={`/${orgId}/${projectId}/#welcome`}
                 className="btn btn-primary btn-lg">
-                  {t('Got it! Take me to the Issue Stream.')}
+                {t('Got it! Take me to the Issue Stream.')}
               </Link>
             </p>}
         </div>

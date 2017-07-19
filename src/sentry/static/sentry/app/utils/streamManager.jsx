@@ -24,10 +24,10 @@ class StreamManager {
     items = [].concat(items);
     if (items.length === 0) return this;
 
-    items = items.filter((item) => item.hasOwnProperty('id'));
+    items = items.filter(item => item.hasOwnProperty('id'));
 
-    items.forEach((item) => removeFromList(item.id, this.idList));
-    let ids = items.map((item) => item.id);
+    items.forEach(item => removeFromList(item.id, this.idList));
+    let ids = items.map(item => item.id);
     this.idList = [].concat(this.idList, ids);
 
     this.trim();
@@ -45,8 +45,8 @@ class StreamManager {
     items = [].concat(items);
     if (items.length === 0) return this;
 
-    items.forEach((item) => removeFromList(item.id, this.idList));
-    let ids = items.map((item) => item.id);
+    items.forEach(item => removeFromList(item.id, this.idList));
+    let ids = items.map(item => item.id);
     this.idList = [].concat(ids, this.idList);
 
     this.trim();
@@ -56,4 +56,3 @@ class StreamManager {
 }
 
 export default StreamManager;
-

@@ -1,5 +1,7 @@
 let functions = {};
 
+let localStorage = window.localStorage;
+
 try {
   let mod = 'sentry';
   localStorage.setItem(mod, mod);
@@ -9,12 +11,16 @@ try {
     setItem: localStorage.setItem.bind(localStorage),
     getItem: localStorage.getItem.bind(localStorage)
   };
-} catch(e) {
+} catch (e) {
   functions = {
-    setItem() { return; },
+    setItem() {
+      return;
+    },
     // Returns null if key doesn't exist:
     // https://developer.mozilla.org/en-US/docs/Web/API/Storage/getItem
-    getItem() { return null; }
+    getItem() {
+      return null;
+    }
   };
 }
 

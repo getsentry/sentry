@@ -24,18 +24,17 @@ const LanguageNav = React.createClass({
           <li className="list-group-item list-group-header">
             <a onClick={this.toggle} style={{display: 'block'}}>
               <span className="pull-right">
-                {isVisible ?
-                  <span className="icon-minus"/>
-                :
-                  <span className="icon-plus"/>
-                }
+                {isVisible
+                  ? <span className="icon-minus" />
+                  : <span className="icon-plus" />}
               </span>
               <strong>{this.props.name}</strong>
             </a>
           </li>
-          <span style={{
-            display: (isVisible ? 'block' : 'none')
-          }}>
+          <span
+            style={{
+              display: isVisible ? 'block' : 'none'
+            }}>
             {this.props.children}
           </span>
         </ul>

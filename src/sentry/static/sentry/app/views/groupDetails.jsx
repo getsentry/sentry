@@ -25,10 +25,7 @@ const GroupDetails = React.createClass({
     location: React.PropTypes.object
   },
 
-  mixins: [
-    ApiMixin,
-    Reflux.listenTo(GroupStore, 'onGroupChange')
-  ],
+  mixins: [ApiMixin, Reflux.listenTo(GroupStore, 'onGroupChange')],
 
   getInitialState() {
     return {
@@ -69,7 +66,7 @@ const GroupDetails = React.createClass({
 
   fetchData() {
     this.api.request(this.getGroupDetailsEndpoint(), {
-      success: (data) => {
+      success: data => {
         // TODO: Ideally, this would rebuild the route before parameter
         // interpolation, replace the `groupId` field of `this.routeParams`,
         // and use `formatPattern` from `react-router` to rebuild the URL,
@@ -83,7 +80,9 @@ const GroupDetails = React.createClass({
             location.pathname.replace(
               `/issues/${this.props.params.groupId}/`,
               `/issues/${data.id}/`
-            ) + location.search + location.hash
+            ) +
+              location.search +
+              location.hash
           );
         }
 
@@ -93,8 +92,9 @@ const GroupDetails = React.createClass({
           errorType: null
         });
 
-        GroupStore.loadInitialData([data]);
-      }, error: (_, textStatus, errorThrown) => {
+        return void GroupStore.loadInitialData([data]);
+      },
+      error: (_, textStatus, errorThrown) => {
         let errorType = null;
         switch (errorThrown) {
           case 'NOT FOUND':
@@ -120,7 +120,7 @@ const GroupDetails = React.createClass({
         return;
       }
       this.setState({
-        group: group,
+        group: group
       });
     }
   },
@@ -134,8 +134,7 @@ const GroupDetails = React.createClass({
   getTitle() {
     let group = this.state.group;
 
-    if (!group)
-      return 'Sentry';
+    if (!group) return 'Sentry';
 
     switch (group.type) {
       case 'error':
@@ -166,20 +165,20 @@ const GroupDetails = React.createClass({
         default:
           return <LoadingError onRetry={this.remountComponent} />;
       }
-    } else if (this.state.loading || !group)
-      return <LoadingIndicator />;
+    } else if (this.state.loading || !group) return <LoadingIndicator />;
 
     return (
       <DocumentTitle title={this.getTitle()}>
         <div className={this.props.className}>
           <GroupHeader
-              orgId={params.orgId}
-              projectId={params.projectId}
-              group={group}
-              memberList={this.props.memberList} />
+            orgId={params.orgId}
+            projectId={params.projectId}
+            group={group}
+            memberList={this.props.memberList}
+          />
           {React.cloneElement(this.props.children, {
-              memberList: this.props.memberList,
-              group: group
+            memberList: this.props.memberList,
+            group: group
           })}
         </div>
       </DocumentTitle>

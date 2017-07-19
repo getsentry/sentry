@@ -31,7 +31,9 @@ def register_plugins(settings):
             plugin = ep.load()
         except Exception:
             import traceback
-            click.echo("Failed to load plugin %r:\n%s" % (ep.name, traceback.format_exc()), err=True)
+            click.echo(
+                "Failed to load plugin %r:\n%s" %
+                (ep.name, traceback.format_exc()), err=True)
         else:
             plugins.register(plugin)
 
@@ -235,14 +237,15 @@ def configure_structlog():
     logging.config.dictConfig(settings.LOGGING)
 
 
-def initialize_app(config, skip_backend_validation=False):
+def initialize_app(config, skip_service_validation=False):
     settings = config['settings']
 
     bootstrap_options(settings, config['options'])
 
     configure_structlog()
 
-    fix_south(settings)
+    if 'south' in settings.INSTALLED_APPS:
+        fix_south(settings)
 
     apply_legacy_settings(settings)
 
@@ -285,8 +288,7 @@ def initialize_app(config, skip_backend_validation=False):
 
     validate_options(settings)
 
-    if not skip_backend_validation:
-        validate_backends()
+    setup_services(validate=not skip_service_validation)
 
     from django.utils import timezone
     from sentry.app import env
@@ -295,21 +297,48 @@ def initialize_app(config, skip_backend_validation=False):
     env.data['start_date'] = timezone.now()
 
 
-def validate_backends():
-    from sentry import app
+def setup_services(validate=True):
+    from sentry import (
+        analytics, buffer, digests, newsletter, nodestore, quotas, ratelimits,
+        search, tsdb
+    )
+    from .importer import ConfigurationError
+    from sentry.utils.settings import reraise_as
 
-    backends = (
-        app.buffer,
-        app.digests,
-        app.nodestore,
-        app.quotas,
-        app.ratelimiter,
-        app.search,
-        app.tsdb,
+    service_list = (
+        analytics,
+        buffer,
+        digests,
+        newsletter,
+        nodestore,
+        quotas,
+        ratelimits,
+        search,
+        tsdb,
     )
 
-    for backend in backends:
-        backend.validate()
+    for service in service_list:
+        if validate:
+            try:
+                service.validate()
+            except AttributeError as exc:
+                reraise_as(ConfigurationError(
+                    '{} service failed to call validate()\n{}'.format(
+                        service.__name__,
+                        six.text_type(exc),
+                    )
+                ))
+        try:
+            service.setup()
+        except AttributeError as exc:
+            if not hasattr(service, 'setup') or not callable(service.setup):
+                reraise_as(ConfigurationError(
+                    '{} service failed to call setup()\n{}'.format(
+                        service.__name__,
+                        six.text_type(exc),
+                    )
+                ))
+            raise
 
 
 def validate_options(settings):
@@ -335,7 +364,7 @@ def bind_cache_to_option_store():
     # settings and/or configuration values. Those options should have been
     # loaded at this point, so we can plug in the cache backend before
     # continuing to initialize the remainder of the application.
-    from sentry.cache import default_cache
+    from django.core.cache import cache as default_cache
     from sentry.options import default_store
 
     default_store.cache = default_cache
@@ -386,7 +415,8 @@ def apply_legacy_settings(settings):
 
     if hasattr(settings, 'SENTRY_REDIS_OPTIONS'):
         if 'redis.clusters' in settings.SENTRY_OPTIONS:
-            raise Exception("Cannot specify both SENTRY_OPTIONS['redis.clusters'] option and SENTRY_REDIS_OPTIONS setting.")
+            raise Exception(
+                "Cannot specify both SENTRY_OPTIONS['redis.clusters'] option and SENTRY_REDIS_OPTIONS setting.")
         else:
             warnings.warn(
                 DeprecatedSettingWarning(
@@ -422,7 +452,10 @@ def apply_legacy_settings(settings):
         settings.ALLOWED_HOSTS = ['*']
 
     if hasattr(settings, 'SENTRY_ALLOW_REGISTRATION'):
-        warnings.warn(DeprecatedSettingWarning('SENTRY_ALLOW_REGISTRATION', 'SENTRY_FEATURES["auth:register"]'))
+        warnings.warn(
+            DeprecatedSettingWarning(
+                'SENTRY_ALLOW_REGISTRATION',
+                'SENTRY_FEATURES["auth:register"]'))
         settings.SENTRY_FEATURES['auth:register'] = settings.SENTRY_ALLOW_REGISTRATION
 
     settings.DEFAULT_FROM_EMAIL = settings.SENTRY_OPTIONS.get(
@@ -434,7 +467,8 @@ def apply_legacy_settings(settings):
     # trigger the Installation Wizard, not abort startup.
     if not settings.SENTRY_OPTIONS.get('system.secret-key'):
         from .importer import ConfigurationError
-        raise ConfigurationError("`system.secret-key` MUST be set. Use 'sentry config generate-secret-key' to get one.")
+        raise ConfigurationError(
+            "`system.secret-key` MUST be set. Use 'sentry config generate-secret-key' to get one.")
 
 
 def skip_migration_if_applied(settings, app_name, table_name,
@@ -471,5 +505,6 @@ def on_configure(config):
     """
     settings = config['settings']
 
-    skip_migration_if_applied(
-        settings, 'social_auth', 'social_auth_association')
+    if 'south' in settings.INSTALLED_APPS:
+        skip_migration_if_applied(
+            settings, 'social_auth', 'social_auth_association')

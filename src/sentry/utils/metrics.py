@@ -2,11 +2,12 @@ from __future__ import absolute_import
 
 __all__ = ['timing', 'incr']
 
+import logging
+
 from contextlib import contextmanager
 from django.conf import settings
 from random import random
 from time import time
-import logging
 
 
 def get_default_backend():
@@ -40,7 +41,7 @@ def _sampled_value(value):
 
 
 def _incr_internal(key, instance=None, tags=None, amount=1):
-    from sentry.app import tsdb
+    from sentry import tsdb
 
     if _should_sample():
         amount = _sampled_value(amount)

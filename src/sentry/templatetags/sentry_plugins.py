@@ -89,7 +89,11 @@ def get_annotations(group, request=None):
 
     annotation_list = []
     for plugin in plugins.for_project(project, version=2):
-        for value in (safe_execute(plugin.get_annotations, group=group, _with_transaction=False) or ()):
+        for value in (
+            safe_execute(
+                plugin.get_annotations,
+                group=group,
+                _with_transaction=False) or ()):
             annotation = safe_execute(Annotation, _with_transaction=False, **value)
             if annotation:
                 annotation_list.append(annotation)

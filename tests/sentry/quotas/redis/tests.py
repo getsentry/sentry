@@ -10,6 +10,7 @@ from exam import fixture, patcher
 
 from sentry.quotas.redis import (
     is_rate_limited,
+    BasicRedisQuota,
     RedisQuota,
 )
 from sentry.testutils import TestCase
@@ -23,19 +24,19 @@ def test_is_rate_limited_script():
     client = cluster.get_local_client(six.next(iter(cluster.hosts)))
 
     # The item should not be rate limited by either key.
-    assert list(map(bool, is_rate_limited(client, ('foo', 'bar'), (1, now + 60, 2, now + 120)))) == \
-        [False, False]
+    assert list(map(bool, is_rate_limited(client, ('foo', 'bar'),
+                                          (1, now + 60, 2, now + 120)))) == [False, False]
 
     # The item should be rate limited by the first key (1).
-    assert list(map(bool, is_rate_limited(client, ('foo', 'bar'), (1, now + 60, 2, now + 120)))) == \
-        [True, False]
+    assert list(map(bool, is_rate_limited(client, ('foo', 'bar'),
+                                          (1, now + 60, 2, now + 120)))) == [True, False]
 
     # The item should still be rate limited by the first key (1), but *not*
     # rate limited by the second key (2) even though this is the third time
     # we've checked the quotas. This ensures items that are rejected by a lower
     # quota don't affect unrelated items that share a parent quota.
-    assert list(map(bool, is_rate_limited(client, ('foo', 'bar'), (1, now + 60, 2, now + 120)))) == \
-        [True, False]
+    assert list(map(bool, is_rate_limited(client, ('foo', 'bar'),
+                                          (1, now + 60, 2, now + 120)))) == [True, False]
 
     assert client.get('foo') == '1'
     assert 59 <= client.ttl('foo') <= 60
@@ -88,3 +89,80 @@ class RedisQuotaTest(TestCase):
         self.get_organization_quota.return_value = (100, 60)
         self.get_project_quota.return_value = (200, 60)
         assert self.quota.is_rate_limited(self.project).is_limited
+
+    @mock.patch.object(RedisQuota, 'get_quotas')
+    @mock.patch('sentry.quotas.redis.is_rate_limited', return_value=(True, False))
+    def test_not_limited_without_enforce(self, mock_is_rate_limited,
+                                         mock_get_quotas):
+        mock_get_quotas.return_value = (
+            BasicRedisQuota(
+                key='p:1',
+                limit=1,
+                window=1,
+                reason_code='project_quota',
+                enforce=False,
+            ),
+            BasicRedisQuota(
+                key='p:2',
+                limit=1,
+                window=1,
+                reason_code='project_quota',
+                enforce=True,
+            ),
+        )
+
+        assert not self.quota.is_rate_limited(self.project).is_limited
+
+    @mock.patch.object(RedisQuota, 'get_quotas')
+    @mock.patch('sentry.quotas.redis.is_rate_limited', return_value=(True, True))
+    def test_limited_without_enforce(self, mock_is_rate_limited,
+                                     mock_get_quotas):
+        mock_get_quotas.return_value = (
+            BasicRedisQuota(
+                key='p:1',
+                limit=1,
+                window=1,
+                reason_code='project_quota',
+                enforce=False,
+            ),
+            BasicRedisQuota(
+                key='p:2',
+                limit=1,
+                window=1,
+                reason_code='project_quota',
+                enforce=True,
+            ),
+        )
+
+        assert self.quota.is_rate_limited(self.project).is_limited
+
+    def test_get_usage(self):
+        timestamp = time.time()
+
+        self.get_project_quota.return_value = (200, 60)
+        self.get_organization_quota.return_value = (300, 60)
+
+        n = 10
+        for _ in xrange(n):
+            self.quota.is_rate_limited(self.project, timestamp=timestamp)
+
+        quotas = self.quota.get_quotas(self.project)
+
+        assert self.quota.get_usage(
+            self.project.organization_id,
+            quotas + [
+                BasicRedisQuota(
+                    key='unlimited',
+                    limit=0,
+                    window=60,
+                    reason_code='unlimited',
+                ),
+                BasicRedisQuota(
+                    key='dummy',
+                    limit=10,
+                    window=60,
+                    reason_code='dummy',
+                ),
+            ],
+            timestamp=timestamp,
+        ) == [n for _ in quotas] + [None, 0]

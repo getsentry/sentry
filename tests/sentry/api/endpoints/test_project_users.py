@@ -71,7 +71,9 @@ class ProjectUsersTest(APITestCase):
     def test_email_search(self):
         self.login_as(user=self.user)
 
-        response = self.client.get('{}?query=email:foo@example.com'.format(self.path), format='json')
+        response = self.client.get(
+            '{}?query=email:foo@example.com'.format(
+                self.path), format='json')
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 1

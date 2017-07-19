@@ -8,13 +8,13 @@ sentry.models.grouptagvalue
 from __future__ import absolute_import
 
 from datetime import timedelta
-from django.db import connections, models
+from django.db import connections, models, router
 from django.db.models import Sum
 from django.utils import timezone
 
 from sentry.constants import MAX_TAG_KEY_LENGTH, MAX_TAG_VALUE_LENGTH
 from sentry.db.models import (
-    Model, BoundedPositiveIntegerField, BaseManager, FlexibleForeignKey,
+    Model, BoundedPositiveIntegerField, BaseManager,
     sane_repr
 )
 from sentry.utils import db
@@ -27,8 +27,8 @@ class GroupTagValue(Model):
     """
     __core__ = False
 
-    project = FlexibleForeignKey('sentry.Project', null=True, related_name='grouptag')
-    group = FlexibleForeignKey('sentry.Group', related_name='grouptag')
+    project_id = BoundedPositiveIntegerField(null=True)
+    group_id = BoundedPositiveIntegerField()
     times_seen = BoundedPositiveIntegerField(default=0)
     key = models.CharField(max_length=MAX_TAG_KEY_LENGTH)
     value = models.CharField(max_length=MAX_TAG_VALUE_LENGTH)
@@ -43,10 +43,10 @@ class GroupTagValue(Model):
         app_label = 'sentry'
         db_table = 'sentry_messagefiltervalue'
         unique_together = (
-            ('group', 'key', 'value'),
+            ('group_id', 'key', 'value'),
         )
         index_together = (
-            ('project', 'key', 'value', 'last_seen'),
+            ('project_id', 'key', 'value', 'last_seen'),
         )
 
     __repr__ = sane_repr('project_id', 'group_id', 'key', 'value')
@@ -61,7 +61,8 @@ class GroupTagValue(Model):
         if db.is_postgres():
             # This doesnt guarantee percentage is accurate, but it does ensure
             # that the query has a maximum cost
-            cursor = connections['default'].cursor()
+            using = router.db_for_read(cls)
+            cursor = connections[using].cursor()
             cursor.execute("""
                 SELECT SUM(t)
                 FROM (
@@ -77,7 +78,7 @@ class GroupTagValue(Model):
 
         cutoff = timezone.now() - timedelta(days=7)
         return cls.objects.filter(
-            group=group_id,
+            group_id=group_id,
             key=key,
             last_seen__gte=cutoff,
         ).aggregate(t=Sum('times_seen'))['t']
@@ -103,7 +104,7 @@ class GroupTagValue(Model):
 
         cutoff = timezone.now() - timedelta(days=7)
         return list(cls.objects.filter(
-            group=group_id,
+            group_id=group_id,
             key=key,
             last_seen__gte=cutoff,
         ).order_by('-times_seen')[:limit])

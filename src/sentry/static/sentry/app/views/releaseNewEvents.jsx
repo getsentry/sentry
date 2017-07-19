@@ -13,11 +13,12 @@ const ReleaseNewEvents = React.createClass({
     return (
       <div>
         <div className="alert alert-block">
-          <Link to={{
-                  pathname: `/${orgId}/${projectId}/`,
-                  query: {query: 'first-release:' + this.context.release.version}
-                }}>
-            <span className="icon icon-open"></span>
+          <Link
+            to={{
+              pathname: `/${orgId}/${projectId}/`,
+              query: {query: 'first-release:' + this.context.release.version}
+            }}>
+            <span className="icon icon-open" />
             {t('View new events seen in this release in the stream')}
           </Link>
         </div>
@@ -25,7 +26,9 @@ const ReleaseNewEvents = React.createClass({
           orgId={orgId}
           projectId={projectId}
           query={'first-release:"' + this.context.release.version + '"'}
-          canSelectGroups={false} bulkActions={false} />
+          canSelectGroups={false}
+          bulkActions={false}
+        />
       </div>
     );
   }

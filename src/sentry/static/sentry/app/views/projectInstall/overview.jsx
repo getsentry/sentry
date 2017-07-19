@@ -27,7 +27,7 @@ const ProjectInstallOverview = React.createClass({
     }
     return (
       <li className={`${root} ${platform}`} key={platform}>
-        <span className={`platformicon platformicon-${platform}`}/>
+        <span className={`platformicon platformicon-${platform}`} />
         <Link to={`${rootUrl}/${platform}/`}>
           {display}
         </Link>
@@ -43,10 +43,9 @@ const ProjectInstallOverview = React.createClass({
     let data = this.state.data;
     let frameworkList = [];
     let languageList = [];
-    data.platforms.forEach((platform) => {
-      platform.integrations.forEach((integration) => {
-        if (integration.type === 'framework')
-          frameworkList.push([platform, integration]);
+    data.platforms.forEach(platform => {
+      platform.integrations.forEach(integration => {
+        if (integration.type === 'framework') frameworkList.push([platform, integration]);
         else if (integration.type === 'language')
           languageList.push([platform, integration]);
       });
@@ -56,28 +55,40 @@ const ProjectInstallOverview = React.createClass({
       <div>
         <h1>{t('Configure your application')}</h1>
 
-        <p>{t('Get started by selecting the platform or language that powers your application.')}</p>
+        <p>
+          {t(
+            'Get started by selecting the platform or language that powers your application.'
+          )}
+        </p>
 
-        {this.state.showDsn ?
-          <div>
-            <h3>{t('DSN')}</h3>
+        {this.state.showDsn
+          ? <div>
+              <h3>{t('DSN')}</h3>
 
-            <div className="control-group">
-              <label>{t('DSN')}</label>
-              <AutoSelectText className="form-control disabled">{data.dsn}</AutoSelectText>
+              <div className="control-group">
+                <label>{t('DSN')}</label>
+                <AutoSelectText className="form-control disabled">
+                  {data.dsn}
+                </AutoSelectText>
+              </div>
+
+              <div className="control-group">
+                <label>{t('Public DSN')}</label>
+                <AutoSelectText className="form-control disabled">
+                  {data.dsnPublic}
+                </AutoSelectText>
+                <div className="help-block">
+                  {t('Your public DSN should be used with JavaScript and ActionScript.')}
+                </div>
+              </div>
             </div>
-
-            <div className="control-group">
-              <label>{t('Public DSN')}</label>
-              <AutoSelectText className="form-control disabled">{data.dsnPublic}</AutoSelectText>
-              <div className="help-block">{t('Your public DSN should be used with JavaScript and ActionScript.')}</div>
-            </div>
-          </div>
-        :
-          <p><small>{tct('Already have things setup? [link:Get your DSN].', {
-            link: <a onClick={this.toggleDsn} />
-          })}</small></p>
-        }
+          : <p>
+              <small>
+                {tct('Already have things setup? [link:Get your DSN].', {
+                  link: <a onClick={this.toggleDsn} />
+                })}
+              </small>
+            </p>}
 
         <h3>{t('Popular')}</h3>
 
@@ -93,7 +104,7 @@ const ProjectInstallOverview = React.createClass({
 
         <h3>{t('Frameworks')}</h3>
         <ul className="client-platform-list">
-          {frameworkList.map((item) => {
+          {frameworkList.map(item => {
             let [platform, integration] = item;
             return this.getIntegrationLink(platform.id, integration.id, integration.name);
           })}
@@ -101,19 +112,22 @@ const ProjectInstallOverview = React.createClass({
 
         <h3>{t('Languages')}</h3>
         <ul className="client-platform-list">
-          {languageList.map((item) => {
+          {languageList.map(item => {
             let [platform, integration] = item;
             return this.getIntegrationLink(platform.id, integration.id, integration.name);
           })}
         </ul>
 
         <p>
-          {tct(`
+          {tct(
+            `
              For a complete list of
              client integrations, please visit see [docLink:our in-depth documentation].
-          `, {
-            docLink: <a href="https://docs.sentry.io" />
-          })}
+          `,
+            {
+              docLink: <a href="https://docs.sentry.io" />
+            }
+          )}
         </p>
       </div>
     );

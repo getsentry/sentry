@@ -10,6 +10,7 @@ from __future__ import absolute_import, print_function
 
 __all__ = ['ReleaseHook']
 
+from sentry.exceptions import HookValidationError
 from sentry.models import Commit, Release, ReleaseProject
 from sentry.plugins import ReleaseHook
 from sentry.testutils import TestCase
@@ -27,9 +28,42 @@ class StartReleaseTest(TestCase):
             organization_id=project.organization_id,
             version=version,
         )
-        assert release.date_started
         assert release.organization
         assert ReleaseProject.objects.get(release=release, project=project)
+
+    def test_bad_version(self):
+        project = self.create_project()
+        hook = ReleaseHook(project)
+
+        version = ''
+        with self.assertRaises(HookValidationError):
+            hook.start_release(version)
+
+        with self.assertRaises(HookValidationError):
+            hook.finish_release(version)
+
+        with self.assertRaises(HookValidationError):
+            hook.set_commits(version, [])
+
+        version = '.'
+        with self.assertRaises(HookValidationError):
+            hook.start_release(version)
+
+        with self.assertRaises(HookValidationError):
+            hook.finish_release(version)
+
+        with self.assertRaises(HookValidationError):
+            hook.set_commits(version, [])
+
+        version = '..'
+        with self.assertRaises(HookValidationError):
+            hook.start_release(version)
+
+        with self.assertRaises(HookValidationError):
+            hook.finish_release(version)
+
+        with self.assertRaises(HookValidationError):
+            hook.set_commits(version, [])
 
     def test_update_release(self):
         project = self.create_project()
@@ -45,7 +79,6 @@ class StartReleaseTest(TestCase):
             projects=project,
             version=version,
         )
-        assert release.date_started
         assert release.organization == project.organization
 
 
@@ -78,7 +111,6 @@ class FinishReleaseTest(TestCase):
             projects=project,
             version=version,
         )
-        assert release.date_started
         assert release.organization == project.organization
 
 

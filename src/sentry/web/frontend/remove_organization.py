@@ -24,7 +24,7 @@ class RemoveOrganizationForm(forms.Form):
 
 
 class RemoveOrganizationView(OrganizationView):
-    required_scope = 'org:delete'
+    required_scope = 'org:admin'
     sudo_required = True
 
     def get_form(self, request, organization):
@@ -75,7 +75,7 @@ class RemoveOrganizationView(OrganizationView):
                 })
 
             messages.add_message(request, messages.SUCCESS,
-                MSG_REMOVE_SUCCESS % (organization.name,))
+                                 MSG_REMOVE_SUCCESS % (organization.name,))
 
             return self.redirect(reverse('sentry'))
 

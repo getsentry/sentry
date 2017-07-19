@@ -9,8 +9,9 @@ from sentry.testutils import TestCase
 class OrganizationOptionManagerTest(TestCase):
     def test_set_value(self):
         OrganizationOption.objects.set_value(self.organization, 'foo', 'bar')
-        assert OrganizationOption.objects.filter(
-            organization=self.organization, key='foo', value='bar').exists()
+        assert OrganizationOption.objects.get(
+            organization=self.organization, key='foo',
+        ).value == 'bar'
 
     def test_get_value(self):
         result = OrganizationOption.objects.get_value(self.organization, 'foo')

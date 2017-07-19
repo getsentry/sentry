@@ -16,8 +16,8 @@ export default class Registry {
   loadAll(dataList, callback) {
     let remaining = dataList.length;
     let pluginList = [];
-    dataList.map((data) => {
-      this.load(data, (plugin) => {
+    dataList.map(data => {
+      this.load(data, plugin => {
         remaining--;
         pluginList.push(plugin);
         if (remaining === 0) {
@@ -38,7 +38,9 @@ export default class Registry {
           this.plugins[data.id] = DefaultPlugin;
         }
       }
-      console.info('[plugins] Loaded ' + data.id + ' as {' + this.plugins[data.id].name + '}');
+      console.info(
+        '[plugins] Loaded ' + data.id + ' as {' + this.plugins[data.id].name + '}'
+      );
       callback(this.get(data));
     }.bind(this);
 
@@ -63,7 +65,7 @@ export default class Registry {
     };
 
     // TODO(dcramer): what do we do on failed asset loading?
-    data.assets.forEach((asset) => {
+    data.assets.forEach(asset => {
       if (!defined(this.assetCache[asset.url])) {
         console.info('[plugins] Loading asset for ' + data.id + ': ' + asset.url);
         let s = document.createElement('script');

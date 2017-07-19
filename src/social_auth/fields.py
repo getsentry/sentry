@@ -1,11 +1,11 @@
 from __future__ import absolute_import
 
+import simplejson
 import six
 
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils.encoding import smart_text
-from django.utils import simplejson
 
 
 @six.add_metaclass(models.SubfieldBase)
@@ -13,6 +13,7 @@ class JSONField(models.TextField):
     """Simple JSON field that stores python structures as JSON strings
     on database.
     """
+
     def to_python(self, value):
         """
         Convert the input JSON value into python structures, raises
@@ -24,7 +25,7 @@ class JSONField(models.TextField):
             try:
                 return simplejson.loads(value)
             except Exception as e:
-                raise ValidationError(str(e))
+                raise ValidationError(six.text_type(e))
         else:
             return value
 
@@ -36,14 +37,14 @@ class JSONField(models.TextField):
             try:
                 simplejson.loads(value)
             except Exception as e:
-                raise ValidationError(str(e))
+                raise ValidationError(six.text_type(e))
 
     def get_prep_value(self, value):
         """Convert value to JSON string before save"""
         try:
             return simplejson.dumps(value)
         except Exception as e:
-            raise ValidationError(str(e))
+            raise ValidationError(six.text_type(e))
 
     def value_to_string(self, obj):
         """Return value from object converted to string properly"""
@@ -57,5 +58,5 @@ class JSONField(models.TextField):
 try:
     from south.modelsinspector import add_introspection_rules
     add_introspection_rules([], ["^social_auth\.fields\.JSONField"])
-except:
+except Exception:
     pass

@@ -3,7 +3,7 @@ from __future__ import absolute_import
 import six
 
 from sentry.testutils import APITestCase
-from sentry.models import GroupStatus, UserReport
+from sentry.models import EventUser, GroupStatus, UserReport
 
 
 class ProjectUserReportListTest(APITestCase):
@@ -112,3 +112,90 @@ class CreateProjectUserReportTest(APITestCase):
         assert report.email == 'foo@example.com'
         assert report.name == 'Foo Bar'
         assert report.comments == 'It broke!'
+
+    def test_already_present(self):
+        self.login_as(user=self.user)
+
+        project = self.create_project()
+        group = self.create_group(project=project)
+        event = self.create_event(group=group)
+        UserReport.objects.create(
+            group=group,
+            project=project,
+            event_id=event.event_id,
+            name='foo',
+            email='bar@example.com',
+            comments='',
+        )
+
+        url = '/api/0/projects/{}/{}/user-feedback/'.format(
+            project.organization.slug,
+            project.slug,
+        )
+
+        response = self.client.post(url, data={
+            'event_id': event.event_id,
+            'email': 'foo@example.com',
+            'name': 'Foo Bar',
+            'comments': 'It broke!',
+        })
+
+        assert response.status_code == 200, response.content
+
+        report = UserReport.objects.get(
+            id=response.data['id'],
+        )
+        assert report.project == project
+        assert report.group == group
+        assert report.email == 'foo@example.com'
+        assert report.name == 'Foo Bar'
+        assert report.comments == 'It broke!'
+
+    def test_already_present_with_matching_user(self):
+        self.login_as(user=self.user)
+
+        project = self.create_project()
+        group = self.create_group(project=project)
+        event = self.create_event(group=group, tags={
+            'sentry:user': 'email:foo@example.com',
+        })
+        euser = EventUser.objects.create(
+            project_id=project.id,
+            name='',
+            email='foo@example.com',
+        )
+        UserReport.objects.create(
+            group=group,
+            project=project,
+            event_id=event.event_id,
+            name='foo',
+            email='bar@example.com',
+            comments='',
+        )
+
+        url = '/api/0/projects/{}/{}/user-feedback/'.format(
+            project.organization.slug,
+            project.slug,
+        )
+
+        response = self.client.post(url, data={
+            'event_id': event.event_id,
+            'email': 'foo@example.com',
+            'name': 'Foo Bar',
+            'comments': 'It broke!',
+        })
+
+        assert response.status_code == 200, response.content
+
+        report = UserReport.objects.get(
+            id=response.data['id'],
+        )
+        assert report.project == project
+        assert report.group == group
+        assert report.email == 'foo@example.com'
+        assert report.name == 'Foo Bar'
+        assert report.comments == 'It broke!'
+        assert report.event_user_id == euser.id
+
+        euser = EventUser.objects.get(id=euser.id)
+        assert euser.name == 'Foo Bar'

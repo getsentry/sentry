@@ -23,7 +23,6 @@ def pytest_configure(config):
                 'HOST': '127.0.0.1',
             })
             # mysql requires running full migration all the time
-            settings.SOUTH_TESTS_MIGRATE = True
         elif test_db == 'postgres':
             settings.DATABASES['default'].update({
                 'ENGINE': 'sentry.db.postgres',
@@ -33,13 +32,11 @@ def pytest_configure(config):
             # postgres requires running full migration all the time
             # since it has to install stored functions which come from
             # an actual migration.
-            settings.SOUTH_TESTS_MIGRATE = True
         elif test_db == 'sqlite':
             settings.DATABASES['default'].update({
                 'ENGINE': 'django.db.backends.sqlite3',
                 'NAME': ':memory:',
             })
-            settings.SOUTH_TESTS_MIGRATE = os.environ.get('SENTRY_SOUTH_TESTS_MIGRATE', '1') == '1'
         else:
             raise RuntimeError('oops, wrong database: %r' % test_db)
 
@@ -122,7 +119,8 @@ def pytest_configure(config):
 
     from sentry.runner.initializer import (
         bootstrap_options, configure_structlog, initialize_receivers, fix_south,
-        bind_cache_to_option_store)
+        bind_cache_to_option_store, setup_services
+    )
 
     bootstrap_options(settings)
     configure_structlog()
@@ -131,6 +129,7 @@ def pytest_configure(config):
     bind_cache_to_option_store()
 
     initialize_receivers()
+    setup_services()
 
     from sentry.plugins import plugins
     from sentry.plugins.utils import TestIssuePlugin2
@@ -156,8 +155,9 @@ def pytest_configure(config):
 
 
 def pytest_runtest_teardown(item):
-    from sentry.app import tsdb
-    tsdb.flush()
+    from sentry import tsdb
+    # TODO(dcramer): this only works if this is the correct tsdb backend
+    tsdb.backend.flush()
 
     from sentry.utils.redis import clusters
 

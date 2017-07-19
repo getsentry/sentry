@@ -48,18 +48,14 @@ const EVENT_TYPES = [
   'api-key.remove'
 ].sort();
 
-
 const OrganizationAuditLog = React.createClass({
-  mixins: [
-    ApiMixin,
-    OrganizationState,
-  ],
+  mixins: [ApiMixin, OrganizationState],
 
   getInitialState() {
     return {
       loading: true,
       error: false,
-      entryList: [],
+      entryList: []
     };
   },
 
@@ -68,8 +64,10 @@ const OrganizationAuditLog = React.createClass({
   },
 
   componentWillReceiveProps(nextProps) {
-    if (nextProps.location.search !== this.props.location.search ||
-        nextProps.params.orgId !== this.props.params.orgId) {
+    if (
+      nextProps.location.search !== this.props.location.search ||
+      nextProps.params.orgId !== this.props.params.orgId
+    ) {
       this.remountComponent();
     }
   },
@@ -80,7 +78,7 @@ const OrganizationAuditLog = React.createClass({
 
   fetchData() {
     this.setState({
-      loading: true,
+      loading: true
     });
 
     this.api.request(this.getEndpoint(), {
@@ -90,13 +88,13 @@ const OrganizationAuditLog = React.createClass({
           loading: false,
           error: false,
           entryList: data,
-          pageLinks: jqXHR.getResponseHeader('Link'),
+          pageLinks: jqXHR.getResponseHeader('Link')
         });
       },
       error: () => {
         this.setState({
           loading: false,
-          error: true,
+          error: true
         });
       }
     });
@@ -117,7 +115,7 @@ const OrganizationAuditLog = React.createClass({
       return;
     }
     let queryParams = {
-      event: value,
+      event: value
     };
     browserHistory.pushState(null, this.props.location.pathname, queryParams);
   },
@@ -127,13 +125,11 @@ const OrganizationAuditLog = React.createClass({
       return <tr><td colSpan="4">{t('No results found.')}</td></tr>;
     }
 
-    return this.state.entryList.map((entry) => {
+    return this.state.entryList.map(entry => {
       return (
         <tr key={entry.id}>
           <td className="table-user-info">
-            {entry.actor.email &&
-              <Avatar user={entry.actor} />
-            }
+            {entry.actor.email && <Avatar user={entry.actor} />}
             <h5>{entry.actor.name}</h5>
             {entry.note}
           </td>
@@ -159,10 +155,13 @@ const OrganizationAuditLog = React.createClass({
             <form className="form-horizontal" style={{marginBottom: 20}}>
               <div className="control-group">
                 <div className="controls">
-                  <SelectInput name="event" onChange={this.onEventSelect}
-                               value={currentEventType} style={{width: 250}}>
+                  <SelectInput
+                    name="event"
+                    onChange={this.onEventSelect}
+                    value={currentEventType}
+                    style={{width: 250}}>
                     <option key="any" value="">{t('Any')}</option>
-                    {EVENT_TYPES.map((eventType) => {
+                    {EVENT_TYPES.map(eventType => {
                       return <option key={eventType}>{eventType}</option>;
                     })}
                   </SelectInput>
@@ -184,23 +183,22 @@ const OrganizationAuditLog = React.createClass({
                 </tr>
               </thead>
               <tbody>
-                {(this.state.loading ?
-                  <tr><td colSpan="4"><LoadingIndicator /></td></tr>
-                : (this.state.error ?
-                  <tr><td colSpan="4"><LoadingError onRetry={this.fetchData} /></td></tr>
-                :
-                  this.renderResults()
-                ))}
+                {this.state.loading
+                  ? <tr><td colSpan="4"><LoadingIndicator /></td></tr>
+                  : this.state.error
+                      ? <tr>
+                          <td colSpan="4"><LoadingError onRetry={this.fetchData} /></td>
+                        </tr>
+                      : this.renderResults()}
               </tbody>
             </table>
           </div>
           {this.state.pageLinks &&
-            <Pagination pageLinks={this.state.pageLinks} {...this.props} />
-          }
+            <Pagination pageLinks={this.state.pageLinks} {...this.props} />}
         </OrganizationHomeContainer>
       </DocumentTitle>
     );
-  },
+  }
 });
 
 export default OrganizationAuditLog;

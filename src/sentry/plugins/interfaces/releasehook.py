@@ -13,6 +13,7 @@ __all__ = ['ReleaseHook']
 from django.db import IntegrityError, transaction
 from django.utils import timezone
 
+from sentry.exceptions import HookValidationError
 from sentry.models import Activity, Release
 
 
@@ -21,7 +22,9 @@ class ReleaseHook(object):
         self.project = project
 
     def start_release(self, version, **values):
-        values.setdefault('date_started', timezone.now())
+        if not Release.is_valid_version(version):
+            raise HookValidationError('Invalid release version: %s' % version)
+
         try:
             with transaction.atomic():
                 release = Release.objects.create(
@@ -47,6 +50,9 @@ class ReleaseHook(object):
 
         Calling this method will remove all existing commit history.
         """
+        if not Release.is_valid_version(version):
+            raise HookValidationError('Invalid release version: %s' % version)
+
         project = self.project
         try:
             with transaction.atomic():
@@ -63,7 +69,13 @@ class ReleaseHook(object):
 
         release.set_commits(commit_list)
 
+    def set_refs(self, release, **values):
+        pass
+
     def finish_release(self, version, **values):
+        if not Release.is_valid_version(version):
+            raise HookValidationError('Invalid release version: %s' % version)
+
         values.setdefault('date_released', timezone.now())
         try:
             with transaction.atomic():
@@ -81,14 +93,14 @@ class ReleaseHook(object):
 
         release.add_project(self.project)
 
-        activity = Activity.objects.create(
+        Activity.objects.create(
             type=Activity.RELEASE,
             project=self.project,
             ident=version,
             data={'version': version},
             datetime=values['date_released'],
         )
-        activity.send_notification()
+        self.set_refs(release=release, **values)
 
     def handle(self, request):
         raise NotImplementedError

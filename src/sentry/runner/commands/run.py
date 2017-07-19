@@ -75,10 +75,16 @@ def run():
 
 @run.command()
 @click.option('--bind', '-b', default=None, help='Bind address.', type=Address)
-@click.option('--workers', '-w', default=0, help='The number of worker processes for handling requests.')
+@click.option(
+    '--workers',
+    '-w',
+    default=0,
+    help='The number of worker processes for handling requests.')
 @click.option('--upgrade', default=False, is_flag=True, help='Upgrade before starting.')
-@click.option('--with-lock', default=False, is_flag=True, help='Use a lock if performing an upgrade.')
-@click.option('--noinput', default=False, is_flag=True, help='Do not prompt the user for input of any kind.')
+@click.option('--with-lock', default=False, is_flag=True,
+              help='Use a lock if performing an upgrade.')
+@click.option('--noinput', default=False, is_flag=True,
+              help='Do not prompt the user for input of any kind.')
 @log_options()
 @configuration
 def web(bind, workers, upgrade, with_lock, noinput):
@@ -93,7 +99,9 @@ def web(bind, workers, upgrade, with_lock, noinput):
             )
         except click.ClickException:
             if with_lock:
-                click.echo('!! Upgrade currently running from another process, skipping.', err=True)
+                click.echo(
+                    '!! Upgrade currently running from another process, skipping.',
+                    err=True)
             else:
                 raise
 
@@ -108,7 +116,8 @@ def web(bind, workers, upgrade, with_lock, noinput):
 @run.command()
 @click.option('--bind', '-b', default=None, help='Bind address.', type=Address)
 @click.option('--upgrade', default=False, is_flag=True, help='Upgrade before starting.')
-@click.option('--noinput', default=False, is_flag=True, help='Do not prompt the user for input of any kind.')
+@click.option('--noinput', default=False, is_flag=True,
+              help='Do not prompt the user for input of any kind.')
 @configuration
 def smtp(bind, upgrade, noinput):
     "Run inbound email service."
@@ -155,7 +164,8 @@ def worker(**options):
     "Run background worker instance."
     from django.conf import settings
     if settings.CELERY_ALWAYS_EAGER:
-        raise click.ClickException('Disable CELERY_ALWAYS_EAGER in your settings file to spawn workers.')
+        raise click.ClickException(
+            'Disable CELERY_ALWAYS_EAGER in your settings file to spawn workers.')
 
     from sentry.celery import app
     worker = app.Worker(
@@ -194,7 +204,8 @@ def cron(**options):
     "Run periodic task dispatcher."
     from django.conf import settings
     if settings.CELERY_ALWAYS_EAGER:
-        raise click.ClickException('Disable CELERY_ALWAYS_EAGER in your settings file to spawn workers.')
+        raise click.ClickException(
+            'Disable CELERY_ALWAYS_EAGER in your settings file to spawn workers.')
 
     from sentry.celery import app
     app.Beat(

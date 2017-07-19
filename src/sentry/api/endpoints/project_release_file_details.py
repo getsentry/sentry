@@ -10,7 +10,12 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.models import Release, ReleaseFile
 from sentry.utils.apidocs import scenario, attach_scenarios
-from django.http import CompatibleStreamingHttpResponse
+try:
+    from django.http import (
+        CompatibleStreamingHttpResponse as StreamingHttpResponse
+    )
+except ImportError:
+    from django.http import StreamingHttpResponse
 
 
 @scenario('RetrieveReleaseFile')
@@ -75,12 +80,13 @@ class ProjectReleaseFileDetailsEndpoint(ProjectEndpoint):
     def download(self, releasefile):
         file = releasefile.file
         fp = file.getfile()
-        response = CompatibleStreamingHttpResponse(
+        response = StreamingHttpResponse(
             iter(lambda: fp.read(4096), b''),
             content_type=file.headers.get('content-type', 'application/octet-stream'),
         )
         response['Content-Length'] = file.size
-        response['Content-Disposition'] = 'attachment; filename="%s"' % posixpath.basename(" ".join(releasefile.name.split()))
+        response['Content-Disposition'] = 'attachment; filename="%s"' % posixpath.basename(
+            " ".join(releasefile.name.split()))
         return response
 
     @attach_scenarios([retrieve_file_scenario])

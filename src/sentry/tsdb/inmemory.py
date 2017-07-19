@@ -22,6 +22,7 @@ class InMemoryTSDB(BaseTSDB):
 
     This should not be used in production as it will leak memory.
     """
+
     def __init__(self, *args, **kwargs):
         super(InMemoryTSDB, self).__init__(*args, **kwargs)
         self.flush()
@@ -33,6 +34,25 @@ class InMemoryTSDB(BaseTSDB):
         for rollup, max_values in six.iteritems(self.rollups):
             norm_epoch = self.normalize_to_rollup(timestamp, rollup)
             self.data[model][key][norm_epoch] += count
+
+    def merge(self, model, destination, sources, timestamp=None):
+        destination = self.data[model][destination]
+        for source in sources:
+            for bucket, count in self.data[model].pop(source, {}).items():
+                destination[bucket] += count
+
+    def delete(self, models, keys, start=None, end=None, timestamp=None):
+        rollups = self.get_active_series(start, end, timestamp)
+
+        for rollup, series in rollups.items():
+            for model in models:
+                for key in keys:
+                    data = self.data[model][key]
+                    for timestamp in series:
+                        data.pop(
+                            self.normalize_to_rollup(timestamp, rollup),
+                            0,
+                        )
 
     def get_range(self, model, keys, start, end, rollup=None):
         rollup, series = self.get_optimal_rollup_series(start, end, rollup)
@@ -100,9 +120,34 @@ class InMemoryTSDB(BaseTSDB):
 
         return len(values)
 
+    def merge_distinct_counts(self, model, destination, sources, timestamp=None):
+        destination = self.sets[model][destination]
+        for source in sources:
+            for bucket, values in self.sets[model].pop(source, {}).items():
+                destination[bucket].update(values)
+
+    def delete_distinct_counts(self, models, keys, start=None, end=None, timestamp=None):
+        rollups = self.get_active_series(start, end, timestamp)
+
+        for rollup, series in rollups.items():
+            for model in models:
+                for key in keys:
+                    data = self.data[model][key]
+                    for timestamp in series:
+                        data.pop(
+                            self.normalize_to_rollup(timestamp, rollup),
+                            set(),
+                        )
+
     def flush(self):
-        # model => key => timestamp = count
-        self.data = defaultdict(lambda: defaultdict(lambda: defaultdict(int)))
+        # self.data[model][key][rollup] = count
+        self.data = defaultdict(
+            lambda: defaultdict(
+                lambda: defaultdict(
+                    int,
+                )
+            )
+        )
 
         # self.sets[model][key][rollup] = set of elements
         self.sets = defaultdict(
@@ -148,6 +193,19 @@ class InMemoryTSDB(BaseTSDB):
 
         return results
 
+    def get_most_frequent_series(self, model, keys, start, end=None, rollup=None, limit=None):
+        rollup, series = self.get_optimal_rollup_series(start, end, rollup)
+
+        results = {}
+        for key in keys:
+            result = results[key] = []
+            source = self.frequencies[model][key]
+            for timestamp in series:
+                data = source[self.normalize_ts_to_rollup(timestamp, rollup)]
+                result.append((timestamp, dict(data.most_common(limit))))
+
+        return results
+
     def get_frequency_series(self, model, items, start, end=None, rollup=None):
         rollup, series = self.get_optimal_rollup_series(start, end, rollup)
 
@@ -167,10 +225,31 @@ class InMemoryTSDB(BaseTSDB):
     def get_frequency_totals(self, model, items, start, end=None, rollup=None):
         results = {}
 
-        for key, series in six.iteritems(self.get_frequency_series(model, items, start, end, rollup)):
+        for key, series in six.iteritems(
+            self.get_frequency_series(
+                model, items, start, end, rollup)):
             result = results[key] = {}
             for timestamp, scores in series:
                 for member, score in scores.items():
                     result[member] = result.get(member, 0.0) + score
 
         return results
+
+    def merge_frequencies(self, model, destination, sources, timestamp=None):
+        destination = self.frequencies[model][destination]
+        for source in sources:
+            for bucket, counter in self.data[model].pop(source, {}).items():
+                destination[bucket].update(counter)
+
+    def delete_frequencies(self, models, keys, start=None, end=None, timestamp=None):
+        rollups = self.get_active_series(start, end, timestamp)
+
+        for rollup, series in rollups.items():
+            for model in models:
+                for key in keys:
+                    data = self.frequencies[model][key]
+                    for timestamp in series:
+                        data.pop(
+                            self.normalize_to_rollup(timestamp, rollup),
+                            Counter(),
+                        )

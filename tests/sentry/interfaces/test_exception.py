@@ -8,6 +8,7 @@ from sentry.interfaces.exception import (
     SingleException, Exception, slim_exception_data
 )
 from sentry.testutils import TestCase
+from sentry.stacktraces import normalize_in_app
 
 
 class ExceptionTest(TestCase):
@@ -152,7 +153,7 @@ ValueError: hello world
         assert not context['hasSystemFrames']
 
     def test_context_with_only_app_frames(self):
-        inst = Exception.to_python(dict(values=[{
+        values = [{
             'type': 'ValueError',
             'value': 'hello world',
             'module': 'foo.bar',
@@ -170,7 +171,10 @@ ValueError: hello world
                 'lineno': 1,
                 'in_app': True,
             }]},
-        }]))
+        }]
+        exc = dict(values=values)
+        normalize_in_app({'sentry.interfaces.Exception': exc})
+        inst = Exception.to_python(exc)
 
         self.create_event(data={
             'sentry.interfaces.Exception': inst.to_json(),
@@ -289,7 +293,7 @@ class SlimExceptionDataTest(TestCase):
         interface = Exception.to_python({'values': [
             {'value': 'foo',
              'stacktrace': {'frames': [{'filename': 'foo'}]},
-            }
+             }
         ]})
         slim_exception_data(interface)
         assert len(interface.values[0].stacktrace.frames) == 1
@@ -319,7 +323,6 @@ class SlimExceptionDataTest(TestCase):
             assert len(value.stacktrace.frames) == 5
             for f_num, frame in enumerate(value.stacktrace.frames):
                 assert frame.filename == 'exc %d frame %d' % (e_num, f_num)
-                print(frame.filename)
                 if e_num in (0, 4):
                     assert frame.vars is not None
                     assert frame.pre_context is not None

@@ -23,8 +23,8 @@ class GroupTagValueSerializerTest(TestCase):
             value=euser.tag_value,
         )
         grouptagvalue = GroupTagValue.objects.create(
-            project=project,
-            group=self.create_group(project=project),
+            project_id=project.id,
+            group_id=self.create_group(project=project).id,
             key=tagvalue.key,
             value=tagvalue.value,
         )
@@ -39,8 +39,8 @@ class GroupTagValueSerializerTest(TestCase):
         user = self.create_user()
         project = self.create_project()
         grouptagvalue = GroupTagValue.objects.create(
-            project=project,
-            group=self.create_group(project=project),
+            project_id=project.id,
+            group_id=self.create_group(project=project).id,
             key='sentry:user',
             value='email:foo@example.com',
         )

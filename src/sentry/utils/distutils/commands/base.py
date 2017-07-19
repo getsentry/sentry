@@ -102,7 +102,7 @@ class BaseBuildCommand(Command):
             self.set_undefined_options('build',
                                        ('build_lib', 'build_lib'))
             log.debug('regular js build: build path is %s' %
-                     self.build_lib)
+                      self.build_lib)
 
         if self.work_path is None:
             self.work_path = self.get_root_path()
@@ -139,7 +139,8 @@ class BaseBuildCommand(Command):
 
         if node_version[2] is not None:
             log.info('using node ({0}) and yarn ({2})'.format(*node_version))
-            self._run_command(['yarn', 'install', '--production', '--pure-lockfile', '--ignore-optional'])
+            self._run_command(['yarn', 'install', '--production',
+                               '--pure-lockfile', '--ignore-optional'])
         else:
             log.info('using node ({0}) and npm ({1})'.format(*node_version))
             self._run_command(['npm', 'install', '--production', '--quiet'])

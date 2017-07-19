@@ -4,7 +4,6 @@ import Frame from './frame';
 import {t} from '../../../locale';
 import OrganizationState from '../../../mixins/organizationState';
 
-
 const StacktraceContent = React.createClass({
   propTypes: {
     data: React.PropTypes.object.isRequired,
@@ -18,7 +17,7 @@ const StacktraceContent = React.createClass({
   getDefaultProps() {
     return {
       includeSystemFrames: true,
-      expandFirstFrame: true,
+      expandFirstFrame: true
     };
   },
 
@@ -31,16 +30,17 @@ const StacktraceContent = React.createClass({
       className: 'frame frames-omitted',
       key: 'omitted'
     };
-    let text = t('Frames %d until %d were omitted and not available.',
-                 firstFrameOmitted, lastFrameOmitted);
+    let text = t(
+      'Frames %d until %d were omitted and not available.',
+      firstFrameOmitted,
+      lastFrameOmitted
+    );
     return <li {...props}>{text}</li>;
   },
 
   frameIsVisible(frame, nextFrame) {
     return (
-      this.props.includeSystemFrames ||
-      frame.inApp ||
-      (nextFrame && nextFrame.inApp)
+      this.props.includeSystemFrames || frame.inApp || (nextFrame && nextFrame.inApp)
     );
   },
 
@@ -68,16 +68,18 @@ const StacktraceContent = React.createClass({
     let frames = [];
     let nRepeats = 0;
     data.frames.forEach((frame, frameIdx) => {
+      let prevFrame = data.frames[frameIdx - 1];
       let nextFrame = data.frames[frameIdx + 1];
-      let repeatedFrame = nextFrame &&
-       frame.lineNo === nextFrame.lineNo &&
-       frame.function === nextFrame.function;
+      let repeatedFrame =
+        nextFrame &&
+        frame.lineNo === nextFrame.lineNo &&
+        frame.function === nextFrame.function;
 
       if (repeatedFrame) {
         nRepeats++;
       }
 
-      if (this.frameIsVisible(frame, nextFrame) && !repeatedFrame ){
+      if (this.frameIsVisible(frame, nextFrame) && !repeatedFrame) {
         frames.push(
           <Frame
             key={frameIdx}
@@ -85,19 +87,20 @@ const StacktraceContent = React.createClass({
             isExpanded={expandFirstFrame && lastFrameIdx === frameIdx}
             emptySourceNotation={lastFrameIdx === frameIdx && frameIdx === 0}
             isOnlyFrame={this.props.data.frames.length === 1}
-            nextFrameInApp={nextFrame && nextFrame.inApp}
+            nextFrame={nextFrame}
+            prevFrame={prevFrame}
             platform={this.props.platform}
-            timesRepeated={nRepeats}/>
+            timesRepeated={nRepeats}
+          />
         );
       }
 
-      if(!repeatedFrame){
+      if (!repeatedFrame) {
         nRepeats = 0;
       }
 
       if (frameIdx === firstFrameOmitted) {
-        frames.push(this.renderOmittedFrames(
-          firstFrameOmitted, lastFrameOmitted));
+        frames.push(this.renderOmittedFrames(firstFrameOmitted, lastFrameOmitted));
       }
     });
     if (this.props.newestFirst) {

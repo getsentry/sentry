@@ -59,13 +59,16 @@ class CreateOrganizationMemberView(OrganizationView):
 
             if created:
                 messages.add_message(request, messages.SUCCESS,
-                    _('The organization member %s was added.') % user_display)
+                                     _('The organization member %s was added.') % user_display)
 
                 member_invited.send(member=om, user=request.user, sender=self)
 
             else:
-                messages.add_message(request, messages.INFO,
-                    _('The organization member %s already exists.') % user_display)
+                messages.add_message(
+                    request,
+                    messages.INFO,
+                    _('The organization member %s already exists.') %
+                    user_display)
 
             redirect = reverse('sentry-organization-members', args=[organization.slug])
 
@@ -78,7 +81,7 @@ class CreateOrganizationMemberView(OrganizationView):
                 (r, r in allowed_roles)
                 for r in roles.get_all()
             ],
-            'all_teams': all_teams
+            'all_teams': list(all_teams),
         }
 
         return self.respond('sentry/create-organization-member.html', context)

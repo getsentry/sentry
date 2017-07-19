@@ -112,6 +112,7 @@ class ProjectReleaseFilesEndpoint(ProjectEndpoint):
                                      release of.
         :pparam string version: the version identifier of the release.
         :param string name: the name (full path) of the file.
+        :param string dist: the name of the dist.
         :param file file: the multipart encoded file.
         :param string header: this parameter can be supplied multiple times
                               to attach headers to the file.  Each header
@@ -141,7 +142,13 @@ class ProjectReleaseFilesEndpoint(ProjectEndpoint):
         name = full_name.rsplit('/', 1)[-1]
 
         if _filename_re.search(name):
-            return Response({'detail': 'File name must not contain special whitespace characters'}, status=400)
+            return Response(
+                {'detail': 'File name must not contain special whitespace characters'}, status=400)
+
+        dist_name = request.DATA.get('dist')
+        dist = None
+        if dist_name:
+            dist = release.add_dist(dist_name)
 
         headers = {
             'Content-Type': fileobj.content_type,
@@ -153,7 +160,8 @@ class ProjectReleaseFilesEndpoint(ProjectEndpoint):
                 return Response({'detail': 'header value was not formatted correctly'}, status=400)
             else:
                 if _filename_re.search(v):
-                    return Response({'detail': 'header value must not contain special whitespace characters'}, status=400)
+                    return Response(
+                        {'detail': 'header value must not contain special whitespace characters'}, status=400)
                 headers[k] = v.strip()
 
         file = File.objects.create(
@@ -170,6 +178,7 @@ class ProjectReleaseFilesEndpoint(ProjectEndpoint):
                     release=release,
                     file=file,
                     name=full_name,
+                    dist=dist
                 )
         except IntegrityError:
             file.delete()

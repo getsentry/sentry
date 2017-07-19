@@ -30,7 +30,7 @@ const U2fInterface = React.createClass({
   },
 
   componentDidMount() {
-    u2f.isSupported().then((supported) => {
+    u2f.isSupported().then(supported => {
       this.setState({
         isSupported: supported
       });
@@ -42,12 +42,15 @@ const U2fInterface = React.createClass({
   },
 
   onTryAgain() {
-    this.setState({
-      hasBeenTapped: false,
-      deviceFailure: null,
-    }, () => {
-      this.invokeU2fFlow();
-    });
+    this.setState(
+      {
+        hasBeenTapped: false,
+        deviceFailure: null
+      },
+      () => {
+        this.invokeU2fFlow();
+      }
+    );
   },
 
   invokeU2fFlow() {
@@ -60,32 +63,36 @@ const U2fInterface = React.createClass({
     } else {
       throw new Error(`Unsupported flow mode '${this.props.flowMode}'`);
     }
-    promise.then((data) => {
-      this.setState({
-        hasBeenTapped: true
-      }, () => {
-        this.state.responseElement.value = JSON.stringify(data);
-        if (!this.props.onTap || this.props.onTap()) {
-          this.state.formElement.submit();
+    promise
+      .then(data => {
+        this.setState(
+          {
+            hasBeenTapped: true
+          },
+          () => {
+            this.state.responseElement.value = JSON.stringify(data);
+            if (!this.props.onTap || this.props.onTap()) {
+              this.state.formElement.submit();
+            }
+          }
+        );
+      })
+      .catch(err => {
+        let failure = 'DEVICE_ERROR';
+        if (err.metaData.type === 'DEVICE_INELIGIBLE') {
+          if (this.props.flowMode === 'enroll') {
+            failure = 'DUPLICATE_DEVICE';
+          } else {
+            failure = 'UNKNOWN_DEVICE';
+          }
+        } else if (err.metaData.type === 'BAD_REQUEST') {
+          failure = 'BAD_APPID';
         }
+        this.setState({
+          deviceFailure: failure,
+          hasBeenTapped: false
+        });
       });
-    })
-    .catch((err) => {
-      let failure = 'DEVICE_ERROR';
-      if (err.metaData.type === 'DEVICE_INELIGIBLE') {
-        if (this.props.flowMode === 'enroll') {
-          failure = 'DUPLICATE_DEVICE';
-        } else {
-          failure = 'UNKNOWN_DEVICE';
-        }
-      } else if (err.metaData.type === 'BAD_REQUEST') {
-        failure = 'BAD_APPID';
-      }
-      this.setState({
-        deviceFailure: failure,
-        hasBeenTapped: false,
-      });
-    });
   },
 
   bindChallengeElement(ref) {
@@ -110,11 +117,13 @@ const U2fInterface = React.createClass({
       <div className="u2f-box">
         <div className="inner">
           <p className="error">
-            {t(`
+            {t(
+              `
              Unfortunately your browser does not support U2F. You need to use
              a different two-factor method or switch to a browser that supports
              it (Google Chrome or Microsoft Edge).
-            `)}
+            `
+            )}
           </p>
         </div>
       </div>
@@ -133,25 +142,31 @@ const U2fInterface = React.createClass({
       : <span>{t('Support')}</span>;
     return (
       <div className="failure-message">
-        <p><strong>{t('Error: ')}</strong> {{
-          'DEVICE_ERROR': t('Your U2F device reported an error.'),
-          'DUPLICATE_DEVICE': t('This device is already in use.'),
-          'UNKNOWN_DEVICE': t('The device you used for sign-in is unknown.'),
-          'BAD_APPID': tct(
-            '[p1:The Sentry server administrator modified the ' +
-            'device registrations.]' + 
-            '[p2:You need to remove and re-add the device to continue ' +
-            'using your U2F device. Use a different sign-in method or ' +
-            'contact [support] for assistance.]',
+        <p>
+          <strong>{t('Error: ')}</strong> {
             {
-              p1: <p/>,
-              p2: <p/>,
-              support: support,
-            }
-          ),
-        }[deviceFailure]}</p>
+              DEVICE_ERROR: t('Your U2F device reported an error.'),
+              DUPLICATE_DEVICE: t('This device is already in use.'),
+              UNKNOWN_DEVICE: t('The device you used for sign-in is unknown.'),
+              BAD_APPID: tct(
+                '[p1:The Sentry server administrator modified the ' +
+                  'device registrations.]' +
+                  '[p2:You need to remove and re-add the device to continue ' +
+                  'using your U2F device. Use a different sign-in method or ' +
+                  'contact [support] for assistance.]',
+                {
+                  p1: <p />,
+                  p2: <p />,
+                  support: support
+                }
+              )
+            }[deviceFailure]
+          }
+        </p>
         {this.canTryAgain() &&
-          <p><a onClick={this.onTryAgain} className="btn btn-primary">{t('Try Again')}</a></p>}
+          <p>
+            <a onClick={this.onTryAgain} className="btn btn-primary">{t('Try Again')}</a>
+          </p>}
       </div>
     );
   },
@@ -166,19 +181,23 @@ const U2fInterface = React.createClass({
 
   renderPrompt() {
     return (
-      <div className={'u2f-box' + (this.state.hasBeenTapped ? ' tapped' : '')
-          + (this.state.deviceFailure ? ' device-failure' : '')}>
+      <div
+        className={
+          'u2f-box' +
+            (this.state.hasBeenTapped ? ' tapped' : '') +
+            (this.state.deviceFailure ? ' device-failure' : '')
+        }>
         <div className="device-animation-frame">
-          <div className="device-failed"/>
-          <div className="device-animation"/>
+          <div className="device-failed" />
+          <div className="device-animation" />
           <div className="loading-dots">
             <span className="dot" />
             <span className="dot" />
             <span className="dot" />
           </div>
         </div>
-        <input type="hidden" name="challenge" ref={this.bindChallengeElement}/>
-        <input type="hidden" name="response" ref={this.bindResponseElement}/>
+        <input type="hidden" name="challenge" ref={this.bindChallengeElement} />
+        <input type="hidden" name="response" ref={this.bindResponseElement} />
         <div className="inner">
           {this.renderBody()}
         </div>

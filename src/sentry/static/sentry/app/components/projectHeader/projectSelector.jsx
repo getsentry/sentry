@@ -2,6 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import {browserHistory} from 'react-router';
 import jQuery from 'jquery';
+import classNames from 'classnames';
 
 import ApiMixin from '../../mixins/apiMixin';
 
@@ -79,6 +80,11 @@ const ProjectSelector = React.createClass({
     }, 200);
   },
 
+  urlPrefix() {
+    let org = this.props.organization;
+    return `/organizations/${org.slug}`;
+  },
+
   close() {
     this.setState({
       filter: '',
@@ -93,8 +99,7 @@ const ProjectSelector = React.createClass({
 
   getProjectNode(team, project, highlightText, hasSingleTeam, isSelected) {
     let projectId = project.slug;
-    let label = this.getProjectLabel(team, project, hasSingleTeam,
-                                     highlightText);
+    let label = this.getProjectLabel(team, project, hasSingleTeam, highlightText);
 
     let menuItemProps = {
       key: projectId, // TODO: what if two projects w/ same name under diff orgs?
@@ -110,7 +115,7 @@ const ProjectSelector = React.createClass({
 
     return (
       <MenuItem {...menuItemProps}>
-        {project.isBookmarked && <span className="icon-star-solid bookmark "></span>}
+        {project.isBookmarked && <span className="icon-star-solid bookmark " />}
         {label}
       </MenuItem>
     );
@@ -120,8 +125,13 @@ const ProjectSelector = React.createClass({
     let label, text;
     if (!hasSingleTeam && project.name.indexOf(team.name) === -1) {
       label = (
-        <span>{team.name} / <ProjectLabel
-            project={project} organization={this.props.organization}/></span>
+        <span>
+          {team.name}
+          {' '}
+          /
+          {' '}
+          <ProjectLabel project={project} organization={this.props.organization} />
+        </span>
       );
       text = team.name + ' / ' + project.name;
     } else {
@@ -189,7 +199,12 @@ const ProjectSelector = React.createClass({
   },
 
   onOpen(evt) {
-    ReactDOM.findDOMNode(this.refs.filter).focus();
+    if (this.refs.filter) {
+      ReactDOM.findDOMNode(this.refs.filter).focus();
+      this.setState({
+        ...this.getProjectState(this.state)
+      });
+    }
   },
 
   onClose() {
@@ -233,16 +248,18 @@ const ProjectSelector = React.createClass({
     let projectList = [];
     let activeTeam;
     let activeProject;
-    org.teams.forEach((team) => {
+    org.teams.forEach(team => {
       if (!team.isMember) {
         return;
       }
-      team.projects.forEach((project) => {
+      team.projects.forEach(project => {
         if (project.slug == this.props.projectId) {
           activeProject = project;
           activeTeam = team;
         }
-        let fullName = [team.name, project.name, team.slug, project.slug].join(' ').toLowerCase();
+        let fullName = [team.name, project.name, team.slug, project.slug]
+          .join(' ')
+          .toLowerCase();
         if (filter && fullName.indexOf(filter) === -1) {
           return;
         }
@@ -256,8 +273,43 @@ const ProjectSelector = React.createClass({
     };
   },
 
+  renderProjectList({organization: org, projects, filter, hasProjectWrite}) {
+    const hasFilter = !!filter;
+    const hasProjects = projects && projects.length;
+    // Will always need to show divider
+    const showDivider = !hasFilter && hasProjectWrite;
+
+    if (hasProjects) {
+      return projects;
+    } else {
+      // There can be a filter and have no found results or
+      // there can simply be no projects to list
+      //
+      // Give an actionable item when there are no projects
+      return [
+        <MenuItem key="empty-message" className="empty-projects-item" noAnchor>
+          <div className="empty-message">
+            {hasFilter && t('No projects found')}
+            {!hasFilter && t('You have no projects.')}
+          </div>
+        </MenuItem>,
+        showDivider ? <MenuItem key="divider" divider /> : null,
+        !hasFilter && hasProjectWrite
+          ? <MenuItem key="create-project" className="empty-projects-item" noAnchor>
+              <a
+                className="btn btn-primary btn-block"
+                href={`${this.urlPrefix()}/projects/new/`}>
+                {t('Create project')}
+              </a>
+            </MenuItem>
+          : null
+      ];
+    }
+  },
+
   render() {
     let org = this.props.organization;
+    let access = new Set(org.access);
     let hasSingleTeam = org.teams.length === 1;
 
     let projectList = sortArray(this.state.projectList, ([team, project]) => {
@@ -265,33 +317,56 @@ const ProjectSelector = React.createClass({
     });
 
     let children = projectList.map(([team, project], index) => {
-      return this.getProjectNode(team, project, this.state.filter, hasSingleTeam, this.state.currentIndex === index);
+      return this.getProjectNode(
+        team,
+        project,
+        this.state.filter,
+        hasSingleTeam,
+        this.state.currentIndex === index
+      );
     });
+    const hasFilter = !!this.state.filter;
+    const hasProjects = children && !!children.length;
+    const dropdownClassNames = classNames('project-dropdown', {
+      'is-empty': !hasProjects
+    });
+
     return (
       <div className="project-select" ref="container">
         <h3>
           <Link to={`/${org.slug}/`} className="home-crumb">
             <span className="icon-home" />
           </Link>
-          {this.state.activeProject ?
-            this.getLinkNode(this.state.activeTeam, this.state.activeProject)
-          :
-            t('Select a project')
-          }
-          <DropdownLink ref="dropdownLink" title="" topLevelClasses="project-dropdown"
-              onOpen={this.onOpen} onClose={this.onClose}>
-            <li className="project-filter" key="_filter">
-              <input
-                value={this.state.filter}
-                type="text"
-                placeholder={t('Filter projects')}
-                onChange={this.onFilterChange}
-                onKeyUp={this.onKeyUp}
-                onKeyDown={this.onKeyDown}
-                onBlur={this.onFilterBlur}
-                ref="filter" />
-            </li>
-            {children}
+          {this.state.activeProject
+            ? this.getLinkNode(this.state.activeTeam, this.state.activeProject)
+            : t('Select a project')}
+          <DropdownLink
+            ref="dropdownLink"
+            title=""
+            topLevelClasses={dropdownClassNames}
+            onOpen={this.onOpen}
+            onClose={this.onClose}>
+
+            {(hasFilter || hasProjects) &&
+              <li className="project-filter" key="_filter">
+                <input
+                  value={this.state.filter}
+                  type="text"
+                  placeholder={t('Filter projects')}
+                  onChange={this.onFilterChange}
+                  onKeyUp={this.onKeyUp}
+                  onKeyDown={this.onKeyDown}
+                  onBlur={this.onFilterBlur}
+                  ref="filter"
+                />
+              </li>}
+
+            {this.renderProjectList({
+              organization: org,
+              hasProjectWrite: access.has('project:write'),
+              projects: children,
+              filter: this.state.filter
+            })}
           </DropdownLink>
         </h3>
       </div>

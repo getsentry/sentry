@@ -10,7 +10,7 @@ from __future__ import absolute_import
 import re
 import six
 
-from sentry.constants import DEFAULT_SCRUBBED_FIELDS, FILTER_MASK
+from sentry.constants import DEFAULT_SCRUBBED_FIELDS, FILTER_MASK, NOT_SCRUBBED_VALUES
 
 
 def varmap(func, var, context=None, name=None):
@@ -115,17 +115,17 @@ class SensitiveDataFilter(object):
             if '//' in value and '@' in value:
                 value = self.URL_PASSWORD_RE.sub(r'\1' + FILTER_MASK + '@', value)
 
-        original_value = value
         if isinstance(value, six.string_types):
-            value = value.lower()
+            str_value = value.lower()
         else:
-            value = ''
+            str_value = ''
 
         for field in self.fields:
-            if field in key or field in value:
-                # store mask as a fixed length for security
+            if field in str_value:
                 return FILTER_MASK
-        return original_value
+            if field in key and value not in NOT_SCRUBBED_VALUES:
+                return FILTER_MASK
+        return value
 
     def filter_stacktrace(self, data):
         if 'frames' not in data:

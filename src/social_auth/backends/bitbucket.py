@@ -12,13 +12,8 @@ extend it.
 """
 from __future__ import absolute_import
 
-try:
-    import json as simplejson
-except ImportError:
-    try:
-        import simplejson
-    except ImportError:
-        from django.utils import simplejson
+import simplejson
+
 from social_auth.backends import ConsumerBasedOAuth, OAuthBackend
 from social_auth.utils import dsa_urlopen
 
@@ -81,6 +76,7 @@ class BitbucketAuth(ConsumerBasedOAuth):
     AUTH_BACKEND = BitbucketBackend
     SETTINGS_KEY_NAME = 'BITBUCKET_CONSUMER_KEY'
     SETTINGS_SECRET_NAME = 'BITBUCKET_CONSUMER_SECRET'
+    DEFAULT_SCOPE = ['webhook', 'repository', 'issue']
 
     def user_data(self, access_token):
         """Return user data provided"""

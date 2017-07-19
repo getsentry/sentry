@@ -7,12 +7,12 @@ const Footer = React.createClass({
   getInitialState() {
     // Allow injection via getsentry et all
     let hooks = [];
-    HookStore.get('footer').forEach((cb) => {
+    HookStore.get('footer').forEach(cb => {
       hooks.push(cb());
     });
 
     return {
-      hooks: hooks,
+      hooks: hooks
     };
   },
 
@@ -24,15 +24,19 @@ const Footer = React.createClass({
           <div className="pull-right">
             <a className="hidden-xs" href="/api/">{t('API')}</a>
             <a href="/docs/">{t('Docs')}</a>
-            <a  className="hidden-xs" href="https://github.com/getsentry/sentry" rel="noreferrer">{t('Contribute')}</a>
+            <a
+              className="hidden-xs"
+              href="https://github.com/getsentry/sentry"
+              rel="noreferrer">
+              {t('Contribute')}
+            </a>
             {config.isOnPremise &&
-              <a className="hidden-xs" href="/out/">{t('Migrate to SaaS')}</a>
-            }
+              <a className="hidden-xs" href="/out/">{t('Migrate to SaaS')}</a>}
           </div>
           <div className="version pull-left">
             {'Sentry'} {config.version.current}
           </div>
-          <a href="/" className="icon-sentry-logo"></a>
+          <a href="/" className="icon-sentry-logo" />
           {this.state.hooks}
         </div>
       </footer>

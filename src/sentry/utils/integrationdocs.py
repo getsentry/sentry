@@ -7,10 +7,9 @@ import sys
 import json
 import logging
 
-from click import echo
 import sentry
 
-BASE_URL = 'https://docs.sentry.io/hosted/_platforms/{}'
+BASE_URL = 'https://docs.sentry.io/_platforms/{}'
 
 # Also see INTEGRATION_DOC_FOLDER in setup.py
 DOC_FOLDER = os.path.abspath(os.path.join(os.path.dirname(sentry.__file__),
@@ -44,6 +43,12 @@ the latest list of integrations and serve them in your local Sentry install.
 """
 
 logger = logging.getLogger('sentry')
+
+
+def echo(what):
+    sys.stdout.write(what)
+    sys.stdout.write('\n')
+    sys.stdout.flush()
 
 
 def dump_doc(path, data):

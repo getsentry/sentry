@@ -8,28 +8,33 @@ import ToastIndicator from '../components/alerts/toastIndicator';
 import IndicatorStore from '../stores/indicatorStore';
 
 const Indicators = React.createClass({
-  mixins: [
-    Reflux.connect(IndicatorStore, 'items')
-  ],
+  mixins: [Reflux.connect(IndicatorStore, 'items')],
 
   getInitialState() {
-      return {
-          items: []
-      };
+    return {
+      items: []
+    };
   },
 
   render() {
     return (
       <div {...this.props}>
-        <ReactCSSTransitionGroup transitionName="toast" transitionEnter={false} transitionLeaveTimeout={500}>
-          {this.state.items.map((indicator) => {
+        <ReactCSSTransitionGroup
+          transitionName="toast"
+          transitionEnter={false}
+          transitionLeaveTimeout={500}>
+          {this.state.items.map(indicator => {
             if (indicator.type === 'error' || indicator.type === 'success') {
               return (
-                <ToastIndicator type={indicator.type} key={indicator.id}>{indicator.message}</ToastIndicator>
+                <ToastIndicator type={indicator.type} key={indicator.id}>
+                  {indicator.message}
+                </ToastIndicator>
               );
             } else {
               return (
-                <LoadingIndicator className="toast" key={indicator.id}>{indicator.message}</LoadingIndicator>
+                <LoadingIndicator className="toast" key={indicator.id}>
+                  {indicator.message}
+                </LoadingIndicator>
               );
             }
           })}
@@ -40,4 +45,3 @@ const Indicators = React.createClass({
 });
 
 export default Indicators;
-

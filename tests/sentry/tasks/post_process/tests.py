@@ -2,9 +2,11 @@
 
 from __future__ import absolute_import
 
+from datetime import timedelta
+from django.utils import timezone
 from mock import Mock, patch
 
-from sentry.models import EventTag, TagKey, TagValue
+from sentry.models import EventTag, GroupSnooze, TagKey, TagValue
 from sentry.testutils import TestCase
 from sentry.tasks.merge import merge_group
 from sentry.tasks.post_process import index_event_tags, post_process_group
@@ -65,6 +67,46 @@ class PostProcessGroupTest(TestCase):
 
         assert event.group == group2
         assert event.group_id == group2.id
+
+    @patch('sentry.tasks.post_process.record_affected_user', Mock())
+    def test_invalidates_snooze(self):
+        group = self.create_group(project=self.project)
+        event = self.create_event(group=group)
+        snooze = GroupSnooze.objects.create(
+            group=group,
+            until=timezone.now() - timedelta(hours=1),
+        )
+
+        post_process_group(
+            event=event,
+            is_new=True,
+            is_regression=False,
+            is_sample=False,
+        )
+
+        assert not GroupSnooze.objects.filter(
+            id=snooze.id,
+        ).exists()
+
+    @patch('sentry.tasks.post_process.record_affected_user', Mock())
+    def test_maintains_valid_snooze(self):
+        group = self.create_group(project=self.project)
+        event = self.create_event(group=group)
+        snooze = GroupSnooze.objects.create(
+            group=group,
+            until=timezone.now() + timedelta(hours=1),
+        )
+
+        post_process_group(
+            event=event,
+            is_new=True,
+            is_regression=False,
+            is_sample=False,
+        )
+
+        assert GroupSnooze.objects.filter(
+            id=snooze.id,
+        ).exists()
 
 
 class IndexEventTagsTest(TestCase):

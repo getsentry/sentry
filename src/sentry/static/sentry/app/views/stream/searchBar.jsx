@@ -32,7 +32,7 @@ const SearchBar = React.createClass({
   mixins: [
     ApiMixin,
     PureRenderMixin,
-    Reflux.listenTo(MemberListStore, 'onMemberListStoreChange'),
+    Reflux.listenTo(MemberListStore, 'onMemberListStoreChange')
   ],
 
   statics: {
@@ -139,10 +139,7 @@ const SearchBar = React.createClass({
   },
 
   clearSearch() {
-    this.setState(
-      {query: ''},
-      () => this.props.onSearch(this.state.query)
-    );
+    this.setState({query: ''}, () => this.props.onSearch(this.state.query));
   },
 
   onQueryFocus() {
@@ -161,10 +158,7 @@ const SearchBar = React.createClass({
   },
 
   onQueryChange(evt) {
-    this.setState(
-      {query: evt.target.value},
-      () => this.updateAutoCompleteItems()
-    );
+    this.setState({query: evt.target.value}, () => this.updateAutoCompleteItems());
   },
 
   onKeyUp(evt) {
@@ -183,7 +177,7 @@ const SearchBar = React.createClass({
    *
    * e.g. ['is:', 'assigned:', 'url:', 'release:']
    */
-  getTagKeys: function (query) {
+  getTagKeys: function(query) {
     return StreamTagStore.getTagKeys()
       .map(key => key + ':')
       .filter(key => key.indexOf(query) > -1);
@@ -193,7 +187,7 @@ const SearchBar = React.createClass({
    * Returns array of tag values that substring match `query`; invokes `callback`
    * with data when ready
    */
-  getTagValues: _.debounce(function (tag, query, callback) {
+  getTagValues: _.debounce(function(tag, query, callback) {
     // Strip double quotes if there are any
     query = query.replace('"', '').trim();
 
@@ -207,12 +201,16 @@ const SearchBar = React.createClass({
         query: query
       },
       method: 'GET',
-      success: (values) => {
+      success: values => {
         this.setState({loading: false});
-        callback(values.map((v) => {
-          // Wrap in quotes if there is a space
-          return v.value.indexOf(' ') > -1 ? `"${v.value}"` : v.value;
-        }), tag.key, query);
+        callback(
+          values.map(v => {
+            // Wrap in quotes if there is a space
+            return v.value.indexOf(' ') > -1 ? `"${v.value}"` : v.value;
+          }),
+          tag.key,
+          query
+        );
       }
     });
   }, 300),
@@ -221,9 +219,8 @@ const SearchBar = React.createClass({
    * Returns array of tag values that substring match `query`; invokes `callback`
    * with results
    */
-  getPredefinedTagValues: function (tag, query, callback) {
-    let values = tag.values
-      .filter(value => value.indexOf(query) > -1);
+  getPredefinedTagValues: function(tag, query, callback) {
+    let values = tag.values.filter(value => value.indexOf(query) > -1);
 
     callback(values, tag.key);
   },
@@ -231,16 +228,19 @@ const SearchBar = React.createClass({
   onInputClick() {
     let cursor = this.getCursorPosition();
 
-    if (cursor === this.state.query.length && this.state.query.charAt(cursor - 1) !== ' ') {
+    if (
+      cursor === this.state.query.length &&
+      this.state.query.charAt(cursor - 1) !== ' '
+    ) {
       // If the cursor lands at the end of the input value, and the preceding character
       // is not whitespace, then add a space and move the cursor beyond that space.
-      this.setState(
-        {query: this.state.query + ' '},
-        () => {
-          ReactDOM.findDOMNode(this.refs.searchInput).setSelectionRange(cursor + 1, cursor + 1);
-          this.updateAutoCompleteItems();
-        }
-      );
+      this.setState({query: this.state.query + ' '}, () => {
+        ReactDOM.findDOMNode(this.refs.searchInput).setSelectionRange(
+          cursor + 1,
+          cursor + 1
+        );
+        this.updateAutoCompleteItems();
+      });
     } else {
       this.updateAutoCompleteItems();
     }
@@ -258,11 +258,13 @@ const SearchBar = React.createClass({
     let lastTermIndex = SearchBar.getLastTermIndex(query, cursor);
     let terms = SearchBar.getQueryTerms(query.slice(0, lastTermIndex));
 
-    if (!terms || // no terms
-        terms.length === 0 || // no terms
-        terms.length === 1 && terms[0] === this.props.defaultQuery || // default term
-        /^\s+$/.test(query.slice(cursor - 1, cursor + 1))) // cursor on whitespace
-    {
+    if (
+      !terms || // no terms
+      terms.length === 0 || // no terms
+      (terms.length === 1 && terms[0] === this.props.defaultQuery) || // default term
+      /^\s+$/.test(query.slice(cursor - 1, cursor + 1))
+    ) {
+      // cursor on whitespace
       // show default "help" search terms
       return void this.setState({
         searchTerm: '',
@@ -290,7 +292,9 @@ const SearchBar = React.createClass({
 
       // filter existing items immediately, until API can return
       // with actual tag value results
-      let filteredSearchItems = this.state.searchItems.filter(item => query && item.value.indexOf(query) !== -1);
+      let filteredSearchItems = this.state.searchItems.filter(
+        item => query && item.value.indexOf(query) !== -1
+      );
 
       this.setState({
         searchTerm: query,
@@ -298,15 +302,15 @@ const SearchBar = React.createClass({
       });
 
       let tag = StreamTagStore.getTag(tagName);
-      if (!tag)
-        return undefined;
+      if (!tag) return undefined;
 
-      return void (
-        tag.predefined
-          ? this.getPredefinedTagValues
-          : this.getTagValues
-        )(tag, query, this.updateAutoCompleteState);
+      return void (tag.predefined ? this.getPredefinedTagValues : this.getTagValues)(
+        tag,
+        query,
+        this.updateAutoCompleteState
+      );
     }
+    return undefined;
   },
 
   isDefaultDropdown() {
@@ -317,7 +321,7 @@ const SearchBar = React.createClass({
     autoCompleteItems = autoCompleteItems.map(item => {
       let out = {
         desc: item,
-        value: item,
+        value: item
       };
 
       // Specify icons according to tag value
@@ -349,8 +353,7 @@ const SearchBar = React.createClass({
     let state = this.state;
     let searchItems = state.searchItems;
 
-    if (!searchItems.length)
-      return;
+    if (!searchItems.length) return;
 
     if (evt.key === 'ArrowDown' || evt.key === 'ArrowUp') {
       evt.preventDefault();
@@ -364,7 +367,6 @@ const SearchBar = React.createClass({
 
       searchItems[state.activeSearchItem].active = true;
       this.setState({searchItems: searchItems.slice(0)});
-
     } else if (evt.key === 'Tab' && !this.isDefaultDropdown()) {
       evt.preventDefault();
 
@@ -391,30 +393,36 @@ const SearchBar = React.createClass({
       newQuery = query.slice(0, lastTermIndex); // get text preceding last term
 
       newQuery = last.indexOf(':') > -1
-        // tag key present: replace everything after colon with replaceText
-        ? newQuery.replace(/\:"[^"]*"?$|\:\S*$/, ':' + replaceText)
-        // no tag key present: replace last token with replaceText
-        : newQuery.replace(/\S+$/, replaceText);
+        ? // tag key present: replace everything after colon with replaceText
+          newQuery.replace(/\:"[^"]*"?$|\:\S*$/, ':' + replaceText)
+        : // no tag key present: replace last token with replaceText
+          newQuery.replace(/\S+$/, replaceText);
 
       newQuery = newQuery.concat(query.slice(lastTermIndex));
     }
 
-    this.setState({
-      query: newQuery
-    }, () => {
-      // setting a new input value will lose focus; restore it
-      let node = ReactDOM.findDOMNode(this.refs.searchInput);
-      node.focus();
+    this.setState(
+      {
+        query: newQuery
+      },
+      () => {
+        // setting a new input value will lose focus; restore it
+        let node = ReactDOM.findDOMNode(this.refs.searchInput);
+        node.focus();
 
-      // then update the autocomplete box with new contextTypes
-      this.updateAutoCompleteItems();
-    });
+        // then update the autocomplete box with new contextTypes
+        this.updateAutoCompleteItems();
+      }
+    );
   },
 
   onMemberListStoreChange(members) {
-    this.setState({
-      members: members
-    }, this.updateAutoCompleteItems);
+    this.setState(
+      {
+        members: members
+      },
+      this.updateAutoCompleteItems
+    );
   },
 
   render() {
@@ -423,14 +431,15 @@ const SearchBar = React.createClass({
     };
 
     let rootClassNames = ['search'];
-    if (this.props.disabled)
-      rootClassNames.push('disabled');
+    if (this.props.disabled) rootClassNames.push('disabled');
 
     return (
       <div className={classNames(rootClassNames)}>
         <form className="form-horizontal" ref="searchForm" onSubmit={this.onSubmit}>
           <div>
-            <input type="text" className="search-input form-control"
+            <input
+              type="text"
+              className="search-input form-control"
               placeholder={this.props.placeholder}
               name="query"
               ref="searchInput"
@@ -443,15 +452,14 @@ const SearchBar = React.createClass({
               onChange={this.onQueryChange}
               onClick={this.onInputClick}
               disabled={this.props.disabled}
-              />
+            />
             <span className="icon-search" />
             {this.state.query !== '' &&
               <div>
                 <a className="search-clear-form" onClick={this.clearSearch}>
                   <span className="icon-circle-cross" />
                 </a>
-              </div>
-            }
+              </div>}
           </div>
 
           {(this.state.loading || this.state.searchItems.length > 0) &&
@@ -462,9 +470,8 @@ const SearchBar = React.createClass({
                 onClick={this.onAutoComplete}
                 loading={this.state.loading}
                 searchSubstring={this.state.searchTerm}
-                />
-            </div>
-          }
+              />
+            </div>}
         </form>
       </div>
     );

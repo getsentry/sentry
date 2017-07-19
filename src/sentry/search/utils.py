@@ -164,6 +164,39 @@ def get_date_params(value, from_field, to_field):
         })
     return result
 
+
+numeric_modifiers = [
+    ('>=', lambda field, value: {
+        '{}_lower'.format(field): value,
+        '{}_lower_inclusive'.format(field): True,
+    }),
+    ('<=', lambda field, value: {
+        '{}_upper'.format(field): value,
+        '{}_upper_inclusive'.format(field): True,
+    }),
+    ('>', lambda field, value: {
+        '{}_lower'.format(field): value,
+        '{}_lower_inclusive'.format(field): False,
+    }),
+    ('<', lambda field, value: {
+        '{}_upper'.format(field): value,
+        '{}_upper_inclusive'.format(field): False,
+    }),
+]
+
+
+def get_numeric_field_value(field, raw_value, type=int):
+    for modifier, function in numeric_modifiers:
+        if raw_value.startswith(modifier):
+            return function(
+                field,
+                type(raw_value[len(modifier):]),
+            )
+    else:
+        return {
+            field: type(raw_value),
+        }
+
 reserved_tag_names = frozenset([
     'query',
     'is',
@@ -190,13 +223,16 @@ reserved_tag_names = frozenset([
     'app',
     'os.name',
     'url',
-    'event.timestamp'])
+    'event.timestamp'
+    'timesSeen',
+])
 
 
 def tokenize_query(query):
     """
     Tokenizes a standard Sentry search query.
 
+    Example:
     >>> query = 'is:resolved foo bar tag:value'
     >>> tokenize_query(query)
     {
@@ -205,58 +241,94 @@ def tokenize_query(query):
         'tag': ['value'],
     }
     """
-    results = defaultdict(list)
+    result = defaultdict(list)
+    query_params = defaultdict(list)
+    tokens = split_query_into_tokens(query)
+    for token in tokens:
+        state = 'query'
+        for idx, char in enumerate(token):
+            next_char = token[idx + 1] if idx < len(token) - 1 else None
+            if idx == 0 and char in ('"', "'"):
+                break
+            if char == ':':
+                if next_char in (':', ' '):
+                    state = 'query'
+                else:
+                    state = 'tags'
+                break
+        query_params[state].append(token)
 
-    tokens = query.split(' ')
-    tokens_iter = iter(tokens)
-    for token in tokens_iter:
-        # ignore empty tokens
-        if not token:
-            continue
+    result['query'] = map(format_query, query_params['query'])
+    for tag in query_params['tags']:
+        key, value = format_tag(tag)
+        result[key].append(value)
+    return dict(result)
 
-        if ':' not in token:
-            results['query'].append(token)
-            continue
 
-        # this handles quoted string, and is duplicated below
-        if token[0] == '"':
-            nvalue = token
-            while nvalue[-1] != '"':
-                try:
-                    nvalue = six.next(tokens_iter)
-                except StopIteration:
-                    break
-                token = '%s %s' % (token, nvalue)
+def format_tag(tag):
+    '''
+    Splits tags on ':' and removes enclosing quotes if present and returns
+    returns both sides of the split as strings
 
-            if token[-1] == '"':
-                token = token[1:-1]
-            else:
-                token = token[1:]
-            results['query'].append(token)
-            continue
+    Example:
+    >>> format_tag('user:foo')
+    'user', 'foo'
+    >>>format_tag('user:"foo bar"'')
+    'user', 'foo bar'
+    '''
+    idx = tag.index(':')
+    key = tag[:idx].strip('"')
+    value = tag[idx + 1:].strip('"')
+    return key, value
 
-        key, value = token.split(':', 1)
-        if not value:
-            results['query'].append(token)
-            if key in reserved_tag_names:
-                raise InvalidQuery(u"query term '{}:' found no arguments. (Terms are space delimited)".format(key))
-            continue
 
-        if value[0] == '"':
-            nvalue = value
-            while nvalue[-1] != '"':
-                try:
-                    nvalue = six.next(tokens_iter)
-                except StopIteration:
-                    break
-                value = '%s %s' % (value, nvalue)
+def format_query(query):
+    '''
+    Strips enclosing quotes from queries if present.
 
-            if value[-1] == '"':
-                value = value[1:-1]
-            else:
-                value = value[1:]
-        results[key].append(value)
-    return dict(results)
+    Example:
+    >>> format_query('"user:foo bar"')
+    'user:foo bar'
+    '''
+    return query.strip('"')
+
+
+def split_query_into_tokens(query):
+    '''
+    Splits query string into tokens for parsing by 'tokenize_query'.
+    Returns list of strigs
+    Rules:
+    Split on whitespace
+        Unless
+        - inside enclosing quotes -> 'user:"foo    bar"'
+        - end of last word is a ':' -> 'user:  foo'
+
+    Example:
+    >>> split_query_into_tokens('user:foo user: bar  user"foo bar' foo  bar) =>
+    ['user:foo', 'user: bar', 'user"foo bar"', 'foo',  'bar']
+    '''
+    tokens = []
+    token = ''
+    quote_enclosed = False
+    quote_type = None
+    end_of_prev_word = None
+    for idx, char in enumerate(query):
+        next_char = query[idx + 1] if idx < len(query) - 1 else None
+        token += char
+        if next_char and not char.isspace() and next_char.isspace():
+            end_of_prev_word = char
+        if char.isspace() and not quote_enclosed and end_of_prev_word != ':':
+            if not token.isspace():
+                tokens.append(token.strip(' '))
+                token = ''
+        if char in ("'", '"'):
+            if not quote_enclosed or quote_type == char:
+                quote_enclosed = not quote_enclosed
+                if quote_enclosed:
+                    quote_type = char
+    if not token.isspace():
+        tokens.append(token.strip(' '))
+    return tokens
 
 
 def parse_query(project, query, user):
@@ -288,6 +360,8 @@ def parse_query(project, query, user):
                 results['first_release'] = parse_release(project, value)
             elif key == 'release':
                 results['tags']['sentry:release'] = parse_release(project, value)
+            elif key == 'dist':
+                results['tags']['sentry:dist'] = value
             elif key == 'user':
                 if ':' in value:
                     comp, value = value.split(':', 1)
@@ -312,6 +386,8 @@ def parse_query(project, query, user):
                     project, key.split('.', 1)[1], value)
             elif key == 'event.timestamp':
                 results.update(get_date_params(value, 'date_from', 'date_to'))
+            elif key == 'timesSeen':
+                results.update(get_numeric_field_value('times_seen', value))
             else:
                 results['tags'][key] = value
 

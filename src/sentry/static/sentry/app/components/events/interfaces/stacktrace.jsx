@@ -6,7 +6,6 @@ import {t} from '../../../locale';
 import CrashHeader from './crashHeader';
 import CrashContent from './crashContent';
 
-
 export function isStacktraceNewestFirst() {
   let user = ConfigStore.get('user');
   // user may not be authenticated
@@ -22,7 +21,6 @@ export function isStacktraceNewestFirst() {
   }
 }
 
-
 const StacktraceInterface = React.createClass({
   propTypes: {
     group: PropTypes.Group.isRequired,
@@ -35,7 +33,7 @@ const StacktraceInterface = React.createClass({
   getInitialState() {
     return {
       stackView: this.props.data.hasSystemFrames ? 'app' : 'full',
-      newestFirst: isStacktraceNewestFirst(),
+      newestFirst: isStacktraceNewestFirst()
     };
   },
 
@@ -60,7 +58,7 @@ const StacktraceInterface = React.createClass({
         stacktrace={data}
         stackView={stackView}
         newestFirst={newestFirst}
-        onChange={(newState) => {
+        onChange={newState => {
           this.setState(newState);
         }}
       />
@@ -68,17 +66,18 @@ const StacktraceInterface = React.createClass({
 
     return (
       <GroupEventDataSection
-          group={group}
-          event={evt}
-          type={this.props.type}
-          title={title}
-          wrapTitle={false}>
+        group={group}
+        event={evt}
+        type={this.props.type}
+        title={title}
+        wrapTitle={false}>
         <CrashContent
           group={group}
           event={evt}
           stackView={stackView}
           newestFirst={newestFirst}
-          stacktrace={data} />
+          stacktrace={data}
+        />
       </GroupEventDataSection>
     );
   }

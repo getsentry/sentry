@@ -1,9 +1,6 @@
 import React from 'react';
 
-import {
-  Form,
-  FormState
-} from '../../components/forms';
+import {Form, FormState} from '../../components/forms';
 import GroupActions from '../../actions/groupActions';
 import LoadingError from '../../components/loadingError';
 import LoadingIndicator from '../../components/loadingIndicator';
@@ -24,8 +21,9 @@ class IssueActions extends PluginComponentBase {
       createFieldList: null,
       linkFieldList: null,
       loading: ['link', 'create'].includes(this.props.actionType),
-      state: (['link', 'create'].includes(this.props.actionType) ?
-              FormState.LOADING : FormState.READY),
+      state: ['link', 'create'].includes(this.props.actionType)
+        ? FormState.LOADING
+        : FormState.READY,
       error: null,
       createFormData: {},
       linkFormData: {}
@@ -52,18 +50,21 @@ class IssueActions extends PluginComponentBase {
   }
 
   getPluginCreateEndpoint() {
-    return ('/issues/' + this.getGroup().id +
-            '/plugins/' + this.props.plugin.slug + '/create/');
+    return (
+      '/issues/' + this.getGroup().id + '/plugins/' + this.props.plugin.slug + '/create/'
+    );
   }
 
   getPluginLinkEndpoint() {
-    return ('/issues/' + this.getGroup().id +
-            '/plugins/' + this.props.plugin.slug + '/link/');
+    return (
+      '/issues/' + this.getGroup().id + '/plugins/' + this.props.plugin.slug + '/link/'
+    );
   }
 
   getPluginUnlinkEndpoint() {
-    return ('/issues/' + this.getGroup().id +
-            '/plugins/' + this.props.plugin.slug + '/unlink/');
+    return (
+      '/issues/' + this.getGroup().id + '/plugins/' + this.props.plugin.slug + '/unlink/'
+    );
   }
 
   setError(error, defaultMessage) {
@@ -91,33 +92,39 @@ class IssueActions extends PluginComponentBase {
   fetchData() {
     if (this.props.actionType === 'create') {
       this.api.request(this.getPluginCreateEndpoint(), {
-        success: (data) => {
+        success: data => {
           let createFormData = {};
-          data.forEach((field) => {
+          data.forEach(field => {
             createFormData[field.name] = field.default;
           });
-          this.setState({
-            createFieldList: data,
-            error: null,
-            loading: false,
-            createFormData: createFormData
-          }, this.onLoadSuccess);
+          this.setState(
+            {
+              createFieldList: data,
+              error: null,
+              loading: false,
+              createFormData: createFormData
+            },
+            this.onLoadSuccess
+          );
         },
         error: this.errorHandler
       });
     } else if (this.props.actionType === 'link') {
       this.api.request(this.getPluginLinkEndpoint(), {
-        success: (data) => {
+        success: data => {
           let linkFormData = {};
-          data.forEach((field) => {
+          data.forEach(field => {
             linkFormData[field.name] = field.default;
           });
-          this.setState({
-            linkFieldList: data,
-            error: null,
-            loading: false,
-            linkFormData: linkFormData
-          }, this.onLoadSuccess);
+          this.setState(
+            {
+              linkFieldList: data,
+              error: null,
+              loading: false,
+              linkFormData: linkFormData
+            },
+            this.onLoadSuccess
+          );
         },
         error: this.errorHandler
       });
@@ -176,14 +183,22 @@ class IssueActions extends PluginComponentBase {
       case 'create':
         if (this.state.createFieldList) {
           form = (
-            <Form onSubmit={this.createIssue} submitLabel={t('Create Issue')}
-                  footerClass="">
-              {this.state.createFieldList.map((field) => {
+            <Form
+              onSubmit={this.createIssue}
+              submitLabel={t('Create Issue')}
+              footerClass="">
+              {this.state.createFieldList.map(field => {
                 if (field.has_autocomplete) {
-                  field = Object.assign({
-                    url: ('/api/0/issues/' + this.getGroup().id +
-                          '/plugins/' + this.props.plugin.slug + '/autocomplete')
-                  }, field);
+                  field = Object.assign(
+                    {
+                      url: '/api/0/issues/' +
+                        this.getGroup().id +
+                        '/plugins/' +
+                        this.props.plugin.slug +
+                        '/autocomplete'
+                    },
+                    field
+                  );
                 }
                 return (
                   <div key={field.name}>
@@ -202,14 +217,19 @@ class IssueActions extends PluginComponentBase {
       case 'link':
         if (this.state.linkFieldList) {
           form = (
-            <Form onSubmit={this.linkIssue} submitLabel={t('Link Issue')}
-                  footerClass="">
-              {this.state.linkFieldList.map((field) => {
+            <Form onSubmit={this.linkIssue} submitLabel={t('Link Issue')} footerClass="">
+              {this.state.linkFieldList.map(field => {
                 if (field.has_autocomplete) {
-                  field = Object.assign({
-                    url: ('/api/0/issues/' + this.getGroup().id +
-                          '/plugins/' + this.props.plugin.slug + '/autocomplete')
-                  }, field);
+                  field = Object.assign(
+                    {
+                      url: '/api/0/issues/' +
+                        this.getGroup().id +
+                        '/plugins/' +
+                        this.props.plugin.slug +
+                        '/autocomplete'
+                    },
+                    field
+                  );
                 }
                 return (
                   <div key={field.name}>
@@ -229,8 +249,9 @@ class IssueActions extends PluginComponentBase {
         form = (
           <div>
             <p>{t('Are you sure you want to unlink this issue?')}</p>
-            <button onClick={this.unlinkIssue}
-                    className="btn btn-danger">{t('Unlink Issue')}</button>
+            <button onClick={this.unlinkIssue} className="btn btn-danger">
+              {t('Unlink Issue')}
+            </button>
           </div>
         );
         break;
@@ -262,8 +283,9 @@ class IssueActions extends PluginComponentBase {
       return (
         <div>
           <div className="alert alert-warning m-b-1">
-            {'You need to associate an identity with ' + error.title +
-             ' before you can create issues with this service.'}
+            {'You need to associate an identity with ' +
+              error.title +
+              ' before you can create issues with this service.'}
           </div>
           <a className="btn btn-primary" href={authUrl}>
             Associate Identity
@@ -273,17 +295,29 @@ class IssueActions extends PluginComponentBase {
     } else if (error.error_type === 'config') {
       return (
         <div className="alert alert-block">
-            {!error.has_auth_configured ?
-                <div>
-                  <p>{'Your server administrator will need to configure authentication with '}
-                  <strong>{error.auth_provider}</strong>{' before you can use this plugin.'}</p>
-                  <p>The following settings must be configured:</p>
-                  <ul>{error.required_auth_settings.map((setting) => {
-                    return <li><code>{setting}</code></li>;
-                  })}</ul>
-                </div>
-              :
-              <p>You still need to <a href={this.getPluginConfigureUrl()}>configure this plugin</a> before you can use it.</p>}
+          {!error.has_auth_configured
+            ? <div>
+                <p>
+                  {
+                    'Your server administrator will need to configure authentication with '
+                  }
+                  <strong>{error.auth_provider}</strong>
+                  {' before you can use this plugin.'}
+                </p>
+                <p>The following settings must be configured:</p>
+                <ul>
+                  {error.required_auth_settings.map((setting, i) => {
+                    return <li key={i}><code>{setting}</code></li>;
+                  })}
+                </ul>
+              </div>
+            : <p>
+                You still need to
+                {' '}
+                <a href={this.getPluginConfigureUrl()}>configure this plugin</a>
+                {' '}
+                before you can use it.
+              </p>}
         </div>
       );
     } else if (error.error_type === 'validation') {
@@ -303,7 +337,7 @@ class IssueActions extends PluginComponentBase {
         </div>
       );
     }
-    return <LoadingError/>;
+    return <LoadingError />;
   }
 
   render() {

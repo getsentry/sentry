@@ -7,7 +7,9 @@ let validHookNames = new Set([
   'organization:sidebar',
   'routes',
   'routes:admin',
-  'routes:organization'
+  'routes:organization',
+  'project:data-forwarding:disabled',
+  'project:rate-limits:disabled'
 ]);
 
 const HookStore = Reflux.createStore({
@@ -30,7 +32,7 @@ const HookStore = Reflux.createStore({
     if (_.isUndefined(this.hooks[hookName])) {
       return;
     }
-    this.hooks[hookName] = this.hooks[hookName].filter((cb) => {
+    this.hooks[hookName] = this.hooks[hookName].filter(cb => {
       return cb !== callback;
     });
     this.trigger(hookName, this.hooks[hookName]);
@@ -42,4 +44,3 @@ const HookStore = Reflux.createStore({
 });
 
 export default HookStore;
-

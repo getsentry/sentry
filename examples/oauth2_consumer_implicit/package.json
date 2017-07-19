@@ -1,0 +1,22 @@
+{
+  "name": "oauth2_consumer_implicit",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "webpack",
+    "prestart": "webpack",
+    "start": "http-server"
+  },
+  "author": "David Cramer <dcramer@gmail.com> (https://github.com/dcramer)",
+  "license": "ISC",
+  "dependencies": {
+    "babel-core": "^6.23.1",
+    "babel-loader": "^6.3.2",
+    "babel-preset-env": "^1.2.0",
+    "http-server": "^0.9.0",
+    "oauth2-implicit": "^0.7.0",
+    "webpack": "^2.2.1"
+  }
+}

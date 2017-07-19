@@ -1,10 +1,12 @@
 from __future__ import absolute_import
 
+from mock import patch
 from datetime import datetime
 from django.core.urlresolvers import reverse
 
 from sentry.models import (
-    Activity, File, Release, ReleaseCommit, ReleaseFile, ReleaseProject
+    Activity, File, Release, ReleaseCommit,
+    ReleaseFile, ReleaseProject, Repository
 )
 from sentry.testutils import APITestCase
 
@@ -93,17 +95,129 @@ class ReleaseDetailsTest(APITestCase):
 
 
 class UpdateReleaseDetailsTest(APITestCase):
-    def test_simple(self):
+    @patch('sentry.tasks.commits.fetch_commits')
+    def test_simple(self, mock_fetch_commits):
         user = self.create_user(is_staff=False, is_superuser=False)
         org = self.organization
         org.flags.allow_joinleave = False
         org.save()
+
+        repo = Repository.objects.create(
+            organization_id=org.id,
+            name='example/example',
+            provider='dummy',
+        )
+        repo2 = Repository.objects.create(
+            organization_id=org.id,
+            name='example/example2',
+            provider='dummy',
+        )
 
         team1 = self.create_team(organization=org)
         team2 = self.create_team(organization=org)
 
         project = self.create_project(team=team1, organization=org)
         project2 = self.create_project(team=team2, organization=org)
+
+        base_release = Release.objects.create(
+            organization_id=org.id,
+            version='000000000',
+        )
+        base_release.add_project(project)
+        release = Release.objects.create(
+            organization_id=org.id,
+            version='abcabcabc',
+        )
+        release2 = Release.objects.create(
+            organization_id=org.id,
+            version='12345678',
+        )
+        release.add_project(project)
+        release2.add_project(project2)
+
+        self.create_member(teams=[team1], user=user, organization=org)
+
+        self.login_as(user=user)
+
+        url = reverse('sentry-api-0-organization-release-details', kwargs={
+            'organization_slug': org.slug,
+            'version': base_release.version,
+        })
+        self.client.put(url, {
+            'ref': 'master',
+            'headCommits': [
+                {'currentId': '0' * 40, 'repository': repo.name},
+                {'currentId': '0' * 40, 'repository': repo2.name},
+            ],
+        })
+
+        url = reverse('sentry-api-0-organization-release-details', kwargs={
+            'organization_slug': org.slug,
+            'version': release.version,
+        })
+        response = self.client.put(url, {
+            'ref': 'master',
+            'refs': [
+                {'commit': 'a' * 40, 'repository': repo.name},
+                {'commit': 'b' * 40, 'repository': repo2.name},
+            ],
+        })
+
+        mock_fetch_commits.apply_async.assert_called_with(
+            kwargs={
+                'release_id': release.id,
+                'user_id': user.id,
+                'refs': [
+                    {'commit': 'a' * 40, 'repository': repo.name},
+                    {'commit': 'b' * 40, 'repository': repo2.name},
+                ],
+                'prev_release_id': base_release.id,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        assert response.data['version'] == release.version
+
+        release = Release.objects.get(id=release.id)
+        assert release.ref == 'master'
+
+        # no access
+        url = reverse('sentry-api-0-organization-release-details', kwargs={
+            'organization_slug': org.slug,
+            'version': release2.version,
+        })
+        response = self.client.put(url, {'ref': 'master'})
+        assert response.status_code == 403
+
+    @patch('sentry.tasks.commits.fetch_commits')
+    def test_deprecated_head_commits(self, mock_fetch_commits):
+        user = self.create_user(is_staff=False, is_superuser=False)
+        org = self.organization
+        org.flags.allow_joinleave = False
+        org.save()
+
+        repo = Repository.objects.create(
+            organization_id=org.id,
+            name='example/example',
+            provider='dummy',
+        )
+        repo2 = Repository.objects.create(
+            organization_id=org.id,
+            name='example/example2',
+            provider='dummy',
+        )
+
+        team1 = self.create_team(organization=org)
+        team2 = self.create_team(organization=org)
+
+        project = self.create_project(team=team1, organization=org)
+        project2 = self.create_project(team=team2, organization=org)
+
+        base_release = Release.objects.create(
+            organization_id=org.id,
+            version='000000000',
+        )
+        base_release.add_project(project)
 
         release = Release.objects.create(
             organization_id=org.id,
@@ -122,9 +236,39 @@ class UpdateReleaseDetailsTest(APITestCase):
 
         url = reverse('sentry-api-0-organization-release-details', kwargs={
             'organization_slug': org.slug,
+            'version': base_release.version,
+        })
+        self.client.put(url, {
+            'ref': 'master',
+            'headCommits': [
+                {'currentId': '0' * 40, 'repository': repo.name},
+                {'currentId': '0' * 40, 'repository': repo2.name},
+            ],
+        })
+
+        url = reverse('sentry-api-0-organization-release-details', kwargs={
+            'organization_slug': org.slug,
             'version': release.version,
         })
-        response = self.client.put(url, {'ref': 'master'})
+        response = self.client.put(url, {
+            'ref': 'master',
+            'headCommits': [
+                {'currentId': 'a' * 40, 'repository': repo.name},
+                {'currentId': 'b' * 40, 'repository': repo2.name},
+            ],
+        })
+
+        mock_fetch_commits.apply_async.assert_called_with(
+            kwargs={
+                'release_id': release.id,
+                'user_id': user.id,
+                'refs': [
+                    {'commit': 'a' * 40, 'previousCommit': None, 'repository': repo.name},
+                    {'commit': 'b' * 40, 'previousCommit': None, 'repository': repo2.name},
+                ],
+                'prev_release_id': base_release.id,
+            }
+        )
 
         assert response.status_code == 200, response.content
         assert response.data['version'] == release.version
@@ -296,3 +440,42 @@ class ReleaseDeleteTest(APITestCase):
         assert response.status_code == 400, response.content
 
         assert Release.objects.filter(id=release.id).exists()
+
+    def test_bad_repo_name(self):
+        user = self.create_user(is_staff=False, is_superuser=False)
+        org = self.create_organization()
+        org.flags.allow_joinleave = False
+        org.save()
+
+        team = self.create_team(organization=org)
+        project = self.create_project(
+            name='foo',
+            organization=org,
+            team=team
+        )
+        release = Release.objects.create(
+            organization_id=org.id,
+            version='abcabcabc',
+        )
+
+        release.add_project(project)
+
+        self.create_member(teams=[team], user=user, organization=org)
+        self.login_as(user=user)
+
+        url = reverse('sentry-api-0-organization-release-details', kwargs={
+            'organization_slug': org.slug,
+            'version': release.version,
+        })
+        response = self.client.put(url, data={
+            'version': '1.2.1',
+            'projects': [project.slug],
+            'refs': [{
+                'repository': 'not_a_repo',
+                'commit': 'a' * 40,
+            }]
+        })
+        assert response.status_code == 400
+        assert response.data == {
+            'refs': [u'Invalid repository names: not_a_repo']
+        }

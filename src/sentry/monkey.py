@@ -13,3 +13,4 @@ def register_scheme(name):
 
 
 register_scheme('app')
+register_scheme('chrome-extension')

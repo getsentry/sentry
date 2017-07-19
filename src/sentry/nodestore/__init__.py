@@ -1,9 +1,12 @@
-"""
-sentry.nodestore
-~~~~~~~~~~~~~~~~
-
-:copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
-:license: BSD, see LICENSE for more details.
-"""
-
 from __future__ import absolute_import
+
+from django.conf import settings
+
+from sentry.utils.services import LazyServiceWrapper
+
+from .base import NodeStorage  # NOQA
+
+
+backend = LazyServiceWrapper(NodeStorage, settings.SENTRY_NODESTORE,
+                             settings.SENTRY_NODESTORE_OPTIONS)
+backend.expose(locals())

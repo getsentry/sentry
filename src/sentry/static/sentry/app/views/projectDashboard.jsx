@@ -12,16 +12,13 @@ const PERIOD_DAY = '1d';
 const PERIOD_WEEK = '1w';
 const PERIODS = new Set([PERIOD_HOUR, PERIOD_DAY, PERIOD_WEEK]);
 
-
 const ProjectDashboard = React.createClass({
   propTypes: {
     defaultStatsPeriod: React.PropTypes.string,
     setProjectNavSection: React.PropTypes.func
   },
 
-  mixins: [
-    ProjectState
-  ],
+  mixins: [ProjectState],
 
   getDefaultProps() {
     return {
@@ -123,8 +120,9 @@ const ProjectDashboard = React.createClass({
                 }}
                 active={statsPeriod === PERIOD_HOUR}
                 className={
-                  'btn btn-sm btn-default' + (
-                    statsPeriod === PERIOD_HOUR ? ' active' : '')}>
+                  'btn btn-sm btn-default' +
+                    (statsPeriod === PERIOD_HOUR ? ' active' : '')
+                }>
                 {t('1 hour')}
               </Link>
               <Link
@@ -134,8 +132,8 @@ const ProjectDashboard = React.createClass({
                 }}
                 active={statsPeriod === PERIOD_DAY}
                 className={
-                  'btn btn-sm btn-default' + (
-                    statsPeriod === PERIOD_DAY ? ' active' : '')}>
+                  'btn btn-sm btn-default' + (statsPeriod === PERIOD_DAY ? ' active' : '')
+                }>
                 {t('1 day')}
               </Link>
               <Link
@@ -144,27 +142,28 @@ const ProjectDashboard = React.createClass({
                   query: {...routeQuery, statsPeriod: PERIOD_WEEK}
                 }}
                 className={
-                  'btn btn-sm btn-default' + (
-                    statsPeriod === PERIOD_WEEK ? ' active' : '')}>
-                    {t('1 week')}
+                  'btn btn-sm btn-default' +
+                    (statsPeriod === PERIOD_WEEK ? ' active' : '')
+                }>
+                {t('1 week')}
               </Link>
             </div>
           </div>
           <h3>{t('Overview')}</h3>
         </div>
-        <ProjectChart
-            dateSince={dateSince}
-            resolution={resolution} />
+        <ProjectChart dateSince={dateSince} resolution={resolution} />
         <div className="row">
           <div className="col-md-6">
             <EventList
-                title={t('Trending Issues')}
-                endpoint={this.getTrendingIssuesEndpoint(dateSince)} />
+              title={t('Trending Issues')}
+              endpoint={this.getTrendingIssuesEndpoint(dateSince)}
+            />
           </div>
           <div className="col-md-6">
             <EventList
-                title={t('New Issues')}
-                endpoint={this.getNewIssuesEndpoint(dateSince)} />
+              title={t('New Issues')}
+              endpoint={this.getNewIssuesEndpoint(dateSince)}
+            />
           </div>
         </div>
       </div>

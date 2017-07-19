@@ -1,5 +1,6 @@
 {% load i18n %}
 
+{% if all_teams|length > 1 %}
 <div class="box">
   <div class="box-header">
     <h3>{% trans "Teams" %}</h3>
@@ -21,3 +22,6 @@
     </fieldset>
   </div>
 </div>
+{% elif all_teams|length == 1 %}
+    <input type="hidden" name="teams" value="{{ all_teams.0.id }}" />
+{% endif %}

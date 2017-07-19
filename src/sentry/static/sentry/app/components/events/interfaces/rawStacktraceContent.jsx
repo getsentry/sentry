@@ -39,13 +39,13 @@ function getRubyFrame(frame) {
     result += ':' + frame.colNo;
   }
   if (defined(frame.function)) {
-    result += ':in `' + frame.function + '\'';
+    result += ':in `' + frame.function + "'";
   }
   return result;
 }
 
 export function getPHPFrame(frame, idx) {
-  let funcName = (frame.function === 'null' ? '{main}' : frame.function);
+  let funcName = frame.function === 'null' ? '{main}' : frame.function;
   return `#${idx} ${frame.filename || frame.module}(${frame.lineNo}): ${funcName}`;
 }
 
@@ -68,7 +68,7 @@ export function getPythonFrame(frame) {
     result += ', in ' + frame.function;
   }
   if (defined(frame.context)) {
-    frame.context.forEach((item) => {
+    frame.context.forEach(item => {
       if (item[0] === frame.lineNo) {
         result += '\n    ' + trim(item[1]);
       }
@@ -158,7 +158,7 @@ function getFrame(frame, frameIdx, platform) {
   }
 }
 
-export default function render (data, platform, exception) {
+export default function render(data, platform, exception) {
   let firstFrameOmitted, lastFrameOmitted;
   let frames = [];
 
@@ -173,11 +173,14 @@ export default function render (data, platform, exception) {
   data.frames.forEach((frame, frameIdx) => {
     frames.push(getFrame(frame, frameIdx, platform));
     if (frameIdx === firstFrameOmitted) {
-      frames.push((
-        '.. frames ' + firstFrameOmitted + ' until ' + lastFrameOmitted + ' were omitted and not available ..'
-      ));
+      frames.push(
+        '.. frames ' +
+          firstFrameOmitted +
+          ' until ' +
+          lastFrameOmitted +
+          ' were omitted and not available ..'
+      );
     }
-
   });
 
   if (platform !== 'python') {

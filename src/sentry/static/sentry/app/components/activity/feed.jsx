@@ -21,7 +21,7 @@ const ActivityFeed = React.createClass({
   getDefaultProps() {
     return {
       pagination: true,
-      query: {},
+      query: {}
     };
   },
 
@@ -30,7 +30,7 @@ const ActivityFeed = React.createClass({
       itemList: [],
       loading: true,
       error: false,
-      pageLinks: null,
+      pageLinks: null
     };
   },
 
@@ -41,7 +41,10 @@ const ActivityFeed = React.createClass({
   componentWillReceiveProps(nextProps) {
     let location = this.props.location;
     let nextLocation = nextProps.location;
-    if (location.pathname != nextLocation.pathname || location.search != nextLocation.search) {
+    if (
+      location.pathname != nextLocation.pathname ||
+      location.search != nextLocation.search
+    ) {
       this.remountComponent();
     }
   },
@@ -57,20 +60,20 @@ const ActivityFeed = React.createClass({
       method: 'GET',
       query: {
         cursor: location.query.cursor || '',
-        ...this.props.query,
+        ...this.props.query
       },
       success: (data, _, jqXHR) => {
         this.setState({
           loading: false,
           error: false,
           itemList: data,
-          pageLinks: jqXHR.getResponseHeader('Link'),
+          pageLinks: jqXHR.getResponseHeader('Link')
         });
       },
       error: () => {
         this.setState({
           loading: false,
-          error: true,
+          error: true
         });
       }
     });
@@ -80,19 +83,15 @@ const ActivityFeed = React.createClass({
     let body;
     let {orgId} = this.props.params;
 
-    if (this.state.loading)
-      body = this.renderLoading();
-    else if (this.state.error)
-      body = <LoadingError onRetry={this.fetchData} />;
+    if (this.state.loading) body = this.renderLoading();
+    else if (this.state.error) body = <LoadingError onRetry={this.fetchData} />;
     else if (this.state.itemList.length > 0) {
       body = (
         <div className="activity-container">
           <ul className="activity">
-            {this.state.itemList.map((item) => {
+            {this.state.itemList.map(item => {
               try {
-                return (
-                  <ActivityItem key={item.id} orgId={orgId} item={item} />
-                );
+                return <ActivityItem key={item.id} orgId={orgId} item={item} />;
               } catch (ex) {
                 logException(ex, {
                   itemId: item.id
@@ -103,9 +102,7 @@ const ActivityFeed = React.createClass({
           </ul>
         </div>
       );
-    }
-    else
-      body = (this.props.renderEmpty || this.renderEmpty)();
+    } else body = (this.props.renderEmpty || this.renderEmpty)();
 
     return body;
   },
@@ -126,9 +123,9 @@ const ActivityFeed = React.createClass({
     return (
       <div>
         {this.renderResults()}
-        {this.props.pagination && this.state.pageLinks &&
-          <Pagination pageLinks={this.state.pageLinks} {...this.props} />
-        }
+        {this.props.pagination &&
+          this.state.pageLinks &&
+          <Pagination pageLinks={this.state.pageLinks} {...this.props} />}
       </div>
     );
   }

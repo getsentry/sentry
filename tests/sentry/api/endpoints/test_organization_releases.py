@@ -1,9 +1,15 @@
 from __future__ import absolute_import
 
+from mock import patch
+
+from base64 import b64encode
 from datetime import datetime
 from django.core.urlresolvers import reverse
 
-from sentry.models import Activity, Release, ReleaseCommit, ReleaseProject
+from sentry.models import (
+    Activity, ApiKey, ApiToken, Release,
+    ReleaseCommit, ReleaseProject, Repository
+)
 from sentry.testutils import APITestCase
 
 
@@ -344,11 +350,11 @@ class OrganizationReleaseCreateTest(APITestCase):
         assert response.status_code == 400, response.content
 
         response = self.client.post(url, data={
-            'version': '1.2.3',
+            'version': '1.2.3+dev',
             'projects': [project.slug]
         })
         assert response.status_code == 201, response.content
-        assert response.data['version'] == '1.2.3'
+        assert response.data['version'] == '1.2.3+dev'
 
         release = Release.objects.get(
             organization_id=org.id,
@@ -433,6 +439,128 @@ class OrganizationReleaseCreateTest(APITestCase):
         for rc in rc_list:
             assert rc.organization_id
 
+    @patch('sentry.tasks.commits.fetch_commits')
+    def test_commits_from_provider(self, mock_fetch_commits):
+        user = self.create_user(is_staff=False, is_superuser=False)
+        org = self.create_organization()
+        org.flags.allow_joinleave = False
+        org.save()
+
+        repo = Repository.objects.create(
+            organization_id=org.id,
+            name='example/example',
+            provider='dummy',
+        )
+        repo2 = Repository.objects.create(
+            organization_id=org.id,
+            name='example/example2',
+            provider='dummy',
+        )
+
+        team = self.create_team(organization=org)
+        project = self.create_project(
+            name='foo',
+            organization=org,
+            team=team
+        )
+
+        self.create_member(teams=[team], user=user, organization=org)
+        self.login_as(user=user)
+
+        url = reverse('sentry-api-0-organization-releases', kwargs={
+            'organization_slug': org.slug
+        })
+        self.client.post(url, data={
+            'version': '1',
+            'refs': [
+                {'commit': '0' * 40, 'repository': repo.name},
+                {'commit': '0' * 40, 'repository': repo2.name},
+            ],
+            'projects': [project.slug]
+        })
+        response = self.client.post(url, data={
+            'version': '1.2.1',
+            'refs': [
+                {'commit': 'a' * 40, 'repository': repo.name},
+                {'commit': 'b' * 40, 'repository': repo2.name},
+            ],
+            'projects': [project.slug]
+        })
+        assert response.status_code == 201
+
+        mock_fetch_commits.apply_async.assert_called_with(
+            kwargs={
+                'release_id': Release.objects.get(version='1.2.1', organization=org).id,
+                'user_id': user.id,
+                'refs': [
+                    {'commit': 'a' * 40, 'repository': repo.name},
+                    {'commit': 'b' * 40, 'repository': repo2.name},
+                ],
+                'prev_release_id': Release.objects.get(version='1', organization=org).id,
+            }
+        )
+
+    @patch('sentry.tasks.commits.fetch_commits')
+    def test_commits_from_provider_deprecated_head_commits(self, mock_fetch_commits):
+        user = self.create_user(is_staff=False, is_superuser=False)
+        org = self.create_organization()
+        org.flags.allow_joinleave = False
+        org.save()
+
+        repo = Repository.objects.create(
+            organization_id=org.id,
+            name='example/example',
+            provider='dummy',
+        )
+        repo2 = Repository.objects.create(
+            organization_id=org.id,
+            name='example/example2',
+            provider='dummy',
+        )
+
+        team = self.create_team(organization=org)
+        project = self.create_project(
+            name='foo',
+            organization=org,
+            team=team
+        )
+
+        self.create_member(teams=[team], user=user, organization=org)
+        self.login_as(user=user)
+
+        url = reverse('sentry-api-0-organization-releases', kwargs={
+            'organization_slug': org.slug
+        })
+        self.client.post(url, data={
+            'version': '1',
+            'headCommits': [
+                {'currentId': '0' * 40, 'repository': repo.name},
+                {'currentId': '0' * 40, 'repository': repo2.name},
+            ],
+            'projects': [project.slug]
+        })
+        response = self.client.post(url, data={
+            'version': '1.2.1',
+            'headCommits': [
+                {'currentId': 'a' * 40, 'repository': repo.name},
+                {'currentId': 'b' * 40, 'repository': repo2.name},
+            ],
+            'projects': [project.slug]
+        })
+
+        mock_fetch_commits.apply_async.assert_called_with(
+            kwargs={
+                'release_id': Release.objects.get(version='1.2.1', organization=org).id,
+                'user_id': user.id,
+                'refs': [
+                    {'commit': 'a' * 40, 'repository': repo.name, 'previousCommit': None},
+                    {'commit': 'b' * 40, 'repository': repo2.name, 'previousCommit': None},
+                ],
+                'prev_release_id': Release.objects.get(version='1', organization=org).id,
+            }
+        )
+        assert response.status_code == 201
+
     def test_bad_project_slug(self):
         user = self.create_user(is_staff=False, is_superuser=False)
         org = self.create_organization()
@@ -513,3 +641,166 @@ class OrganizationReleaseCreateTest(APITestCase):
         })
 
         assert response.status_code == 201, response.content
+
+    def test_api_key(self):
+        org = self.create_organization()
+        org.flags.allow_joinleave = False
+        org.save()
+
+        org2 = self.create_organization()
+
+        team1 = self.create_team(organization=org)
+        project1 = self.create_project(team=team1, organization=org)
+        release1 = Release.objects.create(
+            organization_id=org.id,
+            version='1',
+            date_added=datetime(2013, 8, 13, 3, 8, 24, 880386),
+        )
+        release1.add_project(project1)
+
+        url = reverse('sentry-api-0-organization-releases', kwargs={
+            'organization_slug': org.slug
+        })
+
+        # test right org, wrong permissions level
+        bad_api_key = ApiKey.objects.create(
+            organization=org,
+            scope_list=['project:read'],
+        )
+        response = self.client.post(
+            url,
+            data={
+                'version': '1.2.1',
+                'projects': [
+                    project1.slug]},
+            HTTP_AUTHORIZATION='Basic ' +
+            b64encode(
+                '{}:'.format(
+                    bad_api_key.key)))
+        assert response.status_code == 403
+
+        # test wrong org, right permissions level
+        wrong_org_api_key = ApiKey.objects.create(
+            organization=org2,
+            scope_list=['project:write'],
+        )
+        response = self.client.post(
+            url,
+            data={
+                'version': '1.2.1',
+                'projects': [
+                    project1.slug]},
+            HTTP_AUTHORIZATION='Basic ' +
+            b64encode(
+                '{}:'.format(
+                    wrong_org_api_key.key)))
+        assert response.status_code == 403
+
+        # test right org, right permissions level
+        good_api_key = ApiKey.objects.create(
+            organization=org,
+            scope_list=['project:write'],
+        )
+        response = self.client.post(
+            url,
+            data={
+                'version': '1.2.1',
+                'projects': [
+                    project1.slug]},
+            HTTP_AUTHORIZATION='Basic ' +
+            b64encode(
+                '{}:'.format(
+                    good_api_key.key)))
+        assert response.status_code == 201, response.content
+
+    @patch('sentry.tasks.commits.fetch_commits')
+    def test_api_token(self, mock_fetch_commits):
+        user = self.create_user(is_staff=False, is_superuser=False)
+        org = self.create_organization()
+        org.flags.allow_joinleave = False
+        org.save()
+
+        repo = Repository.objects.create(
+            organization_id=org.id,
+            name='getsentry/sentry',
+            provider='dummy',
+        )
+        repo2 = Repository.objects.create(
+            organization_id=org.id,
+            name='getsentry/sentry-plugins',
+            provider='dummy',
+        )
+
+        api_token = ApiToken.objects.create(
+            user=user,
+            scope_list=['project:releases'],
+        )
+
+        team1 = self.create_team(organization=org)
+        self.create_member(teams=[team1], user=user, organization=org)
+        project1 = self.create_project(team=team1, organization=org)
+        release1 = Release.objects.create(
+            organization_id=org.id,
+            version='1',
+            date_added=datetime(2013, 8, 13, 3, 8, 24, 880386),
+        )
+        release1.add_project(project1)
+
+        url = reverse('sentry-api-0-organization-releases', kwargs={
+            'organization_slug': org.slug
+        })
+
+        response = self.client.post(url, data={
+            'version': '1.2.1',
+            'refs': [
+                {'commit': 'a' * 40, 'repository': repo.name, 'previousCommit': 'c' * 40},
+                {'commit': 'b' * 40, 'repository': repo2.name},
+            ],
+            'projects': [project1.slug]
+        }, HTTP_AUTHORIZATION='Bearer {}'.format(api_token.token))
+
+        mock_fetch_commits.apply_async.assert_called_with(
+            kwargs={
+                'release_id': Release.objects.get(version='1.2.1', organization=org).id,
+                'user_id': user.id,
+                'refs': [
+                    {'commit': 'a' * 40, 'repository': repo.name, 'previousCommit': 'c' * 40},
+                    {'commit': 'b' * 40, 'repository': repo2.name},
+                ],
+                'prev_release_id': release1.id,
+            }
+        )
+
+        assert response.status_code == 201
+
+    def test_bad_repo_name(self):
+        user = self.create_user(is_staff=False, is_superuser=False)
+        org = self.create_organization()
+        org.flags.allow_joinleave = False
+        org.save()
+
+        team = self.create_team(organization=org)
+        project = self.create_project(
+            name='foo',
+            organization=org,
+            team=team
+        )
+
+        self.create_member(teams=[team], user=user, organization=org)
+        self.login_as(user=user)
+
+        url = reverse('sentry-api-0-organization-releases', kwargs={
+            'organization_slug': org.slug
+        })
+        response = self.client.post(url, data={
+            'version': '1.2.1',
+            'projects': [project.slug],
+            'refs': [{
+                'repository': 'not_a_repo',
+                'commit': 'a' * 40,
+            }]
+        })
+        assert response.status_code == 400
+        assert response.data == {
+            'refs': [u'Invalid repository names: not_a_repo']
+        }

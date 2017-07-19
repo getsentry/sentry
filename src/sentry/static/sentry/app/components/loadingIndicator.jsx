@@ -11,7 +11,7 @@ function LoadingIndicator(props) {
 
   return (
     <div className={classNames(props.className, classes)}>
-      <div className="loading-indicator"></div>
+      <div className="loading-indicator" />
       <div className="loading-message">{props.children}</div>
     </div>
   );
@@ -23,4 +23,3 @@ LoadingIndicator.propTypes = {
 };
 
 export default LoadingIndicator;
-

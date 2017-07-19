@@ -61,7 +61,6 @@ class GetParticipantsTest(TestCase):
         UserOption.objects.set_value(
             user=user,
             key='workflow:notifications',
-            project=None,
             value=UserOptionValue.participating_only,
         )
 

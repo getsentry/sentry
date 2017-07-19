@@ -9,6 +9,7 @@ from django.utils.translation import ugettext_lazy as _
 
 from sentry import roles
 from sentry.models import AuditLogEntryEvent, Organization
+from sentry.signals import data_scrubber_enabled
 from sentry.web.frontend.base import OrganizationView
 
 
@@ -50,24 +51,30 @@ class OrganizationSettingsForm(forms.ModelForm):
     )
     sensitive_fields = forms.CharField(
         label=_('Global additional sensitive fields'),
-        help_text=_('Additional field names to match against when scrubbing data for all projects. '
-                    'Separate multiple entries with a newline.<br /><strong>Note: These fields will be used in addition to project specific fields.</strong>'),
-        widget=forms.Textarea(attrs={
-            'placeholder': mark_safe(_('e.g. email')),
-            'class': 'span8',
-            'rows': '3',
-        }),
+        help_text=_(
+            'Additional field names to match against when scrubbing data for all projects. '
+            'Separate multiple entries with a newline.<br /><strong>Note: These fields will be used in addition to project specific fields.</strong>'),
+        widget=forms.Textarea(
+            attrs={
+                'placeholder': mark_safe(
+                    _('e.g. email')),
+                'class': 'span8',
+                'rows': '3',
+            }),
         required=False,
     )
     safe_fields = forms.CharField(
         label=_('Global safe fields'),
-        help_text=_('Field names which data scrubbers should ignore. '
-                    'Separate multiple entries with a newline.<br /><strong>Note: These fields will be used in addition to project specific fields.</strong>'),
-        widget=forms.Textarea(attrs={
-            'placeholder': mark_safe(_('e.g. email')),
-            'class': 'span8',
-            'rows': '3',
-        }),
+        help_text=_(
+            'Field names which data scrubbers should ignore. '
+            'Separate multiple entries with a newline.<br /><strong>Note: These fields will be used in addition to project specific fields.</strong>'),
+        widget=forms.Textarea(
+            attrs={
+                'placeholder': mark_safe(
+                    _('e.g. email')),
+                'class': 'span8',
+                'rows': '3',
+            }),
         required=False,
     )
     require_scrub_ip_address = forms.BooleanField(
@@ -109,7 +116,7 @@ class OrganizationSettingsView(OrganizationView):
     required_scope = 'org:write'
 
     def get_form(self, request, organization):
-        has_delete = request.access.has_scope('org:delete')
+        has_delete = request.access.has_scope('org:admin')
 
         return OrganizationSettingsForm(
             has_delete=has_delete,
@@ -139,12 +146,14 @@ class OrganizationSettingsView(OrganizationView):
             organization.flags.early_adopter = form.cleaned_data['early_adopter']
             organization.save()
 
-            for opt in (
-                    'require_scrub_data',
-                    'require_scrub_defaults',
-                    'sensitive_fields',
-                    'safe_fields',
-                    'require_scrub_ip_address'):
+            data_scrubbing_options = (
+                'require_scrub_data',
+                'require_scrub_defaults',
+                'sensitive_fields',
+                'safe_fields',
+                'require_scrub_ip_address')
+
+            for opt in data_scrubbing_options:
                 value = form.cleaned_data.get(opt)
                 if value is None:
                     organization.delete_option('sentry:%s' % (opt,))
@@ -160,9 +169,16 @@ class OrganizationSettingsView(OrganizationView):
             )
 
             messages.add_message(request, messages.SUCCESS,
-                _('Changes to your organization were saved.'))
+                                 _('Changes to your organization were saved.'))
 
-            return HttpResponseRedirect(reverse('sentry-organization-settings', args=[organization.slug]))
+            if any((scrubbing_field in form.cleaned_data for scrubbing_field in data_scrubbing_options)):
+                data_scrubber_enabled.send(organization=organization, sender=request.user)
+
+            return HttpResponseRedirect(
+                reverse(
+                    'sentry-organization-settings',
+                    args=[
+                        organization.slug]))
 
         context = {
             'form': form,

@@ -20,6 +20,7 @@ from django.db.models.signals import (
     post_save, post_delete, post_init, class_prepared)
 from django.utils.encoding import smart_text
 
+from sentry import nodestore
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import md5_text
 
@@ -28,16 +29,6 @@ from .query import create_or_update
 __all__ = ('BaseManager',)
 
 logger = logging.getLogger('sentry')
-
-
-class ImmutableDict(dict):
-    def __setitem__(self, key, value):
-        raise TypeError
-
-    def __delitem__(self, key):
-        raise TypeError
-
-UNSAVED = ImmutableDict()
 
 
 def __prep_value(model, key, value):
@@ -134,8 +125,6 @@ class BaseManager(Manager):
                 f: self.__value_for_field(instance, f)
                 for f in self.cache_fields
             }
-        else:
-            self.__cache[instance] = UNSAVED
 
     def __post_init(self, instance, **kwargs):
         """
@@ -292,8 +281,6 @@ class BaseManager(Manager):
         return create_or_update(self.model, **kwargs)
 
     def bind_nodes(self, object_list, *node_names):
-        from sentry.app import nodestore
-
         object_node_list = []
         for name in node_names:
             object_node_list.extend((

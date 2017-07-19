@@ -24,7 +24,7 @@ const ProjectUserReports = React.createClass({
   getDefaultProps() {
     return {
       defaultQuery: '',
-      defaultStatus: 'unresolved',
+      defaultStatus: 'unresolved'
     };
   },
 
@@ -53,27 +53,30 @@ const ProjectUserReports = React.createClass({
 
   getQueryStringState(props) {
     let location = props.location;
-    let status = (location.query.hasOwnProperty('status')
+    let status = location.query.hasOwnProperty('status')
       ? location.query.status
-      : this.props.defaultStatus);
-    let query = (location.query.hasOwnProperty('query')
+      : this.props.defaultStatus;
+    let query = location.query.hasOwnProperty('query')
       ? location.query.query
-      : this.props.defaultQuery);
+      : this.props.defaultQuery;
     return {
       query: query,
-      status: status,
+      status: status
     };
   },
 
   onSearch(query) {
     let targetQueryParams = {};
-    if (query !== '')
-      targetQueryParams.query = query;
+    if (query !== '') targetQueryParams.query = query;
     if (this.state.status !== this.props.defaultStatus)
       targetQueryParams.status = this.state.status;
 
     let {orgId, projectId} = this.props.params;
-    browserHistory.pushState(null, `/${orgId}/${projectId}/user-feedback/`, targetQueryParams);
+    browserHistory.pushState(
+      null,
+      `/${orgId}/${projectId}/user-feedback/`,
+      targetQueryParams
+    );
   },
 
   fetchData() {
@@ -108,7 +111,7 @@ const ProjectUserReports = React.createClass({
       ...this.props.location.query,
       limit: 50,
       query: this.state.query,
-      status: this.state.status,
+      status: this.state.status
     };
 
     return `/projects/${params.orgId}/${params.projectId}/user-reports/?${jQuery.param(queryParams)}`;
@@ -123,16 +126,12 @@ const ProjectUserReports = React.createClass({
   renderStreamBody() {
     let body;
 
-    if (this.state.loading)
-      body = this.renderLoading();
-    else if (this.state.error)
-      body = <LoadingError onRetry={this.fetchData} />;
-    else if (this.state.reportList.length > 0)
-      body = this.renderResults();
+    if (this.state.loading) body = this.renderLoading();
+    else if (this.state.error) body = <LoadingError onRetry={this.fetchData} />;
+    else if (this.state.reportList.length > 0) body = this.renderResults();
     else if (this.state.query && this.state.query !== this.props.defaultQuery)
       body = this.renderNoQueryResults();
-    else
-      body = this.renderEmpty();
+    else body = this.renderEmpty();
 
     return body;
   },
@@ -159,7 +158,11 @@ const ProjectUserReports = React.createClass({
       <div className="box empty-stream">
         <span className="icon icon-exclamation" />
         <p>{t('No user reports have been collected for this project.')}</p>
-        <p><Link to={this.getUserReportsUrl()}>{t('Learn how to integrate User Feedback')}</Link></p>
+        <p>
+          <Link to={this.getUserReportsUrl()}>
+            {t('Learn how to integrate User Feedback')}
+          </Link>
+        </p>
       </div>
     );
   },
@@ -172,18 +175,20 @@ const ProjectUserReports = React.createClass({
 
       return (
         <CompactIssue
-            key={item.id}
-            id={issue.id}
-            data={issue}
-            orgId={orgId}
-            projectId={projectId}>
+          key={item.id}
+          id={issue.id}
+          data={issue}
+          orgId={orgId}
+          projectId={projectId}>
           <div className="activity-container" style={{margin: '10px 0 5px'}}>
             <ul className="activity">
               <li className="activity-note" style={{paddingBottom: 0}}>
                 <Avatar user={item} size={64} className="avatar" />
                 <div className="activity-bubble">
                   <TimeSince date={item.dateCreated} />
-                  <div className="activity-author">{item.name} <small>{item.email}</small></div>
+                  <div className="activity-author">
+                    {item.name} <small>{item.email}</small>
+                  </div>
                   <p dangerouslySetInnerHTML={{__html: body}} />
                 </div>
               </li>
@@ -211,18 +216,24 @@ const ProjectUserReports = React.createClass({
           </div>
           <div className="col-sm-3" style={{textAlign: 'right'}}>
             <div className="btn-group">
-              <Link to={path}
-                    className={'btn btn-sm btn-default' + (status === 'unresolved' ? ' active' : '')}>
+              <Link
+                to={path}
+                className={
+                  'btn btn-sm btn-default' + (status === 'unresolved' ? ' active' : '')
+                }>
                 {t('Unresolved')}
               </Link>
-              <Link to={{pathname: path, query: {status: ''}}}
-                    className={'btn btn-sm btn-default' + (status === '' ? ' active' : '')}>
+              <Link
+                to={{pathname: path, query: {status: ''}}}
+                className={'btn btn-sm btn-default' + (status === '' ? ' active' : '')}>
                 {t('All Issues')}
               </Link>
             </div>
           </div>
         </div>
-        <div className="alert alert-block alert-info">Psst! This feature is still a work-in-progress. Thanks for being an early adopter!</div>
+        <div className="alert alert-block alert-info">
+          Psst! This feature is still a work-in-progress. Thanks for being an early adopter!
+        </div>
         {this.renderStreamBody()}
         <Pagination pageLinks={this.state.pageLinks} />
       </div>

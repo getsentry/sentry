@@ -15,12 +15,16 @@ from sentry.runner.decorators import configuration, log_options
 
 @click.command()
 @click.option('--reload/--no-reload', default=True, help='Autoreloading of python files.')
-@click.option('--watchers/--no-watchers', default=True, help='Watch static files and recompile on changes.')
+@click.option('--watchers/--no-watchers', default=True,
+              help='Watch static files and recompile on changes.')
 @click.option('--workers/--no-workers', default=False, help='Run asynchronous workers.')
+@click.option('--browser-reload/--no-browser-reload', default=False,
+              help='Automatic browser refreshing on webpack builds')
+@click.option('--environment', default='development', help='The environment name.')
 @click.argument('bind', default='127.0.0.1:8000', metavar='ADDRESS')
 @log_options()
 @configuration
-def devserver(reload, watchers, workers, bind):
+def devserver(reload, watchers, workers, browser_reload, environment, bind):
     "Starts a lightweight web server for development."
     if ':' in bind:
         host, port = bind.split(':', 1)
@@ -30,6 +34,9 @@ def devserver(reload, watchers, workers, bind):
         port = None
 
     import os
+
+    os.environ['SENTRY_ENVIRONMENT'] = environment
+
     from django.conf import settings
     from sentry import options
     from sentry.services.http import SentryHTTPServer
@@ -71,7 +78,8 @@ def devserver(reload, watchers, workers, bind):
 
     if workers:
         if settings.CELERY_ALWAYS_EAGER:
-            raise click.ClickException('Disable CELERY_ALWAYS_EAGER in your settings file to spawn workers.')
+            raise click.ClickException(
+                'Disable CELERY_ALWAYS_EAGER in your settings file to spawn workers.')
 
         daemons += [
             ('worker', ['sentry', 'run', 'worker', '-c', '1', '--autoreload']),
@@ -116,6 +124,8 @@ def devserver(reload, watchers, workers, bind):
     from honcho.manager import Manager
 
     os.environ['PYTHONUNBUFFERED'] = 'true'
+    if browser_reload:
+        os.environ['WEBPACK_LIVERELOAD'] = '1'
 
     # Make sure that the environment is prepared before honcho takes over
     # This sets all the appropriate uwsgi env vars, etc

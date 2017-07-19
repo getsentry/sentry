@@ -8,8 +8,8 @@ sentry.db.models.fields.foreignkey
 
 from __future__ import absolute_import
 
+from django.conf import settings
 from django.db.models import ForeignKey
-from south.modelsinspector import add_introspection_rules
 
 __all__ = ('FlexibleForeignKey',)
 
@@ -23,7 +23,10 @@ class FlexibleForeignKey(ForeignKey):
         return super(FlexibleForeignKey, self).db_type(connection)
 
 
-add_introspection_rules([], [
-    "^sentry\.db\.models\.fields\.FlexibleForeignKey",
-    "^sentry\.db\.models\.fields\.foreignkey\.FlexibleForeignKey",
-])
+if 'south' in settings.INSTALLED_APPS:
+    from south.modelsinspector import add_introspection_rules
+
+    add_introspection_rules([], [
+        "^sentry\.db\.models\.fields\.FlexibleForeignKey",
+        "^sentry\.db\.models\.fields\.foreignkey\.FlexibleForeignKey",
+    ])

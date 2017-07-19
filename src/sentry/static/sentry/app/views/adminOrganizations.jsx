@@ -10,25 +10,25 @@ const AdminOrganizations = React.createClass({
   getRow(row) {
     return [
       <td>
-        <strong><Link to={`/${row.slug}/`}>
-          {row.name}
-        </Link></strong><br />
+        <strong>
+          <Link to={`/${row.slug}/`}>
+            {row.name}
+          </Link>
+        </strong><br />
         <small>{row.slug}</small>
       </td>
     ];
   },
 
   render() {
-    let columns = [
-      <th>Organization</th>,
-    ];
+    let columns = [<th>Organization</th>];
 
     return (
       <div>
         <h3>{t('Organizations')}</h3>
         <ResultGrid
           path="/manage/organizations/"
-          endpoint={`/organizations/`}
+          endpoint={'/organizations/'}
           method="GET"
           columns={columns}
           columnsForRow={this.getRow}
@@ -38,13 +38,14 @@ const AdminOrganizations = React.createClass({
             ['members', 'Members'],
             ['events', 'Events'],
             ['projects', 'Projects'],
-            ['employees', 'Employees'],
+            ['employees', 'Employees']
           ]}
           defaultSort="date"
-          {...this.props} />
+          {...this.props}
+        />
       </div>
     );
-  },
+  }
 });
 
 export default AdminOrganizations;
