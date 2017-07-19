@@ -10,25 +10,12 @@ engine_modules = {
     'django.db.backends.postgresql_psycopg2': 'postgresql_psycopg2',
     'django.db.backends.sqlite3': 'sqlite3',
     'django.db.backends.mysql': 'mysql',
-    'mysql_oursql.standard': 'mysql',
-    'django.db.backends.oracle': 'oracle',
-    'sql_server.pyodbc': 'sql_server.pyodbc', #django-pyodbc-azure
-    'django_pyodbc': 'sql_server.pyodbc', #django-pyodbc
-    'sqlserver_ado': 'sql_server.pyodbc', #django-mssql
-    'firebird': 'firebird', #django-firebird
-    'django.contrib.gis.db.backends.postgis': 'postgresql_psycopg2',
-    'django.contrib.gis.db.backends.spatialite': 'sqlite3',
-    'django.contrib.gis.db.backends.mysql': 'mysql',
-    'django.contrib.gis.db.backends.oracle': 'oracle',
-    'doj.backends.zxjdbc.postgresql': 'postgresql_psycopg2', #django-jython
-    'doj.backends.zxjdbc.mysql': 'mysql', #django-jython
-    'doj.backends.zxjdbc.oracle': 'oracle', #django-jython
     'mysql.connector.django': 'mysql', # MySQL Connector/Python
 }
 
 # First, work out if we're multi-db or not, and which databases we have
-try: 
-    from django.db import DEFAULT_DB_ALIAS 
+try:
+    from django.db import DEFAULT_DB_ALIAS
 except ImportError:
     #### 1.1 or below ####
     # We'll 'fake' multi-db; set the default alias
@@ -79,6 +66,6 @@ except ImportError:
         ) % (module_name,)
     )
     sys.exit(1)
-    
+
 # Finally, to make old migrations work, keep 'db' around as the default database
 db = dbs[DEFAULT_DB_ALIAS]
