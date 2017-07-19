@@ -1,6 +1,9 @@
 Version 8.19 (Unreleased)
 -------------------------
+
 - Hide project filter when there are no projects to list.
+- Added lookup methods to constants to get a unique `integration_id` for a given
+  event, and to get information (documention url, human readable name) from that id.
 
 Version 8.18
 ------------

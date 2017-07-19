@@ -19,6 +19,8 @@ from django.conf import settings
 from django.utils.translation import ugettext_lazy as _
 from operator import attrgetter
 
+from sentry.utils.integrationdocs import load_doc
+
 
 def get_all_languages():
     results = []
@@ -231,6 +233,94 @@ KNOWN_DSYM_TYPES = {
 }
 
 NATIVE_UNKNOWN_STRING = '<unknown>'
+
+
+# to go from an integration id (in _platforms.json) to the platform
+# data, such as documentation url or humanized name.
+# example: java-logback -> {"type": "framework",
+#                           "link": "https://docs.getsentry.com/hosted/clients/java/modules/logback/",
+#                           "id": "java-logback",
+#                           "name": "Logback"}
+INTEGRATION_ID_TO_PLATFORM_DATA = {}
+
+
+def _load_platform_data():
+    INTEGRATION_ID_TO_PLATFORM_DATA.clear()
+    data = load_doc('_platforms')
+
+    if not data:
+        return
+
+    for platform in data['platforms']:
+        integrations = platform.pop('integrations')
+        if integrations:
+            for integration in integrations:
+                integration_id = integration.pop('id')
+                INTEGRATION_ID_TO_PLATFORM_DATA[integration_id] = integration
+
+_load_platform_data()
+
+
+# special cases where the marketing slug differs from the integration id
+# (in _platforms.json). missing values (for example: "java") should assume
+# the marketing slug is the same as the integration id.
+MARKETING_SLUG_TO_INTEGRATION_ID = {
+    "kotlin": "java",
+    "scala": "java",
+    "android": "java-android",
+
+    # TODO: add more special cases...
+}
+
+
+# to go from a marketing page slug like /for/android/ to the integration id
+# (in _platforms.json), for looking up documentation urls, etc.
+def get_integration_id_for_marketing_slug(slug):
+    if slug in MARKETING_SLUG_TO_INTEGRATION_ID:
+        return MARKETING_SLUG_TO_INTEGRATION_ID[slug]
+
+    if slug in INTEGRATION_ID_TO_PLATFORM_DATA:
+        return slug
+
+
+# special cases where the integration sent with the SDK differ from
+# the integration id (in _platforms.json)
+# {PLATFORM: {INTEGRATION_SENT: integration_id, ...}, ...}
+PLATFORM_INTEGRATION_TO_INTEGRATION_ID = {
+    "java": {
+        "java.util.logging": "java-logging",
+    },
+
+    # TODO: add more special cases...
+}
+
+
+# to go from event data to the integration id (in _platforms.json),
+# for example an event like:
+# {"platform": "java",
+#  "sdk": {"name": "sentry-java",
+#          "integrations": ["java.util.logging"]}} -> java-logging
+def get_integration_id_for_event(platform, sdk_name, integrations):
+    if integrations:
+        for integration in integrations:
+            # check special cases
+            if platform in PLATFORM_INTEGRATION_TO_INTEGRATION_ID and \
+                    integration in PLATFORM_INTEGRATION_TO_INTEGRATION_ID[platform]:
+                return PLATFORM_INTEGRATION_TO_INTEGRATION_ID[platform][integration]
+
+            # try <platform>-<integration>, for example "java-log4j"
+            integration_id = "%s-%s" % (platform, integration)
+            if integration_id in INTEGRATION_ID_TO_PLATFORM_DATA:
+                return integration_id
+
+    # try sdk name, for example "sentry-java" -> "java" or "raven-java:log4j" -> "java-log4j"
+    sdk_name = sdk_name.lower().replace("sentry-", "").replace("raven-", "").replace(":", "-")
+    if sdk_name in INTEGRATION_ID_TO_PLATFORM_DATA:
+        return sdk_name
+
+    # try platform name, for example "java"
+    if platform in INTEGRATION_ID_TO_PLATFORM_DATA:
+        return platform
 
 
 class ObjectStatus(object):
