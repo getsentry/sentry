@@ -78,7 +78,7 @@ const additional = platforms.concat({
 const onboardingSteps = {organization: 0, project: 1, configure: 2};
 
 const stepDescriptions = {
-  organization: 'Create an Organization in Sentry',
+  organization: 'Create an organization in Sentry',
   project: 'Tell us about your project',
   configure: 'Configure your application and send an event'
 };

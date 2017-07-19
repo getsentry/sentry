@@ -105,7 +105,7 @@
       padding-left: 26px;
       border-color: @50;
       line-height: 1.2;
-      text-shadow: 0 2px 5px rgba(0,0,0, .3);
+      text-shadow: 0 2px 5px rgba(0,0,0, .2);
 
       &.active{
         color: white;
@@ -157,10 +157,8 @@
     margin: 0 0 15px;
   }
   .platform-filter-container {
-    background: #fff;
+    .form-control;
     border-radius: 22px;
-    border: 1px solid @trim-dark;
-    box-shadow: inset 0 2px 0 rgba(0,0,0, .03);
     padding: 0 8px;
     position: relative;
     top: -4px;
@@ -175,6 +173,10 @@
     background: transparent;
     border: none;
     font-size: 14px;
+    &:focus {
+      outline: none;
+    }
+
     &::placeholder {
       color: @50;
     }
@@ -226,9 +228,43 @@
   padding: 20px 0;
   position: sticky;
   bottom: 0;
+  .clearfix;
 
   .platform-tile{
     display: inline-block;
     vertical-align: middle;
+  }
+
+  .project-name-wrapper {
+    .form-control;
+    position: relative;
+    padding-left: 44px;
+    width: 300px;
+    float: left;
+
+    input {
+      background: none;
+      border: 0;
+      display: block;
+      width: 100%;
+      font-weight: 600;
+
+      &:focus {
+        outline: none;
+      }
+
+      &::placeholder {
+        color: @50;
+      }
+    }
+
+    .platform-tile {
+      position: absolute;
+      left: 6px;
+      top: 3px;
+      .platformicon {
+        color: @40 !important;
+      }
+    }
   }
 }
