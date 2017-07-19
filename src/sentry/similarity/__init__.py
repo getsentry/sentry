@@ -104,7 +104,7 @@ features = FeatureSet(
             ),
         ),
     },
-    expected_encoding_errors=frozenset([
+    expected_encoding_errors=(
         FrameEncodingError,
-    ]),
+    ),
 )
