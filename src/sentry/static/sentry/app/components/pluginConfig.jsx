@@ -27,7 +27,8 @@ const PluginConfig = React.createClass({
 
   getInitialState() {
     return {
-      loading: !plugins.isLoaded(this.props.data)
+      loading: !plugins.isLoaded(this.props.data),
+      testResults: ''
     };
   },
 
@@ -89,9 +90,9 @@ const PluginConfig = React.createClass({
         test: true
       },
       success: data => {
-        let results = data.detail;
+        this.setState({testResults: JSON.stringify(data)});
         IndicatorStore.remove(loadingIndicator);
-        IndicatorStore.add(t(`${results}`), 'success');
+        IndicatorStore.add(t('Test Complete!'), 'success');
       },
       error: error => {
         IndicatorStore.add(
@@ -131,6 +132,14 @@ const PluginConfig = React.createClass({
                 <strong>
                   Note: This plugin is considered beta and may change in the future.
                 </strong>
+              </div>
+            : null}
+          {this.state.testResults != ''
+            ? <div className="alert alert-block alert-warning">
+                <strong>
+                  Test Results:{' '}
+                </strong>
+                <p>{this.state.testResults}</p>
               </div>
             : null}
           <div dangerouslySetInnerHTML={this.createMarkup()} />
