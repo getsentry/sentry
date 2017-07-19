@@ -16,6 +16,7 @@ from sentry.models import (
     EventMapping, Group, ProjectKey, ProjectOption, UserReport
 )
 from sentry.web.helpers import render_to_response
+from sentry.signals import user_feedback_received
 from sentry.utils import json
 from sentry.utils.http import is_valid_origin, origin_from_request
 from sentry.utils.validators import is_event_id
@@ -139,6 +140,9 @@ class ErrorPageEmbedView(View):
                     comments=report.comments,
                     date_added=timezone.now(),
                 )
+
+            user_feedback_received.send(project=report.project, group=report.group, sender=self)
+
             return self._json_response(request)
         elif request.method == 'POST':
             return self._json_response(request, {

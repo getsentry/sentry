@@ -23,14 +23,17 @@ import types
 
 from click.testing import CliRunner
 from contextlib import contextmanager
+from datetime import datetime
 from django.conf import settings
 from django.contrib.auth import login
 from django.core.cache import cache
 from django.core.urlresolvers import reverse
 from django.http import HttpRequest
 from django.test import TestCase, TransactionTestCase
+from django.utils import timezone
 from django.utils.importlib import import_module
 from exam import before, fixture, Exam
+from mock import patch
 from pkg_resources import iter_entry_points
 from rest_framework.test import APITestCase as BaseAPITestCase
 from six.moves.urllib.parse import urlencode
@@ -425,7 +428,9 @@ class PluginTestCase(TestCase):
                 ep_path = ep.module_name
                 if ep_path == path:
                     return
-                self.fail('Found app in entry_points, but wrong class. Got %r, expected %r' % (ep_path, path))
+                self.fail(
+                    'Found app in entry_points, but wrong class. Got %r, expected %r' %
+                    (ep_path, path))
         self.fail('Missing app from entry_points: %r' % (name,))
 
     def assertPluginInstalled(self, name, plugin):
@@ -435,7 +440,9 @@ class PluginTestCase(TestCase):
                 ep_path = ep.module_name + ':' + '.'.join(ep.attrs)
                 if ep_path == path:
                     return
-                self.fail('Found plugin in entry_points, but wrong class. Got %r, expected %r' % (ep_path, path))
+                self.fail(
+                    'Found plugin in entry_points, but wrong class. Got %r, expected %r' %
+                    (ep_path, path))
         self.fail('Missing plugin from entry_points: %r' % (name,))
 
 
@@ -451,6 +458,14 @@ class CliTestCase(TestCase):
 
 @pytest.mark.usefixtures('browser')
 class AcceptanceTestCase(TransactionTestCase):
+    def setUp(self):
+        patcher = patch('django.utils.timezone.now', return_value=(
+            datetime(2013, 5, 18, 15, 13, 58, 132928, tzinfo=timezone.utc)
+        ))
+        patcher.start()
+        self.addCleanup(patcher.stop)
+        super(AcceptanceTestCase, self).setUp()
+
     def save_session(self):
         self.session.save()
         self.browser.save_cookie(

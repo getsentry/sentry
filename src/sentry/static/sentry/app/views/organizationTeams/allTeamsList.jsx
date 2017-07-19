@@ -1,4 +1,5 @@
 import React from 'react';
+import {Link} from 'react-router';
 
 import PropTypes from '../../proptypes';
 
@@ -22,7 +23,8 @@ const AllTeamsList = React.createClass({
           team={team}
           organization={organization}
           openMembership={openMembership}
-          key={team.slug} />
+          key={team.slug}
+        />
       );
     });
 
@@ -38,10 +40,13 @@ const AllTeamsList = React.createClass({
       );
     }
 
-    return tct('You don\'t have any teams for this organization yet. Get started by [link:creating your first team].', {
-      root: <p />,
-      link: <a href={`/organizations/${organization.slug}/teams/new/`} />
-    });
+    return tct(
+      "You don't have any teams for this organization yet. Get started by [link:creating your first team].",
+      {
+        root: <p />,
+        link: <Link to={`/organizations/${organization.slug}/teams/new/`} />
+      }
+    );
   }
 });
 

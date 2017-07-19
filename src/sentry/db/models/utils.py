@@ -13,7 +13,10 @@ import operator
 from uuid import uuid4
 
 from django.db.models import F
-from django.db.models.expressions import ExpressionNode
+try:
+    from django.db.models.expressions import ExpressionNode
+except ImportError:
+    from django.db.models.expressions import Combinable as ExpressionNode
 from django.utils.crypto import get_random_string
 from django.template.defaultfilters import slugify
 
@@ -54,16 +57,17 @@ def resolve_expression_node(instance, node):
     return runner
 
 
-def slugify_instance(inst, label, reserved=(), max_length=30, *args, **kwargs):
-    base_slug = slugify(label)[:max_length]
+def slugify_instance(inst, label, reserved=(), max_length=30,
+                     field_name='slug', *args, **kwargs):
+    base_value = slugify(label)[:max_length]
 
-    if base_slug is not None:
-        base_slug = base_slug.strip()
-        if base_slug in reserved:
-            base_slug = None
+    if base_value is not None:
+        base_value = base_value.strip()
+        if base_value in reserved:
+            base_value = None
 
-    if not base_slug:
-        base_slug = uuid4().hex[:12]
+    if not base_value:
+        base_value = uuid4().hex[:12]
 
     base_qs = type(inst).objects.all()
     if inst.id:
@@ -71,10 +75,12 @@ def slugify_instance(inst, label, reserved=(), max_length=30, *args, **kwargs):
     if args or kwargs:
         base_qs = base_qs.filter(*args, **kwargs)
 
-    inst.slug = base_slug
+    setattr(inst, field_name, base_value)
 
     # We don't need to further mutate if we're unique at this point
-    if not base_qs.filter(slug__iexact=inst.slug).exists():
+    if not base_qs.filter(**{
+        '{}__iexact'.format(field_name): base_value,
+    }).exists():
         return
 
     # We want to sanely generate the shortest unique slug possible, so
@@ -90,8 +96,11 @@ def slugify_instance(inst, label, reserved=(), max_length=30, *args, **kwargs):
     for attempts, size in sizes:
         for i in range(attempts):
             end = get_random_string(size, allowed_chars='abcdefghijklmnopqrstuvwxyz0123456790')
-            inst.slug = base_slug[:max_length - size - 1] + '-' + end
-            if not base_qs.filter(slug__iexact=inst.slug).exists():
+            value = base_value[:max_length - size - 1] + '-' + end
+            setattr(inst, field_name, value)
+            if not base_qs.filter(**{
+                '{}__iexact'.format(field_name): value,
+            }).exists():
                 return
 
     # If at this point, we've exhausted all possibilities, we'll just end up hitting

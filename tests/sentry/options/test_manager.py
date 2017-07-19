@@ -5,8 +5,8 @@ from __future__ import absolute_import
 from exam import fixture, around
 from mock import patch
 from django.conf import settings
+from django.core.cache.backends.locmem import LocMemCache
 
-from sentry.cache.redis import RedisCache
 from sentry.models import Option
 from sentry.options.store import OptionsStore
 from sentry.options.manager import (
@@ -19,9 +19,9 @@ from sentry.testutils import TestCase
 class OptionsManagerTest(TestCase):
     @fixture
     def store(self):
-        return OptionsStore(
-            cache=RedisCache()
-        )
+        c = LocMemCache('test', {})
+        c.clear()
+        return OptionsStore(cache=c)
 
     @fixture
     def manager(self):

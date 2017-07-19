@@ -1,5 +1,8 @@
 from __future__ import absolute_import
 
+import six
+import uuid
+
 __all__ = ('DebugMeta',)
 
 from sentry.interfaces.base import Interface, InterfaceValidationError
@@ -28,7 +31,7 @@ def process_apple_image(image):
             'image_size': image['image_size'],
             'image_vmaddr': _addr(image.get('image_vmaddr') or 0),
             'name': image['name'],
-            'uuid': image['uuid']
+            'uuid': six.text_type(uuid.UUID(image['uuid']))
         }
         if image.get('major_version') is not None:
             apple_image['major_version'] = image['major_version']
@@ -39,6 +42,17 @@ def process_apple_image(image):
         return apple_image
     except KeyError as e:
         raise InterfaceValidationError('Missing value for apple image: %s'
+                                       % e.args[0])
+
+
+@imagetype('proguard')
+def process_proguard_image(image):
+    try:
+        return {
+            'uuid': six.text_type(uuid.UUID(image['uuid'])),
+        }
+    except KeyError as e:
+        raise InterfaceValidationError('Missing value for proguard image: %s'
                                        % e.args[0])
 
 
@@ -82,8 +96,6 @@ class DebugMeta(Interface):
             raise InterfaceValidationError('Unknown image type %r' % image)
         rv = func(image)
         assert 'uuid' in rv, 'debug image normalizer did not produce a UUID'
-        assert 'image_addr' in rv, 'debug image normalizer did not ' \
-            'produce an object address'
         rv['type'] = ty
         return rv
 
@@ -98,6 +110,7 @@ class DebugMeta(Interface):
                 'version_major': sdk_info['version_major'],
                 'version_minor': sdk_info['version_minor'],
                 'version_patchlevel': sdk_info.get('version_patchlevel') or 0,
+                'build': sdk_info.get('build'),
             }
         except KeyError as e:
             raise InterfaceValidationError('Missing value for sdk_info: %s'

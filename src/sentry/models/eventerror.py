@@ -10,6 +10,7 @@ class dontexplodedict(object):
     return back a sensible default value to be used in
     string formatting.
     """
+
     def __init__(self, d=None):
         self.data = d or {}
 
@@ -51,6 +52,8 @@ class EventError(object):
     NATIVE_MISSING_SYMBOL = 'native_missing_symbol'
     NATIVE_SIMULATOR_FRAME = 'native_simulator_frame'
     NATIVE_UNKNOWN_IMAGE = 'native_unknown_image'
+    PROGUARD_MISSING_MAPPING = 'proguard_missing_mapping'
+    PROGUARD_MISSING_LINENO = 'proguard_missing_lineno'
 
     _messages = {
         INVALID_DATA: u'Discarded invalid value for parameter \'{name}\'',
@@ -59,10 +62,12 @@ class EventError(object):
         UNKNOWN_ERROR: u'Unknown error',
         SECURITY_VIOLATION: u'Cannot fetch resource due to security violation on {url}',
         RESTRICTED_IP: u'Cannot fetch resource due to restricted IP address on {url}',
-        JS_GENERIC_FETCH_ERROR: u'Unable to fetch resource: {url}',  # deprecated in favor of FETCH_GENERIC_ERROR
+        # deprecated in favor of FETCH_GENERIC_ERROR
+        JS_GENERIC_FETCH_ERROR: u'Unable to fetch resource: {url}',
         FETCH_GENERIC_ERROR: u'Unable to fetch resource: {url}',
         JS_INVALID_HTTP_CODE: u'HTTP returned {value} response on {url}',
-        FETCH_INVALID_HTTP_CODE: u'HTTP returned {value} response on {url}',  # deprecated in favor of FETCH_INVALID_HTTP_CODE
+        # deprecated in favor of FETCH_INVALID_HTTP_CODE
+        FETCH_INVALID_HTTP_CODE: u'HTTP returned {value} response on {url}',
         JS_INVALID_CONTENT: u'Source file was not JavaScript: {url}',
         JS_NO_COLUMN: u'Cannot expand sourcemap due to no column information for {url}',
         JS_MISSING_SOURCE: u'Source code was not found for {url}',
@@ -71,9 +76,11 @@ class EventError(object):
         JS_INVALID_SOURCE_ENCODING: u'Source file was not \'{value}\' encoding: {url}',
         FETCH_INVALID_ENCODING: u'Source file was not \'{value}\' encoding: {url}',
         JS_INVALID_SOURCEMAP_LOCATION: u'Invalid location in sourcemap: ({column}, {row})',
-        JS_TOO_LARGE: u'Remote file too large: ({max_size:g}MB, {url})',  # deprecated in favor of FETCH_TOO_LARGE
+        # deprecated in favor of FETCH_TOO_LARGE
+        JS_TOO_LARGE: u'Remote file too large: ({max_size:g}MB, {url})',
         FETCH_TOO_LARGE: u'Remote file too large: ({max_size:g}MB, {url})',
-        JS_FETCH_TIMEOUT: u'Remote file took too long to load: ({timeout}s, {url})',  # deprecated in favor of FETCH_TIMEOUT
+        # deprecated in favor of FETCH_TIMEOUT
+        JS_FETCH_TIMEOUT: u'Remote file took too long to load: ({timeout}s, {url})',
         FETCH_TIMEOUT: u'Remote file took too long to load: ({timeout}s, {url})',
         NATIVE_NO_CRASHED_THREAD: u'No crashed thread found in crash report',
         NATIVE_INTERNAL_FAILURE: u'Internal failure when attempting to symbolicate: {error}',
@@ -84,7 +91,9 @@ class EventError(object):
         NATIVE_MISSING_SYSTEM_DSYM: u'A system debug symbol file was missing.',
         NATIVE_MISSING_SYMBOL: u'Unable to resolve a symbol.',
         NATIVE_SIMULATOR_FRAME: u'Encountered an unprocessable simulator frame.',
-        NATIVE_UNKNOWN_IMAGE: u'An binary image is referenced that is unknown.'
+        NATIVE_UNKNOWN_IMAGE: u'An binary image is referenced that is unknown.',
+        PROGUARD_MISSING_MAPPING: u'A proguard mapping file was missing.',
+        PROGUARD_MISSING_LINENO: u'A proguard mapping file does not contain line info.',
     }
 
     @classmethod

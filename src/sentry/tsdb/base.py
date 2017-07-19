@@ -7,15 +7,16 @@ sentry.tsdb.base
 """
 from __future__ import absolute_import
 
+import six
+
 from collections import OrderedDict
 from datetime import timedelta
-
-import six
 from django.conf import settings
 from django.utils import timezone
 from enum import Enum
 
-from sentry.utils.dates import to_timestamp
+from sentry.utils.dates import to_datetime, to_timestamp
+from sentry.utils.services import Service
 
 ONE_MINUTE = 60
 ONE_HOUR = ONE_MINUTE * 60
@@ -44,6 +45,8 @@ class TSDBModel(Enum):
     project_operation_errors = 103
     # the number of events blocked due to being blacklisted
     project_total_blacklisted = 104
+    # the number of events forwarded to third party processors (data forwarding)
+    project_total_forwarded = 105
 
     # the number of events sent to the server
     organization_total_received = 200
@@ -73,8 +76,20 @@ class TSDBModel(Enum):
     # number of events seen for an environment, by issue
     frequent_environments_by_group = 408
 
+    # the number of events sent to the server
+    key_total_received = 500
+    # the number of events rejected due to rate limiting
+    key_total_rejected = 501
+    # the number of events blocked due to being blacklisted
+    key_total_blacklisted = 502
 
-class BaseTSDB(object):
+
+class BaseTSDB(Service):
+    __all__ = (
+        'models', 'incr', 'incr_multi', 'get_range', 'get_rollups', 'get_sums',
+        'rollup', 'validate',
+    )
+
     models = TSDBModel
 
     def __init__(self, rollups=None, legacy_rollups=None):
@@ -92,13 +107,8 @@ class BaseTSDB(object):
 
         self.__legacy_rollups = legacy_rollups
 
-    def validate(self):
-        """
-        Validates the settings for this backend (i.e. such as proper connection
-        info).
-
-        Raise ``InvalidConfiguration`` if there is a configuration error.
-        """
+    def get_rollups(self):
+        return self.rollups
 
     def normalize_to_epoch(self, timestamp, seconds):
         """
@@ -173,6 +183,22 @@ class BaseTSDB(object):
 
         return rollup, sorted(series)
 
+    def get_active_series(self, start=None, end=None, timestamp=None):
+        rollups = {}
+        for rollup, samples in self.rollups.items():
+            _, series = self.get_optimal_rollup_series(
+                start if start is not None else to_datetime(
+                    self.get_earliest_timestamp(
+                        rollup,
+                        timestamp=timestamp,
+                    ),
+                ),
+                end,
+                rollup=rollup,
+            )
+            rollups[rollup] = map(to_datetime, series)
+        return rollups
+
     def calculate_expiry(self, rollup, samples, timestamp):
         """
         Calculate the expiration time for a rollup.
@@ -217,6 +243,18 @@ class BaseTSDB(object):
         """
         for model, key in items:
             self.incr(model, key, timestamp, count)
+
+    def merge(self, model, destination, sources, timestamp=None):
+        """
+        Transfer all counters from the source keys to the destination key.
+        """
+        raise NotImplementedError
+
+    def delete(self, models, keys, start=None, end=None, timestamp=None):
+        """
+        Delete all counters.
+        """
+        raise NotImplementedError
 
     def get_range(self, model, keys, start, end, rollup=None):
         """
@@ -290,6 +328,19 @@ class BaseTSDB(object):
         """
         raise NotImplementedError
 
+    def merge_distinct_counts(self, model, destination, sources, timestamp=None):
+        """
+        Transfer all distinct counters from the source keys to the
+        destination key.
+        """
+        raise NotImplementedError
+
+    def delete_distinct_counts(self, models, keys, start=None, end=None, timestamp=None):
+        """
+        Delete all distinct counters.
+        """
+        raise NotImplementedError
+
     def record_frequency_multi(self, requests, timestamp=None):
         """
         Record items in a frequency table.
@@ -350,5 +401,18 @@ class BaseTSDB(object):
         Results are returned as a mapping, where the key is the key requested
         and the value is a mapping of ``{item: score, ...}`` containing the
         total score of items over the interval.
+        """
+        raise NotImplementedError
+
+    def merge_frequencies(self, model, destination, sources, timestamp=None):
+        """
+        Transfer all frequency tables from the source keys to the destination
+        key.
+        """
+        raise NotImplementedError
+
+    def delete_frequencies(self, models, keys, start=None, end=None, timestamp=None):
+        """
+        Delete all frequency tables.
         """
         raise NotImplementedError

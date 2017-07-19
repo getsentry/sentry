@@ -11,17 +11,14 @@ import utils from '../utils';
 import {t} from '../locale';
 
 const GroupUserReports = React.createClass({
-  mixins: [
-    ApiMixin,
-    GroupState
-  ],
+  mixins: [ApiMixin, GroupState],
 
   getInitialState() {
     return {
       loading: true,
       error: false,
       reportList: [],
-      pageLinks: '',
+      pageLinks: ''
     };
   },
 
@@ -53,7 +50,7 @@ const GroupUserReports = React.createClass({
           pageLinks: jqXHR.getResponseHeader('Link')
         });
       },
-      error: (error) => {
+      error: error => {
         this.setState({
           error: true,
           loading: false
@@ -107,7 +104,11 @@ const GroupUserReports = React.createClass({
       <div className="box empty-stream">
         <span className="icon icon-exclamation" />
         <p>{t('No user reports have been collected for this event.')}</p>
-        <p><Link to={this.getUserReportsUrl()}>{t('Learn how to integrate User Feedback')}</Link></p>
+        <p>
+          <Link to={this.getUserReportsUrl()}>
+            {t('Learn how to integrate User Feedback')}
+          </Link>
+        </p>
       </div>
     );
   }

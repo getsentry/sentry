@@ -50,7 +50,7 @@ def social_auth_by_name_backends(request):
         user = request.user
         if hasattr(user, 'is_authenticated') and user.is_authenticated():
             accounts.update((assoc.provider, assoc)
-                    for assoc in UserSocialAuth.get_social_auth_for_user(user))
+                            for assoc in UserSocialAuth.get_social_auth_for_user(user))
         return accounts
     return {'social_auth': LazyDict(context_value)}
 

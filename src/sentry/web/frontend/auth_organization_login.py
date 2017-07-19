@@ -7,7 +7,6 @@ from django.db import transaction
 from django.views.decorators.cache import never_cache
 from django.contrib import messages
 
-from sentry import features
 from sentry.auth.helper import AuthHelper
 from sentry.constants import WARN_SESSION_EXPIRED
 from sentry.models import AuthProvider, Organization, OrganizationStatus
@@ -32,7 +31,7 @@ class AuthOrganizationLoginView(BaseView):
         )
 
     def handle_basic_auth(self, request, organization):
-        can_register = features.has('auth:register') or request.session.get('can_register')
+        can_register = auth.has_user_registration() or request.session.get('can_register')
 
         op = request.POST.get('op')
         login_form = self.get_login_form(request)

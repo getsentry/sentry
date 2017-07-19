@@ -39,9 +39,8 @@ const SearchBar = React.createClass({
   },
 
   clearSearch() {
-    this.setState(
-      {query: this.props.defaultQuery},
-      () => this.props.onSearch(this.state.query)
+    this.setState({query: this.props.defaultQuery}, () =>
+      this.props.onSearch(this.state.query)
     );
   },
 
@@ -64,7 +63,9 @@ const SearchBar = React.createClass({
       <div className="search">
         <form className="form-horizontal" ref="searchForm" onSubmit={this.onSubmit}>
           <div>
-            <input type="text" className="search-input form-control"
+            <input
+              type="text"
+              className="search-input form-control"
               placeholder={this.props.placeholder}
               name="query"
               ref="searchInput"
@@ -72,15 +73,14 @@ const SearchBar = React.createClass({
               value={this.state.query}
               onBlur={this.onQueryBlur}
               onChange={this.onQueryChange}
-              />
+            />
             <span className="icon-search" />
             {this.state.query !== this.props.defaultQuery &&
               <div>
                 <a className="search-clear-form" onClick={this.clearSearch}>
                   <span className="icon-circle-cross" />
                 </a>
-              </div>
-            }
+              </div>}
           </div>
         </form>
       </div>

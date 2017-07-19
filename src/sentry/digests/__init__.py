@@ -1,8 +1,19 @@
 from __future__ import absolute_import
 
 from collections import namedtuple
+from django.conf import settings
 
 from sentry.utils.dates import to_datetime
+from sentry.utils.services import LazyServiceWrapper
+
+from .backends.base import Backend  # NOQA
+from .backends.dummy import DummyBackend  # NOQA
+
+
+backend = LazyServiceWrapper(Backend, settings.SENTRY_DIGESTS,
+                             settings.SENTRY_DIGESTS_OPTIONS,
+                             (DummyBackend,))
+backend.expose(locals())
 
 
 class Record(namedtuple('Record', 'key value timestamp')):

@@ -21,8 +21,7 @@ from django.db import models
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
-from sentry import eventtypes
-from sentry.app import buffer
+from sentry import buffer, eventtypes
 from sentry.constants import (
     DEFAULT_LOGGER_NAME, EVENT_ORDERING_KEY, LOG_LEVELS, MAX_CULPRIT_LENGTH
 )
@@ -105,11 +104,19 @@ class GroupManager(BaseManager):
         )
 
     def from_kwargs(self, project, **kwargs):
-        from sentry.event_manager import EventManager
+        from sentry.event_manager import HashDiscarded, EventManager
 
         manager = EventManager(kwargs)
         manager.normalize()
-        return manager.save(project)
+        try:
+            return manager.save(project)
+
+        # TODO(jess): this method maybe isn't even used?
+        except HashDiscarded as exc:
+            logger.info('discarded.hash', extra={
+                'project_id': project.id,
+                'message': exc.message,
+            })
 
     def add_tags(self, group, tags):
         from sentry.models import TagValue, GroupTagValue
@@ -141,7 +148,7 @@ class GroupManager(BaseManager):
                 'key': key,
                 'value': value,
             }, {
-                'project': project_id,
+                'project_id': project_id,
                 'last_seen': date,
             })
 
@@ -255,22 +262,20 @@ class Group(Model):
         # XXX(dcramer): GroupSerializer reimplements this logic
         from sentry.models import GroupSnooze
 
-        if self.status == GroupStatus.IGNORED:
+        status = self.status
+
+        if status == GroupStatus.IGNORED:
             try:
                 snooze = GroupSnooze.objects.get(group=self)
             except GroupSnooze.DoesNotExist:
                 pass
             else:
-                # XXX(dcramer): if the snooze row exists then we need
-                # to confirm its still valid
-                if snooze.until > timezone.now():
-                    return GroupStatus.IGNORED
-                else:
-                    return GroupStatus.UNRESOLVED
+                if not snooze.is_valid(group=self):
+                    status = GroupStatus.UNRESOLVED
 
-        if self.status == GroupStatus.UNRESOLVED and self.is_over_resolve_age():
+        if status == GroupStatus.UNRESOLVED and self.is_over_resolve_age():
             return GroupStatus.RESOLVED
-        return self.status
+        return status
 
     def get_share_id(self):
         return b16encode(
@@ -290,7 +295,13 @@ class Group(Model):
         return cls.objects.get(project=project_id, id=group_id)
 
     def get_score(self):
-        return int(math.log(self.times_seen) * 600 + float(time.mktime(self.last_seen.timetuple())))
+        return int(
+            math.log(
+                self.times_seen) *
+            600 +
+            float(
+                time.mktime(
+                    self.last_seen.timetuple())))
 
     def get_latest_event(self):
         from sentry.models import Event
@@ -380,6 +391,33 @@ class Group(Model):
 
         return self._tag_cache
 
+    def get_first_release(self):
+        from sentry.models import GroupTagValue
+        if self.first_release_id is None:
+            try:
+                first_release = GroupTagValue.objects.filter(
+                    group_id=self.id,
+                    key__in=('sentry:release', 'release'),
+                ).order_by('first_seen')[0]
+            except IndexError:
+                return None
+            else:
+                return first_release.value
+
+        return self.first_release.version
+
+    def get_last_release(self):
+        from sentry.models import GroupTagValue
+        try:
+            last_release = GroupTagValue.objects.filter(
+                group_id=self.id,
+                key__in=('sentry:release', 'release'),
+            ).order_by('-last_seen')[0]
+        except IndexError:
+            return None
+
+        return last_release.value
+
     def get_event_type(self):
         """
         Return the type of this issue.
@@ -444,3 +482,11 @@ class Group(Model):
             six.text_type(self.get_level_display()).upper().encode('utf-8'),
             self.title.encode('utf-8')
         )
+
+    def count_users_seen(self):
+        from sentry.models import GroupTagKey
+
+        return GroupTagKey.objects.filter(
+            group=self,
+            key='sentry:user',
+        ).aggregate(t=models.Sum('values_seen'))['t'] or 0

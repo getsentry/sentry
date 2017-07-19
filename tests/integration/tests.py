@@ -93,6 +93,7 @@ class RavenIntegrationTest(TransactionTestCase):
     This mocks the test server and specifically tests behavior that would
     happen between Raven <--> Sentry over HTTP communication.
     """
+
     def setUp(self):
         self.user = self.create_user('coreapi@example.com')
         self.project = self.create_project()
@@ -112,7 +113,8 @@ class RavenIntegrationTest(TransactionTestCase):
 
     def sendRemote(self, url, data, headers={}):
         content_type = headers.pop('Content-Type', None)
-        headers = dict(('HTTP_' + k.replace('-', '_').upper(), v) for k, v in six.iteritems(headers))
+        headers = dict(('HTTP_' + k.replace('-', '_').upper(), v)
+                       for k, v in six.iteritems(headers))
         if isinstance(data, six.text_type):
             data = data.encode('utf-8')
         resp = self.client.post(
@@ -168,8 +170,8 @@ class SentryRemoteTest(TestCase):
             key='foo', group=instance.group_id, project=self.project,
         ).exists()
         assert GroupTagValue.objects.filter(
-            key='foo', value='bar', group=instance.group_id,
-            project=self.project,
+            key='foo', value='bar', group_id=instance.group_id,
+            project_id=self.project.id,
         ).exists()
 
     def test_timestamp(self):

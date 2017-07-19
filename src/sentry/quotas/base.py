@@ -12,6 +12,7 @@ import six
 from django.conf import settings
 
 from sentry import options
+from sentry.utils.services import Service
 
 
 class RateLimit(object):
@@ -38,24 +39,21 @@ class RateLimited(RateLimit):
         super(RateLimited, self).__init__(True, **kwargs)
 
 
-class Quota(object):
+class Quota(Service):
     """
     Quotas handle tracking a project's event usage (at a per minute tick) and
     respond whether or not a project has been configured to throttle incoming
     events if they go beyond the specified quota.
     """
+    __all__ = (
+        'get_maximum_quota', 'get_organization_quota', 'get_project_quota',
+        'is_rate_limited', 'translate_quota', 'validate',
+    )
+
     def __init__(self, **options):
         pass
 
-    def validate(self):
-        """
-        Validates the settings for this backend (i.e. such as proper connection
-        info).
-
-        Raise ``InvalidConfiguration`` if there is a configuration error.
-        """
-
-    def is_rate_limited(self, project):
+    def is_rate_limited(self, project, key=None):
         return NotRateLimited()
 
     def get_time_remaining(self):
@@ -69,6 +67,13 @@ class Quota(object):
             return int(parent_quota or 0)
         return int(quota or 0)
 
+    def get_key_quota(self, key):
+        from sentry import features
+
+        if features.has('projects:rate-limits', key.project):
+            return key.rate_limit
+        return (0, 0)
+
     def get_project_quota(self, project):
         from sentry.models import Organization, OrganizationOption
 
@@ -79,9 +84,6 @@ class Quota(object):
 
         max_quota_share = int(OrganizationOption.objects.get_value(
             org, 'sentry:project-rate-limit', 100))
-
-        if max_quota_share == 100:
-            return (0, 60)
 
         org_quota, window = self.get_organization_quota(org)
 

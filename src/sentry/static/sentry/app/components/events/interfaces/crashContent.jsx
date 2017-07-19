@@ -5,7 +5,6 @@ import StacktraceContent from './stacktraceContent';
 import ExceptionContent from './exceptionContent';
 import RawExceptionContent from './rawExceptionContent';
 
-
 const CrashContent = React.createClass({
   propTypes: {
     group: PropTypes.Group.isRequired,
@@ -14,40 +13,40 @@ const CrashContent = React.createClass({
     stackType: React.PropTypes.string,
     newestFirst: React.PropTypes.bool.isRequired,
     exception: React.PropTypes.object,
-    stacktrace: React.PropTypes.object,
+    stacktrace: React.PropTypes.object
   },
 
   renderException() {
     const {event, stackView, stackType, newestFirst, exception} = this.props;
-    return (
-      stackView === 'raw' ?
-        <RawExceptionContent
+    return stackView === 'raw'
+      ? <RawExceptionContent
           eventId={event.id}
           type={stackType}
           values={exception.values}
-          platform={event.platform} /> :
-        <ExceptionContent
+          platform={event.platform}
+        />
+      : <ExceptionContent
           type={stackType}
           view={stackView}
           values={exception.values}
           platform={event.platform}
-          newestFirst={newestFirst} />
-    );
+          newestFirst={newestFirst}
+        />;
   },
 
   renderStacktrace() {
     const {event, stackView, newestFirst, stacktrace} = this.props;
-    return (
-      stackView === 'raw' ?
-        <pre className="traceback plain">
-          {rawStacktraceContent(stacktrace, event.platform)}</pre> :
-        <StacktraceContent
+    return stackView === 'raw'
+      ? <pre className="traceback plain">
+          {rawStacktraceContent(stacktrace, event.platform)}
+        </pre>
+      : <StacktraceContent
           data={stacktrace}
           className="no-exception"
           includeSystemFrames={stackView === 'full'}
           platform={event.platform}
-          newestFirst={newestFirst} />
-    );
+          newestFirst={newestFirst}
+        />;
   },
 
   render() {
@@ -57,6 +56,7 @@ const CrashContent = React.createClass({
     if (this.props.stacktrace) {
       return this.renderStacktrace();
     }
+    return null;
   }
 });
 

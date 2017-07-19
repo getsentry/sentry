@@ -12,9 +12,7 @@ const StrictClick = React.createClass({
     onClick: React.PropTypes.func
   },
 
-  mixins: [
-    PureRenderMixin
-  ],
+  mixins: [PureRenderMixin],
 
   statics: {
     MAX_DELTA_X: 10,
@@ -66,4 +64,3 @@ const StrictClick = React.createClass({
 });
 
 export default StrictClick;
-

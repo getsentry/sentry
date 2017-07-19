@@ -74,7 +74,9 @@ def organizations(metrics, since, until):
 
     stdout = click.get_text_stream('stdout')
     stderr = click.get_text_stream('stderr')
-    aggregate = lambda series: sum(value for timestamp, value in series)
+
+    def aggregate(series):
+        return sum(value for timestamp, value in series)
 
     metrics = OrderedDict((name, getattr(tsdb.models, name)) for name in metrics)
     if not metrics:

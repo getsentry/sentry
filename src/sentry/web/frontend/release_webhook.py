@@ -13,6 +13,7 @@ from django.utils.crypto import constant_time_compare
 from django.utils.decorators import method_decorator
 
 from sentry.api import client
+from sentry.exceptions import HookValidationError
 from sentry.models import ApiKey, Project, ProjectOption
 from sentry.plugins import plugins
 from sentry.utils import json
@@ -53,7 +54,7 @@ class ReleaseWebhookView(View):
             # the view code. Instead we hack around it with an ApiKey instance
             god = ApiKey(
                 organization=project.organization,
-                scopes=getattr(ApiKey.scopes, 'project:write'),
+                scope_list=['project:write'],
             )
 
             resp = client.post(
@@ -96,6 +97,13 @@ class ReleaseWebhookView(View):
 
         cls = plugin.get_release_hook()
         hook = cls(project)
-        hook.handle(request)
+        try:
+            hook.handle(request)
+        except HookValidationError as exc:
+            return HttpResponse(
+                status=400,
+                content=json.dumps({'error': six.text_type(exc)}),
+                content_type='application/json',
+            )
 
         return HttpResponse(status=204)

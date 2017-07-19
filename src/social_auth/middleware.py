@@ -21,6 +21,7 @@ class SocialAuthExceptionMiddleware(object):
     This middleware can be extended by overriding the get_message or
     get_redirect_uri methods, which each accept request and exception.
     """
+
     def process_exception(self, request, exception):
         self.backend = self.get_backend(request, exception)
         if self.raise_exception(request, exception):

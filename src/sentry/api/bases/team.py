@@ -4,17 +4,16 @@ from sentry.api.base import Endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.app import raven
 from sentry.models import Team, TeamStatus
-from sentry.models.apikey import ROOT_KEY
 
 from .organization import OrganizationPermission
 
 
 class TeamPermission(OrganizationPermission):
     scope_map = {
-        'GET': ['team:read', 'team:write', 'team:delete'],
-        'POST': ['team:write', 'team:delete'],
-        'PUT': ['team:write', 'team:delete'],
-        'DELETE': ['team:delete'],
+        'GET': ['team:read', 'team:write', 'team:admin'],
+        'POST': ['team:write', 'team:admin'],
+        'PUT': ['team:write', 'team:admin'],
+        'DELETE': ['team:admin'],
     }
 
     def has_object_permission(self, request, view, team):
@@ -24,8 +23,6 @@ class TeamPermission(OrganizationPermission):
             return result
 
         if not (request.user and request.user.is_authenticated()) and request.auth:
-            if request.auth is ROOT_KEY:
-                return True
             return request.auth.organization_id == team.organization.id
 
         allowed_scopes = set(self.scope_map.get(request.method, []))

@@ -23,7 +23,7 @@ except ImportError:
 
 from sentry import http
 from sentry.interfaces.stacktrace import Stacktrace
-from sentry.models import EventError, Release, ReleaseFile
+from sentry.models import EventError, ReleaseFile
 from sentry.utils.cache import cache
 from sentry.utils.files import compress_file
 from sentry.utils.hashlib import md5_text
@@ -52,7 +52,7 @@ CLEAN_MODULE_RE = re.compile(r"""^
 """, re.X | re.I)
 VERSION_RE = re.compile(r'^[a-f0-9]{32}|[a-f0-9]{40}$', re.I)
 NODE_MODULES_RE = re.compile(r'\bnode_modules/')
-
+SOURCE_MAPPING_URL_RE = re.compile(r'\/\/# sourceMappingURL=(.*)$')
 # the maximum number of remote resources (i.e. sourc eifles) that should be
 # fetched
 MAX_RESOURCE_FETCHES = 100
@@ -155,6 +155,19 @@ def discover_sourcemap(result):
                 # We want everything AFTER the indicator, which is 21 chars long
                 sourcemap = line[21:].rstrip()
 
+        # If we still haven't found anything, check end of last line AFTER source code.
+        # This is not the literal interpretation of the spec, but browsers support it.
+        # e.g. {code}//# sourceMappingURL={url}
+        if not sourcemap:
+            # Only look at last 300 characters to keep search space reasonable (minified
+            # JS on a single line could be tens of thousands of chars). This is a totally
+            # arbitrary number / best guess; most sourceMappingURLs are relative and
+            # not very long.
+            search_space = possibilities[-1][-300:].rstrip()
+            match = SOURCE_MAPPING_URL_RE.search(search_space)
+            if match:
+                sourcemap = match.group(1)
+
     if sourcemap:
         # react-native shoves a comment at the end of the
         # sourceMappingURL line.
@@ -179,7 +192,7 @@ def discover_sourcemap(result):
     return sourcemap
 
 
-def fetch_release_file(filename, release):
+def fetch_release_file(filename, release, dist=None):
     cache_key = 'releasefile:v1:%s:%s' % (
         release.id,
         md5_text(filename).hexdigest(),
@@ -198,16 +211,20 @@ def fetch_release_file(filename, release):
                  filename, release.id)
     result = cache.get(cache_key)
 
+    dist_name = dist and dist.name or None
+
     if result is None:
         logger.debug('Checking database for release artifact %r (release_id=%s)',
                      filename, release.id)
 
-        filename_idents = [ReleaseFile.get_ident(filename)]
+        filename_idents = [ReleaseFile.get_ident(filename, dist_name)]
         if filename_path is not None and filename_path != filename:
-            filename_idents.append(ReleaseFile.get_ident(filename_path))
+            filename_idents.append(ReleaseFile.get_ident(
+                filename_path, dist_name))
 
         possible_files = list(ReleaseFile.objects.filter(
             release=release,
+            dist=dist,
             ident__in=filename_idents,
         ).select_related('file'))
 
@@ -251,12 +268,15 @@ def fetch_release_file(filename, release):
             encoding = result[3]
         except IndexError:
             encoding = None
-        result = http.UrlResult(filename, result[0], zlib.decompress(result[1]), result[2], encoding)
+        result = http.UrlResult(
+            filename, result[0], zlib.decompress(
+                result[1]), result[2], encoding)
 
     return result
 
 
-def fetch_file(url, project=None, release=None, allow_scraping=True):
+def fetch_file(url, project=None, release=None, dist=None,
+               allow_scraping=True):
     """
     Pull down a URL, returning a UrlResult object.
 
@@ -271,7 +291,7 @@ def fetch_file(url, project=None, release=None, allow_scraping=True):
         })
     if release:
         with metrics.timer('sourcemaps.release_file'):
-            result = fetch_release_file(url, release)
+            result = fetch_release_file(url, release, dist)
     else:
         result = None
 
@@ -298,7 +318,9 @@ def fetch_file(url, project=None, release=None, allow_scraping=True):
                 encoding = None
             # We got a cache hit, but the body is compressed, so we
             # need to decompress it before handing it off
-            result = http.UrlResult(result[0], result[1], zlib.decompress(result[2]), result[3], encoding)
+            result = http.UrlResult(
+                result[0], result[1], zlib.decompress(
+                    result[2]), result[3], encoding)
 
     if result is None:
         headers = {}
@@ -324,7 +346,12 @@ def fetch_file(url, project=None, release=None, allow_scraping=True):
     # binary and say utf8 encoding.
     if not isinstance(result.body, six.binary_type):
         try:
-            result = http.UrlResult(result.url, result.headers, result.body.encode('utf8'), result.status, result.encoding)
+            result = http.UrlResult(
+                result.url,
+                result.headers,
+                result.body.encode('utf8'),
+                result.status,
+                result.encoding)
         except UnicodeEncodeError:
             error = {
                 'type': EventError.FETCH_INVALID_ENCODING,
@@ -334,12 +361,14 @@ def fetch_file(url, project=None, release=None, allow_scraping=True):
             raise http.CannotFetch(error)
 
     # For JavaScript files, check if content is something other than JavaScript/JSON (i.e. HTML)
-    # NOTE: possible to have JS files that don't actually end w/ ".js", but this should catch 99% of cases
+    # NOTE: possible to have JS files that don't actually end w/ ".js", but
+    # this should catch 99% of cases
     if url.endswith('.js'):
         # Check if response is HTML by looking if the first non-whitespace character is an open tag ('<').
         # This cannot parse as valid JS/JSON.
         # NOTE: not relying on Content-Type header because apps often don't set this correctly
-        body_start = result.body[:20].lstrip()  # Discard leading whitespace (often found before doctype)
+        # Discard leading whitespace (often found before doctype)
+        body_start = result.body[:20].lstrip()
 
         if body_start[:1] == u'<':
             error = {
@@ -351,7 +380,8 @@ def fetch_file(url, project=None, release=None, allow_scraping=True):
     return result
 
 
-def fetch_sourcemap(url, project=None, release=None, allow_scraping=True):
+def fetch_sourcemap(url, project=None, release=None, dist=None,
+                    allow_scraping=True):
     if is_data_uri(url):
         try:
             body = base64.b64decode(
@@ -364,6 +394,7 @@ def fetch_sourcemap(url, project=None, release=None, allow_scraping=True):
             })
     else:
         result = fetch_file(url, project=project, release=release,
+                            dist=dist,
                             allow_scraping=allow_scraping)
         body = result.body
     try:
@@ -430,9 +461,11 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
         self.allow_scraping = self.project.get_option(
             'sentry:scrape_javascript', True)
         self.fetch_count = 0
+        self.sourcemaps_touched = set()
         self.cache = SourceCache()
         self.sourcemaps = SourceMapCache()
         self.release = None
+        self.dist = None
 
     def get_stacktraces(self, data):
         try:
@@ -469,11 +502,10 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
                          'fetch remote source', self.data['event_id'])
             return False
 
-        if self.data.get('release'):
-            self.release = Release.get(
-                project=self.project,
-                version=self.data['release'],
-            )
+        self.release = self.get_release(create=True)
+        if self.data.get('dist') and self.release:
+            self.dist = self.release.get_dist(self.data['dist'])
+
         self.populate_source_cache(frames)
         return True
 
@@ -511,6 +543,7 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
         raw_frame = dict(frame)
 
         sourcemap_url, sourcemap_view = sourcemaps.get_link(frame['abs_path'])
+        self.sourcemaps_touched.add(sourcemap_url)
         if sourcemap_view and frame.get('colno') is None:
             all_errors.append({
                 'type': EventError.JS_NO_COLUMN,
@@ -675,6 +708,7 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
         try:
             result = fetch_file(filename, project=self.project,
                                 release=self.release,
+                                dist=self.dist,
                                 allow_scraping=self.allow_scraping)
         except http.BadSource as exc:
             cache.add_error(filename, exc.data)
@@ -699,6 +733,7 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
                 sourcemap_url,
                 project=self.project,
                 release=self.release,
+                dist=self.dist,
                 allow_scraping=self.allow_scraping,
             )
         except http.BadSource as exc:
@@ -738,3 +773,10 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
             self.cache_source(
                 filename=filename,
             )
+
+    def close(self):
+        StacktraceProcessor.close(self)
+        if self.sourcemaps_touched:
+            metrics.incr('sourcemaps.processed',
+                         amount=len(self.sourcemaps_touched),
+                         instance=self.project.id)

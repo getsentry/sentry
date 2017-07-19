@@ -70,7 +70,6 @@ list(map(lambda cmd: cli.add_command(import_string(cmd)), (
     'sentry.runner.commands.start.start',
     'sentry.runner.commands.tsdb.tsdb',
     'sentry.runner.commands.upgrade.upgrade',
-    'sentry.runner.commands.dsym.dsym',
 )))
 
 
@@ -117,8 +116,11 @@ def configure():
     _, py, yaml = discover_configs()
 
     # TODO(mattrobenolt): Surface this also as a CLI option?
-    skip_backend_validation = 'SENTRY_SKIP_BACKEND_VALIDATION' in os.environ
-    configure(ctx, py, yaml, skip_backend_validation)
+    skip_service_validation = (
+        'SENTRY_SKIP_BACKEND_VALIDATION' in os.environ or
+        'SENTRY_SKIP_SERVICE_VALIDATION' in os.environ
+    )
+    configure(ctx, py, yaml, skip_service_validation)
 
 
 def get_prog():

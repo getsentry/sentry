@@ -18,9 +18,7 @@ const Broadcasts = React.createClass({
     onShowPanel: React.PropTypes.func.isRequired
   },
 
-  mixins: [
-    ApiMixin
-  ],
+  mixins: [ApiMixin],
 
   getInitialState() {
     return {
@@ -55,7 +53,7 @@ const Broadcasts = React.createClass({
     }
     this.api.request('/broadcasts/', {
       method: 'GET',
-      success: (data) => {
+      success: data => {
         this.setState({
           broadcasts: data,
           loading: false
@@ -78,17 +76,18 @@ const Broadcasts = React.createClass({
   },
 
   getUnseenIds() {
-    return this.state.broadcasts.filter((item) => {
-      return !item.hasSeen;
-    }).map((item) => {
-      return item.id;
-    });
+    return this.state.broadcasts
+      .filter(item => {
+        return !item.hasSeen;
+      })
+      .map(item => {
+        return item.id;
+      });
   },
 
   markSeen() {
     let unseenBroadcastIds = this.getUnseenIds();
-    if (unseenBroadcastIds.length === 0)
-      return;
+    if (unseenBroadcastIds.length === 0) return;
 
     this.api.request('/broadcasts/', {
       method: 'PUT',
@@ -98,46 +97,49 @@ const Broadcasts = React.createClass({
       },
       success: () => {
         this.setState({
-          broadcasts: this.state.broadcasts.map((item) => {
+          broadcasts: this.state.broadcasts.map(item => {
             item.hasSeen = true;
             return item;
           })
         });
-      },
+      }
     });
   },
 
   render() {
     let {broadcasts, loading} = this.state;
     return (
-      <li className={this.props.currentPanel == 'broadcasts' ? 'active' : null }>
-        <a className="broadcasts-toggle" onClick={this.onShowPanel} title="Updates from Sentry">
-          <span className="icon icon-globe"/>
-          {this.getUnseenIds() > 0 &&
-            <span className="activity-indicator"/>
-          }
+      <li className={this.props.currentPanel == 'broadcasts' ? 'active' : null}>
+        <a
+          className="broadcasts-toggle"
+          onClick={this.onShowPanel}
+          title="Updates from Sentry">
+          <span className="icon icon-globe" />
+          {this.getUnseenIds() > 0 && <span className="activity-indicator" />}
         </a>
-        {this.props.showPanel && this.props.currentPanel == 'broadcasts' &&
-          <SidebarPanel title={t('Recent updates from Sentry')}
-                        hidePanel={this.props.hidePanel}>
-              {loading ?
-                <LoadingIndicator />
-              : (broadcasts.length === 0 ?
-                <div className="sidebar-panel-empty">{t('No recent updates from the Sentry team.')}</div>
-              :
-                broadcasts.map((item) => {
-                  return (
-                    <SidebarPanelItem
-                      key={item.id}
-                      className={!item.hasSeen && 'unseen'}
-                      title={item.title}
-                      message={item.message}
-                      link={item.link}/>
-                  );
-                })
-              )}
-          </SidebarPanel>
-        }
+        {this.props.showPanel &&
+          this.props.currentPanel == 'broadcasts' &&
+          <SidebarPanel
+            title={t('Recent updates from Sentry')}
+            hidePanel={this.props.hidePanel}>
+            {loading
+              ? <LoadingIndicator />
+              : broadcasts.length === 0
+                  ? <div className="sidebar-panel-empty">
+                      {t('No recent updates from the Sentry team.')}
+                    </div>
+                  : broadcasts.map(item => {
+                      return (
+                        <SidebarPanelItem
+                          key={item.id}
+                          className={!item.hasSeen && 'unseen'}
+                          title={item.title}
+                          message={item.message}
+                          link={item.link}
+                        />
+                      );
+                    })}
+          </SidebarPanel>}
       </li>
     );
   }

@@ -2,6 +2,7 @@ import React from 'react';
 import DateTime from '../../components/dateTime';
 import TimeSince from '../../components/timeSince';
 import Version from '../../components/version';
+import VersionHoverCard from '../../components/versionHoverCard';
 import TooltipMixin from '../../mixins/tooltip';
 import {defined, toTitleCase} from '../../utils';
 import componentToString from '../../utils/componentToString';
@@ -17,11 +18,15 @@ const SeenInfo = React.createClass({
       version: React.PropTypes.string.isRequired
     }),
     environment: React.PropTypes.string,
-    hasRelease: React.PropTypes.bool.isRequired,
+    hasRelease: React.PropTypes.bool.isRequired
+  },
+
+  contextTypes: {
+    organization: React.PropTypes.object
   },
 
   mixins: [
-    TooltipMixin(function () {
+    TooltipMixin(function() {
       let instance = this;
 
       return {
@@ -69,27 +74,34 @@ const SeenInfo = React.createClass({
     return (
       <dl className="seen-info">
         <dt key={0}>{t('When')}:</dt>
-        {date ?
-          <dd key={1}>
-            <span className="tip"><TimeSince date={date} /></span><br />
-            <small><DateTime date={date} seconds={true} /></small>
-          </dd>
-        : (dateGlobal && environment === '' ?
-          <dd key={1}>
-            <span className="tip"><TimeSince date={dateGlobal} /></span><br />
-            <small><DateTime date={dateGlobal} seconds={true} /></small>
-          </dd>
-        :
-          <dd key={1}>n/a</dd>
-        )}
+        {date
+          ? <dd key={1}>
+              <span className="tip"><TimeSince date={date} /></span><br />
+              <small><DateTime date={date} seconds={true} /></small>
+            </dd>
+          : dateGlobal && environment === ''
+              ? <dd key={1}>
+                  <span className="tip"><TimeSince date={dateGlobal} /></span><br />
+                  <small><DateTime date={dateGlobal} seconds={true} /></small>
+                </dd>
+              : <dd key={1}>n/a</dd>}
         <dt key={4}>{t('Release')}:</dt>
-        {defined(release) ?
-          <dd key={5}><Version orgId={orgId} projectId={projectId} version={release.version} /></dd>
-        : (!this.props.hasRelease ?
-          <dd key={5}><small style={{marginLeft: 5, fontStyle: 'italic'}}><a href={this.getReleaseTrackingUrl()}>not configured</a></small></dd>
-        :
-          <dd key={5}>n/a</dd>
-        )}
+        {defined(release)
+          ? <dd key={5}>
+              <VersionHoverCard
+                orgId={orgId}
+                projectId={projectId}
+                version={release.version}>
+                <Version orgId={orgId} projectId={projectId} version={release.version} />
+              </VersionHoverCard>
+            </dd>
+          : !this.props.hasRelease
+              ? <dd key={5}>
+                  <small style={{marginLeft: 5, fontStyle: 'italic'}}>
+                    <a href={this.getReleaseTrackingUrl()}>not configured</a>
+                  </small>
+                </dd>
+              : <dd key={5}>n/a</dd>}
       </dl>
     );
   }

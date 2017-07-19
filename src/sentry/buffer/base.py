@@ -14,6 +14,7 @@ from django.db.models import F
 
 from sentry.signals import buffer_incr_complete
 from sentry.tasks.process_buffer import process_incr
+from sentry.utils.services import Service
 
 
 class BufferMount(type):
@@ -24,7 +25,7 @@ class BufferMount(type):
 
 
 @six.add_metaclass(BufferMount)
-class Buffer(object):
+class Buffer(Service):
     """
     Buffers act as temporary stores for counters. The default implementation is just a passthru and
     does not actually buffer anything.
@@ -37,6 +38,7 @@ class Buffer(object):
     This is useful in situations where a single event might be happening so fast that the queue cant
     keep up with the updates.
     """
+    __all__ = ('incr', 'process', 'process_pending', 'validate')
 
     def incr(self, model, columns, filters, extra=None):
         """
@@ -49,14 +51,6 @@ class Buffer(object):
             'extra': extra,
         })
 
-    def validate(self):
-        """
-        Validates the settings for this backend (i.e. such as proper connection
-        info).
-
-        Raise ``InvalidConfiguration`` if there is a configuration error.
-        """
-
     def process_pending(self):
         return []
 
@@ -64,6 +58,13 @@ class Buffer(object):
         update_kwargs = dict((c, F(c) + v) for c, v in six.iteritems(columns))
         if extra:
             update_kwargs.update(extra)
+
+        # TODO(mattrobenolt): Remove in 8.18
+        if model.__name__ == 'GroupTagValue':
+            try:
+                update_kwargs['project_id'] = update_kwargs.pop('project')
+            except KeyError:
+                pass
 
         _, created = model.objects.create_or_update(
             values=update_kwargs,

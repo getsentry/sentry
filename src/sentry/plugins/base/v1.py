@@ -18,6 +18,7 @@ from threading import local
 
 from sentry.auth import access
 from sentry.plugins.config import PluginConfigMixin
+from sentry.plugins.status import PluginStatusMixin
 from sentry.plugins.base.response import Response
 from sentry.plugins.base.view import PluggableViewMixin
 from sentry.plugins.base.configuration import (
@@ -35,12 +36,13 @@ class PluginMount(type):
             new_cls.title = new_cls.__name__
         if not new_cls.slug:
             new_cls.slug = new_cls.title.replace(' ', '-').lower()
-        if not hasattr(new_cls, 'logger') or new_cls.logger in [getattr(b, 'logger', None) for b in bases]:
+        if not hasattr(new_cls, 'logger') or new_cls.logger in [
+                getattr(b, 'logger', None) for b in bases]:
             new_cls.logger = logging.getLogger('sentry.plugins.%s' % (new_cls.slug,))
         return new_cls
 
 
-class IPlugin(local, PluggableViewMixin, PluginConfigMixin):
+class IPlugin(local, PluggableViewMixin, PluginConfigMixin, PluginStatusMixin):
     """
     Plugin interface. Should not be inherited from directly.
 
@@ -165,7 +167,13 @@ class IPlugin(local, PluggableViewMixin, PluginConfigMixin):
 
         >>> plugin.get_url(group)
         """
-        return reverse('sentry-group-plugin-action', args=(group.organization.slug, group.project.slug, group.pk, self.slug))
+        return reverse(
+            'sentry-group-plugin-action',
+            args=(
+                group.organization.slug,
+                group.project.slug,
+                group.pk,
+                self.slug))
 
     def get_conf_key(self):
         """
@@ -227,6 +235,12 @@ class IPlugin(local, PluggableViewMixin, PluginConfigMixin):
 
     def has_project_conf(self):
         return self.project_conf_form is not None
+
+    def has_plugin_conf(self):
+        """
+        Checks if the plugin should be returned in the ProjectPluginsEndpoint
+        """
+        return self.has_project_conf()
 
     def can_enable_for_projects(self):
         """
@@ -320,7 +334,7 @@ class IPlugin(local, PluggableViewMixin, PluginConfigMixin):
             'group': group,
             'event': event,
             'can_admin_event': request.access.has_scope('event:write'),
-            'can_remove_event': request.access.has_scope('event:delete'),
+            'can_remove_event': request.access.has_scope('event:admin'),
         })
 
     def view(self, request, group, **kwargs):

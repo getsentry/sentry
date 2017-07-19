@@ -5,8 +5,15 @@ from mock import patch
 from uuid import uuid4
 
 from sentry.models import (
-    Commit, CommitAuthor, GroupCommitResolution, Release, Repository, TagValue
-)
+    Commit,
+    CommitAuthor,
+    GroupAssignee,
+    GroupCommitResolution,
+    OrganizationMember,
+    Release,
+    Repository,
+    TagValue,
+    UserEmail)
 from sentry.testutils import TestCase
 
 
@@ -108,4 +115,37 @@ class ResolvedInCommitTest(TestCase):
         assert GroupCommitResolution.objects.filter(
             group_id=group.id,
             commit_id=commit.id,
+        ).exists()
+
+    def test_assigns_author(self):
+        group = self.create_group()
+        user = self.create_user(name='Foo Bar', email='foo@example.com', is_active=True)
+        email = UserEmail.get_primary_email(user=user)
+        email.is_verified = True
+        email.save()
+        repo = Repository.objects.create(
+            name='example',
+            organization_id=self.group.organization.id,
+        )
+        OrganizationMember.objects.create(organization=group.project.organization, user=user)
+        commit = Commit.objects.create(
+            key=sha1(uuid4().hex).hexdigest(),
+            organization_id=group.organization.id,
+            repository_id=repo.id,
+            message='Foo Biz\n\nFixes {}'.format(group.qualified_short_id),
+            author=CommitAuthor.objects.create(
+                organization_id=group.organization.id,
+                name=user.name,
+                email=user.email,
+            )
+        )
+
+        assert GroupCommitResolution.objects.filter(
+            group_id=group.id,
+            commit_id=commit.id,
+        ).exists()
+
+        assert GroupAssignee.objects.filter(
+            group=group,
+            user=user
         ).exists()

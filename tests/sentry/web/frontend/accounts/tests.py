@@ -43,7 +43,7 @@ class AppearanceSettingsTest(TestCase):
         })
         assert resp.status_code == 302
 
-        options = UserOption.objects.get_all_values(user=self.user, project=None)
+        options = UserOption.objects.get_all_values(user=self.user)
 
         assert options.get('language') == 'en'
         assert options.get('stacktrace_order') == '2'
@@ -240,7 +240,7 @@ class RecoverPasswordTest(TestCase):
         assert resp.status_code == 200
         self.assertTemplateUsed(resp, 'sentry/account/recover/sent.html')
         assert 'email' in resp.context
-        send_recover_mail.assert_called_once_with()
+        send_recover_mail.call_count == 1
 
 
 class RecoverPasswordConfirmTest(TestCase):
@@ -250,7 +250,11 @@ class RecoverPasswordConfirmTest(TestCase):
 
     @fixture
     def path(self):
-        return reverse('sentry-account-recover-confirm', args=[self.user.id, self.password_hash.hash])
+        return reverse(
+            'sentry-account-recover-confirm',
+            args=[
+                self.user.id,
+                self.password_hash.hash])
 
     def test_valid_token(self):
         resp = self.client.get(self.path)
@@ -278,6 +282,7 @@ class ConfirmEmailSendTest(TestCase):
     @mock.patch('sentry.models.User.send_confirm_emails')
     def test_valid(self, send_confirm_email):
         self.login_as(self.user)
+        UserEmail.objects.filter(user=self.user).update(is_verified=False)
         resp = self.client.post(reverse('sentry-account-confirm-email-send'))
         self.assertRedirects(resp, reverse('sentry-account-settings-emails'), status_code=302)
         send_confirm_email.assert_called_once_with()
@@ -294,8 +299,8 @@ class ConfirmEmailSendTest(TestCase):
         email.save()
         self.login_as(user)
         self.client.post(reverse('sentry-account-confirm-email-send'),
-                        data={'primary-email': '', 'email': 'foo@example.com'},
-                        follow=True)
+                         data={'primary-email': '', 'email': 'foo@example.com'},
+                         follow=True)
         send_confirm_email.assert_called_once_with(UserEmail.get_primary_email(user))
 
 
@@ -303,6 +308,7 @@ class ConfirmEmailTest(TestCase):
 
     def test_invalid(self):
         self.user.save()
+        UserEmail.objects.get(email=self.user.email).update(is_verified=False)
         resp = self.client.get(reverse('sentry-account-confirm-email',
                                        args=[self.user.id, '5b1f2f266efa03b721cc9ea0d4742c5e']))
         assert resp.status_code == 302
@@ -311,6 +317,7 @@ class ConfirmEmailTest(TestCase):
 
     def test_valid(self):
         self.user.save()
+        UserEmail.objects.get(email=self.user.email).update(is_verified=False)
         self.login_as(self.user)
         self.client.post(reverse('sentry-account-confirm-email-send'))
         email = self.user.emails.first()

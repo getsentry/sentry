@@ -10,10 +10,10 @@ from .team import TeamPermission
 
 class ProjectPermission(TeamPermission):
     scope_map = {
-        'GET': ['project:read', 'project:write', 'project:delete'],
-        'POST': ['project:write', 'project:delete'],
-        'PUT': ['project:write', 'project:delete'],
-        'DELETE': ['project:delete'],
+        'GET': ['project:read', 'project:write', 'project:admin'],
+        'POST': ['project:write', 'project:admin'],
+        'PUT': ['project:write', 'project:admin'],
+        'DELETE': ['project:admin'],
     }
 
     def has_object_permission(self, request, view, project):
@@ -21,31 +21,50 @@ class ProjectPermission(TeamPermission):
             request, view, project.team)
 
 
+class StrictProjectPermission(ProjectPermission):
+    scope_map = {
+        'GET': ['project:write', 'project:admin'],
+        'POST': ['project:write', 'project:admin'],
+        'PUT': ['project:write', 'project:admin'],
+        'DELETE': ['project:admin'],
+    }
+
+
 class ProjectReleasePermission(ProjectPermission):
     scope_map = {
-        'GET': ['project:read', 'project:write', 'project:delete', 'project:releases'],
-        'POST': ['project:write', 'project:delete', 'project:releases'],
-        'PUT': ['project:write', 'project:delete', 'project:releases'],
-        'DELETE': ['project:delete', 'project:releases'],
+        'GET': ['project:read', 'project:write', 'project:admin', 'project:releases'],
+        'POST': ['project:write', 'project:admin', 'project:releases'],
+        'PUT': ['project:write', 'project:admin', 'project:releases'],
+        'DELETE': ['project:admin', 'project:releases'],
     }
 
 
 class ProjectEventPermission(ProjectPermission):
     scope_map = {
-        'GET': ['event:read', 'event:write', 'event:delete'],
-        'POST': ['event:write', 'event:delete'],
-        'PUT': ['event:write', 'event:delete'],
-        'DELETE': ['event:delete'],
+        'GET': ['event:read', 'event:write', 'event:admin'],
+        'POST': ['event:write', 'event:admin'],
+        'PUT': ['event:write', 'event:admin'],
+        'DELETE': ['event:admin'],
     }
 
 
 class ProjectSettingPermission(ProjectPermission):
     scope_map = {
-        'GET': ['project:read', 'project:write', 'project:delete'],
-        'POST': ['project:write', 'project:delete'],
-        'PUT': ['project:write', 'project:delete'],
-        'DELETE': ['project:write', 'project:delete'],
+        'GET': ['project:read', 'project:write', 'project:admin'],
+        'POST': ['project:write', 'project:admin'],
+        'PUT': ['project:write', 'project:admin'],
+        'DELETE': ['project:write', 'project:admin'],
 
+    }
+
+
+class RelaxedSearchPermission(ProjectPermission):
+    scope_map = {
+        'GET': ['project:read', 'project:write', 'project:admin'],
+        # members can do writes
+        'POST': ['project:write', 'project:admin', 'project:read'],
+        'PUT': ['project:write', 'project:admin', 'project:read'],
+        'DELETE': ['project:admin'],
     }
 
 

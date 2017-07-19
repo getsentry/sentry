@@ -17,7 +17,7 @@ from django.views.generic.base import View as BaseView
 from functools import wraps
 from raven.contrib.django.models import client as Raven
 
-from sentry import app
+from sentry import quotas, tsdb
 from sentry.coreapi import (
     APIError, APIForbidden, APIRateLimited, ClientApiHelper, CspApiHelper,
     LazyData
@@ -77,7 +77,10 @@ class APIView(BaseView):
         auth = helper.auth_from_request(request)
 
         if auth.version not in PROTOCOL_VERSIONS:
-            raise APIError('Client using unsupported server protocol version (%r)' % six.text_type(auth.version or ''))
+            raise APIError(
+                'Client using unsupported server protocol version (%r)' %
+                six.text_type(
+                    auth.version or ''))
 
         if not auth.client:
             raise APIError("Client did not send 'client' identifier")
@@ -186,13 +189,13 @@ class APIView(BaseView):
         else:
             auth = self._parse_header(request, helper, project)
 
-            project_id = helper.project_id_from_auth(auth)
+            key = helper.project_key_from_auth(auth)
 
             # Legacy API was /api/store/ and the project ID was only available elsewhere
             if not project:
-                project = Project.objects.get_from_cache(id=project_id)
+                project = Project.objects.get_from_cache(id=key.project_id)
                 helper.context.bind_project(project)
-            elif project_id != project.id:
+            elif key.project_id != project.id:
                 raise APIError('Two different projects were specified')
 
             helper.context.bind_auth(auth)
@@ -214,7 +217,8 @@ class APIView(BaseView):
                     # un-authenticated CORS checks for POST, we basially
                     # are obsoleting our need for a secret key entirely.
                     if origin is None and request.method != 'GET':
-                        raise APIForbidden('Missing required attribute in authentication header: sentry_secret')
+                        raise APIForbidden(
+                            'Missing required attribute in authentication header: sentry_secret')
 
                     if not is_valid_origin(origin, project):
                         raise APIForbidden('Missing required Origin or Referer header')
@@ -224,6 +228,7 @@ class APIView(BaseView):
                 project=project,
                 auth=auth,
                 helper=helper,
+                key=key,
                 **kwargs
             )
 
@@ -281,6 +286,7 @@ class StoreView(APIView):
        the user be authenticated, and a project_id be sent in the GET variables.
 
     """
+
     def post(self, request, **kwargs):
         try:
             data = request.body
@@ -311,7 +317,7 @@ class StoreView(APIView):
             response['X-Sentry-ID'] = response_or_event_id
         return response
 
-    def process(self, request, project, auth, helper, data, **kwargs):
+    def process(self, request, project, key, auth, helper, data, **kwargs):
         metrics.incr('events.total')
 
         if not data:
@@ -335,11 +341,13 @@ class StoreView(APIView):
         )
 
         if helper.should_filter(project, data, ip_address=remote_addr):
-            app.tsdb.incr_multi([
-                (app.tsdb.models.project_total_received, project.id),
-                (app.tsdb.models.project_total_blacklisted, project.id),
-                (app.tsdb.models.organization_total_received, project.organization_id),
-                (app.tsdb.models.organization_total_blacklisted, project.organization_id),
+            tsdb.incr_multi([
+                (tsdb.models.project_total_received, project.id),
+                (tsdb.models.project_total_blacklisted, project.id),
+                (tsdb.models.organization_total_received, project.organization_id),
+                (tsdb.models.organization_total_blacklisted, project.organization_id),
+                (tsdb.models.key_total_received, key.id),
+                (tsdb.models.key_total_blacklisted, key.id),
             ])
             metrics.incr('events.blacklisted')
             event_filtered.send_robust(
@@ -350,8 +358,8 @@ class StoreView(APIView):
             raise APIForbidden('Event dropped due to filter')
 
         # TODO: improve this API (e.g. make RateLimit act on __ne__)
-        rate_limit = safe_execute(app.quotas.is_rate_limited, project=project,
-                                  _with_transaction=False)
+        rate_limit = safe_execute(quotas.is_rate_limited, project=project,
+                                  key=key, _with_transaction=False)
         if isinstance(rate_limit, bool):
             rate_limit = RateLimit(is_limited=rate_limit, retry_after=None)
 
@@ -360,13 +368,17 @@ class StoreView(APIView):
         if rate_limit is None or rate_limit.is_limited:
             if rate_limit is None:
                 helper.log.debug('Dropped event due to error with rate limiter')
-            app.tsdb.incr_multi([
-                (app.tsdb.models.project_total_received, project.id),
-                (app.tsdb.models.project_total_rejected, project.id),
-                (app.tsdb.models.organization_total_received, project.organization_id),
-                (app.tsdb.models.organization_total_rejected, project.organization_id),
+            tsdb.incr_multi([
+                (tsdb.models.project_total_received, project.id),
+                (tsdb.models.project_total_rejected, project.id),
+                (tsdb.models.organization_total_received, project.organization_id),
+                (tsdb.models.organization_total_rejected, project.organization_id),
+                (tsdb.models.key_total_received, key.id),
+                (tsdb.models.key_total_rejected, key.id),
             ])
-            metrics.incr('events.dropped')
+            metrics.incr('events.dropped', tags={
+                'reason': rate_limit.reason_code if rate_limit else 'unknown',
+            })
             event_dropped.send_robust(
                 ip=remote_addr,
                 project=project,
@@ -376,9 +388,10 @@ class StoreView(APIView):
             if rate_limit is not None:
                 raise APIRateLimited(rate_limit.retry_after)
         else:
-            app.tsdb.incr_multi([
-                (app.tsdb.models.project_total_received, project.id),
-                (app.tsdb.models.organization_total_received, project.organization_id),
+            tsdb.incr_multi([
+                (tsdb.models.project_total_received, project.id),
+                (tsdb.models.organization_total_received, project.organization_id),
+                (tsdb.models.key_total_received, key.id),
             ])
 
         org_options = OrganizationOption.objects.get_all_values(project.organization_id)
@@ -478,8 +491,8 @@ class CspReportView(StoreView):
         # `sentry_version` to be set in querystring
         auth = helper.auth_from_request(request)
 
-        project_id = helper.project_id_from_auth(auth)
-        if project_id != project.id:
+        key = helper.project_key_from_auth(auth)
+        if key.project_id != project.id:
             raise APIError('Two different projects were specified')
 
         helper.context.bind_auth(auth)
@@ -490,10 +503,11 @@ class CspReportView(StoreView):
             project=project,
             auth=auth,
             helper=helper,
+            key=key,
             **kwargs
         )
 
-    def post(self, request, project, auth, helper, **kwargs):
+    def post(self, request, project, helper, **kwargs):
         data = helper.safely_load_json_string(request.body)
 
         # Do origin check based on the `document-uri` key as explained
@@ -521,7 +535,6 @@ class CspReportView(StoreView):
         response_or_event_id = self.process(
             request,
             project=project,
-            auth=auth,
             helper=helper,
             data=report,
             **kwargs

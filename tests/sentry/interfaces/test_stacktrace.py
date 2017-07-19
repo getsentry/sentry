@@ -41,7 +41,7 @@ class StacktraceTest(TestCase):
         # objects
         event = self.event
         interface = Stacktrace.to_python(event.data['sentry.interfaces.Stacktrace'])
-        assert len(interface.frames) == 1
+        assert len(interface.frames) == 2
         assert interface == event.interfaces['sentry.interfaces.Stacktrace']
 
     def test_requires_filename(self):
@@ -130,15 +130,28 @@ class StacktraceTest(TestCase):
     def test_compute_hashes(self):
         interface = Stacktrace.to_python(dict(frames=[{
             'lineno': 1,
-            'filename': 'foo.py',
+            'filename': 'a/foo.py',
             'in_app': True,
         }, {
             'lineno': 1,
-            'filename': 'bar.py',
+            'filename': 'a/bar.py',
             'in_app': None,
         }]))
         result = interface.compute_hashes('python')
-        assert result == [['foo.py', 1, 'bar.py', 1], ['foo.py', 1]]
+        assert result == [['a/foo.py', 1, 'a/bar.py', 1], ['a/foo.py', 1]]
+
+    def test_compute_hashes_cocoa(self):
+        interface = Stacktrace.to_python(dict(frames=[{
+            'lineno': 1,
+            'filename': '/foo/bar/bar.m',
+            'in_app': True,
+        }, {
+            'lineno': 1,
+            'filename': '/foo/bar/baz.m',
+            'in_app': None,
+        }]))
+        result = interface.compute_hashes('cocoa')
+        assert result == [['bar.m', 1, 'baz.m', 1], ['bar.m', 1]]
 
     def test_get_hash_with_minimal_app_frames(self):
         frames = [{
@@ -213,6 +226,28 @@ class StacktraceTest(TestCase):
         self.assertEquals(result, [
             'foo.bar.Baz',
             '<function>',
+        ])
+
+    def test_get_hash_ignores_ENHANCED_clojure_classes(self):
+        interface = Frame.to_python({
+            'module': 'sentry_clojure_example.core$_main$fn__1539',
+            'function': 'invoke'
+        })
+        result = interface.get_hash()
+        self.assertEquals(result, [
+            'sentry_clojure_example.core$_main$fn__<auto>',
+            'invoke',
+        ])
+
+    def test_get_hash_ignores_extra_ENHANCED_clojure_classes(self):
+        interface = Frame.to_python({
+            'module': 'sentry_clojure_example.core$_main$fn__1539$fn__1540',
+            'function': 'invoke'
+        })
+        result = interface.get_hash()
+        self.assertEquals(result, [
+            'sentry_clojure_example.core$_main$fn__<auto>$fn__<auto>',
+            'invoke',
         ])
 
     def test_get_hash_ignores_ENHANCED_spring_classes(self):
@@ -376,6 +411,15 @@ class StacktraceTest(TestCase):
         result = interface.get_hash()
         assert result == []
 
+    def test_get_hash_ignores_safari_native_code(self):
+        interface = Frame.to_python({
+            'abs_path': '[native code]',
+            'filename': '[native code]',
+            'function': 'forEach',
+        })
+        result = interface.get_hash()
+        self.assertEquals(result, [])
+
     def test_cocoa_culprit(self):
         stacktrace = Stacktrace.to_python(dict(frames=[
             {
@@ -386,7 +430,8 @@ class StacktraceTest(TestCase):
                 'function': '-[CRLCrashAsyncSafeThread crash]',
             }
         ]))
-        assert stacktrace.get_culprit_string(platform='cocoa') == '-[CRLCrashAsyncSafeThread crash]'
+        assert stacktrace.get_culprit_string(
+            platform='cocoa') == '-[CRLCrashAsyncSafeThread crash]'
 
     def test_emoji_culprit(self):
         stacktrace = Stacktrace.to_python(dict(frames=[
@@ -400,18 +445,6 @@ class StacktraceTest(TestCase):
             }
         ]))
         assert stacktrace.get_culprit_string(platform='javascript') == u'\U0001f60d(\U0001f62d)'
-
-    def test_exclude_libswiftCore_from_in_app(self):
-        stacktrace = Stacktrace.to_python(dict(frames=[
-            {
-                'filename': 'foo/baz.c',
-                'package': '/foo/bar/libswiftCore.dylib',
-                'lineno': 1,
-                'in_app': True,
-                'function': 'fooBar',
-            }
-        ]))
-        assert stacktrace.frames[0].in_app is False
 
     def test_cocoa_strict_stacktrace(self):
         stacktrace = Stacktrace.to_python(dict(frames=[
@@ -434,7 +467,8 @@ class StacktraceTest(TestCase):
                 'function': '-[CRLCrashAsyncSafeThread crash]',
             }
         ]))
-        assert stacktrace.get_culprit_string(platform='cocoa') == '-[CRLCrashAsyncSafeThread crash]'
+        assert stacktrace.get_culprit_string(
+            platform='cocoa') == '-[CRLCrashAsyncSafeThread crash]'
 
     def test_get_hash_does_not_group_different_js_errors(self):
         interface = Stacktrace.to_python({
@@ -480,7 +514,10 @@ class StacktraceTest(TestCase):
         get_stacktrace.assert_called_once_with(event, system_frames=False, max_frames=10)
         self.assertEquals(result, get_stacktrace.return_value)
 
-    @mock.patch('sentry.interfaces.stacktrace.is_newest_frame_first', mock.Mock(return_value=False))
+    @mock.patch(
+        'sentry.interfaces.stacktrace.is_newest_frame_first',
+        mock.Mock(
+            return_value=False))
     @mock.patch('sentry.interfaces.stacktrace.Stacktrace.get_stacktrace')
     def test_get_traceback_response(self, get_stacktrace):
         event = mock.Mock(spec=Event())
@@ -491,28 +528,47 @@ class StacktraceTest(TestCase):
         get_stacktrace.assert_called_once_with(event, newest_first=None)
         self.assertEquals(result, 'foo\n\nbar')
 
-    @mock.patch('sentry.interfaces.stacktrace.is_newest_frame_first', mock.Mock(return_value=False))
+    @mock.patch(
+        'sentry.interfaces.stacktrace.is_newest_frame_first',
+        mock.Mock(
+            return_value=False))
     def test_get_stacktrace_with_only_filename(self):
         event = mock.Mock(spec=Event())
         interface = Stacktrace.to_python(dict(frames=[{'filename': 'foo'}, {'filename': 'bar'}]))
         result = interface.get_stacktrace(event)
-        self.assertEquals(result, 'Stacktrace (most recent call last):\n\n  File "foo"\n  File "bar"')
+        self.assertEquals(
+            result,
+            'Stacktrace (most recent call last):\n\n  File "foo"\n  File "bar"')
 
-    @mock.patch('sentry.interfaces.stacktrace.is_newest_frame_first', mock.Mock(return_value=False))
+    @mock.patch(
+        'sentry.interfaces.stacktrace.is_newest_frame_first',
+        mock.Mock(
+            return_value=False))
     def test_get_stacktrace_with_module(self):
         event = mock.Mock(spec=Event())
         interface = Stacktrace.to_python(dict(frames=[{'module': 'foo'}, {'module': 'bar'}]))
         result = interface.get_stacktrace(event)
-        self.assertEquals(result, 'Stacktrace (most recent call last):\n\n  Module "foo"\n  Module "bar"')
+        self.assertEquals(
+            result,
+            'Stacktrace (most recent call last):\n\n  Module "foo"\n  Module "bar"')
 
-    @mock.patch('sentry.interfaces.stacktrace.is_newest_frame_first', mock.Mock(return_value=False))
+    @mock.patch(
+        'sentry.interfaces.stacktrace.is_newest_frame_first',
+        mock.Mock(
+            return_value=False))
     def test_get_stacktrace_with_filename_and_function(self):
         event = mock.Mock(spec=Event())
-        interface = Stacktrace.to_python(dict(frames=[{'filename': 'foo', 'function': 'biz'}, {'filename': 'bar', 'function': 'baz'}]))
+        interface = Stacktrace.to_python(
+            dict(frames=[{'filename': 'foo', 'function': 'biz'}, {'filename': 'bar', 'function': 'baz'}]))
         result = interface.get_stacktrace(event)
-        self.assertEquals(result, 'Stacktrace (most recent call last):\n\n  File "foo", in biz\n  File "bar", in baz')
+        self.assertEquals(
+            result,
+            'Stacktrace (most recent call last):\n\n  File "foo", in biz\n  File "bar", in baz')
 
-    @mock.patch('sentry.interfaces.stacktrace.is_newest_frame_first', mock.Mock(return_value=False))
+    @mock.patch(
+        'sentry.interfaces.stacktrace.is_newest_frame_first',
+        mock.Mock(
+            return_value=False))
     def test_get_stacktrace_with_filename_function_lineno_and_context(self):
         event = mock.Mock(spec=Event())
         interface = Stacktrace.to_python(dict(frames=[
@@ -520,7 +576,9 @@ class StacktraceTest(TestCase):
             {'filename': 'bar', 'function': 'baz', 'lineno': 5, 'context_line': '    return None'},
         ]))
         result = interface.get_stacktrace(event)
-        self.assertEquals(result, 'Stacktrace (most recent call last):\n\n  File "foo", line 3, in biz\n    def foo(r):\n  File "bar", line 5, in baz\n    return None')
+        self.assertEquals(
+            result,
+            'Stacktrace (most recent call last):\n\n  File "foo", line 3, in biz\n    def foo(r):\n  File "bar", line 5, in baz\n    return None')
 
     def test_bad_input(self):
         with self.assertRaises(InterfaceValidationError):

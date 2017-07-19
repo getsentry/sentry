@@ -16,7 +16,7 @@ from django.utils.translation import ugettext_lazy as _
 from uuid import uuid4
 
 from sentry.db.models import (
-    Model, BaseManager, BoundedPositiveIntegerField, FlexibleForeignKey,
+    ArrayField, Model, BaseManager, BoundedPositiveIntegerField, FlexibleForeignKey,
     sane_repr
 )
 
@@ -36,21 +36,22 @@ class ApiKey(Model):
     scopes = BitField(flags=(
         ('project:read', 'project:read'),
         ('project:write', 'project:write'),
-        ('project:delete', 'project:delete'),
+        ('project:admin', 'project:admin'),
         ('project:releases', 'project:releases'),
         ('team:read', 'team:read'),
         ('team:write', 'team:write'),
-        ('team:delete', 'team:delete'),
+        ('team:admin', 'team:admin'),
         ('event:read', 'event:read'),
         ('event:write', 'event:write'),
-        ('event:delete', 'event:delete'),
+        ('event:admin', 'event:admin'),
         ('org:read', 'org:read'),
         ('org:write', 'org:write'),
-        ('org:delete', 'org:delete'),
+        ('org:admin', 'org:admin'),
         ('member:read', 'member:read'),
         ('member:write', 'member:write'),
-        ('member:delete', 'member:delete'),
+        ('member:admin', 'member:admin'),
     ))
+    scope_list = ArrayField(of=models.TextField)
     status = BoundedPositiveIntegerField(default=0, choices=(
         (ApiKeyStatus.ACTIVE, _('Active')),
         (ApiKeyStatus.INACTIVE, _('Inactive')),
@@ -93,38 +94,14 @@ class ApiKey(Model):
         return {
             'label': self.label,
             'key': self.key,
-            'scopes': int(self.scopes),
+            'scopes': self.get_scopes(),
             'status': self.status,
         }
 
     def get_scopes(self):
+        if self.scope_list:
+            return self.scope_list
         return [k for k, v in six.iteritems(self.scopes) if v]
 
     def has_scope(self, scope):
-        return scope in self.scopes
-
-
-class SystemKey(object):
-    is_active = True
-    organization = None
-
-    def get_allowed_origins(self):
-        return []
-
-    def get_audit_log_data(self):
-        return {
-            'label': 'System',
-            'key': '<system>',
-            'scopes': -1,
-            'status': ApiKeyStatus.ACTIVE
-        }
-
-    def get_scopes(self):
-        # All scopes!
-        return ApiKey.scopes
-
-    def has_scope(self, scope):
-        return True
-
-
-ROOT_KEY = SystemKey()
+        return scope in self.get_scopes()

@@ -16,6 +16,7 @@ from django.http import HttpResponseRedirect
 from threading import local
 
 from sentry.plugins.config import PluginConfigMixin
+from sentry.plugins.status import PluginStatusMixin
 from sentry.plugins.base.response import Response
 from sentry.plugins.base.configuration import (
     default_plugin_config, default_plugin_options,
@@ -37,7 +38,7 @@ class PluginMount(type):
         return new_cls
 
 
-class IPlugin2(local, PluginConfigMixin):
+class IPlugin2(local, PluginConfigMixin, PluginStatusMixin):
     """
     Plugin interface. Should not be inherited from directly.
 
@@ -107,7 +108,7 @@ class IPlugin2(local, PluginConfigMixin):
         return True
 
     def reset_options(self, project=None, user=None):
-        from .helpers import reset_options
+        from sentry.plugins.helpers import reset_options
         return reset_options(self.get_conf_key(), project, user)
 
     def get_option(self, key, project=None, user=None):
@@ -212,6 +213,12 @@ class IPlugin2(local, PluginConfigMixin):
 
     def has_project_conf(self):
         return self.project_conf_form is not None
+
+    def has_plugin_conf(self):
+        """
+        Checks if the plugin should be returned in the ProjectPluginsEndpoint
+        """
+        return self.has_project_conf()
 
     def can_configure_for_project(self, project):
         """

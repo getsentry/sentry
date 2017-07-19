@@ -63,7 +63,7 @@ class SentryInternalClient(DjangoClient):
         if not is_current_event_safe():
             return
 
-        from sentry.app import tsdb
+        from sentry import tsdb
         from sentry.coreapi import ClientApiHelper
         from sentry.event_manager import EventManager
         from sentry.models import Project
@@ -114,7 +114,9 @@ class SentryInternalClient(DjangoClient):
             message = kwargs.get('message')
             if not message:
                 msg_interface = kwargs.get('sentry.interface.Message', {})
-                message = msg_interface.get('formatted', msg_interface.get('message', 'unknown error'))
+                message = msg_interface.get(
+                    'formatted', msg_interface.get(
+                        'message', 'unknown error'))
             self.error_logger.error(
                 'Unable to record event: %s\nEvent was: %r', e,
                 message, exc_info=True)

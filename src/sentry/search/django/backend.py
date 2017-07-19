@@ -44,13 +44,13 @@ class DjangoSearchBackend(SearchBackend):
                 base_qs = GroupTagValue.objects.filter(
                     key=k,
                     value=v,
-                    project=project,
+                    project_id=project.id,
                 )
 
             else:
                 base_qs = GroupTagValue.objects.filter(
                     key=k,
-                    project=project,
+                    project_id=project.id,
                 ).distinct()
 
             if matches:
@@ -75,6 +75,9 @@ class DjangoSearchBackend(SearchBackend):
                         date_to=None, date_to_inclusive=True,
                         active_at_from=None, active_at_from_inclusive=True,
                         active_at_to=None, active_at_to_inclusive=True,
+                        times_seen=None,
+                        times_seen_lower=None, times_seen_lower_inclusive=True,
+                        times_seen_upper=None, times_seen_upper_inclusive=True,
                         cursor=None, limit=None):
         from sentry.models import Event, Group, GroupSubscription, GroupStatus
 
@@ -185,6 +188,23 @@ class DjangoSearchBackend(SearchBackend):
                     params['active_at__lt'] = active_at_to
             queryset = queryset.filter(**params)
 
+        if times_seen is not None:
+            queryset = queryset.filter(times_seen=times_seen)
+
+        if times_seen_lower is not None or times_seen_upper is not None:
+            params = {}
+            if times_seen_lower is not None:
+                if times_seen_lower_inclusive:
+                    params['times_seen__gte'] = times_seen_lower
+                else:
+                    params['times_seen__gt'] = times_seen_lower
+            if times_seen_upper is not None:
+                if times_seen_upper_inclusive:
+                    params['times_seen__lte'] = times_seen_upper
+                else:
+                    params['times_seen__lt'] = times_seen_upper
+            queryset = queryset.filter(**params)
+
         if date_from or date_to:
             params = {
                 'project_id': project.id,
@@ -239,7 +259,7 @@ class DjangoSearchBackend(SearchBackend):
         )
         return queryset
 
-    def query(self, project, **kwargs):
+    def query(self, project, count_hits=False, **kwargs):
         queryset = self._build_queryset(project=project, **kwargs)
 
         sort_by = kwargs.get('sort_by', 'date')
@@ -264,6 +284,5 @@ class DjangoSearchBackend(SearchBackend):
             sort_clause = '-sort_value'
 
         queryset = queryset.order_by(sort_clause)
-
         paginator = paginator_cls(queryset, sort_clause)
-        return paginator.get_result(limit, cursor)
+        return paginator.get_result(limit, cursor, count_hits=count_hits)

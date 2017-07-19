@@ -6,8 +6,36 @@
 //
 
 .list-group {
+  box-shadow: 0 1px 0px rgba(0,0,0, .03);
+  &.list-group-striped {
+    .list-group-item:nth-child(odd) {
+      background: @white-dark;
+    }
+  }
+
   .list-group-item {
     padding: 10px 20px;
+
+    &.list-group-item-sm {
+      padding: 5px 10px;
+      min-height: 36px;
+
+      &.list-group-avatar {
+        padding-left: 36px;
+        position: relative;
+
+        div[class^="col-"] {
+          position: static;
+        }
+
+        .avatar {
+          .square(20px);
+          position: absolute;
+          left: 8px;
+          top: 7px;
+        }
+      }
+    }
 
     // When pairing title / description / meta use <h*>, <p>, and <p>
     h1, h2 {

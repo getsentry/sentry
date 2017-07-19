@@ -178,7 +178,9 @@ class Event(Model):
 
             result.append((key, value))
 
-        return OrderedDict((k, v) for k, v in sorted(result, key=lambda x: x[1].get_score(), reverse=True))
+        return OrderedDict(
+            (k, v) for k, v in sorted(
+                result, key=lambda x: x[1].get_score(), reverse=True))
 
     @memoize
     def interfaces(self):
@@ -203,12 +205,17 @@ class Event(Model):
                 return v
         return None
 
+    @property
+    def dist(self):
+        return self.get_tag('sentry:dist')
+
     def as_dict(self):
         # We use a OrderedDict to keep elements ordered for a potential JSON serializer
         data = OrderedDict()
         data['id'] = self.event_id
         data['project'] = self.project_id
         data['release'] = self.get_tag('sentry:release')
+        data['dist'] = self.dist
         data['platform'] = self.platform
         data['culprit'] = self.group.culprit
         data['message'] = self.get_legacy_message()
@@ -290,6 +297,8 @@ class EventSubjectTemplate(string.Template):
 class EventSubjectTemplateData(object):
     tag_aliases = {
         'release': 'sentry:release',
+        'dist': 'sentry:dist',
+        'user': 'sentry:user',
     }
 
     def __init__(self, event):

@@ -3,9 +3,6 @@
 # see also: https://github.com/samdmarshall/danger/blob/master/Dangerfile
 #      and: https://github.com/samdmarshall/pyconfig/blob/develop/Dangerfile
 
-# set the number of lines that must be changed before this classifies as a "Big PR"
-@S_BIG_PR_LINES ||= 500
-
 # require changelog entry if number of lines changed is beyond this
 @S_CHANGE_LINES ||= 50
 
@@ -38,7 +35,7 @@
 # set the patterns to watch and warn about if they need security review
 @S_SECURITY_FILE_PATTERN ||= /Dangerfile|(auth|login|permission|email|twofactor|sudo).*\.py/
 # content changes within the diff
-@S_SECURITY_CONTENT_PATTERN ||= /auth|password|secret|security/
+@S_SECURITY_CONTENT_PATTERN ||= nil
 # dont ever match against changes in these files
 @S_SECURITY_EXCLUDE_FILES ||= /test_.*\.py|migrations|south_migrations|CHANGES|tests|yarn\.lock|\.html|\.jsx/
 
@@ -46,12 +43,16 @@
     "src/sentry/auth/password_validation.py",
 ]
 
+# warn if there are migrations
+@S_MIGRATIONS ||= /south_migrations/
+
 # determine if any of the files were modified
 def checkFiles(files_array)
     files_array.select { |f| git.modified_files.include?(f) }
 end
 
 def checkFilesPattern(pattern, exclude = nil)
+    return [] unless pattern
     git.modified_files.select do |f|
         next(false) if exclude && exclude =~ f
         next(pattern =~ f)
@@ -59,6 +60,7 @@ def checkFilesPattern(pattern, exclude = nil)
 end
 
 def checkContents(pattern, exclude = nil)
+    return [] unless pattern
     git.modified_files.select do |f|
         next(false) if exclude && exclude =~ f
         next(git.diff_for_file(f).patch =~ pattern)
@@ -93,9 +95,6 @@ end
 # Make it more obvious that a PR is a work in progress and shouldn"t be merged yet
 warn("PR is classed as Work in Progress") if github.pr_title.include? "[WIP]" || github.pr_body.include?("#wip")
 
-# Warn when there is a big PR
-warn("Big PR -- consider splitting it up into multiple changesets") if git.lines_of_code > @S_BIG_PR_LINES
-
 # License is immutable
 fail("Do not modify the License") if @S_LICENSE_FILES && checkFiles(@S_LICENSE_FILES).any?
 
@@ -104,5 +103,15 @@ warn("This change includes modification to a file that was backported from newer
 
 # Reasonable commits must update CHANGES
 if !github.pr_body.include?("#nochanges") && @S_CHANGE_LINES && git.lines_of_code > @S_CHANGE_LINES && !git.modified_files.include?("CHANGES") && checkFilesPattern(@S_CHANGES_REQUIRED_PATTERNS).any?
-    fail("You need to update CHANGES due to the size of this PR")
+    warn("You should update CHANGES due to the size of this PR")
+end
+
+if git.added_files.grep(@S_MIGRATIONS).any?
+    warn("PR includes migrations")
+    markdown("## Migration Checklist\n\n" +
+             "- [ ] new columns need to be nullable (unless table is new)\n" +
+             "- [ ] migration with any new index needs to be done concurrently\n" +
+             "- [ ] data migrations should not be done inside a transaction\n" +
+             "- [ ] before merging, check to make sure there aren't conflicting migration ids\n"
+    )
 end

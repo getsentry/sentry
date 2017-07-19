@@ -15,7 +15,7 @@ const NarryLayout = React.createClass({
   render() {
     return (
       <div className="app">
-        <div className="pattern-bg"/>
+        <div className="pattern-bg" />
         <div className="container">
           <div className="box box-modal">
             <div className="box-header">

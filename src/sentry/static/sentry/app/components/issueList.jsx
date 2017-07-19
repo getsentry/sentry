@@ -22,7 +22,7 @@ const IssueList = React.createClass({
   getDefaultProps() {
     return {
       pagination: true,
-      query: {},
+      query: {}
     };
   },
 
@@ -31,7 +31,7 @@ const IssueList = React.createClass({
       issueIds: [],
       loading: true,
       error: false,
-      pageLinks: null,
+      pageLinks: null
     };
   },
 
@@ -42,10 +42,12 @@ const IssueList = React.createClass({
   componentWillReceiveProps(nextProps) {
     let location = this.props.location;
     let nextLocation = nextProps.location;
-    if (!location)
-      return;
+    if (!location) return;
 
-    if (location.pathname != nextLocation.pathname || location.search != nextLocation.search) {
+    if (
+      location.pathname != nextLocation.pathname ||
+      location.search != nextLocation.search
+    ) {
       this.remountComponent();
     }
   },
@@ -61,7 +63,7 @@ const IssueList = React.createClass({
       method: 'GET',
       query: {
         cursor: (location && location.query && location.query.cursor) || '',
-        ...this.props.query,
+        ...this.props.query
       },
       success: (data, _, jqXHR) => {
         this.setState({
@@ -69,13 +71,13 @@ const IssueList = React.createClass({
           loading: false,
           error: false,
           issueIds: data.map(item => item.id),
-          pageLinks: jqXHR.getResponseHeader('Link'),
+          pageLinks: jqXHR.getResponseHeader('Link')
         });
       },
       error: () => {
         this.setState({
           loading: false,
-          error: true,
+          error: true
         });
       }
     });
@@ -85,14 +87,12 @@ const IssueList = React.createClass({
     let body;
     let params = this.props.params;
 
-    if (this.state.loading)
-      body = this.renderLoading();
-    else if (this.state.error)
-      body = <LoadingError onRetry={this.fetchData} />;
+    if (this.state.loading) body = this.renderLoading();
+    else if (this.state.error) body = <LoadingError onRetry={this.fetchData} />;
     else if (this.state.issueIds.length > 0) {
       body = (
         <ul className="issue-list">
-          {this.state.data.map((issue) => {
+          {this.state.data.map(issue => {
             return (
               <CompactIssue
                 key={issue.id}
@@ -106,9 +106,7 @@ const IssueList = React.createClass({
           })}
         </ul>
       );
-    }
-    else
-      body = (this.props.renderEmpty || this.renderEmpty)();
+    } else body = (this.props.renderEmpty || this.renderEmpty)();
 
     return body;
   },
@@ -129,9 +127,9 @@ const IssueList = React.createClass({
     return (
       <div>
         {this.renderResults()}
-        {this.props.pagination && this.state.pageLinks &&
-          <Pagination pageLinks={this.state.pageLinks} {...this.props} />
-        }
+        {this.props.pagination &&
+          this.state.pageLinks &&
+          <Pagination pageLinks={this.state.pageLinks} {...this.props} />}
       </div>
     );
   }

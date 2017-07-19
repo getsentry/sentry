@@ -24,7 +24,7 @@ TAG_KEY_RE = re.compile(r'^[a-zA-Z0-9_\.:-]+$')
 
 # These tags are special and are used in pairing with `sentry:{}`
 # they should not be allowed to be set via data ingest due to abiguity
-INTERNAL_TAG_KEYS = frozenset(('release', 'user', 'filename', 'function'))
+INTERNAL_TAG_KEYS = frozenset(('release', 'dist', 'user', 'filename', 'function'))
 
 
 # TODO(dcramer): pull in enum library

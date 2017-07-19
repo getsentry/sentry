@@ -42,15 +42,18 @@ MAX_URL_LENGTH = 150
 
 # UrlResult.body **must** be bytes
 UrlResult = namedtuple('UrlResult',
-    ['url', 'headers', 'body', 'status', 'encoding']
-)
+                       ['url', 'headers', 'body', 'status', 'encoding']
+                       )
 
 
 # In case SSL is unavailable (light builds) we can't import this here.
 try:
-    from OpenSSL.SSL import ZeroReturnError
+    from OpenSSL.SSL import ZeroReturnError, Error as OpenSSLError
 except ImportError:
     class ZeroReturnError(Exception):
+        pass
+
+    class OpenSSLError(Exception):
         pass
 
 USER_AGENT = 'sentry/{version} (https://sentry.io)'.format(
@@ -146,13 +149,7 @@ class BlacklistAdapter(HTTPAdapter):
         return super(BlacklistAdapter, self).send(request, *args, **kwargs)
 
 
-class SafeSession(requests.Session):
-
-    def __init__(self):
-        requests.Session.__init__(self)
-        self.headers.update({'User-Agent': USER_AGENT})
-        self.mount('https://', BlacklistAdapter())
-        self.mount('http://', BlacklistAdapter())
+class Session(requests.Session):
 
     def request(self, *args, **kwargs):
         kwargs.setdefault('timeout', 30)
@@ -170,6 +167,15 @@ class SafeSession(requests.Session):
         if not response.encoding:
             response.encoding = 'utf-8'
         return response
+
+
+class SafeSession(Session):
+
+    def __init__(self):
+        requests.Session.__init__(self)
+        self.headers.update({'User-Agent': USER_AGENT})
+        self.mount('https://', BlacklistAdapter())
+        self.mount('http://', BlacklistAdapter())
 
 
 build_session = SafeSession
@@ -319,7 +325,7 @@ def fetch_file(url, domain_lock_enabled=True, outfile=None,
                     # We want size in megabytes to format nicely
                     'max_size': float(settings.SENTRY_SOURCE_FETCH_MAX_SIZE) / 1024 / 1024,
                 }
-            elif isinstance(exc, (RequestException, ZeroReturnError)):
+            elif isinstance(exc, (RequestException, ZeroReturnError, OpenSSLError)):
                 error = {
                     'type': EventError.FETCH_GENERIC_ERROR,
                     'value': six.text_type(type(exc)),

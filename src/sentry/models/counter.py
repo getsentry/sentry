@@ -8,21 +8,17 @@ sentry.models.counter
 
 from __future__ import absolute_import
 
-from django.db import connection
+from django.db import connection, connections
+from django.db.models.signals import post_syncdb
 
 from sentry.db.models import (
     FlexibleForeignKey, Model, sane_repr, BoundedBigIntegerField
 )
-from sentry.utils import db
+from sentry.utils.db import is_mysql, is_postgres, is_sqlite
 
 
 class Counter(Model):
-    """
-    A ReleaseFile is an association between a Release and a File.
-
-    The ident of the file should be sha1(name) and must be unique per release.
-    """
-    __core__ = False
+    __core__ = True
 
     project = FlexibleForeignKey('sentry.Project', unique=True)
     value = BoundedBigIntegerField()
@@ -46,12 +42,12 @@ def increment_project_counter(project, delta=1):
 
     cur = connection.cursor()
     try:
-        if db.is_postgres():
+        if is_postgres():
             cur.execute('''
                 select sentry_increment_project_counter(%s, %s)
             ''', [project.id, delta])
             return cur.fetchone()[0]
-        elif db.is_sqlite():
+        elif is_sqlite():
             value = cur.execute('''
                 insert or ignore into sentry_projectcounter
                   (project_id, value) values (%s, 0);
@@ -71,7 +67,7 @@ def increment_project_counter(project, delta=1):
                 ''').fetchone()[0]
                 if changes != 0:
                     return value + delta
-        elif db.is_mysql():
+        elif is_mysql():
             cur.execute('''
                 insert into sentry_projectcounter
                             (project_id, value)
@@ -85,3 +81,46 @@ def increment_project_counter(project, delta=1):
             raise AssertionError("Not implemented database engine path")
     finally:
         cur.close()
+
+
+# this must be idempotent because it seems to execute twice
+# (at least during test runs)
+def create_counter_function(db, created_models, **kwargs):
+    if not is_postgres(db):
+        return
+
+    if Counter not in created_models:
+        return
+
+    cursor = connections[db].cursor()
+    cursor.execute('''
+        create or replace function sentry_increment_project_counter(
+            project bigint, delta int) returns int as $$
+        declare
+          new_val int;
+        begin
+          loop
+            update sentry_projectcounter set value = value + delta
+             where project_id = project
+               returning value into new_val;
+            if found then
+              return new_val;
+            end if;
+            begin
+              insert into sentry_projectcounter(project_id, value)
+                   values (project, delta)
+                returning value into new_val;
+              return new_val;
+            exception when unique_violation then
+            end;
+          end loop;
+        end
+        $$ language plpgsql;
+    ''')
+
+
+post_syncdb.connect(
+    create_counter_function,
+    dispatch_uid='create_counter_function',
+    weak=False,
+)

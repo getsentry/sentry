@@ -19,7 +19,7 @@ class SetRemoteAddrFromForwardedFor(object):
         else:
             # HTTP_X_FORWARDED_FOR can be a comma-separated list of IPs.
             # Take just the first one.
-            real_ip = real_ip.split(",")[0]
+            real_ip = real_ip.split(",")[0].strip()
             if ':' in real_ip and '.' in real_ip:
                 # Strip the port number off of an IPv4 FORWARDED_FOR entry.
                 real_ip = real_ip.split(':', 1)[0]

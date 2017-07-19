@@ -15,6 +15,16 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions
 from six.moves.urllib.parse import quote, urlparse
 
+# if we're not running in a PR, we kill the PERCY_TOKEN because its a push
+# to a branch, and we dont want percy comparing things
+# we do need to ensure its run on master so that changes get updated
+if os.environ.get(
+        'TRAVIS_PULL_REQUEST',
+        'false') == 'false' and os.environ.get(
+            'TRAVIS_BRANCH',
+        'master') != 'master':
+    os.environ.setdefault('PERCY_ENABLE', '0')
+
 
 class Browser(object):
     def __init__(self, driver, live_server, percy):
@@ -31,7 +41,7 @@ class Browser(object):
         """
         Return the absolute URI for a given route in Sentry.
         """
-        return '{}/{}'.format(self.live_server_url, path.strip('/').format(
+        return '{}/{}'.format(self.live_server_url, path.lstrip('/').format(
             *args, **kwargs
         ))
 
@@ -116,13 +126,9 @@ class Browser(object):
         # selenium API because....
         # http://stackoverflow.com/questions/37103621/adding-cookies-working-with-firefox-webdriver-but-not-in-phantomjs
         # TODO(dcramer): this should be escaped, but idgaf
-        self.driver.execute_script("document.cookie = '{name}={value}; path={path}; domain={domain}; expires={expires}';\n".format(
-            name=name,
-            value=value,
-            expires=expires,
-            path=path,
-            domain=self.domain,
-        ))
+        self.driver.execute_script(
+            "document.cookie = '{name}={value}; path={path}; domain={domain}; expires={expires}';\n".format(
+                name=name, value=value, expires=expires, path=path, domain=self.domain, ))
 
 
 def pytest_addoption(parser):

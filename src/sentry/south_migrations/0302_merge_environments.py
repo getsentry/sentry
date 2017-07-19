@@ -4,18 +4,31 @@ from south.db import db
 from south.v2 import DataMigration
 from django.db import IntegrityError, models, transaction
 
-from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
 
 class Migration(DataMigration):
 
     def forwards(self, orm):
-        "Write your forwards methods here."
         db.commit_transaction()
+        try:
+            self._forwards(orm)
+        except Exception:
+            # Explicitly resume the transaction because
+            # South is going to try and roll it back, but when
+            # it can't find one, it'll error itself, masking
+            # the actual exception being raised
+            #
+            # See https://github.com/getsentry/sentry/issues/5035
+            db.start_transaction()
+            raise
+        db.start_transaction()
+
+    def _forwards(self, orm):
+        "Write your forwards methods here."
         dupe_envs = orm.Environment.objects.values('name', 'organization_id')\
                                            .annotate(ecount=models.Count('id'))\
                                            .filter(ecount__gt=1)
 
-        for env in RangeQuerySetWrapperWithProgressBar(dupe_envs):
+        for env in dupe_envs:
             name = env['name']
             organization_id = env['organization_id']
 
@@ -35,7 +48,9 @@ class Migration(DataMigration):
                 for ep in orm.EnvironmentProject.objects.filter(environment__in=from_envs):
                     try:
                         with transaction.atomic():
-                            ep.update(environment=to_env)
+                            orm.EnvironmentProject.objects.filter(
+                                id=ep.id,
+                            ).update(environment=to_env)
                     except IntegrityError:
                         ep.delete()
 
@@ -49,7 +64,9 @@ class Migration(DataMigration):
                 for re in orm.ReleaseEnvironment.objects.filter(environment_id__in=from_env_ids):
                     try:
                         with transaction.atomic():
-                            re.update(environment_id=to_env.id)
+                            orm.ReleaseEnvironment.objects.filter(
+                                id=re.id,
+                            ).update(environment_id=to_env.id)
                     except IntegrityError:
                         re.delete()
 
@@ -61,7 +78,7 @@ class Migration(DataMigration):
             recount=models.Count('id')
         ).filter(recount__gt=1)
 
-        for renv in RangeQuerySetWrapperWithProgressBar(dupe_release_envs):
+        for renv in dupe_release_envs:
             release_id = renv['release_id']
             organization_id = renv['organization_id']
             environment_id = renv['environment_id']
@@ -73,12 +90,12 @@ class Migration(DataMigration):
             to_renv = renvs[0]
             from_renvs = renvs[1:]
             last_seen = max([re.last_seen for re in renvs])
-            to_renv.update(last_seen=last_seen)
+            orm.ReleaseEnvironment.objects.filter(
+                id=to_renv.id,
+            ).update(last_seen=last_seen)
             orm.ReleaseEnvironment.objects.filter(
                 id__in=[re.id for re in from_renvs],
             ).delete()
-
-        db.start_transaction()
 
     def backwards(self, orm):
         "Write your backwards methods here."

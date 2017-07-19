@@ -13,6 +13,8 @@ import logging
 from django.db import DataError, IntegrityError, router, transaction
 from django.db.models import F
 
+from sentry.app import tsdb
+from sentry.similarity import features
 from sentry.tasks.base import instrumented_task, retry
 from sentry.tasks.deletion import delete_group
 
@@ -61,10 +63,11 @@ def merge_group(from_object_id=None, to_object_id=None, transaction_id=None,
             'transaction_id': transaction_id,
             'new_group_id': new_group.id,
             'old_group_id': group.id,
-            'new_event_id': getattr(new_group.event_set.order_by('-id').first(), 'id', None),
-            'old_event_id': getattr(group.event_set.order_by('-id').first(), 'id', None),
-            'new_hash_id': getattr(new_group.grouphash_set.order_by('-id').first(), 'id', None),
-            'old_hash_id': getattr(group.grouphash_set.order_by('-id').first(), 'id', None),
+            # TODO(jtcunning): figure out why these are full seq scans and/or alternative solution
+            # 'new_event_id': getattr(new_group.event_set.order_by('-id').first(), 'id', None),
+            # 'old_event_id': getattr(group.event_set.order_by('-id').first(), 'id', None),
+            # 'new_hash_id': getattr(new_group.grouphash_set.order_by('-id').first(), 'id', None),
+            # 'old_hash_id': getattr(group.grouphash_set.order_by('-id').first(), 'id', None),
 
         })
 
@@ -90,6 +93,18 @@ def merge_group(from_object_id=None, to_object_id=None, transaction_id=None,
             recursed=True,
         )
         return
+
+    features.merge(new_group, [group], allow_unsafe=True)
+
+    for model in [tsdb.models.group]:
+        tsdb.merge(model, new_group.id, [group.id])
+
+    for model in [tsdb.models.users_affected_by_group]:
+        tsdb.merge_distinct_counts(model, new_group.id, [group.id])
+
+    for model in [tsdb.models.frequent_releases_by_group,
+                  tsdb.models.frequent_environments_by_group]:
+        tsdb.merge_frequencies(model, new_group.id, [group.id])
 
     previous_group_id = group.id
 
@@ -237,17 +252,22 @@ def merge_objects(models, group, new_group, limit=1000,
                                 key=obj.key,
                             ).update(
                                 values_seen=GroupTagValue.objects.filter(
-                                    group=new_group,
+                                    group_id=new_group.id,
                                     key=obj.key,
                                 ).count()
                             )
                     elif model == GroupTagValue:
                         with transaction.atomic(using=router.db_for_write(model)):
-                            model.objects.filter(
-                                group=new_group,
+                            new_obj = model.objects.get(
+                                group_id=new_group.id,
                                 key=obj.key,
                                 value=obj.value,
-                            ).update(times_seen=F('times_seen') + obj.times_seen)
+                            )
+                            new_obj.update(
+                                first_seen=min(new_obj.first_seen, obj.first_seen),
+                                last_seen=max(new_obj.last_seen, obj.last_seen),
+                                times_seen=new_obj.times_seen + obj.times_seen,
+                            )
                 except DataError:
                     # it's possible to hit an out of range value for counters
                     pass

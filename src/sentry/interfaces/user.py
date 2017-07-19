@@ -63,9 +63,14 @@ class User(Interface):
             email = trim(validate_email(data.pop('email', None), False), MAX_EMAIL_FIELD_LENGTH)
         except ValueError:
             raise InterfaceValidationError("Invalid value for 'email'")
+
         username = trim(data.pop('username', None), 128)
         if username:
             username = six.text_type(username)
+
+        name = trim(data.pop('name', None), 128)
+        if name:
+            name = six.text_type(name)
 
         try:
             ip_address = validate_ip(data.pop('ip_address', None), False)
@@ -81,6 +86,7 @@ class User(Interface):
             'email': email,
             'username': username,
             'ip_address': ip_address,
+            'name': name,
         }
 
         kwargs['data'] = trim_dict(extra_data)
@@ -92,6 +98,7 @@ class User(Interface):
             'email': self.email,
             'username': self.username,
             'ipAddress': self.ip_address,
+            'name': self.name,
             'data': self.data,
         }
 
@@ -105,7 +112,7 @@ class User(Interface):
         return self.email or self.username
 
     def get_label(self):
-        return self.email or self.username or self.id or self.ip_address
+        return self.name or self.email or self.username or self.id or self.ip_address
 
     def to_email_html(self, event, **kwargs):
         context = {

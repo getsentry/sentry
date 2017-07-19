@@ -39,7 +39,7 @@ const StreamFilters = React.createClass({
       query: null,
       onSortChange: function() {},
       onSearch: function() {},
-      onSidebarToggle: function () {}
+      onSidebarToggle: function() {}
     };
   },
 
@@ -57,14 +57,13 @@ const StreamFilters = React.createClass({
               searchId={searchId}
               query={this.props.query}
               onSavedSearchCreate={this.props.onSavedSearchCreate}
-              savedSearchList={this.props.savedSearchList} />
+              savedSearchList={this.props.savedSearchList}
+            />
           </div>
           <div className="col-sm-7">
             <div className="search-container">
               <div className="stream-sort">
-                <SortOptions
-                  sort={this.props.sort}
-                  onSelect={this.props.onSortChange} />
+                <SortOptions sort={this.props.sort} onSelect={this.props.onSortChange} />
               </div>
 
               <SearchBar
@@ -76,8 +75,11 @@ const StreamFilters = React.createClass({
                 placeholder={t('Search for events, users, tags, and everything else.')}
                 query={this.props.query || ''}
                 onSearch={this.props.onSearch}
-                disabled={this.props.isSearchDisabled} />
-              <a className="btn btn-default toggle-stream-sidebar" onClick={this.props.onSidebarToggle}>
+                disabled={this.props.isSearchDisabled}
+              />
+              <a
+                className="btn btn-default toggle-stream-sidebar"
+                onClick={this.props.onSidebarToggle}>
                 <span className="icon-filter" />
               </a>
             </div>

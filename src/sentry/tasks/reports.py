@@ -661,7 +661,6 @@ DISABLED_ORGANIZATIONS_USER_OPTION_KEY = 'reports:disabled-organizations'
 def user_subscribed_to_organization_reports(user, organization):
     return organization.id not in UserOption.objects.get_value(
         user=user,
-        project=None,
         key=DISABLED_ORGANIZATIONS_USER_OPTION_KEY,
         default=[],
     )
@@ -738,9 +737,9 @@ def deliver_organization_user_report(timestamp, duration, organization_id, user_
 
     if not reports:
         logger.debug('Skipping report for %r to %r, no qualifying reports to deliver.',
-            organization,
-            user,
-        )
+                     organization,
+                     user,
+                     )
         return Skipped.NoReports
 
     message = build_message(

@@ -23,7 +23,7 @@ delete_logger = logging.getLogger('sentry.deletions.ui')
 
 
 class RestoreOrganizationView(OrganizationView):
-    required_scope = 'org:delete'
+    required_scope = 'org:admin'
     sudo_required = True
 
     def get_active_organization(self, request, organization_slug):
@@ -81,7 +81,7 @@ class RestoreOrganizationView(OrganizationView):
                 'model': Organization.__name__,
             })
             messages.add_message(request, messages.SUCCESS,
-                MSG_RESTORE_SUCCESS)
+                                 MSG_RESTORE_SUCCESS)
 
         return self.redirect(
             reverse('sentry-organization-home', args=[organization.slug])

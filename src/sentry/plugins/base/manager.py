@@ -70,9 +70,9 @@ class PluginManager(InstanceManager):
             except Exception as e:
                 logger = logging.getLogger('sentry.plugins.%s' % (type(plugin).slug,))
                 logger.error('%s.process_error', func_name,
-                    exc_info=True,
-                    extra={'exception': e},
-                )
+                             exc_info=True,
+                             extra={'exception': e},
+                             )
                 continue
 
             if result is not None:

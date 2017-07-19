@@ -72,6 +72,62 @@ class FetchReleaseFileTest(TestCase):
 
         assert result == new_result
 
+    def test_distribution(self):
+        project = self.project
+        release = Release.objects.create(
+            organization_id=project.organization_id,
+            version='abc',
+        )
+        release.add_project(project)
+
+        other_file = File.objects.create(
+            name='file.min.js',
+            type='release.file',
+            headers={'Content-Type': 'application/json; charset=utf-8'},
+        )
+        file = File.objects.create(
+            name='file.min.js',
+            type='release.file',
+            headers={'Content-Type': 'application/json; charset=utf-8'},
+        )
+
+        binary_body = unicode_body.encode('utf-8')
+        other_file.putfile(six.BytesIO(b''))
+        file.putfile(six.BytesIO(binary_body))
+
+        dist = release.add_dist('foo')
+
+        ReleaseFile.objects.create(
+            name='file.min.js',
+            release=release,
+            organization_id=project.organization_id,
+            file=other_file,
+        )
+
+        ReleaseFile.objects.create(
+            name='file.min.js',
+            release=release,
+            dist=dist,
+            organization_id=project.organization_id,
+            file=file,
+        )
+
+        result = fetch_release_file('file.min.js', release, dist)
+
+        assert type(result.body) is six.binary_type
+        assert result == http.UrlResult(
+            'file.min.js',
+            {'content-type': 'application/json; charset=utf-8'},
+            binary_body,
+            200,
+            'utf-8',
+        )
+
+        # test with cache hit, which should be compressed
+        new_result = fetch_release_file('file.min.js', release, dist)
+
+        assert result == new_result
+
 
 class FetchFileTest(TestCase):
     @responses.activate
@@ -201,25 +257,69 @@ class DiscoverSourcemapTest(TestCase):
         }, '', 200, None)
         assert discover_sourcemap(result) == 'http://example.com/source.map.js'
 
-        result = http.UrlResult('http://example.com', {}, '//@ sourceMappingURL=http://example.com/source.map.js\nconsole.log(true)', 200, None)
+        result = http.UrlResult(
+            'http://example.com',
+            {},
+            '//@ sourceMappingURL=http://example.com/source.map.js\nconsole.log(true)',
+            200,
+            None)
         assert discover_sourcemap(result) == 'http://example.com/source.map.js'
 
-        result = http.UrlResult('http://example.com', {}, '//# sourceMappingURL=http://example.com/source.map.js\nconsole.log(true)', 200, None)
+        result = http.UrlResult(
+            'http://example.com',
+            {},
+            '//# sourceMappingURL=http://example.com/source.map.js\nconsole.log(true)',
+            200,
+            None)
         assert discover_sourcemap(result) == 'http://example.com/source.map.js'
 
-        result = http.UrlResult('http://example.com', {}, 'console.log(true)\n//@ sourceMappingURL=http://example.com/source.map.js', 200, None)
+        result = http.UrlResult(
+            'http://example.com',
+            {},
+            'console.log(true)\n//@ sourceMappingURL=http://example.com/source.map.js',
+            200,
+            None)
         assert discover_sourcemap(result) == 'http://example.com/source.map.js'
 
-        result = http.UrlResult('http://example.com', {}, 'console.log(true)\n//# sourceMappingURL=http://example.com/source.map.js', 200, None)
+        result = http.UrlResult(
+            'http://example.com',
+            {},
+            'console.log(true)\n//# sourceMappingURL=http://example.com/source.map.js',
+            200,
+            None)
         assert discover_sourcemap(result) == 'http://example.com/source.map.js'
 
-        result = http.UrlResult('http://example.com', {}, 'console.log(true)\n//# sourceMappingURL=http://example.com/source.map.js\n//# sourceMappingURL=http://example.com/source2.map.js', 200, None)
+        result = http.UrlResult(
+            'http://example.com',
+            {},
+            'console.log(true)\n//# sourceMappingURL=http://example.com/source.map.js\n//# sourceMappingURL=http://example.com/source2.map.js',
+            200,
+            None)
         assert discover_sourcemap(result) == 'http://example.com/source2.map.js'
 
-        result = http.UrlResult('http://example.com', {}, '//# sourceMappingURL=app.map.js/*ascii:lol*/', 200, None)
+        # sourceMappingURL found directly after code w/o newline
+        result = http.UrlResult(
+            'http://example.com',
+            {},
+            'console.log(true);//# sourceMappingURL=http://example.com/source.map.js',
+            200,
+            None)
+        assert discover_sourcemap(result) == 'http://example.com/source.map.js'
+
+        result = http.UrlResult(
+            'http://example.com',
+            {},
+            '//# sourceMappingURL=app.map.js/*ascii:lol*/',
+            200,
+            None)
         assert discover_sourcemap(result) == 'http://example.com/app.map.js'
 
-        result = http.UrlResult('http://example.com', {}, '//# sourceMappingURL=/*lol*/', 200, None)
+        result = http.UrlResult(
+            'http://example.com',
+            {},
+            '//# sourceMappingURL=/*lol*/',
+            200,
+            None)
         with self.assertRaises(AssertionError):
             discover_sourcemap(result)
 
@@ -237,8 +337,10 @@ class GenerateModuleTest(TestCase):
         assert generate_module('http://example.com/_baz/foo/bar.js') == 'foo/bar'
         assert generate_module('http://example.com/1/2/3/foo/bar.js') == 'foo/bar'
         assert generate_module('http://example.com/abcdef0/foo/bar.js') == 'foo/bar'
-        assert generate_module('http://example.com/92cd589eca8235e7b373bf5ae94ebf898e3b949c/foo/bar.js') == 'foo/bar'
-        assert generate_module('http://example.com/7d6d00eae0ceccdc7ee689659585d95f/foo/bar.js') == 'foo/bar'
+        assert generate_module(
+            'http://example.com/92cd589eca8235e7b373bf5ae94ebf898e3b949c/foo/bar.js') == 'foo/bar'
+        assert generate_module(
+            'http://example.com/7d6d00eae0ceccdc7ee689659585d95f/foo/bar.js') == 'foo/bar'
         assert generate_module('http://example.com/foo/bar.coffee') == 'foo/bar'
         assert generate_module('http://example.com/foo/bar.js?v=1234') == 'foo/bar'
         assert generate_module('/foo/bar.js') == 'foo/bar'
@@ -246,14 +348,22 @@ class GenerateModuleTest(TestCase):
         assert generate_module('/foo/bar-7d6d00eae0ceccdc7ee689659585d95f.js') == 'foo/bar'
         assert generate_module('/bower_components/foo/bar.js') == 'foo/bar'
         assert generate_module('/node_modules/foo/bar.js') == 'foo/bar'
-        assert generate_module('http://example.com/vendor.92cd589eca8235e7b373bf5ae94ebf898e3b949c.js') == 'vendor'
-        assert generate_module('/a/javascripts/application-bundle-149360d3414c26adac3febdf6832e25c.min.js') == 'a/javascripts/application-bundle'
-        assert generate_module('https://example.com/libs/libs-20150417171659.min.js') == 'libs/libs'
-        assert generate_module('webpack:///92cd589eca8235e7b373bf5ae94ebf898e3b949c/vendor.js') == 'vendor'
-        assert generate_module('webpack:///92cd589eca8235e7b373bf5ae94ebf898e3b949c/vendor.js') == 'vendor'
-        assert generate_module('app:///92cd589eca8235e7b373bf5ae94ebf898e3b949c/vendor.js') == 'vendor'
-        assert generate_module('app:///example/92cd589eca8235e7b373bf5ae94ebf898e3b949c/vendor.js') == 'vendor'
-        assert generate_module('~/app/components/projectHeader/projectSelector.jsx') == 'app/components/projectHeader/projectSelector'
+        assert generate_module(
+            'http://example.com/vendor.92cd589eca8235e7b373bf5ae94ebf898e3b949c.js') == 'vendor'
+        assert generate_module(
+            '/a/javascripts/application-bundle-149360d3414c26adac3febdf6832e25c.min.js') == 'a/javascripts/application-bundle'
+        assert generate_module(
+            'https://example.com/libs/libs-20150417171659.min.js') == 'libs/libs'
+        assert generate_module(
+            'webpack:///92cd589eca8235e7b373bf5ae94ebf898e3b949c/vendor.js') == 'vendor'
+        assert generate_module(
+            'webpack:///92cd589eca8235e7b373bf5ae94ebf898e3b949c/vendor.js') == 'vendor'
+        assert generate_module(
+            'app:///92cd589eca8235e7b373bf5ae94ebf898e3b949c/vendor.js') == 'vendor'
+        assert generate_module(
+            'app:///example/92cd589eca8235e7b373bf5ae94ebf898e3b949c/vendor.js') == 'vendor'
+        assert generate_module(
+            '~/app/components/projectHeader/projectSelector.jsx') == 'app/components/projectHeader/projectSelector'
 
 
 class FetchSourcemapTest(TestCase):
@@ -291,11 +401,20 @@ class TrimLineTest(TestCase):
 
     def test_simple(self):
         assert trim_line('foo') == 'foo'
-        assert trim_line(self.long_line) == 'The public is more familiar with bad design than good design. It is, in effect, conditioned to prefer bad design, because that is what it li {snip}'
-        assert trim_line(self.long_line, column=10) == 'The public is more familiar with bad design than good design. It is, in effect, conditioned to prefer bad design, because that is what it li {snip}'
-        assert trim_line(self.long_line, column=66) == '{snip} blic is more familiar with bad design than good design. It is, in effect, conditioned to prefer bad design, because that is what it lives wi {snip}'
-        assert trim_line(self.long_line, column=190) == '{snip} gn. It is, in effect, conditioned to prefer bad design, because that is what it lives with. The new becomes threatening, the old reassuring.'
-        assert trim_line(self.long_line, column=9999) == '{snip} gn. It is, in effect, conditioned to prefer bad design, because that is what it lives with. The new becomes threatening, the old reassuring.'
+        assert trim_line(
+            self.long_line) == 'The public is more familiar with bad design than good design. It is, in effect, conditioned to prefer bad design, because that is what it li {snip}'
+        assert trim_line(
+            self.long_line,
+            column=10) == 'The public is more familiar with bad design than good design. It is, in effect, conditioned to prefer bad design, because that is what it li {snip}'
+        assert trim_line(
+            self.long_line,
+            column=66) == '{snip} blic is more familiar with bad design than good design. It is, in effect, conditioned to prefer bad design, because that is what it lives wi {snip}'
+        assert trim_line(
+            self.long_line,
+            column=190) == '{snip} gn. It is, in effect, conditioned to prefer bad design, because that is what it lives with. The new becomes threatening, the old reassuring.'
+        assert trim_line(
+            self.long_line,
+            column=9999) == '{snip} gn. It is, in effect, conditioned to prefer bad design, because that is what it lives with. The new becomes threatening, the old reassuring.'
 
 
 def test_get_culprit_is_patched():

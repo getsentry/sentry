@@ -1,10 +1,12 @@
-"""
-sentry.search
-~~~~~~~~~~~~~
+from __future__ import absolute_import
 
-:copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
-:license: BSD, see LICENSE for more details.
-"""
-from __future__ import absolute_import, print_function
+from django.conf import settings
 
-from .base import *  # NOQA
+from sentry.utils.services import LazyServiceWrapper
+
+from .base import SearchBackend  # NOQA
+
+
+backend = LazyServiceWrapper(SearchBackend, settings.SENTRY_SEARCH,
+                             settings.SENTRY_SEARCH_OPTIONS)
+backend.expose(locals())

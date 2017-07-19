@@ -1,5 +1,178 @@
-Version 8.14 (Unreleased)
+Version 8.19 (Unreleased)
 -------------------------
+- Hide project filter when there are no projects to list.
+
+Version 8.18
+------------
+
+- Expanded resolution options to allow current and explicit versions.
+- Added proguard support
+- Removed support for global dsyms.
+- Moved Queue admin page to React.
+- Replaced usage of jQuery Flot library with internal graphs.
+- Expanded ignore actions to include deltas and rates for both occurances and
+  users impacted.
+- Add a new option (`auth.allow-registration`) for determining whether registration
+  is allowed on an installation.
+- Moved "create organization" into React.
+- Expanded React Form components (Form, ApiForm).
+- Moved "create team" into React.
+- add Slack to supported auth backends in social auth (for plugins)
+- Expanded resolution actions (on stream) to include current release and explicit
+  release.
+
+Schema Changes
+~~~~~~~~~~~~~~
+
+- Added Release.commit_count
+- Added Release.last_commit_id
+- Added Release.authors
+- Added Release.total_deploys
+- Added Release.last_deploy_id
+- Added ``FeatureAdoption`` model
+- Removed DSymBundle
+- Removed DSymObject
+- Removed DSymSDK
+- Removed DSymSymbol
+- Removed GlobalDSymFile
+- Added GroupHash.state
+- Drop index on ``ReleaseEnvironment(project_id)``
+- Drop index on ``ReleaseCommit(project_id)``
+- Drop unique constraint on ``ReleaseEnvironment(project_id, release_id, environment_id)``
+- Added GroupResolution.type
+- Added GroupResolution.actor_id
+- Added Project.platform
+- Added GroupSnooze.actor_id
+- Added ScheduledJob
+- Added GroupResolution.actor_id
+- Added ``ScheduledJob`` model
+- Added User.last_active
+
+API Changes
+~~~~~~~~~~~
+
+- Project keys endpoint will include all available keys by default. Use
+  ``status=active`` to retain the old behavior.
+
+Version 8.17
+------------
+
+- Added @mentions to comments
+- Initial (internal) analytics abstraction.
+- Turned on reprocessing by default
+- Added basics for Data Forwarding integrations.
+- Changed the grouping and default `in_app` values for cocoa events.
+- Removed global dsym support.
+- Removed support for legacy apple report format.
+- The threads interface now contributes to grouping if it contains a single thread.
+- Added per-key (DSN) rate limits (``project:rate-limits`` feature).
+- Added tsdb statistics for events per-key.
+- Added ``sentry.deletions`` abstraction to improve bulk deletions.
+- Added basic workspace for Visual Studio Code.
+- Added hovercards for Issue IDs in activity entries.
+- Added event count options to ignore.
+- Added user frequency options to ignore.
+
+Schema Changes
+~~~~~~~~~~~~~~
+
+- Dropped ``GroupTagValue.group_id`` foreign key constraint
+- Dropped ``GroupTagValue.project_id`` foreign key constraint
+- Added ``Deploy.notified`` column
+- Added index on ``EventTag.date_added``
+- Added unique index on ``Environment(organization_id, name)``
+- Added unique index on ``ReleaseEnvironment(organization_id, release_id, environment_id)``
+- Added ``EventUser.name`` column
+- Added ``UserReport.event_user_id`` column
+
+Version 8.16.1
+--------------
+
+- Fixed issue in migration 0302 that prevented upgrading
+
+Version 8.16
+------------
+
+- Added data migration to create UserEmail objects for users whose primary emails did not have them
+- Time series data (used by graphs and other features) is now updated when groups are merged.
+- Added distributions to the release system to better support mobile apps
+- Update activity entries to reference issues by their short ID.
+- Added user notifications settings for deploy emails.
+
+Schema Changes
+~~~~~~~~~~~~~~
+
+- Added ``Distribution`` model
+- Added ``ReleaseFile.dist`` column
+- Added ``UserOption.organization`` column
+- Added ``CommitAuthor.external_id`` column
+
+API Changes
+~~~~~~~~~~~
+
+- Deprecate `dateStarted` in releases endpoints
+
+Version 8.15
+------------
+
+- Added overview for a release to view a breakdown of files changes, commit authors, new issues, and issues resolved
+- Refactor usage of ``sentry.app`` to use individual modules.
+- Implemented ``--concurrency`` on ``sentry cleanup``
+- Added support for the new symbol server system to support native SDKs better.
+- Added deploy email
+- Added OAuth2 support to the web API.
+- Simplified management of secondary email addresses.
+- Fixed an issue where changing primary email address would remove the pre-existing verified email.
+- Disallow duplicating primary emails for users moving forward.
+- Resolve issues when commits with ``Fixes SHORTID`` are included in releases
+- Added support for associating debug symbols with iTunes applications and builds.
+- Added the ability to claim unassigned issues when resolving them.
+
+API Changes
+~~~~~~~~~~~
+
+- Added CommitFileChangeEndpoint
+- Added IssuesResolvedInReleaseEndpoint
+- Added ReleaseDeploysEndpoint
+- Added OrganizationReleaseCommitsEndpoint
+- Added EventFileCommittersEndpoint
+- Added ReleaseDeploysEndpoint
+
+Schema Changes
+~~~~~~~~~~~~~~
+
+- Added ``Deploy`` model
+- Added ``ApiApplication`` model
+- Added ``ApiAuthorization`` model
+- Added ``ApiGrant`` model
+- Removed ``ApiToken.key`` column
+- Added ``ApiToken.application`` column
+- Added ``ApiToken.refresh_token`` column
+- Added ``ApiToken.expires_at`` column
+- Added ``ApiToken.scope_list`` column
+- Added ``ApiKey.scope_list`` column
+- Added ``ReleaseHeadCommit`` model
+
+Security
+~~~~~~~~
+
+- Added encryption to the following fields:
+  - AuthIdentity.data
+  - AuthProvider.config
+  - Option.value
+  - OrganizationOption.value
+  - ProjectOption.value
+  - UserOption.value
+
+Version 8.14.1
+--------------
+
+- Fixed issues related to migrations failing to finish for 8.14
+- Fixed an issue where Release version names were erronously too restrictve.
+- Fixed an issue where "New Issues" counts would have all been 0 for releases created in 8.14.
+
+Version 8.14
+------------
 
 - Added new internal processing interface that supports multiple processing steps per stacktrace (for instance JavaScript + native)
 - Add IE10 legacy browser filter
@@ -12,12 +185,14 @@ Version 8.14 (Unreleased)
 - Release functionality is now detected at a project level to enable various features.
 - Added basic encryption facilities (``sentry.utils.encryption``).
 - Added support for "Fixes XXX, YYY" and "Fixes XXX YYY" notations.
-- Aded bulk "Resolve in Next Release" to stream actions.
+- Added bulk "Resolve in Next Release" to stream actions.
 - Various visual improvements to notifications, including the addition of
   transactions.
 - Plugins can now add tasks that run in sentry as celery workers.
 - Added the ability to verify TLS connections when fetching artifacts.
 - Added data migration to merge environments across an organization
+- Added ``timesSeen`` keyword to issue search.
+- Added feature signals, such as first time release tracking is enabled.
 
 API Changes
 ~~~~~~~~~~~

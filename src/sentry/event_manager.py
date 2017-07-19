@@ -15,14 +15,14 @@ from datetime import datetime, timedelta
 from collections import OrderedDict
 from django.conf import settings
 from django.db import connection, IntegrityError, router, transaction
-from django.db.models import Q
 from django.utils import timezone
 from django.utils.encoding import force_bytes, force_text
 from hashlib import md5
 from uuid import uuid4
 
-from sentry import eventtypes, features
-from sentry.app import buffer, tsdb
+from sentry import eventtypes, features, buffer
+# we need a bunch of unexposed functions from tsdb
+from sentry.tsdb import backend as tsdb
 from sentry.constants import (
     CLIENT_RESERVED_ATTRS, LOG_LEVELS, DEFAULT_LOGGER_NAME, MAX_CULPRIT_LENGTH
 )
@@ -30,7 +30,7 @@ from sentry.interfaces.base import get_interface
 from sentry.models import (
     Activity, Environment, Event, EventMapping, EventUser, Group, GroupHash,
     GroupRelease, GroupResolution, GroupStatus, Project, Release,
-    ReleaseEnvironment, TagKey, UserReport
+    ReleaseEnvironment, ReleaseProject, TagKey, UserReport
 )
 from sentry.plugins import plugins
 from sentry.signals import first_event_received, regression_signal
@@ -38,10 +38,10 @@ from sentry.tasks.merge import merge_group
 from sentry.tasks.post_process import post_process_group
 from sentry.utils.cache import default_cache
 from sentry.utils.db import get_db_engine
-from sentry.utils.hashlib import md5_text
 from sentry.utils.safe import safe_execute, trim, trim_dict
 from sentry.utils.strings import truncatechars
 from sentry.utils.validators import validate_ip
+from sentry.stacktraces import normalize_in_app
 
 
 def count_limit(count):
@@ -190,6 +190,10 @@ def plugin_is_regression(group, event):
     return True
 
 
+class HashDiscarded(Exception):
+    pass
+
+
 class ScoreClause(object):
     def __init__(self, group):
         self.group = group
@@ -278,6 +282,7 @@ class EventManager(object):
         data.setdefault('checksum', None)
         data.setdefault('fingerprint', None)
         data.setdefault('platform', None)
+        data.setdefault('dist', None)
         data.setdefault('environment', None)
         data.setdefault('extra', {})
         data.setdefault('errors', [])
@@ -413,6 +418,7 @@ class EventManager(object):
         fingerprint = data.pop('fingerprint', None)
         platform = data.pop('platform', None)
         release = data.pop('release', None)
+        dist = data.pop('dist', None)
         environment = data.pop('environment', None)
 
         # unused
@@ -470,12 +476,22 @@ class EventManager(object):
 
             tags['sentry:release'] = release.version
 
+        if dist and release:
+            dist = release.add_dist(dist, date)
+            tags['sentry:dist'] = dist.name
+        else:
+            dist = None
+
         event_user = self._get_event_user(project, data)
         if event_user:
             # dont allow a conflicting 'user' tag
             if 'user' in tags:
                 del tags['user']
             tags['sentry:user'] = event_user.tag_value
+
+        # At this point we want to normalize the in_app values in case the
+        # clients did not set this appropriately so far.
+        normalize_in_app(data)
 
         for plugin in plugins.for_project(project, version=None):
             added_tags = safe_execute(plugin.get_tags, event,
@@ -691,8 +707,9 @@ class EventManager(object):
             ), timestamp=event.datetime)
 
         if is_new and release:
-            buffer.incr(Release, {'new_groups': 1}, {
-                'id': release.id,
+            buffer.incr(ReleaseProject, {'new_groups': 1}, {
+                'release_id': release.id,
+                'project_id': project.id,
             })
 
         safe_execute(Group.objects.add_tags, group, tags,
@@ -730,42 +747,55 @@ class EventManager(object):
             email=user_data.get('email'),
             username=user_data.get('username'),
             ip_address=user_data.get('ip_address'),
+            name=user_data.get('name'),
         )
-
-        if not euser.tag_value:
+        euser.set_hash()
+        if not euser.hash:
             return
 
-        cache_key = 'euser:{}:{}'.format(
+        cache_key = 'euserid:1:{}:{}'.format(
             project.id,
-            md5_text(euser.tag_value).hexdigest(),
+            euser.hash,
         )
-        cached = default_cache.get(cache_key)
-        if cached is None:
+        euser_id = default_cache.get(cache_key)
+        if euser_id is None:
             try:
                 with transaction.atomic(using=router.db_for_write(EventUser)):
                     euser.save()
             except IntegrityError:
-                pass
-            default_cache.set(cache_key, '', 3600)
-
+                try:
+                    euser = EventUser.objects.get(
+                        project=project,
+                        hash=euser.hash,
+                    )
+                except EventUser.DoesNotExist:
+                    # why???
+                    e_userid = -1
+                else:
+                    if euser.name != (user_data.get('name') or euser.name):
+                        euser.update(
+                            name=user_data['name'],
+                        )
+                    e_userid = euser.id
+                default_cache.set(cache_key, e_userid, 3600)
         return euser
 
     def _find_hashes(self, project, hash_list):
-        matches = []
-        for hash in hash_list:
-            ghash, _ = GroupHash.objects.get_or_create(
+        return map(
+            lambda hash: GroupHash.objects.get_or_create(
                 project=project,
                 hash=hash,
-            )
-            matches.append((ghash.group_id, ghash.hash))
-        return matches
+            )[0],
+            hash_list,
+        )
 
     def _ensure_hashes_merged(self, group, hash_list):
         # TODO(dcramer): there is a race condition with selecting/updating
         # in that another group could take ownership of the hash
+        # XXX: This function is currently unused, and hasn't been updated to
+        # take `GroupHash.state` into account.
         bad_hashes = GroupHash.objects.filter(
-            project=group.project,
-            hash__in=hash_list,
+            id__in=[h.id for h in hash_list],
         ).exclude(
             group=group,
         )
@@ -793,10 +823,13 @@ class EventManager(object):
         # attempt to find a matching hash
         all_hashes = self._find_hashes(project, hashes)
 
-        try:
-            existing_group_id = six.next(h[0] for h in all_hashes if h[0])
-        except StopIteration:
-            existing_group_id = None
+        existing_group_id = None
+        for h in all_hashes:
+            if h.group_id is not None:
+                existing_group_id = h.group_id
+                break
+            if h.group_tombstone_id is not None:
+                raise HashDiscarded('Matches group tombstone %s' % h.group_tombstone_id)
 
         # XXX(dcramer): this has the opportunity to create duplicate groups
         # it should be resolved by the hash merging function later but this
@@ -815,22 +848,41 @@ class EventManager(object):
 
             group_is_new = False
 
+        # Keep a set of all of the hashes that are relevant for this event and
+        # belong to the destination group so that we can record this as the
+        # last processed event for each. (We can't just update every
+        # ``GroupHash`` instance, since we only want to record this for events
+        # that not only include the hash but were also placed into the
+        # associated group.)
+        relevant_group_hashes = set(
+            [instance for instance in all_hashes if instance.group_id == group.id])
+
         # If all hashes are brand new we treat this event as new
         is_new = False
-        new_hashes = [h[1] for h in all_hashes if h[0] is None]
+        new_hashes = [h for h in all_hashes if h.group_id is None]
         if new_hashes:
-            affected = GroupHash.objects.filter(
-                project=project,
-                hash__in=new_hashes,
-                group__isnull=True,
-            ).update(
-                group=group,
-            )
+            # XXX: There is a race condition here wherein another process could
+            # create a new group that is associated with one of the new hashes,
+            # add some event(s) to it, and then subsequently have the hash
+            # "stolen" by this process. This then "orphans" those events from
+            # their "siblings" in the group we've created here. We don't have a
+            # way to fix this, since we can't call `_ensure_hashes_merged`
+            # without filtering on `group_id` (which we can't do due to query
+            # planner weirdness.) For more context, see 84c6f75a and d0e22787,
+            # as well as GH-5085.
+            GroupHash.objects.filter(
+                id__in=[h.id for h in new_hashes],
+            ).exclude(
+                state=GroupHash.State.LOCKED_IN_MIGRATION,
+            ).update(group=group)
 
-            if affected != len(new_hashes):
-                self._ensure_hashes_merged(group, new_hashes)
-            elif group_is_new and len(new_hashes) == len(all_hashes):
+            if group_is_new and len(new_hashes) == len(all_hashes):
                 is_new = True
+
+            # XXX: This can lead to invalid results due to a race condition and
+            # lack of referential integrity enforcement, see above comment(s)
+            # about "hash stealing".
+            relevant_group_hashes.update(new_hashes)
 
         # XXX(dcramer): it's important this gets called **before** the aggregate
         # is processed as otherwise values like last_seen will get mutated
@@ -859,24 +911,23 @@ class EventManager(object):
         else:
             is_sample = can_sample
 
+        if not is_sample:
+            GroupHash.record_last_processed_event_id(
+                project.id,
+                [h.id for h in relevant_group_hashes],
+                event.event_id,
+            )
+
         return group, is_new, is_regression, is_sample
 
     def _handle_regression(self, group, event, release):
         if not group.is_resolved():
             return
 
-        elif release:
-            # we only mark it as a regression if the event's release is newer than
-            # the release which we originally marked this as resolved
-            has_resolution = GroupResolution.objects.filter(
-                Q(release__date_added__gt=release.date_added) | Q(release=release),
-                group=group,
-            ).exists()
-            if has_resolution:
-                return
-
-        else:
-            has_resolution = False
+        # we only mark it as a regression if the event's release is newer than
+        # the release which we originally marked this as resolved
+        elif GroupResolution.has_resolution(group, release):
+            return
 
         if not plugin_is_regression(group, event):
             return

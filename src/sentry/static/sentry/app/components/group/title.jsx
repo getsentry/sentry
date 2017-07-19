@@ -2,7 +2,7 @@ import React from 'react';
 
 const GroupTitle = React.createClass({
   propTypes: {
-    data: React.PropTypes.object.isRequired,
+    data: React.PropTypes.object.isRequired
   },
 
   render() {
@@ -23,12 +23,12 @@ const GroupTitle = React.createClass({
       return (
         <span>
           <span style={{marginRight: 10}}>{title}</span>
-          <em>{subtitle}</em><br/>
+          <em>{subtitle}</em><br />
         </span>
       );
     }
     return <span>{title}</span>;
-  },
+  }
 });
 
 export default GroupTitle;

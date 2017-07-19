@@ -6,9 +6,12 @@ from rest_framework.response import Response
 
 from sentry.api.base import DocSection
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
-from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.api.exceptions import InvalidRepository, ResourceDoesNotExist
 from sentry.api.serializers import serialize
-from sentry.api.serializers.rest_framework import CommitSerializer, ListField
+from sentry.api.serializers.rest_framework import (
+    CommitSerializer, ListField, ReleaseHeadCommitSerializerDeprecated,
+    ReleaseHeadCommitSerializer,
+)
 from sentry.models import Activity, Group, Release, ReleaseFile
 from sentry.utils.apidocs import scenario, attach_scenarios
 
@@ -42,9 +45,18 @@ def update_organization_release_scenario(runner):
 class ReleaseSerializer(serializers.Serializer):
     ref = serializers.CharField(max_length=64, required=False)
     url = serializers.URLField(required=False)
-    dateStarted = serializers.DateTimeField(required=False)
     dateReleased = serializers.DateTimeField(required=False)
-    commits = ListField(child=CommitSerializer(), required=False)
+    commits = ListField(child=CommitSerializer(), required=False, allow_null=False)
+    headCommits = ListField(
+        child=ReleaseHeadCommitSerializerDeprecated(),
+        required=False,
+        allow_null=False
+    )
+    refs = ListField(
+        child=ReleaseHeadCommitSerializer(),
+        required=False,
+        allow_null=False,
+    )
 
 
 class OrganizationReleaseDetailsEndpoint(OrganizationReleasesBaseEndpoint):
@@ -93,11 +105,20 @@ class OrganizationReleaseDetailsEndpoint(OrganizationReleasesBaseEndpoint):
         :param url url: a URL that points to the release.  This can be the
                         path to an online interface to the sourcecode
                         for instance.
-        :param datetime dateStarted: an optional date that indicates when the
-                                     release process started.
         :param datetime dateReleased: an optional date that indicates when
                                       the release went live.  If not provided
                                       the current time is assumed.
+        :param array commits: an optional list of commit data to be associated
+                              with the release. Commits must include parameters
+                              ``id`` (the sha of the commit), and can optionally
+                              include ``repository``, ``message``, ``author_name``,
+                              ``author_email``, and ``timestamp``.
+        :param array refs: an optional way to indicate the start and end commits
+                           for each repository included in a release. Head commits
+                           must include parameters ``repository`` and ``commit``
+                           (the HEAD sha). They can optionally include ``previousCommit``
+                           (the sha of the HEAD of the previous release), which should
+                           be specified if this is the first time you've sent commit data.
         :auth: required
         """
         try:
@@ -121,8 +142,6 @@ class OrganizationReleaseDetailsEndpoint(OrganizationReleasesBaseEndpoint):
         was_released = bool(release.date_released)
 
         kwargs = {}
-        if result.get('dateStarted'):
-            kwargs['date_started'] = result['dateStarted']
         if result.get('dateReleased'):
             kwargs['date_released'] = result['dateReleased']
         if result.get('ref'):
@@ -138,16 +157,35 @@ class OrganizationReleaseDetailsEndpoint(OrganizationReleasesBaseEndpoint):
             # TODO(dcramer): handle errors with release payloads
             release.set_commits(commit_list)
 
+        refs = result.get('refs')
+        if not refs:
+            refs = [{
+                'repository': r['repository'],
+                'previousCommit': r.get('previousId'),
+                'commit': r['currentId'],
+            } for r in result.get('headCommits', [])]
+        if refs:
+            if not request.user.is_authenticated():
+                return Response({
+                    'refs': ['You must use an authenticated API token to fetch refs']
+                }, status=400)
+            fetch_commits = not commit_list
+            try:
+                release.set_refs(refs, request.user, fetch=fetch_commits)
+            except InvalidRepository as exc:
+                return Response({
+                    'refs': [exc.message]
+                }, status=400)
+
         if (not was_released and release.date_released):
             for project in release.projects.all():
-                activity = Activity.objects.create(
+                Activity.objects.create(
                     type=Activity.RELEASE,
                     project=project,
                     ident=release.version,
                     data={'version': release.version},
                     datetime=release.date_released,
                 )
-            activity.send_notification()
 
         return Response(serialize(release, request.user))
 

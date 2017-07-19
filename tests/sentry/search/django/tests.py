@@ -72,15 +72,15 @@ class DjangoSearchBackendTest(TestCase):
 
         for key, value in self.event1.data['tags']:
             GroupTagValue.objects.create(
-                project=self.group1.project,
-                group=self.group1,
+                project_id=self.group1.project_id,
+                group_id=self.group1.id,
                 key=key,
                 value=value,
             )
         for key, value in self.event2.data['tags']:
             GroupTagValue.objects.create(
-                project=self.group2.project,
-                group=self.group2,
+                project_id=self.group2.project_id,
+                group_id=self.group2.id,
                 key=key,
                 value=value,
             )
@@ -156,7 +156,9 @@ class DjangoSearchBackendTest(TestCase):
         results = self.backend.query(self.project1, tags={'env': ANY})
         assert len(results) == 2
 
-        results = self.backend.query(self.project1, tags={'env': 'staging', 'server': 'example.com'})
+        results = self.backend.query(
+            self.project1, tags={
+                'env': 'staging', 'server': 'example.com'})
         assert len(results) == 1
         assert results[0] == self.group2
 
@@ -164,7 +166,11 @@ class DjangoSearchBackendTest(TestCase):
         assert len(results) == 1
         assert results[0] == self.group2
 
-        results = self.backend.query(self.project1, tags={'env': 'staging', 'server': 'bar.example.com'})
+        results = self.backend.query(
+            self.project1,
+            tags={
+                'env': 'staging',
+                'server': 'bar.example.com'})
         assert len(results) == 0
 
     def test_bookmarked_by(self):

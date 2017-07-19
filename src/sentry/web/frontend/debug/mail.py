@@ -2,19 +2,19 @@ from __future__ import absolute_import, print_function
 
 import itertools
 import logging
+import six
 import time
 import traceback
 import uuid
-from datetime import datetime, timedelta
-from random import Random
 
-import six
-from django.contrib.webdesign.lorem_ipsum import WORDS
+from datetime import datetime, timedelta
 from django.core.urlresolvers import reverse
 from django.template.defaultfilters import slugify
 from django.utils import timezone
 from django.utils.safestring import mark_safe
 from django.views.generic import View
+from loremipsum import Generator
+from random import Random
 
 from sentry.app import tsdb
 from sentry.constants import LOG_LEVELS
@@ -36,6 +36,8 @@ from sentry.web.helpers import render_to_response, render_to_string
 
 logger = logging.getLogger(__name__)
 
+loremipsum = Generator()
+
 
 def get_random(request):
     seed = request.GET.get('seed', six.text_type(time.time()))
@@ -45,17 +47,17 @@ def get_random(request):
 def make_message(random, length=None):
     if length is None:
         length = int(random.weibullvariate(8, 3))
-    return ' '.join(random.choice(WORDS) for _ in range(length))
+    return ' '.join(random.choice(loremipsum.words) for _ in range(length))
 
 
 def make_culprit(random):
     def make_module_path_components(min, max):
         for _ in range(random.randint(min, max)):
-            yield ''.join(random.sample(WORDS, random.randint(1, int(random.paretovariate(2.2)))))
+            yield ''.join(random.sample(loremipsum.words, random.randint(1, int(random.paretovariate(2.2)))))
 
     return '{module} in {function}'.format(
         module='.'.join(make_module_path_components(1, 4)),
-        function=random.choice(WORDS)
+        function=random.choice(loremipsum.words,)
     )
 
 
@@ -64,11 +66,15 @@ def make_group_metadata(random, group):
         'type': 'error',
         'metadata': {
             'type': '{}Error'.format(
-                ''.join(word.title() for word in random.sample(WORDS, random.randint(1, 3))),
+                ''.join(
+                    word.title() for word in random.sample(
+                        loremipsum.words,
+                        random.randint(
+                            1,
+                            3))),
             ),
             'value': make_message(random),
-        }
-    }
+        }}
 
 
 def make_group_generator(random, project):
@@ -411,10 +417,7 @@ def report(request):
     projects = []
     for i in xrange(0, random.randint(1, 8)):
         name = ' '.join(
-            random.sample(
-                WORDS,
-                random.randint(1, 4)
-            )
+            random.sample(loremipsum.words, random.randint(1, 4))
         )
         projects.append(
             Project(
@@ -445,7 +448,6 @@ def report(request):
                     random.choice('0123456789abcdef') for _ in range(40)
                 ]),
                 date_added=dt,
-                date_started=dt,
             )
 
     def build_issue_summaries():
@@ -494,8 +496,12 @@ def report(request):
         ) for i in xrange(0, 7)]
 
         aggregates = [
-            random.randint(0, daily_maximum * 7) if random.random() < 0.9 else None for _ in xrange(0, 4)
-        ]
+            random.randint(
+                0,
+                daily_maximum *
+                7) if random.random() < 0.9 else None for _ in xrange(
+                0,
+                4)]
 
         return reports.Report(
             series,
@@ -651,6 +657,8 @@ def recover_account(request):
                 args=[request.user.id, 'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX']
             )),
             'domain': get_server_hostname(),
+            'ip_address': request.META['REMOTE_ADDR'],
+            'datetime': timezone.now(),
         },
     ).render(request)
 

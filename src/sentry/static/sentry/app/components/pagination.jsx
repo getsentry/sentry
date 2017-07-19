@@ -1,24 +1,41 @@
 import React from 'react';
 import utils from '../utils';
-import {Link} from 'react-router';
+import {browserHistory} from 'react-router';
 import {t} from '../locale';
 
-const Pagination = React.createClass({
+export default React.createClass({
   propTypes: {
     pageLinks: React.PropTypes.string,
-    to: React.PropTypes.string
+    to: React.PropTypes.string,
+    onCursor: React.PropTypes.func
   },
 
   contextTypes: {
     location: React.PropTypes.object
   },
 
-  render(){
-    if (!this.props.pageLinks) {
+  getDefaultProps() {
+    return {
+      onCursor: (cursor, path, query) => {
+        browserHistory.pushState(null, path, {
+          ...query,
+          cursor: cursor
+        });
+      }
+    };
+  },
+
+  render() {
+    let {onCursor, pageLinks} = this.props;
+    if (!pageLinks) {
       return null;
     }
 
-    let links = utils.parseLinkHeader(this.props.pageLinks);
+    let location = this.context.location;
+    let path = this.props.to || location.pathname;
+    let query = location.query;
+
+    let links = utils.parseLinkHeader(pageLinks);
 
     let previousPageClassName = 'btn btn-default btn-lg prev';
     if (links.previous.results === false) {
@@ -30,31 +47,27 @@ const Pagination = React.createClass({
       nextPageClassName += ' disabled';
     }
 
-    let location = this.context.location;
     return (
       <div className="stream-pagination">
         <div className="btn-group pull-right">
-          <Link
-            to={{
-              pathname: this.props.to || location.pathname,
-              query: {...location.query, cursor: links.previous.cursor}
+          <a
+            onClick={() => {
+              onCursor(links.previous.cursor, path, query);
             }}
             className={previousPageClassName}
             disabled={links.previous.results === false}>
-            <span title={t('Previous')} className="icon-arrow-left"></span>
-          </Link>
-          <Link to={{
-              pathname: this.props.to || location.pathname,
-              query: {...location.query, cursor: links.next.cursor}
+            <span title={t('Previous')} className="icon-arrow-left" />
+          </a>
+          <a
+            onClick={() => {
+              onCursor(links.next.cursor, path, query);
             }}
             className={nextPageClassName}
             disabled={links.next.results === false}>
-            <span title={t('Next')} className="icon-arrow-right"></span>
-          </Link>
+            <span title={t('Next')} className="icon-arrow-right" />
+          </a>
         </div>
       </div>
     );
   }
 });
-
-export default Pagination;

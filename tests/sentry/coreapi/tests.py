@@ -25,7 +25,7 @@ class BaseAPITest(TestCase):
         self.team = self.create_team(name='Foo')
         self.project = self.create_project(team=self.team)
         self.pk = self.project.key_set.get_or_create()[0]
-        self.helper = self.helper_cls(agent='Awesome Browser', ip_address='69.69.69.69')
+        self.helper = self.helper_cls(agent='Awesome Browser', ip_address='198.51.100.0')
 
 
 class AuthFromRequestTest(BaseAPITest):
@@ -369,6 +369,49 @@ class ValidateDataTest(BaseAPITest):
         })
         assert data.get('release') == '42'
 
+    def test_distribution_too_long(self):
+        data = self.helper.validate_data(self.project, {
+            'release': 'a' * 62,
+            'dist': 'b' * 65,
+        })
+        assert not data.get('dist')
+        assert len(data['errors']) == 1
+        assert data['errors'][0]['type'] == 'value_too_long'
+        assert data['errors'][0]['name'] == 'dist'
+        assert data['errors'][0]['value'] == 'b' * 65
+
+    def test_distribution_bad_char(self):
+        data = self.helper.validate_data(self.project, {
+            'release': 'a' * 62,
+            'dist': '^%',
+        })
+        assert not data.get('dist')
+        assert len(data['errors']) == 1
+        assert data['errors'][0]['type'] == 'invalid_data'
+        assert data['errors'][0]['name'] == 'dist'
+        assert data['errors'][0]['value'] == '^%'
+
+    def test_distribution_strip(self):
+        data = self.helper.validate_data(self.project, {
+            'release': 'a' * 62,
+            'dist': ' foo ',
+        })
+        assert data.get('dist') == 'foo'
+
+    def test_distribution_as_non_string(self):
+        data = self.helper.validate_data(self.project, {
+            'release': '42',
+            'dist': 23,
+        })
+        assert data.get('release') == '42'
+        assert data.get('dist') == '23'
+
+    def test_distribution_no_release(self):
+        data = self.helper.validate_data(self.project, {
+            'dist': 23,
+        })
+        assert data.get('dist') is None
+
     def test_valid_platform(self):
         data = self.helper.validate_data(self.project, {
             'platform': 'python',
@@ -568,7 +611,7 @@ class CspApiHelperTest(BaseAPITest):
             ('effective-directive', 'img-src'),
             ('blocked-uri', 'http://google.com'),
         ]
-        assert result['sentry.interfaces.User'] == {'ip_address': '69.69.69.69'}
+        assert result['sentry.interfaces.User'] == {'ip_address': '198.51.100.0'}
         assert result['sentry.interfaces.Http'] == {
             'url': 'http://45.55.25.245:8123/csp',
             'headers': {
@@ -589,12 +632,12 @@ class CspApiHelperTest(BaseAPITest):
             "violated-directive": "img-src https://45.55.25.245:8123/",
             "effective-directive": "img-src",
             "original-policy": "default-src  https://45.55.25.245:8123/; child-src  https://45.55.25.245:8123/; connect-src  https://45.55.25.245:8123/; font-src  https://45.55.25.245:8123/; img-src  https://45.55.25.245:8123/; media-src  https://45.55.25.245:8123/; object-src  https://45.55.25.245:8123/; script-src  https://45.55.25.245:8123/; style-src  https://45.55.25.245:8123/; form-action  https://45.55.25.245:8123/; frame-ancestors 'none'; plugin-types 'none'; report-uri http://45.55.25.245:8123/csp-report?os=OS%20X&device=&browser_version=43.0&browser=chrome&os_version=Lion",
-            "blocked-uri": "v" * 201,
+            "blocked-uri": "v" *
+            201,
             "status-code": 200,
             "_meta": {
                 "release": "abc123",
-            }
-        }
+            }}
         result = self.helper.validate_data(self.project, report)
         assert result['tags'] == [
             ('effective-directive', 'img-src'),
@@ -625,14 +668,14 @@ class CspApiHelperTest(BaseAPITest):
             "document-uri": "http://45.55.25.245:8123/csp",
             "referrer": "http://example.com",
             "violated-directive": "img-src https://45.55.25.245:8123/",
-            "effective-directive": "v" * 201,
+            "effective-directive": "v" *
+            201,
             "original-policy": "default-src  https://45.55.25.245:8123/; child-src  https://45.55.25.245:8123/; connect-src  https://45.55.25.245:8123/; font-src  https://45.55.25.245:8123/; img-src  https://45.55.25.245:8123/; media-src  https://45.55.25.245:8123/; object-src  https://45.55.25.245:8123/; script-src  https://45.55.25.245:8123/; style-src  https://45.55.25.245:8123/; form-action  https://45.55.25.245:8123/; frame-ancestors 'none'; plugin-types 'none'; report-uri http://45.55.25.245:8123/csp-report?os=OS%20X&device=&browser_version=43.0&browser=chrome&os_version=Lion",
             "blocked-uri": "http://google.com\n",
             "status-code": 200,
             "_meta": {
                 "release": "abc123",
-            }
-        }
+            }}
         result = self.helper.validate_data(self.project, report)
         assert 'tags' not in result
         assert len(result['errors']) == 2

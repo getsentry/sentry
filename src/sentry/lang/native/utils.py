@@ -3,20 +3,14 @@ from __future__ import absolute_import
 import six
 import logging
 
-from symsynd.macho.arch import get_cpu_name
+from collections import namedtuple
+from symsynd import get_cpu_name, parse_addr
 
 from sentry.interfaces.contexts import DeviceContextType
 
 
 logger = logging.getLogger(__name__)
 
-
-APPLE_SDK_MAPPING = {
-    'iPhone OS': 'iOS',
-    'tvOS': 'tvOS',
-    'Mac OS': 'macOS',
-    'watchOS': 'watchOS',
-}
 
 KNOWN_DSYM_TYPES = {
     'iOS': 'macho',
@@ -25,23 +19,7 @@ KNOWN_DSYM_TYPES = {
     'watchOS': 'macho',
 }
 
-
-def find_apple_crash_report_referenced_images(binary_images, threads):
-    """Given some binary images from an apple crash report and a thread
-    list this returns a list of image UUIDs to load.
-    """
-    image_map = {}
-    for image in binary_images:
-        image_map[image['image_addr']] = image['uuid']
-    to_load = set()
-    for thread in threads:
-        if 'backtrace' not in thread:
-            continue
-        for frame in thread['backtrace']['contents']:
-            img_uuid = image_map.get(frame['object_addr'])
-            if img_uuid is not None:
-                to_load.add(img_uuid)
-    return list(to_load)
+AppInfo = namedtuple('AppInfo', ['id', 'version', 'build', 'name'])
 
 
 def find_all_stacktraces(data):
@@ -90,9 +68,6 @@ def get_sdk_from_event(event):
 def get_sdk_from_os(data):
     if 'name' not in data or 'version' not in data:
         return
-    dsym_type = KNOWN_DSYM_TYPES.get(data['name'])
-    if dsym_type is None:
-        return
     try:
         system_version = tuple(int(x) for x in (
             data['version'] + '.0' * 3).split('.')[:3])
@@ -100,34 +75,11 @@ def get_sdk_from_os(data):
         return
 
     return {
-        'dsym_type': 'macho',
         'sdk_name': data['name'],
         'version_major': system_version[0],
         'version_minor': system_version[1],
         'version_patchlevel': system_version[2],
-    }
-
-
-def get_sdk_from_apple_system_info(info):
-    if not info:
-        return None
-    try:
-        # Support newer mapping in old format.
-        if info['system_name'] in KNOWN_DSYM_TYPES:
-            sdk_name = info['system_name']
-        else:
-            sdk_name = APPLE_SDK_MAPPING[info['system_name']]
-        system_version = tuple(int(x) for x in (
-            info['system_version'] + '.0' * 3).split('.')[:3])
-    except (ValueError, LookupError):
-        return None
-
-    return {
-        'dsym_type': 'macho',
-        'sdk_name': sdk_name,
-        'version_major': system_version[0],
-        'version_minor': system_version[1],
-        'version_patchlevel': system_version[2],
+        'build': data.get('build'),
     }
 
 
@@ -152,3 +104,39 @@ def cpu_name_from_data(data):
             break
 
     return unique_cpu_name
+
+
+def version_build_from_data(data):
+    """Returns release and build string from the given data if it exists."""
+    app_context = data.get('contexts', {}).get('app', {})
+    if app_context is not None:
+        if (app_context.get('app_identifier', None) and
+                app_context.get('app_version', None) and
+                app_context.get('app_build', None) and
+                app_context.get('app_name', None)):
+            return AppInfo(
+                app_context.get('app_identifier', None),
+                app_context.get('app_version', None),
+                app_context.get('app_build', None),
+                app_context.get('app_name', None),
+            )
+    return None
+
+
+def rebase_addr(instr_addr, img):
+    return parse_addr(instr_addr) - parse_addr(img['image_addr'])
+
+
+def sdk_info_to_sdk_id(sdk_info):
+    if sdk_info is None:
+        return None
+    rv = '%s_%d.%d.%d' % (
+        sdk_info['sdk_name'],
+        sdk_info['version_major'],
+        sdk_info['version_minor'],
+        sdk_info['version_patchlevel'],
+    )
+    build = sdk_info.get('build')
+    if build is not None:
+        rv = '%s_%s' % (rv, build)
+    return rv

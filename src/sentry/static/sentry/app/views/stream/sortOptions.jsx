@@ -20,13 +20,16 @@ const SortOptions = React.createClass({
 
   componentWillReceiveProps(nextProps) {
     this.setState({
-      sortKey: nextProps.sort || 'date',
+      sortKey: nextProps.sort || 'date'
     });
   },
 
   getMenuItem(key) {
     return (
-      <MenuItem onSelect={this.onSelect} eventKey={key} isActive={this.state.sortKey === key}>
+      <MenuItem
+        onSelect={this.onSelect}
+        eventKey={key}
+        isActive={this.state.sortKey === key}>
         {this.getSortLabel(key)}
       </MenuItem>
     );
@@ -62,9 +65,7 @@ const SortOptions = React.createClass({
     );
 
     return (
-      <DropdownLink
-          btnGroup={true}
-          title={dropdownTitle}>
+      <DropdownLink btnGroup={true} title={dropdownTitle}>
         {this.getMenuItem('priority')}
         {this.getMenuItem('date')}
         {this.getMenuItem('new')}
@@ -75,4 +76,3 @@ const SortOptions = React.createClass({
 });
 
 export default SortOptions;
-

@@ -3,7 +3,6 @@ from __future__ import absolute_import
 from time import time
 
 from django.conf import settings
-from django.core.urlresolvers import reverse
 
 from sentry import options
 from sentry.utils.http import absolute_uri
@@ -35,6 +34,6 @@ class CeleryAliveCheck(StatusCheck):
         return [
             Problem(
                 message,
-                url=absolute_uri(reverse('sentry-admin-queue')),
+                url=absolute_uri('/manage/queue/'),
             ),
         ]

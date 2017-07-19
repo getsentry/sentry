@@ -24,10 +24,7 @@ const ReleaseDetails = React.createClass({
     release: React.PropTypes.object
   },
 
-  mixins: [
-    ApiMixin,
-    ProjectState
-  ],
+  mixins: [ApiMixin, ProjectState],
 
   getInitialState() {
     return {
@@ -62,12 +59,13 @@ const ReleaseDetails = React.createClass({
     });
 
     this.api.request(this.getReleaseDetailsEndpoint(), {
-      success: (data) => {
+      success: data => {
         this.setState({
           loading: false,
           release: data
         });
-      }, error: () => {
+      },
+      error: () => {
         this.setState({
           loading: false,
           error: true
@@ -82,14 +80,20 @@ const ReleaseDetails = React.createClass({
     let projectId = params.projectId;
     let version = params.version;
 
-    return '/projects/' + orgId + '/' + projectId + '/releases/' + encodeURIComponent(version) + '/';
+    return (
+      '/projects/' +
+      orgId +
+      '/' +
+      projectId +
+      '/releases/' +
+      encodeURIComponent(version) +
+      '/'
+    );
   },
 
   render() {
-    if (this.state.loading)
-      return <LoadingIndicator />;
-    else if (this.state.error)
-      return <LoadingError onRetry={this.fetchData} />;
+    if (this.state.loading) return <LoadingIndicator />;
+    else if (this.state.error) return <LoadingError onRetry={this.fetchData} />;
 
     let release = this.state.release;
     let {orgId, projectId} = this.props.params;
@@ -99,58 +103,86 @@ const ReleaseDetails = React.createClass({
           <div className="release-details">
             <div className="row">
               <div className="col-sm-4 col-xs-12">
-                <h3>{t('Release')} <strong><Version orgId={orgId} projectId={projectId} version={release.version} anchor={false} /></strong></h3>
+                <h3>
+                  {t('Release')}
+                  {' '}
+                  <strong>
+                    <Version
+                      orgId={orgId}
+                      projectId={projectId}
+                      version={release.version}
+                      anchor={false}
+                    />
+                  </strong>
+                </h3>
                 <div className="release-meta">
-                  <span className="icon icon-clock"></span> <TimeSince date={release.dateCreated} />
+                  <span className="icon icon-clock" />
+                  {' '}
+                  <TimeSince date={release.dateCreated} />
                 </div>
               </div>
               <div className="col-sm-2 hidden-xs">
-                <ReleaseStats release={release}/>
+                <ReleaseStats release={release} />
               </div>
               <div className="col-sm-2 hidden-xs">
                 <div className="release-stats">
                   <h6 className="nav-header">{t('New Issues')}</h6>
-                  <span className="stream-count"><Count value={release.newGroups} /></span>
+                  <span className="stream-count">
+                    <Count value={release.newGroups} />
+                  </span>
                 </div>
               </div>
               <div className="col-sm-2 hidden-xs">
                 <div className="release-stats">
                   <h6 className="nav-header">{t('First Event')}</h6>
-                  {release.firstEvent ?
-                    <span className="stream-count"><TimeSince date={release.firstEvent} /></span>
-                  :
-                    <span>&mdash;</span>
-                  }
+                  {release.firstEvent
+                    ? <span className="stream-count">
+                        <TimeSince date={release.firstEvent} />
+                      </span>
+                    : <span>—</span>}
                 </div>
               </div>
               <div className="col-sm-2 hidden-xs">
                 <div className="release-stats">
                   <h6 className="nav-header">{t('Last Event')}</h6>
-                  {release.lastEvent ?
-                    <span className="stream-count"><TimeSince date={release.lastEvent} /></span>
-                  :
-                    <span>&mdash;</span>
-                  }
+                  {release.lastEvent
+                    ? <span className="stream-count">
+                        <TimeSince date={release.lastEvent} />
+                      </span>
+                    : <span>—</span>}
                 </div>
               </div>
             </div>
             <ul className="nav nav-tabs">
-              <ListLink to={`/${orgId}/${projectId}/releases/${encodeURIComponent(release.version)}/`} isActive={(loc) => {
-                // react-router isActive will return true for any route that is part of the active route
-                // e.g. parent routes. To avoid matching on sub-routes, insist on strict path equality.
-                return loc.pathname === this.props.location.pathname;
-              }}>{t('New Issues')}</ListLink>
-              <ListLink to={`/${orgId}/${projectId}/releases/${encodeURIComponent(release.version)}/all-events/`}>{t('All Issues')}</ListLink>
-              <ListLink to={`/${orgId}/${projectId}/releases/${encodeURIComponent(release.version)}/artifacts/`}>{t('Artifacts')}</ListLink>
-
-              {(new Set(this.context.organization.features)).has('release-commits') &&
-                <ListLink
-                  to={`/${orgId}/${projectId}/releases/${encodeURIComponent(release.version)}/commits/`}>{t('Commits')}</ListLink>
-              }
+              <ListLink
+                to={`/${orgId}/${projectId}/releases/${encodeURIComponent(release.version)}/`}
+                isActive={loc => {
+                  // react-router isActive will return true for any route that is part of the active route
+                  // e.g. parent routes. To avoid matching on sub-routes, insist on strict path equality.
+                  return loc.pathname === this.props.location.pathname;
+                }}>
+                {t('Overview')}
+              </ListLink>
+              <ListLink
+                to={`/${orgId}/${projectId}/releases/${encodeURIComponent(release.version)}/new-events/`}>
+                {t('New Issues')}
+              </ListLink>
+              <ListLink
+                to={`/${orgId}/${projectId}/releases/${encodeURIComponent(release.version)}/all-events/`}>
+                {t('All Issues')}
+              </ListLink>
+              <ListLink
+                to={`/${orgId}/${projectId}/releases/${encodeURIComponent(release.version)}/artifacts/`}>
+                {t('Artifacts')}
+              </ListLink>
+              <ListLink
+                to={`/${orgId}/${projectId}/releases/${encodeURIComponent(release.version)}/commits/`}>
+                {t('Commits')}
+              </ListLink>
             </ul>
           </div>
           {React.cloneElement(this.props.children, {
-            release: release,
+            release: release
           })}
         </div>
       </DocumentTitle>

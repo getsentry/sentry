@@ -25,7 +25,7 @@ const TemplateInterface = React.createClass({
         title={<div>{t('Template')}</div>}>
         <div className="traceback no-exception">
           <ul>
-            <Frame data={this.props.data} isExpanded={true}/>
+            <Frame data={this.props.data} isExpanded={true} />
           </ul>
         </div>
       </GroupEventDataSection>

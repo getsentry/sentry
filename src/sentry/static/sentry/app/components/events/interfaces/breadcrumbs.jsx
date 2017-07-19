@@ -8,7 +8,7 @@ function Collapsed(props) {
   return (
     <li className="crumbs-collapsed">
       <span className="icon-container">
-        <span className="icon icon-ellipsis"/>
+        <span className="icon icon-ellipsis" />
       </span>
       <a onClick={props.onClick}>Show {props.count} collapsed crumbs</a>
     </li>
@@ -65,15 +65,22 @@ const BreadcrumbsInterface = React.createClass({
   renderBreadcrumbs(crumbs) {
     // reverse array to get consistent idx between collapsed/expanded state
     // (indexes begin and increment from last breadcrumb)
-    return crumbs.reverse().map((item, idx) => {
-      return <Breadcrumb key={idx} crumb={item} />;
-    }).reverse(); // un-reverse rendered result
+    return crumbs
+      .reverse()
+      .map((item, idx) => {
+        return <Breadcrumb key={idx} crumb={item} />;
+      })
+      .reverse(); // un-reverse rendered result
   },
 
   renderNoMatch() {
     return (
       <li className="crumb-empty">
-        <p><span className="icon icon-exclamation" /> {t('Sorry, no breadcrumbs match your search query.')}</p>
+        <p>
+          <span className="icon icon-exclamation" />
+          {' '}
+          {t('Sorry, no breadcrumbs match your search query.')}
+        </p>
       </li>
     );
   },
@@ -141,20 +148,21 @@ const BreadcrumbsInterface = React.createClass({
   getSearchField() {
     return (
       <div className="breadcrumb-filter">
-        <input type="text" className="search-input form-control"
+        <input
+          type="text"
+          className="search-input form-control"
           placeholder={t('Search breadcrumbs...')}
           autoComplete="off"
           value={this.state.queryValue}
           onChange={this.setQuery}
-          />
+        />
         <span className="icon-search" />
         {this.state.queryValue &&
           <div>
             <a className="search-clear-form" onClick={this.clearSearch}>
               <span className="icon-circle-cross" />
             </a>
-          </div>
-        }
+          </div>}
       </div>
     );
   },
@@ -184,9 +192,7 @@ const BreadcrumbsInterface = React.createClass({
 
     // filter breadcrumbs on text input
     let {queryValue} = this.state;
-    let filtered = queryValue
-      ? this.filterCrumbs(all, queryValue.toLowerCase())
-        : all;
+    let filtered = queryValue ? this.filterCrumbs(all, queryValue.toLowerCase()) : all;
 
     // cap max number of breadcrumbs to show
     const MAX = BreadcrumbsInterface.MAX_CRUMBS_WHEN_COLLAPSED;
@@ -205,14 +211,15 @@ const BreadcrumbsInterface = React.createClass({
     }
     return (
       <GroupEventDataSection
-          className="breadcrumb-box"
-          group={group}
-          event={evt}
-          type={this.props.type}
-          title={title}
-          wrapTitle={false}>
+        className="breadcrumb-box"
+        group={group}
+        event={evt}
+        type={this.props.type}
+        title={title}
+        wrapTitle={false}>
         <ul className="crumbs">
-          {numCollapsed > 0 && <Collapsed onClick={this.onCollapseToggle} count={numCollapsed}/>}
+          {numCollapsed > 0 &&
+            <Collapsed onClick={this.onCollapseToggle} count={numCollapsed} />}
           {crumbContent}
         </ul>
       </GroupEventDataSection>

@@ -5,7 +5,6 @@ import {Client} from 'app/api';
 import ProjectInstallPlatform from 'app/views/projectInstall/platform';
 
 describe('ProjectInstallPlatform', function() {
-
   beforeEach(function() {
     this.sandbox = sinon.sandbox.create();
 
@@ -20,28 +19,36 @@ describe('ProjectInstallPlatform', function() {
     const baseProps = {
       location: {query: {}},
       platformData: {
-        platforms: [{
-          id: 'csharp',
-          name: 'C#',
-          integrations: [{
+        platforms: [
+          {
             id: 'csharp',
-            type: 'language'
-          }]
-        }, {
-          id: 'node',
-          name: 'Node.js',
-          integrations: [{
+            name: 'C#',
+            integrations: [
+              {
+                id: 'csharp',
+                type: 'language'
+              }
+            ]
+          },
+          {
             id: 'node',
-            type: 'language'
-          }, {
-            id: 'node-connect',
-            type: 'framework'
-          }]
-        }]
+            name: 'Node.js',
+            integrations: [
+              {
+                id: 'node',
+                type: 'language'
+              },
+              {
+                id: 'node-connect',
+                type: 'framework'
+              }
+            ]
+          }
+        ]
       }
     };
 
-    it('should render NotFound if no matching integration/platform', function () {
+    it('should render NotFound if no matching integration/platform', function() {
       let props = {
         ...baseProps,
         params: {
@@ -49,14 +56,14 @@ describe('ProjectInstallPlatform', function() {
         }
       };
 
-      let wrapper = shallow(<ProjectInstallPlatform {...props}/>, {
+      let wrapper = shallow(<ProjectInstallPlatform {...props} />, {
         organization: {id: '1337'}
       });
 
-      expect(wrapper.find('NotFound')).to.have.length(1);
+      expect(wrapper.find('NotFound')).toHaveLength(1);
     });
 
-    it('should rendering Loading if integration/platform exists', function () {
+    it('should rendering Loading if integration/platform exists', function() {
       let props = {
         ...baseProps,
         params: {
@@ -64,11 +71,11 @@ describe('ProjectInstallPlatform', function() {
         }
       };
 
-      let wrapper = shallow(<ProjectInstallPlatform {...props}/>, {
+      let wrapper = shallow(<ProjectInstallPlatform {...props} />, {
         organization: {id: '1337'}
       });
 
-      expect(wrapper.find('LoadingIndicator')).to.have.length(1);
+      expect(wrapper.find('LoadingIndicator')).toHaveLength(1);
     });
   });
 });

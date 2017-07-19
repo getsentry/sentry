@@ -19,7 +19,7 @@ class EventTag(Model):
     key_id = BoundedBigIntegerField()
     value_id = BoundedBigIntegerField()
     # maintain a date column for easy removal
-    date_added = models.DateTimeField(default=timezone.now)
+    date_added = models.DateTimeField(default=timezone.now, db_index=True)
 
     class Meta:
         app_label = 'sentry'
