@@ -8,8 +8,7 @@ class CreateOrganizationTest(AcceptanceTestCase):
         super(CreateOrganizationTest, self).setUp()
         self.user = self.create_user('foo@example.com')
         self.login_as(self.user)
-        self.path = '/organizations/%s/onboarding/' % self.org.slug
 
     def test_simple(self):
-        self.browser.get(self.path)
+        self.browser.get('/organizations/%s/onboarding/' % self.org.slug)
         self.browser.snapshot(name='organization onboarding')

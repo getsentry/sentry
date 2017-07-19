@@ -107,8 +107,6 @@ test-cli:
 	@echo ""
 
 test-js:
-	@echo "--> Building python assets"
-	$(MAKE) install-python
 	@echo "--> Building static assets"
 	@${NPM_ROOT}/.bin/webpack
 	@echo "--> Running JavaScript tests"
@@ -121,8 +119,6 @@ test-python:
 	@echo ""
 
 test-acceptance:
-	@echo "--> Building python assets"
-	$(MAKE) install-python
 	@echo "--> Building static assets"
 	@${NPM_ROOT}/.bin/webpack
 	@echo "--> Running acceptance tests"
