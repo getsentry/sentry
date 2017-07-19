@@ -5,17 +5,21 @@ import time
 import msgpack
 
 from sentry.similarity.index import MinHashIndex
+from sentry.similarity.signatures import MinHashSignatureBuilder
 from sentry.testutils import TestCase
 from sentry.utils import redis
+
+
+signature_builder = MinHashSignatureBuilder(16, 0xFFFF)
 
 
 class MinHashIndexTestCase(TestCase):
     def test_index(self):
         index = MinHashIndex(
             redis.clusters.get('default'),
-            0xFFFF,
+            'sim',
+            signature_builder,
             8,
-            2,
             60 * 60,
             12,
         )
@@ -39,14 +43,22 @@ class MinHashIndexTestCase(TestCase):
             '1', '2', '4', '5'
         ]
 
+        assert MinHashIndex(
+            redis.clusters.get('default'),
+            'sim2',
+            signature_builder,
+            8,
+            60 * 60,
+            12,
+        ).query('example', '1', ['index']) == [[]]
+
     def test_export_import(self):
-        bands = 2
         retention = 12
         index = MinHashIndex(
             redis.clusters.get('default'),
-            0xFFFF,
-            bands,
-            2,
+            'sim',
+            signature_builder,
+            8,
             60 * 60,
             retention,
         )
@@ -58,7 +70,7 @@ class MinHashIndexTestCase(TestCase):
         assert len(result) == 1
 
         data = msgpack.unpackb(result[0])
-        assert len(data) == bands
+        assert len(data) == index.bands
 
         for band in data:
             assert len(band) == (retention + 1)
@@ -85,7 +97,7 @@ class MinHashIndexTestCase(TestCase):
         assert len(result) == 1
 
         data = msgpack.unpackb(result[0])
-        assert len(data) == bands
+        assert len(data) == index.bands
 
         for band in data:
             assert len(band) == (retention + 1)
