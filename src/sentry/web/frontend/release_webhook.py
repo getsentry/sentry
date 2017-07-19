@@ -83,11 +83,13 @@ class ReleaseWebhookView(View):
         token = ProjectOption.objects.get_value(project, 'sentry:release-token')
 
         if token is None:
-            logger.warn('No token for release hook')
+            logger.warn('No token for release hook project_id=%s, plugin_id=%s',
+                        project_id, plugin_id)
             return HttpResponse(status=403)
 
         if not self.verify(plugin_id, project_id, token, signature):
-            logger.warn('Unable to verify signature for release hook')
+            logger.warn('Unable to verify signature for release hook project_id=%s, plugin_id=%s',
+                        project_id, plugin_id)
             return HttpResponse(status=403)
 
         if plugin_id == 'builtin':
