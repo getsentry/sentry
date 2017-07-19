@@ -1,254 +1,187 @@
 @onboarding-sidebar-width: 300px;
 
-.onboarding-container{
+.onboarding-container {
   margin-left: @onboarding-sidebar-width - @sidebar-width;
-}
 
-.step-container{
-  max-width: 920px;
-  padding: 10px 50px;
-}
-
-/**
-* Loading Indicator
-* ============================================================================
-*/
-
-.loading2  {
-  position: absolute;
-  right: 0;
-  top: 0;
-
-  .loading-indicator2 {
-    text-indent: -9999em;
-    border-top: 6px solid @white-darker;
-    border-right: 6px solid @white-darker;
-    border-bottom: 6px solid @white-darker;
-    border-left: 6px solid @gray;
-    -webkit-animation: loading .5s infinite linear;
-    animation: loading .55s infinite linear;
-    border-radius: 50%;
-    width: 32px;
-    height: 32px;
-  }
-}
-
-.awaiting-event {
-  max-height: 100px;
-  padding-left: 20px;
-}
-
- .wrap {
-   position: relative;
- }
-
-.waiting-text {
-  padding-right: 10px;
-  padding-left: 50px;
-  position: relative;
-}
-
-.robot {
- position: absolute;
- left: 0;
- top: 0;
- padding-bottom: 5px;
- width: 55px;
- height: 65px;
- background: url(../../../images/sentry-robot.png);
- background-size: cover;
-
- .eye {
-   display: block;
-   .square(3px);
-   border-radius: 6px;
-   position: absolute;
-   top: 17px;
-   left: 20px;
-
-    -webkit-animation: blink-eye .6s infinite;
-    -moz-animation:    blink-eye .6s infinite;
-    -o-animation:      blink-eye .6s infinite;
-    animation:         blink-eye .6s infinite;
-  }
-}
-
-.onboarding-sidebar{
-  width: 300px;
-  height: 100%;
-  position: fixed;
-  z-index: 10000;
-  top: 0;
-  left:0;
-  color: whitesmoke;
-  background: url(../../../images/sentry-pattern-dark.png);
-  background-color: #3B3247;
-  background-size: 400px;
-
-  .sentry-flag {
-    font-size: 24px;
-    line-height: 1;
-    width: 150px;
-    margin: 30px 0px;
-    background-color: #e03e2f;
-    padding: 14px 20px 11px;
+  .step-container{
+    padding: 0 40px;
   }
 
-  .progress-nodes{
-    div.node{
-      width: 190px;
-      margin: auto;
-      margin-bottom: 30px;
-      display: flex;
-      color: @50;
-      position: relative;
-      padding-left: 26px;
-      border-color: @50;
-      line-height: 1.2;
-      text-shadow: 0 2px 5px rgba(0,0,0, .2);
+  /**
+  * Loading Indicator
+  * ============================================================================
+  */
 
-      &.active{
-        color: white;
-        font-weight: 600;
+  .loading2  {
+    position: absolute;
+    right: 0;
+    top: 0;
 
-          &::before{
-          border-color: white;
-        }
-      }
+    .loading-indicator2 {
+      text-indent: -9999em;
+      border-top: 6px solid @white-darker;
+      border-right: 6px solid @white-darker;
+      border-bottom: 6px solid @white-darker;
+      border-left: 6px solid @gray;
+      -webkit-animation: loading .5s infinite linear;
+      animation: loading .55s infinite linear;
+      border-radius: 50%;
+      width: 32px;
+      height: 32px;
+    }
+  }
 
-      span.node {
-        &::before{
-          content:'';
-          position: absolute;
-          left: -10px;
-          border-radius: 100%;
-          width: 22px;
-          height: 22px;
-          margin: 1px 8px 0 0;
-          border: 3px solid;
+  // Awaiting event
+
+  .awaiting-event {
+    background: rgba(255,255,255, .90);
+    box-shadow: 0 -1px 0 rgba(0,0,0, .1);
+    padding: 20px 0;
+    position: sticky;
+    bottom: 0;
+    .clearfix;
+  }
+
+  .wrap {
+    position: relative;
+  }
+
+  .waiting-text {
+    padding-right: 10px;
+    padding-left: 80px;
+    position: relative;
+    margin-right: 200px;
+
+    h3 {
+      margin: 5px 0 0;
+    }
+  }
+
+  .robot {
+    position: absolute;
+    left: 0;
+    top: -30px;
+    padding-bottom: 5px;
+    width: 70px;
+    height: 82px;
+    background: url(../../../images/sentry-robot.png);
+    background-size: cover;
+
+  .eye {
+    display: block;
+    .square(4px);
+    border-radius: 6px;
+    position: absolute;
+    top: 21px;
+    left: 26px;
+
+      -webkit-animation: blink-eye .6s infinite;
+      -moz-animation:    blink-eye .6s infinite;
+      -o-animation:      blink-eye .6s infinite;
+      animation:         blink-eye .6s infinite;
+    }
+  }
+
+  .onboarding-sidebar{
+    width: 300px;
+    height: 100%;
+    position: fixed;
+    z-index: 10000;
+    top: 0;
+    left:0;
+    color: whitesmoke;
+    background: url(../../../images/sentry-pattern-dark.png);
+    background-color: #3B3247;
+    background-size: 400px;
+
+    .sentry-flag {
+      font-size: 24px;
+      line-height: 1;
+      width: 150px;
+      margin: 30px 0px;
+      background-color: #e03e2f;
+      padding: 14px 20px 11px;
+    }
+
+    .progress-nodes{
+      div.node{
+        width: 190px;
+        margin: auto;
+        margin-bottom: 30px;
+        display: flex;
+        color: @50;
+        position: relative;
+        padding-left: 26px;
+        border-color: @50;
+        line-height: 1.2;
+        text-shadow: 0 2px 5px rgba(0,0,0, .2);
+
+        &.active{
+          color: white;
+          font-weight: 600;
+
+            &::before{
+            border-color: white;
+          }
         }
 
-        &.done{
+        span.node {
           &::before{
-            font-size: 14px;
-            content: '●';
-            text-align: center;
-            line-height: 16px;
+            content:'';
+            position: absolute;
+            left: -10px;
+            border-radius: 100%;
+            width: 22px;
+            height: 22px;
+            margin: 1px 8px 0 0;
+            border: 3px solid;
+          }
+
+          &.done{
+            &::before{
+              font-size: 14px;
+              content: '●';
+              text-align: center;
+              line-height: 16px;
+            }
           }
         }
       }
     }
+    .stuck {
+      padding: 20px;
+      position: absolute;
+      bottom: 0px;
+    }
   }
-  .stuck{
-    padding: 20px;
+
+  .platformicon-stack{
+    background-color: white;
     position: absolute;
-    bottom: 0px;
   }
-}
 
-.platformicon-stack{
-  background-color: white;
-  position: absolute;
-}
-
-.platform-picker{
-  .nav-tabs {
-    border-bottom: 1px solid @trim;
-    margin: 0 0 15px;
-  }
-  .platform-filter-container {
-    .form-control;
-    border-radius: 22px;
-    padding: 0 8px;
-    position: relative;
-    top: -4px;
-
-    .icon-search {
-      color: @30;
-      font-size: 12px;
-      margin-right: 4px;
+  .platform-picker{
+    .nav-tabs {
+      border-bottom: 1px solid @trim;
+      margin: 0 0 15px;
     }
-  }
-  .platform-filter {
-    background: transparent;
-    border: none;
-    font-size: 14px;
-    &:focus {
-      outline: none;
-    }
+    .platform-filter-container {
+      .form-control;
+      border-radius: 22px;
+      padding: 0 8px;
+      position: relative;
+      top: -4px;
 
-    &::placeholder {
-      color: @50;
-    }
-  }
-  .platform-tiles{
-    margin: auto;
-    display: flex;
-    flex-wrap: wrap;
-    padding: 0 0 15px;
-
-    .platform-card {
-      display: flex;
-      flex-direction: column;
-      width: 120px;
-      padding: 0 0 14px;
-      cursor: pointer;
-      border-radius: 4px;
-
-      &:hover {
-        background: #f7f5fa;
+      .icon-search {
+        color: @30;
+        font-size: 12px;
+        margin-right: 4px;
       }
-
-      &.selected {
-        background: darken(@alert-info-bg-color, 2);
-     }
     }
-
-    &.client-platform-list li {
-      margin: 0 auto;
-    }
-    &.client-platform-list.shade{
-      background-color: @40;
-      filter: brightness(0.4);
-    }
-  }
-
-  h5 {
-    text-align: center;
-    margin: 0;
-    font-size: 15px;
-    .truncate;
-    line-height: 1.2;
-  }
-}
-
-.project-name{
-  background: #fff;
-  box-shadow: 0 -1px 0 rgba(0,0,0, .1);
-  padding: 20px 0;
-  position: sticky;
-  bottom: 0;
-  .clearfix;
-
-  .platform-tile{
-    display: inline-block;
-    vertical-align: middle;
-  }
-
-  .project-name-wrapper {
-    .form-control;
-    position: relative;
-    padding-left: 44px;
-    width: 300px;
-    float: left;
-
-    input {
-      background: none;
-      border: 0;
-      display: block;
-      width: 100%;
-      font-weight: 600;
-
+    .platform-filter {
+      background: transparent;
+      border: none;
+      font-size: 14px;
       &:focus {
         outline: none;
       }
@@ -257,14 +190,95 @@
         color: @50;
       }
     }
+    .platform-tiles{
+      margin: auto;
+      display: flex;
+      flex-wrap: wrap;
+      padding: 0 0 15px;
 
-    .platform-tile {
-      position: absolute;
-      left: 6px;
-      top: 3px;
-      .platformicon {
-        color: @40 !important;
+      .platform-card {
+        display: flex;
+        flex-direction: column;
+        width: 120px;
+        padding: 0 0 14px;
+        cursor: pointer;
+        border-radius: 4px;
+
+        &:hover {
+          background: #f7f5fa;
+        }
+
+        &.selected {
+          background: darken(@alert-info-bg-color, 2);
+      }
+      }
+
+      &.client-platform-list li {
+        margin: 0 auto;
+      }
+      &.client-platform-list.shade{
+        background-color: @40;
+        filter: brightness(0.4);
       }
     }
+
+    h5 {
+      text-align: center;
+      margin: 0;
+      font-size: 15px;
+      .truncate;
+      line-height: 1.2;
+    }
+  }
+
+  .project-name{
+    background: #fff;
+    box-shadow: 0 -1px 0 rgba(0,0,0, .1);
+    padding: 20px 0;
+    position: sticky;
+    bottom: 0;
+    .clearfix;
+
+    .platform-tile{
+      display: inline-block;
+      vertical-align: middle;
+    }
+
+    .project-name-wrapper {
+      .form-control;
+      position: relative;
+      padding-left: 44px;
+      width: 300px;
+      float: left;
+
+      input {
+        background: none;
+        border: 0;
+        display: block;
+        width: 100%;
+        font-weight: 600;
+
+        &:focus {
+          outline: none;
+        }
+
+        &::placeholder {
+          color: @50;
+        }
+      }
+
+      .platform-tile {
+        position: absolute;
+        left: 6px;
+        top: 3px;
+        .platformicon {
+          color: @40 !important;
+        }
+      }
+    }
+  }
+
+  .install .install-content {
+    padding-left: 15px; // Fix .row negative margin
   }
 }

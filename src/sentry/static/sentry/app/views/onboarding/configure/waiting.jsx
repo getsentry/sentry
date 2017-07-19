@@ -2,6 +2,10 @@ import React from 'react';
 import ApiMixin from '../../../mixins/apiMixin';
 
 const Waiting = React.createClass({
+  propTypes: {
+    skip: React.PropTypes.func
+  },
+
   mixins: [ApiMixin],
 
   getInitialState() {
@@ -42,13 +46,15 @@ const Waiting = React.createClass({
   render() {
     return (
       <div className="awaiting-event">
-        <div className="wrap pull-right waiting-text">
-          <h3>Waiting for your event</h3>
+        <div className="pull-right">
+          <div className="btn btn-primary" onClick={this.props.skip}>All done!</div>
+        </div>
+        <div className="wrap waiting-text">
+          <h3 className="animated-ellipsis">Waiting on events to devour</h3>
           <div className="robot">
             <span className="eye" />
           </div>
         </div>
-        <h2>Configure your application</h2>
       </div>
     );
   }
