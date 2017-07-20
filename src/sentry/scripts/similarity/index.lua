@@ -281,9 +281,16 @@ local function collect_index_key_pairs(arguments, validator)
 end
 
 
--- Signature Parsing
+-- Signature Matching
 
 local function parse_signatures(configuration, arguments)
+    --[[
+    Parses signatures from an argument table, collecting signatures until the
+    end of the table is reached. Signatures are expected to be an index name,
+    followed by the number of items specified by the `configuration.bands`
+    value. Signatures are returned as a table with an `index` key (string) and
+    a `buckets` key (table of strings).
+    ]]--
     local entries = table.ireduce(
         arguments,
         function (state, token)
@@ -318,11 +325,59 @@ local function parse_signatures(configuration, arguments)
     return entries.completed
 end
 
--- Fetch all of the bucket frequencies for a key from a specific
--- index from all active time series chunks. This returns a table
--- containing n tables (where n is the number of bands) mapping
--- bucket identifiers to counts.
+local function fetch_candidates(configuration, time_series, index, frequencies)
+    --[[
+    Fetch all possible keys that share some characteristics with the provided
+    frequencies. The frequencies should be structured as an array-like table,
+    with one table for each band that represents the number of times that
+    bucket has been associated with the target object. (This is also the output
+    structure of `fetch_bucket_frequencies`.) For example, a four-band
+    request with two recorded observations may be strucured like this:
+
+    {
+        {a=1, b=1},
+        {a=2},
+        {b=2},
+        {a=1, d=1},
+    }
+
+    Results are returned as table where the keys represent candidate keys.
+    ]]--
+    local candidates = {}  -- acts as a set
+    for band, buckets in ipairs(frequencies) do
+        for bucket, count in pairs(buckets) do
+            for _, time in ipairs(time_series) do
+                -- Fetch all other items that have been added to
+                -- the same bucket in this band during this time
+                -- period.
+                local members = redis.call(
+                    'SMEMBERS',
+                    get_bucket_membership_key(
+                        configuration,
+                        index,
+                        time,
+                        band,
+                        bucket
+                    )
+                )
+                for _, member in ipairs(members) do
+                    -- TODO: Count the number of bands that we've collided in
+                    -- to allow setting thresholds here.
+                    candidates[member] = true
+                end
+            end
+        end
+    end
+    return candidates
+end
+
 local function fetch_bucket_frequencies(configuration, time_series, index, key)
+    --[[
+    Fetches all of the bucket frequencies for a key from a specific index from
+    all active time series chunks. This returns an array-like table that
+    contains one table for each band that maps bucket identifiers to counts
+    across the entire time series.
+    ]]--
     return table.imap(
         range(1, configuration.bands),
         function (band)
@@ -357,36 +412,12 @@ local function fetch_bucket_frequencies(configuration, time_series, index, key)
     )
 end
 
-local function fetch_candidates(configuration, time_series, index, frequencies)
-    local candidates = {}  -- acts as a set
-    for band, buckets in ipairs(frequencies) do
-        for bucket, count in pairs(buckets) do
-            for _, time in ipairs(time_series) do
-                -- Fetch all other items that have been added to
-                -- the same bucket in this band during this time
-                -- period.
-                local members = redis.call(
-                    'SMEMBERS',
-                    get_bucket_membership_key(
-                        configuration,
-                        index,
-                        time,
-                        band,
-                        bucket
-                    )
-                )
-                for _, member in ipairs(members) do
-                    candidates[member] = true
-                end
-            end
-        end
-    end
-    return candidates
-end
-
--- Then, calculate the similarity for each candidate based
--- on their frequencies.
-local function calculate_similiarity(configuration, item_frequencies, candidate_frequencies)
+local function calculate_similarity(configuration, item_frequencies, candidate_frequencies)
+    --[[
+    Calculate the similarity between an item's frequency and an array-like
+    table of candidate frequencies. This returns a table of candidate keys to
+    and [0, 1] scores where 0 is totally dissimilar and 1 is exactly similar.
+    ]]--
     local results = {}
     for key, value in pairs(candidate_frequencies) do
         table.insert(
@@ -400,17 +431,15 @@ local function calculate_similiarity(configuration, item_frequencies, candidate_
                             value
                         ),
                         function (v)
-                            -- We calculate the "similarity"
-                            -- between two items by comparing
-                            -- how often their contents exist
-                            -- in the same buckets for a band.
+                            -- We calculate the "similarity" between two items
+                            -- by comparing how often their contents exist in
+                            -- the same buckets for a band.
                             local dist = get_manhattan_distance(
                                 scale_to_total(v[1]),
                                 scale_to_total(v[2])
                             )
-                            -- Since this is a measure of
-                            -- similarity (and not distance) we
-                            -- normalize the result to [0, 1]
+                            -- Since this is a measure of similarity (and not
+                            -- distance) we normalize the result to [0, 1]
                             -- scale.
                             return 1 - (dist / 2)
                         end
@@ -427,8 +456,11 @@ local function calculate_similiarity(configuration, item_frequencies, candidate_
 end
 
 local function fetch_similar(configuration, time_series, index, item_frequencies)
-    -- Then, find all iterms that also exist within those
-    -- buckets and fetch their frequencies.
+    --[[
+    Fetch the items that are similar to an item's frequencies (as returned by
+    `fetch_bucket_frequencies`), returning a table of similar items keyed by
+    the candidate key where the value is on a [0, 1] similarity scale.
+    ]]--
     local candidates = fetch_candidates(configuration, time_series, index, item_frequencies)
     local candidate_frequencies = {}
     for candidate_key, _ in pairs(candidates) do
@@ -440,7 +472,7 @@ local function fetch_similar(configuration, time_series, index, item_frequencies
         )
     end
 
-    return calculate_similiarity(
+    return calculate_similarity(
         configuration,
         item_frequencies,
         candidate_frequencies
