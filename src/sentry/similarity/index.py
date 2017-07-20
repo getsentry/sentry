@@ -165,7 +165,7 @@ class MinHashIndex(object):
             arguments,
         )
 
-    def flush(self, scope, indices, batch=1000, timestamp=None):
+    def scan(self, scope, indices, batch=1000, timestamp=None):
         if timestamp is None:
             timestamp = int(time.time())
 
@@ -204,8 +204,12 @@ class MinHashIndex(object):
                     else:
                         cursors[idx] = cursor
 
-                    if chunk:
-                        client.delete(*chunk)
+                    yield client, idx, chunk
+
+    def flush(self, scope, indices, batch=1000, timestamp=None):
+        for client, index, chunk in self.scan(scope, indices, batch, timestamp):
+            if chunk:
+                client.delete(*chunk)
 
     def export(self, scope, items, timestamp=None):
         if timestamp is None:
