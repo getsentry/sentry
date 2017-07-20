@@ -266,8 +266,8 @@ _load_platform_data()
 # the marketing slug is the same as the integration id:
 # javascript, node, python, php, ruby, go, swift, objc, java, perl, elixir
 MARKETING_SLUG_TO_INTEGRATION_ID = {
-    "kotlin": "java-android",
-    "scala": "java-logback",
+    "kotlin": "java",
+    "scala": "java",
     "android": "java-android",
     "react": "javascript-react",
     "angular": "javascript-angular",
