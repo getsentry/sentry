@@ -139,9 +139,8 @@ class ProjectUpdateTest(APITestCase):
             'sentry:csp_ignored_sources_defaults': False,
             'sentry:csp_ignored_sources': 'foo\nbar',
             'filters:blacklisted_ips': '127.0.0.1\n198.51.100.0',
-            'filters:releases': 'abcdefg\nhijklmn',
-            'filters:environments': 'dev\nqa',
-            'filters:error_classes': 'TypeError\nValueError',
+            'filters:releases': '1.*\n2.1.*',
+            'filters:error_messages': 'TypeError*\n*: integer division by modulo or zero',
 
         }
         resp = self.client.put(url, data={'options': options})
@@ -159,9 +158,9 @@ class ProjectUpdateTest(APITestCase):
         assert project.get_option('sentry:csp_ignored_sources',
                                   []) == options['sentry:csp_ignored_sources'].split('\n')
         assert project.get_option('sentry:blacklisted_ips') == ['127.0.0.1', '198.51.100.0']
-        assert project.get_option('sentry:releases') == ['abcdefg', 'hijklmn']
-        assert project.get_option('sentry:environments') == ['dev', 'qa']
-        assert project.get_option('sentry:error_classes') == ['TypeError', 'ValueError']
+        assert project.get_option('sentry:releases') == ['1.*', '2.1.*']
+        assert project.get_option('sentry:error_messages') == [
+            'TypeError*', '*: integer division by modulo or zero']
 
     def test_bookmarks(self):
         project = self.project  # force creation

@@ -9,6 +9,7 @@ from __future__ import absolute_import
 
 import ipaddress
 import six
+import fnmatch
 
 from collections import namedtuple
 from django.conf import settings
@@ -220,8 +221,7 @@ def is_valid_for_processing(value, filter_type, project):
     filter_type is the type of filter and can be:
     'blacklisted_ips'
     'releases'
-    'environments'
-    'error_classes'
+    'error_messages'
     """
     disallowed_options = project.get_option(('sentry:{}').format(filter_type))
     if not disallowed_options:
@@ -229,7 +229,9 @@ def is_valid_for_processing(value, filter_type, project):
 
     for option in disallowed_options:
         # We want to error fast if it's an exact match
-        if value.lower() == option.lower():
+        # fnmatch allows us to use glob pattern matching
+        # so that we can match on 1.* or TypeError*
+        if fnmatch.fnmatch(value.lower(), option.lower()):
             return False
 
         if filter_type == 'blacklisted_ips':

@@ -147,9 +147,9 @@ class StoreViewTest(TestCase):
         assert resp.status_code == 403, (resp.status_code, resp.content)
 
     def test_request_with_invalid_release(self):
-        self.project.update_option('sentry:releases', ['abcdefg'])
+        self.project.update_option('sentry:releases', ['1.3.2'])
         body = {
-            "release": "abcdefg",
+            "release": "1.3.2",
             "message": "foo bar",
             "sentry.interfaces.User": {"ip_address": "127.0.0.1"},
             "sentry.interfaces.Http": {
@@ -161,62 +161,69 @@ class StoreViewTest(TestCase):
         resp = self._postWithHeader(body)
         assert resp.status_code == 403, (resp.status_code, resp.content)
 
-    def test_request_with_invalid_error_class(self):
-        self.project.update_option('sentry:error_classes', ['ZeroDivisionError'])
+    def test_request_with_short_release_globbing(self):
+        self.project.update_option('sentry:releases', ['1.*'])
         body = {
-            "release": "abcdefg",
+            "release": "1.3.2",
             "message": "foo bar",
             "sentry.interfaces.User": {"ip_address": "127.0.0.1"},
             "sentry.interfaces.Http": {
                 "method": "GET",
                 "url": "http://example.com/",
                 "env": {"REMOTE_ADDR": "127.0.0.1"}
-            },
-            "sentry.interfaces.Exception": {
-                "values": [{
-                    'type': 'ZeroDivisionError',
-                    'value': 'integer division or modulo by zero'
-                }]
             },
         }
         resp = self._postWithHeader(body)
         assert resp.status_code == 403, (resp.status_code, resp.content)
 
-    def test_request_with_multiple_error_classes(self):
-        self.project.update_option('sentry:error_classes', ['ZeroDivisionError'])
+    def test_request_with_longer_release_globbing(self):
+        self.project.update_option('sentry:releases', ['2.1.*'])
         body = {
-            "release": "abcdefg",
+            "release": "2.1.3",
             "message": "foo bar",
             "sentry.interfaces.User": {"ip_address": "127.0.0.1"},
             "sentry.interfaces.Http": {
                 "method": "GET",
                 "url": "http://example.com/",
                 "env": {"REMOTE_ADDR": "127.0.0.1"}
-            },
-            "sentry.interfaces.Exception": {
-                "values": [{
-                    'type': 'TypeError',
-                    'value': 'is_valid_release() takes exactly 2 arguments (1 given)'
-                }, {
-                    'type': 'ZeroDivisionError',
-                    'value': 'integer division or modulo by zero'
-                }]
             },
         }
         resp = self._postWithHeader(body)
         assert resp.status_code == 403, (resp.status_code, resp.content)
 
-    def test_request_with_invalid_environment(self):
-        self.project.update_option('sentry:environments', ['dev'])
+    def test_request_with_invalid_error_messages(self):
+        self.project.update_option('sentry:error_messages', ['ZeroDivisionError*'])
         body = {
             "release": "abcdefg",
-            "environment": "dev",
             "message": "foo bar",
             "sentry.interfaces.User": {"ip_address": "127.0.0.1"},
             "sentry.interfaces.Http": {
                 "method": "GET",
                 "url": "http://example.com/",
                 "env": {"REMOTE_ADDR": "127.0.0.1"}
+            },
+            "sentry.interfaces.Message": {
+                "message": "ZeroDivisionError: integer division or modulo by zero"
+            },
+        }
+        resp = self._postWithHeader(body)
+        assert resp.status_code == 403, (resp.status_code, resp.content)
+
+    def test_request_with_beggining_glob(self):
+        self.project.update_option(
+            'sentry:error_messages',
+            ['*: integer division or modulo by zero'])
+        body = {
+            "release": "abcdefg",
+            "message": "foo bar",
+            "sentry.interfaces.User": {"ip_address": "127.0.0.1"},
+            "sentry.interfaces.Http": {
+                "method": "GET",
+                "url": "http://example.com/",
+                "env": {"REMOTE_ADDR": "127.0.0.1"}
+            },
+            "sentry.interfaces.Message": {
+                "message": "ZeroDivisionError: integer division or modulo by zero"
             },
         }
         resp = self._postWithHeader(body)

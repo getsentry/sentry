@@ -265,44 +265,36 @@ class IsValidReleaseTestCase(TestCase):
         return is_valid_for_processing(value, 'releases', self.project)
 
     def test_release_not_in_list(self):
-        assert self.is_valid_for_processing('abcdefg', None)
-        assert self.is_valid_for_processing('abcdefg', [])
-        assert self.is_valid_for_processing('abcdefg', ['hijklmn', 'opqrstu', 'vwxyzab'])
+        assert self.is_valid_for_processing('1.2.3', None)
+        assert self.is_valid_for_processing('1.2.3', [])
+        assert self.is_valid_for_processing('1.2.3', ['1.1.1', '1.1.2', '1.2.1'])
 
     def test_release_match_list(self):
-        assert not self.is_valid_for_processing('abcdefg', ['abcdefg'])
-        assert not self.is_valid_for_processing('abcdefg', ['hijklmn', 'opqrstu', 'abcdefg'])
+        assert not self.is_valid_for_processing('1.2.3', ['1.2.3'])
+        assert not self.is_valid_for_processing('1.2.3', ['1.2.*', '1.3.0', '1.3.1'])
+        assert not self.is_valid_for_processing('1.2.3', ['1.3.0', '1.*', '1.3.1'])
 
 
-class IsValidEnvironmentTestCase(TestCase):
+class IsValidErrorMessageTestCase(TestCase):
     def is_valid_for_processing(self, value, inputs):
-        self.project.update_option('sentry:environments', inputs)
-        return is_valid_for_processing(value, 'environments', self.project)
-
-    def test_environment_not_in_list(self):
-        assert self.is_valid_for_processing('prod', None)
-        assert self.is_valid_for_processing('prod', [])
-        assert self.is_valid_for_processing('prod', ['dev', 'qa'])
-
-    def test_environment_match_list(self):
-        assert not self.is_valid_for_processing('dev', ['dev'])
-        assert not self.is_valid_for_processing('dev', ['prod', 'dev', 'qa'])
-
-
-class IsValidErrorClassTestCase(TestCase):
-    def is_valid_for_processing(self, value, inputs):
-        self.project.update_option('sentry:error_classes', inputs)
-        return is_valid_for_processing(value, 'error_classes', self.project)
+        self.project.update_option('sentry:error_messages', inputs)
+        return is_valid_for_processing(value, 'error_messages', self.project)
 
     def test_error_class_not_in_list(self):
-        assert self.is_valid_for_processing('TypeError', None)
-        assert self.is_valid_for_processing('TypeError', [])
-        assert self.is_valid_for_processing('TypeError', ['ZeroDivisionError', 'ValueError'])
+        assert self.is_valid_for_processing(
+            'ZeroDivisionError: integer division or modulo by zero', None)
+        assert self.is_valid_for_processing(
+            'ZeroDivisionError: integer division or modulo by zero', [])
+        assert self.is_valid_for_processing(
+            'ZeroDivisionError: integer division or modulo by zero', [
+                'TypeError*', '*: cannot import name*'])
 
     def test_error_class_match_list(self):
-        assert not self.is_valid_for_processing('TypeError', ['typeerror'])
         assert not self.is_valid_for_processing(
-            'TypeError', ['ValueError', 'TypeError', 'ZeroDivisionError'])
+            'ImportError: cannot import name is_valid',
+            ['*: cannot import name*'])
+        assert not self.is_valid_for_processing(
+            'ZeroDivisionError: divided by 0', ['ImportError*', 'TypeError*', '*: divided by 0'])
 
 
 class IsValidForProcessingTestCase(TestCase):

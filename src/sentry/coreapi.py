@@ -376,21 +376,14 @@ class ClientApiHelper(object):
         # - ignore errors from legacy browsers
 
         filter_types = {
-            'error_classes': data.get('sentry.interfaces.Exception', {}).get('values', []),
-            'environments': data.get('environment'),
+            'error_messages': data.get('sentry.interfaces.Message', {}).get('message', []),
             'releases': data.get('release'),
             'blacklisted_ips': ip_address
         }
 
         for key, value in six.iteritems(filter_types):
-            if key == 'error_classes':
-                for item in value:
-                    if item.get('type') and not is_valid_for_processing(
-                            item.get('type'), key, project):
-                        return True
-            else:
-                if value and not is_valid_for_processing(value, key, project):
-                    return True
+            if value and not is_valid_for_processing(value, key, project):
+                return True
 
         for filter_cls in filters.all():
             filter_obj = filter_cls(project)
