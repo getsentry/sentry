@@ -5,7 +5,10 @@ from sentry.plugins.providers.repository import RepositoryProvider
 
 class DummyRepositoryProvider(RepositoryProvider):
     name = 'Example'
-    has_installations = True
+    auth_provider = 'dummy'
+
+    def needs_auth(self, user, **kwargs):
+        return False
 
     def get_config(self):
         return [

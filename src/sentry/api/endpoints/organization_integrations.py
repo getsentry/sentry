@@ -27,22 +27,18 @@ class IntegrationSerializer(serializers.Serializer):
 class OrganizationIntegrationsEndpoint(OrganizationEndpoint):
 
     def get(self, request, organization):
-        results = []
         # Right now, this is just repository providers, but in
         # theory we want it to also work for other types of plugins
         # in the future
-        for provider_id, provider_cls in bindings.get('repository.provider').all():
-            provider = provider_cls(id=provider_id)
-
-            results.append(
-                serialize(
-                    provider,
-                    request.user,
-                    ProviderSerializer(organization)
-                )
+        return Response(
+            serialize(
+                [provider_cls(id=provider_id)
+                 for provider_id, provider_cls in bindings.get('repository.provider').all()
+                 ],
+                request.user,
+                ProviderSerializer(organization)
             )
-
-        return Response(results)
+        )
 
     def post(self, request, organization):
         serializer = IntegrationSerializer(data=request.DATA)
