@@ -106,12 +106,10 @@ test-cli:
 	rm -r test_cli
 	@echo ""
 
-mock-integration-docs:
-	@echo "--> Mocking platform json assets"
-	@mkdir -p ./src/sentry/integration-docs/
-	@if [ ! -f "./src/sentry/integration-docs/_platforms.json" ]; then echo "{\"platforms\": []}" >./src/sentry/integration-docs/_platforms.json; fi
-
-test-js: mock-integration-docs
+test-js:
+	@echo "--> Building platform assets"
+	sentry init
+	@echo "from sentry.utils.integrationdocs import sync_docs; sync_docs()" | sentry exec
 	@echo "--> Building static assets"
 	@${NPM_ROOT}/.bin/webpack
 	@echo "--> Running JavaScript tests"
@@ -123,7 +121,10 @@ test-python:
 	py.test tests/integration tests/sentry || exit 1
 	@echo ""
 
-test-acceptance: mock-integration-docs
+test-acceptance:
+	@echo "--> Building platform assets"
+	sentry init
+	@echo "from sentry.utils.integrationdocs import sync_docs; sync_docs()" | sentry exec
 	@echo "--> Building static assets"
 	@${NPM_ROOT}/.bin/webpack
 	@echo "--> Running acceptance tests"
