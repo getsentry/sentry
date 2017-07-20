@@ -107,6 +107,15 @@ class ProjectReleasesEndpoint(ProjectEndpoint):
         """
         serializer = ReleaseSerializer(data=request.DATA)
 
+        if 'refs' in request.DATA:
+            return Response({
+                'refs': [
+                    'Invalid parameter. If you are trying to set '
+                    'commits for a release, see '
+                    'https://docs.sentry.io/api/releases/post-organization-releases/'
+                ]
+            }, status=400)
+
         if serializer.is_valid():
             result = serializer.object
 

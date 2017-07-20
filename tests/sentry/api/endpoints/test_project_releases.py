@@ -286,3 +286,23 @@ class ProjectReleaseCreateTest(APITestCase):
         assert len(rc_list) == 2
         for rc in rc_list:
             assert rc.organization_id
+
+    def test_fails_with_refs(self):
+        self.login_as(user=self.user)
+
+        project = self.create_project(name='foo')
+
+        url = reverse('sentry-api-0-project-releases', kwargs={
+            'organization_slug': project.organization.slug,
+            'project_slug': project.slug,
+        })
+
+        response = self.client.post(url, data={
+            'version': '1.2.1',
+            'refs': [{
+                'repository': 'getsentry/sentry',
+                'commit': 'a' * 40,
+            }],
+        })
+
+        assert response.status_code == 400
