@@ -89,6 +89,10 @@ class EnableProjectPluginTest(APITestCase):
             project=project,
         ).value is True
 
+        # Testing the Plugin
+        response = self.client.post(url, {'test': True})
+        assert response.status_code == 200, (response.status_code, response.content)
+
 
 class DisableProjectPluginTest(APITestCase):
     def test_simple(self):
