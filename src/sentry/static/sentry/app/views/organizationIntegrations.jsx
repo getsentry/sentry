@@ -45,7 +45,7 @@ const OrganizationIntegrations = React.createClass({
       method: 'POST',
       data: {
         providerId: providerId,
-        defaultAuthId: auth.defaultAuthId
+        defaultAuthId: auth.defaultAuthId,
       },
       success: data => {
         // TODO(jess): we should sort this alphabetically
@@ -69,6 +69,14 @@ const OrganizationIntegrations = React.createClass({
     });
   },
 
+  toggleAuth(providerId, auth) {
+    if (auth.linked) {
+      this.disableAuth(providerId, auth);
+    } else {
+      this.linkAuth(providerId, auth);
+    }
+  },
+
   disableAuth(providerId, auth) {
     // TODO(jess): implement this + endpoint
   },
@@ -81,8 +89,8 @@ const OrganizationIntegrations = React.createClass({
             <h3>{provider.name}</h3>
           </div>
         </div>
-        {!!provider.availableAuth.length &&
-          provider.availableAuth.map(auth => {
+        {provider.auths.length ?
+          provider.auths.map(auth => {
             return (
               <div className="row" key={auth.externalId}>
                 <div className="col-md-6">
@@ -91,30 +99,15 @@ const OrganizationIntegrations = React.createClass({
                 <div className="col-md-6">
                   <button
                     className="btn btn-sm btn-default"
-                    onClick={this.linkAuth.bind(this, provider.id, auth)}>
-                    Enable
+                    onClick={this.toggleAuth.bind(this, provider.id, auth)}>
+                    {auth.linked ? t('Disable') : t('Enable')}
                   </button>
                 </div>
               </div>
             );
-          })}
-        {!!provider.existingAuth.length &&
-          provider.existingAuth.map(auth => {
-            return (
-              <div className="row" key={auth.externalId}>
-                <div className="col-md-6">
-                  {auth.externalId}
-                </div>
-                <div className="col-md-6">
-                  <button
-                    className="btn btn-sm btn-default"
-                    onClick={this.disableAuth.bind(this, provider.id, auth)}>
-                    Disable
-                  </button>
-                </div>
-              </div>
-            );
-          })}
+          }) :
+          <span>No available auth methods</span>
+        }
       </div>
     );
   },

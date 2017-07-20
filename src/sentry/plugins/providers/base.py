@@ -33,6 +33,9 @@ class ProviderMixin(object):
         integration.add_organization(organization.id)
 
     def get_available_auths(self, user, organization, integrations, social_auths, **kwargs):
+        if self.auth_provider is None:
+            return []
+
         social_auths_by_id = {
             usa.id: usa for usa in social_auths
         }
