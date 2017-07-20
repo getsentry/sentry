@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import itertools
 import time
 
 from sentry.utils.iterators import chunked
@@ -11,6 +12,10 @@ index = load_script('similarity/index.lua')
 def band(n, value):
     assert len(value) % n == 0
     return list(chunked(value, len(value) / n))
+
+
+def flatten(value):
+    return list(itertools.chain.from_iterable(value))
 
 
 class MinHashIndex(object):
@@ -159,6 +164,48 @@ class MinHashIndex(object):
             [],
             arguments,
         )
+
+    def flush(self, scope, indices, batch=1000, timestamp=None):
+        if timestamp is None:
+            timestamp = int(time.time())
+
+        arguments = [
+            'SCAN',
+            timestamp,
+            self.namespace,
+            self.bands,
+            self.interval,
+            self.retention,
+            scope,
+        ]
+
+        clients = map(
+            self.cluster.get_local_client,
+            self.cluster.hosts,
+        )
+
+        for client in clients:
+            cursors = {idx: 0 for idx in indices}
+            while cursors:
+                requests = []
+                for idx, cursor in cursors.items():
+                    requests.append([idx, cursor, batch])
+
+                responses = index(
+                    client,
+                    [],
+                    arguments + flatten(requests),
+                )
+
+                for (idx, _, _), (cursor, chunk) in zip(requests, responses):
+                    cursor = int(cursor)
+                    if cursor == 0:
+                        del cursors[idx]
+                    else:
+                        cursors[idx] = cursor
+
+                    if chunk:
+                        client.delete(*chunk)
 
     def export(self, scope, items, timestamp=None):
         if timestamp is None:

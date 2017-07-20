@@ -221,3 +221,9 @@ class FeatureSet(object):
             self.__get_scope(group.project),
             [(self.aliases[label], key) for label in self.features.keys()],
         )
+
+    def flush(self):
+        return self.index.flush(
+            '*',
+            self.aliases.values(),
+        )
