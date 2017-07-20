@@ -113,13 +113,29 @@ class FeatureSet(object):
 
     def classify(self, event):
         items = []
-        for label, characteristics_list in self.extract(event).items():
-            for characteristics in characteristics_list:
-                characteristics = map(self.encoder.dumps, characteristics)
-                if characteristics:
+        for label, features in self.extract(event).items():
+            try:
+                features = map(self.encoder.dumps, features)
+            except Exception as error:
+                log = (
+                    logger.debug
+                    if isinstance(error, self.expected_encoding_errors) else
+                    functools.partial(
+                        logger.warning,
+                        exc_info=True
+                    )
+                )
+                log(
+                    'Could not encode features from %r for %r due to error: %r',
+                    event,
+                    label,
+                    error,
+                )
+            else:
+                if features:
                     items.append((
                         self.aliases[label],
-                        characteristics,
+                        features,
                     ))
         results = self.index.classify(
             self.__get_scope(event.project),
