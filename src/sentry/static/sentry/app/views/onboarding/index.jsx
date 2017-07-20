@@ -5,10 +5,7 @@ import {browserHistory} from 'react-router';
 // import OrganizationContext from './views/organizationContext';
 
 import ApiMixin from '../../mixins/apiMixin';
-// import OrganizationActions from '../../actions/organizationActions';
-
 import ProgressNodes from './progress';
-// import {onboardingSteps} from './utils';
 import ProjectActions from '../../actions/projectActions';
 
 const OnboardingWizard = React.createClass({
@@ -31,7 +28,12 @@ const OnboardingWizard = React.createClass({
     const stepProps = {
       next: this.next,
       platform: this.state.platform,
-      setPlatform: p => this.setState({platform: p}),
+      setPlatform: p => {
+        if (!this.state.projectName || this.state.platform === this.state.projectName) {
+          this.setState({projectName: p});
+        }
+        this.setState({platform: p});
+      },
       name: this.state.projectName,
       setName: n => this.setState({projectName: n})
     };

@@ -8,12 +8,9 @@ exports[`ProgressNodes render() should render step 0 if no projectId 1`] = `
     className="sentry-flag"
   >
     <span
-      className="icon-sentry-logo"
+      className="icon-sentry-logo-full"
       href="/"
     />
-    <h4>
-      Sentry
-    </h4>
   </div>
   <div
     className="progress-nodes"
@@ -24,7 +21,7 @@ exports[`ProgressNodes render() should render step 0 if no projectId 1`] = `
       <span
         className="node done"
       />
-      Create an Organization in Sentry
+      Create an organization in Sentry
     </div>
     <div
       className="node active"
@@ -57,12 +54,9 @@ exports[`ProgressNodes render() should render step 1 if has projectId 1`] = `
     className="sentry-flag"
   >
     <span
-      className="icon-sentry-logo"
+      className="icon-sentry-logo-full"
       href="/"
     />
-    <h4>
-      Sentry
-    </h4>
   </div>
   <div
     className="progress-nodes"
@@ -73,7 +67,7 @@ exports[`ProgressNodes render() should render step 1 if has projectId 1`] = `
       <span
         className="node done"
       />
-      Create an Organization in Sentry
+      Create an organization in Sentry
     </div>
     <div
       className="node done"

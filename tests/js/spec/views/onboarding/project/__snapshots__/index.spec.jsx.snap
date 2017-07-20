@@ -23,16 +23,20 @@ exports[`Project render() should render NotFound if no matching organization 1`]
     className="project-name client-platform"
   >
     <h4>
-       Give your project a name:
+      Give your project a name:
     </h4>
-    <PlatformiconTile />
-    <input
-      label="Project Name"
-      name="name"
-      onChange={[Function]}
-      placeholder="project name"
-      type="text"
-    />
+    <div
+      className="project-name-wrapper"
+    >
+      <PlatformiconTile />
+      <input
+        label="Project Name"
+        name="name"
+        onChange={[Function]}
+        placeholder="Project name"
+        type="text"
+      />
+    </div>
     <div
       className="btn btn-primary pull-right"
       onClick={[Function]}

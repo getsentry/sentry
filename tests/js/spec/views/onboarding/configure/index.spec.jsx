@@ -3,7 +3,7 @@ import {shallow, mount} from 'enzyme';
 import toJson from 'enzyme-to-json';
 
 import {Client} from 'app/api';
-import Configure from 'app/views/onboarding/Configure';
+import Configure from 'app/views/onboarding/configure';
 import PropTypes from '../../../../../../src/sentry/static/sentry/app/proptypes';
 
 describe('Configure should render correctly', function() {

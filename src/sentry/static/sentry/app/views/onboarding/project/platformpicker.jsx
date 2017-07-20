@@ -8,7 +8,7 @@ import PlatformCard from './platformCard';
 const categoryList = Object.keys(categoryLists).concat('All');
 //  {'Popular', 'Frontend', 'Backend', 'Mobile', 'All'];
 
-const languages = flattenedPlatforms.filter(p => p.type === 'language');
+// const languages = flattenedPlatforms.filter(p => p.type === 'language');
 
 const PlatformPicker = React.createClass({
   propTypes: {
@@ -63,66 +63,6 @@ const PlatformPicker = React.createClass({
     );
   },
 
-  renderLanguageList() {
-    const filtered = languages.filter(platform => {
-      return (platform.id + ' ' + platform.platform).includes(this.state.filter);
-    });
-    const hasLang = this.props.platform;
-
-    return (
-      <ul
-        className={classnames('client-platform-list', 'platform-tiles', {
-          shade: hasLang
-        })}>
-        {filtered.map((platform, idx) => {
-          return (
-            <PlatformCard
-              platform={platform.id}
-              className={classnames({
-                selected: this.props.platform === platform.id
-              })}
-              key={idx}
-              onClick={() => {
-                this.props.setPlatform(platform.id);
-              }}
-            />
-          );
-        })}
-      </ul>
-    );
-  },
-
-  renderExtended() {
-    if (!this.props.platform) return false;
-
-    const language = this.props.platform.split('-')[0];
-
-    const variants = flattenedPlatforms.filter(i => i.language === language);
-    const filtered = variants.filter(platform => {
-      return (platform.id + ' ' + platform.platform).includes(this.state.filter);
-    });
-    if (filtered.length < 2) return null;
-    return (
-      <ul className="client-platform-list platform-tiles">
-        <span className="platform-card"><h5>Related:</h5></span>
-        {filtered.map((platform, idx) => {
-          return (
-            <PlatformCard
-              platform={platform.id}
-              className={classnames({
-                selected: this.props.platform === platform.id
-              })}
-              key={idx}
-              onClick={() => {
-                this.props.setPlatform(platform.id);
-              }}
-            />
-          );
-        })}
-      </ul>
-    );
-  },
-
   render() {
     return (
       <div className="platform-picker">
@@ -155,8 +95,6 @@ const PlatformPicker = React.createClass({
           })}
         </ul>
         {this.renderPlatformList()}
-        {/* {this.renderLanguageList()} */}
-        {this.renderExtended()}
       </div>
     );
   }

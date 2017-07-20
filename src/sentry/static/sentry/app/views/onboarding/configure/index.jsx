@@ -7,8 +7,6 @@ import ProjectContext from '../../projects/projectContext';
 import ProjectDocsContext from '../../projectInstall/docsContext';
 import ProjectInstallPlatform from '../../projectInstall/platform';
 
-// import {platforms} from '../../../../../../integration-docs/_platforms.json';
-
 const Configure = React.createClass({
   propTypes: {
     next: React.PropTypes.func
