@@ -82,6 +82,9 @@
     "modulePaths": [
       "<rootDir>/src/sentry/static/sentry"
     ],
+    "moduleNameMapper": {
+      "integration-docs-platforms": "<rootDir>/tests/fixtures/_platforms.json"
+    },
     "setupFiles": [
       "<rootDir>/tests/js/setup.js"
     ],

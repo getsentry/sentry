@@ -15,18 +15,20 @@ const ProgressNodes = React.createClass({
     return onboardingSteps.configure;
   },
 
-  node(step, i) {
+  node(stepKey, stepIndex) {
     let nodeClass = classNames('node', {
-      done: i < this.inferStep(),
-      active: i === this.inferStep()
+      done: stepIndex < this.inferStep(),
+      active: stepIndex === this.inferStep()
     });
+
     return (
-      <div className={nodeClass} key={i}>
+      <div className={nodeClass} key={stepIndex}>
         <span className={nodeClass} />
-        {stepDescriptions[step]}
+        {stepDescriptions[stepKey]}
       </div>
     );
   },
+
   render() {
     return (
       <div className="onboarding-sidebar">

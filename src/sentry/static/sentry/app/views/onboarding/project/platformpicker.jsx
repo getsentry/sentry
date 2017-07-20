@@ -1,18 +1,16 @@
 import React from 'react';
 import ListLink from '../../../components/listLink';
 import classnames from 'classnames';
-// import {platforms} from '../../../../../../integration-docs/_platforms.json';
+
 import {flattenedPlatforms, categoryLists} from '../utils';
 import PlatformCard from './platformCard';
+import {t} from '../../../locale';
 
 const categoryList = Object.keys(categoryLists).concat('All');
-//  {'Popular', 'Frontend', 'Backend', 'Mobile', 'All'];
-
-// const languages = flattenedPlatforms.filter(p => p.type === 'language');
 
 const PlatformPicker = React.createClass({
   propTypes: {
-    setPlatform: React.PropTypes.func,
+    setPlatform: React.PropTypes.func.isRequired,
     platform: React.PropTypes.string
   },
 
@@ -30,8 +28,7 @@ const PlatformPicker = React.createClass({
       platform => tab === 'All' || categoryLists[tab].includes(platform.id)
     );
 
-    let subsetMatch = platform =>
-      (platform.id + ' ' + platform.platform).includes(this.state.filter);
+    let subsetMatch = ({id}) => id.includes(this.state.filter);
 
     let filtered = tabSubset.filter(subsetMatch);
 
@@ -40,7 +37,13 @@ const PlatformPicker = React.createClass({
     }
 
     if (!filtered.length) {
-      return <p>Not finding your platform? we have a lot of community SDKs as well.</p>;
+      return (
+        <p>
+          {t(
+            "Not finding your platform? There's a rich ecosystem of community supported SDKs as well (including Perl, CFML, Clojure, and ActionScript).\n Try searching for Sentry clients or contacting support."
+          )}
+        </p>
+      );
     }
 
     return (
@@ -52,7 +55,7 @@ const PlatformPicker = React.createClass({
               className={classnames({
                 selected: this.props.platform === platform.id
               })}
-              key={idx}
+              key={platform.id}
               onClick={() => {
                 this.props.setPlatform(platform.id);
               }}
@@ -79,17 +82,17 @@ const PlatformPicker = React.createClass({
               />
             </div>
           </li>
-          {categoryList.map(c => {
+          {categoryList.map(categoryName => {
             return (
               <ListLink
-                key={c}
+                key={categoryName}
                 onClick={e => {
-                  this.setState({tab: c});
+                  this.setState({tab: categoryName});
                   e.preventDefault();
                 }}
                 to={''}
-                isActive={() => c === this.state.tab}>
-                {c}
+                isActive={() => categoryName === this.state.tab}>
+                {categoryName}
               </ListLink>
             );
           })}

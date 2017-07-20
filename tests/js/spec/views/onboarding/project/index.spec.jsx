@@ -18,6 +18,7 @@ describe('Project', function() {
   describe('render()', function() {
     const baseProps = {
       location: {query: {}},
+      setPlatform: () => {},
       params: {
         projectId: '',
         orgId: 'testOrg'

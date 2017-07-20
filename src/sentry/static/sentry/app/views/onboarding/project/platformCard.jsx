@@ -1,5 +1,5 @@
 import React from 'react';
-// import {platforms} from '../../../../../../integration-docs/_platforms.json';
+
 import {flattenedPlatforms} from '../utils';
 import PlatformiconTile from './platformiconTile';
 import classnames from 'classnames';
@@ -11,7 +11,8 @@ const PlatformCard = React.createClass({
   },
 
   render() {
-    const platform = flattenedPlatforms.find(p => p.id === this.props.platform);
+    let platform = flattenedPlatforms.find(p => p.id === this.props.platform);
+
     return (
       <span className={classnames('platform-card', this.props.className)}>
         <PlatformiconTile {...this.props} />

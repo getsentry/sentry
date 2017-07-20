@@ -2,33 +2,12 @@
 
 .onboarding-container {
   margin-left: @onboarding-sidebar-width - @sidebar-width;
+  @media(max-width: @screen-sm-max) {
+      margin-left: 0;
+  }
 
   .step-container{
     padding: 0 40px;
-  }
-
-  /**
-  * Loading Indicator
-  * ============================================================================
-  */
-
-  .loading2  {
-    position: absolute;
-    right: 0;
-    top: 0;
-
-    .loading-indicator2 {
-      text-indent: -9999em;
-      border-top: 6px solid @white-darker;
-      border-right: 6px solid @white-darker;
-      border-bottom: 6px solid @white-darker;
-      border-left: 6px solid @gray;
-      -webkit-animation: loading .5s infinite linear;
-      animation: loading .55s infinite linear;
-      border-radius: 50%;
-      width: 32px;
-      height: 32px;
-    }
   }
 
   // Awaiting event
@@ -93,6 +72,11 @@
     background: url(../../../images/sentry-pattern-dark.png);
     background-color: #3B3247;
     background-size: 400px;
+
+    @media(max-width: @screen-sm-max) {
+      display: none;
+    }
+
 
     .sentry-flag {
       font-size: 24px;
@@ -172,6 +156,10 @@
       position: relative;
       top: -4px;
 
+      @media(max-width: @screen-sm-max) {
+        display: none;
+      }
+
       .icon-search {
         color: @30;
         font-size: 12px;
@@ -203,6 +191,10 @@
         padding: 0 0 14px;
         cursor: pointer;
         border-radius: 4px;
+
+        @media(max-width: @screen-sm-max) {
+          width: 70px;
+        }
 
         &:hover {
           background: #f7f5fa;

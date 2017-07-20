@@ -2,8 +2,6 @@ import React from 'react';
 import DocumentTitle from 'react-document-title';
 import {browserHistory} from 'react-router';
 
-// import OrganizationContext from './views/organizationContext';
-
 import ApiMixin from '../../mixins/apiMixin';
 import ProgressNodes from './progress';
 import ProjectActions from '../../actions/projectActions';

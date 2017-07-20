@@ -19,6 +19,7 @@ describe('PlatformPicker', function() {
 
   describe('render()', function() {
     const baseProps = {
+      setPlatform: () => {},
       location: {query: {}},
       params: {
         setPlatform: '',
@@ -33,7 +34,6 @@ describe('PlatformPicker', function() {
       };
 
       let wrapper = shallow(<PlatformPicker {...props} />);
-      expect(toJson(wrapper)).toMatchSnapshot();
       wrapper.setState({tab: 'Mobile'});
       let filteredPlatforms = wrapper
         .find('PlatformCard')
@@ -41,21 +41,26 @@ describe('PlatformPicker', function() {
 
       expect(filteredPlatforms).not.toContain('java');
       expect(filteredPlatforms).toContain(categoryLists.Mobile[0]);
+
+      expect(toJson(wrapper)).toMatchSnapshot();
     });
 
-    it('should render renderPlatformList with Python when filtered with P', function() {
+    it('should render renderPlatformList with Python when filtered with py', function() {
       let props = {
         ...baseProps
       };
 
       let wrapper = shallow(<PlatformPicker {...props} />);
-      expect(toJson(wrapper)).toMatchSnapshot();
-      wrapper.setState({tab: 'All', filter: 'p'});
+
+      wrapper.setState({tab: 'All', filter: 'py'});
+
       let filteredPlatforms = wrapper
         .find('PlatformCard')
         .map(node => node.prop('platform'));
       expect(filteredPlatforms).not.toContain('java');
       expect(filteredPlatforms).toContain('python-flask');
+
+      expect(toJson(wrapper)).toMatchSnapshot();
     });
 
     it('should render renderPlatformList with community SDKs message if platform not found', function() {
@@ -64,9 +69,11 @@ describe('PlatformPicker', function() {
       };
 
       let wrapper = shallow(<PlatformPicker {...props} />);
-      expect(toJson(wrapper)).toMatchSnapshot();
       wrapper.setState({filter: 'aaaaaa'});
+
       expect(wrapper.text()).toContain('Not finding your platform?');
+
+      expect(toJson(wrapper)).toMatchSnapshot();
     });
 
     it('should update State.tab onClick when particular tab is clicked', function() {
@@ -82,15 +89,17 @@ describe('PlatformPicker', function() {
           router: React.PropTypes.object
         }
       });
-      expect(toJson(wrapper)).toMatchSnapshot();
 
       let testListLink = wrapper.find('ListLink').last().find('a');
       expect(wrapper.state().tab).toBe('Popular');
       expect(wrapper.state().tab).not.toBe('All');
 
       testListLink.simulate('click');
+
       expect(wrapper.state().tab).not.toBe('Popular');
       expect(wrapper.state().tab).toBe('All');
+
+      expect(toJson(wrapper)).toMatchSnapshot();
     });
   });
 });

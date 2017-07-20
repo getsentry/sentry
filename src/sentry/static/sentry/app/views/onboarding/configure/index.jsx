@@ -15,8 +15,8 @@ const Configure = React.createClass({
   mixins: [ApiMixin],
 
   componentWillMount() {
-    const {platform} = this.props.params;
-    //TODO(maxbittker) redirect if platform is not known.
+    let {platform} = this.props.params;
+    //redirect if platform is not known.
     if (!platform || platform === 'other') {
       this.redirectToNeutralDocs();
     }
@@ -33,19 +33,22 @@ const Configure = React.createClass({
   },
 
   redirectUrl() {
-    let orgId = this.props.params.orgId;
-    let projectId = this.props.params.projectId;
-    const url = `/${orgId}/${projectId}/#welcome`;
+    let {orgId, projectId} = this.props.params;
+
+    let url = `/${orgId}/${projectId}/#welcome`;
     browserHistory.push(url);
   },
 
   fetchEventData() {
-    let orgId = this.props.params.orgId;
-    let projectId = this.props.params.projectId;
+    let {orgId, projectId} = this.props.params;
+
     this.api.request(`/projects/${orgId}/${projectId}/events/`, {
       method: 'GET',
       success: data => {
-        this.checkFirstEvent(data);
+        // this indicates that a real event has been sent to the project (the first one is the sample event)
+        if (data.length > 1) {
+          this.redirectUrl();
+        }
       },
       error: () => {
         this.setState({hasError: true});
@@ -53,24 +56,19 @@ const Configure = React.createClass({
     });
   },
 
-  checkFirstEvent(data) {
-    if (data.length > 1) {
-      this.redirectUrl();
-    }
-  },
-
   submit() {
     this.redirectUrl();
   },
 
   redirectToNeutralDocs() {
-    const {orgId, projectId} = this.props.params;
-    const url = `/${orgId}/${projectId}/getting-started`;
+    let {orgId, projectId} = this.props.params;
+    let url = `/${orgId}/${projectId}/getting-started`;
+
     browserHistory.push(url);
   },
 
   render() {
-    const {orgId, projectId} = this.props.params;
+    let {orgId, projectId} = this.props.params;
 
     return (
       <div>

@@ -14,6 +14,8 @@ if (process.env.SENTRY_STATIC_DIST_PATH) {
 }
 
 var IS_PRODUCTION = process.env.NODE_ENV === 'production';
+var IS_TEST = process.env.NODE_ENV === 'TEST' || process.env.TEST_SUITE;
+
 var REFRESH = process.env.WEBPACK_LIVERELOAD === '1';
 
 var babelConfig = JSON.parse(fs.readFileSync(path.join(__dirname, '.babelrc')));
@@ -166,7 +168,10 @@ var config = {
   ],
   resolve: {
     alias: {
-      'sentry-locale': path.join(__dirname, 'src', 'sentry', 'locale')
+      'sentry-locale': path.join(__dirname, 'src', 'sentry', 'locale'),
+      'integration-docs-platforms': IS_TEST
+        ? path.join(__dirname, 'tests/fixtures/_platforms.json')
+        : path.join(__dirname, 'src/sentry/integration-docs/_platforms.json')
     },
     modules: [path.join(__dirname, staticPrefix), 'node_modules'],
     extensions: ['*', '.jsx', '.js', '.json']

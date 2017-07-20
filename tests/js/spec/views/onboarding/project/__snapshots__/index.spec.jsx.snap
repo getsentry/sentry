@@ -18,6 +18,7 @@ exports[`Project render() should render NotFound if no matching organization 1`]
         "orgId": "my-cool-org",
       }
     }
+    setPlatform={[Function]}
   />
   <div
     className="project-name client-platform"

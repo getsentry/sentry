@@ -1,4 +1,5 @@
-import {platforms} from '../../../../../integration-docs/_platforms.json';
+// import {platforms} from '../../../../../integration-docs/_platforms.json';
+import {platforms} from 'integration-docs-platforms';
 
 const Popular = [
   'javascript',

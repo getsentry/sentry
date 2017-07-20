@@ -148,11 +148,7 @@ function routes() {
         <Route path="" component={errorHandler(OnboardingWizard)}>
           <IndexRoute component={errorHandler(OnboardingProject)} />
           <Route
-            path=":projectId/configure/:platform/"
-            component={errorHandler(OnboardingConfigure)}
-          />
-          <Route
-            path=":projectId/configure/" // for case when no platform is select
+            path=":projectId/configure/(:platform)"
             component={errorHandler(OnboardingConfigure)}
           />
         </Route>

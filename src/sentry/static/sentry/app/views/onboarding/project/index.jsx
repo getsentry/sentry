@@ -1,7 +1,7 @@
 import React from 'react';
 import PlatformPicker from './platformpicker';
 import PlatformiconTile from './platformiconTile';
-// import ProjectDocsContext from '../../projectInstall/docsContext';
+import {t} from '../../../locale';
 
 const Project = React.createClass({
   propTypes: {
@@ -19,12 +19,10 @@ const Project = React.createClass({
   render() {
     return (
       <div className="onboarding-info">
-        <h2>Choose a language or framework</h2>
-        {/* <ProjectDocsContext> */}
+        <h2>{t('Choose a language or framework')}</h2>
         <PlatformPicker {...this.props} />
-        {/* </ProjectDocsContext> */}
         <div className="project-name client-platform">
-          <h4>Give your project a name:</h4>
+          <h4>{t('Give your project a name') + ':'}</h4>
           <div className="project-name-wrapper">
             <PlatformiconTile platform={this.props.platform} />
             <input
@@ -36,10 +34,8 @@ const Project = React.createClass({
               onChange={e => this.props.setName(e.target.value)}
             />
           </div>
-          {/* <div className="clien-platform-list"> */}
-          {/* </div> */}
           <div className="btn btn-primary pull-right" onClick={this.submit}>
-            Continue
+            {t('Continue')}
           </div>
         </div>
       </div>
