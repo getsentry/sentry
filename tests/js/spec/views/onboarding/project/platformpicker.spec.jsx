@@ -1,5 +1,5 @@
 import React from 'react';
-import {shallow} from 'enzyme';
+import {shallow, mount} from 'enzyme';
 import toJson from 'enzyme-to-json';
 
 import {Client} from 'app/api';
@@ -67,6 +67,30 @@ describe('PlatformPicker', function() {
       expect(toJson(wrapper)).toMatchSnapshot();
       wrapper.setState({filter: 'aaaaaa'});
       expect(wrapper.text()).toContain('Not finding your platform?');
+    });
+
+    it('should update State.tab onClick when particular tab is clicked', function() {
+      let props = {
+        ...baseProps
+      };
+
+      let wrapper = mount(<PlatformPicker {...props} />, {
+        context: {
+          router: TestStubs.router()
+        },
+        childContextTypes: {
+          router: React.PropTypes.object
+        }
+      });
+      expect(toJson(wrapper)).toMatchSnapshot();
+
+      let testListLink = wrapper.find('ListLink').last().find('a');
+      expect(wrapper.state().tab).toBe('Popular');
+      expect(wrapper.state().tab).not.toBe('All');
+
+      testListLink.simulate('click');
+      expect(wrapper.state().tab).not.toBe('Popular');
+      expect(wrapper.state().tab).toBe('All');
     });
   });
 });
