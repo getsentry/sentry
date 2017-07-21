@@ -282,7 +282,7 @@ class UnmergeTestCase(TestCase):
             ]
         )
 
-        assert features.query(source) == [
+        assert features.compare(source) == [
             (source.id, {'message:message:character-shingles': 1.0}),
         ]
 
@@ -614,13 +614,13 @@ class UnmergeTestCase(TestCase):
             {},
         )
 
-        source_similar_items = features.query(source)
+        source_similar_items = features.compare(source)
         assert source_similar_items[0] == (source.id, {'message:message:character-shingles': 1.0})
         assert source_similar_items[1][0] == destination.id
         assert source_similar_items[1][1].keys() == ['message:message:character-shingles']
         assert source_similar_items[1][1]['message:message:character-shingles'] < 1.0
 
-        destination_similar_items = features.query(destination)
+        destination_similar_items = features.compare(destination)
         assert destination_similar_items[0] == (
             destination.id, {'message:message:character-shingles': 1.0})
         assert destination_similar_items[1][0] == source.id
