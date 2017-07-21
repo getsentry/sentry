@@ -68,6 +68,7 @@ list(map(lambda cmd: cli.add_command(import_string(cmd)), (
     'sentry.runner.commands.repair.repair',
     'sentry.runner.commands.run.run',
     'sentry.runner.commands.start.start',
+    'sentry.runner.commands.top.top',
     'sentry.runner.commands.tsdb.tsdb',
     'sentry.runner.commands.upgrade.upgrade',
 )))
