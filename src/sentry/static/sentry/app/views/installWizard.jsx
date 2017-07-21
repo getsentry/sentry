@@ -1,6 +1,5 @@
 import React from 'react';
 import DocumentTitle from 'react-document-title';
-import _ from 'underscore';
 
 import {t} from '../locale';
 import ApiMixin from '../mixins/apiMixin';
@@ -18,13 +17,13 @@ const InstallWizardSettings = React.createClass({
 
   getInitialState() {
     let options = {...this.props.options};
-    let requiredOptions = Object.keys(
-      _.pick(options, option => {
+    let requiredOptions = Object.entries(options)
+      .filter(([key, option]) => {
         return option.field.required && !option.field.disabled;
       })
-    );
+      .map(([key, option]) => key);
     let missingOptions = new Set(
-      requiredOptions.filter(option => !options[option].field.isSet)
+      requiredOptions.filter(key => !options[key].field.isSet)
     );
     // This is to handle the initial installation case.
     // Even if all options are filled out, we want to prompt to confirm
@@ -50,11 +49,6 @@ const InstallWizardSettings = React.createClass({
         option.value,
         this.onFieldChange.bind(this, key)
       );
-      // options is used for submitting to the server, and we dont submit values
-      // that are deleted
-      if (option.field.disabled) {
-        delete options[key];
-      }
     }
 
     return {
@@ -87,8 +81,7 @@ const InstallWizardSettings = React.createClass({
     return (
       <form onSubmit={this.onSubmit}>
         <p>
-          Welcome to Sentry, yo! Complete setup by filling out the required
-          configuration.
+          {t('Complete setup by filling out the required configuration.')}
         </p>
 
         {getForm(fields)}
@@ -163,10 +156,12 @@ const InstallWizard = React.createClass({
     let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
 
     // We only want to send back the values which weren't disabled
-    let data = _.mapObject(
-      _.pick(options, option => !option.field.disabled),
-      option => option.value
-    );
+    let data = {};
+    Object.entries(options)
+      .filter(([key, option]) => !option.field.disabled)
+      .forEach(([key, option]) => {
+        data[key] = option.value;
+      });
     this.api.request('/internal/options/', {
       method: 'PUT',
       data: data,
