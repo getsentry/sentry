@@ -82,10 +82,7 @@ class SQLPanel(Panel):
             return None
 
         if cur_status != last_status:
-            if cur_status:
-                self._transaction_ids[alias] = uuid.uuid4().hex
-            else:
-                self._transaction_ids[alias] = None
+            self._transaction_ids[alias] = uuid.uuid4().hex
 
         return self._transaction_ids[alias]
 

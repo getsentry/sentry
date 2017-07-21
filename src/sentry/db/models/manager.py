@@ -265,7 +265,7 @@ class BaseManager(Manager):
                 logger.error('Cache response returned invalid value %r', retval)
                 return self.get(**kwargs)
 
-            if key == pk_name and int(value) != retval.pk:
+            if int(value) != retval.pk:
                 if settings.DEBUG:
                     raise ValueError('Unexpected value returned from cache')
                 logger.error('Cache response returned invalid value %r', retval)
