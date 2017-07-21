@@ -61,6 +61,9 @@ class AuditLogEntryEvent(object):
     RULE_EDIT = 81
     RULE_REMOVE = 82
 
+    PLUGIN_ADD = 90
+    PLUGIN_REMOVE = 91
+
 
 class AuditLogEntry(Model):
     __core__ = False
@@ -121,6 +124,9 @@ class AuditLogEntry(Model):
         (AuditLogEntryEvent.RULE_ADD, 'rule.create'),
         (AuditLogEntryEvent.RULE_EDIT, 'rule.edit'),
         (AuditLogEntryEvent.RULE_REMOVE, 'rule.remove'),
+
+        (AuditLogEntryEvent.PLUGIN_ADD, 'plugin.add'),
+        (AuditLogEntryEvent.PLUGIN_REMOVE, 'plugin.remove'),
     ))
     ip_address = models.GenericIPAddressField(null=True, unpack_ipv4=True)
     data = GzippedDictField()
@@ -239,5 +245,11 @@ class AuditLogEntry(Model):
             return 'edited rule "%s"' % (self.data['label'],)
         elif self.event == AuditLogEntryEvent.RULE_REMOVE:
             return 'removed rule "%s"' % (self.data['label'],)
+
+        # TODO(mattrobenolt): We need to fix this
+        elif self.event == AuditLogEntryEvent.PLUGIN_ADD:
+            return 'added plugin "%s"'
+        elif self.event == AuditLogEntryEvent.PLUGIN_REMOVE:
+            return 'removed plugin "%s"'
 
         return ''
