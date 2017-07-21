@@ -263,13 +263,32 @@ _load_platform_data()
 
 # special cases where the marketing slug differs from the integration id
 # (in _platforms.json). missing values (for example: "java") should assume
-# the marketing slug is the same as the integration id.
+# the marketing slug is the same as the integration id:
+# javascript, node, python, php, ruby, go, swift, objc, java, perl, elixir
 MARKETING_SLUG_TO_INTEGRATION_ID = {
     "kotlin": "java",
     "scala": "java",
     "android": "java-android",
-
-    # TODO: add more special cases...
+    "react": "javascript-react",
+    "angular": "javascript-angular",
+    "angular2": "javascript-angular2",
+    "ember": "javascript-ember",
+    "backbone": "javascript-backbone",
+    "vue": "javascript-vue",
+    "express": "node-express",
+    "koa": "node-koa",
+    "django": "python-django",
+    "flask": "python-flask",
+    "tornado": "python-tornado",
+    "celery": "python-celery",
+    "rq": "python-rq",
+    "bottle": "python-bottle",
+    "pyramid": "python-pyramid",
+    "pylons": "python-pylons",
+    "laravel": "php-laravel",
+    "symfony": "php-symfony2",
+    "rails": "ruby-rails",
+    "sinatra": "ruby-sinatra",
 }
 
 
