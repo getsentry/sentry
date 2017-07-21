@@ -679,12 +679,15 @@ class UnmergeTestCase(TestCase):
             {},
         )
 
-        assert features.query(source) == [
-            (source.id, {'message:message:character-shingles': 1.0}),
-            (destination.id, {'message:message:character-shingles': 0.375}),
-        ]
+        source_similar_items = features.query(source)
+        assert source_similar_items[0] == (source.id, {'message:message:character-shingles': 1.0})
+        assert source_similar_items[1][0] == destination.id
+        assert source_similar_items[1][1].keys() == ['message:message:character-shingles']
+        assert source_similar_items[1][1]['message:message:character-shingles'] < 1.0
 
-        assert features.query(destination) == [
-            (destination.id, {'message:message:character-shingles': 1.0}),
-            (source.id, {'message:message:character-shingles': 0.375}),
-        ]
+        destination_similar_items = features.query(destination)
+        assert destination_similar_items[0] == (
+            destination.id, {'message:message:character-shingles': 1.0})
+        assert destination_similar_items[1][0] == source.id
+        assert destination_similar_items[1][1].keys() == ['message:message:character-shingles']
+        assert destination_similar_items[1][1]['message:message:character-shingles'] < 1.0
