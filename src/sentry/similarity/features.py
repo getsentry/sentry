@@ -57,8 +57,8 @@ class FeatureSet(object):
         self.expected_encoding_errors = expected_encoding_errors
         assert set(self.aliases) == set(self.features)
 
-    def __get_scope(self, group):
-        return '{}'.format(group.project_id)
+    def __get_scope(self, project):
+        return '{}'.format(project.id)
 
     def __get_key(self, group):
         return '{}'.format(group.id)
@@ -105,17 +105,56 @@ class FeatureSet(object):
                         features,
                     ))
         return self.index.record(
-            self.__get_scope(event.group),
+            self.__get_scope(event.project),
             self.__get_key(event.group),
             items,
             timestamp=to_timestamp(event.datetime),
         )
 
-    def query(self, group):
+    def classify(self, event):
+        items = []
+        for label, features in self.extract(event).items():
+            try:
+                features = map(self.encoder.dumps, features)
+            except Exception as error:
+                log = (
+                    logger.debug
+                    if isinstance(error, self.expected_encoding_errors) else
+                    functools.partial(
+                        logger.warning,
+                        exc_info=True
+                    )
+                )
+                log(
+                    'Could not encode features from %r for %r due to error: %r',
+                    event,
+                    label,
+                    error,
+                )
+            else:
+                if features:
+                    items.append((
+                        self.aliases[label],
+                        features,
+                    ))
+        results = self.index.classify(
+            self.__get_scope(event.project),
+            items,
+            timestamp=to_timestamp(event.datetime),
+        )
+        return zip(
+            map(
+                lambda (alias, characteristics): self.aliases.get_key(alias),
+                items,
+            ),
+            results,
+        )
+
+    def compare(self, group):
         features = list(self.features.keys())
 
-        results = self.index.query(
-            self.__get_scope(group),
+        results = self.index.compare(
+            self.__get_scope(group.project),
             self.__get_key(group),
             [self.aliases[label] for label in features],
         )
@@ -145,16 +184,16 @@ class FeatureSet(object):
         scopes = {}
         for source in sources:
             scopes.setdefault(
-                self.__get_scope(source),
+                self.__get_scope(source.project),
                 set(),
             ).add(source)
 
-        unsafe_scopes = set(scopes.keys()) - set([self.__get_scope(destination)])
+        unsafe_scopes = set(scopes.keys()) - set([self.__get_scope(destination.project)])
         if unsafe_scopes and not allow_unsafe:
             raise ValueError(
                 'all groups must belong to same project if unsafe merges are not allowed')
 
-        destination_scope = self.__get_scope(destination)
+        destination_scope = self.__get_scope(destination.project)
         destination_key = self.__get_key(destination)
 
         for source_scope, sources in scopes.items():
@@ -187,6 +226,6 @@ class FeatureSet(object):
     def delete(self, group):
         key = self.__get_key(group)
         return self.index.delete(
-            self.__get_scope(group),
+            self.__get_scope(group.project),
             [(self.aliases[label], key) for label in self.features.keys()],
         )
