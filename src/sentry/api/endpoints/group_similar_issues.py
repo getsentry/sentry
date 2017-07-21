@@ -16,7 +16,7 @@ class GroupSimilarIssuesEndpoint(GroupEndpoint):
         # TODO(tkaemming): This should have a limit somewhere.
         results = filter(
             lambda (group_id, scores): group_id != group.id,
-            features.query(group)
+            features.compare(group)
         )
 
         serialized_groups = apply_values(
