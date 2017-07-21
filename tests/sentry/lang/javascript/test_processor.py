@@ -144,11 +144,12 @@ class FetchFileTest(TestCase):
         assert result.headers == {'content-type': 'application/json'}
 
         # ensure we use the cached result
+        result1 = fetch_file('http://example.com')
         result2 = fetch_file('http://example.com')
 
-        assert len(responses.calls) == 1
+        assert len(responses.calls) == 2
 
-        assert result == result2
+        assert result1 == result2
 
     @responses.activate
     def test_with_token(self):
@@ -225,11 +226,12 @@ class FetchFileTest(TestCase):
         assert result.encoding == 'utf-8'
 
         # ensure we use the cached result
+        result1 = fetch_file('http://example.com')
         result2 = fetch_file('http://example.com')
 
-        assert len(responses.calls) == 1
+        assert len(responses.calls) == 2
 
-        assert result == result2
+        assert result1 == result2
 
     @responses.activate
     def test_truncated(self):
