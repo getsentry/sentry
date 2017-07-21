@@ -226,7 +226,11 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
         query = request.GET.get('query', 'is:unresolved').strip()
         if query:
             try:
-                query_kwargs.update(parse_query(project, query, request.user))
+                pq = parse_query(project, query, request.user)
+                if 'tags' in pq and 'platform' in pq['tags']:
+                    query_kwargs['platform'] = pq['tags']['platform']
+                else:
+                    query_kwargs.update(pq)
             except InvalidQuery as e:
                 raise ValidationError(
                     u'Your search query could not be parsed: {}'.format(
@@ -287,6 +291,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
                                      belong to.
         :auth: required
         """
+
         stats_period = request.GET.get('statsPeriod')
         if stats_period not in (None, '', '24h', '14d'):
             return Response({"detail": ERR_INVALID_STATS_PERIOD}, status=400)

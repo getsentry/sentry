@@ -78,7 +78,8 @@ class DjangoSearchBackend(SearchBackend):
                         times_seen=None,
                         times_seen_lower=None, times_seen_lower_inclusive=True,
                         times_seen_upper=None, times_seen_upper_inclusive=True,
-                        cursor=None, limit=None):
+                        cursor=None, limit=None,
+                        platform=None):
         from sentry.models import Event, Group, GroupSubscription, GroupStatus
 
         engine = get_db_engine('default')
@@ -242,6 +243,9 @@ class DjangoSearchBackend(SearchBackend):
             queryset = queryset.filter(
                 id__in=group_ids,
             )
+
+        if platform is not None:
+            queryset = queryset.filter(platform=platform)
 
         if engine.startswith('sqlite'):
             score_clause = SQLITE_SORT_CLAUSES[sort_by]
