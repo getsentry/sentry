@@ -16,6 +16,7 @@ from sentry.models import (
     GroupHash, GroupRelease, GroupTagKey, GroupTagValue, Project, Release,
     UserReport
 )
+from sentry.similarity import features
 from sentry.tasks.base import instrumented_task
 
 
@@ -235,31 +236,33 @@ def migrate_events(caches, project, source_id, destination_id, fingerprints, eve
     return destination.id
 
 
-def truncate_denormalizations(group_id):
+def truncate_denormalizations(group):
     GroupTagKey.objects.filter(
-        group_id=group_id,
+        group_id=group.id,
     ).delete()
 
     GroupTagValue.objects.filter(
-        group_id=group_id,
+        group_id=group.id,
     ).delete()
 
     GroupRelease.objects.filter(
-        group_id=group_id,
+        group_id=group.id,
     ).delete()
 
     tsdb.delete([
         tsdb.models.group,
-    ], [group_id])
+    ], [group.id])
 
     tsdb.delete_distinct_counts([
         tsdb.models.users_affected_by_group,
-    ], [group_id])
+    ], [group.id])
 
     tsdb.delete_frequencies([
         tsdb.models.frequent_releases_by_group,
         tsdb.models.frequent_environments_by_group,
-    ], [group_id])
+    ], [group.id])
+
+    features.delete(group)
 
 
 def collect_tag_data(events):
@@ -455,6 +458,9 @@ def repair_denormalizations(caches, project, events):
     repair_group_release_data(caches, project, events)
     repair_tsdb_data(caches, project, events)
 
+    for event in events:
+        features.record(event)
+
 
 def update_tag_value_counts(id_list):
     instances = GroupTagKey.objects.filter(group_id__in=id_list)
@@ -510,21 +516,21 @@ def unmerge(
     # be run without iteration by passing around a state object and we could
     # just use that here instead.
 
+    source = Group.objects.get(
+        project_id=project_id,
+        id=source_id,
+    )
+
     # On the first iteration of this loop, we clear out all of the
     # denormalizations from the source group so that we can have a clean slate
     # for the new, repaired data.
     if cursor is None:
         fingerprints = lock_hashes(project_id, source_id, fingerprints)
-        truncate_denormalizations(source_id)
+        truncate_denormalizations(source)
 
     caches = get_caches()
 
     project = caches['Project'](project_id)
-
-    source = Group.objects.get(
-        project_id=project_id,
-        id=source_id,
-    )
 
     # We fetch the events in descending order by their primary key to get the
     # best approximation of the most recently received events.
