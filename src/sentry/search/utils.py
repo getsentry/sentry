@@ -388,6 +388,8 @@ def parse_query(project, query, user):
                 results.update(get_date_params(value, 'date_from', 'date_to'))
             elif key == 'timesSeen':
                 results.update(get_numeric_field_value('times_seen', value))
+            elif key == 'timesSeen':
+                results.update(get_numeric_field_value('users_affected', value))
             else:
                 results['tags'][key] = value
 
