@@ -564,7 +564,7 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
                 # zero-indexed value from tokens.
                 assert frame['lineno'] > 0, "line numbers are 1-indexed"
                 token = sourcemap_view.lookup_token(
-                    frame['lineno'] - 1, frame['colno'])
+                    frame['lineno'] - 1, frame['colno'] - 1)
             except Exception:
                 token = None
                 all_errors.append({
