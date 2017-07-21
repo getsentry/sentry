@@ -7,9 +7,7 @@ from django.contrib.auth import logout
 
 from sentry import roles
 from sentry.api import client
-from sentry.models import (
-    Organization, OrganizationMember, OrganizationStatus, User
-)
+from sentry.models import (Organization, OrganizationMember, OrganizationStatus, User)
 from sentry.web.frontend.base import BaseView
 
 delete_logger = logging.getLogger('sentry.deletions.ui')
@@ -43,28 +41,25 @@ class RemoveAccountView(BaseView):
 
         form = self.get_form(request)
         if form.is_valid():
-            avail_org_slugs = set([
-                o['organization'].slug for o in org_results
-            ])
-            orgs_to_remove = set(
-                request.POST.getlist('oID')
-            ).intersection(avail_org_slugs)
+            avail_org_slugs = set([o['organization'].slug for o in org_results])
+            orgs_to_remove = set(request.POST.getlist('oID')).intersection(avail_org_slugs)
             for result in org_results:
                 if result['single_owner']:
                     orgs_to_remove.add(result['organization'].slug)
 
-            delete_logger.info('user.deactivate', extra={
-                'actor_id': request.user.id,
-                'ip_address': request.META['REMOTE_ADDR'],
-            })
+            delete_logger.info(
+                'user.deactivate',
+                extra={
+                    'actor_id': request.user.id,
+                    'ip_address': request.META['REMOTE_ADDR'],
+                }
+            )
 
             for org_slug in orgs_to_remove:
-                client.delete('/organizations/{}/'.format(org_slug),
-                              request=request, is_sudo=True)
+                client.delete('/organizations/{}/'.format(org_slug), request=request, is_sudo=True)
 
             remaining_org_ids = [
-                o.id for o in org_list
-                if o.slug in avail_org_slugs.difference(orgs_to_remove)
+                o.id for o in org_list if o.slug in avail_org_slugs.difference(orgs_to_remove)
             ]
 
             if remaining_org_ids:

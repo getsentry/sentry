@@ -28,10 +28,10 @@ class ConstantsTest(TestCase):
             assert get_integration_id_for_event('java', 'sentry-java', None) == 'java'
             assert get_integration_id_for_event('java', 'raven-java', None) == 'java'
             assert get_integration_id_for_event('java', 'raven-java:log4j', None) == 'java-log4j'
-            assert get_integration_id_for_event(
-                'java', 'sentry-java', ['android']) == 'java-android'
-            assert get_integration_id_for_event(
-                'java', 'sentry-java', ['foobar', 'log4j2']) == 'java-log4j2'
+            assert get_integration_id_for_event('java', 'sentry-java',
+                                                ['android']) == 'java-android'
+            assert get_integration_id_for_event('java', 'sentry-java', ['foobar',
+                                                                        'log4j2']) == 'java-log4j2'
             assert get_integration_id_for_event('foobar', 'sentry-java', None) == 'java'
             assert get_integration_id_for_event('java', 'foobar', None) == 'java'
             assert get_integration_id_for_event('foobar', 'foobar', None) is None

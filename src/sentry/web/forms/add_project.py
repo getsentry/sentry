@@ -7,20 +7,23 @@ from sentry.models import AuditLogEntry, AuditLogEntryEvent, Project
 from sentry.signals import project_created
 from sentry.utils.samples import create_sample_event
 
-
 BLANK_CHOICE = [("", "")]
 
 
 class AddProjectForm(forms.ModelForm):
-    name = forms.CharField(label=_('Name'), max_length=64,
-                           widget=forms.TextInput(attrs={
-                               'placeholder': _('i.e. API, Frontend, My Application Name'),
-                           }),
-                           help_text=_('Using the repository name generally works well.'),
-                           )
+    name = forms.CharField(
+        label=_('Name'),
+        max_length=64,
+        widget=forms.TextInput(
+            attrs={
+                'placeholder': _('i.e. API, Frontend, My Application Name'),
+            }
+        ),
+        help_text=_('Using the repository name generally works well.'),
+    )
 
     class Meta:
-        fields = ('name',)
+        fields = ('name', )
         model = Project
 
     def __init__(self, organization, *args, **kwargs):

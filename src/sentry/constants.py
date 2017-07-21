@@ -33,21 +33,20 @@ def get_all_languages():
         results.append(path)
     return results
 
+
 MODULE_ROOT = os.path.dirname(__import__('sentry').__file__)
 DATA_ROOT = os.path.join(MODULE_ROOT, 'data')
 
-SORT_OPTIONS = OrderedDict((
-    ('priority', _('Priority')),
-    ('date', _('Last Seen')),
-    ('new', _('First Seen')),
-    ('freq', _('Frequency')),
-))
+SORT_OPTIONS = OrderedDict(
+    (
+        ('priority', _('Priority')), ('date', _('Last Seen')), ('new', _('First Seen')),
+        ('freq', _('Frequency')),
+    )
+)
 
-SEARCH_SORT_OPTIONS = OrderedDict((
-    ('score', _('Score')),
-    ('date', _('Last Seen')),
-    ('new', _('First Seen')),
-))
+SEARCH_SORT_OPTIONS = OrderedDict(
+    (('score', _('Score')), ('date', _('Last Seen')), ('new', _('First Seen')), )
+)
 
 # XXX: Deprecated: use GroupStatus instead
 STATUS_UNRESOLVED = 0
@@ -75,17 +74,16 @@ MAX_EMAIL_FIELD_LENGTH = 75
 
 # Team slugs which may not be used. Generally these are top level URL patterns
 # which we don't want to worry about conflicts on.
-RESERVED_ORGANIZATION_SLUGS = frozenset((
-    'admin', 'manage', 'login', 'account', 'register', 'api',
-    'accept', 'organizations', 'teams', 'projects', 'help',
-    'docs', 'logout', '404', '500', '_static', 'out', 'debug',
-    'remote', 'get-cli', 'blog', 'welcome', 'features',
-    'customers', 'integrations', 'signup', 'pricing',
-    'subscribe', 'enterprise', 'about', 'jobs', 'thanks', 'guide',
-    'privacy', 'security', 'terms', 'from', 'sponsorship', 'for',
-    'at', 'platforms', 'branding', 'vs', 'answers', '_admin',
-    'support', 'contact',
-))
+RESERVED_ORGANIZATION_SLUGS = frozenset(
+    (
+        'admin', 'manage', 'login', 'account', 'register', 'api', 'accept', 'organizations',
+        'teams', 'projects', 'help', 'docs', 'logout', '404', '500', '_static', 'out', 'debug',
+        'remote', 'get-cli', 'blog', 'welcome', 'features', 'customers', 'integrations', 'signup',
+        'pricing', 'subscribe', 'enterprise', 'about', 'jobs', 'thanks', 'guide', 'privacy',
+        'security', 'terms', 'from', 'sponsorship', 'for', 'at', 'platforms', 'branding', 'vs',
+        'answers', '_admin', 'support', 'contact',
+    )
+)
 
 LOG_LEVELS = {
     logging.DEBUG: 'debug',
@@ -97,7 +95,6 @@ LOG_LEVELS = {
 DEFAULT_LOG_LEVEL = 'error'
 DEFAULT_LOGGER_NAME = ''
 LOG_LEVELS_MAP = {v: k for k, v in six.iteritems(LOG_LEVELS)}
-
 
 # Default alerting threshold values
 DEFAULT_ALERT_PROJECT_THRESHOLD = (500, 25)  # 500%, 25 events
@@ -144,40 +141,14 @@ SENTRY_RULES = (
 HTTP_METHODS = ('GET', 'POST', 'PUT', 'OPTIONS', 'HEAD', 'DELETE', 'TRACE', 'CONNECT', 'PATCH')
 
 CLIENT_RESERVED_ATTRS = (
-    'project',
-    'errors',
-    'event_id',
-    'message',
-    'checksum',
-    'culprit',
-    'fingerprint',
-    'level',
-    'time_spent',
-    'logger',
-    'server_name',
-    'site',
-    'received',
-    'timestamp',
-    'extra',
-    'modules',
-    'tags',
-    'platform',
-    'release',
-    'dist',
-    'environment',
+    'project', 'errors', 'event_id', 'message', 'checksum', 'culprit', 'fingerprint', 'level',
+    'time_spent', 'logger', 'server_name', 'site', 'received', 'timestamp', 'extra', 'modules',
+    'tags', 'platform', 'release', 'dist', 'environment',
 )
 
 DEFAULT_SCRUBBED_FIELDS = (
-    'password',
-    'secret',
-    'passwd',
-    'api_key',
-    'apikey',
-    'access_token',
-    'auth',
-    'credentials',
-    'mysql_pwd',
-    'stripeToken',
+    'password', 'secret', 'passwd', 'api_key', 'apikey', 'access_token', 'auth', 'credentials',
+    'mysql_pwd', 'stripeToken',
 )
 
 NOT_SCRUBBED_VALUES = set([
@@ -189,26 +160,28 @@ NOT_SCRUBBED_VALUES = set([
     'undefined',
 ])
 
-VALID_PLATFORMS = set([
-    'as3',
-    'c',
-    'cfml',
-    'cocoa',
-    'csharp',
-    'go',
-    'java',
-    'javascript',
-    'node',
-    'objc',
-    'other',
-    'perl',
-    'php',
-    'python',
-    'ruby',
-    'elixir',
-    'haskell',
-    'groovy',
-])
+VALID_PLATFORMS = set(
+    [
+        'as3',
+        'c',
+        'cfml',
+        'cocoa',
+        'csharp',
+        'go',
+        'java',
+        'javascript',
+        'node',
+        'objc',
+        'other',
+        'perl',
+        'php',
+        'python',
+        'ruby',
+        'elixir',
+        'haskell',
+        'groovy',
+    ]
+)
 
 OK_PLUGIN_ENABLED = _("The {name} integration has been enabled.")
 
@@ -234,7 +207,6 @@ KNOWN_DSYM_TYPES = {
 
 NATIVE_UNKNOWN_STRING = '<unknown>'
 
-
 # to go from an integration id (in _platforms.json) to the platform
 # data, such as documentation url or humanized name.
 # example: java-logback -> {"type": "framework",
@@ -258,8 +230,8 @@ def _load_platform_data():
                 integration_id = integration.pop('id')
                 INTEGRATION_ID_TO_PLATFORM_DATA[integration_id] = integration
 
-_load_platform_data()
 
+_load_platform_data()
 
 # special cases where the marketing slug differs from the integration id
 # (in _platforms.json). missing values (for example: "java") should assume
@@ -351,8 +323,7 @@ class ObjectStatus(object):
     @classmethod
     def as_choices(cls):
         return (
-            (cls.VISIBLE, 'visible'),
-            (cls.HIDDEN, 'hidden'),
-            (cls.PENDING_DELETION, 'pending_deletion'),
+            (cls.VISIBLE, 'visible'), (cls.HIDDEN,
+                                       'hidden'), (cls.PENDING_DELETION, 'pending_deletion'),
             (cls.DELETION_IN_PROGRESS, 'deletion_in_progress'),
         )

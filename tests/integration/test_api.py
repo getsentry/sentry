@@ -12,10 +12,8 @@ class AuthenticationTest(AuthProviderTestCase):
         user = self.create_user('foo@example.com', is_superuser=False)
         organization = self.create_organization(name='foo')
         team = self.create_team(name='bar', organization=organization)
-        project = self.create_project(name='baz', organization=organization,
-                                      team=team)
-        member = self.create_member(user=user, organization=organization,
-                                    teams=[team])
+        project = self.create_project(name='baz', organization=organization, team=team)
+        member = self.create_member(user=user, organization=organization, teams=[team])
         setattr(member.flags, 'sso:linked', True)
         member.save()
         group = self.create_group(project=project)

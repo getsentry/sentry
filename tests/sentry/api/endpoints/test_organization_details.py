@@ -7,9 +7,7 @@ from django.core.urlresolvers import reverse
 from django.core import mail
 from mock import patch
 
-from sentry.models import (
-    Organization, OrganizationAvatar, OrganizationOption, OrganizationStatus
-)
+from sentry.models import (Organization, OrganizationAvatar, OrganizationOption, OrganizationStatus)
 from sentry.signals import project_created
 from sentry.testutils import APITestCase
 
@@ -18,9 +16,11 @@ class OrganizationDetailsTest(APITestCase):
     def test_simple(self):
         org = self.create_organization(owner=self.user)
         self.login_as(user=self.user)
-        url = reverse('sentry-api-0-organization-details', kwargs={
-            'organization_slug': org.slug,
-        })
+        url = reverse(
+            'sentry-api-0-organization-details', kwargs={
+                'organization_slug': org.slug,
+            }
+        )
         response = self.client.get(url, format='json')
         assert response.data['onboardingTasks'] == []
         assert response.status_code == 200, response.content
@@ -29,9 +29,11 @@ class OrganizationDetailsTest(APITestCase):
         project = self.create_project(organization=org)
         project_created.send(project=project, user=self.user, sender=type(project))
 
-        url = reverse('sentry-api-0-organization-details', kwargs={
-            'organization_slug': org.slug,
-        })
+        url = reverse(
+            'sentry-api-0-organization-details', kwargs={
+                'organization_slug': org.slug,
+            }
+        )
         response = self.client.get(url, format='json')
         assert len(response.data['onboardingTasks']) == 1
         assert response.data['onboardingTasks'][0]['task'] == 1
@@ -41,13 +43,17 @@ class OrganizationUpdateTest(APITestCase):
     def test_simple(self):
         org = self.create_organization(owner=self.user)
         self.login_as(user=self.user)
-        url = reverse('sentry-api-0-organization-details', kwargs={
-            'organization_slug': org.slug,
-        })
-        response = self.client.put(url, data={
-            'name': 'hello world',
-            'slug': 'foobar',
-        })
+        url = reverse(
+            'sentry-api-0-organization-details', kwargs={
+                'organization_slug': org.slug,
+            }
+        )
+        response = self.client.put(
+            url, data={
+                'name': 'hello world',
+                'slug': 'foobar',
+            }
+        )
         assert response.status_code == 200, response.content
         org = Organization.objects.get(id=org.id)
         assert org.name == 'hello world'
@@ -57,38 +63,51 @@ class OrganizationUpdateTest(APITestCase):
         org = self.create_organization(owner=self.user)
         org2 = self.create_organization(owner=self.user, slug='baz')
         self.login_as(user=self.user)
-        url = reverse('sentry-api-0-organization-details', kwargs={
-            'organization_slug': org.slug,
-        })
-        response = self.client.put(url, data={
-            'slug': org2.slug,
-        })
+        url = reverse(
+            'sentry-api-0-organization-details', kwargs={
+                'organization_slug': org.slug,
+            }
+        )
+        response = self.client.put(
+            url, data={
+                'slug': org2.slug,
+            }
+        )
         assert response.status_code == 400, response.content
 
     def test_setting_rate_limit(self):
         org = self.create_organization(owner=self.user)
         self.login_as(user=self.user)
-        url = reverse('sentry-api-0-organization-details', kwargs={
-            'organization_slug': org.slug,
-        })
-        response = self.client.put(url, data={
-            'projectRateLimit': '80',
-        })
+        url = reverse(
+            'sentry-api-0-organization-details', kwargs={
+                'organization_slug': org.slug,
+            }
+        )
+        response = self.client.put(
+            url, data={
+                'projectRateLimit': '80',
+            }
+        )
         assert response.status_code == 200, response.content
-        result = OrganizationOption.objects.get_value(
-            org, 'sentry:project-rate-limit')
+        result = OrganizationOption.objects.get_value(org, 'sentry:project-rate-limit')
         assert result == 80
 
     def test_upload_avatar(self):
         org = self.create_organization(owner=self.user)
         self.login_as(user=self.user)
-        url = reverse('sentry-api-0-organization-details', kwargs={
-            'organization_slug': org.slug,
-        })
-        response = self.client.put(url, data={
-            'avatarType': 'upload',
-            'avatar': b64encode(self.load_fixture('avatar.jpg')),
-        }, format='json')
+        url = reverse(
+            'sentry-api-0-organization-details', kwargs={
+                'organization_slug': org.slug,
+            }
+        )
+        response = self.client.put(
+            url,
+            data={
+                'avatarType': 'upload',
+                'avatar': b64encode(self.load_fixture('avatar.jpg')),
+            },
+            format='json'
+        )
 
         avatar = OrganizationAvatar.objects.get(
             organization=org,
@@ -100,21 +119,26 @@ class OrganizationUpdateTest(APITestCase):
     def test_various_options(self):
         org = self.create_organization(owner=self.user)
         self.login_as(user=self.user)
-        url = reverse('sentry-api-0-organization-details', kwargs={
-            'organization_slug': org.slug,
-        })
-        response = self.client.put(url, data={
-            'openMembership': False,
-            'isEarlyAdopter': True,
-            'allowSharedIssues': False,
-            'enhancedPrivacy': True,
-            'dataScrubber': True,
-            'dataScrubberDefaults': True,
-            'sensitiveFields': ['password'],
-            'safeFields': ['email'],
-            'scrubIPAddresses': True,
-            'defaultRole': 'owner',
-        })
+        url = reverse(
+            'sentry-api-0-organization-details', kwargs={
+                'organization_slug': org.slug,
+            }
+        )
+        response = self.client.put(
+            url,
+            data={
+                'openMembership': False,
+                'isEarlyAdopter': True,
+                'allowSharedIssues': False,
+                'enhancedPrivacy': True,
+                'dataScrubber': True,
+                'dataScrubberDefaults': True,
+                'sensitiveFields': ['password'],
+                'safeFields': ['email'],
+                'scrubIPAddresses': True,
+                'defaultRole': 'owner',
+            }
+        )
         assert response.status_code == 200, response.content
         org = Organization.objects.get(id=org.id)
 
@@ -125,12 +149,9 @@ class OrganizationUpdateTest(APITestCase):
         assert org.flags.enhanced_privacy
         assert org.default_role == 'owner'
 
-        options = {
-            o.key: o.value
-            for o in OrganizationOption.objects.filter(
-                organization=org,
-            )
-        }
+        options = {o.key: o.value for o in OrganizationOption.objects.filter(
+            organization=org,
+        )}
 
         assert options.get('sentry:require_scrub_defaults')
         assert options.get('sentry:require_scrub_data')
@@ -141,21 +162,22 @@ class OrganizationUpdateTest(APITestCase):
     def test_safe_fields_as_string_regression(self):
         org = self.create_organization(owner=self.user)
         self.login_as(user=self.user)
-        url = reverse('sentry-api-0-organization-details', kwargs={
-            'organization_slug': org.slug,
-        })
-        response = self.client.put(url, data={
-            'safeFields': 'email',
-        })
+        url = reverse(
+            'sentry-api-0-organization-details', kwargs={
+                'organization_slug': org.slug,
+            }
+        )
+        response = self.client.put(
+            url, data={
+                'safeFields': 'email',
+            }
+        )
         assert response.status_code == 400, (response.status_code, response.content)
         org = Organization.objects.get(id=org.id)
 
-        options = {
-            o.key: o.value
-            for o in OrganizationOption.objects.filter(
-                organization=org,
-            )
-        }
+        options = {o.key: o.value for o in OrganizationOption.objects.filter(
+            organization=org,
+        )}
 
         assert not options.get('sentry:safe_fields')
 
@@ -164,12 +186,16 @@ class OrganizationUpdateTest(APITestCase):
         user = self.create_user('baz@example.com')
         self.create_member(organization=org, user=user, role='manager')
         self.login_as(user=user)
-        url = reverse('sentry-api-0-organization-details', kwargs={
-            'organization_slug': org.slug,
-        })
-        response = self.client.put(url, data={
-            'defaultRole': 'owner',
-        })
+        url = reverse(
+            'sentry-api-0-organization-details', kwargs={
+                'organization_slug': org.slug,
+            }
+        )
+        response = self.client.put(
+            url, data={
+                'defaultRole': 'owner',
+            }
+        )
         assert response.status_code == 200, response.content
         org = Organization.objects.get(id=org.id)
 
@@ -178,69 +204,76 @@ class OrganizationUpdateTest(APITestCase):
     def test_empty_string_in_array_safe_fields(self):
         org = self.create_organization(owner=self.user)
         self.login_as(user=self.user)
-        url = reverse('sentry-api-0-organization-details', kwargs={
-            'organization_slug': org.slug,
-        })
-        response = self.client.put(url, data={
-            'safeFields': [''],
-        })
+        url = reverse(
+            'sentry-api-0-organization-details', kwargs={
+                'organization_slug': org.slug,
+            }
+        )
+        response = self.client.put(
+            url, data={
+                'safeFields': [''],
+            }
+        )
         assert response.status_code == 400, (response.status_code, response.content)
         org = Organization.objects.get(id=org.id)
 
-        options = {
-            o.key: o.value
-            for o in OrganizationOption.objects.filter(
-                organization=org,
-            )
-        }
+        options = {o.key: o.value for o in OrganizationOption.objects.filter(
+            organization=org,
+        )}
 
         assert not options.get('sentry:safe_fields')
 
     def test_empty_string_in_array_sensitive_fields(self):
         org = self.create_organization(owner=self.user)
         OrganizationOption.objects.set_value(
-            org, 'sentry:sensitive_fields', ['foobar'],
+            org,
+            'sentry:sensitive_fields',
+            ['foobar'],
         )
         self.login_as(user=self.user)
-        url = reverse('sentry-api-0-organization-details', kwargs={
-            'organization_slug': org.slug,
-        })
-        response = self.client.put(url, data={
-            'sensitiveFields': [''],
-        })
+        url = reverse(
+            'sentry-api-0-organization-details', kwargs={
+                'organization_slug': org.slug,
+            }
+        )
+        response = self.client.put(
+            url, data={
+                'sensitiveFields': [''],
+            }
+        )
         assert response.status_code == 400, (response.status_code, response.content)
         org = Organization.objects.get(id=org.id)
 
-        options = {
-            o.key: o.value
-            for o in OrganizationOption.objects.filter(
-                organization=org,
-            )
-        }
+        options = {o.key: o.value for o in OrganizationOption.objects.filter(
+            organization=org,
+        )}
 
         assert options.get('sentry:sensitive_fields') == ['foobar']
 
     def test_empty_sensitive_fields(self):
         org = self.create_organization(owner=self.user)
         OrganizationOption.objects.set_value(
-            org, 'sentry:sensitive_fields', ['foobar'],
+            org,
+            'sentry:sensitive_fields',
+            ['foobar'],
         )
         self.login_as(user=self.user)
-        url = reverse('sentry-api-0-organization-details', kwargs={
-            'organization_slug': org.slug,
-        })
-        response = self.client.put(url, data={
-            'sensitiveFields': [],
-        })
+        url = reverse(
+            'sentry-api-0-organization-details', kwargs={
+                'organization_slug': org.slug,
+            }
+        )
+        response = self.client.put(
+            url, data={
+                'sensitiveFields': [],
+            }
+        )
         assert response.status_code == 200, (response.status_code, response.content)
         org = Organization.objects.get(id=org.id)
 
-        options = {
-            o.key: o.value
-            for o in OrganizationOption.objects.filter(
-                organization=org,
-            )
-        }
+        options = {o.key: o.value for o in OrganizationOption.objects.filter(
+            organization=org,
+        )}
 
         assert not options.get('sentry:sensitive_fields')
 
@@ -266,9 +299,11 @@ class OrganizationDeleteTest(APITestCase):
 
         self.login_as(user)
 
-        url = reverse('sentry-api-0-organization-details', kwargs={
-            'organization_slug': org.slug,
-        })
+        url = reverse(
+            'sentry-api-0-organization-details', kwargs={
+                'organization_slug': org.slug,
+            }
+        )
 
         owners = org.get_owners()
         assert len(owners) > 0
@@ -313,9 +348,11 @@ class OrganizationDeleteTest(APITestCase):
 
         self.login_as(user=user)
 
-        url = reverse('sentry-api-0-organization-details', kwargs={
-            'organization_slug': org.slug,
-        })
+        url = reverse(
+            'sentry-api-0-organization-details', kwargs={
+                'organization_slug': org.slug,
+            }
+        )
         response = self.client.delete(url)
 
         assert response.status_code == 403
@@ -327,9 +364,11 @@ class OrganizationDeleteTest(APITestCase):
 
         self.login_as(self.user)
 
-        url = reverse('sentry-api-0-organization-details', kwargs={
-            'organization_slug': org.slug,
-        })
+        url = reverse(
+            'sentry-api-0-organization-details', kwargs={
+                'organization_slug': org.slug,
+            }
+        )
 
         with self.settings(SENTRY_SINGLE_ORGANIZATION=True):
             response = self.client.delete(url)

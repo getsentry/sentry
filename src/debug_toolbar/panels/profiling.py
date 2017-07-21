@@ -26,8 +26,7 @@ class DjangoDebugToolbarStats(Stats):
 
 
 class FunctionCall(object):
-    def __init__(self, statobj, func, depth=0, stats=None,
-                 id=0, parent_ids=[], hsv=(0, 0.5, 1)):
+    def __init__(self, statobj, func, depth=0, stats=None, id=0, parent_ids=[], hsv=(0, 0.5, 1)):
         self.statobj = statobj
         self.func = func
         if stats:
@@ -68,10 +67,9 @@ class FunctionCall(object):
                 '<span class="djdt-file">{1}</span>'
                 ' in <span class="djdt-func">{3}</span>'
                 '(<span class="djdt-lineno">{2}</span>)'.format(
-                    file_path,
-                    file_name,
-                    line_num,
-                    method))
+                    file_path, file_name, line_num, method
+                )
+            )
 
     def subfuncs(self):
         i = 0
@@ -84,14 +82,15 @@ class FunctionCall(object):
                 s1 = 0
             else:
                 s1 = s * (stats[3] / self.stats[3])
-            yield FunctionCall(self.statobj,
-                               func,
-                               self.depth + 1,
-                               stats=stats,
-                               id=six.text_type(self.id) +
-                               '_' + six.text_type(i),
-                               parent_ids=self.parent_ids + [self.id],
-                               hsv=(h1, s1, 1))
+            yield FunctionCall(
+                self.statobj,
+                func,
+                self.depth + 1,
+                stats=stats,
+                id=six.text_type(self.id) + '_' + six.text_type(i),
+                parent_ids=self.parent_ids + [self.id],
+                hsv=(h1, s1, 1)
+            )
 
     def count(self):
         return self.stats[1]
@@ -133,7 +132,7 @@ class ProfilingPanel(Panel):
 
     def process_view(self, request, view_func, view_args, view_kwargs):
         self.profiler = cProfile.Profile()
-        args = (request,) + view_args
+        args = (request, ) + view_args
         return self.profiler.runcall(view_func, *args, **view_kwargs)
 
     def add_node(self, func_list, func, max_depth, cum_time=0.1):
@@ -143,8 +142,7 @@ class ProfilingPanel(Panel):
             for subfunc in func.subfuncs():
                 if subfunc.stats[3] >= cum_time:
                     func.has_subfuncs = True
-                    self.add_node(func_list, subfunc,
-                                  max_depth, cum_time=cum_time)
+                    self.add_node(func_list, subfunc, max_depth, cum_time=cum_time)
 
     def process_response(self, request, response):
         if not hasattr(self, 'profiler'):
@@ -157,9 +155,6 @@ class ProfilingPanel(Panel):
         root = FunctionCall(self.stats, self.stats.get_root_func(), depth=0)
 
         func_list = []
-        self.add_node(func_list,
-                      root,
-                      dt_settings.CONFIG['PROFILER_MAX_DEPTH'],
-                      root.stats[3] / 8)
+        self.add_node(func_list, root, dt_settings.CONFIG['PROFILER_MAX_DEPTH'], root.stats[3] / 8)
 
         self.record_stats({'func_list': func_list})

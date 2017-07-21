@@ -10,8 +10,7 @@ class UnicodePickledObjectField(PickledObjectField):
     def get_db_prep_value(self, value, *args, **kwargs):
         if isinstance(value, six.binary_type):
             value = value.decode('utf-8')
-        return super(UnicodePickledObjectField, self).get_db_prep_value(
-            value, *args, **kwargs)
+        return super(UnicodePickledObjectField, self).get_db_prep_value(value, *args, **kwargs)
 
 
 if 'south' in settings.INSTALLED_APPS:

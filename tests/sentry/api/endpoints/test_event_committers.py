@@ -13,15 +13,9 @@ class EventCommittersTest(APITestCase):
 
         project = self.create_project()
 
-        release = self.create_release(
-            project,
-            self.user
-        )
+        release = self.create_release(project, self.user)
 
-        group = self.create_group(
-            project=project,
-            first_release=release
-        )
+        group = self.create_group(project=project, first_release=release)
 
         event = self.create_event(
             event_id='a',
@@ -30,22 +24,27 @@ class EventCommittersTest(APITestCase):
             tags={'sentry:release': release.version}
         )
 
-        url = reverse('sentry-api-0-event-file-committers', kwargs={
-            'event_id': event.id,
-            'project_slug': event.project.slug,
-            'organization_slug': event.project.organization.slug,
-        })
+        url = reverse(
+            'sentry-api-0-event-file-committers',
+            kwargs={
+                'event_id': event.id,
+                'project_slug': event.project.slug,
+                'organization_slug': event.project.organization.slug,
+            }
+        )
 
         response = self.client.get(url, format='json')
         assert response.status_code == 200, response.content
         assert len(response.data['committers']) == 1
         assert response.data['committers'][0]['author']['username'] == 'admin@localhost'
         assert len(response.data['committers'][0]['commits']) == 1
-        assert response.data['committers'][0]['commits'][0]['message'] == 'placeholder commit message'
+        assert response.data['committers'][0]['commits'][0]['message'
+                                                            ] == 'placeholder commit message'
 
         assert len(response.data['annotatedFrames']) == 1
         assert len(response.data['annotatedFrames'][0]['commits']) == 1
-        assert response.data['annotatedFrames'][0]['commits'][0]['author']['username'] == 'admin@localhost'
+        assert response.data['annotatedFrames'][0]['commits'][0]['author']['username'
+                                                                           ] == 'admin@localhost'
         # TODO(maxbittker) test more edge cases here
 
     def test_no_commits(self):
@@ -59,11 +58,14 @@ class EventCommittersTest(APITestCase):
             datetime=datetime(2016, 8, 13, 3, 8, 25),
         )
 
-        url = reverse('sentry-api-0-event-file-committers', kwargs={
-            'event_id': event.id,
-            'project_slug': event.project.slug,
-            'organization_slug': event.project.organization.slug,
-        })
+        url = reverse(
+            'sentry-api-0-event-file-committers',
+            kwargs={
+                'event_id': event.id,
+                'project_slug': event.project.slug,
+                'organization_slug': event.project.organization.slug,
+            }
+        )
 
         response = self.client.get(url, format='json')
         assert response.status_code == 404, response.content
@@ -100,12 +102,14 @@ class EventCommittersTest(APITestCase):
                 'environment': 'production',
                 'type': 'default',
                 'sentry.interfaces.Exception': {
-                    'values': [{
-                        'type': 'ValueError',
-                        'value': 'My exception value',
-                        'module': '__builtins__',
-                        'stacktrace': None,
-                    }]
+                    'values': [
+                        {
+                            'type': 'ValueError',
+                            'value': 'My exception value',
+                            'module': '__builtins__',
+                            'stacktrace': None,
+                        }
+                    ]
                 },
                 'tags': [
                     ['environment', 'production'],
@@ -114,11 +118,14 @@ class EventCommittersTest(APITestCase):
             },
         )
 
-        url = reverse('sentry-api-0-event-file-committers', kwargs={
-            'event_id': event.id,
-            'project_slug': event.project.slug,
-            'organization_slug': event.project.organization.slug,
-        })
+        url = reverse(
+            'sentry-api-0-event-file-committers',
+            kwargs={
+                'event_id': event.id,
+                'project_slug': event.project.slug,
+                'organization_slug': event.project.organization.slug,
+            }
+        )
 
         response = self.client.get(url, format='json')
         assert response.status_code == 200, response.content

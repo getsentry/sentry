@@ -37,12 +37,14 @@ class GroupHashesTest(APITestCase):
             ) for hash in ['a' * 32, 'b' * 32]
         ]
 
-        url = '?'.join([
-            '/api/0/issues/{}/hashes/'.format(group.id),
-            urlencode({
-                'id': [h.hash for h in hashes],
-            }, True),
-        ])
+        url = '?'.join(
+            [
+                '/api/0/issues/{}/hashes/'.format(group.id),
+                urlencode({
+                    'id': [h.hash for h in hashes],
+                }, True),
+            ]
+        )
 
         response = self.client.delete(url, format='json')
         assert response.status_code == 202, response.content

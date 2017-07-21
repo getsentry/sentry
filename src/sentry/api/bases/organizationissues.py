@@ -4,9 +4,7 @@ from rest_framework.response import Response
 
 from sentry.api.serializers import serialize, StreamGroupSerializer
 from sentry.api.paginator import OffsetPaginator
-from sentry.models import (
-    Group, GroupStatus, OrganizationMemberTeam, Project, ProjectStatus
-)
+from sentry.models import (Group, GroupStatus, OrganizationMemberTeam, Project, ProjectStatus)
 
 from .organizationmember import OrganizationMemberEndpoint
 
@@ -62,14 +60,13 @@ class OrganizationIssuesEndpoint(OrganizationMemberEndpoint):
         )
 
     def _on_results(self, request, results, stats_period):
-        results = serialize(results, request.user, StreamGroupSerializer(
-            stats_period=stats_period,
-        ))
+        results = serialize(
+            results, request.user, StreamGroupSerializer(
+                stats_period=stats_period,
+            )
+        )
 
         if request.GET.get('status') == 'unresolved':
-            results = [
-                r for r in results
-                if r['status'] == 'unresolved'
-            ]
+            results = [r for r in results if r['status'] == 'unresolved']
 
         return results

@@ -19,18 +19,16 @@ class ApiTokenSerializer(serializers.Serializer):
 
 
 class ApiTokensEndpoint(Endpoint):
-    authentication_classes = (
-        SessionAuthentication,
-    )
-    permission_classes = (
-        IsAuthenticated,
-    )
+    authentication_classes = (SessionAuthentication, )
+    permission_classes = (IsAuthenticated, )
 
     def get(self, request):
-        token_list = list(ApiToken.objects.filter(
-            application__isnull=True,
-            user=request.user,
-        ).select_related('application'))
+        token_list = list(
+            ApiToken.objects.filter(
+                application__isnull=True,
+                user=request.user,
+            ).select_related('application')
+        )
 
         return Response(serialize(token_list, request.user))
 

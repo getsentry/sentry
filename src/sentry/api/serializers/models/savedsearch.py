@@ -10,10 +10,12 @@ from sentry.models import SavedSearch, SavedSearchUserDefault
 class SavedSearchSerializer(Serializer):
     def get_attrs(self, item_list, user):
         if user.is_authenticated():
-            user_defaults = tuple(SavedSearchUserDefault.objects.filter(
-                savedsearch__in=item_list,
-                user=user,
-            ).values_list('savedsearch', flat=True))
+            user_defaults = tuple(
+                SavedSearchUserDefault.objects.filter(
+                    savedsearch__in=item_list,
+                    user=user,
+                ).values_list('savedsearch', flat=True)
+            )
         else:
             user_defaults = ()
 

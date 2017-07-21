@@ -61,12 +61,14 @@ class OAuthTokenCodeTest(TestCase):
     def test_missing_client_id(self):
         self.login_as(self.user)
 
-        resp = self.client.post(self.path, {
-            'grant_type': 'authorization_code',
-            'redirect_uri': self.application.get_default_redirect_uri(),
-            'client_secret': self.application.client_secret,
-            'code': self.grant.code,
-        })
+        resp = self.client.post(
+            self.path, {
+                'grant_type': 'authorization_code',
+                'redirect_uri': self.application.get_default_redirect_uri(),
+                'client_secret': self.application.client_secret,
+                'code': self.grant.code,
+            }
+        )
 
         assert resp.status_code == 400
         assert json.loads(resp.content) == {'error': 'invalid_client'}
@@ -74,13 +76,15 @@ class OAuthTokenCodeTest(TestCase):
     def test_invalid_client_id(self):
         self.login_as(self.user)
 
-        resp = self.client.post(self.path, {
-            'grant_type': 'authorization_code',
-            'redirect_uri': self.application.get_default_redirect_uri(),
-            'code': self.grant.code,
-            'client_id': 'def',
-            'client_secret': self.application.client_secret,
-        })
+        resp = self.client.post(
+            self.path, {
+                'grant_type': 'authorization_code',
+                'redirect_uri': self.application.get_default_redirect_uri(),
+                'code': self.grant.code,
+                'client_id': 'def',
+                'client_secret': self.application.client_secret,
+            }
+        )
 
         assert resp.status_code == 400
         assert json.loads(resp.content) == {'error': 'invalid_client'}
@@ -88,12 +92,14 @@ class OAuthTokenCodeTest(TestCase):
     def test_missing_client_secret(self):
         self.login_as(self.user)
 
-        resp = self.client.post(self.path, {
-            'grant_type': 'authorization_code',
-            'redirect_uri': self.application.get_default_redirect_uri(),
-            'client_id': self.application.client_id,
-            'code': self.grant.code,
-        })
+        resp = self.client.post(
+            self.path, {
+                'grant_type': 'authorization_code',
+                'redirect_uri': self.application.get_default_redirect_uri(),
+                'client_id': self.application.client_id,
+                'code': self.grant.code,
+            }
+        )
 
         assert resp.status_code == 400
         assert json.loads(resp.content) == {'error': 'invalid_client'}
@@ -101,13 +107,15 @@ class OAuthTokenCodeTest(TestCase):
     def test_invalid_client_secret(self):
         self.login_as(self.user)
 
-        resp = self.client.post(self.path, {
-            'grant_type': 'authorization_code',
-            'redirect_uri': self.application.get_default_redirect_uri(),
-            'client_id': self.application.client_id,
-            'client_secret': 'abc',
-            'code': self.grant.code,
-        })
+        resp = self.client.post(
+            self.path, {
+                'grant_type': 'authorization_code',
+                'redirect_uri': self.application.get_default_redirect_uri(),
+                'client_id': self.application.client_id,
+                'client_secret': 'abc',
+                'code': self.grant.code,
+            }
+        )
 
         assert resp.status_code == 400
         assert json.loads(resp.content) == {'error': 'invalid_client'}
@@ -115,12 +123,14 @@ class OAuthTokenCodeTest(TestCase):
     def test_missing_code(self):
         self.login_as(self.user)
 
-        resp = self.client.post(self.path, {
-            'grant_type': 'authorization_code',
-            'redirect_uri': self.application.get_default_redirect_uri(),
-            'client_id': self.application.client_id,
-            'client_secret': self.application.client_secret,
-        })
+        resp = self.client.post(
+            self.path, {
+                'grant_type': 'authorization_code',
+                'redirect_uri': self.application.get_default_redirect_uri(),
+                'client_id': self.application.client_id,
+                'client_secret': self.application.client_secret,
+            }
+        )
 
         assert resp.status_code == 400
         assert json.loads(resp.content) == {'error': 'invalid_grant'}
@@ -128,13 +138,15 @@ class OAuthTokenCodeTest(TestCase):
     def test_invalid_code(self):
         self.login_as(self.user)
 
-        resp = self.client.post(self.path, {
-            'grant_type': 'authorization_code',
-            'redirect_uri': self.application.get_default_redirect_uri(),
-            'code': 'abc',
-            'client_id': self.application.client_id,
-            'client_secret': self.application.client_secret,
-        })
+        resp = self.client.post(
+            self.path, {
+                'grant_type': 'authorization_code',
+                'redirect_uri': self.application.get_default_redirect_uri(),
+                'code': 'abc',
+                'client_id': self.application.client_id,
+                'client_secret': self.application.client_secret,
+            }
+        )
 
         assert resp.status_code == 400
         assert json.loads(resp.content) == {'error': 'invalid_grant'}
@@ -142,13 +154,15 @@ class OAuthTokenCodeTest(TestCase):
     def test_valid_params(self):
         self.login_as(self.user)
 
-        resp = self.client.post(self.path, {
-            'grant_type': 'authorization_code',
-            'redirect_uri': self.application.get_default_redirect_uri(),
-            'code': self.grant.code,
-            'client_id': self.application.client_id,
-            'client_secret': self.application.client_secret,
-        })
+        resp = self.client.post(
+            self.path, {
+                'grant_type': 'authorization_code',
+                'redirect_uri': self.application.get_default_redirect_uri(),
+                'code': self.grant.code,
+                'client_id': self.application.client_id,
+                'client_secret': self.application.client_secret,
+            }
+        )
 
         assert resp.status_code == 200
         data = json.loads(resp.content)
@@ -190,11 +204,13 @@ class OAuthTokenRefreshTokenTest(TestCase):
     def test_missing_client_id(self):
         self.login_as(self.user)
 
-        resp = self.client.post(self.path, {
-            'grant_type': 'refresh_token',
-            'client_secret': self.application.client_secret,
-            'refresh_token': self.token.refresh_token,
-        })
+        resp = self.client.post(
+            self.path, {
+                'grant_type': 'refresh_token',
+                'client_secret': self.application.client_secret,
+                'refresh_token': self.token.refresh_token,
+            }
+        )
 
         assert resp.status_code == 400
         assert json.loads(resp.content) == {'error': 'invalid_client'}
@@ -202,12 +218,14 @@ class OAuthTokenRefreshTokenTest(TestCase):
     def test_invalid_client_id(self):
         self.login_as(self.user)
 
-        resp = self.client.post(self.path, {
-            'grant_type': 'refresh_token',
-            'client_id': 'abc',
-            'client_secret': self.application.client_secret,
-            'refresh_token': self.token.refresh_token,
-        })
+        resp = self.client.post(
+            self.path, {
+                'grant_type': 'refresh_token',
+                'client_id': 'abc',
+                'client_secret': self.application.client_secret,
+                'refresh_token': self.token.refresh_token,
+            }
+        )
 
         assert resp.status_code == 400
         assert json.loads(resp.content) == {'error': 'invalid_client'}
@@ -215,11 +233,13 @@ class OAuthTokenRefreshTokenTest(TestCase):
     def test_missing_client_secret(self):
         self.login_as(self.user)
 
-        resp = self.client.post(self.path, {
-            'grant_type': 'refresh_token',
-            'client_id': self.application.client_id,
-            'refresh_token': self.token.refresh_token,
-        })
+        resp = self.client.post(
+            self.path, {
+                'grant_type': 'refresh_token',
+                'client_id': self.application.client_id,
+                'refresh_token': self.token.refresh_token,
+            }
+        )
 
         assert resp.status_code == 400
         assert json.loads(resp.content) == {'error': 'invalid_client'}
@@ -227,12 +247,14 @@ class OAuthTokenRefreshTokenTest(TestCase):
     def test_invalid_client_secret(self):
         self.login_as(self.user)
 
-        resp = self.client.post(self.path, {
-            'grant_type': 'refresh_token',
-            'client_id': self.application.client_id,
-            'client_secret': 'abc',
-            'refresh_token': self.token.refresh_token,
-        })
+        resp = self.client.post(
+            self.path, {
+                'grant_type': 'refresh_token',
+                'client_id': self.application.client_id,
+                'client_secret': 'abc',
+                'refresh_token': self.token.refresh_token,
+            }
+        )
 
         assert resp.status_code == 400
         assert json.loads(resp.content) == {'error': 'invalid_client'}
@@ -240,11 +262,13 @@ class OAuthTokenRefreshTokenTest(TestCase):
     def test_missing_refresh_token(self):
         self.login_as(self.user)
 
-        resp = self.client.post(self.path, {
-            'grant_type': 'refresh_token',
-            'client_id': self.application.client_id,
-            'client_secret': self.application.client_secret,
-        })
+        resp = self.client.post(
+            self.path, {
+                'grant_type': 'refresh_token',
+                'client_id': self.application.client_id,
+                'client_secret': self.application.client_secret,
+            }
+        )
 
         assert resp.status_code == 400
         assert json.loads(resp.content) == {'error': 'invalid_request'}
@@ -252,12 +276,14 @@ class OAuthTokenRefreshTokenTest(TestCase):
     def test_invalid_refresh_token(self):
         self.login_as(self.user)
 
-        resp = self.client.post(self.path, {
-            'grant_type': 'refresh_token',
-            'client_id': self.application.client_id,
-            'client_secret': self.application.client_secret,
-            'refresh_token': 'foo',
-        })
+        resp = self.client.post(
+            self.path, {
+                'grant_type': 'refresh_token',
+                'client_id': self.application.client_id,
+                'client_secret': self.application.client_secret,
+                'refresh_token': 'foo',
+            }
+        )
 
         assert resp.status_code == 400
         assert json.loads(resp.content) == {'error': 'invalid_grant'}
@@ -265,12 +291,14 @@ class OAuthTokenRefreshTokenTest(TestCase):
     def test_valid_params(self):
         self.login_as(self.user)
 
-        resp = self.client.post(self.path, {
-            'grant_type': 'refresh_token',
-            'client_id': self.application.client_id,
-            'client_secret': self.application.client_secret,
-            'refresh_token': self.token.refresh_token,
-        })
+        resp = self.client.post(
+            self.path, {
+                'grant_type': 'refresh_token',
+                'client_id': self.application.client_id,
+                'client_secret': self.application.client_secret,
+                'refresh_token': self.token.refresh_token,
+            }
+        )
 
         assert resp.status_code == 200
 

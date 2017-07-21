@@ -18,7 +18,6 @@ from debug_toolbar.compat import import_module, OrderedDict
 
 
 class DebugToolbar(object):
-
     def __init__(self, request):
         self.request = request
         self.config = dt_settings.CONFIG.copy()
@@ -65,16 +64,15 @@ class DebugToolbar(object):
         except TemplateSyntaxError:
             if django.VERSION[:2] >= (1, 7):
                 from django.apps import apps
-                staticfiles_installed = apps.is_installed(
-                    'django.contrib.staticfiles')
+                staticfiles_installed = apps.is_installed('django.contrib.staticfiles')
             else:
-                staticfiles_installed = ('django.contrib.staticfiles'
-                                         in settings.INSTALLED_APPS)
+                staticfiles_installed = ('django.contrib.staticfiles' in settings.INSTALLED_APPS)
             if not staticfiles_installed:
                 raise ImproperlyConfigured(
                     "The debug toolbar requires the staticfiles contrib app. "
                     "Add 'django.contrib.staticfiles' to INSTALLED_APPS and "
-                    "define STATIC_URL in your settings.")
+                    "define STATIC_URL in your settings."
+                )
             else:
                 raise
 
@@ -121,20 +119,20 @@ class DebugToolbar(object):
                 try:
                     panel_module, panel_classname = panel_path.rsplit('.', 1)
                 except ValueError:
-                    raise ImproperlyConfigured(
-                        "%s isn't a debug panel module" % panel_path)
+                    raise ImproperlyConfigured("%s isn't a debug panel module" % panel_path)
                 try:
                     mod = import_module(panel_module)
                 except ImportError as e:
                     raise ImproperlyConfigured(
-                        'Error importing debug panel %s: "%s"' %
-                        (panel_module, e))
+                        'Error importing debug panel %s: "%s"' % (panel_module, e)
+                    )
                 try:
                     panel_class = getattr(mod, panel_classname)
                 except AttributeError:
                     raise ImproperlyConfigured(
                         'Toolbar Panel module "%s" does not define a "%s" class' %
-                        (panel_module, panel_classname))
+                        (panel_module, panel_classname)
+                    )
                 panel_classes.append(panel_class)
             cls._panel_classes = panel_classes
         return cls._panel_classes

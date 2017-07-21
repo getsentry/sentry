@@ -11,11 +11,10 @@ from django.core import mail
 from sentry.app import tsdb
 from sentry.models import Project, UserOption
 from sentry.tasks.reports import (
-    DISABLED_ORGANIZATIONS_USER_OPTION_KEY, Report, Skipped, change,
-    clean_series, colorize, deliver_organization_user_report,
-    get_calendar_range, get_percentile, has_valid_aggregates, index_to_month,
-    merge_mappings, merge_sequences, merge_series, month_to_index,
-    prepare_reports, safe_add, user_subscribed_to_organization_reports
+    DISABLED_ORGANIZATIONS_USER_OPTION_KEY, Report, Skipped, change, clean_series, colorize,
+    deliver_organization_user_report, get_calendar_range, get_percentile, has_valid_aggregates,
+    index_to_month, merge_mappings, merge_sequences, merge_series, month_to_index, prepare_reports,
+    safe_add, user_subscribed_to_organization_reports
 )
 from sentry.testutils.cases import TestCase
 from sentry.utils.dates import to_datetime, to_timestamp
@@ -30,7 +29,7 @@ def interval():
 def test_change():
     assert change(1, 0) is None
     assert change(10, 5) == 1.00  # 100% increase
-    assert change(50, 100) == -0.50   # 50% decrease
+    assert change(50, 100) == -0.50  # 50% decrease
     assert change(None, 100) == -1.00  # 100% decrease
     assert change(50, None) is None
 
@@ -44,25 +43,53 @@ def test_safe_add():
 
 def test_merge_mappings():
     assert merge_mappings(
-        {'a': 1, 'b': 2, 'c': 3},
-        {'a': 0, 'b': 1, 'c': 2},
-    ) == {'a': 1, 'b': 3, 'c': 5}
+        {
+            'a': 1,
+            'b': 2,
+            'c': 3
+        },
+        {'a': 0,
+         'b': 1,
+         'c': 2},
+    ) == {
+        'a': 1,
+        'b': 3,
+        'c': 5
+    }
 
 
 def test_merge_mappings_custom_operator():
     assert merge_mappings(
         {
-            'a': {'x': 1, 'y': 1},
-            'b': {'x': 2, 'y': 2},
+            'a': {
+                'x': 1,
+                'y': 1
+            },
+            'b': {
+                'x': 2,
+                'y': 2
+            },
         },
         {
-            'a': {'x': 1, 'y': 1},
-            'b': {'x': 2, 'y': 2},
+            'a': {
+                'x': 1,
+                'y': 1
+            },
+            'b': {
+                'x': 2,
+                'y': 2
+            },
         },
         lambda left, right: merge_mappings(left, right),
     ) == {
-        'a': {'x': 2, 'y': 2},
-        'b': {'x': 4, 'y': 4},
+        'a': {
+            'x': 2,
+            'y': 2
+        },
+        'b': {
+            'x': 4,
+            'y': 4
+        },
     }
 
 
@@ -80,10 +107,16 @@ def test_merge_sequences():
 
 def test_merge_sequences_custom_operator():
     assert merge_sequences(
-        [{chr(65 + i): i} for i in xrange(0, 26)],
-        [{chr(65 + i): i} for i in xrange(0, 26)],
+        [{
+            chr(65 + i): i
+        } for i in xrange(0, 26)],
+        [{
+            chr(65 + i): i
+        } for i in xrange(0, 26)],
         merge_mappings,
-    ) == [{chr(65 + i): i * 2} for i in xrange(0, 26)]
+    ) == [{
+        chr(65 + i): i * 2
+    } for i in xrange(0, 26)]
 
 
 def test_merge_series():
@@ -95,10 +128,16 @@ def test_merge_series():
 
 def test_merge_series_custom_operator():
     assert merge_series(
-        [(i, {chr(65 + i): i}) for i in xrange(0, 26)],
-        [(i, {chr(65 + i): i}) for i in xrange(0, 26)],
+        [(i, {
+            chr(65 + i): i
+        }) for i in xrange(0, 26)],
+        [(i, {
+            chr(65 + i): i
+        }) for i in xrange(0, 26)],
         merge_mappings,
-    ) == [(i, {chr(65 + i): i * 2}) for i in xrange(0, 26)]
+    ) == [(i, {
+        chr(65 + i): i * 2
+    }) for i in xrange(0, 26)]
 
 
 def test_merge_series_offset_timestamps():
@@ -221,10 +260,7 @@ def test_calendar_range():
     assert get_calendar_range(
         (None, datetime(2016, 2, 1, tzinfo=pytz.utc)),
         months=3,
-    ) == (
-        month_to_index(2015, 11),
-        month_to_index(2016, 1),
-    )
+    ) == (month_to_index(2015, 11), month_to_index(2016, 1), )
 
 
 class ReportTestCase(TestCase):

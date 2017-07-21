@@ -14,11 +14,14 @@ class ProjectTagKeyValuesTest(APITestCase):
 
         self.login_as(user=self.user)
 
-        url = reverse('sentry-api-0-project-tagkey-values', kwargs={
-            'organization_slug': project.organization.slug,
-            'project_slug': project.slug,
-            'key': tagkey.key,
-        })
+        url = reverse(
+            'sentry-api-0-project-tagkey-values',
+            kwargs={
+                'organization_slug': project.organization.slug,
+                'project_slug': project.slug,
+                'key': tagkey.key,
+            }
+        )
 
         response = self.client.get(url)
 
@@ -34,11 +37,14 @@ class ProjectTagKeyValuesTest(APITestCase):
 
         self.login_as(user=self.user)
 
-        url = reverse('sentry-api-0-project-tagkey-values', kwargs={
-            'organization_slug': project.organization.slug,
-            'project_slug': project.slug,
-            'key': tagkey.key,
-        })
+        url = reverse(
+            'sentry-api-0-project-tagkey-values',
+            kwargs={
+                'organization_slug': project.organization.slug,
+                'project_slug': project.slug,
+                'key': tagkey.key,
+            }
+        )
         response = self.client.get(url + '?query=bar')
 
         assert response.status_code == 200

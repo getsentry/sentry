@@ -7,17 +7,13 @@ from datetime import datetime, timedelta
 from django.utils import timezone
 from time import time
 
-from sentry.models import (
-    Activity, Group, GroupStatus, Project, ProjectOption
-)
+from sentry.models import (Activity, Group, GroupStatus, Project, ProjectOption)
 from sentry.tasks.base import instrumented_task
 
 ONE_HOUR = 3600
 
 
-@instrumented_task(name='sentry.tasks.schedule_auto_resolution',
-                   time_limit=75,
-                   soft_time_limit=60)
+@instrumented_task(name='sentry.tasks.schedule_auto_resolution', time_limit=75, soft_time_limit=60)
 def schedule_auto_resolution():
     options = ProjectOption.objects.filter(
         key__in=['sentry:resolve_age', 'sentry:_last_auto_resolve'],
@@ -45,11 +41,10 @@ def schedule_auto_resolution():
         )
 
 
-@instrumented_task(name='sentry.tasks.auto_resolve_project_issues',
-                   time_limit=75,
-                   soft_time_limit=60)
-def auto_resolve_project_issues(project_id, cutoff=None, chunk_size=1000,
-                                **kwargs):
+@instrumented_task(
+    name='sentry.tasks.auto_resolve_project_issues', time_limit=75, soft_time_limit=60
+)
+def auto_resolve_project_issues(project_id, cutoff=None, chunk_size=1000, **kwargs):
     project = Project.objects.get_from_cache(id=project_id)
 
     age = project.get_option('sentry:resolve_age', None)
@@ -63,11 +58,13 @@ def auto_resolve_project_issues(project_id, cutoff=None, chunk_size=1000,
     else:
         cutoff = timezone.now() - timedelta(hours=int(age))
 
-    queryset = list(Group.objects.filter(
-        project=project,
-        last_seen__lte=cutoff,
-        status=GroupStatus.UNRESOLVED,
-    )[:chunk_size])
+    queryset = list(
+        Group.objects.filter(
+            project=project,
+            last_seen__lte=cutoff,
+            status=GroupStatus.UNRESOLVED,
+        )[:chunk_size]
+    )
 
     might_have_more = len(queryset) == chunk_size
 

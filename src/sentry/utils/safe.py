@@ -36,14 +36,21 @@ def safe_execute(func, *args, **kwargs):
         func_name = getattr(func, '__name__', six.text_type(func))
         cls_name = cls.__name__
 
-        logger = logging.getLogger('sentry.safe.%s' % (cls_name.lower(),))
+        logger = logging.getLogger('sentry.safe.%s' % (cls_name.lower(), ))
         logger.error('%s.process_error', func_name, exc_info=True, extra={'exception': e})
     else:
         return result
 
 
-def trim(value, max_size=settings.SENTRY_MAX_VARIABLE_SIZE, max_depth=3,
-         object_hook=None, _depth=0, _size=0, **kwargs):
+def trim(
+    value,
+    max_size=settings.SENTRY_MAX_VARIABLE_SIZE,
+    max_depth=3,
+    object_hook=None,
+    _depth=0,
+    _size=0,
+    **kwargs
+):
     """
     Truncates a value to ```MAX_VARIABLE_SIZE```.
 

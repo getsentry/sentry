@@ -22,8 +22,7 @@ class BufferTest(TestCase):
         filters = {'id': 1}
         self.buf.incr(model, columns, filters)
         kwargs = dict(model=model, columns=columns, filters=filters, extra=None)
-        process_incr.apply_async.assert_called_once_with(
-            kwargs=kwargs)
+        process_incr.apply_async.assert_called_once_with(kwargs=kwargs)
 
     def test_process_saves_data(self):
         group = Group.objects.create(project=Project(id=1))
@@ -56,16 +55,9 @@ class BufferTest(TestCase):
     def test_increments_when_null(self):
         org = Organization.objects.create(slug='test-org')
         team = Team.objects.create(organization=org, slug='test-team')
-        project = Project.objects.create(
-            organization=org,
-            slug='test-project',
-            team=team
-        )
+        project = Project.objects.create(organization=org, slug='test-project', team=team)
         release = Release.objects.create(organization=org, version='abcdefg')
-        release_project = ReleaseProject.objects.create(
-            project=project,
-            release=release
-        )
+        release_project = ReleaseProject.objects.create(project=project, release=release)
         assert release_project.new_groups == 0
 
         columns = {'new_groups': 1}

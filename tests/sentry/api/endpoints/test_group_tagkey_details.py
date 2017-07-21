@@ -9,7 +9,7 @@ from sentry.testutils import APITestCase
 class GroupTagDetailsTest(APITestCase):
     def test_simple(self):
         group = self.create_group()
-        group.data['tags'] = (['foo', 'bar'],)
+        group.data['tags'] = (['foo', 'bar'], )
         group.save()
 
         key, value = group.data['tags'][0]

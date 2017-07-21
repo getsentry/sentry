@@ -40,8 +40,4 @@ user_logged_in.connect(
     weak=False,
 )
 
-user_logged_in.connect(
-    set_language_on_logon,
-    dispatch_uid="set_language_on_logon",
-    weak=False
-)
+user_logged_in.connect(set_language_on_logon, dispatch_uid="set_language_on_logon", weak=False)

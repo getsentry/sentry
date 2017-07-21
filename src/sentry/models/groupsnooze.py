@@ -7,8 +7,7 @@ from django.utils import timezone
 from jsonfield import JSONField
 
 from sentry.db.models import (
-    BaseManager, BoundedPositiveIntegerField, FlexibleForeignKey, Model,
-    sane_repr
+    BaseManager, BoundedPositiveIntegerField, FlexibleForeignKey, Model, sane_repr
 )
 
 
@@ -35,9 +34,7 @@ class GroupSnooze(Model):
     state = JSONField(null=True)
     actor_id = BoundedPositiveIntegerField(null=True)
 
-    objects = BaseManager(cache_fields=(
-        'group',
-    ))
+    objects = BaseManager(cache_fields=('group', ))
 
     class Meta:
         db_table = 'sentry_groupsnooze'

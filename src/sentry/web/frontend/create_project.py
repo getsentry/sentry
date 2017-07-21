@@ -10,13 +10,13 @@ from sentry.web.forms.add_project import AddProjectForm
 from sentry.web.frontend.base import OrganizationView
 from sentry.utils.http import absolute_uri
 
-
 ERR_NO_TEAMS = 'You cannot create a new project because there are no teams to assign it to.'
 
 
 class AddProjectWithTeamForm(AddProjectForm):
     team = forms.ChoiceField(
-        choices=(), required=True,
+        choices=(),
+        required=True,
         help_text='The team controls who has access to this project.',
     )
 
@@ -32,10 +32,7 @@ class AddProjectWithTeamForm(AddProjectForm):
         if len(self.team_list) == 1:
             del self.fields['team']
         else:
-            self.fields['team'].choices = (
-                (t.slug, t.name)
-                for t in team_list
-            )
+            self.fields['team'].choices = ((t.slug, t.name) for t in team_list)
             self.fields['team'].widget.choices = self.fields['team'].choices
 
     def clean_team(self):
@@ -63,16 +60,16 @@ class CreateProjectView(OrganizationView):
         data = {
             'team': request.GET.get('team'),
         }
-        return AddProjectWithTeamForm(request.user, organization, team_list,
-                                      request.POST or None, initial=data)
+        return AddProjectWithTeamForm(
+            request.user, organization, team_list, request.POST or None, initial=data
+        )
 
     def handle(self, request, organization):
         team_list = [
             t for t in Team.objects.get_for_user(
                 organization=organization,
                 user=request.user,
-            )
-            if request.access.has_team_scope(t, self.required_scope)
+            ) if request.access.has_team_scope(t, self.required_scope)
         ]
         if not team_list:
             messages.error(request, ERR_NO_TEAMS)
@@ -82,17 +79,23 @@ class CreateProjectView(OrganizationView):
         if form.is_valid():
             team = form.cleaned_data.get('team', team_list[0])
 
-            response = client.post('/teams/{}/{}/projects/'.format(
-                organization.slug,
-                team.slug,
-            ), data={
-                'name': form.cleaned_data['name'],
-            }, request=request)
+            response = client.post(
+                '/teams/{}/{}/projects/'.format(
+                    organization.slug,
+                    team.slug,
+                ),
+                data={
+                    'name': form.cleaned_data['name'],
+                },
+                request=request
+            )
 
-            install_uri = absolute_uri('/{}/{}/getting-started/'.format(
-                organization.slug,
-                response.data['slug'],
-            ))
+            install_uri = absolute_uri(
+                '/{}/{}/getting-started/'.format(
+                    organization.slug,
+                    response.data['slug'],
+                )
+            )
 
             if 'signup' in request.GET:
                 install_uri += '?signup'

@@ -11,7 +11,6 @@ import functools
 
 from django.core.cache import cache
 
-
 default_cache = cache
 
 

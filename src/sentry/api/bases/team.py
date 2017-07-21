@@ -30,7 +30,7 @@ class TeamPermission(OrganizationPermission):
 
 
 class TeamEndpoint(Endpoint):
-    permission_classes = (TeamPermission,)
+    permission_classes = (TeamPermission, )
 
     def convert_args(self, request, organization_slug, team_slug, *args, **kwargs):
         try:

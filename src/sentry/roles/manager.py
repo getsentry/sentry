@@ -38,10 +38,7 @@ class RoleManager(object):
             role_list.append(role)
             self._roles[role.id] = role
 
-        self._choices = tuple(
-            (r.id, r.name)
-            for r in role_list
-        )
+        self._choices = tuple((r.id, r.name) for r in role_list)
 
         if default:
             self._default = self._roles[default]

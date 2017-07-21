@@ -8,14 +8,16 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import StreamGroupSerializer
 from sentry.models import (
-    Group, GroupCommitResolution,
-    Release, ReleaseCommit,
+    Group,
+    GroupCommitResolution,
+    Release,
+    ReleaseCommit,
 )
 
 
 class IssuesResolvedInReleaseEndpoint(ProjectEndpoint):
     doc_section = DocSection.RELEASES
-    permission_classes = (ProjectPermission,)
+    permission_classes = (ProjectPermission, )
 
     def get(self, request, project, version):
         """
@@ -44,9 +46,5 @@ class IssuesResolvedInReleaseEndpoint(ProjectEndpoint):
             ).values_list('group_id', flat=True),
         )
 
-        context = serialize(
-            list(groups), request.user, StreamGroupSerializer(
-                stats_period=None
-            )
-        )
+        context = serialize(list(groups), request.user, StreamGroupSerializer(stats_period=None))
         return Response(context)

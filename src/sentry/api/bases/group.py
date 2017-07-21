@@ -20,12 +20,11 @@ class GroupPermission(ProjectPermission):
     }
 
     def has_object_permission(self, request, view, group):
-        return super(GroupPermission, self).has_object_permission(
-            request, view, group.project)
+        return super(GroupPermission, self).has_object_permission(request, view, group.project)
 
 
 class GroupEndpoint(Endpoint):
-    permission_classes = (GroupPermission,)
+    permission_classes = (GroupPermission, )
 
     def convert_args(self, request, issue_id, *args, **kwargs):
         # TODO(tkaemming): Ideally, this would return a 302 response, rather
@@ -48,10 +47,12 @@ class GroupEndpoint(Endpoint):
 
         self.check_object_permissions(request, group)
 
-        raven.tags_context({
-            'project': group.project_id,
-            'organization': group.project.organization_id,
-        })
+        raven.tags_context(
+            {
+                'project': group.project_id,
+                'organization': group.project.organization_id,
+            }
+        )
 
         kwargs['group'] = group
 

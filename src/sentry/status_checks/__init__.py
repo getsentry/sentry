@@ -9,7 +9,6 @@ from .celery_alive import CeleryAliveCheck
 from .celery_app_version import CeleryAppVersionCheck
 from .warnings import WarningStatusCheck
 
-
 checks = [
     CeleryAliveCheck(),
     CeleryAppVersionCheck(),

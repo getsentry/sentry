@@ -16,7 +16,6 @@ from six.moves.urllib.parse import urlencode, urljoin, urlparse
 
 from sentry import options
 
-
 ParsedUriMatch = namedtuple('ParsedUriMatch', ['scheme', 'domain', 'path'])
 
 
@@ -170,7 +169,8 @@ def is_valid_origin(origin, project=None, allowed=None):
 
     if parsed.port:
         domain_matches = (
-            '*', parsed_hostname,
+            '*',
+            parsed_hostname,
             # Explicit hostname + port name
             '%s:%d' % (parsed_hostname, parsed.port),
             # Wildcard hostname with explicit port
@@ -225,9 +225,10 @@ def is_valid_ip(ip_address, project):
 
         # Check to make sure it's actually a range before
         try:
-            if '/' in addr and ipaddress.ip_address(
-                    six.text_type(ip_address)) in ipaddress.ip_network(
-                    six.text_type(addr), strict=False):
+            if '/' in addr and ipaddress.ip_address(six.text_type(ip_address)
+                                                    ) in ipaddress.ip_network(
+                                                        six.text_type(addr), strict=False
+                                                    ):
                 return False
         except ValueError:
             # Ignore invalid values here

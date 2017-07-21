@@ -9,7 +9,6 @@ from django.core.urlresolvers import reverse
 from sentry.models import Event
 from sentry.testutils import TestCase
 
-
 PROGUARD_UUID = '6dc7fdb0-d2fb-4c8e-9d6b-bb1aa98929b1'
 PROGUARD_SOURCE = b'''\
 org.slf4j.helpers.Util$ClassContextSecurityManager -> org.a.b.g$a:
@@ -21,12 +20,14 @@ org.slf4j.helpers.Util$ClassContextSecurityManager -> org.a.b.g$a:
 
 
 class BasicResolvingIntegrationTest(TestCase):
-
     def test_basic_resolving(self):
-        url = reverse('sentry-api-0-dsym-files', kwargs={
-            'organization_slug': self.project.organization.slug,
-            'project_slug': self.project.slug,
-        })
+        url = reverse(
+            'sentry-api-0-dsym-files',
+            kwargs={
+                'organization_slug': self.project.organization.slug,
+                'project_slug': self.project.slug,
+            }
+        )
 
         self.login_as(user=self.user)
 
@@ -36,10 +37,13 @@ class BasicResolvingIntegrationTest(TestCase):
         f.writestr('ignored-file.txt', b'This is just some stuff')
         f.close()
 
-        response = self.client.post(url, {
-            'file': SimpleUploadedFile('symbols.zip', out.getvalue(),
-                                       content_type='application/zip'),
-        }, format='multipart')
+        response = self.client.post(
+            url, {
+                'file':
+                SimpleUploadedFile('symbols.zip', out.getvalue(), content_type='application/zip'),
+            },
+            format='multipart'
+        )
         assert response.status_code == 201, response.content
         assert len(response.data) == 1
 
@@ -51,12 +55,10 @@ class BasicResolvingIntegrationTest(TestCase):
             "project": self.project.id,
             "platform": "java",
             "debug_meta": {
-                "images": [
-                    {
-                        "type": "proguard",
-                        "uuid": PROGUARD_UUID,
-                    }
-                ]
+                "images": [{
+                    "type": "proguard",
+                    "uuid": PROGUARD_UUID,
+                }]
             },
             "sentry.interfaces.Exception": {
                 "values": [

@@ -59,8 +59,9 @@ def print_unified_diff(left, right):
     left_fingerprint = [k[0] for k in left]
     right_fingerprint = [k[0] for k in right]
     if left_fingerprint != right_fingerprint:
-        echo('!! Different fingerprint algorithms: %r vs %r' %
-             (left_fingerprint, right_fingerprint))
+        echo(
+            '!! Different fingerprint algorithms: %r vs %r' % (left_fingerprint, right_fingerprint)
+        )
         return
 
     bits = left_fingerprint
@@ -87,12 +88,13 @@ class Command(BaseCommand):
     help = 'Display a diff between two events'
 
     option_list = BaseCommand.option_list + (
-        make_option('--group',
-                    action='store_true',
-                    dest='group',
-                    default=False,
-                    help='Compare latest event by group id'
-                    ),
+        make_option(
+            '--group',
+            action='store_true',
+            dest='group',
+            default=False,
+            help='Compare latest event by group id'
+        ),
     )
 
     def handle(self, *args, **options):

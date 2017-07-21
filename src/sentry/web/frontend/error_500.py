@@ -51,9 +51,7 @@ class Error500View(View):
 
         embed_config = self.get_embed_config(request)
         if embed_config:
-            context['embed_config'] = json.dumps_htmlsafe(
-                embed_config
-            )
+            context['embed_config'] = json.dumps_htmlsafe(embed_config)
 
         t = loader.get_template('sentry/500.html')
         return HttpResponseServerError(t.render(Context(context)))

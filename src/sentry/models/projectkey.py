@@ -23,8 +23,7 @@ from six.moves.urllib.parse import urlparse
 
 from sentry import options
 from sentry.db.models import (
-    Model, BaseManager, BoundedPositiveIntegerField, FlexibleForeignKey,
-    sane_repr
+    Model, BaseManager, BoundedPositiveIntegerField, FlexibleForeignKey, sane_repr
 )
 
 _uuid4_re = re.compile(r'^[a-f0-9]{32}$')
@@ -43,36 +42,34 @@ class ProjectKey(Model):
     label = models.CharField(max_length=64, blank=True, null=True)
     public_key = models.CharField(max_length=32, unique=True, null=True)
     secret_key = models.CharField(max_length=32, unique=True, null=True)
-    roles = BitField(flags=(
-        # access to post events to the store endpoint
-        ('store', 'Event API access'),
+    roles = BitField(
+        flags=(
+            # access to post events to the store endpoint
+            ('store', 'Event API access'),
 
-        # read/write access to rest API
-        ('api', 'Web API access'),
-    ), default=['store'])
-    status = BoundedPositiveIntegerField(default=0, choices=(
-        (ProjectKeyStatus.ACTIVE, _('Active')),
-        (ProjectKeyStatus.INACTIVE, _('Inactive')),
-    ), db_index=True)
+            # read/write access to rest API
+            ('api', 'Web API access'),
+        ),
+        default=['store']
+    )
+    status = BoundedPositiveIntegerField(
+        default=0,
+        choices=(
+            (ProjectKeyStatus.ACTIVE, _('Active')), (ProjectKeyStatus.INACTIVE, _('Inactive')),
+        ),
+        db_index=True
+    )
     date_added = models.DateTimeField(default=timezone.now, null=True)
 
     rate_limit_count = BoundedPositiveIntegerField(null=True)
     rate_limit_window = BoundedPositiveIntegerField(null=True)
 
-    objects = BaseManager(cache_fields=(
-        'public_key',
-        'secret_key',
-    ))
+    objects = BaseManager(cache_fields=('public_key', 'secret_key', ))
 
     # support legacy project keys in API
     scopes = (
-        'project:read',
-        'project:write',
-        'project:admin',
-        'project:releases',
-        'event:read',
-        'event:write',
-        'event:admin',
+        'project:read', 'project:write', 'project:admin', 'project:releases', 'event:read',
+        'event:write', 'event:admin',
     )
 
     class Meta:
@@ -114,9 +111,7 @@ class ProjectKey(Model):
     def get_default(cls, project):
         try:
             return cls.objects.filter(
-                project=project,
-                roles=cls.roles.store,
-                status=ProjectKeyStatus.ACTIVE
+                project=project, roles=cls.roles.store, status=ProjectKeyStatus.ACTIVE
             )[0]
         except IndexError:
             return None
@@ -154,10 +149,7 @@ class ProjectKey(Model):
             urlparts = urlparse(options.get('system.url-prefix'))
 
         return '%s://%s@%s/%s' % (
-            urlparts.scheme,
-            key,
-            urlparts.netloc + urlparts.path,
-            self.project_id,
+            urlparts.scheme, key, urlparts.netloc + urlparts.path, self.project_id,
         )
 
     @property
@@ -175,9 +167,7 @@ class ProjectKey(Model):
             endpoint = options.get('system.url-prefix')
 
         return '%s%s?sentry_key=%s' % (
-            endpoint,
-            reverse('sentry-api-csp-report', args=[self.project_id]),
-            self.public_key,
+            endpoint, reverse('sentry-api-csp-report', args=[self.project_id]), self.public_key,
         )
 
     def get_allowed_origins(self):

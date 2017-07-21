@@ -39,10 +39,13 @@ class ReleaseDeploysListTest(APITestCase):
             release=release,
         )
 
-        url = reverse('sentry-api-0-organization-release-deploys', kwargs={
-            'organization_slug': project.organization.slug,
-            'version': release.version,
-        })
+        url = reverse(
+            'sentry-api-0-organization-release-deploys',
+            kwargs={
+                'organization_slug': project.organization.slug,
+                'version': release.version,
+            }
+        )
 
         self.login_as(user=self.user)
 
@@ -70,18 +73,24 @@ class ReleaseDeploysCreateTest(APITestCase):
             name='production',
         )
 
-        url = reverse('sentry-api-0-organization-release-deploys', kwargs={
-            'organization_slug': project.organization.slug,
-            'version': release.version,
-        })
+        url = reverse(
+            'sentry-api-0-organization-release-deploys',
+            kwargs={
+                'organization_slug': project.organization.slug,
+                'version': release.version,
+            }
+        )
 
         self.login_as(user=self.user)
 
-        response = self.client.post(url, data={
-            'name': 'foo',
-            'environment': 'production',
-            'url': 'https://www.example.com',
-        })
+        response = self.client.post(
+            url,
+            data={
+                'name': 'foo',
+                'environment': 'production',
+                'url': 'https://www.example.com',
+            }
+        )
         assert response.status_code == 201, response.content
         assert response.data['name'] == 'foo'
         assert response.data['url'] == 'https://www.example.com'

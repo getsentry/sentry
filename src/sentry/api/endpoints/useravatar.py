@@ -12,11 +12,11 @@ from sentry.models import UserAvatar
 
 class UserAvatarSerializer(serializers.Serializer):
     avatar_photo = AvatarField(required=False)
-    avatar_type = serializers.ChoiceField(choices=(
-        ('upload', 'upload'),
-        ('gravatar', 'gravatar'),
-        ('letter_avatar', 'letter_avatar'),
-    ))
+    avatar_type = serializers.ChoiceField(
+        choices=(
+            ('upload', 'upload'), ('gravatar', 'gravatar'), ('letter_avatar', 'letter_avatar'),
+        )
+    )
 
     def validate(self, attrs):
         attrs = super(UserAvatarSerializer, self).validate(attrs)
@@ -26,9 +26,11 @@ class UserAvatarSerializer(serializers.Serializer):
                 file__isnull=False,
             ).exists()
             if not has_existing_file and not attrs.get('avatar_photo'):
-                raise serializers.ValidationError({
-                    'avatar_type': 'Cannot set avatar_type to upload without avatar_photo',
-                })
+                raise serializers.ValidationError(
+                    {
+                        'avatar_type': 'Cannot set avatar_type to upload without avatar_photo',
+                    }
+                )
         return attrs
 
 

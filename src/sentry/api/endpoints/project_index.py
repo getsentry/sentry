@@ -9,24 +9,19 @@ from sentry.api.bases.project import ProjectPermission
 from sentry.api.paginator import DateTimePaginator
 from sentry.api.serializers import serialize, ProjectWithOrganizationSerializer
 from sentry.db.models.query import in_iexact
-from sentry.models import (
-    Project, ProjectPlatform, ProjectStatus
-)
+from sentry.models import (Project, ProjectPlatform, ProjectStatus)
 from sentry.search.utils import tokenize_query
 from sentry.utils.apidocs import scenario, attach_scenarios
 
 
 @scenario('ListYourProjects')
 def list_your_projects_scenario(runner):
-    runner.request(
-        method='GET',
-        path='/projects/'
-    )
+    runner.request(method='GET', path='/projects/')
 
 
 class ProjectIndexEndpoint(Endpoint):
     doc_section = DocSection.PROJECTS
-    permission_classes = (ProjectPermission,)
+    permission_classes = (ProjectPermission, )
 
     @attach_scenarios([list_your_projects_scenario])
     def get(self, request):
@@ -75,18 +70,11 @@ class ProjectIndexEndpoint(Endpoint):
             for key, value in six.iteritems(tokens):
                 if key == 'query':
                     value = ' '.join(value)
-                    queryset = queryset.filter(
-                        Q(name__icontains=value) |
-                        Q(slug__icontains=value)
-                    )
+                    queryset = queryset.filter(Q(name__icontains=value) | Q(slug__icontains=value))
                 elif key == 'slug':
-                    queryset = queryset.filter(
-                        in_iexact('slug', value)
-                    )
+                    queryset = queryset.filter(in_iexact('slug', value))
                 elif key == 'name':
-                    queryset = queryset.filter(
-                        in_iexact('name', value)
-                    )
+                    queryset = queryset.filter(in_iexact('name', value))
                 elif key == 'platform':
                     queryset = queryset.filter(
                         id__in=ProjectPlatform.objects.filter(

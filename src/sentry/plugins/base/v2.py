@@ -7,7 +7,7 @@ sentry.plugins.base.v2
 """
 from __future__ import absolute_import, print_function
 
-__all__ = ('Plugin2',)
+__all__ = ('Plugin2', )
 
 import logging
 import six
@@ -19,7 +19,8 @@ from sentry.plugins.config import PluginConfigMixin
 from sentry.plugins.status import PluginStatusMixin
 from sentry.plugins.base.response import Response
 from sentry.plugins.base.configuration import (
-    default_plugin_config, default_plugin_options,
+    default_plugin_config,
+    default_plugin_options,
 )
 from sentry.utils.hashlib import md5_text
 
@@ -34,7 +35,7 @@ class PluginMount(type):
         if not new_cls.slug:
             new_cls.slug = new_cls.title.replace(' ', '-').lower()
         if not hasattr(new_cls, 'logger'):
-            new_cls.logger = logging.getLogger('sentry.plugins.%s' % (new_cls.slug,))
+            new_cls.logger = logging.getLogger('sentry.plugins.%s' % (new_cls.slug, ))
         return new_cls
 
 
@@ -198,9 +199,8 @@ class IPlugin2(local, PluginConfigMixin, PluginStatusMixin):
         >>> plugin.get_conf_version(project)
         """
         options = self.get_conf_options(project)
-        return md5_text(
-            '&'.join(sorted('%s=%s' % o for o in six.iteritems(options)))
-        ).hexdigest()[:3]
+        return md5_text('&'.join(sorted('%s=%s' % o
+                                        for o in six.iteritems(options)))).hexdigest()[:3]
 
     def get_conf_title(self):
         """
@@ -372,8 +372,7 @@ class IPlugin2(local, PluginConfigMixin, PluginStatusMixin):
         """
         return []
 
-    def get_stacktrace_processors(self, data, stacktrace_infos,
-                                  platforms, **kwargs):
+    def get_stacktrace_processors(self, data, stacktrace_infos, platforms, **kwargs):
         """
         This works similarly to `get_event_preprocessors` but returns a
         function that is invoked for all encountered stacktraces in an

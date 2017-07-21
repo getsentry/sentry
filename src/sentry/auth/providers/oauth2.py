@@ -20,8 +20,7 @@ class OAuth2Login(AuthView):
     client_id = None
     scope = ''
 
-    def __init__(self, authorize_url=None, client_id=None, scope=None, *args,
-                 **kwargs):
+    def __init__(self, authorize_url=None, client_id=None, scope=None, *args, **kwargs):
         super(OAuth2Login, self).__init__(*args, **kwargs)
         if authorize_url is not None:
             self.authorize_url = authorize_url
@@ -55,9 +54,7 @@ class OAuth2Login(AuthView):
             state=state,
             redirect_uri=absolute_uri(helper.get_redirect_url()),
         )
-        redirect_uri = '{}?{}'.format(
-            self.get_authorize_url(), urlencode(params)
-        )
+        redirect_uri = '{}?{}'.format(self.get_authorize_url(), urlencode(params))
 
         helper.bind_state('state', state)
 
@@ -69,8 +66,7 @@ class OAuth2Callback(AuthView):
     client_id = None
     client_secret = None
 
-    def __init__(self, access_token_url=None, client_id=None,
-                 client_secret=None, *args, **kwargs):
+    def __init__(self, access_token_url=None, client_id=None, client_secret=None, *args, **kwargs):
         super(OAuth2Callback, self).__init__(*args, **kwargs)
         if access_token_url is not None:
             self.access_token_url = access_token_url
@@ -202,9 +198,7 @@ class OAuth2Provider(Provider):
         error = payload.get('error', 'unknown_error')
         error_description = payload.get('error_description', 'no description available')
 
-        formatted_error = 'HTTP {} ({}): {}'.format(
-            req.status_code, error, error_description
-        )
+        formatted_error = 'HTTP {} ({}): {}'.format(req.status_code, error, error_description)
 
         if req.status_code == 401:
             raise IdentityNotValid(formatted_error)

@@ -34,9 +34,7 @@ class EventUser(Model):
         db_table = 'sentry_eventuser'
         unique_together = (('project', 'ident'), ('project', 'hash'))
         index_together = (
-            ('project', 'email'),
-            ('project', 'username'),
-            ('project', 'ip_address'),
+            ('project', 'email'), ('project', 'username'), ('project', 'ip_address'),
         )
 
     __repr__ = sane_repr('project_id', 'ident', 'email', 'username', 'ip_address')
@@ -52,17 +50,11 @@ class EventUser(Model):
 
         Return a dictionary of {tag_value: event_user}.
         """
-        hashes = [
-            md5_text(v.split(':', 1)[-1]).hexdigest()
-            for v in values
-        ]
-        return {
-            e.tag_value: e
-            for e in cls.objects.filter(
-                project=project_id,
-                hash__in=hashes,
-            )
-        }
+        hashes = [md5_text(v.split(':', 1)[-1]).hexdigest() for v in values]
+        return {e.tag_value: e for e in cls.objects.filter(
+            project=project_id,
+            hash__in=hashes,
+        )}
 
     def save(self, *args, **kwargs):
         assert self.ident or self.username or self.email or self.ip_address, \
@@ -101,17 +93,17 @@ class EventUser(Model):
         return self.name or self.email or self.username
 
     def find_similar_users(self, user):
-        from sentry.models import (
-            OrganizationMemberTeam, Project
-        )
+        from sentry.models import (OrganizationMemberTeam, Project)
         # limit to only teams user has opted into
-        project_ids = list(Project.objects.filter(
-            team__in=OrganizationMemberTeam.objects.filter(
-                organizationmember__user=user,
-                organizationmember__organization=self.project.organization,
-                is_active=True,
-            ).values('team'),
-        ).values_list('id', flat=True)[:1000])
+        project_ids = list(
+            Project.objects.filter(
+                team__in=OrganizationMemberTeam.objects.filter(
+                    organizationmember__user=user,
+                    organizationmember__organization=self.project.organization,
+                    is_active=True,
+                ).values('team'),
+            ).values_list('id', flat=True)[:1000]
+        )
         if not project_ids:
             return type(self).objects.none()
 

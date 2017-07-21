@@ -2,9 +2,7 @@ from __future__ import absolute_import
 
 from django.core.urlresolvers import reverse
 
-from sentry.models import (
-    Organization, OrganizationAccessRequest, OrganizationMemberTeam
-)
+from sentry.models import (Organization, OrganizationAccessRequest, OrganizationMemberTeam)
 from sentry.testutils import APITestCase
 
 
@@ -24,9 +22,14 @@ class CreateOrganizationMemberTeamTest(APITestCase):
             teams=[],
         )
 
-        path = reverse('sentry-api-0-organization-member-team-details', args=[
-            organization.slug, member_om.id, team.slug,
-        ])
+        path = reverse(
+            'sentry-api-0-organization-member-team-details',
+            args=[
+                organization.slug,
+                member_om.id,
+                team.slug,
+            ]
+        )
 
         self.login_as(user)
 
@@ -49,9 +52,14 @@ class CreateOrganizationMemberTeamTest(APITestCase):
             teams=[],
         )
 
-        path = reverse('sentry-api-0-organization-member-team-details', args=[
-            organization.slug, member_om.id, team.slug,
-        ])
+        path = reverse(
+            'sentry-api-0-organization-member-team-details',
+            args=[
+                organization.slug,
+                member_om.id,
+                team.slug,
+            ]
+        )
 
         self.login_as(user)
 
@@ -83,9 +91,14 @@ class CreateOrganizationMemberTeamTest(APITestCase):
             teams=[],
         )
 
-        path = reverse('sentry-api-0-organization-member-team-details', args=[
-            organization.slug, member_om.id, team.slug,
-        ])
+        path = reverse(
+            'sentry-api-0-organization-member-team-details',
+            args=[
+                organization.slug,
+                member_om.id,
+                team.slug,
+            ]
+        )
 
         self.login_as(user)
 
@@ -111,9 +124,14 @@ class DeleteOrganizationMemberTeamTest(APITestCase):
             teams=[team],
         )
 
-        path = reverse('sentry-api-0-organization-member-team-details', args=[
-            organization.slug, member_om.id, team.slug,
-        ])
+        path = reverse(
+            'sentry-api-0-organization-member-team-details',
+            args=[
+                organization.slug,
+                member_om.id,
+                team.slug,
+            ]
+        )
 
         self.login_as(user)
 
@@ -137,9 +155,14 @@ class DeleteOrganizationMemberTeamTest(APITestCase):
             teams=[],
         )
 
-        path = reverse('sentry-api-0-organization-member-team-details', args=[
-            organization.slug, member_om.id, team.slug,
-        ])
+        path = reverse(
+            'sentry-api-0-organization-member-team-details',
+            args=[
+                organization.slug,
+                member_om.id,
+                team.slug,
+            ]
+        )
 
         self.login_as(user)
 
@@ -163,9 +186,14 @@ class DeleteOrganizationMemberTeamTest(APITestCase):
             teams=[],
         )
 
-        path = reverse('sentry-api-0-organization-member-team-details', args=[
-            organization.slug, member_om.id, team.slug,
-        ])
+        path = reverse(
+            'sentry-api-0-organization-member-team-details',
+            args=[
+                organization.slug,
+                member_om.id,
+                team.slug,
+            ]
+        )
 
         self.login_as(user)
 

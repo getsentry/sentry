@@ -46,7 +46,6 @@ from django.utils.safestring import mark_safe
 
 from sentry.utils.html import escape
 
-
 CallbackFuture = namedtuple('CallbackFuture', ['callback', 'kwargs'])
 
 

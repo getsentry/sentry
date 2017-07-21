@@ -21,7 +21,7 @@ class ReleaseSerializer(serializers.Serializer):
 
 
 class ProjectReleaseDetailsEndpoint(ProjectEndpoint):
-    permission_classes = (ProjectReleasePermission,)
+    permission_classes = (ProjectReleasePermission, )
 
     def get(self, request, project, version):
         """

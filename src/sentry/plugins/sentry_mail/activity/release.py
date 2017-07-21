@@ -9,8 +9,7 @@ from django.db.models import Count
 
 from sentry.db.models.query import in_iexact
 from sentry.models import (
-    CommitFileChange, Deploy, Environment, Group,
-    GroupSubscriptionReason, GroupCommitResolution,
+    CommitFileChange, Deploy, Environment, Group, GroupSubscriptionReason, GroupCommitResolution,
     Release, ReleaseCommit, Repository, Team, User, UserEmail, UserOption, UserOptionValue
 )
 from sentry.utils.http import absolute_uri
@@ -57,10 +56,7 @@ class ReleaseActivityEmail(ActivityEmail):
                 ).values('id', 'name')
             }
 
-            self.email_list = set([
-                c.author.email for c in self.commit_list
-                if c.author
-            ])
+            self.email_list = set([c.author.email for c in self.commit_list if c.author])
             if self.email_list:
                 users = {
                     ue.email: ue.user
@@ -106,13 +102,14 @@ class ReleaseActivityEmail(ActivityEmail):
             return {}
 
         # collect all users with verified emails on a team in the related projects,
-        users = list(User.objects.filter(
-            emails__is_verified=True,
-            sentry_orgmember_set__teams=Team.objects.filter(
-                id__in=[p.team_id for p in self.projects]
-            ),
-            is_active=True,
-        ).distinct())
+        users = list(
+            User.objects.filter(
+                emails__is_verified=True,
+                sentry_orgmember_set__teams=Team.objects.
+                filter(id__in=[p.team_id for p in self.projects]),
+                is_active=True,
+            ).distinct()
+        )
 
         # get all the involved users' settings for deploy-emails
         options_by_user_id = {
@@ -132,23 +129,18 @@ class ReleaseActivityEmail(ActivityEmail):
 
         # filter down to members which have been seen in the commit log:
         participants_committed = {
-            user: GroupSubscriptionReason.committed
-            for user, option in users_with_options
+            user: GroupSubscriptionReason.committed for user, option in users_with_options
             if option == UserOptionValue.committed_deploys_only and user.id in self.user_ids
         }
 
         # or who opt into all deploy emails:
         participants_opted = {
-            user: GroupSubscriptionReason.deploy_setting
-            for user, option in users_with_options
+            user: GroupSubscriptionReason.deploy_setting for user, option in users_with_options
             if option == UserOptionValue.all_deploys
         }
 
         # merge the two type of participants
-        return dict(chain(
-            six.iteritems(participants_committed),
-            six.iteritems(participants_opted)
-        ))
+        return dict(chain(six.iteritems(participants_committed), six.iteritems(participants_opted)))
 
     def get_users_by_teams(self):
         if not self.user_id_team_lookup:
@@ -168,14 +160,22 @@ class ReleaseActivityEmail(ActivityEmail):
         ).values('filename').distinct().count()
 
         return {
-            'commit_count': len(self.commit_list),
-            'author_count': len(self.email_list),
-            'file_count': file_count,
-            'repos': self.repos,
-            'release': self.release,
-            'deploy': self.deploy,
-            'environment': self.environment,
-            'setup_repo_link': absolute_uri('/organizations/{}/repos/'.format(
+            'commit_count':
+            len(self.commit_list),
+            'author_count':
+            len(self.email_list),
+            'file_count':
+            file_count,
+            'repos':
+            self.repos,
+            'release':
+            self.release,
+            'deploy':
+            self.deploy,
+            'environment':
+            self.environment,
+            'setup_repo_link':
+            absolute_uri('/organizations/{}/repos/'.format(
                 self.organization.slug,
             )),
         }
@@ -187,15 +187,15 @@ class ReleaseActivityEmail(ActivityEmail):
             teams = self.get_users_by_teams()[user.id]
             projects = [p for p in self.projects if p.team_id in teams]
         release_links = [
-            absolute_uri('/{}/{}/releases/{}/'.format(
-                self.organization.slug,
-                p.slug,
-                self.release.version,
-            )) for p in projects
+            absolute_uri(
+                '/{}/{}/releases/{}/'.format(
+                    self.organization.slug,
+                    p.slug,
+                    self.release.version,
+                )
+            ) for p in projects
         ]
-        resolved_issue_counts = [
-            self.group_counts_by_project.get(p.id, 0) for p in projects
-        ]
+        resolved_issue_counts = [self.group_counts_by_project.get(p.id, 0) for p in projects]
         return {
             'projects': zip(projects, release_links, resolved_issue_counts),
             'project_count': len(projects),

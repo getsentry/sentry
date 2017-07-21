@@ -8,9 +8,7 @@ from sentry import options
 from sentry.http import Session
 from sentry.lang.native.utils import sdk_info_to_sdk_id
 
-
 MAX_ATTEMPTS = 3
-
 
 logger = logging.getLogger(__name__)
 
@@ -47,6 +45,5 @@ def lookup_system_symbols(symbols, sdk_info=None, cpu_name=None):
             except (IOError, RequestException):
                 attempts += 1
                 if attempts > MAX_ATTEMPTS:
-                    logger.error('Failed to contact system symbol server',
-                                 exc_info=True)
+                    logger.error('Failed to contact system symbol server', exc_info=True)
                     return

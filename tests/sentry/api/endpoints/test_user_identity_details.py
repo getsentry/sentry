@@ -22,10 +22,13 @@ class DeleteUserIdentityTest(APITestCase):
 
         self.login_as(user=user)
 
-        url = reverse('sentry-api-0-user-identity-details', kwargs={
-            'user_id': user.id,
-            'identity_id': auth_identity.id,
-        })
+        url = reverse(
+            'sentry-api-0-user-identity-details',
+            kwargs={
+                'user_id': user.id,
+                'identity_id': auth_identity.id,
+            }
+        )
         resp = self.client.delete(url, format='json')
         assert resp.status_code == 204, resp.content
 

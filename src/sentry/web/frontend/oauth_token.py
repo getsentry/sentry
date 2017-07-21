@@ -9,9 +9,7 @@ from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic.base import View
 
-from sentry.models import (
-    ApiApplication, ApiApplicationStatus, ApiGrant, ApiToken
-)
+from sentry.models import (ApiApplication, ApiApplicationStatus, ApiGrant, ApiToken)
 from sentry.utils import json
 
 
@@ -22,9 +20,11 @@ class OAuthTokenView(View):
         return super(OAuthTokenView, self).dispatch(request, *args, **kwargs)
 
     def error(self, name, status=400):
-        return HttpResponse(json.dumps({
-            'error': name,
-        }), content_type='application/json', status=status)
+        return HttpResponse(
+            json.dumps({
+                'error': name,
+            }), content_type='application/json', status=status
+        )
 
     @never_cache
     def post(self, request):
@@ -109,17 +109,22 @@ class OAuthTokenView(View):
         else:
             return self.error('unsupported_grant_type')
 
-        return HttpResponse(json.dumps({
-            'access_token': token.token,
-            'refresh_token': token.refresh_token,
-            'expires_in': (timezone.now() - token.expires_at).total_seconds(),
-            'expires_at': token.expires_at,
-            'token_type': 'bearer',
-            'scope': ' '.join(token.get_scopes()),  # NOQA
-            'user': {
-                'id': six.text_type(token.user.id),
-                # we might need these to become scope based
-                'name': token.user.name,
-                'email': token.user.email,
-            },
-        }), content_type='application/json')
+        return HttpResponse(
+            json.dumps(
+                {
+                    'access_token': token.token,
+                    'refresh_token': token.refresh_token,
+                    'expires_in': (timezone.now() - token.expires_at).total_seconds(),
+                    'expires_at': token.expires_at,
+                    'token_type': 'bearer',
+                    'scope': ' '.join(token.get_scopes()),  # NOQA
+                    'user': {
+                        'id': six.text_type(token.user.id),
+                        # we might need these to become scope based
+                        'name': token.user.name,
+                        'email': token.user.email,
+                    },
+                }
+            ),
+            content_type='application/json'
+        )

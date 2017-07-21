@@ -19,10 +19,7 @@ class GroupReleaseSerializer(Serializer):
         release_list = list(Release.objects.filter(
             id__in=[i.release_id for i in item_list],
         ))
-        releases = {
-            r.id: d
-            for r, d in zip(release_list, serialize(release_list, user))
-        }
+        releases = {r.id: d for r, d in zip(release_list, serialize(release_list, user))}
 
         result = {}
         for item in item_list:
@@ -51,8 +48,7 @@ class GroupReleaseWithStatsSerializer(GroupReleaseSerializer):
         self.until = until
 
     def get_attrs(self, item_list, user):
-        attrs = super(GroupReleaseWithStatsSerializer, self).get_attrs(
-            item_list, user)
+        attrs = super(GroupReleaseWithStatsSerializer, self).get_attrs(item_list, user)
 
         items = {}
         for item in item_list:
@@ -78,13 +74,11 @@ class GroupReleaseWithStatsSerializer(GroupReleaseSerializer):
 
             for item in item_list:
                 attrs[item]['stats'][key] = [
-                    (k, v[item.id])
-                    for k, v in stats.get(item.group_id, {})
+                    (k, v[item.id]) for k, v in stats.get(item.group_id, {})
                 ]
         return attrs
 
     def serialize(self, obj, attrs, user):
-        result = super(GroupReleaseWithStatsSerializer, self).serialize(
-            obj, attrs, user)
+        result = super(GroupReleaseWithStatsSerializer, self).serialize(obj, attrs, user)
         result['stats'] = attrs['stats']
         return result

@@ -22,7 +22,7 @@ class SlugifyInstanceTest(TestCase):
     def test_reserved(self):
         base_slug = self.organization.slug
         org = Organization(name='foo')
-        slugify_instance(org, base_slug, reserved=(base_slug,))
+        slugify_instance(org, base_slug, reserved=(base_slug, ))
         assert not org.slug.startswith(base_slug + '-'), org.slug
         assert not Organization.objects.filter(slug=org.slug).exists()
 

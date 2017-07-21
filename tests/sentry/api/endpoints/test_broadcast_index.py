@@ -28,9 +28,7 @@ class BroadcastUpdateTest(APITestCase):
 
         self.login_as(user=self.user)
         url = reverse('sentry-api-0-broadcast-index')
-        response = self.client.put(url, {
-            'hasSeen': '1'
-        })
+        response = self.client.put(url, {'hasSeen': '1'})
         assert response.status_code == 200
         assert response.data['hasSeen']
 

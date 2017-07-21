@@ -20,10 +20,13 @@ class TeamStatsTest(APITestCase):
         tsdb.incr(tsdb.models.project, project_2.id, count=5)
         tsdb.incr(tsdb.models.project, project_3.id, count=10)
 
-        url = reverse('sentry-api-0-team-stats', kwargs={
-            'organization_slug': team.organization.slug,
-            'team_slug': team.slug,
-        })
+        url = reverse(
+            'sentry-api-0-team-stats',
+            kwargs={
+                'organization_slug': team.organization.slug,
+                'team_slug': team.slug,
+            }
+        )
         response = self.client.get(url, format='json')
 
         assert response.status_code == 200, response.content

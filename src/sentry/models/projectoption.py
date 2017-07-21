@@ -85,10 +85,7 @@ class ProjectOptionManager(BaseManager):
 
     def reload_cache(self, project_id):
         cache_key = self._make_key(project_id)
-        result = dict(
-            (i.key, i.value)
-            for i in self.filter(project=project_id)
-        )
+        result = dict((i.key, i.value) for i in self.filter(project=project_id))
         cache.set(cache_key, result)
         self.__cache[project_id] = result
         return result
@@ -123,6 +120,6 @@ class ProjectOption(Model):
     class Meta:
         app_label = 'sentry'
         db_table = 'sentry_projectoptions'
-        unique_together = (('project', 'key',),)
+        unique_together = (('project', 'key', ), )
 
     __repr__ = sane_repr('project_id', 'key', 'value')

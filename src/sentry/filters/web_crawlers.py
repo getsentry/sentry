@@ -7,32 +7,37 @@ from .base import Filter
 # not all of these agents are guaranteed to execute JavaScript, but to avoid
 # overhead of identifying which ones do, and which ones will over time we simply
 # target all of the major ones
-CRAWLERS = re.compile(r'|'.join((
-    # various Google services
-    r'AdsBot',
-    # Google Adsense
-    r'Mediapartners',
-    # Google+ and Google web search
-    r'Google',
-    # Bing search
-    r'BingBot',
-    # Baidu search
-    r'Baiduspider',
-    # Yahoo
-    r'Slurp',
-    # Sogou
-    r'Sogou',
-    # facebook
-    r'facebook',
-    # Alexa
-    r'ia_archiver',
-    # Generic bot
-    r'bot[\/\s\)\;]',
-    # Generic spider
-    r'spider[\/\s\)\;]',
-    # Slack - see https://api.slack.com/robots
-    r'Slack',
-)), re.I)
+CRAWLERS = re.compile(
+    r'|'.join(
+        (
+            # various Google services
+            r'AdsBot',
+            # Google Adsense
+            r'Mediapartners',
+            # Google+ and Google web search
+            r'Google',
+            # Bing search
+            r'BingBot',
+            # Baidu search
+            r'Baiduspider',
+            # Yahoo
+            r'Slurp',
+            # Sogou
+            r'Sogou',
+            # facebook
+            r'facebook',
+            # Alexa
+            r'ia_archiver',
+            # Generic bot
+            r'bot[\/\s\)\;]',
+            # Generic spider
+            r'spider[\/\s\)\;]',
+            # Slack - see https://api.slack.com/robots
+            r'Slack',
+        )
+    ),
+    re.I
+)
 
 
 class WebCrawlersFilter(Filter):

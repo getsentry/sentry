@@ -6,10 +6,9 @@ from ..base import ModelDeletionTask, ModelRelation
 class OrganizationDeletionTask(ModelDeletionTask):
     def get_child_relations(self, instance):
         from sentry.models import (
-            OrganizationMember,
-            Commit, CommitAuthor, CommitFileChange, Environment, Release,
-            ReleaseCommit, ReleaseEnvironment, ReleaseFile, Distribution,
-            ReleaseHeadCommit, Repository, Team
+            OrganizationMember, Commit, CommitAuthor, CommitFileChange, Environment, Release,
+            ReleaseCommit, ReleaseEnvironment, ReleaseFile, Distribution, ReleaseHeadCommit,
+            Repository, Team
         )
 
         # Team must come first
@@ -18,13 +17,10 @@ class OrganizationDeletionTask(ModelDeletionTask):
         ]
 
         model_list = (
-            OrganizationMember, CommitFileChange, Commit, CommitAuthor,
-            Environment, Repository, Release, ReleaseCommit,
-            ReleaseEnvironment, ReleaseFile, Distribution, ReleaseHeadCommit
+            OrganizationMember, CommitFileChange, Commit, CommitAuthor, Environment, Repository,
+            Release, ReleaseCommit, ReleaseEnvironment, ReleaseFile, Distribution, ReleaseHeadCommit
         )
-        relations.extend([
-            ModelRelation(m, {'organization_id': instance.id}) for m in model_list
-        ])
+        relations.extend([ModelRelation(m, {'organization_id': instance.id}) for m in model_list])
 
         return relations
 

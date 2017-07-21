@@ -1,8 +1,6 @@
 from __future__ import absolute_import
 
-from sentry.models import (
-    GroupSubscription, GroupSubscriptionReason, UserOption, UserOptionValue
-)
+from sentry.models import (GroupSubscription, GroupSubscriptionReason, UserOption, UserOptionValue)
 from sentry.testutils import TestCase
 
 

@@ -16,9 +16,11 @@ class OrganizationMemberListTest(APITestCase):
 
         self.login_as(user=user_1)
 
-        url = reverse('sentry-api-0-organization-member-index', kwargs={
-            'organization_slug': org.slug,
-        })
+        url = reverse(
+            'sentry-api-0-organization-member-index', kwargs={
+                'organization_slug': org.slug,
+            }
+        )
 
         response = self.client.get(url)
 

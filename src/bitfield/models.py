@@ -80,7 +80,6 @@ class BitFieldCreator(object):
 
 
 class BitField(BigIntegerField):
-
     def contribute_to_class(self, cls, name, **kwargs):
         super(BitField, self).contribute_to_class(cls, name, **kwargs)
         setattr(cls, self.name, BitFieldCreator(self))
@@ -89,9 +88,8 @@ class BitField(BigIntegerField):
         if isinstance(flags, dict):
             # Get only integer keys in correct range
             valid_keys = (
-                k for k in flags.keys() if isinstance(
-                    k, int) and (
-                    0 <= k < MAX_FLAG_COUNT))
+                k for k in flags.keys() if isinstance(k, int) and (0 <= k < MAX_FLAG_COUNT)
+            )
             if not valid_keys:
                 raise ValueError('Wrong keys or empty dictionary')
             # Fill list with values from dict or with empty values
@@ -156,15 +154,17 @@ class BitField(BigIntegerField):
                 return [value.mask]
             else:
                 return BitQueryLookupWrapper(
-                    self.model._meta.db_table, self.db_column or self.name, value)
-        return BigIntegerField.get_db_prep_lookup(self, lookup_type=lookup_type, value=value,
-                                                  connection=connection, prepared=prepared)
+                    self.model._meta.db_table, self.db_column or self.name, value
+                )
+        return BigIntegerField.get_db_prep_lookup(
+            self, lookup_type=lookup_type, value=value, connection=connection, prepared=prepared
+        )
 
     def get_prep_lookup(self, lookup_type, value):
         if isinstance(getattr(value, 'expression', None), Bit):
             value = value.expression
         if isinstance(value, Bit):
-            if lookup_type in ('exact',):
+            if lookup_type in ('exact', ):
                 return value
             raise TypeError('Lookup type %r not supported with `Bit` type.' % lookup_type)
         return BigIntegerField.get_prep_lookup(self, lookup_type, value)
@@ -179,7 +179,7 @@ class BitField(BigIntegerField):
             if isinstance(value, six.integer_types) and value < 0:
                 new_value = 0
                 for bit_number, _ in enumerate(self.flags):
-                    new_value |= (value & (2 ** bit_number))
+                    new_value |= (value & (2**bit_number))
                 value = new_value
 
             value = BitHandler(value, self.flags, self.labels)
@@ -253,8 +253,7 @@ class CompositeBitField(object):
 
     def validate_fields(self, sender, **kwargs):
         cls = sender
-        model_fields = dict([
-            (f.name, f) for f in cls._meta.fields if f.name in self.fields])
+        model_fields = dict([(f.name, f) for f in cls._meta.fields if f.name in self.fields])
         all_flags = sum([model_fields[f].flags for f in self.fields], [])
         if len(all_flags) != len(set(all_flags)):
             raise ValueError('BitField flags must be unique.')

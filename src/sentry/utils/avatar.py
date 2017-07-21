@@ -26,8 +26,9 @@ from sentry.http import safe_urlopen
 def get_gravatar_url(email, size=None, default='mm'):
     if email is None:
         email = ''
-    gravatar_url = "%s/avatar/%s" % (settings.SENTRY_GRAVATAR_BASE_URL,
-                                     md5_text(email.lower()).hexdigest())
+    gravatar_url = "%s/avatar/%s" % (
+        settings.SENTRY_GRAVATAR_BASE_URL, md5_text(email.lower()).hexdigest()
+    )
 
     properties = {}
     if size:
@@ -52,9 +53,8 @@ LETTER_AVATAR_COLORS = [
     '#6c5fc7',  # purple
     '#4e3fb4',  # purple_dark
     '#57b1be',  # teal
-    '#847a8c'   # gray
+    '#847a8c'  # gray
 ]
-
 
 COLOR_COUNT = len(LETTER_AVATAR_COLORS)
 
@@ -83,7 +83,10 @@ def get_letter_avatar(display_name, identifier, size=None, use_svg=True):
             '<text x="50%" y="50%" font-size="65" dominant-baseline="central" text-anchor="middle" fill="#FFFFFF">'
             '{initials}'
             '</text>'
-            '</svg>').format(color=color, initials=initials, size_attrs=size_attrs)
+            '</svg>'
+        ).format(
+            color=color, initials=initials, size_attrs=size_attrs
+        )
     else:
         size_attrs = 'height:%spx;width:%spx;' % (size, size) if size else ''
         font_size = 'font-size:%spx;' % (size / 2) if size else ''
@@ -91,9 +94,14 @@ def get_letter_avatar(display_name, identifier, size=None, use_svg=True):
         return (
             u'<span class="html-avatar" '
             'style="background-color:{color};{size_attrs}{font_size}{line_height}">'
-            '{initials}</span>').format(color=color, initials=initials,
-                                        size_attrs=size_attrs, font_size=font_size,
-                                        line_height=line_height)
+            '{initials}</span>'
+        ).format(
+            color=color,
+            initials=initials,
+            size_attrs=size_attrs,
+            font_size=font_size,
+            line_height=line_height
+        )
 
 
 def get_email_avatar(display_name, identifier, size=None, try_gravatar=True):

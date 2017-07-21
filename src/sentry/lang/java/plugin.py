@@ -6,12 +6,10 @@ from sentry.stacktraces import StacktraceProcessor
 from sentry.models import ProjectDSymFile, EventError
 from sentry.reprocessing import report_processing_issue
 
-
 FRAME_CACHE_VERSION = 2
 
 
 class JavaStacktraceProcessor(StacktraceProcessor):
-
     def __init__(self, *args, **kwargs):
         StacktraceProcessor.__init__(self, *args, **kwargs)
         debug_meta = self.data.get('debug_meta')
@@ -27,26 +25,21 @@ class JavaStacktraceProcessor(StacktraceProcessor):
 
     def handles_frame(self, frame, stacktrace_info):
         platform = frame.get('platform') or self.data.get('platform')
-        return (
-            platform == 'java' and
-            self.available and
-            'function' in frame and
-            'module' in frame
-        )
+        return (platform == 'java' and self.available and 'function' in frame and 'module' in frame)
 
     def preprocess_frame(self, processable_frame):
-        processable_frame.set_cache_key_from_values((
-            FRAME_CACHE_VERSION,
-            processable_frame.frame['module'],
-            processable_frame.frame['function'],
-        ) + tuple(sorted(self.images)))
+        processable_frame.set_cache_key_from_values(
+            (
+                FRAME_CACHE_VERSION, processable_frame.frame['module'],
+                processable_frame.frame['function'],
+            ) + tuple(sorted(self.images))
+        )
 
     def preprocess_step(self, processing_task):
         if not self.available:
             return False
 
-        dsym_paths = ProjectDSymFile.dsymcache.fetch_dsyms(
-            self.project, self.images)
+        dsym_paths = ProjectDSymFile.dsymcache.fetch_dsyms(self.project, self.images)
         self.mapping_views = []
 
         for image_uuid in self.images:
@@ -65,18 +58,20 @@ class JavaStacktraceProcessor(StacktraceProcessor):
             if error_type is None:
                 continue
 
-            self.data.setdefault('errors', []).append({
-                'type': error_type,
-                'mapping_uuid': image_uuid,
-            })
-            report_processing_issue(self.data,
-                                    scope='proguard',
-                                    object='mapping:%s' % image_uuid,
-                                    type=error_type,
-                                    data={
-                                        'mapping_uuid': image_uuid,
-                                    }
-                                    )
+            self.data.setdefault('errors',
+                                 []).append({
+                                     'type': error_type,
+                                     'mapping_uuid': image_uuid,
+                                 })
+            report_processing_issue(
+                self.data,
+                scope='proguard',
+                object='mapping:%s' % image_uuid,
+                type=error_type,
+                data={
+                    'mapping_uuid': image_uuid,
+                }
+            )
 
     def process_frame(self, processable_frame, processing_task):
         new_module = None
@@ -114,7 +109,6 @@ class JavaPlugin(Plugin2):
     def can_configure_for_project(self, project, **kwargs):
         return False
 
-    def get_stacktrace_processors(self, data, stacktrace_infos,
-                                  platforms, **kwargs):
+    def get_stacktrace_processors(self, data, stacktrace_infos, platforms, **kwargs):
         if 'java' in platforms:
             return [JavaStacktraceProcessor]

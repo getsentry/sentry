@@ -17,9 +17,10 @@ class ProjectProcessingIssuesFixEndpoint(ProjectEndpoint):
         token = None
 
         if request.user_from_signed_request and request.user.is_authenticated():
-            tokens = [x for x in ApiToken.objects.filter(
-                user=request.user
-            ).all() if 'project:releases' in x.get_scopes()]
+            tokens = [
+                x for x in ApiToken.objects.filter(user=request.user).all()
+                if 'project:releases' in x.get_scopes()
+            ]
             if not tokens:
                 token = ApiToken.objects.create(
                     user=request.user,
@@ -30,25 +31,28 @@ class ProjectProcessingIssuesFixEndpoint(ProjectEndpoint):
             else:
                 token = tokens[0]
 
-        resp = render_to_response('sentry/reprocessing-script.sh', {
-            'issues': [{
-                'uuid': issue.data.get('image_uuid'),
-                'arch': issue.data.get('image_arch'),
-                'name': (issue.data.get('image_path') or '').split('/')[-1]
-            } for issue in ProcessingIssue.objects.filter(
-                project=project
-            )],
-            'project': project,
-            'token': token,
-            'server_url': absolute_uri('/'),
-        })
+        resp = render_to_response(
+            'sentry/reprocessing-script.sh', {
+                'issues': [
+                    {
+                        'uuid': issue.data.get('image_uuid'),
+                        'arch': issue.data.get('image_arch'),
+                        'name': (issue.data.get('image_path') or '').split('/')[-1]
+                    } for issue in ProcessingIssue.objects.filter(project=project)
+                ],
+                'project':
+                project,
+                'token':
+                token,
+                'server_url':
+                absolute_uri('/'),
+            }
+        )
         resp['Content-Type'] = 'text/plain'
         return resp
 
     def permission_denied(self, request):
-        resp = render_to_response('sentry/reprocessing-script.sh', {
-            'token': None
-        })
+        resp = render_to_response('sentry/reprocessing-script.sh', {'token': None})
         resp['Content-Type'] = 'text/plain'
         return resp
 
@@ -58,13 +62,9 @@ class ProjectProcessingIssuesEndpoint(ProjectEndpoint):
         """
         List a project's processing issues.
         """
-        num_issues = ProcessingIssue.objects.filter(
-            project=project
-        ).count()
+        num_issues = ProcessingIssue.objects.filter(project=project).count()
 
-        last_seen = ProcessingIssue.objects.filter(
-            project=project
-        ).order_by('-datetime').first()
+        last_seen = ProcessingIssue.objects.filter(project=project).order_by('-datetime').first()
 
         resolveable_issues, has_more = ProcessingIssue.objects \
             .find_resolved(project_id=project.id)
@@ -94,9 +94,9 @@ class ProjectProcessingIssuesEndpoint(ProjectEndpoint):
         }
 
         if request.GET.get('detailed') == '1':
-            q = ProcessingIssue.objects.with_num_events().filter(
-                project=project
-            ).order_by('type', 'datetime')
+            q = ProcessingIssue.objects.with_num_events().filter(project=project).order_by(
+                'type', 'datetime'
+            )
             data['issues'] = [serialize(x, request.user) for x in q]
 
         return Response(serialize(data, request.user))
@@ -106,9 +106,7 @@ class ProjectProcessingIssuesEndpoint(ProjectEndpoint):
         This deletes all open processing issues and triggers reprocessing if
         the user disabled the checkbox
         """
-        reprocessing_active = bool(
-            project.get_option('sentry:reprocessing_active', True)
-        )
+        reprocessing_active = bool(project.get_option('sentry:reprocessing_active', True))
         if not reprocessing_active:
             ProcessingIssue.objects. \
                 resolve_all_processing_issue(project=project)

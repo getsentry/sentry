@@ -28,9 +28,7 @@ class ReleaseHook(object):
         try:
             with transaction.atomic():
                 release = Release.objects.create(
-                    version=version,
-                    organization_id=self.project.organization_id,
-                    **values
+                    version=version, organization_id=self.project.organization_id, **values
                 )
         except IntegrityError:
             release = Release.objects.get(
@@ -57,14 +55,10 @@ class ReleaseHook(object):
         try:
             with transaction.atomic():
                 release = Release.objects.create(
-                    organization_id=project.organization_id,
-                    version=version
+                    organization_id=project.organization_id, version=version
                 )
         except IntegrityError:
-            release = Release.objects.get(
-                organization_id=project.organization_id,
-                version=version
-            )
+            release = Release.objects.get(organization_id=project.organization_id, version=version)
         release.add_project(project)
 
         release.set_commits(commit_list)
@@ -80,9 +74,7 @@ class ReleaseHook(object):
         try:
             with transaction.atomic():
                 release = Release.objects.create(
-                    version=version,
-                    organization_id=self.project.organization_id,
-                    **values
+                    version=version, organization_id=self.project.organization_id, **values
                 )
         except IntegrityError:
             release = Release.objects.get(

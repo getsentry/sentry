@@ -6,7 +6,6 @@ import logging
 
 from sentry.utils.dates import to_timestamp
 
-
 logger = logging.getLogger('sentry.similarity')
 
 
@@ -85,12 +84,8 @@ class FeatureSet(object):
                 features = map(self.encoder.dumps, features)
             except Exception as error:
                 log = (
-                    logger.debug
-                    if isinstance(error, self.expected_encoding_errors) else
-                    functools.partial(
-                        logger.warning,
-                        exc_info=True
-                    )
+                    logger.debug if isinstance(error, self.expected_encoding_errors) else
+                    functools.partial(logger.warning, exc_info=True)
                 )
                 log(
                     'Could not encode features from %r for %r due to error: %r',
@@ -100,10 +95,7 @@ class FeatureSet(object):
                 )
             else:
                 if features:
-                    items.append((
-                        self.aliases[label],
-                        features,
-                    ))
+                    items.append((self.aliases[label], features, ))
         return self.index.record(
             self.__get_scope(event.project),
             self.__get_key(event.group),
@@ -191,7 +183,8 @@ class FeatureSet(object):
         unsafe_scopes = set(scopes.keys()) - set([self.__get_scope(destination.project)])
         if unsafe_scopes and not allow_unsafe:
             raise ValueError(
-                'all groups must belong to same project if unsafe merges are not allowed')
+                'all groups must belong to same project if unsafe merges are not allowed'
+            )
 
         destination_scope = self.__get_scope(destination.project)
         destination_key = self.__get_key(destination)
@@ -208,8 +201,7 @@ class FeatureSet(object):
             if source_scope != destination_scope:
                 imports = [
                     (alias, destination_key, data)
-                    for (alias, _), data in
-                    zip(
+                    for (alias, _), data in zip(
                         items,
                         self.index.export(source_scope, items),
                     )
