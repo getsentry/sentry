@@ -96,6 +96,14 @@ class InvalidTimestamp(Exception):
     pass
 
 
+class FutureInvalidTimestamp(InvalidTimestamp):
+    pass
+
+
+class PastInvalidTimestamp(InvalidTimestamp):
+    pass
+
+
 class InvalidFingerprint(Exception):
     pass
 
@@ -352,10 +360,10 @@ class ClientApiHelper(object):
             current_datetime = datetime.now()
 
         if value > current_datetime + timedelta(minutes=1):
-            raise InvalidTimestamp('Invalid value for timestamp (in future): %r' % value)
+            raise FutureInvalidTimestamp('%s' % (value - current_datetime))
 
         if value < current_datetime - timedelta(days=30):
-            raise InvalidTimestamp('Invalid value for timestamp (too old): %r' % value)
+            raise PastInvalidTimestamp('%s' % (value - current_datetime))
 
         data['timestamp'] = float(value.strftime('%s'))
 
@@ -440,13 +448,28 @@ class ClientApiHelper(object):
         if 'timestamp' in data:
             try:
                 self._process_data_timestamp(data)
+            except FutureInvalidTimestamp as e:
+                data['errors'].append({
+                    'type': EventError.INVALID_TIMESTAMP_SKEW,
+                    'value': data['timestamp'],
+                    'reason': 'future',
+                    'delta': e.message,
+                })
+                del data['timestamp']
+            except PastInvalidTimestamp as e:
+                data['errors'].append({
+                    'type': EventError.INVALID_TIMESTAMP_SKEW,
+                    'value': data['timestamp'],
+                    'reason': 'past',
+                    'delta': e.message,
+                })
+                del data['timestamp']
             except InvalidTimestamp as e:
                 self.log.debug(
                     'Discarded invalid value for timestamp: %r',
                     data['timestamp'], exc_info=True)
                 data['errors'].append({
-                    'type': EventError.INVALID_DATA,
-                    'name': 'timestamp',
+                    'type': EventError.INVALID_TIMESTAMP,
                     'value': data['timestamp'],
                 })
                 del data['timestamp']

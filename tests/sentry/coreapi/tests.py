@@ -12,7 +12,8 @@ from uuid import UUID
 
 from sentry.coreapi import (
     APIError, APIUnauthorized, Auth, ClientApiHelper, InvalidFingerprint,
-    InvalidTimestamp, get_interface, CspApiHelper, APIForbidden,
+    InvalidTimestamp, PastInvalidTimestamp, FutureInvalidTimestamp,
+    get_interface, CspApiHelper, APIForbidden,
 )
 from sentry.testutils import TestCase
 
@@ -170,8 +171,13 @@ class ProcessDataTimestampTest(BaseAPITest):
         })
 
     def test_future_timestamp(self):
-        self.assertRaises(InvalidTimestamp, self.helper._process_data_timestamp, {
+        self.assertRaises(FutureInvalidTimestamp, self.helper._process_data_timestamp, {
             'timestamp': '2052-01-01T10:30:45Z'
+        })
+
+    def test_past_timestamp(self):
+        self.assertRaises(PastInvalidTimestamp, self.helper._process_data_timestamp, {
+            'timestamp': '1969-01-01T10:30:45Z'
         })
 
     def test_long_microseconds_value(self):

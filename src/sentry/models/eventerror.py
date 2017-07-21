@@ -21,6 +21,8 @@ class dontexplodedict(object):
 class EventError(object):
     INVALID_DATA = 'invalid_data'
     INVALID_ATTRIBUTE = 'invalid_attribute'
+    INVALID_TIMESTAMP = 'invalid_timestamp'
+    INVALID_TIMESTAMP_SKEW = 'invalid_timestamp_skew'
     VALUE_TOO_LONG = 'value_too_long'
     UNKNOWN_ERROR = 'unknown_error'
     SECURITY_VIOLATION = 'security_violation'
@@ -58,6 +60,8 @@ class EventError(object):
     _messages = {
         INVALID_DATA: u'Discarded invalid value for parameter \'{name}\'',
         INVALID_ATTRIBUTE: u'Discarded invalid parameter \'{name}\'',
+        INVALID_TIMESTAMP: u'Discarded malformed timestamp',
+        INVALID_TIMESTAMP_SKEW: u'Discarded invalid timestamp, too far in {reason}: {delta}',
         VALUE_TOO_LONG: u'Discarded value for \'{name}\' due to exceeding maximum length',
         UNKNOWN_ERROR: u'Unknown error',
         SECURITY_VIOLATION: u'Cannot fetch resource due to security violation on {url}',
