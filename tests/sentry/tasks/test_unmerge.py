@@ -15,6 +15,7 @@ from sentry.models import (
     Activity, Environment, EnvironmentProject, Event, EventMapping, Group,
     GroupHash, GroupRelease, GroupTagKey, GroupTagValue, Release, UserReport
 )
+from sentry.similarity import features
 from sentry.tasks.unmerge import (
     get_caches, get_event_user_from_interface, get_fingerprint,
     get_group_backfill_attributes, get_group_creation_attributes, unmerge
@@ -236,6 +237,8 @@ class UnmergeTestCase(TestCase):
                 comments='Quack',
             )
 
+            features.record(event)
+
             return event
 
         events = OrderedDict()
@@ -272,6 +275,10 @@ class UnmergeTestCase(TestCase):
             (u'environment', u'production', 17),
             (u'sentry:release', u'version', 17),
         ])
+
+        assert features.query(source) == [
+            (source.id, {'message:message:character-shingles': 1.0}),
+        ]
 
         with self.tasks():
             unmerge.delay(
@@ -671,3 +678,13 @@ class UnmergeTestCase(TestCase):
             time_series[destination.id],
             {},
         )
+
+        assert features.query(source) == [
+            (source.id, {'message:message:character-shingles': 1.0}),
+            (destination.id, {'message:message:character-shingles': 0.375}),
+        ]
+
+        assert features.query(destination) == [
+            (destination.id, {'message:message:character-shingles': 1.0}),
+            (source.id, {'message:message:character-shingles': 0.375}),
+        ]
