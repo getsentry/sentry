@@ -326,6 +326,7 @@ class GroupDetailsEndpoint(GroupEndpoint):
 
             delete_logger.info('object.delete.queued', extra={
                 'object_id': group.id,
+                'project_id': project.id,
                 'transaction_id': transaction_id,
                 'model': type(group).__name__,
             })
