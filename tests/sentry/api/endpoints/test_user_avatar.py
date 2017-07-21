@@ -15,9 +15,11 @@ class UserAvatarTest(APITestCase):
 
         self.login_as(user=user)
 
-        url = reverse('sentry-api-0-user-avatar', kwargs={
-            'user_id': 'me',
-        })
+        url = reverse(
+            'sentry-api-0-user-avatar', kwargs={
+                'user_id': 'me',
+            }
+        )
         response = self.client.get(url, format='json')
 
         assert response.status_code == 200, response.content
@@ -30,9 +32,11 @@ class UserAvatarTest(APITestCase):
 
         self.login_as(user=user)
 
-        url = reverse('sentry-api-0-user-avatar', kwargs={
-            'user_id': 'me',
-        })
+        url = reverse(
+            'sentry-api-0-user-avatar', kwargs={
+                'user_id': 'me',
+            }
+        )
         response = self.client.put(url, data={'avatar_type': 'gravatar'}, format='json')
 
         avatar = UserAvatar.objects.get(user=user)
@@ -44,13 +48,19 @@ class UserAvatarTest(APITestCase):
 
         self.login_as(user=user)
 
-        url = reverse('sentry-api-0-user-avatar', kwargs={
-            'user_id': 'me',
-        })
-        response = self.client.put(url, data={
-            'avatar_type': 'upload',
-            'avatar_photo': b64encode(self.load_fixture('avatar.jpg')),
-        }, format='json')
+        url = reverse(
+            'sentry-api-0-user-avatar', kwargs={
+                'user_id': 'me',
+            }
+        )
+        response = self.client.put(
+            url,
+            data={
+                'avatar_type': 'upload',
+                'avatar_photo': b64encode(self.load_fixture('avatar.jpg')),
+            },
+            format='json'
+        )
 
         avatar = UserAvatar.objects.get(user=user)
         assert response.status_code == 200, response.content
@@ -63,9 +73,11 @@ class UserAvatarTest(APITestCase):
 
         self.login_as(user=user)
 
-        url = reverse('sentry-api-0-user-avatar', kwargs={
-            'user_id': 'me',
-        })
+        url = reverse(
+            'sentry-api-0-user-avatar', kwargs={
+                'user_id': 'me',
+            }
+        )
         response = self.client.put(url, data={'avatar_type': 'upload'}, format='json')
 
         avatar = UserAvatar.objects.get(user=user)
@@ -82,9 +94,11 @@ class UserAvatarTest(APITestCase):
 
         self.login_as(user=user)
 
-        url = reverse('sentry-api-0-user-avatar', kwargs={
-            'user_id': user2.id,
-        })
+        url = reverse(
+            'sentry-api-0-user-avatar', kwargs={
+                'user_id': user2.id,
+            }
+        )
         response = self.client.put(url, data={'avatar_type': 'gravatar'}, format='json')
 
         assert response.status_code == 403

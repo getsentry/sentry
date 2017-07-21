@@ -29,11 +29,13 @@ _default_encoder = JSONEncoder(
 # These are values that come default from logging.LogRecord.
 # They are defined here:
 # https://github.com/python/cpython/blob/2.7/Lib/logging/__init__.py#L237-L310
-throwaways = frozenset((
-    'threadName', 'thread', 'created', 'process', 'processName', 'args',
-    'module', 'filename', 'levelno', 'exc_text', 'msg', 'pathname', 'lineno',
-    'funcName', 'relativeCreated', 'levelname', 'msecs',
-))
+throwaways = frozenset(
+    (
+        'threadName', 'thread', 'created', 'process', 'processName', 'args', 'module', 'filename',
+        'levelno', 'exc_text', 'msg', 'pathname', 'lineno', 'funcName', 'relativeCreated',
+        'levelname', 'msecs',
+    )
+)
 
 
 class JSONRenderer(object):
@@ -44,18 +46,14 @@ class JSONRenderer(object):
 class HumanRenderer(object):
     def __call__(self, logger, name, event_dict):
         level = event_dict.pop('level')
-        real_level = (level.upper()
-                      if isinstance(level, six.string_types)
-                      else logging.getLevelName(level)
-                      )
+        real_level = (
+            level.upper() if isinstance(level, six.string_types) else logging.getLevelName(level)
+        )
         base = '%s [%s] %s: %s' % (
-            now().strftime('%H:%M:%S'),
-            real_level,
-            event_dict.pop('name', 'root'),
+            now().strftime('%H:%M:%S'), real_level, event_dict.pop('name', 'root'),
             event_dict.pop('event', ''),
         )
-        join = ' '.join(k + '=' + repr(v)
-                        for k, v in six.iteritems(event_dict))
+        join = ' '.join(k + '=' + repr(v) for k, v in six.iteritems(event_dict))
         return '%s%s' % (base, (' (%s)' % join if join else ''))
 
 
@@ -66,10 +64,7 @@ class StructLogHandler(logging.StreamHandler):
         # a record because the RootLogger will take the 'extra' dictionary
         # and just turn them into attributes.
         kwargs = {
-            k: v
-            for k, v in six.iteritems(vars(record))
-            if k not in throwaways
-            and v is not None
+            k: v for k, v in six.iteritems(vars(record)) if k not in throwaways and v is not None
         }
         kwargs.update({
             'level': record.levelno,
@@ -85,6 +80,6 @@ class StructLogHandler(logging.StreamHandler):
             if isinstance(record.args, (tuple, list)):
                 kwargs['positional_args'] = record.args
             else:
-                kwargs['positional_args'] = (record.args,)
+                kwargs['positional_args'] = (record.args, )
 
         logger.log(**kwargs)

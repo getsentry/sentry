@@ -218,11 +218,13 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         assert resp.context['existing_user'] == user
         assert resp.context['login_form']
 
-        resp = self.client.post(path, {
-            'op': 'login',
-            'username': user.username,
-            'password': 'admin',
-        })
+        resp = self.client.post(
+            path, {
+                'op': 'login',
+                'username': user.username,
+                'password': 'admin',
+            }
+        )
 
         self.assertTemplateUsed(resp, 'sentry/auth-confirm-link.html')
         assert resp.status_code == 200
@@ -272,11 +274,13 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         assert resp.context['existing_user'] == user
         assert resp.context['login_form']
 
-        resp = self.client.post(path, {
-            'op': 'login',
-            'username': user.username,
-            'password': 'admin',
-        })
+        resp = self.client.post(
+            path, {
+                'op': 'login',
+                'username': user.username,
+                'password': 'admin',
+            }
+        )
 
         self.assertTemplateUsed(resp, 'sentry/auth-confirm-link.html')
         assert resp.status_code == 200
@@ -325,11 +329,13 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         assert not resp.context['existing_user']
         assert resp.context['login_form']
 
-        resp = self.client.post(path, {
-            'op': 'login',
-            'username': user.username,
-            'password': 'admin',
-        })
+        resp = self.client.post(
+            path, {
+                'op': 'login',
+                'username': user.username,
+                'password': 'admin',
+            }
+        )
 
         self.assertTemplateUsed(resp, 'sentry/auth-confirm-link.html')
         assert resp.status_code == 200
@@ -363,9 +369,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         user = self.create_user('bar@example.com')
 
         auth_identity = AuthIdentity.objects.create(
-            auth_provider=auth_provider,
-            user=user,
-            ident='adfadsf@example.com'
+            auth_provider=auth_provider, user=user, ident='adfadsf@example.com'
         )
 
         path = reverse('sentry-auth-organization', args=[organization.slug])
@@ -384,11 +388,13 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         assert resp.context['existing_user'] == user
         assert resp.context['login_form']
 
-        resp = self.client.post(path, {
-            'op': 'login',
-            'username': user.username,
-            'password': 'admin',
-        })
+        resp = self.client.post(
+            path, {
+                'op': 'login',
+                'username': user.username,
+                'password': 'admin',
+            }
+        )
 
         self.assertTemplateUsed(resp, 'sentry/auth-confirm-link.html')
         assert resp.status_code == 200
@@ -429,9 +435,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         user = self.create_user('bar@example.com', is_active=False)
 
         auth_identity = AuthIdentity.objects.create(
-            auth_provider=auth_provider,
-            user=user,
-            ident='adfadsf@example.com'
+            auth_provider=auth_provider, user=user, ident='adfadsf@example.com'
         )
 
         path = reverse('sentry-auth-organization', args=[organization.slug])
@@ -491,9 +495,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         # the old idents to the new
         user = self.create_user('bar@example.com', is_active=False, is_managed=True)
         auth_identity = AuthIdentity.objects.create(
-            auth_provider=auth_provider,
-            user=user,
-            ident='bar@example.com'
+            auth_provider=auth_provider, user=user, ident='bar@example.com'
         )
 
         # they must be a member for the auto merge to happen
@@ -554,11 +556,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         # setup a 'previous' identity, such as when we migrated Google from
         # the old idents to the new
         user = self.create_user('bar@example.com', is_active=False, is_managed=True)
-        AuthIdentity.objects.create(
-            auth_provider=auth_provider,
-            user=user,
-            ident='bar@example.com'
-        )
+        AuthIdentity.objects.create(auth_provider=auth_provider, user=user, ident='bar@example.com')
 
         # user needs to be logged in
         self.login_as(user)
@@ -600,18 +598,14 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         # the old idents to the new
         user = self.create_user('bar@example.com', is_active=False, is_managed=True)
         identity1 = AuthIdentity.objects.create(
-            auth_provider=auth_provider,
-            user=user,
-            ident='bar@example.com'
+            auth_provider=auth_provider, user=user, ident='bar@example.com'
         )
 
         # create another identity which is used, but not by the authenticating
         # user
         user2 = self.create_user('adfadsf@example.com', is_active=False, is_managed=True)
         identity2 = AuthIdentity.objects.create(
-            auth_provider=auth_provider,
-            user=user2,
-            ident='adfadsf@example.com'
+            auth_provider=auth_provider, user=user2, ident='adfadsf@example.com'
         )
         member2 = self.create_member(user=user2, organization=organization)
 

@@ -11,10 +11,7 @@ from sentry.utils.apidocs import attach_scenarios, scenario
 
 @scenario('RetrieveEventCountsOrganization')
 def retrieve_event_counts_organization(runner):
-    runner.request(
-        method='GET',
-        path='/organizations/%s/stats/' % runner.org.slug
-    )
+    runner.request(method='GET', path='/organizations/%s/stats/' % runner.org.slug)
 
 
 class OrganizationStatsEndpoint(OrganizationEndpoint, StatsMixin):
@@ -98,11 +95,7 @@ class OrganizationStatsEndpoint(OrganizationEndpoint, StatsMixin):
         if stat_model is None:
             raise ValueError('Invalid group: %s, stat: %s' % (group, stat))
 
-        data = tsdb.get_range(
-            model=stat_model,
-            keys=keys,
-            **self._parse_args(request)
-        )
+        data = tsdb.get_range(model=stat_model, keys=keys, **self._parse_args(request))
 
         if group == 'organization':
             data = data[organization.id]

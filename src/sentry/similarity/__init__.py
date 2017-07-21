@@ -36,12 +36,11 @@ def get_frame_attributes(frame):
     if frame.function in set(['<lambda>', None]):
         if frame.context_line is None:
             raise FrameEncodingError(
-                'Cannot create a signature for frame without a `context_line` value.')
+                'Cannot create a signature for frame without a `context_line` value.'
+            )
 
         attributes['signature'] = (
-            (frame.pre_context or [])[-5:] +
-            [frame.context_line] +
-            (frame.post_context or [])[:5]
+            (frame.pre_context or [])[-5:] + [frame.context_line] + (frame.post_context or [])[:5]
         )
     else:
         attributes['function'] = frame.function

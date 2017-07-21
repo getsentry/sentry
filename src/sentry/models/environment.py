@@ -10,9 +10,7 @@ from __future__ import absolute_import, print_function
 from django.db import IntegrityError, models, transaction
 from django.utils import timezone
 
-from sentry.db.models import (
-    BoundedPositiveIntegerField, FlexibleForeignKey, Model, sane_repr
-)
+from sentry.db.models import (BoundedPositiveIntegerField, FlexibleForeignKey, Model, sane_repr)
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import md5_text
 
@@ -26,7 +24,7 @@ class EnvironmentProject(Model):
     class Meta:
         app_label = 'sentry'
         db_table = 'sentry_environmentproject'
-        unique_together = (('project', 'environment'),)
+        unique_together = (('project', 'environment'), )
 
 
 class Environment(Model):
@@ -41,10 +39,7 @@ class Environment(Model):
     class Meta:
         app_label = 'sentry'
         db_table = 'sentry_environment'
-        unique_together = (
-            ('project_id', 'name'),
-            ('organization_id', 'name'),
-        )
+        unique_together = (('project_id', 'name'), ('organization_id', 'name'), )
 
     __repr__ = sane_repr('organization_id', 'name')
 

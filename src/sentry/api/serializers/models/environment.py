@@ -34,10 +34,7 @@ class GroupEnvironmentWithStatsSerializer(EnvironmentSerializer):
         self.until = until
 
     def get_attrs(self, item_list, user):
-        attrs = {
-            item: {'stats': {}}
-            for item in item_list
-        }
+        attrs = {item: {'stats': {}} for item in item_list}
         items = {self.group.id: []}
         for item in item_list:
             items[self.group.id].append(item.id)
@@ -61,13 +58,11 @@ class GroupEnvironmentWithStatsSerializer(EnvironmentSerializer):
 
             for item in item_list:
                 attrs[item]['stats'][key] = [
-                    (k, v[item.id])
-                    for k, v in stats.get(self.group.id, {})
+                    (k, v[item.id]) for k, v in stats.get(self.group.id, {})
                 ]
         return attrs
 
     def serialize(self, obj, attrs, user):
-        result = super(GroupEnvironmentWithStatsSerializer, self).serialize(
-            obj, attrs, user)
+        result = super(GroupEnvironmentWithStatsSerializer, self).serialize(obj, attrs, user)
         result['stats'] = attrs['stats']
         return result

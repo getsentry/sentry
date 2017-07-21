@@ -34,8 +34,8 @@ def smtp_EHLO(self, arg):
         self._SMTPChannel__greeting = arg
         self.push('250 %s' % self._SMTPChannel__fqdn)
 
-SMTPChannel.smtp_EHLO = smtp_EHLO
 
+SMTPChannel.smtp_EHLO = smtp_EHLO
 
 STATUS = {
     200: '200 Ok',

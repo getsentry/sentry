@@ -9,7 +9,6 @@ from sentry.similarity.signatures import MinHashSignatureBuilder
 from sentry.testutils import TestCase
 from sentry.utils import redis
 
-
 signature_builder = MinHashSignatureBuilder(32, 0xFFFF)
 
 
@@ -80,20 +79,17 @@ class MinHashIndexTestCase(TestCase):
 
         for band in data:
             assert len(band) == (retention + 1)
-            assert sum(sum(dict(bucket_frequencies).values())
-                       for index, bucket_frequencies in band) == 1
+            assert sum(
+                sum(dict(bucket_frequencies).values()) for index, bucket_frequencies in band
+            ) == 1
 
         # Copy the data from key 1 to key 2.
         index.import_('example', [('index', 2, result[0])], timestamp=timestamp)
 
         assert index.export(
-            'example',
-            [('index', 1)],
-            timestamp=timestamp
+            'example', [('index', 1)], timestamp=timestamp
         ) == index.export(
-            'example',
-            [('index', 2)],
-            timestamp=timestamp
+            'example', [('index', 2)], timestamp=timestamp
         )
 
         # Copy the data again to key 2 (duplicating all of the data.)
@@ -107,5 +103,6 @@ class MinHashIndexTestCase(TestCase):
 
         for band in data:
             assert len(band) == (retention + 1)
-            assert sum(sum(dict(bucket_frequencies).values())
-                       for index, bucket_frequencies in band) == 2
+            assert sum(
+                sum(dict(bucket_frequencies).values()) for index, bucket_frequencies in band
+            ) == 2

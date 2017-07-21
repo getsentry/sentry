@@ -7,7 +7,6 @@ import time
 
 from django.utils.encoding import force_bytes
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -40,7 +39,7 @@ class TimedRetryPolicy(RetryPolicy):
     number of this attempt (starting at 1.)
     """
 
-    def __init__(self, timeout, delay=None, exceptions=(Exception,)):
+    def __init__(self, timeout, delay=None, exceptions=(Exception, )):
         if delay is None:
             # 100ms +/- 50ms of randomized jitter
             def delay(i):
@@ -62,7 +61,9 @@ class TimedRetryPolicy(RetryPolicy):
                 if (now + delay) > (start + self.timeout):
                     raise RetryException(
                         'Could not successfully execute %r within %.3f seconds (%s attempts.)' %
-                        (function, now - start, i), error, )
+                        (function, now - start, i),
+                        error,
+                    )
                 else:
                     logger.debug(
                         'Failed to execute %r due to %r on attempt #%s, retrying in %s seconds...',

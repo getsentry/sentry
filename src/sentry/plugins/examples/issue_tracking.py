@@ -22,8 +22,8 @@ class ExampleIssueTrackingPlugin(IssuePlugin2):
         return bool(self.get_option('repo', project))
 
     def get_new_issue_fields(self, request, group, event, **kwargs):
-        fields = super(ExampleIssueTrackingPlugin, self).get_new_issue_fields(
-            request, group, event, **kwargs)
+        fields = super(ExampleIssueTrackingPlugin,
+                       self).get_new_issue_fields(request, group, event, **kwargs)
         return [{
             'name': 'tracker_url',
             'label': 'Issue Tracker URL',
@@ -42,9 +42,11 @@ class ExampleIssueTrackingPlugin(IssuePlugin2):
         return '{}?issueID={}'.format(tracker_url, issue_id)
 
     def get_configure_plugin_fields(self, project, **kwargs):
-        return [{
-            'name': 'tracker_url',
-            'label': 'Issue Tracker URL',
-            'type': 'text',
-            'placeholder': 'e.g. https://example.com',
-        }]
+        return [
+            {
+                'name': 'tracker_url',
+                'label': 'Issue Tracker URL',
+                'type': 'text',
+                'placeholder': 'e.g. https://example.com',
+            }
+        ]

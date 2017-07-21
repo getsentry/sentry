@@ -1,14 +1,11 @@
 from __future__ import absolute_import
 
-from sentry.models import (
-    Activity, Commit, Deploy, Environment, Release, ReleaseHeadCommit
-)
+from sentry.models import (Activity, Commit, Deploy, Environment, Release, ReleaseHeadCommit)
 
 from sentry.testutils import TestCase
 
 
 class DeployNotifyTest(TestCase):
-
     def test_already_notified(self):
         org = self.create_organization()
         project = self.create_project(organization=org)

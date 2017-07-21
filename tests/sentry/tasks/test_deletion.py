@@ -8,17 +8,15 @@ import pytest
 from sentry.constants import ObjectStatus
 from sentry.exceptions import DeleteAborted
 from sentry.models import (
-    ApiApplication, ApiApplicationStatus, ApiGrant, ApiToken, Commit,
-    CommitAuthor, Environment, EnvironmentProject, Event, EventMapping,
-    EventTag, Group, GroupAssignee, GroupHash, GroupMeta, GroupRedirect,
-    GroupResolution, GroupStatus, GroupTagKey, GroupTagValue, Organization,
-    OrganizationStatus, Project, ProjectStatus, Release, ReleaseCommit,
-    ReleaseEnvironment, Repository, TagKey, TagValue, Team, TeamStatus
+    ApiApplication, ApiApplicationStatus, ApiGrant, ApiToken, Commit, CommitAuthor, Environment,
+    EnvironmentProject, Event, EventMapping, EventTag, Group, GroupAssignee, GroupHash, GroupMeta,
+    GroupRedirect, GroupResolution, GroupStatus, GroupTagKey, GroupTagValue, Organization,
+    OrganizationStatus, Project, ProjectStatus, Release, ReleaseCommit, ReleaseEnvironment,
+    Repository, TagKey, TagValue, Team, TeamStatus
 )
 from sentry.tasks.deletion import (
-    delete_api_application, delete_group, delete_organization, delete_project,
-    delete_repository, delete_tag_key, delete_team, generic_delete,
-    revoke_api_tokens
+    delete_api_application, delete_group, delete_organization, delete_project, delete_repository,
+    delete_tag_key, delete_team, generic_delete, revoke_api_tokens
 )
 from sentry.testutils import TestCase
 
@@ -31,8 +29,7 @@ class DeleteOrganizationTest(TestCase):
         )
         self.create_team(organization=org, name='test1')
         self.create_team(organization=org, name='test2')
-        release = Release.objects.create(version='a' * 32,
-                                         organization_id=org.id)
+        release = Release.objects.create(version='a' * 32, organization_id=org.id)
         repo = Repository.objects.create(
             organization_id=org.id,
             name=org.name,
@@ -55,16 +52,9 @@ class DeleteOrganizationTest(TestCase):
             order=0,
         )
 
-        env = Environment.objects.create(
-            organization_id=org.id,
-            project_id=4,
-            name='foo'
-        )
+        env = Environment.objects.create(organization_id=org.id, project_id=4, name='foo')
         release_env = ReleaseEnvironment.objects.create(
-            organization_id=org.id,
-            project_id=4,
-            release_id=release.id,
-            environment_id=env.id
+            organization_id=org.id, project_id=4, release_id=release.id, environment_id=env.id
         )
 
         with self.tasks():
@@ -132,14 +122,11 @@ class DeleteProjectTest(TestCase):
         group = self.create_group(project=project)
         GroupAssignee.objects.create(group=group, project=project, user=self.user)
         GroupMeta.objects.create(group=group, key='foo', value='bar')
-        release = Release.objects.create(version='a' * 32,
-                                         organization_id=project.organization_id)
+        release = Release.objects.create(version='a' * 32, organization_id=project.organization_id)
         release.add_project(project)
         GroupResolution.objects.create(group=group, release=release)
         env = Environment.objects.create(
-            organization_id=project.organization_id,
-            project_id=project.id,
-            name='foo'
+            organization_id=project.organization_id, project_id=project.id, name='foo'
         )
         env.add_project(project)
         repo = Repository.objects.create(
@@ -170,8 +157,7 @@ class DeleteProjectTest(TestCase):
 
         assert not Project.objects.filter(id=project.id).exists()
         assert not EnvironmentProject.objects.filter(
-            project_id=project.id,
-            environment_id=env.id
+            project_id=project.id, environment_id=env.id
         ).exists()
         assert Environment.objects.filter(id=env.id).exists()
         assert Release.objects.filter(id=release.id).exists()
@@ -199,12 +185,13 @@ class DeleteTagKeyTest(TestCase):
         TagValue.objects.create(key='foo', value='bar', project=project)
         GroupTagKey.objects.create(key='foo', group=group, project=project)
         GroupTagValue.objects.create(
-            key='foo',
-            value='bar',
-            group_id=group.id,
-            project_id=project.id)
+            key='foo', value='bar', group_id=group.id, project_id=project.id
+        )
         EventTag.objects.create(
-            key_id=tk.id, group_id=group.id, value_id=1, project_id=project.id,
+            key_id=tk.id,
+            group_id=group.id,
+            value_id=1,
+            project_id=project.id,
             event_id=1,
         )
 
@@ -213,12 +200,13 @@ class DeleteTagKeyTest(TestCase):
         tk2 = TagKey.objects.create(key='foo', project=project2)
         gtk2 = GroupTagKey.objects.create(key='foo', group=group2, project=project2)
         gtv2 = GroupTagValue.objects.create(
-            key='foo',
-            value='bar',
-            group_id=group2.id,
-            project_id=project2.id)
+            key='foo', value='bar', group_id=group2.id, project_id=project2.id
+        )
         EventTag.objects.create(
-            key_id=tk2.id, group_id=group2.id, value_id=1, project_id=project.id,
+            key_id=tk2.id,
+            group_id=group2.id,
+            value_id=1,
+            project_id=project.id,
             event_id=1,
         )
 

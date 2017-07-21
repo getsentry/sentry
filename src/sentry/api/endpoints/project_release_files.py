@@ -22,9 +22,8 @@ _filename_re = re.compile(r"[\n\t\r\f\v\\]")
 def upload_file_scenario(runner):
     runner.request(
         method='POST',
-        path='/projects/%s/%s/releases/%s/files/' % (
-            runner.org.slug, runner.default_project.slug,
-            runner.default_release.version),
+        path='/projects/%s/%s/releases/%s/files/' %
+        (runner.org.slug, runner.default_project.slug, runner.default_release.version),
         data={
             'header': 'Content-Type:text/plain; encoding=utf-8',
             'name': '/demo/hello.py',
@@ -44,16 +43,15 @@ def list_files_scenario(runner):
     )
     runner.request(
         method='GET',
-        path='/projects/%s/%s/releases/%s/files/' % (
-            runner.org.slug, runner.default_project.slug,
-            runner.default_release.version)
+        path='/projects/%s/%s/releases/%s/files/' %
+        (runner.org.slug, runner.default_project.slug, runner.default_release.version)
     )
 
 
 class ProjectReleaseFilesEndpoint(ProjectEndpoint):
     doc_section = DocSection.RELEASES
     content_negotiation_class = ConditionalContentNegotiation
-    permission_classes = (ProjectReleasePermission,)
+    permission_classes = (ProjectReleasePermission, )
 
     @attach_scenarios([list_files_scenario])
     def get(self, request, project, version):
@@ -143,7 +141,10 @@ class ProjectReleaseFilesEndpoint(ProjectEndpoint):
 
         if _filename_re.search(name):
             return Response(
-                {'detail': 'File name must not contain special whitespace characters'}, status=400)
+                {
+                    'detail': 'File name must not contain special whitespace characters'
+                }, status=400
+            )
 
         dist_name = request.DATA.get('dist')
         dist = None
@@ -161,7 +162,11 @@ class ProjectReleaseFilesEndpoint(ProjectEndpoint):
             else:
                 if _filename_re.search(v):
                     return Response(
-                        {'detail': 'header value must not contain special whitespace characters'}, status=400)
+                        {
+                            'detail': 'header value must not contain special whitespace characters'
+                        },
+                        status=400
+                    )
                 headers[k] = v.strip()
 
         file = File.objects.create(

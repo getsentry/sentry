@@ -14,10 +14,7 @@ from yaml.scanner import ScannerError
 
 from sentry.utils.yaml import safe_load
 
-__all__ = (
-    'InvalidTypeError',
-    'Any', 'Bool', 'Int', 'Float', 'String', 'Dict', 'Sequence',
-)
+__all__ = ('InvalidTypeError', 'Any', 'Bool', 'Int', 'Float', 'String', 'Dict', 'Sequence', )
 
 
 class InvalidTypeError(TypeError):
@@ -64,15 +61,15 @@ class Type(object):
 class AnyType(Type):
     """A type that accepts any value and does no coersion"""
     name = 'any'
-    expected_types = (object,)
-    compatible_types = (object,)
+    expected_types = (object, )
+    compatible_types = (object, )
 
 
 class BoolType(Type):
     "Coerce a boolean from a string"
     name = 'boolean'
     default = False
-    expected_types = (bool,)
+    expected_types = (bool, )
 
     def convert(self, value):
         value = value.lower()
@@ -99,8 +96,8 @@ class FloatType(Type):
     """Coerce a float from a string or integer"""
     name = 'float'
     default = 0.0
-    expected_types = (float,)
-    compatible_types = six.string_types + six.integer_types + (float,)
+    expected_types = (float, )
+    compatible_types = six.string_types + six.integer_types + (float, )
 
     def convert(self, value):
         try:
@@ -120,7 +117,7 @@ class StringType(Type):
 class DictType(Type):
     """Coerce a dict out of a json/yaml string"""
     name = 'dictionary'
-    expected_types = (dict,)
+    expected_types = (dict, )
 
     def _default(self):
         # make sure we create a fresh dict each time
@@ -159,7 +156,6 @@ Float = FloatType()
 String = StringType()
 Dict = DictType()
 Sequence = SequenceType()
-
 
 # Mapping for basic types into what their Type is
 _type_mapping = {

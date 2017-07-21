@@ -7,7 +7,7 @@ from sentry.reprocessing import trigger_reprocessing
 
 
 class ProjectReprocessingEndpoint(ProjectEndpoint):
-    permission_classes = (ProjectReleasePermission,)
+    permission_classes = (ProjectReleasePermission, )
 
     def post(self, request, project):
         """

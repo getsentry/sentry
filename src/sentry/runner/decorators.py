@@ -34,6 +34,7 @@ def configuration(f):
             from sentry.runner import configure
             configure()
         return ctx.invoke(f, *args, **kwargs)
+
     return update_wrapper(inner, f)
 
 
@@ -49,19 +50,28 @@ def log_options(default=None):
         formats = [LoggingFormat.HUMAN, LoggingFormat.MACHINE]
 
         @click.pass_context
-        @click.option('--loglevel', '-l', default=default,
-                      help='Global logging level. Use wisely.',
-                      envvar='SENTRY_LOG_LEVEL',
-                      type=CaseInsensitiveChoice(LOG_LEVELS))
-        @click.option('--logformat', default=default,
-                      help='Log line format.',
-                      envvar='SENTRY_LOG_FORMAT',
-                      type=CaseInsensitiveChoice(formats))
+        @click.option(
+            '--loglevel',
+            '-l',
+            default=default,
+            help='Global logging level. Use wisely.',
+            envvar='SENTRY_LOG_LEVEL',
+            type=CaseInsensitiveChoice(LOG_LEVELS)
+        )
+        @click.option(
+            '--logformat',
+            default=default,
+            help='Log line format.',
+            envvar='SENTRY_LOG_FORMAT',
+            type=CaseInsensitiveChoice(formats)
+        )
         def inner(ctx, loglevel=None, logformat=None, *args, **kwargs):
             if loglevel:
                 os.environ['SENTRY_LOG_LEVEL'] = loglevel
             if logformat:
                 os.environ['SENTRY_LOG_FORMAT'] = logformat.lower()
             return ctx.invoke(f, *args, **kwargs)
+
         return update_wrapper(inner, f)
+
     return decorator

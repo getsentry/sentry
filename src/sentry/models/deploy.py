@@ -9,9 +9,7 @@ from django.db import models
 from django.utils import timezone
 
 from sentry.app import locks
-from sentry.db.models import (
-    BoundedPositiveIntegerField, FlexibleForeignKey, Model
-)
+from sentry.db.models import (BoundedPositiveIntegerField, FlexibleForeignKey, Model)
 from sentry.utils.retries import TimedRetryPolicy
 
 

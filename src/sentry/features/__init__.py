@@ -4,7 +4,6 @@ from .base import *  # NOQA
 from .handler import *  # NOQA
 from .manager import *  # NOQA
 
-
 default_manager = FeatureManager()  # NOQA
 default_manager.add('auth:register')
 default_manager.add('organizations:api-keys', OrganizationFeature)  # NOQA

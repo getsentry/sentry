@@ -33,19 +33,31 @@ def random_ip():
     while first in not_valid:
         first = random.randrange(1, 256)
 
-    return '.'.join((
-        six.text_type(first),
-        six.text_type(random.randrange(1, 256)),
-        six.text_type(random.randrange(1, 256)),
-        six.text_type(random.randrange(1, 256))
-    ))
+    return '.'.join(
+        (
+            six.text_type(first), six.text_type(random.randrange(1, 256)),
+            six.text_type(random.randrange(1, 256)), six.text_type(random.randrange(1, 256))
+        )
+    )
 
 
 def random_username():
-    return random.choice([
-        'jess', 'david', 'chris', 'eric', 'katie', 'ben', 'armin', 'saloni',
-        'max', 'meredith', 'matt', 'sentry',
-    ])
+    return random.choice(
+        [
+            'jess',
+            'david',
+            'chris',
+            'eric',
+            'katie',
+            'ben',
+            'armin',
+            'saloni',
+            'max',
+            'meredith',
+            'matt',
+            'sentry',
+        ]
+    )
 
 
 def name_for_username(username):
@@ -68,13 +80,15 @@ def generate_user(username=None, email=None, ip_address=None, id=None):
     if username is None and email is None:
         username = random_username()
         email = '{}@example.com'.format(username)
-    return UserInterface.to_python({
-        'id': id,
-        'username': username,
-        'email': email,
-        'ip_address': ip_address or random_ip(),
-        'name': name_for_username(username),
-    }).to_json()
+    return UserInterface.to_python(
+        {
+            'id': id,
+            'username': username,
+            'email': email,
+            'ip_address': ip_address or random_ip(),
+            'name': name_for_username(username),
+        }
+    ).to_json()
 
 
 def load_data(platform, default=None, timestamp=None, sample_name=None):
@@ -93,7 +107,7 @@ def load_data(platform, default=None, timestamp=None, sample_name=None):
         if platform is None:
             continue
 
-        json_path = os.path.join(DATA_ROOT, 'samples', '%s.json' % (sample_name.encode('utf-8'),))
+        json_path = os.path.join(DATA_ROOT, 'samples', '%s.json' % (sample_name.encode('utf-8'), ))
 
         if not os.path.exists(json_path):
             continue
@@ -109,7 +123,7 @@ def load_data(platform, default=None, timestamp=None, sample_name=None):
         return data
 
     data['platform'] = platform
-    data['message'] = 'This is an example %s exception' % (sample_name,)
+    data['message'] = 'This is an example %s exception' % (sample_name, )
     data['sentry.interfaces.User'] = generate_user(
         ip_address='127.0.0.1',
         username='sentry',
@@ -134,9 +148,12 @@ def load_data(platform, default=None, timestamp=None, sample_name=None):
         "cookies": 'foo=bar;biz=baz',
         "url": "http://example.com/foo",
         "headers": {
-            "Referer": "http://example.com",
-            "Content-Type": "application/json",
-            "User-Agent": "Mozilla/5.0 (Windows NT 6.2; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/28.0.1500.72 Safari/537.36"
+            "Referer":
+            "http://example.com",
+            "Content-Type":
+            "application/json",
+            "User-Agent":
+            "Mozilla/5.0 (Windows NT 6.2; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/28.0.1500.72 Safari/537.36"
         },
         "env": {
             'ENV': 'prod',
@@ -167,8 +184,7 @@ def load_data(platform, default=None, timestamp=None, sample_name=None):
     return data
 
 
-def create_sample_event(project, platform=None, default=None, raw=True,
-                        sample_name=None, **kwargs):
+def create_sample_event(project, platform=None, default=None, raw=True, sample_name=None, **kwargs):
     if not platform and not default:
         return
 

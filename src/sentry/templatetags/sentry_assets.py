@@ -9,7 +9,6 @@ from sentry.utils.http import absolute_uri
 
 register = Library()
 
-
 register.simple_tag(get_asset_url, name='asset_url')
 
 

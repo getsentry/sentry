@@ -58,11 +58,11 @@ def static_media(request, **kwargs):
         # for static files, rather than our full blown HTML.
         return HttpResponseNotFound('', content_type='text/plain')
 
-    if 'gzip' in request.META.get('HTTP_ACCEPT_ENCODING',
-                                  '') and not path.endswith('.gz') and not settings.DEBUG:
+    if 'gzip' in request.META.get('HTTP_ACCEPT_ENCODING', ''
+                                  ) and not path.endswith('.gz') and not settings.DEBUG:
         paths = (path + '.gz', path)
     else:
-        paths = (path,)
+        paths = (path, )
 
     for p in paths:
         try:

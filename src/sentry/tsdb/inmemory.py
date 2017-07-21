@@ -215,10 +215,7 @@ class InMemoryTSDB(BaseTSDB):
             source = self.frequencies[model][key]
             for timestamp in series:
                 scores = source[self.normalize_ts_to_rollup(timestamp, rollup)]
-                result.append((
-                    timestamp,
-                    {k: scores.get(k, 0.0) for k in members},
-                ))
+                result.append((timestamp, {k: scores.get(k, 0.0) for k in members}, ))
 
         return results
 
@@ -226,8 +223,8 @@ class InMemoryTSDB(BaseTSDB):
         results = {}
 
         for key, series in six.iteritems(
-            self.get_frequency_series(
-                model, items, start, end, rollup)):
+            self.get_frequency_series(model, items, start, end, rollup)
+        ):
             result = results[key] = {}
             for timestamp, scores in series:
                 for member, score in scores.items():

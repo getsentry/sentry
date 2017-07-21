@@ -20,10 +20,7 @@ from sentry.search.utils import InvalidQuery
 @scenario('ListAvailableSamples')
 def list_available_samples_scenario(runner):
     group = Group.objects.filter(project=runner.default_project).first()
-    runner.request(
-        method='GET',
-        path='/issues/%s/events/' % group.id
-    )
+    runner.request(method='GET', path='/issues/%s/events/' % group.id)
 
 
 class GroupEventsEndpoint(GroupEndpoint):
@@ -31,10 +28,12 @@ class GroupEventsEndpoint(GroupEndpoint):
 
     def _tags_to_filter(self, group, tags):
         project = group.project
-        tagkeys = dict(TagKey.objects.filter(
-            project=project,
-            key__in=tags.keys(),
-        ).values_list('key', 'id'))
+        tagkeys = dict(
+            TagKey.objects.filter(
+                project=project,
+                key__in=tags.keys(),
+            ).values_list('key', 'id')
+        )
 
         tagvalues = {
             (t[1], t[2]): t[0]
@@ -45,10 +44,7 @@ class GroupEventsEndpoint(GroupEndpoint):
         }
 
         try:
-            tag_lookups = [
-                (tagkeys[k], tagvalues[(k, v)])
-                for k, v in six.iteritems(tags)
-            ]
+            tag_lookups = [(tagkeys[k], tagvalues[(k, v)]) for k, v in six.iteritems(tags)]
         except KeyError:
             # one or more tags were invalid, thus the result should be an empty
             # set
@@ -59,21 +55,25 @@ class GroupEventsEndpoint(GroupEndpoint):
 
         # get initial matches to start the filter
         k, v = tag_lookups.pop()
-        matches = list(EventTag.objects.filter(
-            key_id=k,
-            value_id=v,
-            group_id=group.id,
-        ).values_list('event_id', flat=True)[:1000])
+        matches = list(
+            EventTag.objects.filter(
+                key_id=k,
+                value_id=v,
+                group_id=group.id,
+            ).values_list('event_id', flat=True)[:1000]
+        )
 
         # for each remaining tag, find matches contained in our
         # existing set, pruning it down each iteration
         for k, v in tag_lookups:
-            matches = list(EventTag.objects.filter(
-                key_id=k,
-                value_id=v,
-                event_id__in=matches,
-                group_id=group.id,
-            ).values_list('event_id', flat=True)[:1000])
+            matches = list(
+                EventTag.objects.filter(
+                    key_id=k,
+                    value_id=v,
+                    event_id__in=matches,
+                    group_id=group.id,
+                ).values_list('event_id', flat=True)[:1000]
+            )
             if not matches:
                 return []
         return matches

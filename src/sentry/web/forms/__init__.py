@@ -20,8 +20,10 @@ class BaseUserForm(forms.ModelForm):
 
 
 class NewUserForm(BaseUserForm):
-    send_welcome_mail = forms.BooleanField(required=False, help_text=_(
-        "Send this user a welcome email which will contain their generated password."))
+    send_welcome_mail = forms.BooleanField(
+        required=False,
+        help_text=_("Send this user a welcome email which will contain their generated password.")
+    )
 
     class Meta:
         fields = ('name', 'username', 'email')
@@ -29,16 +31,22 @@ class NewUserForm(BaseUserForm):
 
 
 class ChangeUserForm(BaseUserForm):
-    is_staff = forms.BooleanField(required=False, label=_('Admin'), help_text=_(
-        "Designates whether this user can perform administrative functions."))
+    is_staff = forms.BooleanField(
+        required=False,
+        label=_('Admin'),
+        help_text=_("Designates whether this user can perform administrative functions.")
+    )
     is_superuser = forms.BooleanField(
-        required=False, label=_('Superuser'), help_text=_(
+        required=False,
+        label=_('Superuser'),
+        help_text=_(
             'Designates whether this user has all permissions without '
-            'explicitly assigning them.'))
+            'explicitly assigning them.'
+        )
+    )
 
     class Meta:
-        fields = ('name', 'username', 'email', 'is_active', 'is_staff',
-                  'is_superuser')
+        fields = ('name', 'username', 'email', 'is_active', 'is_staff', 'is_superuser')
         model = User
 
     def __init__(self, *args, **kwargs):
@@ -54,10 +62,13 @@ class ChangeUserForm(BaseUserForm):
 
 
 class RemoveUserForm(forms.Form):
-    removal_type = forms.ChoiceField(choices=(
-        ('1', _('Disable the account.')),
-        ('2', _('Permanently remove the user and their data.')),
-    ), widget=forms.RadioSelect(renderer=RadioFieldRenderer))
+    removal_type = forms.ChoiceField(
+        choices=(
+            ('1', _('Disable the account.')),
+            ('2', _('Permanently remove the user and their data.')),
+        ),
+        widget=forms.RadioSelect(renderer=RadioFieldRenderer)
+    )
 
 
 class TestEmailForm(forms.Form):
@@ -66,15 +77,16 @@ class TestEmailForm(forms.Form):
 
 class NewNoteForm(forms.Form):
     text = forms.CharField(
-        widget=forms.Textarea(
-            attrs={
-                'rows': '1',
-                'placeholder': 'Type a note and press enter...'}))
+        widget=forms.Textarea(attrs={'rows': '1',
+                                     'placeholder': 'Type a note and press enter...'})
+    )
 
     def save(self, group, user, event=None):
         activity = Activity.objects.create(
-            group=group, project=group.project,
-            type=Activity.NOTE, user=user,
+            group=group,
+            project=group.project,
+            type=Activity.NOTE,
+            user=user,
             data=self.cleaned_data
         )
         activity.send_notification()

@@ -23,4 +23,5 @@ def profile_call(_func, *args, **kwargs):
 def profile(func):
     def newfunc(*args, **kwargs):
         return profile_call(func, *args, **kwargs)
+
     return update_wrapper(newfunc, func)

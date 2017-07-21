@@ -16,10 +16,7 @@ def summarize_issues(issues):
         if 'image_path' in issue['data']:
             extra_info = issue['data']['image_path'].rsplit('/', 1)[-1]
             if 'image_arch' in issue['data']:
-                extra_info = '%s (%s)' % (
-                    extra_info,
-                    issue['data']['image_arch'],
-                )
+                extra_info = '%s (%s)' % (extra_info, issue['data']['image_arch'], )
 
         rv.append({
             'message': EventError.get_message(msg_d),
@@ -29,7 +26,6 @@ def summarize_issues(issues):
 
 
 class NewProcessingIssuesActivityEmail(ActivityEmail):
-
     def __init__(self, activity):
         ActivityEmail.__init__(self, activity)
         self.issues = summarize_issues(self.activity.data['issues'])
@@ -42,13 +38,19 @@ class NewProcessingIssuesActivityEmail(ActivityEmail):
 
     def get_context(self):
         return {
-            'project': self.project,
-            'issues': self.issues,
-            'reprocessing_active': self.activity.data['reprocessing_active'],
-            'info_url': absolute_uri('/{}/{}/settings/processing-issues/'.format(
-                self.organization.slug,
-                self.project.slug,
-            )),
+            'project':
+            self.project,
+            'issues':
+            self.issues,
+            'reprocessing_active':
+            self.activity.data['reprocessing_active'],
+            'info_url':
+            absolute_uri(
+                '/{}/{}/settings/processing-issues/'.format(
+                    self.organization.slug,
+                    self.project.slug,
+                )
+            ),
         }
 
     def get_subject(self):

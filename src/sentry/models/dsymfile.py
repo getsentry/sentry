@@ -34,11 +34,9 @@ from sentry.utils.zip import safe_extract_zip
 from sentry.constants import KNOWN_DSYM_TYPES
 from sentry.reprocessing import resolve_processing_issue
 
-
 ONE_DAY = 60 * 60 * 24
 ONE_DAY_AND_A_HALF = int(ONE_DAY * 1.5)
 DSYM_MIMETYPES = dict((v, k) for k, v in KNOWN_DSYM_TYPES.items())
-
 
 _proguard_file_re = re.compile(r'/proguard/(?:mapping-)?(.*?)\.txt$')
 
@@ -56,7 +54,7 @@ class VersionDSymFile(Model):
     class Meta:
         app_label = 'sentry'
         db_table = 'sentry_versiondsymfile'
-        unique_together = (('dsym_file', 'version', 'build'),)
+        unique_together = (('dsym_file', 'version', 'build'), )
 
 
 # TODO(dcramer): pull in enum library
@@ -71,8 +69,7 @@ DSYM_PLATFORMS = {
     'apple': DSymPlatform.APPLE,
     'android': DSymPlatform.ANDROID,
 }
-DSYM_PLATFORMS_REVERSE = dict(
-    (v, k) for (k, v) in six.iteritems(DSYM_PLATFORMS))
+DSYM_PLATFORMS_REVERSE = dict((v, k) for (k, v) in six.iteritems(DSYM_PLATFORMS))
 
 
 def _auto_enrich_data(data, app_id, platform):
@@ -80,9 +77,11 @@ def _auto_enrich_data(data, app_id, platform):
     if 'icon_url' not in data and platform == DSymPlatform.APPLE:
         from sentry.http import safe_urlopen
         try:
-            rv = safe_urlopen('https://itunes.apple.com/lookup', params={
-                'bundleId': app_id,
-            })
+            rv = safe_urlopen(
+                'https://itunes.apple.com/lookup', params={
+                    'bundleId': app_id,
+                }
+            )
         except RequestException:
             pass
         else:
@@ -93,14 +92,13 @@ def _auto_enrich_data(data, app_id, platform):
 
 
 class DSymAppManager(BaseManager):
-
-    def create_or_update_app(self, sync_id, app_id, project, data=None,
-                             platform=DSymPlatform.GENERIC):
+    def create_or_update_app(
+        self, sync_id, app_id, project, data=None, platform=DSymPlatform.GENERIC
+    ):
         if data is None:
             data = {}
         _auto_enrich_data(data, app_id, platform)
-        existing_app = DSymApp.objects.filter(
-            app_id=app_id, project=project).first()
+        existing_app = DSymApp.objects.filter(app_id=app_id, project=project).first()
         if existing_app is not None:
             now = timezone.now()
             existing_app.update(
@@ -110,13 +108,9 @@ class DSymAppManager(BaseManager):
             )
             return existing_app
 
-        return BaseManager.create(self,
-                                  sync_id=sync_id,
-                                  app_id=app_id,
-                                  data=data,
-                                  project=project,
-                                  platform=platform
-                                  )
+        return BaseManager.create(
+            self, sync_id=sync_id, app_id=app_id, data=data, project=project, platform=platform
+        )
 
 
 class DSymApp(Model):
@@ -127,32 +121,32 @@ class DSymApp(Model):
     app_id = models.CharField(max_length=64)
     sync_id = models.CharField(max_length=64, null=True)
     data = JSONField()
-    platform = BoundedPositiveIntegerField(default=0, choices=(
-        (DSymPlatform.GENERIC, _('Generic')),
-        (DSymPlatform.APPLE, _('Apple')),
-        (DSymPlatform.ANDROID, _('Android')),
-    ))
+    platform = BoundedPositiveIntegerField(
+        default=0,
+        choices=(
+            (DSymPlatform.GENERIC, _('Generic')), (DSymPlatform.APPLE, _('Apple')),
+            (DSymPlatform.ANDROID, _('Android')),
+        )
+    )
     last_synced = models.DateTimeField(default=timezone.now)
     date_added = models.DateTimeField(default=timezone.now)
 
     class Meta:
         app_label = 'sentry'
         db_table = 'sentry_dsymapp'
-        unique_together = (('project', 'platform', 'app_id'),)
+        unique_together = (('project', 'platform', 'app_id'), )
 
 
 class ProjectDSymFileManager(BaseManager):
-
     def find_missing(self, checksums, project):
         if not checksums:
-            return[]
+            return []
 
         checksums = [x.lower() for x in checksums]
         missing = set(checksums)
 
         found = ProjectDSymFile.objects.filter(
-            file__checksum__in=checksums,
-            project=project
+            file__checksum__in=checksums, project=project
         ).values('file__checksum')
 
         for values in found:
@@ -164,10 +158,7 @@ class ProjectDSymFileManager(BaseManager):
         if not checksums:
             return []
         checksums = [x.lower() for x in checksums]
-        return ProjectDSymFile.objects.filter(
-            file__checksum__in=checksums,
-            project=project
-        )
+        return ProjectDSymFile.objects.filter(file__checksum__in=checksums, project=project)
 
 
 class ProjectDSymFile(Model):
@@ -181,7 +172,7 @@ class ProjectDSymFile(Model):
     objects = ProjectDSymFileManager()
 
     class Meta:
-        unique_together = (('project', 'uuid'),)
+        unique_together = (('project', 'uuid'), )
         db_table = 'sentry_projectdsymfile'
         app_label = 'sentry'
 
@@ -193,8 +184,7 @@ class ProjectDSymFile(Model):
         return KNOWN_DSYM_TYPES.get(ct, 'unknown')
 
 
-def _create_dsym_from_uuid(project, dsym_type, cpu_name, uuid, fileobj,
-                           basename):
+def _create_dsym_from_uuid(project, dsym_type, cpu_name, uuid, fileobj, basename):
     """This creates a mach dsym file or proguard mapping from the given
     uuid and open file object to a dsym file.  This will not verify the
     uuid (intentionally so).  Use `create_files_from_dsym_zip` for doing
@@ -205,7 +195,7 @@ def _create_dsym_from_uuid(project, dsym_type, cpu_name, uuid, fileobj,
     elif dsym_type == 'macho':
         object_name = basename
     else:
-        raise TypeError('unknown dsym type %r' % (dsym_type,))
+        raise TypeError('unknown dsym type %r' % (dsym_type, ))
 
     h = hashlib.sha1()
     while 1:
@@ -230,9 +220,7 @@ def _create_dsym_from_uuid(project, dsym_type, cpu_name, uuid, fileobj,
     file = File.objects.create(
         name=uuid,
         type='project.dsym',
-        headers={
-            'Content-Type': DSYM_MIMETYPES[dsym_type]
-        },
+        headers={'Content-Type': DSYM_MIMETYPES[dsym_type]},
     )
     file.putfile(fileobj)
     try:
@@ -287,12 +275,7 @@ def create_files_from_dsym_zip(fileobj, project=None):
                 # (proguard/mapping-UUID.txt).
                 proguard_uuid = _analyze_progard_filename(fn)
                 if proguard_uuid is not None:
-                    to_create.append((
-                        'proguard',
-                        'any',
-                        six.text_type(proguard_uuid),
-                        fn,
-                    ))
+                    to_create.append(('proguard', 'any', six.text_type(proguard_uuid), fn, ))
 
                 # macho style debug symbols
                 try:
@@ -303,20 +286,17 @@ def create_files_from_dsym_zip(fileobj, project=None):
                     pass
                 else:
                     for variant in di.get_variants():
-                        to_create.append((
-                            'macho',
-                            variant.cpu_name,
-                            six.text_type(variant.uuid),
-                            fn,
-                        ))
+                        to_create.append(
+                            ('macho', variant.cpu_name, six.text_type(variant.uuid), fn, )
+                        )
                     continue
 
         rv = []
         for dsym_type, cpu, file_uuid, filename in to_create:
             with open(filename, 'rb') as f:
                 dsym, created = _create_dsym_from_uuid(
-                    project, dsym_type, cpu, file_uuid, f,
-                    os.path.basename(filename))
+                    project, dsym_type, cpu, file_uuid, f, os.path.basename(filename)
+                )
                 if created:
                     rv.append(dsym)
         return rv
@@ -329,15 +309,13 @@ def find_dsym_file(project, image_uuid):
     image_uuid = image_uuid.lower()
     try:
         return ProjectDSymFile.objects.filter(
-            uuid=image_uuid,
-            project=project
+            uuid=image_uuid, project=project
         ).select_related('file').get()
     except ProjectDSymFile.DoesNotExist:
         pass
 
 
 class DSymCache(object):
-
     @property
     def dsym_cache_path(self):
         return options.get('dsym.cache-path')
@@ -348,8 +326,9 @@ class DSymCache(object):
     def fetch_dsyms(self, project, uuids, on_dsym_file_referenced=None):
         rv = {}
         for image_uuid in uuids:
-            path = self.fetch_dsym(project, image_uuid,
-                                   on_dsym_file_referenced=on_dsym_file_referenced)
+            path = self.fetch_dsym(
+                project, image_uuid, on_dsym_file_referenced=on_dsym_file_referenced
+            )
             if path is not None:
                 rv[image_uuid] = path
         return rv

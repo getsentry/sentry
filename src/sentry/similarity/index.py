@@ -5,7 +5,6 @@ import time
 from sentry.utils.iterators import chunked
 from sentry.utils.redis import load_script
 
-
 index = load_script('similarity/index.lua')
 
 
@@ -74,8 +73,7 @@ class MinHashIndex(object):
 
         return [
             [(item, float(score)) for item, score in result]
-            for result in
-            index(
+            for result in index(
                 self.cluster.get_local_client_for_key(scope),
                 [],
                 arguments,
@@ -102,11 +100,12 @@ class MinHashIndex(object):
 
         for idx, features in items:
             arguments.append(idx)
-            arguments.extend([
-                ','.join(map('{}'.format, b))
-                for b in
-                band(self.bands, self.signature_builder(features))
-            ])
+            arguments.extend(
+                [
+                    ','.join(map('{}'.format, b))
+                    for b in band(self.bands, self.signature_builder(features))
+                ]
+            )
 
         return index(
             self.cluster.get_local_client_for_key(scope),

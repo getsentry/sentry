@@ -12,9 +12,8 @@ from sentry.event_manager import (
     ScoreClause, generate_culprit, get_hashes_for_event, md5_from_hash
 )
 from sentry.models import (
-    Activity, Environment, Event, EventMapping, EventTag, EventUser, Group,
-    GroupHash, GroupRelease, GroupTagKey, GroupTagValue, Project, Release,
-    UserReport
+    Activity, Environment, Event, EventMapping, EventTag, EventUser, Group, GroupHash, GroupRelease,
+    GroupTagKey, GroupTagValue, Project, Release, UserReport
 )
 from sentry.similarity import features
 from sentry.tasks.base import instrumented_task
@@ -336,9 +335,7 @@ def collect_release_data(caches, project, events):
             continue
 
         key = (
-            event.group_id,
-            get_environment(event),
-            caches['Release'](
+            event.group_id, get_environment(event), caches['Release'](
                 project.organization_id,
                 release,
             ).id,
@@ -415,7 +412,8 @@ def collect_tsdb_data(caches, project, events):
             get_environment(event),
         )
 
-        frequencies[event.datetime][tsdb.models.frequent_environments_by_group][event.group_id][environment.id] += 1
+        frequencies[event.datetime][tsdb.models.frequent_environments_by_group
+                                    ][event.group_id][environment.id] += 1
 
         release = event.get_tag('sentry:release')
         if release:
@@ -430,7 +428,8 @@ def collect_tsdb_data(caches, project, events):
                 ).id,
             )
 
-            frequencies[event.datetime][tsdb.models.frequent_releases_by_group][event.group_id][grouprelease.id] += 1
+            frequencies[event.datetime][tsdb.models.frequent_releases_by_group
+                                        ][event.group_id][grouprelease.id] += 1
 
     return counters, sets, frequencies
 
@@ -503,14 +502,15 @@ def unlock_hashes(project_id, fingerprints):
 
 @instrumented_task(name='sentry.tasks.unmerge', queue='unmerge')
 def unmerge(
-        project_id,
-        source_id,
-        destination_id,
-        fingerprints,
-        actor_id,
-        cursor=None,
-        batch_size=500,
-        source_fields_reset=False):
+    project_id,
+    source_id,
+    destination_id,
+    fingerprints,
+    actor_id,
+    cursor=None,
+    batch_size=500,
+    source_fields_reset=False
+):
     # XXX: The queryset chunking logic below is awfully similar to
     # ``RangeQuerySetWrapper``. Ideally that could be refactored to be able to
     # be run without iteration by passing around a state object and we could
@@ -556,25 +556,22 @@ def unmerge(
     destination_events = []
 
     for event in events:
-        (destination_events if get_fingerprint(event) in fingerprints else source_events).append(event)
+        (destination_events
+         if get_fingerprint(event) in fingerprints else source_events).append(event)
 
     if source_events:
         if not source_fields_reset:
-            source.update(
-                **get_group_creation_attributes(
-                    caches,
-                    source_events,
-                )
-            )
+            source.update(**get_group_creation_attributes(
+                caches,
+                source_events,
+            ))
             source_fields_reset = True
         else:
-            source.update(
-                **get_group_backfill_attributes(
-                    caches,
-                    source,
-                    source_events,
-                )
-            )
+            source.update(**get_group_backfill_attributes(
+                caches,
+                source,
+                source_events,
+            ))
 
     destination_id = migrate_events(
         caches,

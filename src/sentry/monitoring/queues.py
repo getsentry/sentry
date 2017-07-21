@@ -91,6 +91,7 @@ def get_queue_by_name(name):
         if queue.name == name:
             return queue
 
+
 backends = {
     'redis': RedisBackend,
     'amqp': AmqpBackend,
