@@ -446,7 +446,7 @@ class Runner(object):
             org.delete()
 
     def request(self, method, path, headers=None, data=None, api_key=None,
-                format='json'):
+                format='json', assert_status=(200, 201, 202, 204)):
         if api_key is None:
             api_key = self.api_key
         path = '/api/0/' + path.lstrip('/')
@@ -482,6 +482,13 @@ class Runner(object):
         response = requests.request(method=method, url=url, files=files,
                                     headers=req_headers, data=body)
         response_headers = dict(response.headers)
+
+        if assert_status and response.status_code not in assert_status:
+            raise RuntimeError('Request %s %s failed with unexpected status %s' % (
+                method,
+                url,
+                response.status_code,
+            ))
 
         # Don't want those
         response_headers.pop('server', None)

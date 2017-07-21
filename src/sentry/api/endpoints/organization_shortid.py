@@ -19,7 +19,10 @@ def resolve_short_id_scenario(runner):
         path='/organizations/%s/shortids/%s/' % (
             runner.org.slug,
             group.qualified_short_id,
-        )
+        ),
+        # Disable status check because this endpoint currently can return
+        # 404 because the feature is disabled
+        assert_status=None,
     )
 
 
