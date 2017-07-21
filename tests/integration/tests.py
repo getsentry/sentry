@@ -20,7 +20,7 @@ from raven import Client
 from six import StringIO
 
 from sentry.models import (
-    Group, GroupTagKey, GroupTagValue, Event, TagKey, TagValue
+    Group, GroupTagKey, GroupTagValue, Event, OrganizationOption, TagKey, TagValue
 )
 from sentry.testutils import TestCase, TransactionTestCase
 from sentry.testutils.helpers import get_auth_header
@@ -397,6 +397,25 @@ class SentryRemoteTest(TestCase):
         instance = Event.objects.get(event_id=event_id)
 
         assert instance.message == 'hello'
+
+    def test_basic_quotas(self):
+        results = []
+        for n in range(10):
+            results.append(self._postWithHeader(
+                data={'message': 'hello'},
+                key=self.projectkey.public_key,
+                secret=self.projectkey.secret_key,
+                protocol='6',
+            ))
+
+        # 1 per hour
+        OrganizationOption.objects.set_value(
+            self.project.organization, 'sentry:account-rate-limit', 1,
+        )
+
+        assert results[0].status_code == 200
+        for r in results[1:]:
+            assert r.status_code == 429
 
 
 class DepdendencyTest(TestCase):
