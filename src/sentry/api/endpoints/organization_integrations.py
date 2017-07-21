@@ -17,7 +17,7 @@ class IntegrationSerializer(serializers.Serializer):
     integrationId = serializers.CharField(max_length=64, required=False)
 
     def validate(self, attrs):
-        if not attrs.get('defaultAuthId') or attrs.get('integrationId'):
+        if not (attrs.get('defaultAuthId') or attrs.get('integrationId')):
             raise serializers.ValidationError(
                 'You must either provide a defaultAuthId or an integrationId'
             )
@@ -67,11 +67,15 @@ class OrganizationIntegrationsEndpoint(OrganizationEndpoint):
             provider.link_auth(
                 request.user,
                 organization,
-                {'default_auth_id': result['defaultAuthId']}
+                {
+                    'default_auth_id': result['defaultAuthId'],
+                    'integration_id': result['integrationId'],
+                }
             )
-        except PluginError:
+        except PluginError as exc:
             return Response({
                 'error_type': 'validation',
+                'message': exc.message,
             }, status=400)
 
         return Response(

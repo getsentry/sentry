@@ -46,6 +46,7 @@ const OrganizationIntegrations = React.createClass({
       data: {
         providerId: providerId,
         defaultAuthId: auth.defaultAuthId,
+        integrationId: auth.integrationId,
       },
       success: data => {
         // TODO(jess): we should sort this alphabetically
