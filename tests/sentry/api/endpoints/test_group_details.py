@@ -49,12 +49,16 @@ class GroupDetailsTest(APITestCase):
         assert response.data['id'] == six.text_type(group.id)
         assert response.data['firstRelease']['version'] == release.version
 
-    def test_pending_delete_excluded(self):
+    def test_pending_delete_pending_merge_excluded(self):
         group1 = self.create_group(
             status=GroupStatus.PENDING_DELETION,
         )
         group2 = self.create_group(
             status=GroupStatus.DELETION_IN_PROGRESS,
+        )
+
+        group3 = self.create_group(
+            status=GroupStatus.PENDING_MERGE,
         )
 
         self.login_as(user=self.user)
@@ -65,6 +69,10 @@ class GroupDetailsTest(APITestCase):
         assert response.status_code == 404
 
         url = '/api/0/issues/{}/'.format(group2.id)
+        response = self.client.get(url, format='json')
+        assert response.status_code == 404
+
+        url = '/api/0/issues/{}/'.format(group3.id)
         response = self.client.get(url, format='json')
         assert response.status_code == 404
 

@@ -10,6 +10,10 @@ from sentry.models import Group, GroupStatus, get_group_with_redirect
 
 logger = logging.getLogger(__name__)
 
+EXCLUDED_STATUSES = (
+    GroupStatus.PENDING_DELETION, GroupStatus.DELETION_IN_PROGRESS, GroupStatus.PENDING_MERGE
+)
+
 
 class GroupPermission(ProjectPermission):
     scope_map = {
@@ -54,7 +58,7 @@ class GroupEndpoint(Endpoint):
             }
         )
 
-        if group.status in (GroupStatus.PENDING_DELETION, GroupStatus.DELETION_IN_PROGRESS):
+        if group.status in EXCLUDED_STATUSES:
             raise ResourceDoesNotExist
 
         kwargs['group'] = group
