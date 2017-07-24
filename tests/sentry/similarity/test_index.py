@@ -117,3 +117,21 @@ class MinHashIndexTestCase(TestCase):
             assert sum(
                 sum(dict(bucket_frequencies).values()) for index, bucket_frequencies in band
             ) == 2
+
+    def test_flush_scoped(self):
+        self.index.record('example', '1', [('index', ['foo', 'bar'])])
+        assert self.index.classify('example', [('index', ['foo', 'bar'])])[0] == [
+            ('1', 1.0),
+        ]
+
+        self.index.flush('example', ['index'])
+        assert self.index.classify('example', [('index', ['foo', 'bar'])])[0] == []
+
+    def test_flush_unscoped(self):
+        self.index.record('example', '1', [('index', ['foo', 'bar'])])
+        assert self.index.classify('example', [('index', ['foo', 'bar'])])[0] == [
+            ('1', 1.0),
+        ]
+
+        self.index.flush('*', ['index'])
+        assert self.index.classify('example', [('index', ['foo', 'bar'])])[0] == []
