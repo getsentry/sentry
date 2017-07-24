@@ -114,8 +114,8 @@ class GroupManager(BaseManager):
         except HashDiscarded as exc:
             logger.info(
                 'discarded.hash', extra={
-                    'project_id': project.id,
-                    'message': exc.message,
+                    'project_id': project,
+                    'description': exc.message,
                 }
             )
 

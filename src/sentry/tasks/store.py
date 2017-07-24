@@ -281,7 +281,7 @@ def save_event(cache_key=None, data=None, start_time=None, event_id=None, **kwar
         info_logger.info(
             'discarded.hash', extra={
                 'project_id': project,
-                'message': exc.message,
+                'description': exc.message,
             }
         )
     finally:
