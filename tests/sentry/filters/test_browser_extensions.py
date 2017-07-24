@@ -47,8 +47,9 @@ class BrowserExtensionsFilterTest(TestCase):
 
     def test_filters_kaspersky_extension(self):
         data = self.get_mock_data(
-            exc_source=
-            'https://ff.kis.v2.scr.kaspersky-labs.com/14E4A3DB-9B72-1047-8296-E970532BF7B7/main.js'
+            exc_source=(
+                'https://ff.kis.v2.scr.kaspersky-labs.com/14E4A3DB-9B72-1047-8296-E970532BF7B7/main.js'
+            )
         )
         assert self.apply_filter(data)
 
