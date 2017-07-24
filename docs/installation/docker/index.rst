@@ -103,7 +103,7 @@ must rebuild your image.
 
 For all future Sentry command invocations, you just have all the
 necessary container links, mounted volumes, and the same environment
-variables. If differet components are running with different
+variables. If different components are running with different
 configurations, Sentry will likely have unexpected behaviors.
 
 The base for running commands will look something like::
