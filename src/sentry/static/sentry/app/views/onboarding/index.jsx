@@ -6,6 +6,8 @@ import ApiMixin from '../../mixins/apiMixin';
 import ProgressNodes from './progress';
 import ProjectActions from '../../actions/projectActions';
 
+import Raven from 'raven-js';
+
 const OnboardingWizard = React.createClass({
   contextTypes: {
     organization: React.PropTypes.object
@@ -72,6 +74,10 @@ const OnboardingWizard = React.createClass({
         browserHistory.push(url);
       },
       error: err => {
+        Raven.captureMessage('oboarding project creation failed', {
+          extra: err
+        });
+
         this.setState({
           loading: false,
           error: true
