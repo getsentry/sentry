@@ -982,8 +982,9 @@ class JavascriptIntegrationTest(TestCase):
         responses.add(
             responses.GET,
             'http://example.com/file.html',
-            body=
-            '<!doctype html><html><head></head><body><script>/*legit case*/</script></body></html>'
+            body=(
+                '<!doctype html><html><head></head><body><script>/*legit case*/</script></body></html>'
+            )
         )
 
         data = {

@@ -810,7 +810,7 @@ class GroupUpdateTest(APITestCase):
         response.data['statusDetails']['ignoreUntil'] = response.data['statusDetails'
                                                                       ]['ignoreUntil'].replace(
                                                                           microsecond=0
-                                                                      )
+                                                                      )  # noqa
 
         assert response.data['status'] == 'ignored'
         assert response.data['statusDetails']['ignoreCount'] == snooze.count

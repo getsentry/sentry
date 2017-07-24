@@ -205,8 +205,9 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
                 threads = []
                 for shard_id in range(concurrency):
                     t = Thread(
-                        target=
-                        lambda shard_id=shard_id: query.execute_sharded(concurrency, shard_id)
+                        target=(
+                            lambda shard_id=shard_id: query.execute_sharded(concurrency, shard_id)
+                        )
                     )
                     t.start()
                     threads.append(t)

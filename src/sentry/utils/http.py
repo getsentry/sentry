@@ -225,10 +225,11 @@ def is_valid_ip(ip_address, project):
 
         # Check to make sure it's actually a range before
         try:
-            if '/' in addr and ipaddress.ip_address(six.text_type(ip_address)
-                                                    ) in ipaddress.ip_network(
-                                                        six.text_type(addr), strict=False
-                                                    ):
+            if '/' in addr and (
+                ipaddress.ip_address(six.text_type(ip_address)) in ipaddress.ip_network(
+                    six.text_type(addr), strict=False
+                )
+            ):
                 return False
         except ValueError:
             # Ignore invalid values here

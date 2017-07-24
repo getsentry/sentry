@@ -196,7 +196,7 @@ class GroupSerializerTest(TestCase):
             assert serialize(group, user
                              )['isSubscribed'] is expected_result, 'expected {!r} for {!r}'.format(
                                  expected_result, options
-                             )
+                             )  # noqa
 
     def test_no_user_unsubscribed(self):
         group = self.create_group()
