@@ -219,12 +219,19 @@ end
 
 -- Key Generation
 
-local function get_bucket_frequency_key(configuration, index, time, band, item)
+local function get_key_prefix(configuration, index)
     return string.format(
-        '%s:%s:f:%s:%s:%s:%s',
+        '%s:%s:%s',
         configuration.namespace,
         configuration.scope,
-        index,
+        index
+    )
+end
+
+local function get_bucket_frequency_key(configuration, index, time, band, item)
+    return string.format(
+        '%s:f:%s:%s:%s',
+        get_key_prefix(configuration, index),
         time,
         band,
         item
@@ -233,10 +240,8 @@ end
 
 local function get_bucket_membership_key(configuration, index, time, band, bucket)
     return string.format(
-        '%s:%s:m:%s:%s:%s:%s',
-        configuration.namespace,
-        configuration.scope,
-        index,
+        '%s:m:%s:%s:%s',
+        get_key_prefix(configuration, index),
         time,
         band,
         bucket
@@ -893,6 +898,34 @@ local commands = {
                                 )
                             end
                         )
+                    )
+                end
+            )
+        end
+    ),
+    SCAN = takes_configuration(
+        function (configuration, arguments)
+            local arguments = build_variadic_argument_parser({
+                {"index", identity},
+                {"cursor", identity},
+                {"count", identity},
+            })(arguments)
+            return table.imap(
+                arguments,
+                function (argument)
+                    return redis.call(
+                        'SCAN',
+                        argument.cursor,
+                        'MATCH',
+                        string.format(
+                            '%s:*',
+                            get_key_prefix(
+                                configuration,
+                                argument.index
+                            )
+                        ),
+                        'COUNT',
+                        argument.count
                     )
                 end
             )
