@@ -261,7 +261,7 @@ class GroupListTest(APITestCase):
         assert len(issues) == 1
         assert int(issues[0]['id']) == group.id
 
-    def test_pending_delete_excluded(self):
+    def test_pending_delete_pending_merge_excluded(self):
         self.create_group(
             checksum='a' * 32,
             status=GroupStatus.PENDING_DELETION,
@@ -272,6 +272,10 @@ class GroupListTest(APITestCase):
         self.create_group(
             checksum='c' * 32,
             status=GroupStatus.DELETION_IN_PROGRESS,
+        )
+        self.create_group(
+            checksum='d' * 32,
+            status=GroupStatus.PENDING_MERGE,
         )
 
         self.login_as(user=self.user)
