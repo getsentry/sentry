@@ -141,9 +141,9 @@ class ProjectUpdateTest(APITestCase):
             'filters:blacklisted_ips': '127.0.0.1\n198.51.100.0',
             'filters:releases': '1.*\n2.1.*',
             'filters:error_messages': 'TypeError*\n*: integer division by modulo or zero',
-
         }
-        resp = self.client.put(url, data={'options': options})
+        with self.feature('projects:custom-filters', True):
+            resp = self.client.put(url, data={'options': options})
         assert resp.status_code == 200, resp.content
         project = Project.objects.get(id=project.id)
         assert project.get_option('sentry:origins', []) == options['sentry:origins'].split('\n')
@@ -160,7 +160,8 @@ class ProjectUpdateTest(APITestCase):
         assert project.get_option('sentry:blacklisted_ips') == ['127.0.0.1', '198.51.100.0']
         assert project.get_option('sentry:releases') == ['1.*', '2.1.*']
         assert project.get_option('sentry:error_messages') == [
-            'TypeError*', '*: integer division by modulo or zero']
+            'TypeError*', '*: integer division by modulo or zero'
+        ]
 
     def test_bookmarks(self):
         project = self.project  # force creation

@@ -28,8 +28,12 @@ from time import time
 from sentry import filters
 from sentry.cache import default_cache
 from sentry.constants import (
-    CLIENT_RESERVED_ATTRS, DEFAULT_LOG_LEVEL, LOG_LEVELS_MAP, MAX_TAG_VALUE_LENGTH,
-    MAX_TAG_KEY_LENGTH, VALID_PLATFORMS
+    CLIENT_RESERVED_ATTRS,
+    DEFAULT_LOG_LEVEL,
+    LOG_LEVELS_MAP,
+    MAX_TAG_VALUE_LENGTH,
+    MAX_TAG_KEY_LENGTH,
+    VALID_PLATFORMS,
 )
 from sentry.db.models import BoundedIntegerField
 from sentry.interfaces.base import get_interface, InterfaceValidationError
@@ -41,9 +45,10 @@ from sentry.tasks.store import preprocess_event, \
 from sentry.utils import json
 from sentry.utils.auth import parse_auth_header
 from sentry.utils.csp import is_valid_csp_report
-from sentry.utils.http import (origin_from_request,
-                               is_valid_for_processing,
-                               )
+from sentry.utils.http import (
+    origin_from_request,
+    is_valid_for_processing,
+)
 from sentry.utils.strings import decompress
 from sentry.utils.validators import is_float, is_event_id
 
@@ -58,6 +63,12 @@ except ImportError:
     from sentry.utils import json
 
 _dist_re = re.compile(r'^[a-zA-Z0-9_.-]+$')
+
+
+class FilterTypes(object):
+    ERROR_MESSAGES = 'error_messages'
+    RELEASES = 'releases'
+    BLACKLISTED_IPS = 'blacklisted_ips'
 
 
 class APIError(Exception):
@@ -376,9 +387,10 @@ class ClientApiHelper(object):
         # - ignore errors from legacy browsers
 
         filter_types = {
-            'error_messages': data.get('sentry.interfaces.Message', {}).get('message', []),
-            'releases': data.get('release'),
-            'blacklisted_ips': ip_address
+            FilterTypes.ERROR_MESSAGES: data.get('sentry.interfaces.Message',
+                                                 {}).get('message', []),
+            FilterTypes.RELEASES: data.get('release'),
+            FilterTypes.BLACKLISTED_IPS: ip_address,
         }
 
         for key, value in six.iteritems(filter_types):
@@ -978,8 +990,8 @@ class LazyData(MutableMapping):
         helper.ensure_has_ip(
             data,
             self._client_ip,
-            set_if_missing=auth.is_public or
-            data.get('platform') in ('javascript', 'cocoa', 'objc')
+            set_if_missing=auth.is_public
+            or data.get('platform') in ('javascript', 'cocoa', 'objc')
         )
 
         # mutates data
