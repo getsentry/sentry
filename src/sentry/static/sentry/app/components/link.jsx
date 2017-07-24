@@ -19,7 +19,7 @@ const Link = React.createClass({
     if (this.context.location) {
       return <RouterLink {...this.props}>{this.props.children}</RouterLink>;
     } else {
-      let props = _.omit(this.props, 'to');
+      let props = _.omit(this.props, ['to']);
       props.href = this.props.to;
       return <a {...props}>{this.props.children}</a>;
     }
