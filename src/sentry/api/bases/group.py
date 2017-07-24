@@ -6,7 +6,7 @@ from sentry.api.base import Endpoint
 from sentry.api.bases.project import ProjectPermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.app import raven
-from sentry.models import Group, get_group_with_redirect
+from sentry.models import Group, GroupStatus, get_group_with_redirect
 
 logger = logging.getLogger(__name__)
 
@@ -53,6 +53,9 @@ class GroupEndpoint(Endpoint):
                 'organization': group.project.organization_id,
             }
         )
+
+        if group.status in (GroupStatus.PENDING_DELETION, GroupStatus.DELETION_IN_PROGRESS):
+            raise ResourceDoesNotExist
 
         kwargs['group'] = group
 
