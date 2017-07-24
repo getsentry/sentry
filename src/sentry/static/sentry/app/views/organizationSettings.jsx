@@ -344,7 +344,7 @@ const OrganizationSettings = React.createClass({
   },
 
   onSave(data) {
-    // TODO(dcramer): this shoudl propag
+    // TODO(dcramer): this should propagate
     this.setState({data: data});
     OrganizationStore.add(data);
   },
