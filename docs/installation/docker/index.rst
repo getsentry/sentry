@@ -110,7 +110,6 @@ The base for running commands will look something like::
 
     docker run \
       --detach \
-      --rm \
       --link sentry-redis:redis \
       --link sentry-postgres:postgres \
       --link sentry-smtp:smtp \
