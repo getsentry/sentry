@@ -9,6 +9,8 @@ from sentry.db.models import (
     BoundedPositiveIntegerField, FlexibleForeignKey, GzippedDictField, Model
 )
 
+TOMBSTONE_FIELDS_FROM_GROUP = ('project_id', 'level', 'message', 'culprit', 'data')
+
 
 class GroupTombstone(Model):
     __core__ = False
