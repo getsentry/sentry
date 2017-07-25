@@ -261,6 +261,29 @@ class GroupListTest(APITestCase):
         assert len(issues) == 1
         assert int(issues[0]['id']) == group.id
 
+    def test_pending_delete_pending_merge_excluded(self):
+        self.create_group(
+            checksum='a' * 32,
+            status=GroupStatus.PENDING_DELETION,
+        )
+        group = self.create_group(
+            checksum='b' * 32,
+        )
+        self.create_group(
+            checksum='c' * 32,
+            status=GroupStatus.DELETION_IN_PROGRESS,
+        )
+        self.create_group(
+            checksum='d' * 32,
+            status=GroupStatus.PENDING_MERGE,
+        )
+
+        self.login_as(user=self.user)
+
+        response = self.client.get(self.path, format='json')
+        assert len(response.data) == 1
+        assert response.data[0]['id'] == six.text_type(group.id)
+
 
 class GroupUpdateTest(APITestCase):
     @fixture
