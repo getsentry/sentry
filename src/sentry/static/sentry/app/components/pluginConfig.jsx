@@ -90,7 +90,7 @@ const PluginConfig = React.createClass({
         test: true
       },
       success: data => {
-        this.setState({testResults: JSON.stringify(data)});
+        this.setState({testResults: JSON.stringify(data.detail)});
         IndicatorStore.remove(loadingIndicator);
         IndicatorStore.add(t('Test Complete!'), 'success');
       },
