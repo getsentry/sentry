@@ -18,6 +18,7 @@ from loremipsum import Generator
 from pytz import utc
 
 from sentry import buffer, roles
+from sentry.event_manager import HashDiscarded
 from sentry.models import (
     Activity, Broadcast, Commit, CommitAuthor, CommitFileChange, Deploy,
     Environment, File, Group, GroupMeta, GroupRelease, GroupTombstone, Organization,
@@ -66,9 +67,13 @@ def make_sentence(words=None):
 
 
 def create_sample_event(*args, **kwargs):
-    event = _create_sample_event(*args, **kwargs)
-    features.record([event])
-    return event
+    try:
+        event = _create_sample_event(*args, **kwargs)
+        features.record([event])
+        return event
+    except HashDiscarded as e:
+        print "> Skipping Event: {}".format(e.message)
+        return
 
 
 def generate_commits(user):
@@ -153,7 +158,10 @@ def create_system_time_series():
 
 
 def create_sample_time_series(event, release=None):
-    group = event.group
+    try:
+        group = event.group
+    except AttributeError:
+        return
     project = group.project
 
     key = project.key_set.all()[0]
@@ -541,20 +549,22 @@ def main(num_events=1, extra_events=False):
                     environment=ENVIRONMENTS.next(),
                     user=generate_user(),
                 )
-
-            Commit.objects.get_or_create(
-                organization_id=org.id,
-                repository_id=repo[0].id,
-                key=sha1(uuid4().hex).hexdigest(),
-                defaults={
-                    'author': CommitAuthor.objects.get_or_create(
-                        organization_id=org.id,
-                        email=user.email,
-                        defaults={'name': user.name}
-                    )[0],
-                    'message': 'Ooops!\nFixes {}'.format(event5.group.qualified_short_id),
-                },
-            )[0]
+            try:
+                Commit.objects.get_or_create(
+                    organization_id=org.id,
+                    repository_id=repo[0].id,
+                    key=sha1(uuid4().hex).hexdigest(),
+                    defaults={
+                        'author': CommitAuthor.objects.get_or_create(
+                            organization_id=org.id,
+                            email=user.email,
+                            defaults={'name': user.name}
+                        )[0],
+                        'message': 'Ooops!\nFixes {}'.format(event5.group.qualified_short_id),
+                    },
+                )[0]
+            except AttributeError:
+                pass
 
             create_sample_event(
                 project=project,
@@ -569,17 +579,19 @@ def main(num_events=1, extra_events=False):
                         key='github:tid',
                         value='134',
                     )
-                except IntegrityError:
+                except (AttributeError, IntegrityError):
                     pass
-
-            UserReport.objects.create(
-                project=project,
-                event_id=event3.event_id,
-                group=event3.group,
-                name='Jane Doe',
-                email='jane@example.com',
-                comments=make_sentence(),
-            )
+            try:
+                UserReport.objects.create(
+                    project=project,
+                    event_id=event3.event_id,
+                    group=event3.group,
+                    name='Jane Doe',
+                    email='jane@example.com',
+                    comments=make_sentence(),
+                )
+            except AttributeError:
+                pass
 
             print('    > Loading time series data'.format(project_name))
 
