@@ -26,12 +26,16 @@ class MinHashIndexTestCase(TestCase):
         )
 
     def test_basic(self):
-        self.index.record('example', '1', [('index', 'hello world')])
-        self.index.record('example', '2', [('index', 'hello world')])
-        self.index.record('example', '3', [('index', 'jello world')])
-        self.index.record('example', '4', [('index', 'yellow world')])
-        self.index.record('example', '4', [('index', 'mellow world')])
-        self.index.record('example', '5', [('index', 'pizza world')])
+        self.index.record('example', '1', [[('index', 'hello world')]])
+        self.index.record('example', '2', [[('index', 'hello world')]])
+        self.index.record('example', '3', [[('index', 'jello world')]])
+        self.index.record(
+            'example', '4', [
+                [('index', 'yellow world')],
+                [('index', 'mellow world')],
+            ]
+        )
+        self.index.record('example', '5', [[('index', 'pizza world')]])
 
         results = self.index.compare('example', '1', ['index'])[0]
         assert results[0] == ('1', 1.0)
@@ -40,7 +44,7 @@ class MinHashIndexTestCase(TestCase):
         assert results[3][0] in ('3', '4')
         assert results[4][0] == '5'
 
-        results = self.index.classify('example', [('index', 'hello world')])[0]
+        results = self.index.classify('example', [[('index', 'hello world')]])[0]
         assert results[0:2] == [('1', 1.0), ('2', 1.0)]
         assert results[2][0] in ('3', '4')  # equidistant pairs, order doesn't really matter
         assert results[3][0] in ('3', '4')
