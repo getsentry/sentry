@@ -16,8 +16,7 @@ import {t} from '../../locale';
 
 const GroupHeader = React.createClass({
   propTypes: {
-    group: React.PropTypes.object.isRequired,
-    memberList: React.PropTypes.array.isRequired
+    group: React.PropTypes.object.isRequired
   },
 
   contextTypes: {
@@ -124,6 +123,9 @@ const GroupHeader = React.createClass({
     let hasSimView = ConfigStore.getConfig().features.has(
       `${orgId}:${projectId}:similarity-view`
     );
+
+    let hasGroupingView = hasSimView || orgFeatures.has('group-unmerge');
+
     return (
       <div className={className}>
         <div className="row">
@@ -229,13 +231,9 @@ const GroupHeader = React.createClass({
           <ListLink to={`/${orgId}/${projectId}/issues/${groupId}/events/`}>
             {t('Events')}
           </ListLink>
-          {orgFeatures.has('group-unmerge') &&
-            <ListLink to={`/${orgId}/${projectId}/issues/${groupId}/hashes/`}>
-              {t('Hashes')}
-            </ListLink>}
-          {hasSimView &&
-            <ListLink to={`/${orgId}/${projectId}/issues/${groupId}/similar/`}>
-              {t('Similar Issues')} <span className="badge">{'?'}</span>
+          {hasGroupingView &&
+            <ListLink to={`/${orgId}/${projectId}/issues/${groupId}/grouping/`}>
+              {t('Grouping')}
             </ListLink>}
         </ul>
       </div>

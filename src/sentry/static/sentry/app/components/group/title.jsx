@@ -1,24 +1,36 @@
-import React from 'react';
+import React, {PropTypes} from 'react';
 
 const GroupTitle = React.createClass({
   propTypes: {
-    data: React.PropTypes.object.isRequired
+    data: PropTypes.shape({
+      type: PropTypes.oneOf(['error', 'csp', 'default']).isRequired,
+      title: PropTypes.string,
+      metadata: PropTypes.shape({
+        directive: PropTypes.string,
+        type: PropTypes.string,
+        title: PropTypes.string,
+        uri: PropTypes.string
+      }).isRequired,
+      culprit: PropTypes.string
+    })
   },
 
   render() {
-    let data = this.props.data;
-    let metadata = data.metadata;
-    let title = data.title;
+    let {data} = this.props;
+    let {metadata, title: _title, type, culprit} = data;
+    let title = _title;
     let subtitle = null;
-    if (data.type == 'error') {
+
+    if (type == 'error') {
       title = metadata.type;
-      subtitle = data.culprit;
-    } else if (data.type == 'csp') {
+      subtitle = culprit;
+    } else if (type == 'csp') {
       title = metadata.directive;
       subtitle = metadata.uri;
-    } else if (data.type == 'default') {
+    } else if (type == 'default') {
       title = metadata.title;
     }
+
     if (subtitle) {
       return (
         <span>
