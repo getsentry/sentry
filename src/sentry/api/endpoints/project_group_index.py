@@ -21,7 +21,7 @@ from sentry.db.models.query import create_or_update
 from sentry.models import (
     Activity, EventMapping, Group, GroupAssignee, GroupBookmark, GroupHash, GroupResolution,
     GroupSeen, GroupSnooze, GroupStatus, GroupSubscription, GroupSubscriptionReason, GroupTombstone,
-    Release, TagKey, UserOption
+    Release, TagKey, TOMBSTONE_FIELDS_FROM_GROUP, UserOption
 )
 from sentry.models.event import Event
 from sentry.models.group import looks_like_short_id
@@ -38,7 +38,6 @@ delete_logger = logging.getLogger('sentry.deletions.api')
 
 ERR_INVALID_STATS_PERIOD = "Invalid stats_period. Valid choices are '', '24h', and '14d'"
 SAVED_SEARCH_QUERIES = set([s['query'] for s in DEFAULT_SAVED_SEARCHES])
-TOMBSTONE_FIELDS_FROM_GROUP = ('project_id', 'level', 'message', 'culprit', 'data')
 
 
 @scenario('BulkUpdateIssues')
