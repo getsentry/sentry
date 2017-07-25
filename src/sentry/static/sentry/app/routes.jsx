@@ -9,6 +9,7 @@ import AdminOrganizations from './views/adminOrganizations';
 import AdminOverview from './views/adminOverview';
 import AdminProjects from './views/adminProjects';
 import AdminQueue from './views/adminQueue';
+import AdminQuotas from './views/adminQuotas';
 import AdminSettings from './views/adminSettings';
 import AdminUsers from './views/adminUsers';
 import ApiApplicationDetails from './views/apiApplicationDetails';
@@ -395,6 +396,7 @@ function routes() {
         <Route path="organizations/" component={errorHandler(AdminOrganizations)} />
         <Route path="projects/" component={errorHandler(AdminProjects)} />
         <Route path="queue/" component={errorHandler(AdminQueue)} />
+        <Route path="quotas/" component={errorHandler(AdminQuotas)} />
         <Route path="settings/" component={errorHandler(AdminSettings)} />
         <Route path="users/" component={errorHandler(AdminUsers)} />
         {hooksAdminRoutes}
