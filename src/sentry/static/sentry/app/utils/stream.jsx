@@ -45,7 +45,7 @@ export function queryToObj(queryStr) {
  * (consumable by the Sentry stream HTTP API).
  */
 export function objToQuery(queryObj) {
-  let tags = _.omit(queryObj, ['__text']);
+  let tags = _.omit(queryObj, '__text');
 
   let parts = _.map(tags, (value, tagKey) => {
     if (value.indexOf(' ') > -1) value = `"${value}"`;
