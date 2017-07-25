@@ -140,8 +140,8 @@ var config = {
   plugins: [
     new LodashModuleReplacementPlugin({
       collections: true,
-      currying: true,
-      flattening: true
+      currying: true, // these are enabled to support lodash/fp/ features
+      flattening: true // used by a dependency of react-mentions
     }),
     new webpack.optimize.CommonsChunkPlugin({
       names: localeEntries.concat(['vendor']) // 'vendor' must be last entry
