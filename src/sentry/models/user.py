@@ -183,7 +183,8 @@ class User(BaseModel, AbstractBaseUser):
         from sentry import roles
         from sentry.models import (
             AuditLogEntry, Activity, AuthIdentity, GroupAssignee, GroupBookmark, GroupSeen,
-            OrganizationMember, OrganizationMemberTeam, UserAvatar, UserEmail, UserOption
+            GroupSubscription, OrganizationMember, OrganizationMemberTeam, UserAvatar, UserEmail,
+            UserOption
         )
 
         audit_logger.info(
@@ -218,7 +219,10 @@ class User(BaseModel, AbstractBaseUser):
                 except IntegrityError:
                     pass
 
-        model_list = (GroupAssignee, GroupBookmark, GroupSeen, UserAvatar, UserEmail, UserOption)
+        model_list = (
+            GroupAssignee, GroupBookmark, GroupSeen, GroupSubscription, UserAvatar, UserEmail,
+            UserOption
+        )
 
         for model in model_list:
             for obj in model.objects.filter(user=from_user):
