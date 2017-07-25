@@ -1,8 +1,9 @@
 from __future__ import absolute_import
 
+import mock
 from django.core.urlresolvers import reverse
 
-from sentry.plugins import plugins
+from sentry.plugins import plugins, NotificationPlugin
 from sentry.models import ProjectOption
 from sentry.testutils import APITestCase
 
@@ -67,7 +68,8 @@ class UpdateProjectPluginTest(APITestCase):
 
 
 class EnableProjectPluginTest(APITestCase):
-    def test_simple(self):
+    @mock.patch.object(NotificationPlugin, 'test_configuration', side_effect='test_configuration')
+    def test_simple(self, test_configuration):
         project = self.create_project()
 
         self.login_as(user=self.user)
@@ -91,6 +93,7 @@ class EnableProjectPluginTest(APITestCase):
 
         # Testing the Plugin
         response = self.client.post(url, {'test': True})
+        test_configuration.assert_called_once_with(project)
         assert response.status_code == 200, (response.status_code, response.content)
 
 
