@@ -30,6 +30,7 @@ from .endpoints.group_tombstone import GroupTombstoneEndpoint
 from .endpoints.group_user_reports import GroupUserReportsEndpoint
 from .endpoints.index import IndexEndpoint
 from .endpoints.internal_queue_tasks import InternalQueueTasksEndpoint
+from .endpoints.internal_quotas import InternalQuotasEndpoint
 from .endpoints.internal_stats import InternalStatsEndpoint
 from .endpoints.legacy_project_redirect import LegacyProjectRedirectEndpoint
 from .endpoints.organization_access_request_details import OrganizationAccessRequestDetailsEndpoint
@@ -778,6 +779,7 @@ urlpatterns = patterns(
     url(
         r'^internal/options/$', SystemOptionsEndpoint.as_view(), name='sentry-api-0-system-options'
     ),
+    url(r'^internal/quotas/$', InternalQuotasEndpoint.as_view()),
     url(r'^internal/queue/tasks/$', InternalQueueTasksEndpoint.as_view()),
     url(r'^internal/stats/$', InternalStatsEndpoint.as_view(),
         name='sentry-api-0-internal-stats'),
