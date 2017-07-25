@@ -44,6 +44,9 @@ export default React.createClass({
                     <ListLink index={true} to="/manage/queue/">
                       Queue
                     </ListLink>
+                    <ListLink index={true} to="/manage/quotas/">
+                      Quotas
+                    </ListLink>
                     <li>
                       <a href="/manage/status/environment/">Environment</a>
                     </li>
