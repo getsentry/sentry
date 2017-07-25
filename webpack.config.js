@@ -139,7 +139,23 @@ var config = {
   },
   plugins: [
     new LodashModuleReplacementPlugin({
-      collections: true
+      collections: true,
+      cloning: true,
+      currying: true,
+
+      // shorthands: true,
+      caching: true,
+      // exotics: true,
+      // guards: true,
+      metadata: true,
+      // deburring: true,
+      // unicode: true,
+      // chaining: true,
+      // memoizing: true,
+      // coercions: true,
+      // flattening: true,
+      // paths: true,
+      placeholders: true
     }),
     new webpack.optimize.CommonsChunkPlugin({
       names: localeEntries.concat(['vendor']) // 'vendor' must be last entry
