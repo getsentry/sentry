@@ -54,3 +54,14 @@ class IssueDetailsTest(AcceptanceTestCase):
         )
         self.browser.wait_until('.entries')
         self.browser.snapshot('issue details cocoa')
+
+    def test_activity_page(self):
+        event = self.create_sample_event(
+            platform='python',
+        )
+
+        self.browser.get(
+            '/{}/{}/issues/{}/activity'.format(self.org.slug, self.project.slug, event.group.id)
+        )
+        self.browser.wait_until('.activity-item')
+        self.browser.snapshot('issue activity python')
