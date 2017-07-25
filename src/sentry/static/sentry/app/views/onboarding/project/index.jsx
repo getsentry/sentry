@@ -34,9 +34,9 @@ const Project = React.createClass({
               onChange={e => this.props.setName(e.target.value)}
             />
           </div>
-          <div className="btn btn-primary pull-right" onClick={this.submit}>
+          <button className="btn btn-primary pull-right" onClick={this.submit}>
             {t('Continue')}
-          </div>
+          </button>
         </div>
       </div>
     );
