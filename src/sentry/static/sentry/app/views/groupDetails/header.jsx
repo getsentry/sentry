@@ -227,7 +227,7 @@ const GroupHeader = React.createClass({
             {t('Tags')}
           </ListLink>
           <ListLink to={`/${orgId}/${projectId}/issues/${groupId}/events/`}>
-            {t('Related Events')}
+            {t('Events')}
           </ListLink>
           {orgFeatures.has('group-unmerge') &&
             <ListLink to={`/${orgId}/${projectId}/issues/${groupId}/hashes/`}>
