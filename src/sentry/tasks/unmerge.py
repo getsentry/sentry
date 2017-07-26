@@ -458,7 +458,7 @@ def repair_denormalizations(caches, project, events):
     repair_tsdb_data(caches, project, events)
 
     for event in events:
-        features.record(event)
+        features.record([event])
 
 
 def update_tag_value_counts(id_list):

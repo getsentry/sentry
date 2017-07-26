@@ -237,7 +237,7 @@ class UnmergeTestCase(TestCase):
                 comments='Quack',
             )
 
-            features.record(event)
+            features.record([event])
 
             return event
 
