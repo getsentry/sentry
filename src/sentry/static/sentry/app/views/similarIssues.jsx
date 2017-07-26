@@ -1,19 +1,19 @@
-import React from 'react';
-import {Link} from 'react-router';
+import React, {PropTypes} from 'react';
 
+import {t} from '../locale';
 import ApiMixin from '../mixins/apiMixin';
-import DateTime from '../components/dateTime';
 import GroupState from '../mixins/groupState';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
 import Pagination from '../components/pagination';
-import {t} from '../locale';
+import SimilarIssueItem from '../components/SimilarIssueItem';
 
 const GroupEvents = React.createClass({
-  mixins: [
-    ApiMixin,
-    GroupState
-  ],
+  propTypes: {
+    query: PropTypes.string
+  },
+
+  mixins: [ApiMixin, GroupState],
 
   getInitialState() {
     return {
@@ -21,6 +21,8 @@ const GroupEvents = React.createClass({
       loading: true,
       error: false,
       pageLinks: '',
+      hidden: {},
+      busy: {}
     };
   },
 
@@ -29,21 +31,17 @@ const GroupEvents = React.createClass({
   },
 
   componentWillReceiveProps(nextProps) {
-    if (nextProps.params.groupId !== this.props.params.groupId ||
-        nextProps.location.search !== this.props.location.search) {
+    if (
+      nextProps.params.groupId !== this.props.params.groupId ||
+      nextProps.location.search !== this.props.location.search
+    ) {
       this.fetchData();
     }
   },
 
   getEndpoint() {
     let params = this.props.params;
-    // let queryParams = {
-    //   ...this.props.location.query,
-    //   limit: 50,
-    //   query: this.state.query
-    // };
-
-    return `/issues/${params.groupId}/similar/`;//`?${jQuery.param(queryParams)}`;
+    return `/issues/${params.groupId}/similar/`;
   },
 
   fetchData() {
@@ -63,7 +61,7 @@ const GroupEvents = React.createClass({
           pageLinks: jqXHR.getResponseHeader('Link')
         });
       },
-      error: (err) => {
+      error: err => {
         let error = err.responseJSON || true;
         error = error.detail || true;
         this.setState({
@@ -74,144 +72,91 @@ const GroupEvents = React.createClass({
     });
   },
 
-  // getEventTitle(event) {
-  //   switch (event.type) {
-  //     case 'error':
-  //       if (event.metadata.type && event.metadata.value)
-  //         return `${event.metadata.type}: ${event.metadata.value}`;
-  //       return event.metadata.type || event.metadata.value || event.metadata.title;
-  //     case 'csp':
-  //       return event.metadata.message;
-  //     case 'default':
-  //       return event.metadata.title;
-  //     default:
-  //       return event.message.split('\n')[0];
-  //   }
-  // },
+  handleMerge({issue}, e) {
+    const {query, params} = this.props;
+
+    if (params) {
+      this.setState({
+        ...this.state,
+        busy: {
+          ...this.state.busy,
+          [issue.id]: true
+        }
+      });
+
+      const {groupId, orgId, projectId} = params;
+      if (groupId && orgId && projectId) {
+        this.api.merge(
+          {
+            orgId,
+            projectId,
+            itemIds: [params.groupId, issue.id],
+            query
+          },
+          {
+            success: () => {
+              this.setState({
+                ...this.state,
+                hidden: {
+                  ...this.state.hidden,
+                  [issue.id]: true
+                }
+              });
+            },
+            error: () => {
+              this.setState({
+                ...this.state,
+                busy: {
+                  ...this.state.busy,
+                  [issue.id]: false
+                }
+              });
+            }
+          }
+        );
+      }
+    }
+  },
 
   renderEmpty() {
     return (
       <div className="box empty-stream">
         <span className="icon icon-exclamation" />
-        <p>{t('Found no similar issues.')}</p>
+        <p>
+          {t('Found no similar issues.')}
+        </p>
       </div>
     );
-  },
-
-  scoreComponents : {
-    'exception:message:character-shingles': 'exception',
-    'exception:stacktrace:application-chunks': 'application code paths',
-    'exception:stacktrace:pairs': 'stacktrace',
-    'message:message:character-shingles': 'message',
-  },
-
-  displaySimilarity(value) {
-    return isNaN(value) ? '' : `${Math.round(value * 100)}%`;
-  },
-
-  renderResults() {
-    let tagList = ['count'];//, 'culprit'];
-
-    let {orgId, projectId, groupId} = this.props.params;
-
-    let seenScoreComponents = {};
-
-    this.state.issueList.forEach(([_, score]) => {
-      for(let sc in this.scoreComponents){
-        if(score[sc]){
-          seenScoreComponents[sc] = this.scoreComponents[sc];
-        }
-      }
-    });
-
-    let children = this.state.issueList.map(([issue, score]) => {
-      let tagMap = tagList.map( (key) => {
-        return {key, value:issue[key]};
-      });
-      let scoreElements = Object.keys(seenScoreComponents).map(key=>{
-          return (<td key={key}>
-            <span className="similarity-score" style={{backgroundColor:`hsl(${score[key] * 100},40%,80%)`, padding:'9px',display:'block', textAlign:'center', margin:'0 auto'}}>
-            {this.displaySimilarity(score[key])}
-          </span>
-          </td>);
-      });
-      return (
-        <tr key={issue.id}>
-          <td>
-            <h5>
-              <Link to={`/${orgId}/${projectId}/issues/${groupId}/events/${issue.id}/`}>
-                {(issue.title || '').substr(0, 70)}
-              </Link>
-              <small><DateTime date={issue.firstSeen} /></small>
-            </h5>
-          </td>
-          {tagMap.map((tag) => {
-            return (
-              <td key={tag.key}>
-                {tag.value.substr(0,100)}
-              </td>
-            );
-          })}
-          {scoreElements}
-          <td key="button">
-            <a className="btn btn-default">merge</a>
-          </td>
-        </tr>
-      );
-    });
-
-    let scoreHeaders = Object.keys(seenScoreComponents).map(key=>{
-        return (<th key={key}>{seenScoreComponents[key]} similarity</th>);
-    });
-    return (
-      <div>
-        <div className="event-list">
-          <table className="table">
-            <thead>
-              <tr>
-                <th>{t('title')}</th>
-                {tagList.map((tag) => {
-                  return (
-                    <th key={tag}>
-                      {tag}
-                    </th>
-                  );
-                })}
-                {scoreHeaders}
-                <th key="button">
-                  Merge
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {children}
-            </tbody>
-          </table>
-        </div>
-        <Pagination pageLinks={this.state.pageLinks}/>
-      </div>
-    );
-  },
-
-  renderBody() {
-    let body;
-
-    if (this.state.loading)
-      body = <LoadingIndicator />;
-    else if (this.state.error)
-      body = <LoadingError message={this.state.error} onRetry={this.fetchData} />;
-    else if (this.state.issueList.length > 0)
-      body = this.renderResults();
-    else
-      body = this.renderEmpty();
-
-    return body;
   },
 
   render() {
+    let {orgId, projectId} = this.props.params;
+    const isLoading = this.state.loading;
+    const isError = this.state.error && !isLoading;
+    const hasResults = this.state.issueList.length > 0 && !isError && !isLoading;
+    const noResults = !hasResults && !isError && !isLoading;
+
     return (
       <div>
-        {this.renderBody()}
+        {isLoading && <LoadingIndicator />}
+        {isError && <LoadingError message={this.state.error} onRetry={this.fetchData} />}
+        {hasResults &&
+          <ul className="group-list">
+            {this.state.issueList.map(([issue, score]) => (
+              <SimilarIssueItem
+                key={issue.id}
+                visible={!this.state.hidden[issue.id]}
+                busy={this.state.busy[issue.id]}
+                orgId={orgId}
+                projectId={projectId}
+                event={issue}
+                score={score}
+                onMerge={this.handleMerge}
+              />
+            ))}
+          </ul>}
+        {hasResults && <Pagination pageLinks={this.state.pageLinks} />}
+        {noResults && this.renderEmpty()}
       </div>
     );
   }

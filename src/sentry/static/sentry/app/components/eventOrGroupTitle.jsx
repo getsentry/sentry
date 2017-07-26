@@ -1,16 +1,12 @@
 import React, {PropTypes} from 'react';
+import {Metadata} from '../proptypes';
 
-const GroupTitle = React.createClass({
+const EventOrGroupTitle = React.createClass({
   propTypes: {
     data: PropTypes.shape({
       type: PropTypes.oneOf(['error', 'csp', 'default']).isRequired,
       title: PropTypes.string,
-      metadata: PropTypes.shape({
-        directive: PropTypes.string,
-        type: PropTypes.string,
-        title: PropTypes.string,
-        uri: PropTypes.string
-      }).isRequired,
+      metadata: Metadata.isRequired,
       culprit: PropTypes.string
     })
   },
@@ -43,4 +39,4 @@ const GroupTitle = React.createClass({
   }
 });
 
-export default GroupTitle;
+export default EventOrGroupTitle;

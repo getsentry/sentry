@@ -1,12 +1,13 @@
 import React, {PropTypes} from 'react';
 import {Link} from 'react-router';
 
-import GroupTitle from '../group/title';
+import {Metadata} from '../proptypes';
+import EventOrGroupTitle from './eventOrGroupTitle';
 
 /**
  * Displays an event or group/issue title (i.e. in Stream)
  */
-class StreamGroupHeader extends React.Component {
+class EventOrGroupHeader extends React.Component {
   static propTypes = {
     orgId: PropTypes.string.isRequired,
     projectId: PropTypes.string.isRequired,
@@ -16,14 +17,7 @@ class StreamGroupHeader extends React.Component {
       level: PropTypes.string,
       type: PropTypes.oneOf(['error', 'csp', 'default']).isRequired,
       title: PropTypes.string,
-      metadata: PropTypes.shape({
-        value: PropTypes.string,
-        message: PropTypes.string,
-        directive: PropTypes.string,
-        type: PropTypes.string,
-        title: PropTypes.string,
-        uri: PropTypes.string
-      }),
+      metadata: Metadata,
       groupID: PropTypes.string,
       culprit: PropTypes.string
     }),
@@ -58,7 +52,7 @@ class StreamGroupHeader extends React.Component {
             {!hideLevel && level && <span className="error-level truncate">{level}</span>}
             <span className="icon icon-soundoff" />
             <span className="icon icon-star-solid" />
-            <GroupTitle {...this.props} />
+            <EventOrGroupTitle {...this.props} />
           </Link>
         </h3>
         {message &&
@@ -70,4 +64,4 @@ class StreamGroupHeader extends React.Component {
   }
 }
 
-export default StreamGroupHeader;
+export default EventOrGroupHeader;
