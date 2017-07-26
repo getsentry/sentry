@@ -4,8 +4,8 @@ import {t} from '../../locale';
 import {Event} from '../../proptypes';
 
 import Pagination from '../../components/pagination';
-import MergedItem from './MergedItem';
-import MergedToolbar from './MergedToolbar';
+import MergedItem from './mergedItem';
+import MergedToolbar from './mergedToolbar';
 
 const MergedList = React.createClass({
   propTypes: {
