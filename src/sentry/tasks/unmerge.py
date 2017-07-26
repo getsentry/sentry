@@ -256,10 +256,12 @@ def truncate_denormalizations(group):
         tsdb.models.users_affected_by_group,
     ], [group.id])
 
-    tsdb.delete_frequencies([
-        tsdb.models.frequent_releases_by_group,
-        tsdb.models.frequent_environments_by_group,
-    ], [group.id])
+    tsdb.delete_frequencies(
+        [
+            tsdb.models.frequent_releases_by_group,
+            tsdb.models.frequent_environments_by_group,
+        ], [group.id]
+    )
 
     features.delete(group)
 
@@ -458,7 +460,7 @@ def repair_denormalizations(caches, project, events):
     repair_tsdb_data(caches, project, events)
 
     for event in events:
-        features.record(event)
+        features.record([event])
 
 
 def update_tag_value_counts(id_list):
