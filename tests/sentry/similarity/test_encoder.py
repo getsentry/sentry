@@ -15,10 +15,16 @@ def test_builtin_types():
         u'\N{SNOWMAN}',
         ('a', 'b', 'c'),
         ['a', 'b', 'c'],
-        {'a': 1, 'b': 2, 'c': 3},
+        {
+            'a': 1,
+            'b': 2,
+            'c': 3
+        },
         set(['a', 'b', 'c']),
         frozenset(['a', 'b', 'c']),
-        [{'a': 1}, set('b'), ['c'], u'text'],
+        [{
+            'a': 1
+        }, set('b'), ['c'], u'text'],
     ]
 
     try:
@@ -41,8 +47,7 @@ def test_custom_types():
 
     encoder = Encoder({
         Widget: lambda i: {
-            'color': i.color,
-        },
+            'color': i.color, },
     })
 
     assert encoder.dumps(

@@ -4,9 +4,7 @@ from datetime import datetime
 from django.utils import timezone
 from django.core.urlresolvers import reverse
 
-from sentry.models import (
-    ProcessingIssue, EventError, RawEvent, EventProcessingIssue
-)
+from sentry.models import (ProcessingIssue, EventError, RawEvent, EventProcessingIssue)
 from sentry.testutils import APITestCase
 
 
@@ -17,15 +15,10 @@ class ProjectProjectProcessingIssuesTest(APITestCase):
         team = self.create_team()
         project1 = self.create_project(team=team, name='foo')
 
-        raw_event = RawEvent.objects.create(
-            project_id=project1.id,
-            event_id='abc'
-        )
+        raw_event = RawEvent.objects.create(project_id=project1.id, event_id='abc')
 
         issue, _ = ProcessingIssue.objects.get_or_create(
-            project_id=project1.id,
-            checksum='abc',
-            type=EventError.NATIVE_MISSING_DSYM
+            project_id=project1.id, checksum='abc', type=EventError.NATIVE_MISSING_DSYM
         )
 
         EventProcessingIssue.objects.get_or_create(
@@ -33,10 +26,13 @@ class ProjectProjectProcessingIssuesTest(APITestCase):
             processing_issue=issue,
         )
 
-        url = reverse('sentry-api-0-project-processing-issues', kwargs={
-            'organization_slug': project1.organization.slug,
-            'project_slug': project1.slug,
-        })
+        url = reverse(
+            'sentry-api-0-project-processing-issues',
+            kwargs={
+                'organization_slug': project1.organization.slug,
+                'project_slug': project1.slug,
+            }
+        )
         response = self.client.get(url, format='json')
         assert response.status_code == 200, response.content
         assert response.data['hasIssues'] is True
@@ -51,10 +47,7 @@ class ProjectProjectProcessingIssuesTest(APITestCase):
         team = self.create_team()
         project1 = self.create_project(team=team, name='foo')
 
-        raw_event = RawEvent.objects.create(
-            project_id=project1.id,
-            event_id='abc'
-        )
+        raw_event = RawEvent.objects.create(project_id=project1.id, event_id='abc')
 
         issue, _ = ProcessingIssue.objects.get_or_create(
             project_id=project1.id,
@@ -75,10 +68,13 @@ class ProjectProjectProcessingIssuesTest(APITestCase):
             processing_issue=issue,
         )
 
-        url = reverse('sentry-api-0-project-processing-issues', kwargs={
-            'organization_slug': project1.organization.slug,
-            'project_slug': project1.slug,
-        })
+        url = reverse(
+            'sentry-api-0-project-processing-issues',
+            kwargs={
+                'organization_slug': project1.organization.slug,
+                'project_slug': project1.slug,
+            }
+        )
         response = self.client.get(url + '?detailed=1', format='json')
         assert response.status_code == 200, response.content
         assert len(response.data['issues']) == 2
@@ -99,15 +95,15 @@ class ProjectProjectProcessingIssuesTest(APITestCase):
         team = self.create_team()
         project1 = self.create_project(team=team, name='foo')
 
-        RawEvent.objects.create(
-            project_id=project1.id,
-            event_id='abc'
-        )
+        RawEvent.objects.create(project_id=project1.id, event_id='abc')
 
-        url = reverse('sentry-api-0-project-processing-issues', kwargs={
-            'organization_slug': project1.organization.slug,
-            'project_slug': project1.slug,
-        })
+        url = reverse(
+            'sentry-api-0-project-processing-issues',
+            kwargs={
+                'organization_slug': project1.organization.slug,
+                'project_slug': project1.slug,
+            }
+        )
         response = self.client.get(url + '?detailed=1', format='json')
         assert response.status_code == 200, response.content
         assert response.data['numIssues'] == 0

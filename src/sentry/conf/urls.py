@@ -26,7 +26,6 @@ from sentry.web.frontend.error_500 import Error500View
 handler404 = Error404View.as_view()
 handler500 = Error500View.as_view()
 
-
 urlpatterns = patterns(
     '',
     url(r'^admin/', include(django_admin.site.urls)),

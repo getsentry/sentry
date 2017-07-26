@@ -31,9 +31,7 @@ class GroupDeletionTask(ModelDeletionTask):
             # Event is last as its the most time consuming
             models.Event,
         )
-        relations.extend([
-            ModelRelation(m, {'group_id': instance.id}) for m in model_list
-        ])
+        relations.extend([ModelRelation(m, {'group_id': instance.id}) for m in model_list])
 
         return relations
 

@@ -30,13 +30,13 @@ def load_plugin_urls(plugins):
                 continue
             urls = [ensure_url(u) for u in urls]
         except Exception:
-            logger.exception('routes.failed', extra={
-                'plugin': type(plugin).__name__,
-            })
-        else:
-            urlpatterns.append(
-                url(r'^%s/' % re.escape(plugin.slug), include(urls))
+            logger.exception(
+                'routes.failed', extra={
+                    'plugin': type(plugin).__name__,
+                }
             )
+        else:
+            urlpatterns.append(url(r'^%s/' % re.escape(plugin.slug), include(urls)))
 
     return urlpatterns
 

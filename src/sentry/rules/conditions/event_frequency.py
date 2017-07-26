@@ -15,7 +15,6 @@ from django.utils import timezone
 from sentry.tsdb import backend as tsdb
 from sentry.rules.conditions.base import EventCondition
 
-
 intervals = {
     '1m': ('one minute', timedelta(minutes=1)),
     '1h': ('one hour', timedelta(hours=1)),
@@ -26,16 +25,17 @@ intervals = {
 
 
 class EventFrequencyForm(forms.Form):
-    interval = forms.ChoiceField(choices=[
-        (key, label) for key, (label, duration) in sorted(
-            intervals.items(),
-            key=lambda (key, (label, duration)): duration
-        )
-    ])
-    value = forms.IntegerField(widget=forms.TextInput(attrs={
-        'placeholder': '100',
-        'type': 'number'
-    }))
+    interval = forms.ChoiceField(
+        choices=[
+            (key, label)
+            for key, (label, duration
+                      ) in sorted(intervals.items(), key=lambda (key, (label, duration)): duration)
+        ]
+    )
+    value = forms.IntegerField(
+        widget=forms.TextInput(attrs={'placeholder': '100',
+                                      'type': 'number'})
+    )
 
 
 class BaseEventFrequencyCondition(EventCondition):

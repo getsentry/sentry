@@ -8,8 +8,9 @@ from sentry.interfaces.stacktrace import Frame
 from sentry.similarity.encoder import Encoder
 from sentry.similarity.index import MinHashIndex
 from sentry.similarity.features import (
-    FeatureSet,
     ExceptionFeature,
+    FeatureSet,
+    InterfaceDoesNotExist,
     MessageFeature,
     get_application_chunks,
 )
@@ -36,12 +37,11 @@ def get_frame_attributes(frame):
     if frame.function in set(['<lambda>', None]):
         if frame.context_line is None:
             raise FrameEncodingError(
-                'Cannot create a signature for frame without a `context_line` value.')
+                'Cannot create a signature for frame without a `context_line` value.'
+            )
 
         attributes['signature'] = (
-            (frame.pre_context or [])[-5:] +
-            [frame.context_line] +
-            (frame.post_context or [])[:5]
+            (frame.pre_context or [])[-5:] + [frame.context_line] + (frame.post_context or [])[:5]
         )
     else:
         attributes['function'] = frame.function
@@ -104,6 +104,9 @@ features = FeatureSet(
             ),
         ),
     },
+    expected_extraction_errors=(
+        InterfaceDoesNotExist,
+    ),
     expected_encoding_errors=(
         FrameEncodingError,
     ),

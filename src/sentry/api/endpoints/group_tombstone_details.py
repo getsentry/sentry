@@ -6,12 +6,12 @@ from sentry.api.bases import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 
 from sentry.models import (
-    GroupHash, GroupTombstone,
+    GroupHash,
+    GroupTombstone,
 )
 
 
 class GroupTombstoneDetailsEndpoint(ProjectEndpoint):
-
     def delete(self, request, project, tombstone_id):
         """
         Remove a GroupTombstone
@@ -27,10 +27,7 @@ class GroupTombstoneDetailsEndpoint(ProjectEndpoint):
         """
 
         try:
-            tombstone = GroupTombstone.objects.get(
-                project_id=project.id,
-                id=tombstone_id
-            )
+            tombstone = GroupTombstone.objects.get(project_id=project.id, id=tombstone_id)
         except GroupTombstone.DoesNotExist:
             raise ResourceDoesNotExist
 

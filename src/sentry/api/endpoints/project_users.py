@@ -36,9 +36,9 @@ class ProjectUsersEndpoint(ProjectEndpoint):
             if len(pieces) != 2:
                 return Response([])
             try:
-                queryset = queryset.filter(**{
-                    '{}__icontains'.format(EventUser.attr_from_keyword(pieces[0])): pieces[1]
-                })
+                queryset = queryset.filter(
+                    **{'{}__icontains'.format(EventUser.attr_from_keyword(pieces[0])): pieces[1]}
+                )
             except KeyError:
                 return Response([])
 

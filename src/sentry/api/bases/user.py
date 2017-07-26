@@ -18,7 +18,7 @@ class UserPermission(ScopedPermission):
 
 
 class UserEndpoint(Endpoint):
-    permission_classes = (UserPermission,)
+    permission_classes = (UserPermission, )
 
     def convert_args(self, request, user_id, *args, **kwargs):
         try:

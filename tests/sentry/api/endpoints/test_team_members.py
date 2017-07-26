@@ -16,10 +16,13 @@ class TeamMembersTest(APITestCase):
         member = self.create_member(organization=org, user=foo, teams=[team])
         self.create_member(organization=org, user=bar, teams=[])
         self.login_as(user=self.user)
-        url = reverse('sentry-api-0-team-members', kwargs={
-            'organization_slug': org.slug,
-            'team_slug': team.slug,
-        })
+        url = reverse(
+            'sentry-api-0-team-members',
+            kwargs={
+                'organization_slug': org.slug,
+                'team_slug': team.slug,
+            }
+        )
         response = self.client.get(url)
         assert response.status_code == 200
         assert len(response.data) == 1

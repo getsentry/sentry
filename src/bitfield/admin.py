@@ -21,8 +21,8 @@ class BitFieldListFilter(FieldListFilter):
         self.lookup_val = int(request.GET.get(self.lookup_kwarg, 0))
         self.flags = field.flags
         self.labels = field.labels
-        super(BitFieldListFilter, self).__init__(
-            field, request, params, model, model_admin, field_path)
+        super(BitFieldListFilter,
+              self).__init__(field, request, params, model, model_admin, field_path)
 
     def queryset(self, request, queryset):
         filter = dict((p, bitor(F(p), v)) for p, v in six.iteritems(self.used_parameters))
@@ -44,6 +44,8 @@ class BitFieldListFilter(FieldListFilter):
             bit_mask = Bit(number).mask
             yield {
                 'selected': self.lookup_val == bit_mask,
-                'query_string': cl.get_query_string({self.lookup_kwarg: bit_mask}),
+                'query_string': cl.get_query_string({
+                    self.lookup_kwarg: bit_mask
+                }),
                 'display': self.labels[number],
             }

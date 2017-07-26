@@ -13,10 +13,7 @@ from sentry.utils.apidocs import scenario, attach_scenarios
 
 @scenario('ListOrganizationProjects')
 def list_organization_projects_scenario(runner):
-    runner.request(
-        method='GET',
-        path='/organizations/%s/projects/' % runner.org.slug
-    )
+    runner.request(method='GET', path='/organizations/%s/projects/' % runner.org.slug)
 
 
 class OrganizationProjectsEndpoint(OrganizationEndpoint):
@@ -50,8 +47,12 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint):
                     team__in=team_list,
                 ).select_related('team')
             else:
-                return Response({'detail': 'Current access does not point to '
-                                 'organization.'}, status=400)
+                return Response(
+                    {
+                        'detail': 'Current access does not point to '
+                        'organization.'
+                    }, status=400
+                )
         else:
             team_list = list(request.access.teams)
             queryset = Project.objects.filter(

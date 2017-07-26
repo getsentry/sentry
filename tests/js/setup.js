@@ -16,7 +16,8 @@ window.TestStubs = {
     goBack: sinon.spy(),
     goForward: sinon.spy(),
     setRouteLeaveHook: sinon.spy(),
-    isActive: sinon.spy()
+    isActive: sinon.spy(),
+    createHref: sinon.spy()
   }),
   Team: (...params) => {
     return {

@@ -24,8 +24,8 @@ class WebHooksPluginTest(TestCase):
 
         group = self.create_group(message='Hello world')
         event = self.create_event(
-            group=group, message='Hello world', tags={
-                'level': 'warning'}, id=24)
+            group=group, message='Hello world', tags={'level': 'warning'}, id=24
+        )
 
         rule = Rule.objects.create(project=self.project, label='my rule')
 

@@ -32,22 +32,30 @@ class OrganizationUserIssuesTest(APITestCase):
         self.euser2 = EventUser.objects.create(email='bar@example.com', project=self.project1)
         self.euser3 = EventUser.objects.create(email='foo@example.com', project=self.project2)
 
-        GroupTagValue.objects.create(key='sentry:user',
-                                     value=self.euser1.tag_value,
-                                     group_id=self.group1.id,
-                                     project_id=self.project1.id)
-        GroupTagValue.objects.create(key='sentry:user',
-                                     value=self.euser2.tag_value,
-                                     group_id=self.group1.id,
-                                     project_id=self.project1.id)
-        GroupTagValue.objects.create(key='sentry:user',
-                                     value=self.euser3.tag_value,
-                                     group_id=self.group2.id,
-                                     project_id=self.project2.id)
-        self.path = reverse('sentry-api-0-organization-user-issues', args=[
-            self.org.slug,
-            self.euser1.id,
-        ])
+        GroupTagValue.objects.create(
+            key='sentry:user',
+            value=self.euser1.tag_value,
+            group_id=self.group1.id,
+            project_id=self.project1.id
+        )
+        GroupTagValue.objects.create(
+            key='sentry:user',
+            value=self.euser2.tag_value,
+            group_id=self.group1.id,
+            project_id=self.project1.id
+        )
+        GroupTagValue.objects.create(
+            key='sentry:user',
+            value=self.euser3.tag_value,
+            group_id=self.group2.id,
+            project_id=self.project2.id
+        )
+        self.path = reverse(
+            'sentry-api-0-organization-user-issues', args=[
+                self.org.slug,
+                self.euser1.id,
+            ]
+        )
 
     def test_no_team_access(self):
         user = self.create_user()

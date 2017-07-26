@@ -6,9 +6,13 @@ from sentry.api.base import Endpoint
 from sentry.api.bases.project import ProjectPermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.app import raven
-from sentry.models import Group, get_group_with_redirect
+from sentry.models import Group, GroupStatus, get_group_with_redirect
 
 logger = logging.getLogger(__name__)
+
+EXCLUDED_STATUSES = (
+    GroupStatus.PENDING_DELETION, GroupStatus.DELETION_IN_PROGRESS, GroupStatus.PENDING_MERGE
+)
 
 
 class GroupPermission(ProjectPermission):
@@ -20,12 +24,11 @@ class GroupPermission(ProjectPermission):
     }
 
     def has_object_permission(self, request, view, group):
-        return super(GroupPermission, self).has_object_permission(
-            request, view, group.project)
+        return super(GroupPermission, self).has_object_permission(request, view, group.project)
 
 
 class GroupEndpoint(Endpoint):
-    permission_classes = (GroupPermission,)
+    permission_classes = (GroupPermission, )
 
     def convert_args(self, request, issue_id, *args, **kwargs):
         # TODO(tkaemming): Ideally, this would return a 302 response, rather
@@ -48,10 +51,15 @@ class GroupEndpoint(Endpoint):
 
         self.check_object_permissions(request, group)
 
-        raven.tags_context({
-            'project': group.project_id,
-            'organization': group.project.organization_id,
-        })
+        raven.tags_context(
+            {
+                'project': group.project_id,
+                'organization': group.project.organization_id,
+            }
+        )
+
+        if group.status in EXCLUDED_STATUSES:
+            raise ResourceDoesNotExist
 
         kwargs['group'] = group
 

@@ -7,17 +7,10 @@ from sentry.testutils import APITestCase
 
 
 class GroupTombstoneTest(APITestCase):
-
     def test_simple(self):
         self.user = self.create_user('foo@example.com')
-        self.org = self.create_organization(
-            owner=self.user,
-            name='Rowdy Tiger'
-        )
-        self.team = self.create_team(
-            organization=self.org,
-            name='Mariachi Band'
-        )
+        self.org = self.create_organization(owner=self.user, name='Rowdy Tiger')
+        self.team = self.create_team(organization=self.org, name='Mariachi Band')
         self.project = self.create_project(
             organization=self.org,
             team=self.team,
@@ -40,12 +33,13 @@ class GroupTombstoneTest(APITestCase):
             group_tombstone_id=tombstone.id,
         )
 
-        path = reverse('sentry-api-0-group-tombstones',
-                       kwargs={
-                           'organization_slug': self.org.slug,
-                           'project_slug': self.project.slug,
-                       }
-                       )
+        path = reverse(
+            'sentry-api-0-group-tombstones',
+            kwargs={
+                'organization_slug': self.org.slug,
+                'project_slug': self.project.slug,
+            }
+        )
 
         response = self.client.get(path)
         assert response.status_code == 200, response

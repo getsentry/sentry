@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-__all__ = ('get_auth_header',)
+__all__ = ('get_auth_header', )
 
 
 def get_auth_header(client, api_key=None, secret_key=None, version=None):

@@ -26,9 +26,11 @@ class CommitSerializer(Serializer):
     def get_attrs(self, item_list, user):
         users_by_author = get_users_for_commits(item_list, user)
 
-        repositories = serialize(list(Repository.objects.filter(
-            id__in=[c.repository_id for c in item_list],
-        )), user)
+        repositories = serialize(
+            list(Repository.objects.filter(
+                id__in=[c.repository_id for c in item_list],
+            )), user
+        )
         repository_objs = {}
         for repository in repositories:
             repository_objs[repository['id']] = repository
@@ -37,9 +39,8 @@ class CommitSerializer(Serializer):
         for item in item_list:
             result[item] = {
                 'repository': repository_objs.get(six.text_type(item.repository_id), {}),
-                'user': users_by_author.get(
-                    six.text_type(item.author_id), {}
-                ) if item.author_id else {},
+                'user': users_by_author.get(six.text_type(item.author_id), {})
+                if item.author_id else {},
             }
 
         return result

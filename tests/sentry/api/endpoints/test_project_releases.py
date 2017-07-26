@@ -21,10 +21,7 @@ class ProjectReleaseListTest(APITestCase):
             date_added=datetime(2013, 8, 13, 3, 8, 24, 880386),
         )
         release1.add_project(project1)
-        ReleaseProject.objects.filter(
-            project=project1,
-            release=release1
-        ).update(new_groups=5)
+        ReleaseProject.objects.filter(project=project1, release=release1).update(new_groups=5)
 
         release2 = Release.objects.create(
             organization_id=project1.organization_id,
@@ -47,10 +44,13 @@ class ProjectReleaseListTest(APITestCase):
         )
         release4.add_project(project2)
 
-        url = reverse('sentry-api-0-project-releases', kwargs={
-            'organization_slug': project1.organization.slug,
-            'project_slug': project1.slug,
-        })
+        url = reverse(
+            'sentry-api-0-project-releases',
+            kwargs={
+                'organization_slug': project1.organization.slug,
+                'project_slug': project1.slug,
+            }
+        )
         response = self.client.get(url, format='json')
 
         assert response.status_code == 200, response.content
@@ -73,10 +73,13 @@ class ProjectReleaseListTest(APITestCase):
         )
         release.add_project(project)
 
-        url = reverse('sentry-api-0-project-releases', kwargs={
-            'organization_slug': project.organization.slug,
-            'project_slug': project.slug,
-        })
+        url = reverse(
+            'sentry-api-0-project-releases',
+            kwargs={
+                'organization_slug': project.organization.slug,
+                'project_slug': project.slug,
+            }
+        )
         response = self.client.get(url + '?query=foo', format='json')
 
         assert response.status_code == 200, response.content
@@ -95,13 +98,18 @@ class ProjectReleaseCreateTest(APITestCase):
 
         project = self.create_project(name='foo')
 
-        url = reverse('sentry-api-0-project-releases', kwargs={
-            'organization_slug': project.organization.slug,
-            'project_slug': project.slug,
-        })
-        response = self.client.post(url, data={
-            'version': '1.2.1',
-        })
+        url = reverse(
+            'sentry-api-0-project-releases',
+            kwargs={
+                'organization_slug': project.organization.slug,
+                'project_slug': project.slug,
+            }
+        )
+        response = self.client.post(
+            url, data={
+                'version': '1.2.1',
+            }
+        )
 
         assert response.status_code == 201, response.content
         assert response.data['version']
@@ -118,13 +126,18 @@ class ProjectReleaseCreateTest(APITestCase):
 
         project = self.create_project(name='foo')
 
-        url = reverse('sentry-api-0-project-releases', kwargs={
-            'organization_slug': project.organization.slug,
-            'project_slug': project.slug,
-        })
-        response = self.client.post(url, data={
-            'version': '1.2.1 (123)',
-        })
+        url = reverse(
+            'sentry-api-0-project-releases',
+            kwargs={
+                'organization_slug': project.organization.slug,
+                'project_slug': project.slug,
+            }
+        )
+        response = self.client.post(
+            url, data={
+                'version': '1.2.1 (123)',
+            }
+        )
 
         assert response.status_code == 201, response.content
         assert response.data['version']
@@ -141,18 +154,22 @@ class ProjectReleaseCreateTest(APITestCase):
 
         project = self.create_project(name='foo')
 
-        release = Release.objects.create(version='1.2.1',
-                                         organization_id=project.organization_id)
+        release = Release.objects.create(version='1.2.1', organization_id=project.organization_id)
         release.add_project(project)
 
-        url = reverse('sentry-api-0-project-releases', kwargs={
-            'organization_slug': project.organization.slug,
-            'project_slug': project.slug,
-        })
+        url = reverse(
+            'sentry-api-0-project-releases',
+            kwargs={
+                'organization_slug': project.organization.slug,
+                'project_slug': project.slug,
+            }
+        )
 
-        response = self.client.post(url, data={
-            'version': '1.2.1',
-        })
+        response = self.client.post(
+            url, data={
+                'version': '1.2.1',
+            }
+        )
 
         assert response.status_code == 208, response.content
 
@@ -161,26 +178,29 @@ class ProjectReleaseCreateTest(APITestCase):
 
         project = self.create_project(name='foo')
 
-        release = Release.objects.create(version='1.2.1',
-                                         organization_id=project.organization_id)
+        release = Release.objects.create(version='1.2.1', organization_id=project.organization_id)
         release.add_project(project)
 
         project2 = self.create_project(name='bar', organization=project.organization)
 
-        url = reverse('sentry-api-0-project-releases', kwargs={
-            'organization_slug': project2.organization.slug,
-            'project_slug': project2.slug,
-        })
+        url = reverse(
+            'sentry-api-0-project-releases',
+            kwargs={
+                'organization_slug': project2.organization.slug,
+                'project_slug': project2.slug,
+            }
+        )
 
-        response = self.client.post(url, data={
-            'version': '1.2.1',
-        })
+        response = self.client.post(
+            url, data={
+                'version': '1.2.1',
+            }
+        )
 
         # since project2 was added, should be 201
         assert response.status_code == 201, response.content
         assert Release.objects.filter(
-            version='1.2.1',
-            organization_id=project.organization_id
+            version='1.2.1', organization_id=project.organization_id
         ).count() == 1
         assert ReleaseProject.objects.get(release=release, project=project)
         assert ReleaseProject.objects.get(release=release, project=project2)
@@ -190,39 +210,54 @@ class ProjectReleaseCreateTest(APITestCase):
 
         project = self.create_project(name='foo')
 
-        url = reverse('sentry-api-0-project-releases', kwargs={
-            'organization_slug': project.organization.slug,
-            'project_slug': project.slug,
-        })
+        url = reverse(
+            'sentry-api-0-project-releases',
+            kwargs={
+                'organization_slug': project.organization.slug,
+                'project_slug': project.slug,
+            }
+        )
 
-        response = self.client.post(url, data={
-            'version': '1.2.3\n',
-        })
+        response = self.client.post(
+            url, data={
+                'version': '1.2.3\n',
+            }
+        )
         assert response.status_code == 400, response.content
 
-        response = self.client.post(url, data={
-            'version': '\n1.2.3',
-        })
+        response = self.client.post(
+            url, data={
+                'version': '\n1.2.3',
+            }
+        )
         assert response.status_code == 400, response.content
 
-        response = self.client.post(url, data={
-            'version': '1.\n2.3',
-        })
+        response = self.client.post(
+            url, data={
+                'version': '1.\n2.3',
+            }
+        )
         assert response.status_code == 400, response.content
 
-        response = self.client.post(url, data={
-            'version': '1.2.3\f',
-        })
+        response = self.client.post(
+            url, data={
+                'version': '1.2.3\f',
+            }
+        )
         assert response.status_code == 400, response.content
 
-        response = self.client.post(url, data={
-            'version': '1.2.3\t',
-        })
+        response = self.client.post(
+            url, data={
+                'version': '1.2.3\t',
+            }
+        )
         assert response.status_code == 400, response.content
 
-        response = self.client.post(url, data={
-            'version': '1.2.3',
-        })
+        response = self.client.post(
+            url, data={
+                'version': '1.2.3',
+            }
+        )
         assert response.status_code == 201, response.content
         assert response.data['version'] == '1.2.3'
 
@@ -237,14 +272,19 @@ class ProjectReleaseCreateTest(APITestCase):
 
         project = self.create_project(name='foo')
 
-        url = reverse('sentry-api-0-project-releases', kwargs={
-            'organization_slug': project.organization.slug,
-            'project_slug': project.slug,
-        })
-        response = self.client.post(url, data={
-            'version': '1.2.1',
-            'owner': self.user.email,
-        })
+        url = reverse(
+            'sentry-api-0-project-releases',
+            kwargs={
+                'organization_slug': project.organization.slug,
+                'project_slug': project.slug,
+            }
+        )
+        response = self.client.post(
+            url, data={
+                'version': '1.2.1',
+                'owner': self.user.email,
+            }
+        )
 
         assert response.status_code == 201, response.content
         assert response.data['version']
@@ -260,17 +300,24 @@ class ProjectReleaseCreateTest(APITestCase):
 
         project = self.create_project(name='foo')
 
-        url = reverse('sentry-api-0-project-releases', kwargs={
-            'organization_slug': project.organization.slug,
-            'project_slug': project.slug,
-        })
-        response = self.client.post(url, data={
-            'version': '1.2.1',
-            'commits': [
-                {'id': 'a' * 40},
-                {'id': 'b' * 40},
-            ]
-        })
+        url = reverse(
+            'sentry-api-0-project-releases',
+            kwargs={
+                'organization_slug': project.organization.slug,
+                'project_slug': project.slug,
+            }
+        )
+        response = self.client.post(
+            url, data={'version': '1.2.1',
+                       'commits': [
+                           {
+                               'id': 'a' * 40
+                           },
+                           {
+                               'id': 'b' * 40
+                           },
+                       ]}
+        )
 
         assert response.status_code == 201, (response.status_code, response.content)
         assert response.data['version']
@@ -280,9 +327,31 @@ class ProjectReleaseCreateTest(APITestCase):
             version=response.data['version'],
         )
 
-        rc_list = list(ReleaseCommit.objects.filter(
-            release=release,
-        ).select_related('commit', 'commit__author').order_by('order'))
+        rc_list = list(
+            ReleaseCommit.objects.filter(
+                release=release,
+            ).select_related('commit', 'commit__author').order_by('order')
+        )
         assert len(rc_list) == 2
         for rc in rc_list:
             assert rc.organization_id
+
+    def test_fails_with_refs(self):
+        self.login_as(user=self.user)
+
+        project = self.create_project(name='foo')
+
+        url = reverse('sentry-api-0-project-releases', kwargs={
+            'organization_slug': project.organization.slug,
+            'project_slug': project.slug,
+        })
+
+        response = self.client.post(url, data={
+            'version': '1.2.1',
+            'refs': [{
+                'repository': 'getsentry/sentry',
+                'commit': 'a' * 40,
+            }],
+        })
+
+        assert response.status_code == 400

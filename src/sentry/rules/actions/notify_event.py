@@ -37,10 +37,8 @@ class NotifyEventAction(EventAction):
 
         for plugin in self.get_plugins():
             if not safe_execute(
-                    plugin.should_notify,
-                    group=group,
-                    event=event,
-                    _with_transaction=False):
+                plugin.should_notify, group=group, event=event, _with_transaction=False
+            ):
                 continue
 
             metrics.incr('notifications.sent', instance=plugin.slug)

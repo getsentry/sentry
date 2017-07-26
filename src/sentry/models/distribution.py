@@ -25,6 +25,6 @@ class Distribution(Model):
     class Meta:
         app_label = 'sentry'
         db_table = 'sentry_distribution'
-        unique_together = (('release', 'name'),)
+        unique_together = (('release', 'name'), )
 
     __repr__ = sane_repr('release', 'name')

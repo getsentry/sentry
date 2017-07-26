@@ -60,9 +60,11 @@ class FetchCommits(TestCase):
                     previous_release_id=release.id,
                 )
 
-        commit_list = list(Commit.objects.filter(
-            releasecommit__release=release2,
-        ).order_by('releasecommit__order'))
+        commit_list = list(
+            Commit.objects.filter(
+                releasecommit__release=release2,
+            ).order_by('releasecommit__order')
+        )
 
         # see DummyRepositoryProvider.compare_commits
         assert len(commit_list) == 3

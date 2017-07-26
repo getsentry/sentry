@@ -34,8 +34,7 @@ class ProjectPluginDetailsEndpoint(ProjectEndpoint):
         plugin = self._get_plugin(plugin_id)
 
         try:
-            context = serialize(
-                plugin, request.user, PluginWithConfigSerializer(project))
+            context = serialize(plugin, request.user, PluginWithConfigSerializer(project))
         except PluginIdentityRequired as e:
             context = serialize(plugin, request.user, PluginSerializer(project))
             context['config_error'] = e.message
@@ -113,9 +112,11 @@ class ProjectPluginDetailsEndpoint(ProjectEndpoint):
                 errors['__all__'] = e.message
 
         if errors:
-            return Response({
-                'errors': errors,
-            }, status=400)
+            return Response(
+                {
+                    'errors': errors,
+                }, status=400
+            )
 
         for key, value in six.iteritems(cleaned):
             if value is None:
@@ -130,8 +131,7 @@ class ProjectPluginDetailsEndpoint(ProjectEndpoint):
                     value=value,
                 )
 
-        context = serialize(
-            plugin, request.user, PluginWithConfigSerializer(project))
+        context = serialize(plugin, request.user, PluginWithConfigSerializer(project))
 
         plugin_enabled.send(plugin=plugin, project=project, user=request.user, sender=self)
 

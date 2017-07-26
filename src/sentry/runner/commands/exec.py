@@ -24,10 +24,12 @@ except Exception:
 """
 
 
-@click.command(name='exec', context_settings=dict(
-    ignore_unknown_options=True,
-    allow_extra_args=True,
-))
+@click.command(
+    name='exec', context_settings=dict(
+        ignore_unknown_options=True,
+        allow_extra_args=True,
+    )
+)
 @click.option('-c', default='', help='Read script from string.')
 @click.argument('file', default=None, required=False)
 def exec_(c, file):
@@ -96,11 +98,13 @@ def exec_(c, file):
         body = c
 
     if 'from sentry.runner import configure' not in c:
-        header.extend([
-            'from sentry.runner import configure; configure()',
-            'from django.conf import settings',
-            'from sentry.models import *',
-        ])
+        header.extend(
+            [
+                'from sentry.runner import configure; configure()',
+                'from django.conf import settings',
+                'from sentry.models import *',
+            ]
+        )
 
     header.append('class ScriptError(Exception): pass')
 

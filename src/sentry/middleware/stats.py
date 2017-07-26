@@ -21,10 +21,7 @@ class ResponseCodeMiddleware(object):
 
 class RequestTimingMiddleware(object):
     allowed_methods = ('POST', 'GET')
-    allowed_paths = (
-        'sentry.web.api.StoreView',
-        'sentry.api.endpoints',
-    )
+    allowed_paths = ('sentry.web.api.StoreView', 'sentry.api.endpoints', )
 
     def process_view(self, request, view_func, view_args, view_kwargs):
         if request.method not in self.allowed_methods:
@@ -56,15 +53,21 @@ class RequestTimingMiddleware(object):
         if not hasattr(request, '_view_path'):
             return
 
-        metrics.incr('view.response', instance=request._view_path, tags={
-            'method': request.method,
-            'status_code': status_code,
-        })
+        metrics.incr(
+            'view.response',
+            instance=request._view_path,
+            tags={
+                'method': request.method,
+                'status_code': status_code,
+            }
+        )
 
         if not hasattr(request, '_start_time'):
             return
 
         ms = int((time.time() - request._start_time) * 1000)
-        metrics.timing('view.duration', ms, instance=request._view_path, tags={
-            'method': request.method,
-        })
+        metrics.timing(
+            'view.duration', ms, instance=request._view_path, tags={
+                'method': request.method,
+            }
+        )

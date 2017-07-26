@@ -15,9 +15,8 @@ from sentry.utils.apidocs import scenario, attach_scenarios
 def retrieve_event_for_project_scenario(runner):
     runner.request(
         method='GET',
-        path='/projects/%s/%s/events/%s/' % (
-            runner.org.slug, runner.default_project.slug,
-            runner.default_event.event_id)
+        path='/projects/%s/%s/events/%s/' %
+        (runner.org.slug, runner.default_project.slug, runner.default_event.event_id)
     )
 
 
@@ -56,9 +55,7 @@ class ProjectEventDetailsEndpoint(ProjectEndpoint):
         ).exclude(id=event.id)
         try:
             next_event = sorted(
-                base_qs.filter(
-                    datetime__gte=event.datetime
-                ).order_by('datetime')[0:5],
+                base_qs.filter(datetime__gte=event.datetime).order_by('datetime')[0:5],
                 key=lambda x: (x.datetime, x.id)
             )[0]
         except IndexError:

@@ -43,12 +43,8 @@ class ApiApplicationSerializer(serializers.Serializer):
 
 
 class ApiApplicationDetailsEndpoint(Endpoint):
-    authentication_classes = (
-        SessionAuthentication,
-    )
-    permission_classes = (
-        IsAuthenticated,
-    )
+    authentication_classes = (SessionAuthentication, )
+    permission_classes = (IsAuthenticated, )
 
     def get(self, request, app_id):
         try:
@@ -120,10 +116,13 @@ class ApiApplicationDetailsEndpoint(Endpoint):
                 countdown=3600,
             )
 
-            delete_logger.info('object.delete.queued', extra={
-                'object_id': instance.id,
-                'transaction_id': transaction_id,
-                'model': type(instance).__name__,
-            })
+            delete_logger.info(
+                'object.delete.queued',
+                extra={
+                    'object_id': instance.id,
+                    'transaction_id': transaction_id,
+                    'model': type(instance).__name__,
+                }
+            )
 
         return Response(status=204)

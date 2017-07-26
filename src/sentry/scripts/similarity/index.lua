@@ -219,12 +219,19 @@ end
 
 -- Key Generation
 
-local function get_bucket_frequency_key(configuration, index, time, band, item)
+local function get_key_prefix(configuration, index)
     return string.format(
-        '%s:%s:f:%s:%s:%s:%s',
+        '%s:%s:%s',
         configuration.namespace,
         configuration.scope,
-        index,
+        index
+    )
+end
+
+local function get_bucket_frequency_key(configuration, index, time, band, item)
+    return string.format(
+        '%s:f:%s:%s:%s',
+        get_key_prefix(configuration, index),
         time,
         band,
         item
@@ -233,10 +240,8 @@ end
 
 local function get_bucket_membership_key(configuration, index, time, band, bucket)
     return string.format(
-        '%s:%s:m:%s:%s:%s:%s',
-        configuration.namespace,
-        configuration.scope,
-        index,
+        '%s:m:%s:%s:%s',
+        get_key_prefix(configuration, index),
         time,
         band,
         bucket
@@ -281,43 +286,214 @@ local function collect_index_key_pairs(arguments, validator)
 end
 
 
+-- Signature Matching
+
+local function parse_signatures(configuration, arguments)
+    --[[
+    Parses signatures from an argument table, collecting signatures until the
+    end of the table is reached. Signatures are expected to be an index name,
+    followed by the number of items specified by the `configuration.bands`
+    value. Signatures are returned as a table with an `index` key (string) and
+    a `buckets` key (table of strings).
+    ]]--
+    local entries = table.ireduce(
+        arguments,
+        function (state, token)
+            if state.active == nil then
+                -- When there is no active entry, we need to initialize
+                -- a new one. The first token is the index identifier.
+                state.active = {index = token, buckets = {}}
+            else
+                -- If there is an active entry, we need to add the
+                -- current token to the feature list.
+                table.insert(state.active.buckets, token)
+
+                -- When we've seen the same number of buckets as there
+                -- are bands, we're done recording and need to mark the
+                -- current entry as completed, and reset the current
+                -- active entry.
+                if #state.active.buckets == configuration.bands then
+                    table.insert(state.completed, state.active)
+                    state.active = nil
+                end
+            end
+            return state
+        end,
+        {active = nil, completed = {}}
+    )
+
+    -- If there are any entries in progress when we are completed, that
+    -- means the input was in an incorrect format and we should error
+    -- before we record any bad data.
+    assert(entries.active == nil, 'unexpected end of input')
+
+    return entries.completed
+end
+
+local function fetch_candidates(configuration, time_series, index, frequencies)
+    --[[
+    Fetch all possible keys that share some characteristics with the provided
+    frequencies. The frequencies should be structured as an array-like table,
+    with one table for each band that represents the number of times that
+    bucket has been associated with the target object. (This is also the output
+    structure of `fetch_bucket_frequencies`.) For example, a four-band
+    request with two recorded observations may be strucured like this:
+
+    {
+        {a=1, b=1},
+        {a=2},
+        {b=2},
+        {a=1, d=1},
+    }
+
+    Results are returned as table where the keys represent candidate keys.
+    ]]--
+    local candidates = {}  -- acts as a set
+    for band, buckets in ipairs(frequencies) do
+        for bucket, count in pairs(buckets) do
+            for _, time in ipairs(time_series) do
+                -- Fetch all other items that have been added to
+                -- the same bucket in this band during this time
+                -- period.
+                local members = redis.call(
+                    'SMEMBERS',
+                    get_bucket_membership_key(
+                        configuration,
+                        index,
+                        time,
+                        band,
+                        bucket
+                    )
+                )
+                for _, member in ipairs(members) do
+                    -- TODO: Count the number of bands that we've collided in
+                    -- to allow setting thresholds here.
+                    candidates[member] = true
+                end
+            end
+        end
+    end
+    return candidates
+end
+
+local function fetch_bucket_frequencies(configuration, time_series, index, key)
+    --[[
+    Fetches all of the bucket frequencies for a key from a specific index from
+    all active time series chunks. This returns an array-like table that
+    contains one table for each band that maps bucket identifiers to counts
+    across the entire time series.
+    ]]--
+    return table.imap(
+        range(1, configuration.bands),
+        function (band)
+            return table.ireduce(
+                table.imap(
+                    time_series,
+                    function (time)
+                        return redis_hgetall_response_to_table(
+                            redis.call(
+                                'HGETALL',
+                                get_bucket_frequency_key(
+                                    configuration,
+                                    index,
+                                    time,
+                                    band,
+                                    key
+                                )
+                            ),
+                            tonumber
+                        )
+                    end
+                ),
+                function (result, response)
+                    for bucket, count in pairs(response) do
+                        result[bucket] = (result[bucket] or 0) + count
+                    end
+                    return result
+                end,
+                {}
+            )
+        end
+    )
+end
+
+local function calculate_similarity(configuration, item_frequencies, candidate_frequencies)
+    --[[
+    Calculate the similarity between an item's frequency and an array-like
+    table of candidate frequencies. This returns a table of candidate keys to
+    and [0, 1] scores where 0 is totally dissimilar and 1 is exactly similar.
+    ]]--
+    local results = {}
+    for key, value in pairs(candidate_frequencies) do
+        table.insert(
+            results,
+            {
+                key,
+                table.ireduce(  -- sum, then avg
+                    table.imap(  -- calculate similarity
+                        table.izip(
+                            item_frequencies,
+                            value
+                        ),
+                        function (v)
+                            -- We calculate the "similarity" between two items
+                            -- by comparing how often their contents exist in
+                            -- the same buckets for a band.
+                            local dist = get_manhattan_distance(
+                                scale_to_total(v[1]),
+                                scale_to_total(v[2])
+                            )
+                            -- Since this is a measure of similarity (and not
+                            -- distance) we normalize the result to [0, 1]
+                            -- scale.
+                            return 1 - (dist / 2)
+                        end
+                    ),
+                    function (total, item)
+                        return total + item
+                    end,
+                    0
+                ) / configuration.bands
+            }
+        )
+    end
+    return results
+end
+
+local function fetch_similar(configuration, time_series, index, item_frequencies)
+    --[[
+    Fetch the items that are similar to an item's frequencies (as returned by
+    `fetch_bucket_frequencies`), returning a table of similar items keyed by
+    the candidate key where the value is on a [0, 1] similarity scale.
+    ]]--
+    local candidates = fetch_candidates(configuration, time_series, index, item_frequencies)
+    local candidate_frequencies = {}
+    for candidate_key, _ in pairs(candidates) do
+        candidate_frequencies[candidate_key] = fetch_bucket_frequencies(
+            configuration,
+            time_series,
+            index,
+            candidate_key
+        )
+    end
+
+    return calculate_similarity(
+        configuration,
+        item_frequencies,
+        candidate_frequencies
+    )
+end
+
 -- Command Parsing
 
 local commands = {
     RECORD = takes_configuration(
         function (configuration, arguments)
             local key = arguments[1]
-
-            local entries = table.ireduce(
-                table.slice(arguments, 2),
-                function (state, token)
-                    if state.active == nil then
-                        -- When there is no active entry, we need to initialize
-                        -- a new one. The first token is the index identifier.
-                        state.active = {index = token, buckets = {}}
-                    else
-                        -- If there is an active entry, we need to add the
-                        -- current token to the feature list.
-                        table.insert(state.active.buckets, token)
-
-                        -- When we've seen the same number of buckets as there
-                        -- are bands, we're done recording and need to mark the
-                        -- current entry as completed, and reset the current
-                        -- active entry.
-                        if #state.active.buckets == configuration.bands then
-                            table.insert(state.completed, state.active)
-                            state.active = nil
-                        end
-                    end
-                    return state
-                end,
-                {active = nil, completed = {}}
+            local signatures = parse_signatures(
+                configuration,
+                table.slice(arguments, 2)
             )
-
-            -- If there are any entries in progress when we are completed, that
-            -- means the input was in an incorrect format and we should error
-            -- before we record any bad data.
-            assert(entries.active == nil, 'unexpected end of input')
 
             local time = math.floor(configuration.timestamp / configuration.interval)
             local expiration = get_index_expiration_time(
@@ -327,7 +503,7 @@ local commands = {
             )
 
             return table.imap(
-                entries.completed,
+                signatures,
                 function (entry)
                     local results = {}
 
@@ -361,7 +537,60 @@ local commands = {
             )
         end
     ),
-    QUERY = takes_configuration(
+    CLASSIFY = takes_configuration(
+        function (configuration, arguments)
+            local signatures = parse_signatures(
+                configuration,
+                arguments
+            )
+            local time_series = get_active_indices(
+                configuration.interval,
+                configuration.retention,
+                configuration.timestamp
+            )
+
+            return table.imap(
+                signatures,
+                function (signature)
+                    local results = fetch_similar(
+                        configuration,
+                        time_series,
+                        signature.index,
+                        table.imap(
+                            signature.buckets,
+                            function (band)
+                                local item = {}
+                                item[band] = 1
+                                return item
+                            end
+                        )
+                    )
+
+                    -- Sort the results in descending order (most similar first.)
+                    table.sort(
+                        results,
+                        function (left, right)
+                            return left[2] > right[2]
+                        end
+                    )
+
+                    return table.imap(
+                        results,
+                        function (item)
+                            return {
+                                item[1],
+                                string.format(
+                                    '%f',  -- converting floats to strings avoids truncation
+                                    item[2]
+                                ),
+                            }
+                        end
+                    )
+                end
+            )
+        end
+    ),
+    COMPARE = takes_configuration(
         function (configuration, arguments)
             local item_key = arguments[1]
             local indices = table.slice(arguments, 2)
@@ -372,128 +601,20 @@ local commands = {
                 configuration.timestamp
             )
 
-            -- Fetch all of the bucket frequencies for a key from a specific
-            -- index from all active time series chunks. This returns a table
-            -- containing n tables (where n is the number of bands) mapping
-            -- bucket identifiers to counts.
-            local fetch_bucket_frequencies = function (index, key)
-                return table.imap(
-                    range(1, configuration.bands),
-                    function (band)
-                        return table.ireduce(
-                            table.imap(
-                                time_series,
-                                function (time)
-                                    return redis_hgetall_response_to_table(
-                                        redis.call(
-                                            'HGETALL',
-                                            get_bucket_frequency_key(
-                                                configuration,
-                                                index,
-                                                time,
-                                                band,
-                                                key
-                                            )
-                                        ),
-                                        tonumber
-                                    )
-                                end
-                            ),
-                            function (result, response)
-                                for bucket, count in pairs(response) do
-                                    result[bucket] = (result[bucket] or 0) + count
-                                end
-                                return result
-                            end,
-                            {}
-                        )
-                    end
-                )
-            end
-
-            local fetch_candidates = function (index, frequencies)
-                local candidates = {}  -- acts as a set
-                for band, buckets in ipairs(frequencies) do
-                    for bucket, count in pairs(buckets) do
-                        for _, time in ipairs(time_series) do
-                            -- Fetch all other items that have been added to
-                            -- the same bucket in this band during this time
-                            -- period.
-                            local members = redis.call(
-                                'SMEMBERS',
-                                get_bucket_membership_key(
-                                    configuration,
-                                    index,
-                                    time,
-                                    band,
-                                    bucket
-                                )
-                            )
-                            for _, member in ipairs(members) do
-                                candidates[member] = true
-                            end
-                        end
-                    end
-                end
-                return candidates
-            end
-
             return table.imap(
                 indices,
                 function (index)
-                    -- First, identify the which buckets that the key we are
-                    -- querying is present in.
-                    local item_frequencies = fetch_bucket_frequencies(index, item_key)
-
-                    -- Then, find all iterms that also exist within those
-                    -- buckets and fetch their frequencies.
-                    local candidates = fetch_candidates(index, item_frequencies)
-                    local candidate_frequencies = {}
-                    for candidate_key, _ in pairs(candidates) do
-                        candidate_frequencies[candidate_key] = fetch_bucket_frequencies(
+                    local results = fetch_similar(
+                        configuration,
+                        time_series,
+                        index,
+                        fetch_bucket_frequencies(
+                            configuration,
+                            time_series,
                             index,
-                            candidate_key
+                            item_key
                         )
-                    end
-
-                    -- Then, calculate the similarity for each candidate based
-                    -- on their frequencies.
-                    local results = {}
-                    for key, value in pairs(candidate_frequencies) do
-                        table.insert(
-                            results,
-                            {
-                                key,
-                                table.ireduce(  -- sum, then avg
-                                    table.imap(  -- calculate similarity
-                                        table.izip(
-                                            item_frequencies,
-                                            value
-                                        ),
-                                        function (v)
-                                            -- We calculate the "similarity"
-                                            -- between two items by comparing
-                                            -- how often their contents exist
-                                            -- in the same buckets for a band.
-                                            local dist = get_manhattan_distance(
-                                                scale_to_total(v[1]),
-                                                scale_to_total(v[2])
-                                            )
-                                            -- Since this is a measure of
-                                            -- similarity (and not distance) we
-                                            -- normalize the result to [0, 1]
-                                            -- scale.
-                                            return 1 - (dist / 2)
-                                        end
-                                    ),
-                                    function (total, item)
-                                        return total + item
-                                    end,
-                                    0
-                                ) / configuration.bands
-                            }
-                        )
-                    end
+                    )
 
                     -- Sort the results in descending order (most similar first.)
                     table.sort(
@@ -777,6 +898,34 @@ local commands = {
                                 )
                             end
                         )
+                    )
+                end
+            )
+        end
+    ),
+    SCAN = takes_configuration(
+        function (configuration, arguments)
+            local arguments = build_variadic_argument_parser({
+                {"index", identity},
+                {"cursor", identity},
+                {"count", identity},
+            })(arguments)
+            return table.imap(
+                arguments,
+                function (argument)
+                    return redis.call(
+                        'SCAN',
+                        argument.cursor,
+                        'MATCH',
+                        string.format(
+                            '%s:*',
+                            get_key_prefix(
+                                configuration,
+                                argument.index
+                            )
+                        ),
+                        'COUNT',
+                        argument.count
                     )
                 end
             )

@@ -19,12 +19,14 @@ class EventSerializerTest(TestCase):
         assert result['eventID'] == 'a'
 
     def test_eventerror(self):
-        event = self.create_event(data={
-            'errors': [{
-                'type': EventError.INVALID_DATA,
-                'name': u'ü',
-            }],
-        })
+        event = self.create_event(
+            data={
+                'errors': [{
+                    'type': EventError.INVALID_DATA,
+                    'name': u'ü',
+                }],
+            }
+        )
 
         result = serialize(event)
         assert len(result['errors']) == 1

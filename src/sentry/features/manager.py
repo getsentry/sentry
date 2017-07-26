@@ -43,8 +43,7 @@ class FeatureManager(object):
 
     def _get_plugin_value(self, feature, actor):
         for plugin in plugins.all(version=2):
-            handlers = safe_execute(plugin.get_feature_hooks,
-                                    _with_transaction=False)
+            handlers = safe_execute(plugin.get_feature_hooks, _with_transaction=False)
             for handler in handlers or ():
                 rv = handler(feature, actor)
                 if rv is not None:

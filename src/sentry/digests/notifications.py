@@ -22,9 +22,7 @@ from sentry.models import (
 )
 from sentry.utils.dates import to_timestamp
 
-
 logger = logging.getLogger('sentry.digests')
-
 
 Notification = namedtuple('Notification', 'event rules')
 
@@ -65,11 +63,20 @@ def fetch_state(project, records):
 
     groups = Group.objects.in_bulk(record.value.event.group_id for record in records)
     return {
-        'project': project, 'groups': groups, 'rules': Rule.objects.in_bulk(
-            itertools.chain.from_iterable(
-                record.value.rules for record in records)), 'event_counts': tsdb.get_sums(
-            tsdb.models.group, groups.keys(), start, end), 'user_counts': tsdb.get_distinct_counts_totals(
-                    tsdb.models.users_affected_by_group, groups.keys(), start, end), }
+        'project':
+        project,
+        'groups':
+        groups,
+        'rules':
+        Rule.objects.
+        in_bulk(itertools.chain.from_iterable(record.value.rules for record in records)),
+        'event_counts':
+        tsdb.get_sums(tsdb.models.group, groups.keys(), start, end),
+        'user_counts':
+        tsdb.get_distinct_counts_totals(
+            tsdb.models.users_affected_by_group, groups.keys(), start, end
+        ),
+    }
 
 
 def attach_state(project, groups, rules, event_counts, user_counts):
@@ -106,6 +113,7 @@ class Pipeline(object):
             result = function(sequence)
             logger.debug('%r applied to %s items.', function, len(sequence))
             return result
+
         self.operations.append(operation)
         return self
 
@@ -114,6 +122,7 @@ class Pipeline(object):
             result = [s for s in sequence if function(s)]
             logger.debug('%r filtered %s items to %s.', function, len(sequence), len(result))
             return result
+
         self.operations.append(operation)
         return self
 
@@ -122,6 +131,7 @@ class Pipeline(object):
             result = [function(s) for s in sequence]
             logger.debug('%r applied to %s items.', function, len(sequence))
             return result
+
         self.operations.append(operation)
         return self
 
@@ -130,6 +140,7 @@ class Pipeline(object):
             result = reduce(function, sequence, initializer(sequence))
             logger.debug('%r reduced %s items to %s.', function, len(sequence), len(result))
             return result
+
         self.operations.append(operation)
         return self
 

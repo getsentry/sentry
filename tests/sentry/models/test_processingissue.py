@@ -1,8 +1,6 @@
 from __future__ import absolute_import
 
-from sentry.models import (
-    ProcessingIssue, EventError, RawEvent, EventProcessingIssue
-)
+from sentry.models import (ProcessingIssue, EventError, RawEvent, EventProcessingIssue)
 from sentry.testutils import TestCase
 
 
@@ -11,15 +9,10 @@ class ProcessingIssueTest(TestCase):
         team = self.create_team()
         project1 = self.create_project(team=team, name='foo')
 
-        raw_event = RawEvent.objects.create(
-            project_id=project1.id,
-            event_id='abc'
-        )
+        raw_event = RawEvent.objects.create(project_id=project1.id, event_id='abc')
 
         issue, _ = ProcessingIssue.objects.get_or_create(
-            project_id=project1.id,
-            checksum='abc',
-            type=EventError.NATIVE_MISSING_DSYM
+            project_id=project1.id, checksum='abc', type=EventError.NATIVE_MISSING_DSYM
         )
 
         event_processing_issue = EventProcessingIssue.objects.get_or_create(

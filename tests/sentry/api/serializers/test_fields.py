@@ -21,13 +21,17 @@ class DummySerializer(serializers.Serializer):
 class TestListField(TestCase):
     def test_simple(self):
         data = {
-            'a_field': [{'b_field': 'abcdefg'}],
+            'a_field': [{
+                'b_field': 'abcdefg'
+            }],
         }
 
         serializer = DummySerializer(data=data)
         assert serializer.is_valid()
         assert serializer.data == {
-            'a_field': [{'b_field': 'abcdefg'}],
+            'a_field': [{
+                'b_field': 'abcdefg'
+            }],
         }
 
     def test_allow_null(self):

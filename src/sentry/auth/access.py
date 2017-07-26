@@ -69,8 +69,7 @@ class BaseAccess(object):
         return scope in self.scopes
 
     def has_team(self, team):
-        warnings.warn('has_team() is deprecated in favor of has_team_access',
-                      DeprecationWarning)
+        warnings.warn('has_team() is deprecated in favor of has_team_access', DeprecationWarning)
         return self.has_team_access(team)
 
     def has_team_access(self, team):
@@ -87,18 +86,14 @@ class BaseAccess(object):
         return self.has_team_access(team) and self.has_scope(scope)
 
     def to_django_context(self):
-        return {
-            s.replace(':', '_'): self.has_scope(s)
-            for s in settings.SENTRY_SCOPES
-        }
+        return {s.replace(':', '_'): self.has_scope(s) for s in settings.SENTRY_SCOPES}
 
 
 class Access(BaseAccess):
     # TODO(dcramer): this is still a little gross, and ideally backend access
     # would be based on the same scopes as API access so theres clarity in
     # what things mean
-    def __init__(self, scopes, is_active, teams, memberships, sso_is_valid,
-                 requires_sso):
+    def __init__(self, scopes, is_active, teams, memberships, sso_is_valid, requires_sso):
         self.teams = teams
         self.memberships = memberships
         self.scopes = scopes
@@ -191,5 +186,6 @@ class NoAccess(BaseAccess):
     teams = ()
     memberships = ()
     scopes = frozenset()
+
 
 DEFAULT = NoAccess()

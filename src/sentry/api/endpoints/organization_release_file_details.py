@@ -11,9 +11,7 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.models import Release, ReleaseFile
 try:
-    from django.http import (
-        CompatibleStreamingHttpResponse as StreamingHttpResponse
-    )
+    from django.http import (CompatibleStreamingHttpResponse as StreamingHttpResponse)
 except ImportError:
     from django.http import StreamingHttpResponse
 
@@ -34,7 +32,8 @@ class OrganizationReleaseFileDetailsEndpoint(OrganizationReleasesBaseEndpoint):
         )
         response['Content-Length'] = file.size
         response['Content-Disposition'] = 'attachment; filename="%s"' % posixpath.basename(
-            " ".join(releasefile.name.split()))
+            " ".join(releasefile.name.split())
+        )
         return response
 
     def get(self, request, organization, version, file_id):
@@ -72,8 +71,7 @@ class OrganizationReleaseFileDetailsEndpoint(OrganizationReleasesBaseEndpoint):
             raise ResourceDoesNotExist
 
         download_requested = request.GET.get('download') is not None
-        if download_requested and (
-           request.access.has_scope('project:write')):
+        if download_requested and (request.access.has_scope('project:write')):
             return self.download(releasefile)
         elif download_requested:
             return Response(status=403)
