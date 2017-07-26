@@ -233,7 +233,9 @@ export default React.createClass({
     this.setState(state => {
       let keyList = state.keyList;
       keyList.forEach(key => {
-        key.isActive = newData.isActive;
+        if (key.id === data.id) {
+          key.isActive = newData.isActive;
+        }
       });
       return {keyList: keyList};
     });
