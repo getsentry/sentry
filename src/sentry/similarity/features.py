@@ -95,25 +95,26 @@ class FeatureSet(object):
                 )
         return results
 
-    def record(self, event):
+    def record(self, events):
         items = []
-        for label, features in self.extract(event).items():
-            try:
-                features = map(self.encoder.dumps, features)
-            except Exception as error:
-                log = (
-                    logger.debug if isinstance(error, self.expected_encoding_errors) else
-                    functools.partial(logger.warning, exc_info=True)
-                )
-                log(
-                    'Could not encode features from %r for %r due to error: %r',
-                    event,
-                    label,
-                    error,
-                )
-            else:
-                if features:
-                    items.append((self.aliases[label], features, ))
+        for event in events:
+            for label, features in self.extract(event).items():
+                try:
+                    features = map(self.encoder.dumps, features)
+                except Exception as error:
+                    log = (
+                        logger.debug if isinstance(error, self.expected_encoding_errors) else
+                        functools.partial(logger.warning, exc_info=True)
+                    )
+                    log(
+                        'Could not encode features from %r for %r due to error: %r',
+                        event,
+                        label,
+                        error,
+                    )
+                else:
+                    if features:
+                        items.append((self.aliases[label], features, ))
         return self.index.record(
             self.__get_scope(event.project),
             self.__get_key(event.group),
@@ -121,32 +122,33 @@ class FeatureSet(object):
             timestamp=to_timestamp(event.datetime),
         )
 
-    def classify(self, event):
+    def classify(self, events):
         items = []
-        for label, features in self.extract(event).items():
-            try:
-                features = map(self.encoder.dumps, features)
-            except Exception as error:
-                log = (
-                    logger.debug
-                    if isinstance(error, self.expected_encoding_errors) else
-                    functools.partial(
-                        logger.warning,
-                        exc_info=True
+        for event in events:
+            for label, features in self.extract(event).items():
+                try:
+                    features = map(self.encoder.dumps, features)
+                except Exception as error:
+                    log = (
+                        logger.debug
+                        if isinstance(error, self.expected_encoding_errors) else
+                        functools.partial(
+                            logger.warning,
+                            exc_info=True
+                        )
                     )
-                )
-                log(
-                    'Could not encode features from %r for %r due to error: %r',
-                    event,
-                    label,
-                    error,
-                )
-            else:
-                if features:
-                    items.append((
-                        self.aliases[label],
-                        features,
-                    ))
+                    log(
+                        'Could not encode features from %r for %r due to error: %r',
+                        event,
+                        label,
+                        error,
+                    )
+                else:
+                    if features:
+                        items.append((
+                            self.aliases[label],
+                            features,
+                        ))
         results = self.index.classify(
             self.__get_scope(event.project),
             items,
