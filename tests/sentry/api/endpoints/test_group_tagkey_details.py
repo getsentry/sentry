@@ -9,7 +9,7 @@ from sentry.testutils import APITestCase
 class GroupTagDetailsTest(APITestCase):
     def test_simple(self):
         group = self.create_group()
-        group.data['tags'] = (['foo', 'bar'],)
+        group.data['tags'] = (['foo', 'bar'], )
         group.save()
 
         key, value = group.data['tags'][0]
@@ -32,8 +32,8 @@ class GroupTagDetailsTest(APITestCase):
             values_seen=1,
         )
         GroupTagValue.objects.create(
-            project=group.project,
-            group=group,
+            project_id=group.project_id,
+            group_id=group.id,
             key=key,
             value=value,
             times_seen=3,

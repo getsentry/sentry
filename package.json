@@ -8,9 +8,11 @@
   "dependencies": {
     "babel-core": "6.21.0",
     "babel-gettext-extractor": "^2.0.0",
-    "babel-loader": "6.2.10",
+    "babel-loader": "^7.0.0",
     "babel-plugin-add-module-exports": "^0.2.1",
+    "babel-plugin-idx": "^1.5.1",
     "babel-plugin-transform-builtin-extend": "^1.1.0",
+    "babel-plugin-transform-class-properties": "^6.24.1",
     "babel-plugin-transform-object-rest-spread": "^6.20.2",
     "babel-polyfill": "6.20.0",
     "babel-preset-latest": "^6.16.0",
@@ -19,18 +21,20 @@
     "classnames": "2.2.0",
     "compression-webpack-plugin": "^0.3.0",
     "crypto-js": "3.1.5",
-    "css-loader": "0.18.0",
+    "css-loader": "^0.28.2",
+    "enzyme-to-json": "^1.5.1",
     "extract-text-webpack-plugin": "2.0.0-beta.5",
     "file-loader": "0.8.4",
     "gettext-parser": "1.1.1",
     "history": "1.13.0",
+    "idx": "^1.5.0",
     "ios-device-list": "^1.1.17",
     "jed": "^1.1.0",
     "jquery": "2.1.4",
     "js-cookie": "2.0.4",
     "json-loader": "0.5.3",
     "less": "2.5.3",
-    "less-loader": "2.2.1",
+    "less-loader": "^4.0.3",
     "marked": "0.3.5",
     "moment": "2.10.6",
     "moment-timezone": "0.4.1",
@@ -38,22 +42,25 @@
     "platformicons": "0.1.1",
     "po-catalog-loader": "^1.2.0",
     "query-string": "2.4.2",
-    "raven-js": "3.12.1",
+    "raven-js": "3.16.1",
     "react": "15.3.2",
     "react-addons-css-transition-group": "15.3.2",
     "react-addons-pure-render-mixin": "15.3.2",
     "react-addons-test-utils": "15.3.2",
     "react-addons-update": "15.3.2",
     "react-bootstrap": "^0.29.5",
+    "react-code-input": "1.0.8",
     "react-document-title": "1.0.4",
     "react-dom": "15.3.2",
+    "react-icon-base": "^2.0.4",
     "react-lazy-load": "3.0.10",
+    "react-mentions": "^1.0.0",
     "react-router": "2.8.1",
     "react-sparklines": "1.6.0",
     "react-sticky": "5.0.4",
     "reflux": "0.4.1",
     "select2": "3.5.1",
-    "sprintf-js": "^1.0.3",
+    "sprintf-js": "1.0.3",
     "style-loader": "0.12.4",
     "u2f-api": "0.0.8",
     "underscore": "1.8.3",
@@ -65,27 +72,45 @@
   "APIMethod": "stub",
   "proxyURL": "http://localhost:8000",
   "scripts": {
-    "test": "node_modules/karma/bin/karma start tests/karma.conf.js --single-run",
-    "test-watch": "node_modules/karma/bin/karma start tests/karma.conf.js",
+    "test": "npm run jest -- tests/js/spec",
+    "test-ci": "npm run test -- --runInBand",
+    "test-watch": "npm run test -- --watch",
+    "jest": "NODE_ENV=test node_modules/.bin/jest",
     "lint": "node_modules/.bin/eslint tests/js src/sentry/static/sentry/app --ext .jsx"
+  },
+  "jest": {
+    "modulePaths": [
+      "<rootDir>/src/sentry/static/sentry"
+    ],
+    "moduleNameMapper": {
+      "integration-docs-platforms": "<rootDir>/tests/fixtures/_platforms.json"
+    },
+    "setupFiles": [
+      "<rootDir>/tests/js/setup.js"
+    ],
+    "unmockedModulePathPatterns": [
+      "<rootDir>/node_modules/react",
+      "<rootDir>/node_modules/reflux"
+    ]
   },
   "devDependencies": {
     "babel-eslint": "7.1.1",
+    "babel-jest": "^19.0.0",
     "chai": "3.4.1",
-    "enzyme": "2.4.1",
-    "eslint": "1.9.0",
+    "enzyme": "2.9.1",
+    "eslint": "3.19.0",
     "eslint-plugin-getsentry": "1.0.0",
-    "eslint-plugin-react": "3.11.2",
-    "karma": "0.13.22",
-    "karma-chai": "0.1.0",
-    "karma-mocha": "0.1.10",
-    "karma-phantomjs-launcher": "1.0.2",
-    "karma-sinon": "1.0.4",
+    "eslint-plugin-react": "6.10.3",
+    "jest": "^19.0.2",
     "karma-sourcemap-loader": "0.3.7",
     "karma-webpack": "2.0.1",
-    "mocha": "2.3.4",
     "phantomjs-prebuilt": "2.1.14",
+    "prettier": "1.2.2",
     "sinon": "1.17.2",
-    "sinon-chai": "2.8.0"
+    "sinon-chai": "2.8.0",
+    "webpack-livereload-plugin": "^0.11.0"
+  },
+  "optionalDependencies": {
+    "fsevents": "^1.1.2"
   }
 }

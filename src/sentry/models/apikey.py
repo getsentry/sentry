@@ -16,8 +16,7 @@ from django.utils.translation import ugettext_lazy as _
 from uuid import uuid4
 
 from sentry.db.models import (
-    Model, BaseManager, BoundedPositiveIntegerField, FlexibleForeignKey,
-    sane_repr
+    ArrayField, Model, BaseManager, BoundedPositiveIntegerField, FlexibleForeignKey, sane_repr
 )
 
 
@@ -33,34 +32,31 @@ class ApiKey(Model):
     organization = FlexibleForeignKey('sentry.Organization', related_name='key_set')
     label = models.CharField(max_length=64, blank=True, default='Default')
     key = models.CharField(max_length=32, unique=True)
-    scopes = BitField(flags=(
-        ('project:read', 'project:read'),
-        ('project:write', 'project:write'),
-        ('project:delete', 'project:delete'),
-        ('project:releases', 'project:releases'),
-        ('team:read', 'team:read'),
-        ('team:write', 'team:write'),
-        ('team:delete', 'team:delete'),
-        ('event:read', 'event:read'),
-        ('event:write', 'event:write'),
-        ('event:delete', 'event:delete'),
-        ('org:read', 'org:read'),
-        ('org:write', 'org:write'),
-        ('org:delete', 'org:delete'),
-        ('member:read', 'member:read'),
-        ('member:write', 'member:write'),
-        ('member:delete', 'member:delete'),
-    ))
-    status = BoundedPositiveIntegerField(default=0, choices=(
-        (ApiKeyStatus.ACTIVE, _('Active')),
-        (ApiKeyStatus.INACTIVE, _('Inactive')),
-    ), db_index=True)
+    scopes = BitField(
+        flags=(
+            ('project:read', 'project:read'), ('project:write',
+                                               'project:write'), ('project:admin', 'project:admin'),
+            ('project:releases', 'project:releases'), ('team:read',
+                                                       'team:read'), ('team:write', 'team:write'),
+            ('team:admin', 'team:admin'), ('event:read',
+                                           'event:read'), ('event:write', 'event:write'),
+            ('event:admin', 'event:admin'), ('org:read', 'org:read'), ('org:write', 'org:write'),
+            ('org:admin',
+             'org:admin'), ('member:read',
+                            'member:read'), ('member:write',
+                                             'member:write'), ('member:admin', 'member:admin'),
+        )
+    )
+    scope_list = ArrayField(of=models.TextField)
+    status = BoundedPositiveIntegerField(
+        default=0,
+        choices=((ApiKeyStatus.ACTIVE, _('Active')), (ApiKeyStatus.INACTIVE, _('Inactive')), ),
+        db_index=True
+    )
     date_added = models.DateTimeField(default=timezone.now)
     allowed_origins = models.TextField(blank=True, null=True)
 
-    objects = BaseManager(cache_fields=(
-        'key',
-    ))
+    objects = BaseManager(cache_fields=('key', ))
 
     class Meta:
         app_label = 'sentry'
@@ -93,38 +89,14 @@ class ApiKey(Model):
         return {
             'label': self.label,
             'key': self.key,
-            'scopes': int(self.scopes),
+            'scopes': self.get_scopes(),
             'status': self.status,
         }
 
     def get_scopes(self):
+        if self.scope_list:
+            return self.scope_list
         return [k for k, v in six.iteritems(self.scopes) if v]
 
     def has_scope(self, scope):
-        return scope in self.scopes
-
-
-class SystemKey(object):
-    is_active = True
-    organization = None
-
-    def get_allowed_origins(self):
-        return []
-
-    def get_audit_log_data(self):
-        return {
-            'label': 'System',
-            'key': '<system>',
-            'scopes': -1,
-            'status': ApiKeyStatus.ACTIVE
-        }
-
-    def get_scopes(self):
-        # All scopes!
-        return ApiKey.scopes
-
-    def has_scope(self, scope):
-        return True
-
-
-ROOT_KEY = SystemKey()
+        return scope in self.get_scopes()

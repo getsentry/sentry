@@ -35,27 +35,30 @@ class OrganizationMembersView(OrganizationView):
         # if the member is not the only owner we allow them to leave the org
         member_can_leave = any(
             1 for om, _, _ in member_list
-            if (om.role == roles.get_top_dog().id
-                and om.user != request.user
-                and om.user is not None)
+            if
+            (om.role == roles.get_top_dog().id and om.user != request.user and om.user is not None)
         )
 
         # TODO(dcramer): ideally member:write could approve
         can_approve_requests_globally = request.access.has_scope('org:write')
         can_add_members = request.access.has_scope('org:write')
-        can_remove_members = request.access.has_scope('member:delete')
+        can_remove_members = request.access.has_scope('member:admin')
 
         # pending requests
         if can_approve_requests_globally:
-            access_requests = list(OrganizationAccessRequest.objects.filter(
-                team__organization=organization,
-                member__user__is_active=True,
-            ).select_related('team', 'member__user'))
+            access_requests = list(
+                OrganizationAccessRequest.objects.filter(
+                    team__organization=organization,
+                    member__user__is_active=True,
+                ).select_related('team', 'member__user')
+            )
         elif request.access.has_scope('team:write') and request.access.teams:
-            access_requests = list(OrganizationAccessRequest.objects.filter(
-                member__user__is_active=True,
-                team__in=request.access.teams,
-            ).select_related('team', 'member__user'))
+            access_requests = list(
+                OrganizationAccessRequest.objects.filter(
+                    member__user__is_active=True,
+                    team__in=request.access.teams,
+                ).select_related('team', 'member__user')
+            )
         else:
             access_requests = []
 

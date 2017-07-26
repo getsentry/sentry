@@ -7,7 +7,7 @@ sentry.plugins.base.v1
 """
 from __future__ import absolute_import, print_function
 
-__all__ = ('Plugin',)
+__all__ = ('Plugin', )
 
 import logging
 import six
@@ -18,10 +18,12 @@ from threading import local
 
 from sentry.auth import access
 from sentry.plugins.config import PluginConfigMixin
+from sentry.plugins.status import PluginStatusMixin
 from sentry.plugins.base.response import Response
 from sentry.plugins.base.view import PluggableViewMixin
 from sentry.plugins.base.configuration import (
-    default_plugin_config, default_plugin_options,
+    default_plugin_config,
+    default_plugin_options,
 )
 from sentry.utils.hashlib import md5_text
 
@@ -35,12 +37,14 @@ class PluginMount(type):
             new_cls.title = new_cls.__name__
         if not new_cls.slug:
             new_cls.slug = new_cls.title.replace(' ', '-').lower()
-        if not hasattr(new_cls, 'logger') or new_cls.logger in [getattr(b, 'logger', None) for b in bases]:
-            new_cls.logger = logging.getLogger('sentry.plugins.%s' % (new_cls.slug,))
+        if not hasattr(new_cls, 'logger') or new_cls.logger in [
+            getattr(b, 'logger', None) for b in bases
+        ]:
+            new_cls.logger = logging.getLogger('sentry.plugins.%s' % (new_cls.slug, ))
         return new_cls
 
 
-class IPlugin(local, PluggableViewMixin, PluginConfigMixin):
+class IPlugin(local, PluggableViewMixin, PluginConfigMixin, PluginStatusMixin):
     """
     Plugin interface. Should not be inherited from directly.
 
@@ -165,7 +169,10 @@ class IPlugin(local, PluggableViewMixin, PluginConfigMixin):
 
         >>> plugin.get_url(group)
         """
-        return reverse('sentry-group-plugin-action', args=(group.organization.slug, group.project.slug, group.pk, self.slug))
+        return reverse(
+            'sentry-group-plugin-action',
+            args=(group.organization.slug, group.project.slug, group.pk, self.slug)
+        )
 
     def get_conf_key(self):
         """
@@ -212,9 +219,8 @@ class IPlugin(local, PluggableViewMixin, PluginConfigMixin):
         >>> plugin.get_conf_version(project)
         """
         options = self.get_conf_options(project)
-        return md5_text(
-            '&'.join(sorted('%s=%s' % o for o in six.iteritems(options)))
-        ).hexdigest()[:3]
+        return md5_text('&'.join(sorted('%s=%s' % o
+                                        for o in six.iteritems(options)))).hexdigest()[:3]
 
     def get_conf_title(self):
         """
@@ -227,6 +233,12 @@ class IPlugin(local, PluggableViewMixin, PluginConfigMixin):
 
     def has_project_conf(self):
         return self.project_conf_form is not None
+
+    def has_plugin_conf(self):
+        """
+        Checks if the plugin should be returned in the ProjectPluginsEndpoint
+        """
+        return self.has_project_conf()
 
     def can_enable_for_projects(self):
         """
@@ -314,14 +326,16 @@ class IPlugin(local, PluggableViewMixin, PluginConfigMixin):
 
         request.access = access.from_request(request, group.organization)
 
-        return response.respond(request, {
-            'plugin': self,
-            'project': group.project,
-            'group': group,
-            'event': event,
-            'can_admin_event': request.access.has_scope('event:write'),
-            'can_remove_event': request.access.has_scope('event:delete'),
-        })
+        return response.respond(
+            request, {
+                'plugin': self,
+                'project': group.project,
+                'group': group,
+                'event': event,
+                'can_admin_event': request.access.has_scope('event:write'),
+                'can_remove_event': request.access.has_scope('event:admin'),
+            }
+        )
 
     def view(self, request, group, **kwargs):
         """
@@ -481,11 +495,13 @@ class IPlugin(local, PluggableViewMixin, PluginConfigMixin):
 
     def view_configure(self, request, project, **kwargs):
         if request.method == 'GET':
-            return Response(self.get_configure_plugin_fields(
-                request=request,  # DEPRECATED: this param should not be used
-                project=project,
-                **kwargs
-            ))
+            return Response(
+                self.get_configure_plugin_fields(
+                    request=request,  # DEPRECATED: this param should not be used
+                    project=project,
+                    **kwargs
+                )
+            )
         self.configure(project, request.DATA)
         return Response({'message': 'Successfully updated configuration.'})
 

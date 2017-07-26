@@ -19,7 +19,6 @@ from django.utils.functional import cached_property
 from sentry.db.models.query import create_or_update
 from sentry.utils.hashlib import md5_text
 
-
 Key = namedtuple('Key', ('name', 'default', 'type', 'flags', 'ttl', 'grace', 'cache_key'))
 
 CACHE_FETCH_ERR = 'Unable to fetch option cache for %s'
@@ -34,11 +33,7 @@ def _make_cache_key(key):
 
 def _make_cache_value(key, value):
     now = int(time())
-    return (
-        value,
-        now + key.ttl,
-        now + key.ttl + key.grace,
-    )
+    return (value, now + key.ttl, now + key.ttl + key.grace, )
 
 
 class OptionsStore(object):
@@ -101,9 +96,10 @@ class OptionsStore(object):
             if not silent:
                 logger.warn(CACHE_FETCH_ERR, key.name, exc_info=True)
             value = None
-        else:
-            if key.ttl > 0:
-                self._local_cache[cache_key] = _make_cache_value(key, value)
+
+        if value is not None and key.ttl > 0:
+            self._local_cache[cache_key] = _make_cache_value(key, value)
+
         return value
 
     def get_local_cache(self, key, force_grace=False):

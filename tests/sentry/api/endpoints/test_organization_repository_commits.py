@@ -31,9 +31,12 @@ class OrganizationRepositoryCommitsTest(APITestCase):
             key='b' * 40,
         )
 
-        url = reverse('sentry-api-0-organization-repository-commits', args=[
-            org.slug, repo.id,
-        ])
+        url = reverse(
+            'sentry-api-0-organization-repository-commits', args=[
+                org.slug,
+                repo.id,
+            ]
+        )
         response = self.client.get(url, format='json')
 
         assert response.status_code == 200, response.content

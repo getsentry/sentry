@@ -21,14 +21,35 @@ class RedisBufferTest(TestCase):
 
     @mock.patch('sentry.buffer.redis.RedisBuffer._make_key', mock.Mock(return_value='foo'))
     @mock.patch('sentry.buffer.redis.process_incr')
-    def test_process_pending(self, process_incr):
+    def test_process_pending_one_batch(self, process_incr):
+        self.buf.incr_batch_size = 5
         with self.buf.cluster.map() as client:
             client.zadd('b:p', 1, 'foo')
             client.zadd('b:p', 2, 'bar')
         self.buf.process_pending()
+        assert len(process_incr.apply_async.mock_calls) == 1
+        process_incr.apply_async.assert_any_call(kwargs={
+            'batch_keys': ['foo', 'bar'],
+        })
+        client = self.buf.cluster.get_routing_client()
+        assert client.zrange('b:p', 0, -1) == []
+
+    @mock.patch('sentry.buffer.redis.RedisBuffer._make_key', mock.Mock(return_value='foo'))
+    @mock.patch('sentry.buffer.redis.process_incr')
+    def test_process_pending_multiple_batches(self, process_incr):
+        self.buf.incr_batch_size = 2
+        with self.buf.cluster.map() as client:
+            client.zadd('b:p', 1, 'foo')
+            client.zadd('b:p', 2, 'bar')
+            client.zadd('b:p', 3, 'baz')
+        self.buf.process_pending()
         assert len(process_incr.apply_async.mock_calls) == 2
-        process_incr.apply_async.assert_any_call(kwargs={'key': 'foo'})
-        process_incr.apply_async.assert_any_call(kwargs={'key': 'bar'})
+        process_incr.apply_async.assert_any_call(kwargs={
+            'batch_keys': ['foo', 'bar'],
+        })
+        process_incr.apply_async.assert_any_call(kwargs={
+            'batch_keys': ['baz'],
+        })
         client = self.buf.cluster.get_routing_client()
         assert client.zrange('b:p', 0, -1) == []
 
@@ -36,12 +57,14 @@ class RedisBufferTest(TestCase):
     @mock.patch('sentry.buffer.base.Buffer.process')
     def test_process_does_bubble_up(self, process):
         client = self.buf.cluster.get_routing_client()
-        client.hmset('foo', {
-            'e+foo': "S'bar'\np1\n.",
-            'f': "(dp1\nS'pk'\np2\nI1\ns.",
-            'i+times_seen': '2',
-            'm': 'sentry.models.Group',
-        })
+        client.hmset(
+            'foo', {
+                'e+foo': "S'bar'\np1\n.",
+                'f': "(dp1\nS'pk'\np2\nI1\ns.",
+                'i+times_seen': '2',
+                'm': 'sentry.models.Group',
+            }
+        )
         columns = {'times_seen': 2}
         filters = {'pk': 1}
         extra = {'foo': 'bar'}

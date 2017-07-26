@@ -29,9 +29,7 @@ from six.moves import reduce
 
 logger = logging.getLogger(__name__)
 
-
 SketchParameters = namedtuple('SketchParameters', 'depth width capacity')
-
 
 CountMinScript = Script(
     None,
@@ -193,17 +191,10 @@ class RedisTSDB(BaseTSDB):
                 for timestamp in series:
                     hash_key = self.make_counter_key(
                         model,
-                        self.normalize_to_rollup(
-                            timestamp,
-                            rollup
-                        ),
+                        self.normalize_to_rollup(timestamp, rollup),
                         model_key,
                     )
-                    results.append((
-                        to_timestamp(timestamp),
-                        key,
-                        client.hget(hash_key, model_key)
-                    ))
+                    results.append((to_timestamp(timestamp), key, client.hget(hash_key, model_key)))
 
         results_by_key = defaultdict(dict)
         for epoch, key, count in results:
@@ -213,8 +204,71 @@ class RedisTSDB(BaseTSDB):
             results_by_key[key] = sorted(points.items())
         return dict(results_by_key)
 
+    def merge(self, model, destination, sources, timestamp=None):
+        rollups = self.get_active_series(timestamp=timestamp)
+
+        with self.cluster.map() as client:
+            data = {}
+            for rollup, series in rollups.items():
+                data[rollup] = {}
+                for timestamp in series:
+                    results = data[rollup][timestamp] = []
+                    for source in sources:
+                        source_model_key = self.get_model_key(source)
+                        key = self.make_counter_key(
+                            model,
+                            self.normalize_to_rollup(timestamp, rollup),
+                            source_model_key,
+                        )
+                        results.append(client.hget(key, source_model_key))
+                        client.hdel(key, source_model_key)
+
+        with self.cluster.map() as client:
+            destination_model_key = self.get_model_key(destination)
+
+            for rollup, series in data.items():
+                for timestamp, results in series.items():
+                    total = sum(int(result.value or 0) for result in results)
+                    if total:
+                        destination_counter_key = self.make_counter_key(
+                            model,
+                            self.normalize_to_rollup(timestamp, rollup),
+                            destination_model_key,
+                        )
+                        client.hincrby(
+                            destination_counter_key,
+                            destination_model_key,
+                            total,
+                        )
+                        client.expireat(
+                            destination_counter_key,
+                            self.calculate_expiry(
+                                rollup,
+                                self.rollups[rollup],
+                                timestamp,
+                            ),
+                        )
+
+    def delete(self, models, keys, start=None, end=None, timestamp=None):
+        rollups = self.get_active_series(start, end, timestamp)
+
+        with self.cluster.map() as client:
+            for rollup, series in rollups.items():
+                for timestamp in series:
+                    for model in models:
+                        for key in keys:
+                            model_key = self.get_model_key(key)
+                            client.hdel(
+                                self.make_counter_key(
+                                    model,
+                                    self.normalize_to_rollup(timestamp, rollup),
+                                    model_key,
+                                ),
+                                model_key,
+                            )
+
     def record(self, model, key, values, timestamp=None):
-        self.record_multi(((model, key, values),), timestamp)
+        self.record_multi(((model, key, values), ), timestamp)
 
     def record_multi(self, items, timestamp=None):
         """
@@ -257,19 +311,21 @@ class RedisTSDB(BaseTSDB):
                 c = client.target_key(key)
                 r = responses[key] = []
                 for timestamp in series:
-                    r.append((
-                        timestamp,
-                        c.pfcount(
+                    r.append(
+                        (timestamp, c.pfcount(
                             self.make_key(
                                 model,
                                 rollup,
                                 timestamp,
                                 key,
                             ),
-                        ),
-                    ))
+                        ), )
+                    )
 
-        return {key: [(timestamp, promise.value) for timestamp, promise in value] for key, value in six.iteritems(responses)}
+        return {
+            key: [(timestamp, promise.value) for timestamp, promise in value]
+            for key, value in six.iteritems(responses)
+        }
 
     def get_distinct_counts_totals(self, model, keys, start, end=None, rollup=None):
         """
@@ -309,9 +365,7 @@ class RedisTSDB(BaseTSDB):
             """
             Return a list containing all keys for each interval in the series for a key.
             """
-            return [
-                self.make_key(model, rollup, timestamp, key)
-                for timestamp in series]
+            return [self.make_key(model, rollup, timestamp, key) for timestamp in series]
 
         router = self.cluster.get_router()
 
@@ -332,11 +386,7 @@ class RedisTSDB(BaseTSDB):
             client = self.cluster.get_local_client(host)
             with client.pipeline(transaction=False) as pipeline:
                 pipeline.execute_command(
-                    'PFMERGE',
-                    destination,
-                    *itertools.chain.from_iterable(
-                        map(expand_key, keys)
-                    )
+                    'PFMERGE', destination, *itertools.chain.from_iterable(map(expand_key, keys))
                 )
                 pipeline.get(destination)
                 pipeline.delete(destination)
@@ -347,10 +397,7 @@ class RedisTSDB(BaseTSDB):
             Calculate the cardinality of the provided HyperLogLog values.
             """
             destination = make_temporary_key('a')  # all values will be merged into this key
-            aggregates = {
-                make_temporary_key('a:{}'.format(host)): value
-                for host, value in values
-            }
+            aggregates = {make_temporary_key('a:{}'.format(host)): value for host, value in values}
 
             # Choose a random host to execute the reduction on. (We use a host
             # here that we've already accessed as part of this process -- this
@@ -381,11 +428,87 @@ class RedisTSDB(BaseTSDB):
             ]
         )
 
+    def merge_distinct_counts(self, model, destination, sources, timestamp=None):
+        rollups = self.get_active_series(timestamp=timestamp)
+
+        temporary_id = uuid.uuid1().hex
+
+        def make_temporary_key(key):
+            return '{}{}:{}'.format(self.prefix, temporary_id, key)
+
+        data = {}
+        for rollup, series in rollups.items():
+            data[rollup] = {timestamp: [] for timestamp in series}
+
+        with self.cluster.fanout() as client:
+            for source in sources:
+                c = client.target_key(source)
+                for rollup, series in data.items():
+                    for timestamp, results in series.items():
+                        key = self.make_key(
+                            model,
+                            rollup,
+                            to_timestamp(timestamp),
+                            source,
+                        )
+                        results.append(c.get(key))
+                        c.delete(key)
+
+        with self.cluster.fanout() as client:
+            c = client.target_key(destination)
+
+            temporary_key_sequence = itertools.count()
+
+            for rollup, series in data.items():
+                for timestamp, results in series.items():
+                    values = {}
+                    for result in results:
+                        if result.value is None:
+                            continue
+                        k = make_temporary_key(next(temporary_key_sequence))
+                        values[k] = result.value
+
+                    if values:
+                        key = self.make_key(
+                            model,
+                            rollup,
+                            to_timestamp(timestamp),
+                            destination,
+                        )
+                        c.mset(values)
+                        c.pfmerge(key, key, *values.keys())
+                        c.delete(*values.keys())
+                        c.expireat(
+                            key,
+                            self.calculate_expiry(
+                                rollup,
+                                self.rollups[rollup],
+                                timestamp,
+                            ),
+                        )
+
+    def delete_distinct_counts(self, models, keys, start=None, end=None, timestamp=None):
+        rollups = self.get_active_series(start, end, timestamp)
+
+        with self.cluster.fanout() as client:
+            for rollup, series in rollups.items():
+                for timestamp in series:
+                    for model in models:
+                        for key in keys:
+                            client.target_key(key).delete(
+                                self.make_key(
+                                    model,
+                                    rollup,
+                                    to_timestamp(timestamp),
+                                    key,
+                                )
+                            )
+
     def make_frequency_table_keys(self, model, rollup, timestamp, key):
         prefix = self.make_key(model, rollup, timestamp, key)
         return map(
             operator.methodcaller('format', prefix),
-            ('{}:c', '{}:i', '{}:e'),
+            ('{}:i', '{}:e'),
         )
 
     def record_frequency_multi(self, requests, timestamp=None):
@@ -433,7 +556,7 @@ class RedisTSDB(BaseTSDB):
 
         rollup, series = self.get_optimal_rollup_series(start, end, rollup)
 
-        arguments = ['RANKED']
+        arguments = ['RANKED'] + list(self.DEFAULT_SKETCH_PARAMETERS)
         if limit is not None:
             arguments.append(int(limit))
 
@@ -456,17 +579,18 @@ class RedisTSDB(BaseTSDB):
 
         rollup, series = self.get_optimal_rollup_series(start, end, rollup)
 
-        arguments = ['RANKED']
+        arguments = ['RANKED'] + list(self.DEFAULT_SKETCH_PARAMETERS)
         if limit is not None:
             arguments.append(int(limit))
 
         commands = {}
         for key in keys:
-            commands[key] = [(
-                CountMinScript,
-                self.make_frequency_table_keys(model, rollup, timestamp, key),
-                arguments,
-            ) for timestamp in series]
+            commands[key] = [
+                (
+                    CountMinScript, self.make_frequency_table_keys(model, rollup, timestamp, key),
+                    arguments,
+                ) for timestamp in series
+            ]
 
         def unpack_response(response):
             return {item: float(score) for item, score in response.value}
@@ -483,18 +607,22 @@ class RedisTSDB(BaseTSDB):
 
         rollup, series = self.get_optimal_rollup_series(start, end, rollup)
 
-        # Freeze ordering of the members (we'll need these later.)
+        # Here we freeze ordering of the members, since we'll be passing these
+        # as positional arguments to the Redis script and later associating the
+        # results (which are returned in the same order that the arguments were
+        # provided) with the original input values to compose the result.
         for key, members in items.items():
-            items[key] = tuple(members)
+            items[key] = list(members)
 
         commands = {}
 
+        arguments = ['ESTIMATE'] + list(self.DEFAULT_SKETCH_PARAMETERS)
         for key, members in items.items():
             ks = []
             for timestamp in series:
                 ks.extend(self.make_frequency_table_keys(model, rollup, timestamp, key))
 
-            commands[key] = [(CountMinScript, ks, ('ESTIMATE',) + members)]
+            commands[key] = [(CountMinScript, ks, arguments + members)]
 
         results = {}
 
@@ -513,10 +641,81 @@ class RedisTSDB(BaseTSDB):
 
         responses = {}
 
-        for key, series in six.iteritems(self.get_frequency_series(model, items, start, end, rollup)):
+        for key, series in six.iteritems(
+            self.get_frequency_series(model, items, start, end, rollup)
+        ):
             response = responses[key] = {}
             for timestamp, results in series:
                 for member, value in results.items():
                     response[member] = response.get(member, 0.0) + value
 
         return responses
+
+    def merge_frequencies(self, model, destination, sources, timestamp=None):
+        if not self.enable_frequency_sketches:
+            return
+
+        rollups = []
+        for rollup, samples in self.rollups.items():
+            _, series = self.get_optimal_rollup_series(
+                to_datetime(self.get_earliest_timestamp(rollup, timestamp=timestamp)),
+                end=None,
+                rollup=rollup,
+            )
+            rollups.append((rollup, map(to_datetime, series), ))
+
+        exports = defaultdict(list)
+
+        for source in sources:
+            for rollup, series in rollups:
+                for timestamp in series:
+                    keys = self.make_frequency_table_keys(
+                        model,
+                        rollup,
+                        to_timestamp(timestamp),
+                        source,
+                    )
+                    arguments = ['EXPORT'] + list(self.DEFAULT_SKETCH_PARAMETERS)
+                    exports[source].extend(
+                        [
+                            (CountMinScript, keys, arguments),
+                            ('DEL', ) + tuple(keys),
+                        ]
+                    )
+
+        imports = []
+
+        for source, results in self.cluster.execute_commands(exports).items():
+            results = iter(results)
+            for rollup, series in rollups:
+                for timestamp in series:
+                    imports.append(
+                        (
+                            CountMinScript, self.make_frequency_table_keys(
+                                model,
+                                rollup,
+                                to_timestamp(timestamp),
+                                destination,
+                            ),
+                            ['IMPORT'] + list(self.DEFAULT_SKETCH_PARAMETERS) + next(results).value,
+                        )
+                    )
+                    next(results)  # pop off the result of DEL
+
+        self.cluster.execute_commands({
+            destination: imports,
+        })
+
+    def delete_frequencies(self, models, keys, start=None, end=None, timestamp=None):
+        rollups = self.get_active_series(start, end, timestamp)
+
+        with self.cluster.fanout() as client:
+            for rollup, series in rollups.items():
+                for timestamp in series:
+                    for model in models:
+                        for key in keys:
+                            c = client.target_key(key)
+                            for k in self.make_frequency_table_keys(
+                                model, rollup, to_timestamp(timestamp), key
+                            ):
+                                c.delete(k)

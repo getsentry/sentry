@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 from __future__ import absolute_import
 
 import datetime
@@ -15,7 +17,8 @@ class ReleaseDeploysListTest(APITestCase):
         )
         release = Release.objects.create(
             organization_id=project.organization_id,
-            version='1',
+            # test unicode
+            version='1–0',
         )
         release.add_project(project)
         Deploy.objects.create(
@@ -36,10 +39,13 @@ class ReleaseDeploysListTest(APITestCase):
             release=release,
         )
 
-        url = reverse('sentry-api-0-organization-release-deploys', kwargs={
-            'organization_slug': project.organization.slug,
-            'version': release.version,
-        })
+        url = reverse(
+            'sentry-api-0-organization-release-deploys',
+            kwargs={
+                'organization_slug': project.organization.slug,
+                'version': release.version,
+            }
+        )
 
         self.login_as(user=self.user)
 
@@ -58,27 +64,45 @@ class ReleaseDeploysCreateTest(APITestCase):
         release = Release.objects.create(
             organization_id=project.organization_id,
             version='1',
+            total_deploys=0,
         )
         release.add_project(project)
 
-        Environment.objects.create(
+        environment = Environment.objects.create(
             organization_id=project.organization_id,
             name='production',
         )
 
-        url = reverse('sentry-api-0-organization-release-deploys', kwargs={
-            'organization_slug': project.organization.slug,
-            'version': release.version,
-        })
+        url = reverse(
+            'sentry-api-0-organization-release-deploys',
+            kwargs={
+                'organization_slug': project.organization.slug,
+                'version': release.version,
+            }
+        )
 
         self.login_as(user=self.user)
 
-        response = self.client.post(url, data={
-            'name': 'foo',
-            'environment': 'production',
-            'url': 'https://www.example.com',
-        })
+        response = self.client.post(
+            url,
+            data={
+                'name': 'foo',
+                'environment': 'production',
+                'url': 'https://www.example.com',
+            }
+        )
         assert response.status_code == 201, response.content
         assert response.data['name'] == 'foo'
         assert response.data['url'] == 'https://www.example.com'
         assert response.data['environment'] == 'production'
+
+        deploy = Deploy.objects.get(id=response.data['id'])
+
+        assert deploy.name == 'foo'
+        assert deploy.environment_id == environment.id
+        assert deploy.url == 'https://www.example.com'
+        assert deploy.release == release
+
+        release = Release.objects.get(id=release.id)
+        assert release.total_deploys == 1
+        assert release.last_deploy_id == deploy.id

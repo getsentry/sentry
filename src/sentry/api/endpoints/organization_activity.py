@@ -15,6 +15,11 @@ class OrganizationActivityEndpoint(OrganizationMemberEndpoint):
                     organizationmember=member,
                 ).values('team')
             )
+        ).exclude(
+            # There is an activity record created for both sides of the unmerge
+            # operation, so we only need to include one of them here to avoid
+            # showing the same entry twice.
+            type=Activity.UNMERGE_SOURCE,
         ).select_related('project', 'group', 'user')
 
         return self.paginate(
@@ -22,7 +27,5 @@ class OrganizationActivityEndpoint(OrganizationMemberEndpoint):
             queryset=queryset,
             paginator_cls=DateTimePaginator,
             order_by='-datetime',
-            on_results=lambda x: serialize(
-                x, request.user, OrganizationActivitySerializer()
-            ),
+            on_results=lambda x: serialize(x, request.user, OrganizationActivitySerializer()),
         )

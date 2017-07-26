@@ -13,11 +13,10 @@ import six
 
 from django.db import IntegrityError, router, transaction
 from django.db.models import Model, Q
-from django.db.models.expressions import ExpressionNode
 from django.db.models.signals import post_save
 from six.moves import reduce
 
-from .utils import resolve_expression_node
+from .utils import ExpressionNode, resolve_expression_node
 
 __all__ = ('update', 'create_or_update')
 
@@ -45,9 +44,12 @@ def update(self, using=None, **kwargs):
     elif affected == 0:
         return affected
     elif affected < 0:
-        raise ValueError("Somehow we have updated a negative amount of rows, you seem to have a problem with your db backend.")
+        raise ValueError(
+            "Somehow we have updated a negative amount of rows, you seem to have a problem with your db backend."
+        )
     else:
         raise ValueError("Somehow we have updated multiple rows, and you are now royally fucked.")
+
 
 update.alters_data = True
 

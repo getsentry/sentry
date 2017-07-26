@@ -5,7 +5,6 @@ from django.db import IntegrityError, transaction
 from rest_framework import serializers
 from rest_framework.response import Response
 
-from sentry.api.base import DocSection
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.fields.user import UserField
@@ -13,35 +12,8 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import CommitSerializer, ListField
 from sentry.models import Activity, Release
 from sentry.plugins.interfaces.releasehook import ReleaseHook
-from sentry.utils.apidocs import scenario, attach_scenarios
-
 
 BAD_RELEASE_CHARS = '\n\f\t/'
-
-
-@scenario('CreateNewRelease')
-def create_new_release_scenario(runner):
-    runner.request(
-        method='POST',
-        path='/projects/%s/%s/releases/' % (
-            runner.org.slug, runner.default_project.slug),
-        data={
-            'version': '2.0rc2',
-            'ref': '6ba09a7c53235ee8a8fa5ee4c1ca8ca886e7fdbb',
-            # TODO(dcramer): once we improve fixtures we should show the
-            # commits attribute being used, as well as 'dateReleased'
-            # 'commits': [{'id': 'a' * 40}, {'id': 'b' * 40}],
-        }
-    )
-
-
-@scenario('ListReleases')
-def list_releases_scenario(runner):
-    runner.request(
-        method='GET',
-        path='/projects/%s/%s/releases/' % (
-            runner.org.slug, runner.default_project.slug)
-    )
 
 
 class ReleaseSerializer(serializers.Serializer):
@@ -49,22 +21,19 @@ class ReleaseSerializer(serializers.Serializer):
     ref = serializers.CharField(max_length=64, required=False)
     url = serializers.URLField(required=False)
     owner = UserField(required=False)
-    dateStarted = serializers.DateTimeField(required=False)
     dateReleased = serializers.DateTimeField(required=False)
-    commits = ListField(child=CommitSerializer(), required=False)
+    commits = ListField(child=CommitSerializer(), required=False, allow_null=False)
 
     def validate_version(self, attrs, source):
         value = attrs[source]
-        if any(c in value for c in BAD_RELEASE_CHARS) or value in ('.', '..'):
+        if not Release.is_valid_version(value):
             raise serializers.ValidationError('Invalid value for release')
         return attrs
 
 
 class ProjectReleasesEndpoint(ProjectEndpoint):
-    doc_section = DocSection.RELEASES
-    permission_classes = (ProjectReleasePermission,)
+    permission_classes = (ProjectReleasePermission, )
 
-    @attach_scenarios([list_releases_scenario])
     def get(self, request, project):
         """
         List a Project's Releases
@@ -82,8 +51,7 @@ class ProjectReleasesEndpoint(ProjectEndpoint):
         query = request.GET.get('query')
 
         queryset = Release.objects.filter(
-            projects=project,
-            organization_id=project.organization_id
+            projects=project, organization_id=project.organization_id
         ).select_related('owner')
 
         if query:
@@ -103,7 +71,6 @@ class ProjectReleasesEndpoint(ProjectEndpoint):
             on_results=lambda x: serialize(x, request.user, project=project),
         )
 
-    @attach_scenarios([create_new_release_scenario])
     def post(self, request, project):
         """
         Create a New Release for a Project
@@ -131,8 +98,6 @@ class ProjectReleasesEndpoint(ProjectEndpoint):
         :param url url: a URL that points to the release.  This can be the
                         path to an online interface to the sourcecode
                         for instance.
-        :param datetime dateStarted: an optional date that indicates when the
-                                     release process started.
         :param datetime dateReleased: an optional date that indicates when
                                       the release went live.  If not provided
                                       the current time is assumed.
@@ -153,7 +118,6 @@ class ProjectReleasesEndpoint(ProjectEndpoint):
                         ref=result.get('ref'),
                         url=result.get('url'),
                         owner=result.get('owner'),
-                        date_started=result.get('dateStarted'),
                         date_released=result.get('dateReleased'),
                     ), True
                 was_released = False
@@ -173,14 +137,13 @@ class ProjectReleasesEndpoint(ProjectEndpoint):
                 hook.set_commits(release.version, commit_list)
 
             if (not was_released and release.date_released):
-                activity = Activity.objects.create(
+                Activity.objects.create(
                     type=Activity.RELEASE,
                     project=project,
                     ident=result['version'],
                     data={'version': result['version']},
                     datetime=release.date_released,
                 )
-                activity.send_notification()
 
             if not created:
                 # This is the closest status code that makes sense, and we want

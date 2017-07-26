@@ -5,8 +5,7 @@ from django.utils import timezone
 from sentry.utils.email import MessageBuilder
 
 
-def generate_security_email(account, type, actor, ip_address, context=None,
-                            current_datetime=None):
+def generate_security_email(account, type, actor, ip_address, context=None, current_datetime=None):
     if current_datetime is None:
         current_datetime = timezone.now()
 

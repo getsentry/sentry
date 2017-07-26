@@ -24,10 +24,7 @@ class CreateOrganizationMemberView(OrganizationView):
         if len(all_teams) == 1:
             initial_teams = all_teams
 
-        initial = {
-            'role': organization.default_role,
-            'teams': initial_teams
-        }
+        initial = {'role': organization.default_role, 'teams': initial_teams}
 
         if settings.SENTRY_ENABLE_INVITES:
             form_cls = InviteOrganizationMemberForm
@@ -44,10 +41,7 @@ class CreateOrganizationMemberView(OrganizationView):
     def handle(self, request, organization):
         can_admin, allowed_roles = self.get_allowed_roles(request, organization)
 
-        all_teams = Team.objects.filter(
-            organization=organization,
-            status=TeamStatus.VISIBLE
-        )
+        all_teams = Team.objects.filter(organization=organization, status=TeamStatus.VISIBLE)
 
         form = self.get_form(request, organization, all_teams, allowed_roles)
         if form.is_valid():
@@ -58,14 +52,18 @@ class CreateOrganizationMemberView(OrganizationView):
                 user_display = form.cleaned_data['user']
 
             if created:
-                messages.add_message(request, messages.SUCCESS,
-                    _('The organization member %s was added.') % user_display)
+                messages.add_message(
+                    request, messages.SUCCESS,
+                    _('The organization member %s was added.') % user_display
+                )
 
                 member_invited.send(member=om, user=request.user, sender=self)
 
             else:
-                messages.add_message(request, messages.INFO,
-                    _('The organization member %s already exists.') % user_display)
+                messages.add_message(
+                    request, messages.INFO,
+                    _('The organization member %s already exists.') % user_display
+                )
 
             redirect = reverse('sentry-organization-members', args=[organization.slug])
 
@@ -74,11 +72,8 @@ class CreateOrganizationMemberView(OrganizationView):
         context = {
             'form': form,
             'is_invite': settings.SENTRY_ENABLE_INVITES,
-            'role_list': [
-                (r, r in allowed_roles)
-                for r in roles.get_all()
-            ],
-            'all_teams': all_teams
+            'role_list': [(r, r in allowed_roles) for r in roles.get_all()],
+            'all_teams': list(all_teams),
         }
 
         return self.respond('sentry/create-organization-member.html', context)

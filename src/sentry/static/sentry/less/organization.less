@@ -56,12 +56,11 @@
     }
   }
 
-  .dashboard-sparkline {
-    height: 45px;
+  .dashboard-barchart {
+    height: 100px;
+    margin-bottom: 30px;
 
     a {
-      height: 45px;
-
       > span {
         left: 2px;
         right: 2px;
@@ -301,6 +300,13 @@
   .isBookmarked .bookmark {
     color: @yellow-orange;
   }
+
+  .project-chart {
+    width: 210px;
+    .barchart {
+      height: 20px;
+    }
+  }
 }
 
 /**
@@ -427,7 +433,7 @@ table.project-list {
 
       &.project-chart {
         width: 210px;
-        .sparkline a {
+        .barchart {
           height: 20px;
         }
       }
@@ -525,40 +531,6 @@ table.project-list {
 .organization-stats {
   height: 150px;
   margin-bottom: 20px;
-
-  .bar-chart figure a {
-    height: 150px;
-
-    span {
-      &.accepted {
-        background: @gray-lightest;
-      }
-
-      &.rate-limited {
-        background: @red;
-        min-height: 0;
-      }
-
-      &.black-listed {
-        background: @orange-light;
-        min-height: 0;
-      }
-    }
-
-    &:hover span {
-      &.accepted {
-        background: @gray-light;
-      }
-
-      &.rate-limited {
-        background: @red-dark;
-      }
-
-      &.black-listed {
-        background: @orange-dark;
-      }
-    }
-  }
 }
 
 /**

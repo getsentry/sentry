@@ -5,10 +5,7 @@ from django.db.models import Q
 from django.utils import timezone
 
 from sentry.models import (
-    OnboardingTask,
-    OnboardingTaskStatus,
-    OrganizationOnboardingTask,
-    OrganizationOption
+    OnboardingTask, OnboardingTaskStatus, OrganizationOnboardingTask, OrganizationOption
 )
 from sentry.plugins import IssueTrackingPlugin, IssueTrackingPlugin2, NotificationPlugin
 from sentry.signals import (
@@ -25,10 +22,17 @@ from sentry.utils.javascript import has_sourcemap
 
 
 def check_for_onboarding_complete(organization_id):
-    if OrganizationOption.objects.filter(organization_id=organization_id, key="onboarding:complete").exists():
+    if OrganizationOption.objects.filter(
+        organization_id=organization_id, key="onboarding:complete"
+    ).exists():
         return
 
-    completed = set(OrganizationOnboardingTask.objects.filter(Q(organization_id=organization_id) & (Q(status=OnboardingTaskStatus.COMPLETE) | Q(status=OnboardingTaskStatus.SKIPPED))).values_list('task', flat=True))
+    completed = set(
+        OrganizationOnboardingTask.objects.filter(
+            Q(organization_id=organization_id) &
+            (Q(status=OnboardingTaskStatus.COMPLETE) | Q(status=OnboardingTaskStatus.SKIPPED))
+        ).values_list('task', flat=True)
+    )
     if completed >= OnboardingTask.REQUIRED_ONBOARDING_TASKS:
         try:
             with transaction.atomic():
@@ -92,7 +96,9 @@ def record_first_event(project, group, **kwargs):
             'status': OnboardingTaskStatus.COMPLETE,
             'project_id': project.id,
             'date_completed': project.first_event,
-            'data': {'platform': group.platform},
+            'data': {
+                'platform': group.platform
+            },
         }
     )
 
@@ -107,7 +113,9 @@ def record_first_event(project, group, **kwargs):
             return
 
         # Only counts if it's a new project and platform
-        if oot.project_id != project.id and oot.data.get('platform', group.platform) != group.platform:
+        if oot.project_id != project.id and oot.data.get(
+            'platform', group.platform
+        ) != group.platform:
             OrganizationOnboardingTask.objects.create_or_update(
                 organization_id=project.organization_id,
                 task=OnboardingTask.SECOND_PLATFORM,
@@ -116,7 +124,9 @@ def record_first_event(project, group, **kwargs):
                     'status': OnboardingTaskStatus.COMPLETE,
                     'project_id': project.id,
                     'date_completed': project.first_event,
-                    'data': {'platform': group.platform},
+                    'data': {
+                        'platform': group.platform
+                    },
                 }
             )
 
@@ -141,7 +151,9 @@ def record_member_joined(member, **kwargs):
         values={
             'status': OnboardingTaskStatus.COMPLETE,
             'date_completed': timezone.now(),
-            'data': {'invited_member_id': member.id}
+            'data': {
+                'invited_member_id': member.id
+            }
         }
     )
     if created or rows_affected:
@@ -165,17 +177,21 @@ def record_release_received(project, group, event, **kwargs):
 
 @event_processed.connect(weak=False)
 def record_user_context_received(project, group, event, **kwargs):
-    if not event.data.get('sentry.interfaces.User'):
+    user_context = event.data.get('sentry.interfaces.User')
+    if not user_context:
         return
-
-    success = OrganizationOnboardingTask.objects.record(
-        organization_id=project.organization_id,
-        task=OnboardingTask.USER_CONTEXT,
-        status=OnboardingTaskStatus.COMPLETE,
-        project_id=project.id,
-    )
-    if success:
-        check_for_onboarding_complete(project.organization_id)
+    # checking to see if only ip address is being sent (our js library does this automatically)
+    # testing for this in test_no_user_tracking_for_ip_address_only
+    # list(d.keys()) pattern is to make this python3 safe
+    elif list(user_context.keys()) != ['ip_address']:
+        success = OrganizationOnboardingTask.objects.record(
+            organization_id=project.organization_id,
+            task=OnboardingTask.USER_CONTEXT,
+            status=OnboardingTaskStatus.COMPLETE,
+            project_id=project.id,
+        )
+        if success:
+            check_for_onboarding_complete(project.organization_id)
 
 
 @event_processed.connect(weak=False)
@@ -227,7 +243,9 @@ def record_issue_tracker_used(plugin, project, user, **kwargs):
             'user': user,
             'project_id': project.id,
             'date_completed': timezone.now(),
-            'data': {'plugin': plugin.slug}
+            'data': {
+                'plugin': plugin.slug
+            }
         }
     )
     if rows_affected or created:

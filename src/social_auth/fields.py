@@ -1,11 +1,11 @@
 from __future__ import absolute_import
 
+import simplejson
 import six
 
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils.encoding import smart_text
-from django.utils import simplejson
 
 
 @six.add_metaclass(models.SubfieldBase)
@@ -13,6 +13,7 @@ class JSONField(models.TextField):
     """Simple JSON field that stores python structures as JSON strings
     on database.
     """
+
     def to_python(self, value):
         """
         Convert the input JSON value into python structures, raises

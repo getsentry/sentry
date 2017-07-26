@@ -14,9 +14,7 @@ from .manager import (  # NOQA
     FLAG_REQUIRED, FLAG_PRIORITIZE_DISK, FLAG_ALLOW_EMPTY, UnknownOption
 )
 
-__all__ = (
-    'get', 'set', 'delete', 'register', 'isset', 'lookup_key', 'UnknownOption',
-)
+__all__ = ('get', 'set', 'delete', 'register', 'isset', 'lookup_key', 'UnknownOption', )
 
 # See notes in ``runner.initializer`` regarding lazy cache configuration.
 default_store = OptionsStore(cache=None)

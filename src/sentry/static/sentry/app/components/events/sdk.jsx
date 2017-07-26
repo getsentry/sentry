@@ -7,7 +7,7 @@ import {t} from '../../locale';
 const EventSdk = React.createClass({
   propTypes: {
     group: PropTypes.Group.isRequired,
-    event: PropTypes.Event.isRequired,
+    event: PropTypes.Event.isRequired
   },
 
   render() {
@@ -16,11 +16,11 @@ const EventSdk = React.createClass({
 
     return (
       <GroupEventDataSection
-          group={group}
-          event={event}
-          type="sdk"
-          title={t('SDK')}
-          wrapTitle={true}>
+        group={group}
+        event={event}
+        type="sdk"
+        title={t('SDK')}
+        wrapTitle={true}>
         <table className="table key-value">
           <tbody>
             <tr key="name">
@@ -35,8 +35,7 @@ const EventSdk = React.createClass({
               <tr key="clientIP">
                 <td className="key">Client IP</td>
                 <td className="value"><pre>{data.clientIP}</pre></td>
-              </tr>
-            }
+              </tr>}
           </tbody>
         </table>
       </GroupEventDataSection>

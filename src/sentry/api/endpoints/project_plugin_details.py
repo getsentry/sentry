@@ -15,6 +15,7 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.plugin import (
     PluginSerializer, PluginWithConfigSerializer, serialize_field
 )
+from sentry.signals import plugin_enabled
 
 ERR_ALWAYS_ENABLED = 'This plugin is always enabled.'
 ERR_FIELD_REQUIRED = 'This field is required.'
@@ -33,8 +34,7 @@ class ProjectPluginDetailsEndpoint(ProjectEndpoint):
         plugin = self._get_plugin(plugin_id)
 
         try:
-            context = serialize(
-                plugin, request.user, PluginWithConfigSerializer(project))
+            context = serialize(plugin, request.user, PluginWithConfigSerializer(project))
         except PluginIdentityRequired as e:
             context = serialize(plugin, request.user, PluginSerializer(project))
             context['config_error'] = e.message
@@ -112,9 +112,11 @@ class ProjectPluginDetailsEndpoint(ProjectEndpoint):
                 errors['__all__'] = e.message
 
         if errors:
-            return Response({
-                'errors': errors,
-            }, status=400)
+            return Response(
+                {
+                    'errors': errors,
+                }, status=400
+            )
 
         for key, value in six.iteritems(cleaned):
             if value is None:
@@ -129,7 +131,8 @@ class ProjectPluginDetailsEndpoint(ProjectEndpoint):
                     value=value,
                 )
 
-        context = serialize(
-            plugin, request.user, PluginWithConfigSerializer(project))
+        context = serialize(plugin, request.user, PluginWithConfigSerializer(project))
+
+        plugin_enabled.send(plugin=plugin, project=project, user=request.user, sender=self)
 
         return Response(context)

@@ -7,12 +7,10 @@ import {update as projectUpdate} from '../../actionCreators/projects';
 const BookmarkToggle = React.createClass({
   propTypes: {
     orgId: React.PropTypes.string.isRequired,
-    project: React.PropTypes.object.isRequired,
+    project: React.PropTypes.object.isRequired
   },
 
-  mixins: [
-    ApiMixin
-  ],
+  mixins: [ApiMixin],
 
   handleBookmarkClick() {
     let {project} = this.props;
@@ -33,7 +31,6 @@ const BookmarkToggle = React.createClass({
         {this.props.children}
       </span>
     );
-
   }
 });
 

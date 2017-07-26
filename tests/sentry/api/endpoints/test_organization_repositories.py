@@ -33,10 +33,12 @@ class OrganizationRepositoriesCreateTest(APITestCase):
         org = self.create_organization(owner=self.user, name='baz')
 
         url = reverse('sentry-api-0-organization-repositories', args=[org.slug])
-        response = self.client.post(url, data={
-            'provider': 'dummy',
-            'name': 'getsentry/sentry',
-        })
+        response = self.client.post(
+            url, data={
+                'provider': 'dummy',
+                'name': 'getsentry/sentry',
+            }
+        )
 
         assert response.status_code == 201, (response.status_code, response.content)
         assert response.data['id']

@@ -1,11 +1,10 @@
 import React from 'react';
 
-
 const Pill = React.createClass({
   propTypes: {
     className: React.PropTypes.string,
     name: React.PropTypes.string,
-    value: React.PropTypes.any,
+    value: React.PropTypes.any
   },
 
   renderValue() {
@@ -32,8 +31,7 @@ const Pill = React.createClass({
     let [extraClass, renderedValue] = this.renderValue();
 
     return (
-      <li className={
-        (className || '') + (extraClass ? ' ' + extraClass : '')} {...props}>
+      <li className={(className || '') + (extraClass ? ' ' + extraClass : '')} {...props}>
         <span className="key">{name}</span>
         <span className="value">{renderedValue}{children}</span>
       </li>

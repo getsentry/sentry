@@ -15,7 +15,7 @@ class RemoveProjectForm(forms.Form):
 
 
 class RemoveProjectView(ProjectView):
-    required_scope = 'project:delete'
+    required_scope = 'project:admin'
     sudo_required = True
 
     def get_form(self, request):
@@ -27,14 +27,20 @@ class RemoveProjectView(ProjectView):
         form = self.get_form(request)
 
         if form.is_valid():
-            client.delete('/projects/{}/{}/'.format(organization.slug, project.slug),
-                          request=request, is_sudo=True)
+            client.delete(
+                '/projects/{}/{}/'.format(organization.slug, project.slug),
+                request=request,
+                is_sudo=True
+            )
 
             messages.add_message(
                 request, messages.SUCCESS,
-                _(u'The project %r was scheduled for deletion.') % (project.name.encode('utf-8'),))
+                _(u'The project %r was scheduled for deletion.') % (project.name.encode('utf-8'), )
+            )
 
-            return HttpResponseRedirect(reverse('sentry-organization-home', args=[team.organization.slug]))
+            return HttpResponseRedirect(
+                reverse('sentry-organization-home', args=[team.organization.slug])
+            )
 
         context = {
             'form': form,

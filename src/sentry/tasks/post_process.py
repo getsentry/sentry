@@ -35,13 +35,11 @@ def _capture_stats(event, is_new):
         metrics.incr('events.unique')
 
     metrics.incr('events.processed')
-    metrics.incr('events.processed.{platform}'.format(
-        platform=platform))
+    metrics.incr('events.processed.{platform}'.format(platform=platform))
     metrics.timing('events.size.data', len(six.text_type(event.data)))
 
 
-@instrumented_task(
-    name='sentry.tasks.post_process.post_process_group')
+@instrumented_task(name='sentry.tasks.post_process.post_process_group')
 def post_process_group(event, is_new, is_regression, is_sample, **kwargs):
     """
     Fires post processing hooks for a group.
@@ -68,6 +66,9 @@ def post_process_group(event, is_new, is_regression, is_sample, **kwargs):
     event.project = Project.objects.get_from_cache(id=project_id)
 
     _capture_stats(event, is_new)
+
+    # we process snoozes before rules as it might create a regression
+    process_snoozes(event.group)
 
     rp = RuleProcessor(event, is_new, is_regression, is_sample)
     # TODO(dcramer): ideally this would fanout, but serializing giant
@@ -102,9 +103,25 @@ def record_additional_tags(event):
         Group.objects.add_tags(event.group, added_tags)
 
 
+def process_snoozes(group):
+    from sentry.models import GroupSnooze, GroupStatus
+
+    try:
+        snooze = GroupSnooze.objects.get_from_cache(
+            group=group,
+        )
+    except GroupSnooze.DoesNotExist:
+        return
+
+    if not snooze.is_valid(group, test_rates=True):
+        snooze.delete()
+        group.update(status=GroupStatus.UNRESOLVED)
+
+
 @instrumented_task(
     name='sentry.tasks.post_process.plugin_post_process_group',
-    stat_suffix=lambda plugin_slug, *a, **k: plugin_slug)
+    stat_suffix=lambda plugin_slug, *a, **k: plugin_slug
+)
 def plugin_post_process_group(plugin_slug, event, **kwargs):
     """
     Fires post processing hooks for a group.
@@ -116,8 +133,7 @@ def plugin_post_process_group(plugin_slug, event, **kwargs):
     safe_execute(plugin.post_process, event=event, group=event.group, **kwargs)
 
 
-@instrumented_task(
-    name='sentry.tasks.post_process.record_affected_user')
+@instrumented_task(name='sentry.tasks.post_process.record_affected_user')
 def record_affected_user(event, **kwargs):
     from sentry.models import EventUser, Group
 
@@ -140,8 +156,7 @@ def record_affected_user(event, **kwargs):
 
     if not euser.tag_value:
         # no ident, bail
-        logger.info('No identifying value found for user on event_id=%s',
-                    event.event_id)
+        logger.info('No identifying value found for user on event_id=%s', event.event_id)
         return
 
     try:
@@ -150,16 +165,13 @@ def record_affected_user(event, **kwargs):
     except IntegrityError:
         pass
 
-    Group.objects.add_tags(event.group, [
-        ('sentry:user', euser.tag_value)
-    ])
+    Group.objects.add_tags(event.group, [('sentry:user', euser.tag_value)])
 
 
 @instrumented_task(
-    name='sentry.tasks.index_event_tags',
-    default_retry_delay=60 * 5, max_retries=None)
-def index_event_tags(organization_id, project_id, event_id, tags, group_id=None,
-                     **kwargs):
+    name='sentry.tasks.index_event_tags', default_retry_delay=60 * 5, max_retries=None
+)
+def index_event_tags(organization_id, project_id, event_id, tags, group_id=None, **kwargs):
     from sentry.models import EventTag, Project, TagKey, TagValue
 
     Raven.tags_context({

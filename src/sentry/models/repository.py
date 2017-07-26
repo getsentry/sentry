@@ -5,9 +5,7 @@ from django.utils import timezone
 from jsonfield import JSONField
 
 from sentry.constants import ObjectStatus
-from sentry.db.models import (
-    BoundedPositiveIntegerField, Model, sane_repr
-)
+from sentry.db.models import (BoundedPositiveIntegerField, Model, sane_repr)
 from sentry.signals import pending_delete
 
 
@@ -31,8 +29,7 @@ class Repository(Model):
         app_label = 'sentry'
         db_table = 'sentry_repository'
         unique_together = (
-            ('organization_id', 'name'),
-            ('organization_id', 'provider', 'external_id')
+            ('organization_id', 'name'), ('organization_id', 'provider', 'external_id')
         )
 
     __repr__ = sane_repr('organization_id', 'name', 'provider')
@@ -43,7 +40,7 @@ class Repository(Model):
         return provider_cls(self.provider)
 
 
-def on_delete(instance, actor, **kwargs):
+def on_delete(instance, actor=None, **kwargs):
     instance.get_provider().delete_repository(
         repo=instance,
         actor=actor,

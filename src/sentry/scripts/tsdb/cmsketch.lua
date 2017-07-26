@@ -11,7 +11,7 @@ potentially overcounting lower-frequency items due to hash collisions.
 This implementation extends the conventional Count-Min algorithm, adding an
 index that allows querying for the top N items that have been observed in the
 stream. The index also serves as the primary storage, reducing storage
-requirements and improving accuracy, auntil it's capacity is exceeded, at which
+requirements and improving accuracy, until it's capacity is exceeded, at which
 point the index data is used to initialize the estimation matrix. Once the
 index capacity as been exceeded and the estimation matrix has been initialized,
 the index of most frequent items is maintained using the estimates from the
@@ -23,26 +23,22 @@ The public API consists of three main methods:
 - ESTIMATE: used to query the number of times a specific item has been seen,
 - RANKED: used to query the top N items that have been recorded in a sketch.
 
-The named command to use is the first item passed as ``ARGV``. For commands
-that mutate data (`INCR`), the command is followed by the accuracy and storage
-parameters to use when initializing a new sketch:
+The named command to use is the first item passed as ``ARGV``.  The command is
+followed by the accuracy and storage parameters to use when initializing a new
+sketch:
 
 - DEPTH: number of rows for the estimation matrix,
 - WIDTH: number of columns for the estimation matrix,
 - CAPACITY: maximum size of the index (to disable indexing entirely, set to 0.)
 
-(Configuration parameters are not required for readonly commands such as
-`ESTIMATE` and `RANKED`.)
+The ``KEYS`` provided to each command are the two keys used for sketch storage:
 
-The ``KEYS`` provided to each command are the three keys used for sketch storage:
-
-- configuration key (bytes, serialized MessagePack data)
 - index key (sorted set)
 - estimation matrix key (hash of frequencies (floats), keyed by struct packed matrix coordinates)
 
 Multiple sketches can be provided to each command by providing another set of keys, e.g.
 
-    EVALSHA $SHA 6 1:config 1:index 1:estimates 2:config 2:index 2:estimates [...]
+    EVALSHA $SHA 4 1:index 1:estimates 2:index 2:estimates [...]
 
 (Whether a command returns a single result that encompasses all sketches, or a
 sequence of results that correspond to each sketch is dependent on the command
@@ -51,11 +47,11 @@ being called.)
 To add two items, "foo" with a score of 1, and "bar" with a score of 2 to two
 sketches with depth 5, width 64 and index capacity of 50:
 
-    EVALSHA $SHA 6 1:c 1:i 1:e 2:c 2:i 2:e INCR 5 64 50 1 foo 2 bar
+    EVALSHA $SHA 4 1:i 1:e 2:i 2:e INCR 5 64 50 1 foo 2 bar
 
-To query the top 5 items from the first sketch:
+To query the top 10 items from the first sketch:
 
-    EVALSHA $SHA 3 1:c 1:i 1:e RANKED 5
+    EVALSHA $SHA 2 1:i 1:e RANKED 5 64 50 10
 
 ]]--
 
@@ -182,47 +178,6 @@ local function mmh3(key, seed)
 end
 
 
---[[ Configuration ]]--
-
-local Configuration = {}
-
-function Configuration:new(key, readonly, defaults)
-    self.__index = self
-    return setmetatable({
-        key = key,
-        readonly = readonly,
-        defaults = defaults,
-        data = nil,
-        loaded = false
-    }, self)
-end
-
-function Configuration:exists()
-    self:load()
-    return self.data ~= nil
-end
-
-function Configuration:load()
-    if not self.loaded then
-        local raw = redis.call('GET', self.key)
-        if raw == false then
-            self.data = self.defaults
-            if not self.readonly then
-                redis.call('SET', self.key, cmsgpack.pack(self.data))
-            end
-        else
-            self.data = cmsgpack.unpack(raw)
-        end
-        self.loaded = true
-    end
-end
-
-function Configuration:get(key)
-    self:load()
-    return self.data[key]
-end
-
-
 --[[ Sketch ]]--
 
 local Sketch = {}
@@ -238,12 +193,15 @@ end
 
 function Sketch:coordinates(value)
     local coordinates = {}
-    local width = self.configuration:get('width')
-    for d = 1, self.configuration:get('depth') do
-        local w = (mmh3(value, d) % width) + 1  -- This Kool-Aid is delicious!
+    for d = 1, self.configuration.depth do
+        local w = (mmh3(value, d) % self.configuration.width) + 1  -- This Kool-Aid is delicious!
         table.insert(coordinates, {d, w})
     end
     return coordinates
+end
+
+function Sketch:exists()
+    return redis.call('EXISTS', self.index)
 end
 
 function Sketch:observations(coordinates)
@@ -251,7 +209,7 @@ function Sketch:observations(coordinates)
 end
 
 function Sketch:estimate(value)
-    if self.configuration:exists() then
+    if self:exists() then
         local score = tonumber(redis.call('ZSCORE', self.index, value))
         if score ~= nil then
             return score
@@ -271,11 +229,9 @@ function Sketch:estimate(value)
 end
 
 function Sketch:increment(items)
-    assert(not self.configuration.readonly)
-
     local results = {}
     local usage = redis.call('ZCARD', self.index)
-    if self.configuration:get('index') > usage then
+    if self.configuration.index > usage then
         -- Add all of the items to the index. (Note that this can cause the
         -- index to temporarily grow to the size of the capacity - 1 + number
         -- of items being updated in the worst case.)
@@ -291,7 +247,7 @@ function Sketch:increment(items)
         -- If the number of items added pushes the index to capacity, we need
         -- to initialize the sketch matrix with all of the current members of
         -- the index.
-        if added + usage >= self.configuration:get('index') then
+        if added + usage >= self.configuration.index then
             -- TODO: Use this data to generate the response value.
             local members = redis.call('ZRANGE', self.index, 0, -1, 'WITHSCORES')
             for i = 1, #members, 2 do
@@ -314,7 +270,7 @@ function Sketch:increment(items)
             end
 
             -- Remove extra items from the index.
-            redis.call('ZREMRANGEBYRANK', self.index, 0, -self.configuration:get('index') - 1)
+            redis.call('ZREMRANGEBYRANK', self.index, 0, -self.configuration.index - 1)
         end
     else
         -- Fetch the estimates for each item and update them.
@@ -330,7 +286,7 @@ function Sketch:increment(items)
 
             -- This uses the score from the index (if it's available) instead
             -- of the index to avoid data rot as much as possible.
-            local score = (tonumber(redis.call('ZSCORE', self.index, item)) or reduce(math.min, estimates)) + delta
+            local score = (tonumber(redis.call('ZSCORE', self.index, value)) or reduce(math.min, estimates)) + delta
             for i, item in pairs(zip({coordinates, estimates})) do
                 local c, estimate = unpack(item)
                 local update = math.max(score, estimate)
@@ -341,7 +297,7 @@ function Sketch:increment(items)
             results[i] = score
         end
 
-        if self.configuration:get('index') > 0 then
+        if self.configuration.index > 0 then
             local added = 0
             local minimum = tonumber(redis.call('ZRANGE', self.index, 0, 0, 'WITHSCORES')[2])
             for i, item in pairs(items) do
@@ -355,11 +311,121 @@ function Sketch:increment(items)
 
             if added > 0 then
                 -- Remove extra items from the index.
-                redis.call('ZREMRANGEBYRANK', self.index, 0, -self.configuration:get('index') - 1)
+                redis.call('ZREMRANGEBYRANK', self.index, 0, -self.configuration.index - 1)
             end
         end
     end
     return results
+end
+
+local function response_to_table(response)
+    local result = {}
+    for i = 1, #response, 2 do
+        result[response[i]] = response[i + 1]
+    end
+    return result
+end
+
+function Sketch:export()
+    -- If there's no data, there's nothing meaningful to export.
+    if not self:exists() then
+        return cmsgpack.pack(nil)
+    end
+    return cmsgpack.pack({
+        response_to_table(redis.call('ZRANGE', self.index, 0, -1, 'WITHSCORES')),
+        response_to_table(redis.call('HGETALL', self.estimates)),
+    })
+end
+
+function table.is_empty(t)
+    return next(t) == nil
+end
+
+function Sketch:import(payload)
+    local data = cmsgpack.unpack(payload)
+    if data == nil then
+        return  -- nothing to do here
+    end
+
+    local source_index, source_estimators = unpack(data)
+
+    if table.is_empty(source_estimators) then
+        -- If we're just writing the source index values (and not estimators)
+        -- to the destination, we can just directly increment the sketch which
+        -- will take care of destinaton estimator updates and index truncation,
+        -- if necessary.
+        local items = {}
+        for key, value in pairs(source_index) do
+            table.insert(
+                items,
+                {key, tonumber(value)}
+            )
+        end
+        self:increment(items)
+    else
+        -- If the source does have estimators, we'll have to add those to the
+        -- destination estimators and rebuild the index from the combined
+        -- estimates and the known top values from both indices.
+        local destination_index = response_to_table(
+            redis.call('ZRANGE', self.index, 0, -1, 'WITHSCORES')
+        )
+
+        -- If this sketch doesn't yet have any estimators, we'll need to derive
+        -- them from the index data before we merge in the source estimators.
+        if tonumber(redis.call('EXISTS', self.estimates)) ~= 1 then
+            for key, score in pairs(destination_index) do
+                for _, coordinates in ipairs(self:coordinates(key)) do
+                    local estimate = self:observations(coordinates)
+                    if estimate == nil or tonumber(score) > estimate then
+                        redis.call(
+                            'HSET',
+                            self.estimates,
+                            struct.pack('>HH', unpack(coordinates)),
+                            score
+                        )
+                    end
+                end
+            end
+        end
+
+        -- Merge in the source estimators.
+        for key, value in pairs(source_estimators) do
+            redis.call('HINCRBY', self.estimates, key, value)
+        end
+
+        -- Rebuild the index by using the keys from both indices and the new estimates.
+        local members = {}
+
+        for key, _ in pairs(source_index) do
+            members[key] = true
+        end
+
+        for key, _ in pairs(destination_index) do
+            members[key] = true
+        end
+
+        redis.call('DEL', self.index)
+
+        for key, _ in pairs(members) do
+            redis.call(
+                'ZADD',
+                self.index,
+                reduce(
+                    math.min,
+                    map(
+                        function (coordinates)
+                            return self:observations(coordinates)
+                        end,
+                        self:coordinates(key)
+                    )
+                ),
+                key
+            )
+        end
+
+        -- Remove extra items from the index.
+        redis.call('ZREMRANGEBYRANK', self.index, 0, -self.configuration.index - 1)
+    end
 end
 
 
@@ -367,32 +433,25 @@ end
 
 local Command = {}
 
-function Command:new(fn, readonly)
-    if readonly == nil then
-        readonly = false
-    end
-
+function Command:new(fn)
     return function (keys, arguments)
-        local defaults = nil
-        if not readonly then
-            defaults, arguments = (
-                function (depth, width, index, ...)
-                    return {
-                        -- TODO: Actually validate these.
-                        depth=tonumber(depth),
-                        width=tonumber(width),
-                        index=tonumber(index)
-                    }, {...}
-                end
-            )(unpack(arguments))
-        end
+        local configuration, arguments = (
+            function (depth, width, index, ...)
+                return {
+                    -- TODO: Actually validate these.
+                    depth=tonumber(depth),
+                    width=tonumber(width),
+                    index=tonumber(index)
+                }, {...}
+            end
+        )(unpack(arguments))
 
         local sketches = {}
-        for i = 1, #keys, 3 do
+        for i = 1, #keys, 2 do
             table.insert(sketches, Sketch:new(
-                Configuration:new(keys[i], readonly, defaults),
-                keys[i + 1],
-                keys[i + 2]
+                configuration,
+                keys[i],
+                keys[i + 1]
             ))
         end
         return fn(sketches, arguments)
@@ -435,8 +494,7 @@ return Router:new({
                 end,
                 sketches
             )
-        end,
-        false
+        end
     ),
 
     --[[
@@ -460,8 +518,7 @@ return Router:new({
                 end,
                 sketches
             )
-        end,
-        true
+        end
     ),
 
     --[[
@@ -475,7 +532,7 @@ return Router:new({
             -- We only care about sketches that actually exist.
             sketches = filter(
                 function (sketch)
-                    return sketch.configuration:exists()
+                    return sketch:exists()
                 end,
                 sketches
             )
@@ -491,7 +548,7 @@ return Router:new({
                     math.min,
                     map(
                         function (sketch)
-                            return sketch.configuration:get('index')
+                            return sketch.configuration.index
                         end,
                         sketches
                     )
@@ -563,7 +620,30 @@ return Router:new({
                 end
                 return trimmed
             end
-        end,
-        true
-    )
+        end
+    ),
+
+    EXPORT = Command:new(
+        function (sketches, arguments)
+            return map(
+                function (sketch)
+                    return sketch:export()
+                end,
+                sketches
+            )
+        end
+    ),
+
+    IMPORT = Command:new(
+        function (sketches, arguments)
+            return map(
+                function (item)
+                    local sketch, data = unpack(item)
+                    return sketch:import(data)
+                end,
+                zip({sketches, arguments})
+            )
+        end
+    ),
+
 })(KEYS, ARGV)

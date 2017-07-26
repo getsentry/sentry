@@ -34,7 +34,9 @@ def _get_user_from_email(group, email):
 @instrumented_task(
     name='sentry.tasks.email.process_inbound_email',
     queue='email',
-    default_retry_delay=60 * 5, max_retries=None)
+    default_retry_delay=60 * 5,
+    max_retries=None
+)
 def process_inbound_email(mailfrom, group_id, payload):
     """
     """
@@ -42,7 +44,7 @@ def process_inbound_email(mailfrom, group_id, payload):
     from sentry.web.forms import NewNoteForm
 
     try:
-        group = Group.objects.select_related('project', 'team').get(pk=group_id)
+        group = Group.objects.select_related('project').get(pk=group_id)
     except Group.DoesNotExist:
         logger.warning('Group does not exist: %d', group_id)
         return
@@ -67,6 +69,8 @@ def process_inbound_email(mailfrom, group_id, payload):
 @instrumented_task(
     name='sentry.tasks.email.send_email',
     queue='email',
-    default_retry_delay=60 * 5, max_retries=None)
+    default_retry_delay=60 * 5,
+    max_retries=None
+)
 def send_email(message):
     send_messages([message])

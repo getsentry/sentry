@@ -1,8 +1,6 @@
 from __future__ import absolute_import
 
-from sentry.models import (
-    GroupSubscription, GroupSubscriptionReason, UserOption, UserOptionValue
-)
+from sentry.models import (GroupSubscription, GroupSubscriptionReason, UserOption, UserOptionValue)
 from sentry.testutils import TestCase
 
 
@@ -61,7 +59,6 @@ class GetParticipantsTest(TestCase):
         UserOption.objects.set_value(
             user=user,
             key='workflow:notifications',
-            project=None,
             value=UserOptionValue.participating_only,
         )
 

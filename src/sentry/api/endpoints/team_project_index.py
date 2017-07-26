@@ -16,9 +16,7 @@ from sentry.utils.samples import create_sample_event
 @scenario('ListTeamProjects')
 def list_team_projects_scenario(runner):
     runner.request(
-        method='GET',
-        path='/teams/%s/%s/projects/' % (
-            runner.org.slug, runner.default_team.slug)
+        method='GET', path='/teams/%s/%s/projects/' % (runner.org.slug, runner.default_team.slug)
     )
 
 
@@ -26,18 +24,15 @@ def list_team_projects_scenario(runner):
 def create_project_scenario(runner):
     runner.request(
         method='POST',
-        path='/teams/%s/%s/projects/' % (
-            runner.org.slug, runner.default_team.slug),
-        data={
-            'name': 'The Spoiled Yoghurt'
-        }
+        path='/teams/%s/%s/projects/' % (runner.org.slug, runner.default_team.slug),
+        data={'name': 'The Spoiled Yoghurt'}
     )
 
 
 class ProjectSerializer(serializers.Serializer):
     name = serializers.CharField(max_length=64, required=True)
-    slug = serializers.RegexField(r'^[a-z0-9_\-]+$', max_length=50,
-                                  required=False)
+    slug = serializers.RegexField(r'^[a-z0-9_\-]+$', max_length=50, required=False)
+    platform = serializers.CharField(required=False)
 
 
 # While currently the UI suggests teams are a parent of a project, in reality
@@ -46,18 +41,20 @@ class ProjectSerializer(serializers.Serializer):
 # it, and because Sentry intends to remove teams as a hierarchy item, we
 # allow you to view a teams projects, as well as create a new project as long
 # as you are a member of that team and have project scoped permissions.
+
+
 class TeamProjectPermission(TeamPermission):
     scope_map = {
-        'GET': ['project:read', 'project:write', 'project:delete'],
-        'POST': ['project:write', 'project:delete'],
-        'PUT': ['project:write', 'project:delete'],
-        'DELETE': ['project:delete'],
+        'GET': ['project:read', 'project:write', 'project:admin'],
+        'POST': ['project:write', 'project:admin'],
+        'PUT': ['project:write', 'project:admin'],
+        'DELETE': ['project:admin'],
     }
 
 
 class TeamProjectIndexEndpoint(TeamEndpoint):
     doc_section = DocSection.TEAMS
-    permission_classes = (TeamProjectPermission,)
+    permission_classes = (TeamProjectPermission, )
 
     @attach_scenarios([list_team_projects_scenario])
     def get(self, request, team):
@@ -73,8 +70,7 @@ class TeamProjectIndexEndpoint(TeamEndpoint):
         :auth: required
         """
         if request.user.is_authenticated():
-            results = list(Project.objects.get_for_user(
-                team=team, user=request.user))
+            results = list(Project.objects.get_for_user(team=team, user=request.user))
         else:
             # TODO(dcramer): status should be selectable
             results = list(Project.objects.filter(
@@ -112,11 +108,14 @@ class TeamProjectIndexEndpoint(TeamEndpoint):
                         name=result['name'],
                         slug=result.get('slug'),
                         organization=team.organization,
-                        team=team
+                        team=team,
+                        platform=result.get('platform')
                     )
             except IntegrityError:
                 return Response(
-                    {'detail': 'A project with this slug already exists.'},
+                    {
+                        'detail': 'A project with this slug already exists.'
+                    },
                     status=409,
                 )
 

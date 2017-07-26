@@ -20,6 +20,8 @@ const StreamFilters = React.createClass({
     filter: React.PropTypes.string,
     query: React.PropTypes.string,
     isSearchDisabled: React.PropTypes.bool,
+    queryCount: React.PropTypes.number,
+    queryMaxCount: React.PropTypes.number,
 
     onSortChange: React.PropTypes.func,
     onSearch: React.PropTypes.func,
@@ -39,12 +41,30 @@ const StreamFilters = React.createClass({
       query: null,
       onSortChange: function() {},
       onSearch: function() {},
-      onSidebarToggle: function () {}
+      onSidebarToggle: function() {}
     };
   },
 
   render() {
-    let {access, orgId, projectId, searchId} = this.props;
+    let {
+      access,
+      orgId,
+      projectId,
+      searchId,
+      queryCount,
+      queryMaxCount,
+      query,
+      savedSearchList,
+      tags,
+      defaultQuery,
+      isSearchDisabled,
+      sort,
+
+      onSidebarToggle,
+      onSearch,
+      onSavedSearchCreate,
+      onSortChange
+    } = this.props;
 
     return (
       <div className="stream-header">
@@ -55,29 +75,33 @@ const StreamFilters = React.createClass({
               orgId={orgId}
               projectId={projectId}
               searchId={searchId}
-              query={this.props.query}
-              onSavedSearchCreate={this.props.onSavedSearchCreate}
-              savedSearchList={this.props.savedSearchList} />
+              queryCount={queryCount}
+              queryMaxCount={queryMaxCount}
+              query={query}
+              onSavedSearchCreate={onSavedSearchCreate}
+              savedSearchList={savedSearchList}
+            />
           </div>
           <div className="col-sm-7">
             <div className="search-container">
               <div className="stream-sort">
-                <SortOptions
-                  sort={this.props.sort}
-                  onSelect={this.props.onSortChange} />
+                <SortOptions sort={sort} onSelect={onSortChange} />
               </div>
 
               <SearchBar
                 orgId={orgId}
                 projectId={projectId}
                 ref="searchBar"
-                tags={this.props.tags}
-                defaultQuery={this.props.defaultQuery || ''}
+                tags={tags}
+                defaultQuery={defaultQuery || ''}
                 placeholder={t('Search for events, users, tags, and everything else.')}
-                query={this.props.query || ''}
-                onSearch={this.props.onSearch}
-                disabled={this.props.isSearchDisabled} />
-              <a className="btn btn-default toggle-stream-sidebar" onClick={this.props.onSidebarToggle}>
+                query={query || ''}
+                onSearch={onSearch}
+                disabled={isSearchDisabled}
+              />
+              <a
+                className="btn btn-default toggle-stream-sidebar"
+                onClick={onSidebarToggle}>
                 <span className="icon-filter" />
               </a>
             </div>

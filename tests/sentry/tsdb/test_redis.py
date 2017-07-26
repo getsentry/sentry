@@ -9,7 +9,7 @@ from datetime import (
 
 from sentry.testutils import TestCase
 from sentry.tsdb.base import TSDBModel, ONE_MINUTE, ONE_HOUR, ONE_DAY
-from sentry.tsdb.redis import RedisTSDB
+from sentry.tsdb.redis import RedisTSDB, CountMinScript
 from sentry.utils.dates import to_timestamp
 
 
@@ -25,7 +25,14 @@ class RedisTSDBTest(TestCase):
             ),
             vnodes=64,
             enable_frequency_sketches=True,
+            hosts={i - 6: {
+                'db': i
+            } for i in xrange(6, 9)},
         )
+
+    def tearDown(self):
+        with self.db.cluster.all() as client:
+            client.flushdb()
 
     def test_make_counter_key(self):
         result = self.db.make_counter_key(TSDBModel.project, 1368889980, 1)
@@ -42,7 +49,7 @@ class RedisTSDBTest(TestCase):
         assert result == 'bf4e529197e56a48ae2737505b9736e4'
 
     def test_simple(self):
-        now = datetime.utcnow().replace(tzinfo=pytz.UTC)
+        now = datetime.utcnow().replace(tzinfo=pytz.UTC) - timedelta(hours=4)
         dts = [now + timedelta(hours=i) for i in range(4)]
 
         def timestamp(d):
@@ -52,10 +59,12 @@ class RedisTSDBTest(TestCase):
         self.db.incr(TSDBModel.project, 1, dts[0])
         self.db.incr(TSDBModel.project, 1, dts[1], count=3)
         self.db.incr(TSDBModel.project, 1, dts[2])
-        self.db.incr_multi([
-            (TSDBModel.project, 1),
-            (TSDBModel.project, 2),
-        ], dts[3], count=4)
+        self.db.incr_multi(
+            [
+                (TSDBModel.project, 1),
+                (TSDBModel.project, 2),
+            ], dts[3], count=4
+        )
 
         results = self.db.get_range(TSDBModel.project, [1], dts[0], dts[-1])
         assert results == {
@@ -82,8 +91,43 @@ class RedisTSDBTest(TestCase):
             2: 4,
         }
 
+        self.db.merge(TSDBModel.project, 1, [2], now)
+
+        results = self.db.get_range(TSDBModel.project, [1], dts[0], dts[-1])
+        assert results == {
+            1: [
+                (timestamp(dts[0]), 1),
+                (timestamp(dts[1]), 3),
+                (timestamp(dts[2]), 1),
+                (timestamp(dts[3]), 8),
+            ],
+        }
+        results = self.db.get_range(TSDBModel.project, [2], dts[0], dts[-1])
+        assert results == {
+            2: [
+                (timestamp(dts[0]), 0),
+                (timestamp(dts[1]), 0),
+                (timestamp(dts[2]), 0),
+                (timestamp(dts[3]), 0),
+            ],
+        }
+
+        results = self.db.get_sums(TSDBModel.project, [1, 2], dts[0], dts[-1])
+        assert results == {
+            1: 13,
+            2: 0,
+        }
+
+        self.db.delete([TSDBModel.project], [1, 2], dts[0], dts[-1])
+
+        results = self.db.get_sums(TSDBModel.project, [1, 2], dts[0], dts[-1])
+        assert results == {
+            1: 0,
+            2: 0,
+        }
+
     def test_count_distinct(self):
-        now = datetime.utcnow().replace(tzinfo=pytz.UTC)
+        now = datetime.utcnow().replace(tzinfo=pytz.UTC) - timedelta(hours=4)
         dts = [now + timedelta(hours=i) for i in range(4)]
 
         model = TSDBModel.users_affected_by_group
@@ -102,31 +146,24 @@ class RedisTSDBTest(TestCase):
         self.db.record(
             model,
             1,
-            ('baz',),
+            ('baz', ),
             dts[1],
         )
 
-        self.db.record_multi((
-            (
-                model,
-                1,
-                ('foo', 'bar', 'baz'),
-            ),
-            (
-                model,
-                2,
-                ('bar',),
-            ),
-        ), dts[2])
+        self.db.record_multi(
+            ((model, 1, ('foo', 'bar', 'baz'), ), (model, 2, ('bar', ), ), ), dts[2]
+        )
 
         self.db.record(
             model,
             2,
-            ('foo',),
+            ('foo', ),
             dts[3],
         )
 
-        assert self.db.get_distinct_counts_series(model, [1], dts[0], dts[-1], rollup=3600) == {
+        assert self.db.get_distinct_counts_series(
+            model, [1], dts[0], dts[-1], rollup=3600
+        ) == {
             1: [
                 (timestamp(dts[0]), 2),
                 (timestamp(dts[1]), 1),
@@ -135,7 +172,9 @@ class RedisTSDBTest(TestCase):
             ],
         }
 
-        assert self.db.get_distinct_counts_series(model, [2], dts[0], dts[-1], rollup=3600) == {
+        assert self.db.get_distinct_counts_series(
+            model, [2], dts[0], dts[-1], rollup=3600
+        ) == {
             2: [
                 (timestamp(dts[0]), 0),
                 (timestamp(dts[1]), 0),
@@ -153,6 +192,49 @@ class RedisTSDBTest(TestCase):
         assert self.db.get_distinct_counts_union(model, [], dts[0], dts[-1], rollup=3600) == 0
         assert self.db.get_distinct_counts_union(model, [1, 2], dts[0], dts[-1], rollup=3600) == 3
 
+        self.db.merge_distinct_counts(model, 1, [2], dts[0])
+
+        assert self.db.get_distinct_counts_series(
+            model, [1], dts[0], dts[-1], rollup=3600
+        ) == {
+            1: [
+                (timestamp(dts[0]), 2),
+                (timestamp(dts[1]), 1),
+                (timestamp(dts[2]), 3),
+                (timestamp(dts[3]), 1),
+            ],
+        }
+
+        assert self.db.get_distinct_counts_series(
+            model, [2], dts[0], dts[-1], rollup=3600
+        ) == {
+            2: [
+                (timestamp(dts[0]), 0),
+                (timestamp(dts[1]), 0),
+                (timestamp(dts[2]), 0),
+                (timestamp(dts[3]), 0),
+            ],
+        }
+
+        results = self.db.get_distinct_counts_totals(model, [1, 2], dts[0], dts[-1], rollup=3600)
+        assert results == {
+            1: 3,
+            2: 0,
+        }
+
+        assert self.db.get_distinct_counts_union(model, [], dts[0], dts[-1], rollup=3600) == 0
+        assert self.db.get_distinct_counts_union(model, [1], dts[0], dts[-1], rollup=3600) == 3
+        assert self.db.get_distinct_counts_union(model, [1, 2], dts[0], dts[-1], rollup=3600) == 3
+        assert self.db.get_distinct_counts_union(model, [2], dts[0], dts[-1], rollup=3600) == 0
+
+        self.db.delete_distinct_counts([model], [1, 2], dts[0], dts[-1])
+
+        results = self.db.get_distinct_counts_totals(model, [1, 2], dts[0], dts[-1])
+        assert results == {
+            1: 0,
+            2: 0,
+        }
+
     def test_frequency_tables(self):
         now = datetime.utcnow().replace(tzinfo=pytz.UTC)
         model = TSDBModel.frequent_projects_by_organization
@@ -160,31 +242,30 @@ class RedisTSDBTest(TestCase):
         rollup = 3600
 
         self.db.record_frequency_multi(
-            (
-                (model, {
-                    'organization:1': {
-                        "project:1": 1,
-                        "project:2": 2,
-                        "project:3": 3,
-                    },
-                }),
-            ),
-            now
+            ((model, {
+                'organization:1': {
+                    "project:1": 1,
+                    "project:2": 2,
+                    "project:3": 3,
+                },
+            }), ), now
         )
 
         self.db.record_frequency_multi(
             (
-                (model, {
-                    'organization:1': {
-                        "project:1": 1,
-                        "project:2": 2,
-                        "project:3": 3,
-                        "project:4": 4,
-                    },
-                    "organization:2": {
-                        "project:5": 1.5,
-                    },
-                }),
+                (
+                    model, {
+                        'organization:1': {
+                            "project:1": 1,
+                            "project:2": 2,
+                            "project:3": 3,
+                            "project:4": 4,
+                        },
+                        "organization:2": {
+                            "project:5": 1.5,
+                        },
+                    }
+                ),
             ),
             now - timedelta(hours=1),
         )
@@ -238,22 +319,20 @@ class RedisTSDBTest(TestCase):
 
         assert self.db.get_most_frequent_series(
             model,
-            (
-                'organization:1',
-                'organization:2',
-                'organization:3',
-            ),
+            ('organization:1', 'organization:2', 'organization:3', ),
             now - timedelta(hours=1),
             now,
             rollup=rollup,
         ) == {
             'organization:1': [
-                (timestamp - rollup, {
-                    'project:1': 1.0,
-                    'project:2': 2.0,
-                    'project:3': 3.0,
-                    'project:4': 4.0,
-                }),
+                (
+                    timestamp - rollup, {
+                        'project:1': 1.0,
+                        'project:2': 2.0,
+                        'project:3': 3.0,
+                        'project:4': 4.0,
+                    }
+                ),
                 (timestamp, {
                     'project:1': 1.0,
                     'project:2': 2.0,
@@ -276,25 +355,29 @@ class RedisTSDBTest(TestCase):
             model,
             {
                 'organization:1': ("project:1", "project:2", "project:3", "project:4"),
-                'organization:2': ("project:5",),
+                'organization:2': ("project:5", ),
             },
             now - timedelta(hours=1),
             now,
             rollup=rollup,
         ) == {
             'organization:1': [
-                (timestamp - rollup, {
-                    "project:1": 1.0,
-                    "project:2": 2.0,
-                    "project:3": 3.0,
-                    "project:4": 4.0,
-                }),
-                (timestamp, {
-                    "project:1": 1.0,
-                    "project:2": 2.0,
-                    "project:3": 3.0,
-                    "project:4": 0.0,
-                }),
+                (
+                    timestamp - rollup, {
+                        "project:1": 1.0,
+                        "project:2": 2.0,
+                        "project:3": 3.0,
+                        "project:4": 4.0,
+                    }
+                ),
+                (
+                    timestamp, {
+                        "project:1": 1.0,
+                        "project:2": 2.0,
+                        "project:3": 3.0,
+                        "project:4": 0.0,
+                    }
+                ),
             ],
             'organization:2': [
                 (timestamp - rollup, {
@@ -310,7 +393,7 @@ class RedisTSDBTest(TestCase):
             model,
             {
                 'organization:1': ("project:1", "project:2", "project:3", "project:4", "project:5"),
-                'organization:2': ("project:1",),
+                'organization:2': ("project:1", ),
             },
             now - timedelta(hours=1),
             now,
@@ -327,3 +410,321 @@ class RedisTSDBTest(TestCase):
                 "project:1": 0.0,
             },
         }
+
+        self.db.delete_frequencies(
+            [model],
+            ['organization:1', 'organization:2'],
+            now - timedelta(hours=1),
+            now,
+        )
+
+        assert self.db.get_most_frequent(
+            model,
+            ('organization:1', 'organization:2'),
+            now,
+        ) == {
+            'organization:1': [],
+            'organization:2': [],
+        }
+
+    def test_frequency_table_import_export_no_estimators(self):
+        client = self.db.cluster.get_local_client_for_key('key')
+
+        parameters = [64, 5, 10]
+
+        CountMinScript(
+            ['1:i', '1:e'],
+            ['INCR'] + parameters + [
+                1,
+                'foo',
+                2,
+                'bar',
+                3,
+                'baz',
+            ],
+            client=client,
+        )
+
+        CountMinScript(
+            ['2:i', '2:e'],
+            ['INCR'] + parameters + [
+                1,
+                'alpha',
+                2,
+                'beta',
+                3,
+                'gamma',
+                4,
+                'delta',
+                5,
+                'epsilon',
+                6,
+                'zeta',
+                7,
+                'eta',
+                8,
+                'theta',
+                9,
+                'iota',
+            ],
+            client=client,
+        )
+
+        assert client.exists('1:i')
+        assert not client.exists('1:e')
+        assert client.exists('2:i')
+        assert not client.exists('2:e')
+
+        exports = CountMinScript(
+            ['2:i', '2:e'],
+            ['EXPORT'] + parameters,
+            client=client,
+        )
+
+        assert len(exports) == 1
+
+        CountMinScript(
+            ['1:i', '1:e'],
+            ['IMPORT'] + parameters + [exports[0]],
+            client=client,
+        )
+
+        assert client.exists('1:i')
+        assert client.exists('1:e')
+
+    def test_frequency_table_import_export_both_estimators(self):
+        client = self.db.cluster.get_local_client_for_key('key')
+
+        parameters = [64, 5, 5]
+
+        CountMinScript(
+            ['1:i', '1:e'],
+            ['INCR'] + parameters + [
+                1,
+                'foo',
+                2,
+                'bar',
+                3,
+                'baz',
+                4,
+                'wilco',
+                5,
+                'tango',
+                6,
+                'foxtrot',
+            ],
+            client=client,
+        )
+
+        CountMinScript(
+            ['2:i', '2:e'],
+            ['INCR'] + parameters + [
+                1,
+                'alpha',
+                2,
+                'beta',
+                3,
+                'gamma',
+                4,
+                'delta',
+                5,
+                'epsilon',
+                6,
+                'zeta',
+                7,
+                'eta',
+                8,
+                'theta',
+                9,
+                'iota',
+            ],
+            client=client,
+        )
+
+        assert client.exists('1:i')
+        assert client.exists('1:e')
+        assert client.exists('2:i')
+        assert client.exists('2:e')
+
+        exports = CountMinScript(
+            ['2:i', '2:e'],
+            ['EXPORT'] + parameters,
+            client=client,
+        )
+
+        assert len(exports) == 1
+
+        CountMinScript(
+            ['1:i', '1:e'],
+            ['IMPORT'] + parameters + [exports[0]],
+            client=client,
+        )
+
+        assert client.exists('1:i')
+        assert client.exists('1:e')
+
+        assert CountMinScript(
+            ['1:i', '1:e'],
+            ['RANKED'] + parameters,
+            client=client,
+        ) == [
+            ['iota', '9'],
+            ['theta', '8'],
+            ['eta', '7'],
+            ['zeta', '6'],
+            ['foxtrot', '6'],
+        ]
+
+    def test_frequency_table_import_export_source_estimators(self):
+        client = self.db.cluster.get_local_client_for_key('key')
+
+        parameters = [64, 5, 5]
+
+        CountMinScript(
+            ['1:i', '1:e'],
+            ['INCR'] + parameters + [
+                5,
+                'foo',
+                7,
+                'bar',
+                9,
+                'baz',
+            ],
+            client=client,
+        )
+
+        CountMinScript(
+            ['2:i', '2:e'],
+            ['INCR'] + parameters + [
+                1,
+                'alpha',
+                2,
+                'beta',
+                3,
+                'gamma',
+                4,
+                'delta',
+                5,
+                'epsilon',
+                6,
+                'zeta',
+                7,
+                'eta',
+                8,
+                'theta',
+                9,
+                'iota',
+            ],
+            client=client,
+        )
+
+        assert client.exists('1:i')
+        assert not client.exists('1:e')
+        assert client.exists('2:i')
+        assert client.exists('2:e')
+
+        exports = CountMinScript(
+            ['2:i', '2:e'],
+            ['EXPORT'] + parameters,
+            client=client,
+        )
+
+        assert len(exports) == 1
+
+        CountMinScript(
+            ['1:i', '1:e'],
+            ['IMPORT'] + parameters + [exports[0]],
+            client=client,
+        )
+
+        assert client.exists('1:i')
+        assert client.exists('1:e')
+
+        assert CountMinScript(
+            ['1:i', '1:e'],
+            ['RANKED'] + parameters,
+            client=client,
+        ) == [
+            ['iota', '9'],
+            ['baz', '9'],
+            ['theta', '8'],
+            ['eta', '7'],
+            ['bar', '7'],
+        ]
+
+    def test_frequency_table_import_export_destination_estimators(self):
+        client = self.db.cluster.get_local_client_for_key('key')
+
+        parameters = [64, 5, 5]
+
+        CountMinScript(
+            ['1:i', '1:e'],
+            ['INCR'] + parameters + [
+                1,
+                'alpha',
+                2,
+                'beta',
+                3,
+                'gamma',
+                4,
+                'delta',
+                5,
+                'epsilon',
+                6,
+                'zeta',
+                7,
+                'eta',
+                8,
+                'theta',
+                9,
+                'iota',
+            ],
+            client=client,
+        )
+
+        CountMinScript(
+            ['2:i', '2:e'],
+            ['INCR'] + parameters + [
+                5,
+                'foo',
+                7,
+                'bar',
+                9,
+                'baz',
+            ],
+            client=client,
+        )
+
+        assert client.exists('1:i')
+        assert client.exists('1:e')
+        assert client.exists('2:i')
+        assert not client.exists('2:e')
+
+        exports = CountMinScript(
+            ['2:i', '2:e'],
+            ['EXPORT'] + parameters,
+            client=client,
+        )
+
+        assert len(exports) == 1
+
+        CountMinScript(
+            ['1:i', '1:e'],
+            ['IMPORT'] + parameters + [exports[0]],
+            client=client,
+        )
+
+        assert client.exists('1:i')
+        assert client.exists('1:e')
+
+        assert CountMinScript(
+            ['1:i', '1:e'],
+            ['RANKED'] + parameters,
+            client=client,
+        ) == [
+            ['iota', '9'],
+            ['baz', '9'],
+            ['theta', '8'],
+            ['eta', '7'],
+            ['bar', '7'],
+        ]

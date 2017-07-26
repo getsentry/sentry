@@ -12,13 +12,15 @@ from requests.exceptions import RequestException
 
 from sentry import http
 from sentry.lang.javascript.processor import (
-    discover_sourcemap, fetch_sourcemap, fetch_file, generate_module,
-    trim_line, fetch_release_file,
+    discover_sourcemap,
+    fetch_sourcemap,
+    fetch_file,
+    generate_module,
+    trim_line,
+    fetch_release_file,
     UnparseableSourcemap,
 )
-from sentry.lang.javascript.errormapping import (
-    rewrite_exception, REACT_MAPPING_URL
-)
+from sentry.lang.javascript.errormapping import (rewrite_exception, REACT_MAPPING_URL)
 from sentry.models import File, Release, ReleaseFile, EventError
 from sentry.testutils import TestCase
 from sentry.utils.strings import truncatechars
@@ -72,12 +74,69 @@ class FetchReleaseFileTest(TestCase):
 
         assert result == new_result
 
+    def test_distribution(self):
+        project = self.project
+        release = Release.objects.create(
+            organization_id=project.organization_id,
+            version='abc',
+        )
+        release.add_project(project)
+
+        other_file = File.objects.create(
+            name='file.min.js',
+            type='release.file',
+            headers={'Content-Type': 'application/json; charset=utf-8'},
+        )
+        file = File.objects.create(
+            name='file.min.js',
+            type='release.file',
+            headers={'Content-Type': 'application/json; charset=utf-8'},
+        )
+
+        binary_body = unicode_body.encode('utf-8')
+        other_file.putfile(six.BytesIO(b''))
+        file.putfile(six.BytesIO(binary_body))
+
+        dist = release.add_dist('foo')
+
+        ReleaseFile.objects.create(
+            name='file.min.js',
+            release=release,
+            organization_id=project.organization_id,
+            file=other_file,
+        )
+
+        ReleaseFile.objects.create(
+            name='file.min.js',
+            release=release,
+            dist=dist,
+            organization_id=project.organization_id,
+            file=file,
+        )
+
+        result = fetch_release_file('file.min.js', release, dist)
+
+        assert type(result.body) is six.binary_type
+        assert result == http.UrlResult(
+            'file.min.js',
+            {'content-type': 'application/json; charset=utf-8'},
+            binary_body,
+            200,
+            'utf-8',
+        )
+
+        # test with cache hit, which should be compressed
+        new_result = fetch_release_file('file.min.js', release, dist)
+
+        assert result == new_result
+
 
 class FetchFileTest(TestCase):
     @responses.activate
     def test_simple(self):
-        responses.add(responses.GET, 'http://example.com', body='foo bar',
-                      content_type='application/json')
+        responses.add(
+            responses.GET, 'http://example.com', body='foo bar', content_type='application/json'
+        )
 
         result = fetch_file('http://example.com')
 
@@ -96,8 +155,9 @@ class FetchFileTest(TestCase):
 
     @responses.activate
     def test_with_token(self):
-        responses.add(responses.GET, 'http://example.com', body='foo bar',
-                      content_type='application/json')
+        responses.add(
+            responses.GET, 'http://example.com', body='foo bar', content_type='application/json'
+        )
 
         self.project.update_option('sentry:token', 'foobar')
         self.project.update_option('sentry:origins', ['*'])
@@ -142,8 +202,7 @@ class FetchFileTest(TestCase):
             None,
         )
 
-        release = Release.objects.create(version='1',
-                                         organization_id=self.project.organization_id)
+        release = Release.objects.create(version='1', organization_id=self.project.organization_id)
         release.add_project(self.project)
 
         result = fetch_file('/example.js', release=release)
@@ -155,9 +214,12 @@ class FetchFileTest(TestCase):
 
     @responses.activate
     def test_unicode_body(self):
-        responses.add(responses.GET, 'http://example.com',
-                      body=u'"fôo bar"'.encode('utf-8'),
-                      content_type='application/json; charset=utf-8')
+        responses.add(
+            responses.GET,
+            'http://example.com',
+            body=u'"fôo bar"'.encode('utf-8'),
+            content_type='application/json; charset=utf-8'
+        )
 
         result = fetch_file('http://example.com')
 
@@ -191,32 +253,57 @@ class DiscoverSourcemapTest(TestCase):
         result = http.UrlResult('http://example.com', {}, '', 200, None)
         assert discover_sourcemap(result) is None
 
-        result = http.UrlResult('http://example.com', {
-            'x-sourcemap': 'http://example.com/source.map.js'
-        }, '', 200, None)
+        result = http.UrlResult(
+            'http://example.com', {'x-sourcemap': 'http://example.com/source.map.js'}, '', 200, None
+        )
         assert discover_sourcemap(result) == 'http://example.com/source.map.js'
 
-        result = http.UrlResult('http://example.com', {
-            'sourcemap': 'http://example.com/source.map.js'
-        }, '', 200, None)
+        result = http.UrlResult(
+            'http://example.com', {'sourcemap': 'http://example.com/source.map.js'}, '', 200, None
+        )
         assert discover_sourcemap(result) == 'http://example.com/source.map.js'
 
-        result = http.UrlResult('http://example.com', {}, '//@ sourceMappingURL=http://example.com/source.map.js\nconsole.log(true)', 200, None)
+        result = http.UrlResult(
+            'http://example.com', {},
+            '//@ sourceMappingURL=http://example.com/source.map.js\nconsole.log(true)', 200, None
+        )
         assert discover_sourcemap(result) == 'http://example.com/source.map.js'
 
-        result = http.UrlResult('http://example.com', {}, '//# sourceMappingURL=http://example.com/source.map.js\nconsole.log(true)', 200, None)
+        result = http.UrlResult(
+            'http://example.com', {},
+            '//# sourceMappingURL=http://example.com/source.map.js\nconsole.log(true)', 200, None
+        )
         assert discover_sourcemap(result) == 'http://example.com/source.map.js'
 
-        result = http.UrlResult('http://example.com', {}, 'console.log(true)\n//@ sourceMappingURL=http://example.com/source.map.js', 200, None)
+        result = http.UrlResult(
+            'http://example.com', {},
+            'console.log(true)\n//@ sourceMappingURL=http://example.com/source.map.js', 200, None
+        )
         assert discover_sourcemap(result) == 'http://example.com/source.map.js'
 
-        result = http.UrlResult('http://example.com', {}, 'console.log(true)\n//# sourceMappingURL=http://example.com/source.map.js', 200, None)
+        result = http.UrlResult(
+            'http://example.com', {},
+            'console.log(true)\n//# sourceMappingURL=http://example.com/source.map.js', 200, None
+        )
         assert discover_sourcemap(result) == 'http://example.com/source.map.js'
 
-        result = http.UrlResult('http://example.com', {}, 'console.log(true)\n//# sourceMappingURL=http://example.com/source.map.js\n//# sourceMappingURL=http://example.com/source2.map.js', 200, None)
+        result = http.UrlResult(
+            'http://example.com', {},
+            'console.log(true)\n//# sourceMappingURL=http://example.com/source.map.js\n//# sourceMappingURL=http://example.com/source2.map.js',
+            200, None
+        )
         assert discover_sourcemap(result) == 'http://example.com/source2.map.js'
 
-        result = http.UrlResult('http://example.com', {}, '//# sourceMappingURL=app.map.js/*ascii:lol*/', 200, None)
+        # sourceMappingURL found directly after code w/o newline
+        result = http.UrlResult(
+            'http://example.com', {},
+            'console.log(true);//# sourceMappingURL=http://example.com/source.map.js', 200, None
+        )
+        assert discover_sourcemap(result) == 'http://example.com/source.map.js'
+
+        result = http.UrlResult(
+            'http://example.com', {}, '//# sourceMappingURL=app.map.js/*ascii:lol*/', 200, None
+        )
         assert discover_sourcemap(result) == 'http://example.com/app.map.js'
 
         result = http.UrlResult('http://example.com', {}, '//# sourceMappingURL=/*lol*/', 200, None)
@@ -237,8 +324,12 @@ class GenerateModuleTest(TestCase):
         assert generate_module('http://example.com/_baz/foo/bar.js') == 'foo/bar'
         assert generate_module('http://example.com/1/2/3/foo/bar.js') == 'foo/bar'
         assert generate_module('http://example.com/abcdef0/foo/bar.js') == 'foo/bar'
-        assert generate_module('http://example.com/92cd589eca8235e7b373bf5ae94ebf898e3b949c/foo/bar.js') == 'foo/bar'
-        assert generate_module('http://example.com/7d6d00eae0ceccdc7ee689659585d95f/foo/bar.js') == 'foo/bar'
+        assert generate_module(
+            'http://example.com/92cd589eca8235e7b373bf5ae94ebf898e3b949c/foo/bar.js'
+        ) == 'foo/bar'
+        assert generate_module(
+            'http://example.com/7d6d00eae0ceccdc7ee689659585d95f/foo/bar.js'
+        ) == 'foo/bar'
         assert generate_module('http://example.com/foo/bar.coffee') == 'foo/bar'
         assert generate_module('http://example.com/foo/bar.js?v=1234') == 'foo/bar'
         assert generate_module('/foo/bar.js') == 'foo/bar'
@@ -246,14 +337,28 @@ class GenerateModuleTest(TestCase):
         assert generate_module('/foo/bar-7d6d00eae0ceccdc7ee689659585d95f.js') == 'foo/bar'
         assert generate_module('/bower_components/foo/bar.js') == 'foo/bar'
         assert generate_module('/node_modules/foo/bar.js') == 'foo/bar'
-        assert generate_module('http://example.com/vendor.92cd589eca8235e7b373bf5ae94ebf898e3b949c.js') == 'vendor'
-        assert generate_module('/a/javascripts/application-bundle-149360d3414c26adac3febdf6832e25c.min.js') == 'a/javascripts/application-bundle'
+        assert generate_module(
+            'http://example.com/vendor.92cd589eca8235e7b373bf5ae94ebf898e3b949c.js'
+        ) == 'vendor'
+        assert generate_module(
+            '/a/javascripts/application-bundle-149360d3414c26adac3febdf6832e25c.min.js'
+        ) == 'a/javascripts/application-bundle'
         assert generate_module('https://example.com/libs/libs-20150417171659.min.js') == 'libs/libs'
-        assert generate_module('webpack:///92cd589eca8235e7b373bf5ae94ebf898e3b949c/vendor.js') == 'vendor'
-        assert generate_module('webpack:///92cd589eca8235e7b373bf5ae94ebf898e3b949c/vendor.js') == 'vendor'
-        assert generate_module('app:///92cd589eca8235e7b373bf5ae94ebf898e3b949c/vendor.js') == 'vendor'
-        assert generate_module('app:///example/92cd589eca8235e7b373bf5ae94ebf898e3b949c/vendor.js') == 'vendor'
-        assert generate_module('~/app/components/projectHeader/projectSelector.jsx') == 'app/components/projectHeader/projectSelector'
+        assert generate_module(
+            'webpack:///92cd589eca8235e7b373bf5ae94ebf898e3b949c/vendor.js'
+        ) == 'vendor'
+        assert generate_module(
+            'webpack:///92cd589eca8235e7b373bf5ae94ebf898e3b949c/vendor.js'
+        ) == 'vendor'
+        assert generate_module(
+            'app:///92cd589eca8235e7b373bf5ae94ebf898e3b949c/vendor.js'
+        ) == 'vendor'
+        assert generate_module(
+            'app:///example/92cd589eca8235e7b373bf5ae94ebf898e3b949c/vendor.js'
+        ) == 'vendor'
+        assert generate_module(
+            '~/app/components/projectHeader/projectSelector.jsx'
+        ) == 'app/components/projectHeader/projectSelector'
 
 
 class FetchSourcemapTest(TestCase):
@@ -279,8 +384,9 @@ class FetchSourcemapTest(TestCase):
 
     @responses.activate
     def test_garbage_json(self):
-        responses.add(responses.GET, 'http://example.com', body='xxxx',
-                      content_type='application/json')
+        responses.add(
+            responses.GET, 'http://example.com', body='xxxx', content_type='application/json'
+        )
 
         with pytest.raises(UnparseableSourcemap):
             fetch_sourcemap('http://example.com')
@@ -291,11 +397,21 @@ class TrimLineTest(TestCase):
 
     def test_simple(self):
         assert trim_line('foo') == 'foo'
-        assert trim_line(self.long_line) == 'The public is more familiar with bad design than good design. It is, in effect, conditioned to prefer bad design, because that is what it li {snip}'
-        assert trim_line(self.long_line, column=10) == 'The public is more familiar with bad design than good design. It is, in effect, conditioned to prefer bad design, because that is what it li {snip}'
-        assert trim_line(self.long_line, column=66) == '{snip} blic is more familiar with bad design than good design. It is, in effect, conditioned to prefer bad design, because that is what it lives wi {snip}'
-        assert trim_line(self.long_line, column=190) == '{snip} gn. It is, in effect, conditioned to prefer bad design, because that is what it lives with. The new becomes threatening, the old reassuring.'
-        assert trim_line(self.long_line, column=9999) == '{snip} gn. It is, in effect, conditioned to prefer bad design, because that is what it lives with. The new becomes threatening, the old reassuring.'
+        assert trim_line(
+            self.long_line
+        ) == 'The public is more familiar with bad design than good design. It is, in effect, conditioned to prefer bad design, because that is what it li {snip}'
+        assert trim_line(
+            self.long_line, column=10
+        ) == 'The public is more familiar with bad design than good design. It is, in effect, conditioned to prefer bad design, because that is what it li {snip}'
+        assert trim_line(
+            self.long_line, column=66
+        ) == '{snip} blic is more familiar with bad design than good design. It is, in effect, conditioned to prefer bad design, because that is what it lives wi {snip}'
+        assert trim_line(
+            self.long_line, column=190
+        ) == '{snip} gn. It is, in effect, conditioned to prefer bad design, because that is what it lives with. The new becomes threatening, the old reassuring.'
+        assert trim_line(
+            self.long_line, column=9999
+        ) == '{snip} gn. It is, in effect, conditioned to prefer bad design, because that is what it lives with. The new becomes threatening, the old reassuring.'
 
 
 def test_get_culprit_is_patched():
@@ -305,27 +421,29 @@ def test_get_culprit_is_patched():
         'message': 'hello',
         'platform': 'javascript',
         'sentry.interfaces.Exception': {
-            'values': [{
-                'type': 'Error',
-                'stacktrace': {
-                    'frames': [
-                        {
-                            'abs_path': 'http://example.com/foo.js',
-                            'filename': 'foo.js',
-                            'lineno': 4,
-                            'colno': 0,
-                            'function': 'thing',
-                        },
-                        {
-                            'abs_path': 'http://example.com/bar.js',
-                            'filename': 'bar.js',
-                            'lineno': 1,
-                            'colno': 0,
-                            'function': 'oops',
-                        },
-                    ],
-                },
-            }],
+            'values': [
+                {
+                    'type': 'Error',
+                    'stacktrace': {
+                        'frames': [
+                            {
+                                'abs_path': 'http://example.com/foo.js',
+                                'filename': 'foo.js',
+                                'lineno': 4,
+                                'colno': 0,
+                                'function': 'thing',
+                            },
+                            {
+                                'abs_path': 'http://example.com/bar.js',
+                                'filename': 'bar.js',
+                                'lineno': 1,
+                                'colno': 0,
+                                'function': 'oops',
+                            },
+                        ],
+                    },
+                }
+            ],
         }
     }
     generate_modules(data)
@@ -339,26 +457,28 @@ def test_ensure_module_names():
         'message': 'hello',
         'platform': 'javascript',
         'sentry.interfaces.Exception': {
-            'values': [{
-                'type': 'Error',
-                'stacktrace': {
-                    'frames': [
-                        {
-                            'filename': 'foo.js',
-                            'lineno': 4,
-                            'colno': 0,
-                            'function': 'thing',
-                        },
-                        {
-                            'abs_path': 'http://example.com/foo/bar.js',
-                            'filename': 'bar.js',
-                            'lineno': 1,
-                            'colno': 0,
-                            'function': 'oops',
-                        },
-                    ],
-                },
-            }],
+            'values': [
+                {
+                    'type': 'Error',
+                    'stacktrace': {
+                        'frames': [
+                            {
+                                'filename': 'foo.js',
+                                'lineno': 4,
+                                'colno': 0,
+                                'function': 'thing',
+                            },
+                            {
+                                'abs_path': 'http://example.com/foo/bar.js',
+                                'filename': 'bar.js',
+                                'lineno': 1,
+                                'colno': 0,
+                                'function': 'oops',
+                            },
+                        ],
+                    },
+                }
+            ],
         }
     }
     generate_modules(data)
@@ -367,47 +487,54 @@ def test_ensure_module_names():
 
 
 class ErrorMappingTest(TestCase):
-
     @responses.activate
     def test_react_error_mapping_resolving(self):
-        responses.add(responses.GET, REACT_MAPPING_URL, body=r'''
+        responses.add(
+            responses.GET,
+            REACT_MAPPING_URL,
+            body=r'''
         {
           "108": "%s.getChildContext(): key \"%s\" is not defined in childContextTypes.",
           "109": "%s.render(): A valid React element (or null) must be returned. You may have returned undefined, an array or some other invalid object.",
           "110": "Stateless function components cannot have refs."
         }
-        ''', content_type='application/json')
+        ''',
+            content_type='application/json'
+        )
 
         for x in range(3):
             data = {
                 'platform': 'javascript',
                 'sentry.interfaces.Exception': {
-                    'values': [{
-                        'type': 'InvariantViolation',
-                        'value': (
-                            'Minified React error #109; visit http://facebook'
-                            '.github.io/react/docs/error-decoder.html?invariant='
-                            '109&args[]=Component for the full message or use '
-                            'the non-minified dev environment for full errors '
-                            'and additional helpful warnings.'
-                        ),
-                        'stacktrace': {
-                            'frames': [
-                                {
-                                    'abs_path': 'http://example.com/foo.js',
-                                    'filename': 'foo.js',
-                                    'lineno': 4,
-                                    'colno': 0,
-                                },
-                                {
-                                    'abs_path': 'http://example.com/foo.js',
-                                    'filename': 'foo.js',
-                                    'lineno': 1,
-                                    'colno': 0,
-                                },
-                            ],
-                        },
-                    }],
+                    'values': [
+                        {
+                            'type':
+                            'InvariantViolation',
+                            'value': (
+                                'Minified React error #109; visit http://facebook'
+                                '.github.io/react/docs/error-decoder.html?invariant='
+                                '109&args[]=Component for the full message or use '
+                                'the non-minified dev environment for full errors '
+                                'and additional helpful warnings.'
+                            ),
+                            'stacktrace': {
+                                'frames': [
+                                    {
+                                        'abs_path': 'http://example.com/foo.js',
+                                        'filename': 'foo.js',
+                                        'lineno': 4,
+                                        'colno': 0,
+                                    },
+                                    {
+                                        'abs_path': 'http://example.com/foo.js',
+                                        'filename': 'foo.js',
+                                        'lineno': 1,
+                                        'colno': 0,
+                                    },
+                                ],
+                            },
+                        }
+                    ],
                 }
             }
 
@@ -421,35 +548,43 @@ class ErrorMappingTest(TestCase):
 
     @responses.activate
     def test_react_error_mapping_empty_args(self):
-        responses.add(responses.GET, REACT_MAPPING_URL, body=r'''
+        responses.add(
+            responses.GET,
+            REACT_MAPPING_URL,
+            body=r'''
         {
           "108": "%s.getChildContext(): key \"%s\" is not defined in childContextTypes."
         }
-        ''', content_type='application/json')
+        ''',
+            content_type='application/json'
+        )
 
         data = {
             'platform': 'javascript',
             'sentry.interfaces.Exception': {
-                'values': [{
-                    'type': 'InvariantViolation',
-                    'value': (
-                        'Minified React error #108; visit http://facebook'
-                        '.github.io/react/docs/error-decoder.html?invariant='
-                        '108&args[]=Component&args[]= for the full message '
-                        'or use the non-minified dev environment for full '
-                        'errors and additional helpful warnings.'
-                    ),
-                    'stacktrace': {
-                        'frames': [
-                            {
-                                'abs_path': 'http://example.com/foo.js',
-                                'filename': 'foo.js',
-                                'lineno': 4,
-                                'colno': 0,
-                            },
-                        ],
-                    },
-                }],
+                'values': [
+                    {
+                        'type':
+                        'InvariantViolation',
+                        'value': (
+                            'Minified React error #108; visit http://facebook'
+                            '.github.io/react/docs/error-decoder.html?invariant='
+                            '108&args[]=Component&args[]= for the full message '
+                            'or use the non-minified dev environment for full '
+                            'errors and additional helpful warnings.'
+                        ),
+                        'stacktrace': {
+                            'frames': [
+                                {
+                                    'abs_path': 'http://example.com/foo.js',
+                                    'filename': 'foo.js',
+                                    'lineno': 4,
+                                    'colno': 0,
+                                },
+                            ],
+                        },
+                    }
+                ],
             }
         }
 
@@ -462,32 +597,40 @@ class ErrorMappingTest(TestCase):
 
     @responses.activate
     def test_react_error_mapping_truncated(self):
-        responses.add(responses.GET, REACT_MAPPING_URL, body=r'''
+        responses.add(
+            responses.GET,
+            REACT_MAPPING_URL,
+            body=r'''
         {
           "108": "%s.getChildContext(): key \"%s\" is not defined in childContextTypes."
         }
-        ''', content_type='application/json')
+        ''',
+            content_type='application/json'
+        )
 
         data = {
             'platform': 'javascript',
             'sentry.interfaces.Exception': {
-                'values': [{
-                    'type': 'InvariantViolation',
-                    'value': (
-                        u'Minified React error #108; visit http://facebook'
-                        u'.github.io/react/docs/error-decoder.html?…'
-                    ),
-                    'stacktrace': {
-                        'frames': [
-                            {
-                                'abs_path': 'http://example.com/foo.js',
-                                'filename': 'foo.js',
-                                'lineno': 4,
-                                'colno': 0,
-                            },
-                        ],
-                    },
-                }],
+                'values': [
+                    {
+                        'type':
+                        'InvariantViolation',
+                        'value': (
+                            u'Minified React error #108; visit http://facebook'
+                            u'.github.io/react/docs/error-decoder.html?…'
+                        ),
+                        'stacktrace': {
+                            'frames': [
+                                {
+                                    'abs_path': 'http://example.com/foo.js',
+                                    'filename': 'foo.js',
+                                    'lineno': 4,
+                                    'colno': 0,
+                                },
+                            ],
+                        },
+                    }
+                ],
             }
         }
 

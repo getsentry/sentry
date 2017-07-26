@@ -11,10 +11,7 @@ class CreateOrganizationMemberTest(AcceptanceTestCase):
             name='Rowdy Tiger',
             owner=None,
         )
-        self.team = self.create_team(
-            organization=self.org,
-            name='Mariachi Band'
-        )
+        self.team = self.create_team(organization=self.org, name='Mariachi Band')
         self.create_member(
             user=self.user,
             organization=self.org,
@@ -27,5 +24,5 @@ class CreateOrganizationMemberTest(AcceptanceTestCase):
         """
         Add by username (on-premises / by configuration only)
         """
-        self.browser.get('/organizations/{}/members/new'.format(self.org.slug))
+        self.browser.get('/organizations/{}/members/new/'.format(self.org.slug))
         self.browser.snapshot(name='invite organization member')

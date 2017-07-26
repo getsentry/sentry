@@ -7,8 +7,8 @@ from uuid import uuid1
 import pytest
 from exam import before, fixture
 from mock import patch
+from django.core.cache.backends.locmem import LocMemCache
 
-from sentry.cache.redis import RedisCache
 from sentry.models import Option
 from sentry.options.store import OptionsStore
 from sentry.testutils import TestCase
@@ -17,9 +17,9 @@ from sentry.testutils import TestCase
 class OptionsStoreTest(TestCase):
     @fixture
     def store(self):
-        return OptionsStore(
-            cache=RedisCache()
-        )
+        c = LocMemCache('test', {})
+        c.clear()
+        return OptionsStore(cache=c)
 
     @fixture
     def key(self):

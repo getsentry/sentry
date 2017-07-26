@@ -8,7 +8,6 @@ from django.utils import timezone
 from django.utils.crypto import get_random_string
 from django.utils.translation import ugettext_lazy as _
 
-
 from sentry.db.models import FlexibleForeignKey, Model, sane_repr
 
 CHARACTERS = u'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
@@ -17,20 +16,22 @@ CHARACTERS = u'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
 class UserEmail(Model):
     __core__ = True
 
-    user = FlexibleForeignKey(settings.AUTH_USER_MODEL,
-                              related_name='emails')
+    user = FlexibleForeignKey(settings.AUTH_USER_MODEL, related_name='emails')
     email = models.EmailField(_('email address'))
     validation_hash = models.CharField(
-        max_length=32, default=lambda: get_random_string(32, CHARACTERS))
+        max_length=32, default=lambda: get_random_string(32, CHARACTERS)
+    )
     date_hash_added = models.DateTimeField(default=timezone.now)
     is_verified = models.BooleanField(
-        _('verified'), default=False,
-        help_text=_('Designates whether this user has confirmed their email.'))
+        _('verified'),
+        default=False,
+        help_text=_('Designates whether this user has confirmed their email.')
+    )
 
     class Meta:
         app_label = 'sentry'
         db_table = 'sentry_useremail'
-        unique_together = (('user', 'email'),)
+        unique_together = (('user', 'email'), )
 
     __repr__ = sane_repr('user_id', 'email')
 

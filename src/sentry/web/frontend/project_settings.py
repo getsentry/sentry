@@ -13,32 +13,43 @@ from uuid import uuid1
 from sentry import options
 from sentry.models import AuditLogEntryEvent, Project, Team
 from sentry.web.forms.fields import (
-    CustomTypedChoiceField, RangeField, OriginsField,
+    CustomTypedChoiceField,
+    RangeField,
+    OriginsField,
 )
 from sentry.web.frontend.base import ProjectView
-
 
 BLANK_CHOICE = [("", "")]
 
 
 class EditProjectForm(forms.ModelForm):
-    name = forms.CharField(label=_('Project Name'), max_length=200,
-        widget=forms.TextInput(attrs={'placeholder': _('Production')}))
+    name = forms.CharField(
+        label=_('Project Name'),
+        max_length=200,
+        widget=forms.TextInput(attrs={'placeholder': _('Production')})
+    )
     slug = forms.SlugField(
         label=_('Short name'),
         help_text=_('A unique ID used to identify this project.'),
     )
     team = CustomTypedChoiceField(choices=(), coerce=int, required=False)
-    origins = OriginsField(label=_('Allowed Domains'), required=False,
-        help_text=_('Separate multiple entries with a newline.'))
+    origins = OriginsField(
+        label=_('Allowed Domains'),
+        required=False,
+        help_text=_('Separate multiple entries with a newline.')
+    )
     token = forms.CharField(
         label=_('Security token'),
-        help_text=_('Outbound requests matching Allowed Domains will have the header "{token_header}: {token}" appended.'),
+        help_text=_(
+            'Outbound requests matching Allowed Domains will have the header "{token_header}: {token}" appended.'
+        ),
         required=True,
     )
     token_header = forms.CharField(
         label=_('Security token header'),
-        help_text=_('Outbound requests matching Allowed Domains will have the header "{token_header}: {token}" appended.'),
+        help_text=_(
+            'Outbound requests matching Allowed Domains will have the header "{token_header}: {token}" appended.'
+        ),
         widget=forms.TextInput(attrs={
             'placeholder': _('X-Sentry-Token'),
         }),
@@ -49,38 +60,53 @@ class EditProjectForm(forms.ModelForm):
         help_text=_('Outbound requests will verify TLS (sometimes known as SSL) connections.'),
         required=False,
     )
-    resolve_age = RangeField(label=_('Auto resolve'), required=False,
-        min_value=0, max_value=720, step_value=1,
-        help_text=_('Automatically resolve an issue if it hasn\'t been seen for this amount of time.'))
+    resolve_age = RangeField(
+        label=_('Auto resolve'),
+        required=False,
+        min_value=0,
+        max_value=720,
+        step_value=1,
+        help_text=_(
+            'Automatically resolve an issue if it hasn\'t been seen for this amount of time.'
+        )
+    )
     scrub_data = forms.BooleanField(
-        label=_('Data Scrubber'),
-        help_text=_('Enable server-side data scrubbing.'),
-        required=False
+        label=_('Data Scrubber'), help_text=_('Enable server-side data scrubbing.'), required=False
     )
     scrub_defaults = forms.BooleanField(
         label=_('Use Default Scrubbers'),
-        help_text=_('Apply default scrubbers to prevent things like passwords and credit cards from being stored.'),
+        help_text=_(
+            'Apply default scrubbers to prevent things like passwords and credit cards from being stored.'
+        ),
         required=False
     )
     sensitive_fields = forms.CharField(
         label=_('Additional sensitive fields'),
-        help_text=_('Additional field names to match against when scrubbing data. Separate multiple entries with a newline.'),
-        widget=forms.Textarea(attrs={
-            'placeholder': mark_safe(_('e.g. email')),
-            'class': 'span8',
-            'rows': '3',
-        }),
+        help_text=_(
+            'Additional field names to match against when scrubbing data. Separate multiple entries with a newline.'
+        ),
+        widget=forms.Textarea(
+            attrs={
+                'placeholder': mark_safe(_('e.g. email')),
+                'class': 'span8',
+                'rows': '3',
+            }
+        ),
         required=False,
     )
     safe_fields = forms.CharField(
         label=_('Safe fields'),
-        help_text=_('Field names which data scrubbers should ignore. '
-                    'Separate multiple entries with a newline.'),
-        widget=forms.Textarea(attrs={
-            'placeholder': mark_safe(_('e.g. email')),
-            'class': 'span8',
-            'rows': '3',
-        }),
+        help_text=_(
+            'Field names which data scrubbers should ignore. '
+            'Separate multiple entries with a newline.'
+        ),
+        widget=forms.Textarea(
+            attrs={
+                'placeholder': mark_safe(_('e.g. email')),
+                'class': 'span8',
+                'rows': '3',
+            }
+        ),
         required=False,
     )
     scrub_ip_address = forms.BooleanField(
@@ -106,8 +132,10 @@ class EditProjectForm(forms.ModelForm):
         required=False,
     )
     mail_subject_prefix = forms.CharField(
-        label=_('Subject Prefix'), required=False,
-        help_text=_('Choose a custom prefix for emails from this project.'))
+        label=_('Subject Prefix'),
+        required=False,
+        help_text=_('Choose a custom prefix for emails from this project.')
+    )
 
     class Meta:
         fields = ('name', 'team', 'slug')
@@ -119,7 +147,7 @@ class EditProjectForm(forms.ModelForm):
         disabled = []
         if 'initial' in kwargs:
             for opt in self.org_overrides:
-                value = bool(organization.get_option('sentry:require_%s' % (opt,), False))
+                value = bool(organization.get_option('sentry:require_%s' % (opt, ), False))
                 if value:
                     disabled.append(opt)
                     kwargs['initial'][opt] = value
@@ -146,9 +174,7 @@ class EditProjectForm(forms.ModelForm):
         choices = []
         for team in sorted_team_list:
             # TODO: optimize queries
-            choices.append(
-                (team.id, self.get_team_label(team))
-            )
+            choices.append((team.id, self.get_team_label(team)))
 
         if default is None:
             choices.insert(0, (-1, mark_safe('&ndash;' * 8)))
@@ -195,12 +221,13 @@ class EditProjectForm(forms.ModelForm):
         if not slug:
             return
         other = Project.objects.filter(
-            slug=slug,
-            organization=self.organization
+            slug=slug, organization=self.organization
         ).exclude(id=self.instance.id).first()
         if other is not None:
-            raise forms.ValidationError('Another project (%s) is already '
-                                        'using that slug' % other.name)
+            raise forms.ValidationError(
+                'Another project (%s) is already '
+                'using that slug' % other.name
+            )
         return slug
 
     def clean_token(self):
@@ -231,8 +258,7 @@ class ProjectSettingsView(ProjectView):
             t for t in Team.objects.get_for_user(
                 organization=organization,
                 user=request.user,
-            )
-            if request.access.has_team_scope(t, self.required_scope)
+            ) if request.access.has_team_scope(t, self.required_scope)
         ]
 
         # TODO(dcramer): this update should happen within a lock
@@ -242,23 +268,38 @@ class ProjectSettingsView(ProjectView):
             project.update_option('sentry:token', security_token)
 
         return EditProjectForm(
-            request, organization, team_list, request.POST or None,
+            request,
+            organization,
+            team_list,
+            request.POST or None,
             instance=project,
             initial={
-                'origins': '\n'.join(project.get_option('sentry:origins', ['*'])),
-                'token': security_token,
-                'token_header': project.get_option('sentry:token_header'),
-                'verify_ssl': bool(project.get_option('sentry:verify_ssl', False)),
-                'resolve_age': int(project.get_option('sentry:resolve_age', 0)),
-                'scrub_data': bool(project.get_option('sentry:scrub_data', True)),
-                'scrub_defaults': bool(project.get_option('sentry:scrub_defaults', True)),
-                'sensitive_fields': '\n'.join(project.get_option('sentry:sensitive_fields', None) or []),
-                'safe_fields': '\n'.join(project.get_option('sentry:safe_fields', None) or []),
-                'scrub_ip_address': bool(project.get_option('sentry:scrub_ip_address', False)),
-                'scrape_javascript': bool(project.get_option('sentry:scrape_javascript', True)),
-                'default_environment': project.get_option('sentry:default_environment'),
-                'mail_subject_prefix': project.get_option(
-                    'mail:subject_prefix', options.get('mail.subject-prefix')),
+                'origins':
+                '\n'.join(project.get_option('sentry:origins', ['*'])),
+                'token':
+                security_token,
+                'token_header':
+                project.get_option('sentry:token_header'),
+                'verify_ssl':
+                bool(project.get_option('sentry:verify_ssl', False)),
+                'resolve_age':
+                int(project.get_option('sentry:resolve_age', 0)),
+                'scrub_data':
+                bool(project.get_option('sentry:scrub_data', True)),
+                'scrub_defaults':
+                bool(project.get_option('sentry:scrub_defaults', True)),
+                'sensitive_fields':
+                '\n'.join(project.get_option('sentry:sensitive_fields', None) or []),
+                'safe_fields':
+                '\n'.join(project.get_option('sentry:safe_fields', None) or []),
+                'scrub_ip_address':
+                bool(project.get_option('sentry:scrub_ip_address', False)),
+                'scrape_javascript':
+                bool(project.get_option('sentry:scrape_javascript', True)),
+                'default_environment':
+                project.get_option('sentry:default_environment'),
+                'mail_subject_prefix':
+                project.get_option('mail:subject_prefix', options.get('mail.subject-prefix')),
             },
         )
 
@@ -268,19 +309,9 @@ class ProjectSettingsView(ProjectView):
         if form.is_valid():
             project = form.save()
             for opt in (
-                'origins',
-                'token',
-                'token_header',
-                'verify_ssl',
-                'resolve_age',
-                'scrub_data',
-                'scrub_defaults',
-                'sensitive_fields',
-                'safe_fields',
-                'scrub_ip_address',
-                'scrape_javascript',
-                'default_environment',
-                'mail_subject_prefix',
+                'origins', 'token', 'token_header', 'verify_ssl', 'resolve_age', 'scrub_data',
+                'scrub_defaults', 'sensitive_fields', 'safe_fields', 'scrub_ip_address',
+                'scrape_javascript', 'default_environment', 'mail_subject_prefix',
             ):
                 opt_key = 'sentry:{}'.format(opt)
 
@@ -290,14 +321,12 @@ class ProjectSettingsView(ProjectView):
                 if opt == 'mail_subject_prefix':
                     key = 'mail:subject_prefix'
                 else:
-                    key = 'sentry:%s' % (opt,)
+                    key = 'sentry:%s' % (opt, )
                 value = form.cleaned_data.get(opt)
                 if value is None:
                     project.delete_option(key)
                 else:
                     project.update_option(key, value)
-
-            project.update_option('sentry:reviewed-callsign', True)
 
             self.create_audit_entry(
                 request,
@@ -308,10 +337,12 @@ class ProjectSettingsView(ProjectView):
             )
 
             messages.add_message(
-                request, messages.SUCCESS,
-                _('Changes to your project were saved.'))
+                request, messages.SUCCESS, _('Changes to your project were saved.')
+            )
 
-            redirect = reverse('sentry-manage-project', args=[project.organization.slug, project.slug])
+            redirect = reverse(
+                'sentry-manage-project', args=[project.organization.slug, project.slug]
+            )
 
             return HttpResponseRedirect(redirect)
 

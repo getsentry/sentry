@@ -16,30 +16,33 @@ def pytest_configure(config):
         # only configure the db if its not already done
         test_db = os.environ.get('DB', 'postgres')
         if test_db == 'mysql':
-            settings.DATABASES['default'].update({
-                'ENGINE': 'django.db.backends.mysql',
-                'NAME': 'sentry',
-                'USER': 'root',
-                'HOST': '127.0.0.1',
-            })
+            settings.DATABASES['default'].update(
+                {
+                    'ENGINE': 'django.db.backends.mysql',
+                    'NAME': 'sentry',
+                    'USER': 'root',
+                    'HOST': '127.0.0.1',
+                }
+            )
             # mysql requires running full migration all the time
-            settings.SOUTH_TESTS_MIGRATE = True
         elif test_db == 'postgres':
-            settings.DATABASES['default'].update({
-                'ENGINE': 'sentry.db.postgres',
-                'USER': 'postgres',
-                'NAME': 'sentry',
-            })
+            settings.DATABASES['default'].update(
+                {
+                    'ENGINE': 'sentry.db.postgres',
+                    'USER': 'postgres',
+                    'NAME': 'sentry',
+                }
+            )
             # postgres requires running full migration all the time
             # since it has to install stored functions which come from
             # an actual migration.
-            settings.SOUTH_TESTS_MIGRATE = True
         elif test_db == 'sqlite':
-            settings.DATABASES['default'].update({
-                'ENGINE': 'django.db.backends.sqlite3',
-                'NAME': ':memory:',
-            })
-            settings.SOUTH_TESTS_MIGRATE = os.environ.get('SENTRY_SOUTH_TESTS_MIGRATE', '1') == '1'
+            settings.DATABASES['default'].update(
+                {
+                    'ENGINE': 'django.db.backends.sqlite3',
+                    'NAME': ':memory:',
+                }
+            )
         else:
             raise RuntimeError('oops, wrong database: %r' % test_db)
 
@@ -49,9 +52,7 @@ def pytest_configure(config):
     settings.STATIC_BUNDLES = {}
 
     # override a few things with our test specifics
-    settings.INSTALLED_APPS = tuple(settings.INSTALLED_APPS) + (
-        'tests',
-    )
+    settings.INSTALLED_APPS = tuple(settings.INSTALLED_APPS) + ('tests', )
     # Need a predictable key for tests that involve checking signatures
     settings.SENTRY_PUBLIC = False
 
@@ -101,19 +102,21 @@ def pytest_configure(config):
     if not hasattr(settings, 'SENTRY_OPTIONS'):
         settings.SENTRY_OPTIONS = {}
 
-    settings.SENTRY_OPTIONS.update({
-        'redis.clusters': {
-            'default': {
-                'hosts': {
-                    0: {
-                        'db': 9,
+    settings.SENTRY_OPTIONS.update(
+        {
+            'redis.clusters': {
+                'default': {
+                    'hosts': {
+                        0: {
+                            'db': 9,
+                        },
                     },
                 },
             },
-        },
-        'mail.backend': 'django.core.mail.backends.locmem.EmailBackend',
-        'system.url-prefix': 'http://testserver',
-    })
+            'mail.backend': 'django.core.mail.backends.locmem.EmailBackend',
+            'system.url-prefix': 'http://testserver',
+        }
+    )
 
     # django mail uses socket.getfqdn which doesn't play nice if our
     # networking isn't stable
@@ -122,7 +125,8 @@ def pytest_configure(config):
 
     from sentry.runner.initializer import (
         bootstrap_options, configure_structlog, initialize_receivers, fix_south,
-        bind_cache_to_option_store)
+        bind_cache_to_option_store, setup_services
+    )
 
     bootstrap_options(settings)
     configure_structlog()
@@ -131,6 +135,7 @@ def pytest_configure(config):
     bind_cache_to_option_store()
 
     initialize_receivers()
+    setup_services()
 
     from sentry.plugins import plugins
     from sentry.plugins.utils import TestIssuePlugin2

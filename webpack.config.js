@@ -1,23 +1,25 @@
 /*eslint-env node*/
 /*eslint no-var:0*/
 var path = require('path'),
-    fs = require('fs'),
-    webpack = require('webpack'),
-    ExtractTextPlugin = require('extract-text-webpack-plugin');
+  fs = require('fs'),
+  webpack = require('webpack'),
+  ExtractTextPlugin = require('extract-text-webpack-plugin');
 
 var staticPrefix = 'src/sentry/static/sentry',
-    distPath = staticPrefix + '/dist';
+  distPath = path.join(__dirname, staticPrefix, 'dist');
 
 // this is set by setup.py sdist
 if (process.env.SENTRY_STATIC_DIST_PATH) {
-    distPath = process.env.SENTRY_STATIC_DIST_PATH;
+  distPath = process.env.SENTRY_STATIC_DIST_PATH;
 }
 
 var IS_PRODUCTION = process.env.NODE_ENV === 'production';
+var IS_TEST = process.env.NODE_ENV === 'TEST' || process.env.TEST_SUITE;
 
-var babelConfig = JSON.parse(
-  fs.readFileSync(path.join(__dirname, '.babelrc'))
-);
+var REFRESH = process.env.WEBPACK_LIVERELOAD === '1';
+
+var babelConfig = JSON.parse(fs.readFileSync(path.join(__dirname, '.babelrc')));
+babelConfig.cacheDirectory = true;
 
 // only extract po files if we need to
 if (process.env.SENTRY_EXTRACT_TRANSLATIONS === '1') {
@@ -31,14 +33,14 @@ if (process.env.SENTRY_EXTRACT_TRANSLATIONS === '1') {
       t: ['msgid'],
       tn: ['msgid', 'msgid_plural', 'count'],
       tct: ['msgid']
-    },
+    }
   });
 }
 
 var entry = {
   // js
-  'app': 'app',
-  'vendor': [
+  app: 'app',
+  vendor: [
     'babel-polyfill',
     'bootstrap/js/dropdown',
     'bootstrap/js/tab',
@@ -51,16 +53,15 @@ var entry = {
     'moment',
     'moment-timezone',
     'raven-js',
+    'react',
+    'react-dom',
+    'react-dom/server',
     'react-document-title',
     'react-router',
     'react-bootstrap/lib/Modal',
     'react-sparklines',
     'reflux',
     'select2',
-    'flot/jquery.flot',
-    'flot/jquery.flot.stack',
-    'flot/jquery.flot.time',
-    'flot-tooltip/jquery.flot.tooltip',
     'vendor/simple-slider/simple-slider',
     'underscore',
     'ios-device-list'
@@ -69,7 +70,10 @@ var entry = {
   // css
   // NOTE: this will also create an empty 'sentry.js' file
   // TODO: figure out how to not generate this
-  'sentry': 'less/sentry.less'
+  sentry: 'less/sentry.less',
+
+  // debug toolbar
+  debugger: 'less/debugger.less'
 };
 
 // dynamically iterate over locale files and add to `entry` config
@@ -77,9 +81,8 @@ var localeCatalogPath = path.join(__dirname, 'src', 'sentry', 'locale', 'catalog
 var localeCatalog = JSON.parse(fs.readFileSync(localeCatalogPath, 'utf8'));
 var localeEntries = [];
 
-localeCatalog.supported_locales.forEach(function (locale) {
-  if (locale === 'en')
-    return;
+localeCatalog.supported_locales.forEach(function(locale) {
+  if (locale === 'en') return;
 
   // Django locale names are "zh_CN", moment's are "zh-cn"
   var normalizedLocale = locale.toLowerCase().replace('_', '-');
@@ -89,7 +92,6 @@ localeCatalog.supported_locales.forEach(function (locale) {
   ];
   localeEntries.push('locale/' + normalizedLocale);
 });
-
 
 var config = {
   entry: entry,
@@ -119,7 +121,7 @@ var config = {
         test: /\.less$/,
         include: path.join(__dirname, staticPrefix),
         loader: ExtractTextPlugin.extract({
-          fallbackLoader: 'style-loader',
+          fallbackLoader: 'style-loader?sourceMap=false',
           loader: 'css-loader' + (IS_PRODUCTION ? '?minimize=true' : '') + '!less-loader'
         })
       },
@@ -133,7 +135,7 @@ var config = {
       /dist\/jquery\.js/,
       /jed\/jed\.js/,
       /marked\/lib\/marked\.js/
-    ],
+    ]
   },
   plugins: [
     new webpack.optimize.CommonsChunkPlugin({
@@ -166,9 +168,10 @@ var config = {
   ],
   resolve: {
     alias: {
-      'flot': path.join(__dirname, staticPrefix, 'vendor', 'jquery-flot'),
-      'flot-tooltip': path.join(__dirname, staticPrefix, 'vendor', 'jquery-flot-tooltip'),
-      'sentry-locale': path.join(__dirname, 'src', 'sentry', 'locale')
+      'sentry-locale': path.join(__dirname, 'src', 'sentry', 'locale'),
+      'integration-docs-platforms': IS_TEST
+        ? path.join(__dirname, 'tests/fixtures/_platforms.json')
+        : path.join(__dirname, 'src/sentry/integration-docs/_platforms.json')
     },
     modules: [path.join(__dirname, staticPrefix), 'node_modules'],
     extensions: ['*', '.jsx', '.js', '.json']
@@ -178,33 +181,45 @@ var config = {
     filename: '[name].js',
     libraryTarget: 'var',
     library: 'exports',
-    sourceMapFilename: '[name].js.map',
+    sourceMapFilename: '[name].js.map'
   },
-  devtool: IS_PRODUCTION ?
-    '#source-map' :
-    '#cheap-source-map'
+  devtool: IS_PRODUCTION ? '#source-map' : '#cheap-source-map'
 };
+
+// We only need to use the webpack-livereload-plugin for development builds. Production
+// builds don't have this module.
+if (!IS_PRODUCTION && REFRESH) {
+  config.plugins.push(
+    new (require('webpack-livereload-plugin'))({appendScriptTag: true})
+  );
+}
 
 if (IS_PRODUCTION) {
   // This compression-webpack-plugin generates pre-compressed files
   // ending in .gz, to be picked up and served by our internal static media
   // server as well as nginx when paired with the gzip_static module.
-  config.plugins.push(new (require('compression-webpack-plugin'))({
-    algorithm: function(buffer, options, callback) {
-      require('zlib').gzip(buffer, callback);
-    },
-    regExp: /\.(js|map|css|svg|html|txt|ico|eot|ttf)$/,
-  }));
+  config.plugins.push(
+    new (require('compression-webpack-plugin'))({
+      algorithm: function(buffer, options, callback) {
+        require('zlib').gzip(buffer, callback);
+      },
+      regExp: /\.(js|map|css|svg|html|txt|ico|eot|ttf)$/
+    })
+  );
 
   // Disable annoying UglifyJS warnings that pollute Travis log output
   // NOTE: This breaks -p in webpack 2. Must call webpack w/ NODE_ENV=production for minification.
-  config.plugins.push(new webpack.optimize.UglifyJsPlugin({
-    compress: {
-      warnings: false
-    },
-    // https://github.com/webpack/webpack/blob/951a7603d279c93c936e4b8b801a355dc3e26292/bin/convert-argv.js#L442
-    sourceMap: config.devtool && (config.devtool.indexOf('sourcemap') >= 0 || config.devtool.indexOf('source-map') >= 0)
-  }));
+  config.plugins.push(
+    new webpack.optimize.UglifyJsPlugin({
+      compress: {
+        warnings: false
+      },
+      // https://github.com/webpack/webpack/blob/951a7603d279c93c936e4b8b801a355dc3e26292/bin/convert-argv.js#L442
+      sourceMap: config.devtool &&
+        (config.devtool.indexOf('sourcemap') >= 0 ||
+          config.devtool.indexOf('source-map') >= 0)
+    })
+  );
 }
 
 module.exports = config;

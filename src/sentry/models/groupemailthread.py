@@ -11,7 +11,10 @@ from django.db import models
 from django.utils import timezone
 
 from sentry.db.models import (
-    Model, FlexibleForeignKey, BaseManager, sane_repr,
+    Model,
+    FlexibleForeignKey,
+    BaseManager,
+    sane_repr,
 )
 
 
@@ -35,9 +38,6 @@ class GroupEmailThread(Model):
     class Meta:
         app_label = 'sentry'
         db_table = 'sentry_groupemailthread'
-        unique_together = (
-            ('email', 'group'),
-            ('email', 'msgid'),
-        )
+        unique_together = (('email', 'group'), ('email', 'msgid'), )
 
     __repr__ = sane_repr('email', 'group_id', 'msgid')

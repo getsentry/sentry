@@ -10,7 +10,10 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.models import Release, ReleaseFile
 from sentry.utils.apidocs import scenario, attach_scenarios
-from django.http import CompatibleStreamingHttpResponse
+try:
+    from django.http import (CompatibleStreamingHttpResponse as StreamingHttpResponse)
+except ImportError:
+    from django.http import StreamingHttpResponse
 
 
 @scenario('RetrieveReleaseFile')
@@ -23,9 +26,8 @@ def retrieve_file_scenario(runner):
     )
     runner.request(
         method='GET',
-        path='/projects/%s/%s/releases/%s/files/%s/' % (
-            runner.org.slug, runner.default_project.slug,
-            runner.default_release.version, rf.id)
+        path='/projects/%s/%s/releases/%s/files/%s/' %
+        (runner.org.slug, runner.default_project.slug, runner.default_release.version, rf.id)
     )
 
 
@@ -39,12 +41,9 @@ def update_file_scenario(runner):
     )
     runner.request(
         method='PUT',
-        path='/projects/%s/%s/releases/%s/files/%s/' % (
-            runner.org.slug, runner.default_project.slug,
-            runner.default_release.version, rf.id),
-        data={
-            'name': '/demo/goodbye.txt'
-        }
+        path='/projects/%s/%s/releases/%s/files/%s/' %
+        (runner.org.slug, runner.default_project.slug, runner.default_release.version, rf.id),
+        data={'name': '/demo/goodbye.txt'}
     )
 
 
@@ -58,9 +57,8 @@ def delete_file_scenario(runner):
     )
     runner.request(
         method='DELETE',
-        path='/projects/%s/%s/releases/%s/files/%s/' % (
-            runner.org.slug, runner.default_project.slug,
-            runner.default_release.version, rf.id)
+        path='/projects/%s/%s/releases/%s/files/%s/' %
+        (runner.org.slug, runner.default_project.slug, runner.default_release.version, rf.id)
     )
 
 
@@ -70,17 +68,19 @@ class ReleaseFileSerializer(serializers.Serializer):
 
 class ProjectReleaseFileDetailsEndpoint(ProjectEndpoint):
     doc_section = DocSection.RELEASES
-    permission_classes = (ProjectReleasePermission,)
+    permission_classes = (ProjectReleasePermission, )
 
     def download(self, releasefile):
         file = releasefile.file
         fp = file.getfile()
-        response = CompatibleStreamingHttpResponse(
+        response = StreamingHttpResponse(
             iter(lambda: fp.read(4096), b''),
             content_type=file.headers.get('content-type', 'application/octet-stream'),
         )
         response['Content-Length'] = file.size
-        response['Content-Disposition'] = 'attachment; filename="%s"' % posixpath.basename(" ".join(releasefile.name.split()))
+        response['Content-Disposition'] = 'attachment; filename="%s"' % posixpath.basename(
+            " ".join(releasefile.name.split())
+        )
         return response
 
     @attach_scenarios([retrieve_file_scenario])
@@ -119,8 +119,7 @@ class ProjectReleaseFileDetailsEndpoint(ProjectEndpoint):
             raise ResourceDoesNotExist
 
         download_requested = request.GET.get('download') is not None
-        if download_requested and (
-           request.access.has_scope('project:write')):
+        if download_requested and (request.access.has_scope('project:write')):
             return self.download(releasefile)
         elif download_requested:
             return Response(status=403)

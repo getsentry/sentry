@@ -5,14 +5,10 @@ from rest_framework.response import Response
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import StreamGroupSerializer
-from sentry.models import (
-    EventUser, Group, GroupTagValue, OrganizationMember,
-    OrganizationMemberTeam, Project, Team
-)
+from sentry.models import (EventUser, Group, GroupTagValue, OrganizationMemberTeam, Project)
 
 
 class OrganizationUserIssuesSearchEndpoint(OrganizationEndpoint):
-
     def get(self, request, organization):
         email = request.GET.get('email')
 
@@ -22,40 +18,35 @@ class OrganizationUserIssuesSearchEndpoint(OrganizationEndpoint):
         limit = request.GET.get('limit', 100)
 
         # limit to only teams user has opted into
-        member = OrganizationMember.objects.get(user=request.user,
-                                                organization=organization)
-        teams = Team.objects.filter(
-            id__in=OrganizationMemberTeam.objects.filter(
-                organizationmember=member,
-                is_active=True,
-            ).values('team')
+        project_ids = list(
+            Project.objects.filter(
+                team__in=OrganizationMemberTeam.objects.filter(
+                    organizationmember__user=request.user,
+                    organizationmember__organization=organization,
+                    is_active=True,
+                ).values('team'),
+            ).values_list('id', flat=True)[:1000]
         )
 
-        projects = Project.objects.filter(
-            team__in=list(teams),
+        event_users = EventUser.objects.filter(
+            email__iexact=email,
+            project_id__in=project_ids,
+        )[:1000]
+
+        project_ids = list(set([e.project_id for e in event_users]))
+
+        group_ids = list(
+            GroupTagValue.objects.filter(
+                key='sentry:user',
+                value__in=[eu.tag_value for eu in event_users],
+                project_id__in=project_ids,
+            ).order_by('-last_seen').values_list('group_id', flat=True)[:limit]
         )
 
-        event_users = EventUser.objects.filter(email=email,
-                                               project_id__in=[p.id for p in projects])[:1000]
+        groups = Group.objects.filter(
+            id__in=group_ids,
+        ).order_by('-last_seen')[:limit]
 
-        projects = list(set([e.project_id for e in event_users]))
+        context = serialize(list(groups), request.user, StreamGroupSerializer(stats_period=None))
 
-        tag_values = [eu.tag_value for eu in event_users]
-        tags = GroupTagValue.objects.filter(key='sentry:user',
-                                            value__in=tag_values,
-                                            project_id__in=projects)
-
-        group_ids = tags.values_list('group_id', flat=True)
-
-        groups = Group.objects.filter(id__in=group_ids,
-                                      project_id__in=projects).order_by('-last_seen')[:limit]
-
-        context = serialize(
-            list(groups), request.user, StreamGroupSerializer(
-                stats_period=None
-            )
-        )
-
-        response = Response(context)
-
-        return response
+        return Response(context)

@@ -20,7 +20,7 @@ const StreamGroupHeader = React.createClass({
   propTypes: {
     data: React.PropTypes.object.isRequired,
     orgId: React.PropTypes.string.isRequired,
-    projectId: React.PropTypes.string.isRequired,
+    projectId: React.PropTypes.string.isRequired
   },
 
   getMessage() {
@@ -52,8 +52,7 @@ const StreamGroupHeader = React.createClass({
         {message &&
           <div className="event-message truncate">
             <span className="message">{this.getMessage()}</span>
-          </div>
-        }
+          </div>}
       </div>
     );
   }
@@ -68,10 +67,7 @@ const StreamGroup = React.createClass({
     canSelect: React.PropTypes.bool
   },
 
-  mixins: [
-    Reflux.listenTo(GroupStore, 'onGroupChange'),
-    ProjectState
-  ],
+  mixins: [Reflux.listenTo(GroupStore, 'onGroupChange'), ProjectState],
 
   getDefaultProps() {
     return {
@@ -112,17 +108,14 @@ const StreamGroup = React.createClass({
     let id = this.props.id;
     let data = GroupStore.get(id);
     this.setState({
-      data: data,
+      data: data
     });
   },
 
   toggleSelect(evt) {
-    if (evt.target.tagName === 'A')
-      return;
-    if (evt.target.tagName === 'INPUT')
-      return;
-    if (jQuery(evt.target).parents('a').length !== 0)
-      return;
+    if (evt.target.tagName === 'A') return;
+    if (evt.target.tagName === 'INPUT') return;
+    if (jQuery(evt.target).parents('a').length !== 0) return;
 
     SelectedGroupStore.toggleSelect(this.state.data.id);
   },
@@ -150,51 +143,58 @@ const StreamGroup = React.createClass({
 
     let {id, orgId, projectId} = this.props;
 
+    let styles = {};
+    if (data.subscriptionDetails && data.subscriptionDetails.reason === 'mentioned') {
+      styles = {color: '#57be8c'};
+    }
+
     return (
       <li className={className} onClick={this.toggleSelect}>
         <div className="col-md-7 col-xs-8 event-details">
           {this.props.canSelect &&
             <div className="checkbox">
               <GroupCheckBox id={data.id} />
-            </div>
-          }
-          <StreamGroupHeader
-            orgId={orgId}
-            projectId={projectId}
-            data={data} />
+            </div>}
+          <StreamGroupHeader orgId={orgId} projectId={projectId} data={data} />
           <div className="event-extra">
             <ul>
-              {this.getFeatures().has('callsigns') && data.shortId &&
+              {this.getFeatures().has('callsigns') &&
+                data.shortId &&
                 <li>
                   <ShortId shortId={data.shortId} />
-                </li>
-              }
+                </li>}
               <li>
-                <span className="icon icon-clock"></span>
+                <span className="icon icon-clock" />
                 <TimeSince date={data.lastSeen} />
-                &nbsp;&mdash;&nbsp;
+                &nbsp;—&nbsp;
                 <TimeSince date={data.firstSeen} suffix="old" />
               </li>
               {data.numComments !== 0 &&
                 <li>
-                  <Link to={`/${orgId}/${projectId}/issues/${id}/activity/`} className="comments">
-                    <span className="icon icon-comments"></span>
+                  <Link
+                    to={`/${orgId}/${projectId}/issues/${id}/activity/`}
+                    className="comments">
+                    <span className="icon icon-comments" style={styles} />
                     <span className="tag-count">{data.numComments}</span>
                   </Link>
-                </li>
-              }
+                </li>}
               {data.logger &&
                 <li className="event-annotation">
-                  <Link to={{pathname: `/${orgId}/${projectId}/`, query: {query: 'logger:' + data.logger}}}>
+                  <Link
+                    to={{
+                      pathname: `/${orgId}/${projectId}/`,
+                      query: {query: 'logger:' + data.logger}
+                    }}>
                     {data.logger}
                   </Link>
-                </li>
-              }
+                </li>}
               {data.annotations.map((annotation, key) => {
                 return (
-                  <li className="event-annotation"
-                      dangerouslySetInnerHTML={{__html: annotation}}
-                      key={key} />
+                  <li
+                    className="event-annotation"
+                    dangerouslySetInnerHTML={{__html: annotation}}
+                    key={key}
+                  />
                 );
               })}
             </ul>
@@ -204,7 +204,7 @@ const StreamGroup = React.createClass({
           <AssigneeSelector id={data.id} />
         </div>
         <div className="col-md-2 hidden-sm hidden-xs event-graph align-right">
-          <GroupChart id={data.id} statsPeriod={this.props.statsPeriod} data={data}/>
+          <GroupChart id={data.id} statsPeriod={this.props.statsPeriod} data={data} />
         </div>
         <div className="col-md-1 col-xs-2 event-count align-right">
           <Count value={data.count} />

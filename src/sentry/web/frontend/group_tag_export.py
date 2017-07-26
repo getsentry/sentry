@@ -15,6 +15,7 @@ def attach_eventuser(project_id):
         users = EventUser.for_tags(project_id, [i.value for i in items])
         for item in items:
             item._eventuser = users.get(item.value)
+
     return wrapped
 
 
@@ -32,43 +33,26 @@ class GroupTagExportView(ProjectView, CsvMixin):
         return self.get_generic_row(item)
 
     def get_generic_header(self):
-        return (
-            'value',
-            'times_seen',
-            'last_seen',
-            'first_seen',
-        )
+        return ('value', 'times_seen', 'last_seen', 'first_seen', )
 
     def get_generic_row(self, item):
         return (
-            item.value,
-            item.times_seen,
-            item.last_seen.strftime('%Y-%m-%dT%H:%M:%S.%fZ'),
+            item.value, item.times_seen, item.last_seen.strftime('%Y-%m-%dT%H:%M:%S.%fZ'),
             item.first_seen.strftime('%Y-%m-%dT%H:%M:%S.%fZ'),
         )
 
     def get_user_header(self):
         return (
-            'value',
-            'id',
-            'email',
-            'username',
-            'ip_address',
-            'times_seen',
-            'last_seen',
+            'value', 'id', 'email', 'username', 'ip_address', 'times_seen', 'last_seen',
             'first_seen',
         )
 
     def get_user_row(self, item):
         euser = item._eventuser
         return (
-            item.value,
-            euser.ident if euser else '',
-            euser.email if euser else '',
-            euser.username if euser else '',
-            euser.ip_address if euser else '',
-            item.times_seen,
-            item.last_seen.strftime('%Y-%m-%dT%H:%M:%S.%fZ'),
+            item.value, euser.ident if euser else '', euser.email if euser else '', euser.username
+            if euser else '', euser.ip_address
+            if euser else '', item.times_seen, item.last_seen.strftime('%Y-%m-%dT%H:%M:%S.%fZ'),
             item.first_seen.strftime('%Y-%m-%dT%H:%M:%S.%fZ'),
         )
 
@@ -105,7 +89,7 @@ class GroupTagExportView(ProjectView, CsvMixin):
 
         queryset = RangeQuerySetWrapper(
             GroupTagValue.objects.filter(
-                group=group,
+                group_id=group.id,
                 key=lookup_key,
             ),
             callbacks=callbacks,

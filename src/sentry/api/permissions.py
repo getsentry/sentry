@@ -2,9 +2,6 @@ from __future__ import absolute_import
 
 from rest_framework import permissions
 
-from sentry.models.apikey import ROOT_KEY
-from sentry.auth.utils import is_privileged_request
-
 
 class NoPermission(permissions.BasePermission):
     def has_permission(self, request, view):
@@ -48,9 +45,3 @@ class SuperuserPermission(permissions.BasePermission):
         if request.is_superuser():
             return True
         return False
-
-
-class SystemPermission(permissions.BasePermission):
-    def has_permission(self, request, view):
-        return request.auth is ROOT_KEY and \
-            is_privileged_request(request)

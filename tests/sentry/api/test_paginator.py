@@ -2,9 +2,7 @@ from __future__ import absolute_import
 
 import pytest
 
-from sentry.api.paginator import (
-    Paginator, DateTimePaginator, OffsetPaginator
-)
+from sentry.api.paginator import (Paginator, DateTimePaginator, OffsetPaginator)
 from sentry.models import User
 from sentry.testutils import TestCase
 
@@ -26,6 +24,30 @@ class PaginatorTest(TestCase):
         paginator = self.cls(queryset, 'id', max_limit=1)
         result = paginator.get_result(limit=2, cursor=None)
         assert len(result) == 1
+
+    def test_count_hits(self):
+        self.create_user('foo@example.com')
+        self.create_user('bar@example.com')
+
+        queryset = User.objects.filter(email='foo@example.com')
+        paginator = self.cls(queryset, 'id')
+        result = paginator.count_hits(1000)
+        assert result == 1
+
+        queryset = User.objects.all()
+        paginator = self.cls(queryset, 'id')
+        result = paginator.count_hits(1000)
+        assert result == 2
+
+        queryset = User.objects.none()
+        paginator = self.cls(queryset, 'id')
+        result = paginator.count_hits(1000)
+        assert result == 0
+
+        queryset = User.objects.all()
+        paginator = self.cls(queryset, 'id')
+        result = paginator.count_hits(1)
+        assert result == 1
 
 
 class OffsetPaginatorTest(TestCase):

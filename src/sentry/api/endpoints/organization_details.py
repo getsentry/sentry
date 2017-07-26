@@ -12,17 +12,13 @@ from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.decorators import sudo_required
 from sentry.api.fields import AvatarField
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.organization import (
-    DetailedOrganizationSerializer
-)
+from sentry.api.serializers.models.organization import (DetailedOrganizationSerializer)
 from sentry.api.serializers.rest_framework import ListField
 from sentry.models import (
-    AuditLogEntryEvent, Organization, OrganizationAvatar, OrganizationOption,
-    OrganizationStatus
+    AuditLogEntryEvent, Organization, OrganizationAvatar, OrganizationOption, OrganizationStatus
 )
 from sentry.tasks.deletion import delete_organization
 from sentry.utils.apidocs import scenario, attach_scenarios
-
 
 ERR_DEFAULT_ORG = 'You cannot remove the default organization.'
 
@@ -42,10 +38,7 @@ delete_logger = logging.getLogger('sentry.deletions.api')
 
 @scenario('RetrieveOrganization')
 def retrieve_organization_scenario(runner):
-    runner.request(
-        method='GET',
-        path='/organizations/%s/' % runner.org.slug
-    )
+    runner.request(method='GET', path='/organizations/%s/' % runner.org.slug)
 
 
 @scenario('UpdateOrganization')
@@ -66,15 +59,12 @@ def update_organization_scenario(runner):
 class OrganizationSerializer(serializers.Serializer):
     name = serializers.CharField(max_length=64)
     slug = serializers.RegexField(r'^[a-z0-9_\-]+$', max_length=50)
-    accountRateLimit = serializers.IntegerField(min_value=0, max_value=1000000,
-                                                required=False)
-    projectRateLimit = serializers.IntegerField(min_value=50, max_value=100,
-                                                required=False)
+    accountRateLimit = serializers.IntegerField(min_value=0, max_value=1000000, required=False)
+    projectRateLimit = serializers.IntegerField(min_value=50, max_value=100, required=False)
     avatar = AvatarField(required=False)
-    avatarType = serializers.ChoiceField(choices=(
-        ('upload', 'upload'),
-        ('letter_avatar', 'letter_avatar'),
-    ), required=False)
+    avatarType = serializers.ChoiceField(
+        choices=(('upload', 'upload'), ('letter_avatar', 'letter_avatar'), ), required=False
+    )
 
     openMembership = serializers.BooleanField(required=False)
     allowSharedIssues = serializers.BooleanField(required=False)
@@ -89,7 +79,7 @@ class OrganizationSerializer(serializers.Serializer):
     def validate_slug(self, attrs, source):
         value = attrs[source]
         if Organization.objects.filter(slug=value).exclude(id=self.context['organization'].id):
-            raise serializers.ValidationError('The slug "%s" is already in use.' % (value,))
+            raise serializers.ValidationError('The slug "%s" is already in use.' % (value, ))
         return attrs
 
     def validate_sensitiveFields(self, attrs, source):
@@ -112,9 +102,11 @@ class OrganizationSerializer(serializers.Serializer):
                 file__isnull=False,
             ).exists()
             if not has_existing_file and not attrs.get('avatar'):
-                raise serializers.ValidationError({
-                    'avatarType': 'Cannot set avatarType to upload without avatar',
-                })
+                raise serializers.ValidationError(
+                    {
+                        'avatarType': 'Cannot set avatarType to upload without avatar',
+                    }
+                )
         return attrs
 
     def save(self):
@@ -198,7 +190,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                             to be available and unique.
         :auth: required
         """
-        if request.access.has_scope('org:delete'):
+        if request.access.has_scope('org:admin'):
             serializer_cls = OwnerOrganizationSerializer
         else:
             serializer_cls = OrganizationSerializer
@@ -218,11 +210,13 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                 data=organization.get_audit_log_data(),
             )
 
-            return Response(serialize(
-                organization,
-                request.user,
-                DetailedOrganizationSerializer(),
-            ))
+            return Response(
+                serialize(
+                    organization,
+                    request.user,
+                    DetailedOrganizationSerializer(),
+                )
+            )
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -246,8 +240,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         :auth: required, user-context-needed
         """
         if not request.user.is_authenticated():
-            return Response({'detail': 'This request requires a user.'},
-                            status=401)
+            return Response({'detail': 'This request requires a user.'}, status=401)
 
         if organization.is_default:
             return Response({'detail': ERR_DEFAULT_ORG}, status=400)
@@ -279,10 +272,13 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                 countdown=countdown,
             )
 
-            delete_logger.info('object.delete.queued', extra={
-                'object_id': organization.id,
-                'transaction_id': transaction_id,
-                'model': Organization.__name__,
-            })
+            delete_logger.info(
+                'object.delete.queued',
+                extra={
+                    'object_id': organization.id,
+                    'transaction_id': transaction_id,
+                    'model': Organization.__name__,
+                }
+            )
 
         return Response(status=204)

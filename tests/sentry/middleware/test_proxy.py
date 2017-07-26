@@ -4,8 +4,7 @@ from exam import fixture
 from django.http import HttpRequest, HttpResponse, StreamingHttpResponse
 
 from sentry.testutils import TestCase
-from sentry.middleware.proxy import (
-    ContentLengthHeaderMiddleware, SetRemoteAddrFromForwardedFor)
+from sentry.middleware.proxy import (ContentLengthHeaderMiddleware, SetRemoteAddrFromForwardedFor)
 
 
 class ContentLengthHeaderMiddlewareTest(TestCase):
@@ -28,6 +27,12 @@ class SetRemoteAddrFromForwardedForTestCase(TestCase):
     def test_ipv4(self):
         request = HttpRequest()
         request.META['HTTP_X_FORWARDED_FOR'] = '8.8.8.8:80,8.8.4.4'
+        self.middleware.process_request(request)
+        assert request.META['REMOTE_ADDR'] == '8.8.8.8'
+
+    def test_ipv4_whitespace(self):
+        request = HttpRequest()
+        request.META['HTTP_X_FORWARDED_FOR'] = '8.8.8.8:80 '
         self.middleware.process_request(request)
         assert request.META['REMOTE_ADDR'] == '8.8.8.8'
 

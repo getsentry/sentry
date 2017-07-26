@@ -4,7 +4,7 @@ from django.contrib.auth.models import AnonymousUser
 from mock import Mock
 
 from sentry.auth import access
-from sentry.models import AuthProvider, Organization
+from sentry.models import AuthProvider, AuthIdentity, Organization
 from sentry.testutils import TestCase
 
 
@@ -17,6 +17,7 @@ class FromUserTest(TestCase):
         result = access.from_user(user, organization)
         assert not result.is_active
         assert result.sso_is_valid
+        assert not result.requires_sso
         assert not result.scopes
         assert not result.has_team_access(team)
         assert not result.has_team_membership(team)
@@ -25,7 +26,8 @@ class FromUserTest(TestCase):
         user = self.create_user()
         organization = self.create_organization(owner=self.user)
         member = self.create_member(
-            organization=organization, user=user,
+            organization=organization,
+            user=user,
             role='owner',
         )
         team = self.create_team(organization=organization)
@@ -33,6 +35,7 @@ class FromUserTest(TestCase):
         result = access.from_user(user, organization)
         assert result.is_active
         assert result.sso_is_valid
+        assert not result.requires_sso
         assert result.scopes == member.get_scopes()
         assert result.has_team_access(team)
         assert result.has_team_membership(team)
@@ -44,7 +47,8 @@ class FromUserTest(TestCase):
             flags=0,  # disable default allow_joinleave
         )
         member = self.create_member(
-            organization=organization, user=user,
+            organization=organization,
+            user=user,
             role='member',
         )
         team = self.create_team(organization=organization)
@@ -52,6 +56,7 @@ class FromUserTest(TestCase):
         result = access.from_user(user, organization)
         assert result.is_active
         assert result.sso_is_valid
+        assert not result.requires_sso
         assert result.scopes == member.get_scopes()
         assert not result.has_team_access(team)
         assert not result.has_team_membership(team)
@@ -63,14 +68,17 @@ class FromUserTest(TestCase):
             flags=Organization.flags.allow_joinleave,
         )
         member = self.create_member(
-            organization=organization, user=user,
-            role='member', teams=(),
+            organization=organization,
+            user=user,
+            role='member',
+            teams=(),
         )
         team = self.create_team(organization=organization)
 
         result = access.from_user(user, organization)
         assert result.is_active
         assert result.sso_is_valid
+        assert not result.requires_sso
         assert result.scopes == member.get_scopes()
         assert result.has_team_access(team)
         assert not result.has_team_membership(team)
@@ -88,11 +96,29 @@ class FromUserTest(TestCase):
         result = access.from_user(user, organization)
         assert result.is_active
         assert result.sso_is_valid
+        assert not result.requires_sso
         assert result.scopes == member.get_scopes()
         assert result.has_team_access(team)
         assert result.has_team_membership(team)
 
     def test_unlinked_sso(self):
+        user = self.create_user()
+        organization = self.create_organization(owner=user)
+        self.create_team(organization=organization)
+        ap = AuthProvider.objects.create(
+            organization=organization,
+            provider='dummy',
+        )
+        AuthIdentity.objects.create(
+            auth_provider=ap,
+            user=user,
+        )
+
+        result = access.from_user(user, organization)
+        assert not result.sso_is_valid
+        assert result.requires_sso
+
+    def test_unlinked_sso_with_no_owners(self):
         user = self.create_user()
         organization = self.create_organization(owner=user)
         self.create_team(organization=organization)
@@ -103,6 +129,7 @@ class FromUserTest(TestCase):
 
         result = access.from_user(user, organization)
         assert not result.sso_is_valid
+        assert not result.requires_sso
 
     def test_sso_without_link_requirement(self):
         user = self.create_user()
@@ -116,6 +143,7 @@ class FromUserTest(TestCase):
 
         result = access.from_user(user, organization)
         assert result.sso_is_valid
+        assert not result.requires_sso
 
     def test_anonymous_user(self):
         user = self.create_user()

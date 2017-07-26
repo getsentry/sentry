@@ -7,11 +7,20 @@ from sentry.models import ProjectKey
 @register(ProjectKey)
 class ProjectKeySerializer(Serializer):
     def serialize(self, obj, attrs, user):
+        name = obj.label or obj.public_key[:14]
         d = {
             'id': obj.public_key,
-            'label': obj.label,
+            'name': name,
+            # label is here for compatibility
+            'label': name,
             'public': obj.public_key,
             'secret': obj.secret_key,
+            'projectId': obj.project_id,
+            'isActive': obj.is_active,
+            'rateLimit': {
+                'window': obj.rate_limit_window,
+                'count': obj.rate_limit_count,
+            } if (obj.rate_limit_window and obj.rate_limit_count) else None,
             'dsn': {
                 'secret': obj.dsn_private,
                 'public': obj.dsn_public,

@@ -5,33 +5,32 @@ import {defined} from '../../utils';
 import InputField from './inputField';
 
 export default class BooleanField extends InputField {
-  valueFromProps(props) {
-    let value = super.valueFromProps(props);
+  coerceValue(props) {
+    let value = super.coerceValue(props);
     return value ? true : false;
   }
 
-  onChange(e) {
-    this.setState({
-      value: e.target.checked,
-    }, () => {
-      this.props.onChange(this.state.value);
-    });
-  }
+  onChange = e => {
+    let value = e.target.checked;
+    this.setValue(value);
+  };
 
   getField() {
     return (
-      <input id={this.getId()}
-          type={this.getType()}
-          onChange={this.onChange.bind(this)}
-          disabled={this.props.disabled}
-          defaultChecked={this.state.value} />
+      <input
+        id={this.getId()}
+        type={this.getType()}
+        onChange={this.onChange.bind(this)}
+        disabled={this.props.disabled}
+        defaultChecked={this.state.value}
+      />
     );
   }
 
-
   render() {
+    let error = this.getError();
     let className = this.getClassName();
-    if (this.props.error) {
+    if (error) {
       className += ' has-error';
     }
     return (
@@ -40,18 +39,14 @@ export default class BooleanField extends InputField {
           <label className="control-label">
             {this.getField()}
             {this.props.label}
-            {this.props.disabled && this.props.disabledReason &&
+            {this.props.disabled &&
+              this.props.disabledReason &&
               <span className="disabled-indicator tip" title={this.props.disabledReason}>
                 <span className="icon-question" />
-              </span>
-            }
+              </span>}
           </label>
-          {defined(this.props.help) &&
-            <p className="help-block">{this.props.help}</p>
-          }
-          {this.props.error &&
-            <p className="error">{this.props.error}</p>
-          }
+          {defined(this.props.help) && <p className="help-block">{this.props.help}</p>}
+          {error && <p className="error">{error}</p>}
         </div>
       </div>
     );

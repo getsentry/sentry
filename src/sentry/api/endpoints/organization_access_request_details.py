@@ -4,13 +4,9 @@ from django.db import IntegrityError, transaction
 from rest_framework import serializers
 from rest_framework.response import Response
 
-from sentry.api.bases.organization import (
-    OrganizationEndpoint, OrganizationPermission
-)
+from sentry.api.bases.organization import (OrganizationEndpoint, OrganizationPermission)
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.models import (
-    AuditLogEntryEvent, OrganizationAccessRequest, OrganizationMemberTeam
-)
+from sentry.models import (AuditLogEntryEvent, OrganizationAccessRequest, OrganizationMemberTeam)
 
 
 class AccessRequestPermission(OrganizationPermission):
@@ -19,8 +15,11 @@ class AccessRequestPermission(OrganizationPermission):
         'POST': [],
         'PUT': [
             'org:write',
+            'org:admin',
             'team:write',
+            'team:admin',
             'member:write',
+            'member:admin',
         ],
         'DELETE': [],
     }
@@ -35,9 +34,15 @@ class OrganizationAccessRequestDetailsEndpoint(OrganizationEndpoint):
 
     # TODO(dcramer): this should go onto AccessRequestPermission
     def _can_access(self, request, access_request):
+        if request.access.has_scope('org:admin'):
+            return True
         if request.access.has_scope('org:write'):
             return True
+        if request.access.has_scope('member:admin'):
+            return True
         if request.access.has_scope('member:write'):
+            return True
+        if request.access.has_team_scope(access_request.team, 'team:admin'):
             return True
         if request.access.has_team_scope(access_request.team, 'team:write'):
             return True

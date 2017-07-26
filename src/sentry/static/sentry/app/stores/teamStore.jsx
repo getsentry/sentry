@@ -26,8 +26,7 @@ const TeamStore = Reflux.createStore({
   },
 
   onUpdateSuccess(changeId, itemId, response) {
-    if (!response)
-      return;
+    if (!response) return;
 
     let item = this.getBySlug(itemId);
     if (!item) {
@@ -43,8 +42,8 @@ const TeamStore = Reflux.createStore({
     let teamsChanged = new Set();
     projectIds.forEach((set, projectId) => {
       let teamId = this.projectMap[projectId];
+      if (teamId === undefined) return;
       let team = this.getById(teamId);
-
       // TODO: make copy of project? right now just assigning reference
       // to project form project store
       let project = ProjectStore.getById(projectId);
@@ -63,7 +62,7 @@ const TeamStore = Reflux.createStore({
   },
 
   getActive() {
-    return this.items.filter((item) => item.isMember);
+    return this.items.filter(item => item.isMember);
   },
 
   getAll() {
@@ -74,4 +73,3 @@ const TeamStore = Reflux.createStore({
 window.TeamStore = TeamStore;
 
 export default TeamStore;
-

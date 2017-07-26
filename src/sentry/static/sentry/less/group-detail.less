@@ -26,7 +26,8 @@
   }
 
   .short-id {
-    font-size: 20px !important;
+    font-size: 17px !important;
+    font-family: @font-family-code;
     margin-top: 11px;
   }
 
@@ -150,24 +151,6 @@
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-    }
-  }
-
-  .resolve-dropdown {
-    .group-resolve {
-      padding-left: 6px !important;
-      padding-right: 6px !important;
-    }
-
-    .dropdown-menu {
-      width: 240px;
-      top: 28px;
-      left: -7px;
-
-      li a {
-        white-space: normal;
-        padding: 3px 12px;
-      }
     }
   }
 
@@ -457,6 +440,7 @@
     dd {
       text-align: right;
       line-height: 1.8;
+      position: relative;
     }
   }
 
@@ -776,6 +760,20 @@
 }
 
 /**
+* Commit Activity
+* ============================================================================
+*/
+.activity-item {
+  .inline-commit {
+    color: @60;
+    padding-left: 3px;
+    &:hover {
+      color: @80;
+    }
+  }
+}
+
+/**
 * Event Details
 * ============================================================================
 */
@@ -1040,7 +1038,9 @@
 .event-toolbar {
   position: relative;
   margin-bottom: -5px;
-  z-index: 1;
+  // z-index seems unnecessary, but increasing (instead of removing) just in case(billy)
+  // Fixes tooltips in toolbar having lower z-index than .btn-group .btn.active
+  z-index: 3;
   .clearfix;
   padding: 20px 30px 20px 40px;
 
@@ -1274,6 +1274,10 @@ div.traceback > ul {
     margin: 0;
     border-top: 1px solid @trim;
 
+    .box-clippable .clip-fade {
+      bottom: 0;
+    }
+
     &.frame-errors {}
 
     &.system-frame { }
@@ -1354,7 +1358,7 @@ div.traceback > ul {
         font-size: 11px;
         color: @gray-dark;
         letter-spacing: -0.25px;
-        width: 85px;
+        width: 100px;
         flex-grow: 0;
         flex-shrink: 0;
       }
@@ -1833,45 +1837,6 @@ div.commands {
     strong {
       margin-right: 4px;
     }
-  }
-}
-
-.box-clippable {
-  position: relative;
-  margin-left: -20px;
-  margin-right: -20px;
-  padding: 16px 20px 0;
-  border-top: 1px solid #f1f2f3;
-  .transition(all 5s ease-in-out);
-
-  &.revealed {
-    /* For "Show More" animation */
-    max-height: 50000px;
-  }
-
-  &:first-of-type {
-    margin-top: -20px;
-    border: 0;
-  }
-
-  h5 {
-    margin-bottom: 15px;
-  }
-
-  .clip-fade {
-    position: absolute;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    padding: 40px 0 0;
-    #gradient > .vertical(rgba(255,255,255, .15), rgba(255,255,255, 1));
-    text-align: center;
-    border-bottom: 15px solid #fff;
-  }
-
-  &.clipped {
-    max-height: 200px;
-    overflow: hidden;
   }
 }
 
@@ -2768,6 +2733,10 @@ ul.crumbs {
       padding: 0;
       border: 0;
       margin-bottom: 20px;
+    }
+
+    .detailed-error {
+      border-top: 1px solid @trim;
     }
   }
 

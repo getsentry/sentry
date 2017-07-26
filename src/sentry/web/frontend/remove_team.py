@@ -15,7 +15,7 @@ class RemoveTeamForm(forms.Form):
 
 
 class RemoveTeamView(TeamView):
-    required_scope = 'team:delete'
+    required_scope = 'team:admin'
     sudo_required = True
 
     def get_form(self, request):
@@ -27,12 +27,14 @@ class RemoveTeamView(TeamView):
         form = self.get_form(request)
 
         if form.is_valid():
-            client.delete('/teams/{}/{}/'.format(organization.slug, team.slug),
-                          request=request, is_sudo=True)
+            client.delete(
+                '/teams/{}/{}/'.format(organization.slug, team.slug), request=request, is_sudo=True
+            )
 
             messages.add_message(
                 request, messages.SUCCESS,
-                _(u'The team %r was scheduled for deletion.') % (team.name.encode('utf-8'),))
+                _(u'The team %r was scheduled for deletion.') % (team.name.encode('utf-8'), )
+            )
 
             return HttpResponseRedirect(reverse('sentry'))
 

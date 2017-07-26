@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-__all__ = ('Sdk',)
+__all__ = ('Sdk', )
 
 from distutils.version import LooseVersion
 from django.conf import settings
@@ -18,12 +18,15 @@ def get_with_prefix(d, k, default=None, delimiter=":"):
     """
 
     prefix = k.split(delimiter, 1)[0]
-    if k in d:
-        return d[k]
-    elif prefix in d:
-        return d[prefix]
-    else:
-        return default
+    for key in [k, prefix]:
+        if key in d:
+            return d[key]
+
+        key = key.lower()
+        if key in d:
+            return d[key]
+
+    return default
 
 
 class Sdk(Interface):
@@ -31,10 +34,12 @@ class Sdk(Interface):
     The SDK used to transmit this event.
 
     >>> {
-    >>>     "name": "sentry-unity",
-    >>>     "version": "1.0"
+    >>>     "name": "sentry-java",
+    >>>     "version": "1.0",
+    >>>     "integrations": ["log4j"]
     >>> }
     """
+
     @classmethod
     def to_python(cls, data):
         name = data.get('name')
@@ -45,10 +50,15 @@ class Sdk(Interface):
         if not version:
             raise InterfaceValidationError("No 'version' value")
 
+        integrations = data.get('integrations')
+        if integrations and not isinstance(integrations, list):
+            raise InterfaceValidationError("'integrations' must be a list")
+
         kwargs = {
             'name': trim(name, 128),
             'version': trim(version, 128),
             'client_ip': data.get('client_ip'),
+            'integrations': integrations,
         }
         return cls(**kwargs)
 

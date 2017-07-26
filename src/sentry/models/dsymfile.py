@@ -8,315 +8,175 @@ sentry.models.dsymfile
 
 from __future__ import absolute_import
 
+import re
 import os
+import six
+import uuid
+import time
+import errno
 import shutil
 import hashlib
-import six
 import tempfile
+from requests.exceptions import RequestException
 
-from itertools import chain
-from django.db import models, router, transaction, connection, IntegrityError
+from jsonfield import JSONField
+from django.db import models, transaction, IntegrityError
+from django.utils import timezone
+from django.utils.translation import ugettext_lazy as _
 
-from symsynd.macho.arch import get_macho_uuids
+from symsynd import DebugInfo, DebugInfoError
 
-from sentry.db.models import FlexibleForeignKey, Model, BoundedBigIntegerField, \
-    sane_repr, BaseManager
+from sentry import options
+from sentry.db.models import FlexibleForeignKey, Model, \
+    sane_repr, BaseManager, BoundedPositiveIntegerField
 from sentry.models.file import File
 from sentry.utils.zip import safe_extract_zip
-from sentry.utils.db import is_sqlite
-from sentry.utils.native import parse_addr
 from sentry.constants import KNOWN_DSYM_TYPES
 from sentry.reprocessing import resolve_processing_issue
 
+ONE_DAY = 60 * 60 * 24
+ONE_DAY_AND_A_HALF = int(ONE_DAY * 1.5)
+DSYM_MIMETYPES = dict((v, k) for k, v in KNOWN_DSYM_TYPES.items())
 
-class DSymSDKManager(BaseManager):
-
-    def enumerate_sdks(self, sdk=None, version=None):
-        """Return a grouped list of SDKs."""
-        filter = ''
-        args = []
-        if version is not None:
-            for col, val in zip(['major', 'minor', 'patchlevel'],
-                                version.split('.')):
-                if not val.isdigit():
-                    return []
-                filter += ' and k.version_%s = %d' % (
-                    col,
-                    int(val)
-                )
-        if sdk is not None:
-            filter += ' and k.sdk_name = %s'
-            args.append(sdk)
-        cur = connection.cursor()
-        cur.execute('''
-   select distinct k.*, count(*) as bundle_count, o.cpu_name
-              from sentry_dsymsdk k,
-                   sentry_dsymbundle b,
-                   sentry_dsymobject o
-             where b.sdk_id = k.id and
-                   b.object_id = o.id %s
-          group by k.id, k.sdk_name, o.cpu_name
-        ''' % filter, args)
-        rv = []
-        for row in cur.fetchall():
-            row = dict(zip([x[0] for x in cur.description], row))
-            ver = '%s.%s.%s' % (
-                row['version_major'],
-                row['version_minor'],
-                row['version_patchlevel']
-            )
-            rv.append({
-                'sdk_name': row['sdk_name'],
-                'version': ver,
-                'build': row['version_build'],
-                'bundle_count': row['bundle_count'],
-                'cpu_name': row['cpu_name'],
-            })
-        return sorted(rv, key=lambda x: (x['sdk_name'],
-                                         x['version'],
-                                         x['build'],
-                                         x['cpu_name']))
+_proguard_file_re = re.compile(r'/proguard/(?:mapping-)?(.*?)\.txt$')
 
 
-class DSymSDK(Model):
+class VersionDSymFile(Model):
     __core__ = False
-    dsym_type = models.CharField(max_length=20, db_index=True)
-    sdk_name = models.CharField(max_length=20)
-    version_major = models.IntegerField()
-    version_minor = models.IntegerField()
-    version_patchlevel = models.IntegerField()
-    version_build = models.CharField(max_length=40)
 
-    objects = DSymSDKManager()
+    objects = BaseManager()
+    dsym_file = FlexibleForeignKey('sentry.ProjectDSymFile', null=True)
+    dsym_app = FlexibleForeignKey('sentry.DSymApp')
+    version = models.CharField(max_length=32)
+    build = models.CharField(max_length=32, null=True)
+    date_added = models.DateTimeField(default=timezone.now)
 
     class Meta:
         app_label = 'sentry'
-        db_table = 'sentry_dsymsdk'
-        index_together = [
-            ('version_major', 'version_minor', 'version_patchlevel',
-             'version_build'),
-        ]
+        db_table = 'sentry_versiondsymfile'
+        unique_together = (('dsym_file', 'version', 'build'), )
 
 
-class DSymObject(Model):
-    __core__ = False
-    cpu_name = models.CharField(max_length=40)
-    object_path = models.TextField(db_index=True)
-    uuid = models.CharField(max_length=36, db_index=True)
-    vmaddr = BoundedBigIntegerField(null=True)
-    vmsize = BoundedBigIntegerField(null=True)
-
-    class Meta:
-        app_label = 'sentry'
-        db_table = 'sentry_dsymobject'
+# TODO(dcramer): pull in enum library
+class DSymPlatform(object):
+    GENERIC = 0
+    APPLE = 1
+    ANDROID = 2
 
 
-class DSymBundle(Model):
-    __core__ = False
-    sdk = FlexibleForeignKey('sentry.DSymSDK')
-    object = FlexibleForeignKey('sentry.DSymObject')
-
-    class Meta:
-        app_label = 'sentry'
-        db_table = 'sentry_dsymbundle'
+DSYM_PLATFORMS = {
+    'generic': DSymPlatform.GENERIC,
+    'apple': DSymPlatform.APPLE,
+    'android': DSymPlatform.ANDROID,
+}
+DSYM_PLATFORMS_REVERSE = dict((v, k) for (k, v) in six.iteritems(DSYM_PLATFORMS))
 
 
-class DSymSymbolManager(BaseManager):
-
-    def bulk_insert(self, items):
-        db = router.db_for_write(DSymSymbol)
-        items = list(items)
-        if not items:
-            return
-
-        # On SQLite we don't do this.  Two reasons: one, it does not
-        # seem significantly faster and you're an idiot if you import
-        # huge amounts of system symbols into sqlite anyways.  secondly
-        # because of the low parameter limit
-        if not is_sqlite():
-            try:
-                with transaction.atomic(using=db):
-                    cur = connection.cursor()
-                    cur.execute('''
-                        insert into sentry_dsymsymbol
-                            (object_id, address, symbol)
-                             values %s
-                    ''' % ', '.join(['(%s, %s, %s)'] * len(items)),
-                        list(chain(*items)))
-                    cur.close()
-                return
-            except IntegrityError:
-                pass
-
-        cur = connection.cursor()
-        for item in items:
-            cur.execute('''
-                insert into sentry_dsymsymbol
-                    (object_id, address, symbol)
-                select
-                    %(object_id)s, %(address)s, %(symbol)s
-                where not exists (
-                    select 1 from sentry_dsymsymbol
-                       where object_id = %(object_id)s
-                         and address = %(address)s);
-            ''', {
-                'object_id': item[0],
-                'address': item[1],
-                'symbol': item[2],
-            })
-        cur.close()
-
-    def lookup_symbol(self, instruction_addr, image_addr, uuid,
-                      cpu_name=None, object_path=None, sdk_info=None,
-                      image_vmaddr=None):
-        """Finds a system symbol."""
-        # If we use the "none" dsym type we never return a symbol here.
-        if sdk_info is not None and sdk_info['dsym_type'] == 'none':
-            return
-
-        instruction_addr = parse_addr(instruction_addr)
-        image_addr = parse_addr(image_addr)
-
-        addr_abs = None
-        if image_vmaddr is not None:
-            image_vmaddr = parse_addr(image_vmaddr)
-            addr_abs = image_vmaddr + instruction_addr - image_addr
-        addr_rel = instruction_addr - image_addr
-
-        uuid = six.text_type(uuid).lower()
-        cur = connection.cursor()
+def _auto_enrich_data(data, app_id, platform):
+    # If we don't have an icon URL we can try to fetch one from iTunes
+    if 'icon_url' not in data and platform == DSymPlatform.APPLE:
+        from sentry.http import safe_urlopen
         try:
-            # First try: exact match on uuid (addr_rel)
-            cur.execute('''
-                select s.symbol
-                  from sentry_dsymsymbol s,
-                       sentry_dsymobject o
-                 where o.uuid = %s and
-                       s.object_id = o.id and
-                       s.address <= o.vmaddr + %s and
-                       s.address >= o.vmaddr
-              order by address desc
-                 limit 1;
-            ''', [uuid, addr_rel])
-            rv = cur.fetchone()
-            if rv:
-                return rv[0]
-
-            # Second try: exact match on uuid (addr_abs)
-            if addr_abs is not None:
-                cur.execute('''
-                    select s.symbol
-                      from sentry_dsymsymbol s,
-                           sentry_dsymobject o
-                     where o.uuid = %s and
-                           s.object_id = o.id and
-                           s.address <= %s and
-                           s.address >= %s
-                  order by address desc
-                     limit 1;
-                ''', [uuid, addr_abs, image_vmaddr])
-                rv = cur.fetchone()
-                if rv:
-                    return rv[0]
-
-            # Third try: exact match on path and arch (addr_rel)
-            if sdk_info is None or \
-               cpu_name is None or \
-               object_path is None:
-                return
-
-            cur.execute('''
-                select s.symbol
-                  from sentry_dsymsymbol s,
-                       sentry_dsymobject o,
-                       sentry_dsymsdk k,
-                       sentry_dsymbundle b
-                 where b.sdk_id = k.id and
-                       b.object_id = o.id and
-                       s.object_id = o.id and
-                       k.sdk_name = %s and
-                       k.dsym_type = %s and
-                       k.version_major = %s and
-                       k.version_minor = %s and
-                       k.version_patchlevel = %s and
-                       o.cpu_name = %s and
-                       o.object_path = %s and
-                       s.address <= o.vmaddr + %s and
-                       s.address >= o.vmaddr
-              order by address desc
-                 limit 1;
-            ''', [sdk_info['sdk_name'], sdk_info['dsym_type'],
-                  sdk_info['version_major'], sdk_info['version_minor'],
-                  sdk_info['version_patchlevel'], cpu_name, object_path,
-                  addr_rel])
-            rv = cur.fetchone()
-            if rv:
-                return rv[0]
-
-            # Fourth try: exact match on path and arch (addr_abs)
-            if addr_abs is not None:
-                cur.execute('''
-                    select s.symbol
-                      from sentry_dsymsymbol s,
-                           sentry_dsymobject o,
-                           sentry_dsymsdk k,
-                           sentry_dsymbundle b
-                     where b.sdk_id = k.id and
-                           b.object_id = o.id and
-                           s.object_id = o.id and
-                           k.sdk_name = %s and
-                           k.dsym_type = %s and
-                           k.version_major = %s and
-                           k.version_minor = %s and
-                           k.version_patchlevel = %s and
-                           o.cpu_name = %s and
-                           o.object_path = %s and
-                           s.address <= %s and
-                           s.address >= %s
-                  order by address desc
-                     limit 1;
-                ''', [sdk_info['sdk_name'], sdk_info['dsym_type'],
-                      sdk_info['version_major'], sdk_info['version_minor'],
-                      sdk_info['version_patchlevel'], cpu_name, object_path,
-                      addr_abs, image_vmaddr])
-                rv = cur.fetchone()
-                if rv:
-                    return rv[0]
-        finally:
-            cur.close()
+            rv = safe_urlopen(
+                'https://itunes.apple.com/lookup', params={
+                    'bundleId': app_id,
+                }
+            )
+        except RequestException:
+            pass
+        else:
+            if rv.ok:
+                rv = rv.json()
+                if rv.get('results'):
+                    data['icon_url'] = rv['results'][0]['artworkUrl512']
 
 
-class DSymSymbol(Model):
+class DSymAppManager(BaseManager):
+    def create_or_update_app(
+        self, sync_id, app_id, project, data=None, platform=DSymPlatform.GENERIC
+    ):
+        if data is None:
+            data = {}
+        _auto_enrich_data(data, app_id, platform)
+        existing_app = DSymApp.objects.filter(app_id=app_id, project=project).first()
+        if existing_app is not None:
+            now = timezone.now()
+            existing_app.update(
+                sync_id=sync_id,
+                data=data,
+                last_synced=now,
+            )
+            return existing_app
+
+        return BaseManager.create(
+            self, sync_id=sync_id, app_id=app_id, data=data, project=project, platform=platform
+        )
+
+
+class DSymApp(Model):
     __core__ = False
-    object = FlexibleForeignKey('sentry.DSymObject')
-    address = BoundedBigIntegerField(db_index=True)
-    symbol = models.TextField()
 
-    objects = DSymSymbolManager()
+    objects = DSymAppManager()
+    project = FlexibleForeignKey('sentry.Project')
+    app_id = models.CharField(max_length=64)
+    sync_id = models.CharField(max_length=64, null=True)
+    data = JSONField()
+    platform = BoundedPositiveIntegerField(
+        default=0,
+        choices=(
+            (DSymPlatform.GENERIC, _('Generic')), (DSymPlatform.APPLE, _('Apple')),
+            (DSymPlatform.ANDROID, _('Android')),
+        )
+    )
+    last_synced = models.DateTimeField(default=timezone.now)
+    date_added = models.DateTimeField(default=timezone.now)
 
     class Meta:
         app_label = 'sentry'
-        db_table = 'sentry_dsymsymbol'
-        unique_together = [
-            ('object', 'address'),
-        ]
+        db_table = 'sentry_dsymapp'
+        unique_together = (('project', 'platform', 'app_id'), )
 
 
-class CommonDSymFile(Model):
-    """
-    A single dsym file that is associated with a project.
-    """
+class ProjectDSymFileManager(BaseManager):
+    def find_missing(self, checksums, project):
+        if not checksums:
+            return []
+
+        checksums = [x.lower() for x in checksums]
+        missing = set(checksums)
+
+        found = ProjectDSymFile.objects.filter(
+            file__checksum__in=checksums, project=project
+        ).values('file__checksum')
+
+        for values in found:
+            missing.discard(values.values()[0])
+
+        return sorted(missing)
+
+    def find_by_checksums(self, checksums, project):
+        if not checksums:
+            return []
+        checksums = [x.lower() for x in checksums]
+        return ProjectDSymFile.objects.filter(file__checksum__in=checksums, project=project)
+
+
+class ProjectDSymFile(Model):
     __core__ = False
 
     file = FlexibleForeignKey('sentry.File')
     object_name = models.TextField()
     cpu_name = models.CharField(max_length=40)
-
-    __repr__ = sane_repr('object_name', 'cpu_name', 'uuid')
+    project = FlexibleForeignKey('sentry.Project', null=True)
+    uuid = models.CharField(max_length=36)
+    objects = ProjectDSymFileManager()
 
     class Meta:
-        abstract = True
+        unique_together = (('project', 'uuid'), )
+        db_table = 'sentry_projectdsymfile'
         app_label = 'sentry'
+
+    __repr__ = sane_repr('object_name', 'cpu_name', 'uuid')
 
     @property
     def dsym_type(self):
@@ -324,38 +184,18 @@ class CommonDSymFile(Model):
         return KNOWN_DSYM_TYPES.get(ct, 'unknown')
 
 
-class ProjectDSymFile(CommonDSymFile):
-    project = FlexibleForeignKey('sentry.Project', null=True)
-    uuid = models.CharField(max_length=36)
-    is_global = False
-
-    class Meta(CommonDSymFile.Meta):
-        unique_together = (('project', 'uuid'),)
-        db_table = 'sentry_projectdsymfile'
-
-
-class GlobalDSymFile(CommonDSymFile):
-    uuid = models.CharField(max_length=36, unique=True)
-    is_global = True
-
-    class Meta(CommonDSymFile.Meta):
-        db_table = 'sentry_globaldsymfile'
-
-
-def _create_macho_dsym_from_uuid(project, cpu_name, uuid, fileobj,
-                                 object_name):
-    """This creates a mach dsym file from the given uuid and open file
-    object to a dsym file.  This will not verify the uuid.  Use
-    `create_files_from_macho_zip` for doing everything.
+def _create_dsym_from_uuid(project, dsym_type, cpu_name, uuid, fileobj, basename):
+    """This creates a mach dsym file or proguard mapping from the given
+    uuid and open file object to a dsym file.  This will not verify the
+    uuid (intentionally so).  Use `create_files_from_dsym_zip` for doing
+    everything.
     """
-    extra = {}
-    if project is None:
-        cls = GlobalDSymFile
-        file_type = 'global.dsym'
+    if dsym_type == 'proguard':
+        object_name = 'proguard-mapping'
+    elif dsym_type == 'macho':
+        object_name = basename
     else:
-        cls = ProjectDSymFile
-        extra['project'] = project
-        file_type = 'project.dsym'
+        raise TypeError('unknown dsym type %r' % (dsym_type, ))
 
     h = hashlib.sha1()
     while 1:
@@ -367,10 +207,10 @@ def _create_macho_dsym_from_uuid(project, cpu_name, uuid, fileobj,
     fileobj.seek(0, 0)
 
     try:
-        rv = cls.objects.get(uuid=uuid, **extra)
+        rv = ProjectDSymFile.objects.get(uuid=uuid, project=project)
         if rv.file.checksum == checksum:
-            return rv
-    except cls.DoesNotExist:
+            return rv, False
+    except ProjectDSymFile.DoesNotExist:
         pass
     else:
         # The checksum mismatches.  In this case we delete the old object
@@ -379,24 +219,22 @@ def _create_macho_dsym_from_uuid(project, cpu_name, uuid, fileobj,
 
     file = File.objects.create(
         name=uuid,
-        type=file_type,
-        headers={
-            'Content-Type': 'application/x-mach-binary'
-        },
+        type='project.dsym',
+        headers={'Content-Type': DSYM_MIMETYPES[dsym_type]},
     )
     file.putfile(fileobj)
     try:
         with transaction.atomic():
-            rv = cls.objects.create(
+            rv = ProjectDSymFile.objects.create(
                 file=file,
                 uuid=uuid,
                 cpu_name=cpu_name,
                 object_name=object_name,
-                **extra
+                project=project,
             )
     except IntegrityError:
         file.delete()
-        rv = cls.objects.get(uuid=uuid, **extra)
+        rv = ProjectDSymFile.objects.get(uuid=uuid, project=project)
 
     resolve_processing_issue(
         project=project,
@@ -404,81 +242,170 @@ def _create_macho_dsym_from_uuid(project, cpu_name, uuid, fileobj,
         object='dsym:%s' % uuid,
     )
 
-    return rv
+    return rv, True
 
 
-def create_files_from_macho_zip(fileobj, project=None):
+def _analyze_progard_filename(filename):
+    match = _proguard_file_re.search(filename)
+    if match is None:
+        return None
+
+    ident = match.group(1)
+
+    try:
+        return uuid.UUID(ident)
+    except Exception:
+        pass
+
+
+def create_files_from_dsym_zip(fileobj, project=None):
     """Creates all missing dsym files from the given zip file.  This
     returns a list of all files created.
     """
     scratchpad = tempfile.mkdtemp()
     try:
-        safe_extract_zip(fileobj, scratchpad)
+        safe_extract_zip(fileobj, scratchpad, strip_toplevel=False)
         to_create = []
 
         for dirpath, dirnames, filenames in os.walk(scratchpad):
             for fn in filenames:
                 fn = os.path.join(dirpath, fn)
+
+                # proguard files (proguard/UUID.txt) or
+                # (proguard/mapping-UUID.txt).
+                proguard_uuid = _analyze_progard_filename(fn)
+                if proguard_uuid is not None:
+                    to_create.append(('proguard', 'any', six.text_type(proguard_uuid), fn, ))
+
+                # macho style debug symbols
                 try:
-                    uuids = get_macho_uuids(fn)
-                except (IOError, ValueError):
+                    di = DebugInfo.open_path(fn)
+                except DebugInfoError:
                     # Whatever was contained there, was probably not a
                     # macho file.
+                    pass
+                else:
+                    for variant in di.get_variants():
+                        to_create.append(
+                            ('macho', variant.cpu_name, six.text_type(variant.uuid), fn, )
+                        )
                     continue
-                for cpu, uuid in uuids:
-                    to_create.append((cpu, uuid, fn))
 
         rv = []
-        for cpu, uuid, filename in to_create:
+        for dsym_type, cpu, file_uuid, filename in to_create:
             with open(filename, 'rb') as f:
-                rv.append((_create_macho_dsym_from_uuid(
-                    project, cpu, uuid, f, os.path.basename(filename))))
+                dsym, created = _create_dsym_from_uuid(
+                    project, dsym_type, cpu, file_uuid, f, os.path.basename(filename)
+                )
+                if created:
+                    rv.append(dsym)
         return rv
     finally:
         shutil.rmtree(scratchpad)
 
 
 def find_dsym_file(project, image_uuid):
-    """Finds a dsym file for the given uuid.  Looks both within the project
-    as well the global store.
-    """
+    """Finds a dsym file for the given uuid."""
     image_uuid = image_uuid.lower()
     try:
         return ProjectDSymFile.objects.filter(
-            uuid=image_uuid,
-            project=project
+            uuid=image_uuid, project=project
         ).select_related('file').get()
     except ProjectDSymFile.DoesNotExist:
         pass
-    try:
-        return GlobalDSymFile.objects.filter(
-            uuid=image_uuid
-        ).select_related('file').get()
-    except GlobalDSymFile.DoesNotExist:
-        return None
 
 
-def find_missing_dsym_files(checksums, project=None):
-    checksums = [x.lower() for x in checksums]
-    missing = set(checksums)
+class DSymCache(object):
+    @property
+    def dsym_cache_path(self):
+        return options.get('dsym.cache-path')
 
-    if project is not None:
-        found = ProjectDSymFile.objects.filter(
-            file__checksum__in=checksums,
-            project=project
-        ).values('file__checksum')
+    def get_project_path(self, project):
+        return os.path.join(self.dsym_cache_path, six.text_type(project.id))
 
-        for values in found:
-            missing.discard(values.values()[0])
+    def fetch_dsyms(self, project, uuids, on_dsym_file_referenced=None):
+        rv = {}
+        for image_uuid in uuids:
+            path = self.fetch_dsym(
+                project, image_uuid, on_dsym_file_referenced=on_dsym_file_referenced
+            )
+            if path is not None:
+                rv[image_uuid] = path
+        return rv
 
-        if not missing:
-            return []
+    def try_bump_timestamp(self, path, old_stat):
+        now = int(time.time())
+        if old_stat.st_ctime < now - ONE_DAY:
+            os.utime(path, (now, now))
+        return path
 
-    found = GlobalDSymFile.objects.filter(
-        file__checksum__in=list(missing),
-    ).values('file__checksum')
+    def fetch_dsym(self, project, image_uuid, on_dsym_file_referenced=None):
+        image_uuid = image_uuid.lower()
+        dsym_path = os.path.join(self.get_project_path(project), image_uuid)
+        try:
+            os.stat(dsym_path)
+        except OSError as e:
+            if e.errno != errno.ENOENT:
+                raise
+        else:
+            return dsym_path
 
-    for values in found:
-        missing.discard(values.values()[0])
+        dsf = find_dsym_file(project, image_uuid)
+        if dsf is None:
+            return None
 
-    return list(missing)
+        if on_dsym_file_referenced is not None:
+            on_dsym_file_referenced(dsf)
+
+        try:
+            os.makedirs(os.path.dirname(dsym_path))
+        except OSError:
+            pass
+
+        with dsf.file.getfile() as sf:
+            suffix = '_%s' % uuid.uuid4()
+            done = False
+            try:
+                with open(dsym_path + suffix, 'w') as df:
+                    shutil.copyfileobj(sf, df)
+                os.rename(dsym_path + suffix, dsym_path)
+                done = True
+            finally:
+                # Use finally here because it does not lie about the
+                # error on exit
+                if not done:
+                    try:
+                        os.remove(dsym_path + suffix)
+                    except Exception:
+                        pass
+
+        return dsym_path
+
+    def clear_old_entries(self):
+        try:
+            cache_folders = os.listdir(self.dsym_cache_path)
+        except OSError:
+            return
+
+        cutoff = int(time.time()) - ONE_DAY_AND_A_HALF
+
+        for cache_folder in cache_folders:
+            cache_folder = os.path.join(self.dsym_cache_path, cache_folder)
+            try:
+                items = os.listdir(cache_folder)
+            except OSError:
+                continue
+            for cached_file in items:
+                cached_file = os.path.join(cache_folder, cached_file)
+                try:
+                    mtime = os.path.getmtime(cached_file)
+                except OSError:
+                    continue
+                if mtime < cutoff:
+                    try:
+                        os.remove(cached_file)
+                    except OSError:
+                        pass
+
+
+ProjectDSymFile.dsymcache = DSymCache()

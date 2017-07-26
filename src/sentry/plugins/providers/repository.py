@@ -20,11 +20,14 @@ class RepositoryProvider(ProviderMixin):
     def dispatch(self, request, organization, **kwargs):
         if self.needs_auth(request.user):
             # TODO(dcramer): this should be a 401
-            return Response({
-                'error_type': 'auth',
-                'title': self.name,
-                'auth_url': reverse('socialauth_associate', args=[self.auth_provider]),
-            }, status=400)
+            return Response(
+                {
+                    'error_type': 'auth',
+                    'title': self.name,
+                    'auth_url': reverse('socialauth_associate', args=[self.auth_provider]),
+                },
+                status=400
+            )
 
         try:
             fields = self.get_config()
@@ -36,14 +39,15 @@ class RepositoryProvider(ProviderMixin):
 
         validator = ConfigValidator(fields, request.DATA)
         if not validator.is_valid():
-            return Response({
-                'error_type': 'validation',
-                'errors': validator.errors,
-            }, status=400)
+            return Response(
+                {
+                    'error_type': 'validation',
+                    'errors': validator.errors,
+                }, status=400
+            )
 
         try:
-            config = self.validate_config(organization, validator.result,
-                                          actor=request.user)
+            config = self.validate_config(organization, validator.result, actor=request.user)
         except Exception as e:
             return self.handle_api_error(e)
 
@@ -54,9 +58,13 @@ class RepositoryProvider(ProviderMixin):
                 actor=request.user,
             )
         except PluginError as e:
-            return Response({
-                'errors': {'__all__': e.message},
-            }, status=400)
+            return Response(
+                {
+                    'errors': {
+                        '__all__': e.message
+                    },
+                }, status=400
+            )
 
         repo = Repository.objects.create(
             organization_id=organization.id,
@@ -80,3 +88,10 @@ class RepositoryProvider(ProviderMixin):
 
     def delete_repository(self, repo, actor=None):
         pass
+
+    def compare_commits(self, repo, start_sha, end_sha, actor=None):
+        raise NotImplementedError
+
+    @staticmethod
+    def should_ignore_commit(message):
+        return '#skipsentry' in message

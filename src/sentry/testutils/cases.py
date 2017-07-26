@@ -9,9 +9,8 @@ sentry.testutils.cases
 from __future__ import absolute_import
 
 __all__ = (
-    'TestCase', 'TransactionTestCase', 'APITestCase', 'AuthProviderTestCase',
-    'RuleTestCase', 'PermissionTestCase', 'PluginTestCase', 'CliTestCase',
-    'AcceptanceTestCase',
+    'TestCase', 'TransactionTestCase', 'APITestCase', 'AuthProviderTestCase', 'RuleTestCase',
+    'PermissionTestCase', 'PluginTestCase', 'CliTestCase', 'AcceptanceTestCase',
 )
 
 import base64
@@ -23,14 +22,17 @@ import types
 
 from click.testing import CliRunner
 from contextlib import contextmanager
+from datetime import datetime
 from django.conf import settings
 from django.contrib.auth import login
 from django.core.cache import cache
 from django.core.urlresolvers import reverse
 from django.http import HttpRequest
 from django.test import TestCase, TransactionTestCase
+from django.utils import timezone
 from django.utils.importlib import import_module
 from exam import before, fixture, Exam
+from mock import patch
 from pkg_resources import iter_entry_points
 from rest_framework.test import APITestCase as BaseAPITestCase
 from six.moves.urllib.parse import urlencode
@@ -154,7 +156,8 @@ class BaseTestCase(Fixtures, Exam):
         message = self._makePostMessage(data)
         with self.tasks():
             resp = self.client.post(
-                reverse('sentry-api-store'), message,
+                reverse('sentry-api-store'),
+                message,
                 content_type='application/octet-stream',
                 HTTP_X_SENTRY_AUTH=get_auth_header(
                     '_postWithHeader/0.0.0',
@@ -174,7 +177,8 @@ class BaseTestCase(Fixtures, Exam):
         path += '?sentry_key=%s' % self.projectkey.public_key
         with self.tasks():
             return self.client.post(
-                path, data=body,
+                path,
+                data=body,
                 content_type='application/csp-report',
                 HTTP_USER_AGENT=DEFAULT_USER_AGENT,
                 **extra
@@ -197,7 +201,7 @@ class BaseTestCase(Fixtures, Exam):
         }
         with self.tasks():
             resp = self.client.get(
-                '%s?%s' % (reverse('sentry-api-store', args=(self.project.pk,)), urlencode(qs)),
+                '%s?%s' % (reverse('sentry-api-store', args=(self.project.pk, )), urlencode(qs)),
                 **headers
             )
         return resp
@@ -218,7 +222,7 @@ class BaseTestCase(Fixtures, Exam):
         }
         with self.tasks():
             resp = self.client.post(
-                '%s?%s' % (reverse('sentry-api-store', args=(self.project.pk,)), urlencode(qs)),
+                '%s?%s' % (reverse('sentry-api-store', args=(self.project.pk, )), urlencode(qs)),
                 data=message,
                 content_type='application/json',
                 **headers
@@ -330,8 +334,10 @@ class PermissionTestCase(TestCase):
     def assert_teamless_member_can_access(self, path):
         user = self.create_user(is_superuser=False)
         self.create_member(
-            user=user, organization=self.organization,
-            role='member', teams=[],
+            user=user,
+            organization=self.organization,
+            role='member',
+            teams=[],
         )
 
         self.assert_can_access(user, path)
@@ -345,8 +351,10 @@ class PermissionTestCase(TestCase):
     def assert_teamless_member_cannot_access(self, path):
         user = self.create_user(is_superuser=False)
         self.create_member(
-            user=user, organization=self.organization,
-            role='member', teams=[],
+            user=user,
+            organization=self.organization,
+            role='member',
+            teams=[],
         )
 
         self.assert_cannot_access(user, path)
@@ -357,8 +365,10 @@ class PermissionTestCase(TestCase):
     def assert_teamless_admin_can_access(self, path):
         user = self.create_user(is_superuser=False)
         self.create_member(
-            user=user, organization=self.organization,
-            role='admin', teams=[],
+            user=user,
+            organization=self.organization,
+            role='admin',
+            teams=[],
         )
 
         self.assert_can_access(user, path)
@@ -369,8 +379,10 @@ class PermissionTestCase(TestCase):
     def assert_teamless_admin_cannot_access(self, path):
         user = self.create_user(is_superuser=False)
         self.create_member(
-            user=user, organization=self.organization,
-            role='admin', teams=[],
+            user=user,
+            organization=self.organization,
+            role='admin',
+            teams=[],
         )
 
         self.assert_cannot_access(user, path)
@@ -391,8 +403,10 @@ class PermissionTestCase(TestCase):
     def assert_role_can_access(self, path, role):
         user = self.create_user(is_superuser=False)
         self.create_member(
-            user=user, organization=self.organization,
-            role=role, teams=[self.team],
+            user=user,
+            organization=self.organization,
+            role=role,
+            teams=[self.team],
         )
 
         self.assert_can_access(user, path)
@@ -400,8 +414,10 @@ class PermissionTestCase(TestCase):
     def assert_role_cannot_access(self, path, role):
         user = self.create_user(is_superuser=False)
         self.create_member(
-            user=user, organization=self.organization,
-            role=role, teams=[self.team],
+            user=user,
+            organization=self.organization,
+            role=role,
+            teams=[self.team],
         )
 
         self.assert_cannot_access(user, path)
@@ -425,8 +441,11 @@ class PluginTestCase(TestCase):
                 ep_path = ep.module_name
                 if ep_path == path:
                     return
-                self.fail('Found app in entry_points, but wrong class. Got %r, expected %r' % (ep_path, path))
-        self.fail('Missing app from entry_points: %r' % (name,))
+                self.fail(
+                    'Found app in entry_points, but wrong class. Got %r, expected %r' %
+                    (ep_path, path)
+                )
+        self.fail('Missing app from entry_points: %r' % (name, ))
 
     def assertPluginInstalled(self, name, plugin):
         path = type(plugin).__module__ + ':' + type(plugin).__name__
@@ -435,8 +454,11 @@ class PluginTestCase(TestCase):
                 ep_path = ep.module_name + ':' + '.'.join(ep.attrs)
                 if ep_path == path:
                     return
-                self.fail('Found plugin in entry_points, but wrong class. Got %r, expected %r' % (ep_path, path))
-        self.fail('Missing plugin from entry_points: %r' % (name,))
+                self.fail(
+                    'Found plugin in entry_points, but wrong class. Got %r, expected %r' %
+                    (ep_path, path)
+                )
+        self.fail('Missing plugin from entry_points: %r' % (name, ))
 
 
 class CliTestCase(TestCase):
@@ -451,6 +473,15 @@ class CliTestCase(TestCase):
 
 @pytest.mark.usefixtures('browser')
 class AcceptanceTestCase(TransactionTestCase):
+    def setUp(self):
+        patcher = patch(
+            'django.utils.timezone.now',
+            return_value=(datetime(2013, 5, 18, 15, 13, 58, 132928, tzinfo=timezone.utc))
+        )
+        patcher.start()
+        self.addCleanup(patcher.stop)
+        super(AcceptanceTestCase, self).setUp()
+
     def save_session(self):
         self.session.save()
         self.browser.save_cookie(

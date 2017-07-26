@@ -15,7 +15,6 @@ import OrganizationStore from '../stores/organizationStore';
 import {t} from '../locale';
 import {extractMultilineFields} from '../utils';
 
-
 const OrganizationSettingsForm = React.createClass({
   propTypes: {
     orgId: React.PropTypes.string.isRequired,
@@ -30,7 +29,7 @@ const OrganizationSettingsForm = React.createClass({
     return {
       formData: this.buildFormData(this.props.initialData),
       errors: {},
-      hasChanges: false,
+      hasChanges: false
     };
   },
 
@@ -46,9 +45,9 @@ const OrganizationSettingsForm = React.createClass({
       dataScrubberDefaults: data.dataScrubberDefaults,
       scrubIPAddresses: data.scrubIPAddresses,
       safeFields: data.safeFields.join('\n'),
-      sensitiveFields: data.sensitiveFields.join('\n'),
+      sensitiveFields: data.sensitiveFields.join('\n')
     };
-    if (this.props.access.has('org:delete')) {
+    if (this.props.access.has('org:admin')) {
       result.defaultRole = data.defaultRole;
     }
     return result;
@@ -61,7 +60,7 @@ const OrganizationSettingsForm = React.createClass({
     };
     this.setState({
       hasChanges: true,
-      formData: formData,
+      formData: formData
     });
   },
 
@@ -72,43 +71,46 @@ const OrganizationSettingsForm = React.createClass({
       return;
     }
 
-    this.setState({
-      state: FormState.SAVING,
-      hasChanges: false,
-    }, () => {
-      let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
-      let {orgId} = this.props;
-      let formData = this.state.formData;
-      this.api.request(`/organizations/${orgId}/`, {
-        method: 'PUT',
-        data: {
-          ...formData,
-          safeFields: extractMultilineFields(formData.safeFields),
-          sensitiveFields: extractMultilineFields(formData.sensitiveFields),
-        },
-        success: (data) => {
-          this.props.onSave(data);
-          this.setState({
-            state: FormState.READY,
-            errors: {},
-          });
-          IndicatorStore.remove(loadingIndicator);
-          IndicatorStore.add(t('Changes saved.'), 'success', {
-            duration: 1500
-          });
-        },
-        error: (error) => {
-          this.setState({
-            state: FormState.ERROR,
-            errors: error.responseJSON,
-          });
-          IndicatorStore.remove(loadingIndicator);
-          IndicatorStore.add(t('Unable to save changes. Please try again.'), 'error', {
-            duration: 3000
-          });
-        },
-      });
-    });
+    this.setState(
+      {
+        state: FormState.SAVING,
+        hasChanges: false
+      },
+      () => {
+        let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
+        let {orgId} = this.props;
+        let formData = this.state.formData;
+        this.api.request(`/organizations/${orgId}/`, {
+          method: 'PUT',
+          data: {
+            ...formData,
+            safeFields: extractMultilineFields(formData.safeFields),
+            sensitiveFields: extractMultilineFields(formData.sensitiveFields)
+          },
+          success: data => {
+            this.props.onSave(data);
+            this.setState({
+              state: FormState.READY,
+              errors: {}
+            });
+            IndicatorStore.remove(loadingIndicator);
+            IndicatorStore.add(t('Changes saved.'), 'success', {
+              duration: 1500
+            });
+          },
+          error: error => {
+            this.setState({
+              state: FormState.ERROR,
+              errors: error.responseJSON
+            });
+            IndicatorStore.remove(loadingIndicator);
+            IndicatorStore.add(t('Unable to save changes. Please try again.'), 'error', {
+              duration: 3000
+            });
+          }
+        });
+      }
+    );
   },
 
   render() {
@@ -118,15 +120,25 @@ const OrganizationSettingsForm = React.createClass({
 
     let sensitiveFieldsHelp = (
       <span>
-        {t('Additional field names to match against when scrubbing data for all projects. Separate multiple entries with a newline.')}<br />
-        <strong>{t('Note: These fields will be used in addition to project specific fields.')}</strong>
+        {t(
+          'Additional field names to match against when scrubbing data for all projects. Separate multiple entries with a newline.'
+        )}
+        <br />
+        <strong>
+          {t('Note: These fields will be used in addition to project specific fields.')}
+        </strong>
       </span>
     );
 
     let safeFieldsHelp = (
       <span>
-        {t('Field names which data scrubbers should ignore. Separate multiple entries with a newline.')}<br />
-        <strong>{t('Note: These fields will be used in addition to project specific fields.')}</strong>
+        {t(
+          'Field names which data scrubbers should ignore. Separate multiple entries with a newline.'
+        )}
+        <br />
+        <strong>
+          {t('Note: These fields will be used in addition to project specific fields.')}
+        </strong>
       </span>
     );
 
@@ -134,9 +146,10 @@ const OrganizationSettingsForm = React.createClass({
       <form onSubmit={this.onSubmit} className="form-stacked ref-organization-settings">
         {this.state.state === FormState.ERROR &&
           <div className="alert alert-error alert-block">
-            {t('Unable to save your changes. Please ensure all fields are valid and try again.')}
-          </div>
-        }
+            {t(
+              'Unable to save your changes. Please ensure all fields are valid and try again.'
+            )}
+          </div>}
         <fieldset>
           <legend style={{marginTop: 0}}>{t('General')}</legend>
 
@@ -148,7 +161,8 @@ const OrganizationSettingsForm = React.createClass({
             value={formData.name}
             required={true}
             error={errors.name}
-            onChange={this.onFieldChange.bind(this, 'name')} />
+            onChange={this.onFieldChange.bind(this, 'name')}
+          />
           <TextField
             key="slug"
             name="slug"
@@ -157,20 +171,22 @@ const OrganizationSettingsForm = React.createClass({
             help={t('A unique ID used to identify this organization.')}
             required={true}
             error={errors.slug}
-            onChange={this.onFieldChange.bind(this, 'slug')} />
+            onChange={this.onFieldChange.bind(this, 'slug')}
+          />
           <BooleanField
             key="isEarlyAdopter"
             name="isEarlyAdopter"
             label={t('Early Adopter')}
             value={formData.isEarlyAdopter}
-            help={t('Opt-in to new features before they\'re released to the public.')}
+            help={t("Opt-in to new features before they're released to the public.")}
             required={false}
             error={errors.isEarlyAdopter}
-            onChange={this.onFieldChange.bind(this, 'isEarlyAdopter')} />
+            onChange={this.onFieldChange.bind(this, 'isEarlyAdopter')}
+          />
 
           <legend>{t('Membership')}</legend>
 
-          {access.has('org:delete') &&
+          {access.has('org:admin') &&
             <Select2Field
               key="defaultRole"
               name="defaultRole"
@@ -180,8 +196,8 @@ const OrganizationSettingsForm = React.createClass({
               help={t('The default role new members will receive.')}
               required={true}
               error={errors.defaultRole}
-              onChange={this.onFieldChange.bind(this, 'defaultRole')} />
-          }
+              onChange={this.onFieldChange.bind(this, 'defaultRole')}
+            />}
 
           <BooleanField
             key="openMembership"
@@ -191,7 +207,8 @@ const OrganizationSettingsForm = React.createClass({
             help={t('Allow organization members to freely join or leave any team.')}
             required={true}
             error={errors.openMembership}
-            onChange={this.onFieldChange.bind(this, 'openMembership')} />
+            onChange={this.onFieldChange.bind(this, 'openMembership')}
+          />
 
           <legend>{t('Security & Privacy')}</legend>
 
@@ -203,17 +220,21 @@ const OrganizationSettingsForm = React.createClass({
             help={t('Enable sharing of limited details on issues to anonymous users.')}
             required={false}
             error={errors.allowSharedIssues}
-            onChange={this.onFieldChange.bind(this, 'allowSharedIssues')} />
+            onChange={this.onFieldChange.bind(this, 'allowSharedIssues')}
+          />
 
           <BooleanField
             key="enhancedPrivacy"
             name="enhancedPrivacy"
             label={t('Enhanced Privacy')}
             value={formData.enhancedPrivacy}
-            help={t('Enable enhanced privacy controls to limit personally identifiable information (PII) as well as source code in things like notifications.')}
+            help={t(
+              'Enable enhanced privacy controls to limit personally identifiable information (PII) as well as source code in things like notifications.'
+            )}
             required={false}
             error={errors.enhancedPrivacy}
-            onChange={this.onFieldChange.bind(this, 'enhancedPrivacy')} />
+            onChange={this.onFieldChange.bind(this, 'enhancedPrivacy')}
+          />
 
           <BooleanField
             key="dataScrubber"
@@ -223,17 +244,21 @@ const OrganizationSettingsForm = React.createClass({
             help={t('Require server-side data scrubbing be enabled for all projects.')}
             required={false}
             error={errors.dataScrubber}
-            onChange={this.onFieldChange.bind(this, 'dataScrubber')} />
+            onChange={this.onFieldChange.bind(this, 'dataScrubber')}
+          />
 
           <BooleanField
             key="dataScrubberDefaults"
             name="dataScrubberDefaults"
             label={t('Require Using Default Scrubbers')}
             value={formData.dataScrubberDefaults}
-            help={t('Require the default scrubbers be applied to prevent things like passwords and credit cards from being stored for all projects.')}
+            help={t(
+              'Require the default scrubbers be applied to prevent things like passwords and credit cards from being stored for all projects.'
+            )}
             required={true}
             error={errors.dataScrubberDefaults}
-            onChange={this.onFieldChange.bind(this, 'dataScrubberDefaults')} />
+            onChange={this.onFieldChange.bind(this, 'dataScrubberDefaults')}
+          />
 
           <TextareaField
             key="sensitiveFields"
@@ -244,7 +269,8 @@ const OrganizationSettingsForm = React.createClass({
             placeholder={t('e.g. email')}
             required={false}
             error={errors.sensitiveFields}
-            onChange={this.onFieldChange.bind(this, 'sensitiveFields')} />
+            onChange={this.onFieldChange.bind(this, 'sensitiveFields')}
+          />
 
           <TextareaField
             key="safeFields"
@@ -255,21 +281,29 @@ const OrganizationSettingsForm = React.createClass({
             placeholder={t('e.g. email')}
             required={false}
             error={errors.safeFields}
-            onChange={this.onFieldChange.bind(this, 'safeFields')} />
+            onChange={this.onFieldChange.bind(this, 'safeFields')}
+          />
 
           <BooleanField
             key="scrubIPAddresses"
             name="scrubIPAddresses"
             label={t('Prevent Storing of IP Addresses')}
             value={formData.scrubIPAddresses}
-            help={t('Preventing IP addresses from being stored for new events on all projects.')}
+            help={t(
+              'Preventing IP addresses from being stored for new events on all projects.'
+            )}
             required={false}
             error={errors.scrubIPAddresses}
-            onChange={this.onFieldChange.bind(this, 'scrubIPAddresses')} />
+            onChange={this.onFieldChange.bind(this, 'scrubIPAddresses')}
+          />
         </fieldset>
         <fieldset className="form-actions">
-          <button type="submit" className="btn btn-primary"
-                  disabled={isSaving || !this.state.hasChanges}>{t('Save Changes')}</button>
+          <button
+            type="submit"
+            className="btn btn-primary"
+            disabled={isSaving || !this.state.hasChanges}>
+            {t('Save Changes')}
+          </button>
         </fieldset>
       </form>
     );
@@ -277,15 +311,13 @@ const OrganizationSettingsForm = React.createClass({
 });
 
 const OrganizationSettings = React.createClass({
-  mixins: [
-    ApiMixin,
-  ],
+  mixins: [ApiMixin],
 
   getInitialState() {
     return {
       loading: true,
       error: false,
-      data: null,
+      data: null
     };
   },
 
@@ -296,30 +328,29 @@ const OrganizationSettings = React.createClass({
   fetchData() {
     this.api.request(`/organizations/${this.props.params.orgId}/`, {
       method: 'GET',
-      success: (data) => {
+      success: data => {
         this.setState({
           data: data,
-          loading: false,
+          loading: false
         });
       },
       error: () => {
         this.setState({
           loading: false,
-          error: true,
+          error: true
         });
       }
     });
   },
 
   onSave(data) {
-    // TODO(dcramer): this shoudl propag
+    // TODO(dcramer): this should propagate
     this.setState({data: data});
     OrganizationStore.add(data);
   },
 
   render() {
-    if (this.state.loading)
-      return <LoadingIndicator />;
+    if (this.state.loading) return <LoadingIndicator />;
 
     let data = this.state.data;
     let orgId = this.props.params.orgId;
@@ -334,24 +365,31 @@ const OrganizationSettings = React.createClass({
               initialData={data}
               orgId={orgId}
               access={access}
-              onSave={this.onSave} />
+              onSave={this.onSave}
+            />
           </div>
         </div>
 
-        {access.has('org:delete') && !data.isDefault &&
+        {access.has('org:admin') &&
+          !data.isDefault &&
           <div className="box">
             <div className="box-header">
               <h3>{t('Remove Organization')}</h3>
             </div>
             <div className="box-content with-padding">
-              <p>{t('Removing this organization will delete all data including projects and their associated events.')}</p>
+              <p>
+                {t(
+                  'Removing this organization will delete all data including projects and their associated events.'
+                )}
+              </p>
 
               <fieldset className="form-actions">
-                <a href={`/organizations/${orgId}/remove/`} className="btn btn-danger">{t('Remove Organization')}</a>
+                <a href={`/organizations/${orgId}/remove/`} className="btn btn-danger">
+                  {t('Remove Organization')}
+                </a>
               </fieldset>
             </div>
-          </div>
-        }
+          </div>}
       </OrganizationHomeContainer>
     );
   }

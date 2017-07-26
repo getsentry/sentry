@@ -8,7 +8,7 @@ sentry.interfaces.csp
 
 from __future__ import absolute_import
 
-__all__ = ('Csp',)
+__all__ = ('Csp', )
 
 from six.moves.urllib.parse import urlsplit, urlunsplit
 
@@ -18,26 +18,28 @@ from sentry.utils.cache import memoize
 from sentry.utils.safe import trim
 from sentry.web.helpers import render_to_string
 
-
 # Sourced from https://developer.mozilla.org/en-US/docs/Web/Security/CSP/CSP_policy_directives
-REPORT_KEYS = frozenset((
-    'blocked_uri', 'document_uri', 'effective_directive', 'original_policy',
-    'referrer', 'status_code', 'violated_directive', 'source_file',
-    'line_number', 'column_number',
+REPORT_KEYS = frozenset(
+    (
+        'blocked_uri',
+        'document_uri',
+        'effective_directive',
+        'original_policy',
+        'referrer',
+        'status_code',
+        'violated_directive',
+        'source_file',
+        'line_number',
+        'column_number',
 
-    # FireFox specific keys
-    'script_sample',
-))
-
-KEYWORDS = frozenset((
-    "'none'", "'self'", "'unsafe-inline'", "'unsafe-eval'",
-))
-
-
-ALL_SCHEMES = (
-    'data:', 'mediastream:', 'blob:', 'filesystem:',
-    'http:', 'https:', 'file:',
+        # FireFox specific keys
+        'script_sample',
+    )
 )
+
+KEYWORDS = frozenset(("'none'", "'self'", "'unsafe-inline'", "'unsafe-eval'", ))
+
+ALL_SCHEMES = ('data:', 'mediastream:', 'blob:', 'filesystem:', 'http:', 'https:', 'file:', )
 
 SELF = "'self'"
 
@@ -47,7 +49,7 @@ DIRECTIVE_TO_MESSAGES = {
     'connect-src': (u"Blocked 'connect' from '{uri}'", "Blocked inline 'connect'"),
     # 'default-src': '',
     'font-src': (u"Blocked 'font' from '{uri}'", "Blocked inline 'font'"),
-    'form-action': (u"Blocked 'form' action to '{uri}'",),  # no inline option
+    'form-action': (u"Blocked 'form' action to '{uri}'", ),  # no inline option
     # 'frame-ancestors': '',
     'img-src': (u"Blocked 'image' from '{uri}'", "Blocked inline 'image'"),
     'manifest-src': (u"Blocked 'manifest' from '{uri}'", "Blocked inline 'manifest'"),
@@ -136,8 +138,7 @@ class Csp(Interface):
 
     def get_tags(self):
         return (
-            ('effective-directive', self.effective_directive),
-            ('blocked-uri', self.blocked_uri),
+            ('effective-directive', self.effective_directive), ('blocked-uri', self.blocked_uri),
         )
 
     @memoize
@@ -188,8 +189,7 @@ class Csp(Interface):
 
     def to_email_html(self, event, **kwargs):
         return render_to_string(
-            'sentry/partial/interfaces/csp_email.html',
-            {'data': self.get_api_context()}
+            'sentry/partial/interfaces/csp_email.html', {'data': self.get_api_context()}
         )
 
     def get_path(self):

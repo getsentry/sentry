@@ -8,7 +8,7 @@ sentry.interfaces.exception
 
 from __future__ import absolute_import
 
-__all__ = ('Exception',)
+__all__ = ('Exception', )
 
 import six
 
@@ -42,14 +42,13 @@ class SingleException(Interface):
     score = 2000
 
     @classmethod
-    def to_python(cls, data, has_system_frames=None, slim_frames=True):
+    def to_python(cls, data, slim_frames=True):
         if not (data.get('type') or data.get('value')):
             raise InterfaceValidationError("No 'type' or 'value' present")
 
         if data.get('stacktrace') and data['stacktrace'].get('frames'):
             stacktrace = Stacktrace.to_python(
                 data['stacktrace'],
-                has_system_frames=has_system_frames,
                 slim_frames=slim_frames,
             )
         else:
@@ -57,10 +56,7 @@ class SingleException(Interface):
 
         if data.get('raw_stacktrace') and data['raw_stacktrace'].get('frames'):
             raw_stacktrace = Stacktrace.to_python(
-                data['raw_stacktrace'],
-                has_system_frames=has_system_frames,
-                slim_frames=slim_frames,
-                raw=True
+                data['raw_stacktrace'], slim_frames=slim_frames, raw=True
             )
         else:
             raw_stacktrace = None
@@ -143,10 +139,10 @@ class SingleException(Interface):
     def get_path(self):
         return 'sentry.interfaces.Exception'
 
-    def get_hash(self):
+    def get_hash(self, platform=None):
         output = None
         if self.stacktrace:
-            output = self.stacktrace.get_hash()
+            output = self.stacktrace.get_hash(platform=platform)
             if output and self.type:
                 output.append(self.type)
         if not output:
@@ -207,17 +203,11 @@ class Exception(Interface):
         if not isinstance(data['values'], list):
             raise InterfaceValidationError("Invalid value for 'values'")
 
-        has_system_frames = cls.data_has_system_frames(data)
-
         kwargs = {
-            'values': [
-                SingleException.to_python(
-                    v,
-                    has_system_frames=has_system_frames,
-                    slim_frames=False,
-                )
-                for v in data['values']
-            ],
+            'values': [SingleException.to_python(
+                v,
+                slim_frames=False,
+            ) for v in data['values']],
         }
 
         if data.get('exc_omitted'):
@@ -232,31 +222,6 @@ class Exception(Interface):
         slim_exception_data(instance)
         return instance
 
-    @classmethod
-    def data_has_system_frames(cls, data):
-        system_frames = 0
-        app_frames = 0
-        for exc in data['values']:
-            if not exc.get('stacktrace'):
-                continue
-
-            frames = exc['stacktrace'].get('frames')
-            if not frames:
-                continue
-
-            for frame in frames:
-                # XXX(dcramer): handle PHP sending an empty array for a frame
-                if not isinstance(frame, dict):
-                    continue
-                if frame.get('in_app') is True:
-                    app_frames += 1
-                else:
-                    system_frames += 1
-
-        # if there is a mix of frame styles then we indicate that system frames
-        # are present and should be represented as a split
-        return bool(app_frames and system_frames)
-
     def to_json(self):
         return {
             'values': [v.to_json() for v in self.values],
@@ -270,17 +235,17 @@ class Exception(Interface):
         return 'sentry.interfaces.Exception'
 
     def compute_hashes(self, platform):
-        system_hash = self.get_hash(system_frames=True)
+        system_hash = self.get_hash(platform, system_frames=True)
         if not system_hash:
             return []
 
-        app_hash = self.get_hash(system_frames=False)
+        app_hash = self.get_hash(platform, system_frames=False)
         if system_hash == app_hash or not app_hash:
             return [system_hash]
 
         return [system_hash, app_hash]
 
-    def get_hash(self, system_frames=True):
+    def get_hash(self, platform=None, system_frames=True):
         # optimize around the fact that some exceptions might have stacktraces
         # while others may not and we ALWAYS want stacktraces over values
         output = []
@@ -288,6 +253,7 @@ class Exception(Interface):
             if not value.stacktrace:
                 continue
             stack_hash = value.stacktrace.get_hash(
+                platform=platform,
                 system_frames=system_frames,
             )
             if stack_hash:
@@ -296,22 +262,17 @@ class Exception(Interface):
 
         if not output:
             for value in self.values:
-                output.extend(value.get_hash())
+                output.extend(value.get_hash(platform=platform))
 
         return output
 
     def get_api_context(self, is_public=False):
         return {
-            'values': [
-                v.get_api_context(is_public=is_public)
-                for v in self.values
-            ],
-            'hasSystemFrames': any(
-                v.stacktrace.has_system_frames
-                for v in self.values
-                if v.stacktrace
-            ),
-            'excOmitted': self.exc_omitted,
+            'values': [v.get_api_context(is_public=is_public) for v in self.values],
+            'hasSystemFrames':
+            any(v.stacktrace.get_has_system_frames() for v in self.values if v.stacktrace),
+            'excOmitted':
+            self.exc_omitted,
         }
 
     def to_string(self, event, is_public=False, **kwargs):
@@ -322,9 +283,10 @@ class Exception(Interface):
         for exc in self.values:
             output.append(u'{0}: {1}\n'.format(exc.type, exc.value))
             if exc.stacktrace:
-                output.append(exc.stacktrace.get_stacktrace(
-                    event, system_frames=False, max_frames=5,
-                    header=False) + '\n\n')
+                output.append(
+                    exc.stacktrace.
+                    get_stacktrace(event, system_frames=False, max_frames=5, header=False) + '\n\n'
+                )
         return (''.join(output)).strip()
 
     def get_stacktrace(self, *args, **kwargs):

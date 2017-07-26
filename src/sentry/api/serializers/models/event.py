@@ -11,10 +11,7 @@ from sentry.models import Event, EventError
 
 @register(Event)
 class EventSerializer(Serializer):
-    _reserved_keys = frozenset([
-        'sentry.interfaces.User', 'sdk', 'device',
-        'contexts'
-    ])
+    _reserved_keys = frozenset(['sentry.interfaces.User', 'sdk', 'device', 'contexts'])
 
     def _get_entries(self, event, user, is_public=False):
         # XXX(dcramer): These are called entries for future-proofing
@@ -86,19 +83,17 @@ class EventSerializer(Serializer):
             error_result = {
                 'type': error['type'],
                 'message': message,
-                'data': {
-                    k: v for k, v in six.iteritems(error)
-                    if k != 'type'
-                },
+                'data': {k: v for k, v in six.iteritems(error) if k != 'type'},
             }
             errors.append(error_result)
 
-        tags = sorted([
-            {
+        tags = sorted(
+            [{
                 'key': k.split('sentry:', 1)[-1],
                 'value': v
-            } for k, v in obj.get_tags()
-        ], key=lambda x: x['key'])
+            } for k, v in obj.get_tags()],
+            key=lambda x: x['key']
+        )
 
         received = obj.data.get('received')
         if received:
@@ -111,6 +106,11 @@ class EventSerializer(Serializer):
             except TypeError:
                 received = None
 
+        from sentry.event_manager import (
+            get_hashes_for_event,
+            md5_from_hash,
+        )
+
         # TODO(dcramer): move release serialization here
         d = {
             'id': six.text_type(obj.id),
@@ -118,6 +118,7 @@ class EventSerializer(Serializer):
             'eventID': six.text_type(obj.event_id),
             'size': obj.size,
             'entries': attrs['entries'],
+            'dist': obj.dist,
             # See GH-3248
             'message': obj.get_legacy_message(),
             'user': attrs['user'],
@@ -133,15 +134,14 @@ class EventSerializer(Serializer):
             'dateCreated': obj.datetime,
             'dateReceived': received,
             'errors': errors,
+            'fingerprints': [md5_from_hash(h) for h in get_hashes_for_event(obj)],
         }
         return d
 
 
 class SharedEventSerializer(EventSerializer):
     def get_attrs(self, item_list, user):
-        return super(SharedEventSerializer, self).get_attrs(
-            item_list, user, is_public=True
-        )
+        return super(SharedEventSerializer, self).get_attrs(item_list, user, is_public=True)
 
     def serialize(self, obj, attrs, user):
         result = super(SharedEventSerializer, self).serialize(obj, attrs, user)
@@ -151,8 +151,5 @@ class SharedEventSerializer(EventSerializer):
         del result['tags']
         del result['sdk']
         del result['errors']
-        result['entries'] = [
-            e for e in result['entries']
-            if e['type'] != 'breadcrumbs'
-        ]
+        result['entries'] = [e for e in result['entries'] if e['type'] != 'breadcrumbs']
         return result

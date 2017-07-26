@@ -10,7 +10,9 @@ from sentry.testutils import TestCase
 class ProjectTagsTest(TestCase):
     @fixture
     def path(self):
-        return reverse('sentry-manage-project-tags', args=[self.organization.slug, self.project.slug])
+        return reverse(
+            'sentry-manage-project-tags', args=[self.organization.slug, self.project.slug]
+        )
 
     def test_requires_authentication(self):
         self.assertRequiresAuthentication(self.path)

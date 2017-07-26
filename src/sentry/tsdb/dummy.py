@@ -14,7 +14,14 @@ class DummyTSDB(BaseTSDB):
     """
     A no-op time-series storage.
     """
+
     def incr(self, model, key, timestamp=None, count=1):
+        pass
+
+    def merge(self, model, destination, sources, timestamp=None):
+        pass
+
+    def delete(self, models, keys, start=None, end=None, timestamp=None):
         pass
 
     def get_range(self, model, keys, start, end, rollup=None):
@@ -34,6 +41,12 @@ class DummyTSDB(BaseTSDB):
     def get_distinct_counts_union(self, model, keys, start, end=None, rollup=None):
         return 0
 
+    def merge_distinct_counts(self, model, destination, sources, timestamp=None):
+        pass
+
+    def delete_distinct_counts(self, models, keys, start=None, end=None, timestamp=None):
+        pass
+
     def record_frequency_multi(self, requests, timestamp=None):
         pass
 
@@ -51,10 +64,7 @@ class DummyTSDB(BaseTSDB):
         for key, members in items.items():
             result = results[key] = []
             for timestamp in series:
-                result.append((
-                    timestamp,
-                    {k: 0.0 for k in members},
-                ))
+                result.append((timestamp, {k: 0.0 for k in members}, ))
 
         return results
 
@@ -63,3 +73,9 @@ class DummyTSDB(BaseTSDB):
         for key, members in items.items():
             results[key] = {member: 0.0 for member in members}
         return results
+
+    def merge_frequencies(self, model, destination, sources, timestamp=None):
+        pass
+
+    def delete_frequencies(self, models, keys, start=None, end=None, timestamp=None):
+        pass

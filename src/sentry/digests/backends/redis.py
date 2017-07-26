@@ -13,9 +13,7 @@ from sentry.digests import Record, ScheduleEntry
 from sentry.digests.backends.base import Backend, InvalidState
 from sentry.utils.locking.backends.redis import RedisLockBackend
 from sentry.utils.locking.manager import LockManager
-from sentry.utils.redis import (
-    check_cluster_versions, get_cluster_from_options, load_script
-)
+from sentry.utils.redis import (check_cluster_versions, get_cluster_from_options, load_script)
 from sentry.utils.versioning import Version
 
 logger = logging.getLogger('sentry.digests')
@@ -68,8 +66,8 @@ def clear_timeline_contents(pipeline, timeline_key):
 
     This assumes the timeline lock has already been acquired.
     """
-    truncate_timeline(pipeline, (timeline_key,), (0, timeline_key))
-    truncate_timeline(pipeline, (make_digest_key(timeline_key),), (0, timeline_key))
+    truncate_timeline(pipeline, (timeline_key, ), (0, timeline_key))
+    truncate_timeline(pipeline, (make_digest_key(timeline_key), ), (0, timeline_key))
     pipeline.delete(make_last_processed_timestamp_key(timeline_key))
 
 
@@ -122,6 +120,7 @@ class RedisBackend(Backend):
         2) "1444847638"
 
     """
+
     def __init__(self, **options):
         self.cluster, options = get_cluster_from_options('SENTRY_DIGESTS_OPTIONS', options)
         self.locks = LockManager(RedisLockBackend(self.cluster))
@@ -181,19 +180,14 @@ class RedisBackend(Backend):
                     make_schedule_key(self.namespace, SCHEDULE_STATE_READY),
                     make_last_processed_timestamp_key(timeline_key),
                 ),
-                (
-                    key,
-                    record.timestamp,
-                    increment_delay,
-                    maximum_delay,
-                ),
+                (key, record.timestamp, increment_delay, maximum_delay, ),
             )
 
             should_truncate = random.random() < self.truncation_chance
             if should_truncate:
                 truncate_timeline(
                     pipeline,
-                    (timeline_key,),
+                    (timeline_key, ),
                     (self.capacity, timeline_key),
                 )
 
@@ -242,12 +236,14 @@ class RedisBackend(Backend):
 
                     pipeline.zrem(
                         make_schedule_key(self.namespace, SCHEDULE_STATE_WAITING),
-                        *[key for key, timestamp in items]
+                        * [key for key, timestamp in items]
                     )
 
                     pipeline.zadd(
                         make_schedule_key(self.namespace, SCHEDULE_STATE_READY),
-                        *itertools.chain.from_iterable([(timestamp, key) for (key, timestamp) in items])
+                        *itertools.chain.from_iterable(
+                            [(timestamp, key) for (key, timestamp) in items]
+                        )
                     )
 
                     for key, timestamp in items:
@@ -260,7 +256,7 @@ class RedisBackend(Backend):
                 if len(items) < chunk:
                     break
             else:
-                raise RuntimeError('loop exceeded maximum iterations (%s)' % (maximum_iterations,))
+                raise RuntimeError('loop exceeded maximum iterations (%s)' % (maximum_iterations, ))
 
     def schedule(self, deadline, chunk=1000):
         # TODO: This doesn't lead to a fair balancing of workers, ideally each
@@ -325,7 +321,9 @@ class RedisBackend(Backend):
             for result in map(try_lock, entries):
                 can_reschedule[result[0] is not None].append(result)
 
-            logger.debug('Fetched %s items, able to reschedule %s.', len(entries), len(can_reschedule[True]))
+            logger.debug(
+                'Fetched %s items, able to reschedule %s.', len(entries), len(can_reschedule[True])
+            )
 
             # Set the start position for the next query. (If there are no
             # items, we don't need to worry about this, since there won't
@@ -371,7 +369,7 @@ class RedisBackend(Backend):
 
                     pipeline.zrem(
                         make_schedule_key(self.namespace, SCHEDULE_STATE_READY),
-                        *[entry.key for (lock, entry) in can_reschedule[True]]
+                        * [entry.key for (lock, entry) in can_reschedule[True]]
                     )
 
                     should_reschedule = ([], [])  # indexed by True and False
@@ -389,7 +387,9 @@ class RedisBackend(Backend):
                     if should_reschedule[True]:
                         pipeline.zadd(
                             make_schedule_key(self.namespace, SCHEDULE_STATE_WAITING),
-                            *itertools.chain.from_iterable([(entry.timestamp, entry.key) for entry in should_reschedule[True]])
+                            *itertools.chain.from_iterable(
+                                [(entry.timestamp, entry.key) for entry in should_reschedule[True]]
+                            )
                         )
 
                     # Clear out timelines that should not be rescheduled.
@@ -428,7 +428,7 @@ class RedisBackend(Backend):
             if len(entries) < fetch_size:
                 break
         else:
-            raise RuntimeError('loop exceeded maximum iterations (%s)' % (maximum_iterations,))
+            raise RuntimeError('loop exceeded maximum iterations (%s)' % (maximum_iterations, ))
 
     def maintenance(self, deadline, chunk=1000):
         # TODO: Ideally, this would also return the number of items that were
@@ -463,11 +463,13 @@ class RedisBackend(Backend):
             # before sending. This acts as a throttling mechanism to prevent
             # sending a digest before it's next scheduled delivery time in a
             # race condition scenario.
-            if connection.zscore(make_schedule_key(self.namespace, SCHEDULE_STATE_READY), key) is None:
+            if connection.zscore(make_schedule_key(self.namespace, SCHEDULE_STATE_READY), key
+                                 ) is None:
                 raise InvalidState('Timeline is not in the ready state.')
 
             with connection.pipeline() as pipeline:
-                pipeline.watch(digest_key)  # This shouldn't be necessary, but better safe than sorry?
+                # This shouldn't be necessary, but better safe than sorry?
+                pipeline.watch(digest_key)
 
                 if pipeline.exists(digest_key):
                     pipeline.multi()
@@ -483,7 +485,9 @@ class RedisBackend(Backend):
                         pipeline.execute()
                     except ResponseError as error:
                         if 'no such key' in six.text_type(error):
-                            logger.debug('Could not move timeline for digestion (likely has no contents.)')
+                            logger.debug(
+                                'Could not move timeline for digestion (likely has no contents.)'
+                            )
                         else:
                             raise
 
@@ -512,18 +516,26 @@ class RedisBackend(Backend):
             yield itertools.islice(get_records_for_digest(), self.capacity)
 
             def cleanup_records(pipeline):
-                record_keys = [make_record_key(timeline_key, record_key) for record_key, score in records]
+                record_keys = [
+                    make_record_key(timeline_key, record_key) for record_key, score in records
+                ]
                 pipeline.delete(digest_key, *record_keys)
 
             def reschedule():
                 with connection.pipeline() as pipeline:
-                    pipeline.watch(digest_key)  # This shouldn't be necessary, but better safe than sorry?
+                    # This shouldn't be necessary, but better safe than sorry?
+                    pipeline.watch(digest_key)
                     pipeline.multi()
 
                     cleanup_records(pipeline)
                     pipeline.zrem(make_schedule_key(self.namespace, SCHEDULE_STATE_READY), key)
-                    pipeline.zadd(make_schedule_key(self.namespace, SCHEDULE_STATE_WAITING), time.time() + minimum_delay, key)
-                    pipeline.setex(make_last_processed_timestamp_key(timeline_key), self.ttl, int(time.time()))
+                    pipeline.zadd(
+                        make_schedule_key(self.namespace, SCHEDULE_STATE_WAITING),
+                        time.time() + minimum_delay, key
+                    )
+                    pipeline.setex(
+                        make_last_processed_timestamp_key(timeline_key), self.ttl, int(time.time())
+                    )
                     pipeline.execute()
 
             def unschedule():
@@ -536,7 +548,9 @@ class RedisBackend(Backend):
                         cleanup_records(pipeline)
                         pipeline.delete(make_last_processed_timestamp_key(timeline_key))
                         pipeline.zrem(make_schedule_key(self.namespace, SCHEDULE_STATE_READY), key)
-                        pipeline.zrem(make_schedule_key(self.namespace, SCHEDULE_STATE_WAITING), key)
+                        pipeline.zrem(
+                            make_schedule_key(self.namespace, SCHEDULE_STATE_WAITING), key
+                        )
                         pipeline.execute()
 
             # If there were records in the digest, we need to schedule it so

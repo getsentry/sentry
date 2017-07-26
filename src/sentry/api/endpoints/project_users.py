@@ -4,7 +4,7 @@ from rest_framework.response import Response
 
 from sentry.api.base import DocSection
 from sentry.api.bases.project import ProjectEndpoint
-from sentry.api.paginator import OffsetPaginator
+from sentry.api.paginator import DateTimePaginator
 from sentry.api.serializers import serialize
 from sentry.models import EventUser
 
@@ -36,16 +36,16 @@ class ProjectUsersEndpoint(ProjectEndpoint):
             if len(pieces) != 2:
                 return Response([])
             try:
-                queryset = queryset.filter(**{
-                    '{}__icontains'.format(EventUser.attr_from_keyword(pieces[0])): pieces[1]
-                })
+                queryset = queryset.filter(
+                    **{'{}__icontains'.format(EventUser.attr_from_keyword(pieces[0])): pieces[1]}
+                )
             except KeyError:
                 return Response([])
 
         return self.paginate(
             request=request,
             queryset=queryset,
-            order_by='hash',
-            paginator_cls=OffsetPaginator,
+            order_by='-date_added',
+            paginator_cls=DateTimePaginator,
             on_results=lambda x: serialize(x, request.user),
         )

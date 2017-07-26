@@ -31,7 +31,9 @@ def register_plugins(settings):
             plugin = ep.load()
         except Exception:
             import traceback
-            click.echo("Failed to load plugin %r:\n%s" % (ep.name, traceback.format_exc()), err=True)
+            click.echo(
+                "Failed to load plugin %r:\n%s" % (ep.name, traceback.format_exc()), err=True
+            )
         else:
             plugins.register(plugin)
 
@@ -185,9 +187,12 @@ def configure_structlog():
     from sentry.logging import LoggingFormat
     WrappedDictClass = structlog.threadlocal.wrap_dict(dict)
     kwargs = {
-        'context_class': WrappedDictClass,
-        'wrapper_class': structlog.stdlib.BoundLogger,
-        'cache_logger_on_first_use': True,
+        'context_class':
+        WrappedDictClass,
+        'wrapper_class':
+        structlog.stdlib.BoundLogger,
+        'cache_logger_on_first_use':
+        True,
         'processors': [
             structlog.stdlib.add_log_level,
             structlog.stdlib.PositionalArgumentsFormatter(),
@@ -204,10 +209,12 @@ def configure_structlog():
 
     if fmt == LoggingFormat.HUMAN:
         from sentry.logging.handlers import HumanRenderer
-        kwargs['processors'].extend([
-            structlog.processors.ExceptionPrettyPrinter(),
-            HumanRenderer(),
-        ])
+        kwargs['processors'].extend(
+            [
+                structlog.processors.ExceptionPrettyPrinter(),
+                HumanRenderer(),
+            ]
+        )
     elif fmt == LoggingFormat.MACHINE:
         from sentry.logging.handlers import JSONRenderer
         kwargs['processors'].append(JSONRenderer())
@@ -219,30 +226,27 @@ def configure_structlog():
     if lvl and lvl not in logging._levelNames:
         raise AttributeError('%s is not a valid logging level.' % lvl)
 
-    settings.LOGGING['root'].update({
-        'level': lvl or settings.LOGGING['default_level']
-    })
+    settings.LOGGING['root'].update({'level': lvl or settings.LOGGING['default_level']})
 
     if lvl:
         for logger in settings.LOGGING['overridable']:
             try:
-                settings.LOGGING['loggers'][logger].update({
-                    'level': lvl
-                })
+                settings.LOGGING['loggers'][logger].update({'level': lvl})
             except KeyError:
                 raise KeyError('%s is not a defined logger.' % logger)
 
     logging.config.dictConfig(settings.LOGGING)
 
 
-def initialize_app(config, skip_backend_validation=False):
+def initialize_app(config, skip_service_validation=False):
     settings = config['settings']
 
     bootstrap_options(settings, config['options'])
 
     configure_structlog()
 
-    fix_south(settings)
+    if 'south' in settings.INSTALLED_APPS:
+        fix_south(settings)
 
     apply_legacy_settings(settings)
 
@@ -251,9 +255,11 @@ def initialize_app(config, skip_backend_validation=False):
     # Commonly setups don't correctly configure themselves for production envs
     # so lets try to provide a bit more guidance
     if settings.CELERY_ALWAYS_EAGER and not settings.DEBUG:
-        warnings.warn('Sentry is configured to run asynchronous tasks in-process. '
-                      'This is not recommended within production environments. '
-                      'See https://docs.sentry.io/on-premise/server/queue/ for more information.')
+        warnings.warn(
+            'Sentry is configured to run asynchronous tasks in-process. '
+            'This is not recommended within production environments. '
+            'See https://docs.sentry.io/on-premise/server/queue/ for more information.'
+        )
 
     if settings.SENTRY_SINGLE_ORGANIZATION:
         settings.SENTRY_FEATURES['organizations:create'] = False
@@ -285,8 +291,7 @@ def initialize_app(config, skip_backend_validation=False):
 
     validate_options(settings)
 
-    if not skip_backend_validation:
-        validate_backends()
+    setup_services(validate=not skip_service_validation)
 
     from django.utils import timezone
     from sentry.app import env
@@ -295,33 +300,43 @@ def initialize_app(config, skip_backend_validation=False):
     env.data['start_date'] = timezone.now()
 
 
-def validate_backends():
+def setup_services(validate=True):
     from sentry import (
-        buffer, digests, nodestore, quotas, ratelimits, search, tsdb
+        analytics, buffer, digests, newsletter, nodestore, quotas, ratelimits, search, tsdb
+    )
+    from .importer import ConfigurationError
+    from sentry.utils.settings import reraise_as
+
+    service_list = (
+        analytics, buffer, digests, newsletter, nodestore, quotas, ratelimits, search, tsdb,
     )
 
-    backends = (
-        buffer,
-        digests,
-        nodestore,
-        quotas,
-        ratelimits,
-        search,
-        tsdb,
-    )
-
-    for backend in backends:
-        try:
-            backend.validate()
-        except AttributeError as exc:
-            from .importer import ConfigurationError
-            from sentry.utils.settings import reraise_as
-            reraise_as(ConfigurationError(
-                '{} service failed to call validate()\n{}'.format(
-                    backend.__name__,
-                    six.text_type(exc),
+    for service in service_list:
+        if validate:
+            try:
+                service.validate()
+            except AttributeError as exc:
+                reraise_as(
+                    ConfigurationError(
+                        '{} service failed to call validate()\n{}'.format(
+                            service.__name__,
+                            six.text_type(exc),
+                        )
+                    )
                 )
-            ))
+        try:
+            service.setup()
+        except AttributeError as exc:
+            if not hasattr(service, 'setup') or not callable(service.setup):
+                reraise_as(
+                    ConfigurationError(
+                        '{} service failed to call setup()\n{}'.format(
+                            service.__name__,
+                            six.text_type(exc),
+                        )
+                    )
+                )
+            raise
 
 
 def validate_options(settings):
@@ -347,7 +362,7 @@ def bind_cache_to_option_store():
     # settings and/or configuration values. Those options should have been
     # loaded at this point, so we can plug in the cache backend before
     # continuing to initialize the remainder of the application.
-    from sentry.cache import default_cache
+    from django.core.cache import cache as default_cache
     from sentry.options import default_store
 
     default_store.cache = default_cache
@@ -360,10 +375,10 @@ def show_big_error(message):
         lines = message
     maxline = max(map(len, lines))
     click.echo('', err=True)
-    click.secho('!! %s !!' % ('!' * min(maxline, 80),), err=True, fg='red')
+    click.secho('!! %s !!' % ('!' * min(maxline, 80), ), err=True, fg='red')
     for line in lines:
         click.secho('!! %s !!' % line.center(maxline), err=True, fg='red')
-    click.secho('!! %s !!' % ('!' * min(maxline, 80),), err=True, fg='red')
+    click.secho('!! %s !!' % ('!' * min(maxline, 80), ), err=True, fg='red')
     click.echo('', err=True)
 
 
@@ -382,23 +397,23 @@ def apply_legacy_settings(settings):
         settings.CELERY_ALWAYS_EAGER = (not settings.SENTRY_USE_QUEUE)
 
     for old, new in (
-        ('SENTRY_ADMIN_EMAIL', 'system.admin-email'),
-        ('SENTRY_URL_PREFIX', 'system.url-prefix'),
-        ('SENTRY_SYSTEM_MAX_EVENTS_PER_MINUTE', 'system.rate-limit'),
-        ('SENTRY_ENABLE_EMAIL_REPLIES', 'mail.enable-replies'),
-        ('SENTRY_SMTP_HOSTNAME', 'mail.reply-hostname'),
-        ('MAILGUN_API_KEY', 'mail.mailgun-api-key'),
-        ('SENTRY_FILESTORE', 'filestore.backend'),
-        ('SENTRY_FILESTORE_OPTIONS', 'filestore.options'),
+        ('SENTRY_ADMIN_EMAIL', 'system.admin-email'), ('SENTRY_URL_PREFIX', 'system.url-prefix'),
+        ('SENTRY_SYSTEM_MAX_EVENTS_PER_MINUTE',
+         'system.rate-limit'), ('SENTRY_ENABLE_EMAIL_REPLIES', 'mail.enable-replies'),
+        ('SENTRY_SMTP_HOSTNAME',
+         'mail.reply-hostname'), ('MAILGUN_API_KEY', 'mail.mailgun-api-key'),
+        ('SENTRY_FILESTORE',
+         'filestore.backend'), ('SENTRY_FILESTORE_OPTIONS', 'filestore.options'),
     ):
         if new not in settings.SENTRY_OPTIONS and hasattr(settings, old):
-            warnings.warn(
-                DeprecatedSettingWarning(old, "SENTRY_OPTIONS['%s']" % new))
+            warnings.warn(DeprecatedSettingWarning(old, "SENTRY_OPTIONS['%s']" % new))
             settings.SENTRY_OPTIONS[new] = getattr(settings, old)
 
     if hasattr(settings, 'SENTRY_REDIS_OPTIONS'):
         if 'redis.clusters' in settings.SENTRY_OPTIONS:
-            raise Exception("Cannot specify both SENTRY_OPTIONS['redis.clusters'] option and SENTRY_REDIS_OPTIONS setting.")
+            raise Exception(
+                "Cannot specify both SENTRY_OPTIONS['redis.clusters'] option and SENTRY_REDIS_OPTIONS setting."
+            )
         else:
             warnings.warn(
                 DeprecatedSettingWarning(
@@ -434,11 +449,16 @@ def apply_legacy_settings(settings):
         settings.ALLOWED_HOSTS = ['*']
 
     if hasattr(settings, 'SENTRY_ALLOW_REGISTRATION'):
-        warnings.warn(DeprecatedSettingWarning('SENTRY_ALLOW_REGISTRATION', 'SENTRY_FEATURES["auth:register"]'))
+        warnings.warn(
+            DeprecatedSettingWarning(
+                'SENTRY_ALLOW_REGISTRATION', 'SENTRY_FEATURES["auth:register"]'
+            )
+        )
         settings.SENTRY_FEATURES['auth:register'] = settings.SENTRY_ALLOW_REGISTRATION
 
     settings.DEFAULT_FROM_EMAIL = settings.SENTRY_OPTIONS.get(
-        'mail.from', settings.SENTRY_DEFAULT_OPTIONS.get('mail.from'))
+        'mail.from', settings.SENTRY_DEFAULT_OPTIONS.get('mail.from')
+    )
 
     # HACK(mattrobenolt): This is a one-off assertion for a system.secret-key value.
     # If this becomes a pattern, we could add another flag to the OptionsManager to cover this, but for now
@@ -446,11 +466,12 @@ def apply_legacy_settings(settings):
     # trigger the Installation Wizard, not abort startup.
     if not settings.SENTRY_OPTIONS.get('system.secret-key'):
         from .importer import ConfigurationError
-        raise ConfigurationError("`system.secret-key` MUST be set. Use 'sentry config generate-secret-key' to get one.")
+        raise ConfigurationError(
+            "`system.secret-key` MUST be set. Use 'sentry config generate-secret-key' to get one."
+        )
 
 
-def skip_migration_if_applied(settings, app_name, table_name,
-                              name='0001_initial'):
+def skip_migration_if_applied(settings, app_name, table_name, name='0001_initial'):
     from south.migration import Migrations
     from sentry.utils.db import table_exists
     import types
@@ -467,11 +488,11 @@ def skip_migration_if_applied(settings, app_name, table_name,
             if table_exists(table_name):
                 return lambda x=None: None
             return original()
+
         wrapped.__name__ = original.__name__
         return wrapped
 
-    migration.forwards = types.MethodType(
-        skip_if_table_exists(migration.forwards), migration)
+    migration.forwards = types.MethodType(skip_if_table_exists(migration.forwards), migration)
 
 
 def on_configure(config):
@@ -483,5 +504,5 @@ def on_configure(config):
     """
     settings = config['settings']
 
-    skip_migration_if_applied(
-        settings, 'social_auth', 'social_auth_association')
+    if 'south' in settings.INSTALLED_APPS:
+        skip_migration_if_applied(settings, 'social_auth', 'social_auth_association')

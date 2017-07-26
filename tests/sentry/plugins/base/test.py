@@ -5,6 +5,7 @@ from django.conf.urls import url
 from sentry.plugins import Plugin2
 from sentry.plugins.base.project_api_urls import load_plugin_urls
 from sentry.plugins.base.response import JSONResponse
+from sentry.testutils import TestCase
 
 
 def test_json_response():
@@ -38,12 +39,23 @@ def test_load_plugin_urls():
         def get_project_urls(self):
             return [('foo', 'bar')]
 
-    patterns = load_plugin_urls((
-        BadPluginA(),
-        BadPluginB(),
-        BadPluginC(),
-        GoodPluginA(),
-        GoodPluginB(),
-    ))
+    patterns = load_plugin_urls(
+        (BadPluginA(), BadPluginB(), BadPluginC(), GoodPluginA(), GoodPluginB(), )
+    )
 
     assert len(patterns) == 2
+
+
+class Plugin2TestCase(TestCase):
+    def test_reset_config(self):
+        class APlugin(Plugin2):
+            def get_conf_key(self):
+                return 'a-plugin'
+
+        project = self.create_project()
+
+        a_plugin = APlugin()
+        a_plugin.set_option('key', 'value', project=project)
+        assert a_plugin.get_option('key', project=project) == 'value'
+        a_plugin.reset_options(project=project)
+        assert a_plugin.get_option('key', project=project) is None

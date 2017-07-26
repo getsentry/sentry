@@ -16,12 +16,15 @@ class RegressionActivityEmail(ActivityEmail):
             return u'{author} marked {an issue} as a regression in {version}', {
                 'version': data['version']
             }, {
-                'version': u'<a href="{}">{}</a>'.format(
-                    absolute_uri('/{}/{}/releases/{}/'.format(
-                        self.organization.slug,
-                        self.project.slug,
-                        data['version'],
-                    )),
+                'version':
+                u'<a href="{}">{}</a>'.format(
+                    absolute_uri(
+                        '/{}/{}/releases/{}/'.format(
+                            self.organization.slug,
+                            self.project.slug,
+                            data['version'],
+                        )
+                    ),
                     escape(data['version']),
                 )
             }

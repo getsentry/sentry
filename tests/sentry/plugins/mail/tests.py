@@ -15,8 +15,8 @@ from mock import Mock
 from sentry.digests.notifications import build_digest, event_to_record
 from sentry.interfaces.stacktrace import Stacktrace
 from sentry.models import (
-    Activity, Event, Group, GroupSubscription, OrganizationMember,
-    OrganizationMemberTeam, Rule, UserOption
+    Activity, Event, Group, GroupSubscription, OrganizationMember, OrganizationMemberTeam, Rule,
+    UserOption
 )
 from sentry.plugins import Notification
 from sentry.plugins.sentry_mail.activity.base import ActivityEmail
@@ -30,8 +30,12 @@ class MailPluginTest(TestCase):
     def plugin(self):
         return MailPlugin()
 
-    @mock.patch('sentry.models.ProjectOption.objects.get_value', Mock(side_effect=lambda p, k, d: d))
-    @mock.patch('sentry.plugins.sentry_mail.models.MailPlugin.get_sendable_users', Mock(return_value=[]))
+    @mock.patch(
+        'sentry.models.ProjectOption.objects.get_value', Mock(side_effect=lambda p, k, d: d)
+    )
+    @mock.patch(
+        'sentry.plugins.sentry_mail.models.MailPlugin.get_sendable_users', Mock(return_value=[])
+    )
     def test_should_notify_no_sendable_users(self):
         assert not self.plugin.should_notify(group=Mock(), event=Mock())
 
@@ -120,11 +124,9 @@ class MailPluginTest(TestCase):
             message=group.message,
             project=self.project,
             datetime=group.last_seen,
-            data={
-                'tags': [
-                    ('level', 'error'),
-                ]
-            },
+            data={'tags': [
+                ('level', 'error'),
+            ]},
         )
 
         notification = Notification(event=event)
@@ -137,7 +139,8 @@ class MailPluginTest(TestCase):
         self.assertEquals(kwargs.get('project'), self.project)
         self.assertEquals(kwargs.get('reference'), group)
         assert kwargs.get('subject') == u"[{0} {1}] error: hello world".format(
-            self.team.name, self.project.name)
+            self.team.name, self.project.name
+        )
 
     @mock.patch('sentry.plugins.sentry_mail.models.MailPlugin._send_mail')
     def test_multiline_error(self, _send_mail):
@@ -155,11 +158,9 @@ class MailPluginTest(TestCase):
             message=group.message,
             project=self.project,
             datetime=group.last_seen,
-            data={
-                'tags': [
-                    ('level', 'error'),
-                ]
-            },
+            data={'tags': [
+                ('level', 'error'),
+            ]},
         )
 
         notification = Notification(event=event)
@@ -170,7 +171,8 @@ class MailPluginTest(TestCase):
         assert _send_mail.call_count is 1
         args, kwargs = _send_mail.call_args
         assert kwargs.get('subject') == u"[{0} {1}] error: hello world".format(
-            self.team.name, self.project.name)
+            self.team.name, self.project.name
+        )
 
     def test_get_sendable_users(self):
         from sentry.models import UserOption, User
@@ -198,30 +200,29 @@ class MailPluginTest(TestCase):
         self.create_member(user=user2, organization=organization, teams=[team])
 
         # all members
-        assert (sorted(set([user.pk, user2.pk])) ==
-                sorted(self.plugin.get_sendable_users(project)))
+        assert (sorted(set([user.pk, user2.pk])) == sorted(self.plugin.get_sendable_users(project)))
 
         # disabled user2
-        UserOption.objects.create(key='mail:alert', value=0,
-                                  project=project, user=user2)
+        UserOption.objects.create(key='mail:alert', value=0, project=project, user=user2)
 
         assert user2.pk not in self.plugin.get_sendable_users(project)
 
-        user4 = User.objects.create(username='baz4', email='bar@example.com',
-                                    is_active=True)
+        user4 = User.objects.create(username='baz4', email='bar@example.com', is_active=True)
         self.create_member(user=user4, organization=organization, teams=[team])
         assert user4.pk in self.plugin.get_sendable_users(project)
 
         # disabled by default user4
-        uo1 = UserOption.objects.create(key='subscribe_by_default', value='0',
-                                  project=project, user=user4)
+        uo1 = UserOption.objects.create(
+            key='subscribe_by_default', value='0', project=project, user=user4
+        )
 
         assert user4.pk not in self.plugin.get_sendable_users(project)
 
         uo1.delete()
 
-        UserOption.objects.create(key='subscribe_by_default', value=u'0',
-                                  project=project, user=user4)
+        UserOption.objects.create(
+            key='subscribe_by_default', value=u'0', project=project, user=user4
+        )
 
         assert user4.pk not in self.plugin.get_sendable_users(project)
 
@@ -253,8 +254,8 @@ class MailPluginTest(TestCase):
         digest = build_digest(
             project,
             (
-                event_to_record(self.create_event(group=self.create_group()), (rule,)),
-                event_to_record(self.event, (rule,)),
+                event_to_record(self.create_event(group=self.create_group()), (rule, )),
+                event_to_record(self.event, (rule, )),
             ),
         )
         self.plugin.notify_digest(project, digest)
@@ -268,9 +269,7 @@ class MailPluginTest(TestCase):
         rule = project.rule_set.all()[0]
         digest = build_digest(
             project,
-            (
-                event_to_record(self.event, (rule,)),
-            ),
+            (event_to_record(self.event, (rule, )), ),
         )
         self.plugin.notify_digest(project, digest)
         assert send_async.call_count is 1
@@ -286,8 +285,8 @@ class MailPluginTest(TestCase):
         digest = build_digest(
             project,
             (
-                event_to_record(self.create_event(group=self.create_group()), (rule,)),
-                event_to_record(self.event, (rule,)),
+                event_to_record(self.create_event(group=self.create_group()), (rule, )),
+                event_to_record(self.event, (rule, )),
             ),
         )
 
@@ -365,46 +364,35 @@ class ActivityEmailTestCase(TestCase):
     def test_get_participants(self):
         group, (actor, other) = self.get_fixture_data(2)
 
-        email = ActivityEmail(
-            Activity(
-                project=group.project,
-                group=group,
-                user=actor,
-            )
-        )
+        email = ActivityEmail(Activity(
+            project=group.project,
+            group=group,
+            user=actor,
+        ))
 
         assert set(email.get_participants()) == set([other])
 
-        UserOption.objects.set_value(
-            user=actor,
-            project=None,
-            key='self_notifications',
-            value='1'
-        )
+        UserOption.objects.set_value(user=actor, key='self_notifications', value='1')
 
         assert set(email.get_participants()) == set([actor, other])
 
     def test_get_participants_without_actor(self):
-        group, (user,) = self.get_fixture_data(1)
+        group, (user, ) = self.get_fixture_data(1)
 
-        email = ActivityEmail(
-            Activity(
-                project=group.project,
-                group=group,
-            )
-        )
+        email = ActivityEmail(Activity(
+            project=group.project,
+            group=group,
+        ))
 
         assert set(email.get_participants()) == set([user])
 
     def test_get_subject(self):
-        group, (user,) = self.get_fixture_data(1)
+        group, (user, ) = self.get_fixture_data(1)
 
-        email = ActivityEmail(
-            Activity(
-                project=group.project,
-                group=group,
-            )
-        )
+        email = ActivityEmail(Activity(
+            project=group.project,
+            group=group,
+        ))
 
         with mock.patch('sentry.models.ProjectOption.objects.get_value') as get_value:
             get_value.side_effect = lambda project, key, default=None: \

@@ -10,7 +10,7 @@ from __future__ import absolute_import
 import re
 import six
 
-from sentry.constants import DEFAULT_SCRUBBED_FIELDS, FILTER_MASK
+from sentry.constants import DEFAULT_SCRUBBED_FIELDS, FILTER_MASK, NOT_SCRUBBED_VALUES
 
 
 def varmap(func, var, context=None, name=None):
@@ -46,14 +46,19 @@ class SensitiveDataFilter(object):
     Asterisk out things that look like passwords, credit card numbers,
     and API keys in frames, http, and basic extra data.
     """
-    VALUES_RE = re.compile(r'|'.join([
-        # http://www.richardsramblings.com/regex/credit-card-numbers/
-        r'\b(?:3[47]\d|(?:4\d|5[1-5]|65)\d{2}|6011)\d{12}\b',
-        # various private/public keys
-        r'-----BEGIN[A-Z ]+(PRIVATE|PUBLIC) KEY-----.+-----END[A-Z ]+(PRIVATE|PUBLIC) KEY-----',
-        # social security numbers (US)
-        r'^\b(?!(000|666|9))\d{3}-(?!00)\d{2}-(?!0000)\d{4}\b',
-    ]), re.DOTALL)
+    VALUES_RE = re.compile(
+        r'|'.join(
+            [
+                # http://www.richardsramblings.com/regex/credit-card-numbers/
+                r'\b(?:3[47]\d|(?:4\d|5[1-5]|65)\d{2}|6011)\d{12}\b',
+                # various private/public keys
+                r'-----BEGIN[A-Z ]+(PRIVATE|PUBLIC) KEY-----.+-----END[A-Z ]+(PRIVATE|PUBLIC) KEY-----',
+                # social security numbers (US)
+                r'^\b(?!(000|666|9))\d{3}-(?!00)\d{2}-(?!0000)\d{4}\b',
+            ]
+        ),
+        re.DOTALL
+    )
     URL_PASSWORD_RE = re.compile(r'\b((?:[a-z0-9]+:)?//[a-zA-Z0-9%_.-]+:)([a-zA-Z0-9%_.-]+)@')
 
     def __init__(self, fields=None, include_defaults=True, exclude_fields=()):
@@ -115,17 +120,17 @@ class SensitiveDataFilter(object):
             if '//' in value and '@' in value:
                 value = self.URL_PASSWORD_RE.sub(r'\1' + FILTER_MASK + '@', value)
 
-        original_value = value
         if isinstance(value, six.string_types):
-            value = value.lower()
+            str_value = value.lower()
         else:
-            value = ''
+            str_value = ''
 
         for field in self.fields:
-            if field in key or field in value:
-                # store mask as a fixed length for security
+            if field in str_value:
                 return FILTER_MASK
-        return original_value
+            if field in key and value not in NOT_SCRUBBED_VALUES:
+                return FILTER_MASK
+        return value
 
     def filter_stacktrace(self, data):
         if 'frames' not in data:

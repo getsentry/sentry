@@ -10,7 +10,9 @@ class RemoveProjectPermissionTest(PermissionTestCase):
     def setUp(self):
         super(RemoveProjectPermissionTest, self).setUp()
         self.project = self.create_project(team=self.team)
-        self.path = reverse('sentry-remove-project', args=[self.organization.slug, self.project.slug])
+        self.path = reverse(
+            'sentry-remove-project', args=[self.organization.slug, self.project.slug]
+        )
 
     def test_teamless_admin_cannot_load(self):
         self.assert_teamless_admin_cannot_access(self.path)

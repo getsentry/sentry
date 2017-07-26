@@ -9,7 +9,7 @@ from sentry.api.base import DocSection
 from sentry.api.bases.group import GroupEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework.group_notes import NoteSerializer
-from sentry.models import Activity, GroupSubscription, GroupSubscriptionReason
+from sentry.models import Activity, GroupSubscription, GroupSubscriptionReason, User
 from sentry.utils.functional import extract_lazy_object
 
 
@@ -31,11 +31,13 @@ class GroupNotesEndpoint(GroupEndpoint):
         )
 
     def post(self, request, group):
-        serializer = NoteSerializer(data=request.DATA)
+        serializer = NoteSerializer(data=request.DATA, context={'group': group})
+
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         data = dict(serializer.object)
+        mentions = data.pop('mentions', [])
 
         if Activity.objects.filter(
             group=group,
@@ -44,14 +46,25 @@ class GroupNotesEndpoint(GroupEndpoint):
             data=data,
             datetime__gte=timezone.now() - timedelta(hours=1)
         ).exists():
-            return Response('{"detail": "You have already posted that comment."}',
-                            status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                '{"detail": "You have already posted that comment."}',
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
         GroupSubscription.objects.subscribe(
             group=group,
             user=request.user,
             reason=GroupSubscriptionReason.comment,
         )
+
+        if mentions:
+            users = User.objects.filter(id__in=mentions)
+            for user in users:
+                GroupSubscription.objects.subscribe(
+                    group=group,
+                    user=user,
+                    reason=GroupSubscriptionReason.mentioned,
+                )
 
         activity = Activity.objects.create(
             group=group,

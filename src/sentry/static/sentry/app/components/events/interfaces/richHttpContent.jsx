@@ -23,16 +23,23 @@ const RichHttpContent = React.createClass({
    * This method accounts for this.
    */
   objectToSortedTupleArray(obj) {
-    return Object.keys(obj).reduce((out, k) => {
-      let val = obj[k];
-      return out.concat(
-        {}.toString.call(val) === '[object Array]' ?
-          val.map(v => [k, v]) : // key has multiple values (array)
-          [[k, val]]             // key has single value
-      );
-    }, []).sort(function ([keyA], [keyB]) {
-      return keyA < keyB ? -1 : 1;
-    });
+    return Object.keys(obj)
+      .reduce((out, k) => {
+        let val = obj[k];
+        return out.concat(
+          {}.toString.call(val) === '[object Array]'
+            ? val.map(v => [k, v]) // key has multiple values (array)
+            : [[k, val]] // key has single value
+        );
+      }, [])
+      .sort(function([keyA, valA], [keyB, valB]) {
+        // if keys are identical, sort on value
+        if (keyA === keyB) {
+          return valA < valB ? -1 : 1;
+        }
+
+        return keyA < keyB ? -1 : 1;
+      });
   },
 
   getBodySection(data) {
@@ -58,48 +65,45 @@ const RichHttpContent = React.createClass({
     try {
       // Sentry API abbreviates long query string values, sometimes resulting in
       // an un-parsable querystring ... stay safe kids
-      return <KeyValueList data={this.objectToSortedTupleArray(queryString.parse(data))}/>;
+      return (
+        <KeyValueList data={this.objectToSortedTupleArray(queryString.parse(data))} />
+      );
     } catch (e) {
       return <pre>{data}</pre>;
     }
   },
 
-  render(){
+  render() {
     let data = this.props.data;
     return (
       <div>
         {data.query &&
           <ClippedBox title={t('Query String')}>
             {this.getQueryStringOrRaw(data.query)}
-          </ClippedBox>
-        }
+          </ClippedBox>}
         {data.fragment &&
           <ClippedBox title={t('Fragment')}>
             <pre>{data.fragment}</pre>
-          </ClippedBox>
-        }
+          </ClippedBox>}
 
         {data.data &&
           <ClippedBox title={t('Body')}>
             {this.getBodySection(data)}
-          </ClippedBox>
-        }
+          </ClippedBox>}
 
-        {data.cookies && !objectIsEmpty(data.cookies) &&
+        {data.cookies &&
+          !objectIsEmpty(data.cookies) &&
           <ClippedBox title={t('Cookies')} defaultCollapsed>
             <KeyValueList data={data.cookies} />
-          </ClippedBox>
-        }
+          </ClippedBox>}
         {!objectIsEmpty(data.headers) &&
           <ClippedBox title={t('Headers')}>
             <KeyValueList data={data.headers} />
-          </ClippedBox>
-        }
+          </ClippedBox>}
         {!objectIsEmpty(data.env) &&
           <ClippedBox title={t('Environment')} defaultCollapsed>
-            <KeyValueList data={this.objectToSortedTupleArray(data.env)}/>
-          </ClippedBox>
-        }
+            <KeyValueList data={this.objectToSortedTupleArray(data.env)} />
+          </ClippedBox>}
       </div>
     );
   }

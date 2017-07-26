@@ -16,7 +16,6 @@ import warnings
 from django.conf import settings
 from django.db import models
 from django.db.models.signals import post_delete
-from south.modelsinspector import add_introspection_rules
 
 from sentry import nodestore
 from sentry.utils.cache import memoize
@@ -25,7 +24,7 @@ from sentry.utils.strings import decompress, compress
 
 from .gzippeddict import GzippedDictField
 
-__all__ = ('NodeField',)
+__all__ = ('NodeField', )
 
 logger = logging.getLogger('sentry')
 
@@ -67,9 +66,8 @@ class NodeData(collections.MutableMapping):
     def __repr__(self):
         cls_name = type(self).__name__
         if self._node_data:
-            return '<%s: id=%s data=%r>' % (
-                cls_name, self.id, repr(self._node_data))
-        return '<%s: id=%s>' % (cls_name, self.id,)
+            return '<%s: id=%s data=%r>' % (cls_name, self.id, repr(self._node_data))
+        return '<%s: id=%s>' % (cls_name, self.id, )
 
     def get_ref(self, instance):
         ref_func = self.field.ref_func
@@ -99,9 +97,9 @@ class NodeData(collections.MutableMapping):
         self.ref = data.pop('_ref', ref)
         self.ref_version = data.pop('_ref_version', None)
         if self.ref_version == self.field.ref_version and ref is not None and self.ref != ref:
-            raise NodeIntegrityFailure('Node reference for %s is invalid: %s != %s' % (
-                self.id, ref, self.ref,
-            ))
+            raise NodeIntegrityFailure(
+                'Node reference for %s is invalid: %s != %s' % (self.id, ref, self.ref, )
+            )
         self._node_data = data
 
     def bind_ref(self, instance):
@@ -111,12 +109,12 @@ class NodeData(collections.MutableMapping):
             self.data['_ref_version'] = self.field.ref_version
 
 
-@six.add_metaclass(models.SubfieldBase)
 class NodeField(GzippedDictField):
     """
     Similar to the gzippedictfield except that it stores a reference
     to an external node.
     """
+
     def __init__(self, *args, **kwargs):
         self.ref_func = kwargs.pop('ref_func', None)
         self.ref_version = kwargs.pop('ref_version', None)
@@ -124,10 +122,7 @@ class NodeField(GzippedDictField):
 
     def contribute_to_class(self, cls, name):
         super(NodeField, self).contribute_to_class(cls, name)
-        post_delete.connect(
-            self.on_delete,
-            sender=self.model,
-            weak=False)
+        post_delete.connect(self.on_delete, sender=self.model, weak=False)
 
     def on_delete(self, instance, **kwargs):
         value = getattr(instance, self.name)
@@ -167,9 +162,13 @@ class NodeField(GzippedDictField):
         else:
             nodestore.set(value.id, value.data)
 
-        return compress(pickle.dumps({
-            'node_id': value.id
-        }))
+        return compress(pickle.dumps({'node_id': value.id}))
 
 
-add_introspection_rules([], ["^sentry\.db\.models\.fields\.node\.NodeField"])
+if hasattr(models, 'SubfieldBase'):
+    NodeField = six.add_metaclass(models.SubfieldBase)(NodeField)
+
+if 'south' in settings.INSTALLED_APPS:
+    from south.modelsinspector import add_introspection_rules
+
+    add_introspection_rules([], ["^sentry\.db\.models\.fields\.node\.NodeField"])

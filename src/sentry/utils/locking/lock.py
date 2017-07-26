@@ -7,7 +7,6 @@ from contextlib import contextmanager
 
 from sentry.utils.locking import UnableToAcquireLock
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -33,7 +32,10 @@ class Lock(object):
         try:
             self.backend.acquire(self.key, self.duration, self.routing_key)
         except Exception as error:
-            six.raise_from(UnableToAcquireLock('Unable to acquire {!r} due to error: {}'.format(self, error)), error)
+            six.raise_from(
+                UnableToAcquireLock('Unable to acquire {!r} due to error: {}'.format(self, error)),
+                error
+            )
 
         @contextmanager
         def releaser():

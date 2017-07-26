@@ -59,10 +59,7 @@ class GetOrCreateTest(TestCase):
         assert relenv.last_seen == datetime_new
 
         # shouldn't create new release env if same env, release and org
-        project2 = self.create_project(
-            name='bar',
-            organization=project.organization
-        )
+        project2 = self.create_project(name='bar', organization=project.organization)
         release.add_project(project2)
 
         relenv2 = ReleaseEnvironment.get_or_create(

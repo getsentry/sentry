@@ -5,8 +5,9 @@ from __future__ import absolute_import
 from uuid import uuid4
 
 from sentry.api.serializers import serialize
-from sentry.models import (Commit, CommitAuthor, CommitFileChange,
-    Release, ReleaseCommit, Repository)
+from sentry.models import (
+    Commit, CommitAuthor, CommitFileChange, Release, ReleaseCommit, Repository
+)
 from sentry.testutils import TestCase
 
 
@@ -43,15 +44,12 @@ class CommitFileChangeSerializerTest(TestCase):
             order=1,
         )
         cfc = CommitFileChange.objects.create(
-            organization_id=project.organization_id,
-            commit=commit,
-            filename='.gitignore',
-            type='M'
+            organization_id=project.organization_id, commit=commit, filename='.gitignore', type='M'
         )
         result = serialize(cfc, user)
 
         assert result['filename'] == '.gitignore'
-        assert result['commit_message'] == 'waddap'
+        assert result['commitMessage'] == 'waddap'
         assert result['author'] == {'name': 'stebe', 'email': 'stebe@sentry.io'}
 
     def test_no_author(self):
@@ -80,10 +78,7 @@ class CommitFileChangeSerializerTest(TestCase):
             order=1,
         )
         cfc = CommitFileChange.objects.create(
-            organization_id=project.organization_id,
-            commit=commit,
-            filename='.gitignore',
-            type='M'
+            organization_id=project.organization_id, commit=commit, filename='.gitignore', type='M'
         )
 
         result = serialize(cfc, user)

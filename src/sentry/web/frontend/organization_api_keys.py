@@ -2,8 +2,6 @@ from __future__ import absolute_import
 
 from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect
-from operator import or_
-from six.moves import reduce
 
 from sentry.models import ApiKey, AuditLogEntryEvent
 from sentry.web.frontend.base import OrganizationView
@@ -18,13 +16,13 @@ DEFAULT_SCOPES = [
 
 
 class OrganizationApiKeysView(OrganizationView):
-    required_scope = 'org:delete'
+    required_scope = 'org:admin'
 
     def handle(self, request, organization):
         if request.POST.get('op') == 'newkey':
             key = ApiKey.objects.create(
                 organization=organization,
-                scopes=reduce(or_, [getattr(ApiKey.scopes, s) for s in DEFAULT_SCOPES])
+                scope_list=DEFAULT_SCOPES,
             )
 
             self.create_audit_entry(
@@ -35,9 +33,12 @@ class OrganizationApiKeysView(OrganizationView):
                 data=key.get_audit_log_data(),
             )
 
-            redirect_uri = reverse('sentry-organization-api-key-settings', args=[
-                organization.slug, key.id,
-            ])
+            redirect_uri = reverse(
+                'sentry-organization-api-key-settings', args=[
+                    organization.slug,
+                    key.id,
+                ]
+            )
             return HttpResponseRedirect(redirect_uri)
 
         elif request.POST.get('op') == 'removekey':
@@ -63,9 +64,11 @@ class OrganizationApiKeysView(OrganizationView):
 
             return HttpResponseRedirect(request.path)
 
-        key_list = sorted(ApiKey.objects.filter(
-            organization=organization,
-        ), key=lambda x: x.label)
+        key_list = sorted(
+            ApiKey.objects.filter(
+                organization=organization,
+            ), key=lambda x: x.label
+        )
 
         context = {
             'key_list': key_list,

@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-from django.db import IntegrityError, transaction
+from django.db.models import F
 from django.utils import timezone
 
 from rest_framework import serializers
@@ -12,9 +12,7 @@ from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
-from sentry.app import locks
 from sentry.models import Deploy, Environment, Release
-from sentry.utils.retries import TimedRetryPolicy
 
 
 class DeploySerializer(serializers.Serializer):
@@ -32,10 +30,11 @@ class ReleaseDeploysEndpoint(OrganizationReleasesBaseEndpoint):
         """
         List a Release's Deploys
         ````````````````````````
+
         Return a list of deploys for a given release.
+
         :pparam string organization_slug: the organization short name
         :pparam string version: the version identifier of the release.
-
         """
         try:
             release = Release.objects.get(
@@ -65,7 +64,9 @@ class ReleaseDeploysEndpoint(OrganizationReleasesBaseEndpoint):
         """
         Create a Deploy
         ```````````````
+
         Create a deploy for a given release.
+
         :pparam string organization_slug: the organization short name
         :pparam string version: the version identifier of the release.
         :param string environment: the environment you're deploying to
@@ -76,7 +77,6 @@ class ReleaseDeploysEndpoint(OrganizationReleasesBaseEndpoint):
         :param datetime dateFinished: an optional date that indicates when
                                       the deploy ended. If not provided, the
                                       current time is used.
-
         """
         try:
             release = Release.objects.get(
@@ -92,56 +92,35 @@ class ReleaseDeploysEndpoint(OrganizationReleasesBaseEndpoint):
         serializer = DeploySerializer(data=request.DATA)
 
         if serializer.is_valid():
+            projects = list(release.projects.all())
             result = serializer.object
-            try:
-                env = Environment.objects.get(
-                    organization_id=organization.id,
-                    name=result['environment'],
-                )
-            except Environment.DoesNotExist:
-                # TODO(jess): clean up when changing unique constraint
-                lock_key = Environment.get_lock_key(organization.id, result['environment'])
-                lock = locks.get(lock_key, duration=5)
-                with TimedRetryPolicy(10)(lock.acquire):
-                    try:
-                        env = Environment.objects.get(
-                            organization_id=organization.id,
-                            name=result['environment'],
-                        )
-                    except Environment.DoesNotExist:
-                        env = Environment.objects.create(
-                            organization_id=organization.id,
-                            name=result['environment'],
-                        )
 
-            try:
-                with transaction.atomic():
-                    deploy, created = Deploy.objects.create(
-                        organization_id=organization.id,
-                        release=release,
-                        environment_id=env.id,
-                        date_finished=result.get('dateFinished', timezone.now()),
-                        date_started=result.get('dateStarted'),
-                        name=result.get('name'),
-                        url=result.get('url'),
-                    ), True
-            except IntegrityError:
-                deploy, created = Deploy.objects.get(
-                    organization_id=organization.id,
-                    release=release,
-                    environment_id=env.id,
-                ), False
-                deploy.update(
-                    date_finished=result.get('dateFinished', timezone.now()),
-                    date_started=result.get('dateStarted'),
-                )
+            env = Environment.objects.get_or_create(
+                name=result['environment'],
+                organization_id=organization.id,
+            )[0]
+            for project in projects:
+                env.add_project(project)
 
-            # This is the closest status code that makes sense, and we want
-            # a unique 2xx response code so people can understand when
-            # behavior differs.
-            #   208 Already Reported (WebDAV; RFC 5842)
-            status = 201 if created else 208
+            deploy = Deploy.objects.create(
+                organization_id=organization.id,
+                release=release,
+                environment_id=env.id,
+                date_finished=result.get('dateFinished', timezone.now()),
+                date_started=result.get('dateStarted'),
+                name=result.get('name'),
+                url=result.get('url'),
+            )
 
-            return Response(serialize(deploy, request.user), status=status)
+            # XXX(dcramer): this has a race for most recent deploy, but
+            # should be unlikely to hit in the real world
+            Release.objects.filter(id=release.id).update(
+                total_deploys=F('total_deploys') + 1,
+                last_deploy_id=deploy.id,
+            )
+
+            Deploy.notify_if_ready(deploy.id)
+
+            return Response(serialize(deploy, request.user), status=201)
 
         return Response(serializer.errors, status=400)

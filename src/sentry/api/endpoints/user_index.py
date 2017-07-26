@@ -14,7 +14,7 @@ from sentry.search.utils import tokenize_query
 
 
 class UserIndexEndpoint(Endpoint):
-    permission_classes = (SuperuserPermission,)
+    permission_classes = (SuperuserPermission, )
 
     def get(self, request):
         queryset = User.objects.distinct()
@@ -26,27 +26,19 @@ class UserIndexEndpoint(Endpoint):
                 if key == 'query':
                     value = ' '.join(value)
                     queryset = queryset.filter(
-                        Q(name__icontains=value) |
-                        Q(username__icontains=value) |
-                        Q(email__icontains=value) |
-                        Q(emails__email__icontains=value)
+                        Q(name__icontains=value) | Q(username__icontains=value) |
+                        Q(email__icontains=value) | Q(emails__email__icontains=value)
                     )
                 elif key == 'id':
                     queryset = queryset.filter(
-                        id__in=value,
+                        id__in=[request.user.id if v == 'me' else v for v in value],
                     )
                 elif key == 'name':
-                    queryset = queryset.filter(
-                        in_iexact('name', value)
-                    )
+                    queryset = queryset.filter(in_iexact('name', value))
                 elif key == 'email':
-                    queryset = queryset.filter(
-                        in_iexact('email', value)
-                    )
+                    queryset = queryset.filter(in_iexact('email', value))
                 elif key == 'username':
-                    queryset = queryset.filter(
-                        in_iexact('username', value)
-                    )
+                    queryset = queryset.filter(in_iexact('username', value))
                 else:
                     queryset = queryset.none()
 

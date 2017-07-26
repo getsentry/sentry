@@ -28,30 +28,33 @@ const OnboardingStatus = React.createClass({
 
   render() {
     let org = this.props.org;
-    if (org.features.indexOf('onboarding') === -1)
-      return null;
+    if (org.features.indexOf('onboarding') === -1) return null;
 
     let percentage = Math.round(
-      ((org.onboardingTasks || []).filter(
-        task => task.status === 'complete' || task.status === 'skipped'
-      ).length) / TodoList.TASKS.length * 100
+      (org.onboardingTasks || [])
+        .filter(task => task.status === 'complete' || task.status === 'skipped').length /
+        TodoList.TASKS.length *
+        100
     ).toString();
     let style = {
-      height: percentage + '%',
+      height: percentage + '%'
     };
 
     return (
-      <li className={this.props.currentPanel == 'todos' ? 'onboarding active' : 'onboarding' }>
+      <li
+        className={
+          this.props.currentPanel == 'todos' ? 'onboarding active' : 'onboarding'
+        }>
         <div className="onboarding-progress-bar" onClick={this.props.onShowPanel}>
           <div className="slider" style={style} />
         </div>
-        {this.props.showPanel && this.props.currentPanel == 'todos' &&
+        {this.props.showPanel &&
+          this.props.currentPanel == 'todos' &&
           <SidebarPanel
             title="Getting Started with Sentry"
             hidePanel={this.props.hidePanel}>
             <TodoList />
-          </SidebarPanel>
-        }
+          </SidebarPanel>}
       </li>
     );
   }
@@ -72,10 +75,7 @@ const Sidebar = React.createClass({
     location: React.PropTypes.object
   },
 
-  mixins: [
-    ApiMixin,
-    OrganizationState,
-  ],
+  mixins: [ApiMixin, OrganizationState],
 
   getInitialState: function() {
     return {
@@ -138,10 +138,8 @@ const Sidebar = React.createClass({
   },
 
   togglePanel(panel) {
-    if (this.state.currentPanel === panel)
-      this.hidePanel();
-    else
-      this.showPanel(panel);
+    if (this.state.currentPanel === panel) this.hidePanel();
+    else this.showPanel(panel);
   },
 
   renderBody() {
@@ -152,108 +150,140 @@ const Sidebar = React.createClass({
       // When no organization, just render Sentry logo at top
       return (
         <ul className="navbar-nav">
-          <li><a className="logo" href="/"><span className="icon-sentry-logo"/></a></li>
+          <li><a className="logo" href="/"><span className="icon-sentry-logo" /></a></li>
         </ul>
       );
     }
 
-    return (<div>
-      <OrganizationSelector
-        organization={org}
-        showPanel={this.state.showPanel}
-        currentPanel={this.state.currentPanel}
-        togglePanel={()=>this.togglePanel('org-selector')}
-        hidePanel={()=>this.hidePanel()}/>
-
-      {/* Top nav links */}
-      <ul className="navbar-nav divider-bottom">
-        <li className={this.state.currentPanel == 'assigned' ? 'active' : null }>
-          <a title="Assigned to me">
-            <span className="icon icon-user" onClick={()=>this.togglePanel('assigned')} />
-          </a>
-        </li>
-        <li className={this.state.currentPanel == 'bookmarks' ? 'active' : null }>
-          <a title="My Bookmarks">
-            <span className="icon icon-star-solid" onClick={()=>this.togglePanel('bookmarks')} />
-          </a>
-        </li>
-        <li className={this.state.currentPanel == 'history' ? 'active' : null }>
-          <a title="Recently Viewed">
-            <span className="icon icon-av_timer" onClick={()=>this.togglePanel('history')} />
-          </a>
-        </li>
-      </ul>
-      <ul className="navbar-nav">
-        <Broadcasts
+    return (
+      <div>
+        <OrganizationSelector
+          organization={org}
           showPanel={this.state.showPanel}
           currentPanel={this.state.currentPanel}
-          onShowPanel={()=>this.togglePanel('broadcasts')}
-          hidePanel={()=>this.hidePanel()} />
-        <Incidents
-          showPanel={this.state.showPanel}
-          currentPanel={this.state.currentPanel}
-          onShowPanel={()=>this.togglePanel('statusupdate')}
-          hidePanel={()=>this.hidePanel()} />
-        <li>
-          <a title="Support" href={!config.isOnPremise ? `/organizations/${org.slug}/support/` : 'https://forum.sentry.io/'}>
-            <span className="icon icon-support" />
-          </a>
-        </li>
-      </ul>
+          togglePanel={() => this.togglePanel('org-selector')}
+          hidePanel={() => this.hidePanel()}
+        />
 
-      {/* Panel bodies */}
-      {this.state.showPanel && this.state.currentPanel == 'assigned' &&
-        <SidebarPanel title={t('Assigned to me')}
-                      hidePanel={()=>this.hidePanel()}>
-          <IssueList
-            endpoint={`/organizations/${org.slug}/members/me/issues/assigned/`}
-            query={{
-              statsPeriod: '24h',
-              per_page: 10,
-              status: 'unresolved',
-            }}
-            pagination={false}
-            renderEmpty={() => <div className="sidebar-panel-empty" key="none">{t('No issues have been assigned to you.')}</div>}
-            ref="issueList"
-            showActions={false}
-            params={{orgId: org.slug}} />
-        </SidebarPanel>
-      }
-      {this.state.showPanel && this.state.currentPanel == 'bookmarks' &&
-        <SidebarPanel title={t('My Bookmarks')}
-                      hidePanel={()=>this.hidePanel()}>
-          <IssueList
-            endpoint={`/organizations/${org.slug}/members/me/issues/bookmarked/`}
-            query={{
-              statsPeriod: '24h',
-              per_page: 10,
-              status: 'unresolved',
-            }}
-            pagination={false}
-            renderEmpty={() => <div className="sidebar-panel-empty" key="no">{t('You have no bookmarked issues.')}</div>}
-            ref="issueList"
-            showActions={false}
-            params={{orgId: org.slug}} />
-        </SidebarPanel>
-      }
-      {this.state.showPanel && this.state.currentPanel == 'history' &&
-        <SidebarPanel title={t('Recently Viewed')}
-                      hidePanel={()=>this.hidePanel()}>
-          <IssueList
-            endpoint={`/organizations/${org.slug}/members/me/issues/viewed/`}
-            query={{
-              statsPeriod: '24h',
-              per_page: 10,
-              status: 'unresolved',
-            }}
-            pagination={false}
-            renderEmpty={() => <div className="sidebar-panel-empty" key="none">{t('No recently viewed issues.')}</div>}
-            ref="issueList"
-            showActions={false}
-            params={{orgId: org.slug}} />
-        </SidebarPanel>
-      }
-    </div>);
+        {/* Top nav links */}
+        <ul className="navbar-nav divider-bottom">
+          <li className={this.state.currentPanel == 'assigned' ? 'active' : null}>
+            <a title="Assigned to me">
+              <span
+                className="icon icon-user"
+                onClick={() => this.togglePanel('assigned')}
+              />
+            </a>
+          </li>
+          <li className={this.state.currentPanel == 'bookmarks' ? 'active' : null}>
+            <a title="My Bookmarks">
+              <span
+                className="icon icon-star-solid"
+                onClick={() => this.togglePanel('bookmarks')}
+              />
+            </a>
+          </li>
+          <li className={this.state.currentPanel == 'history' ? 'active' : null}>
+            <a title="Recently Viewed">
+              <span
+                className="icon icon-av_timer"
+                onClick={() => this.togglePanel('history')}
+              />
+            </a>
+          </li>
+        </ul>
+        <ul className="navbar-nav">
+          <Broadcasts
+            showPanel={this.state.showPanel}
+            currentPanel={this.state.currentPanel}
+            onShowPanel={() => this.togglePanel('broadcasts')}
+            hidePanel={() => this.hidePanel()}
+          />
+          <Incidents
+            showPanel={this.state.showPanel}
+            currentPanel={this.state.currentPanel}
+            onShowPanel={() => this.togglePanel('statusupdate')}
+            hidePanel={() => this.hidePanel()}
+          />
+          <li>
+            <a
+              title="Support"
+              href={
+                !config.isOnPremise
+                  ? `/organizations/${org.slug}/support/`
+                  : 'https://forum.sentry.io/'
+              }>
+              <span className="icon icon-support" />
+            </a>
+          </li>
+        </ul>
+
+        {/* Panel bodies */}
+        {this.state.showPanel &&
+          this.state.currentPanel == 'assigned' &&
+          <SidebarPanel title={t('Assigned to me')} hidePanel={() => this.hidePanel()}>
+            <IssueList
+              endpoint={`/organizations/${org.slug}/members/me/issues/assigned/`}
+              query={{
+                statsPeriod: '24h',
+                per_page: 10,
+                status: 'unresolved'
+              }}
+              pagination={false}
+              renderEmpty={() => (
+                <div className="sidebar-panel-empty" key="none">
+                  {t('No issues have been assigned to you.')}
+                </div>
+              )}
+              ref="issueList"
+              showActions={false}
+              params={{orgId: org.slug}}
+            />
+          </SidebarPanel>}
+        {this.state.showPanel &&
+          this.state.currentPanel == 'bookmarks' &&
+          <SidebarPanel title={t('My Bookmarks')} hidePanel={() => this.hidePanel()}>
+            <IssueList
+              endpoint={`/organizations/${org.slug}/members/me/issues/bookmarked/`}
+              query={{
+                statsPeriod: '24h',
+                per_page: 10,
+                status: 'unresolved'
+              }}
+              pagination={false}
+              renderEmpty={() => (
+                <div className="sidebar-panel-empty" key="no">
+                  {t('You have no bookmarked issues.')}
+                </div>
+              )}
+              ref="issueList"
+              showActions={false}
+              params={{orgId: org.slug}}
+            />
+          </SidebarPanel>}
+        {this.state.showPanel &&
+          this.state.currentPanel == 'history' &&
+          <SidebarPanel title={t('Recently Viewed')} hidePanel={() => this.hidePanel()}>
+            <IssueList
+              endpoint={`/organizations/${org.slug}/members/me/issues/viewed/`}
+              query={{
+                statsPeriod: '24h',
+                per_page: 10,
+                status: 'unresolved'
+              }}
+              pagination={false}
+              renderEmpty={() => (
+                <div className="sidebar-panel-empty" key="none">
+                  {t('No recently viewed issues.')}
+                </div>
+              )}
+              ref="issueList"
+              showActions={false}
+              params={{orgId: org.slug}}
+            />
+          </SidebarPanel>}
+      </div>
+    );
   },
 
   renderRequiredActions() {
@@ -266,8 +296,9 @@ const Sidebar = React.createClass({
       let url = `/organizations/${org.slug}/actions/${slugId}/`;
       return (
         <span className="admin-action-message">
-          <a href={url}>{t('Required Action:')}{' '}{
-            requiredAction.getActionLinkTitle()}</a>
+          <a href={url}>
+            {t('Required Action:')}{' '}{requiredAction.getActionLinkTitle()}
+          </a>
         </span>
       );
     }
@@ -293,9 +324,9 @@ const Sidebar = React.createClass({
                 org={org}
                 showPanel={this.state.showPanel}
                 currentPanel={this.state.currentPanel}
-                onShowPanel={()=>this.togglePanel('todos')}
-                hidePanel={()=>this.hidePanel()} />
-            }
+                onShowPanel={() => this.togglePanel('todos')}
+                hidePanel={() => this.hidePanel()}
+              />}
 
             <li>
               <UserNav className="user-settings" />

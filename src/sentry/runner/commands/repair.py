@@ -65,7 +65,7 @@ def repair_callsigns():
     from sentry.utils.query import RangeQuerySetWrapperWithProgressBar, \
         RangeQuerySetWrapper
     from sentry.models.counter import increment_project_counter
-    from sentry.models import Organization, Group, Project, ProjectOption
+    from sentry.models import Organization, Group, Project
 
     click.echo('Repairing callsigns')
 
@@ -77,24 +77,17 @@ def repair_callsigns():
         for project in projects:
             if project.callsign is None:
                 Project.objects.filter(
-                    pk=project.id,
-                    callsign=None
+                    pk=project.id, callsign=None
                 ).update(callsign=callsigns[project.id])
-                ProjectOption.objects.filter(
-                    project=project,
-                    key='sentry:reviewed-callsign'
-                ).delete()
             q = Group.objects.filter(
                 project=project,
                 short_id=None,
             )
             for group in RangeQuerySetWrapper(q):
                 with catchable_atomic():
-                    pending_short_id = increment_project_counter(
-                        project)
+                    pending_short_id = increment_project_counter(project)
                     updated = Group.objects.filter(
-                        pk=group.id,
-                        short_id=None
+                        pk=group.id, short_id=None
                     ).update(short_id=pending_short_id)
                     if updated == 0:
                         raise RollbackLocally()
@@ -118,20 +111,28 @@ def fix_group_counters():
     from django.db import connection
     click.echo('Correcting Group.num_comments counter')
     cursor = connection.cursor()
-    cursor.execute("""
+    cursor.execute(
+        """
         UPDATE sentry_groupedmessage SET num_comments = (
             SELECT COUNT(*) from sentry_activity
             WHERE type = %s and group_id = sentry_groupedmessage.id
         )
-    """, [Activity.NOTE])
+    """, [Activity.NOTE]
+    )
 
 
 @click.command()
-@click.option('--with-docs/--without-docs', default=False,
-              help='Synchronize and repair embedded documentation. This '
-              'is disabled by default.')
-@click.option('--with-callsigns/--without-callsigns', default=False,
-              help='Repair and fill callsigns. This is disabled by default.')
+@click.option(
+    '--with-docs/--without-docs',
+    default=False,
+    help='Synchronize and repair embedded documentation. This '
+    'is disabled by default.'
+)
+@click.option(
+    '--with-callsigns/--without-callsigns',
+    default=False,
+    help='Repair and fill callsigns. This is disabled by default.'
+)
 @configuration
 def repair(with_docs, with_callsigns):
     """Attempt to repair any invalid data.

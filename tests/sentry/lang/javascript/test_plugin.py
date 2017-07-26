@@ -11,7 +11,8 @@ from sentry.models import Event, File, Release, ReleaseFile
 from sentry.testutils import TestCase
 
 BASE64_SOURCEMAP = 'data:application/json;base64,' + (
-    '{"version":3,"file":"generated.js","sources":["/test.js"],"names":[],"mappings":"AAAA","sourcesContent":["console.log(\\"hello, World!\\")"]}'.encode('base64').replace('\n', '')
+    '{"version":3,"file":"generated.js","sources":["/test.js"],"names":[],"mappings":"AAAA","sourcesContent":["console.log(\\"hello, World!\\")"]}'.
+    encode('base64').replace('\n', '')
 )
 
 
@@ -30,9 +31,13 @@ class JavascriptIntegrationTest(TestCase):
             'message': 'hello',
             'platform': 'javascript',
             'sentry.interfaces.Http': {
-                'url': 'http://example.com',
+                'url':
+                'http://example.com',
                 'headers': [
-                    ['User-Agent', 'Mozilla/5.0 (Windows NT 6.2; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/28.0.1500.72 Safari/537.36'],
+                    [
+                        'User-Agent',
+                        'Mozilla/5.0 (Windows NT 6.2; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/28.0.1500.72 Safari/537.36'
+                    ],
                 ],
             }
         }
@@ -58,9 +63,13 @@ class JavascriptIntegrationTest(TestCase):
             'message': 'hello',
             'platform': 'javascript',
             'sentry.interfaces.Http': {
-                'url': 'http://example.com',
+                'url':
+                'http://example.com',
                 'headers': [
-                    ['User-Agent', 'Mozilla/5.0 (Linux; U; Android 4.3; en-us; SCH-R530U Build/JSS15J) AppleWebKit/534.30 (KHTML, like Gecko) Version/4.0 Mobile Safari/534.30 USCC-R530U'],
+                    [
+                        'User-Agent',
+                        'Mozilla/5.0 (Linux; U; Android 4.3; en-us; SCH-R530U Build/JSS15J) AppleWebKit/534.30 (KHTML, like Gecko) Version/4.0 Mobile Safari/534.30 USCC-R530U'
+                    ],
                 ],
             }
         }
@@ -92,9 +101,13 @@ class JavascriptIntegrationTest(TestCase):
             'message': 'hello',
             'platform': 'javascript',
             'sentry.interfaces.Http': {
-                'url': 'http://example.com',
+                'url':
+                'http://example.com',
                 'headers': [
-                    ['User-Agent', 'Mozilla/5.0 (PlayStation 4 3.55) AppleWebKit/537.78 (KHTML, like Gecko)'],
+                    [
+                        'User-Agent',
+                        'Mozilla/5.0 (PlayStation 4 3.55) AppleWebKit/537.78 (KHTML, like Gecko)'
+                    ],
                 ],
             }
         }
@@ -119,25 +132,27 @@ class JavascriptIntegrationTest(TestCase):
             'message': 'hello',
             'platform': 'javascript',
             'sentry.interfaces.Exception': {
-                'values': [{
-                    'type': 'Error',
-                    'stacktrace': {
-                        'frames': [
-                            {
-                                'abs_path': 'http://example.com/foo.js',
-                                'filename': 'foo.js',
-                                'lineno': 4,
-                                'colno': 0,
-                            },
-                            {
-                                'abs_path': 'http://example.com/foo.js',
-                                'filename': 'foo.js',
-                                'lineno': 1,
-                                'colno': 0,
-                            },
-                        ],
-                    },
-                }],
+                'values': [
+                    {
+                        'type': 'Error',
+                        'stacktrace': {
+                            'frames': [
+                                {
+                                    'abs_path': 'http://example.com/foo.js',
+                                    'filename': 'foo.js',
+                                    'lineno': 4,
+                                    'colno': 0,
+                                },
+                                {
+                                    'abs_path': 'http://example.com/foo.js',
+                                    'filename': 'foo.js',
+                                    'lineno': 1,
+                                    'colno': 0,
+                                },
+                            ],
+                        },
+                    }
+                ],
             }
         }
 
@@ -151,6 +166,7 @@ class JavascriptIntegrationTest(TestCase):
             'http://example.com/foo.js',
             project=self.project,
             release=None,
+            dist=None,
             allow_scraping=True,
         )
 
@@ -178,19 +194,21 @@ class JavascriptIntegrationTest(TestCase):
             'message': 'hello',
             'platform': 'javascript',
             'sentry.interfaces.Exception': {
-                'values': [{
-                    'type': 'Error',
-                    'stacktrace': {
-                        'frames': [
-                            {
-                                'abs_path': 'http://example.com/test.min.js',
-                                'filename': 'test.js',
-                                'lineno': 1,
-                                'colno': 0,
-                            },
-                        ],
-                    },
-                }],
+                'values': [
+                    {
+                        'type': 'Error',
+                        'stacktrace': {
+                            'frames': [
+                                {
+                                    'abs_path': 'http://example.com/test.min.js',
+                                    'filename': 'test.js',
+                                    'lineno': 1,
+                                    'colno': 0,
+                                },
+                            ],
+                        },
+                    }
+                ],
             }
         }
 
@@ -207,6 +225,7 @@ class JavascriptIntegrationTest(TestCase):
             'http://example.com/test.min.js',
             project=self.project,
             release=None,
+            dist=None,
             allow_scraping=True,
         )
 
@@ -222,48 +241,61 @@ class JavascriptIntegrationTest(TestCase):
 
     @responses.activate
     def test_sourcemap_source_expansion(self):
-        responses.add(responses.GET, 'http://example.com/file.min.js',
-                      body=load_fixture('file.min.js'),
-                      content_type='application/javascript; charset=utf-8')
-        responses.add(responses.GET, 'http://example.com/file1.js',
-                      body=load_fixture('file1.js'),
-                      content_type='application/javascript; charset=utf-8')
-        responses.add(responses.GET, 'http://example.com/file2.js',
-                      body=load_fixture('file2.js'),
-                      content_type='application/javascript; charset=utf-8')
-        responses.add(responses.GET, 'http://example.com/file.sourcemap.js',
-                      body=load_fixture('file.sourcemap.js'),
-                      content_type='application/javascript; charset=utf-8')
-        responses.add(responses.GET, 'http://example.com/index.html',
-                      body='Not Found', status=404)
+        responses.add(
+            responses.GET,
+            'http://example.com/file.min.js',
+            body=load_fixture('file.min.js'),
+            content_type='application/javascript; charset=utf-8'
+        )
+        responses.add(
+            responses.GET,
+            'http://example.com/file1.js',
+            body=load_fixture('file1.js'),
+            content_type='application/javascript; charset=utf-8'
+        )
+        responses.add(
+            responses.GET,
+            'http://example.com/file2.js',
+            body=load_fixture('file2.js'),
+            content_type='application/javascript; charset=utf-8'
+        )
+        responses.add(
+            responses.GET,
+            'http://example.com/file.sourcemap.js',
+            body=load_fixture('file.sourcemap.js'),
+            content_type='application/javascript; charset=utf-8'
+        )
+        responses.add(responses.GET, 'http://example.com/index.html', body='Not Found', status=404)
 
         data = {
             'message': 'hello',
             'platform': 'javascript',
             'sentry.interfaces.Exception': {
-                'values': [{
-                    'type': 'Error',
-                    'stacktrace': {
-                        'frames': [
-                            {
-                                'abs_path': 'http://example.com/file.min.js',
-                                'filename': 'file.min.js',
-                                'lineno': 1,
-                                'colno': 39,
-                            },
+                'values': [
+                    {
+                        'type': 'Error',
+                        'stacktrace': {
+                            'frames': [
+                                {
+                                    'abs_path': 'http://example.com/file.min.js',
+                                    'filename': 'file.min.js',
+                                    'lineno': 1,
+                                    'colno': 39,
+                                },
 
-                            # NOTE: Intentionally source is not retrieved from this HTML file
-                            {
-                                'function': 'function: "HTMLDocument.<anonymous>"',
-                                'abs_path': "http//example.com/index.html",
-                                'filename': 'index.html',
-                                'lineno': 283,
-                                'colno': 17,
-                                'in_app': False,
-                            }
-                        ],
-                    },
-                }],
+                                # NOTE: Intentionally source is not retrieved from this HTML file
+                                {
+                                    'function': 'function: "HTMLDocument.<anonymous>"',
+                                    'abs_path': "http//example.com/index.html",
+                                    'filename': 'index.html',
+                                    'lineno': 283,
+                                    'colno': 17,
+                                    'in_app': False,
+                                }
+                            ],
+                        },
+                    }
+                ],
             }
         }
 
@@ -271,7 +303,12 @@ class JavascriptIntegrationTest(TestCase):
         assert resp.status_code, 200
 
         event = Event.objects.get()
-        assert event.data['errors'] == [{'type': 'js_no_source', 'url': 'http//example.com/index.html'}]
+        assert event.data['errors'] == [
+            {
+                'type': 'js_no_source',
+                'url': 'http//example.com/index.html'
+            }
+        ]
 
         exception = event.interfaces['sentry.interfaces.Exception']
         frame_list = exception.values[0].stacktrace.frames
@@ -298,42 +335,49 @@ class JavascriptIntegrationTest(TestCase):
 
     @responses.activate
     def test_sourcemap_embedded_source_expansion(self):
-        responses.add(responses.GET, 'http://example.com/embedded.js',
-                      body=load_fixture('embedded.js'),
-                      content_type='application/javascript; charset=utf-8')
-        responses.add(responses.GET, 'http://example.com/embedded.js.map',
-                      body=load_fixture('embedded.js.map'),
-                      content_type='application/json; charset=utf-8')
-        responses.add(responses.GET, 'http://example.com/index.html',
-                      body='Not Found', status=404)
+        responses.add(
+            responses.GET,
+            'http://example.com/embedded.js',
+            body=load_fixture('embedded.js'),
+            content_type='application/javascript; charset=utf-8'
+        )
+        responses.add(
+            responses.GET,
+            'http://example.com/embedded.js.map',
+            body=load_fixture('embedded.js.map'),
+            content_type='application/json; charset=utf-8'
+        )
+        responses.add(responses.GET, 'http://example.com/index.html', body='Not Found', status=404)
 
         data = {
             'message': 'hello',
             'platform': 'javascript',
             'sentry.interfaces.Exception': {
-                'values': [{
-                    'type': 'Error',
-                    'stacktrace': {
-                        'frames': [
-                            {
-                                'abs_path': 'http://example.com/embedded.js',
-                                'filename': 'file.min.js',
-                                'lineno': 1,
-                                'colno': 39,
-                            },
+                'values': [
+                    {
+                        'type': 'Error',
+                        'stacktrace': {
+                            'frames': [
+                                {
+                                    'abs_path': 'http://example.com/embedded.js',
+                                    'filename': 'file.min.js',
+                                    'lineno': 1,
+                                    'colno': 39,
+                                },
 
-                            # NOTE: Intentionally source is not retrieved from this HTML file
-                            {
-                                'function': 'function: "HTMLDocument.<anonymous>"',
-                                'abs_path': "http//example.com/index.html",
-                                'filename': 'index.html',
-                                'lineno': 283,
-                                'colno': 17,
-                                'in_app': False,
-                            }
-                        ],
-                    },
-                }],
+                                # NOTE: Intentionally source is not retrieved from this HTML file
+                                {
+                                    'function': 'function: "HTMLDocument.<anonymous>"',
+                                    'abs_path': "http//example.com/index.html",
+                                    'filename': 'index.html',
+                                    'lineno': 283,
+                                    'colno': 17,
+                                    'in_app': False,
+                                }
+                            ],
+                        },
+                    }
+                ],
             }
         }
 
@@ -341,7 +385,12 @@ class JavascriptIntegrationTest(TestCase):
         assert resp.status_code, 200
 
         event = Event.objects.get()
-        assert event.data['errors'] == [{'type': 'js_no_source', 'url': 'http//example.com/index.html'}]
+        assert event.data['errors'] == [
+            {
+                'type': 'js_no_source',
+                'url': 'http//example.com/index.html'
+            }
+        ]
 
         exception = event.interfaces['sentry.interfaces.Exception']
         frame_list = exception.values[0].stacktrace.frames
@@ -357,44 +406,56 @@ class JavascriptIntegrationTest(TestCase):
 
     @responses.activate
     def test_indexed_sourcemap_source_expansion(self):
-        responses.add(responses.GET, 'http://example.com/indexed.min.js',
-                      body=load_fixture('indexed.min.js'),
-                      content_type='application/javascript; charset=utf-8')
-        responses.add(responses.GET, 'http://example.com/file1.js',
-                      body=load_fixture('file1.js'),
-                      content_type='application/javascript; charset=utf-8')
-        responses.add(responses.GET, 'http://example.com/file2.js',
-                      body=load_fixture('file2.js'),
-                      content_type='application/javascript; charset=utf-8')
-        responses.add(responses.GET, 'http://example.com/indexed.sourcemap.js',
-                      body=load_fixture('indexed.sourcemap.js'),
-                      content_type='application/json; charset=utf-8')
+        responses.add(
+            responses.GET,
+            'http://example.com/indexed.min.js',
+            body=load_fixture('indexed.min.js'),
+            content_type='application/javascript; charset=utf-8'
+        )
+        responses.add(
+            responses.GET,
+            'http://example.com/file1.js',
+            body=load_fixture('file1.js'),
+            content_type='application/javascript; charset=utf-8'
+        )
+        responses.add(
+            responses.GET,
+            'http://example.com/file2.js',
+            body=load_fixture('file2.js'),
+            content_type='application/javascript; charset=utf-8'
+        )
+        responses.add(
+            responses.GET,
+            'http://example.com/indexed.sourcemap.js',
+            body=load_fixture('indexed.sourcemap.js'),
+            content_type='application/json; charset=utf-8'
+        )
 
         data = {
             'message': 'hello',
             'platform': 'javascript',
             'sentry.interfaces.Exception': {
-                'values': [{
-                    'type': 'Error',
-                    'stacktrace': {
-                        'frames': [
-                            {
-                                'abs_path': 'http://example.com/indexed.min.js',
-                                'filename': 'indexed.min.js',
-                                'lineno': 1,
-                                'colno': 39,
-                            },
-
-                            {
-                                'abs_path': 'http://example.com/indexed.min.js',
-                                'filename': 'indexed.min.js',
-                                'lineno': 2,
-                                'colno': 44,
-                            },
-
-                        ],
-                    },
-                }],
+                'values': [
+                    {
+                        'type': 'Error',
+                        'stacktrace': {
+                            'frames': [
+                                {
+                                    'abs_path': 'http://example.com/indexed.min.js',
+                                    'filename': 'indexed.min.js',
+                                    'lineno': 1,
+                                    'colno': 39,
+                                },
+                                {
+                                    'abs_path': 'http://example.com/indexed.min.js',
+                                    'filename': 'indexed.min.js',
+                                    'lineno': 2,
+                                    'colno': 44,
+                                },
+                            ],
+                        },
+                    }
+                ],
             }
         }
 
@@ -423,8 +484,7 @@ class JavascriptIntegrationTest(TestCase):
         assert raw_frame.context_line == 'function add(a,b){"use strict";return a+b}'
         assert raw_frame.post_context == [
             'function multiply(a,b){"use strict";return a*b}function divide(a,b){"use strict";try{return multiply(add(a,b),a,b)/c}catch(e){Raven.captureE {snip}',
-            '//# sourceMappingURL=indexed.sourcemap.js',
-            ''
+            '//# sourceMappingURL=indexed.sourcemap.js', ''
         ]
         assert raw_frame.lineno == 1
 
@@ -445,10 +505,7 @@ class JavascriptIntegrationTest(TestCase):
         raw_frame = raw_frame_list[1]
         assert raw_frame.pre_context == ['function add(a,b){"use strict";return a+b}']
         assert raw_frame.context_line == 'function multiply(a,b){"use strict";return a*b}function divide(a,b){"use strict";try{return multiply(add(a,b),a,b)/c}catch(e){Raven.captureE {snip}'
-        assert raw_frame.post_context == [
-            '//# sourceMappingURL=indexed.sourcemap.js',
-            ''
-        ]
+        assert raw_frame.post_context == ['//# sourceMappingURL=indexed.sourcemap.js', '']
         assert raw_frame.lineno == 2
 
     @responses.activate
@@ -551,25 +608,26 @@ class JavascriptIntegrationTest(TestCase):
             'platform': 'javascript',
             'release': 'abc',
             'sentry.interfaces.Exception': {
-                'values': [{
-                    'type': 'Error',
-                    'stacktrace': {
-                        'frames': [
-                            {
-                                'abs_path': 'http://example.com/file.min.js?foo=bar',
-                                'filename': 'file.min.js',
-                                'lineno': 1,
-                                'colno': 39,
-                            },
-                            {
-                                'abs_path': 'http://example.com/file.min.js?foo=bar',
-                                'filename': 'file.min.js',
-                                'lineno': 1,
-                                'colno': 79,
-                            }
-                        ],
-                    },
-                }],
+                'values': [
+                    {
+                        'type': 'Error',
+                        'stacktrace': {
+                            'frames': [
+                                {
+                                    'abs_path': 'http://example.com/file.min.js?foo=bar',
+                                    'filename': 'file.min.js',
+                                    'lineno': 1,
+                                    'colno': 39,
+                                }, {
+                                    'abs_path': 'http://example.com/file.min.js?foo=bar',
+                                    'filename': 'file.min.js',
+                                    'lineno': 1,
+                                    'colno': 79,
+                                }
+                            ],
+                        },
+                    }
+                ],
             }
         }
 
@@ -597,9 +655,165 @@ class JavascriptIntegrationTest(TestCase):
         ]
         assert frame.context_line == '\treturn a * b;'
         assert frame.post_context == [
-            '}',
-            'function divide(a, b) {',
-            '\t"use strict";', u'\ttry {',
+            '}', 'function divide(a, b) {', '\t"use strict";', u'\ttry {',
+            '\t\treturn multiply(add(a, b), a, b) / c;'
+        ]
+
+    @responses.activate
+    def test_expansion_via_distribution_release_artifacts(self):
+        project = self.project
+        release = Release.objects.create(
+            organization_id=project.organization_id,
+            version='abc',
+        )
+        release.add_project(project)
+        dist = release.add_dist('foo')
+
+        # file.min.js
+        # ------------
+
+        f_minified = File.objects.create(
+            name='file.min.js',
+            type='release.file',
+            headers={'Content-Type': 'application/json'},
+        )
+        f_minified.putfile(open(get_fixture_path('file.min.js'), 'rb'))
+
+        # Intentionally omit hostname - use alternate artifact path lookup instead
+        # /file1.js vs http://example.com/file1.js
+        ReleaseFile.objects.create(
+            name='~/{}?foo=bar'.format(f_minified.name),
+            release=release,
+            dist=dist,
+            organization_id=project.organization_id,
+            file=f_minified,
+        )
+
+        # file1.js
+        # ---------
+
+        f1 = File.objects.create(
+            name='file1.js',
+            type='release.file',
+            headers={'Content-Type': 'application/json'},
+        )
+        f1.putfile(open(get_fixture_path('file1.js'), 'rb'))
+
+        ReleaseFile.objects.create(
+            name='http://example.com/{}'.format(f1.name),
+            release=release,
+            dist=dist,
+            organization_id=project.organization_id,
+            file=f1,
+        )
+
+        # file2.js
+        # ----------
+
+        f2 = File.objects.create(
+            name='file2.js',
+            type='release.file',
+            headers={'Content-Type': 'application/json'},
+        )
+        f2.putfile(open(get_fixture_path('file2.js'), 'rb'))
+        ReleaseFile.objects.create(
+            name='http://example.com/{}'.format(f2.name),
+            release=release,
+            dist=dist,
+            organization_id=project.organization_id,
+            file=f2,
+        )
+
+        # To verify that the full url has priority over the relative url,
+        # we will also add a second ReleaseFile alias for file2.js (f3) w/o
+        # hostname that points to an empty file. If the processor chooses
+        # this empty file over the correct file2.js, it will not locate
+        # context for the 2nd frame.
+        f2_empty = File.objects.create(
+            name='empty.js',
+            type='release.file',
+            headers={'Content-Type': 'application/json'},
+        )
+        f2_empty.putfile(open(get_fixture_path('empty.js'), 'rb'))
+        ReleaseFile.objects.create(
+            name='~/{}'.format(f2.name),  # intentionally using f2.name ("file2.js")
+            release=release,
+            dist=dist,
+            organization_id=project.organization_id,
+            file=f2_empty,
+        )
+
+        # sourcemap
+        # ----------
+
+        f_sourcemap = File.objects.create(
+            name='file.sourcemap.js',
+            type='release.file',
+            headers={'Content-Type': 'application/json'},
+        )
+        f_sourcemap.putfile(open(get_fixture_path('file.sourcemap.js'), 'rb'))
+        ReleaseFile.objects.create(
+            name='http://example.com/{}'.format(f_sourcemap.name),
+            release=release,
+            dist=dist,
+            organization_id=project.organization_id,
+            file=f_sourcemap,
+        )
+
+        data = {
+            'message': 'hello',
+            'platform': 'javascript',
+            'release': 'abc',
+            'dist': 'foo',
+            'sentry.interfaces.Exception': {
+                'values': [
+                    {
+                        'type': 'Error',
+                        'stacktrace': {
+                            'frames': [
+                                {
+                                    'abs_path': 'http://example.com/file.min.js?foo=bar',
+                                    'filename': 'file.min.js',
+                                    'lineno': 1,
+                                    'colno': 39,
+                                }, {
+                                    'abs_path': 'http://example.com/file.min.js?foo=bar',
+                                    'filename': 'file.min.js',
+                                    'lineno': 1,
+                                    'colno': 79,
+                                }
+                            ],
+                        },
+                    }
+                ],
+            }
+        }
+
+        resp = self._postWithHeader(data)
+        assert resp.status_code, 200
+
+        event = Event.objects.get()
+        assert not event.data['errors']
+
+        exception = event.interfaces['sentry.interfaces.Exception']
+        frame_list = exception.values[0].stacktrace.frames
+
+        frame = frame_list[0]
+        assert frame.pre_context == [
+            'function add(a, b) {',
+            '\t"use strict";',
+        ]
+        assert frame.context_line == u'\treturn a + b; // fôo'
+        assert frame.post_context == ['}', '']
+
+        frame = frame_list[1]
+        assert frame.pre_context == [
+            'function multiply(a, b) {',
+            '\t"use strict";',
+        ]
+        assert frame.context_line == '\treturn a * b;'
+        assert frame.post_context == [
+            '}', 'function divide(a, b) {', '\t"use strict";', u'\ttry {',
             '\t\treturn multiply(add(a, b), a, b) / c;'
         ]
 
@@ -609,32 +823,39 @@ class JavascriptIntegrationTest(TestCase):
         Tests a successful sourcemap expansion that points to source files
         that are not found.
         """
-        responses.add(responses.GET, 'http://example.com/file.min.js',
-                      body=load_fixture('file.min.js'),
-                      content_type='application/javascript; charset=utf-8')
-        responses.add(responses.GET, 'http://example.com/file.sourcemap.js',
-                      body=load_fixture('file.sourcemap.js'),
-                      content_type='application/json; charset=utf-8')
-        responses.add(responses.GET, 'http://example.com/file1.js',
-                      body='Not Found', status=404)
+        responses.add(
+            responses.GET,
+            'http://example.com/file.min.js',
+            body=load_fixture('file.min.js'),
+            content_type='application/javascript; charset=utf-8'
+        )
+        responses.add(
+            responses.GET,
+            'http://example.com/file.sourcemap.js',
+            body=load_fixture('file.sourcemap.js'),
+            content_type='application/json; charset=utf-8'
+        )
+        responses.add(responses.GET, 'http://example.com/file1.js', body='Not Found', status=404)
 
         data = {
             'message': 'hello',
             'platform': 'javascript',
             'sentry.interfaces.Exception': {
-                'values': [{
-                    'type': 'Error',
-                    'stacktrace': {
-                        'frames': [
-                            {
-                                'abs_path': 'http://example.com/file.min.js',
-                                'filename': 'file.min.js',
-                                'lineno': 1,
-                                'colno': 39,
-                            },
-                        ],
-                    },
-                }],
+                'values': [
+                    {
+                        'type': 'Error',
+                        'stacktrace': {
+                            'frames': [
+                                {
+                                    'abs_path': 'http://example.com/file.min.js',
+                                    'filename': 'file.min.js',
+                                    'lineno': 1,
+                                    'colno': 39,
+                                },
+                            ],
+                        },
+                    }
+                ],
             }
         }
 
@@ -642,7 +863,13 @@ class JavascriptIntegrationTest(TestCase):
         assert resp.status_code, 200
 
         event = Event.objects.get()
-        assert event.data['errors'] == [{'url': u'http://example.com/file1.js', 'type': 'fetch_invalid_http_code', 'value': 404}]
+        assert event.data['errors'] == [
+            {
+                'url': u'http://example.com/file1.js',
+                'type': 'fetch_invalid_http_code',
+                'value': 404
+            }
+        ]
 
         exception = event.interfaces['sentry.interfaces.Exception']
         frame_list = exception.values[0].stacktrace.frames
@@ -664,31 +891,39 @@ class JavascriptIntegrationTest(TestCase):
         Tests attempting to parse an indexed source map where each section has a "url"
         property - this is unsupported and should fail.
         """
-        responses.add(responses.GET, 'http://example.com/unsupported.min.js',
-                      body=load_fixture('unsupported.min.js'),
-                      content_type='application/javascript; charset=utf-8')
+        responses.add(
+            responses.GET,
+            'http://example.com/unsupported.min.js',
+            body=load_fixture('unsupported.min.js'),
+            content_type='application/javascript; charset=utf-8'
+        )
 
-        responses.add(responses.GET, 'http://example.com/unsupported.sourcemap.js',
-                      body=load_fixture('unsupported.sourcemap.js'),
-                      content_type='application/json; charset=utf-8')
+        responses.add(
+            responses.GET,
+            'http://example.com/unsupported.sourcemap.js',
+            body=load_fixture('unsupported.sourcemap.js'),
+            content_type='application/json; charset=utf-8'
+        )
 
         data = {
             'message': 'hello',
             'platform': 'javascript',
             'sentry.interfaces.Exception': {
-                'values': [{
-                    'type': 'Error',
-                    'stacktrace': {
-                        'frames': [
-                            {
-                                'abs_path': 'http://example.com/unsupported.min.js',
-                                'filename': 'indexed.min.js',
-                                'lineno': 1,
-                                'colno': 39,
-                            },
-                        ],
-                    },
-                }],
+                'values': [
+                    {
+                        'type': 'Error',
+                        'stacktrace': {
+                            'frames': [
+                                {
+                                    'abs_path': 'http://example.com/unsupported.min.js',
+                                    'filename': 'indexed.min.js',
+                                    'lineno': 1,
+                                    'colno': 39,
+                                },
+                            ],
+                        },
+                    }
+                ],
             }
         }
 
@@ -696,26 +931,33 @@ class JavascriptIntegrationTest(TestCase):
         assert resp.status_code, 200
 
         event = Event.objects.get()
-        assert event.data['errors'] == [{'url': u'http://example.com/unsupported.sourcemap.js', 'type': 'js_invalid_source'}]
+        assert event.data['errors'] == [
+            {
+                'url': u'http://example.com/unsupported.sourcemap.js',
+                'type': 'js_invalid_source'
+            }
+        ]
 
     def test_failed_sourcemap_expansion_data_url(self):
         data = {
             'message': 'hello',
             'platform': 'javascript',
             'sentry.interfaces.Exception': {
-                'values': [{
-                    'type': 'Error',
-                    'stacktrace': {
-                        'frames': [
-                            {
-                                'abs_path': 'data:application/javascript,base46,asfasf',
-                                'filename': 'indexed.min.js',
-                                'lineno': 1,
-                                'colno': 39,
-                            },
-                        ],
-                    },
-                }],
+                'values': [
+                    {
+                        'type': 'Error',
+                        'stacktrace': {
+                            'frames': [
+                                {
+                                    'abs_path': 'data:application/javascript,base46,asfasf',
+                                    'filename': 'indexed.min.js',
+                                    'lineno': 1,
+                                    'colno': 39,
+                                },
+                            ],
+                        },
+                    }
+                ],
             }
         }
 
@@ -727,42 +969,55 @@ class JavascriptIntegrationTest(TestCase):
 
     @responses.activate
     def test_html_response_for_js(self):
-        responses.add(responses.GET, 'http://example.com/file1.js',
-                      body='       <!DOCTYPE html><html><head></head><body></body></html>')
-        responses.add(responses.GET, 'http://example.com/file2.js',
-                      body='<!doctype html><html><head></head><body></body></html>')
-        responses.add(responses.GET, 'http://example.com/file.html',
-                      body='<!doctype html><html><head></head><body><script>/*legit case*/</script></body></html>')
+        responses.add(
+            responses.GET,
+            'http://example.com/file1.js',
+            body='       <!DOCTYPE html><html><head></head><body></body></html>'
+        )
+        responses.add(
+            responses.GET,
+            'http://example.com/file2.js',
+            body='<!doctype html><html><head></head><body></body></html>'
+        )
+        responses.add(
+            responses.GET,
+            'http://example.com/file.html',
+            body=(
+                '<!doctype html><html><head></head><body><script>/*legit case*/</script></body></html>'
+            )
+        )
 
         data = {
             'message': 'hello',
             'platform': 'javascript',
             'sentry.interfaces.Exception': {
-                'values': [{
-                    'type': 'Error',
-                    'stacktrace': {
-                        'frames': [
-                            {
-                                'abs_path': 'http://example.com/file1.js',
-                                'filename': 'file.min.js',
-                                'lineno': 1,
-                                'colno': 39,
-                            },
-                            {
-                                'abs_path': 'http://example.com/file2.js',
-                                'filename': 'file.min.js',
-                                'lineno': 1,
-                                'colno': 39,
-                            },
-                            {
-                                'abs_path': 'http://example.com/file.html',
-                                'filename': 'file.html',
-                                'lineno': 1,
-                                'colno': 1,
-                            },
-                        ],
-                    },
-                }],
+                'values': [
+                    {
+                        'type': 'Error',
+                        'stacktrace': {
+                            'frames': [
+                                {
+                                    'abs_path': 'http://example.com/file1.js',
+                                    'filename': 'file.min.js',
+                                    'lineno': 1,
+                                    'colno': 39,
+                                },
+                                {
+                                    'abs_path': 'http://example.com/file2.js',
+                                    'filename': 'file.min.js',
+                                    'lineno': 1,
+                                    'colno': 39,
+                                },
+                                {
+                                    'abs_path': 'http://example.com/file.html',
+                                    'filename': 'file.html',
+                                    'lineno': 1,
+                                    'colno': 1,
+                                },
+                            ],
+                        },
+                    }
+                ],
             }
         }
 
@@ -771,6 +1026,11 @@ class JavascriptIntegrationTest(TestCase):
 
         event = Event.objects.get()
         assert event.data['errors'] == [
-            {'url': u'http://example.com/file1.js', 'type': 'js_invalid_content'},
-            {'url': u'http://example.com/file2.js', 'type': 'js_invalid_content'}
+            {
+                'url': u'http://example.com/file1.js',
+                'type': 'js_invalid_content'
+            }, {
+                'url': u'http://example.com/file2.js',
+                'type': 'js_invalid_content'
+            }
         ]

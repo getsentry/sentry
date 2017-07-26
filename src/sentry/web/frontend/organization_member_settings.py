@@ -21,8 +21,10 @@ class OrganizationMemberSettingsView(OrganizationView):
             all_teams=all_teams,
             allowed_roles=allowed_roles,
             initial={
-                'role': member.role,
-                'teams': Team.objects.filter(
+                'role':
+                member.role,
+                'teams':
+                Team.objects.filter(
                     id__in=OrganizationMemberTeam.objects.filter(
                         organizationmember=member,
                     ).values('team'),
@@ -33,20 +35,27 @@ class OrganizationMemberSettingsView(OrganizationView):
     def resend_invite(self, request, organization, member, regen=False):
         if regen:
             member.update(token=member.generate_token())
-            messages.success(request, ugettext('A new invitation has been generated and sent to %(email)s') % {
-                'organization': organization.name,
-                'email': member.email,
-            })
+            messages.success(
+                request,
+                ugettext('A new invitation has been generated and sent to %(email)s') % {
+                    'organization': organization.name,
+                    'email': member.email,
+                }
+            )
         else:
-            messages.success(request, ugettext('An invitation to join %(organization)s has been sent to %(email)s') % {
-                'organization': organization.name,
-                'email': member.email,
-            })
+            messages.success(
+                request,
+                ugettext('An invitation to join %(organization)s has been sent to %(email)s') % {
+                    'organization': organization.name,
+                    'email': member.email,
+                }
+            )
 
         member.send_invite_email()
 
-        redirect = reverse('sentry-organization-member-settings',
-                           args=[organization.slug, member.id])
+        redirect = reverse(
+            'sentry-organization-member-settings', args=[organization.slug, member.id]
+        )
 
         return self.redirect(redirect)
 
@@ -77,10 +86,7 @@ class OrganizationMemberSettingsView(OrganizationView):
 
         can_admin, allowed_roles = self.get_allowed_roles(request, organization, member)
 
-        all_teams = Team.objects.filter(
-            organization=organization,
-            status=TeamStatus.VISIBLE
-        )
+        all_teams = Team.objects.filter(organization=organization, status=TeamStatus.VISIBLE)
 
         if member.user == request.user or not can_admin:
             return self.view_member(request, organization, member, all_teams)
@@ -89,11 +95,11 @@ class OrganizationMemberSettingsView(OrganizationView):
         if form.is_valid():
             member = form.save(request.user, organization, request.META['REMOTE_ADDR'])
 
-            messages.add_message(request, messages.SUCCESS,
-                _('Your changes were saved.'))
+            messages.add_message(request, messages.SUCCESS, _('Your changes were saved.'))
 
-            redirect = reverse('sentry-organization-member-settings',
-                               args=[organization.slug, member.id])
+            redirect = reverse(
+                'sentry-organization-member-settings', args=[organization.slug, member.id]
+            )
 
             return self.redirect(redirect)
 
@@ -101,10 +107,7 @@ class OrganizationMemberSettingsView(OrganizationView):
             'member': member,
             'form': form,
             'invite_link': member.get_invite_link(),
-            'role_list': [
-                (r, r in allowed_roles)
-                for r in roles.get_all()
-            ],
+            'role_list': [(r, r in allowed_roles) for r in roles.get_all()],
             'all_teams': all_teams
         }
 

@@ -30,9 +30,11 @@ class EventDetailsTest(APITestCase):
             datetime=datetime(2013, 8, 13, 3, 8, 26),
         )
 
-        url = reverse('sentry-api-0-event-details', kwargs={
-            'event_id': cur_event.id,
-        })
+        url = reverse(
+            'sentry-api-0-event-details', kwargs={
+                'event_id': cur_event.id,
+            }
+        )
         response = self.client.get(url, format='json')
 
         assert response.status_code == 200, response.content
@@ -42,9 +44,11 @@ class EventDetailsTest(APITestCase):
         assert response.data['groupID'] == six.text_type(group.id)
         assert not response.data['userReport']
 
-        url = reverse('sentry-api-0-event-details', kwargs={
-            'event_id': prev_event.id,
-        })
+        url = reverse(
+            'sentry-api-0-event-details', kwargs={
+                'event_id': prev_event.id,
+            }
+        )
         response = self.client.get(url, format='json')
 
         assert response.status_code == 200, response.content
@@ -54,9 +58,11 @@ class EventDetailsTest(APITestCase):
         assert response.data['groupID'] == six.text_type(group.id)
         assert not response.data['userReport']
 
-        url = reverse('sentry-api-0-event-details', kwargs={
-            'event_id': next_event.id,
-        })
+        url = reverse(
+            'sentry-api-0-event-details', kwargs={
+                'event_id': next_event.id,
+            }
+        )
         response = self.client.get(url, format='json')
 
         assert response.status_code == 200, response.content
@@ -99,9 +105,11 @@ class EventDetailsTest(APITestCase):
         ))
 
         # First event, no prev
-        url = reverse('sentry-api-0-event-details', kwargs={
-            'event_id': events[0].id,
-        })
+        url = reverse(
+            'sentry-api-0-event-details', kwargs={
+                'event_id': events[0].id,
+            }
+        )
         response = self.client.get(url, format='json')
 
         assert response.status_code == 200, response.content
@@ -112,9 +120,11 @@ class EventDetailsTest(APITestCase):
         assert not response.data['userReport']
 
         # Middle event, has prev and next
-        url = reverse('sentry-api-0-event-details', kwargs={
-            'event_id': events[1].id,
-        })
+        url = reverse(
+            'sentry-api-0-event-details', kwargs={
+                'event_id': events[1].id,
+            }
+        )
         response = self.client.get(url, format='json')
 
         assert response.status_code == 200, response.content
@@ -125,9 +135,11 @@ class EventDetailsTest(APITestCase):
         assert not response.data['userReport']
 
         # Middle event, has prev and next
-        url = reverse('sentry-api-0-event-details', kwargs={
-            'event_id': events[2].id,
-        })
+        url = reverse(
+            'sentry-api-0-event-details', kwargs={
+                'event_id': events[2].id,
+            }
+        )
         response = self.client.get(url, format='json')
 
         assert response.status_code == 200, response.content
@@ -138,9 +150,11 @@ class EventDetailsTest(APITestCase):
         assert not response.data['userReport']
 
         # Middle event, has prev and next
-        url = reverse('sentry-api-0-event-details', kwargs={
-            'event_id': events[3].id,
-        })
+        url = reverse(
+            'sentry-api-0-event-details', kwargs={
+                'event_id': events[3].id,
+            }
+        )
         response = self.client.get(url, format='json')
 
         assert response.status_code == 200, response.content
@@ -151,9 +165,11 @@ class EventDetailsTest(APITestCase):
         assert not response.data['userReport']
 
         # Last event, no next
-        url = reverse('sentry-api-0-event-details', kwargs={
-            'event_id': events[4].id,
-        })
+        url = reverse(
+            'sentry-api-0-event-details', kwargs={
+                'event_id': events[4].id,
+            }
+        )
         response = self.client.get(url, format='json')
 
         assert response.status_code == 200, response.content
@@ -183,9 +199,11 @@ class EventDetailsTest(APITestCase):
             datetime=datetime(2013, 8, 13, 3, 8, 24),
         )
 
-        url = reverse('sentry-api-0-event-details', kwargs={
-            'event_id': cur_event.id,
-        })
+        url = reverse(
+            'sentry-api-0-event-details', kwargs={
+                'event_id': cur_event.id,
+            }
+        )
         response = self.client.get(url, format='json')
 
         assert response.status_code == 200, response.content
@@ -195,9 +213,11 @@ class EventDetailsTest(APITestCase):
         assert response.data['groupID'] == six.text_type(group.id)
         assert not response.data['userReport']
 
-        url = reverse('sentry-api-0-event-details', kwargs={
-            'event_id': prev_event.id,
-        })
+        url = reverse(
+            'sentry-api-0-event-details', kwargs={
+                'event_id': prev_event.id,
+            }
+        )
         response = self.client.get(url, format='json')
 
         assert response.status_code == 200, response.content
@@ -207,9 +227,11 @@ class EventDetailsTest(APITestCase):
         assert response.data['groupID'] == six.text_type(group.id)
         assert not response.data['userReport']
 
-        url = reverse('sentry-api-0-event-details', kwargs={
-            'event_id': next_event.id,
-        })
+        url = reverse(
+            'sentry-api-0-event-details', kwargs={
+                'event_id': next_event.id,
+            }
+        )
         response = self.client.get(url, format='json')
 
         assert response.status_code == 200, response.content
@@ -237,9 +259,11 @@ class EventDetailsTest(APITestCase):
             comments='Hello world!',
         )
 
-        url = reverse('sentry-api-0-event-details', kwargs={
-            'event_id': cur_event.id,
-        })
+        url = reverse(
+            'sentry-api-0-event-details', kwargs={
+                'event_id': cur_event.id,
+            }
+        )
         response = self.client.get(url, format='json')
 
         assert response.status_code == 200, response.content

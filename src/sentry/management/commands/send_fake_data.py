@@ -17,15 +17,17 @@ from django.core.management.base import BaseCommand, CommandError, make_option
 
 
 def funcs():
-    exceptions = itertools.cycle([
-        SyntaxError('foo must come before bar'),
-        ValueError('baz is not a valid choice'),
-        TypeError('NoneType cannot be coerced to bar'),
-        NotImplementedError('This feature is not implemented'),
-        ZeroDivisionError('Your math doesn\'t work'),
-        Exception('An unknown exception'),
-        KeyError('index does not exist'),
-    ])
+    exceptions = itertools.cycle(
+        [
+            SyntaxError('foo must come before bar'),
+            ValueError('baz is not a valid choice'),
+            TypeError('NoneType cannot be coerced to bar'),
+            NotImplementedError('This feature is not implemented'),
+            ZeroDivisionError('Your math doesn\'t work'),
+            Exception('An unknown exception'),
+            KeyError('index does not exist'),
+        ]
+    )
     loggers = itertools.cycle(['root', 'foo', 'foo.bar'])
     emails = itertools.cycle(['foo@example.com', 'bar@example.com', 'baz@example.com'])
     timestamps = range(24 * 60 * 60)
@@ -34,7 +36,9 @@ def funcs():
 
     # def query(client):
     #     duration = random.randint(0, 10000) / 1000.0
-    #     return client.capture('Query', query=queries.next(), engine=engine.next(), time_spent=duration, data={'logger': loggers.next(), 'site': 'sql'})
+    # return client.capture('Query', query=queries.next(),
+    # engine=engine.next(), time_spent=duration, data={'logger':
+    # loggers.next(), 'site': 'sql'})
 
     def exception(client):
         timestamp = datetime.datetime.utcnow() - datetime.timedelta(seconds=six.next(timestamps))
@@ -42,14 +46,17 @@ def funcs():
             raise six.next(exceptions)
         except Exception:
             email = six.next(emails)
-            return client.captureException(data={
-                'logger': six.next(loggers),
-                'site': 'web',
-                'sentry.interfaces.User': {
-                    'id': email,
-                    'email': email,
-                }
-            }, date=timestamp)
+            return client.captureException(
+                data={
+                    'logger': six.next(loggers),
+                    'site': 'web',
+                    'sentry.interfaces.User': {
+                        'id': email,
+                        'email': email,
+                    }
+                },
+                date=timestamp
+            )
 
     return [exception]
 
@@ -58,8 +65,9 @@ class Command(BaseCommand):
     help = 'Sends fake data to the internal Sentry project'
 
     option_list = BaseCommand.option_list + (
-        make_option('--project', dest='project', help="project ID or organization-slug/project-slug"),
-        make_option('--num', dest='num_events', type=int),
+        make_option(
+            '--project', dest='project', help="project ID or organization-slug/project-slug"
+        ), make_option('--num', dest='num_events', type=int),
     )
 
     def handle(self, **options):
@@ -76,7 +84,9 @@ class Command(BaseCommand):
                 o_slug, p_slug = options['project'].split('/', 1)
                 project = Project.objects.get(slug=p_slug, organization__slug=o_slug)
             else:
-                raise CommandError('Project must be specified as organization-slug/project-slug or a project id')
+                raise CommandError(
+                    'Project must be specified as organization-slug/project-slug or a project id'
+                )
 
         client.project = project.id
 

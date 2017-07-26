@@ -23,12 +23,12 @@ CALLSIGN_BLACKLIST = ['GH']
 
 _callsign_re = re.compile(r'^[A-Z]{2,6}$')
 _word_sep_re = re.compile(r'[\s.;,_-]+(?u)')
-_camelcase_re = re.compile(
-    r'(?:[A-Z]{2,}(?=[A-Z]))|(?:[A-Z][a-z0-9]+)|(?:[a-z0-9]+)')
+_camelcase_re = re.compile(r'(?:[A-Z]{2,}(?=[A-Z]))|(?:[A-Z][a-z0-9]+)|(?:[a-z0-9]+)')
 _letters_re = re.compile(r'[A-Z]+')
 _digit_re = re.compile(r'\d+')
 _sprintf_placeholder_re = re.compile(
-    r'%(?:\d+\$)?[+-]?(?:[ 0]|\'.{1})?-?\d*(?:\.\d+)?[bcdeEufFgGosxX]')
+    r'%(?:\d+\$)?[+-]?(?:[ 0]|\'.{1})?-?\d*(?:\.\d+)?[bcdeEufFgGosxX]'
+)
 
 
 def truncatechars(value, arg):
@@ -121,8 +121,7 @@ def validate_callsign(value):
 
 
 def iter_callsign_choices(project_name):
-    words = list(x.upper() for x in tokens_from_name(
-        project_name, remove_digits=True))
+    words = list(x.upper() for x in tokens_from_name(project_name, remove_digits=True))
     bits = []
 
     if len(words) == 2:
@@ -181,19 +180,16 @@ def tokens_from_name(value, remove_digits=False):
             yield word
 
 
-valid_dot_atom_characters = frozenset(
-    string.ascii_letters +
-    string.digits +
-    ".!#$%&'*+-/=?^_`{|}~"
-)
+valid_dot_atom_characters = frozenset(string.ascii_letters + string.digits + ".!#$%&'*+-/=?^_`{|}~")
 
 
 def is_valid_dot_atom(value):
     """Validate an input string as an RFC 2822 dot-atom-text value."""
-    return (isinstance(value, six.string_types)  # must be a string type
-        and not value[0] == '.'
-        and not value[-1] == '.'  # cannot start or end with a dot
-        and set(value).issubset(valid_dot_atom_characters))  # can only contain valid characters
+    return (
+        isinstance(value, six.string_types)  # must be a string type
+        and not value[0] == '.' and not value[-1] == '.'  # cannot start or end with a dot
+        and set(value).issubset(valid_dot_atom_characters)
+    )  # can only contain valid characters
 
 
 def count_sprintf_parameters(string):

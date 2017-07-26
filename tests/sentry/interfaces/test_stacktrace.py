@@ -9,9 +9,7 @@ from django.template.loader import render_to_string
 from exam import fixture
 
 from sentry.interfaces.base import InterfaceValidationError
-from sentry.interfaces.stacktrace import (
-    Frame, Stacktrace, get_context, slim_frame_data
-)
+from sentry.interfaces.stacktrace import (Frame, Stacktrace, get_context, slim_frame_data)
 from sentry.models import Event
 from sentry.testutils import TestCase
 
@@ -25,23 +23,26 @@ class GetContextTest(TestCase):
 class StacktraceTest(TestCase):
     @fixture
     def interface(self):
-        return Stacktrace.to_python(dict(frames=[
-            {
-                'filename': 'foo/bar.py'
-            },
-            {
-                'filename': 'foo/baz.py',
-                'lineno': 1,
-                'in_app': True,
-            }
-        ]))
+        return Stacktrace.to_python(
+            dict(
+                frames=[
+                    {
+                        'filename': 'foo/bar.py'
+                    }, {
+                        'filename': 'foo/baz.py',
+                        'lineno': 1,
+                        'in_app': True,
+                    }
+                ]
+            )
+        )
 
     def test_legacy_interface(self):
         # Simple test to ensure legacy data works correctly with the ``Frame``
         # objects
         event = self.event
         interface = Stacktrace.to_python(event.data['sentry.interfaces.Stacktrace'])
-        assert len(interface.frames) == 1
+        assert len(interface.frames) == 2
         assert interface == event.interfaces['sentry.interfaces.Stacktrace']
 
     def test_requires_filename(self):
@@ -67,38 +68,48 @@ class StacktraceTest(TestCase):
             Stacktrace.to_python(dict(frames=1))
 
     def test_allows_abs_path_without_filename(self):
-        interface = Stacktrace.to_python(dict(frames=[{
-            'lineno': 1,
-            'abs_path': 'foo/bar/baz.py',
-        }]))
+        interface = Stacktrace.to_python(
+            dict(frames=[{
+                'lineno': 1,
+                'abs_path': 'foo/bar/baz.py',
+            }])
+        )
         frame = interface.frames[0]
         assert frame.filename == 'foo/bar/baz.py'
         assert frame.abs_path == frame.filename
 
     def test_coerces_url_filenames(self):
-        interface = Stacktrace.to_python(dict(frames=[{
-            'lineno': 1,
-            'filename': 'http://foo.com/foo.js',
-        }]))
+        interface = Stacktrace.to_python(
+            dict(frames=[{
+                'lineno': 1,
+                'filename': 'http://foo.com/foo.js',
+            }])
+        )
         frame = interface.frames[0]
         assert frame.filename == '/foo.js'
         assert frame.abs_path == 'http://foo.com/foo.js'
 
     def test_does_not_overwrite_filename(self):
-        interface = Stacktrace.to_python(dict(frames=[{
-            'lineno': 1,
-            'filename': 'foo.js',
-            'abs_path': 'http://foo.com/foo.js',
-        }]))
+        interface = Stacktrace.to_python(
+            dict(
+                frames=[{
+                    'lineno': 1,
+                    'filename': 'foo.js',
+                    'abs_path': 'http://foo.com/foo.js',
+                }]
+            )
+        )
         frame = interface.frames[0]
         assert frame.filename == 'foo.js'
         assert frame.abs_path == 'http://foo.com/foo.js'
 
     def test_ignores_results_with_empty_path(self):
-        interface = Stacktrace.to_python(dict(frames=[{
-            'lineno': 1,
-            'filename': 'http://foo.com',
-        }]))
+        interface = Stacktrace.to_python(
+            dict(frames=[{
+                'lineno': 1,
+                'filename': 'http://foo.com',
+            }])
+        )
         frame = interface.frames[0]
         assert frame.filename == 'http://foo.com'
         assert frame.abs_path == frame.filename
@@ -112,15 +123,21 @@ class StacktraceTest(TestCase):
         assert 'frames' in result
 
     def test_hash_without_system_frames(self):
-        interface = Stacktrace.to_python(dict(frames=[{
-            'lineno': 1,
-            'filename': 'foo.py',
-            'in_app': True,
-        }, {
-            'lineno': 1,
-            'filename': 'bar.py',
-            'in_app': None,
-        }]))
+        interface = Stacktrace.to_python(
+            dict(
+                frames=[
+                    {
+                        'lineno': 1,
+                        'filename': 'foo.py',
+                        'in_app': True,
+                    }, {
+                        'lineno': 1,
+                        'filename': 'bar.py',
+                        'in_app': None,
+                    }
+                ]
+            )
+        )
         result = interface.get_hash(system_frames=False)
         assert result == ['foo.py', 1]
 
@@ -128,17 +145,42 @@ class StacktraceTest(TestCase):
         assert result == ['foo.py', 1, 'bar.py', 1]
 
     def test_compute_hashes(self):
-        interface = Stacktrace.to_python(dict(frames=[{
-            'lineno': 1,
-            'filename': 'foo.py',
-            'in_app': True,
-        }, {
-            'lineno': 1,
-            'filename': 'bar.py',
-            'in_app': None,
-        }]))
+        interface = Stacktrace.to_python(
+            dict(
+                frames=[
+                    {
+                        'lineno': 1,
+                        'filename': 'a/foo.py',
+                        'in_app': True,
+                    }, {
+                        'lineno': 1,
+                        'filename': 'a/bar.py',
+                        'in_app': None,
+                    }
+                ]
+            )
+        )
         result = interface.compute_hashes('python')
-        assert result == [['foo.py', 1, 'bar.py', 1], ['foo.py', 1]]
+        assert result == [['a/foo.py', 1, 'a/bar.py', 1], ['a/foo.py', 1]]
+
+    def test_compute_hashes_cocoa(self):
+        interface = Stacktrace.to_python(
+            dict(
+                frames=[
+                    {
+                        'lineno': 1,
+                        'filename': '/foo/bar/bar.m',
+                        'in_app': True,
+                    }, {
+                        'lineno': 1,
+                        'filename': '/foo/bar/baz.m',
+                        'in_app': None,
+                    }
+                ]
+            )
+        )
+        result = interface.compute_hashes('cocoa')
+        assert result == [['bar.m', 1, 'baz.m', 1], ['bar.m', 1]]
 
     def test_get_hash_with_minimal_app_frames(self):
         frames = [{
@@ -164,40 +206,52 @@ class StacktraceTest(TestCase):
 
     def test_get_hash_sanitizes_block_functions(self):
         # This is Ruby specific
-        interface = Frame.to_python({
-            'filename': 'foo.py',
-            'function': 'block in _conditional_callback_around_233',
-        })
+        interface = Frame.to_python(
+            {
+                'filename': 'foo.py',
+                'function': 'block in _conditional_callback_around_233',
+            }
+        )
         result = interface.get_hash()
         self.assertEquals(result, ['foo.py', 'block'])
 
     def test_get_hash_sanitizes_versioned_filenames(self):
         # This is Ruby specific
-        interface = Frame.to_python({
-            'filename': '/data/foo/releases/20140114151955/app/views/foo.html.erb',
-            'context_line': '<% if @hotels.size > 0 %>',
-        })
+        interface = Frame.to_python(
+            {
+                'filename': '/data/foo/releases/20140114151955/app/views/foo.html.erb',
+                'context_line': '<% if @hotels.size > 0 %>',
+            }
+        )
         result = interface.get_hash()
-        self.assertEquals(result, [
-            '/data/foo/releases/<version>/app/views/foo.html.erb',
-            '<% if @hotels.size > 0 %>',
-        ])
+        self.assertEquals(
+            result, [
+                '/data/foo/releases/<version>/app/views/foo.html.erb',
+                '<% if @hotels.size > 0 %>',
+            ]
+        )
 
-        interface = Frame.to_python({
-            'filename': '20140114151955/app/views/foo.html.erb',
-            'context_line': '<% if @hotels.size > 0 %>',
-        })
+        interface = Frame.to_python(
+            {
+                'filename': '20140114151955/app/views/foo.html.erb',
+                'context_line': '<% if @hotels.size > 0 %>',
+            }
+        )
         result = interface.get_hash()
-        self.assertEquals(result, [
-            '<version>/app/views/foo.html.erb',
-            '<% if @hotels.size > 0 %>',
-        ])
+        self.assertEquals(
+            result, [
+                '<version>/app/views/foo.html.erb',
+                '<% if @hotels.size > 0 %>',
+            ]
+        )
 
     def test_get_hash_ignores_java8_lambda_module(self):
-        interface = Frame.to_python({
-            'module': 'foo.bar.Baz$$Lambda$40/1673859467',
-            'function': 'call',
-        })
+        interface = Frame.to_python(
+            {
+                'module': 'foo.bar.Baz$$Lambda$40/1673859467',
+                'function': 'call',
+            }
+        )
         result = interface.get_hash()
         self.assertEquals(result, [
             '<module>',
@@ -215,40 +269,82 @@ class StacktraceTest(TestCase):
             '<function>',
         ])
 
-    def test_get_hash_ignores_ENHANCED_spring_classes(self):
-        interface = Frame.to_python({
-            'module': 'invalid.gruml.talkytalkyhub.common.config.'
-            'JipJipConfig$$EnhancerBySpringCGLIB$$1ebdddb0',
-            'function': 'jipJipManagementApplication'
-        })
+    def test_get_hash_ignores_ENHANCED_clojure_classes(self):
+        interface = Frame.to_python(
+            {
+                'module': 'sentry_clojure_example.core$_main$fn__1539',
+                'function': 'invoke'
+            }
+        )
         result = interface.get_hash()
         self.assertEquals(result, [
-            'invalid.gruml.talkytalkyhub.common.config.JipJipConfig'
-            '$$EnhancerBySpringCGLIB$$<auto>',
-            'jipJipManagementApplication',
+            'sentry_clojure_example.core$_main$fn__<auto>',
+            'invoke',
         ])
+
+    def test_get_hash_ignores_extra_ENHANCED_clojure_classes(self):
+        interface = Frame.to_python(
+            {
+                'module': 'sentry_clojure_example.core$_main$fn__1539$fn__1540',
+                'function': 'invoke'
+            }
+        )
+        result = interface.get_hash()
+        self.assertEquals(
+            result, [
+                'sentry_clojure_example.core$_main$fn__<auto>$fn__<auto>',
+                'invoke',
+            ]
+        )
+
+    def test_get_hash_ignores_ENHANCED_spring_classes(self):
+        interface = Frame.to_python(
+            {
+                'module':
+                'invalid.gruml.talkytalkyhub.common.config.'
+                'JipJipConfig$$EnhancerBySpringCGLIB$$1ebdddb0',
+                'function':
+                'jipJipManagementApplication'
+            }
+        )
+        result = interface.get_hash()
+        self.assertEquals(
+            result, [
+                'invalid.gruml.talkytalkyhub.common.config.JipJipConfig'
+                '$$EnhancerBySpringCGLIB$$<auto>',
+                'jipJipManagementApplication',
+            ]
+        )
 
     def test_get_hash_ignores_extra_ENHANCED_spring_classes(self):
-        interface = Frame.to_python({
-            'module': 'invalid.gruml.talkytalkyhub.common.config.'
-            'JipJipConfig$$EnhancerBySpringCGLIB$$1ebdddb0'
-            '$$EnhancerBySpringCGLIB$$8219cd38'
-            '$$FastClassBySpringCGLIB$$6c0b35d1',
-            'function': 'jipJipManagementApplication'
-        })
+        interface = Frame.to_python(
+            {
+                'module':
+                'invalid.gruml.talkytalkyhub.common.config.'
+                'JipJipConfig$$EnhancerBySpringCGLIB$$1ebdddb0'
+                '$$EnhancerBySpringCGLIB$$8219cd38'
+                '$$FastClassBySpringCGLIB$$6c0b35d1',
+                'function':
+                'jipJipManagementApplication'
+            }
+        )
         result = interface.get_hash()
-        self.assertEquals(result, [
-            'invalid.gruml.talkytalkyhub.common.config.JipJipConfig'
-            '$$EnhancerBySpringCGLIB$$<auto>$$EnhancerBySpringCGLIB$$<auto>'
-            '$$FastClassBySpringCGLIB$$<auto>',
-            'jipJipManagementApplication',
-        ])
+        self.assertEquals(
+            result, [
+                'invalid.gruml.talkytalkyhub.common.config.JipJipConfig'
+                '$$EnhancerBySpringCGLIB$$<auto>$$EnhancerBySpringCGLIB$$<auto>'
+                '$$FastClassBySpringCGLIB$$<auto>',
+                'jipJipManagementApplication',
+            ]
+        )
 
     def test_get_hash_ignores_sun_java_generated_methods(self):
-        interface = Frame.to_python({
-            'module': 'sun.reflect.GeneratedMethodAccessor12345',
-            'function': 'invoke',
-        })
+        interface = Frame.to_python(
+            {
+                'module': 'sun.reflect.GeneratedMethodAccessor12345',
+                'function': 'invoke',
+            }
+        )
         result = interface.get_hash()
         self.assertEquals(result, [
             'sun.reflect.GeneratedMethodAccessor',
@@ -257,101 +353,114 @@ class StacktraceTest(TestCase):
 
     def test_get_hash_sanitizes_erb_templates(self):
         # This is Ruby specific
-        interface = Frame.to_python({
-            'filename': 'foo.html.erb',
-            'function': '_foo_html_erb__3327151541118998292_70361296749460',
-        })
+        interface = Frame.to_python(
+            {
+                'filename': 'foo.html.erb',
+                'function': '_foo_html_erb__3327151541118998292_70361296749460',
+            }
+        )
         result = interface.get_hash()
         self.assertEquals(result, [
-            'foo.html.erb', '_foo_html_erb__<anon>_<anon>',
+            'foo.html.erb',
+            '_foo_html_erb__<anon>_<anon>',
         ])
 
     def test_get_hash_ignores_filename_if_blob(self):
-        interface = Frame.to_python({
-            'filename': 'blob:http://example.com/7f7aaadf-a006-4217-9ed5-5fbf8585c6c0',
-        })
+        interface = Frame.to_python(
+            {
+                'filename': 'blob:http://example.com/7f7aaadf-a006-4217-9ed5-5fbf8585c6c0',
+            }
+        )
         result = interface.get_hash()
         self.assertEquals(result, [])
 
     def test_get_hash_ignores_filename_if_http(self):
-        interface = Frame.to_python({
-            'context_line': 'hello world',
-            'filename': 'http://foo.com/foo.py',
-            'function': 'test',
-        })
+        interface = Frame.to_python(
+            {
+                'context_line': 'hello world',
+                'filename': 'http://foo.com/foo.py',
+                'function': 'test',
+            }
+        )
         result = interface.get_hash()
         self.assertEquals(result, ['hello world'])
 
     def test_get_hash_ignores_filename_if_https(self):
-        interface = Frame.to_python({
-            'context_line': 'hello world',
-            'filename': 'https://foo.com/foo.py',
-            'function': 'test',
-        })
+        interface = Frame.to_python(
+            {
+                'context_line': 'hello world',
+                'filename': 'https://foo.com/foo.py',
+                'function': 'test',
+            }
+        )
         result = interface.get_hash()
         self.assertEquals(result, ['hello world'])
 
     def test_get_hash_ignores_filename_if_abs_path_is_http(self):
-        interface = Frame.to_python({
-            'context_line': 'hello world',
-            'abs_path': 'https://foo.com/foo.py',
-            'function': 'test',
-            'filename': 'foo.py',
-        })
+        interface = Frame.to_python(
+            {
+                'context_line': 'hello world',
+                'abs_path': 'https://foo.com/foo.py',
+                'function': 'test',
+                'filename': 'foo.py',
+            }
+        )
         result = interface.get_hash()
         self.assertEquals(result, ['hello world'])
 
     def test_get_hash_uses_module_over_filename(self):
-        interface = Frame.to_python({
-            'lineno': 1,
-            'filename': 'foo.py',
-            'module': 'foo'
-        })
+        interface = Frame.to_python({'lineno': 1, 'filename': 'foo.py', 'module': 'foo'})
         result = interface.get_hash()
         self.assertEquals(result, ['foo', 1])
 
     def test_get_hash_uses_function_over_lineno(self):
-        interface = Frame.to_python({
-            'lineno': 1,
-            'filename': 'foo.py',
-            'function': 'bar'
-        })
+        interface = Frame.to_python({'lineno': 1, 'filename': 'foo.py', 'function': 'bar'})
         result = interface.get_hash()
         self.assertEquals(result, ['foo.py', 'bar'])
 
     def test_get_hash_uses_context_line_over_function(self):
-        interface = Frame.to_python({
-            'context_line': 'foo bar',
-            'lineno': 1,
-            'filename': 'foo.py',
-            'function': 'bar'
-        })
+        interface = Frame.to_python(
+            {
+                'context_line': 'foo bar',
+                'lineno': 1,
+                'filename': 'foo.py',
+                'function': 'bar'
+            }
+        )
         result = interface.get_hash()
         self.assertEquals(result, ['foo.py', 'foo bar'])
 
     def test_get_hash_discards_seemingly_useless_stack(self):
-        interface = Stacktrace.to_python({
-            'frames': [{
-                'context_line': '<HTML>',
-                'lineno': 1,
-                'abs_path': 'http://example.com/foo',
-                'filename': 'foo',
-                'function': '?',
-            }],
-        })
+        interface = Stacktrace.to_python(
+            {
+                'frames': [
+                    {
+                        'context_line': '<HTML>',
+                        'lineno': 1,
+                        'abs_path': 'http://example.com/foo',
+                        'filename': 'foo',
+                        'function': '?',
+                    }
+                ],
+            }
+        )
         result = interface.get_hash()
         assert result == []
 
     def test_get_hash_does_not_discard_non_urls(self):
-        interface = Stacktrace.to_python({
-            'frames': [{
-                'context_line': '<HTML>',
-                'lineno': 1,
-                'abs_path': 'foo',
-                'filename': 'foo',
-                'function': '?',
-            }],
-        })
+        interface = Stacktrace.to_python(
+            {
+                'frames': [
+                    {
+                        'context_line': '<HTML>',
+                        'lineno': 1,
+                        'abs_path': 'foo',
+                        'filename': 'foo',
+                        'function': '?',
+                    }
+                ],
+            }
+        )
         result = interface.get_hash()
         assert result != []
 
@@ -364,96 +473,115 @@ class StacktraceTest(TestCase):
         In this case the hash is often not usable as the context cannot be
         trusted and the URL is dynamic.
         """
-        interface = Stacktrace.to_python({
-            'frames': [{
-                'context_line': 'hello world',
-                'abs_path': 'http://foo.com/bar/',
-                'lineno': 107,
-                'filename': '/bar/',
-                'module': '<unknown module>',
-            }],
-        })
+        interface = Stacktrace.to_python(
+            {
+                'frames': [
+                    {
+                        'context_line': 'hello world',
+                        'abs_path': 'http://foo.com/bar/',
+                        'lineno': 107,
+                        'filename': '/bar/',
+                        'module': '<unknown module>',
+                    }
+                ],
+            }
+        )
         result = interface.get_hash()
         assert result == []
 
-    def test_cocoa_culprit(self):
-        stacktrace = Stacktrace.to_python(dict(frames=[
+    def test_get_hash_ignores_safari_native_code(self):
+        interface = Frame.to_python(
             {
-                'filename': 'foo/baz.c',
-                'package': '/foo/bar/baz.dylib',
-                'lineno': 1,
-                'in_app': True,
-                'function': '-[CRLCrashAsyncSafeThread crash]',
+                'abs_path': '[native code]',
+                'filename': '[native code]',
+                'function': 'forEach',
             }
-        ]))
+        )
+        result = interface.get_hash()
+        self.assertEquals(result, [])
+
+    def test_cocoa_culprit(self):
+        stacktrace = Stacktrace.to_python(
+            dict(
+                frames=[
+                    {
+                        'filename': 'foo/baz.c',
+                        'package': '/foo/bar/baz.dylib',
+                        'lineno': 1,
+                        'in_app': True,
+                        'function': '-[CRLCrashAsyncSafeThread crash]',
+                    }
+                ]
+            )
+        )
         assert stacktrace.get_culprit_string(platform='cocoa') == '-[CRLCrashAsyncSafeThread crash]'
 
     def test_emoji_culprit(self):
-        stacktrace = Stacktrace.to_python(dict(frames=[
-            {
-                'filename': 'foo/baz.c',
-                'package': '/foo/bar/baz.dylib',
-                'module': u'\U0001f62d',
-                'lineno': 1,
-                'in_app': True,
-                'function': u'\U0001f60d',
-            }
-        ]))
+        stacktrace = Stacktrace.to_python(
+            dict(
+                frames=[
+                    {
+                        'filename': 'foo/baz.c',
+                        'package': '/foo/bar/baz.dylib',
+                        'module': u'\U0001f62d',
+                        'lineno': 1,
+                        'in_app': True,
+                        'function': u'\U0001f60d',
+                    }
+                ]
+            )
+        )
         assert stacktrace.get_culprit_string(platform='javascript') == u'\U0001f60d(\U0001f62d)'
 
-    def test_exclude_libswiftCore_from_in_app(self):
-        stacktrace = Stacktrace.to_python(dict(frames=[
-            {
-                'filename': 'foo/baz.c',
-                'package': '/foo/bar/libswiftCore.dylib',
-                'lineno': 1,
-                'in_app': True,
-                'function': 'fooBar',
-            }
-        ]))
-        assert stacktrace.frames[0].in_app is False
-
     def test_cocoa_strict_stacktrace(self):
-        stacktrace = Stacktrace.to_python(dict(frames=[
-            {
-                'filename': 'foo/baz.c',
-                'package': '/foo/bar/libswiftCore.dylib',
-                'lineno': 1,
-                'in_app': False,
-                'function': 'fooBar',
-            },
-            {
-                'package': '/foo/bar/MyApp',
-                'in_app': True,
-                'function': 'fooBar2',
-            },
-            {
-                'filename': 'Mycontroller.swift',
-                'package': '/foo/bar/MyApp',
-                'in_app': True,
-                'function': '-[CRLCrashAsyncSafeThread crash]',
-            }
-        ]))
+        stacktrace = Stacktrace.to_python(
+            dict(
+                frames=[
+                    {
+                        'filename': 'foo/baz.c',
+                        'package': '/foo/bar/libswiftCore.dylib',
+                        'lineno': 1,
+                        'in_app': False,
+                        'function': 'fooBar',
+                    }, {
+                        'package': '/foo/bar/MyApp',
+                        'in_app': True,
+                        'function': 'fooBar2',
+                    }, {
+                        'filename': 'Mycontroller.swift',
+                        'package': '/foo/bar/MyApp',
+                        'in_app': True,
+                        'function': '-[CRLCrashAsyncSafeThread crash]',
+                    }
+                ]
+            )
+        )
         assert stacktrace.get_culprit_string(platform='cocoa') == '-[CRLCrashAsyncSafeThread crash]'
 
     def test_get_hash_does_not_group_different_js_errors(self):
-        interface = Stacktrace.to_python({
-            'frames': [{
-                'context_line': '{snip}',
-                'lineno': 20,
-                'filename': 'https://foo.com/index.js',
-                'function': '?',
-            }],
-        })
+        interface = Stacktrace.to_python(
+            {
+                'frames': [
+                    {
+                        'context_line': '{snip}',
+                        'lineno': 20,
+                        'filename': 'https://foo.com/index.js',
+                        'function': '?',
+                    }
+                ],
+            }
+        )
         result = interface.get_hash()
         assert result == []
 
     def test_get_hash_uses_symbol_instead_of_function(self):
-        interface = Frame.to_python({
-            'module': 'libfoo',
-            'function': 'int main()',
-            'symbol': '_main',
-        })
+        interface = Frame.to_python(
+            {
+                'module': 'libfoo',
+                'function': 'int main()',
+                'symbol': '_main',
+            }
+        )
         result = interface.get_hash()
         self.assertEquals(result, [
             'libfoo',
@@ -496,31 +624,67 @@ class StacktraceTest(TestCase):
         event = mock.Mock(spec=Event())
         interface = Stacktrace.to_python(dict(frames=[{'filename': 'foo'}, {'filename': 'bar'}]))
         result = interface.get_stacktrace(event)
-        self.assertEquals(result, 'Stacktrace (most recent call last):\n\n  File "foo"\n  File "bar"')
+        self.assertEquals(
+            result, 'Stacktrace (most recent call last):\n\n  File "foo"\n  File "bar"'
+        )
 
     @mock.patch('sentry.interfaces.stacktrace.is_newest_frame_first', mock.Mock(return_value=False))
     def test_get_stacktrace_with_module(self):
         event = mock.Mock(spec=Event())
         interface = Stacktrace.to_python(dict(frames=[{'module': 'foo'}, {'module': 'bar'}]))
         result = interface.get_stacktrace(event)
-        self.assertEquals(result, 'Stacktrace (most recent call last):\n\n  Module "foo"\n  Module "bar"')
+        self.assertEquals(
+            result, 'Stacktrace (most recent call last):\n\n  Module "foo"\n  Module "bar"'
+        )
 
     @mock.patch('sentry.interfaces.stacktrace.is_newest_frame_first', mock.Mock(return_value=False))
     def test_get_stacktrace_with_filename_and_function(self):
         event = mock.Mock(spec=Event())
-        interface = Stacktrace.to_python(dict(frames=[{'filename': 'foo', 'function': 'biz'}, {'filename': 'bar', 'function': 'baz'}]))
+        interface = Stacktrace.to_python(
+            dict(
+                frames=[
+                    {
+                        'filename': 'foo',
+                        'function': 'biz'
+                    }, {
+                        'filename': 'bar',
+                        'function': 'baz'
+                    }
+                ]
+            )
+        )
         result = interface.get_stacktrace(event)
-        self.assertEquals(result, 'Stacktrace (most recent call last):\n\n  File "foo", in biz\n  File "bar", in baz')
+        self.assertEquals(
+            result,
+            'Stacktrace (most recent call last):\n\n  File "foo", in biz\n  File "bar", in baz'
+        )
 
     @mock.patch('sentry.interfaces.stacktrace.is_newest_frame_first', mock.Mock(return_value=False))
     def test_get_stacktrace_with_filename_function_lineno_and_context(self):
         event = mock.Mock(spec=Event())
-        interface = Stacktrace.to_python(dict(frames=[
-            {'filename': 'foo', 'function': 'biz', 'lineno': 3, 'context_line': '  def foo(r):'},
-            {'filename': 'bar', 'function': 'baz', 'lineno': 5, 'context_line': '    return None'},
-        ]))
+        interface = Stacktrace.to_python(
+            dict(
+                frames=[
+                    {
+                        'filename': 'foo',
+                        'function': 'biz',
+                        'lineno': 3,
+                        'context_line': '  def foo(r):'
+                    },
+                    {
+                        'filename': 'bar',
+                        'function': 'baz',
+                        'lineno': 5,
+                        'context_line': '    return None'
+                    },
+                ]
+            )
+        )
         result = interface.get_stacktrace(event)
-        self.assertEquals(result, 'Stacktrace (most recent call last):\n\n  File "foo", line 3, in biz\n    def foo(r):\n  File "bar", line 5, in baz\n    return None')
+        self.assertEquals(
+            result,
+            'Stacktrace (most recent call last):\n\n  File "foo", line 3, in biz\n    def foo(r):\n  File "bar", line 5, in baz\n    return None'
+        )
 
     def test_bad_input(self):
         with self.assertRaises(InterfaceValidationError):
@@ -553,34 +717,42 @@ class StacktraceTest(TestCase):
         self.assertEquals(
             Frame.to_python({
                 'filename': 'x',
-                'vars': {'x': float('inf')},
+                'vars': {
+                    'x': float('inf')
+                },
             }).vars,
             {'x': '<inf>'},
         )
         self.assertEquals(
             Frame.to_python({
                 'filename': 'x',
-                'vars': {'x': float('-inf')},
+                'vars': {
+                    'x': float('-inf')
+                },
             }).vars,
             {'x': '<-inf>'},
         )
         self.assertEquals(
             Frame.to_python({
                 'filename': 'x',
-                'vars': {'x': float('nan')},
+                'vars': {
+                    'x': float('nan')
+                },
             }).vars,
             {'x': '<nan>'},
         )
 
     def test_address_normalization(self):
-        interface = Frame.to_python({
-            'lineno': 1,
-            'filename': 'blah.c',
-            'function': 'main',
-            'instruction_addr': 123456,
-            'symbol_addr': '123450',
-            'image_addr': '0x0',
-        })
+        interface = Frame.to_python(
+            {
+                'lineno': 1,
+                'filename': 'blah.c',
+                'function': 'main',
+                'instruction_addr': 123456,
+                'symbol_addr': '123450',
+                'image_addr': '0x0',
+            }
+        )
         assert interface.instruction_addr == '0x1e240'
         assert interface.symbol_addr == '0x1e23a'
         assert interface.image_addr == '0x0'
@@ -596,13 +768,17 @@ class SlimFrameDataTest(TestCase):
     def test_over_max(self):
         values = []
         for n in range(5):
-            values.append({
-                'filename': 'frame %d' % n,
-                'vars': {'foo': 'bar'},
-                'context_line': 'b',
-                'pre_context': ['a'],
-                'post_context': ['c'],
-            })
+            values.append(
+                {
+                    'filename': 'frame %d' % n,
+                    'vars': {
+                        'foo': 'bar'
+                    },
+                    'context_line': 'b',
+                    'pre_context': ['a'],
+                    'post_context': ['c'],
+                }
+            )
         interface = Stacktrace.to_python({'frames': values})
         slim_frame_data(interface, 4)
 
@@ -631,12 +807,14 @@ def test_java_frame_rendering():
     render = functools.partial(render_to_string, 'sentry/partial/frames/java.txt')
 
     # This is the ideal case.
-    assert render({
-        'module': 'com.getsentry.example.Example',
-        'function': 'test',
-        'filename': 'Example.java',
-        'lineno': 1,
-    }).strip() == 'at com.getsentry.example.Example.test(Example.java:1)'
+    assert render(
+        {
+            'module': 'com.getsentry.example.Example',
+            'function': 'test',
+            'filename': 'Example.java',
+            'lineno': 1,
+        }
+    ).strip() == 'at com.getsentry.example.Example.test(Example.java:1)'
 
     # Legacy support for frames without filename.
     assert render({
@@ -646,12 +824,14 @@ def test_java_frame_rendering():
     }).strip() == 'at com.getsentry.example.Example.test'
 
     # (This shouldn't happen, but...)
-    assert render({
-        'module': 'com.getsentry.example.Example',
-        'function': 'test',
-        'filename': 'foo/bar/Example.java',
-        'lineno': 1,
-    }).strip() == 'at com.getsentry.example.Example.test(Example.java:1)'
+    assert render(
+        {
+            'module': 'com.getsentry.example.Example',
+            'function': 'test',
+            'filename': 'foo/bar/Example.java',
+            'lineno': 1,
+        }
+    ).strip() == 'at com.getsentry.example.Example.test(Example.java:1)'
 
     # Native methods don't have line numbers.
     assert render({

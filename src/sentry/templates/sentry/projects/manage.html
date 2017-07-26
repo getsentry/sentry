@@ -94,7 +94,7 @@
         <h3>{% trans "Remove Project" %}</h3>
       </div>
       <div class="box-content with-padding">
-        {% if not ACCESS.project_delete %}
+        {% if not ACCESS.project_admin %}
         <p>{% trans "You do not have the required permission to remove this project." %}</p>
         {% elif project.is_internal_project %}
         <p>{% trans "This project cannot be removed. It is used internally by the Sentry server." %}</p>
@@ -194,13 +194,16 @@
         <a href="{% url 'sentry-project-issue-tracking' project.organization.slug project.slug %}">{% trans "Issue Tracking" %}</a>
     </li>
     <li{% if page == 'release-tracking' %} class="active"{% endif %}>
-        <a href="{% url 'sentry-project-release-tracking' project.organization.slug project.slug %}">{% trans "Release Tracking" %}</a>
+        <a href="{% absolute_uri '/{}/{}/settings/release-tracking/' project.organization.slug project.slug %}">{% trans "Release Tracking" %}</a>
+    </li>
+    <li>
+        <a href="{% absolute_uri '/{}/{}/settings/data-forwarding/' project.organization.slug project.slug %}">{% trans "Data Forwarding" %}</a>
     </li>
     <li>
         <a href="{% absolute_uri '/{}/{}/settings/saved-searches/' project.organization.slug project.slug %}">{% trans "Saved Searches" %}</a>
     </li>
     <li>
-        <a href="{% absolute_uri '/{}/{}/settings/debug-symbols/' project.organization.slug project.slug %}">{% trans "Debug Symbols" %}</a>
+        <a href="{% absolute_uri '/{}/{}/settings/debug-symbols/' project.organization.slug project.slug %}">{% trans "Debug Information Files" %}</a>
     </li>
     <li>
         <a class="badged" href="{% absolute_uri '/{}/{}/settings/processing-issues/' project.organization.slug project.slug %}">{% trans "Processing Issues" %}
@@ -221,19 +224,17 @@
     <li>
         <a href="{% absolute_uri '/{}/{}/settings/install/' project.organization.slug project.slug %}">{% trans "Error Tracking" %}</a>
     </li>
-    {% if organization.flags.early_adopter %}
     <li>
         <a href="{% absolute_uri '/{}/{}/settings/csp/' project.organization.slug project.slug %}">{% trans "CSP Reports" %}</a>
     </li>
-    {% endif %}
     <li>
         <a href="{% absolute_uri '/{}/{}/settings/user-feedback/' project.organization.slug project.slug %}">{% trans "User Feedback" %}</a>
     </li>
     <li>
         <a href="{% absolute_uri '/{}/{}/settings/filters/' project.organization.slug project.slug %}">{% trans "Inbound Filters" %}</a>
     </li>
-    <li{% if page == 'keys' %} class="active"{% endif %}>
-        <a href="{% url 'sentry-manage-project-keys' project.organization.slug project.slug %}">{% trans "Client Keys (DSN)" %}</a>
+    <li>
+        <a href="{% absolute_uri '/{}/{}/settings/keys/' project.organization.slug project.slug %}">{% trans "Client Keys (DSN)" %}</a>
     </li>
   </ul>
   {% with project|get_plugins as plugins %}

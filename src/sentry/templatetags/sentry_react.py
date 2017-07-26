@@ -12,7 +12,7 @@ from pkg_resources import parse_version
 from sentry import features, options
 from sentry.api.serializers.base import serialize
 from sentry.models import ProjectKey
-from sentry.utils import json
+from sentry.utils import auth, json
 from sentry.utils.email import is_smtp_enabled
 from sentry.utils.assets import get_asset_url
 from sentry.utils.functional import extract_lazy_object
@@ -75,10 +75,7 @@ def _get_statuspage():
     id = settings.STATUS_PAGE_ID
     if id is None:
         return None
-    return {
-        'id': id,
-        'api_host': settings.STATUS_PAGE_API_HOST
-    }
+    return {'id': id, 'api_host': settings.STATUS_PAGE_API_HOST}
 
 
 @register.simple_tag(takes_context=True)
@@ -101,7 +98,7 @@ def get_react_config(context):
     enabled_features = []
     if features.has('organizations:create', actor=user):
         enabled_features.append('organizations:create')
-    if features.has('auth:register', actor=user):
+    if auth.has_user_registration():
         enabled_features.append('auth:register')
 
     version_info = _get_version_info()

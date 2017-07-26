@@ -15,10 +15,12 @@ __all__ = ('set_option', 'get_option', 'unset_option')
 
 def reset_options(prefix, project=None, user=None):
     if user:
-        UserOption.objects.filter(key__startswith='%s:' % (prefix,), project=project, user=user).delete()
+        UserOption.objects.filter(
+            key__startswith='%s:' % (prefix, ), project=project, user=user
+        ).delete()
         UserOption.objects.clear_cache()
     elif project:
-        ProjectOption.objects.filter(key__startswith='%s:' % (prefix,), project=project).delete()
+        ProjectOption.objects.filter(key__startswith='%s:' % (prefix, ), project=project).delete()
         ProjectOption.objects.clear_local_cache()
     else:
         raise NotImplementedError
@@ -26,7 +28,7 @@ def reset_options(prefix, project=None, user=None):
 
 def set_option(key, value, project=None, user=None):
     if user:
-        result = UserOption.objects.set_value(user, project, key, value)
+        result = UserOption.objects.set_value(user=user, key=key, value=value, project=project)
     elif project:
         result = ProjectOption.objects.set_value(project, key, value)
     else:
@@ -37,7 +39,7 @@ def set_option(key, value, project=None, user=None):
 
 def get_option(key, project=None, user=None):
     if user:
-        result = UserOption.objects.get_value(user, project, key, None)
+        result = UserOption.objects.get_value(user, key, project=project)
     elif project:
         result = ProjectOption.objects.get_value(project, key, None)
     else:

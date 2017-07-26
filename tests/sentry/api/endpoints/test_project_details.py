@@ -13,10 +13,13 @@ class ProjectDetailsTest(APITestCase):
     def test_simple(self):
         project = self.project  # force creation
         self.login_as(user=self.user)
-        url = reverse('sentry-api-0-project-details', kwargs={
-            'organization_slug': project.organization.slug,
-            'project_slug': project.slug,
-        })
+        url = reverse(
+            'sentry-api-0-project-details',
+            kwargs={
+                'organization_slug': project.organization.slug,
+                'project_slug': project.slug,
+            }
+        )
         response = self.client.get(url)
         assert response.status_code == 200
         assert response.data['id'] == six.text_type(project.id)
@@ -49,10 +52,13 @@ class ProjectDetailsTest(APITestCase):
         project = self.create_project()
         self.create_group(project=project)
         self.login_as(user=self.user)
-        url = reverse('sentry-api-0-project-details', kwargs={
-            'organization_slug': project.organization.slug,
-            'project_slug': project.slug,
-        })
+        url = reverse(
+            'sentry-api-0-project-details',
+            kwargs={
+                'organization_slug': project.organization.slug,
+                'project_slug': project.slug,
+            }
+        )
         response = self.client.get(url + '?include=stats')
         assert response.status_code == 200
         assert response.data['stats']['unresolved'] == 1
@@ -62,18 +68,25 @@ class ProjectUpdateTest(APITestCase):
     def test_simple(self):
         project = self.project  # force creation
         self.login_as(user=self.user)
-        url = reverse('sentry-api-0-project-details', kwargs={
-            'organization_slug': project.organization.slug,
-            'project_slug': project.slug,
-        })
-        resp = self.client.put(url, data={
-            'name': 'hello world',
-            'slug': 'foobar',
-        })
+        url = reverse(
+            'sentry-api-0-project-details',
+            kwargs={
+                'organization_slug': project.organization.slug,
+                'project_slug': project.slug,
+            }
+        )
+        resp = self.client.put(
+            url, data={
+                'name': 'hello world',
+                'slug': 'foobar',
+                'platform': 'cocoa',
+            }
+        )
         assert resp.status_code == 200, resp.content
         project = Project.objects.get(id=project.id)
         assert project.name == 'hello world'
         assert project.slug == 'foobar'
+        assert project.platform == 'cocoa'
 
     def test_member_changes(self):
         project = self.create_project()
@@ -85,14 +98,19 @@ class ProjectUpdateTest(APITestCase):
             role='member',
         )
         self.login_as(user=user)
-        url = reverse('sentry-api-0-project-details', kwargs={
-            'organization_slug': project.organization.slug,
-            'project_slug': project.slug,
-        })
-        response = self.client.put(url, data={
-            'slug': 'zzz',
-            'isBookmarked': 'true',
-        })
+        url = reverse(
+            'sentry-api-0-project-details',
+            kwargs={
+                'organization_slug': project.organization.slug,
+                'project_slug': project.slug,
+            }
+        )
+        response = self.client.put(
+            url, data={
+                'slug': 'zzz',
+                'isBookmarked': 'true',
+            }
+        )
         assert response.status_code == 200
         assert response.data['slug'] != 'zzz'
 
@@ -104,10 +122,13 @@ class ProjectUpdateTest(APITestCase):
     def test_options(self):
         project = self.project  # force creation
         self.login_as(user=self.user)
-        url = reverse('sentry-api-0-project-details', kwargs={
-            'organization_slug': project.organization.slug,
-            'project_slug': project.slug,
-        })
+        url = reverse(
+            'sentry-api-0-project-details',
+            kwargs={
+                'organization_slug': project.organization.slug,
+                'project_slug': project.slug,
+            }
+        )
         options = {
             'sentry:origins': 'foo\nbar',
             'sentry:resolve_age': 1,
@@ -118,39 +139,47 @@ class ProjectUpdateTest(APITestCase):
             'sentry:csp_ignored_sources_defaults': False,
             'sentry:csp_ignored_sources': 'foo\nbar',
         }
-        resp = self.client.put(url, data={
-            'options': options
-        })
+        resp = self.client.put(url, data={'options': options})
         assert resp.status_code == 200, resp.content
         project = Project.objects.get(id=project.id)
         assert project.get_option('sentry:origins', []) == options['sentry:origins'].split('\n')
         assert project.get_option('sentry:resolve_age', 0) == options['sentry:resolve_age']
         assert project.get_option('sentry:scrub_data', True) == options['sentry:scrub_data']
         assert project.get_option('sentry:scrub_defaults', True) == options['sentry:scrub_defaults']
-        assert project.get_option('sentry:sensitive_fields', []) == options['sentry:sensitive_fields']
+        assert project.get_option('sentry:sensitive_fields',
+                                  []) == options['sentry:sensitive_fields']
         assert project.get_option('sentry:safe_fields', []) == options['sentry:safe_fields']
-        assert project.get_option('sentry:csp_ignored_sources_defaults', True) == options['sentry:csp_ignored_sources_defaults']
-        assert project.get_option('sentry:csp_ignored_sources', []) == options['sentry:csp_ignored_sources'].split('\n')
+        assert project.get_option('sentry:csp_ignored_sources_defaults',
+                                  True) == options['sentry:csp_ignored_sources_defaults']
+        assert project.get_option('sentry:csp_ignored_sources',
+                                  []) == options['sentry:csp_ignored_sources'].split('\n')
 
     def test_bookmarks(self):
         project = self.project  # force creation
         self.login_as(user=self.user)
-        url = reverse('sentry-api-0-project-details', kwargs={
-            'organization_slug': project.organization.slug,
-            'project_slug': project.slug,
-        })
-        resp = self.client.put(url, data={
-            'isBookmarked': 'true',
-        })
+        url = reverse(
+            'sentry-api-0-project-details',
+            kwargs={
+                'organization_slug': project.organization.slug,
+                'project_slug': project.slug,
+            }
+        )
+        resp = self.client.put(
+            url, data={
+                'isBookmarked': 'true',
+            }
+        )
         assert resp.status_code == 200, resp.content
         assert ProjectBookmark.objects.filter(
             project_id=project.id,
             user=self.user,
         ).exists()
 
-        resp = self.client.put(url, data={
-            'isBookmarked': 'false',
-        })
+        resp = self.client.put(
+            url, data={
+                'isBookmarked': 'false',
+            }
+        )
         assert resp.status_code == 200, resp.content
         assert not ProjectBookmark.objects.filter(
             project_id=project.id,
@@ -160,22 +189,29 @@ class ProjectUpdateTest(APITestCase):
     def test_subscription(self):
         project = self.project  # force creation
         self.login_as(user=self.user)
-        url = reverse('sentry-api-0-project-details', kwargs={
-            'organization_slug': project.organization.slug,
-            'project_slug': project.slug,
-        })
-        resp = self.client.put(url, data={
-            'isSubscribed': 'true',
-        })
+        url = reverse(
+            'sentry-api-0-project-details',
+            kwargs={
+                'organization_slug': project.organization.slug,
+                'project_slug': project.slug,
+            }
+        )
+        resp = self.client.put(
+            url, data={
+                'isSubscribed': 'true',
+            }
+        )
         assert resp.status_code == 200, resp.content
         assert UserOption.objects.get(
             user=self.user,
             project=project,
         ).value == 1
 
-        resp = self.client.put(url, data={
-            'isSubscribed': 'false',
-        })
+        resp = self.client.put(
+            url, data={
+                'isSubscribed': 'false',
+            }
+        )
         assert resp.status_code == 200, resp.content
         assert UserOption.objects.get(
             user=self.user,
@@ -195,10 +231,13 @@ class ProjectDeleteTest(APITestCase):
 
         self.login_as(user=self.user)
 
-        url = reverse('sentry-api-0-project-details', kwargs={
-            'organization_slug': project.organization.slug,
-            'project_slug': project.slug,
-        })
+        url = reverse(
+            'sentry-api-0-project-details',
+            kwargs={
+                'organization_slug': project.organization.slug,
+                'project_slug': project.slug,
+            }
+        )
 
         with self.settings(SENTRY_PROJECT=0):
             response = self.client.delete(url)
@@ -221,10 +260,13 @@ class ProjectDeleteTest(APITestCase):
 
         self.login_as(user=self.user)
 
-        url = reverse('sentry-api-0-project-details', kwargs={
-            'organization_slug': project.organization.slug,
-            'project_slug': project.slug,
-        })
+        url = reverse(
+            'sentry-api-0-project-details',
+            kwargs={
+                'organization_slug': project.organization.slug,
+                'project_slug': project.slug,
+            }
+        )
 
         with self.settings(SENTRY_PROJECT=project.id):
             response = self.client.delete(url)

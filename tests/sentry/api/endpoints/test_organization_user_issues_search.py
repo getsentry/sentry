@@ -20,26 +20,33 @@ class OrganizationUserIssuesSearchTest(APITestCase):
         self.team2 = self.create_team(organization=self.org)
         self.project1 = self.create_project(team=self.team1)
         self.project2 = self.create_project(team=self.team2)
-        group1 = self.create_group(project=self.project1,
-                                   last_seen=timezone.now() - timedelta(minutes=1))
+        group1 = self.create_group(
+            project=self.project1, last_seen=timezone.now() - timedelta(minutes=1)
+        )
         group2 = self.create_group(project=self.project2)
 
         EventUser.objects.create(email='foo@example.com', project=self.project1)
         EventUser.objects.create(email='bar@example.com', project=self.project1)
         EventUser.objects.create(email='foo@example.com', project=self.project2)
 
-        GroupTagValue.objects.create(key='sentry:user',
-                                     value='email:foo@example.com',
-                                     group=group1,
-                                     project=self.project1)
-        GroupTagValue.objects.create(key='sentry:user',
-                                     value='email:bar@example.com',
-                                     group=group1,
-                                     project=self.project1)
-        GroupTagValue.objects.create(key='sentry:user',
-                                     value='email:foo@example.com',
-                                     group=group2,
-                                     project=self.project2)
+        GroupTagValue.objects.create(
+            key='sentry:user',
+            value='email:foo@example.com',
+            group_id=group1.id,
+            project_id=self.project1.id
+        )
+        GroupTagValue.objects.create(
+            key='sentry:user',
+            value='email:bar@example.com',
+            group_id=group1.id,
+            project_id=self.project1.id
+        )
+        GroupTagValue.objects.create(
+            key='sentry:user',
+            value='email:foo@example.com',
+            group_id=group2.id,
+            project_id=self.project2.id
+        )
 
     def get_url(self):
         return reverse('sentry-api-0-organization-issue-search', args=[self.org.slug])

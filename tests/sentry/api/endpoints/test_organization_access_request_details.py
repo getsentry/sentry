@@ -2,9 +2,7 @@ from __future__ import absolute_import
 
 from django.core.urlresolvers import reverse
 
-from sentry.models import (
-    OrganizationAccessRequest, OrganizationMemberTeam
-)
+from sentry.models import (OrganizationAccessRequest, OrganizationMemberTeam)
 from sentry.testutils import APITestCase
 
 
@@ -26,7 +24,10 @@ class UpdateOrganizationAccessRequestTest(APITestCase):
             team=team,
         )
 
-        path = reverse('sentry-api-0-organization-access-request-details', args=[organization.slug, access_request.id])
+        path = reverse(
+            'sentry-api-0-organization-access-request-details',
+            args=[organization.slug, access_request.id]
+        )
 
         self.login_as(self.user)
 
@@ -61,7 +62,10 @@ class UpdateOrganizationAccessRequestTest(APITestCase):
             team=team,
         )
 
-        path = reverse('sentry-api-0-organization-access-request-details', args=[organization.slug, access_request.id])
+        path = reverse(
+            'sentry-api-0-organization-access-request-details',
+            args=[organization.slug, access_request.id]
+        )
 
         self.login_as(self.user)
 
@@ -104,7 +108,10 @@ class UpdateOrganizationAccessRequestTest(APITestCase):
             teams=[team],
         )
 
-        path = reverse('sentry-api-0-organization-access-request-details', args=[organization.slug, access_request.id])
+        path = reverse(
+            'sentry-api-0-organization-access-request-details',
+            args=[organization.slug, access_request.id]
+        )
 
         self.login_as(admin_user)
 
@@ -141,7 +148,10 @@ class UpdateOrganizationAccessRequestTest(APITestCase):
             teams=[],
         )
 
-        path = reverse('sentry-api-0-organization-access-request-details', args=[organization.slug, access_request.id])
+        path = reverse(
+            'sentry-api-0-organization-access-request-details',
+            args=[organization.slug, access_request.id]
+        )
 
         self.login_as(admin_user)
 

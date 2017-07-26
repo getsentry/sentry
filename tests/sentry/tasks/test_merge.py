@@ -77,9 +77,9 @@ class MergeGroupTest(TestCase):
             },
         }
 
-        input_group_tag_keys = defaultdict(int)    # [(group, key)] = values_seen
+        input_group_tag_keys = defaultdict(int)  # [(group, key)] = values_seen
         input_group_tag_values = defaultdict(int)  # [(group, key, value)] = times_seen
-        output_group_tag_keys = defaultdict(int)    # [key] = values_seen
+        output_group_tag_keys = defaultdict(int)  # [key] = values_seen
         output_group_tag_values = defaultdict(int)  # [(key, value)] = times_seen
 
         for key, values in data.items():
@@ -91,24 +91,28 @@ class MergeGroupTest(TestCase):
                     input_group_tag_values[(group, key, value)] += count
                     output_group_tag_values[(key, value)] += count
 
-        GroupTagKey.objects.bulk_create([
-            GroupTagKey(
-                project=project,
-                group=group,
-                key=key,
-                values_seen=values_seen,
-            ) for ((group, key), values_seen) in input_group_tag_keys.items()
-        ])
+        GroupTagKey.objects.bulk_create(
+            [
+                GroupTagKey(
+                    project=project,
+                    group=group,
+                    key=key,
+                    values_seen=values_seen,
+                ) for ((group, key), values_seen) in input_group_tag_keys.items()
+            ]
+        )
 
-        GroupTagValue.objects.bulk_create([
-            GroupTagValue(
-                project=project,
-                group=group,
-                key=key,
-                value=value,
-                times_seen=times_seen,
-            ) for ((group, key, value), times_seen) in input_group_tag_values.items()
-        ])
+        GroupTagValue.objects.bulk_create(
+            [
+                GroupTagValue(
+                    project_id=project.id,
+                    group_id=group.id,
+                    key=key,
+                    value=value,
+                    times_seen=times_seen,
+                ) for ((group, key, value), times_seen) in input_group_tag_values.items()
+            ]
+        )
 
         with self.tasks():
             merge_group(other.id, target.id)
@@ -119,15 +123,13 @@ class MergeGroupTest(TestCase):
 
         for key, values_seen in output_group_tag_keys.items():
             assert GroupTagKey.objects.get(
-                project=project,
-                group=target,
-                key=key
+                project=project, group=target, key=key
             ).values_seen == values_seen
 
         for (key, value), times_seen in output_group_tag_values.items():
             assert GroupTagValue.objects.get(
-                project=project,
-                group=target,
+                project_id=project.id,
+                group_id=target.id,
                 key=key,
                 value=value,
             ).times_seen == times_seen

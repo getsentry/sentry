@@ -11,9 +11,9 @@ const EventErrors = React.createClass({
     event: PropTypes.Event.isRequired
   },
 
-  getInitialState(){
+  getInitialState() {
     return {
-      isOpen: false,
+      isOpen: false
     };
   },
 
@@ -34,24 +34,24 @@ const EventErrors = React.createClass({
     let isOpen = this.state.isOpen;
     return (
       <EventDataSection
-          group={this.props.group}
-          event={this.props.event}
-          type="errors"
-          className="errors">
-          <span className="icon icon-alert" />
+        group={this.props.group}
+        event={this.props.event}
+        type="errors"
+        className="errors">
+        <span className="icon icon-alert" />
         <p>
-          <a className="pull-right" onClick={this.toggle}>{isOpen ? t('Hide') : t('Show')}</a>
-          {
-            tn('There was %d error encountered while processing this event',
-               'There were %d errors encountered while processing this event',
-               numErrors)
-          }
+          <a className="pull-right" onClick={this.toggle}>
+            {isOpen ? t('Hide') : t('Show')}
+          </a>
+          {tn(
+            'There was %d error encountered while processing this event',
+            'There were %d errors encountered while processing this event',
+            numErrors
+          )}
         </p>
         <ul style={{display: isOpen ? 'block' : 'none'}}>
           {errors.map((error, errorIdx) => {
-            return (
-              <EventErrorItem key={errorIdx} error={error} />
-            );
+            return <EventErrorItem key={errorIdx} error={error} />;
           })}
         </ul>
       </EventDataSection>

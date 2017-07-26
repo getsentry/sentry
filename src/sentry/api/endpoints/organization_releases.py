@@ -7,9 +7,12 @@ from rest_framework.response import Response
 from .project_releases import ReleaseSerializer
 from sentry.api.base import DocSection
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
+from sentry.api.exceptions import InvalidRepository
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
-from sentry.api.serializers.rest_framework import ListField
+from sentry.api.serializers.rest_framework import (
+    ReleaseHeadCommitSerializer, ReleaseHeadCommitSerializerDeprecated, ListField
+)
 from sentry.models import Activity, Release
 from sentry.utils.apidocs import scenario, attach_scenarios
 
@@ -18,24 +21,32 @@ from sentry.utils.apidocs import scenario, attach_scenarios
 def create_new_org_release_scenario(runner):
     runner.request(
         method='POST',
-        path='/organizations/%s/releases/' % (runner.org.slug,),
+        path='/organizations/%s/releases/' % (runner.org.slug, ),
         data={
             'version': '2.0rc2',
             'ref': '6ba09a7c53235ee8a8fa5ee4c1ca8ca886e7fdbb',
+            'projects': [runner.default_project.slug],
         }
     )
 
 
 @scenario('ListOrganizationReleases')
 def list_org_releases_scenario(runner):
-    runner.request(
-        method='GET',
-        path='/organizations/%s/releases/' % (runner.org.slug,)
-    )
+    runner.request(method='GET', path='/organizations/%s/releases/' % (runner.org.slug, ))
 
 
 class ReleaseSerializerWithProjects(ReleaseSerializer):
     projects = ListField()
+    headCommits = ListField(
+        child=ReleaseHeadCommitSerializerDeprecated(),
+        required=False,
+        allow_null=False,
+    )
+    refs = ListField(
+        child=ReleaseHeadCommitSerializer(),
+        required=False,
+        allow_null=False,
+    )
 
 
 class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint):
@@ -44,8 +55,8 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint):
     @attach_scenarios([list_org_releases_scenario])
     def get(self, request, organization):
         """
-        List an Organizations Releases
-        ``````````````````````````````
+        List an Organization's Releases
+        ```````````````````````````````
         Return a list of releases for a given organization.
 
         :pparam string organization_slug: the organization short name
@@ -56,7 +67,7 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint):
 
         queryset = Release.objects.filter(
             organization=organization,
-            projects=self.get_allowed_projects(request, organization)
+            projects__in=self.get_allowed_projects(request, organization)
         ).select_related('owner')
 
         if query:
@@ -99,11 +110,20 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint):
                         for instance.
         :param array projects: a list of project slugs that are involved in
                                this release
-        :param datetime dateStarted: an optional date that indicates when the
-                                     release process started.
         :param datetime dateReleased: an optional date that indicates when
                                       the release went live.  If not provided
                                       the current time is assumed.
+        :param array commits: an optional list of commit data to be associated
+                              with the release. Commits must include parameters
+                              ``id`` (the sha of the commit), and can optionally
+                              include ``repository``, ``message``, ``author_name``,
+                              ``author_email``, and ``timestamp``.
+        :param array refs: an optional way to indicate the start and end commits
+                           for each repository included in a release. Head commits
+                           must include parameters ``repository`` and ``commit``
+                           (the HEAD sha). They can optionally include ``previousCommit``
+                           (the sha of the HEAD of the previous release), which should
+                           be specified if this is the first time you've sent commit data.
         :auth: required
         """
         serializer = ReleaseSerializerWithProjects(data=request.DATA)
@@ -111,9 +131,7 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint):
         if serializer.is_valid():
             result = serializer.object
 
-            allowed_projects = {
-                p.slug: p for p in self.get_allowed_projects(request, organization)
-            }
+            allowed_projects = {p.slug: p for p in self.get_allowed_projects(request, organization)}
 
             projects = []
             for slug in result['projects']:
@@ -131,7 +149,6 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint):
                         ref=result.get('ref'),
                         url=result.get('url'),
                         owner=result.get('owner'),
-                        date_started=result.get('dateStarted'),
                         date_released=result.get('dateReleased'),
                     ), True
             except IntegrityError:
@@ -148,18 +165,40 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint):
 
             if release.date_released:
                 for project in new_projects:
-                    activity = Activity.objects.create(
+                    Activity.objects.create(
                         type=Activity.RELEASE,
                         project=project,
                         ident=result['version'],
                         data={'version': result['version']},
                         datetime=release.date_released,
                     )
-                    activity.send_notification()
 
             commit_list = result.get('commits')
             if commit_list:
                 release.set_commits(commit_list)
+
+            refs = result.get('refs')
+            if not refs:
+                refs = [
+                    {
+                        'repository': r['repository'],
+                        'previousCommit': r.get('previousId'),
+                        'commit': r['currentId'],
+                    } for r in result.get('headCommits', [])
+                ]
+            if refs:
+                if not request.user.is_authenticated():
+                    return Response(
+                        {
+                            'refs': ['You must use an authenticated API token to fetch refs']
+                        },
+                        status=400
+                    )
+                fetch_commits = not commit_list
+                try:
+                    release.set_refs(refs, request.user, fetch=fetch_commits)
+                except InvalidRepository as exc:
+                    return Response({'refs': [exc.message]}, status=400)
 
             if not created and not new_projects:
                 # This is the closest status code that makes sense, and we want

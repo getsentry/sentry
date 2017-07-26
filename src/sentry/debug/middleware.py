@@ -5,9 +5,18 @@ import re
 
 from debug_toolbar.toolbar import DebugToolbar
 from django.conf import settings
-from django.template.loader import render_to_string
 from django.utils.encoding import force_text
+from django.utils.html import escape
 from six.moves import _thread as thread
+
+WRAPPER = """
+<!DOCTYPE html>
+<html>
+<body>
+    <pre>{content}</pre>
+</body>
+</html>
+"""
 
 
 class ToolbarCache(object):
@@ -25,6 +34,7 @@ class ToolbarCache(object):
     def get(self):
         return self._toolbars.get(thread.get_ident(), None)
 
+
 toolbar_cache = ToolbarCache()
 
 
@@ -32,7 +42,6 @@ class DebugMiddleware(object):
     _body_regexp = re.compile(re.escape('</body>'), flags=re.IGNORECASE)
 
     def show_toolbar_for_request(self, request):
-        # TODO(dcramer): support VPN via INTERNAL_IPS + ipaddr maps
         if not settings.SENTRY_DEBUGGER:
             return False
         if not request.is_superuser():
@@ -99,10 +108,6 @@ class DebugMiddleware(object):
         for panel in reversed(toolbar.enabled_panels):
             panel.disable_instrumentation()
 
-        # Collapse the toolbar by default if SHOW_COLLAPSED is set.
-        if 'djdt' in request.COOKIES:
-            response.delete_cookie('djdt')
-
         try:
             content = force_text(response.content, encoding='utf-8')
         except UnicodeDecodeError:
@@ -112,9 +117,10 @@ class DebugMiddleware(object):
         if 'text/html' not in response['Content-Type']:
             if 'application/json' in response['Content-Type']:
                 content = json.dumps(json.loads(content), indent=2)
-            content = render_to_string('debug_toolbar/wrapper.html', {
-                'content': content,
-            })
+
+            content = WRAPPER.format(
+                content=escape(content),
+            )
             response['Content-Type'] = 'text/html'
 
         # Insert the toolbar in the response.

@@ -12,7 +12,7 @@ function getCookie(name) {
     for (let i = 0; i < cookies.length; i++) {
       let cookie = jQuery.trim(cookies[i]);
       // Does this cookie string begin with the name we want?
-      if (cookie.substring(0, name.length + 1) == (name + '=')) {
+      if (cookie.substring(0, name.length + 1) == name + '=') {
         cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
         break;
       }
@@ -23,7 +23,7 @@ function getCookie(name) {
 
 function csrfSafeMethod(method) {
   // these HTTP methods do not require CSRF protection
-  return (/^(GET|HEAD|OPTIONS|TRACE)$/.test(method));
+  return /^(GET|HEAD|OPTIONS|TRACE)$/.test(method);
 }
 
 jQuery.ajaxSetup({
@@ -41,6 +41,7 @@ import moment from 'moment';
 import Raven from 'raven-js';
 import React from 'react';
 import ReactDOM from 'react-dom';
+import {renderToStaticMarkup} from 'react-dom/server';
 import Reflux from 'reflux';
 import * as Router from 'react-router';
 import underscore from 'underscore';
@@ -54,7 +55,13 @@ export default {
   moment: moment,
   Raven: Raven,
   React: React,
-  ReactDOM: ReactDOM,
+  ReactDOM: {
+    findDOMNode: ReactDOM.findDOMNode,
+    render: ReactDOM.render
+  },
+  ReactDOMServer: {
+    renderToStaticMarkup: renderToStaticMarkup
+  },
   ReactBootstrap: {
     Modal: ReactBootstrapModal
   },
@@ -65,6 +72,16 @@ export default {
   Sentry: {
     api: api,
     routes: require('./routes').default,
+    forms: {
+      // we dont yet export all form field classes as they're not
+      // all needed by sentry.io
+      BooleanField: require('./components/forms/booleanField').default,
+      EmailField: require('./components/forms/emailField').default,
+      RangeField: require('./components/forms/rangeField').default,
+      Select2Field: require('./components/forms/select2Field').default,
+      TextField: require('./components/forms/textField').default,
+      TextareaField: require('./components/forms/textareaField').default
+    },
     plugins: {
       add: plugins.add,
       addContext: plugins.addContext,
@@ -85,7 +102,6 @@ export default {
     Count: require('./components/count').default,
     DateTime: require('./components/dateTime').default,
     DropdownLink: require('./components/dropdownLink').default,
-    FlotChart: require('./components/flotChart').default,
     Form: require('./components/forms/form').default,
     FormState: require('./components/forms/index').FormState,
     HookStore: require('./stores/hookStore').default,
@@ -95,8 +111,10 @@ export default {
     LoadingIndicator: require('./components/loadingIndicator').default,
     ListLink: require('./components/listLink').default,
     MenuItem: require('./components/menuItem').default,
-    OrganizationHomeContainer: require('./components/organizations/homeContainer').default,
-    OrganizationsLoader: require('./components/organizations/organizationsLoader').default,
+    OrganizationHomeContainer: require('./components/organizations/homeContainer')
+      .default,
+    OrganizationsLoader: require('./components/organizations/organizationsLoader')
+      .default,
     Pagination: require('./components/pagination').default,
     PluginConfig: require('./components/pluginConfig').default,
     ProjectIssueTracking: require('./views/projectIssueTracking').default,
@@ -109,9 +127,11 @@ export default {
     U2fEnrollment: require('./components/u2fenrollment').default,
     U2fSign: require('./components/u2fsign').default,
     Badge: require('./components/badge').default,
+    Switch: require('./components/switch').default,
+    NumberConfirm: require('./components/confirms/numberConfirm').default,
     utils: {
       errorHandler: require('./utils/errorHandler').default,
-      logging: require('./utils/logging'),
+      logging: require('./utils/logging')
     }
   }
 };

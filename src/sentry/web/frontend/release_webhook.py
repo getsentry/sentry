@@ -13,6 +13,7 @@ from django.utils.crypto import constant_time_compare
 from django.utils.decorators import method_decorator
 
 from sentry.api import client
+from sentry.exceptions import HookValidationError
 from sentry.models import ApiKey, Project, ProjectOption
 from sentry.plugins import plugins
 from sentry.utils import json
@@ -22,11 +23,14 @@ logger = logging.getLogger('sentry.webhooks')
 
 class ReleaseWebhookView(View):
     def verify(self, plugin_id, project_id, token, signature):
-        return constant_time_compare(signature, hmac.new(
-            key=token.encode('utf-8'),
-            msg=('{}-{}'.format(plugin_id, project_id)).encode('utf-8'),
-            digestmod=sha256
-        ).hexdigest())
+        return constant_time_compare(
+            signature,
+            hmac.new(
+                key=token.encode('utf-8'),
+                msg=('{}-{}'.format(plugin_id, project_id)).encode('utf-8'),
+                digestmod=sha256
+            ).hexdigest()
+        )
 
     @method_decorator(csrf_exempt)
     def dispatch(self, *args, **kwargs):
@@ -43,7 +47,9 @@ class ReleaseWebhookView(View):
         except JSONDecodeError as exc:
             return HttpResponse(
                 status=400,
-                content=json.dumps({'error': six.text_type(exc)}),
+                content=json.dumps({
+                    'error': six.text_type(exc)
+                }),
                 content_type='application/json',
             )
 
@@ -53,7 +59,7 @@ class ReleaseWebhookView(View):
             # the view code. Instead we hack around it with an ApiKey instance
             god = ApiKey(
                 organization=project.organization,
-                scopes=getattr(ApiKey.scopes, 'project:write'),
+                scope_list=['project:write'],
             )
 
             resp = client.post(
@@ -76,13 +82,21 @@ class ReleaseWebhookView(View):
     def post(self, request, plugin_id, project_id, signature):
         project = Project.objects.get_from_cache(id=project_id)
 
+        logger.info('Incoming webhook for project_id=%s, plugin_id=%s', project_id, plugin_id)
+
         token = ProjectOption.objects.get_value(project, 'sentry:release-token')
 
-        logger.info('Incoming webhook for project_id=%s, plugin_id=%s',
-                    project_id, plugin_id)
+        if token is None:
+            logger.warn(
+                'No token for release hook project_id=%s, plugin_id=%s', project_id, plugin_id
+            )
+            return HttpResponse(status=403)
 
         if not self.verify(plugin_id, project_id, token, signature):
-            logger.warn('Unable to verify signature for release hook')
+            logger.warn(
+                'Unable to verify signature for release hook project_id=%s, plugin_id=%s',
+                project_id, plugin_id
+            )
             return HttpResponse(status=403)
 
         if plugin_id == 'builtin':
@@ -90,12 +104,23 @@ class ReleaseWebhookView(View):
 
         plugin = plugins.get(plugin_id)
         if not plugin.is_enabled(project):
-            logger.warn('Disabled release hook received for project_id=%s, plugin_id=%s',
-                        project_id, plugin_id)
+            logger.warn(
+                'Disabled release hook received for project_id=%s, plugin_id=%s', project_id,
+                plugin_id
+            )
             return HttpResponse(status=403)
 
         cls = plugin.get_release_hook()
         hook = cls(project)
-        hook.handle(request)
+        try:
+            hook.handle(request)
+        except HookValidationError as exc:
+            return HttpResponse(
+                status=400,
+                content=json.dumps({
+                    'error': six.text_type(exc)
+                }),
+                content_type='application/json',
+            )
 
         return HttpResponse(status=204)

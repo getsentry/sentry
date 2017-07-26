@@ -8,7 +8,7 @@ sentry.interfaces.applecrash
 
 from __future__ import absolute_import
 
-__all__ = ('AppleCrashReport',)
+__all__ = ('AppleCrashReport', )
 
 from sentry.interfaces.base import Interface, InterfaceValidationError
 

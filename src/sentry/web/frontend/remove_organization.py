@@ -24,7 +24,7 @@ class RemoveOrganizationForm(forms.Form):
 
 
 class RemoveOrganizationView(OrganizationView):
-    required_scope = 'org:delete'
+    required_scope = 'org:admin'
     sudo_required = True
 
     def get_form(self, request, organization):
@@ -35,9 +35,7 @@ class RemoveOrganizationView(OrganizationView):
     def handle(self, request, organization):
         if organization.is_default:
             messages.add_message(request, messages.ERROR, ERR_DEFAULT_ORG)
-            return self.redirect(reverse('sentry-organization-home', args=[
-                organization.slug
-            ]))
+            return self.redirect(reverse('sentry-organization-home', args=[organization.slug]))
 
         form = self.get_form(request, organization)
         if form.is_valid():
@@ -68,14 +66,18 @@ class RemoveOrganizationView(OrganizationView):
                     countdown=countdown,
                 )
 
-                delete_logger.info('object.delete.queued', extra={
-                    'object_id': organization.id,
-                    'transaction_id': transaction_id,
-                    'model': Organization.__name__,
-                })
+                delete_logger.info(
+                    'object.delete.queued',
+                    extra={
+                        'object_id': organization.id,
+                        'transaction_id': transaction_id,
+                        'model': Organization.__name__,
+                    }
+                )
 
-            messages.add_message(request, messages.SUCCESS,
-                MSG_REMOVE_SUCCESS % (organization.name,))
+            messages.add_message(
+                request, messages.SUCCESS, MSG_REMOVE_SUCCESS % (organization.name, )
+            )
 
             return self.redirect(reverse('sentry'))
 

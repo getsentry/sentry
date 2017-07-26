@@ -8,29 +8,36 @@ sentry.search.base
 
 from __future__ import absolute_import
 
+from sentry.utils.services import Service
+
 ANY = object()
 EMPTY = object()
 
 
-class SearchBackend(object):
+class SearchBackend(Service):
     __all__ = ('query', 'validate')
 
     def __init__(self, **options):
         pass
 
-    def validate(self):
-        """
-        Validates the settings for this backend (i.e. such as proper connection
-        info).
-
-        Raise ``InvalidConfiguration`` if there is a configuration error.
-        """
-
-    def query(self, project, query=None, status=None, tags=None,
-              bookmarked_by=None, assigned_to=None, first_release=None,
-              sort_by='date', age_from=None, age_to=None,
-              unassigned=None, date_from=None, date_to=None,
-              cursor=None, limit=100):
+    def query(
+        self,
+        project,
+        query=None,
+        status=None,
+        tags=None,
+        bookmarked_by=None,
+        assigned_to=None,
+        first_release=None,
+        sort_by='date',
+        age_from=None,
+        age_to=None,
+        unassigned=None,
+        date_from=None,
+        date_to=None,
+        cursor=None,
+        limit=100
+    ):
         """
         The return value should be a CursorResult.
 

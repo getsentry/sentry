@@ -46,7 +46,12 @@ const TagDistributionMeter = React.createClass({
   },
 
   fetchData() {
-    let url = '/issues/' + this.props.group.id + '/tags/' + encodeURIComponent(this.props.tag) + '/';
+    let url =
+      '/issues/' +
+      this.props.group.id +
+      '/tags/' +
+      encodeURIComponent(this.props.tag) +
+      '/';
 
     this.setState({
       loading: true,
@@ -100,10 +105,17 @@ const TagDistributionMeter = React.createClass({
 
           return (
             <Link
-                key={value.id}
-                className={className} style={{width: pct + '%'}}
-                to={`/${orgId}/${projectId}/issues/${this.props.group.id}/tags/${this.props.tag}/`}
-                title={'<div class="truncate">' + escape(deviceNameMapper(value.name)) + '</div>' + pctLabel + '%'}>
+              key={value.id}
+              className={className}
+              style={{width: pct + '%'}}
+              to={`/${orgId}/${projectId}/issues/${this.props.group.id}/tags/${this.props.tag}/`}
+              title={
+                '<div class="truncate">' +
+                  escape(deviceNameMapper(value.name)) +
+                  '</div>' +
+                  pctLabel +
+                  '%'
+              }>
               <span className="tag-description">
                 <span className="tag-percentage">{pctLabel}%</span>
                 <span className="tag-label">{deviceNameMapper(value.name)}</span>
@@ -113,30 +125,27 @@ const TagDistributionMeter = React.createClass({
         })}
         {hasOther &&
           <Link
-              key="other"
-              className="segment segment-9" style={{width: otherPct + '%'}}
-              to={`/${orgId}/${projectId}/issues/${this.props.group.id}/tags/${this.props.tag}/`}
-              title={'Other<br/>' + otherPctLabel + '%'}>
+            key="other"
+            className="segment segment-9"
+            style={{width: otherPct + '%'}}
+            to={`/${orgId}/${projectId}/issues/${this.props.group.id}/tags/${this.props.tag}/`}
+            title={'Other<br/>' + otherPctLabel + '%'}>
             <span className="tag-description">
               <span className="tag-percentage">{otherPctLabel}%</span>
               <span className="tag-label">{t('Other')}</span>
             </span>
-          </Link>
-        }
+          </Link>}
       </div>
     );
   },
 
   renderBody() {
-    if (this.state.loading || this.state.error)
-      return null;
+    if (this.state.loading || this.state.error) return null;
 
-    if (!this.state.data.totalValues)
-      return <p>{t('No recent data.')}</p>;
+    if (!this.state.data.totalValues) return <p>{t('No recent data.')}</p>;
 
     return this.renderSegments();
   },
-
 
   render() {
     return (

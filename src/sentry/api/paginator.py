@@ -11,6 +11,7 @@ import math
 
 from datetime import datetime
 from django.db import connections
+from django.db.models.sql.datastructures import EmptyResultSet
 from django.utils import timezone
 
 from sentry.utils.cursors import build_cursor, Cursor, CursorResult
@@ -19,11 +20,15 @@ quote_name = connections['default'].ops.quote_name
 
 
 class BasePaginator(object):
-    def __init__(self, queryset, order_by, max_limit=100):
-        if order_by.startswith('-'):
-            self.key, self.desc = order_by[1:], True
+    def __init__(self, queryset, order_by=None, max_limit=100):
+        if order_by:
+            if order_by.startswith('-'):
+                self.key, self.desc = order_by[1:], True
+            else:
+                self.key, self.desc = order_by, False
         else:
-            self.key, self.desc = order_by, False
+            self.key = None
+            self.desc = False
         self.queryset = queryset
         self.max_limit = max_limit
 
@@ -33,7 +38,7 @@ class BasePaginator(object):
         # "asc" controls whether or not we need to change the ORDER BY to
         # ascending.  If we're sorting by DESC but we're using a previous
         # page cursor, we'll change the ordering to ASC and reverse the
-        # list below (this is so we know how to get the before/after post).
+        # list below (this is so we know how to get the before/after row).
         # If we're sorting ASC _AND_ we're not using a previous page cursor,
         # then we'll need to resume using ASC.
         asc = (self.desc and is_prev) or not (self.desc or is_prev)
@@ -41,21 +46,23 @@ class BasePaginator(object):
         # We need to reverse the ORDER BY if we're using a cursor for a
         # previous page so we know exactly where we ended last page.  The
         # results will get reversed back to the requested order below.
-        if self.key in queryset.query.order_by:
-            if not asc:
-                index = queryset.query.order_by.index(self.key)
-                queryset.query.order_by[index] = '-%s' % (queryset.query.order_by[index])
-        elif ('-%s' % self.key) in queryset.query.order_by:
-            if asc:
-                index = queryset.query.order_by.index('-%s' % (self.key))
-                queryset.query.order_by[index] = queryset.query.order_by[index][1:]
-        else:
-            if asc:
-                queryset = queryset.order_by(self.key)
+        if self.key:
+            if self.key in queryset.query.order_by:
+                if not asc:
+                    index = queryset.query.order_by.index(self.key)
+                    queryset.query.order_by[index] = '-%s' % (queryset.query.order_by[index])
+            elif ('-%s' % self.key) in queryset.query.order_by:
+                if asc:
+                    index = queryset.query.order_by.index('-%s' % (self.key))
+                    queryset.query.order_by[index] = queryset.query.order_by[index][1:]
             else:
-                queryset = queryset.order_by('-%s' % self.key)
+                if asc:
+                    queryset = queryset.order_by(self.key)
+                else:
+                    queryset = queryset.order_by('-%s' % self.key)
 
         if value:
+            assert self.key
             if self.key in queryset.query.extra:
                 col_query, col_params = queryset.query.extra[self.key]
                 col_params = col_params[:]
@@ -65,12 +72,12 @@ class BasePaginator(object):
 
             if asc:
                 queryset = queryset.extra(
-                    where=['%s.%s >= %%s' % (queryset.model._meta.db_table, col_query,)],
+                    where=['%s.%s >= %%s' % (queryset.model._meta.db_table, col_query, )],
                     params=col_params,
                 )
             else:
                 queryset = queryset.extra(
-                    where=['%s.%s <= %%s' % (queryset.model._meta.db_table, col_query,)],
+                    where=['%s.%s <= %%s' % (queryset.model._meta.db_table, col_query, )],
                     params=col_params,
                 )
 
@@ -82,7 +89,7 @@ class BasePaginator(object):
     def value_from_cursor(self, cursor):
         raise NotImplementedError
 
-    def get_result(self, limit=100, cursor=None):
+    def get_result(self, limit=100, cursor=None, count_hits=False):
         # cursors are:
         #   (identifier(integer), row offset, is_prev)
         if cursor is None:
@@ -99,7 +106,16 @@ class BasePaginator(object):
 
         # TODO(dcramer): this does not yet work correctly for ``is_prev`` when
         # the key is not unique
+        if count_hits:
+            max_hits = 1000
+            hits = self.count_hits(max_hits)
+        else:
+            hits = None
+            max_hits = None
+
         offset = cursor.offset
+        # this effectively gets us the before row, and the current (after) row
+        # every time
         if cursor.is_prev:
             offset += 1
         stop = offset + limit + 1
@@ -110,9 +126,29 @@ class BasePaginator(object):
         return build_cursor(
             results=results,
             limit=limit,
+            hits=hits,
+            max_hits=max_hits,
             cursor=cursor,
             key=self.get_item_key,
         )
+
+    def count_hits(self, max_hits):
+        if not max_hits:
+            return 0
+        hits_query = self.queryset.values()[:max_hits].query
+        # clear out any select fields (include select_related) and pull just the id
+        hits_query.clear_select_clause()
+        hits_query.add_fields(['id'])
+        hits_query.clear_ordering(force_empty=True)
+        try:
+            h_sql, h_params = hits_query.sql_with_params()
+        except EmptyResultSet:
+            return 0
+        cursor = connections[self.queryset.db].cursor()
+        cursor.execute(u'SELECT COUNT(*) FROM ({}) as t'.format(
+            h_sql,
+        ), h_params)
+        return cursor.fetchone()[0]
 
 
 class Paginator(BasePaginator):
@@ -137,9 +173,9 @@ class DateTimePaginator(BasePaginator):
         return math.floor(value)
 
     def value_from_cursor(self, cursor):
-        return datetime.fromtimestamp(
-            float(cursor.value) / self.multiplier
-        ).replace(tzinfo=timezone.utc)
+        return datetime.fromtimestamp(float(cursor.value) / self.multiplier).replace(
+            tzinfo=timezone.utc
+        )
 
 
 # TODO(dcramer): previous cursors are too complex at the moment for many things
@@ -155,10 +191,11 @@ class OffsetPaginator(BasePaginator):
         limit = min(limit, self.max_limit)
 
         queryset = self.queryset
-        if self.desc:
-            queryset = queryset.order_by('-{}'.format(self.key))
-        else:
-            queryset = queryset.order_by(self.key)
+        if self.key:
+            if self.desc:
+                queryset = queryset.order_by('-{}'.format(self.key))
+            else:
+                queryset = queryset.order_by(self.key)
 
         page = cursor.offset
         offset = cursor.offset * cursor.value

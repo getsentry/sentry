@@ -11,11 +11,13 @@ from sentry.interfaces.message import Message
 class MessageTest(TestCase):
     @fixture
     def interface(self):
-        return Message.to_python(dict(
-            message='Hello there %s!',
-            params=('world',),
-            formatted='Hello there world!',
-        ))
+        return Message.to_python(
+            dict(
+                message='Hello there %s!',
+                params=('world', ),
+                formatted='Hello there world!',
+            )
+        )
 
     def test_serialize_behavior(self):
         assert self.interface.to_json() == {
@@ -33,23 +35,19 @@ class MessageTest(TestCase):
 
     def test_serialize_non_string_for_message(self):
         result = type(self.interface).to_python({
-            'message': {'foo': 'bar'},
+            'message': {
+                'foo': 'bar'
+            },
         })
         assert result.message == '{"foo":"bar"}'
 
     # we had a regression which was throwing this data away
     def test_retains_formatted(self):
-        result = type(self.interface).to_python({
-            'message': 'foo bar',
-            'formatted': 'foo bar baz'
-        })
+        result = type(self.interface).to_python({'message': 'foo bar', 'formatted': 'foo bar baz'})
         assert result.message == 'foo bar'
         assert result.formatted == 'foo bar baz'
 
     def test_discards_dupe_formatted(self):
-        result = type(self.interface).to_python({
-            'message': 'foo bar',
-            'formatted': 'foo bar'
-        })
+        result = type(self.interface).to_python({'message': 'foo bar', 'formatted': 'foo bar'})
         assert result.message == 'foo bar'
         assert result.formatted is None

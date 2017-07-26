@@ -5,13 +5,14 @@ from __future__ import absolute_import
 from exam import fixture, around
 from mock import patch
 from django.conf import settings
+from django.core.cache.backends.locmem import LocMemCache
 
-from sentry.cache.redis import RedisCache
 from sentry.models import Option
 from sentry.options.store import OptionsStore
 from sentry.options.manager import (
-    OptionsManager, UnknownOption, DEFAULT_FLAGS,
-    FLAG_IMMUTABLE, FLAG_NOSTORE, FLAG_STOREONLY, FLAG_REQUIRED, FLAG_PRIORITIZE_DISK)
+    OptionsManager, UnknownOption, DEFAULT_FLAGS, FLAG_IMMUTABLE, FLAG_NOSTORE, FLAG_STOREONLY,
+    FLAG_REQUIRED, FLAG_PRIORITIZE_DISK
+)
 from sentry.utils.types import Int, String
 from sentry.testutils import TestCase
 
@@ -19,9 +20,9 @@ from sentry.testutils import TestCase
 class OptionsManagerTest(TestCase):
     @fixture
     def store(self):
-        return OptionsStore(
-            cache=RedisCache()
-        )
+        c = LocMemCache('test', {})
+        c.clear()
+        return OptionsStore(cache=c)
 
     @fixture
     def manager(self):

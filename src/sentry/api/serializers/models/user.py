@@ -8,7 +8,12 @@ from django.conf import settings
 from sentry.app import env
 from sentry.api.serializers import Serializer, register
 from sentry.models import (
-    AuthIdentity, Authenticator, User, UserAvatar, UserOption, UserEmail,
+    AuthIdentity,
+    Authenticator,
+    User,
+    UserAvatar,
+    UserOption,
+    UserEmail,
 )
 from sentry.utils.avatar import get_gravatar_url
 
@@ -39,12 +44,7 @@ class UserSerializer(Serializer):
         return results
 
     def get_attrs(self, item_list, user):
-        avatars = {
-            a.user_id: a
-            for a in UserAvatar.objects.filter(
-                user__in=item_list
-            )
-        }
+        avatars = {a.user_id: a for a in UserAvatar.objects.filter(user__in=item_list)}
         identities = self._get_identities(item_list, user)
         emails = self._get_useremails(item_list, user)
 
@@ -72,12 +72,12 @@ class UserSerializer(Serializer):
             'dateJoined': obj.date_joined,
             'lastLogin': obj.last_login,
             'has2fa': attrs['has2fa'],
+            'lastActive': obj.last_active,
         }
 
         if obj == user:
             options = {
-                o.key: o.value
-                for o in UserOption.objects.filter(
+                o.key: o.value for o in UserOption.objects.filter(
                     user=user,
                     project__isnull=True,
                 )
@@ -95,6 +95,7 @@ class UserSerializer(Serializer):
                 'stacktraceOrder': stacktrace_order,
                 'timezone': options.get('timezone') or settings.SENTRY_DEFAULT_TIME_ZONE,
                 'clock24Hours': options.get('clock_24_hours') or False,
+                'seenReleaseBroadcast': options.get('seen_release_broadcast'),
             }
 
         if attrs.get('avatar'):
@@ -107,26 +108,30 @@ class UserSerializer(Serializer):
         d['avatar'] = avatar
 
         if attrs['identities'] is not None:
-            d['identities'] = [{
-                'id': six.text_type(i.id),
-                'name': i.ident,
-                'organization': {
-                    'slug': i.auth_provider.organization.slug,
-                    'name': i.auth_provider.organization.name,
-                },
-                'provider': {
-                    'id': i.auth_provider.provider,
-                    'name': i.auth_provider.get_provider().name,
-                },
-                'dateSynced': i.last_synced,
-                'dateVerified': i.last_verified,
-            } for i in attrs['identities']]
+            d['identities'] = [
+                {
+                    'id': six.text_type(i.id),
+                    'name': i.ident,
+                    'organization': {
+                        'slug': i.auth_provider.organization.slug,
+                        'name': i.auth_provider.organization.name,
+                    },
+                    'provider': {
+                        'id': i.auth_provider.provider,
+                        'name': i.auth_provider.get_provider().name,
+                    },
+                    'dateSynced': i.last_synced,
+                    'dateVerified': i.last_verified,
+                } for i in attrs['identities']
+            ]
 
-        d['emails'] = [{
-            'id': six.text_type(e.id),
-            'email': e.email,
-            'is_verified': e.is_verified,
-        } for e in attrs['emails']]
+        d['emails'] = [
+            {
+                'id': six.text_type(e.id),
+                'email': e.email,
+                'is_verified': e.is_verified,
+            } for e in attrs['emails']
+        ]
 
         return d
 
@@ -152,11 +157,13 @@ class DetailedUserSerializer(UserSerializer):
 
     def serialize(self, obj, attrs, user):
         d = super(DetailedUserSerializer, self).serialize(obj, attrs, user)
-        d['authenticators'] = [{
-            'id': six.text_type(a.id),
-            'type': a.interface.interface_id,
-            'name': a.interface.name,
-            'dateCreated': a.created_at,
-            'dateUsed': a.last_used_at,
-        } for a in attrs['authenticators']]
+        d['authenticators'] = [
+            {
+                'id': six.text_type(a.id),
+                'type': a.interface.interface_id,
+                'name': a.interface.name,
+                'dateCreated': a.created_at,
+                'dateUsed': a.last_used_at,
+            } for a in attrs['authenticators']
+        ]
         return d

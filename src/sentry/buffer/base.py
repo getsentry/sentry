@@ -14,17 +14,18 @@ from django.db.models import F
 
 from sentry.signals import buffer_incr_complete
 from sentry.tasks.process_buffer import process_incr
+from sentry.utils.services import Service
 
 
 class BufferMount(type):
     def __new__(cls, name, bases, attrs):
         new_cls = type.__new__(cls, name, bases, attrs)
-        new_cls.logger = logging.getLogger('sentry.buffer.%s' % (new_cls.__name__.lower(),))
+        new_cls.logger = logging.getLogger('sentry.buffer.%s' % (new_cls.__name__.lower(), ))
         return new_cls
 
 
 @six.add_metaclass(BufferMount)
-class Buffer(object):
+class Buffer(Service):
     """
     Buffers act as temporary stores for counters. The default implementation is just a passthru and
     does not actually buffer anything.
@@ -43,20 +44,14 @@ class Buffer(object):
         """
         >>> incr(Group, columns={'times_seen': 1}, filters={'pk': group.pk})
         """
-        process_incr.apply_async(kwargs={
-            'model': model,
-            'columns': columns,
-            'filters': filters,
-            'extra': extra,
-        })
-
-    def validate(self):
-        """
-        Validates the settings for this backend (i.e. such as proper connection
-        info).
-
-        Raise ``InvalidConfiguration`` if there is a configuration error.
-        """
+        process_incr.apply_async(
+            kwargs={
+                'model': model,
+                'columns': columns,
+                'filters': filters,
+                'extra': extra,
+            }
+        )
 
     def process_pending(self):
         return []
@@ -66,10 +61,14 @@ class Buffer(object):
         if extra:
             update_kwargs.update(extra)
 
-        _, created = model.objects.create_or_update(
-            values=update_kwargs,
-            **filters
-        )
+        # TODO(mattrobenolt): Remove in 8.18
+        if model.__name__ == 'GroupTagValue':
+            try:
+                update_kwargs['project_id'] = update_kwargs.pop('project')
+            except KeyError:
+                pass
+
+        _, created = model.objects.create_or_update(values=update_kwargs, **filters)
 
         buffer_incr_complete.send_robust(
             model=model,

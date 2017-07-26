@@ -10,7 +10,10 @@ from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.models import Release, ReleaseFile
-from django.http import CompatibleStreamingHttpResponse
+try:
+    from django.http import (CompatibleStreamingHttpResponse as StreamingHttpResponse)
+except ImportError:
+    from django.http import StreamingHttpResponse
 
 
 class ReleaseFileSerializer(serializers.Serializer):
@@ -23,12 +26,14 @@ class OrganizationReleaseFileDetailsEndpoint(OrganizationReleasesBaseEndpoint):
     def download(self, releasefile):
         file = releasefile.file
         fp = file.getfile()
-        response = CompatibleStreamingHttpResponse(
+        response = StreamingHttpResponse(
             iter(lambda: fp.read(4096), b''),
             content_type=file.headers.get('content-type', 'application/octet-stream'),
         )
         response['Content-Length'] = file.size
-        response['Content-Disposition'] = 'attachment; filename="%s"' % posixpath.basename(" ".join(releasefile.name.split()))
+        response['Content-Disposition'] = 'attachment; filename="%s"' % posixpath.basename(
+            " ".join(releasefile.name.split())
+        )
         return response
 
     def get(self, request, organization, version, file_id):
@@ -66,8 +71,7 @@ class OrganizationReleaseFileDetailsEndpoint(OrganizationReleasesBaseEndpoint):
             raise ResourceDoesNotExist
 
         download_requested = request.GET.get('download') is not None
-        if download_requested and (
-           request.access.has_scope('project:write')):
+        if download_requested and (request.access.has_scope('project:write')):
             return self.download(releasefile)
         elif download_requested:
             return Response(status=403)
@@ -86,6 +90,7 @@ class OrganizationReleaseFileDetailsEndpoint(OrganizationReleasesBaseEndpoint):
         :pparam string version: the version identifier of the release.
         :pparam string file_id: the ID of the file to update.
         :param string name: the new name of the file.
+        :param string dist: the name of the dist.
         :auth: required
         """
         try:
