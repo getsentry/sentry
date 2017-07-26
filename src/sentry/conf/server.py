@@ -1014,6 +1014,23 @@ SENTRY_DEFAULT_ROLE = 'member'
 SENTRY_ROLES = (
     {
         'id':
+        'read_only_member',
+        'name':
+        'Read-Only Member',
+        'desc':
+        'Read-only members can view and search over events but not actually act on them.',
+        'scopes':
+        set(
+            [
+                'event:read',
+                'project:read',
+                'org:read',
+                'member:read',
+                'team:read',
+            ]
+        ),
+    }, {
+        'id':
         'member',
         'name':
         'Member',
