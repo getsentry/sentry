@@ -74,7 +74,7 @@ const OnboardingWizard = React.createClass({
         browserHistory.push(url);
       },
       error: err => {
-        Raven.captureMessage('oboarding project creation failed', {
+        Raven.captureMessage('Onboarding project creation failed', {
           extra: err
         });
 
