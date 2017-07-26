@@ -1,5 +1,6 @@
 filter_secrets: false
 sudo: false
+dist: precise
 language: python
 rvm:
   - 2.2
