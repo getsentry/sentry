@@ -9,8 +9,8 @@ import GroupCheckBox from './groupCheckBox';
 import ProjectState from '../../mixins/projectState';
 import GroupStore from '../../stores/groupStore';
 import SelectedGroupStore from '../../stores/selectedGroupStore';
-import StreamGroupHeader from './streamGroupHeader';
-import EventExtraDetails from '../eventExtraDetails';
+import EventOrGroupHeader from '../eventOrGroupHeader';
+import EventOrGroupExtraDetails from '../eventOrGroupExtraDetails';
 
 import {valueIsEqual} from '../../utils';
 
@@ -106,8 +106,8 @@ const StreamGroup = React.createClass({
             <div className="checkbox">
               <GroupCheckBox id={data.id} />
             </div>}
-          <StreamGroupHeader data={data} orgId={orgId} projectId={projectId} />
-          <EventExtraDetails
+          <EventOrGroupHeader data={data} orgId={orgId} projectId={projectId} />
+          <EventOrGroupExtraDetails
             group
             {...data}
             groupId={id}

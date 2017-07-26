@@ -116,6 +116,7 @@
     padding-top: 11px;
   }
 
+  .stream-actions-header,
   .stream-actions-count,
   .stream-actions-users,
   .stream-actions-level,
@@ -225,7 +226,7 @@
   }
 }
 
-.group-list {
+.group-list, .grouping-list {
   background: #fff;
   border: 1px solid @trim;
   border-top: 1px solid @trim;
@@ -234,7 +235,8 @@
   // position: relative;
 }
 
-.group-list, .events {
+// .grouping-list is used in a tab in an Issue
+.group-list, .events, .grouping-list {
   .list-unstyled;
 
   .group {
@@ -1240,7 +1242,7 @@
   }
 
   .stream-actions {
-    .stream-actions-count, .stream-actions-users {
+    .stream-actions-header, .stream-actions-count, .stream-actions-users {
       font-size: 13px;
       padding-top: 8px;
     }

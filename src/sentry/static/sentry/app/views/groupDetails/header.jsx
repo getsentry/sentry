@@ -8,7 +8,7 @@ import GroupSeenBy from './seenBy';
 import IndicatorStore from '../../stores/indicatorStore';
 import ListLink from '../../components/listLink';
 import ShortId from '../../components/shortId';
-import GroupTitle from '../../components/group/title';
+import EventOrGroupTitle from '../../components/eventOrGroupTitle';
 import ProjectState from '../../mixins/projectState';
 import TooltipMixin from '../../mixins/tooltip';
 import ConfigStore from '../../stores/configStore';
@@ -131,7 +131,7 @@ const GroupHeader = React.createClass({
         <div className="row">
           <div className="col-sm-7">
             <h3>
-              <GroupTitle data={group} />
+              <EventOrGroupTitle data={group} />
             </h3>
             <div className="event-message">
               <span className="error-level">{group.level}</span>

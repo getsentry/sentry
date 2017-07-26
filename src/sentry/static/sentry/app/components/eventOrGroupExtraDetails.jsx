@@ -5,7 +5,7 @@ import ProjectState from '../mixins/projectState';
 import TimeSince from './timeSince';
 import ShortId from './shortId';
 
-const EventExtraDetails = React.createClass({
+const EventOrGroupExtraDetails = React.createClass({
   propTypes: {
     orgId: PropTypes.string.isRequired,
     projectId: PropTypes.string.isRequired,
@@ -93,4 +93,4 @@ const EventExtraDetails = React.createClass({
     );
   }
 });
-export default EventExtraDetails;
+export default EventOrGroupExtraDetails;
