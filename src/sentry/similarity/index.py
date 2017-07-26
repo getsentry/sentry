@@ -33,21 +33,20 @@ class MinHashIndex(object):
             lambda: [Counter() for _ in xrange(self.bands)],
         )
 
-        for item in items:
-            for idx, features in item:
-                bands = map(
-                    ','.join,
-                    band(
-                        self.bands,
-                        map(
-                            '{}'.format,
-                            self.signature_builder(features),
-                        ),
-                    )
+        for idx, features in items:
+            bands = map(
+                ','.join,
+                band(
+                    self.bands,
+                    map(
+                        '{}'.format,
+                        self.signature_builder(features),
+                    ),
                 )
+            )
 
-                for i, bucket in enumerate(bands):
-                    data[idx][i][bucket] += 1
+            for i, bucket in enumerate(bands):
+                data[idx][i][bucket] += 1
 
         arguments = [len(data)]
         for idx, bands in data.items():
