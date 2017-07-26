@@ -29,8 +29,10 @@ class MinHashIndexTestCase(TestCase):
         self.index.record('example', '1', [('index', 'hello world')])
         self.index.record('example', '2', [('index', 'hello world')])
         self.index.record('example', '3', [('index', 'jello world')])
-        self.index.record('example', '4', [('index', 'yellow world')])
-        self.index.record('example', '4', [('index', 'mellow world')])
+        self.index.record('example', '4', [
+            ('index', 'yellow world'),
+            ('index', 'mellow world'),
+        ])
         self.index.record('example', '5', [('index', 'pizza world')])
 
         results = self.index.compare('example', '1', ['index'])[0]

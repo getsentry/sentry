@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 import itertools
 import time
+from collections import Counter, defaultdict
 
 from sentry.utils.iterators import chunked
 from sentry.utils.redis import load_script
@@ -27,6 +28,38 @@ class MinHashIndex(object):
         self.interval = interval
         self.retention = retention
 
+    def __build_signatures(self, items):
+        data = defaultdict(
+            lambda: [Counter() for _ in xrange(self.bands)],
+        )
+
+        for idx, features in items:
+            bands = map(
+                ','.join, band(
+                    self.bands,
+                    map(
+                        '{}'.format,
+                        self.signature_builder(features),
+                    ),
+                )
+            )
+
+            for i, bucket in enumerate(bands):
+                data[idx][i][bucket] += 1
+
+        arguments = [len(data)]
+        for idx, bands in data.items():
+            arguments.append(idx)
+            for buckets in bands:
+                arguments.append(len(buckets))
+                for bucket, count in buckets.items():
+                    arguments.extend([
+                        bucket,
+                        count,
+                    ])
+
+        return arguments
+
     def classify(self, scope, items, timestamp=None):
         if timestamp is None:
             timestamp = int(time.time())
@@ -41,18 +74,11 @@ class MinHashIndex(object):
             scope,
         ]
 
-        for idx, features in items:
-            arguments.append(idx)
-            arguments.extend([
-                ','.join(map('{}'.format, b))
-                for b in
-                band(self.bands, self.signature_builder(features))
-            ])
+        arguments.extend(self.__build_signatures(items))
 
         return [
             [(item, float(score)) for item, score in result]
-            for result in
-            index(
+            for result in index(
                 self.cluster.get_local_client_for_key(scope),
                 [],
                 arguments,
@@ -103,14 +129,7 @@ class MinHashIndex(object):
             key,
         ]
 
-        for idx, features in items:
-            arguments.append(idx)
-            arguments.extend(
-                [
-                    ','.join(map('{}'.format, b))
-                    for b in band(self.bands, self.signature_builder(features))
-                ]
-            )
+        arguments.extend(self.__build_signatures(items))
 
         return index(
             self.cluster.get_local_client_for_key(scope),
