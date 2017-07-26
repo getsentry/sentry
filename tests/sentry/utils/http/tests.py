@@ -16,7 +16,10 @@ from sentry.utils.http import (
     get_origins,
     absolute_uri,
     origin_from_request,
-    is_valid_for_processing,
+    is_valid_ip,
+    is_valid_release,
+    is_valid_error_message,
+    FilterTypes,
 )
 
 
@@ -237,70 +240,66 @@ class IsValidOriginTestCase(TestCase):
 
 
 class IsValidIPTestCase(TestCase):
-    def is_valid_for_processing(self, value, inputs):
-        self.project.update_option('sentry:blacklisted_ips', inputs)
-        return is_valid_for_processing(value, 'blacklisted_ips', self.project)
+    def is_valid_ip(self, value, inputs):
+        self.project.update_option('sentry:{}'.format(FilterTypes.BLACKLISTED_IPS), inputs)
+        return is_valid_ip(value, self.project)
 
     def test_not_in_blacklist(self):
-        assert self.is_valid_for_processing('127.0.0.1', [])
-        assert self.is_valid_for_processing('127.0.0.1', ['0.0.0.0', '192.168.1.1', '10.0.0.0/8'])
+        assert self.is_valid_ip('127.0.0.1', [])
+        assert self.is_valid_ip('127.0.0.1', ['0.0.0.0', '192.168.1.1', '10.0.0.0/8'])
 
     def test_match_blacklist(self):
-        assert not self.is_valid_for_processing('127.0.0.1', ['127.0.0.1'])
-        assert not self.is_valid_for_processing(
-            '127.0.0.1', ['0.0.0.0', '127.0.0.1', '192.168.1.1'])
+        assert not self.is_valid_ip('127.0.0.1', ['127.0.0.1'])
+        assert not self.is_valid_ip('127.0.0.1', ['0.0.0.0', '127.0.0.1', '192.168.1.1'])
 
     def test_match_blacklist_range(self):
-        assert not self.is_valid_for_processing('127.0.0.1', ['127.0.0.0/8'])
-        assert not self.is_valid_for_processing(
-            '127.0.0.1', ['0.0.0.0', '127.0.0.0/8', '192.168.1.0/8'])
+        assert not self.is_valid_ip('127.0.0.1', ['127.0.0.0/8'])
+        assert not self.is_valid_ip('127.0.0.1', ['0.0.0.0', '127.0.0.0/8', '192.168.1.0/8'])
 
     def test_garbage_input(self):
-        assert self.is_valid_for_processing('127.0.0.1', ['lol/bar'])
+        assert self.is_valid_ip('127.0.0.1', ['lol/bar'])
 
 
 class IsValidReleaseTestCase(TestCase):
-    def is_valid_for_processing(self, value, inputs):
-        self.project.update_option('sentry:releases', inputs)
-        return is_valid_for_processing(value, 'releases', self.project)
+    def is_valid_release(self, value, inputs):
+        self.project.update_option('sentry:{}'.format(FilterTypes.RELEASES), inputs)
+        return is_valid_release(value, self.project)
 
     def test_release_not_in_list(self):
-        assert self.is_valid_for_processing('1.2.3', None)
-        assert self.is_valid_for_processing('1.2.3', [])
-        assert self.is_valid_for_processing('1.2.3', ['1.1.1', '1.1.2', '1.2.1'])
+        assert self.is_valid_release('1.2.3', None)
+        assert self.is_valid_release('1.2.3', [])
+        assert self.is_valid_release('1.2.3', ['1.1.1', '1.1.2', '1.2.1'])
 
     def test_release_match_list(self):
-        assert not self.is_valid_for_processing('1.2.3', ['1.2.3'])
-        assert not self.is_valid_for_processing('1.2.3', ['1.2.*', '1.3.0', '1.3.1'])
-        assert not self.is_valid_for_processing('1.2.3', ['1.3.0', '1.*', '1.3.1'])
+        assert not self.is_valid_release('1.2.3', ['1.2.3'])
+        assert not self.is_valid_release('1.2.3', ['1.2.*', '1.3.0', '1.3.1'])
+        assert not self.is_valid_release('1.2.3', ['1.3.0', '1.*', '1.3.1'])
 
 
 class IsValidErrorMessageTestCase(TestCase):
-    def is_valid_for_processing(self, value, inputs):
-        self.project.update_option('sentry:error_messages', inputs)
-        return is_valid_for_processing(value, 'error_messages', self.project)
+    def is_valid_error_message(self, value, inputs):
+        self.project.update_option('sentry:{}'.format(FilterTypes.ERROR_MESSAGES), inputs)
+        return is_valid_error_message(value, self.project)
 
     def test_error_class_not_in_list(self):
-        assert self.is_valid_for_processing(
-            'ZeroDivisionError: integer division or modulo by zero', None)
-        assert self.is_valid_for_processing(
-            'ZeroDivisionError: integer division or modulo by zero', [])
-        assert self.is_valid_for_processing(
-            'ZeroDivisionError: integer division or modulo by zero', [
-                'TypeError*', '*: cannot import name*'])
+        assert self.is_valid_error_message(
+            'ZeroDivisionError: integer division or modulo by zero', None
+        )
+        assert self.is_valid_error_message(
+            'ZeroDivisionError: integer division or modulo by zero', []
+        )
+        assert self.is_valid_error_message(
+            'ZeroDivisionError: integer division or modulo by zero',
+            ['TypeError*', '*: cannot import name*']
+        )
 
     def test_error_class_match_list(self):
-        assert not self.is_valid_for_processing(
-            'ImportError: cannot import name is_valid',
-            ['*: cannot import name*'])
-        assert not self.is_valid_for_processing(
-            'ZeroDivisionError: divided by 0', ['ImportError*', 'TypeError*', '*: divided by 0'])
-
-
-class IsValidForProcessingTestCase(TestCase):
-    def is_valid_for_processing(self, value, filter_type, inputs):
-        self.project.update_option('sentry:{}'.format(filter_type), inputs)
-        return is_valid_for_processing(value, filter_type, self.project)
+        assert not self.is_valid_error_message(
+            'ImportError: cannot import name is_valid', ['*: cannot import name*']
+        )
+        assert not self.is_valid_error_message(
+            'ZeroDivisionError: divided by 0', ['ImportError*', 'TypeError*', '*: divided by 0']
+        )
 
 
 class OriginFromRequestTestCase(TestCase):

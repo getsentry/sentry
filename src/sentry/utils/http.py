@@ -20,11 +20,16 @@ from sentry import options
 ParsedUriMatch = namedtuple('ParsedUriMatch', ['scheme', 'domain', 'path'])
 
 
+class FilterTypes(object):
+    ERROR_MESSAGES = 'error_messages'
+    RELEASES = 'releases'
+    BLACKLISTED_IPS = 'blacklisted_ips'
+
+
 def absolute_uri(url=None):
     if not url:
         return options.get('system.url-prefix')
-    return urljoin(
-        options.get('system.url-prefix').rstrip('/') + '/', url.lstrip('/'))
+    return urljoin(options.get('system.url-prefix').rstrip('/') + '/', url.lstrip('/'))
 
 
 def origin_from_url(url):
@@ -87,8 +92,7 @@ def get_origins(project=None):
 
     # lowercase and strip the trailing slash from all origin values
     # filter out empty values
-    return frozenset(
-        filter(bool, map(lambda x: x.lower().rstrip('/'), result)))
+    return frozenset(filter(bool, map(lambda x: x.lower().rstrip('/'), result)))
 
 
 def parse_uri_match(value):
@@ -177,7 +181,8 @@ def is_valid_origin(origin, project=None, allowed=None):
             # Explicit hostname + port name
             '%s:%d' % (parsed_hostname, parsed.port),
             # Wildcard hostname with explicit port
-            '*:%d' % parsed.port, )
+            '*:%d' % parsed.port,
+        )
     else:
         domain_matches = ('*', parsed_hostname)
 
@@ -194,8 +199,7 @@ def is_valid_origin(origin, project=None, allowed=None):
 
         # domain supports exact, any, and prefix match
         if bits.domain[:2] == '*.':
-            if parsed_hostname.endswith(
-                    bits.domain[1:]) or parsed_hostname == bits.domain[2:]:
+            if parsed_hostname.endswith(bits.domain[1:]) or parsed_hostname == bits.domain[2:]:
                 return True
             continue
         elif bits.domain not in domain_matches:
@@ -212,38 +216,62 @@ def is_valid_origin(origin, project=None, allowed=None):
     return False
 
 
-def is_valid_for_processing(value, filter_type, project):
+def is_valid_ip(ip_address, project):
     """
-    Verify that an exception is valid and is not disallowed for the project
-    based on specified filters
-    value is the exact value to be checked for validity in the list of project filters
-
-    filter_type is the type of filter and can be:
-    'blacklisted_ips'
-    'releases'
-    'error_messages'
+    Verify that an IP address is not being blacklisted
+    for the given project.
     """
-    disallowed_options = project.get_option(('sentry:{}').format(filter_type))
-    if not disallowed_options:
+    blacklist = project.get_option('sentry:{}'.format(FilterTypes.BLACKLISTED_IPS))
+    if not blacklist:
         return True
 
-    for option in disallowed_options:
-        # We want to error fast if it's an exact match
-        # fnmatch allows us to use glob pattern matching
-        # so that we can match on 1.[0-5].* or TypeError*
-        if fnmatch.fnmatch(value.lower(), option.lower()):
+    for addr in blacklist:
+        # we want to error fast if it's an exact match
+        if ip_address == addr:
+            return False
+        # Check to make sure it's actually a range before
+        try:
+            if '/' in addr and (
+                ipaddress.ip_address(six.text_type(ip_address)) in ipaddress.ip_network(
+                    six.text_type(addr), strict=False
+                )
+            ):
+                return False
+        except ValueError:
+            # Ignore invalid values here
+            pass
+
+    return True
+
+
+def is_valid_release(release, project):
+    """
+    Verify that a release is not being filtered
+    for the given project.
+    """
+    invalid_versions = project.get_option('sentry:{}'.format(FilterTypes.RELEASES))
+    if not invalid_versions:
+        return True
+
+    for version in invalid_versions:
+        if fnmatch.fnmatch(release.lower(), version.lower()):
             return False
 
-        if filter_type == 'blacklisted_ips':
-            # Check to make sure it's actually a range before
-            try:
-                if '/' in option and ipaddress.ip_address(
-                        six.text_type(value)) in ipaddress.ip_network(
-                            six.text_type(option), strict=False):
-                    return False
-            except ValueError:
-                # Ignore invalid values here
-                pass
+    return True
+
+
+def is_valid_error_message(message, project):
+    """
+    Verify that an error message is not being filtered
+    for the given project.
+    """
+    filtered_errors = project.get_option('sentry:{}'.format(FilterTypes.ERROR_MESSAGES))
+    if not filtered_errors:
+        return True
+
+    for error in filtered_errors:
+        if fnmatch.fnmatch(message.lower(), error.lower()):
+            return False
 
     return True
 

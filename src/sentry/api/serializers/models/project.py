@@ -41,8 +41,8 @@ class ProjectSerializer(Serializer):
             user_options = {
                 (u.project_id, u.key): u.value
                 for u in UserOption.objects.filter(
-                    Q(user=user, project__in=item_list, key='mail:alert') |
-                    Q(user=user, key='subscribe_by_default', project__isnull=True)
+                    Q(user=user, project__in=item_list, key='mail:alert')
+                    | Q(user=user, key='subscribe_by_default', project__isnull=True)
                 )
             }
             default_subscribe = (user_options.get('subscribe_by_default', '1') == '1')
@@ -68,7 +68,8 @@ class ProjectSerializer(Serializer):
 
         feature_list = []
         for feature in (
-            'global-events', 'data-forwarding', 'rate-limits', 'custom-filters', 'similarity-view'
+            'global-events', 'data-forwarding', 'rate-limits', 'custom-filters',
+            'similarity-view', 'additional-data-filters',
         ):
             if features.has('projects:' + feature, obj, actor=user):
                 feature_list.append(feature)

@@ -9,6 +9,7 @@ from django.utils import timezone
 from rest_framework import serializers, status
 from rest_framework.response import Response
 from sentry import features
+from sentry.utils.http import FilterTypes
 from sentry.api.base import DocSection
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.api.decorators import sudo_required
@@ -276,10 +277,11 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                     'sentry:blacklisted_ips',
                     clean_newline_inputs(options['filters:blacklisted_ips'])
                 )
-            if 'filters:releases' in options:
-                if features.has('projects:custom-filters', project, actor=request.user):
+            if 'filters:{}'.format(FilterTypes.RELEASES) in options:
+                if features.has('projects:additional-data-filters', project, actor=request.user):
                     project.update_option(
-                        'sentry:releases', clean_newline_inputs(options['filters:releases'])
+                        'sentry:{}'.format(FilterTypes.RELEASES),
+                        clean_newline_inputs(options['filters:{}'.format(FilterTypes.RELEASES)])
                     )
                 else:
                     return Response(
@@ -287,12 +289,13 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                             'detail': ['You do not have that feature enabled']
                         }, status=400
                     )
-            if 'filters:error_messages' in options:
-                if features.has('projects:custom-filters', project, actor=request.user):
+            if 'filters:{}'.format(FilterTypes.ERROR_MESSAGES) in options:
+                if features.has('projects:additional-data-filters', project, actor=request.user):
                     project.update_option(
-                        'sentry:error_messages',
+                        'sentry:{}'.format(FilterTypes.ERROR_MESSAGES),
                         clean_newline_inputs(
-                            options['filters:error_messages'], case_insensitive=False
+                            options['filters:{}'.format(FilterTypes.ERROR_MESSAGES)],
+                            case_insensitive=False
                         )
                     )
                 else:

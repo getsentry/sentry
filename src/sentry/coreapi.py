@@ -47,7 +47,9 @@ from sentry.utils.auth import parse_auth_header
 from sentry.utils.csp import is_valid_csp_report
 from sentry.utils.http import (
     origin_from_request,
-    is_valid_for_processing,
+    is_valid_ip,
+    is_valid_release,
+    is_valid_error_message,
 )
 from sentry.utils.strings import decompress
 from sentry.utils.validators import is_float, is_event_id
@@ -63,12 +65,6 @@ except ImportError:
     from sentry.utils import json
 
 _dist_re = re.compile(r'^[a-zA-Z0-9_.-]+$')
-
-
-class FilterTypes(object):
-    ERROR_MESSAGES = 'error_messages'
-    RELEASES = 'releases'
-    BLACKLISTED_IPS = 'blacklisted_ips'
 
 
 class APIError(Exception):
@@ -382,20 +378,16 @@ class ClientApiHelper(object):
         }
 
     def should_filter(self, project, data, ip_address=None):
-        # TODO(dcramer): read filters from options such as:
-        # - ignore errors from spiders/bots
-        # - ignore errors from legacy browsers
+        if ip_address and not is_valid_ip(ip_address, project):
+            return True
 
-        filter_types = {
-            FilterTypes.ERROR_MESSAGES: data.get('sentry.interfaces.Message',
-                                                 {}).get('message', []),
-            FilterTypes.RELEASES: data.get('release'),
-            FilterTypes.BLACKLISTED_IPS: ip_address,
-        }
+        release = data.get('release')
+        if release and not is_valid_release(release, project):
+            return True
 
-        for key, value in six.iteritems(filter_types):
-            if value and not is_valid_for_processing(value, key, project):
-                return True
+        error_message = data.get('sentry.interfaces.Message', {}).get('message')
+        if error_message and not is_valid_error_message(error_message, project):
+            return True
 
         for filter_cls in filters.all():
             filter_obj = filter_cls(project)
