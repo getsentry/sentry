@@ -19,14 +19,12 @@ from sentry import tsdb
 from sentry.app import env
 from sentry.constants import TAG_LABELS
 from sentry.models import (
-    Group, GroupBookmark, GroupMeta, GroupTagKey, GroupSeen, GroupStatus,
-    ProjectOption
+    Group, GroupBookmark, GroupMeta, GroupTagKey, GroupSeen, GroupStatus, ProjectOption
 )
 from sentry.templatetags.sentry_plugins import get_legacy_annotations
 from sentry.utils import json
 from sentry.utils.db import attach_foreignkey
 from sentry.utils.http import absolute_uri
-
 
 transformers = {}
 
@@ -74,6 +72,7 @@ def register(type):
     def wrapped(cls):
         transformers[type] = cls()
         return cls
+
     return wrapped
 
 
@@ -101,14 +100,18 @@ class GroupTransformer(Transformer):
             handle_before_events(request, objects)
 
         if request and request.user.is_authenticated() and objects:
-            bookmarks = set(GroupBookmark.objects.filter(
-                user=request.user,
-                group__in=objects,
-            ).values_list('group_id', flat=True))
-            seen_groups = dict(GroupSeen.objects.filter(
-                user=request.user,
-                group__in=objects,
-            ).values_list('group_id', 'last_seen'))
+            bookmarks = set(
+                GroupBookmark.objects.filter(
+                    user=request.user,
+                    group__in=objects,
+                ).values_list('group_id', flat=True)
+            )
+            seen_groups = dict(
+                GroupSeen.objects.filter(
+                    user=request.user,
+                    group__in=objects,
+                ).values_list('group_id', 'last_seen')
+            )
         else:
             bookmarks = set()
             seen_groups = {}
@@ -131,7 +134,8 @@ class GroupTransformer(Transformer):
         project_annotations = {}
         for project in project_list:
             enabled_annotations = ProjectOption.objects.get_value(
-                project, 'annotations', ['sentry:user'])
+                project, 'annotations', ['sentry:user']
+            )
             project_annotations[project] = enabled_annotations
             tag_keys.update(enabled_annotations)
 
@@ -183,46 +187,44 @@ class GroupTransformer(Transformer):
         version = int(version.strftime('%s'))
 
         d = {
-            'id': six.text_type(
-                obj.id),
-            'count': six.text_type(
-                obj.times_seen),
-            'title': escape(
-                obj.title),
-            'message': escape(
-                obj.get_legacy_message()),
-            'level': obj.level,
-            'levelName': escape(
-                obj.get_level_display()),
-            'logger': escape(
-                obj.logger),
-            'permalink': absolute_uri(
-                reverse(
-                    'sentry-group',
-                    args=[
-                        obj.organization.slug,
-                        obj.project.slug,
-                        obj.id])),
-            'firstSeen': self.localize_datetime(
-                obj.first_seen,
-                request=request),
-            'lastSeen': self.localize_datetime(
-                obj.last_seen,
-                request=request),
-            'canResolve': request and request.user.is_authenticated(),
-            'status': status_label,
-            'isResolved': obj.get_status() == GroupStatus.RESOLVED,
-            'isPublic': obj.is_public,
-            'score': getattr(
-                obj,
-                'sort_value',
-                0),
+            'id':
+            six.text_type(obj.id),
+            'count':
+            six.text_type(obj.times_seen),
+            'title':
+            escape(obj.title),
+            'message':
+            escape(obj.get_legacy_message()),
+            'level':
+            obj.level,
+            'levelName':
+            escape(obj.get_level_display()),
+            'logger':
+            escape(obj.logger),
+            'permalink':
+            absolute_uri(
+                reverse('sentry-group', args=[obj.organization.slug, obj.project.slug, obj.id])
+            ),
+            'firstSeen':
+            self.localize_datetime(obj.first_seen, request=request),
+            'lastSeen':
+            self.localize_datetime(obj.last_seen, request=request),
+            'canResolve':
+            request and request.user.is_authenticated(),
+            'status':
+            status_label,
+            'isResolved':
+            obj.get_status() == GroupStatus.RESOLVED,
+            'isPublic':
+            obj.is_public,
+            'score':
+            getattr(obj, 'sort_value', 0),
             'project': {
-                'name': escape(
-                    obj.project.name),
+                'name': escape(obj.project.name),
                 'slug': obj.project.slug,
             },
-            'version': version,
+            'version':
+            version,
         }
         if hasattr(obj, 'is_bookmarked'):
             d['isBookmarked'] = obj.is_bookmarked

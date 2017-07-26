@@ -55,5 +55,4 @@ class CeleryCommand(BaseCommand):
 
     @property
     def option_list(self):
-        return [x for x in self.options
-                if x._long_opts[0] not in self.skip_opts]
+        return [x for x in self.options if x._long_opts[0] not in self.skip_opts]

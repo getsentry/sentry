@@ -3,9 +3,7 @@ from __future__ import absolute_import
 import six
 
 from sentry.api.serializers import Serializer, register, serialize
-from sentry.models import (
-    ProjectDSymFile, VersionDSymFile, DSymApp, DSYM_PLATFORMS_REVERSE
-)
+from sentry.models import (ProjectDSymFile, VersionDSymFile, DSymApp, DSYM_PLATFORMS_REVERSE)
 
 
 @register(ProjectDSymFile)

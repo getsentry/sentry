@@ -13,7 +13,6 @@ from sentry.api.serializers.rest_framework import CommitSerializer, ListField
 from sentry.models import Activity, Release
 from sentry.plugins.interfaces.releasehook import ReleaseHook
 
-
 BAD_RELEASE_CHARS = '\n\f\t/'
 
 
@@ -33,7 +32,7 @@ class ReleaseSerializer(serializers.Serializer):
 
 
 class ProjectReleasesEndpoint(ProjectEndpoint):
-    permission_classes = (ProjectReleasePermission,)
+    permission_classes = (ProjectReleasePermission, )
 
     def get(self, request, project):
         """
@@ -52,8 +51,7 @@ class ProjectReleasesEndpoint(ProjectEndpoint):
         query = request.GET.get('query')
 
         queryset = Release.objects.filter(
-            projects=project,
-            organization_id=project.organization_id
+            projects=project, organization_id=project.organization_id
         ).select_related('owner')
 
         if query:
@@ -106,6 +104,15 @@ class ProjectReleasesEndpoint(ProjectEndpoint):
         :auth: required
         """
         serializer = ReleaseSerializer(data=request.DATA)
+
+        if 'refs' in request.DATA:
+            return Response({
+                'refs': [
+                    'Invalid parameter. If you are trying to set '
+                    'commits for a release, see '
+                    'https://docs.sentry.io/api/releases/post-organization-releases/'
+                ]
+            }, status=400)
 
         if serializer.is_valid():
             result = serializer.object

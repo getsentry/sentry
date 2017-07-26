@@ -13,9 +13,13 @@ MAX_DIMENSION = 1024
 
 
 class AvatarField(serializers.WritableField):
-    def __init__(self, max_size=settings.SENTRY_MAX_AVATAR_SIZE,
-                 min_dimension=MIN_DIMENSION, max_dimension=MAX_DIMENSION,
-                 **kwargs):
+    def __init__(
+        self,
+        max_size=settings.SENTRY_MAX_AVATAR_SIZE,
+        min_dimension=MIN_DIMENSION,
+        max_dimension=MAX_DIMENSION,
+        **kwargs
+    ):
         super(AvatarField, self).__init__(**kwargs)
         self.max_size = max_size
         self.min_dimension = min_dimension

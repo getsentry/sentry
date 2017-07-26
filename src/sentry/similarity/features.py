@@ -6,7 +6,6 @@ import logging
 
 from sentry.utils.dates import to_timestamp
 
-
 logger = logging.getLogger('sentry.similarity')
 
 
@@ -28,14 +27,20 @@ def get_application_chunks(exception):
     )
 
 
+class InterfaceDoesNotExist(KeyError):
+    pass
+
+
 class ExceptionFeature(object):
     def __init__(self, function):
         self.function = function
 
     def extract(self, event):
-        return self.function(
-            event.interfaces['sentry.interfaces.Exception'].values[0],
-        )
+        try:
+            interface = event.interfaces['sentry.interfaces.Exception']
+        except KeyError:
+            raise InterfaceDoesNotExist()
+        return self.function(interface.values[0])
 
 
 class MessageFeature(object):
@@ -43,22 +48,26 @@ class MessageFeature(object):
         self.function = function
 
     def extract(self, event):
-        return self.function(
-            event.interfaces['sentry.interfaces.Message'],
-        )
+        try:
+            interface = event.interfaces['sentry.interfaces.Message']
+        except KeyError:
+            raise InterfaceDoesNotExist()
+        return self.function(interface)
 
 
 class FeatureSet(object):
-    def __init__(self, index, encoder, aliases, features, expected_encoding_errors):
+    def __init__(self, index, encoder, aliases, features,
+                 expected_extraction_errors, expected_encoding_errors):
         self.index = index
         self.encoder = encoder
         self.aliases = aliases
         self.features = features
+        self.expected_extraction_errors = expected_extraction_errors
         self.expected_encoding_errors = expected_encoding_errors
         assert set(self.aliases) == set(self.features)
 
-    def __get_scope(self, group):
-        return '{}'.format(group.project_id)
+    def __get_scope(self, project):
+        return '{}'.format(project.id)
 
     def __get_key(self, group):
         return '{}'.format(group.id)
@@ -69,7 +78,15 @@ class FeatureSet(object):
             try:
                 results[label] = strategy.extract(event)
             except Exception as error:
-                logger.warning(
+                log = (
+                    logger.debug
+                    if isinstance(error, self.expected_extraction_errors) else
+                    functools.partial(
+                        logger.warning,
+                        exc_info=True
+                    )
+                )
+                log(
                     'Could not extract features from %r for %r due to error: %r',
                     event,
                     label,
@@ -79,6 +96,32 @@ class FeatureSet(object):
         return results
 
     def record(self, event):
+        items = []
+        for label, features in self.extract(event).items():
+            try:
+                features = map(self.encoder.dumps, features)
+            except Exception as error:
+                log = (
+                    logger.debug if isinstance(error, self.expected_encoding_errors) else
+                    functools.partial(logger.warning, exc_info=True)
+                )
+                log(
+                    'Could not encode features from %r for %r due to error: %r',
+                    event,
+                    label,
+                    error,
+                )
+            else:
+                if features:
+                    items.append((self.aliases[label], features, ))
+        return self.index.record(
+            self.__get_scope(event.project),
+            self.__get_key(event.group),
+            items,
+            timestamp=to_timestamp(event.datetime),
+        )
+
+    def classify(self, event):
         items = []
         for label, features in self.extract(event).items():
             try:
@@ -104,18 +147,24 @@ class FeatureSet(object):
                         self.aliases[label],
                         features,
                     ))
-        return self.index.record(
-            self.__get_scope(event.group),
-            self.__get_key(event.group),
+        results = self.index.classify(
+            self.__get_scope(event.project),
             items,
             timestamp=to_timestamp(event.datetime),
         )
+        return zip(
+            map(
+                lambda (alias, characteristics): self.aliases.get_key(alias),
+                items,
+            ),
+            results,
+        )
 
-    def query(self, group):
+    def compare(self, group):
         features = list(self.features.keys())
 
-        results = self.index.query(
-            self.__get_scope(group),
+        results = self.index.compare(
+            self.__get_scope(group.project),
             self.__get_key(group),
             [self.aliases[label] for label in features],
         )
@@ -145,16 +194,17 @@ class FeatureSet(object):
         scopes = {}
         for source in sources:
             scopes.setdefault(
-                self.__get_scope(source),
+                self.__get_scope(source.project),
                 set(),
             ).add(source)
 
-        unsafe_scopes = set(scopes.keys()) - set([self.__get_scope(destination)])
+        unsafe_scopes = set(scopes.keys()) - set([self.__get_scope(destination.project)])
         if unsafe_scopes and not allow_unsafe:
             raise ValueError(
-                'all groups must belong to same project if unsafe merges are not allowed')
+                'all groups must belong to same project if unsafe merges are not allowed'
+            )
 
-        destination_scope = self.__get_scope(destination)
+        destination_scope = self.__get_scope(destination.project)
         destination_key = self.__get_key(destination)
 
         for source_scope, sources in scopes.items():
@@ -169,8 +219,7 @@ class FeatureSet(object):
             if source_scope != destination_scope:
                 imports = [
                     (alias, destination_key, data)
-                    for (alias, _), data in
-                    zip(
+                    for (alias, _), data in zip(
                         items,
                         self.index.export(source_scope, items),
                     )
@@ -187,6 +236,12 @@ class FeatureSet(object):
     def delete(self, group):
         key = self.__get_key(group)
         return self.index.delete(
-            self.__get_scope(group),
+            self.__get_scope(group.project),
             [(self.aliases[label], key) for label in self.features.keys()],
+        )
+
+    def flush(self, project=None):
+        return self.index.flush(
+            '*' if project is None else self.__get_scope(project),
+            self.aliases.values(),
         )

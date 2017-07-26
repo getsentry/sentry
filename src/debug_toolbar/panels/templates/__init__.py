@@ -1,1 +1,1 @@
-from debug_toolbar.panels.templates.panel import TemplatesPanel         # noqa
+from debug_toolbar.panels.templates.panel import TemplatesPanel  # noqa

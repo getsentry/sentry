@@ -6,13 +6,12 @@ from django.db.models import Q
 from django.utils import timezone
 
 from sentry.db.models import (
-    BaseManager, BoundedPositiveIntegerField, FlexibleForeignKey, Model,
-    sane_repr
+    BaseManager, BoundedPositiveIntegerField, FlexibleForeignKey, Model, sane_repr
 )
 
 
 class GroupSubscriptionReason(object):
-    implicit = -1   # not for use as a persisted field value
+    implicit = -1  # not for use as a persisted field value
     committed = -2  # not for use as a persisted field value
     processing_issue = -3  # not for use as a persisted field value
 
@@ -25,16 +24,25 @@ class GroupSubscriptionReason(object):
     mentioned = 6
 
     descriptions = {
-        implicit: u"have opted to receive updates for all issues within "
-                  "projects that you are a member of",
-        committed: u"were involved in a commit that is part of this release",
-        processing_issue: u"are subscribed to alerts for this project",
-        comment: u"have commented on this issue",
-        assigned: u"have been assigned to this issue",
-        bookmark: u"have bookmarked this issue",
-        status_change: u"have changed the resolution status of this issue",
-        deploy_setting: u"opted to receive all deploy notifications for this organization",
-        mentioned: u"have been mentioned in this issue",
+        implicit:
+        u"have opted to receive updates for all issues within "
+        "projects that you are a member of",
+        committed:
+        u"were involved in a commit that is part of this release",
+        processing_issue:
+        u"are subscribed to alerts for this project",
+        comment:
+        u"have commented on this issue",
+        assigned:
+        u"have been assigned to this issue",
+        bookmark:
+        u"have bookmarked this issue",
+        status_change:
+        u"have changed the resolution status of this issue",
+        deploy_setting:
+        u"opted to receive all deploy notifications for this organization",
+        mentioned:
+        u"have been mentioned in this issue",
     }
 
 
@@ -84,8 +92,7 @@ class GroupSubscriptionManager(BaseManager):
         # issue.
         participants = {
             subscription.user: subscription.reason
-            for subscription in
-            GroupSubscription.objects.filter(
+            for subscription in GroupSubscription.objects.filter(
                 group=group,
                 is_active=True,
                 user__in=users,
@@ -94,7 +101,8 @@ class GroupSubscriptionManager(BaseManager):
 
         # Find users which by default do not subscribe.
         participating_only = set(
-            uo.user_id for uo in UserOption.objects.filter(
+            uo.user_id
+            for uo in UserOption.objects.filter(
                 Q(project__isnull=True) | Q(project=group.project),
                 user__in=users,
                 key='workflow:notifications',
@@ -104,11 +112,9 @@ class GroupSubscriptionManager(BaseManager):
                         project=group.project,
                         user__in=users,
                         key='workflow:notifications',
-                    )
-                    if uo.value == UserOptionValue.all_conversations
+                    ) if uo.value == UserOptionValue.all_conversations
                 ]
-            )
-            if uo.value == UserOptionValue.participating_only
+            ) if uo.value == UserOptionValue.participating_only
         )
 
         if participating_only:
@@ -148,6 +154,6 @@ class GroupSubscription(Model):
     class Meta:
         app_label = 'sentry'
         db_table = 'sentry_groupsubscription'
-        unique_together = (('group', 'user'),)
+        unique_together = (('group', 'user'), )
 
     __repr__ = sane_repr('project_id', 'group_id', 'user_id')

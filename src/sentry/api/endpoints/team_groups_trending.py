@@ -28,13 +28,15 @@ class TeamGroupsTrendingEndpoint(TeamEndpoint):
         cutoff = timedelta(minutes=minutes)
         cutoff_dt = timezone.now() - cutoff
 
-        group_list = list(Group.objects.filter(
-            project__in=project_dict.keys(),
-            status=GroupStatus.UNRESOLVED,
-            last_seen__gte=cutoff_dt,
-        ).extra(
-            select={'sort_value': 'score'},
-        ).order_by('-score')[:limit])
+        group_list = list(
+            Group.objects.filter(
+                project__in=project_dict.keys(),
+                status=GroupStatus.UNRESOLVED,
+                last_seen__gte=cutoff_dt,
+            ).extra(
+                select={'sort_value': 'score'},
+            ).order_by('-score')[:limit]
+        )
 
         for group in group_list:
             group._project_cache = project_dict.get(group.project_id)

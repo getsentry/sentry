@@ -24,7 +24,6 @@ def enqueue_scheduled_jobs(**kwargs):
             logger.debug('More than 100 ScheduledJobs found.')
 
         for job in job_list:
-            logger.debug('Sending scheduled job %s with payload %r',
-                         job.name, job.payload)
+            logger.debug('Sending scheduled job %s with payload %r', job.name, job.payload)
             app.send_task(job.name, kwargs=job.payload)
             job.delete()

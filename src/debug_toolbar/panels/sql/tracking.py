@@ -86,8 +86,7 @@ class NormalCursorWrapper(object):
         if not params:
             return params
         if isinstance(params, dict):
-            return dict((key, self._quote_expr(value))
-                        for key, value in params.items())
+            return dict((key, self._quote_expr(value)) for key, value in params.items())
         return list(map(self._quote_expr, params))
 
     def _decode(self, param):
@@ -122,8 +121,8 @@ class NormalCursorWrapper(object):
             params = {
                 'vendor': vendor,
                 'alias': alias,
-                'sql': self.db.ops.last_executed_query(
-                    self.cursor, sql, self._quote_params(params)),
+                'sql':
+                self.db.ops.last_executed_query(self.cursor, sql, self._quote_params(params)),
                 'duration': duration,
                 'raw_sql': sql,
                 'params': _params,
@@ -143,12 +142,14 @@ class NormalCursorWrapper(object):
                     iso_level = conn.isolation_level
                 except conn.InternalError:
                     iso_level = 'unknown'
-                params.update({
-                    'trans_id': self.logger.get_transaction_id(alias),
-                    'trans_status': conn.get_transaction_status(),
-                    'iso_level': iso_level,
-                    'encoding': conn.encoding,
-                })
+                params.update(
+                    {
+                        'trans_id': self.logger.get_transaction_id(alias),
+                        'trans_status': conn.get_transaction_status(),
+                        'iso_level': iso_level,
+                        'encoding': conn.encoding,
+                    }
+                )
 
             # We keep `sql` to maintain backwards compatibility
             self.logger.record(**params)

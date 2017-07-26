@@ -23,16 +23,9 @@ _pool_lock = Lock()
 
 def _shared_pool(**opts):
     if 'host' in opts:
-        key = '%s:%s/%s' % (
-            opts['host'],
-            opts['port'],
-            opts['db'],
-        )
+        key = '%s:%s/%s' % (opts['host'], opts['port'], opts['db'], )
     else:
-        key = '%s/%s' % (
-            opts['path'],
-            opts['db']
-        )
+        key = '%s/%s' % (opts['path'], opts['db'])
     pool = _pool_cache.get(key)
     if pool is not None:
         return pool
@@ -86,15 +79,18 @@ clusters = ClusterManager(options.default_manager)
 def get_cluster_from_options(setting, options, cluster_manager=clusters):
     cluster_option_name = 'cluster'
     default_cluster_name = 'default'
-    cluster_constructor_option_names = frozenset(('hosts',))
+    cluster_constructor_option_names = frozenset(('hosts', ))
 
     options = options.copy()
-    cluster_options = {key: options.pop(key) for key in set(
-        options.keys()).intersection(cluster_constructor_option_names)}
+    cluster_options = {
+        key: options.pop(key)
+        for key in set(options.keys()).intersection(cluster_constructor_option_names)
+    }
     if cluster_options:
         if cluster_option_name in options:
             raise InvalidConfiguration(
-                'Cannot provide both named cluster ({!r}) and cluster configuration ({}) options.'.format(
+                'Cannot provide both named cluster ({!r}) and cluster configuration ({}) options.'.
+                format(
                     cluster_option_name,
                     ', '.join(map(repr, cluster_constructor_option_names)),
                 )
@@ -138,7 +134,7 @@ def check_cluster_versions(cluster, required, recommended=None, label=None):
         versions[key] = Version(map(int, info['redis_version'].split('.', 3)))
 
     check_versions(
-        'Redis' if label is None else 'Redis (%s)' % (label,),
+        'Redis' if label is None else 'Redis (%s)' % (label, ),
         versions,
         required,
         recommended,

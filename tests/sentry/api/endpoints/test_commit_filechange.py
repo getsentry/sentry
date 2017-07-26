@@ -43,10 +43,7 @@ class CommitFileChangeTest(APITestCase):
             order=0,
         )
         CommitFileChange.objects.create(
-            organization_id=project.organization_id,
-            commit=commit,
-            filename='.gitignore',
-            type='M'
+            organization_id=project.organization_id, commit=commit, filename='.gitignore', type='M'
         )
         CommitFileChange.objects.create(
             organization_id=project.organization_id,
@@ -54,10 +51,13 @@ class CommitFileChangeTest(APITestCase):
             filename='/static/js/widget.js',
             type='A'
         )
-        url = reverse('sentry-api-0-release-commitfilechange', kwargs={
-            'organization_slug': project.organization.slug,
-            'version': release.version,
-        })
+        url = reverse(
+            'sentry-api-0-release-commitfilechange',
+            kwargs={
+                'organization_slug': project.organization.slug,
+                'version': release.version,
+            }
+        )
 
         self.login_as(user=self.user)
 

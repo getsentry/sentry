@@ -1,7 +1,7 @@
 from __future__ import absolute_import, unicode_literals
 
 try:
-    import resource     # Not available on Win32 systems
+    import resource  # Not available on Win32 systems
 except ImportError:
     resource = None
 import time
@@ -40,8 +40,8 @@ class TimerPanel(Panel):
         stats = self.get_stats()
         rows = (
             (_("User CPU time"), _("%(utime)0.3f msec") % stats),
-            (_("System CPU time"), _("%(stime)0.3f msec") % stats),
-            (_("Total CPU time"), _("%(total)0.3f msec") % stats),
+            (_("System CPU time"),
+             _("%(stime)0.3f msec") % stats), (_("Total CPU time"), _("%(total)0.3f msec") % stats),
             (_("Elapsed time"), _("%(total_time)0.3f msec") % stats),
             (_("Context switches"), _("%(vcsw)d voluntary, %(ivcsw)d involuntary") % stats),
         )

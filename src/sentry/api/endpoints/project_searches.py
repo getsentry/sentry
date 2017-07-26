@@ -19,7 +19,7 @@ class SavedSearchSerializer(serializers.Serializer):
 
 
 class ProjectSearchesEndpoint(ProjectEndpoint):
-    permission_classes = (RelaxedSearchPermission,)
+    permission_classes = (RelaxedSearchPermission, )
 
     def get(self, request, project):
         """
@@ -31,15 +31,15 @@ class ProjectSearchesEndpoint(ProjectEndpoint):
 
         """
         if request.access.has_scope('project:write'):
-            results = list(SavedSearch.objects.filter(
-                project=project,
-                owner__isnull=True
-            ).order_by('name'))
+            results = list(
+                SavedSearch.objects.filter(project=project, owner__isnull=True).order_by('name')
+            )
         else:
-            results = list(SavedSearch.objects.filter(
-                Q(owner=request.user) | Q(owner__isnull=True),
-                project=project
-            ).order_by('name'))
+            results = list(
+                SavedSearch.objects.filter(
+                    Q(owner=request.user) | Q(owner__isnull=True), project=project
+                ).order_by('name')
+            )
 
         return Response(serialize(results, request.user))
 
@@ -73,9 +73,7 @@ class ProjectSearchesEndpoint(ProjectEndpoint):
                     save_search_created.send(project=project, sender=self)
 
                 except IntegrityError:
-                    return Response({
-                        'detail': 'Search with same name already exists.'
-                    }, status=400)
+                    return Response({'detail': 'Search with same name already exists.'}, status=400)
 
                 if search.is_default:
                     if request.access.has_scope('project:write'):
@@ -87,9 +85,12 @@ class ProjectSearchesEndpoint(ProjectEndpoint):
                             is_default=False,
                         )
                     else:
-                        return Response({
-                            'detail': 'User doesn\'t have permission to set default view'
-                        }, status=400)
+                        return Response(
+                            {
+                                'detail': 'User doesn\'t have permission to set default view'
+                            },
+                            status=400
+                        )
 
                 if result.get('isUserDefault'):
                     SavedSearchUserDefault.objects.create_or_update(

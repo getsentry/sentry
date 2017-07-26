@@ -27,8 +27,7 @@ class OrganizationOnboardingTaskTest(TestCase):
         first_event_received.send(project=project, group=self.group, sender=type(project))
 
         task = OrganizationOnboardingTask.objects.get(
-            organization=project.organization,
-            task=OnboardingTask.FIRST_EVENT
+            organization=project.organization, task=OnboardingTask.FIRST_EVENT
         )
         assert task.status == OnboardingTaskStatus.COMPLETE
         assert task.project_id == project.id
@@ -137,9 +136,8 @@ class OrganizationOnboardingTaskTest(TestCase):
         project = self.create_project(first_event=now)
         project_created.send(project=project, user=self.user, sender=type(project))
         group = self.create_group(
-            project=project,
-            platform='javascript',
-            message='javascript error message')
+            project=project, platform='javascript', message='javascript error message'
+        )
         first_event_received.send(project=project, group=group, sender=type(project))
 
         task = OrganizationOnboardingTask.objects.get(
@@ -161,13 +159,11 @@ class OrganizationOnboardingTaskTest(TestCase):
         assert second_task is not None
 
         second_group = self.create_group(
-            project=second_project,
-            platform='python',
-            message='python error message')
+            project=second_project, platform='python', message='python error message'
+        )
         first_event_received.send(
-            project=second_project,
-            group=second_group,
-            sender=type(second_project))
+            project=second_project, group=second_group, sender=type(second_project)
+        )
         second_task = OrganizationOnboardingTask.objects.get(
             organization=second_project.organization,
             task=OnboardingTask.SECOND_PLATFORM,
@@ -218,7 +214,8 @@ class OrganizationOnboardingTaskTest(TestCase):
             plugin=IssueTrackingPlugin(),
             project=self.project,
             user=self.user,
-            sender=type(IssueTrackingPlugin))
+            sender=type(IssueTrackingPlugin)
+        )
         task = OrganizationOnboardingTask.objects.get(
             organization=self.organization,
             task=OnboardingTask.ISSUE_TRACKER,
@@ -230,7 +227,8 @@ class OrganizationOnboardingTaskTest(TestCase):
             plugin=IssueTrackingPlugin(),
             project=self.project,
             user=self.user,
-            sender=type(IssueTrackingPlugin))
+            sender=type(IssueTrackingPlugin)
+        )
         task = OrganizationOnboardingTask.objects.get(
             organization=self.organization,
             task=OnboardingTask.ISSUE_TRACKER,
@@ -243,7 +241,8 @@ class OrganizationOnboardingTaskTest(TestCase):
             plugin=NotificationPlugin(),
             project=self.project,
             user=self.user,
-            sender=type(NotificationPlugin))
+            sender=type(NotificationPlugin)
+        )
         task = OrganizationOnboardingTask.objects.get(
             organization=self.organization,
             task=OnboardingTask.NOTIFICATION_SERVICE,
@@ -258,9 +257,8 @@ class OrganizationOnboardingTaskTest(TestCase):
         project = self.create_project(first_event=now)
         second_project = self.create_project(first_event=now)
         second_group = self.create_group(
-            project=second_project,
-            platform='python',
-            message='python error message')
+            project=second_project, platform='python', message='python error message'
+        )
         event = self.create_full_event()
         member = self.create_member(organization=self.organization, teams=[self.team], user=user)
 
@@ -270,26 +268,28 @@ class OrganizationOnboardingTaskTest(TestCase):
 
         first_event_received.send(project=project, group=self.group, sender=type(project))
         first_event_received.send(
-            project=second_project,
-            group=second_group,
-            sender=type(second_project))
+            project=second_project, group=second_group, sender=type(second_project)
+        )
         member_joined.send(member=member, sender=type(member))
         plugin_enabled.send(
             plugin=IssueTrackingPlugin(),
             project=project,
             user=user,
-            sender=type(IssueTrackingPlugin))
+            sender=type(IssueTrackingPlugin)
+        )
         issue_tracker_used.send(
             plugin=IssueTrackingPlugin(),
             project=project,
             user=user,
-            sender=type(IssueTrackingPlugin))
+            sender=type(IssueTrackingPlugin)
+        )
         plugin_enabled.send(
             plugin=NotificationPlugin(),
             project=project,
             user=user,
-            sender=type(NotificationPlugin))
+            sender=type(NotificationPlugin)
+        )
 
         assert OrganizationOption.objects.filter(
-            organization=self.organization,
-            key="onboarding:complete").count() == 1
+            organization=self.organization, key="onboarding:complete"
+        ).count() == 1

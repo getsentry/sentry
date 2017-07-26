@@ -9,8 +9,9 @@ from .emails import generate_security_email
 logger = logging.getLogger('sentry.security')
 
 
-def capture_security_activity(account, type, actor, ip_address, context=None,
-                              send_email=True, current_datetime=None):
+def capture_security_activity(
+    account, type, actor, ip_address, context=None, send_email=True, current_datetime=None
+):
     if current_datetime is None:
         current_datetime = timezone.now()
 

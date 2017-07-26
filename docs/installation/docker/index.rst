@@ -101,16 +101,15 @@ This value can be put into your ``config.yml``, or as an environment
 variable ``SENTRY_SECRET_KEY``. If putting into ``config.yml``, you
 must rebuild your image.
 
-For all future Sentry command invocations, you just have all the
+For all future Sentry command invocations, you must have all the
 necessary container links, mounted volumes, and the same environment
-variables. If differet components are running with different
+variables. If different components are running with different
 configurations, Sentry will likely have unexpected behaviors.
 
 The base for running commands will look something like::
 
     docker run \
       --detach \
-      --rm \
       --link sentry-redis:redis \
       --link sentry-postgres:postgres \
       --link sentry-smtp:smtp \

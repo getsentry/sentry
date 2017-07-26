@@ -14,7 +14,7 @@ from sqlparse import tokens as T
 
 class ValueFilter(filters.TokenFilter):
     include = (T.String, T.Number)
-    exclude = (T.String.Symbol,)
+    exclude = (T.String.Symbol, )
 
     def process(self, stack, stream):
         for ttype, value in stream:

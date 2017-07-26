@@ -58,12 +58,19 @@ def get_cursor_wrapper(state):
         result = func(self, *args, **kwargs)
 
         return CursorWrapper(result, self, state)
+
     return cursor
 
 
 class SqlQueryCountMonitor(object):
-    def __init__(self, context, max_queries=DEFAULT_MAX_QUERIES,
-                 max_dupes=DEFAULT_MAX_DUPES, logger=None, **kwargs):
+    def __init__(
+        self,
+        context,
+        max_queries=DEFAULT_MAX_QUERIES,
+        max_dupes=DEFAULT_MAX_DUPES,
+        logger=None,
+        **kwargs
+    ):
         self.context = context
         self.max_queries = max_queries
         self.max_dupes = max_dupes
@@ -106,8 +113,9 @@ class SqlQueryCountMonitor(object):
             }
         }
 
-        self.logger.warning('%d duplicate queries executed in %s',
-                            num_dupes, self.context, extra=context)
+        self.logger.warning(
+            '%d duplicate queries executed in %s', num_dupes, self.context, extra=context
+        )
 
     def log_max_queries(self, num_dupes):
         state = self.state
@@ -120,5 +128,4 @@ class SqlQueryCountMonitor(object):
             }
         }
 
-        self.logger.warning('%d queries executed in %s',
-                            state.count, self.context, extra=context)
+        self.logger.warning('%d queries executed in %s', state.count, self.context, extra=context)

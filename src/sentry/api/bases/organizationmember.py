@@ -10,14 +10,11 @@ from .organization import OrganizationEndpoint
 
 class OrganizationMemberEndpoint(OrganizationEndpoint):
     def convert_args(self, request, organization_slug, member_id='me', *args, **kwargs):
-        args, kwargs = super(OrganizationMemberEndpoint, self).convert_args(
-            request, organization_slug
-        )
+        args, kwargs = super(OrganizationMemberEndpoint,
+                             self).convert_args(request, organization_slug)
 
         try:
-            kwargs['member'] = self._get_member(
-                request, kwargs['organization'], member_id
-            )
+            kwargs['member'] = self._get_member(request, kwargs['organization'], member_id)
         except OrganizationMember.DoesNotExist:
             raise ResourceDoesNotExist
 

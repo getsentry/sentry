@@ -10,9 +10,7 @@ from mock import Mock
 
 from sentry.models import ProjectKey
 from sentry.signals import event_accepted, event_dropped, event_filtered
-from sentry.testutils import (
-    assert_mock_called_once_with_partial, TestCase
-)
+from sentry.testutils import (assert_mock_called_once_with_partial, TestCase)
 from sentry.utils import json
 
 
@@ -31,40 +29,45 @@ class CspReportViewTest(TestCase):
         assert resp.status_code == 400, resp.content
 
     def test_missing_csp_report(self):
-        resp = self.client.post(self.path,
-                                content_type='application/csp-report',
-                                data='{"lol":1}',
-                                HTTP_USER_AGENT='awesome',
-                                )
+        resp = self.client.post(
+            self.path,
+            content_type='application/csp-report',
+            data='{"lol":1}',
+            HTTP_USER_AGENT='awesome',
+        )
         assert resp.status_code == 400, resp.content
 
     @mock.patch('sentry.utils.http.get_origins')
     def test_bad_origin(self, get_origins):
         get_origins.return_value = ['example.com']
-        resp = self.client.post(self.path,
-                                content_type='application/csp-report',
-                                data='{"csp-report":{"document-uri":"http://lolnope.com"}}',
-                                HTTP_USER_AGENT='awesome',
-                                )
+        resp = self.client.post(
+            self.path,
+            content_type='application/csp-report',
+            data='{"csp-report":{"document-uri":"http://lolnope.com"}}',
+            HTTP_USER_AGENT='awesome',
+        )
         assert resp.status_code == 403, resp.content
 
         get_origins.return_value = ['*']
-        resp = self.client.post(self.path,
-                                content_type='application/csp-report',
-                                data='{"csp-report":{"document-uri":"about:blank"}}',
-                                HTTP_USER_AGENT='awesome',
-                                )
+        resp = self.client.post(
+            self.path,
+            content_type='application/csp-report',
+            data='{"csp-report":{"document-uri":"about:blank"}}',
+            HTTP_USER_AGENT='awesome',
+        )
         assert resp.status_code == 403, resp.content
 
     @mock.patch('sentry.web.api.is_valid_origin', mock.Mock(return_value=True))
     @mock.patch('sentry.web.api.CspReportView.process')
     def test_post_success(self, process):
         process.return_value = 'ok'
-        resp = self._postCspWithHeader({
-            'document-uri': 'http://example.com',
-            'source-file': 'http://example.com',
-            'effective-directive': 'style-src',
-        })
+        resp = self._postCspWithHeader(
+            {
+                'document-uri': 'http://example.com',
+                'source-file': 'http://example.com',
+                'effective-directive': 'style-src',
+            }
+        )
         assert resp.status_code == 201, resp.content
 
 
@@ -133,11 +136,15 @@ class StoreViewTest(TestCase):
         self.project.update_option('sentry:scrub_ip_address', True)
         body = {
             "message": "foo bar",
-            "sentry.interfaces.User": {"ip_address": "127.0.0.1"},
+            "sentry.interfaces.User": {
+                "ip_address": "127.0.0.1"
+            },
             "sentry.interfaces.Http": {
                 "method": "GET",
                 "url": "http://example.com/",
-                "env": {"REMOTE_ADDR": "127.0.0.1"}
+                "env": {
+                    "REMOTE_ADDR": "127.0.0.1"
+                }
             },
         }
         resp = self._postWithHeader(body)
@@ -153,11 +160,15 @@ class StoreViewTest(TestCase):
         self.project.update_option('sentry:scrub_ip_address', False)
         body = {
             "message": "foo bar",
-            "sentry.interfaces.User": {"ip_address": "127.0.0.1"},
+            "sentry.interfaces.User": {
+                "ip_address": "127.0.0.1"
+            },
             "sentry.interfaces.Http": {
                 "method": "GET",
                 "url": "http://example.com/",
-                "env": {"REMOTE_ADDR": "127.0.0.1"}
+                "env": {
+                    "REMOTE_ADDR": "127.0.0.1"
+                }
             },
         }
         resp = self._postWithHeader(body)
@@ -173,7 +184,9 @@ class StoreViewTest(TestCase):
         self.project.update_option('sentry:scrub_defaults', False)
         body = {
             "message": "foo bar",
-            "sentry.interfaces.User": {"ip_address": "127.0.0.1"},
+            "sentry.interfaces.User": {
+                "ip_address": "127.0.0.1"
+            },
             "sentry.interfaces.Http": {
                 "method": "GET",
                 "url": "http://example.com/",
@@ -192,7 +205,9 @@ class StoreViewTest(TestCase):
         self.project.update_option('sentry:scrub_defaults', False)
         body = {
             "message": "foo bar",
-            "sentry.interfaces.User": {"ip_address": "127.0.0.1"},
+            "sentry.interfaces.User": {
+                "ip_address": "127.0.0.1"
+            },
             "sentry.interfaces.Http": {
                 "method": "GET",
                 "url": "http://example.com/",
@@ -211,7 +226,9 @@ class StoreViewTest(TestCase):
         self.project.update_option('sentry:scrub_defaults', True)
         body = {
             "message": "foo bar",
-            "sentry.interfaces.User": {"ip_address": "127.0.0.1"},
+            "sentry.interfaces.User": {
+                "ip_address": "127.0.0.1"
+            },
             "sentry.interfaces.Http": {
                 "method": "GET",
                 "url": "http://example.com/",
@@ -222,7 +239,8 @@ class StoreViewTest(TestCase):
         assert resp.status_code == 200, (resp.status_code, resp.content)
 
         call_data = mock_insert_data_to_database.call_args[0][0]
-        assert call_data['sentry.interfaces.Http']['data'] == 'password=[Filtered]&foo=1&bar=2&baz=3'
+        assert call_data['sentry.interfaces.Http']['data'
+                                                   ] == 'password=[Filtered]&foo=1&bar=2&baz=3'
 
     @mock.patch('sentry.coreapi.ClientApiHelper.insert_data_to_database')
     def test_scrub_data_sensitive_fields(self, mock_insert_data_to_database):
@@ -231,7 +249,9 @@ class StoreViewTest(TestCase):
         self.project.update_option('sentry:sensitive_fields', ['foo', 'bar'])
         body = {
             "message": "foo bar",
-            "sentry.interfaces.User": {"ip_address": "127.0.0.1"},
+            "sentry.interfaces.User": {
+                "ip_address": "127.0.0.1"
+            },
             "sentry.interfaces.Http": {
                 "method": "GET",
                 "url": "http://example.com/",
@@ -242,7 +262,8 @@ class StoreViewTest(TestCase):
         assert resp.status_code == 200, (resp.status_code, resp.content)
 
         call_data = mock_insert_data_to_database.call_args[0][0]
-        assert call_data['sentry.interfaces.Http']['data'] == 'password=[Filtered]&foo=[Filtered]&bar=[Filtered]&baz=3'
+        assert call_data['sentry.interfaces.Http'
+                         ]['data'] == 'password=[Filtered]&foo=[Filtered]&bar=[Filtered]&baz=3'
 
     @mock.patch('sentry.coreapi.ClientApiHelper.insert_data_to_database')
     def test_scrub_data_org_override(self, mock_insert_data_to_database):
@@ -252,7 +273,9 @@ class StoreViewTest(TestCase):
         self.project.update_option('sentry:scrub_defaults', False)
         body = {
             "message": "foo bar",
-            "sentry.interfaces.User": {"ip_address": "127.0.0.1"},
+            "sentry.interfaces.User": {
+                "ip_address": "127.0.0.1"
+            },
             "sentry.interfaces.Http": {
                 "method": "GET",
                 "url": "http://example.com/",
@@ -263,7 +286,8 @@ class StoreViewTest(TestCase):
         assert resp.status_code == 200, (resp.status_code, resp.content)
 
         call_data = mock_insert_data_to_database.call_args[0][0]
-        assert call_data['sentry.interfaces.Http']['data'] == 'password=[Filtered]&foo=1&bar=2&baz=3'
+        assert call_data['sentry.interfaces.Http']['data'
+                                                   ] == 'password=[Filtered]&foo=1&bar=2&baz=3'
 
     @mock.patch('sentry.coreapi.ClientApiHelper.insert_data_to_database')
     def test_scrub_data_org_override_sensitive_fields(self, mock_insert_data_to_database):
@@ -273,7 +297,9 @@ class StoreViewTest(TestCase):
         self.project.update_option('sentry:sensitive_fields', ['foo', 'bar'])
         body = {
             "message": "foo bar",
-            "sentry.interfaces.User": {"ip_address": "127.0.0.1"},
+            "sentry.interfaces.User": {
+                "ip_address": "127.0.0.1"
+            },
             "sentry.interfaces.Http": {
                 "method": "GET",
                 "url": "http://example.com/",
@@ -284,7 +310,9 @@ class StoreViewTest(TestCase):
         assert resp.status_code == 200, (resp.status_code, resp.content)
 
         call_data = mock_insert_data_to_database.call_args[0][0]
-        assert call_data['sentry.interfaces.Http']['data'] == 'password=[Filtered]&foo=[Filtered]&bar=[Filtered]&baz=[Filtered]'
+        assert call_data['sentry.interfaces.Http'][
+            'data'
+        ] == 'password=[Filtered]&foo=[Filtered]&bar=[Filtered]&baz=[Filtered]'
 
     @mock.patch('sentry.coreapi.ClientApiHelper.insert_data_to_database')
     def test_uses_client_as_sdk(self, mock_insert_data_to_database):
@@ -383,9 +411,11 @@ class CrossDomainXmlTest(TestCase):
         self.assertEquals(resp['Content-Type'], 'application/xml')
         self.assertTemplateUsed(resp, 'sentry/crossdomain.xml')
         assert '<allow-access-from domain="disqus.com" secure="false" />' in resp.content.decode(
-            'utf-8')
+            'utf-8'
+        )
         assert '<allow-access-from domain="www.disqus.com" secure="false" />' in resp.content.decode(
-            'utf-8')
+            'utf-8'
+        )
 
     @mock.patch('sentry.web.api.get_origins')
     def test_output_with_no_origins(self, get_origins):
@@ -403,7 +433,8 @@ class CrossDomainXmlTest(TestCase):
         self.assertEquals(resp['Content-Type'], 'application/xml')
         self.assertTemplateUsed(resp, 'sentry/crossdomain.xml')
         assert '<allow-http-request-headers-from domain="*" headers="*" secure="false" />' in resp.content.decode(
-            'utf-8')
+            'utf-8'
+        )
 
 
 class CrossDomainXmlIndexTest(TestCase):
@@ -417,7 +448,8 @@ class CrossDomainXmlIndexTest(TestCase):
         self.assertEquals(resp['Content-Type'], 'application/xml')
         self.assertTemplateUsed(resp, 'sentry/crossdomain_index.xml')
         assert '<site-control permitted-cross-domain-policies="all" />' in resp.content.decode(
-            'utf-8')
+            'utf-8'
+        )
 
 
 class RobotsTxtTest(TestCase):

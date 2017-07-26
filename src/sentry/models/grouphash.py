@@ -35,7 +35,7 @@ class GroupHash(Model):
     class Meta:
         app_label = 'sentry'
         db_table = 'sentry_grouphash'
-        unique_together = (('project', 'hash'),)
+        unique_together = (('project', 'hash'), )
 
     @staticmethod
     def fetch_last_processed_event_id(project_id, group_hash_ids):

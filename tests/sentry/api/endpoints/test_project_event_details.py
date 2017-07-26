@@ -29,11 +29,14 @@ class ProjectEventDetailsTest(APITestCase):
             datetime=datetime(2013, 8, 13, 3, 8, 26),
         )
 
-        url = reverse('sentry-api-0-project-event-details', kwargs={
-            'event_id': cur_event.event_id,
-            'project_slug': cur_event.project.slug,
-            'organization_slug': cur_event.project.organization.slug,
-        })
+        url = reverse(
+            'sentry-api-0-project-event-details',
+            kwargs={
+                'event_id': cur_event.event_id,
+                'project_slug': cur_event.project.slug,
+                'organization_slug': cur_event.project.organization.slug,
+            }
+        )
         response = self.client.get(url, format='json')
 
         assert response.status_code == 200, response.content

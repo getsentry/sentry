@@ -9,9 +9,11 @@ from django.http import StreamingHttpResponse
 # Python 2 doesn't support unicode with CSV, but Python 3 does via
 # the encoding param
 if six.PY3:
+
     def encode_row(row):
         return row
 else:
+
     def encode_row(row):
         return map(force_bytes, row)
 

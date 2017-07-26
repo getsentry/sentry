@@ -18,8 +18,8 @@ def test_is_active_superuser():
         request.user.is_superuser = True
         assert is_active_superuser(request) is True
 
-    with override_settings(INTERNAL_IPS=('127.0.0.1',)):
+    with override_settings(INTERNAL_IPS=('127.0.0.1', )):
         assert is_active_superuser(request) is False
 
-    with override_settings(INTERNAL_IPS=('10.0.0.1',)):
+    with override_settings(INTERNAL_IPS=('10.0.0.1', )):
         assert is_active_superuser(request) is True

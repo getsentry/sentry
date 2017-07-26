@@ -8,7 +8,6 @@ from sentry.models import GroupTombstone
 
 
 class GroupTombstoneEndpoint(ProjectEndpoint):
-
     def get(self, request, project):
         """
         Retrieve a Project's GroupTombstones
@@ -20,9 +19,7 @@ class GroupTombstoneEndpoint(ProjectEndpoint):
         :pparam string project_id: the ID of the project to get the tombstones for
         :auth: required
         """
-        queryset = GroupTombstone.objects.filter(
-            project=project
-        )
+        queryset = GroupTombstone.objects.filter(project=project)
 
         return self.paginate(
             request=request,

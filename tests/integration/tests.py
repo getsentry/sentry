@@ -19,58 +19,67 @@ from gzip import GzipFile
 from raven import Client
 from six import StringIO
 
-from sentry.models import (
-    Group, GroupTagKey, GroupTagValue, Event, TagKey, TagValue
-)
+from sentry.models import (Group, GroupTagKey, GroupTagValue, Event, TagKey, TagValue)
 from sentry.testutils import TestCase, TransactionTestCase
 from sentry.testutils.helpers import get_auth_header
-from sentry.utils.settings import (
-    validate_settings, ConfigurationError, import_string)
-
+from sentry.utils.settings import (validate_settings, ConfigurationError, import_string)
 
 DEPENDENCY_TEST_DATA = {
-    "postgresql": ('DATABASES', 'psycopg2.extensions', "database engine", "django.db.backends.postgresql_psycopg2", {
-        'default': {
-            'ENGINE': "django.db.backends.postgresql_psycopg2",
-            'NAME': 'test',
-            'USER': 'root',
-            'PASSWORD': '',
-            'HOST': 'localhost',
-            'PORT': ''
+    "postgresql": (
+        'DATABASES', 'psycopg2.extensions', "database engine",
+        "django.db.backends.postgresql_psycopg2", {
+            'default': {
+                'ENGINE': "django.db.backends.postgresql_psycopg2",
+                'NAME': 'test',
+                'USER': 'root',
+                'PASSWORD': '',
+                'HOST': 'localhost',
+                'PORT': ''
+            }
         }
-    }),
-    "mysql": ('DATABASES', 'MySQLdb', "database engine", "django.db.backends.mysql", {
-        'default': {
-            'ENGINE': "django.db.backends.mysql",
-            'NAME': 'test',
-            'USER': 'root',
-            'PASSWORD': '',
-            'HOST': 'localhost',
-            'PORT': ''
+    ),
+    "mysql": (
+        'DATABASES', 'MySQLdb', "database engine", "django.db.backends.mysql", {
+            'default': {
+                'ENGINE': "django.db.backends.mysql",
+                'NAME': 'test',
+                'USER': 'root',
+                'PASSWORD': '',
+                'HOST': 'localhost',
+                'PORT': ''
+            }
         }
-    }),
-    "oracle": ('DATABASES', 'cx_Oracle', "database engine", "django.db.backends.oracle", {
-        'default': {
-            'ENGINE': "django.db.backends.oracle",
-            'NAME': 'test',
-            'USER': 'root',
-            'PASSWORD': '',
-            'HOST': 'localhost',
-            'PORT': ''
+    ),
+    "oracle": (
+        'DATABASES', 'cx_Oracle', "database engine", "django.db.backends.oracle", {
+            'default': {
+                'ENGINE': "django.db.backends.oracle",
+                'NAME': 'test',
+                'USER': 'root',
+                'PASSWORD': '',
+                'HOST': 'localhost',
+                'PORT': ''
+            }
         }
-    }),
-    "memcache": ('CACHES', 'memcache', "caching backend", "django.core.cache.backends.memcached.MemcachedCache", {
-        'default': {
-            'BACKEND': "django.core.cache.backends.memcached.MemcachedCache",
-            'LOCATION': '127.0.0.1:11211',
+    ),
+    "memcache": (
+        'CACHES', 'memcache', "caching backend",
+        "django.core.cache.backends.memcached.MemcachedCache", {
+            'default': {
+                'BACKEND': "django.core.cache.backends.memcached.MemcachedCache",
+                'LOCATION': '127.0.0.1:11211',
+            }
         }
-    }),
-    "pylibmc": ('CACHES', 'pylibmc', "caching backend", "django.core.cache.backends.memcached.PyLibMCCache", {
-        'default': {
-            'BACKEND': "django.core.cache.backends.memcached.PyLibMCCache",
-            'LOCATION': '127.0.0.1:11211',
+    ),
+    "pylibmc": (
+        'CACHES', 'pylibmc', "caching backend", "django.core.cache.backends.memcached.PyLibMCCache",
+        {
+            'default': {
+                'BACKEND': "django.core.cache.backends.memcached.PyLibMCCache",
+                'LOCATION': '127.0.0.1:11211',
+            }
         }
-    }),
+    ),
 }
 
 
@@ -109,27 +118,30 @@ class RavenIntegrationTest(TransactionTestCase):
 
         def remove_handler():
             sentry_errors.handlers.pop(sentry_errors.handlers.index(assert_handler))
+
         self.addCleanup(remove_handler)
 
     def sendRemote(self, url, data, headers={}):
         content_type = headers.pop('Content-Type', None)
-        headers = dict(('HTTP_' + k.replace('-', '_').upper(), v)
-                       for k, v in six.iteritems(headers))
+        headers = dict(
+            ('HTTP_' + k.replace('-', '_').upper(), v) for k, v in six.iteritems(headers)
+        )
         if isinstance(data, six.text_type):
             data = data.encode('utf-8')
         resp = self.client.post(
             reverse('sentry-api-store', args=[self.pk.project_id]),
             data=data,
             content_type=content_type,
-            **headers)
+            **headers
+        )
         assert resp.status_code == 200, resp.content
 
     @mock.patch('raven.base.Client.send_remote')
     def test_basic(self, send_remote):
         send_remote.side_effect = self.sendRemote
         client = Client(
-            dsn='http://%s:%s@localhost:8000/%s' % (
-                self.pk.public_key, self.pk.secret_key, self.pk.project_id)
+            dsn='http://%s:%s@localhost:8000/%s' %
+            (self.pk.public_key, self.pk.secret_key, self.pk.project_id)
         )
 
         with self.tasks():
@@ -161,21 +173,30 @@ class SentryRemoteTest(TestCase):
         assert instance.message == 'hello'
 
         assert TagKey.objects.filter(
-            key='foo', project=self.project,
+            key='foo',
+            project=self.project,
         ).exists()
         assert TagValue.objects.filter(
-            key='foo', value='bar', project=self.project,
+            key='foo',
+            value='bar',
+            project=self.project,
         ).exists()
         assert GroupTagKey.objects.filter(
-            key='foo', group=instance.group_id, project=self.project,
+            key='foo',
+            group=instance.group_id,
+            project=self.project,
         ).exists()
         assert GroupTagValue.objects.filter(
-            key='foo', value='bar', group_id=instance.group_id,
+            key='foo',
+            value='bar',
+            group_id=instance.group_id,
             project_id=self.project.id,
         ).exists()
 
     def test_timestamp(self):
-        timestamp = timezone.now().replace(microsecond=0, tzinfo=timezone.utc) - datetime.timedelta(hours=1)
+        timestamp = timezone.now().replace(
+            microsecond=0, tzinfo=timezone.utc
+        ) - datetime.timedelta(hours=1)
         kwargs = {u'message': 'hello', 'timestamp': timestamp.strftime('%s.%f')}
         resp = self._postWithSignature(kwargs)
         assert resp.status_code == 200, resp.content
@@ -187,7 +208,9 @@ class SentryRemoteTest(TestCase):
         assert group.last_seen == timestamp
 
     def test_timestamp_as_iso(self):
-        timestamp = timezone.now().replace(microsecond=0, tzinfo=timezone.utc) - datetime.timedelta(hours=1)
+        timestamp = timezone.now().replace(
+            microsecond=0, tzinfo=timezone.utc
+        ) - datetime.timedelta(hours=1)
         kwargs = {u'message': 'hello', 'timestamp': timestamp.strftime('%Y-%m-%dT%H:%M:%S.%f')}
         resp = self._postWithSignature(kwargs)
         assert resp.status_code == 200, resp.content
@@ -270,7 +293,8 @@ class SentryRemoteTest(TestCase):
 
         with self.tasks():
             resp = self.client.post(
-                self.path, message,
+                self.path,
+                message,
                 content_type='application/octet-stream',
                 HTTP_CONTENT_ENCODING='deflate',
                 HTTP_X_SENTRY_AUTH=get_auth_header('_postWithHeader', key, secret),
@@ -301,7 +325,8 @@ class SentryRemoteTest(TestCase):
 
         with self.tasks():
             resp = self.client.post(
-                self.path, fp.getvalue(),
+                self.path,
+                fp.getvalue(),
                 content_type='application/octet-stream',
                 HTTP_CONTENT_ENCODING='gzip',
                 HTTP_X_SENTRY_AUTH=get_auth_header('_postWithHeader', key, secret),
@@ -404,13 +429,15 @@ class DepdendencyTest(TestCase):
         def callable(package_name):
             if package_name != package:
                 return import_string(package_name)
-            raise ImportError("No module named %s" % (package,))
+            raise ImportError("No module named %s" % (package, ))
+
         return callable
 
     @mock.patch('django.conf.settings', mock.Mock())
     @mock.patch('sentry.utils.settings.import_string')
-    def validate_dependency(self, key, package, dependency_type, dependency,
-                            setting_value, import_string):
+    def validate_dependency(
+        self, key, package, dependency_type, dependency, setting_value, import_string
+    ):
 
         import_string.side_effect = self.raise_import_error(package)
 

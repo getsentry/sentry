@@ -22,9 +22,7 @@ def get_transaction_id():
 
 
 class RepositorySerializer(serializers.Serializer):
-    status = serializers.ChoiceField(choices=(
-        ('visible', 'visible'),
-    ))
+    status = serializers.ChoiceField(choices=(('visible', 'visible'), ))
 
 
 class OrganizationRepositoryDetailsEndpoint(OrganizationEndpoint):
@@ -94,9 +92,12 @@ class OrganizationRepositoryDetailsEndpoint(OrganizationEndpoint):
                 countdown=countdown,
             )
 
-            delete_logger.info('object.delete.queued', extra={
-                'object_id': repo.id,
-                'transaction_id': transaction_id,
-                'model': Repository.__name__,
-            })
+            delete_logger.info(
+                'object.delete.queued',
+                extra={
+                    'object_id': repo.id,
+                    'transaction_id': transaction_id,
+                    'model': Repository.__name__,
+                }
+            )
         return Response(serialize(repo, request.user), status=202)

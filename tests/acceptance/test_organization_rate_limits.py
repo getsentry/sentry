@@ -14,10 +14,7 @@ class OrganizationRateLimitsTest(AcceptanceTestCase):
             name='Rowdy Tiger',
             owner=None,
         )
-        self.team = self.create_team(
-            organization=self.org,
-            name='Mariachi Band'
-        )
+        self.team = self.create_team(organization=self.org, name='Mariachi Band')
         self.project = self.create_project(
             organization=self.org,
             team=self.team,

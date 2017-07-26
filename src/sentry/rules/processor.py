@@ -69,8 +69,7 @@ class RuleProcessor(object):
             return
 
         condition_inst = condition_cls(self.project, data=condition, rule=rule)
-        return safe_execute(condition_inst.passes, self.event, state,
-                            _with_transaction=False)
+        return safe_execute(condition_inst.passes, self.event, state, _with_transaction=False)
 
     def get_state(self):
         return EventState(
@@ -99,10 +98,7 @@ class RuleProcessor(object):
 
         state = self.get_state()
 
-        condition_iter = (
-            self.condition_matches(c, state, rule)
-            for c in condition_list
-        )
+        condition_iter = (self.condition_matches(c, state, rule) for c in condition_list)
 
         if match == 'all':
             passed = all(condition_iter)
@@ -111,8 +107,7 @@ class RuleProcessor(object):
         elif match == 'none':
             passed = not any(condition_iter)
         else:
-            self.logger.error('Unsupported action_match %r for rule %d',
-                              match, rule.id)
+            self.logger.error('Unsupported action_match %r for rule %d', match, rule.id)
             return
 
         if passed:
@@ -132,16 +127,16 @@ class RuleProcessor(object):
                 continue
 
             action_inst = action_cls(self.project, data=action, rule=rule)
-            results = safe_execute(action_inst.after, event=self.event, state=state,
-                                   _with_transaction=False)
+            results = safe_execute(
+                action_inst.after, event=self.event, state=state, _with_transaction=False
+            )
             if results is None:
                 self.logger.warn('Action %s did not return any futures', action['id'])
                 continue
 
             for future in results:
-                self.futures_by_cb[future.callback].append(
-                    RuleFuture(rule=rule, kwargs=future.kwargs)
-                )
+                self.futures_by_cb[future.callback
+                                   ].append(RuleFuture(rule=rule, kwargs=future.kwargs))
 
     def apply(self):
         self.futures_by_cb = defaultdict(list)

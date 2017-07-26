@@ -47,11 +47,11 @@ def sql_explain(request):
             # SQLite's EXPLAIN dumps the low-level opcodes generated for a query;
             # EXPLAIN QUERY PLAN dumps a more human-readable summary
             # See http://www.sqlite.org/lang_explain.html for details
-            cursor.execute("EXPLAIN QUERY PLAN %s" % (sql,), params)
+            cursor.execute("EXPLAIN QUERY PLAN %s" % (sql, ), params)
         elif vendor == 'postgresql':
-            cursor.execute("EXPLAIN ANALYZE %s" % (sql,), params)
+            cursor.execute("EXPLAIN ANALYZE %s" % (sql, ), params)
         else:
-            cursor.execute("EXPLAIN %s" % (sql,), params)
+            cursor.execute("EXPLAIN %s" % (sql, ), params)
 
         headers = [d[0] for d in cursor.description]
         result = cursor.fetchall()
@@ -86,7 +86,8 @@ def sql_profile(request):
             cursor.execute("SET PROFILING=0")  # Disable profiling
             # The Query ID should always be 1 here but I'll subselect to get
             # the last one just in case...
-            cursor.execute("""
+            cursor.execute(
+                """
   SELECT  *
     FROM  information_schema.profiling
    WHERE  query_id = (
@@ -95,7 +96,8 @@ def sql_profile(request):
         ORDER BY  query_id DESC
            LIMIT  1
         )
-""")
+"""
+            )
             headers = [d[0] for d in cursor.description]
             result = cursor.fetchall()
         except Exception:

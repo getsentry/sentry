@@ -11,7 +11,11 @@ from sentry import options
 from sentry.models import Project
 from sentry.testutils import TestCase
 from sentry.utils.http import (
-    is_same_domain, is_valid_origin, get_origins, absolute_uri, is_valid_ip,
+    is_same_domain,
+    is_valid_origin,
+    get_origins,
+    absolute_uri,
+    is_valid_ip,
     origin_from_request,
 )
 
@@ -21,7 +25,7 @@ class AbsoluteUriTest(TestCase):
         assert absolute_uri() == options.get('system.url-prefix')
 
     def test_with_path(self):
-        assert absolute_uri('/foo/bar') == '%s/foo/bar' % (options.get('system.url-prefix'),)
+        assert absolute_uri('/foo/bar') == '%s/foo/bar' % (options.get('system.url-prefix'), )
 
 
 class SameDomainTestCase(TestCase):

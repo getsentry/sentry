@@ -1,0 +1,25 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`OnboardingWizard render() should render NotFound if no matching organization 1`] = `
+<div
+  className="onboarding-container"
+>
+  <DocumentTitle
+    title="Sentry"
+  />
+  <div
+    className="step-container"
+  >
+    <ProgressNodes
+      params={
+        Object {
+          "orgId": "my-cool-org",
+        }
+      }
+    />
+    <div>
+      <bound renderStep />
+    </div>
+  </div>
+</div>
+`;

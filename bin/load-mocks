@@ -20,10 +20,10 @@ from pytz import utc
 from sentry import buffer, roles
 from sentry.models import (
     Activity, Broadcast, Commit, CommitAuthor, CommitFileChange, Deploy,
-    Environment, File, GroupMeta, GroupRelease, Organization,
+    Environment, File, Group, GroupMeta, GroupRelease, GroupTombstone, Organization,
     OrganizationAccessRequest, OrganizationMember, Project, Release,
-    ReleaseCommit, ReleaseEnvironment, ReleaseFile, Repository, Team, User,
-    UserReport
+    ReleaseCommit, ReleaseEnvironment, ReleaseFile, Repository, Team,
+    TOMBSTONE_FIELDS_FROM_GROUP, User, UserReport
 )
 from sentry.signals import mocks_loaded
 from sentry.similarity import features
@@ -97,6 +97,27 @@ def generate_commits(user):
             ],
         })
     return commits
+
+
+def generate_tombstones(project, user):
+    # attempt to create a high enough previous_group_id
+    # that it won't conflict with any group ids
+    prev_group_id = 100000
+    try:
+        prev_group_id = max(
+            GroupTombstone.objects.order_by('-previous_group_id')[0].previous_group_id,
+            prev_group_id
+        ) + 1
+    except IndexError:
+        pass
+
+    for group in Group.objects.filter(project=project)[:5]:
+        GroupTombstone.objects.create(
+            previous_group_id=prev_group_id,
+            actor_id=user.id,
+            **{name: getattr(group, name) for name in TOMBSTONE_FIELDS_FROM_GROUP}
+        )
+        prev_group_id += 1
 
 
 def create_system_time_series():
@@ -347,6 +368,8 @@ def main(num_events=1, extra_events=False):
                             organization_id=project.organization_id
                         )
                     release.add_project(project)
+
+            generate_tombstones(project, user)
 
             raw_commits = generate_commits(user)
 

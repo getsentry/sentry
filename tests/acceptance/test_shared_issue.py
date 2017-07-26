@@ -11,14 +11,8 @@ class SharedIssueTest(AcceptanceTestCase):
     def setUp(self):
         super(SharedIssueTest, self).setUp()
         self.user = self.create_user('foo@example.com')
-        self.org = self.create_organization(
-            owner=self.user,
-            name='Rowdy Tiger'
-        )
-        self.team = self.create_team(
-            organization=self.org,
-            name='Mariachi Band'
-        )
+        self.org = self.create_organization(owner=self.user, name='Rowdy Tiger')
+        self.team = self.create_team(organization=self.org, name='Mariachi Band')
         self.project = self.create_project(
             organization=self.org,
             team=self.team,
@@ -44,8 +38,6 @@ class SharedIssueTest(AcceptanceTestCase):
             platform='cocoa',
         )
 
-        self.browser.get('/share/issue/{}/'.format(
-            event.group.get_share_id()
-        ))
+        self.browser.get('/share/issue/{}/'.format(event.group.get_share_id()))
         self.browser.wait_until('.entries')
         self.browser.snapshot('shared issue cocoa')

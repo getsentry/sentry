@@ -44,7 +44,9 @@ class StoreTasksTest(PluginTestCase):
             'project': project.id,
             'platform': 'mattlang',
             'message': 'test',
-            'extra': {'foo': 'bar'},
+            'extra': {
+                'foo': 'bar'
+            },
         }
 
         preprocess_event(data=data)
@@ -61,7 +63,9 @@ class StoreTasksTest(PluginTestCase):
             'project': project.id,
             'platform': 'NOTMATTLANG',
             'message': 'test',
-            'extra': {'foo': 'bar'},
+            'extra': {
+                'foo': 'bar'
+            },
         }
 
         preprocess_event(data=data)
@@ -78,7 +82,9 @@ class StoreTasksTest(PluginTestCase):
             'project': project.id,
             'platform': 'mattlang',
             'message': 'test',
-            'extra': {'foo': 'bar'},
+            'extra': {
+                'foo': 'bar'
+            },
         }
 
         mock_default_cache.get.return_value = data
@@ -87,11 +93,13 @@ class StoreTasksTest(PluginTestCase):
 
         # The event mutated, so make sure we save it back
         mock_default_cache.set.assert_called_once_with(
-            'e:1', {
+            'e:1',
+            {
                 'project': project.id,
                 'platform': 'mattlang',
                 'message': 'test',
-            }, 3600,
+            },
+            3600,
         )
 
         mock_save_event.delay.assert_called_once_with(
@@ -107,7 +115,9 @@ class StoreTasksTest(PluginTestCase):
             'project': project.id,
             'platform': 'noop',
             'message': 'test',
-            'extra': {'foo': 'bar'},
+            'extra': {
+                'foo': 'bar'
+            },
         }
 
         mock_default_cache.get.return_value = data
@@ -130,7 +140,9 @@ class StoreTasksTest(PluginTestCase):
             'project': project.id,
             'platform': 'holdmeclose',
             'message': 'test',
-            'extra': {'foo': 'bar'},
+            'extra': {
+                'foo': 'bar'
+            },
         }
 
         mock_default_cache.get.return_value = data
@@ -142,7 +154,9 @@ class StoreTasksTest(PluginTestCase):
                 'project': project.id,
                 'platform': 'holdmeclose',
                 'message': 'test',
-                'extra': {'foo': 'bar'},
+                'extra': {
+                    'foo': 'bar'
+                },
                 'unprocessed': True,
             }, 3600
         )

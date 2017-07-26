@@ -50,8 +50,7 @@ class BasePaginator(object):
             if self.key in queryset.query.order_by:
                 if not asc:
                     index = queryset.query.order_by.index(self.key)
-                    queryset.query.order_by[index] = '-%s' % (
-                        queryset.query.order_by[index])
+                    queryset.query.order_by[index] = '-%s' % (queryset.query.order_by[index])
             elif ('-%s' % self.key) in queryset.query.order_by:
                 if asc:
                     index = queryset.query.order_by.index('-%s' % (self.key))
@@ -73,14 +72,12 @@ class BasePaginator(object):
 
             if asc:
                 queryset = queryset.extra(
-                    where=['%s.%s >= %%s' %
-                           (queryset.model._meta.db_table, col_query,)],
+                    where=['%s.%s >= %%s' % (queryset.model._meta.db_table, col_query, )],
                     params=col_params,
                 )
             else:
                 queryset = queryset.extra(
-                    where=['%s.%s <= %%s' %
-                           (queryset.model._meta.db_table, col_query,)],
+                    where=['%s.%s <= %%s' % (queryset.model._meta.db_table, col_query, )],
                     params=col_params,
                 )
 
@@ -176,9 +173,9 @@ class DateTimePaginator(BasePaginator):
         return math.floor(value)
 
     def value_from_cursor(self, cursor):
-        return datetime.fromtimestamp(
-            float(cursor.value) / self.multiplier
-        ).replace(tzinfo=timezone.utc)
+        return datetime.fromtimestamp(float(cursor.value) / self.multiplier).replace(
+            tzinfo=timezone.utc
+        )
 
 
 # TODO(dcramer): previous cursors are too complex at the moment for many things

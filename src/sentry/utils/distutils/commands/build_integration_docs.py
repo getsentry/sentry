@@ -13,8 +13,7 @@ class BuildIntegrationDocsCommand(BaseBuildCommand):
     def get_dist_paths(self):
         return [
             # Also see sentry.utils.integrationdocs.DOC_FOLDER
-            os.path.join(self.get_root_path(),
-                         'src', 'sentry', 'integration-docs'),
+            os.path.join(self.get_root_path(), 'src', 'sentry', 'integration-docs'),
         ]
 
     def _build(self):

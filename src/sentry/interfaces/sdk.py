@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-__all__ = ('Sdk',)
+__all__ = ('Sdk', )
 
 from distutils.version import LooseVersion
 from django.conf import settings
@@ -39,6 +39,7 @@ class Sdk(Interface):
     >>>     "integrations": ["log4j"]
     >>> }
     """
+
     @classmethod
     def to_python(cls, data):
         name = data.get('name')

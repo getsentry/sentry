@@ -10,10 +10,18 @@ import {t, tct} from '../../locale';
 
 const ProjectInstallPlatform = React.createClass({
   propTypes: {
-    platformData: React.PropTypes.object.isRequired
+    platformData: React.PropTypes.object.isRequired,
+    linkPath: React.PropTypes.func
   },
 
   mixins: [ApiMixin],
+
+  getDefaultProps() {
+    return {
+      linkPath: (orgId, projectId, platform) =>
+        `/${orgId}/${projectId}/settings/install/${platform}/`
+    };
+  },
 
   getInitialState(props) {
     props = props || this.props;
@@ -80,11 +88,9 @@ const ProjectInstallPlatform = React.createClass({
 
   getPlatformLink(platform, display) {
     let {orgId, projectId} = this.props.params;
+    let path = this.props.linkPath(orgId, projectId, platform);
     return (
-      <Link
-        key={platform}
-        to={`/${orgId}/${projectId}/settings/install/${platform}/`}
-        className="list-group-item">
+      <Link key={platform} to={path} className="list-group-item">
         {display || platform}
       </Link>
     );

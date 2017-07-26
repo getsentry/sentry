@@ -11,6 +11,7 @@ except ImportError:
 def _identity(x):
     return x
 
+
 if six.PY2:
     # https://github.com/pallets/werkzeug/blob/master/werkzeug/_compat.py
     def implements_to_string(cls):

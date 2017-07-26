@@ -86,20 +86,12 @@ def resolved_in_commit(instance, created, **kwargs):
 
 
 post_save.connect(
-    resolve_group_resolutions,
-    sender=Release,
-    dispatch_uid="resolve_group_resolutions",
-    weak=False
+    resolve_group_resolutions, sender=Release, dispatch_uid="resolve_group_resolutions", weak=False
 )
-
 
 post_save.connect(
-    ensure_release_exists,
-    sender=TagValue,
-    dispatch_uid="ensure_release_exists",
-    weak=False
+    ensure_release_exists, sender=TagValue, dispatch_uid="ensure_release_exists", weak=False
 )
-
 
 post_save.connect(
     resolved_in_commit,

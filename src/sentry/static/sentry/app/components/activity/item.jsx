@@ -125,7 +125,7 @@ const ActivityItem = React.createClass({
             {
               author: author,
               count: data.ignoreCount,
-              interval: <Duration seconds={data.ignoreWindow * 3600} />,
+              duration: <Duration seconds={data.ignoreWindow * 3600} />,
               issue: issueLink
             }
           );
@@ -141,7 +141,7 @@ const ActivityItem = React.createClass({
             {
               author: author,
               count: data.ignoreUserCount,
-              interval: <Duration seconds={data.ignoreUserWindow * 3600} />,
+              duration: <Duration seconds={data.ignoreUserWindow * 3600} />,
               issue: issueLink
             }
           );

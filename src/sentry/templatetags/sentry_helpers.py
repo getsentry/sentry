@@ -36,9 +36,11 @@ from six.moves import range
 from six.moves.urllib.parse import quote
 
 SentryVersion = namedtuple('SentryVersion', [
-    'current', 'latest', 'update_available', 'build',
+    'current',
+    'latest',
+    'update_available',
+    'build',
 ])
-
 
 register = template.Library()
 
@@ -57,6 +59,7 @@ def multiply(x, y):
             return int(value)
         except ValueError:
             return float(value)
+
     return coerce(x) * coerce(y)
 
 
@@ -85,9 +88,10 @@ def pprint(value, break_after=10):
     """
 
     value = to_unicode(value)
-    return mark_safe(u'<span></span>'.join(
-        [escape(value[i:(i + break_after)]) for i in range(0, len(value), break_after)]
-    ))
+    return mark_safe(
+        u'<span></span>'.
+        join([escape(value[i:(i + break_after)]) for i in range(0, len(value), break_after)])
+    )
 
 
 @register.filter
@@ -176,9 +180,7 @@ def get_sentry_version(context):
     update_available = Version(latest) > Version(current)
     build = sentry.__build__ or current
 
-    context['sentry_version'] = SentryVersion(
-        current, latest, update_available, build
-    )
+    context['sentry_version'] = SentryVersion(current, latest, update_available, build)
     return ''
 
 
@@ -233,9 +235,16 @@ def date(dt, arg=None):
     return date(dt, arg)
 
 
-@tag(register, [Constant('for'), Variable('user'),
-                Constant('from'), Variable('project'),
-                Constant('as'), Name('asvar')])
+@tag(
+    register, [
+        Constant('for'),
+        Variable('user'),
+        Constant('from'),
+        Variable('project'),
+        Constant('as'),
+        Name('asvar')
+    ]
+)
 def get_project_dsn(context, user, project, asvar):
     from sentry.models import ProjectKey
 
@@ -263,10 +272,12 @@ def with_metadata(group_list, request):
     group_list = list(group_list)
     if request.user.is_authenticated() and group_list:
         project = group_list[0].project
-        bookmarks = set(project.bookmark_set.filter(
-            user=request.user,
-            group__in=group_list,
-        ).values_list('group_id', flat=True))
+        bookmarks = set(
+            project.bookmark_set.filter(
+                user=request.user,
+                group__in=group_list,
+            ).values_list('group_id', flat=True)
+        )
     else:
         bookmarks = set()
 
@@ -359,10 +370,7 @@ def format_userinfo(user):
         username = user.username
     else:
         username = parts[0].lower()
-    return mark_safe('<span title="%s">%s</span>' % (
-        escape(user.username),
-        escape(username),
-    ))
+    return mark_safe('<span title="%s">%s</span>' % (escape(user.username), escape(username), ))
 
 
 @register.filter

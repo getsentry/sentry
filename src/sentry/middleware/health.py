@@ -27,7 +27,13 @@ class HealthCheck(object):
         results = {check: filter(threshold, problems) for check, problems in check_all().items()}
         problems = list(itertools.chain.from_iterable(results.values()))
 
-        return HttpResponse(json.dumps({
-            'problems': [six.text_type(p) for p in problems],
-            'healthy': {type(check).__name__: not p for check, p in results.items()},
-        }), content_type='application/json', status=(500 if problems else 200))
+        return HttpResponse(
+            json.dumps(
+                {
+                    'problems': [six.text_type(p) for p in problems],
+                    'healthy': {type(check).__name__: not p for check, p in results.items()},
+                }
+            ),
+            content_type='application/json',
+            status=(500 if problems else 200)
+        )

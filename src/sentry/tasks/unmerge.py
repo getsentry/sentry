@@ -12,10 +12,10 @@ from sentry.event_manager import (
     ScoreClause, generate_culprit, get_hashes_for_event, md5_from_hash
 )
 from sentry.models import (
-    Activity, Environment, Event, EventMapping, EventTag, EventUser, Group,
-    GroupHash, GroupRelease, GroupTagKey, GroupTagValue, Project, Release,
-    UserReport
+    Activity, Environment, Event, EventMapping, EventTag, EventUser, Group, GroupHash, GroupRelease,
+    GroupTagKey, GroupTagValue, Project, Release, UserReport
 )
+from sentry.similarity import features
 from sentry.tasks.base import instrumented_task
 
 
@@ -235,31 +235,33 @@ def migrate_events(caches, project, source_id, destination_id, fingerprints, eve
     return destination.id
 
 
-def truncate_denormalizations(group_id):
+def truncate_denormalizations(group):
     GroupTagKey.objects.filter(
-        group_id=group_id,
+        group_id=group.id,
     ).delete()
 
     GroupTagValue.objects.filter(
-        group_id=group_id,
+        group_id=group.id,
     ).delete()
 
     GroupRelease.objects.filter(
-        group_id=group_id,
+        group_id=group.id,
     ).delete()
 
     tsdb.delete([
         tsdb.models.group,
-    ], [group_id])
+    ], [group.id])
 
     tsdb.delete_distinct_counts([
         tsdb.models.users_affected_by_group,
-    ], [group_id])
+    ], [group.id])
 
     tsdb.delete_frequencies([
         tsdb.models.frequent_releases_by_group,
         tsdb.models.frequent_environments_by_group,
-    ], [group_id])
+    ], [group.id])
+
+    features.delete(group)
 
 
 def collect_tag_data(events):
@@ -333,9 +335,7 @@ def collect_release_data(caches, project, events):
             continue
 
         key = (
-            event.group_id,
-            get_environment(event),
-            caches['Release'](
+            event.group_id, get_environment(event), caches['Release'](
                 project.organization_id,
                 release,
             ).id,
@@ -412,7 +412,8 @@ def collect_tsdb_data(caches, project, events):
             get_environment(event),
         )
 
-        frequencies[event.datetime][tsdb.models.frequent_environments_by_group][event.group_id][environment.id] += 1
+        frequencies[event.datetime][tsdb.models.frequent_environments_by_group
+                                    ][event.group_id][environment.id] += 1
 
         release = event.get_tag('sentry:release')
         if release:
@@ -427,7 +428,8 @@ def collect_tsdb_data(caches, project, events):
                 ).id,
             )
 
-            frequencies[event.datetime][tsdb.models.frequent_releases_by_group][event.group_id][grouprelease.id] += 1
+            frequencies[event.datetime][tsdb.models.frequent_releases_by_group
+                                        ][event.group_id][grouprelease.id] += 1
 
     return counters, sets, frequencies
 
@@ -454,6 +456,9 @@ def repair_denormalizations(caches, project, events):
     repair_tag_data(caches, project, events)
     repair_group_release_data(caches, project, events)
     repair_tsdb_data(caches, project, events)
+
+    for event in events:
+        features.record(event)
 
 
 def update_tag_value_counts(id_list):
@@ -497,34 +502,35 @@ def unlock_hashes(project_id, fingerprints):
 
 @instrumented_task(name='sentry.tasks.unmerge', queue='unmerge')
 def unmerge(
-        project_id,
-        source_id,
-        destination_id,
-        fingerprints,
-        actor_id,
-        cursor=None,
-        batch_size=500,
-        source_fields_reset=False):
+    project_id,
+    source_id,
+    destination_id,
+    fingerprints,
+    actor_id,
+    cursor=None,
+    batch_size=500,
+    source_fields_reset=False
+):
     # XXX: The queryset chunking logic below is awfully similar to
     # ``RangeQuerySetWrapper``. Ideally that could be refactored to be able to
     # be run without iteration by passing around a state object and we could
     # just use that here instead.
+
+    source = Group.objects.get(
+        project_id=project_id,
+        id=source_id,
+    )
 
     # On the first iteration of this loop, we clear out all of the
     # denormalizations from the source group so that we can have a clean slate
     # for the new, repaired data.
     if cursor is None:
         fingerprints = lock_hashes(project_id, source_id, fingerprints)
-        truncate_denormalizations(source_id)
+        truncate_denormalizations(source)
 
     caches = get_caches()
 
     project = caches['Project'](project_id)
-
-    source = Group.objects.get(
-        project_id=project_id,
-        id=source_id,
-    )
 
     # We fetch the events in descending order by their primary key to get the
     # best approximation of the most recently received events.
@@ -550,25 +556,22 @@ def unmerge(
     destination_events = []
 
     for event in events:
-        (destination_events if get_fingerprint(event) in fingerprints else source_events).append(event)
+        (destination_events
+         if get_fingerprint(event) in fingerprints else source_events).append(event)
 
     if source_events:
         if not source_fields_reset:
-            source.update(
-                **get_group_creation_attributes(
-                    caches,
-                    source_events,
-                )
-            )
+            source.update(**get_group_creation_attributes(
+                caches,
+                source_events,
+            ))
             source_fields_reset = True
         else:
-            source.update(
-                **get_group_backfill_attributes(
-                    caches,
-                    source,
-                    source_events,
-                )
-            )
+            source.update(**get_group_backfill_attributes(
+                caches,
+                source,
+                source_events,
+            ))
 
     destination_id = migrate_events(
         caches,

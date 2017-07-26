@@ -4,7 +4,7 @@ from sentry.interfaces.base import Interface
 from sentry.interfaces.stacktrace import Stacktrace
 from sentry.utils.safe import trim
 
-__all__ = ('Threads',)
+__all__ = ('Threads', )
 
 
 def get_stacktrace(value, raw=False):
@@ -23,15 +23,16 @@ class Threads(Interface):
         threads = []
 
         for thread in data.get('values') or ():
-            threads.append({
-                'stacktrace': get_stacktrace(thread.get('stacktrace')),
-                'raw_stacktrace': get_stacktrace(thread.get('raw_stacktrace'),
-                                                 raw=True),
-                'id': trim(thread.get('id'), 40),
-                'crashed': bool(thread.get('crashed')),
-                'current': bool(thread.get('current')),
-                'name': trim(thread.get('name'), 200),
-            })
+            threads.append(
+                {
+                    'stacktrace': get_stacktrace(thread.get('stacktrace')),
+                    'raw_stacktrace': get_stacktrace(thread.get('raw_stacktrace'), raw=True),
+                    'id': trim(thread.get('id'), 40),
+                    'crashed': bool(thread.get('crashed')),
+                    'current': bool(thread.get('current')),
+                    'name': trim(thread.get('name'), 200),
+                }
+            )
 
         return cls(values=threads)
 
@@ -65,11 +66,9 @@ class Threads(Interface):
                 'rawStacktrace': None,
             }
             if data['stacktrace']:
-                rv['stacktrace'] = data['stacktrace'].get_api_context(
-                    is_public=is_public)
+                rv['stacktrace'] = data['stacktrace'].get_api_context(is_public=is_public)
             if data['raw_stacktrace']:
-                rv['rawStacktrace'] = data['raw_stacktrace'].get_api_context(
-                    is_public=is_public)
+                rv['rawStacktrace'] = data['raw_stacktrace'].get_api_context(is_public=is_public)
             return rv
 
         return {

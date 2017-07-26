@@ -34,10 +34,13 @@ class ProjectSearchListTest(APITestCase):
             query='',
         )
 
-        url = reverse('sentry-api-0-project-searches', kwargs={
-            'organization_slug': project1.organization.slug,
-            'project_slug': project1.slug,
-        })
+        url = reverse(
+            'sentry-api-0-project-searches',
+            kwargs={
+                'organization_slug': project1.organization.slug,
+                'project_slug': project1.slug,
+            }
+        )
         response = self.client.get(url, format='json')
 
         assert response.status_code == 200, response.content
@@ -53,14 +56,14 @@ class ProjectSearchCreateTest(APITestCase):
         team = self.create_team()
         project = self.create_project(team=team, name='foo')
 
-        url = reverse('sentry-api-0-project-searches', kwargs={
-            'organization_slug': project.organization.slug,
-            'project_slug': project.slug,
-        })
-        response = self.client.post(url, data={
-            'name': 'ignored',
-            'query': 'is:ignored'
-        })
+        url = reverse(
+            'sentry-api-0-project-searches',
+            kwargs={
+                'organization_slug': project.organization.slug,
+                'project_slug': project.slug,
+            }
+        )
+        response = self.client.post(url, data={'name': 'ignored', 'query': 'is:ignored'})
 
         assert response.status_code == 201, response.content
         assert response.data['id']
@@ -79,15 +82,15 @@ class ProjectSearchCreateTest(APITestCase):
 
         SavedSearch.objects.create(name='ignored', project=project, query='')
 
-        url = reverse('sentry-api-0-project-searches', kwargs={
-            'organization_slug': project.organization.slug,
-            'project_slug': project.slug,
-        })
+        url = reverse(
+            'sentry-api-0-project-searches',
+            kwargs={
+                'organization_slug': project.organization.slug,
+                'project_slug': project.slug,
+            }
+        )
 
-        response = self.client.post(url, data={
-            'name': 'ignored',
-            'query': 'is:ignored'
-        })
+        response = self.client.post(url, data={'name': 'ignored', 'query': 'is:ignored'})
 
         assert response.status_code == 400, response.content
 
@@ -97,15 +100,20 @@ class ProjectSearchCreateTest(APITestCase):
         team = self.create_team()
         project = self.create_project(team=team, name='foo')
 
-        url = reverse('sentry-api-0-project-searches', kwargs={
-            'organization_slug': project.organization.slug,
-            'project_slug': project.slug,
-        })
-        response = self.client.post(url, data={
-            'name': 'ignored',
-            'query': 'is:ignored',
-            'isDefault': True,
-        })
+        url = reverse(
+            'sentry-api-0-project-searches',
+            kwargs={
+                'organization_slug': project.organization.slug,
+                'project_slug': project.slug,
+            }
+        )
+        response = self.client.post(
+            url, data={
+                'name': 'ignored',
+                'query': 'is:ignored',
+                'isDefault': True,
+            }
+        )
 
         assert response.status_code == 201, response.content
         assert response.data['id']
@@ -128,15 +136,20 @@ class ProjectSearchCreateTest(APITestCase):
         team = self.create_team()
         project = self.create_project(team=team, name='foo')
 
-        url = reverse('sentry-api-0-project-searches', kwargs={
-            'organization_slug': project.organization.slug,
-            'project_slug': project.slug,
-        })
-        response = self.client.post(url, data={
-            'name': 'ignored',
-            'query': 'is:ignored',
-            'isUserDefault': True,
-        })
+        url = reverse(
+            'sentry-api-0-project-searches',
+            kwargs={
+                'organization_slug': project.organization.slug,
+                'project_slug': project.slug,
+            }
+        )
+        response = self.client.post(
+            url, data={
+                'name': 'ignored',
+                'query': 'is:ignored',
+                'isUserDefault': True,
+            }
+        )
 
         assert response.status_code == 201, response.content
         assert response.data['id']

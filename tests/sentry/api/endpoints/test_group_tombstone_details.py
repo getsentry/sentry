@@ -6,17 +6,10 @@ from sentry.testutils import APITestCase
 
 
 class GroupTombstoneDetailsTest(APITestCase):
-
     def test_delete(self):
         self.user = self.create_user('foo@example.com')
-        self.org = self.create_organization(
-            owner=self.user,
-            name='Rowdy Tiger'
-        )
-        self.team = self.create_team(
-            organization=self.org,
-            name='Mariachi Band'
-        )
+        self.org = self.create_organization(owner=self.user, name='Rowdy Tiger')
+        self.team = self.create_team(organization=self.org, name='Mariachi Band')
         self.project = self.create_project(
             organization=self.org,
             team=self.team,
@@ -40,13 +33,14 @@ class GroupTombstoneDetailsTest(APITestCase):
             group_tombstone_id=tombstone.id,
         )
         assert GroupHash.objects.filter(group_tombstone_id=tombstone.id).exists()
-        path = reverse('sentry-api-0-group-tombstone-details',
-                       kwargs={
-                           'organization_slug': self.org.slug,
-                           'project_slug': self.project.slug,
-                           'tombstone_id': tombstone.id,
-                       }
-                       )
+        path = reverse(
+            'sentry-api-0-group-tombstone-details',
+            kwargs={
+                'organization_slug': self.org.slug,
+                'project_slug': self.project.slug,
+                'tombstone_id': tombstone.id,
+            }
+        )
         response = self.client.delete(path)
 
         assert response.status_code == 204, response
@@ -54,14 +48,8 @@ class GroupTombstoneDetailsTest(APITestCase):
 
     def test_dont_delete_from_other_proj(self):
         self.user = self.create_user('foo@example.com')
-        self.org = self.create_organization(
-            owner=self.user,
-            name='Rowdy Tiger'
-        )
-        self.team = self.create_team(
-            organization=self.org,
-            name='Mariachi Band'
-        )
+        self.org = self.create_organization(owner=self.user, name='Rowdy Tiger')
+        self.team = self.create_team(organization=self.org, name='Mariachi Band')
         self.project = self.create_project(
             organization=self.org,
             team=self.team,
@@ -92,13 +80,14 @@ class GroupTombstoneDetailsTest(APITestCase):
             group_tombstone_id=tombstone.id,
         )
         assert GroupHash.objects.filter(group_tombstone_id=tombstone.id).exists()
-        path = reverse('sentry-api-0-group-tombstone-details',
-                       kwargs={
-                           'organization_slug': self.org.slug,
-                           'project_slug': self.other_project.slug,
-                           'tombstone_id': tombstone.id,
-                       }
-                       )
+        path = reverse(
+            'sentry-api-0-group-tombstone-details',
+            kwargs={
+                'organization_slug': self.org.slug,
+                'project_slug': self.other_project.slug,
+                'tombstone_id': tombstone.id,
+            }
+        )
         response = self.client.delete(path)
 
         assert response.status_code == 404, response

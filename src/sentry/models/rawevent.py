@@ -10,9 +10,7 @@ from __future__ import absolute_import
 from django.db import models
 from django.utils import timezone
 
-from sentry.db.models import (
-    BaseManager, Model, NodeField, FlexibleForeignKey, sane_repr
-)
+from sentry.db.models import (BaseManager, Model, NodeField, FlexibleForeignKey, sane_repr)
 
 
 class RawEvent(Model):
@@ -33,6 +31,6 @@ class RawEvent(Model):
     class Meta:
         app_label = 'sentry'
         db_table = 'sentry_rawevent'
-        unique_together = (('project', 'event_id'),)
+        unique_together = (('project', 'event_id'), )
 
     __repr__ = sane_repr('project_id')

@@ -21,13 +21,17 @@ from sentry.utils import json
 
 
 def react_plugin_config(plugin, project, request):
-    response = client.get('/projects/{}/{}/plugins/{}/'.format(
-        project.organization.slug,
-        project.slug,
-        plugin.slug,
-    ), request=request)
+    response = client.get(
+        '/projects/{}/{}/plugins/{}/'.format(
+            project.organization.slug,
+            project.slug,
+            plugin.slug,
+        ),
+        request=request
+    )
 
-    return mark_safe("""
+    return mark_safe(
+        """
     <div id="ref-plugin-config"></div>
     <script>
     $(function(){
@@ -39,10 +43,11 @@ def react_plugin_config(plugin, project, request):
     });
     </script>
     """ % (
-        json.dumps_htmlsafe(serialize(project, request.user)),
-        json.dumps_htmlsafe(serialize(project.organization, request.user)),
-        json.dumps_htmlsafe(response.data)
-    ))
+            json.dumps_htmlsafe(serialize(project, request.user)),
+            json.dumps_htmlsafe(serialize(project.organization, request.user)),
+            json.dumps_htmlsafe(response.data)
+        )
+    )
 
 
 def default_plugin_config(plugin, project, request):
@@ -55,8 +60,9 @@ def default_plugin_config(plugin, project, request):
     template = plugin.get_conf_template(project)
 
     if form_class is None:
-        return HttpResponseRedirect(reverse(
-            'sentry-manage-project', args=[project.organization.slug, project.slug]))
+        return HttpResponseRedirect(
+            reverse('sentry-manage-project', args=[project.organization.slug, project.slug])
+        )
 
     test_results = None
 
@@ -75,8 +81,7 @@ def default_plugin_config(plugin, project, request):
                 elif hasattr(exc, 'read') and callable(exc.read):
                     test_results = '%s\n%s' % (exc, exc.read()[:256])
                 else:
-                    logging.exception('Plugin(%s) raised an error during test',
-                                      plugin_key)
+                    logging.exception('Plugin(%s) raised an error during test', plugin_key)
                     test_results = 'There was an internal error with the Plugin'
             if not test_results:
                 test_results = 'No errors returned'
@@ -89,8 +94,8 @@ def default_plugin_config(plugin, project, request):
                     options.set(key, value)
 
             messages.add_message(
-                request, messages.SUCCESS,
-                _('Your settings were saved successfully.'))
+                request, messages.SUCCESS, _('Your settings were saved successfully.')
+            )
             return HttpResponseRedirect(request.path)
 
     # TODO(mattrobenolt): Reliably determine if a plugin is configured
@@ -100,14 +105,19 @@ def default_plugin_config(plugin, project, request):
     #     is_configured = True
     is_configured = True
 
-    return mark_safe(render_to_string(template, {
-        'form': form,
-        'request': request,
-        'plugin': plugin,
-        'plugin_description': plugin.get_description() or '',
-        'plugin_test_results': test_results,
-        'plugin_is_configured': is_configured,
-    }, context_instance=RequestContext(request)))
+    return mark_safe(
+        render_to_string(
+            template, {
+                'form': form,
+                'request': request,
+                'plugin': plugin,
+                'plugin_description': plugin.get_description() or '',
+                'plugin_test_results': test_results,
+                'plugin_is_configured': is_configured,
+            },
+            context_instance=RequestContext(request)
+        )
+    )
 
 
 def default_issue_plugin_config(plugin, project, form_data):

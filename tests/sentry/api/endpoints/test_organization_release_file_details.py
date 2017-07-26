@@ -30,11 +30,14 @@ class ReleaseFileDetailsTest(APITestCase):
             name='http://example.com/application.js'
         )
 
-        url = reverse('sentry-api-0-organization-release-file-details', kwargs={
-            'organization_slug': project.organization.slug,
-            'version': release.version,
-            'file_id': releasefile.id,
-        })
+        url = reverse(
+            'sentry-api-0-organization-release-file-details',
+            kwargs={
+                'organization_slug': project.organization.slug,
+                'version': release.version,
+                'file_id': releasefile.id,
+            }
+        )
 
         response = self.client.get(url)
 
@@ -67,11 +70,14 @@ class ReleaseFileDetailsTest(APITestCase):
             name='  http://example.com/appli\n\rcatios n.js\n\n\r  '
         )
 
-        url = reverse('sentry-api-0-organization-release-file-details', kwargs={
-            'organization_slug': project.organization.slug,
-            'version': release.version,
-            'file_id': releasefile.id,
-        })
+        url = reverse(
+            'sentry-api-0-organization-release-file-details',
+            kwargs={
+                'organization_slug': project.organization.slug,
+                'version': release.version,
+                'file_id': releasefile.id,
+            }
+        )
 
         response = self.client.get(url + '?download=1')
         assert response.status_code == 200, response.content
@@ -108,11 +114,14 @@ class ReleaseFileUpdateTest(APITestCase):
             name='http://example.com/application.js'
         )
 
-        url = reverse('sentry-api-0-organization-release-file-details', kwargs={
-            'organization_slug': project.organization.slug,
-            'version': release.version,
-            'file_id': releasefile.id,
-        })
+        url = reverse(
+            'sentry-api-0-organization-release-file-details',
+            kwargs={
+                'organization_slug': project.organization.slug,
+                'version': release.version,
+                'file_id': releasefile.id,
+            }
+        )
 
         response = self.client.put(url, {
             'name': 'foobar',
@@ -149,11 +158,14 @@ class ReleaseFileDeleteTest(APITestCase):
             name='http://example.com/application.js'
         )
 
-        url = reverse('sentry-api-0-organization-release-file-details', kwargs={
-            'organization_slug': project.organization.slug,
-            'version': release.version,
-            'file_id': releasefile.id,
-        })
+        url = reverse(
+            'sentry-api-0-organization-release-file-details',
+            kwargs={
+                'organization_slug': project.organization.slug,
+                'version': release.version,
+                'file_id': releasefile.id,
+            }
+        )
 
         response = self.client.delete(url)
 

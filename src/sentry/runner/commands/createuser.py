@@ -86,13 +86,11 @@ def createuser(email, password, superuser, no_password, no_input):
 
     user.save()
 
-    click.echo('User created: %s' % (email,))
+    click.echo('User created: %s' % (email, ))
 
     # TODO(dcramer): kill this when we improve flows
     if settings.SENTRY_SINGLE_ORGANIZATION:
-        from sentry.models import (
-            Organization, OrganizationMember, OrganizationMemberTeam, Team
-        )
+        from sentry.models import (Organization, OrganizationMember, OrganizationMemberTeam, Team)
 
         org = Organization.get_default()
         if superuser:
@@ -113,4 +111,4 @@ def createuser(email, password, superuser, no_password, no_input):
                 team=teams[0],
                 organizationmember=member,
             )
-        click.echo('Added to organization: %s' % (org.slug,))
+        click.echo('Added to organization: %s' % (org.slug, ))

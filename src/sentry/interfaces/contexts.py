@@ -16,14 +16,12 @@ from django.utils.encoding import force_text
 from sentry.utils.safe import trim
 from sentry.interfaces.base import Interface
 
-
-__all__ = ('Contexts',)
+__all__ = ('Contexts', )
 
 context_types = {}
 
 
 class _IndexFormatter(string.Formatter):
-
     def format_field(self, value, format_spec):
         if not format_spec and isinstance(value, bool):
             return value and 'yes' or 'no'
@@ -31,8 +29,7 @@ class _IndexFormatter(string.Formatter):
 
 
 def format_index_expr(format_string, data):
-    return six.text_type(_IndexFormatter().vformat(
-        six.text_type(format_string), (), data).strip())
+    return six.text_type(_IndexFormatter().vformat(six.text_type(format_string), (), data).strip())
 
 
 def contexttype(cls):

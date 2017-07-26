@@ -46,16 +46,20 @@ class ProviderMixin(object):
             'error_type': 'unknown',
         }
         if isinstance(error, InvalidIdentity):
-            context.update({
-                'error_type': 'auth',
-                'auth_url': reverse('socialauth_associate', args=[self.auth_provider])
-            })
+            context.update(
+                {
+                    'error_type': 'auth',
+                    'auth_url': reverse('socialauth_associate', args=[self.auth_provider])
+                }
+            )
             status = 400
         elif isinstance(error, PluginError):
             # TODO(dcramer): we should have a proper validation error
             context.update({
                 'error_type': 'validation',
-                'errors': {'__all__': error.message},
+                'errors': {
+                    '__all__': error.message
+                },
             })
             status = 400
         else:

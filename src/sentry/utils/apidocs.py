@@ -18,7 +18,6 @@ from six import StringIO
 
 # Do not import from sentry here!  Bad things will happen
 
-
 optional_group_matcher = re.compile(r'\(\?\:([^\)]+)\)')
 named_group_matcher = re.compile(r'\(\?P<(\w+)>[^\)]+\)')
 non_named_group_matcher = re.compile(r'\([^\)]+\)')
@@ -26,9 +25,7 @@ non_named_group_matcher = re.compile(r'\([^\)]+\)')
 either_option_matcher = re.compile(r'\[([^\]]+)\|([^\]]+)\]')
 camel_re = re.compile(r'([A-Z]+)([a-z])')
 
-
 API_PREFIX = '/api/0/'
-
 
 scenarios = {}
 
@@ -79,10 +76,7 @@ def extract_documentation(func):
 
 
 def get_endpoint_path(internal_endpoint):
-    return '%s.%s' % (
-        internal_endpoint.__module__,
-        internal_endpoint.__name__,
-    )
+    return '%s.%s' % (internal_endpoint.__module__, internal_endpoint.__name__, )
 
 
 def extract_title_and_text(doc):
@@ -121,6 +115,7 @@ def camelcase_to_dashes(string):
         else:
             camel = camel.lower()
         return '-' + camel + regular.lower()
+
     return camel_re.sub(handler, string).lstrip('-')
 
 
@@ -151,10 +146,7 @@ def extract_endpoint_info(pattern, internal_endpoint):
             text=text,
             scenarios=getattr(method, 'api_scenarios', None) or [],
             section=section.name.lower(),
-            internal_path='%s:%s' % (
-                get_endpoint_path(internal_endpoint),
-                method.__name__
-            ),
+            internal_path='%s:%s' % (get_endpoint_path(internal_endpoint), method.__name__),
             endpoint_name=endpoint_name,
         )
 
@@ -176,6 +168,7 @@ def scenario(ident):
         scenarios[ident] = f
         f.api_scenario_ident = ident
         return f
+
     return decorator
 
 
@@ -183,6 +176,7 @@ def attach_scenarios(scenarios):
     def decorator(f):
         f.api_scenarios = [x.api_scenario_ident for x in scenarios]
         return f
+
     return decorator
 
 
@@ -206,48 +200,48 @@ def create_sample_time_series(event):
 
     for _ in range(60):
         count = randint(1, 10)
-        tsdb.incr_multi((
-            (tsdb.models.project, group.project.id),
-            (tsdb.models.group, group.id),
-        ), now, count)
-        tsdb.incr_multi((
-            (tsdb.models.organization_total_received,
-             group.project.organization_id),
-            (tsdb.models.project_total_received, group.project.id),
-        ), now, int(count * 1.1))
-        tsdb.incr_multi((
-            (tsdb.models.organization_total_rejected,
-             group.project.organization_id),
-            (tsdb.models.project_total_rejected, group.project.id),
-        ), now, int(count * 0.1))
+        tsdb.incr_multi(
+            ((tsdb.models.project, group.project.id), (tsdb.models.group, group.id), ), now, count
+        )
+        tsdb.incr_multi(
+            (
+                (tsdb.models.organization_total_received, group.project.organization_id),
+                (tsdb.models.project_total_received, group.project.id),
+            ), now, int(count * 1.1)
+        )
+        tsdb.incr_multi(
+            (
+                (tsdb.models.organization_total_rejected, group.project.organization_id),
+                (tsdb.models.project_total_rejected, group.project.id),
+            ), now, int(count * 0.1)
+        )
         now = now - timedelta(seconds=1)
 
     for _ in range(24 * 30):
         count = randint(100, 1000)
-        tsdb.incr_multi((
-            (tsdb.models.project, group.project.id),
-            (tsdb.models.group, group.id),
-        ), now, count)
-        tsdb.incr_multi((
-            (tsdb.models.organization_total_received,
-             group.project.organization_id),
-            (tsdb.models.project_total_received, group.project.id),
-        ), now, int(count * 1.1))
-        tsdb.incr_multi((
-            (tsdb.models.organization_total_rejected,
-             group.project.organization_id),
-            (tsdb.models.project_total_rejected, group.project.id),
-        ), now, int(count * 0.1))
+        tsdb.incr_multi(
+            ((tsdb.models.project, group.project.id), (tsdb.models.group, group.id), ), now, count
+        )
+        tsdb.incr_multi(
+            (
+                (tsdb.models.organization_total_received, group.project.organization_id),
+                (tsdb.models.project_total_received, group.project.id),
+            ), now, int(count * 1.1)
+        )
+        tsdb.incr_multi(
+            (
+                (tsdb.models.organization_total_rejected, group.project.organization_id),
+                (tsdb.models.project_total_rejected, group.project.id),
+            ), now, int(count * 0.1)
+        )
         now = now - timedelta(hours=1)
 
 
 class MockUtils(object):
-
     def create_user(self, mail):
         from sentry.models import User
         user, _ = User.objects.get_or_create(
-            username=mail,
-            defaults={
+            username=mail, defaults={
                 'email': mail,
             }
         )
@@ -262,9 +256,7 @@ class MockUtils(object):
         )
 
         dummy_member, _ = OrganizationMember.objects.get_or_create(
-            user=owner,
-            organization=org,
-            defaults={
+            user=owner, organization=org, defaults={
                 'role': 'member',
             }
         )
@@ -281,10 +273,7 @@ class MockUtils(object):
 
     def create_client_key(self, project, label='Default'):
         from sentry.models import ProjectKey
-        return ProjectKey.objects.get_or_create(
-            project=project,
-            label=label
-        )[0]
+        return ProjectKey.objects.get_or_create(project=project, label=label)[0]
 
     def create_team(self, name, org):
         from sentry.models import Team
@@ -298,9 +287,7 @@ class MockUtils(object):
     def create_project(self, name, team, org):
         from sentry.models import Project
         return Project.objects.get_or_create(
-            team=team,
-            name=name,
-            defaults={
+            team=team, name=name, defaults={
                 'organization': org,
             }
         )[0]
@@ -311,9 +298,7 @@ class MockUtils(object):
             version = os.urandom(20).encode('hex')
         with transaction.atomic():
             release = Release.objects.filter(
-                version=version,
-                organization_id=project.organization_id,
-                projects=project
+                version=version, organization_id=project.organization_id, projects=project
             ).first()
             if not release:
                 release = Release.objects.filter(
@@ -335,8 +320,7 @@ class MockUtils(object):
         )
         return release
 
-    def create_release_file(self, project, release, path,
-                            content_type=None, contents=None):
+    def create_release_file(self, project, release, path, content_type=None, contents=None):
         from sentry.models import File, ReleaseFile
         if content_type is None:
             content_type = mimetypes.guess_type(path)[0] or 'text/plain'
@@ -345,25 +329,17 @@ class MockUtils(object):
         f = File.objects.create(
             name=path.rsplit('/', 1)[-1],
             type='release.file',
-            headers={
-                'Content-Type': content_type
-            },
+            headers={'Content-Type': content_type},
         )
         f.putfile(StringIO(contents or ''))
         return ReleaseFile.objects.create(
-            organization_id=project.organization_id,
-            release=release,
-            file=f,
-            name=path
+            organization_id=project.organization_id, release=release, file=f, name=path
         )
 
     def create_event(self, project, release, platform='python', raw=True):
         from sentry.utils.samples import create_sample_event
         event = create_sample_event(
-            project=project,
-            platform=platform,
-            release=release.version,
-            raw=raw
+            project=project, platform=platform, release=release.version, raw=raw
         )
         create_sample_time_series(event)
         return event
@@ -408,14 +384,10 @@ class Runner(object):
     def isolated_project(self, project_name):
         from sentry.models import Group, Event
 
-        project = self.utils.create_project(project_name,
-                                            team=self.default_team,
-                                            org=self.org)
+        project = self.utils.create_project(project_name, team=self.default_team, org=self.org)
         release = self.utils.create_release(project=project, user=self.me)
-        self.utils.create_event(project=project, release=release,
-                                platform='python')
-        self.utils.create_event(project=project, release=release,
-                                platform='java')
+        self.utils.create_event(project=project, release=release, platform='python')
+        self.utils.create_event(project=project, release=release, platform='java')
         try:
             yield project
         finally:
@@ -445,8 +417,7 @@ class Runner(object):
             ).delete()
             org.delete()
 
-    def request(self, method, path, headers=None, data=None, api_key=None,
-                format='json'):
+    def request(self, method, path, headers=None, data=None, api_key=None, format='json'):
         if api_key is None:
             api_key = self.api_key
         path = '/api/0/' + path.lstrip('/')
@@ -471,16 +442,14 @@ class Runner(object):
 
         req_headers = dict(headers)
         req_headers['Host'] = 'sentry.io'
-        req_headers['Authorization'] = 'Basic %s' % base64.b64encode('%s:' % (
-            api_key.key.encode('utf-8')))
+        req_headers['Authorization'
+                    ] = 'Basic %s' % base64.b64encode('%s:' % (api_key.key.encode('utf-8')))
 
-        url = 'http://127.0.0.1:%s%s' % (
-            settings.SENTRY_APIDOCS_WEB_PORT,
-            path,
+        url = 'http://127.0.0.1:%s%s' % (settings.SENTRY_APIDOCS_WEB_PORT, path, )
+
+        response = requests.request(
+            method=method, url=url, files=files, headers=req_headers, data=body
         )
-
-        response = requests.request(method=method, url=url, files=files,
-                                    headers=req_headers, data=body)
         response_headers = dict(response.headers)
 
         # Don't want those

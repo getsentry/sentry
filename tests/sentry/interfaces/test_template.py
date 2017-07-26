@@ -14,11 +14,13 @@ from sentry.testutils import TestCase
 class TemplateTest(TestCase):
     @fixture
     def interface(self):
-        return Template.to_python(dict(
-            filename='foo.html',
-            context_line='hello world',
-            lineno=1,
-        ))
+        return Template.to_python(
+            dict(
+                filename='foo.html',
+                context_line='hello world',
+                lineno=1,
+            )
+        )
 
     def test_serialize(self):
         result = self.interface.to_json()

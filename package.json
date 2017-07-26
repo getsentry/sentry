@@ -72,15 +72,19 @@
   "APIMethod": "stub",
   "proxyURL": "http://localhost:8000",
   "scripts": {
-    "test": "NODE_ENV=test node_modules/.bin/jest tests/js/spec",
-    "test-ci": "NODE_ENV=test node_modules/.bin/jest tests/js/spec --runInBand",
-    "test-watch": "NODE_ENV=test node_modules/.bin/jest tests/js/spec --watch",
+    "test": "npm run jest -- tests/js/spec",
+    "test-ci": "npm run test -- --runInBand",
+    "test-watch": "npm run test -- --watch",
+    "jest": "NODE_ENV=test node_modules/.bin/jest",
     "lint": "node_modules/.bin/eslint tests/js src/sentry/static/sentry/app --ext .jsx"
   },
   "jest": {
     "modulePaths": [
       "<rootDir>/src/sentry/static/sentry"
     ],
+    "moduleNameMapper": {
+      "integration-docs-platforms": "<rootDir>/tests/fixtures/_platforms.json"
+    },
     "setupFiles": [
       "<rootDir>/tests/js/setup.js"
     ],
@@ -93,7 +97,7 @@
     "babel-eslint": "7.1.1",
     "babel-jest": "^19.0.0",
     "chai": "3.4.1",
-    "enzyme": "2.4.1",
+    "enzyme": "2.9.1",
     "eslint": "3.19.0",
     "eslint-plugin-getsentry": "1.0.0",
     "eslint-plugin-react": "6.10.3",

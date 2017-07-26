@@ -24,33 +24,41 @@ class ReleaseWebhookTest(TestCase):
             msg=('dummy-{}'.format(self.project.id)).encode('utf-8'),
             digestmod=sha256,
         ).hexdigest()
-        ProjectOption.objects.set_value(
-            self.project, 'sentry:release-token', self.token)
+        ProjectOption.objects.set_value(self.project, 'sentry:release-token', self.token)
 
     @fixture
     def path(self):
-        return reverse('sentry-release-hook', kwargs={
-            'project_id': self.project.id,
-            'plugin_id': 'dummy',
-            'signature': self.signature,
-        })
+        return reverse(
+            'sentry-release-hook',
+            kwargs={
+                'project_id': self.project.id,
+                'plugin_id': 'dummy',
+                'signature': self.signature,
+            }
+        )
 
     def test_no_token(self):
         project = self.create_project(team=self.team)
-        path = reverse('sentry-release-hook', kwargs={
-            'project_id': project.id,
-            'plugin_id': 'dummy',
-            'signature': self.signature,
-        })
+        path = reverse(
+            'sentry-release-hook',
+            kwargs={
+                'project_id': project.id,
+                'plugin_id': 'dummy',
+                'signature': self.signature,
+            }
+        )
         resp = self.client.post(path)
         assert resp.status_code == 403
 
     def test_invalid_signature(self):
-        path = reverse('sentry-release-hook', kwargs={
-            'project_id': self.project.id,
-            'plugin_id': 'dummy',
-            'signature': 'wrong',
-        })
+        path = reverse(
+            'sentry-release-hook',
+            kwargs={
+                'project_id': self.project.id,
+                'plugin_id': 'dummy',
+                'signature': 'wrong',
+            }
+        )
         resp = self.client.post(path)
         assert resp.status_code == 403
 
@@ -88,25 +96,29 @@ class BuiltinReleaseWebhookTest(TestCase):
             msg=('builtin-{}'.format(self.project.id)).encode('utf-8'),
             digestmod=sha256,
         ).hexdigest()
-        ProjectOption.objects.set_value(
-            self.project, 'sentry:release-token', self.token)
+        ProjectOption.objects.set_value(self.project, 'sentry:release-token', self.token)
 
     @fixture
     def path(self):
-        return reverse('sentry-release-hook', kwargs={
-            'project_id': self.project.id,
-            'plugin_id': 'builtin',
-            'signature': self.signature,
-        })
+        return reverse(
+            'sentry-release-hook',
+            kwargs={
+                'project_id': self.project.id,
+                'plugin_id': 'builtin',
+                'signature': self.signature,
+            }
+        )
 
     def test_invalid_params(self):
         resp = self.client.post(self.path, content_type='application/json')
         assert resp.status_code == 400
 
     def test_valid_params(self):
-        resp = self.client.post(self.path, data=json.dumps({
-            'version': 'a',
-        }), content_type='application/json')
+        resp = self.client.post(
+            self.path, data=json.dumps({
+                'version': 'a',
+            }), content_type='application/json'
+        )
         assert resp.status_code == 201, resp.content
         data = json.loads(resp.content)
         assert data['version'] == 'a'

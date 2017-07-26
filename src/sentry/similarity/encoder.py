@@ -26,14 +26,12 @@ class Encoder(object):
         elif isinstance(value, self.number_types):
             return six.text_type(value).encode('utf8')
         elif isinstance(value, Set):
-            return '\x00'.join(
-                sorted(
-                    map(
-                        self.dumps,
-                        value,
-                    ),
-                )
-            )
+            return '\x00'.join(sorted(
+                map(
+                    self.dumps,
+                    value,
+                ),
+            ))
         elif isinstance(value, Sequence):
             return '\x01'.join(
                 map(
@@ -43,14 +41,10 @@ class Encoder(object):
             )
         elif isinstance(value, Mapping):
             return '\x02'.join(
-                sorted(
-                    '\x01'.join(
-                        map(
-                            self.dumps,
-                            item,
-                        )
-                    ) for item in value.items(),
-                ),
+                sorted('\x01'.join(map(
+                    self.dumps,
+                    item,
+                )) for item in value.items()),
             )
         else:
             raise TypeError('Unsupported type: {}'.format(type(value)))

@@ -29,8 +29,7 @@ def get_module_path(module_name):
     try:
         module = import_module(module_name)
     except ImportError as e:
-        raise ImproperlyConfigured(
-            'Error importing HIDE_IN_STACKTRACES: %s' % (e,))
+        raise ImproperlyConfigured('Error importing HIDE_IN_STACKTRACES: %s' % (e, ))
     else:
         source_path = inspect.getsourcefile(module)
         if source_path.endswith('__init__.py'):
@@ -38,10 +37,7 @@ def get_module_path(module_name):
         return os.path.realpath(source_path)
 
 
-hidden_paths = [
-    get_module_path(module_name)
-    for module_name in CONFIG['HIDE_IN_STACKTRACES']
-]
+hidden_paths = [get_module_path(module_name) for module_name in CONFIG['HIDE_IN_STACKTRACES']]
 
 
 def omit_path(path):
@@ -72,12 +68,13 @@ def render_stacktrace(trace):
         params = map(escape, frame[0].rsplit(os.path.sep, 1) + list(frame[1:]))
         params_dict = dict((six.text_type(idx), v) for idx, v in enumerate(params))
         try:
-            stacktrace.append('<span class="djdt-path">%(0)s/</span>'
-                              '<span class="djdt-file">%(1)s</span>'
-                              ' in <span class="djdt-func">%(3)s</span>'
-                              '(<span class="djdt-lineno">%(2)s</span>)\n'
-                              '  <span class="djdt-code">%(4)s</span>'
-                              % params_dict)
+            stacktrace.append(
+                '<span class="djdt-path">%(0)s/</span>'
+                '<span class="djdt-file">%(1)s</span>'
+                ' in <span class="djdt-func">%(3)s</span>'
+                '(<span class="djdt-lineno">%(2)s</span>)\n'
+                '  <span class="djdt-code">%(4)s</span>' % params_dict
+            )
         except KeyError:
             # This frame doesn't have the expected format, so skip it and move on to the next one
             continue
@@ -89,12 +86,8 @@ def get_template_info():
     cur_frame = sys._getframe().f_back
     try:
         while cur_frame is not None:
-            in_utils_module = cur_frame.f_code.co_filename.endswith(
-                "/debug_toolbar/utils.py"
-            )
-            is_get_template_context = (
-                cur_frame.f_code.co_name == get_template_context.__name__
-            )
+            in_utils_module = cur_frame.f_code.co_filename.endswith("/debug_toolbar/utils.py")
+            is_get_template_context = (cur_frame.f_code.co_name == get_template_context.__name__)
             if in_utils_module and is_get_template_context:
                 # If the method in the stack trace is this one
                 # then break from the loop as it's being check recursively.
@@ -187,7 +180,7 @@ def getframeinfo(frame, context=1):
         start = lineno - 1 - context // 2
         try:
             lines, lnum = inspect.findsource(frame)
-        except Exception:   # findsource raises platform-dependant exceptions
+        except Exception:  # findsource raises platform-dependant exceptions
             first_lines = lines = index = None
         else:
             start = max(start, 1)
@@ -228,7 +221,7 @@ def get_stack(context=1):
     frame = sys._getframe(1)
     framelist = []
     while frame:
-        framelist.append((frame,) + getframeinfo(frame, context))
+        framelist.append((frame, ) + getframeinfo(frame, context))
         frame = frame.f_back
     return framelist
 
@@ -238,7 +231,8 @@ class ThreadCollector(object):
         if threading is None:
             raise NotImplementedError(
                 "threading module is not available, "
-                "this panel cannot be used without it")
+                "this panel cannot be used without it"
+            )
         self.collections = {}  # a dictionary that maps threads to collections
 
     def get_collection(self, thread=None):

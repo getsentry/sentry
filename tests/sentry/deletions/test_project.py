@@ -1,9 +1,8 @@
 from __future__ import absolute_import
 
 from sentry.models import (
-    Commit, CommitAuthor, Environment, EnvironmentProject, GroupAssignee,
-    GroupMeta, GroupResolution, Project, Release, ReleaseCommit, Repository,
-    ScheduledDeletion
+    Commit, CommitAuthor, Environment, EnvironmentProject, GroupAssignee, GroupMeta,
+    GroupResolution, Project, Release, ReleaseCommit, Repository, ScheduledDeletion
 )
 from sentry.tasks.deletion import run_deletion
 from sentry.testutils import TestCase
@@ -17,14 +16,11 @@ class DeleteProjectTest(TestCase):
         group = self.create_group(project=project)
         GroupAssignee.objects.create(group=group, project=project, user=self.user)
         GroupMeta.objects.create(group=group, key='foo', value='bar')
-        release = Release.objects.create(version='a' * 32,
-                                         organization_id=project.organization_id)
+        release = Release.objects.create(version='a' * 32, organization_id=project.organization_id)
         release.add_project(project)
         GroupResolution.objects.create(group=group, release=release)
         env = Environment.objects.create(
-            organization_id=project.organization_id,
-            project_id=project.id,
-            name='foo'
+            organization_id=project.organization_id, project_id=project.id, name='foo'
         )
         env.add_project(project)
         repo = Repository.objects.create(
@@ -58,8 +54,7 @@ class DeleteProjectTest(TestCase):
 
         assert not Project.objects.filter(id=project.id).exists()
         assert not EnvironmentProject.objects.filter(
-            project_id=project.id,
-            environment_id=env.id
+            project_id=project.id, environment_id=env.id
         ).exists()
         assert Environment.objects.filter(id=env.id).exists()
         assert Release.objects.filter(id=release.id).exists()

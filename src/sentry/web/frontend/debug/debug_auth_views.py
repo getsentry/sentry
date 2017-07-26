@@ -12,14 +12,16 @@ class DebugAuthConfirmIdentity(View):
             'id': 'bar@example.com',
             'email': 'bar@example.com',
         }
-        return render_to_response('sentry/auth-confirm-identity.html', {
-            'existing_user': User(email='foo@example.com'),
-            'identity': auth_identity,
-            'login_form': None,
-            'request': request,
-            'identity_display_name': auth_identity['email'],
-            'identity_identifier': auth_identity['id']
-        })
+        return render_to_response(
+            'sentry/auth-confirm-identity.html', {
+                'existing_user': User(email='foo@example.com'),
+                'identity': auth_identity,
+                'login_form': None,
+                'request': request,
+                'identity_display_name': auth_identity['email'],
+                'identity_identifier': auth_identity['id']
+            }
+        )
 
 
 class DebugAuthConfirmLink(View):
@@ -28,10 +30,12 @@ class DebugAuthConfirmLink(View):
             'id': 'bar@example.com',
             'email': 'bar@example.com',
         }
-        return render_to_response('sentry/auth-confirm-link.html', {
-            'existing_user': User(email='foo@example.com'),
-            'identity': auth_identity,
-            'request': request,
-            'identity_display_name': auth_identity['email'],
-            'identity_identifier': auth_identity['id']
-        })
+        return render_to_response(
+            'sentry/auth-confirm-link.html', {
+                'existing_user': User(email='foo@example.com'),
+                'identity': auth_identity,
+                'request': request,
+                'identity_display_name': auth_identity['email'],
+                'identity_identifier': auth_identity['id']
+            }
+        )

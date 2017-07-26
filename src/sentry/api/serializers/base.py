@@ -2,7 +2,6 @@ from __future__ import absolute_import
 
 from django.contrib.auth.models import AnonymousUser
 
-
 registry = {}
 
 
@@ -47,6 +46,7 @@ def register(type):
     def wrapped(cls):
         registry[type] = cls()
         return cls
+
     return wrapped
 
 

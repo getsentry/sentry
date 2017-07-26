@@ -16,12 +16,13 @@ class DeleteTagKeyTest(TestCase):
         TagValue.objects.create(key='foo', value='bar', project=project)
         GroupTagKey.objects.create(key='foo', group=group, project=project)
         GroupTagValue.objects.create(
-            key='foo',
-            value='bar',
-            group_id=group.id,
-            project_id=project.id)
+            key='foo', value='bar', group_id=group.id, project_id=project.id
+        )
         EventTag.objects.create(
-            key_id=tk.id, group_id=group.id, value_id=1, project_id=project.id,
+            key_id=tk.id,
+            group_id=group.id,
+            value_id=1,
+            project_id=project.id,
             event_id=1,
         )
 
@@ -30,12 +31,13 @@ class DeleteTagKeyTest(TestCase):
         tk2 = TagKey.objects.create(key='foo', project=project2)
         gtk2 = GroupTagKey.objects.create(key='foo', group=group2, project=project2)
         gtv2 = GroupTagValue.objects.create(
-            key='foo',
-            value='bar',
-            group_id=group2.id,
-            project_id=project2.id)
+            key='foo', value='bar', group_id=group2.id, project_id=project2.id
+        )
         EventTag.objects.create(
-            key_id=tk2.id, group_id=group2.id, value_id=1, project_id=project.id,
+            key_id=tk2.id,
+            group_id=group2.id,
+            value_id=1,
+            project_id=project.id,
             event_id=1,
         )
 

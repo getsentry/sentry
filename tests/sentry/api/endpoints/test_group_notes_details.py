@@ -35,9 +35,11 @@ class GroupNotesDetailsTest(APITestCase):
         response = self.client.put(url, format='json')
         assert response.status_code == 400, response.content
 
-        response = self.client.put(url, format='json', data={
-            'text': 'hi haters',
-        })
+        response = self.client.put(
+            url, format='json', data={
+                'text': 'hi haters',
+            }
+        )
         assert response.status_code == 200, response.content
 
         activity = Activity.objects.get(id=response.data['id'])

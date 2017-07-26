@@ -12,12 +12,8 @@ from sentry.models import ApiApplicationStatus, ApiAuthorization, ApiToken
 
 
 class ApiAuthorizationsEndpoint(Endpoint):
-    authentication_classes = (
-        SessionAuthentication,
-    )
-    permission_classes = (
-        IsAuthenticated,
-    )
+    authentication_classes = (SessionAuthentication, )
+    permission_classes = (IsAuthenticated, )
 
     def get(self, request):
         queryset = ApiAuthorization.objects.filter(

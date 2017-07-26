@@ -22,14 +22,14 @@ from sentry.utils import json
 
 
 class SmsForm(forms.Form):
-    phone_number = forms.CharField(
-        label=_('Phone number'), max_length=40
-    )
+    phone_number = forms.CharField(label=_('Phone number'), max_length=40)
 
 
 class U2fForm(forms.Form):
     device_name = forms.CharField(
-        label=_('Device name'), max_length=60, required=False,
+        label=_('Device name'),
+        max_length=60,
+        required=False,
         initial=lambda: petname.Generate(2, ' ', letters=10).title(),
     )
 
@@ -43,8 +43,7 @@ class TwoFactorSettingsView(BaseView):
     @method_decorator(transaction.atomic)
     def handle(self, request):
         try:
-            interface = Authenticator.objects.get_interface(
-                request.user, self.interface_id)
+            interface = Authenticator.objects.get_interface(request.user, self.interface_id)
         except LookupError:
             raise Http404
         return self.configure(request, interface)
@@ -118,10 +117,8 @@ class TwoFactorSettingsView(BaseView):
                 self.delete_authenticator(request, interface)
                 return HttpResponseRedirect(reverse('sentry-account-settings-2fa'))
 
-        all_interfaces = Authenticator.objects.all_interfaces_for_user(
-            request.user)
-        other_interfaces = [x for x in all_interfaces
-                            if x.interface_id != interface.interface_id]
+        all_interfaces = Authenticator.objects.all_interfaces_for_user(request.user)
+        other_interfaces = [x for x in all_interfaces if x.interface_id != interface.interface_id]
         backup_interfaces = [x for x in other_interfaces if x.is_backup_interface]
         removes_backups = backup_interfaces and \
             len(backup_interfaces) == len(other_interfaces)
@@ -129,8 +126,7 @@ class TwoFactorSettingsView(BaseView):
         context = self.make_context(request, interface)
         context['password_form'] = form
         context['removes_backups'] = removes_backups
-        return render_to_response('sentry/account/twofactor/remove.html',
-                                  context, request)
+        return render_to_response('sentry/account/twofactor/remove.html', context, request)
 
     def enroll(self, request, interface, insecure=False):
         next = request.path
@@ -169,13 +165,14 @@ class TwoFactorSettingsView(BaseView):
             return self.remove(request, interface)
         if 'enroll' in request.POST or \
            request.GET.get('enroll') == 'yes':
-            return self.enroll(request, interface,
-                               insecure='enroll' not in request.POST)
+            return self.enroll(request, interface, insecure='enroll' not in request.POST)
         context = self.make_context(request, interface)
-        return render_to_response(['sentry/account/twofactor/configure_%s.html'
-                                   % self.interface_id,
-                                   'sentry/account/twofactor/configure.html'],
-                                  context, request)
+        return render_to_response(
+            [
+                'sentry/account/twofactor/configure_%s.html' % self.interface_id,
+                'sentry/account/twofactor/configure.html'
+            ], context, request
+        )
 
 
 class RecoveryCodeSettingsView(TwoFactorSettingsView):
@@ -201,16 +198,14 @@ class TotpSettingsView(TwoFactorSettingsView):
             password_form = ConfirmPasswordForm(request.user, request.POST)
             if 'password' in password_form.fields:
                 if password_form.is_valid():
-                    if form.is_valid() and interface.validate_otp(
-                            form.cleaned_data['otp']):
+                    if form.is_valid() and interface.validate_otp(form.cleaned_data['otp']):
                         return TwoFactorSettingsView.enroll(self, request, interface)
                     else:
                         form.errors['__all__'] = ['Invalid confirmation code.']
                 else:
                     form.errors['__all__'] = ['Invalid password.']
             else:
-                if form.is_valid() and interface.validate_otp(
-                        form.cleaned_data['otp']):
+                if form.is_valid() and interface.validate_otp(form.cleaned_data['otp']):
                     return TwoFactorSettingsView.enroll(self, request, interface)
                 else:
                     form.errors['__all__'] = ['Invalid confirmation code.']
@@ -222,10 +217,8 @@ class TotpSettingsView(TwoFactorSettingsView):
         context = self.make_context(request, interface)
         context['otp_form'] = form
         context['password_form'] = password_form
-        context['provision_qrcode'] = interface.get_provision_qrcode(
-            request.user.email)
-        return render_to_response('sentry/account/twofactor/enroll_totp.html',
-                                  context, request)
+        context['provision_qrcode'] = interface.get_provision_qrcode(request.user.email)
+        return render_to_response('sentry/account/twofactor/enroll_totp.html', context, request)
 
 
 class SmsSettingsView(TwoFactorSettingsView):
@@ -252,8 +245,7 @@ class SmsSettingsView(TwoFactorSettingsView):
                 stage = 'confirm'
         elif stage == 'confirm':
             otp_form = TwoFactorForm(request.POST)
-            if otp_form.is_valid() and interface.validate_otp(
-                    otp_form.cleaned_data['otp']):
+            if otp_form.is_valid() and interface.validate_otp(otp_form.cleaned_data['otp']):
                 return TwoFactorSettingsView.enroll(self, request, interface)
             else:
                 otp_form.errors['__all__'] = ['Invalid confirmation code.']
@@ -262,8 +254,7 @@ class SmsSettingsView(TwoFactorSettingsView):
         context['sms_form'] = sms_form
         context['otp_form'] = otp_form
         context['stage'] = stage
-        return render_to_response('sentry/account/twofactor/enroll_sms.html',
-                                  context, request)
+        return render_to_response('sentry/account/twofactor/enroll_sms.html', context, request)
 
 
 class U2fSettingsView(TwoFactorSettingsView):
@@ -296,12 +287,12 @@ class U2fSettingsView(TwoFactorSettingsView):
         if response:
             u2f_form = U2fForm(request.POST)
             if u2f_form.is_valid():
-                interface.try_enroll(enrollment_data, json.loads(response),
-                                     u2f_form.cleaned_data['device_name'])
+                interface.try_enroll(
+                    enrollment_data, json.loads(response), u2f_form.cleaned_data['device_name']
+                )
                 return TwoFactorSettingsView.enroll(self, request, interface)
 
         context = self.make_context(request, interface)
         context['enrollment_data'] = enrollment_data
         context['u2f_form'] = u2f_form
-        return render_to_response('sentry/account/twofactor/enroll_u2f.html',
-                                  context, request)
+        return render_to_response('sentry/account/twofactor/enroll_u2f.html', context, request)

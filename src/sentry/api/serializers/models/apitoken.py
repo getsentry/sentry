@@ -17,10 +17,7 @@ class ApiTokenSerializer(Serializer):
         attrs = {}
         for item in item_list:
             attrs[item] = {
-                'application': (
-                    apps.get(item.application.client_id)
-                    if item.application else None
-                ),
+                'application': (apps.get(item.application.client_id) if item.application else None),
             }
         return attrs
 

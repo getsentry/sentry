@@ -17,7 +17,6 @@ from sentry.exceptions import CacheNotPopulated
 from sentry.db.models import FlexibleForeignKey, Model, sane_repr
 from sentry.db.models.manager import BaseManager
 
-
 ERR_CACHE_MISISNG = 'Cache not populated for instance id=%s'
 
 
@@ -70,7 +69,7 @@ class GroupMetaManager(BaseManager):
             try:
                 inst_cache = self.__cache[instance.id]
             except KeyError:
-                raise self.model.CacheNotPopulated(ERR_CACHE_MISISNG % (instance.id,))
+                raise self.model.CacheNotPopulated(ERR_CACHE_MISISNG % (instance.id, ))
             results[instance] = inst_cache.get(key, default)
         return results
 
@@ -78,7 +77,7 @@ class GroupMetaManager(BaseManager):
         try:
             inst_cache = self.__cache[instance.id]
         except KeyError:
-            raise self.model.CacheNotPopulated(ERR_CACHE_MISISNG % (instance.id,))
+            raise self.model.CacheNotPopulated(ERR_CACHE_MISISNG % (instance.id, ))
         return inst_cache.get(key, default)
 
     def unset_value(self, instance, key):
@@ -118,6 +117,6 @@ class GroupMeta(Model):
     class Meta:
         app_label = 'sentry'
         db_table = 'sentry_groupmeta'
-        unique_together = (('group', 'key'),)
+        unique_together = (('group', 'key'), )
 
     __repr__ = sane_repr('group_id', 'key', 'value')
