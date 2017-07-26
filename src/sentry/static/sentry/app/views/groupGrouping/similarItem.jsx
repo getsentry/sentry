@@ -1,5 +1,6 @@
 import React, {PropTypes} from 'react';
 import Reflux from 'reflux';
+import classNames from 'classnames';
 
 import {t} from '../../locale';
 import GroupingStore from '../../stores/groupingStore';
@@ -76,7 +77,9 @@ const SimilarIssueItem = React.createClass({
     let {issue} = this.props;
 
     // clicking anywhere in the row will toggle the checkbox
-    GroupingActions.toggleMerge(issue.id);
+    if (!this.state.busy) {
+      GroupingActions.toggleMerge(issue.id);
+    }
   },
 
   render() {
@@ -86,8 +89,12 @@ const SimilarIssueItem = React.createClass({
       return null;
     }
 
+    let cx = classNames('group', 'similar-issue', {
+      busy: this.state.busy
+    });
+
     return (
-      <SplitLayout className="group similar-issue" responsive onClick={this.handleToggle}>
+      <SplitLayout className={cx} responsive onClick={this.handleToggle}>
         <SpreadLayout>
           <div className="event-details">
             <EventOrGroupHeader

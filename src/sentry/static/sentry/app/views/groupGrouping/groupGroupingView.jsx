@@ -47,7 +47,9 @@ const GroupGroupingView = React.createClass({
     mergedLinks,
     similarItems,
     similarLinks,
-    filteredSimilarItems
+    filteredSimilarItems,
+    loading,
+    error
   }) {
     if (mergedItems && similarItems) {
       this.setState({
@@ -56,8 +58,8 @@ const GroupGroupingView = React.createClass({
         similarItems,
         similarLinks,
         filteredSimilarItems,
-        loading: false,
-        error: false
+        loading: typeof loading !== 'undefined' ? loading : false,
+        error: typeof error !== 'undefined' ? error : false
       });
     }
   },
@@ -97,10 +99,7 @@ const GroupGroupingView = React.createClass({
     if (params) {
       GroupingActions.merge({
         params,
-        query,
-        loadingMessage: `${t('Merging issues')}...`,
-        successMessage: t('Issues successfully merged.'),
-        errorMessage: t('Unable to merge issues.')
+        query
       });
     }
   },
