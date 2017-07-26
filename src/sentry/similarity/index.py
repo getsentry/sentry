@@ -35,8 +35,7 @@ class MinHashIndex(object):
 
         for idx, features in items:
             bands = map(
-                ','.join,
-                band(
+                ','.join, band(
                     self.bands,
                     map(
                         '{}'.format,
@@ -79,8 +78,7 @@ class MinHashIndex(object):
 
         return [
             [(item, float(score)) for item, score in result]
-            for result in
-            index(
+            for result in index(
                 self.cluster.get_local_client_for_key(scope),
                 [],
                 arguments,

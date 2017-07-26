@@ -256,10 +256,12 @@ def truncate_denormalizations(group):
         tsdb.models.users_affected_by_group,
     ], [group.id])
 
-    tsdb.delete_frequencies([
-        tsdb.models.frequent_releases_by_group,
-        tsdb.models.frequent_environments_by_group,
-    ], [group.id])
+    tsdb.delete_frequencies(
+        [
+            tsdb.models.frequent_releases_by_group,
+            tsdb.models.frequent_environments_by_group,
+        ], [group.id]
+    )
 
     features.delete(group)
 

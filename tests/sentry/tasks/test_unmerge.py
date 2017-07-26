@@ -283,7 +283,9 @@ class UnmergeTestCase(TestCase):
         )
 
         assert features.compare(source) == [
-            (source.id, {'message:message:character-shingles': 1.0}),
+            (source.id, {
+                'message:message:character-shingles': 1.0
+            }),
         ]
 
         with self.tasks():
@@ -622,7 +624,10 @@ class UnmergeTestCase(TestCase):
 
         destination_similar_items = features.compare(destination)
         assert destination_similar_items[0] == (
-            destination.id, {'message:message:character-shingles': 1.0})
+            destination.id, {
+                'message:message:character-shingles': 1.0
+            }
+        )
         assert destination_similar_items[1][0] == source.id
         assert destination_similar_items[1][1].keys() == ['message:message:character-shingles']
         assert destination_similar_items[1][1]['message:message:character-shingles'] < 1.0
