@@ -1,5 +1,6 @@
 import React, {PropTypes} from 'react';
 import Reflux from 'reflux';
+import classNames from 'classnames';
 
 import GroupingStore from '../../stores/groupingStore';
 import GroupingActions from '../../actions/groupingActions';
@@ -24,17 +25,16 @@ const MergedItem = React.createClass({
     })
   },
 
-  mixins: [Reflux.listenTo(GroupingStore, 'onGroupingUpdate')],
+  mixins: [Reflux.listenTo(GroupingStore, 'onGroupingChange')],
 
   getInitialState() {
     return {
       checked: false,
-      locked: false,
       busy: false
     };
   },
 
-  onGroupingUpdate({unmergeState}) {
+  onGroupingChange({unmergeState}) {
     let {fingerprint} = this.props;
     if (unmergeState) {
       const stateForId = unmergeState.has(fingerprint) && unmergeState.get(fingerprint);
@@ -54,24 +54,21 @@ const MergedItem = React.createClass({
     let {disabled, fingerprint} = this.props;
 
     // clicking anywhere in the row will toggle the checkbox
-    if (!disabled && !this.state.locked) {
+    if (!disabled && !this.state.busy) {
       GroupingActions.toggleUnmerge(fingerprint);
     }
   },
 
   render() {
     let {disabled, event, orgId, fingerprint, projectId, groupId} = this.props;
-    let checkboxDisabled = disabled || this.state.disabled || this.state.locked;
+    let checkboxDisabled = disabled || this.state.disabled;
+    let cx = classNames('group', 'merged-event', {
+      busy: this.state.busy
+    });
 
     // Not sure why, but `event` can be null
     return (
-      <SplitLayout
-        style={{
-          opacity: this.state.busy || this.state.locked ? 0.6 : 1
-        }}
-        onClick={this.handleToggle}
-        className="group merged-event"
-        responsive>
+      <SplitLayout onClick={this.handleToggle} className={cx} responsive>
         <div>
           <div className="event-details">
             {event &&

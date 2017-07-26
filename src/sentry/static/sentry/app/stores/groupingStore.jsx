@@ -21,16 +21,32 @@ const getAvgScore = score => {
 const GroupingStore = Reflux.createStore({
   listenables: [GroupingActions],
   init() {
-    this.unmergeList = new Set();
-    this.unmergeState = new Map();
-
-    this.mergeState = new Map();
-    this.mergeList = new Set();
-
-    this.unmergeDisabled = false;
+    // List of merged items
     this.mergedItems = [];
+    // List of items selected to be unmerged
+    this.unmergeList = new Set();
+    // State object for unmerged row items
+    this.unmergeState = new Map();
+    // Unmerge button state
+    this.unmergeDisabled = false;
+
+    // List of similar items above min. score index
     this.similarItems = [];
+    // List of similar items below min. score index
     this.filteredSimilarItems = [];
+    // Pagination for above list
+    this.similarLinks = '';
+    // State object for merged row items
+    this.mergeState = new Map();
+    // List of items selected to be merged
+    this.mergeList = new Set();
+    // Pagination for above list
+    this.mergedLinks = '';
+    // Merge button state
+    this.mergeDisabled = false;
+
+    this.loading = true;
+    this.error = false;
   },
 
   setStateForId(map, id, newState) {
@@ -42,7 +58,13 @@ const GroupingStore = Reflux.createStore({
 
   // Fetches data
   onFetch(toFetchArray) {
-    let promises = toFetchArray.map(({endpoint, queryParams, dataKey}) => {
+    const requests = toFetchArray || this.toFetchArray;
+
+    // Reset state and trigger update
+    this.init();
+    this.triggerFetchState();
+
+    let promises = requests.map(({endpoint, queryParams, dataKey}) => {
       return new Promise((resolve, reject) => {
         api.request(endpoint, {
           method: 'GET',
@@ -66,7 +88,7 @@ const GroupingStore = Reflux.createStore({
       merged: item => {
         // Check for locked items
         this.setStateForId(this.unmergeState, item.id, {
-          locked: item.status === 'locked'
+          busy: item.status === 'locked'
         });
         return item;
       },
@@ -84,32 +106,27 @@ const GroupingStore = Reflux.createStore({
       }
     };
 
-    Promise.all(promises).then(resultsArray => {
-      resultsArray.forEach(({dataKey, data, links}) => {
-        let items = data.map(responseProcessors[dataKey]);
-        this[`${dataKey}Items`] = items;
-        this[`${dataKey}Links`] = links;
-      });
+    Promise.all(promises).then(
+      resultsArray => {
+        resultsArray.forEach(({dataKey, data, links}) => {
+          let items = data.map(responseProcessors[dataKey]);
+          this[`${dataKey}Items`] = items;
+          this[`${dataKey}Links`] = links;
+        });
 
-      this.trigger({
-        // List of merged items that can be unmerged
-        mergedItems: this.mergedItems,
-        // Pagination for above list
-        mergedLinks: this.mergedLinks,
-        // List of similar items above min. score index
-        similarItems: this.similarItems.filter(({isBelowThreshold}) => !isBelowThreshold),
-        // List of similar items below min. score index
-        filteredSimilarItems: this.similarItems.filter(
-          ({isBelowThreshold}) => isBelowThreshold
-        ),
-        // Pagination for above list
-        similarLinks: this.similarLinks,
-        // State object for merged row items
-        mergeState: this.mergeState,
-        // State object for unmerge row items
-        unmergeState: this.unmergeState
-      });
-    });
+        this.loading = false;
+        this.error = false;
+        this.triggerFetchState();
+      },
+      () => {
+        this.error = true;
+        this.triggerFetchState();
+      }
+    );
+
+    if (toFetchArray) {
+      this.toFetchArray = toFetchArray;
+    }
   },
 
   // Toggle merge checkbox
@@ -199,16 +216,15 @@ const GroupingStore = Reflux.createStore({
         IndicatorStore.add(successMessage, 'success', {
           duration: 5000
         });
-        this.unmergeDisabled = false;
       },
       error: error => {
         IndicatorStore.remove(loadingIndicator);
         IndicatorStore.add(errorMessage, 'error');
-        this.unmergeDisabled = false;
       },
       complete: () => {
         IndicatorStore.remove(loadingIndicator);
         this.unmergeDisabled = false;
+        this.triggerUnmergeState();
       }
     });
 
@@ -216,7 +232,6 @@ const GroupingStore = Reflux.createStore({
     ids.forEach(id => {
       this.setStateForId(this.unmergeState, id, {
         checked: false,
-        locked: true,
         busy: true
       });
     });
@@ -226,14 +241,13 @@ const GroupingStore = Reflux.createStore({
     this.triggerUnmergeState();
   },
 
-  onMerge({params, query, loadingMessage, successMessage, errorMessage}) {
+  onMerge({params, query}) {
     let ids = Array.from(this.mergeList.values());
     // Disable merge button
     this.mergeDisabled = true;
 
     if (params) {
       let {orgId, groupId, projectId} = params;
-      let loadingIndicator = IndicatorStore.add(loadingMessage);
       api.merge(
         {
           orgId,
@@ -244,34 +258,55 @@ const GroupingStore = Reflux.createStore({
         },
         {
           success: (data, _, jqXHR) => {
-            IndicatorStore.add(successMessage, 'success', {
-              duration: 5000
-            });
             // Hide rows after successful merge
             ids.forEach(id => {
-              let state = this.mergeState.get(id) || {};
-              this.mergeState.set(id, {
-                ...state,
-                visible: false
+              this.setStateForId(this.mergeState, id, {
+                checked: false,
+                busy: true
               });
             });
             this.mergeList.clear();
-            this.mergeDisabled = false;
+            this.triggerMergeState();
           },
-          error: error => {
-            IndicatorStore.remove(loadingIndicator);
-            IndicatorStore.add(errorMessage, 'error');
-            this.mergeDisabled = false;
+          error: () => {
+            ids.forEach(id => {
+              this.setStateForId(this.mergeState, id, {
+                checked: true,
+                busy: false
+              });
+            });
+            this.triggerMergeState();
           },
           complete: () => {
-            IndicatorStore.remove(loadingIndicator);
             this.mergeDisabled = false;
+            this.triggerMergeState();
           }
         }
       );
     }
 
+    ids.forEach(id => {
+      this.setStateForId(this.mergeState, id, {
+        busy: true
+      });
+    });
     this.triggerMergeState();
+  },
+
+  triggerFetchState() {
+    this.trigger({
+      mergedItems: this.mergedItems,
+      mergedLinks: this.mergedLinks,
+      similarItems: this.similarItems.filter(({isBelowThreshold}) => !isBelowThreshold),
+      filteredSimilarItems: this.similarItems.filter(
+        ({isBelowThreshold}) => isBelowThreshold
+      ),
+      similarLinks: this.similarLinks,
+      mergeState: this.mergeState,
+      unmergeState: this.unmergeState,
+      loading: this.loading,
+      error: this.error
+    });
   },
 
   triggerUnmergeState() {
