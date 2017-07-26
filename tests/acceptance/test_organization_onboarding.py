@@ -15,4 +15,6 @@ class CreateOrganizationTest(AcceptanceTestCase):
 
     def test_simple(self):
         self.browser.get('/onboarding/%s/' % self.org.slug)
+        self.browser.wait_until_not('.loading')
+        self.browser.wait_until('.step-container')
         self.browser.snapshot(name='organization onboarding')
