@@ -1,0 +1,65 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`InstallWizard render() renders correctly 1`] = `
+<DocumentTitle
+  title="Sentry Setup"
+>
+  <div
+    className="app"
+  >
+    <div
+      className="pattern"
+    />
+    <div
+      className="setup-wizard"
+    >
+      <h1>
+        <span>
+          Welcome to Sentry
+        </span>
+        <small />
+      </h1>
+      <div>
+        <InstallWizardSettings
+          formDisabled={false}
+          onSubmit={[Function]}
+          options={
+            Object {
+              "auth.allow-registration": Object {
+                "field": Object {
+                  "allowEmpty": false,
+                  "default": false,
+                  "disabled": false,
+                  "isSet": true,
+                  "required": true,
+                },
+                "value": false,
+              },
+              "system.admin-email": Object {
+                "field": Object {
+                  "allowEmpty": false,
+                  "default": null,
+                  "disabled": false,
+                  "isSet": true,
+                  "required": true,
+                },
+                "value": "",
+              },
+              "system.url-prefix": Object {
+                "field": Object {
+                  "allowEmpty": true,
+                  "default": "",
+                  "disabled": false,
+                  "isSet": true,
+                  "required": true,
+                },
+                "value": "https://sentry.example.com",
+              },
+            }
+          }
+        />
+      </div>
+    </div>
+  </div>
+</DocumentTitle>
+`;
