@@ -28,6 +28,7 @@ env:
     - CXX=g++-4.8
 install:
   - nvm install $TRAVIS_NODE_VERSION
+  - npm install -g yarn@0.27.5
   - make travis-install-$TEST_SUITE
 before_script:
   - pip freeze
