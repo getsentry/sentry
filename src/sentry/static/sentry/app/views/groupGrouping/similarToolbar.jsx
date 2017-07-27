@@ -52,7 +52,7 @@ const SimilarToolbar = React.createClass({
                 disabled={this.state.mergeCount === 0}
                 title={t(`Merging ${this.state.mergeCount} issues`)}
                 message={t('Are you sure you want to merge these issues?')}
-                className="btn btn btn-default"
+                className="btn btn-sm btn-default"
                 onConfirm={onMerge}>
                 {t('Merge')}
                 {this.state.mergeCount ? ` (${this.state.mergeCount})` : null}
