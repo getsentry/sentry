@@ -122,7 +122,7 @@ exports[`Configure should render correctly render() should render platform docs 
             <h3
               className="animated-ellipsis"
             >
-              Waiting on events to devour
+              Waiting to receive an error
             </h3>
             <div
               className="robot"
