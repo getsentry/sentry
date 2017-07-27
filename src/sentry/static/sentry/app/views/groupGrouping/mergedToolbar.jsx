@@ -48,7 +48,7 @@ const MergedToolbar = React.createClass({
                 message={t(
                   'These events will be unmerged and grouped into a new issue. Are you sure you want to unmerge these events?'
                 )}
-                className="btn btn btn-default"
+                className="btn btn-sm btn-default"
                 onConfirm={onUnmerge}>
                 {t('Unmerge')}
                 {this.state.unmergeCount ? ` (${this.state.unmergeCount})` : null}
