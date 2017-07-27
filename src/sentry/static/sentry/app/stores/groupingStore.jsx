@@ -7,7 +7,7 @@ import GroupingActions from '../actions/groupingActions';
 const api = new Client();
 
 // Between 0-100
-const SIMILARITY_THRESHOLD = 75;
+const SIMILARITY_THRESHOLD = 50;
 
 // @param score: {[key: string]: number}
 const getAvgScore = score => {
