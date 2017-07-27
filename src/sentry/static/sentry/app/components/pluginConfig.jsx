@@ -27,7 +27,8 @@ const PluginConfig = React.createClass({
 
   getInitialState() {
     return {
-      loading: !plugins.isLoaded(this.props.data)
+      loading: !plugins.isLoaded(this.props.data),
+      testResults: ''
     };
   },
 
@@ -81,6 +82,27 @@ const PluginConfig = React.createClass({
     });
   },
 
+  testPlugin() {
+    let loadingIndicator = IndicatorStore.add(t('Sending test..'));
+    this.api.request(this.getPluginEndpoint(), {
+      method: 'POST',
+      data: {
+        test: true
+      },
+      success: data => {
+        this.setState({testResults: JSON.stringify(data.detail)});
+        IndicatorStore.remove(loadingIndicator);
+        IndicatorStore.add(t('Test Complete!'), 'success');
+      },
+      error: error => {
+        IndicatorStore.add(
+          t('An unexpected error occurred while testing your plugin. Please try again.'),
+          'error'
+        );
+      }
+    });
+  },
+
   createMarkup() {
     return {__html: this.props.data.doc};
   },
@@ -94,6 +116,10 @@ const PluginConfig = React.createClass({
           {data.canDisable &&
             data.enabled &&
             <div className="pull-right">
+              {data.isTestable &&
+                <a onClick={this.testPlugin} className="btn btn-sm btn-default">
+                  {t('Test Plugin')}
+                </a>}
               <a className="btn btn-sm btn-default" onClick={this.disablePlugin}>
                 {t('Disable')}
               </a>
@@ -106,6 +132,14 @@ const PluginConfig = React.createClass({
                 <strong>
                   Note: This plugin is considered beta and may change in the future.
                 </strong>
+              </div>
+            : null}
+          {this.state.testResults != ''
+            ? <div className="alert alert-block alert-warning">
+                <strong>
+                  Test Results:{' '}
+                </strong>
+                <p>{this.state.testResults}</p>
               </div>
             : null}
           <div dangerouslySetInnerHTML={this.createMarkup()} />
