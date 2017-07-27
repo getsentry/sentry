@@ -1,12 +1,12 @@
-CPUS ?= $(shell sysctl -n hw.ncpu || echo 1)
+CPUS ?= $(shell sysctl -n hw.ncpu 2> /dev/null || echo 1)
 MAKEFLAGS += --jobs=$(CPUS)
 NPM_ROOT = ./node_modules
 STATIC_DIR = src/sentry/static/sentry
 
-develop: setup-git update-submodules install-python install-yarn
-	@echo ""
+develop-only: update-submodules install-python install-yarn
 
-develop-only: develop
+develop: setup-git develop-only
+	@echo ""
 
 install-yarn:
 	@echo "--> Installing Node dependencies"
