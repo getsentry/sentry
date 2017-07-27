@@ -1,6 +1,6 @@
 import React from 'react';
 import DocumentTitle from 'react-document-title';
-import underscore from 'underscore';
+import {isEqual} from 'lodash';
 import {browserHistory} from 'react-router';
 import idx from 'idx';
 
@@ -248,7 +248,7 @@ const KeySettings = React.createClass({
   render() {
     let isSaving = this.state.state === FormState.SAVING;
     let {errors, formData} = this.state;
-    let hasChanges = !underscore.isEqual(this.props.initialData, formData);
+    let hasChanges = !isEqual(this.props.initialData, formData);
     let {access, data, rateLimitsEnabled, organization, project} = this.props;
     return (
       <form onSubmit={this.onSubmit} className="form-stacked">

@@ -3,7 +3,7 @@ import GroupActions from '../actions/groupActions';
 import IndicatorStore from './indicatorStore';
 import PendingChangeQueue from '../utils/pendingChangeQueue';
 import {t} from '../locale';
-import _ from 'underscore';
+import _ from 'lodash';
 
 function showAlert(msg, type) {
   IndicatorStore.add(msg, type, {
