@@ -48,6 +48,8 @@ from sentry.utils.csp import is_valid_csp_report
 from sentry.utils.http import (
     origin_from_request,
     is_valid_ip,
+)
+from sentry.utils.data_filters import (
     is_valid_release,
     is_valid_error_message,
 )

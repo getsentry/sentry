@@ -9,21 +9,16 @@ from __future__ import absolute_import
 
 import ipaddress
 import six
-import fnmatch
 
 from collections import namedtuple
 from django.conf import settings
+
 from six.moves.urllib.parse import urlencode, urljoin, urlparse
 
 from sentry import options
+from sentry.utils.data_filters import FilterTypes
 
 ParsedUriMatch = namedtuple('ParsedUriMatch', ['scheme', 'domain', 'path'])
-
-
-class FilterTypes(object):
-    ERROR_MESSAGES = 'error_messages'
-    RELEASES = 'releases'
-    BLACKLISTED_IPS = 'blacklisted_ips'
 
 
 def absolute_uri(url=None):
@@ -240,38 +235,6 @@ def is_valid_ip(ip_address, project):
         except ValueError:
             # Ignore invalid values here
             pass
-
-    return True
-
-
-def is_valid_release(release, project):
-    """
-    Verify that a release is not being filtered
-    for the given project.
-    """
-    invalid_versions = project.get_option('sentry:{}'.format(FilterTypes.RELEASES))
-    if not invalid_versions:
-        return True
-
-    for version in invalid_versions:
-        if fnmatch.fnmatch(release.lower(), version.lower()):
-            return False
-
-    return True
-
-
-def is_valid_error_message(message, project):
-    """
-    Verify that an error message is not being filtered
-    for the given project.
-    """
-    filtered_errors = project.get_option('sentry:{}'.format(FilterTypes.ERROR_MESSAGES))
-    if not filtered_errors:
-        return True
-
-    for error in filtered_errors:
-        if fnmatch.fnmatch(message.lower(), error.lower()):
-            return False
 
     return True
 

@@ -12,7 +12,7 @@ from sentry.models import ProjectKey
 from sentry.signals import event_accepted, event_dropped, event_filtered
 from sentry.testutils import (assert_mock_called_once_with_partial, TestCase)
 from sentry.utils import json
-from sentry.utils.http import FilterTypes
+from sentry.utils.data_filters import FilterTypes
 
 
 class CspReportViewTest(TestCase):

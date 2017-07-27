@@ -17,6 +17,8 @@ from sentry.utils.http import (
     absolute_uri,
     origin_from_request,
     is_valid_ip,
+)
+from sentry.utils.data_filters import (
     is_valid_release,
     is_valid_error_message,
     FilterTypes,
