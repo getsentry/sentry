@@ -15,8 +15,7 @@ import {t} from '../../locale';
 
 const GroupHeader = React.createClass({
   propTypes: {
-    group: React.PropTypes.object.isRequired,
-    memberList: React.PropTypes.array.isRequired
+    group: React.PropTypes.object.isRequired
   },
 
   contextTypes: {

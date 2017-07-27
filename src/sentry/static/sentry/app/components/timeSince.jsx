@@ -3,7 +3,7 @@ import moment from 'moment';
 import PureRenderMixin from 'react-addons-pure-render-mixin';
 import ConfigStore from '../stores/configStore.jsx';
 import {t} from '../locale';
-import _ from 'underscore';
+import _ from 'lodash';
 
 const TimeSince = React.createClass({
   propTypes: {

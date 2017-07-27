@@ -1,5 +1,5 @@
 import Reflux from 'reflux';
-import _ from 'underscore';
+import _ from 'lodash';
 
 import StreamTagActions from '../actions/streamTagActions';
 import MemberListStore from './memberListStore';

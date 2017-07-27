@@ -1,6 +1,6 @@
 import React from 'react';
 import {Link} from 'react-router';
-import _ from 'underscore';
+import _ from 'lodash';
 
 import PropTypes from '../../proptypes';
 

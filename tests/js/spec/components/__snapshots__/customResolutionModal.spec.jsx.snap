@@ -20,6 +20,7 @@ exports[`CustomResolutionModal render() renders correctly 1`] = `
   }
   onHide={[Function]}
   renderBackdrop={[Function]}
+  restoreFocus={true}
   show={false}
 >
   <div
