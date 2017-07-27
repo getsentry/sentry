@@ -65,17 +65,17 @@ class SAML2ACSView(AuthView):
         email = self.retrieve_email(attributes, nameid, provider.config)
 
         # Filter users based on the emails provided in the commits
-        user_emails = UserEmail.objects.filter(
+        user_emails = list(UserEmail.objects.filter(
             email__iexact=email,
             is_verified=True
-        ).order_by('id')
+        ).order_by('id'))
 
         if user_emails:
-            users = User.objects.filter(
+            users = list(User.objects.filter(
                 id__in=set((ue.user_id for ue in user_emails)),
                 is_active=True,
                 sentry_orgmember_set__organization_id=organization.id
-            )
+            )[0:2])
             if users:
                 if users.count() == 1:
                     user = users[0]
