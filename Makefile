@@ -10,7 +10,7 @@ develop: setup-git develop-only
 
 install-yarn:
 	@echo "--> Installing Node dependencies"
-	@npm install -g yarn@0.24.5
+	@hash yarn 2> /dev/null || (echo 'please install yarn before proceeding'; exit 1)
 	# Use NODE_ENV=development so that yarn installs both dependencies + devDependencies
 	NODE_ENV=development yarn install --ignore-optional --pure-lockfile
 	# Fix phantomjs-prebuilt not installed via yarn
