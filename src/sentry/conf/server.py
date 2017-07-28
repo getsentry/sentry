@@ -1150,7 +1150,7 @@ SENTRY_WATCHERS = (
                 normpath(os.path.join(PROJECT_ROOT, os.pardir, os.pardir, "webpack.config.js"))
             )
         ]
-    ),
+    ), ('storybook', ['yarn', 'storybook']),
 )
 
 # Max file size for avatar photo uploads
