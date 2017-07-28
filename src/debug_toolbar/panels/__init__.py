@@ -32,8 +32,8 @@ class Panel(object):
         # For that reason, replace .panel. in the path and check for that
         # value in the disabled panels as well.
         disable_panel = (
-            panel_path in disabled_panels or
-            panel_path.replace('.panel.', '.') in disabled_panels)
+            panel_path in disabled_panels or panel_path.replace('.panel.', '.') in disabled_panels
+        )
         if disable_panel:
             default = 'off'
         else:
@@ -177,7 +177,6 @@ class Panel(object):
 
 # Backward-compatibility for 1.0, remove in 2.0.
 class DebugPanel(Panel):
-
     def __init__(self, *args, **kwargs):
         warnings.warn("DebugPanel was renamed to Panel.", DeprecationWarning)
         super(DebugPanel, self).__init__(*args, **kwargs)

@@ -12,16 +12,16 @@ class BroadcastSerializer(Serializer):
         if not user.is_authenticated():
             seen = set()
         else:
-            seen = set(BroadcastSeen.objects.filter(
-                broadcast__in=item_list,
-                user=user,
-            ).values_list('broadcast', flat=True))
+            seen = set(
+                BroadcastSeen.objects.filter(
+                    broadcast__in=item_list,
+                    user=user,
+                ).values_list('broadcast', flat=True)
+            )
 
-        return {
-            item: {
-                'seen': item.id in seen,
-            } for item in item_list
-        }
+        return {item: {
+            'seen': item.id in seen,
+        } for item in item_list}
 
     def serialize(self, obj, attrs, user):
         return {

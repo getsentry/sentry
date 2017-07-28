@@ -16,9 +16,12 @@ class ProjectIssueTrackingTest(TestCase):
 
     @fixture
     def path(self):
-        return reverse('sentry-project-issue-tracking', args=[
-            self.organization.slug, self.project.slug,
-        ])
+        return reverse(
+            'sentry-project-issue-tracking', args=[
+                self.organization.slug,
+                self.project.slug,
+            ]
+        )
 
     def test_renders_with_context(self):
         self.login_as(self.owner)

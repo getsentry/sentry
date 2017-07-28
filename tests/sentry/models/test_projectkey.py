@@ -31,8 +31,8 @@ class ProjectKeyTest(TestCase):
             project=self.project,
             status=ProjectKeyStatus.INACTIVE,
         )
-        assert self.model.objects.filter(
-            project=self.project).count() == 2, self.model.objects.all()
+        assert self.model.objects.filter(project=self.project
+                                         ).count() == 2, self.model.objects.all()
         assert self.model.get_default(self.project) == key
 
     def test_is_active(self):

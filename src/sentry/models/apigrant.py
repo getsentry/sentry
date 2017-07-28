@@ -23,31 +23,26 @@ class ApiGrant(Model):
 
     user = FlexibleForeignKey('sentry.User')
     application = FlexibleForeignKey('sentry.ApiApplication')
-    code = models.CharField(
-        max_length=64, db_index=True,
-        default=lambda: ApiGrant.generate_code())
+    code = models.CharField(max_length=64, db_index=True, default=lambda: ApiGrant.generate_code())
     expires_at = models.DateTimeField(
-        db_index=True,
-        default=lambda: timezone.now() + DEFAULT_EXPIRATION)
+        db_index=True, default=lambda: timezone.now() + DEFAULT_EXPIRATION
+    )
     redirect_uri = models.CharField(max_length=255)
-    scopes = BitField(flags=(
-        ('project:read', 'project:read'),
-        ('project:write', 'project:write'),
-        ('project:admin', 'project:admin'),
-        ('project:releases', 'project:releases'),
-        ('team:read', 'team:read'),
-        ('team:write', 'team:write'),
-        ('team:admin', 'team:admin'),
-        ('event:read', 'event:read'),
-        ('event:write', 'event:write'),
-        ('event:admin', 'event:admin'),
-        ('org:read', 'org:read'),
-        ('org:write', 'org:write'),
-        ('org:admin', 'org:admin'),
-        ('member:read', 'member:read'),
-        ('member:write', 'member:write'),
-        ('member:admin', 'member:admin'),
-    ))
+    scopes = BitField(
+        flags=(
+            ('project:read', 'project:read'), ('project:write',
+                                               'project:write'), ('project:admin', 'project:admin'),
+            ('project:releases', 'project:releases'), ('team:read',
+                                                       'team:read'), ('team:write', 'team:write'),
+            ('team:admin', 'team:admin'), ('event:read',
+                                           'event:read'), ('event:write', 'event:write'),
+            ('event:admin', 'event:admin'), ('org:read', 'org:read'), ('org:write', 'org:write'),
+            ('org:admin',
+             'org:admin'), ('member:read',
+                            'member:read'), ('member:write',
+                                             'member:write'), ('member:admin', 'member:admin'),
+        )
+    )
     scope_list = ArrayField(of=models.TextField)
 
     class Meta:

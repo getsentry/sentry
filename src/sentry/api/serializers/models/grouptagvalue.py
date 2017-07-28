@@ -39,27 +39,27 @@ class GroupTagValueSerializer(Serializer):
 
         tag_labels = {}
         if user_lookups:
-            tag_labels.update({
-                ('sentry:user', euser.tag_value): euser.get_label()
-                for euser in EventUser.objects.filter(
-                    reduce(operator.or_, user_lookups),
-                    project_id=project_id,
-                )
-            })
+            tag_labels.update(
+                {
+                    ('sentry:user', euser.tag_value): euser.get_label()
+                    for euser in EventUser.objects.filter(
+                        reduce(operator.or_, user_lookups),
+                        project_id=project_id,
+                    )
+                }
+            )
 
-        other_lookups = [
-            Q(key=i.key, value=i.value)
-            for i in item_list
-            if i.key != 'sentry:user'
-        ]
+        other_lookups = [Q(key=i.key, value=i.value) for i in item_list if i.key != 'sentry:user']
         if other_lookups:
-            tag_labels.update({
-                (t.key, t.value): t.get_label()
-                for t in TagValue.objects.filter(
-                    reduce(operator.or_, other_lookups),
-                    project_id=project_id,
-                )
-            })
+            tag_labels.update(
+                {
+                    (t.key, t.value): t.get_label()
+                    for t in TagValue.objects.filter(
+                        reduce(operator.or_, other_lookups),
+                        project_id=project_id,
+                    )
+                }
+            )
 
         result = {}
         for item in item_list:

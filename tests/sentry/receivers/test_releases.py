@@ -5,15 +5,9 @@ from mock import patch
 from uuid import uuid4
 
 from sentry.models import (
-    Commit,
-    CommitAuthor,
-    GroupAssignee,
-    GroupCommitResolution,
-    OrganizationMember,
-    Release,
-    Repository,
-    TagValue,
-    UserEmail)
+    Commit, CommitAuthor, GroupAssignee, GroupCommitResolution, OrganizationMember, Release,
+    Repository, TagValue, UserEmail
+)
 from sentry.testutils import TestCase
 
 
@@ -28,9 +22,7 @@ class EnsureReleaseExistsTest(TestCase):
         tv = TagValue.objects.get(id=tv.id)
         assert tv.data['release_id']
 
-        release = Release.objects.get(
-            id=tv.data['release_id']
-        )
+        release = Release.objects.get(id=tv.data['release_id'])
         assert release.version == tv.value
         assert release.projects.first() == self.project
         assert release.organization == self.project.organization
@@ -145,7 +137,4 @@ class ResolvedInCommitTest(TestCase):
             commit_id=commit.id,
         ).exists()
 
-        assert GroupAssignee.objects.filter(
-            group=group,
-            user=user
-        ).exists()
+        assert GroupAssignee.objects.filter(group=group, user=user).exists()

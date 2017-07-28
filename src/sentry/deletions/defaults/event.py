@@ -2,9 +2,7 @@ from __future__ import absolute_import, print_function
 
 from sentry import nodestore
 
-from ..base import (
-    BaseDeletionTask, BaseRelation, ModelDeletionTask, ModelRelation
-)
+from ..base import (BaseDeletionTask, BaseRelation, ModelDeletionTask, ModelRelation)
 
 
 class NodeDeletionTask(BaseDeletionTask):
@@ -25,7 +23,9 @@ class EventDeletionTask(ModelDeletionTask):
         event_ids = [i.id for i in instance_list]
 
         return [
-            BaseRelation({'nodes': node_ids}, NodeDeletionTask),
+            BaseRelation({
+                'nodes': node_ids
+            }, NodeDeletionTask),
             ModelRelation(EventTag, {
                 'event_id__in': event_ids,
             }, ModelDeletionTask),

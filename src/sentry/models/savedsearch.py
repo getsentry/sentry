@@ -22,7 +22,7 @@ class SavedSearch(Model):
     class Meta:
         app_label = 'sentry'
         db_table = 'sentry_savedsearch'
-        unique_together = (('project', 'name'),)
+        unique_together = (('project', 'name'), )
 
     __repr__ = sane_repr('project_id', 'name')
 
@@ -38,6 +38,6 @@ class SavedSearchUserDefault(Model):
     user = FlexibleForeignKey('sentry.User')
 
     class Meta:
-        unique_together = (('project', 'user'),)
+        unique_together = (('project', 'user'), )
         app_label = 'sentry'
         db_table = 'sentry_savedsearch_userdefault'

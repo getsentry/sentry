@@ -20,8 +20,7 @@ class OrganizationPermissionBase(TestCase):
         request.method = method
         request.is_superuser = lambda: is_superuser if is_superuser is not None else user.is_superuser
         return (
-            perm.has_permission(request, None) and
-            perm.has_object_permission(request, None, obj)
+            perm.has_permission(request, None) and perm.has_object_permission(request, None, obj)
         )
 
 

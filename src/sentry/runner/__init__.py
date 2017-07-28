@@ -14,7 +14,6 @@ import sentry
 import datetime
 from sentry.utils.imports import import_string
 
-
 # We need to run this here because of a concurrency bug in Python's locale
 # with the lazy initialization.
 datetime.datetime.strptime('', '')
@@ -32,7 +31,8 @@ else:
     default='',
     envvar='SENTRY_CONF',
     help='Path to configuration files.',
-    metavar='PATH')
+    metavar='PATH'
+)
 @click.version_option(version=version_string)
 @click.pass_context
 def cli(ctx, config):
@@ -51,26 +51,22 @@ def cli(ctx, config):
 
 
 # TODO(mattrobenolt): Autodiscover commands?
-list(map(lambda cmd: cli.add_command(import_string(cmd)), (
-    'sentry.runner.commands.backup.export',
-    'sentry.runner.commands.backup.import_',
-    'sentry.runner.commands.cleanup.cleanup',
-    'sentry.runner.commands.config.config',
-    'sentry.runner.commands.createuser.createuser',
-    'sentry.runner.commands.devserver.devserver',
-    'sentry.runner.commands.django.django',
-    'sentry.runner.commands.exec.exec_',
-    'sentry.runner.commands.files.files',
-    'sentry.runner.commands.help.help',
-    'sentry.runner.commands.init.init',
-    'sentry.runner.commands.plugins.plugins',
-    'sentry.runner.commands.queues.queues',
-    'sentry.runner.commands.repair.repair',
-    'sentry.runner.commands.run.run',
-    'sentry.runner.commands.start.start',
-    'sentry.runner.commands.tsdb.tsdb',
-    'sentry.runner.commands.upgrade.upgrade',
-)))
+list(
+    map(
+        lambda cmd: cli.add_command(import_string(cmd)), (
+            'sentry.runner.commands.backup.export', 'sentry.runner.commands.backup.import_',
+            'sentry.runner.commands.cleanup.cleanup', 'sentry.runner.commands.config.config',
+            'sentry.runner.commands.createuser.createuser',
+            'sentry.runner.commands.devserver.devserver', 'sentry.runner.commands.django.django',
+            'sentry.runner.commands.exec.exec_', 'sentry.runner.commands.files.files',
+            'sentry.runner.commands.help.help', 'sentry.runner.commands.init.init',
+            'sentry.runner.commands.plugins.plugins', 'sentry.runner.commands.queues.queues',
+            'sentry.runner.commands.repair.repair', 'sentry.runner.commands.run.run',
+            'sentry.runner.commands.start.start', 'sentry.runner.commands.tsdb.tsdb',
+            'sentry.runner.commands.upgrade.upgrade',
+        )
+    )
+)
 
 
 def make_django_command(name, django_command=None, help=None):
@@ -84,20 +80,24 @@ def make_django_command(name, django_command=None, help=None):
         add_help_option=False,
         context_settings=dict(
             ignore_unknown_options=True,
-        ))
+        )
+    )
     @click.argument('management_args', nargs=-1, type=click.UNPROCESSED)
     @click.pass_context
     def inner(ctx, management_args):
         from sentry.runner.commands.django import django
-        ctx.params['management_args'] = (django_command,) + management_args
+        ctx.params['management_args'] = (django_command, ) + management_args
         ctx.forward(django)
 
     return inner
 
 
-list(map(cli.add_command, (
-    make_django_command('shell', help='Run a Python interactive interpreter.'),
-)))
+list(
+    map(
+        cli.add_command,
+        (make_django_command('shell', help='Run a Python interactive interpreter.'), )
+    )
+)
 
 
 def configure():

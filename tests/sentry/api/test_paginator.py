@@ -2,9 +2,7 @@ from __future__ import absolute_import
 
 import pytest
 
-from sentry.api.paginator import (
-    Paginator, DateTimePaginator, OffsetPaginator
-)
+from sentry.api.paginator import (Paginator, DateTimePaginator, OffsetPaginator)
 from sentry.models import User
 from sentry.testutils import TestCase
 

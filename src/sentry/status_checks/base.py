@@ -11,10 +11,7 @@ def sort_by_severity(problems):
     """
     return sorted(
         problems,
-        key=lambda i: (
-            -Problem.SEVERITY_LEVELS[i.severity],
-            i.message,
-        ),
+        key=lambda i: (-Problem.SEVERITY_LEVELS[i.severity], i.message, ),
     )
 
 

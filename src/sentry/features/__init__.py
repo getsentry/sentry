@@ -4,7 +4,6 @@ from .base import *  # NOQA
 from .handler import *  # NOQA
 from .manager import *  # NOQA
 
-
 default_manager = FeatureManager()  # NOQA
 default_manager.add('auth:register')
 default_manager.add('organizations:api-keys', OrganizationFeature)  # NOQA
@@ -23,6 +22,8 @@ default_manager.add('projects:rate-limits', ProjectFeature)  # NOQA
 default_manager.add('workflow:release-emails', ProjectFeature)  # NOQA
 default_manager.add('projects:sample-events', ProjectFeature)  # NOQA
 default_manager.add('projects:similarity-indexing', ProjectFeature)  # NOQA
+default_manager.add('projects:custom-filters', ProjectFeature)  # NOQA
+default_manager.add('projects:stream-hit-counts', ProjectFeature)  # NOQA
 
 # expose public api
 add = default_manager.add

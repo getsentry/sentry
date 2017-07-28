@@ -10,8 +10,7 @@ from mock import patch
 
 from sentry.api.serializers import serialize
 from sentry.models import (
-    GroupResolution, GroupSnooze, GroupSubscription,
-    GroupStatus, UserOption, UserOptionValue
+    GroupResolution, GroupSnooze, GroupSubscription, GroupStatus, UserOption, UserOptionValue
 )
 from sentry.testutils import TestCase
 
@@ -166,11 +165,10 @@ class GroupSerializerTest(TestCase):
         group = self.create_group()
 
         combinations = (
-            ((None, None), True),
-            ((UserOptionValue.all_conversations, None), True),
+            ((None, None), True), ((UserOptionValue.all_conversations, None), True),
             ((UserOptionValue.all_conversations, UserOptionValue.all_conversations), True),
-            ((UserOptionValue.all_conversations, UserOptionValue.participating_only), False),
-            ((UserOptionValue.participating_only, None), False),
+            ((UserOptionValue.all_conversations, UserOptionValue.participating_only),
+             False), ((UserOptionValue.participating_only, None), False),
             ((UserOptionValue.participating_only, UserOptionValue.all_conversations), True),
             ((UserOptionValue.participating_only, UserOptionValue.participating_only), False),
         )
@@ -195,9 +193,10 @@ class GroupSerializerTest(TestCase):
             default_value, project_value = options
             maybe_set_value(None, default_value)
             maybe_set_value(group.project, project_value)
-            assert serialize(
-                group, user)['isSubscribed'] is expected_result, 'expected {!r} for {!r}'.format(
-                expected_result, options)
+            assert serialize(group, user
+                             )['isSubscribed'] is expected_result, 'expected {!r} for {!r}'.format(
+                                 expected_result, options
+                             )  # noqa
 
     def test_no_user_unsubscribed(self):
         group = self.create_group()

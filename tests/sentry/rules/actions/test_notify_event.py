@@ -14,7 +14,7 @@ class NotifyEventActionTest(RuleTestCase):
 
         plugin = MagicMock()
         rule = self.get_rule()
-        rule.get_plugins = lambda: (plugin,)
+        rule.get_plugins = lambda: (plugin, )
 
         results = list(rule.after(event=event, state=self.get_state()))
 

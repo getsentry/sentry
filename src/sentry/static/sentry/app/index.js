@@ -44,7 +44,6 @@ import ReactDOM from 'react-dom';
 import {renderToStaticMarkup} from 'react-dom/server';
 import Reflux from 'reflux';
 import * as Router from 'react-router';
-import underscore from 'underscore';
 import ReactBootstrapModal from 'react-bootstrap/lib/Modal';
 
 import * as api from './api';
@@ -67,7 +66,6 @@ export default {
   },
   Reflux: Reflux,
   Router: Router,
-  underscore: underscore,
 
   Sentry: {
     api: api,

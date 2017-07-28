@@ -15,6 +15,7 @@ class VersionsPanel(Panel):
     """
     Shows versions of Python, Django, and installed apps if possible.
     """
+
     @property
     def nav_subtitle(self):
         return 'Django %s' % django.get_version()
@@ -32,10 +33,12 @@ class VersionsPanel(Panel):
             versions += list(self.gen_app_versions_1_7())
         else:
             versions += list(self.gen_app_versions_1_6())
-        self.record_stats({
-            'versions': OrderedDict(sorted(versions, key=lambda v: v[0])),
-            'paths': sys.path,
-        })
+        self.record_stats(
+            {
+                'versions': OrderedDict(sorted(versions, key=lambda v: v[0])),
+                'paths': sys.path,
+            }
+        )
 
     def gen_app_versions_1_7(self):
         from django.apps import apps

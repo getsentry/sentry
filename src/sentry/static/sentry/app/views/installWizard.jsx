@@ -1,6 +1,6 @@
 import React from 'react';
 import DocumentTitle from 'react-document-title';
-import _ from 'underscore';
+import _ from 'lodash';
 
 import {t} from '../locale';
 import ApiMixin from '../mixins/apiMixin';
@@ -19,7 +19,7 @@ const InstallWizardSettings = React.createClass({
   getInitialState() {
     let options = {...this.props.options};
     let requiredOptions = Object.keys(
-      _.pick(options, option => {
+      _.pickBy(options, option => {
         return option.field.required && !option.field.disabled;
       })
     );
@@ -163,8 +163,8 @@ const InstallWizard = React.createClass({
     let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
 
     // We only want to send back the values which weren't disabled
-    let data = _.mapObject(
-      _.pick(options, option => !option.field.disabled),
+    let data = _.mapValues(
+      _.pickBy(options, option => !option.field.disabled),
       option => option.value
     );
     this.api.request('/internal/options/', {

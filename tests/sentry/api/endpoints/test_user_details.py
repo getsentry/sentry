@@ -30,9 +30,11 @@ class UserDetailsTest(APITestCase):
 
         self.login_as(user=user)
 
-        url = reverse('sentry-api-0-user-details', kwargs={
-            'user_id': 'me',
-        })
+        url = reverse(
+            'sentry-api-0-user-details', kwargs={
+                'user_id': 'me',
+            }
+        )
         resp = self.client.get(url, format='json')
 
         assert resp.status_code == 200, resp.content
@@ -44,9 +46,11 @@ class UserDetailsTest(APITestCase):
 
         self.login_as(user=superuser)
 
-        url = reverse('sentry-api-0-user-details', kwargs={
-            'user_id': user.id,
-        })
+        url = reverse(
+            'sentry-api-0-user-details', kwargs={
+                'user_id': user.id,
+            }
+        )
 
         resp = self.client.get(url)
         assert resp.status_code == 200, resp.content
@@ -61,17 +65,22 @@ class UserUpdateTest(APITestCase):
 
         self.login_as(user=user)
 
-        url = reverse('sentry-api-0-user-details', kwargs={
-            'user_id': 'me',
-        })
-
-        resp = self.client.put(url, data={
-            'name': 'hello world',
-            'username': 'b@example.com',
-            'options': {
-                'seenReleaseBroadcast': True
+        url = reverse(
+            'sentry-api-0-user-details', kwargs={
+                'user_id': 'me',
             }
-        })
+        )
+
+        resp = self.client.put(
+            url,
+            data={
+                'name': 'hello world',
+                'username': 'b@example.com',
+                'options': {
+                    'seenReleaseBroadcast': True
+                }
+            }
+        )
         assert resp.status_code == 200, resp.content
         assert resp.data['id'] == six.text_type(user.id)
 
@@ -90,16 +99,21 @@ class UserUpdateTest(APITestCase):
 
         self.login_as(user=superuser)
 
-        url = reverse('sentry-api-0-user-details', kwargs={
-            'user_id': user.id,
-        })
+        url = reverse(
+            'sentry-api-0-user-details', kwargs={
+                'user_id': user.id,
+            }
+        )
 
-        resp = self.client.put(url, data={
-            'name': 'hello world',
-            'email': 'c@example.com',
-            'username': 'foo',
-            'isActive': 'false',
-        })
+        resp = self.client.put(
+            url,
+            data={
+                'name': 'hello world',
+                'email': 'c@example.com',
+                'username': 'foo',
+                'isActive': 'false',
+            }
+        )
         assert resp.status_code == 200, resp.content
         assert resp.data['id'] == six.text_type(user.id)
 

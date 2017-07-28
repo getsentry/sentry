@@ -45,9 +45,11 @@ def update(self, using=None, **kwargs):
         return affected
     elif affected < 0:
         raise ValueError(
-            "Somehow we have updated a negative amount of rows, you seem to have a problem with your db backend.")
+            "Somehow we have updated a negative amount of rows, you seem to have a problem with your db backend."
+        )
     else:
         raise ValueError("Somehow we have updated multiple rows, and you are now royally fucked.")
+
 
 update.alters_data = True
 

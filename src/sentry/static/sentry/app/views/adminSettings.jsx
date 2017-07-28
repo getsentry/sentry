@@ -1,5 +1,5 @@
 import React from 'react';
-import _ from 'underscore';
+import _ from 'lodash';
 
 import AsyncView from './asyncView';
 import {t} from '../locale';

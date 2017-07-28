@@ -1,8 +1,8 @@
 from __future__ import absolute_import
 
 from sentry.models import (
-    Commit, CommitAuthor, Environment, Organization, Release, ReleaseCommit,
-    ReleaseEnvironment, Repository, ScheduledDeletion
+    Commit, CommitAuthor, Environment, Organization, Release, ReleaseCommit, ReleaseEnvironment,
+    Repository, ScheduledDeletion
 )
 from sentry.tasks.deletion import run_deletion
 from sentry.testutils import TestCase
@@ -16,8 +16,7 @@ class DeleteOrganizationTest(TestCase):
         org2 = self.create_organization(name='test2')
         self.create_team(organization=org, name='test1')
         self.create_team(organization=org, name='test2')
-        release = Release.objects.create(version='a' * 32,
-                                         organization_id=org.id)
+        release = Release.objects.create(version='a' * 32, organization_id=org.id)
         repo = Repository.objects.create(
             organization_id=org.id,
             name=org.name,
@@ -40,16 +39,9 @@ class DeleteOrganizationTest(TestCase):
             order=0,
         )
 
-        env = Environment.objects.create(
-            organization_id=org.id,
-            project_id=4,
-            name='foo'
-        )
+        env = Environment.objects.create(organization_id=org.id, project_id=4, name='foo')
         release_env = ReleaseEnvironment.objects.create(
-            organization_id=org.id,
-            project_id=4,
-            release_id=release.id,
-            environment_id=env.id
+            organization_id=org.id, project_id=4, release_id=release.id, environment_id=env.id
         )
 
         deletion = ScheduledDeletion.schedule(org, days=0)

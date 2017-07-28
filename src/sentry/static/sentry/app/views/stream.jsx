@@ -5,7 +5,7 @@ import {Link} from 'react-router';
 import Cookies from 'js-cookie';
 import {StickyContainer, Sticky} from 'react-sticky';
 import classNames from 'classnames';
-import _ from 'underscore';
+import _ from 'lodash';
 
 import ApiMixin from '../mixins/apiMixin';
 import GroupStore from '../stores/groupStore';
@@ -72,6 +72,7 @@ const Stream = React.createClass({
       statsPeriod: this.props.defaultStatsPeriod,
       realtimeActive,
       pageLinks: '',
+      queryCount: null,
       dataLoading: true,
       error: false,
       query: '',
@@ -325,6 +326,7 @@ const Stream = React.createClass({
 
     this.setState({
       dataLoading: true,
+      queryCount: null,
       error: false
     });
 
@@ -372,9 +374,18 @@ const Stream = React.createClass({
 
         this._streamManager.push(data);
 
+        let queryCount = jqXHR.getResponseHeader('X-Hits');
+        let queryMaxCount = jqXHR.getResponseHeader('X-Max-Hits');
+
         return void this.setState({
           error: false,
           dataLoading: false,
+          queryCount: typeof queryCount !== 'undefined'
+            ? parseInt(queryCount, 10) || 0
+            : 0,
+          queryMaxCount: typeof queryMaxCount !== 'undefined'
+            ? parseInt(queryMaxCount, 10) || 0
+            : 0,
           pageLinks: jqXHR.getResponseHeader('Link')
         });
       },
@@ -703,6 +714,8 @@ const Stream = React.createClass({
               sort={this.state.sort}
               tags={this.state.tags}
               searchId={searchId}
+              queryCount={this.state.queryCount}
+              queryMaxCount={this.state.queryMaxCount}
               defaultQuery={this.props.defaultQuery}
               onSortChange={this.onSortChange}
               onSearch={this.onSearch}

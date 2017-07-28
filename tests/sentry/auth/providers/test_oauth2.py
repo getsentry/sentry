@@ -20,9 +20,7 @@ class OAuth2ProviderTest(TestCase):
         super(OAuth2ProviderTest, self).setUp()
 
     def get_provider(self):
-        self.provider = OAuth2Provider(
-            key=self.auth_provider.provider
-        )
+        self.provider = OAuth2Provider(key=self.auth_provider.provider)
 
     def test_refresh_identity_without_refresh_token(self):
         auth_identity = AuthIdentity.objects.create(

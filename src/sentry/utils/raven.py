@@ -12,10 +12,7 @@ from raven.contrib.django.client import DjangoClient
 
 from . import metrics
 
-UNSAFE_FILES = (
-    'sentry/event_manager.py',
-    'sentry/tasks/process_buffer.py',
-)
+UNSAFE_FILES = ('sentry/event_manager.py', 'sentry/tasks/process_buffer.py', )
 
 
 def is_current_event_safe():
@@ -77,17 +74,17 @@ class SentryInternalClient(DjangoClient):
         try:
             project = Project.objects.get_from_cache(id=settings.SENTRY_PROJECT)
         except DatabaseError:
-            self.error_logger.error('Unable to fetch internal project',
-                                    exc_info=True)
+            self.error_logger.error('Unable to fetch internal project', exc_info=True)
             return
         except Project.DoesNotExist:
-            self.error_logger.error('Internal project (id=%s) does not exist',
-                                    settings.SENTRY_PROJECT)
+            self.error_logger.error(
+                'Internal project (id=%s) does not exist', settings.SENTRY_PROJECT
+            )
             return
         except Exception:
             self.error_logger.error(
-                'Unable to fetch internal project for some unknown reason',
-                exc_info=True)
+                'Unable to fetch internal project for some unknown reason', exc_info=True
+            )
             return
 
         helper.context.bind_project(project)
@@ -103,10 +100,12 @@ class SentryInternalClient(DjangoClient):
             data = kwargs
             manager = EventManager(data)
             data = manager.normalize()
-            tsdb.incr_multi([
-                (tsdb.models.project_total_received, project.id),
-                (tsdb.models.organization_total_received, project.organization_id),
-            ])
+            tsdb.incr_multi(
+                [
+                    (tsdb.models.project_total_received, project.id),
+                    (tsdb.models.organization_total_received, project.organization_id),
+                ]
+            )
             helper.insert_data_to_database(data)
         except Exception as e:
             if self.raise_send_errors:
@@ -115,11 +114,11 @@ class SentryInternalClient(DjangoClient):
             if not message:
                 msg_interface = kwargs.get('sentry.interface.Message', {})
                 message = msg_interface.get(
-                    'formatted', msg_interface.get(
-                        'message', 'unknown error'))
+                    'formatted', msg_interface.get('message', 'unknown error')
+                )
             self.error_logger.error(
-                'Unable to record event: %s\nEvent was: %r', e,
-                message, exc_info=True)
+                'Unable to record event: %s\nEvent was: %r', e, message, exc_info=True
+            )
 
 
 class SentryInternalFilter(logging.Filter):

@@ -6,7 +6,6 @@ from sentry.constants import FILTER_MASK
 from sentry.testutils import TestCase
 from sentry.utils.data_scrubber import SensitiveDataFilter
 
-
 VARS = {
     'foo': 'bar',
     'password': 'hello',
@@ -44,7 +43,6 @@ THd+9FBxiHLGXNKhG/FRSyREXEt+NyYIf/0cyByc9tNksat794ddUqnLOg0vwSkv
 
 
 class SensitiveDataFilterTest(TestCase):
-
     def _check_vars_sanitized(self, vars, proc):
         """
         Helper to check that keys have been sanitized.
@@ -65,7 +63,9 @@ class SensitiveDataFilterTest(TestCase):
     def test_stacktrace(self):
         data = {
             'sentry.interfaces.Stacktrace': {
-                'frames': [{'vars': VARS}],
+                'frames': [{
+                    'vars': VARS
+                }],
             }
         }
 
@@ -118,9 +118,7 @@ class SensitiveDataFilterTest(TestCase):
         self._check_vars_sanitized(data['sentry.interfaces.User']['data'], proc)
 
     def test_extra(self):
-        data = {
-            'extra': VARS
-        }
+        data = {'extra': VARS}
 
         proc = SensitiveDataFilter()
         proc.apply(data)
@@ -148,8 +146,9 @@ class SensitiveDataFilterTest(TestCase):
     def test_querystring_as_string(self):
         data = {
             'sentry.interfaces.Http': {
-                'query_string': 'foo=bar&password=hello&the_secret=hello'
-                                '&a_password_here=hello&api_key=secret_key',
+                'query_string':
+                'foo=bar&password=hello&the_secret=hello'
+                '&a_password_here=hello&api_key=secret_key',
             }
         }
 
@@ -160,7 +159,9 @@ class SensitiveDataFilterTest(TestCase):
         http = data['sentry.interfaces.Http']
         assert http['query_string'] == (
             'foo=bar&password=%(m)s&the_secret=%(m)s'
-            '&a_password_here=%(m)s&api_key=%(m)s' % {'m': FILTER_MASK}
+            '&a_password_here=%(m)s&api_key=%(m)s' % {
+                'm': FILTER_MASK
+            }
         )
 
     def test_querystring_as_string_with_partials(self):
@@ -178,13 +179,8 @@ class SensitiveDataFilterTest(TestCase):
         assert http['query_string'] == 'foo=bar&password&baz=bar'
 
     def test_sanitize_additional_sensitive_fields(self):
-        additional_sensitive_dict = {
-            'fieldy_field': 'value',
-            'moar_other_field': 'another value'
-        }
-        data = {
-            'extra': dict(list(VARS.items()) + list(additional_sensitive_dict.items()))
-        }
+        additional_sensitive_dict = {'fieldy_field': 'value', 'moar_other_field': 'another value'}
+        data = {'extra': dict(list(VARS.items()) + list(additional_sensitive_dict.items()))}
 
         proc = SensitiveDataFilter(additional_sensitive_dict.keys())
         proc.apply(data)
@@ -245,9 +241,11 @@ class SensitiveDataFilterTest(TestCase):
         result = proc.sanitize('foo', "foo redis://redis:foo@localhost:6379/0 bar")
         assert result == "foo redis://redis:%s@localhost:6379/0 bar" % FILTER_MASK
         result = proc.sanitize(
-            'foo', "foo redis://redis:foo@localhost:6379/0 bar pg://matt:foo@localhost/1")
+            'foo', "foo redis://redis:foo@localhost:6379/0 bar pg://matt:foo@localhost/1"
+        )
         assert result == "foo redis://redis:%s@localhost:6379/0 bar pg://matt:%s@localhost/1" % (
-            FILTER_MASK, FILTER_MASK)
+            FILTER_MASK, FILTER_MASK
+        )
         # Make sure we don't mess up any other url.
         # This url specifically if passed through urlunsplit(urlsplit()),
         # it'll change the value.
@@ -255,7 +253,9 @@ class SensitiveDataFilterTest(TestCase):
         assert result == 'postgres:///path'
         # Don't be too overly eager within JSON strings an catch the right field.
         result = proc.sanitize(
-            'foo', '{"a":"https://localhost","b":"foo@localhost","c":"pg://matt:pass@localhost/1","d":"lol"}')
+            'foo',
+            '{"a":"https://localhost","b":"foo@localhost","c":"pg://matt:pass@localhost/1","d":"lol"}'
+        )
         assert result == '{"a":"https://localhost","b":"foo@localhost","c":"pg://matt:%s@localhost/1","d":"lol"}' % FILTER_MASK
 
     def test_sanitize_http_body(self):

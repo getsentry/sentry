@@ -30,21 +30,29 @@ class PluginSerializer(Serializer):
         if hasattr(obj, 'get_custom_contexts'):
             contexts.extend(x.type for x in obj.get_custom_contexts() or ())
         d = {
-            'id': obj.slug,
-            'name': six.text_type(obj.get_title()),
-            'type': obj.get_plugin_type(),
-            'canDisable': obj.can_disable,
-            'isTestable': hasattr(obj, 'is_testable') and obj.is_testable(),
-            'metadata': obj.get_metadata(),
-            'contexts': contexts,
-            'status': obj.get_status(),
+            'id':
+            obj.slug,
+            'name':
+            six.text_type(obj.get_title()),
+            'type':
+            obj.get_plugin_type(),
+            'canDisable':
+            obj.can_disable,
+            'isTestable':
+            hasattr(obj, 'is_testable') and obj.is_testable(),
+            'metadata':
+            obj.get_metadata(),
+            'contexts':
+            contexts,
+            'status':
+            obj.get_status(),
             'assets': [
                 {
                     'url': absolute_uri(get_asset_url(obj.asset_key or obj.slug, asset)),
-                }
-                for asset in obj.get_assets()
+                } for asset in obj.get_assets()
             ],
-            'doc': doc,
+            'doc':
+            doc,
         }
         if self.project:
             d['enabled'] = obj.is_enabled(self.project)
@@ -59,10 +67,7 @@ class PluginWithConfigSerializer(PluginSerializer):
         d = super(PluginWithConfigSerializer, self).serialize(obj, attrs, user)
         d['config'] = [
             serialize_field(self.project, obj, c)
-            for c in obj.get_config(
-                project=self.project,
-                user=user
-            )
+            for c in obj.get_config(project=self.project, user=user)
         ]
         return d
 

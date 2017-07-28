@@ -35,8 +35,9 @@ def convert_options_to_env(options):
 class SentryHTTPServer(Service):
     name = 'http'
 
-    def __init__(self, host=None, port=None, debug=False, workers=None,
-                 validate=True, extra_options=None):
+    def __init__(
+        self, host=None, port=None, debug=False, workers=None, validate=True, extra_options=None
+    ):
         from django.conf import settings
         from sentry import options as sentry_options
         from sentry.logging import LoggingFormat
@@ -75,7 +76,8 @@ class SentryHTTPServer(Service):
         options.setdefault('die-on-term', True)
         options.setdefault(
             'log-format',
-            '%(addr) - %(user) [%(ltime)] "%(method) %(uri) %(proto)" %(status) %(size) "%(referer)" "%(uagent)"')
+            '%(addr) - %(user) [%(ltime)] "%(method) %(uri) %(proto)" %(status) %(size) "%(referer)" "%(uagent)"'
+        )
 
         options.setdefault('%s-socket' % options['protocol'], '%s:%s' % (host, port))
 
@@ -160,4 +162,4 @@ class SentryHTTPServer(Service):
 
     def run(self):
         self.prepare_environment()
-        os.execvp('uwsgi', ('uwsgi',))
+        os.execvp('uwsgi', ('uwsgi', ))
