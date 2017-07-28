@@ -69,12 +69,11 @@ def make_sentence(words=None):
 def create_sample_event(*args, **kwargs):
     try:
         event = _create_sample_event(*args, **kwargs)
-        features.record([event])
-        return event
     except HashDiscarded as e:
         print "> Skipping Event: {}".format(e.message)
-        return
-
+    else:
+        features.record([event])
+        return event
 
 def generate_commits(user):
     commits = []
@@ -158,10 +157,11 @@ def create_system_time_series():
 
 
 def create_sample_time_series(event, release=None):
-    try:
-        group = event.group
-    except AttributeError:
+    if event is None:
         return
+
+    group = event.group
+
     project = group.project
 
     key = project.key_set.all()[0]
@@ -549,7 +549,7 @@ def main(num_events=1, extra_events=False):
                     environment=ENVIRONMENTS.next(),
                     user=generate_user(),
                 )
-            try:
+            if event5:
                 Commit.objects.get_or_create(
                     organization_id=org.id,
                     repository_id=repo[0].id,
@@ -563,8 +563,7 @@ def main(num_events=1, extra_events=False):
                         'message': 'Ooops!\nFixes {}'.format(event5.group.qualified_short_id),
                     },
                 )[0]
-            except AttributeError:
-                pass
+
 
             create_sample_event(
                 project=project,
@@ -573,15 +572,16 @@ def main(num_events=1, extra_events=False):
             )
 
             with transaction.atomic():
-                try:
-                    GroupMeta.objects.create(
-                        group=event1.group,
-                        key='github:tid',
-                        value='134',
-                    )
-                except (AttributeError, IntegrityError):
-                    pass
-            try:
+                if event1:
+                    try:
+                        GroupMeta.objects.create(
+                            group=event1.group,
+                            key='github:tid',
+                            value='134',
+                        )
+                    except IntegrityError:
+                        pass
+            if event3:
                 UserReport.objects.create(
                     project=project,
                     event_id=event3.event_id,
@@ -590,8 +590,6 @@ def main(num_events=1, extra_events=False):
                     email='jane@example.com',
                     comments=make_sentence(),
                 )
-            except AttributeError:
-                pass
 
             print('    > Loading time series data'.format(project_name))
 
