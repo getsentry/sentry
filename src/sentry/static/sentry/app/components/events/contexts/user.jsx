@@ -1,6 +1,6 @@
 /*eslint react/jsx-key:0*/
 import React from 'react';
-import _ from 'underscore';
+import _ from 'lodash';
 
 import Avatar from '../../../components/avatar';
 import KeyValueList from '../interfaces/keyValueList';

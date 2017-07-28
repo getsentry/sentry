@@ -3,7 +3,7 @@ import Jed from 'jed';
 import React from 'react';
 import {getTranslations} from './translations';
 import {sprintf} from 'sprintf-js';
-import _ from 'underscore';
+import _ from 'lodash';
 
 let LOCALE_DEBUG = false;
 

@@ -1,5 +1,5 @@
 import iOSDeviceList from 'ios-device-list';
-import {isString} from 'underscore';
+import {isString} from 'lodash';
 
 export default function(model) {
   if (!model || !isString(model)) {

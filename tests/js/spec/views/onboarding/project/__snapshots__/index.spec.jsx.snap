@@ -38,12 +38,12 @@ exports[`Project render() should render NotFound if no matching organization 1`]
         type="text"
       />
     </div>
-    <div
+    <button
       className="btn btn-primary pull-right"
       onClick={[Function]}
     >
       Continue
-    </div>
+    </button>
   </div>
 </div>
 `;

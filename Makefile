@@ -1,16 +1,16 @@
-CPUS ?= $(shell sysctl -n hw.ncpu || echo 1)
+CPUS ?= $(shell sysctl -n hw.ncpu 2> /dev/null || echo 1)
 MAKEFLAGS += --jobs=$(CPUS)
 NPM_ROOT = ./node_modules
 STATIC_DIR = src/sentry/static/sentry
 
-develop: setup-git update-submodules install-python install-yarn
-	@echo ""
+develop-only: update-submodules install-python install-yarn
 
-develop-only: develop
+develop: setup-git develop-only
+	@echo ""
 
 install-yarn:
 	@echo "--> Installing Node dependencies"
-	@hash yarn 2> /dev/null || npm install -g yarn
+	@hash yarn 2> /dev/null || (echo 'Cannot continue with JavaScript dependencies. Please install yarn before proceeding. For more information refer to https://yarnpkg.com/lang/en/docs/install/'; echo 'If you are on a mac run:'; echo '  brew install yarn'; exit 1)
 	# Use NODE_ENV=development so that yarn installs both dependencies + devDependencies
 	NODE_ENV=development yarn install --ignore-optional --pure-lockfile
 	# Fix phantomjs-prebuilt not installed via yarn

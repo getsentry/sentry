@@ -288,46 +288,52 @@ end
 
 -- Signature Matching
 
-local function parse_signatures(configuration, arguments)
-    --[[
-    Parses signatures from an argument table, collecting signatures until the
-    end of the table is reached. Signatures are expected to be an index name,
-    followed by the number of items specified by the `configuration.bands`
-    value. Signatures are returned as a table with an `index` key (string) and
-    a `buckets` key (table of strings).
-    ]]--
-    local entries = table.ireduce(
-        arguments,
-        function (state, token)
-            if state.active == nil then
-                -- When there is no active entry, we need to initialize
-                -- a new one. The first token is the index identifier.
-                state.active = {index = token, buckets = {}}
-            else
-                -- If there is an active entry, we need to add the
-                -- current token to the feature list.
-                table.insert(state.active.buckets, token)
+local function parse_band(configuration, arguments, cursor)
+    local result = {}
 
-                -- When we've seen the same number of buckets as there
-                -- are bands, we're done recording and need to mark the
-                -- current entry as completed, and reset the current
-                -- active entry.
-                if #state.active.buckets == configuration.bands then
-                    table.insert(state.completed, state.active)
-                    state.active = nil
-                end
-            end
-            return state
-        end,
-        {active = nil, completed = {}}
-    )
+    local count = tonumber(arguments[cursor])
+    cursor = cursor + 1
 
-    -- If there are any entries in progress when we are completed, that
-    -- means the input was in an incorrect format and we should error
-    -- before we record any bad data.
-    assert(entries.active == nil, 'unexpected end of input')
+    for i = 1, count do
+        result[arguments[cursor]] = tonumber(arguments[cursor + 1])
+        cursor = cursor + 2
+    end
 
-    return entries.completed
+    return result, cursor
+end
+
+local function parse_signature(configuration, arguments, cursor)
+    local result = {}
+
+    result.index = arguments[cursor]
+    cursor = cursor + 1
+
+    for i = 1, configuration.bands do
+        result[i], cursor = parse_band(
+            configuration,
+            arguments,
+            cursor
+        )
+    end
+
+    return result, cursor
+end
+
+local function parse_signatures(configuration, arguments, cursor)
+    local result = {}
+
+    local count = tonumber(arguments[cursor])
+    cursor = cursor + 1
+
+    for i = 1, count  do
+        result[i], cursor = parse_signature(
+            configuration,
+            arguments,
+            cursor
+        )
+    end
+
+    return result, cursor
 end
 
 local function fetch_candidates(configuration, time_series, index, frequencies)
@@ -492,7 +498,8 @@ local commands = {
             local key = arguments[1]
             local signatures = parse_signatures(
                 configuration,
-                table.slice(arguments, 2)
+                arguments,
+                2
             )
 
             local time = math.floor(configuration.timestamp / configuration.interval)
@@ -504,32 +511,34 @@ local commands = {
 
             return table.imap(
                 signatures,
-                function (entry)
+                function (signature)
                     local results = {}
 
-                    for band, bucket in ipairs(entry.buckets) do
-                        local bucket_membership_key = get_bucket_membership_key(
-                            configuration,
-                            entry.index,
-                            time,
-                            band,
-                            bucket
-                        )
-                        redis.call('SADD', bucket_membership_key, key)
-                        redis.call('EXPIREAT', bucket_membership_key, expiration)
+                    for band, buckets in ipairs(signature) do
+                        for bucket, count in pairs(buckets) do
+                            local bucket_membership_key = get_bucket_membership_key(
+                                configuration,
+                                signature.index,
+                                time,
+                                band,
+                                bucket
+                            )
+                            redis.call('SADD', bucket_membership_key, key)
+                            redis.call('EXPIREAT', bucket_membership_key, expiration)
 
-                        local bucket_frequency_key = get_bucket_frequency_key(
-                            configuration,
-                            entry.index,
-                            time,
-                            band,
-                            key
-                        )
-                        table.insert(
-                            results,
-                            tonumber(redis.call('HINCRBY', bucket_frequency_key, bucket, 1))
-                        )
-                        redis.call('EXPIREAT', bucket_frequency_key, expiration)
+                            local bucket_frequency_key = get_bucket_frequency_key(
+                                configuration,
+                                signature.index,
+                                time,
+                                band,
+                                key
+                            )
+                            table.insert(
+                                results,
+                                tonumber(redis.call('HINCRBY', bucket_frequency_key, bucket, count))
+                            )
+                            redis.call('EXPIREAT', bucket_frequency_key, expiration)
+                        end
                     end
 
                     return results
@@ -541,7 +550,8 @@ local commands = {
         function (configuration, arguments)
             local signatures = parse_signatures(
                 configuration,
-                arguments
+                arguments,
+                1
             )
             local time_series = get_active_indices(
                 configuration.interval,
@@ -556,14 +566,7 @@ local commands = {
                         configuration,
                         time_series,
                         signature.index,
-                        table.imap(
-                            signature.buckets,
-                            function (band)
-                                local item = {}
-                                item[band] = 1
-                                return item
-                            end
-                        )
+                        signature
                     )
 
                     -- Sort the results in descending order (most similar first.)

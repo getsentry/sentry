@@ -4,7 +4,7 @@ jest.mock('app/stores/groupStore');
 import React from 'react';
 import {shallow} from 'enzyme';
 import Cookies from 'js-cookie';
-import _ from 'underscore';
+import _ from 'lodash';
 
 import {Client} from 'app/api';
 import CursorPoller from 'app/utils/cursorPoller';

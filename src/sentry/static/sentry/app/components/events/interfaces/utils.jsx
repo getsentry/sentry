@@ -1,5 +1,5 @@
 import {defined} from '../../../utils';
-import _ from 'underscore';
+import _ from 'lodash';
 
 export function escapeQuotes(v) {
   return v.replace(/"/g, '\\"');

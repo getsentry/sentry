@@ -67,7 +67,7 @@ def make_sentence(words=None):
 
 def create_sample_event(*args, **kwargs):
     event = _create_sample_event(*args, **kwargs)
-    features.record(event)
+    features.record([event])
     return event
 
 
