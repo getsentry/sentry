@@ -87,7 +87,11 @@ const SimilarList = React.createClass({
       );
     }
 
-    return this.renderEmpty();
+    return (
+      <div className="grouping-list-container grouping-similar-list-container">
+        {this.renderEmpty()}
+      </div>
+    );
   }
 });
 
