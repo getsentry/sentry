@@ -77,7 +77,7 @@ class SAML2ACSView(AuthView):
                 sentry_orgmember_set__organization_id=organization.id
             )[0:2])
             if users:
-                if users.count() == 1:
+                if len(users) == 1:
                     user = users[0]
                     user.backend = settings.AUTHENTICATION_BACKENDS[0]
                     if login(request,
