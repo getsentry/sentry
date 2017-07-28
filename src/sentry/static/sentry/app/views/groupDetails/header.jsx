@@ -120,9 +120,7 @@ const GroupHeader = React.createClass({
       orgId = this.getOrganization().slug;
     let message = this.getMessage();
 
-    let hasSimView = ConfigStore.getConfig().features.has(
-      `${orgId}:${projectId}:similarity-view`
-    );
+    let hasSimView = ConfigStore.getConfig().features.has('similarity-view');
 
     let hasGroupingView = hasSimView || orgFeatures.has('group-unmerge');
 

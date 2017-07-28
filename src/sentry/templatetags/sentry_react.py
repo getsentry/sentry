@@ -11,7 +11,7 @@ from pkg_resources import parse_version
 
 from sentry import features, options
 from sentry.api.serializers.base import serialize
-from sentry.models import ProjectKey, User, Project
+from sentry.models import ProjectKey
 from sentry.utils import auth, json
 from sentry.utils.email import is_smtp_enabled
 from sentry.utils.assets import get_asset_url
@@ -96,10 +96,6 @@ def get_react_config(context):
 
     if user:
         user = extract_lazy_object(user)
-    if not user.is_anonymous():
-        enabled_features = [project.organization.slug + ':' + project.slug + ':similarity-view'
-            for project in Project.objects.filter(organization=User.objects.get(id=user.id).get_orgs()) if
-            features.has('projects:similarity-view', project=project)]
 
     if features.has('organizations:create', actor=user):
         enabled_features.append('organizations:create')
