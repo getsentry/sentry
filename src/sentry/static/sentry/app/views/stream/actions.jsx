@@ -15,6 +15,7 @@ import {getShortVersion} from '../../utils';
 import CustomIgnoreCountModal from '../../components/customIgnoreCountModal';
 import CustomIgnoreDurationModal from '../../components/customIgnoreDurationModal';
 import CustomResolutionModal from '../../components/customResolutionModal';
+import Checkbox from '../../components/checkbox';
 
 const IgnoreActions = React.createClass({
   propTypes: {
@@ -547,8 +548,7 @@ const StreamActions = React.createClass({
         <div className="stream-actions row">
           <div className="stream-actions-left col-md-6 col-sm-8 col-xs-8">
             <div className="checkbox">
-              <input
-                type="checkbox"
+              <Checkbox
                 className="chk-select-all"
                 onChange={this.onSelectAll}
                 checked={this.state.pageSelected}
