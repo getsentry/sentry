@@ -1,6 +1,6 @@
 import React from 'react';
 import moment from 'moment';
-import _ from 'underscore';
+import _ from 'lodash';
 
 import ConfigStore from '../../stores/configStore';
 import Avatar from '../../components/avatar';

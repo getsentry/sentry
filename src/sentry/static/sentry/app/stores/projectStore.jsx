@@ -1,5 +1,5 @@
 import Reflux from 'reflux';
-import _ from 'underscore';
+import _ from 'lodash';
 
 import ProjectActions from '../actions/projectActions';
 

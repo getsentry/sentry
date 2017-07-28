@@ -10,4 +10,4 @@ def record(project, group, event, **kwargs):
     if not feature_flags.has('projects:similarity-indexing', project):
         return
 
-    similarity_features.record(event)
+    similarity_features.record([event])

@@ -1,5 +1,5 @@
 import React from 'react';
-import underscore from 'underscore';
+import _ from 'lodash';
 
 import {Form, FormState} from '../../components/forms';
 import PluginComponentBase from '../../components/bases/pluginComponentBase';
@@ -106,7 +106,7 @@ class PluginSettings extends PluginComponentBase {
       return <LoadingIndicator />;
     }
     let isSaving = this.state.state === FormState.SAVING;
-    let hasChanges = !underscore.isEqual(this.state.initialData, this.state.formData);
+    let hasChanges = !_.isEqual(this.state.initialData, this.state.formData);
 
     let data = this.state.rawData;
     if (data.config_error) {

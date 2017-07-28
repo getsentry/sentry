@@ -48,13 +48,9 @@ const OnboardingWizard = React.createClass({
 
   createProject() {
     let {orgId} = this.props.params;
-    let {name} = this.context.organization;
+    let {teams} = this.context.organization;
 
-    // NOTE: in onboarding, team name matches org name so can
-    // make this assumption (But not the org slug, which may have an extra id attached!)
-    // orgs with multiple projects may not be able to make this assumption
-
-    this.api.request(`/teams/${orgId}/${name}/projects/`, {
+    this.api.request(`/teams/${orgId}/${teams[0].slug}/projects/`, {
       method: 'POST',
       data: {
         name: this.state.projectName,
@@ -74,7 +70,7 @@ const OnboardingWizard = React.createClass({
         browserHistory.push(url);
       },
       error: err => {
-        Raven.captureMessage('oboarding project creation failed', {
+        Raven.captureMessage('Onboarding project creation failed', {
           extra: err
         });
 

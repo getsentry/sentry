@@ -56,8 +56,10 @@ class MessageFeature(object):
 
 
 class FeatureSet(object):
-    def __init__(self, index, encoder, aliases, features,
-                 expected_extraction_errors, expected_encoding_errors):
+    def __init__(
+        self, index, encoder, aliases, features, expected_extraction_errors,
+        expected_encoding_errors
+    ):
         self.index = index
         self.encoder = encoder
         self.aliases = aliases
@@ -79,12 +81,8 @@ class FeatureSet(object):
                 results[label] = strategy.extract(event)
             except Exception as error:
                 log = (
-                    logger.debug
-                    if isinstance(error, self.expected_extraction_errors) else
-                    functools.partial(
-                        logger.warning,
-                        exc_info=True
-                    )
+                    logger.debug if isinstance(error, self.expected_extraction_errors) else
+                    functools.partial(logger.warning, exc_info=True)
                 )
                 log(
                     'Could not extract features from %r for %r due to error: %r',
@@ -95,69 +93,96 @@ class FeatureSet(object):
                 )
         return results
 
-    def record(self, event):
+    def record(self, events):
+        if not events:
+            return []
+
+        scope = None
+        key = None
+
         items = []
-        for label, features in self.extract(event).items():
-            try:
-                features = map(self.encoder.dumps, features)
-            except Exception as error:
-                log = (
-                    logger.debug if isinstance(error, self.expected_encoding_errors) else
-                    functools.partial(logger.warning, exc_info=True)
-                )
-                log(
-                    'Could not encode features from %r for %r due to error: %r',
-                    event,
-                    label,
-                    error,
-                )
-            else:
-                if features:
-                    items.append((self.aliases[label], features, ))
+        for event in events:
+            for label, features in self.extract(event).items():
+                if scope is None:
+                    scope = self.__get_scope(event.project)
+                else:
+                    assert self.__get_scope(
+                        event.project
+                    ) == scope, 'all events must be associated with the same project'
+
+                if key is None:
+                    key = self.__get_key(event.group)
+                else:
+                    assert self.__get_key(
+                        event.group
+                    ) == key, 'all events must be associated with the same group'
+
+                try:
+                    features = map(self.encoder.dumps, features)
+                except Exception as error:
+                    log = (
+                        logger.debug if isinstance(error, self.expected_encoding_errors) else
+                        functools.partial(logger.warning, exc_info=True)
+                    )
+                    log(
+                        'Could not encode features from %r for %r due to error: %r',
+                        event,
+                        label,
+                        error,
+                    )
+                else:
+                    if features:
+                        items.append((self.aliases[label], features, ))
+
         return self.index.record(
-            self.__get_scope(event.project),
-            self.__get_key(event.group),
+            scope,
+            key,
             items,
             timestamp=to_timestamp(event.datetime),
         )
 
-    def classify(self, event):
+    def classify(self, events):
+        if not events:
+            return []
+
+        scope = None
+
         items = []
-        for label, features in self.extract(event).items():
-            try:
-                features = map(self.encoder.dumps, features)
-            except Exception as error:
-                log = (
-                    logger.debug
-                    if isinstance(error, self.expected_encoding_errors) else
-                    functools.partial(
-                        logger.warning,
-                        exc_info=True
+        for event in events:
+            for label, features in self.extract(event).items():
+                if scope is None:
+                    scope = self.__get_scope(event.project)
+                else:
+                    assert self.__get_scope(
+                        event.project
+                    ) == scope, 'all events must be associated with the same project'
+
+                try:
+                    features = map(self.encoder.dumps, features)
+                except Exception as error:
+                    log = (
+                        logger.debug if isinstance(error, self.expected_encoding_errors) else
+                        functools.partial(logger.warning, exc_info=True)
                     )
-                )
-                log(
-                    'Could not encode features from %r for %r due to error: %r',
-                    event,
-                    label,
-                    error,
-                )
-            else:
-                if features:
-                    items.append((
-                        self.aliases[label],
-                        features,
-                    ))
-        results = self.index.classify(
-            self.__get_scope(event.project),
-            items,
-            timestamp=to_timestamp(event.datetime),
-        )
+                    log(
+                        'Could not encode features from %r for %r due to error: %r',
+                        event,
+                        label,
+                        error,
+                    )
+                else:
+                    if features:
+                        items.append((self.aliases[label], features, ))
         return zip(
             map(
                 lambda (alias, characteristics): self.aliases.get_key(alias),
                 items,
             ),
-            results,
+            self.index.classify(
+                scope,
+                items,
+                timestamp=to_timestamp(event.datetime),
+            ),
         )
 
     def compare(self, group):
