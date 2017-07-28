@@ -1,4 +1,5 @@
 import React from 'react';
+import classNames from 'classnames';
 
 const Checkbox = React.createClass({
   getDefaultProps() {
@@ -8,7 +9,9 @@ const Checkbox = React.createClass({
   },
 
   render() {
-    return <input type="checkbox" className="chk-select" {...this.props} />;
+    let {className, ...otherProps} = this.props;
+    let cx = classNames('chk-select', className);
+    return <input type="checkbox" className={cx} {...otherProps} />;
   }
 });
 
