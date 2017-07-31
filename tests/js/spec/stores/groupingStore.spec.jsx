@@ -330,7 +330,8 @@ describe('Grouping Store', function() {
           },
           {
             error: expect.any(Function),
-            success: expect.any(Function)
+            success: expect.any(Function),
+            complete: expect.any(Function)
           }
         );
 

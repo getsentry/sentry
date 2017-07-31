@@ -48,11 +48,50 @@ const GroupingStore = Reflux.createStore({
     };
   },
 
-  setStateForId(map, id, newState) {
-    let state = (map.has(id) && map.get(id)) || {};
-    let mergedState = Object.assign({}, state, newState);
-    map.set(id, mergedState);
-    return mergedState;
+  setStateForId(map, idOrIds, newState) {
+    let ids = Array.isArray(idOrIds) ? idOrIds : [idOrIds];
+
+    return ids.map(id => {
+      let state = (map.has(id) && map.get(id)) || {};
+      let mergedState = Object.assign({}, state, newState);
+      map.set(id, mergedState);
+      return mergedState;
+    });
+  },
+
+  // Resets status of a remaining item (to be unmerged) if it exists
+  resetRemainingUnmergeItem() {
+    if (!this.remainingItem) return;
+
+    // If there was a single unchecked item before, make sure we reset its disabled state
+    this.setStateForId(this.unmergeState, this.remainingItem.id, {
+      disabled: false
+    });
+    this.remainingItem = null;
+  },
+
+  checkForRemainingUnmergeItem() {
+    let lockedItems = Array.from(this.unmergeState.values()).filter(({busy}) => busy) || [
+    ];
+    let hasRemainingItem =
+      this.unmergeList.size + 1 === this.mergedItems.length - lockedItems.length;
+
+    if (!hasRemainingItem) return;
+
+    // Check if there's only one remaining item, and make sure to disable it from being
+    // selected to unmerge
+    let remainingItem = this.mergedItems.find(item => {
+      let notSelected = !this.unmergeList.has(item.id);
+      let itemState = this.unmergeState.has(item.id) && this.unmergeState.get(item.id);
+      return notSelected && (!itemState || !itemState.busy);
+    });
+
+    if (!remainingItem) return;
+
+    this.remainingItem = remainingItem;
+    this.setStateForId(this.unmergeState, remainingItem.id, {
+      disabled: true
+    });
   },
 
   // Fetches data
@@ -135,83 +174,61 @@ const GroupingStore = Reflux.createStore({
 
     // Don't do anything if item is busy
     let state = this.mergeState.has(id) && this.mergeState.get(id);
-    if (!state || state.busy !== true) {
-      if (this.mergeList.has(id)) {
-        this.mergeList.delete(id);
-        checked = false;
-      } else {
-        this.mergeList.add(id);
-        checked = true;
-      }
+    if (state && state.busy === true) return;
 
-      this.setStateForId(this.mergeState, id, {
-        checked
-      });
-
-      this.triggerMergeState();
+    if (this.mergeList.has(id)) {
+      this.mergeList.delete(id);
+      checked = false;
+    } else {
+      this.mergeList.add(id);
+      checked = true;
     }
+
+    this.setStateForId(this.mergeState, id, {
+      checked
+    });
+
+    this.triggerMergeState();
   },
 
   // Toggle unmerge check box
   onToggleUnmerge(id) {
     let checked;
 
-    // Uncheck an item to unmerg
+    // Uncheck an item to unmerge
     let state = this.unmergeState.has(id) && this.unmergeState.get(id);
-    if (!state || state.busy !== true) {
-      if (this.unmergeList.has(id)) {
-        this.unmergeList.delete(id);
-        checked = false;
 
-        // If there was a single unchecked item before, make sure we reset its disabled state
-        if (this.remainingItem) {
-          this.setStateForId(this.unmergeState, this.remainingItem.id, {
-            disabled: false
-          });
-          this.remainingItem = null;
-        }
-      } else {
-        // at least 1 item must be unchecked for unmerge
-        // make sure that not all events have been selected
+    if (state && state.busy === true) return;
 
-        // Account for items in unmerge queue, or "locked" items
-        let lockedItems = Array.from(this.unmergeState.values()).filter(
-          ({busy}) => busy
-        ) || [];
+    if (this.unmergeList.has(id)) {
+      this.unmergeList.delete(id);
+      checked = false;
 
-        if (this.unmergeList.size + 1 < this.mergedItems.length - lockedItems.length) {
-          this.unmergeList.add(id);
-          checked = true;
+      this.resetRemainingUnmergeItem();
+    } else {
+      // at least 1 item must be unchecked for unmerge
+      // make sure that not all events have been selected
 
-          // Check if there's only one remaining item, and make sure to disable it from being
-          // selected to unmerge
-          if (
-            this.unmergeList.size + 1 ===
-            this.mergedItems.length - lockedItems.length
-          ) {
-            let remainingItem = this.mergedItems.find(item => {
-              let notSelected = !this.unmergeList.has(item.id);
-              let itemState =
-                this.unmergeState.has(item.id) && this.unmergeState.get(item.id);
-              return notSelected && (!itemState || !itemState.busy);
-            });
-            if (remainingItem) {
-              this.remainingItem = remainingItem;
-              this.setStateForId(this.unmergeState, remainingItem.id, {
-                disabled: true
-              });
-            }
-          }
-        }
-      }
+      // Account for items in unmerge queue, or "locked" items
+      let lockedItems = Array.from(this.unmergeState.values()).filter(
+        ({busy}) => busy
+      ) || [];
 
-      // Update "checked" state for row
-      this.setStateForId(this.unmergeState, id, {
-        checked
-      });
+      let canUnmerge =
+        this.unmergeList.size + 1 < this.mergedItems.length - lockedItems.length;
+      if (!canUnmerge) return;
+      this.unmergeList.add(id);
+      checked = true;
 
-      this.triggerUnmergeState();
+      this.checkForRemainingUnmergeItem();
     }
+
+    // Update "checked" state for row
+    this.setStateForId(this.unmergeState, id, {
+      checked
+    });
+
+    this.triggerUnmergeState();
   },
 
   onUnmerge({groupId, loadingMessage, successMessage, errorMessage}) {
@@ -219,12 +236,11 @@ const GroupingStore = Reflux.createStore({
 
     // Disable unmerge button
     this.unmergeDisabled = true;
+
     // Disable rows
-    ids.forEach(id => {
-      this.setStateForId(this.unmergeState, id, {
-        checked: false,
-        busy: true
-      });
+    this.setStateForId(this.unmergeState, ids, {
+      checked: false,
+      busy: true
     });
     this.triggerUnmergeState();
     let loadingIndicator = IndicatorStore.add(loadingMessage);
@@ -241,25 +257,21 @@ const GroupingStore = Reflux.createStore({
             duration: 5000
           });
           // Busy rows after successful merge
-          ids.forEach(id => {
-            this.setStateForId(this.unmergeState, id, {
-              checked: false,
-              busy: true
-            });
+          this.setStateForId(this.unmergeState, ids, {
+            checked: false,
+            busy: true
           });
           this.unmergeList.clear();
-          this.unmergeDisabled = false;
-          resolve(this.triggerUnmergeState());
         },
         error: () => {
           IndicatorStore.remove(loadingIndicator);
           IndicatorStore.add(errorMessage, 'error');
-          ids.forEach(id => {
-            this.setStateForId(this.unmergeState, id, {
-              checked: true,
-              busy: false
-            });
+          this.setStateForId(this.unmergeState, ids, {
+            checked: true,
+            busy: false
           });
+        },
+        complete: () => {
           this.unmergeDisabled = false;
           resolve(this.triggerUnmergeState());
         }
@@ -273,10 +285,8 @@ const GroupingStore = Reflux.createStore({
     let ids = Array.from(this.mergeList.values());
 
     this.mergeDisabled = true;
-    ids.forEach(id => {
-      this.setStateForId(this.mergeState, id, {
-        busy: true
-      });
+    this.setStateForId(this.mergeState, ids, {
+      busy: true
     });
     this.triggerMergeState();
 
@@ -296,23 +306,19 @@ const GroupingStore = Reflux.createStore({
           {
             success: (data, _, jqXHR) => {
               // Hide rows after successful merge
-              ids.forEach(id => {
-                this.setStateForId(this.mergeState, id, {
-                  checked: false,
-                  busy: true
-                });
+              this.setStateForId(this.mergeState, ids, {
+                checked: false,
+                busy: true
               });
               this.mergeList.clear();
-              this.mergeDisabled = false;
-              resolve(this.triggerMergeState());
             },
             error: () => {
-              ids.forEach(id => {
-                this.setStateForId(this.mergeState, id, {
-                  checked: true,
-                  busy: false
-                });
+              this.setStateForId(this.mergeState, ids, {
+                checked: true,
+                busy: false
               });
+            },
+            complete: () => {
               this.mergeDisabled = false;
               resolve(this.triggerMergeState());
             }
