@@ -1,6 +1,6 @@
 import React from 'react';
 import {shallow} from 'enzyme';
-import QueryCount from 'app/components/QueryCount';
+import QueryCount from 'app/components/queryCount';
 import toJson from 'enzyme-to-json';
 
 describe('QueryCount', function() {
