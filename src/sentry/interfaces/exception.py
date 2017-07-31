@@ -245,6 +245,36 @@ class Exception(Interface):
 
         return [system_hash, app_hash]
 
+    def compute_pre_preprocess_hashes(self, platform):
+        system_hash = self.get_pre_process_hashes(platform, system_frames=True)
+        if not system_hash:
+            return []
+
+        app_hash = self.get_pre_process_hashes(platform, system_frames=False)
+        if system_hash == app_hash or not app_hash:
+            return [system_hash]
+
+        return [system_hash, app_hash]
+
+    def get_pre_process_hashes(self, platform=None, system_frames=True):
+        output = []
+        for value in self.values:
+            if not value.stacktrace:
+                continue
+            stack_hash = value.stacktrace.get_pre_preprocess_hash(
+                platform=platform,
+                system_frames=system_frames,
+            )
+            if stack_hash:
+                output.extend(stack_hash)
+                output.append(value.type)
+
+        if not output:
+            for value in self.values:
+                output.extend(value.get_hash(platform=platform))
+
+        return output
+
     def get_hash(self, platform=None, system_frames=True):
         # optimize around the fact that some exceptions might have stacktraces
         # while others may not and we ALWAYS want stacktraces over values

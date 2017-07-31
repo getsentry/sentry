@@ -429,6 +429,49 @@ class Frame(Interface):
             output.append(self.lineno)
         return output
 
+    def get_pre_preprocess_hash(self, platform=None):
+        """
+        The hash of the frame varies depending on the data available.
+
+        Our ideal scenario is the module name in addition to the line of
+        context. However, in several scenarios we opt for other approaches due
+        to platform constraints.
+
+        This is one of the few areas in Sentry that isn't platform-agnostic.
+        """
+        platform = self.platform or platform
+        output = []
+        # Safari throws [native code] frames in for calls like ``forEach``
+        # whereas Chrome ignores these. Let's remove it from the hashing algo
+        # so that they're more likely to group together
+        if self.filename == '[native code]':
+            return output
+
+        if self.module:
+            if self.is_unhashable_module():
+                output.append('<module>')
+            else:
+                output.append(remove_module_outliers(self.module))
+        elif self.filename and not self.is_url() and not self.is_caused_by():
+            output.append(remove_filename_outliers(self.filename, platform))
+
+        if not output:
+            # If we were unable to achieve any context at this point
+            # (likely due to a bad JavaScript error) we should just
+            # bail on recording this frame
+            return output
+        elif self.symbol:
+            output.append(self.symbol)
+        elif self.function:
+            if self.is_unhashable_function():
+                output.append('<function>')
+            else:
+                output.append(remove_function_outliers(self.function))
+        # TODO(jess): leave out lineno? or include but also include colno?
+        # elif self.lineno is not None:
+        #     output.append(self.lineno)
+        return output
+
     def get_api_context(self, is_public=False, pad_addr=None):
         data = {
             'filename':
@@ -733,6 +776,37 @@ class Stacktrace(Interface):
             return [system_hash]
 
         return [system_hash, app_hash]
+
+    def compute_pre_preprocess_hashes(self, platform):
+        system_hash = self.get_pre_preprocess_hash(platform, system_frames=True)
+        if not system_hash:
+            return []
+
+        app_hash = self.get_pre_preprocess_hash(platform, system_frames=False)
+        if system_hash == app_hash or not app_hash:
+            return [system_hash]
+
+        return [system_hash, app_hash]
+
+    def get_pre_preprocess_hash(self, platform=None, system_frames=True):
+        frames = self.frames
+
+        # TODO(dcramer): this should apply only to platform=javascript
+        # Browser JS will often throw errors (from inlined code in an HTML page)
+        # which contain only a single frame, no function name, and have the HTML
+        # document as the filename. In this case the hash is often not usable as
+        # the context cannot be trusted and the URL is dynamic (this also means
+        # the line number cannot be trusted).
+        stack_invalid = (len(frames) == 1 and not frames[0].function and frames[0].is_url())
+
+        if stack_invalid:
+            return []
+
+        output = []
+        for frame in frames:
+            output.extend(frame.get_pre_preprocess_hash(platform))
+
+        return output
 
     def get_hash(self, platform=None, system_frames=True):
         frames = self.frames

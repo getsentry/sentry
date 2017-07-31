@@ -29,8 +29,8 @@ from sentry.constants import (
 from sentry.interfaces.base import get_interface
 from sentry.models import (
     Activity, Environment, Event, EventMapping, EventUser, Group, GroupHash, GroupRelease,
-    GroupResolution, GroupStatus, Project, Release, ReleaseEnvironment, ReleaseProject, TagKey,
-    UserReport
+    GroupResolution, GroupStatus, PreProcessGroupHash, Project, Release, ReleaseEnvironment,
+    ReleaseProject, TagKey, UserReport
 )
 from sentry.plugins import plugins
 from sentry.signals import first_event_received, regression_signal
@@ -42,6 +42,10 @@ from sentry.utils.safe import safe_execute, trim, trim_dict
 from sentry.utils.strings import truncatechars
 from sentry.utils.validators import validate_ip
 from sentry.stacktraces import normalize_in_app
+
+
+def get_raw_cache_key(project_id, event_id):
+    return 'e:raw:{1}:{0}'.format(project_id, event_id)
 
 
 def count_limit(count):
@@ -76,8 +80,42 @@ def get_fingerprint_for_event(event):
     return fingerprint
 
 
-def get_hashes_for_event(event):
-    return get_hashes_for_event_with_reason(event)[1]
+def get_preprocess_hashes(data):
+    # TODO(jess): kind of gross since we're not actually saving this :(
+    # probably should refactor...
+    event = Event(
+        data=data,
+        platform=data.get('platform'),
+    )
+
+    fingerprint = data.get('fingerprint')
+    checksum = data.get('checksum')
+
+    if fingerprint:
+        hashes = [md5_from_hash(h) for h in get_hashes_from_fingerprint(event, fingerprint)]
+    elif checksum:
+        hashes = [checksum]
+    else:
+        hashes = [md5_from_hash(h) for h in get_hashes_for_event(event, pre_preprocessing=True)]
+
+    return hashes
+
+
+def get_hashes_for_event(event, pre_preprocessing=False):
+    fn = get_hashes_for_pre_preprocess_event_with_reason if \
+        pre_preprocessing else get_hashes_for_event_with_reason
+    return fn(event)[1]
+
+
+def get_hashes_for_pre_preprocess_event_with_reason(event):
+
+    interfaces = event.get_interfaces()
+    for interface in six.itervalues(interfaces):
+        result = interface.compute_pre_preprocess_hashes(event.platform)
+        if not result:
+            continue
+        return (interface.get_path(), result)
+    return ('message', [event.message])
 
 
 def get_hashes_for_event_with_reason(event):
@@ -837,6 +875,20 @@ class EventManager(object):
                 existing_group_id = h.group_id
                 break
             if h.group_tombstone_id is not None:
+                # TODO(jess): figure out if there are problems with this
+                from sentry.cache import default_cache as other_default_cache
+                key = get_raw_cache_key(project.id, event.event_id)
+                original_data = other_default_cache.get(key)
+                pre_process_hashes = get_preprocess_hashes(original_data)
+
+                if pre_process_hashes is not None:
+                    for ph in pre_process_hashes:
+                        PreProcessGroupHash.objects.create(
+                            project=project,
+                            hash=ph,
+                            group_tombstone_id=h.group_tombstone_id,
+                        )
+
                 raise HashDiscarded('Matches group tombstone %s' % h.group_tombstone_id)
 
         # XXX(dcramer): this has the opportunity to create duplicate groups

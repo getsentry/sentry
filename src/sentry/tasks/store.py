@@ -16,19 +16,27 @@ from time import time
 from django.utils import timezone
 
 from sentry.cache import default_cache
+from sentry.event_manager import get_preprocess_hashes
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
 from sentry.utils.safe import safe_execute
 from sentry.stacktraces import process_stacktraces, \
     should_process_for_stacktraces
 from sentry.utils.dates import to_datetime
-from sentry.models import ProjectOption, Activity, Project
+from sentry.models import Activity, PreProcessGroupHash, Project, ProjectOption
 
 error_logger = logging.getLogger('sentry.errors.events')
 info_logger = logging.getLogger('sentry.store')
 
 # Is reprocessing on or off by default?
 REPROCESSING_DEFAULT = False
+
+
+def matches_discarded_hash(data, project):
+    return PreProcessGroupHash.objects.filter(
+        project_id=project,
+        hash__in=get_preprocess_hashes(data),
+    ).exists()
 
 
 def should_process(data):
