@@ -1,4 +1,5 @@
 import Reflux from 'reflux';
+import {pick} from 'lodash';
 
 import IndicatorStore from './indicatorStore';
 import {Client} from '../api';
@@ -334,38 +335,32 @@ const GroupingStore = Reflux.createStore({
 
   triggerFetchState() {
     let state = {
-      mergedItems: this.mergedItems,
-      mergedLinks: this.mergedLinks,
       similarItems: this.similarItems.filter(({isBelowThreshold}) => !isBelowThreshold),
       filteredSimilarItems: this.similarItems.filter(
         ({isBelowThreshold}) => isBelowThreshold
       ),
-      similarLinks: this.similarLinks,
-      mergeState: this.mergeState,
-      unmergeState: this.unmergeState,
-      loading: this.loading,
-      error: this.error
+      ...pick(this, [
+        'mergedItems',
+        'mergedLinks',
+        'similarLinks',
+        'mergeState',
+        'unmergeState',
+        'loading',
+        'error'
+      ])
     };
     this.trigger(state);
     return state;
   },
 
   triggerUnmergeState() {
-    let state = {
-      unmergeDisabled: this.unmergeDisabled,
-      unmergeState: this.unmergeState,
-      unmergeList: this.unmergeList
-    };
+    let state = pick(this, ['unmergeDisabled', 'unmergeState', 'unmergeList']);
     this.trigger(state);
     return state;
   },
 
   triggerMergeState() {
-    let state = {
-      mergeDisabled: this.mergeDisabled,
-      mergeState: this.mergeState,
-      mergeList: this.mergeList
-    };
+    let state = pick(this, ['mergeDisabled', 'mergeState', 'mergeList']);
     this.trigger(state);
     return state;
   }
