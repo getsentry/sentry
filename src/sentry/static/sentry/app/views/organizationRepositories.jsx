@@ -302,6 +302,7 @@ class OrganizationRepositories extends OrganizationSettingsView {
   renderBody() {
     let orgId = this.props.params.orgId;
     let itemList = this.state.itemList;
+    let hasItemList = itemList && itemList.length > 0;
 
     return (
       <div>
@@ -326,7 +327,7 @@ class OrganizationRepositories extends OrganizationSettingsView {
           </DropdownReact>
         </div>
         <h3 className="m-b-2">{t('Repositories')}</h3>
-        {itemList.length > 0 && (
+        {hasItemList && (
           <div className="m-b-2">
             <p>
               {t(
@@ -341,7 +342,7 @@ class OrganizationRepositories extends OrganizationSettingsView {
             </p>
           </div>
         )}
-        {itemList.length > 0 ? (
+        {hasItemList ? (
           <div className="panel panel-default">
             <table className="table">
               <tbody>
