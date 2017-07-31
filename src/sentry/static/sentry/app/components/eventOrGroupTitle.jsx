@@ -13,8 +13,7 @@ const EventOrGroupTitle = React.createClass({
 
   render() {
     let {data} = this.props;
-    let {metadata, title: _title, type, culprit} = data;
-    let title = _title;
+    let {metadata, title, type, culprit} = data;
     let subtitle = null;
 
     if (type == 'error') {
