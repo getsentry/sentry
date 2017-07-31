@@ -104,6 +104,9 @@ class Interface(object):
             return []
         return [result]
 
+    def compute_pre_preprocess_hashes(self, platform):
+        return self.compute_hashes(platform)
+
     def get_slug(self):
         return type(self).__name__.lower()
 

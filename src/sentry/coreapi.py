@@ -38,9 +38,9 @@ from sentry.constants import (
 from sentry.db.models import BoundedIntegerField
 from sentry.interfaces.base import get_interface, InterfaceValidationError
 from sentry.interfaces.csp import Csp
-from sentry.event_manager import EventManager
+from sentry.event_manager import EventManager, get_raw_cache_key
 from sentry.models import EventError, ProjectKey, TagKey, TagValue
-from sentry.tasks.store import preprocess_event, \
+from sentry.tasks.store import matches_discarded_hash, preprocess_event, \
     preprocess_event_from_reprocessing
 from sentry.utils import json
 from sentry.utils.auth import parse_auth_header
@@ -398,6 +398,14 @@ class ClientApiHelper(object):
             filter_obj = filter_cls(project)
             if filter_obj.is_enabled() and filter_obj.test(data):
                 return (True, 'other_filter')
+
+        if matches_discarded_hash(data, project):
+            self.log.info(
+                'preprocess.discarded.hash.match', extra={
+                    'project_id': project.id,
+                }
+            )
+            return (True, 'discarded_hash')
 
         return (False, )
 
@@ -819,8 +827,15 @@ class ClientApiHelper(object):
         # we might be passed LazyData
         if isinstance(data, LazyData):
             data = dict(data.items())
+
         cache_key = 'e:{1}:{0}'.format(data['project'], data['event_id'])
+        # save another version of data to generate
+        # pre-preprocessing hash that won't be modified by pipeline
+        # TODO(jess): is there a better way to do this? also what is
+        # reasonable timeout?
+        raw_cache_key = get_raw_cache_key(data['project'], data['event_id'])
         default_cache.set(cache_key, data, timeout=3600)
+        default_cache.set(raw_cache_key, data, timeout=18000)
         task = from_reprocessing and \
             preprocess_event_from_reprocessing or preprocess_event
         task.delay(cache_key=cache_key, start_time=time(), event_id=data['event_id'])
