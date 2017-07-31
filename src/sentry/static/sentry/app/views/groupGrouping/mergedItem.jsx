@@ -35,28 +35,28 @@ const MergedItem = React.createClass({
   },
 
   onGroupingChange({unmergeState}) {
+    if (!unmergeState) return;
+
     let {fingerprint} = this.props;
-    if (unmergeState) {
-      const stateForId = unmergeState.has(fingerprint) && unmergeState.get(fingerprint);
-      if (stateForId) {
-        Object.keys(stateForId).forEach(key => {
-          if (stateForId[key] !== this.state[key]) {
-            this.setState({
-              [key]: stateForId[key]
-            });
-          }
-        });
-      }
-    }
+    const stateForId = unmergeState.has(fingerprint) && unmergeState.get(fingerprint);
+    if (!stateForId) return;
+
+    Object.keys(stateForId).forEach(key => {
+      if (stateForId[key] !== this.state[key]) return;
+
+      this.setState({
+        [key]: stateForId[key]
+      });
+    });
   },
 
   handleToggle(e) {
     let {disabled, fingerprint} = this.props;
 
+    if (disabled || this.state.busy) return;
+
     // clicking anywhere in the row will toggle the checkbox
-    if (!disabled && !this.state.busy) {
-      GroupingActions.toggleUnmerge(fingerprint);
-    }
+    GroupingActions.toggleUnmerge(fingerprint);
   },
 
   render() {
