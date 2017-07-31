@@ -92,11 +92,10 @@ def get_react_config(context):
         messages = []
         is_superuser = False
 
-    enabled_features = []
-
     if user:
         user = extract_lazy_object(user)
 
+    enabled_features = []
     if features.has('organizations:create', actor=user):
         enabled_features.append('organizations:create')
     if auth.has_user_registration():
