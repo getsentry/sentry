@@ -6,7 +6,7 @@ import {t} from '../../locale';
 import ApiMixin from '../../mixins/apiMixin';
 import IndicatorStore from '../../stores/indicatorStore';
 import DropdownLink from '../../components/dropdownLink';
-import QueryCount from '../../components/QueryCount';
+import QueryCount from '../../components/queryCount';
 import MenuItem from '../../components/menuItem';
 import {BooleanField, FormState, TextField} from '../../components/forms';
 
