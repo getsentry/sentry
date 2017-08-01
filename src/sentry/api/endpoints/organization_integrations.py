@@ -25,16 +25,16 @@ class IntegrationSerializer(serializers.Serializer):
 
 
 class OrganizationIntegrationsEndpoint(OrganizationEndpoint):
-
     def get(self, request, organization):
         # Right now, this is just repository providers, but in
         # theory we want it to also work for other types of plugins
         # in the future
         return Response(
             serialize(
-                [provider_cls(id=provider_id)
-                 for provider_id, provider_cls in bindings.get('repository.provider').all()
-                 ],
+                [
+                    provider_cls(id=provider_id)
+                    for provider_id, provider_cls in bindings.get('repository.provider').all()
+                ],
                 request.user,
                 ProviderSerializer(organization)
             )
@@ -51,13 +51,13 @@ class OrganizationIntegrationsEndpoint(OrganizationEndpoint):
         provider_id = result['providerId']
 
         try:
-            provider_cls = bindings.get(
-                'repository.provider'
-            ).get(provider_id)
+            provider_cls = bindings.get('repository.provider').get(provider_id)
         except KeyError:
-            return Response({
-                'error_type': 'validation',
-            }, status=400)
+            return Response(
+                {
+                    'error_type': 'validation',
+                }, status=400
+            )
 
         provider = provider_cls(id=provider_id)
 
@@ -65,23 +65,19 @@ class OrganizationIntegrationsEndpoint(OrganizationEndpoint):
             # raise if they're trying to link an auth they
             # aren't allowed to
             provider.link_auth(
-                request.user,
-                organization,
-                {
-                    'default_auth_id': result['defaultAuthId'],
-                    'integration_id': result['integrationId'],
+                request.user, organization, {
+                    'default_auth_id': result.get('defaultAuthId'),
+                    'integration_id': result.get('integrationId'),
                 }
             )
         except PluginError as exc:
-            return Response({
-                'error_type': 'validation',
-                'message': exc.message,
-            }, status=400)
+            return Response(
+                {
+                    'error_type': 'validation',
+                    'message': exc.message,
+                }, status=400
+            )
 
         return Response(
-            serialize(
-                provider,
-                request.user,
-                ProviderSerializer(organization)
-            ), status=201
+            serialize(provider, request.user, ProviderSerializer(organization)), status=201
         )
