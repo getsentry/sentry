@@ -39,10 +39,10 @@ const ProgressNodes = React.createClass({
           {this.steps.map(this.node)}
         </div>
         <div className="stuck">
-          {/*
-          <p> Stuck?</p>
-          <p> Chat with a real person</p>
-        */}
+          <a href="mailto:support@sentry.io?Subject=Getting%20started">
+            <p> Stuck?</p>
+            <p> Talk to a real person</p>
+          </a>
         </div>
       </div>
     );
