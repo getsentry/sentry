@@ -278,6 +278,7 @@ def save_event(cache_key=None, data=None, start_time=None, event_id=None, **kwar
         manager = EventManager(data)
         manager.save(project)
     except HashDiscarded as exc:
+        # TODO(jess): remove this before it goes out to a wider audience
         info_logger.info(
             'discarded.hash', extra={
                 'project_id': project,
