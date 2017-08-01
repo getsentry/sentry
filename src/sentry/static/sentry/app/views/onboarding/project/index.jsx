@@ -28,7 +28,7 @@ const Project = React.createClass({
 
   submit() {
     this.setWarning(this.props.name);
-    this.props.next();
+    if (this.props.name) this.props.next();
   },
 
   render() {
