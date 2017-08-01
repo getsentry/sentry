@@ -26,9 +26,7 @@ class ProviderMixin(object):
             raise PluginError
 
         integration = Integration.objects.get_or_create(
-            provider=self.auth_provider,
-            external_id=usa.uid,
-            defaults={'default_auth_id': usa.id}
+            provider=self.auth_provider, external_id=usa.uid, defaults={'default_auth_id': usa.id}
         )[0]
         integration.add_organization(organization.id)
 
@@ -36,9 +34,7 @@ class ProviderMixin(object):
         if self.auth_provider is None:
             return []
 
-        social_auths_by_id = {
-            usa.id: usa for usa in social_auths
-        }
+        social_auths_by_id = {usa.id: usa for usa in social_auths}
         linked_social_auths = set()
 
         auths = []
@@ -46,24 +42,30 @@ class ProviderMixin(object):
             associated_auth = i.default_auth_id and social_auths_by_id[i.default_auth_id]
             if associated_auth:
                 linked_social_auths.add(associated_auth.id)
-            auths.append({
-                'defaultAuthId': i.default_auth_id,
-                'user': associated_auth and {
-                    'email': associated_auth.user.email,
-                },
-                'externalId': i.external_id,
-                'integrationId': six.text_type(i.id),
-                'linked': True,
-            })
-        auths.extend([
-            {
-                'defaultAuthId': sa.id,
-                'user': {'email': sa.user.email},
-                'externalId': sa.uid,
-                'integrationId': None,
-                'linked': False,
-            } for sa in social_auths if sa.id not in linked_social_auths
-        ])
+            auths.append(
+                {
+                    'defaultAuthId': i.default_auth_id,
+                    'user': associated_auth and {
+                        'email': associated_auth.user.email,
+                    },
+                    'externalId': i.external_id,
+                    'integrationId': six.text_type(i.id),
+                    'linked': True,
+                }
+            )
+        auths.extend(
+            [
+                {
+                    'defaultAuthId': sa.id,
+                    'user': {
+                        'email': sa.user.email
+                    },
+                    'externalId': sa.uid,
+                    'integrationId': None,
+                    'linked': False,
+                } for sa in social_auths if sa.id not in linked_social_auths
+            ]
+        )
         return auths
 
     def needs_auth(self, user, **kwargs):
@@ -104,7 +106,7 @@ class ProviderMixin(object):
                             integration__provider=self.auth_provider,
                             organization=organization,
                         ).values_list('integration_id', flat=True)[0],
-                    ).first().values_list('default_auth_id', flat=True)[0]
+                    ).values_list('default_auth_id', flat=True)[0]
                 )
             except UserSocialAuth.DoesNotExist:
                 pass

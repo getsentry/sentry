@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import six
+
 from django.db.models import Q
 
 from collections import defaultdict
@@ -42,7 +44,7 @@ class ProviderSerializer(Serializer):
         social_auths = attrs['social_auths']
 
         return {
-            'id': obj.id,
+            'id': six.text_type(obj.id),
             'name': obj.name,
             'auths': obj.get_available_auths(user, self.organization, integrations, social_auths),
         }

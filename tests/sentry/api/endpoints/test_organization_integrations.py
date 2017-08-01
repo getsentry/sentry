@@ -21,20 +21,27 @@ class OrganizationIntegrationsListTest(APITestCase):
         )
 
         url = reverse('sentry-api-0-organization-integrations', args=[org.slug])
-        response = self.client.get(url, format='json')
+        with self.feature('organizations:integrations-v3', True):
+            response = self.client.get(url, format='json')
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
         assert response.data[0] == {
-            'id': 'dummy',
-            'name': 'Example',
-            'auths': [{
-                'externalId': auth.uid,
-                'defaultAuthId': auth.id,
-                'user': {'email': self.user.email},
-                'linked': False,
-                'integrationId': None,
-            }],
+            'id':
+            'dummy',
+            'name':
+            'Example',
+            'auths': [
+                {
+                    'externalId': auth.uid,
+                    'defaultAuthId': auth.id,
+                    'user': {
+                        'email': self.user.email
+                    },
+                    'linked': False,
+                    'integrationId': None,
+                }
+            ],
         }
 
 
@@ -50,27 +57,35 @@ class OrganizationIntegrationsCreateTest(APITestCase):
         )
 
         url = reverse('sentry-api-0-organization-integrations', args=[org.slug])
-        response = self.client.post(url, data={
-            'providerId': 'dummy',
-            'defaultAuthId': auth.id,
-        })
+        with self.feature('organizations:integrations-v3', True):
+            response = self.client.post(
+                url, data={
+                    'provider': 'dummy',
+                    'defaultAuthId': auth.id,
+                }
+            )
 
         assert response.status_code == 201, response.content
 
         assert Integration.objects.filter(default_auth_id=auth.id).exists()
 
         assert response.data == {
-            'id': u'dummy',
-            'name': 'Example',
-            'auths': [{
-                'externalId': auth.uid,
-                'defaultAuthId': auth.id,
-                'user': {'email': self.user.email},
-                'linked': True,
-                'integrationId': six.text_type(
-                    Integration.objects.get(default_auth_id=auth.id).id
-                ),
-            }],
+            'id':
+            u'dummy',
+            'name':
+            'Example',
+            'auths': [
+                {
+                    'externalId': auth.uid,
+                    'defaultAuthId': auth.id,
+                    'user': {
+                        'email': self.user.email
+                    },
+                    'linked': True,
+                    'integrationId':
+                    six.text_type(Integration.objects.get(default_auth_id=auth.id).id),
+                }
+            ],
         }
         assert OrganizationIntegration.objects.filter(
             integration__default_auth_id=auth.id,
@@ -88,9 +103,12 @@ class OrganizationIntegrationsCreateTest(APITestCase):
         org = self.create_organization(owner=self.user, name='baz')
 
         url = reverse('sentry-api-0-organization-integrations', args=[org.slug])
-        response = self.client.post(url, data={
-            'provider': 'dummy',
-            'defaultAuthId': auth.id,
-        })
+        with self.feature('organizations:integrations-v3', True):
+            response = self.client.post(
+                url, data={
+                    'provider': 'dummy',
+                    'defaultAuthId': auth.id,
+                }
+            )
 
         assert response.status_code == 400

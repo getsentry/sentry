@@ -4,10 +4,11 @@ import ApiMixin from '../mixins/apiMixin';
 import IndicatorStore from '../stores/indicatorStore';
 import LoadingIndicator from '../components/loadingIndicator';
 import OrganizationHomeContainer from '../components/organizations/homeContainer';
+import OrganizationState from '../mixins/organizationState';
 import {t, tct} from '../locale';
 
 const OrganizationIntegrations = React.createClass({
-  mixins: [ApiMixin],
+  mixins: [ApiMixin, OrganizationState],
 
   getInitialState() {
     return {
@@ -46,7 +47,7 @@ const OrganizationIntegrations = React.createClass({
       data: {
         providerId: providerId,
         defaultAuthId: auth.defaultAuthId,
-        integrationId: auth.integrationId,
+        integrationId: auth.integrationId
       },
       success: data => {
         // TODO(jess): we should sort this alphabetically
@@ -90,30 +91,39 @@ const OrganizationIntegrations = React.createClass({
             <h3>{provider.name}</h3>
           </div>
         </div>
-        {provider.auths.length ?
-          provider.auths.map(auth => {
-            return (
-              <div className="row" key={auth.externalId}>
-                <div className="col-md-6">
-                  {auth.externalId}
+        {provider.auths.length
+          ? provider.auths.map(auth => {
+              return (
+                <div className="row" key={auth.externalId}>
+                  <div className="col-md-6">
+                    {auth.externalId}
+                  </div>
+                  <div className="col-md-6">
+                    <button
+                      className="btn btn-sm btn-default"
+                      onClick={this.toggleAuth.bind(this, provider.id, auth)}>
+                      {auth.linked ? t('Disable') : t('Enable')}
+                    </button>
+                  </div>
                 </div>
-                <div className="col-md-6">
-                  <button
-                    className="btn btn-sm btn-default"
-                    onClick={this.toggleAuth.bind(this, provider.id, auth)}>
-                    {auth.linked ? t('Disable') : t('Enable')}
-                  </button>
-                </div>
-              </div>
-            );
-          }) :
-          <span>No available auth methods</span>
-        }
+              );
+            })
+          : <span>No available auth methods</span>}
       </div>
     );
   },
 
   renderBody() {
+    let orgFeatures = new Set(this.getOrganization().features);
+
+    if (!orgFeatures.has('integrations-v3')) {
+      return (
+        <div className="alert alert-warning m-b-1">
+          {t("Nothing to see here. You don't have access to this feature yet.")}
+        </div>
+      );
+    }
+
     if (this.state.loading) return <LoadingIndicator />;
 
     let error = this.state.error;
