@@ -45,8 +45,7 @@ const EventOrGroupExtraDetails = React.createClass({
     return (
       <div className="event-extra">
         <ul>
-          {this.getFeatures().has('callsigns') &&
-            shortId &&
+          {shortId &&
             <li>
               <ShortId shortId={shortId} />
             </li>}
@@ -62,7 +61,9 @@ const EventOrGroupExtraDetails = React.createClass({
                 to={`/${orgId}/${projectId}/issues/${groupId}/activity/`}
                 className="comments">
                 <span className="icon icon-comments" style={styles} />
-                <span className="tag-count">{numComments}</span>
+                <span className="tag-count">
+                  {numComments}
+                </span>
               </Link>
             </li>}
           {logger &&
