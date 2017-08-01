@@ -1,6 +1,5 @@
 import React from 'react';
 import {shallow} from 'enzyme';
-import toJson from 'enzyme-to-json';
 
 import TeamSettings from 'app/views/teamSettings';
 
@@ -20,7 +19,7 @@ describe('TeamSettings', function() {
           }
         }
       );
-      expect(toJson(wrapper)).toMatchSnapshot();
+      expect(wrapper).toMatchSnapshot();
     });
   });
 });

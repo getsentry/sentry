@@ -1,6 +1,5 @@
 import React from 'react';
 import {shallow} from 'enzyme';
-import toJson from 'enzyme-to-json';
 
 import {Client} from 'app/api';
 import OnboardingWizard from 'app/views/onboarding/';
@@ -35,7 +34,7 @@ describe('OnboardingWizard', function() {
       let wrapper = shallow(<OnboardingWizard {...props} />, {
         organization: {id: '1337', slug: 'testOrg'}
       });
-      expect(toJson(wrapper)).toMatchSnapshot();
+      expect(wrapper).toMatchSnapshot();
     });
   });
 });

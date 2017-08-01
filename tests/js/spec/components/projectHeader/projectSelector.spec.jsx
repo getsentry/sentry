@@ -1,6 +1,5 @@
 import React from 'react';
 import {mount, shallow} from 'enzyme';
-import toJson from 'enzyme-to-json';
 
 import ProjectSelector from 'app/components/projectHeader/projectSelector';
 
@@ -43,7 +42,7 @@ describe('ProjectSelector', function() {
           context: {router: TestStubs.router()}
         }
       );
-      expect(toJson(wrapper)).toMatchSnapshot();
+      expect(wrapper).toMatchSnapshot();
     });
 
     it('should show empty message and create project button, when no projects and has "project:write" access', function() {
@@ -61,14 +60,14 @@ describe('ProjectSelector', function() {
           context: {router: TestStubs.router()}
         }
       );
-      expect(toJson(wrapper)).toMatchSnapshot();
+      expect(wrapper).toMatchSnapshot();
     });
 
     it('lists projects and has filter', function() {
       let wrapper = shallow(<ProjectSelector organization={mockOrg} projectId="" />, {
         context: {router: TestStubs.router()}
       });
-      expect(toJson(wrapper)).toMatchSnapshot();
+      expect(wrapper).toMatchSnapshot();
     });
 
     it('can filter projects by team name/project name', function() {
@@ -79,7 +78,7 @@ describe('ProjectSelector', function() {
       input.value = 'TEST';
       input.simulate('change', {target: input});
 
-      expect(toJson(wrapper)).toMatchSnapshot();
+      expect(wrapper).toMatchSnapshot();
     });
 
     it('can filter projects by project name', function() {
@@ -89,7 +88,7 @@ describe('ProjectSelector', function() {
       input.value = 'another';
       input.simulate('change', {target: input});
 
-      expect(toJson(wrapper)).toMatchSnapshot();
+      expect(wrapper).toMatchSnapshot();
     });
 
     it('shows empty filter message when filtering has no results', function() {
@@ -99,7 +98,7 @@ describe('ProjectSelector', function() {
       input.value = 'Foo';
       input.simulate('change', {target: input});
 
-      expect(toJson(wrapper)).toMatchSnapshot();
+      expect(wrapper).toMatchSnapshot();
     });
   });
 });
