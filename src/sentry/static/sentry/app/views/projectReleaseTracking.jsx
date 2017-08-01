@@ -173,9 +173,9 @@ const ProjectReleaseTracking = React.createClass({
           </div>
           <div className="box-content with-padding">
             <p>
-              {t(
-                'Start by binding the <code>release</code> attribute in your application:'
-              )}
+              {t('Start by binding the')}
+              <code>release</code>
+              {t('attribute in your application:')}
             </p>
             <pre>{this.getReleaseClientConfigurationIntructions()}</pre>
             <p>
