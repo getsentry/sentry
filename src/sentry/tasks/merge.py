@@ -22,59 +22,83 @@ logger = logging.getLogger('sentry.merge')
 delete_logger = logging.getLogger('sentry.deletions.async')
 
 
-@instrumented_task(name='sentry.tasks.merge.merge_group', queue='merge',
-                   default_retry_delay=60 * 5, max_retries=None)
+@instrumented_task(
+    name='sentry.tasks.merge.merge_group',
+    queue='merge',
+    default_retry_delay=60 * 5,
+    max_retries=None
+)
 @retry
-def merge_group(from_object_id=None, to_object_id=None, transaction_id=None,
-                recursed=False, **kwargs):
+def merge_group(
+    from_object_id=None, to_object_id=None, transaction_id=None, recursed=False, **kwargs
+):
     # TODO(mattrobenolt): Write tests for all of this
     from sentry.models import (
-        Activity, Group, GroupAssignee, GroupHash, GroupRuleStatus,
-        GroupSubscription, GroupTagKey, GroupTagValue, EventMapping, Event,
-        UserReport, GroupRedirect, GroupMeta,
+        Activity,
+        Group,
+        GroupAssignee,
+        GroupHash,
+        GroupRuleStatus,
+        GroupSubscription,
+        GroupTagKey,
+        GroupTagValue,
+        EventMapping,
+        Event,
+        UserReport,
+        GroupRedirect,
+        GroupMeta,
     )
 
     if not (from_object_id and to_object_id):
-        logger.error('group.malformed.missing_params', extra={
-            'transaction_id': transaction_id,
-        })
+        logger.error(
+            'group.malformed.missing_params', extra={
+                'transaction_id': transaction_id,
+            }
+        )
         return
 
     try:
         group = Group.objects.get(id=from_object_id)
     except Group.DoesNotExist:
-        logger.warn('group.malformed.invalid_id', extra={
-            'transaction_id': transaction_id,
-            'old_object_id': from_object_id,
-        })
+        logger.warn(
+            'group.malformed.invalid_id',
+            extra={
+                'transaction_id': transaction_id,
+                'old_object_id': from_object_id,
+            }
+        )
         return
 
     try:
         new_group = Group.objects.get(id=to_object_id)
     except Group.DoesNotExist:
-        logger.warn('group.malformed.invalid_id', extra={
-            'transaction_id': transaction_id,
-            'old_object_id': from_object_id,
-        })
+        logger.warn(
+            'group.malformed.invalid_id',
+            extra={
+                'transaction_id': transaction_id,
+                'old_object_id': from_object_id,
+            }
+        )
         return
 
     if not recursed:
-        logger.info('merge.queued', extra={
-            'transaction_id': transaction_id,
-            'new_group_id': new_group.id,
-            'old_group_id': group.id,
-            # TODO(jtcunning): figure out why these are full seq scans and/or alternative solution
-            # 'new_event_id': getattr(new_group.event_set.order_by('-id').first(), 'id', None),
-            # 'old_event_id': getattr(group.event_set.order_by('-id').first(), 'id', None),
-            # 'new_hash_id': getattr(new_group.grouphash_set.order_by('-id').first(), 'id', None),
-            # 'old_hash_id': getattr(group.grouphash_set.order_by('-id').first(), 'id', None),
-
-        })
+        logger.info(
+            'merge.queued',
+            extra={
+                'transaction_id': transaction_id,
+                'new_group_id': new_group.id,
+                'old_group_id': group.id,
+                # TODO(jtcunning): figure out why these are full seq scans and/or alternative solution
+                # 'new_event_id': getattr(new_group.event_set.order_by('-id').first(), 'id', None),
+                # 'old_event_id': getattr(group.event_set.order_by('-id').first(), 'id', None),
+                # 'new_hash_id': getattr(new_group.grouphash_set.order_by('-id').first(), 'id', None),
+                # 'old_hash_id': getattr(group.grouphash_set.order_by('-id').first(), 'id', None),
+            }
+        )
 
     model_list = (
-        Activity, GroupAssignee, GroupHash, GroupRuleStatus, GroupSubscription,
-        GroupTagValue, GroupTagKey, EventMapping, Event, UserReport,
-        GroupRedirect, GroupMeta,
+        Activity, GroupAssignee, GroupHash, GroupRuleStatus, GroupSubscription, GroupTagValue,
+        GroupTagKey, EventMapping, Event, UserReport, GroupRedirect, GroupMeta,
     )
 
     has_more = merge_objects(
@@ -102,17 +126,22 @@ def merge_group(from_object_id=None, to_object_id=None, transaction_id=None,
     for model in [tsdb.models.users_affected_by_group]:
         tsdb.merge_distinct_counts(model, new_group.id, [group.id])
 
-    for model in [tsdb.models.frequent_releases_by_group, tsdb.models.frequent_environments_by_group]:
+    for model in [
+        tsdb.models.frequent_releases_by_group, tsdb.models.frequent_environments_by_group
+    ]:
         tsdb.merge_frequencies(model, new_group.id, [group.id])
 
     previous_group_id = group.id
 
     group.delete()
-    delete_logger.info('object.delete.executed', extra={
-        'object_id': previous_group_id,
-        'transaction_id': transaction_id,
-        'model': Group.__name__,
-    })
+    delete_logger.info(
+        'object.delete.executed',
+        extra={
+            'object_id': previous_group_id,
+            'transaction_id': transaction_id,
+            'model': Group.__name__,
+        }
+    )
 
     try:
         with transaction.atomic():
@@ -138,8 +167,12 @@ def merge_group(from_object_id=None, to_object_id=None, transaction_id=None,
         pass
 
 
-@instrumented_task(name='sentry.tasks.merge.rehash_group_events', queue='merge',
-                   default_retry_delay=60 * 5, max_retries=None)
+@instrumented_task(
+    name='sentry.tasks.merge.rehash_group_events',
+    queue='merge',
+    default_retry_delay=60 * 5,
+    max_retries=None
+)
 @retry
 def rehash_group_events(group_id, transaction_id=None, **kwargs):
     from sentry.models import Group, GroupHash
@@ -159,19 +192,21 @@ def rehash_group_events(group_id, transaction_id=None, **kwargs):
         )
         return
 
-    delete_logger.info('object.delete.bulk_executed', extra={
-        'group_id': group.id,
-        'transaction_id': transaction_id,
-        'model': GroupHash.__name__,
-    })
+    delete_logger.info(
+        'object.delete.bulk_executed',
+        extra={
+            'group_id': group.id,
+            'transaction_id': transaction_id,
+            'model': GroupHash.__name__,
+        }
+    )
 
     delete_group.delay(group.id)
 
 
 def _rehash_group_events(group, limit=100):
     from sentry.event_manager import (
-        EventManager, get_hashes_from_fingerprint, generate_culprit,
-        md5_from_hash
+        EventManager, get_hashes_from_fingerprint, generate_culprit, md5_from_hash
     )
     from sentry.models import Event, Group
 
@@ -202,10 +237,7 @@ def _rehash_group_events(group, limit=100):
         hashes = map(md5_from_hash, get_hashes_from_fingerprint(event, fingerprint))
         for hash in hashes:
             new_group, _, _, _ = manager._save_aggregate(
-                event=event,
-                hashes=hashes,
-                release=None,
-                **group_kwargs
+                event=event, hashes=hashes, release=None, **group_kwargs
             )
             event.update(group_id=new_group.id)
             if event.data.get('tags'):
@@ -213,8 +245,7 @@ def _rehash_group_events(group, limit=100):
     return bool(event_list)
 
 
-def merge_objects(models, group, new_group, limit=1000,
-                  logger=None, transaction_id=None):
+def merge_objects(models, group, new_group, limit=1000, logger=None, transaction_id=None):
     from sentry.models import GroupTagKey, GroupTagValue
 
     has_more = False
@@ -229,13 +260,9 @@ def merge_objects(models, group, new_group, limit=1000,
             try:
                 with transaction.atomic(using=router.db_for_write(model)):
                     if has_group:
-                        model.objects.filter(
-                            id=obj.id
-                        ).update(group=new_group)
+                        model.objects.filter(id=obj.id).update(group=new_group)
                     else:
-                        model.objects.filter(
-                            id=obj.id
-                        ).update(group_id=new_group.id)
+                        model.objects.filter(id=obj.id).update(group_id=new_group.id)
             except IntegrityError:
                 delete = True
             else:
@@ -273,11 +300,14 @@ def merge_objects(models, group, new_group, limit=1000,
                 obj_id = obj.id
                 obj.delete()
                 if logger is not None:
-                    delete_logger.debug('object.delete.executed', extra={
-                        'object_id': obj_id,
-                        'transaction_id': transaction_id,
-                        'model': model.__name__,
-                    })
+                    delete_logger.debug(
+                        'object.delete.executed',
+                        extra={
+                            'object_id': obj_id,
+                            'transaction_id': transaction_id,
+                            'model': model.__name__,
+                        }
+                    )
             has_more = True
 
         if has_more:

@@ -7,32 +7,33 @@ from sentry.testutils import TestCase
 
 
 class DebugMetaTest(TestCase):
-
     def test_apple_behavior(self):
         image_name = (
             '/var/containers/Bundle/Application/'
             'B33C37A8-F933-4B6B-9FFA-152282BFDF13/SentryTest.app/SentryTest'
         )
-        interface = DebugMeta.to_python({
-            "images": [
-                {
-                    "type": "apple",
-                    "cpu_subtype": 0,
-                    "uuid": "C05B4DDD-69A7-3840-A649-32180D341587",
-                    "image_vmaddr": 4294967296,
-                    "image_addr": '0x100020000',
-                    "cpu_type": 16777228,
-                    "image_size": 32768,
-                    "name": image_name,
+        interface = DebugMeta.to_python(
+            {
+                "images": [
+                    {
+                        "type": "apple",
+                        "cpu_subtype": 0,
+                        "uuid": "C05B4DDD-69A7-3840-A649-32180D341587",
+                        "image_vmaddr": 4294967296,
+                        "image_addr": '0x100020000',
+                        "cpu_type": 16777228,
+                        "image_size": 32768,
+                        "name": image_name,
+                    }
+                ],
+                "sdk_info": {
+                    "sdk_name": "iOS",
+                    "version_major": 9,
+                    "version_minor": 3,
+                    "version_patchlevel": 0
                 }
-            ],
-            "sdk_info": {
-                "sdk_name": "iOS",
-                "version_major": 9,
-                "version_minor": 3,
-                "version_patchlevel": 0
             }
-        })
+        )
 
         assert len(interface.images) == 1
         img = interface.images[0]
@@ -51,14 +52,14 @@ class DebugMetaTest(TestCase):
         assert interface.sdk_info['version_patchlevel'] == 0
 
     def test_proguard_behavior(self):
-        interface = DebugMeta.to_python({
-            "images": [
-                {
+        interface = DebugMeta.to_python(
+            {
+                "images": [{
                     "type": "proguard",
                     "uuid": "C05B4DDD-69A7-3840-A649-32180D341587",
-                }
-            ]
-        })
+                }]
+            }
+        )
 
         assert len(interface.images) == 1
         img = interface.images[0]

@@ -11,14 +11,8 @@ class IssueDetailsTest(AcceptanceTestCase):
     def setUp(self):
         super(IssueDetailsTest, self).setUp()
         self.user = self.create_user('foo@example.com')
-        self.org = self.create_organization(
-            owner=self.user,
-            name='Rowdy Tiger'
-        )
-        self.team = self.create_team(
-            organization=self.org,
-            name='Mariachi Band'
-        )
+        self.org = self.create_organization(owner=self.user, name='Rowdy Tiger')
+        self.team = self.create_team(organization=self.org, name='Mariachi Band')
         self.project = self.create_project(
             organization=self.org,
             team=self.team,
@@ -44,9 +38,9 @@ class IssueDetailsTest(AcceptanceTestCase):
             platform='python',
         )
 
-        self.browser.get('/{}/{}/issues/{}/'.format(
-            self.org.slug, self.project.slug, event.group.id
-        ))
+        self.browser.get(
+            '/{}/{}/issues/{}/'.format(self.org.slug, self.project.slug, event.group.id)
+        )
         self.browser.wait_until('.entries')
         self.browser.snapshot('issue details python')
 
@@ -55,8 +49,19 @@ class IssueDetailsTest(AcceptanceTestCase):
             platform='cocoa',
         )
 
-        self.browser.get('/{}/{}/issues/{}/'.format(
-            self.org.slug, self.project.slug, event.group.id
-        ))
+        self.browser.get(
+            '/{}/{}/issues/{}/'.format(self.org.slug, self.project.slug, event.group.id)
+        )
         self.browser.wait_until('.entries')
         self.browser.snapshot('issue details cocoa')
+
+    def test_activity_page(self):
+        event = self.create_sample_event(
+            platform='python',
+        )
+
+        self.browser.get(
+            '/{}/{}/issues/{}/activity'.format(self.org.slug, self.project.slug, event.group.id)
+        )
+        self.browser.wait_until('.activity-item')
+        self.browser.snapshot('issue activity python')

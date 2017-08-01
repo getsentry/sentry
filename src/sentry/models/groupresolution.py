@@ -3,9 +3,7 @@ from __future__ import absolute_import
 from django.db import models
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
-from sentry.db.models import (
-    BoundedPositiveIntegerField, Model, FlexibleForeignKey, sane_repr
-)
+from sentry.db.models import (BoundedPositiveIntegerField, Model, FlexibleForeignKey, sane_repr)
 
 
 class GroupResolution(Model):
@@ -26,18 +24,15 @@ class GroupResolution(Model):
     # the release in which its suggested this was resolved
     # which allows us to indicate if it still happens in newer versions
     release = FlexibleForeignKey('sentry.Release')
-    type = BoundedPositiveIntegerField(choices=(
-        (Type.in_next_release, 'in_next_release'),
-        (Type.in_release, 'in_release'),
-    ), null=True)
+    type = BoundedPositiveIntegerField(
+        choices=((Type.in_next_release, 'in_next_release'), (Type.in_release, 'in_release'), ),
+        null=True
+    )
     actor_id = BoundedPositiveIntegerField(null=True)
     datetime = models.DateTimeField(default=timezone.now, db_index=True)
     status = BoundedPositiveIntegerField(
         default=Status.pending,
-        choices=(
-            (Status.pending, _('Pending')),
-            (Status.resolved, _('Resolved')),
-        ),
+        choices=((Status.pending, _('Pending')), (Status.resolved, _('Resolved')), ),
     )
 
     class Meta:
@@ -63,6 +58,11 @@ class GroupResolution(Model):
             )[0]
         except IndexError:
             return False
+
+        # if no release is present, we assume we've gone from "no release" to "some release"
+        # in application configuration, and thus this must be older
+        if not release:
+            return True
 
         if res_type in (None, cls.Type.in_next_release):
             if res_release == release.id:

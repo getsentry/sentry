@@ -6,9 +6,7 @@ from django.core.urlresolvers import reverse
 from django.utils.crypto import constant_time_compare
 from django.utils.translation import ugettext_lazy as _
 
-from sentry.models import (
-    AuditLogEntryEvent, OrganizationMember, Project
-)
+from sentry.models import (AuditLogEntryEvent, OrganizationMember, Project)
 from sentry.signals import member_joined
 from sentry.utils import auth
 from sentry.web.frontend.base import BaseView
@@ -35,7 +33,8 @@ class AcceptOrganizationInviteView(BaseView):
             om = OrganizationMember.objects.get(pk=member_id)
         except OrganizationMember.DoesNotExist:
             messages.add_message(
-                request, messages.ERROR,
+                request,
+                messages.ERROR,
                 ERR_INVITE_INVALID,
             )
 
@@ -43,7 +42,8 @@ class AcceptOrganizationInviteView(BaseView):
 
         if not om.is_pending:
             messages.add_message(
-                request, messages.ERROR,
+                request,
+                messages.ERROR,
                 ERR_INVITE_INVALID,
             )
 
@@ -51,7 +51,8 @@ class AcceptOrganizationInviteView(BaseView):
 
         if not constant_time_compare(om.token or om.legacy_token, token):
             messages.add_message(
-                request, messages.ERROR,
+                request,
+                messages.ERROR,
                 ERR_INVITE_INVALID,
             )
             return self.redirect(reverse('sentry'))
@@ -101,12 +102,13 @@ class AcceptOrganizationInviteView(BaseView):
 
         form = self.get_form(request)
         if form.is_valid():
-            if OrganizationMember.objects.filter(organization=organization, user=request.user).exists():
+            if OrganizationMember.objects.filter(
+                organization=organization, user=request.user
+            ).exists():
                 messages.add_message(
                     request, messages.SUCCESS,
-                    _('You are already a member of the %r organization.') % (
-                        organization.name.encode('utf-8'),
-                    )
+                    _('You are already a member of the %r organization.') %
+                    (organization.name.encode('utf-8'), )
                 )
 
                 om.delete()
@@ -126,9 +128,8 @@ class AcceptOrganizationInviteView(BaseView):
 
                 messages.add_message(
                     request, messages.SUCCESS,
-                    _('You have been added to the %r organization.') % (
-                        organization.name.encode('utf-8'),
-                    )
+                    _('You have been added to the %r organization.') %
+                    (organization.name.encode('utf-8'), )
                 )
 
                 member_joined.send(member=om, sender=self)

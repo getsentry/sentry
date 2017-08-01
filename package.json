@@ -11,8 +11,10 @@
     "babel-loader": "^7.0.0",
     "babel-plugin-add-module-exports": "^0.2.1",
     "babel-plugin-idx": "^1.5.1",
+    "babel-plugin-lodash": "^3.2.11",
     "babel-plugin-syntax-dynamic-import": "^6.18.0",
     "babel-plugin-transform-builtin-extend": "^1.1.0",
+    "babel-plugin-transform-class-properties": "^6.24.1",
     "babel-plugin-transform-object-rest-spread": "^6.20.2",
     "babel-polyfill": "6.20.0",
     "babel-preset-latest": "^6.16.0",
@@ -35,6 +37,8 @@
     "json-loader": "0.5.3",
     "less": "2.5.3",
     "less-loader": "^4.0.3",
+    "lodash": "^4.17.4",
+    "lodash-webpack-plugin": "^0.11.4",
     "marked": "0.3.5",
     "moment": "2.10.6",
     "moment-timezone": "0.4.1",
@@ -42,7 +46,7 @@
     "platformicons": "0.1.1",
     "po-catalog-loader": "^1.2.0",
     "query-string": "2.4.2",
-    "raven-js": "3.15.0",
+    "raven-js": "3.16.1",
     "react": "15.3.2",
     "react-addons-css-transition-group": "15.3.2",
     "react-addons-pure-render-mixin": "15.3.2",
@@ -63,7 +67,6 @@
     "sprintf-js": "1.0.3",
     "style-loader": "0.12.4",
     "u2f-api": "0.0.8",
-    "underscore": "1.8.3",
     "url-loader": "0.5.6",
     "webpack": "2.2.0",
     "webpack-dev-middleware": "1.9.0"
@@ -72,14 +75,19 @@
   "APIMethod": "stub",
   "proxyURL": "http://localhost:8000",
   "scripts": {
-    "test": "NODE_ENV=test node_modules/.bin/jest tests/js/spec",
-    "test-watch": "NODE_ENV=test node_modules/.bin/jest tests/js/spec --watch",
+    "test": "npm run jest -- tests/js/spec",
+    "test-ci": "npm run test -- --runInBand",
+    "test-watch": "npm run test -- --watch",
+    "jest": "NODE_ENV=test node_modules/.bin/jest",
     "lint": "node_modules/.bin/eslint tests/js src/sentry/static/sentry/app --ext .jsx"
   },
   "jest": {
     "modulePaths": [
       "<rootDir>/src/sentry/static/sentry"
     ],
+    "moduleNameMapper": {
+      "integration-docs-platforms": "<rootDir>/tests/fixtures/_platforms.json"
+    },
     "setupFiles": [
       "<rootDir>/tests/js/setup.js"
     ],
@@ -92,7 +100,7 @@
     "babel-eslint": "7.1.1",
     "babel-jest": "^19.0.0",
     "chai": "3.4.1",
-    "enzyme": "2.4.1",
+    "enzyme": "2.9.1",
     "eslint": "3.19.0",
     "eslint-plugin-getsentry": "1.0.0",
     "eslint-plugin-react": "6.10.3",
@@ -104,5 +112,8 @@
     "sinon": "1.17.2",
     "sinon-chai": "2.8.0",
     "webpack-livereload-plugin": "^0.11.0"
+  },
+  "optionalDependencies": {
+    "fsevents": "^1.1.2"
   }
 }

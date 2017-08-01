@@ -1,5 +1,5 @@
 import React from 'react';
-import _ from 'underscore';
+import _ from 'lodash';
 import ConfigStore from './stores/configStore';
 import {t} from './locale';
 import {EmailField, TextField, BooleanField} from './components/forms';
@@ -135,7 +135,7 @@ const definitions = [
   }
 ];
 
-const definitionsMap = _.indexBy(definitions, 'key');
+const definitionsMap = _.keyBy(definitions, def => def.key);
 
 const disabledReasons = {
   diskPriority: 'This setting is defined in config.yml and may not be changed via the web UI.',
@@ -150,7 +150,7 @@ function optionsForSection(section) {
   return definitions.filter(option => option.key.split('.')[0] === section.key);
 }
 
-export function getOptionField(option, onChange, value, field) {
+export function getOptionField(option, field, value, onChange) {
   let meta = {...getOption(option), ...field};
   let Field = meta.component || TextField;
   return (

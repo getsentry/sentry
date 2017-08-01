@@ -12,8 +12,11 @@ from sentry.web.frontend.base import OrganizationView
 
 
 class ApiKeyForm(forms.ModelForm):
-    allowed_origins = OriginsField(label=_('Allowed Domains'), required=False,
-        help_text=_('Separate multiple entries with a newline.'))
+    allowed_origins = OriginsField(
+        label=_('Allowed Domains'),
+        required=False,
+        help_text=_('Separate multiple entries with a newline.')
+    )
 
     class Meta:
         model = ApiKey
@@ -27,7 +30,9 @@ class OrganizationApiKeySettingsView(OrganizationView):
         key = get_object_or_404(ApiKey, organization=organization, id=key_id)
 
         form = ApiKeyForm(
-            request.POST or None, instance=key, initial={
+            request.POST or None,
+            instance=key,
+            initial={
                 'allowed_origins': key.allowed_origins,
             },
         )
@@ -45,7 +50,8 @@ class OrganizationApiKeySettingsView(OrganizationView):
             )
 
             messages.add_message(
-                request, messages.SUCCESS,
+                request,
+                messages.SUCCESS,
                 'Your settings were saved.',
             )
             return HttpResponseRedirect(request.path)

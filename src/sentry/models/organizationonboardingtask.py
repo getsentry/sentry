@@ -14,11 +14,7 @@ from django.utils import timezone
 from jsonfield import JSONField
 
 from sentry.db.models import (
-    BaseManager,
-    BoundedBigIntegerField,
-    BoundedPositiveIntegerField,
-    FlexibleForeignKey,
-    Model,
+    BaseManager, BoundedBigIntegerField, BoundedPositiveIntegerField, FlexibleForeignKey, Model,
     sane_repr
 )
 
@@ -54,18 +50,11 @@ class OnboardingTaskStatus(object):
 
 class OrganizationOnboardingTaskManager(BaseManager):
     def record(self, organization_id, task, **kwargs):
-        cache_key = 'organizationonboardingtask:%s:%s' % (
-            organization_id,
-            task,
-        )
+        cache_key = 'organizationonboardingtask:%s:%s' % (organization_id, task, )
         if cache.get(cache_key) is None:
             try:
                 with transaction.atomic():
-                    self.create(
-                        organization_id=organization_id,
-                        task=task,
-                        **kwargs
-                    )
+                    self.create(organization_id=organization_id, task=task, **kwargs)
                     return True
             except IntegrityError:
                 pass
@@ -89,10 +78,12 @@ class OrganizationOnboardingTask(Model):
     __core__ = False
 
     TASK_CHOICES = (
-        (OnboardingTask.FIRST_EVENT, 'First event'),  # Send an organization's first event to Sentry
+        # Send an organization's first event to Sentry
+        (OnboardingTask.FIRST_EVENT, 'First event'),
         (OnboardingTask.INVITE_MEMBER, 'Invite member'),  # Add a second member to your Sentry org.
         (OnboardingTask.ISSUE_TRACKER, 'Issue tracker'),  # Hook up an external issue tracker.
-        (OnboardingTask.NOTIFICATION_SERVICE, 'Notification services'),  # Setup a notification services
+        (OnboardingTask.NOTIFICATION_SERVICE,
+         'Notification services'),  # Setup a notification services
         (OnboardingTask.SECOND_PLATFORM, 'Second platform'),  # Send an event from a second platform
         (OnboardingTask.USER_CONTEXT, 'User context'),  # Add user context to errors
         (OnboardingTask.SOURCEMAPS, 'Upload sourcemaps'),  # Upload sourcemaps for compiled js code
@@ -101,8 +92,7 @@ class OrganizationOnboardingTask(Model):
     )
 
     STATUS_CHOICES = (
-        (OnboardingTaskStatus.COMPLETE, 'Complete'),
-        (OnboardingTaskStatus.PENDING, 'Pending'),
+        (OnboardingTaskStatus.COMPLETE, 'Complete'), (OnboardingTaskStatus.PENDING, 'Pending'),
         (OnboardingTaskStatus.SKIPPED, 'Skipped'),
     )
 
@@ -119,6 +109,6 @@ class OrganizationOnboardingTask(Model):
     class Meta:
         app_label = 'sentry'
         db_table = 'sentry_organizationonboardingtask'
-        unique_together = (('organization', 'task'),)
+        unique_together = (('organization', 'task'), )
 
     __repr__ = sane_repr('organization', 'task')

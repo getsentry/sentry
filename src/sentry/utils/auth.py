@@ -29,7 +29,6 @@ MFA_SESSION_KEY = 'mfa'
 
 
 class AuthUserPasswordExpired(Exception):
-
     def __init__(self, user):
         self.user = user
 
@@ -47,8 +46,7 @@ def parse_auth_header(header):
 
 def get_auth_providers():
     return [
-        key for key, cfg_names
-        in six.iteritems(settings.AUTH_PROVIDERS)
+        key for key, cfg_names in six.iteritems(settings.AUTH_PROVIDERS)
         if all(getattr(settings, c, None) for c in cfg_names)
     ]
 
@@ -188,8 +186,7 @@ def find_users(username, with_valid_password=True, is_active=None):
     return []
 
 
-def login(request, user, passed_2fa=None, after_2fa=None,
-          organization_id=None):
+def login(request, user, passed_2fa=None, after_2fa=None, organization_id=None):
     """
     This logs a user in for the sesion and current request.
 
@@ -207,9 +204,7 @@ def login(request, user, passed_2fa=None, after_2fa=None,
     """
     has_2fa = Authenticator.objects.user_has_2fa(user)
     if passed_2fa is None:
-        passed_2fa = (
-            request.session.get(MFA_SESSION_KEY, '') == six.text_type(user.id)
-        )
+        passed_2fa = (request.session.get(MFA_SESSION_KEY, '') == six.text_type(user.id))
 
     if has_2fa and not passed_2fa:
         request.session['_pending_2fa'] = [user.id, time(), organization_id]
@@ -255,18 +250,23 @@ def login(request, user, passed_2fa=None, after_2fa=None,
 
 
 def log_auth_success(request, username, organization_id=None):
-    logger.info('user.auth.success', extra={
-        'ip_address': request.META['REMOTE_ADDR'],
-        'username': username,
-        'organization_id': organization_id,
-    })
+    logger.info(
+        'user.auth.success',
+        extra={
+            'ip_address': request.META['REMOTE_ADDR'],
+            'username': username,
+            'organization_id': organization_id,
+        }
+    )
 
 
 def log_auth_failure(request, username=None):
-    logger.info('user.auth.fail', extra={
-        'ip_address': request.META['REMOTE_ADDR'],
-        'username': username,
-    })
+    logger.info(
+        'user.auth.fail', extra={
+            'ip_address': request.META['REMOTE_ADDR'],
+            'username': username,
+        }
+    )
 
 
 def has_user_registration():
@@ -281,6 +281,7 @@ class EmailAuthBackend(ModelBackend):
 
     Supports authenticating via an email address or a username.
     """
+
     def authenticate(self, username=None, password=None):
         users = find_users(username)
         if users:

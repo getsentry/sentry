@@ -23,7 +23,9 @@ class WebHooksPluginTest(TestCase):
         responses.add(responses.POST, 'http://example.com')
 
         group = self.create_group(message='Hello world')
-        event = self.create_event(group=group, message='Hello world', tags={'level': 'warning'}, id=24)
+        event = self.create_event(
+            group=group, message='Hello world', tags={'level': 'warning'}, id=24
+        )
 
         rule = Rule.objects.create(project=self.project, label='my rule')
 

@@ -8,18 +8,20 @@ from sentry.utils.encryption import EncryptionManager, MARKER
 
 class EncryptionManagerTest(TestCase):
     def test_simple(self):
-        manager = EncryptionManager(schemes=(
-            ('1', Fernet('J5NxyG0w1OyZEDdEOX0Nyv2upm5H3J35rTEb1jEiVbs=')),
-        ))
+        manager = EncryptionManager(
+            schemes=(('1', Fernet('J5NxyG0w1OyZEDdEOX0Nyv2upm5H3J35rTEb1jEiVbs=')), )
+        )
         value = manager.encrypt('hello world')
         assert value.startswith(u'{}1$'.format(MARKER))
         result = manager.decrypt(value)
         assert result == 'hello world'
 
-        manager = EncryptionManager(schemes=(
-            ('2', Fernet(Fernet.generate_key())),
-            ('1', Fernet('J5NxyG0w1OyZEDdEOX0Nyv2upm5H3J35rTEb1jEiVbs=')),
-        ))
+        manager = EncryptionManager(
+            schemes=(
+                ('2', Fernet(Fernet.generate_key())),
+                ('1', Fernet('J5NxyG0w1OyZEDdEOX0Nyv2upm5H3J35rTEb1jEiVbs=')),
+            )
+        )
 
         # this should use the first scheme
         result = manager.decrypt(value)

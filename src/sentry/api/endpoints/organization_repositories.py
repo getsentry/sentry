@@ -56,9 +56,11 @@ class OrganizationRepositoriesEndpoint(OrganizationEndpoint):
         try:
             provider_cls = bindings.get('repository.provider').get(provider_id)
         except KeyError:
-            return Response({
-                'error_type': 'validation',
-            }, status=400)
+            return Response(
+                {
+                    'error_type': 'validation',
+                }, status=400
+            )
 
         provider = provider_cls(id=provider_id)
         return provider.dispatch(request, organization)

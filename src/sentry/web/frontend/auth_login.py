@@ -32,9 +32,7 @@ class AuthLoginView(BaseView):
             return None
 
         try:
-            auth_provider = AuthProvider.objects.get(
-                organization=organization
-            )
+            auth_provider = AuthProvider.objects.get(organization=organization)
         except AuthProvider.DoesNotExist:
             return None
 
@@ -43,7 +41,8 @@ class AuthLoginView(BaseView):
     def get_login_form(self, request):
         op = request.POST.get('op')
         return AuthenticationForm(
-            request, request.POST if op == 'login' else None,
+            request,
+            request.POST if op == 'login' else None,
         )
 
     def get_register_form(self, request, initial=None):
@@ -65,9 +64,9 @@ class AuthLoginView(BaseView):
 
         login_form = self.get_login_form(request)
         if can_register:
-            register_form = self.get_register_form(request, initial={
-                'username': request.session.get('invite_email', '')
-            })
+            register_form = self.get_register_form(
+                request, initial={'username': request.session.get('invite_email', '')}
+            )
         else:
             register_form = None
 
@@ -90,13 +89,18 @@ class AuthLoginView(BaseView):
             from sentry.app import ratelimiter
             from sentry.utils.hashlib import md5_text
 
-            login_attempt = op == 'login' and request.POST.get('username') and request.POST.get('password')
+            login_attempt = op == 'login' and request.POST.get('username'
+                                                               ) and request.POST.get('password')
 
             if login_attempt and ratelimiter.is_limited(
-                u'auth:login:username:{}'.format(md5_text(request.POST['username'].lower()).hexdigest()),
-                limit=10, window=60,  # 10 per minute should be enough for anyone
+                u'auth:login:username:{}'.
+                format(md5_text(request.POST['username'].lower()).hexdigest()),
+                limit=10,
+                window=60,  # 10 per minute should be enough for anyone
             ):
-                login_form.errors['__all__'] = [u'You have made too many login attempts. Please try again later.']
+                login_form.errors['__all__'] = [
+                    u'You have made too many login attempts. Please try again later.'
+                ]
             elif login_form.is_valid():
                 user = login_form.get_user()
 
@@ -123,8 +127,7 @@ class AuthLoginView(BaseView):
 
         auth_provider = self.get_auth_provider(request.POST['organization'])
         if auth_provider:
-            next_uri = reverse('sentry-auth-organization',
-                               args=[request.POST['organization']])
+            next_uri = reverse('sentry-auth-organization', args=[request.POST['organization']])
         else:
             next_uri = request.path
             messages.add_message(request, messages.ERROR, ERR_NO_SSO)
@@ -148,16 +151,14 @@ class AuthLoginView(BaseView):
         # Single org mode -- send them to the org-specific handler
         if settings.SENTRY_SINGLE_ORGANIZATION:
             org = Organization.get_default()
-            next_uri = reverse('sentry-auth-organization',
-                               args=[org.slug])
+            next_uri = reverse('sentry-auth-organization', args=[org.slug])
             return HttpResponseRedirect(next_uri)
 
         op = request.POST.get('op')
         if op == 'sso' and request.POST.get('organization'):
             auth_provider = self.get_auth_provider(request.POST['organization'])
             if auth_provider:
-                next_uri = reverse('sentry-auth-organization',
-                                   args=[request.POST['organization']])
+                next_uri = reverse('sentry-auth-organization', args=[request.POST['organization']])
             else:
                 next_uri = request.path
                 messages.add_message(request, messages.ERROR, ERR_NO_SSO)

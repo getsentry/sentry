@@ -16,6 +16,7 @@ class DummyEndpoint(Endpoint):
     def get(self, request):
         return Response({"ok": True})
 
+
 _dummy_endpoint = DummyEndpoint.as_view()
 
 
@@ -30,9 +31,8 @@ class EndpointTest(APITestCase):
         request = HttpRequest()
         request.method = 'GET'
         request.META['HTTP_ORIGIN'] = 'http://example.com'
-        request.META['HTTP_AUTHORIZATION'] = 'Basic {}'.format(
-            base64.b64encode(apikey.key).decode('utf-8')
-        )
+        request.META['HTTP_AUTHORIZATION'
+                     ] = 'Basic {}'.format(base64.b64encode(apikey.key).decode('utf-8'))
 
         response = _dummy_endpoint(request)
         response.render()

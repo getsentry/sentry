@@ -1,5 +1,5 @@
 import React from 'react';
-import _ from 'underscore';
+import _ from 'lodash';
 
 import ContextData from '../../contextData';
 import {deviceNameMapper} from '../../../utils';
@@ -30,7 +30,7 @@ const KeyValueList = React.createClass({
       data = Object.keys(data).map(key => [key, data[key]]);
     }
 
-    data = this.props.isSorted ? _.sortBy(data, (key, value) => key) : data;
+    data = this.props.isSorted ? _.sortBy(data, [(key, value) => key]) : data;
 
     const props = this.props.onClick ? {onClick: this.props.onClick} : {};
     return (

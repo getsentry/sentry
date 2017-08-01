@@ -34,4 +34,5 @@ class UrlsPlugin(TagPlugin):
             return []
         return [http.url]
 
+
 register(UrlsPlugin)

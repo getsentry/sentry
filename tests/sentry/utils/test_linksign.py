@@ -9,7 +9,6 @@ from sentry.utils import linksign
 
 
 class LinkSignTestCase(TestCase):
-
     def test_link_signing(self):
         rf = RequestFactory()
 

@@ -2,7 +2,6 @@ from __future__ import absolute_import
 
 from collections import Hashable, MutableMapping
 
-
 __unset__ = object()
 
 
@@ -15,6 +14,7 @@ class BidirectionalMapping(MutableMapping):
     when ``a`` is used as a key, and ``a`` can *also* be found when ``b`` is
     provided to ``get_key``.
     """
+
     def __init__(self, data):
         self.__data = data
         self.__inverse = {v: k for k, v in self.__data.items()}

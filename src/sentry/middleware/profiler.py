@@ -13,13 +13,12 @@ from django.conf import settings
 from django.http import HttpResponse
 from six import StringIO
 
-
 words_re = re.compile(r'\s+')
 
 group_prefix_re = [
     re.compile(r"^.*/django/[^/]+"),
     re.compile(r"^(.*)/[^/]+$"),  # extract module path
-    re.compile(r".*"),   # catch strange entries
+    re.compile(r".*"),  # catch strange entries
 ]
 
 
@@ -35,6 +34,7 @@ class ProfileMiddleware(object):
 
     WARNING: It uses hotshot profiler which is not thread safe.
     """
+
     def can(self, request):
         if 'prof' not in request.GET:
             return False
@@ -96,9 +96,7 @@ class ProfileMiddleware(object):
                 newcallers[func_strip_path(func2)] = caller
 
             if newfunc in newstats:
-                newstats[newfunc] = add_func_stats(
-                    newstats[newfunc],
-                    (cc, nc, tt, ct, newcallers))
+                newstats[newfunc] = add_func_stats(newstats[newfunc], (cc, nc, tt, ct, newcallers))
             else:
                 newstats[newfunc] = (cc, nc, tt, ct, newcallers)
         old_top = stats.top_level

@@ -20,11 +20,14 @@ class ProjectUserDetailsTest(APITestCase):
 
         self.login_as(user=self.user)
 
-        self.path = reverse('sentry-api-0-project-user-details', args=[
-            self.org.slug,
-            self.project.slug,
-            self.euser.hash,
-        ])
+        self.path = reverse(
+            'sentry-api-0-project-user-details',
+            args=[
+                self.org.slug,
+                self.project.slug,
+                self.euser.hash,
+            ]
+        )
 
     def test_simple(self):
         response = self.client.get(self.path)

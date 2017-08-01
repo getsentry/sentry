@@ -3,7 +3,7 @@ import GroupActions from '../actions/groupActions';
 import IndicatorStore from './indicatorStore';
 import PendingChangeQueue from '../utils/pendingChangeQueue';
 import {t} from '../locale';
-import _ from 'underscore';
+import _ from 'lodash';
 
 function showAlert(msg, type) {
   IndicatorStore.add(msg, type, {
@@ -258,6 +258,25 @@ const GroupStore = Reflux.createStore({
     this.items = this.items.filter(item => !itemIdSet.has(item.id));
     showAlert(t('The selected events have been scheduled for deletion.'), 'success');
     this.trigger(new Set(itemIds));
+  },
+
+  onDiscard(changeId, itemId) {
+    this.addStatus(itemId, 'discard');
+    this.trigger(new Set([itemId]));
+  },
+
+  onDiscardError(changeId, itemId, response) {
+    this.clearStatus(itemId, 'discard');
+    showAlert(t('Unable to discard event. Please try again.'), 'error');
+    this.trigger(new Set([itemId]));
+  },
+
+  onDiscardSuccess(changeId, itemId, response) {
+    delete this.statuses[itemId];
+    this.clearStatus(itemId, 'discard');
+    this.items = this.items.filter(item => item.id !== itemId);
+    showAlert(t('Similar events will be filtered and discarded.'), 'success');
+    this.trigger(new Set([itemId]));
   },
 
   onMerge(changeId, itemIds) {

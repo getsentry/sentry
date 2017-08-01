@@ -2,13 +2,11 @@
 
 from __future__ import absolute_import
 
-
 from sentry.interfaces.contexts import Contexts
 from sentry.testutils import TestCase
 
 
 class ContextsTest(TestCase):
-
     def test_os(self):
         ctx = Contexts.to_python({
             'os': {
@@ -32,13 +30,15 @@ class ContextsTest(TestCase):
         }
 
     def test_runtime(self):
-        ctx = Contexts.to_python({
-            'runtime': {
-                'name': 'Java',
-                'version': '1.2.3',
-                'build': 'BLAH',
-            },
-        })
+        ctx = Contexts.to_python(
+            {
+                'runtime': {
+                    'name': 'Java',
+                    'version': '1.2.3',
+                    'build': 'BLAH',
+                },
+            }
+        )
         assert sorted(ctx.iter_tags()) == [
             ('runtime', 'Java 1.2.3'),
             ('runtime.name', 'Java'),
@@ -53,15 +53,17 @@ class ContextsTest(TestCase):
         }
 
     def test_device(self):
-        ctx = Contexts.to_python({
-            'device': {
-                'name': 'My iPad',
-                'model': 'iPad',
-                'model_id': '1234AB',
-                'version': '1.2.3',
-                'arch': 'arm64',
-            },
-        })
+        ctx = Contexts.to_python(
+            {
+                'device': {
+                    'name': 'My iPad',
+                    'model': 'iPad',
+                    'model_id': '1234AB',
+                    'version': '1.2.3',
+                    'arch': 'arm64',
+                },
+            }
+        )
         assert sorted(ctx.iter_tags()) == [
             ('device', 'iPad'),
         ]
@@ -77,20 +79,20 @@ class ContextsTest(TestCase):
         }
 
     def test_device_with_alias(self):
-        ctx = Contexts.to_python({
-            'my_device': {
-                'type': 'device',
-                'title': 'My Title',
-                'name': 'My iPad',
-                'model': 'iPad',
-                'model_id': '1234AB',
-                'version': '1.2.3',
-                'arch': 'arm64',
-            },
-        })
-        assert sorted(ctx.iter_tags()) == [
-            ('my_device', 'iPad')
-        ]
+        ctx = Contexts.to_python(
+            {
+                'my_device': {
+                    'type': 'device',
+                    'title': 'My Title',
+                    'name': 'My iPad',
+                    'model': 'iPad',
+                    'model_id': '1234AB',
+                    'version': '1.2.3',
+                    'arch': 'arm64',
+                },
+            }
+        )
+        assert sorted(ctx.iter_tags()) == [('my_device', 'iPad')]
         assert ctx.to_json() == {
             'my_device': {
                 'type': 'device',
@@ -104,14 +106,18 @@ class ContextsTest(TestCase):
         }
 
     def test_default(self):
-        ctx = Contexts.to_python({
-            'whatever': {
-                'foo': 'bar',
-                'blub': 'blah',
-                'biz': [1, 2, 3],
-                'baz': {'foo': 'bar'},
-            },
-        })
+        ctx = Contexts.to_python(
+            {
+                'whatever': {
+                    'foo': 'bar',
+                    'blub': 'blah',
+                    'biz': [1, 2, 3],
+                    'baz': {
+                        'foo': 'bar'
+                    },
+                },
+            }
+        )
         assert sorted(ctx.iter_tags()) == []
         assert ctx.to_json() == {
             'whatever': {
@@ -119,7 +125,9 @@ class ContextsTest(TestCase):
                 'foo': 'bar',
                 'blub': 'blah',
                 'biz': [1, 2, 3],
-                'baz': {'foo': 'bar'},
+                'baz': {
+                    'foo': 'bar'
+                },
             }
         }
 

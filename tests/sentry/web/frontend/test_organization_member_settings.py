@@ -12,7 +12,9 @@ class OrganizationMemberSettingsPermissionTest(PermissionTestCase):
         super(OrganizationMemberSettingsPermissionTest, self).setUp()
         member = self.create_user()
         om = self.create_member(user=member, organization=self.organization)
-        self.path = reverse('sentry-organization-member-settings', args=[self.organization.slug, om.id])
+        self.path = reverse(
+            'sentry-organization-member-settings', args=[self.organization.slug, om.id]
+        )
 
     def test_non_member_cannot_load(self):
         self.assert_non_member_cannot_access(self.path)
@@ -35,8 +37,7 @@ class OrganizationMemberSettingsTest(TestCase):
             teams=[team_2],
         )
 
-        path = reverse('sentry-organization-member-settings',
-                       args=[organization.slug, member.id])
+        path = reverse('sentry-organization-member-settings', args=[organization.slug, member.id])
 
         self.login_as(self.user)
 
@@ -62,8 +63,7 @@ class OrganizationMemberSettingsTest(TestCase):
             role='member',
         )
 
-        path = reverse('sentry-organization-member-settings',
-                       args=[organization.slug, member.id])
+        path = reverse('sentry-organization-member-settings', args=[organization.slug, member.id])
 
         self.login_as(self.user)
 
@@ -102,8 +102,7 @@ class OrganizationMemberSettingsTest(TestCase):
             role='member',
         )
 
-        path = reverse('sentry-organization-member-settings',
-                       args=[organization.slug, member.id])
+        path = reverse('sentry-organization-member-settings', args=[organization.slug, member.id])
 
         self.login_as(self.user)
 
@@ -140,8 +139,7 @@ class OrganizationMemberSettingsTest(TestCase):
             email='bar@example.com',
         )
 
-        path = reverse('sentry-organization-member-settings',
-                       args=[organization.slug, member.id])
+        path = reverse('sentry-organization-member-settings', args=[organization.slug, member.id])
 
         self.login_as(self.user)
 
@@ -163,8 +161,7 @@ class OrganizationMemberSettingsTest(TestCase):
             user=self.user,
         )
 
-        path = reverse('sentry-organization-member-settings',
-                       args=[organization.slug, member.id])
+        path = reverse('sentry-organization-member-settings', args=[organization.slug, member.id])
 
         self.login_as(self.user)
 
@@ -191,8 +188,7 @@ class OrganizationMemberSettingsTest(TestCase):
             role='admin',
         )
 
-        path = reverse('sentry-organization-member-settings',
-                       args=[organization.slug, owner_om.id])
+        path = reverse('sentry-organization-member-settings', args=[organization.slug, owner_om.id])
 
         self.login_as(member)
 
@@ -219,8 +215,7 @@ class OrganizationMemberSettingsTest(TestCase):
             role='member',
         )
 
-        path = reverse('sentry-organization-member-settings',
-                       args=[organization.slug, owner_om.id])
+        path = reverse('sentry-organization-member-settings', args=[organization.slug, owner_om.id])
 
         self.login_as(member)
 
@@ -250,8 +245,9 @@ class OrganizationMemberSettingsTest(TestCase):
             role='member',
         )
 
-        path = reverse('sentry-organization-member-settings',
-                       args=[organization.slug, member_om.id])
+        path = reverse(
+            'sentry-organization-member-settings', args=[organization.slug, member_om.id]
+        )
 
         self.login_as(manager)
 
@@ -282,8 +278,9 @@ class OrganizationMemberSettingsTest(TestCase):
             role='owner',
         )
 
-        path = reverse('sentry-organization-member-settings',
-                       args=[organization.slug, member_om.id])
+        path = reverse(
+            'sentry-organization-member-settings', args=[organization.slug, member_om.id]
+        )
 
         self.login_as(manager)
 

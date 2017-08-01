@@ -25,17 +25,19 @@ def get_user(request):
             # which point, a nonce will always be required.
             if user.session_nonce and request.session.get('_nonce', '') != user.session_nonce:
                 # If the nonces don't match, this session is anonymous.
-                logger.info('user.auth.invalid-nonce', extra={
-                    'ip_address': request.META['REMOTE_ADDR'],
-                    'user_id': user.id,
-                })
+                logger.info(
+                    'user.auth.invalid-nonce',
+                    extra={
+                        'ip_address': request.META['REMOTE_ADDR'],
+                        'user_id': user.id,
+                    }
+                )
                 user = AnonymousUser()
         request._cached_user = user
     return request._cached_user
 
 
 class AuthenticationMiddleware(object):
-
     def process_request(self, request):
         request.user_from_signed_request = False
 

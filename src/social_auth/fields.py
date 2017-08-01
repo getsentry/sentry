@@ -13,6 +13,7 @@ class JSONField(models.TextField):
     """Simple JSON field that stores python structures as JSON strings
     on database.
     """
+
     def to_python(self, value):
         """
         Convert the input JSON value into python structures, raises

@@ -19,17 +19,16 @@ class OAuthAuthorizeView(BaseView):
     @never_cache
     def dispatch(self, request, *args, **kwargs):
         with transaction.atomic():
-            return super(OAuthAuthorizeView, self).dispatch(
-                request, *args, **kwargs)
+            return super(OAuthAuthorizeView, self).dispatch(request, *args, **kwargs)
 
     def redirect_response(self, response_type, redirect_uri, params):
         if response_type == 'token':
-            return self.redirect('{}#{}'.format(
-                redirect_uri, urlencode([
-                    (k, v) for k, v in six.iteritems(params)
-                    if v is not None
-                ])
-            ))
+            return self.redirect(
+                '{}#{}'.format(
+                    redirect_uri,
+                    urlencode([(k, v) for k, v in six.iteritems(params) if v is not None])
+                )
+            )
 
         parts = list(urlparse(redirect_uri))
         query = parse_qsl(parts[4])
@@ -40,10 +39,12 @@ class OAuthAuthorizeView(BaseView):
         return self.redirect(urlunparse(parts))
 
     def error(self, response_type, redirect_uri, name, state=None):
-        return self.redirect_response(response_type, redirect_uri, {
-            'error': name,
-            'state': state,
-        })
+        return self.redirect_response(
+            response_type, redirect_uri, {
+                'error': name,
+                'state': state,
+            }
+        )
 
     def get(self, request):
         response_type = request.GET.get('response_type')
@@ -54,9 +55,11 @@ class OAuthAuthorizeView(BaseView):
         force_prompt = request.GET.get('force_prompt')
 
         if not client_id:
-            return self.respond('sentry/oauth-error.html', {
-                'error': mark_safe('Missing or invalid <em>client_id</em> parameter.'),
-            })
+            return self.respond(
+                'sentry/oauth-error.html', {
+                    'error': mark_safe('Missing or invalid <em>client_id</em> parameter.'),
+                }
+            )
 
         try:
             application = ApiApplication.objects.get(
@@ -64,16 +67,20 @@ class OAuthAuthorizeView(BaseView):
                 status=ApiApplicationStatus.active,
             )
         except ApiApplication.DoesNotExist:
-            return self.respond('sentry/oauth-error.html', {
-                'error': mark_safe('Missing or invalid <em>client_id</em> parameter.'),
-            })
+            return self.respond(
+                'sentry/oauth-error.html', {
+                    'error': mark_safe('Missing or invalid <em>client_id</em> parameter.'),
+                }
+            )
 
         if not redirect_uri:
             redirect_uri = application.get_default_redirect_uri()
         elif not application.is_valid_redirect_uri(redirect_uri):
-            return self.respond('sentry/oauth-error.html', {
-                'error': mark_safe('Missing or invalid <em>redirect_uri</em> parameter.'),
-            })
+            return self.respond(
+                'sentry/oauth-error.html', {
+                    'error': mark_safe('Missing or invalid <em>redirect_uri</em> parameter.'),
+                }
+            )
 
         if not application.is_allowed_response_type(response_type):
             return self.error(
@@ -141,7 +148,9 @@ class OAuthAuthorizeView(BaseView):
                         pending_scopes.remove(scope)
 
             if pending_scopes:
-                raise NotImplementedError('{} scopes did not have descriptions'.format(pending_scopes))
+                raise NotImplementedError(
+                    '{} scopes did not have descriptions'.format(pending_scopes)
+                )
 
         context = {
             'user': request.user,
@@ -155,14 +164,20 @@ class OAuthAuthorizeView(BaseView):
         try:
             payload = request.session['oa2']
         except KeyError:
-            return self.respond('sentry/oauth-error.html', {
-                'error': 'We were unable to complete your request. Please re-initiate the authorization flow.',
-            })
+            return self.respond(
+                'sentry/oauth-error.html', {
+                    'error':
+                    'We were unable to complete your request. Please re-initiate the authorization flow.',
+                }
+            )
 
         if payload['uid'] != request.user.id:
-            return self.respond('sentry/oauth-error.html', {
-                'error': 'We were unable to complete your request. Please re-initiate the authorization flow.',
-            })
+            return self.respond(
+                'sentry/oauth-error.html', {
+                    'error':
+                    'We were unable to complete your request. Please re-initiate the authorization flow.',
+                }
+            )
 
         try:
             application = ApiApplication.objects.get(
@@ -170,9 +185,11 @@ class OAuthAuthorizeView(BaseView):
                 status=ApiApplicationStatus.active,
             )
         except ApiApplication.DoesNotExist:
-            return self.respond('sentry/oauth-error.html', {
-                'error': mark_safe('Missing or invalid <em>client_id</em> parameter.'),
-            })
+            return self.respond(
+                'sentry/oauth-error.html', {
+                    'error': mark_safe('Missing or invalid <em>client_id</em> parameter.'),
+                }
+            )
 
         response_type = payload['rt']
         redirect_uri = payload['ru']

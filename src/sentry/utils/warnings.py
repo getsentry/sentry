@@ -44,6 +44,7 @@ class WarningManager(object):
     """
     Transforms warnings into a standard form and invokes handlers.
     """
+
     def __init__(self, handlers, default_category=Warning):
         self.__handlers = handlers
         self.__default_category = default_category
@@ -72,6 +73,7 @@ class WarningSet(collections.Set):
     """
     Add-only set structure for storing unique warnings.
     """
+
     def __init__(self):
         self.__warnings = {}
 
@@ -87,8 +89,7 @@ class WarningSet(collections.Set):
 
     def __get_key(self, warning):
         return (
-            type(warning),
-            warning.args if hasattr(warning, 'args') else six.text_type(warning),
+            type(warning), warning.args if hasattr(warning, 'args') else six.text_type(warning),
         )
 
     def add(self, warning, stacklevel=None):

@@ -18,7 +18,8 @@ from six.moves.urllib.parse import quote, urlparse
 # if we're not running in a PR, we kill the PERCY_TOKEN because its a push
 # to a branch, and we dont want percy comparing things
 # we do need to ensure its run on master so that changes get updated
-if os.environ.get('TRAVIS_PULL_REQUEST', 'false') == 'false' and os.environ.get('TRAVIS_BRANCH', 'master') != 'master':
+if os.environ.get('TRAVIS_PULL_REQUEST', 'false'
+                  ) == 'false' and os.environ.get('TRAVIS_BRANCH', 'master') != 'master':
     os.environ.setdefault('PERCY_ENABLE', '0')
 
 
@@ -37,9 +38,7 @@ class Browser(object):
         """
         Return the absolute URI for a given route in Sentry.
         """
-        return '{}/{}'.format(self.live_server_url, path.lstrip('/').format(
-            *args, **kwargs
-        ))
+        return '{}/{}'.format(self.live_server_url, path.lstrip('/').format(*args, **kwargs))
 
     def get(self, path, *args, **kwargs):
         self.driver.get(self.route(path), *args, **kwargs)
@@ -77,11 +76,9 @@ class Browser(object):
         """
         from selenium.webdriver.common.by import By
 
-        WebDriverWait(self.driver, timeout).until(
-            expected_conditions.presence_of_element_located(
-                (By.CSS_SELECTOR, selector)
-            )
-        )
+        WebDriverWait(
+            self.driver, timeout
+        ).until(expected_conditions.presence_of_element_located((By.CSS_SELECTOR, selector)))
 
         return self
 
@@ -92,11 +89,9 @@ class Browser(object):
         """
         from selenium.webdriver.common.by import By
 
-        WebDriverWait(self.driver, timeout).until_not(
-            expected_conditions.presence_of_element_located(
-                (By.CSS_SELECTOR, selector)
-            )
-        )
+        WebDriverWait(
+            self.driver, timeout
+        ).until_not(expected_conditions.presence_of_element_located((By.CSS_SELECTOR, selector)))
 
         return self
 
@@ -111,8 +106,7 @@ class Browser(object):
         self.percy.snapshot(name=name)
         return self
 
-    def save_cookie(self, name, value, path='/',
-                    expires='Tue, 20 Jun 2025 19:07:44 GMT'):
+    def save_cookie(self, name, value, path='/', expires='Tue, 20 Jun 2025 19:07:44 GMT'):
         # XXX(dcramer): "hit a url before trying to set cookies"
         if not self._has_initialized_cookie_store:
             self.get('/')
@@ -122,26 +116,26 @@ class Browser(object):
         # selenium API because....
         # http://stackoverflow.com/questions/37103621/adding-cookies-working-with-firefox-webdriver-but-not-in-phantomjs
         # TODO(dcramer): this should be escaped, but idgaf
-        self.driver.execute_script("document.cookie = '{name}={value}; path={path}; domain={domain}; expires={expires}';\n".format(
-            name=name,
-            value=value,
-            expires=expires,
-            path=path,
-            domain=self.domain,
-        ))
+        self.driver.execute_script(
+            "document.cookie = '{name}={value}; path={path}; domain={domain}; expires={expires}';\n".
+            format(
+                name=name,
+                value=value,
+                expires=expires,
+                path=path,
+                domain=self.domain,
+            )
+        )
 
 
 def pytest_addoption(parser):
-    parser.addini('selenium_driver',
-                  help='selenium driver (phantomjs or firefox)')
+    parser.addini('selenium_driver', help='selenium driver (phantomjs or firefox)')
 
     group = parser.getgroup('selenium', 'selenium')
-    group._addoption('--selenium-driver',
-                     dest='selenium_driver',
-                     help='selenium driver (phantomjs or firefox)')
-    group._addoption('--phantomjs-path',
-                     dest='phantomjs_path',
-                     help='path to phantomjs driver')
+    group._addoption(
+        '--selenium-driver', dest='selenium_driver', help='selenium driver (phantomjs or firefox)'
+    )
+    group._addoption('--phantomjs-path', dest='phantomjs_path', help='path to phantomjs driver')
 
 
 def pytest_configure(config):
@@ -287,20 +281,20 @@ def _gather_logs(item, report, driver, summary, extra):
         try:
             log = driver.get_log(name)
         except Exception as e:
-            summary.append('WARNING: Failed to gather {0} log: {1}'.format(
-                name, e))
+            summary.append('WARNING: Failed to gather {0} log: {1}'.format(name, e))
             return
         pytest_html = item.config.pluginmanager.getplugin('html')
         if pytest_html is not None:
-            extra.append(pytest_html.extras.text(
-                format_log(log), '%s Log' % name.title()))
+            extra.append(pytest_html.extras.text(format_log(log), '%s Log' % name.title()))
 
 
 def format_log(log):
     timestamp_format = '%Y-%m-%d %H:%M:%S.%f'
-    entries = [u'{0} {1[level]} - {1[message]}'.format(
-        datetime.utcfromtimestamp(entry['timestamp'] / 1000.0).strftime(
-            timestamp_format), entry).rstrip() for entry in log]
+    entries = [
+        u'{0} {1[level]} - {1[message]}'.format(
+            datetime.utcfromtimestamp(entry['timestamp'] / 1000.0).strftime(timestamp_format), entry
+        ).rstrip() for entry in log
+    ]
     log = '\n'.join(entries)
     log = log.encode('utf-8')
     return log

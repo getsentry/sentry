@@ -8,7 +8,6 @@ from sentry.models import Activity
 
 
 class BasicPreprocessorPlugin(NotificationPlugin):
-
     def notify_about_activity(self, activity):
         pass
 

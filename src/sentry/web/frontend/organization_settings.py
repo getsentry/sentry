@@ -31,7 +31,9 @@ class OrganizationSettingsForm(forms.ModelForm):
     )
     enhanced_privacy = forms.BooleanField(
         label=_('Enhanced Privacy'),
-        help_text=_('Enable enhanced privacy controls to limit personally identifiable information (PII) as well as source code in things like notifications.'),
+        help_text=_(
+            'Enable enhanced privacy controls to limit personally identifiable information (PII) as well as source code in things like notifications.'
+        ),
         required=False,
     )
     allow_shared_issues = forms.BooleanField(
@@ -46,29 +48,39 @@ class OrganizationSettingsForm(forms.ModelForm):
     )
     require_scrub_defaults = forms.BooleanField(
         label=_('Require Using Default Scrubbers'),
-        help_text=_('Require the default scrubbers be applied to prevent things like passwords and credit cards from being stored for all projects.'),
+        help_text=_(
+            'Require the default scrubbers be applied to prevent things like passwords and credit cards from being stored for all projects.'
+        ),
         required=False
     )
     sensitive_fields = forms.CharField(
         label=_('Global additional sensitive fields'),
-        help_text=_('Additional field names to match against when scrubbing data for all projects. '
-                    'Separate multiple entries with a newline.<br /><strong>Note: These fields will be used in addition to project specific fields.</strong>'),
-        widget=forms.Textarea(attrs={
-            'placeholder': mark_safe(_('e.g. email')),
-            'class': 'span8',
-            'rows': '3',
-        }),
+        help_text=_(
+            'Additional field names to match against when scrubbing data for all projects. '
+            'Separate multiple entries with a newline.<br /><strong>Note: These fields will be used in addition to project specific fields.</strong>'
+        ),
+        widget=forms.Textarea(
+            attrs={
+                'placeholder': mark_safe(_('e.g. email')),
+                'class': 'span8',
+                'rows': '3',
+            }
+        ),
         required=False,
     )
     safe_fields = forms.CharField(
         label=_('Global safe fields'),
-        help_text=_('Field names which data scrubbers should ignore. '
-                    'Separate multiple entries with a newline.<br /><strong>Note: These fields will be used in addition to project specific fields.</strong>'),
-        widget=forms.Textarea(attrs={
-            'placeholder': mark_safe(_('e.g. email')),
-            'class': 'span8',
-            'rows': '3',
-        }),
+        help_text=_(
+            'Field names which data scrubbers should ignore. '
+            'Separate multiple entries with a newline.<br /><strong>Note: These fields will be used in addition to project specific fields.</strong>'
+        ),
+        widget=forms.Textarea(
+            attrs={
+                'placeholder': mark_safe(_('e.g. email')),
+                'class': 'span8',
+                'rows': '3',
+            }
+        ),
         required=False,
     )
     require_scrub_ip_address = forms.BooleanField(
@@ -117,16 +129,26 @@ class OrganizationSettingsView(OrganizationView):
             data=request.POST or None,
             instance=organization,
             initial={
-                'default_role': organization.default_role,
-                'allow_joinleave': bool(organization.flags.allow_joinleave),
-                'enhanced_privacy': bool(organization.flags.enhanced_privacy),
-                'allow_shared_issues': bool(not organization.flags.disable_shared_issues),
-                'require_scrub_data': bool(organization.get_option('sentry:require_scrub_data', False)),
-                'require_scrub_defaults': bool(organization.get_option('sentry:require_scrub_defaults', False)),
-                'sensitive_fields': '\n'.join(organization.get_option('sentry:sensitive_fields', None) or []),
-                'safe_fields': '\n'.join(organization.get_option('sentry:safe_fields', None) or []),
-                'require_scrub_ip_address': bool(organization.get_option('sentry:require_scrub_ip_address', False)),
-                'early_adopter': bool(organization.flags.early_adopter),
+                'default_role':
+                organization.default_role,
+                'allow_joinleave':
+                bool(organization.flags.allow_joinleave),
+                'enhanced_privacy':
+                bool(organization.flags.enhanced_privacy),
+                'allow_shared_issues':
+                bool(not organization.flags.disable_shared_issues),
+                'require_scrub_data':
+                bool(organization.get_option('sentry:require_scrub_data', False)),
+                'require_scrub_defaults':
+                bool(organization.get_option('sentry:require_scrub_defaults', False)),
+                'sensitive_fields':
+                '\n'.join(organization.get_option('sentry:sensitive_fields', None) or []),
+                'safe_fields':
+                '\n'.join(organization.get_option('sentry:safe_fields', None) or []),
+                'require_scrub_ip_address':
+                bool(organization.get_option('sentry:require_scrub_ip_address', False)),
+                'early_adopter':
+                bool(organization.flags.early_adopter),
             }
         )
 
@@ -141,18 +163,16 @@ class OrganizationSettingsView(OrganizationView):
             organization.save()
 
             data_scrubbing_options = (
-                'require_scrub_data',
-                'require_scrub_defaults',
-                'sensitive_fields',
-                'safe_fields',
-                'require_scrub_ip_address')
+                'require_scrub_data', 'require_scrub_defaults', 'sensitive_fields', 'safe_fields',
+                'require_scrub_ip_address'
+            )
 
             for opt in data_scrubbing_options:
                 value = form.cleaned_data.get(opt)
                 if value is None:
-                    organization.delete_option('sentry:%s' % (opt,))
+                    organization.delete_option('sentry:%s' % (opt, ))
                 else:
-                    organization.update_option('sentry:%s' % (opt,), value)
+                    organization.update_option('sentry:%s' % (opt, ), value)
 
             self.create_audit_entry(
                 request,
@@ -162,13 +182,21 @@ class OrganizationSettingsView(OrganizationView):
                 data=organization.get_audit_log_data(),
             )
 
-            messages.add_message(request, messages.SUCCESS,
-                _('Changes to your organization were saved.'))
+            messages.add_message(
+                request, messages.SUCCESS, _('Changes to your organization were saved.')
+            )
 
-            if any((scrubbing_field in form.cleaned_data for scrubbing_field in data_scrubbing_options)):
+            if any(
+                (
+                    scrubbing_field in form.cleaned_data
+                    for scrubbing_field in data_scrubbing_options
+                )
+            ):
                 data_scrubber_enabled.send(organization=organization, sender=request.user)
 
-            return HttpResponseRedirect(reverse('sentry-organization-settings', args=[organization.slug]))
+            return HttpResponseRedirect(
+                reverse('sentry-organization-settings', args=[organization.slug])
+            )
 
         context = {
             'form': form,

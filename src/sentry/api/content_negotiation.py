@@ -8,10 +8,9 @@ class ConditionalContentNegotiation(DefaultContentNegotiation):
     """
     Overrides the parsers on POST to support file uploads.
     """
+
     def select_parser(self, request, parsers):
         if request.method == 'POST':
             parsers = [FormParser(), MultiPartParser()]
 
-        return super(ConditionalContentNegotiation, self).select_parser(
-            request, parsers
-        )
+        return super(ConditionalContentNegotiation, self).select_parser(request, parsers)

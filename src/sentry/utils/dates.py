@@ -20,7 +20,6 @@ from django.db import connections
 
 from sentry.utils.db import get_db_engine
 
-
 DATE_TRUNC_GROUPERS = {
     'oracle': {
         'hour': 'hh24',
@@ -31,7 +30,6 @@ DATE_TRUNC_GROUPERS = {
         'minute': 'minute',
     },
 }
-
 
 epoch = datetime(1970, 1, 1, tzinfo=pytz.utc)
 
@@ -101,7 +99,7 @@ def parse_timestamp(value):
     # TODO(mitsuhiko): merge this code with coreapis date parser
     if isinstance(value, datetime):
         return value
-    elif isinstance(value, six.integer_types + (float,)):
+    elif isinstance(value, six.integer_types + (float, )):
         return datetime.utcfromtimestamp(value).replace(tzinfo=pytz.utc)
     value = (value or '').rstrip('Z').encode('ascii', 'replace').split('.', 1)
     if not value:
@@ -112,8 +110,7 @@ def parse_timestamp(value):
         return None
     if len(value) == 2:
         try:
-            rv = rv.replace(microsecond=int(value[1]
-                            .ljust(6, '0')[:6]))
+            rv = rv.replace(microsecond=int(value[1].ljust(6, '0')[:6]))
         except ValueError:
             rv = None
     return rv.replace(tzinfo=pytz.utc)

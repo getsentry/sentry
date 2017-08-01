@@ -16,7 +16,8 @@ class DatadogMetricsBackendTest(TestCase):
     def test_incr(self, mock_incr):
         self.backend.incr('foo', instance='bar')
         mock_incr.assert_called_once_with(
-            'sentrytest.foo', 1,
+            'sentrytest.foo',
+            1,
             sample_rate=1,
             tags=['instance:bar'],
             host=get_hostname(),
@@ -26,7 +27,8 @@ class DatadogMetricsBackendTest(TestCase):
     def test_timing(self, mock_timing):
         self.backend.timing('foo', 30, instance='bar')
         mock_timing.assert_called_once_with(
-            'sentrytest.foo', 30,
+            'sentrytest.foo',
+            30,
             sample_rate=1,
             tags=['instance:bar'],
             host=get_hostname(),

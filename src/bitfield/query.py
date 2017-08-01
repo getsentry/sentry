@@ -17,10 +17,8 @@ class BitQueryLookupWrapper(object):
         This will be called by Where.as_sql()
         """
         if self.bit:
-            return ("(%s.%s | %d)" % (qn(self.table_alias), qn(self.column), self.bit.mask),
-                    [])
-        return ("(%s.%s & %d)" % (qn(self.table_alias), qn(self.column), self.bit.mask),
-                [])
+            return ("(%s.%s | %d)" % (qn(self.table_alias), qn(self.column), self.bit.mask), [])
+        return ("(%s.%s & %d)" % (qn(self.table_alias), qn(self.column), self.bit.mask), [])
 
 
 try:
@@ -29,8 +27,7 @@ try:
 
     class BitQueryLookupWrapper(Exact):  # NOQA
         def process_lhs(self, qn, connection, lhs=None):
-            lhs_sql, params = super(BitQueryLookupWrapper, self).process_lhs(
-                qn, connection, lhs)
+            lhs_sql, params = super(BitQueryLookupWrapper, self).process_lhs(qn, connection, lhs)
             if self.rhs:
                 lhs_sql = lhs_sql + ' & %s'
             else:
@@ -66,7 +63,7 @@ class BitQuerySaveWrapper(BitQueryLookupWrapper):
             XOR_OPERATOR = '^'
 
         if self.bit:
-            return ("%s.%s | %d" % (qn(self.table_alias), qn(self.column), self.bit.mask),
-                    [])
-        return ("%s.%s %s %d" % (qn(self.table_alias), qn(self.column), XOR_OPERATOR, self.bit.mask),
-                [])
+            return ("%s.%s | %d" % (qn(self.table_alias), qn(self.column), self.bit.mask), [])
+        return (
+            "%s.%s %s %d" % (qn(self.table_alias), qn(self.column), XOR_OPERATOR, self.bit.mask), []
+        )

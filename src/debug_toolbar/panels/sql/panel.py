@@ -51,6 +51,7 @@ class SQLPanel(Panel):
     Panel that displays information about the SQL queries run while processing
     the request.
     """
+
     def __init__(self, *args, **kwargs):
         super(SQLPanel, self).__init__(*args, **kwargs)
         self._offset = dict((k, len(connections[k].queries)) for k in connections)
@@ -107,15 +108,17 @@ class SQLPanel(Panel):
 
     @property
     def nav_subtitle(self):
-        return __("%d query in %.2fms", "%d queries in %.2fms",
-                  self._num_queries) % (self._num_queries, self._sql_time)
+        return __("%d query in %.2fms", "%d queries in %.2fms", self._num_queries
+                  ) % (self._num_queries, self._sql_time)
 
     @property
     def title(self):
         count = len(self._databases)
-        return __('SQL queries from %(count)d connection',
-                  'SQL queries from %(count)d connections',
-                  count) % {'count': count}
+        return __(
+            'SQL queries from %(count)d connection', 'SQL queries from %(count)d connections', count
+        ) % {
+            'count': count
+        }
 
     template = 'debug_toolbar/panels/sql.html'
 
@@ -178,11 +181,13 @@ class SQLPanel(Panel):
 
                 query['alias'] = alias
                 if 'iso_level' in query:
-                    query['iso_level'] = get_isolation_level_display(query['vendor'],
-                                                                     query['iso_level'])
+                    query['iso_level'] = get_isolation_level_display(
+                        query['vendor'], query['iso_level']
+                    )
                 if 'trans_status' in query:
-                    query['trans_status'] = get_transaction_status_display(query['vendor'],
-                                                                           query['trans_status'])
+                    query['trans_status'] = get_transaction_status_display(
+                        query['vendor'], query['trans_status']
+                    )
 
                 query['form'] = SQLSelectForm(auto_id=None, initial=copy(query))
 
@@ -191,8 +196,8 @@ class SQLPanel(Panel):
                 query['rgb_color'] = self._databases[alias]['rgb_color']
                 try:
                     query['width_ratio'] = (query['duration'] / self._sql_time) * 100
-                    query['width_ratio_relative'] = (
-                        100.0 * query['width_ratio'] / (100.0 - width_ratio_tally))
+                    query['width_ratio_relative'
+                          ] = (100.0 * query['width_ratio'] / (100.0 - width_ratio_tally))
                 except ZeroDivisionError:
                     query['width_ratio'] = 0
                     query['width_ratio_relative'] = 0
@@ -210,12 +215,12 @@ class SQLPanel(Panel):
         # Queries are duplicates only if there's as least 2 of them.
         # Also, to hide queries, we need to give all the duplicate groups an id
         query_duplicates = dict(
-            (alias, dict(
-                (query, duplicate_count)
-                for query, duplicate_count in queries.items()
-                if duplicate_count >= 2
-            ))
-            for alias, queries in query_duplicates.items()
+            (
+                alias, dict(
+                    (query, duplicate_count) for query, duplicate_count in queries.items()
+                    if duplicate_count >= 2
+                )
+            ) for alias, queries in query_duplicates.items()
         )
 
         for alias, query in self._queries:
@@ -231,8 +236,10 @@ class SQLPanel(Panel):
             except KeyError:
                 pass
 
-        self.record_stats({
-            'databases': sorted(self._databases.items(), key=lambda x: -x[1]['time_spent']),
-            'queries': [q for a, q in self._queries],
-            'sql_time': self._sql_time,
-        })
+        self.record_stats(
+            {
+                'databases': sorted(self._databases.items(), key=lambda x: -x[1]['time_spent']),
+                'queries': [q for a, q in self._queries],
+                'sql_time': self._sql_time,
+            }
+        )

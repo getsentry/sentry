@@ -17,9 +17,8 @@ def delete_key_scenario(runner):
     key = runner.utils.create_client_key(runner.default_project)
     runner.request(
         method='DELETE',
-        path='/projects/%s/%s/keys/%s/' % (
-            runner.org.slug, runner.default_project.slug,
-            key.public_key)
+        path='/projects/%s/%s/keys/%s/' %
+        (runner.org.slug, runner.default_project.slug, key.public_key)
     )
 
 
@@ -28,17 +27,15 @@ def update_key_scenario(runner):
     key = runner.utils.create_client_key(runner.default_project)
     runner.request(
         method='PUT',
-        path='/projects/%s/%s/keys/%s/' % (
-            runner.org.slug, runner.default_project.slug,
-            key.public_key),
+        path='/projects/%s/%s/keys/%s/' %
+        (runner.org.slug, runner.default_project.slug, key.public_key),
         data={'name': 'Quite Positive Key'}
     )
 
 
 class RateLimitSerializer(serializers.Serializer):
     count = serializers.IntegerField(min_value=0, required=False)
-    window = serializers.IntegerField(min_value=0, max_value=60 * 24,
-                                      required=False)
+    window = serializers.IntegerField(min_value=0, max_value=60 * 24, required=False)
 
 
 class KeySerializer(serializers.Serializer):

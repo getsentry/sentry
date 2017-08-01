@@ -64,7 +64,7 @@ const ApiTokenRow = React.createClass({
             <small><AutoSelectText>{token.token}</AutoSelectText></small>
           </div>
           <div style={{marginBottom: 5}}>
-            <small>Created <DateTime value={token.dateCreated} /></small>
+            <small>Created <DateTime date={token.dateCreated} /></small>
           </div>
           <div>
             <small style={{color: '#999'}}>{token.scopes.join(', ')}</small>

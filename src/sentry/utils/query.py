@@ -29,8 +29,8 @@ class RangeQuerySetWrapper(object):
 
     Very efficient, but ORDER BY statements will not work.
     """
-    def __init__(self, queryset, step=1000, limit=None, min_id=None,
-                 order_by='pk', callbacks=()):
+
+    def __init__(self, queryset, step=1000, limit=None, min_id=None, order_by='pk', callbacks=()):
         # Support for slicing
         if queryset.query.low_mark == 0 and not \
                 (queryset.query.order_by or queryset.query.extra_order_by):
@@ -126,7 +126,7 @@ class WithProgressBar(object):
     def __iter__(self):
         if self.count != 0:
             widgets = [
-                '%s: ' % (self.caption,),
+                '%s: ' % (self.caption, ),
                 progressbar.Percentage(),
                 ' ',
                 progressbar.Bar(),
@@ -151,8 +151,16 @@ class EverythingCollector(Collector):
     More or less identical to the default Django collector except we always
     return relations (even when they shouldn't matter).
     """
-    def collect(self, objs, source=None, nullable=False, collect_related=True,
-                source_attr=None, reverse_dependency=False):
+
+    def collect(
+        self,
+        objs,
+        source=None,
+        nullable=False,
+        collect_related=True,
+        source_attr=None,
+        reverse_dependency=False
+    ):
         new_objs = self.add(objs)
         if not new_objs:
             return
@@ -169,14 +177,18 @@ class EverythingCollector(Collector):
                 # but we don't have a nice way to turn that data into parent
                 # object instance.
                 parent_objs = [getattr(obj, ptr.name) for obj in new_objs]
-                self.collect(parent_objs, source=model,
-                             source_attr=ptr.rel.related_name,
-                             collect_related=False,
-                             reverse_dependency=True)
+                self.collect(
+                    parent_objs,
+                    source=model,
+                    source_attr=ptr.rel.related_name,
+                    collect_related=False,
+                    reverse_dependency=True
+                )
 
         if collect_related:
             for related in model._meta.get_all_related_objects(
-                    include_hidden=True, include_proxy_eq=True):
+                include_hidden=True, include_proxy_eq=True
+            ):
                 sub_objs = self.related_objects(related, new_objs)
                 self.add(sub_objs)
 
@@ -187,10 +199,12 @@ class EverythingCollector(Collector):
             for relation in model._meta.many_to_many:
                 if not relation.rel.through:
                     sub_objs = relation.bulk_related_objects(new_objs, self.using)
-                    self.collect(sub_objs,
-                                 source=model,
-                                 source_attr=relation.rel.related_name,
-                                 nullable=True)
+                    self.collect(
+                        sub_objs,
+                        source=model,
+                        source_attr=relation.rel.related_name,
+                        nullable=True
+                    )
 
 
 def merge_into(self, other, callback=lambda x: x, using='default'):
@@ -216,9 +230,7 @@ def merge_into(self, other, callback=lambda x: x, using='default'):
         # find all potential keys which match our type
         fields = set(
             f.name for f in model._meta.fields
-            if isinstance(f, ForeignKey)
-            and f.rel.to == s_model
-            if f.rel.to
+            if isinstance(f, ForeignKey) and f.rel.to == s_model if f.rel.to
         )
         if not fields:
             # the collector pulls in the self reference, so if it's our model
@@ -278,7 +290,7 @@ def bulk_delete_objects(model, limit=10000, transaction_id=None, logger=None, **
     query = []
     params = []
     for column, value in filters.items():
-        query.append('%s = %%s' % (quote_name(column),))
+        query.append('%s = %%s' % (quote_name(column), ))
         params.append(value)
 
     if db.is_postgres():
@@ -320,9 +332,14 @@ def bulk_delete_objects(model, limit=10000, transaction_id=None, logger=None, **
     has_more = cursor.rowcount > 0
 
     if has_more and logger is not None:
-        logger.info('object.delete.bulk_executed', extra=dict(filters.items() + [
-            ('model', model.__name__),
-            ('transaction_id', transaction_id),
-        ]))
+        logger.info(
+            'object.delete.bulk_executed',
+            extra=dict(
+                filters.items() + [
+                    ('model', model.__name__),
+                    ('transaction_id', transaction_id),
+                ]
+            )
+        )
 
     return has_more

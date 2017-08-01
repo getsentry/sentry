@@ -51,9 +51,20 @@ class MailPlugin(NotificationPlugin):
             return self.subject_prefix
         return options.get('mail.subject-prefix')
 
-    def _build_message(self, project, subject, template=None, html_template=None,
-                   body=None, reference=None, reply_reference=None, headers=None,
-                   context=None, send_to=None, type=None):
+    def _build_message(
+        self,
+        project,
+        subject,
+        template=None,
+        html_template=None,
+        body=None,
+        reference=None,
+        reply_reference=None,
+        headers=None,
+        context=None,
+        send_to=None,
+        type=None
+    ):
         if send_to is None:
             send_to = self.get_send_to(project)
         if not send_to:
@@ -120,10 +131,13 @@ class MailPlugin(NotificationPlugin):
         return send_to_list
 
     def add_unsubscribe_link(self, context, user_id, project):
-        context['unsubscribe_link'] = generate_signed_link(user_id,
-            'sentry-account-email-unsubscribe-project', kwargs={
+        context['unsubscribe_link'] = generate_signed_link(
+            user_id,
+            'sentry-account-email-unsubscribe-project',
+            kwargs={
                 'project_id': project.id,
-            })
+            }
+        )
 
     def notify(self, notification):
         event = notification.event
@@ -140,9 +154,7 @@ class MailPlugin(NotificationPlugin):
 
         rules = []
         for rule in notification.rules:
-            rule_link = reverse('sentry-edit-project-rule', args=[
-                org.slug, project.slug, rule.id
-            ])
+            rule_link = reverse('sentry-edit-project-rule', args=[org.slug, project.slug, rule.id])
             rules.append((rule.label, rule_link))
 
         enhanced_privacy = org.flags.enhanced_privacy
@@ -165,9 +177,7 @@ class MailPlugin(NotificationPlugin):
                 if not body:
                     continue
                 text_body = interface.to_string(event)
-                interface_list.append(
-                    (interface.get_title(), mark_safe(body), text_body)
-                )
+                interface_list.append((interface.get_title(), mark_safe(body), text_body))
 
             context.update({
                 'tags': event.get_tags(),
@@ -215,7 +225,7 @@ class MailPlugin(NotificationPlugin):
             group = six.next(iter(counts))
             record = max(
                 itertools.chain.from_iterable(
-                    groups.get(group, []) for groups in six.itervalues(digest),
+                    groups.get(group, []) for groups in six.itervalues(digest)
                 ),
                 key=lambda record: record.timestamp,
             )
@@ -247,9 +257,11 @@ class MailPlugin(NotificationPlugin):
     def notify_about_activity(self, activity):
         email_cls = emails.get(activity.type)
         if not email_cls:
-            logger.debug('No email associated with activity type `{}`'.format(
-                activity.get_type_display(),
-            ))
+            logger.debug(
+                'No email associated with activity type `{}`'.format(
+                    activity.get_type_display(),
+                )
+            )
             return
 
         email = email_cls(activity)

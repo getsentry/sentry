@@ -2,9 +2,7 @@ from __future__ import absolute_import
 
 from django.core.urlresolvers import reverse
 
-from sentry.models import (
-    Organization, OrganizationMember, OrganizationStatus, User
-)
+from sentry.models import (Organization, OrganizationMember, OrganizationStatus, User)
 from sentry.testutils import TestCase
 
 
@@ -43,13 +41,15 @@ class RemoveAccountTest(TestCase):
 
         self.assertTemplateUsed(resp, 'sentry/remove-account.html')
 
-        assert resp.context['organization_results'] == [{
-            'organization': self.organization,
-            'single_owner': True,
-        }, {
-            'organization': self.organization2,
-            'single_owner': False,
-        }]
+        assert resp.context['organization_results'] == [
+            {
+                'organization': self.organization,
+                'single_owner': True,
+            }, {
+                'organization': self.organization2,
+                'single_owner': False,
+            }
+        ]
 
     def test_implicit_delete(self):
         resp = self.client.post(self.path)
@@ -79,10 +79,12 @@ class RemoveAccountTest(TestCase):
         ).status == OrganizationStatus.VISIBLE
 
     def test_explicit_delete(self):
-        resp = self.client.post(self.path, data={
-            'oID': [self.organization.slug, self.organization2.slug,
-                    self.organization3.slug],
-        })
+        resp = self.client.post(
+            self.path,
+            data={
+                'oID': [self.organization.slug, self.organization2.slug, self.organization3.slug],
+            }
+        )
 
         assert resp.status_code == 200
         self.assertTemplateUsed(resp, 'sentry/post-remove-account.html')

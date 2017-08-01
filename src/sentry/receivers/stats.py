@@ -19,6 +19,7 @@ def record_instance_creation(instance, created, **kwargs):
 
     metrics.incr('objects.created', instance=instance._meta.db_table)
 
+
 post_save.connect(
     record_instance_creation,
     weak=False,
@@ -43,6 +44,7 @@ def record_task_signal(signal, name, **options):
         dispatch_uid='sentry.stats.tasks.{0}'.format(name),
     )
 
+
 # TODO: https://github.com/getsentry/sentry/issues/2495
 # https://celery.readthedocs.io/en/latest/userguide/signals.html#task-revoked
 # def task_revoked_handler(sender, expired=False, **kwargs):
@@ -57,7 +59,6 @@ def record_task_signal(signal, name, **options):
 #     weak=False,
 #     dispatch_uid='sentry.stats.tasks.revoked',
 # )
-
 
 record_task_signal(task_sent, 'dispatched')
 record_task_signal(task_prerun, 'started')

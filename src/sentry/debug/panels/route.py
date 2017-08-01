@@ -3,7 +3,8 @@ from __future__ import absolute_import
 from django.template import Context, Template
 from debug_toolbar.panels import Panel
 
-TEMPLATE = Template("""
+TEMPLATE = Template(
+    """
 {% load i18n %}
 <h4>{% trans "Route" %}</h4>
 <table>
@@ -20,7 +21,8 @@ TEMPLATE = Template("""
         <td><code>{{ view_argspec }}</code></td>
     </tr>
 </table>
-""")
+"""
+)
 
 
 class RoutePanel(Panel):

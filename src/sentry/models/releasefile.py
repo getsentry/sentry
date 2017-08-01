@@ -35,7 +35,7 @@ class ReleaseFile(Model):
     __repr__ = sane_repr('release', 'ident')
 
     class Meta:
-        unique_together = (('release', 'ident'),)
+        unique_together = (('release', 'ident'), )
         app_label = 'sentry'
         db_table = 'sentry_releasefile'
 
@@ -50,7 +50,8 @@ class ReleaseFile(Model):
         if 'name' in kwargs and 'ident' not in kwargs:
             dist = kwargs.get('dist') or self.dist
             kwargs['ident'] = self.ident = type(self).get_ident(
-                kwargs['name'], dist and dist.name or dist)
+                kwargs['name'], dist and dist.name or dist
+            )
         return super(ReleaseFile, self).update(*args, **kwargs)
 
     @classmethod

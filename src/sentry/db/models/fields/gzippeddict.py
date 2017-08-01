@@ -17,7 +17,7 @@ from django.db import models
 from sentry.utils.compat import pickle
 from sentry.utils.strings import decompress, compress
 
-__all__ = ('GzippedDictField',)
+__all__ = ('GzippedDictField', )
 
 logger = logging.getLogger('sentry')
 
@@ -27,6 +27,7 @@ class GzippedDictField(models.TextField):
     Slightly different from a JSONField in the sense that the default
     value is a dictionary.
     """
+
     def to_python(self, value):
         if isinstance(value, six.string_types) and value:
             try:

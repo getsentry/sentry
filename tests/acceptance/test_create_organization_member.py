@@ -11,10 +11,7 @@ class CreateOrganizationMemberTest(AcceptanceTestCase):
             name='Rowdy Tiger',
             owner=None,
         )
-        self.team = self.create_team(
-            organization=self.org,
-            name='Mariachi Band'
-        )
+        self.team = self.create_team(organization=self.org, name='Mariachi Band')
         self.create_member(
             user=self.user,
             organization=self.org,

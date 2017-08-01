@@ -21,11 +21,13 @@ class BulkDeleteQuery(object):
 
         where = []
         if self.dtfield and self.days is not None:
-            where.append("{} < '{}'::timestamptz".format(
-                quote_name(self.dtfield),
-                (timezone.now() - timedelta(days=self.days)).isoformat(),
-                self.days,
-            ))
+            where.append(
+                "{} < '{}'::timestamptz".format(
+                    quote_name(self.dtfield),
+                    (timezone.now() - timedelta(days=self.days)).isoformat(),
+                    self.days,
+                )
+            )
         if self.project_id:
             where.append("project_id = {}".format(self.project_id))
 
@@ -78,9 +80,7 @@ class BulkDeleteQuery(object):
 
         if self.days:
             cutoff = timezone.now() - timedelta(days=self.days)
-            qs = qs.filter(
-                **{'{}__lte'.format(self.dtfield): cutoff}
-            )
+            qs = qs.filter(**{'{}__lte'.format(self.dtfield): cutoff})
         if self.project_id:
             if 'project' in self.model._meta.get_all_field_names():
                 qs = qs.filter(project=self.project_id)
@@ -92,18 +92,18 @@ class BulkDeleteQuery(object):
     def execute_sharded(self, total_shards, shard_id, chunk_size=100):
         assert total_shards > 1
         assert shard_id < total_shards
-        qs = self.model.objects.all().extra(where=[
-            'id %% {total_shards} = {shard_id}'.format(
-                total_shards=total_shards,
-                shard_id=shard_id,
-            )
-        ])
+        qs = self.model.objects.all().extra(
+            where=[
+                'id %% {total_shards} = {shard_id}'.format(
+                    total_shards=total_shards,
+                    shard_id=shard_id,
+                )
+            ]
+        )
 
         if self.days:
             cutoff = timezone.now() - timedelta(days=self.days)
-            qs = qs.filter(
-                **{'{}__lte'.format(self.dtfield): cutoff}
-            )
+            qs = qs.filter(**{'{}__lte'.format(self.dtfield): cutoff})
         if self.project_id:
             if 'project' in self.model._meta.get_all_field_names():
                 qs = qs.filter(project=self.project_id)

@@ -11,8 +11,7 @@ from django.db import models
 
 from sentry.constants import MAX_TAG_KEY_LENGTH
 from sentry.db.models import (
-    Model, BoundedPositiveIntegerField, BaseManager, FlexibleForeignKey,
-    sane_repr
+    Model, BoundedPositiveIntegerField, BaseManager, FlexibleForeignKey, sane_repr
 )
 
 
@@ -34,6 +33,6 @@ class GroupTagKey(Model):
     class Meta:
         app_label = 'sentry'
         db_table = 'sentry_grouptagkey'
-        unique_together = (('project', 'group', 'key'),)
+        unique_together = (('project', 'group', 'key'), )
 
     __repr__ = sane_repr('project_id', 'group_id', 'key')

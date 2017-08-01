@@ -104,7 +104,7 @@ describe('AssigneeSelector', function() {
         .ref('filter')
         .simulate('keyDown', {key: 'Enter', keyCode: 13, which: 13});
 
-      expect(this.assignTo.calledOnce).toBeTruthy;
+      expect(this.assignTo.calledOnce).toBeTruthy();
       expect(this.assignTo.lastCall.args[0]).toHaveProperty('name', 'Jane Doe');
     });
 
@@ -116,7 +116,7 @@ describe('AssigneeSelector', function() {
         .ref('filter')
         .simulate('keyDown', {key: 'Enter', keyCode: 13, which: 13});
 
-      expect(this.assignTo.notCalled).toBeTruthy;
+      expect(this.assignTo.notCalled).toBeTruthy();
     });
 
     it('should do nothing if a non-Enter key is pressed', function() {
@@ -126,7 +126,7 @@ describe('AssigneeSelector', function() {
       assigneeSelector
         .ref('filter')
         .simulate('keyDown', {key: 'h', keyCode: 72, which: 72});
-      expect(this.assignTo.notCalled).toBeTruthy;
+      expect(this.assignTo.notCalled).toBeTruthy();
     });
   });
 
@@ -144,7 +144,7 @@ describe('AssigneeSelector', function() {
 
       assigneeSelector.ref('filter').simulate('keyUp', {key: 'Escape'});
 
-      expect(closeStub.calledOnce).toBeTruthy;
+      expect(closeStub.calledOnce).toBeTruthy();
     });
 
     it('should update the local filter state if any other key is pressed', function() {
@@ -167,8 +167,8 @@ describe('AssigneeSelector', function() {
 
       this.assigneeSelector.setState({assignedTo: USER_1});
 
-      expect(instance.attachTooltips.calledOnce).toBeTruthy;
-      expect(instance.removeTooltips.calledOnce).toBeTruthy;
+      expect(instance.attachTooltips.calledOnce).toBeTruthy();
+      expect(instance.removeTooltips.calledOnce).toBeTruthy();
     });
   });
 });

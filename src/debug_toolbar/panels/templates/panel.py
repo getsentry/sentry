@@ -15,12 +15,10 @@ from django.utils.encoding import force_text
 from django.utils import six
 from django.utils.translation import ugettext_lazy as _
 
-from debug_toolbar.compat import (
-    OrderedDict, get_template_dirs, get_template_context_processors)
+from debug_toolbar.compat import (OrderedDict, get_template_dirs, get_template_context_processors)
 from debug_toolbar.panels import Panel
 from debug_toolbar.panels.sql.tracking import recording, SQLQueryTriggered
 from debug_toolbar.panels.templates import views
-
 
 # Monkey-patch to enable the template_rendered signal. The receiver returns
 # immediately when the panel is disabled to keep the overhead small.
@@ -32,18 +30,15 @@ if Template._render != instrumented_test_render:
     Template.original_render = Template._render
     Template._render = instrumented_test_render
 
-
 # Monkey-patch to store items added by template context processors. The
 # overhead is sufficiently small to justify enabling it unconditionally.
 
 if django.VERSION[:2] < (1, 8):
 
     def _request_context___init__(
-            self, request, dict_=None, processors=None, current_app=None,
-            use_l10n=None, use_tz=None):
-        Context.__init__(
-            self, dict_, current_app=current_app,
-            use_l10n=use_l10n, use_tz=use_tz)
+        self, request, dict_=None, processors=None, current_app=None, use_l10n=None, use_tz=None
+    ):
+        Context.__init__(self, dict_, current_app=current_app, use_l10n=use_l10n, use_tz=use_tz)
         if processors is None:
             processors = ()
         else:
@@ -69,8 +64,7 @@ else:
 
         self.template = template
         # Set context processors according to the template engine's settings.
-        processors = (template.engine.template_context_processors +
-                      self._processors)
+        processors = (template.engine.template_context_processors + self._processors)
         self.context_processors = OrderedDict()
         updates = {}
         for processor in processors:
@@ -88,7 +82,6 @@ else:
             self.dicts[self._processors_index] = {}
 
     RequestContext.bind_template = _request_context_bind_template
-
 
 # Monkey-patch versions of Django where Template doesn't store origin.
 # See https://code.djangoproject.com/ticket/16096.
@@ -108,6 +101,7 @@ class TemplatesPanel(Panel):
     """
     A panel that lists all templates used during processing of a response.
     """
+
     def __init__(self, *args, **kwargs):
         super(TemplatesPanel, self).__init__(*args, **kwargs)
         self.templates = []
@@ -139,10 +133,10 @@ class TemplatesPanel(Panel):
                         temp_layer[key] = '<<languages>>'
                     # QuerySet would trigger the database: user can run the query from SQL Panel
                     elif isinstance(value, (QuerySet, RawQuerySet)):
-                        model_name = "%s.%s" % (
-                            value.model._meta.app_label, value.model.__name__)
+                        model_name = "%s.%s" % (value.model._meta.app_label, value.model.__name__)
                         temp_layer[key] = '<<%s of %s>>' % (
-                            value.__class__.__name__.lower(), model_name)
+                            value.__class__.__name__.lower(), model_name
+                        )
                     else:
                         try:
                             recording(False)
@@ -220,8 +214,10 @@ class TemplatesPanel(Panel):
 
         template_dirs = get_template_dirs()
 
-        self.record_stats({
-            'templates': template_context,
-            'template_dirs': [normpath(x) for x in template_dirs],
-            'context_processors': context_processors,
-        })
+        self.record_stats(
+            {
+                'templates': template_context,
+                'template_dirs': [normpath(x) for x in template_dirs],
+                'context_processors': context_processors,
+            }
+        )

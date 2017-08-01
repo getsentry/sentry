@@ -2,7 +2,7 @@ import React from 'react';
 import ReactDOMServer from 'react-dom/server';
 import jQuery from 'jquery';
 import Modal from 'react-bootstrap/lib/Modal';
-import underscore from 'underscore';
+import underscore from 'lodash';
 
 import TimeSince from './timeSince';
 import Version from './version';

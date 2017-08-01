@@ -14,6 +14,7 @@ class DummyTSDB(BaseTSDB):
     """
     A no-op time-series storage.
     """
+
     def incr(self, model, key, timestamp=None, count=1):
         pass
 
@@ -63,10 +64,7 @@ class DummyTSDB(BaseTSDB):
         for key, members in items.items():
             result = results[key] = []
             for timestamp in series:
-                result.append((
-                    timestamp,
-                    {k: 0.0 for k in members},
-                ))
+                result.append((timestamp, {k: 0.0 for k in members}, ))
 
         return results
 

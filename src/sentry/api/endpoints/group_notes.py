@@ -46,8 +46,10 @@ class GroupNotesEndpoint(GroupEndpoint):
             data=data,
             datetime__gte=timezone.now() - timedelta(hours=1)
         ).exists():
-            return Response('{"detail": "You have already posted that comment."}',
-                            status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                '{"detail": "You have already posted that comment."}',
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
         GroupSubscription.objects.subscribe(
             group=group,

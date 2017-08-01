@@ -32,11 +32,13 @@ class Command(BaseCommand):
                 t_slug, p_slug = options['project'].split('/', 1)
                 project = Project.objects.get(slug=p_slug, team__slug=t_slug)
             else:
-                raise CommandError('Project must be specified as team-slug/project-slug or a project id')
+                raise CommandError(
+                    'Project must be specified as team-slug/project-slug or a project id'
+                )
 
         platform = options['platform']
         event = create_sample_event(project, platform)
         if not event:
-            raise CommandError('Unable to create an event for platform %r' % (platform,))
+            raise CommandError('Unable to create an event for platform %r' % (platform, ))
 
-        self.stdout.write('Event created: %s' % (event.group.get_absolute_url(),))
+        self.stdout.write('Event created: %s' % (event.group.get_absolute_url(), ))

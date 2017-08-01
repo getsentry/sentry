@@ -19,20 +19,31 @@ from sentry.utils.avatar import get_gravatar_url
 
 register = template.Library()
 
-
 ACTIVITY_ACTION_STRINGS = {
-    Activity.NOTE: 'left a note',
-    Activity.SET_RESOLVED: 'marked this event as resolved',
-    Activity.SET_UNRESOLVED: 'marked this event as unresolved',
-    Activity.SET_IGNORED: 'marked this event as ignored',
-    Activity.SET_PUBLIC: 'made this event public',
-    Activity.SET_PRIVATE: 'made this event private',
-    Activity.SET_REGRESSION: 'marked this event as a regression',
-    Activity.CREATE_ISSUE: u'created an issue on {provider:s} titled <a href="{location:s}">{title:s}</a>',
-    Activity.FIRST_SEEN: 'first saw this event',
-    Activity.ASSIGNED: 'assigned this event to {user:s}',
-    Activity.UNASSIGNED: 'unassigned this event',
-    Activity.RELEASE: 'saw a new release: {version:s}',
+    Activity.NOTE:
+    'left a note',
+    Activity.SET_RESOLVED:
+    'marked this event as resolved',
+    Activity.SET_UNRESOLVED:
+    'marked this event as unresolved',
+    Activity.SET_IGNORED:
+    'marked this event as ignored',
+    Activity.SET_PUBLIC:
+    'made this event public',
+    Activity.SET_PRIVATE:
+    'made this event private',
+    Activity.SET_REGRESSION:
+    'marked this event as a regression',
+    Activity.CREATE_ISSUE:
+    u'created an issue on {provider:s} titled <a href="{location:s}">{title:s}</a>',
+    Activity.FIRST_SEEN:
+    'first saw this event',
+    Activity.ASSIGNED:
+    'assigned this event to {user:s}',
+    Activity.UNASSIGNED:
+    'unassigned this event',
+    Activity.RELEASE:
+    'saw a new release: {version:s}',
 }
 
 
@@ -67,13 +78,17 @@ def render_activity(item):
     if item.user:
         user = item.user
         name = user.name or user.email
-        output += '<span class="avatar"><img src="%s"></span> ' % (get_gravatar_url(user.email, size=20),)
+        output += '<span class="avatar"><img src="%s"></span> ' % (
+            get_gravatar_url(user.email, size=20),
+        )
         output += '<strong>%s</strong> %s' % (escape(name), action_str)
     else:
         output += '<span class="avatar sentry"></span> '
-        output += 'The system %s' % (action_str,)
+        output += 'The system %s' % (action_str, )
 
-    output += ' <span class="sep">&mdash;</span> <span class="time">%s</span>' % (timesince(item.datetime),)
+    output += ' <span class="sep">&mdash;</span> <span class="time">%s</span>' % (
+        timesince(item.datetime),
+    )
 
     if item.type == Activity.NOTE:
         output += linebreaks(urlize(escape(item.data['text'])))

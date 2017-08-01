@@ -29,10 +29,13 @@ class ProjectUsersTest(APITestCase):
             ip_address='192.168.0.1',
         )
 
-        self.path = reverse('sentry-api-0-project-users', kwargs={
-            'organization_slug': self.project.organization.slug,
-            'project_slug': self.project.slug,
-        })
+        self.path = reverse(
+            'sentry-api-0-project-users',
+            kwargs={
+                'organization_slug': self.project.organization.slug,
+                'project_slug': self.project.slug,
+            }
+        )
 
     def test_simple(self):
         self.login_as(user=self.user)
@@ -41,10 +44,12 @@ class ProjectUsersTest(APITestCase):
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 2
-        assert sorted(map(lambda x: x['id'], response.data)) == sorted([
-            six.text_type(self.euser1.id),
-            six.text_type(self.euser2.id),
-        ])
+        assert sorted(map(lambda x: x['id'], response.data)) == sorted(
+            [
+                six.text_type(self.euser1.id),
+                six.text_type(self.euser2.id),
+            ]
+        )
 
     def test_empty_search_query(self):
         self.login_as(user=self.user)
@@ -71,7 +76,9 @@ class ProjectUsersTest(APITestCase):
     def test_email_search(self):
         self.login_as(user=self.user)
 
-        response = self.client.get('{}?query=email:foo@example.com'.format(self.path), format='json')
+        response = self.client.get(
+            '{}?query=email:foo@example.com'.format(self.path), format='json'
+        )
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 1

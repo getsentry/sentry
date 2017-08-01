@@ -11,7 +11,6 @@ from sentry.models import Organization, OrganizationStatus, AuditLogEntryEvent
 from sentry.web.frontend.base import OrganizationView
 from sentry.web.helpers import render_to_response
 
-
 ERR_MESSAGES = {
     OrganizationStatus.VISIBLE: _('Deletion already canceled.'),
     OrganizationStatus.DELETION_IN_PROGRESS: _('Deletion cannot be canceled, already in progress'),
@@ -36,18 +35,13 @@ class RestoreOrganizationView(OrganizationView):
         )
 
         try:
-            return six.next(
-                o for o in organizations
-                if o.slug == organization_slug
-            )
+            return six.next(o for o in organizations if o.slug == organization_slug)
         except StopIteration:
             return None
 
     def get(self, request, organization):
         if organization.status == OrganizationStatus.VISIBLE:
-            return self.redirect(
-                reverse('sentry-organization-home', args=[organization.slug])
-            )
+            return self.redirect(reverse('sentry-organization-home', args=[organization.slug]))
 
         context = {
             # If this were named 'organization', it triggers logic in the base
@@ -76,13 +70,13 @@ class RestoreOrganizationView(OrganizationView):
                 event=AuditLogEntryEvent.ORG_RESTORE,
                 data=organization.get_audit_log_data(),
             )
-            delete_logger.info('object.delete.canceled', extra={
-                'object_id': organization.id,
-                'model': Organization.__name__,
-            })
-            messages.add_message(request, messages.SUCCESS,
-                MSG_RESTORE_SUCCESS)
+            delete_logger.info(
+                'object.delete.canceled',
+                extra={
+                    'object_id': organization.id,
+                    'model': Organization.__name__,
+                }
+            )
+            messages.add_message(request, messages.SUCCESS, MSG_RESTORE_SUCCESS)
 
-        return self.redirect(
-            reverse('sentry-organization-home', args=[organization.slug])
-        )
+        return self.redirect(reverse('sentry-organization-home', args=[organization.slug]))

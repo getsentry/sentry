@@ -15,8 +15,7 @@ from sentry.api.decorators import sudo_required
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.project import DetailedProjectSerializer
 from sentry.models import (
-    AuditLogEntryEvent, Group, GroupStatus, Project, ProjectBookmark,
-    ProjectStatus, UserOption
+    AuditLogEntryEvent, Group, GroupStatus, Project, ProjectBookmark, ProjectStatus, UserOption
 )
 from sentry.tasks.deletion import delete_project
 from sentry.utils.apidocs import scenario, attach_scenarios
@@ -27,20 +26,14 @@ delete_logger = logging.getLogger('sentry.deletions.api')
 @scenario('GetProject')
 def get_project_scenario(runner):
     runner.request(
-        method='GET',
-        path='/projects/%s/%s/' % (
-            runner.org.slug, runner.default_project.slug)
+        method='GET', path='/projects/%s/%s/' % (runner.org.slug, runner.default_project.slug)
     )
 
 
 @scenario('DeleteProject')
 def delete_project_scenario(runner):
     with runner.isolated_project('Plain Proxy') as project:
-        runner.request(
-            method='DELETE',
-            path='/projects/%s/%s/' % (
-                runner.org.slug, project.slug)
-        )
+        runner.request(method='DELETE', path='/projects/%s/%s/' % (runner.org.slug, project.slug))
 
 
 @scenario('UpdateProject')
@@ -48,8 +41,7 @@ def update_project_scenario(runner):
     with runner.isolated_project('Plain Proxy') as project:
         runner.request(
             method='PUT',
-            path='/projects/%s/%s/' % (
-                runner.org.slug, project.slug),
+            path='/projects/%s/%s/' % (runner.org.slug, project.slug),
             data={
                 'name': 'Plane Proxy',
                 'slug': 'plane-proxy',
@@ -89,7 +81,9 @@ class ProjectAdminSerializer(serializers.Serializer):
 
     def validate_digestsMaxDelay(self, attrs, source):
         if attrs[source] < attrs['digestsMinDelay']:
-            raise serializers.ValidationError('The maximum delay on digests must be higher than the minimum.')
+            raise serializers.ValidationError(
+                'The maximum delay on digests must be higher than the minimum.'
+            )
         return attrs
 
 
@@ -226,32 +220,27 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
 
         if result.get('isSubscribed'):
             UserOption.objects.set_value(
-                user=request.user,
-                key='mail:alert',
-                value=1,
-                project=project
+                user=request.user, key='mail:alert', value=1, project=project
             )
         elif result.get('isSubscribed') is False:
             UserOption.objects.set_value(
-                user=request.user,
-                key='mail:alert',
-                value=0,
-                project=project
+                user=request.user, key='mail:alert', value=0, project=project
             )
 
         if has_project_write:
             options = request.DATA.get('options', {})
             if 'sentry:origins' in options:
                 project.update_option(
-                    'sentry:origins',
-                    clean_newline_inputs(options['sentry:origins'])
+                    'sentry:origins', clean_newline_inputs(options['sentry:origins'])
                 )
             if 'sentry:resolve_age' in options:
                 project.update_option('sentry:resolve_age', int(options['sentry:resolve_age']))
             if 'sentry:scrub_data' in options:
                 project.update_option('sentry:scrub_data', bool(options['sentry:scrub_data']))
             if 'sentry:scrub_defaults' in options:
-                project.update_option('sentry:scrub_defaults', bool(options['sentry:scrub_defaults']))
+                project.update_option(
+                    'sentry:scrub_defaults', bool(options['sentry:scrub_defaults'])
+                )
             if 'sentry:safe_fields' in options:
                 project.update_option(
                     'sentry:safe_fields',
@@ -263,20 +252,28 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                     [s.strip().lower() for s in options['sentry:sensitive_fields']]
                 )
             if 'sentry:csp_ignored_sources_defaults' in options:
-                project.update_option('sentry:csp_ignored_sources_defaults', bool(options['sentry:csp_ignored_sources_defaults']))
+                project.update_option(
+                    'sentry:csp_ignored_sources_defaults',
+                    bool(options['sentry:csp_ignored_sources_defaults'])
+                )
             if 'sentry:csp_ignored_sources' in options:
                 project.update_option(
                     'sentry:csp_ignored_sources',
-                    clean_newline_inputs(options['sentry:csp_ignored_sources']))
+                    clean_newline_inputs(options['sentry:csp_ignored_sources'])
+                )
             if 'feedback:branding' in options:
-                project.update_option('feedback:branding', '1' if options['feedback:branding'] else '0')
+                project.update_option(
+                    'feedback:branding', '1' if options['feedback:branding'] else '0'
+                )
             if 'sentry:reprocessing_active' in options:
-                project.update_option('sentry:reprocessing_active',
-                    bool(options['sentry:reprocessing_active']))
+                project.update_option(
+                    'sentry:reprocessing_active', bool(options['sentry:reprocessing_active'])
+                )
             if 'filters:blacklisted_ips' in options:
                 project.update_option(
                     'sentry:blacklisted_ips',
-                    clean_newline_inputs(options['filters:blacklisted_ips']))
+                    clean_newline_inputs(options['filters:blacklisted_ips'])
+                )
 
             self.create_audit_entry(
                 request=request,
@@ -308,8 +305,10 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         :auth: required
         """
         if project.is_internal_project():
-            return Response('{"error": "Cannot remove projects internally used by Sentry."}',
-                            status=status.HTTP_403_FORBIDDEN)
+            return Response(
+                '{"error": "Cannot remove projects internally used by Sentry."}',
+                status=status.HTTP_403_FORBIDDEN
+            )
 
         updated = Project.objects.filter(
             id=project.id,
@@ -335,10 +334,13 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 transaction_id=transaction_id,
             )
 
-            delete_logger.info('object.delete.queued', extra={
-                'object_id': project.id,
-                'transaction_id': transaction_id,
-                'model': type(project).__name__,
-            })
+            delete_logger.info(
+                'object.delete.queued',
+                extra={
+                    'object_id': project.id,
+                    'transaction_id': transaction_id,
+                    'model': type(project).__name__,
+                }
+            )
 
         return Response(status=204)

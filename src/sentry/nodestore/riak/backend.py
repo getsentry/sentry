@@ -15,7 +15,6 @@ from simplejson import JSONEncoder, _default_decoder
 from sentry.nodestore.base import NodeStorage
 from .client import RiakClient
 
-
 # Cache an instance of the encoder we want to use
 json_dumps = JSONEncoder(
     separators=(',', ':'),
@@ -37,17 +36,25 @@ class RiakNodeStorage(NodeStorage):
 
     >>> RiakNodeStorage(nodes=[{'host':'127.0.0.1','port':8098}])
     """
-    def __init__(self, nodes, bucket='nodes', timeout=1, cooldown=5,
-                 max_retries=3, multiget_pool_size=5, tcp_keepalive=True,
-                 protocol=None):
+
+    def __init__(
+        self,
+        nodes,
+        bucket='nodes',
+        timeout=1,
+        cooldown=5,
+        max_retries=3,
+        multiget_pool_size=5,
+        tcp_keepalive=True,
+        protocol=None
+    ):
         # protocol being defined is useless, but is needed for backwards
         # compatability and leveraged as an opportunity to yell at the user
         if protocol == 'pbc':
             raise ValueError("'pbc' protocol is no longer supported")
         if protocol is not None:
             import warnings
-            warnings.warn("'protocol' has been deprecated",
-                          DeprecationWarning)
+            warnings.warn("'protocol' has been deprecated", DeprecationWarning)
         self.bucket = bucket
         self.conn = RiakClient(
             hosts=nodes,
@@ -58,8 +65,7 @@ class RiakNodeStorage(NodeStorage):
         )
 
     def set(self, id, data):
-        self.conn.put(self.bucket, id, json_dumps(data),
-                      returnbody='false')
+        self.conn.put(self.bucket, id, json_dumps(data), returnbody='false')
 
     def delete(self, id):
         self.conn.delete(self.bucket, id)

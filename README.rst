@@ -24,8 +24,7 @@ Official Sentry SDKs
 * `PHP <https://github.com/getsentry/sentry-php>`_
 * `Go <https://github.com/getsentry/raven-go>`_
 * `Java <https://github.com/getsentry/sentry-java>`_
-* `Swift <https://github.com/getsentry/sentry-swift>`_
-* `Objective C <https://github.com/getsentry/sentry-objc>`_
+* `Objective-C/Swift <https://github.com/getsentry/sentry-cocoa>`_
 * `C# <https://github.com/getsentry/raven-csharp>`_
 * `Perl <https://github.com/getsentry/perl-raven>`_
 * `Elixir <https://github.com/getsentry/sentry-elixir>`_

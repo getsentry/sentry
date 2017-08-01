@@ -22,6 +22,7 @@ class DataGenerator(type):
             def test_func(self):
                 with open(os.path.join(root, filename)) as fp:
                     json.loads(fp.read())
+
             test_func.__name__ = func_name
             attrs[func_name] = test_func
         return super(DataGenerator, cls).__new__(cls, name, bases, attrs)

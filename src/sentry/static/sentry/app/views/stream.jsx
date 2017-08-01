@@ -5,7 +5,7 @@ import {Link} from 'react-router';
 import Cookies from 'js-cookie';
 import {StickyContainer, Sticky} from 'react-sticky';
 import classNames from 'classnames';
-import _ from 'underscore';
+import _ from 'lodash';
 
 import ApiMixin from '../mixins/apiMixin';
 import GroupStore from '../stores/groupStore';
@@ -52,6 +52,12 @@ const Stream = React.createClass({
 
   getInitialState() {
     let searchId = this.props.params.searchId || null;
+    let project = this.getProject();
+    let realtimeActiveCookie = Cookies.get('realtimeActive');
+    let realtimeActive = typeof realtimeActiveCookie === 'undefined'
+      ? project && !project.firstEvent
+      : realtimeActiveCookie === 'true';
+
     return {
       groupIds: [],
       isDefaultSearch: null,
@@ -64,8 +70,9 @@ const Stream = React.createClass({
       multiSelected: false,
       anySelected: false,
       statsPeriod: this.props.defaultStatsPeriod,
-      realtimeActive: Cookies.get('realtimeActive') === 'true',
+      realtimeActive,
       pageLinks: '',
+      queryCount: null,
       dataLoading: true,
       error: false,
       query: '',
@@ -319,6 +326,7 @@ const Stream = React.createClass({
 
     this.setState({
       dataLoading: true,
+      queryCount: null,
       error: false
     });
 
@@ -366,9 +374,18 @@ const Stream = React.createClass({
 
         this._streamManager.push(data);
 
+        let queryCount = jqXHR.getResponseHeader('X-Hits');
+        let queryMaxCount = jqXHR.getResponseHeader('X-Max-Hits');
+
         return void this.setState({
           error: false,
           dataLoading: false,
+          queryCount: typeof queryCount !== 'undefined'
+            ? parseInt(queryCount, 10) || 0
+            : 0,
+          queryMaxCount: typeof queryMaxCount !== 'undefined'
+            ? parseInt(queryMaxCount, 10) || 0
+            : 0,
           pageLinks: jqXHR.getResponseHeader('Link')
         });
       },
@@ -571,10 +588,8 @@ const Stream = React.createClass({
       );
       showButton = true;
     } else {
-      /* we should not go here but what do we know */
-      return null;
+      /* we should not go here but what do we know */ return null;
     }
-
     return (
       <div className={classNames(className)}>
         {showButton &&
@@ -590,7 +605,6 @@ const Stream = React.createClass({
       </div>
     );
   },
-
   renderGroupNodes(ids, statsPeriod) {
     let {orgId, projectId} = this.props.params;
     let groupNodes = ids.map(id => {
@@ -604,15 +618,12 @@ const Stream = React.createClass({
         />
       );
     });
-
     return <ul className="group-list" ref="groupList">{groupNodes}</ul>;
   },
-
   renderAwaitingEvents() {
     let org = this.getOrganization();
     let project = this.getProject();
     let sampleLink = null;
-
     if (this.state.groupIds.length > 0) {
       let sampleIssueId = this.state.groupIds[0];
       sampleLink = (
@@ -623,7 +634,6 @@ const Stream = React.createClass({
         </p>
       );
     }
-
     return (
       <div className="box awaiting-events">
         <div className="wrap">
@@ -632,7 +642,9 @@ const Stream = React.createClass({
           <p>
             {tct(
               'Our error robot is waiting to [cross:devour] receive your first event.',
-              {cross: <span className="strikethrough" />}
+              {
+                cross: <span className="strikethrough" />
+              }
             )}
           </p>
           <p>
@@ -647,7 +659,6 @@ const Stream = React.createClass({
       </div>
     );
   },
-
   renderEmpty() {
     return (
       <div className="box empty-stream">
@@ -656,7 +667,6 @@ const Stream = React.createClass({
       </div>
     );
   },
-
   renderLoading() {
     return (
       <div className="box">
@@ -664,10 +674,8 @@ const Stream = React.createClass({
       </div>
     );
   },
-
   renderStreamBody() {
     let body;
-
     let project = this.getProject();
     if (this.state.dataLoading) {
       body = this.renderLoading();
@@ -680,26 +688,20 @@ const Stream = React.createClass({
     } else {
       body = this.renderEmpty();
     }
-
     return body;
   },
-
   render() {
     // global loading
     if (this.state.loading) {
       return this.renderLoading();
     }
-
     let params = this.props.params;
-
     let classes = ['stream-row'];
     if (this.state.isSidebarVisible) classes.push('show-sidebar');
-
     let {orgId, projectId} = this.props.params;
     let searchId = this.state.searchId;
     let access = this.getAccess();
     let projectFeatures = this.getProjectFeatures();
-
     return (
       <StickyContainer>
         <div className={classNames(classes)}>
@@ -712,6 +714,8 @@ const Stream = React.createClass({
               sort={this.state.sort}
               tags={this.state.tags}
               searchId={searchId}
+              queryCount={this.state.queryCount}
+              queryMaxCount={this.state.queryMaxCount}
               defaultQuery={this.props.defaultQuery}
               onSortChange={this.onSortChange}
               onSearch={this.onSearch}
@@ -727,6 +731,7 @@ const Stream = React.createClass({
                     orgId={params.orgId}
                     projectId={params.projectId}
                     hasReleases={projectFeatures.has('releases')}
+                    latestRelease={this.context.project.latestRelease}
                     query={this.state.query}
                     onSelectStatsPeriod={this.onSelectStatsPeriod}
                     onRealtimeChange={this.onRealtimeChange}
@@ -755,5 +760,4 @@ const Stream = React.createClass({
     );
   }
 });
-
 export default Stream;

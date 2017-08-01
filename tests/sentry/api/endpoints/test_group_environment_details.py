@@ -10,9 +10,7 @@ class GroupEnvironmentDetailsTest(APITestCase):
 
         group = self.create_group()
         env = Environment.objects.create(
-            project_id=group.project_id,
-            organization_id=group.project.organization_id,
-            name=''
+            project_id=group.project_id, organization_id=group.project.organization_id, name=''
         )
         env.add_project(group.project)
 
@@ -83,9 +81,7 @@ class GroupEnvironmentDetailsTest(APITestCase):
 
         group = self.create_group()
         env = Environment.objects.create(
-            project_id=group.project_id,
-            organization_id=group.project.organization_id,
-            name=''
+            project_id=group.project_id, organization_id=group.project.organization_id, name=''
         )
         env.add_project(group.project)
 

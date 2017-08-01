@@ -17,8 +17,8 @@ const UNKNOWN_ERROR = {
 };
 
 class AddRepositoryLink extends PluginComponentBase {
-  constructor(props) {
-    super(props);
+  constructor(props, context) {
+    super(props, context);
 
     Object.assign(this.state, {
       isModalOpen: false,

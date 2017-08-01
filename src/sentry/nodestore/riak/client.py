@@ -26,10 +26,7 @@ from urllib3 import HTTPConnectionPool, HTTPSConnectionPool
 from urllib3.connection import HTTPConnection
 from urllib3.exceptions import HTTPError
 
-
-DEFAULT_NODES = (
-    {'host': '127.0.0.1', 'port': 8098},
-)
+DEFAULT_NODES = ({'host': '127.0.0.1', 'port': 8098}, )
 
 
 def encode_basic_auth(auth):
@@ -42,6 +39,7 @@ class SimpleThreadedWorkerPool(object):
     Manages a simple threaded worker pool. The pool will be started when the
     first job is submitted, and will run to process completion.
     """
+
     def __init__(self, size):
         assert size > 0, 'pool must have at laest one worker thread'
 
@@ -84,6 +82,7 @@ class RiakClient(object):
     A thread-safe simple light-weight riak client that does only
     the bare minimum.
     """
+
     def __init__(self, multiget_pool_size=5, **kwargs):
         self.manager = ConnectionManager(**kwargs)
         self.pool = SimpleThreadedWorkerPool(multiget_pool_size)
@@ -100,14 +99,16 @@ class RiakClient(object):
         headers['content-type'] = 'application/json'
 
         return self.manager.urlopen(
-            'PUT', self.build_url(bucket, key, kwargs),
+            'PUT',
+            self.build_url(bucket, key, kwargs),
             headers=headers,
             body=data,
         )
 
     def delete(self, bucket, key, headers=None, **kwargs):
         return self.manager.urlopen(
-            'DELETE', self.build_url(bucket, key, kwargs),
+            'DELETE',
+            self.build_url(bucket, key, kwargs),
             headers=headers,
         )
 
@@ -117,7 +118,8 @@ class RiakClient(object):
         headers['accept-encoding'] = 'gzip'  # urllib3 will automatically decompress
 
         return self.manager.urlopen(
-            'GET', self.build_url(bucket, key, kwargs),
+            'GET',
+            self.build_url(bucket, key, kwargs),
             headers=headers,
         )
 
@@ -127,10 +129,7 @@ class RiakClient(object):
         for all requests.
         """
         # Each request is paired with a thread.Event to signal when it is finished
-        requests = [
-            (key, self.build_url(bucket, key, kwargs), Event())
-            for key in keys
-        ]
+        requests = [(key, self.build_url(bucket, key, kwargs), Event()) for key in keys]
 
         results = {}
 
@@ -140,16 +139,20 @@ class RiakClient(object):
             event.set()
 
         for key, url, event in requests:
-            self.pool.submit((
-                self.manager.urlopen,  # func
-                ('GET', url),  # args
-                {'headers': headers},  # kwargs
-                functools.partial(
-                    callback,
-                    key,
-                    event,
-                ),  # callback
-            ))
+            self.pool.submit(
+                (
+                    self.manager.urlopen,  # func
+                    ('GET', url),  # args
+                    {
+                        'headers': headers
+                    },  # kwargs
+                    functools.partial(
+                        callback,
+                        key,
+                        event,
+                    ),  # callback
+                )
+            )
 
         # Now we wait for all of the callbacks to be finished
         for _, _, event in requests:
@@ -179,8 +182,17 @@ class ConnectionManager(object):
     """
     A thread-safe multi-host http connection manager.
     """
-    def __init__(self, hosts=DEFAULT_NODES, strategy=RoundRobinStrategy, randomize=True,
-                 timeout=3, cooldown=5, max_retries=None, tcp_keepalive=True):
+
+    def __init__(
+        self,
+        hosts=DEFAULT_NODES,
+        strategy=RoundRobinStrategy,
+        randomize=True,
+        timeout=3,
+        cooldown=5,
+        max_retries=None,
+        tcp_keepalive=True
+    ):
         assert hosts
         self.dead_connections = []
         self.timeout = timeout
@@ -239,8 +251,7 @@ class ConnectionManager(object):
         # Support backwards compatibility with `http_port`
         if 'http_port' in host:
             import warnings
-            warnings.warn("'http_port' has been deprecated. Use 'port'.",
-                          DeprecationWarning)
+            warnings.warn("'http_port' has been deprecated. Use 'port'.", DeprecationWarning)
             host['port'] = host.pop('http_port')
 
         addr = host.get('host', '127.0.0.1')
@@ -252,10 +263,12 @@ class ConnectionManager(object):
             connection_cls = HTTPSConnectionPool
             verify_ssl = host.get('verify_ssl', False)
             if verify_ssl:
-                options.extend({
-                    'cert_reqs': host.get('cert_reqs', 'CERT_REQUIRED'),
-                    'ca_certs': host.get('ca_certs', ca_certs())
-                })
+                options.extend(
+                    {
+                        'cert_reqs': host.get('cert_reqs', 'CERT_REQUIRED'),
+                        'ca_certs': host.get('ca_certs', ca_certs())
+                    }
+                )
         return connection_cls(addr, port, **options)
 
     def urlopen(self, method, path, headers=None, **kwargs):
