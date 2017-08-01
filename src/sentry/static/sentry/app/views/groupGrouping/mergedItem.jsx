@@ -42,7 +42,7 @@ const MergedItem = React.createClass({
     if (!stateForId) return;
 
     Object.keys(stateForId).forEach(key => {
-      if (stateForId[key] !== this.state[key]) return;
+      if (stateForId[key] === this.state[key]) return;
 
       this.setState({
         [key]: stateForId[key]
@@ -103,7 +103,6 @@ const MergedItem = React.createClass({
             />
           </div>
         </SpreadLayout>
-
       </SplitLayout>
     );
   }
