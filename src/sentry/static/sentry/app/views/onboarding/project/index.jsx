@@ -1,4 +1,6 @@
 import React from 'react';
+import classnames from 'classnames';
+
 import PlatformPicker from './platformpicker';
 import PlatformiconTile from './platformiconTile';
 import {t} from '../../../locale';
@@ -12,7 +14,20 @@ const Project = React.createClass({
     name: React.PropTypes.string
   },
 
+  getInitialState() {
+    return {projectRequired: false};
+  },
+
+  componentWillReceiveProps(newProps) {
+    this.setWarning(newProps.name);
+  },
+
+  setWarning(value) {
+    this.setState({projectRequired: !value});
+  },
+
   submit() {
+    this.setWarning(this.props.name);
     this.props.next();
   },
 
@@ -23,7 +38,10 @@ const Project = React.createClass({
         <PlatformPicker {...this.props} />
         <div className="project-name client-platform">
           <h4>{t('Give your project a name') + ':'}</h4>
-          <div className="project-name-wrapper">
+          <div
+            className={classnames('project-name-wrapper', {
+              required: this.state.projectRequired
+            })}>
             <PlatformiconTile platform={this.props.platform} />
             <input
               type="text"

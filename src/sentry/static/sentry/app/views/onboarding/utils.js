@@ -98,4 +98,14 @@ const stepDescriptions = {
   configure: 'Configure your application and send an event'
 };
 
-export {onboardingSteps, stepDescriptions, flattenedPlatforms, categoryLists};
+function parseLastToken(platform) {
+  return platform.split('-').pop();
+}
+
+export {
+  onboardingSteps,
+  stepDescriptions,
+  flattenedPlatforms,
+  categoryLists,
+  parseLastToken
+};
