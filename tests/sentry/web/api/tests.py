@@ -171,7 +171,7 @@ class StoreViewTest(TestCase):
         assert resp.status_code == 403, (resp.status_code, resp.content)
 
     def test_request_with_invalid_ip(self):
-        self.project.update_option('sentry:{}'.format(FilterTypes.BLACKLISTED_IPS), ['127.0.0.1'])
+        self.project.update_option('sentry:blacklisted_ips', ['127.0.0.1'])
         body = {
             "release": "abcdefg",
             "message": "foo bar",
@@ -252,7 +252,6 @@ class StoreViewTest(TestCase):
         )
         body = {
             "release": "abcdefg",
-            "message": "foo bar",
             "sentry.interfaces.User": {
                 "ip_address": "127.0.0.1"
             },
@@ -264,7 +263,8 @@ class StoreViewTest(TestCase):
                 }
             },
             "sentry.interfaces.Message": {
-                "message": "ZeroDivisionError: integer division or modulo by zero"
+                "formatted": "ZeroDivisionError: integer division or modulo by zero",
+                "message": "%s: integer division or modulo by zero",
             },
         }
         resp = self._postWithHeader(body)
@@ -277,7 +277,6 @@ class StoreViewTest(TestCase):
         )
         body = {
             "release": "abcdefg",
-            "message": "foo bar",
             "sentry.interfaces.User": {
                 "ip_address": "127.0.0.1"
             },
@@ -289,7 +288,8 @@ class StoreViewTest(TestCase):
                 }
             },
             "sentry.interfaces.Message": {
-                "message": "ZeroDivisionError: integer division or modulo by zero"
+                "message": "ZeroDivisionError: integer division or modulo by zero",
+                "formatted": "",
             },
         }
         resp = self._postWithHeader(body)

@@ -45,14 +45,9 @@ from sentry.tasks.store import preprocess_event, \
 from sentry.utils import json
 from sentry.utils.auth import parse_auth_header
 from sentry.utils.csp import is_valid_csp_report
-from sentry.utils.http import (
-    origin_from_request,
-    is_valid_ip,
-)
-from sentry.utils.data_filters import (
-    is_valid_release,
-    is_valid_error_message,
-)
+from sentry.utils.http import origin_from_request
+from sentry.utils.data_filters import is_valid_ip, \
+    is_valid_release, is_valid_error_message
 from sentry.utils.strings import decompress
 from sentry.utils.validators import is_float, is_event_id
 
@@ -380,15 +375,20 @@ class ClientApiHelper(object):
         }
 
     def should_filter(self, project, data, ip_address=None):
-        if ip_address and not is_valid_ip(ip_address, project):
+        if ip_address and not is_valid_ip(project, ip_address):
             return True
 
         release = data.get('release')
-        if release and not is_valid_release(release, project):
+        if release and not is_valid_release(project, release):
             return True
 
-        error_message = data.get('sentry.interfaces.Message', {}).get('message')
-        if error_message and not is_valid_error_message(error_message, project):
+        message_interface = data.get('sentry.interfaces.Message', {})
+        error_message = message_interface.get('formatted', ''
+                                              ) or message_interface.get('message', '')
+        # messages can be sent as non-strings
+        if not isinstance(error_message, six.string_types):
+            error_message = json.dumps(error_message)
+        if error_message and not is_valid_error_message(project, error_message):
             return True
 
         for filter_cls in filters.all():
@@ -984,8 +984,8 @@ class LazyData(MutableMapping):
         helper.ensure_has_ip(
             data,
             self._client_ip,
-            set_if_missing=auth.is_public
-            or data.get('platform') in ('javascript', 'cocoa', 'objc')
+            set_if_missing=auth.is_public or
+            data.get('platform') in ('javascript', 'cocoa', 'objc')
         )
 
         # mutates data

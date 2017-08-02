@@ -16,9 +16,9 @@ from sentry.utils.http import (
     get_origins,
     absolute_uri,
     origin_from_request,
-    is_valid_ip,
 )
 from sentry.utils.data_filters import (
+    is_valid_ip,
     is_valid_release,
     is_valid_error_message,
     FilterTypes,
@@ -242,9 +242,9 @@ class IsValidOriginTestCase(TestCase):
 
 
 class IsValidIPTestCase(TestCase):
-    def is_valid_ip(self, value, inputs):
-        self.project.update_option('sentry:{}'.format(FilterTypes.BLACKLISTED_IPS), inputs)
-        return is_valid_ip(value, self.project)
+    def is_valid_ip(self, ip, inputs):
+        self.project.update_option('sentry:blacklisted_ips', inputs)
+        return is_valid_ip(self.project, ip)
 
     def test_not_in_blacklist(self):
         assert self.is_valid_ip('127.0.0.1', [])
@@ -265,7 +265,7 @@ class IsValidIPTestCase(TestCase):
 class IsValidReleaseTestCase(TestCase):
     def is_valid_release(self, value, inputs):
         self.project.update_option('sentry:{}'.format(FilterTypes.RELEASES), inputs)
-        return is_valid_release(value, self.project)
+        return is_valid_release(self.project, value)
 
     def test_release_not_in_list(self):
         assert self.is_valid_release('1.2.3', None)
@@ -281,7 +281,7 @@ class IsValidReleaseTestCase(TestCase):
 class IsValidErrorMessageTestCase(TestCase):
     def is_valid_error_message(self, value, inputs):
         self.project.update_option('sentry:{}'.format(FilterTypes.ERROR_MESSAGES), inputs)
-        return is_valid_error_message(value, self.project)
+        return is_valid_error_message(self.project, value)
 
     def test_error_class_not_in_list(self):
         assert self.is_valid_error_message(
