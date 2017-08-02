@@ -33,7 +33,7 @@ def _get_timezone_choices():
     for tz in pytz.common_timezones:
         now = datetime.now(pytz.timezone(tz))
         offset = now.strftime('%z')
-        results.append((int(offset), tz, '(GMT%s) %s' % (offset, tz)))
+        results.append((int(offset), tz, '(UTC%s) %s' % (offset, tz)))
     results.sort()
 
     for i in range(len(results)):
