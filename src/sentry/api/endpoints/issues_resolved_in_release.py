@@ -9,9 +9,8 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import StreamGroupSerializer
 from sentry.models import (
     Group,
-    GroupCommitResolution,
+    GroupResolution,
     Release,
-    ReleaseCommit,
 )
 
 
@@ -39,11 +38,9 @@ class IssuesResolvedInReleaseEndpoint(ProjectEndpoint):
 
         groups = Group.objects.filter(
             project=project,
-            id__in=GroupCommitResolution.objects.filter(
-                commit_id__in=ReleaseCommit.objects.filter(
-                    release=release,
-                ).values_list('commit_id', flat=True),
-            ).values_list('group_id', flat=True),
+            id__in=GroupResolution.objects.filter(
+                release=release,
+            ).values_list('group_id', flat=True)
         )
 
         context = serialize(list(groups), request.user, StreamGroupSerializer(stats_period=None))
