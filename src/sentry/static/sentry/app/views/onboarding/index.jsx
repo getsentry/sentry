@@ -5,7 +5,7 @@ import {browserHistory} from 'react-router';
 import ApiMixin from '../../mixins/apiMixin';
 import ProgressNodes from './progress';
 import ProjectActions from '../../actions/projectActions';
-import {parseLastToken} from './utils';
+import {getPlatformName} from './utils';
 
 import Raven from 'raven-js';
 
@@ -32,9 +32,9 @@ const OnboardingWizard = React.createClass({
       setPlatform: p => {
         if (
           !this.state.projectName ||
-          parseLastToken(this.state.platform) === this.state.projectName
+          getPlatformName(this.state.platform) === this.state.projectName
         ) {
-          this.setState({projectName: parseLastToken(p)});
+          this.setState({projectName: getPlatformName(p)});
         }
         this.setState({platform: p});
       },

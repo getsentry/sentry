@@ -44,13 +44,13 @@ exports[`ProgressNodes render() should render step 0 if no projectId 1`] = `
     className="stuck"
   >
     <a
-      href="mailto:support@sentry.io?Subject=Getting%20started"
+      href="/organizations/testOrg/support/"
     >
       <p>
          Stuck?
       </p>
       <p>
-         Talk to a real person
+         Ask for help
       </p>
     </a>
   </div>
@@ -101,13 +101,13 @@ exports[`ProgressNodes render() should render step 1 if has projectId 1`] = `
     className="stuck"
   >
     <a
-      href="mailto:support@sentry.io?Subject=Getting%20started"
+      href="/organizations/testOrg/support/"
     >
       <p>
          Stuck?
       </p>
       <p>
-         Talk to a real person
+         Ask for help
       </p>
     </a>
   </div>

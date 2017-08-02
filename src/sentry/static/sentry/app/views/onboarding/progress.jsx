@@ -1,10 +1,15 @@
 import React from 'react';
 import classNames from 'classnames';
 import {onboardingSteps, stepDescriptions} from './utils';
+import ConfigStore from '../../stores/configStore';
 
 const ProgressNodes = React.createClass({
   propTypes: {
     params: React.PropTypes.object
+  },
+
+  contextTypes: {
+    organization: React.PropTypes.object
   },
 
   steps: Object.keys(onboardingSteps),
@@ -30,6 +35,9 @@ const ProgressNodes = React.createClass({
   },
 
   render() {
+    let config = ConfigStore.getConfig();
+    let {slug} = this.context.organization;
+
     return (
       <div className="onboarding-sidebar">
         <div className="sentry-flag">
@@ -39,9 +47,14 @@ const ProgressNodes = React.createClass({
           {this.steps.map(this.node)}
         </div>
         <div className="stuck">
-          <a href="mailto:support@sentry.io?Subject=Getting%20started">
+          <a
+            href={
+              !config.isOnPremise
+                ? `/organizations/${slug}/support/`
+                : 'https://forum.sentry.io/'
+            }>
             <p> Stuck?</p>
-            <p> Talk to a real person</p>
+            <p> Ask for help</p>
           </a>
         </div>
       </div>

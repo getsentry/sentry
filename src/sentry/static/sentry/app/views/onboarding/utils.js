@@ -98,8 +98,8 @@ const stepDescriptions = {
   configure: 'Configure your application and send an event'
 };
 
-function parseLastToken(platform) {
-  return platform.split('-').pop();
+function getPlatformName(platform) {
+  return flattenedPlatforms.find(({id}) => platform == id).name;
 }
 
 export {
@@ -107,5 +107,5 @@ export {
   stepDescriptions,
   flattenedPlatforms,
   categoryLists,
-  parseLastToken
+  getPlatformName
 };
