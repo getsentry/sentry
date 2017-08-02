@@ -47,4 +47,5 @@ class ProviderSerializer(Serializer):
             'id': six.text_type(obj.id),
             'name': obj.name,
             'auths': obj.get_available_auths(user, self.organization, integrations, social_auths),
+            'authUrl': obj.get_auth_url(user),
         }

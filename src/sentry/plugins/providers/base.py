@@ -68,6 +68,12 @@ class ProviderMixin(object):
         )
         return auths
 
+    def get_auth_url(self, user, **kwargs):
+        if self.auth_provider is None:
+            return
+
+        return reverse('socialauth_associate', args=[self.auth_provider])
+
     def needs_auth(self, user, **kwargs):
         """
         Return ``True`` if the authenticated user needs to associate an auth

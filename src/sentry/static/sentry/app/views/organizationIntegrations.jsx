@@ -84,11 +84,24 @@ const OrganizationIntegrations = React.createClass({
   },
 
   renderProvider(provider) {
+    let authUrl = provider.authUrl;
+    if (authUrl.indexOf('?') === -1) {
+      authUrl += '?next=' + encodeURIComponent(document.location.pathname);
+    } else {
+      authUrl += '&next=' + encodeURIComponent(document.location.pathname);
+    }
     return (
       <div key={provider.id}>
         <div className="row">
-          <div className="col-md-12">
+          <div className="col-md-6">
             <h3>{provider.name}</h3>
+          </div>
+          <div className="col-md-6">
+            {/* TODO(jess): we might want to only show this in certain
+             situations/have diff providers be able to customize this more */}
+            <a className="btn btn-default btn-sm" href={authUrl}>
+              {t('Link another account')}
+            </a>
           </div>
         </div>
         {provider.auths.length
@@ -100,7 +113,7 @@ const OrganizationIntegrations = React.createClass({
                   </div>
                   <div className="col-md-6">
                     <button
-                      className="btn btn-sm btn-default"
+                      className="btn btn-sm btn-primary"
                       onClick={this.toggleAuth.bind(this, provider.id, auth)}>
                       {auth.linked ? t('Disable') : t('Enable')}
                     </button>

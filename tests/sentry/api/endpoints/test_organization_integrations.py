@@ -31,6 +31,8 @@ class OrganizationIntegrationsListTest(APITestCase):
             'dummy',
             'name':
             'Example',
+            'authUrl':
+            '/account/settings/social/associate/dummy/',
             'auths': [
                 {
                     'externalId': auth.uid,
@@ -74,6 +76,8 @@ class OrganizationIntegrationsCreateTest(APITestCase):
             u'dummy',
             'name':
             'Example',
+            'authUrl':
+            '/account/settings/social/associate/dummy/',
             'auths': [
                 {
                     'externalId': auth.uid,
