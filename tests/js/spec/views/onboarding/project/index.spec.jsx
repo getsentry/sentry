@@ -66,7 +66,7 @@ describe('Project', function() {
       submit.simulate('click');
       expect(wrapper.state().projectRequired).toBe(false);
 
-      expect(toJson(wrapper)).toMatchSnapshot();
+      expect(wrapper).toMatchSnapshot();
     });
   });
 });
