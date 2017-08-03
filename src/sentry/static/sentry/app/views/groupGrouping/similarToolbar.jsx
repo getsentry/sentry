@@ -54,8 +54,7 @@ const SimilarToolbar = React.createClass({
                 message={t('Are you sure you want to merge these issues?')}
                 className="btn btn-sm btn-default"
                 onConfirm={onMerge}>
-                {t('Merge')}
-                {this.state.mergeCount ? ` (${this.state.mergeCount})` : null}
+                {t('Merge')} ({this.state.mergeCount || 0})
               </LinkWithConfirmation>
             </div>
           </SpreadLayout>
