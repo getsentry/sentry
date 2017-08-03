@@ -1,5 +1,5 @@
 import React from 'react';
-import {shallow} from 'enzyme';
+import {shallow, mount} from 'enzyme';
 import toJson from 'enzyme-to-json';
 
 import {Client} from 'app/api';
@@ -17,8 +17,12 @@ describe('Project', function() {
 
   describe('render()', function() {
     const baseProps = {
+      next: jest.fn(),
+      platform: '',
+      setName: jest.fn(),
+      name: '',
+      setPlatform: jest.fn(),
       location: {query: {}},
-      setPlatform: () => {},
       params: {
         projectId: '',
         orgId: 'testOrg'
@@ -36,6 +40,33 @@ describe('Project', function() {
       let wrapper = shallow(<Project {...props} />, {
         organization: {id: '1337', slug: 'testOrg'}
       });
+      expect(toJson(wrapper)).toMatchSnapshot();
+    });
+
+    it('should set required class on empty submit', function() {
+      let props = {
+        ...baseProps
+      };
+
+      let wrapper = mount(<Project {...props} />, {
+        context: {
+          organization: {id: '1337', slug: 'testOrg'},
+          router: TestStubs.router()
+        },
+        childContextTypes: {
+          router: React.PropTypes.object,
+          organization: React.PropTypes.object
+        }
+      });
+
+      let submit = wrapper.find('button').last();
+      expect(wrapper.state().projectRequired).toBe(false);
+      submit.simulate('click');
+      expect(wrapper.state().projectRequired).toBe(true);
+      wrapper.setProps({name: 'bar'});
+      submit.simulate('click');
+      expect(wrapper.state().projectRequired).toBe(false);
+
       expect(toJson(wrapper)).toMatchSnapshot();
     });
   });

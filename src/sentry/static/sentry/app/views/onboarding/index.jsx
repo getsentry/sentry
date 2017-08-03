@@ -41,6 +41,7 @@ const OnboardingWizard = React.createClass({
       name: this.state.projectName,
       setName: n => this.setState({projectName: n})
     };
+
     return React.cloneElement(this.props.children, stepProps);
   },
 
