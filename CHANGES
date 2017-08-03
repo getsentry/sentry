@@ -5,6 +5,12 @@ Version 8.19 (Unreleased)
 - Added lookup methods to constants to get a unique `integration_id` for a given
   event, and to get information (documention url, human readable name) from that id.
 
+Schema Changes
+~~~~~~~~~~~~~~
+
+- Added ``Integration``, ``OrganizationIntegration``, and ``ProjectIntegration`` models
+- Added ``Repository(integration_id)`` column
+
 Version 8.18
 ------------
 

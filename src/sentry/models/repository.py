@@ -24,6 +24,7 @@ class Repository(Model):
         db_index=True,
     )
     date_added = models.DateTimeField(default=timezone.now)
+    integration_id = BoundedPositiveIntegerField(db_index=True, null=True)
 
     class Meta:
         app_label = 'sentry'

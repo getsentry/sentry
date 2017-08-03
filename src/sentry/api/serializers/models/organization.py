@@ -91,6 +91,8 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
             feature_list.append('api-keys')
         if features.has('organizations:group-unmerge', obj, actor=user):
             feature_list.append('group-unmerge')
+        if features.has('organizations:integrations-v3', obj, actor=user):
+            feature_list.append('integrations-v3')
 
         if getattr(obj.flags, 'allow_joinleave'):
             feature_list.append('open-membership')
