@@ -714,7 +714,7 @@ SENTRY_FEATURES = {
     'organizations:sso': True,
     'organizations:callsigns': True,
     'organizations:group-unmerge': False,
-    'organizations:integrations': False,
+    'organizations:integrations-v3': False,
     'projects:similarity-view': True,
     'projects:global-events': False,
     'projects:plugins': True,
