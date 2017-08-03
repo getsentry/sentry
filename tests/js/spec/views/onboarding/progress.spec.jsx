@@ -12,8 +12,14 @@ describe('ProgressNodes', function() {
       }
     };
 
+    const baseContext = {
+      context: {
+        organization: {id: '1337', slug: 'testOrg'}
+      }
+    };
+
     it('should render step 0 if no projectId', function() {
-      let wrapper = shallow(<ProgressNodes {...baseProps} />);
+      let wrapper = shallow(<ProgressNodes {...baseProps} />, baseContext);
 
       expect(wrapper.find('.node')).toHaveLength(6);
       expect(wrapper.find('.active')).toHaveLength(2);
@@ -34,7 +40,7 @@ describe('ProgressNodes', function() {
         }
       };
 
-      let wrapper = shallow(<ProgressNodes {...props} />);
+      let wrapper = shallow(<ProgressNodes {...props} />, baseContext);
 
       expect(wrapper.find('.node')).toHaveLength(6);
       expect(wrapper.find('.active')).toHaveLength(2);

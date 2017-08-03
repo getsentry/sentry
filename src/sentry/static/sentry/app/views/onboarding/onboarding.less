@@ -136,10 +136,21 @@
         }
       }
     }
+
     .stuck {
-      padding: 20px;
       position: absolute;
       bottom: 0px;
+      text-align: center;
+      width: 100%;
+      padding: 20px;
+      p,a {
+        margin:0;
+        color: @40;
+      }
+
+       &:hover p,a{
+        color:@30;
+      }
     }
   }
 
@@ -246,6 +257,10 @@
       padding-left: 44px;
       width: 300px;
       float: left;
+
+      &.required{
+        border: 1px #e03e2f solid;
+      }
 
       input {
         background: none;
