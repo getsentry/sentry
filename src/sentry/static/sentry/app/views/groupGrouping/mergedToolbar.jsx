@@ -50,8 +50,7 @@ const MergedToolbar = React.createClass({
                 )}
                 className="btn btn-sm btn-default"
                 onConfirm={onUnmerge}>
-                {t('Unmerge')}
-                {this.state.unmergeCount ? ` (${this.state.unmergeCount})` : null}
+                {t('Unmerge')} ({this.state.unmergeCount || 0})
               </LinkWithConfirmation>
             </div>
           </SpreadLayout>
