@@ -78,7 +78,7 @@ describe('OnboardingWizard', function() {
       node.props().onClick();
       expect(wrapper.state().projectName).toBe('another');
 
-      expect(toJson(wrapper)).toMatchSnapshot();
+      expect(wrapper).toMatchSnapshot();
     });
   });
 });
