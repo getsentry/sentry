@@ -17,7 +17,18 @@ let GroupActions = Reflux.createActions([
   'updateSuccess',
   'merge',
   'mergeError',
-  'mergeSuccess'
+  'mergeSuccess',
+  'unmerge',
+  'unmergeError',
+  'unmergeSuccess',
+  'loadMergedEvents',
+  'loadMergedEventsg',
+  'loadMergedEventsSuccess',
+  'loadMergedEventsError',
+  'loadSimilarIssues',
+  'loadSimilarIssuesg',
+  'loadSimilarIssuesSuccess',
+  'loadSimilarIssuesError'
 ]);
 
 export default GroupActions;

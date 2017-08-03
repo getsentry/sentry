@@ -3,8 +3,8 @@ import Reflux from 'reflux';
 import classNames from 'classnames';
 
 import {t} from '../../locale';
-import GroupingStore from '../../stores/groupingStore';
-import GroupingActions from '../../actions/groupingActions';
+import SimilarIssuesStore from '../../stores/similarIssuesStore';
+import SimilarIssuesActions from '../../actions/similarIssuesActions';
 
 import Count from '../../components/count';
 import EventOrGroupHeader from '../../components/eventOrGroupHeader';
@@ -43,7 +43,7 @@ const SimilarIssueItem = React.createClass({
       hideLevel: PropTypes.bool
     })
   },
-  mixins: [Reflux.listenTo(GroupingStore, 'onGroupingUpdate')],
+  mixins: [Reflux.listenTo(SimilarIssuesStore, 'onStoreUpdate')],
 
   getInitialState() {
     return {
@@ -53,20 +53,20 @@ const SimilarIssueItem = React.createClass({
     };
   },
 
-  onGroupingUpdate({mergeState}) {
+  onStoreUpdate({itemState}) {
+    if (!itemState) return;
     let {issue} = this.props;
-    if (mergeState) {
-      const stateForId = mergeState.has(issue.id) && mergeState.get(issue.id);
-      if (stateForId) {
-        Object.keys(stateForId).forEach(key => {
-          if (stateForId[key] !== this.state[key]) {
-            this.setState({
-              [key]: stateForId[key]
-            });
-          }
-        });
-      }
-    }
+
+    const stateForId = itemState.has(issue.id) && itemState.get(issue.id);
+    if (!stateForId) return;
+
+    Object.keys(stateForId).forEach(key => {
+      if (stateForId[key] === this.state[key]) return;
+
+      this.setState({
+        [key]: stateForId[key]
+      });
+    });
   },
 
   displaySimilarity(value) {
@@ -78,7 +78,7 @@ const SimilarIssueItem = React.createClass({
 
     // clicking anywhere in the row will toggle the checkbox
     if (!this.state.busy) {
-      GroupingActions.toggleMerge(issue.id);
+      SimilarIssuesActions.toggleSelect(issue.id);
     }
   },
 

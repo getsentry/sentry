@@ -12,82 +12,155 @@ exports[`Issues Grouping View renders initially with loading component 1`] = `
      
     This is an experimental feature. Data may not be immediately available while we process the unmerge.
   </div>
-  <LoadingIndicator />
+  <GroupingList
+    emptyMessage="There are no similar issues."
+    store={
+      Store {
+        "actionButtonEnabled": true,
+        "emitter": EventEmitter {},
+        "error": false,
+        "eventLabel": "change",
+        "filteredItems": Array [],
+        "finishLoad": [Function],
+        "getInitialState": [Function],
+        "init": [Function],
+        "itemState": Array [],
+        "items": Array [],
+        "links": "",
+        "loading": true,
+        "onLoadSimilarIssues": [Function],
+        "onLoadSimilarIssuesError": [Function],
+        "onLoadSimilarIssuesSuccess": [Function],
+        "onMerge": [Function],
+        "onMergeError": [Function],
+        "onMergeSelected": [Function],
+        "onMergeSuccess": [Function],
+        "onToggleSelect": [Function],
+        "selectedSet": Array [],
+        "setStateForId": [Function],
+        "subscriptions": Array [
+          Object {
+            "listenable": [Function],
+            "stop": [Function],
+          },
+          Object {
+            "listenable": [Function],
+            "stop": [Function],
+          },
+          Object {
+            "listenable": [Function],
+            "stop": [Function],
+          },
+          Object {
+            "listenable": [Function],
+            "stop": [Function],
+          },
+          Object {
+            "listenable": [Function],
+            "stop": [Function],
+          },
+          Object {
+            "listenable": [Function],
+            "stop": [Function],
+          },
+          Object {
+            "listenable": [Function],
+            "stop": [Function],
+          },
+          Object {
+            "listenable": [Function],
+            "stop": [Function],
+          },
+        ],
+        "triggerFetchState": [Function],
+        "triggerItemsState": [Function],
+      }
+    }
+  >
+    <SimilarIssuesList
+      groupId="groupId"
+      isError={false}
+      isLoaded={false}
+      isLoading={true}
+      orgId="orgId"
+      projectId="projectId"
+    />
+  </GroupingList>
+  <GroupingList
+    emptyMessage="There don't seem to be any hashes for this issue."
+    store={
+      Store {
+        "actionButtonEnabled": true,
+        "checkForRemainingUnmergeItem": [Function],
+        "emitter": EventEmitter {},
+        "error": false,
+        "eventLabel": "change",
+        "filteredItems": Array [],
+        "finishLoad": [Function],
+        "getInitialState": [Function],
+        "init": [Function],
+        "itemState": Array [],
+        "items": Array [],
+        "links": "",
+        "loading": true,
+        "onLoadMergedEvents": [Function],
+        "onLoadMergedEventsError": [Function],
+        "onLoadMergedEventsSuccess": [Function],
+        "onToggleSelect": [Function],
+        "onUnmerge": [Function],
+        "onUnmergeError": [Function],
+        "onUnmergeSelected": [Function],
+        "onUnmergeSuccess": [Function],
+        "resetRemainingUnmergeItem": [Function],
+        "selectedSet": Array [],
+        "setStateForId": [Function],
+        "subscriptions": Array [
+          Object {
+            "listenable": [Function],
+            "stop": [Function],
+          },
+          Object {
+            "listenable": [Function],
+            "stop": [Function],
+          },
+          Object {
+            "listenable": [Function],
+            "stop": [Function],
+          },
+          Object {
+            "listenable": [Function],
+            "stop": [Function],
+          },
+          Object {
+            "listenable": [Function],
+            "stop": [Function],
+          },
+          Object {
+            "listenable": [Function],
+            "stop": [Function],
+          },
+          Object {
+            "listenable": [Function],
+            "stop": [Function],
+          },
+          Object {
+            "listenable": [Function],
+            "stop": [Function],
+          },
+        ],
+        "triggerFetchState": [Function],
+        "triggerItemsState": [Function],
+      }
+    }
+  >
+    <MergedEventsList
+      groupId="groupId"
+      isError={false}
+      isLoaded={false}
+      isLoading={true}
+      orgId="orgId"
+      projectId="projectId"
+    />
+  </GroupingList>
 </div>
-`;
-
-exports[`Issues Grouping View renders with mocked data 1`] = `
-<GroupGroupingView
-  location={Object {}}
-  params={
-    Object {
-      "groupId": "groupId",
-      "orgId": "orgId",
-      "projectId": "projectId",
-    }
-  }
->
-  <div>
-    <div
-      className="alert alert-block alert-warning"
-    >
-      <strong>
-        Warning
-        :
-      </strong>
-       
-      This is an experimental feature. Data may not be immediately available while we process the unmerge.
-    </div>
-    <LoadingIndicator>
-      <div
-        className="loading"
-      >
-        <div
-          className="loading-indicator"
-        />
-        <div
-          className="loading-message"
-        />
-      </div>
-    </LoadingIndicator>
-  </div>
-</GroupGroupingView>
-`;
-
-exports[`Issues Grouping View renders with mocked data 2`] = `
-<GroupGroupingView
-  location={Object {}}
-  params={
-    Object {
-      "groupId": "groupId",
-      "orgId": "orgId",
-      "projectId": "projectId",
-    }
-  }
->
-  <div>
-    <div
-      className="alert alert-block alert-warning"
-    >
-      <strong>
-        Warning
-        :
-      </strong>
-       
-      This is an experimental feature. Data may not be immediately available while we process the unmerge.
-    </div>
-    <LoadingIndicator>
-      <div
-        className="loading"
-      >
-        <div
-          className="loading-indicator"
-        />
-        <div
-          className="loading-message"
-        />
-      </div>
-    </LoadingIndicator>
-  </div>
-</GroupGroupingView>
 `;

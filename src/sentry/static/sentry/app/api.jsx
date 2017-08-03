@@ -200,6 +200,32 @@ export class Client {
     );
   }
 
+  unmerge(params, options) {
+    let path = `/issues/${params.groupId}/hashes/`;
+    let {itemIds, ...otherParams} = params;
+    let query = Object.assign({}, paramsToQueryArgs(otherParams), {
+      id: itemIds
+    });
+    let id = this.uniqueId();
+
+    GroupActions.unmerge(id, itemIds);
+
+    return this._wrapRequest(
+      path,
+      {
+        query,
+        method: 'DELETE',
+        success: response => {
+          GroupActions.unmergeSuccess(id, itemIds, response);
+        },
+        error: error => {
+          GroupActions.unmergeError(id, itemIds, error);
+        }
+      },
+      options
+    );
+  }
+
   assignTo(params, options) {
     let path = '/issues/' + params.id + '/';
     let id = this.uniqueId();

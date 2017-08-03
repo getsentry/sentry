@@ -2,8 +2,8 @@ import React, {PropTypes} from 'react';
 import Reflux from 'reflux';
 import classNames from 'classnames';
 
-import GroupingStore from '../../stores/groupingStore';
-import GroupingActions from '../../actions/groupingActions';
+import MergedEventsStore from '../../stores/mergedEventsStore';
+import MergedEventsActions from '../../actions/mergedEventsActions';
 import EventOrGroupHeader from '../../components/eventOrGroupHeader';
 import EventOrGroupExtraDetails from '../../components/eventOrGroupExtraDetails';
 import SpreadLayout from '../../components/spreadLayout';
@@ -25,7 +25,7 @@ const MergedItem = React.createClass({
     })
   },
 
-  mixins: [Reflux.listenTo(GroupingStore, 'onGroupingChange')],
+  mixins: [Reflux.listenTo(MergedEventsStore, 'onStoreUpdate')],
 
   getInitialState() {
     return {
@@ -34,11 +34,11 @@ const MergedItem = React.createClass({
     };
   },
 
-  onGroupingChange({unmergeState}) {
-    if (!unmergeState) return;
-
+  onStoreUpdate({itemState}) {
+    if (!itemState) return;
     let {fingerprint} = this.props;
-    const stateForId = unmergeState.has(fingerprint) && unmergeState.get(fingerprint);
+
+    const stateForId = itemState.has(fingerprint) && itemState.get(fingerprint);
     if (!stateForId) return;
 
     Object.keys(stateForId).forEach(key => {
@@ -56,7 +56,7 @@ const MergedItem = React.createClass({
     if (disabled || this.state.busy) return;
 
     // clicking anywhere in the row will toggle the checkbox
-    GroupingActions.toggleUnmerge(fingerprint);
+    MergedEventsActions.toggleSelect(fingerprint);
   },
 
   render() {

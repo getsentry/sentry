@@ -1,6 +1,6 @@
 /* eslint-env jest */
 import React from 'react';
-import {mount, shallow} from 'enzyme';
+import {shallow} from 'enzyme';
 import toJson from 'enzyme-to-json';
 
 import GroupGroupingView from 'app/views/groupGrouping/groupGroupingView';
@@ -286,34 +286,23 @@ const mockData = {
 describe('Issues Grouping View', function() {
   beforeAll(function() {
     Client.addMockResponse({
-      url: '/issues/groupId/hashes/?limit=50',
+      url: '/issues/groupId/hashes/',
       body: mockData.merged
     });
     Client.addMockResponse({
-      url: '/issues/groupId/similar/?limit=50',
+      url: '/issues/groupId/similar/',
       body: mockData.similar
     });
   });
 
   it('renders initially with loading component', function() {
     let component = shallow(
-      <GroupGroupingView params={{groupId: 'groupId'}} location={{}} />
-    );
-
-    expect(toJson(component)).toMatchSnapshot();
-  });
-
-  it('renders with mocked data', function(done) {
-    let wrapper = mount(
       <GroupGroupingView
         params={{orgId: 'orgId', projectId: 'projectId', groupId: 'groupId'}}
         location={{}}
       />
     );
 
-    wrapper.instance().componentDidUpdate = jest.fn(() => {
-      expect(toJson(wrapper)).toMatchSnapshot();
-      done();
-    });
+    expect(toJson(component)).toMatchSnapshot();
   });
 });
