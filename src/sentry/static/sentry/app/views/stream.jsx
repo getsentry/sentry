@@ -24,6 +24,7 @@ import utils from '../utils';
 import {logAjaxError} from '../utils/logging';
 import parseLinkHeader from '../utils/parseLinkHeader';
 import {t, tn, tct} from '../locale';
+import {getPlatformName} from './onboarding/utils';
 
 const Stream = React.createClass({
   propTypes: {
@@ -537,6 +538,20 @@ const Stream = React.createClass({
     browserHistory.pushState(null, path, queryParams);
   },
 
+  createSampleEvent() {
+    let params = this.props.params;
+    let url = `/projects/${params.orgId}/${params.projectId}/create-sample/`;
+    this.api.request(url, {
+      method: 'POST',
+      success: data => {
+        browserHistory.pushState(
+          null,
+          `/${params.orgId}/${params.projectId}/issues/${data.groupID}/`
+        );
+      }
+    });
+  },
+
   renderProcessingIssuesHint() {
     let pi = this.state.processingIssues;
     if (!pi || this.showingProcessingIssues()) {
@@ -623,17 +638,30 @@ const Stream = React.createClass({
   renderAwaitingEvents() {
     let org = this.getOrganization();
     let project = this.getProject();
+    let platformName = project.platform
+      ? getPlatformName(project.platform)
+      : 'JavaScript';
     let sampleLink = null;
     if (this.state.groupIds.length > 0) {
       let sampleIssueId = this.state.groupIds[0];
+
       sampleLink = (
         <p>
           <Link to={`/${org.slug}/${project.slug}/issues/${sampleIssueId}/?sample`}>
-            {t('Or see a sample Javascript event')}
+            {t('Or see your sample %s event', platformName)}
           </Link>
         </p>
       );
+    } else {
+      sampleLink = (
+        <p>
+          <a onClick={this.createSampleEvent.bind(this, project.platform)}>
+            {t('Create a sample %s event', platformName)}
+          </a>
+        </p>
+      );
     }
+
     return (
       <div className="box awaiting-events">
         <div className="wrap">

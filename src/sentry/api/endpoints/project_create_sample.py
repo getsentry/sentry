@@ -2,13 +2,21 @@ from __future__ import absolute_import
 
 from rest_framework.response import Response
 
-from sentry.api.bases.project import ProjectEndpoint
+from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.api.serializers import serialize
 from sentry.utils.samples import create_sample_event
 
 
+class RelaxedProjectPermission(ProjectPermission):
+    scope_map = {
+        'POST': ['project:write', 'project:admin'],
+    }
+
+
 class ProjectCreateSampleEndpoint(ProjectEndpoint):
-    def put(self, request, project):
+    permission_classes = [RelaxedProjectPermission]
+
+    def post(self, request, project):
         has_project_write = (
             (request.auth and request.auth.has_scope('project:write')) or
             (request.access and request.access.has_scope('project:write'))

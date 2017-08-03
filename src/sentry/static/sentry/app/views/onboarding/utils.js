@@ -99,7 +99,8 @@ const stepDescriptions = {
 };
 
 function getPlatformName(platform) {
-  return flattenedPlatforms.find(({id}) => platform == id).name;
+  let platform_obj = flattenedPlatforms.find(({id}) => platform == id);
+  return platform_obj ? platform_obj.name : null;
 }
 
 export {

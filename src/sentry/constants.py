@@ -86,6 +86,7 @@ RESERVED_ORGANIZATION_SLUGS = frozenset(
 )
 
 LOG_LEVELS = {
+    logging.NOTSET: 'sample',
     logging.DEBUG: 'debug',
     logging.INFO: 'info',
     logging.WARNING: 'warning',

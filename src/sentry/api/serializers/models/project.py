@@ -92,6 +92,7 @@ class ProjectSerializer(Serializer):
             'firstEvent': obj.first_event,
             'features': feature_list,
             'status': status_label,
+            'platform': obj.platform,
         }
 
 
