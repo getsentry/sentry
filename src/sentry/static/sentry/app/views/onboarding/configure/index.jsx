@@ -7,8 +7,17 @@ import ProjectContext from '../../projects/projectContext';
 import ProjectDocsContext from '../../projectInstall/docsContext';
 import ProjectInstallPlatform from '../../projectInstall/platform';
 
+import Raven from 'raven-js';
+
 const Configure = React.createClass({
   mixins: [ApiMixin],
+
+  getInitialState() {
+    return {
+      isFirst: true,
+      hasSent: false
+    };
+  },
 
   componentWillMount() {
     let {platform} = this.props.params;
@@ -16,9 +25,8 @@ const Configure = React.createClass({
     if (!platform || platform === 'other') {
       this.redirectToNeutralDocs();
     }
-  },
 
-  componentDidMount() {
+    this.fetchEventData();
     this.timer = setInterval(() => {
       this.fetchEventData();
     }, 2000);
@@ -41,13 +49,29 @@ const Configure = React.createClass({
     this.api.request(`/projects/${orgId}/${projectId}/events/`, {
       method: 'GET',
       success: data => {
+        let {isFirst, hasSent} = this.state;
+
         // this indicates that a real event has been sent to the project (the first one is the sample event)
-        if (data.length > 1) {
-          this.redirectUrl();
+        let sentEvent = data.length > 1;
+
+        if (isFirst) {
+          // record sentEvent value of first poll to avoid redirecting when someone has already sent an event
+          this.setState({
+            isFirst: false,
+            hasSent: sentEvent
+          });
+        } else {
+          // if sentEvent changes from false to true then redirect
+          if (!hasSent && sentEvent) {
+            this.redirectUrl();
+          }
         }
       },
-      error: () => {
-        this.setState({hasError: true});
+
+      error: err => {
+        Raven.captureMessage('Polling for events in onboarding configure failed', {
+          extra: err
+        });
       }
     });
   },
@@ -82,7 +106,7 @@ const Configure = React.createClass({
               />
             </ProjectDocsContext>
           </ProjectContext>
-          <Waiting skip={this.submit} />
+          <Waiting skip={this.submit} hasEvent={this.state.hasSent} />
         </div>
       </div>
     );
