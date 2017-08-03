@@ -38,8 +38,7 @@ if (process.env.SENTRY_EXTRACT_TRANSLATIONS === '1') {
   });
 }
 
-var entry = {
-  // js
+var appEntry = {
   app: 'app',
   vendor: [
     'babel-polyfill',
@@ -65,18 +64,10 @@ var entry = {
     'select2',
     'vendor/simple-slider/simple-slider',
     'ios-device-list'
-  ],
-
-  // css
-  // NOTE: this will also create an empty 'sentry.js' file
-  // TODO: figure out how to not generate this
-  sentry: 'less/sentry.less',
-
-  // debug toolbar
-  debugger: 'less/debugger.less'
+  ]
 };
 
-// dynamically iterate over locale files and add to `entry` config
+// dynamically iterate over locale files and add to `entry` appConfig
 var localeCatalogPath = path.join(__dirname, 'src', 'sentry', 'locale', 'catalogs.json');
 var localeCatalog = JSON.parse(fs.readFileSync(localeCatalogPath, 'utf8'));
 var localeEntries = [];
@@ -86,15 +77,18 @@ localeCatalog.supported_locales.forEach(function(locale) {
 
   // Django locale names are "zh_CN", moment's are "zh-cn"
   var normalizedLocale = locale.toLowerCase().replace('_', '-');
-  entry['locale/' + normalizedLocale] = [
+  appEntry['locale/' + normalizedLocale] = [
     'moment/locale/' + normalizedLocale,
     'sentry-locale/' + locale + '/LC_MESSAGES/django.po' // relative to static/sentry
   ];
   localeEntries.push('locale/' + normalizedLocale);
 });
 
-var config = {
-  entry: entry,
+/**
+ * Main Webpack config for Sentry React SPA.
+ */
+var appConfig = {
+  entry: appEntry,
   context: path.join(__dirname, staticPrefix),
   module: {
     rules: [
@@ -117,13 +111,20 @@ var config = {
         test: /\.json$/,
         loader: 'json-loader'
       },
+      // loader for dynamic styles imported into components (embedded as js)
       {
         test: /\.less$/,
-        include: path.join(__dirname, staticPrefix),
-        loader: ExtractTextPlugin.extract({
-          fallbackLoader: 'style-loader?sourceMap=false',
-          loader: 'css-loader' + (IS_PRODUCTION ? '?minimize=true' : '') + '!less-loader'
-        })
+        use: [
+          {
+            loader: 'style-loader'
+          },
+          {
+            loader: 'css-loader' + (IS_PRODUCTION ? '?minimize=true' : '')
+          },
+          {
+            loader: 'less-loader'
+          }
+        ]
       },
       {
         test: /\.(woff|woff2|ttf|eot|svg|png|gif|ico|jpg)($|\?)/,
@@ -177,10 +178,11 @@ var config = {
         : path.join(__dirname, 'src/sentry/integration-docs/_platforms.json')
     },
     modules: [path.join(__dirname, staticPrefix), 'node_modules'],
-    extensions: ['*', '.jsx', '.js', '.json']
+    extensions: ['.less', '.jsx', '.js', '.json']
   },
   output: {
     path: distPath,
+    publicPath: '/_static/sentry/dist/',
     filename: '[name].js',
     libraryTarget: 'var',
     library: 'exports',
@@ -189,40 +191,85 @@ var config = {
   devtool: IS_PRODUCTION ? '#source-map' : '#cheap-source-map'
 };
 
-// We only need to use the webpack-livereload-plugin for development builds. Production
-// builds don't have this module.
 if (!IS_PRODUCTION && REFRESH) {
-  config.plugins.push(
+  appConfig.plugins.push(
     new (require('webpack-livereload-plugin'))({appendScriptTag: true})
   );
 }
 
-if (IS_PRODUCTION) {
+var minificationPlugins = [
   // This compression-webpack-plugin generates pre-compressed files
   // ending in .gz, to be picked up and served by our internal static media
   // server as well as nginx when paired with the gzip_static module.
-  config.plugins.push(
-    new (require('compression-webpack-plugin'))({
-      algorithm: function(buffer, options, callback) {
-        require('zlib').gzip(buffer, callback);
-      },
-      regExp: /\.(js|map|css|svg|html|txt|ico|eot|ttf)$/
-    })
-  );
+  new (require('compression-webpack-plugin'))({
+    algorithm: function(buffer, options, callback) {
+      require('zlib').gzip(buffer, callback);
+    },
+    regExp: /\.(js|map|css|svg|html|txt|ico|eot|ttf)$/
+  }),
 
   // Disable annoying UglifyJS warnings that pollute Travis log output
   // NOTE: This breaks -p in webpack 2. Must call webpack w/ NODE_ENV=production for minification.
-  config.plugins.push(
-    new webpack.optimize.UglifyJsPlugin({
-      compress: {
-        warnings: false
-      },
-      // https://github.com/webpack/webpack/blob/951a7603d279c93c936e4b8b801a355dc3e26292/bin/convert-argv.js#L442
-      sourceMap: config.devtool &&
-        (config.devtool.indexOf('sourcemap') >= 0 ||
-          config.devtool.indexOf('source-map') >= 0)
-    })
-  );
+  new webpack.optimize.UglifyJsPlugin({
+    compress: {
+      warnings: false
+    },
+    // https://github.com/webpack/webpack/blob/951a7603d279c93c936e4b8b801a355dc3e26292/bin/convert-argv.js#L442
+    sourceMap: appConfig.devtool &&
+      (appConfig.devtool.indexOf('sourcemap') >= 0 ||
+        appConfig.devtool.indexOf('source-map') >= 0)
+  })
+];
+
+if (IS_PRODUCTION) {
+  // NOTE: can't do plugins.push(Array) because webpack/webpack#2217
+  minificationPlugins.forEach(function(plugin) {
+    appConfig.plugins.push(plugin);
+  });
 }
 
-module.exports = config;
+/**
+ * Legacy CSS Webpack appConfig for Django-powered views.
+ * This generates a single "sentry.css" file that imports ALL component styles
+ * for use on Django-powered pages.
+ */
+var legacyCssConfig = {
+  entry: {
+    sentry: 'less/sentry.less'
+  },
+  context: path.join(__dirname, staticPrefix),
+  output: {
+    path: distPath,
+    filename: '[name].css'
+  },
+  plugins: [new ExtractTextPlugin('[name].css')],
+  resolve: {
+    extensions: ['.less'],
+    modules: [path.join(__dirname, staticPrefix), 'node_modules']
+  },
+  module: {
+    rules: [
+      {
+        test: /\.less$/,
+        include: path.join(__dirname, staticPrefix),
+        loader: ExtractTextPlugin.extract({
+          fallbackLoader: 'style-loader?sourceMap=false',
+          loader: 'css-loader' + (IS_PRODUCTION ? '?minimize=true' : '') + '!less-loader'
+        })
+      },
+      {
+        test: /\.(woff|woff2|ttf|eot|svg|png|gif|ico|jpg)($|\?)/,
+        loader: 'file-loader?name=' + '[name].[ext]'
+      }
+    ]
+  }
+};
+
+if (IS_PRODUCTION) {
+  // NOTE: can't do plugins.push(Array) because webpack/webpack#2217
+  minificationPlugins.forEach(function(plugin) {
+    legacyCssConfig.plugins.push(plugin);
+  });
+}
+
+module.exports = [appConfig, legacyCssConfig];
