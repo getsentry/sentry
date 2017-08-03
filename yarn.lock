@@ -131,8 +131,8 @@
     webpack-hot-middleware "^2.18.0"
 
 "@storybook/ui@^3.2.0":
-  version "3.2.0"
-  resolved "https://registry.yarnpkg.com/@storybook/ui/-/ui-3.2.0.tgz#ce60155412bfd700d6f8bac2bae40efca4f6d768"
+  version "3.2.3"
+  resolved "https://registry.yarnpkg.com/@storybook/ui/-/ui-3.2.3.tgz#9579c191a1695d3d5aaabcef93a7a5456d8f19af"
   dependencies:
     "@storybook/react-fuzzy" "^0.4.0"
     babel-runtime "^6.23.0"
@@ -2795,8 +2795,8 @@ fast-levenshtein@~2.0.4:
   resolved "https://registry.yarnpkg.com/fast-levenshtein/-/fast-levenshtein-2.0.6.tgz#3d8a5c66883a16a30ca8643e851f19baa7797917"
 
 fast-memoize@^2.2.7:
-  version "2.2.7"
-  resolved "https://registry.yarnpkg.com/fast-memoize/-/fast-memoize-2.2.7.tgz#f145c5c22039cedf0a1d4ff6ca592ad0268470ca"
+  version "2.2.8"
+  resolved "https://registry.yarnpkg.com/fast-memoize/-/fast-memoize-2.2.8.tgz#d7f899f31d037b12d9db4281912f9018575720b1"
 
 fastparse@^1.1.1:
   version "1.1.1"
@@ -3103,13 +3103,14 @@ gettext-parser@1.1.1, gettext-parser@^1.1.1:
     encoding "^0.1.11"
 
 glamor@^2.20.25:
-  version "2.20.37"
-  resolved "https://registry.yarnpkg.com/glamor/-/glamor-2.20.37.tgz#3cd576deb760eaaf475dcc1f9b77bf6a7d2f8b26"
+  version "2.20.39"
+  resolved "https://registry.yarnpkg.com/glamor/-/glamor-2.20.39.tgz#f2496b5bd252c4337eadae8c6233ce4ea2a81596"
   dependencies:
     fbjs "^0.8.12"
     inline-style-prefixer "^3.0.6"
     object-assign "^4.1.1"
     prop-types "^15.5.10"
+    through "^2.3.8"
 
 glamorous@^3.22.1:
   version "3.25.0"
@@ -5722,8 +5723,8 @@ react-document-title@1.0.4:
     react-side-effect "^0.3.2"
 
 react-dom-factories@^1.0.0:
-  version "1.0.0"
-  resolved "https://registry.yarnpkg.com/react-dom-factories/-/react-dom-factories-1.0.0.tgz#f43c05e5051b304f33251618d5bc859b29e46b6d"
+  version "1.0.1"
+  resolved "https://registry.yarnpkg.com/react-dom-factories/-/react-dom-factories-1.0.1.tgz#c50692ac5ff1adb39d86dfe6dbe3485dacf58455"
 
 react-dom@15.3.2:
   version "15.3.2"
@@ -6736,7 +6737,7 @@ throttleit@^1.0.0:
   version "1.0.0"
   resolved "https://registry.yarnpkg.com/throttleit/-/throttleit-1.0.0.tgz#9e785836daf46743145a5984b6268d828528ac6c"
 
-through@^2.3.6:
+through@^2.3.6, through@^2.3.8:
   version "2.3.8"
   resolved "https://registry.yarnpkg.com/through/-/through-2.3.8.tgz#0dd4c9ffaabc357960b1b724115d7e0e86a2e1f5"
 
