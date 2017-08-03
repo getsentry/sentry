@@ -7,9 +7,6 @@ class DummyRepositoryProvider(RepositoryProvider):
     name = 'Example'
     auth_provider = 'dummy'
 
-    def needs_auth(self, user, **kwargs):
-        return False
-
     def get_config(self):
         return [
             {
