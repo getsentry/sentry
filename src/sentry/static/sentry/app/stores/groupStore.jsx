@@ -285,6 +285,8 @@ const GroupStore = Reflux.createStore({
     itemIds.forEach(itemId => {
       this.addStatus(itemId, 'merge');
     });
+    // XXX(billy): Not sure if this is a bug or not but do we need to publish all itemIds?
+    // Seems like we only need to publish parent id
     this.trigger(new Set(itemIds));
   },
 

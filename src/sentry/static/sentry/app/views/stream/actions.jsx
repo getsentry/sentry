@@ -15,6 +15,7 @@ import {getShortVersion} from '../../utils';
 import CustomIgnoreCountModal from '../../components/customIgnoreCountModal';
 import CustomIgnoreDurationModal from '../../components/customIgnoreDurationModal';
 import CustomResolutionModal from '../../components/customResolutionModal';
+import Checkbox from '../../components/checkbox';
 
 const IgnoreActions = React.createClass({
   propTypes: {
@@ -280,13 +281,13 @@ const ResolveActions = React.createClass({
     let extraDescription = null;
     if (this.state.allInQuerySelected) {
       extraDescription = this.props.query
-        ? (<div>
+        ? <div>
             <p>{t('This will apply to the current search query:')}</p>
             <pre>{this.props.query}</pre>
-          </div>)
-        : (<p className="error">
+          </div>
+        : <p className="error">
             <strong>{t('This will apply to ALL issues in this project!')}</strong>
-          </p>);
+          </p>;
     }
     let linkClassName = 'group-resolve btn btn-default btn-sm';
     let actionLinkProps = {
@@ -547,8 +548,7 @@ const StreamActions = React.createClass({
         <div className="stream-actions row">
           <div className="stream-actions-left col-md-6 col-sm-8 col-xs-8">
             <div className="checkbox">
-              <input
-                type="checkbox"
+              <Checkbox
                 className="chk-select-all"
                 onChange={this.onSelectAll}
                 checked={this.state.pageSelected}
@@ -643,7 +643,7 @@ const StreamActions = React.createClass({
                             )
                     }
                     selectAllActive={this.state.pageSelected}>
-                    {t('Merge Events')}
+                    {t('Merge Issues')}
                   </ActionLink>
                 </MenuItem>
                 <MenuItem noAnchor={true}>
@@ -730,7 +730,7 @@ const StreamActions = React.createClass({
                     confirmLabel={count =>
                       tn('Delete %d selected issue', 'Delete %d selected issues', count)}
                     selectAllActive={this.state.pageSelected}>
-                    {t('Delete Events')}
+                    {t('Delete Issues')}
                   </ActionLink>
                 </MenuItem>
               </DropdownLink>

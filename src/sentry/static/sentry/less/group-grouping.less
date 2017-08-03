@@ -1,0 +1,109 @@
+// For interface for merging/unmerging events/issues
+// Shares CSS with "stream.less" so some defs are in there
+
+.grouping-list-container {
+  h2 {
+    font-size: 18px;
+    text-transform: uppercase;
+    color: #968ba0;
+    margin-top: 20px;
+    margin-bottom: 10px;
+  }
+
+  .stream-actions-header {
+    padding: 3px 12px;
+  }
+
+  .event-count-header {
+    padding-right: 0;
+    padding-left: 12px;
+  }
+
+  .event-count {
+    padding: 12px 12px 12px 24px;
+  }
+}
+
+.grouping-list {
+  .group {
+    padding-right: 0;
+  }
+  .event-details {
+    padding: 12px;
+  }
+  .fingerprint {
+    padding: 12px;
+  }
+  .action-column {
+    padding: 12px;
+  }
+  .event-extra {
+    ul {
+      margin-bottom: 0;
+    }
+  }
+}
+
+.grouping-similar-list-container {
+  .event-details {
+    overflow: hidden;
+  }
+}
+
+.grouping-toolbar {
+  &.stream-actions {
+    height: auto;
+    padding-right: 0;
+  }
+}
+.grouping-toolbar-actions {
+  padding: 6px;
+}
+
+.similar-items-footer {
+  display: flex;
+  justify-content: center;
+  padding: 12px;
+}
+
+.similarity-score {
+  flex: 1;
+  padding: 6px 12px;
+}
+.similarity-score-row {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 12px;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.similarity-score-label {
+  display: flex;
+  justify-content: space-between;
+  flex: 1;
+}
+.similarity-score-bar {
+  height: 3px;
+  border-radius: 2px;
+}
+
+.merged-event {
+  .fingerprint {
+    font-size: 12px;
+  }
+}
+
+.merged-event.busy, .similar-issue.busy {
+  opacity: 0.3;
+}
+
+@media(max-width: 629px) {
+  .grouping-similar-list-container {
+    .event-count-header {
+      padding-right: 12px;
+    }
+  }
+}
