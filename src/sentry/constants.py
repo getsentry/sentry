@@ -228,6 +228,8 @@ def _load_platform_data():
         if integrations:
             for integration in integrations:
                 integration_id = integration.pop('id')
+                if integration['type'] != 'language':
+                    integration['language'] = platform['id']
                 INTEGRATION_ID_TO_PLATFORM_DATA[integration_id] = integration
 
 
