@@ -5,6 +5,7 @@ import {browserHistory} from 'react-router';
 import ApiMixin from '../../mixins/apiMixin';
 import ProgressNodes from './progress';
 import ProjectActions from '../../actions/projectActions';
+import {getPlatformName} from './utils';
 
 import Raven from 'raven-js';
 
@@ -29,14 +30,18 @@ const OnboardingWizard = React.createClass({
       next: this.next,
       platform: this.state.platform,
       setPlatform: p => {
-        if (!this.state.projectName || this.state.platform === this.state.projectName) {
-          this.setState({projectName: p});
+        if (
+          !this.state.projectName ||
+          getPlatformName(this.state.platform) === this.state.projectName
+        ) {
+          this.setState({projectName: getPlatformName(p)});
         }
         this.setState({platform: p});
       },
       name: this.state.projectName,
       setName: n => this.setState({projectName: n})
     };
+
     return React.cloneElement(this.props.children, stepProps);
   },
 

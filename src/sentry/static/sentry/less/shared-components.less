@@ -3347,6 +3347,10 @@ ul.tag-list {
     text-shadow: 0 2px 0 rgba(0,0,0, .06);
     background: @gray; // Default BG
   }
+
+  li.go .platformicon {
+    border: 2px solid @gray;
+  }
 }
 
 .client-platform-list, .client-platform {
@@ -3410,16 +3414,9 @@ ul.tag-list {
     &.node-connect .platformicon:before { content: "\e609"; }
     &.node-koa .platformicon:before { content: "\e609"; }
 
-    &.other .platformicon:before {
-      // font-family: Menlo, Monaco, "Courier New", monospace;
-      // content: "\e60A";
-    }
-
     &.objc .platformicon,
     &.cocoa .platformicon, {
       background: @gray;
-      line-height: 54px;
-      font-size: 38px;
     }
 
     &.app-engine .platformicon {
@@ -3431,10 +3428,8 @@ ul.tag-list {
     }
 
     &.go .platformicon {
-      border: 2px solid @gray;
       color: @gray-dark;
       background: #fff;
-      line-height: 52px;
       text-shadow: none;
     }
     &.go-http .platformicon:before { content: "\e606"; }

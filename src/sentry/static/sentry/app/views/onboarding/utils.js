@@ -98,4 +98,14 @@ const stepDescriptions = {
   configure: 'Configure your application and send an event'
 };
 
-export {onboardingSteps, stepDescriptions, flattenedPlatforms, categoryLists};
+function getPlatformName(platform) {
+  return flattenedPlatforms.find(({id}) => platform == id).name;
+}
+
+export {
+  onboardingSteps,
+  stepDescriptions,
+  flattenedPlatforms,
+  categoryLists,
+  getPlatformName
+};
