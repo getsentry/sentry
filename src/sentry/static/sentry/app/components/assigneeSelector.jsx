@@ -109,7 +109,7 @@ const AssigneeSelector = React.createClass({
     }
     let group = GroupStore.get(this.props.id);
     this.setState({
-      assignedTo: group.assignedTo,
+      assignedTo: group && group.assignedTo,
       loading: GroupStore.hasStatus(this.props.id, 'assignTo')
     });
   },

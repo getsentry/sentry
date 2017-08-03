@@ -2,6 +2,7 @@ import React from 'react';
 import Reflux from 'reflux';
 
 import SelectedGroupStore from '../../stores/selectedGroupStore';
+import Checkbox from '../checkbox';
 
 const GroupCheckBox = React.createClass({
   propTypes: {
@@ -44,9 +45,7 @@ const GroupCheckBox = React.createClass({
 
   render() {
     return (
-      <input
-        type="checkbox"
-        className="chk-select"
+      <Checkbox
         value={this.props.id}
         checked={this.state.isSelected}
         onChange={this.onSelect}

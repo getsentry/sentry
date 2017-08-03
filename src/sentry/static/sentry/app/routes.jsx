@@ -24,10 +24,10 @@ import GroupActivity from './views/groupActivity';
 import GroupDetails from './views/groupDetails';
 import GroupEventDetails from './views/groupEventDetails';
 import GroupEvents from './views/groupEvents';
-import GroupHashes from './views/groupHashes';
 import GroupTags from './views/groupTags';
 import GroupTagValues from './views/groupTagValues';
 import GroupUserReports from './views/groupUserReports';
+import GroupGroupingView from './views/groupGrouping/groupGroupingView';
 import MyIssuesAssignedToMe from './views/myIssues/assignedToMe';
 import MyIssuesBookmarked from './views/myIssues/bookmarked';
 import MyIssuesViewed from './views/myIssues/viewed';
@@ -289,10 +289,11 @@ function routes() {
             <Route path="activity/" component={errorHandler(GroupActivity)} />
             <Route path="events/:eventId/" component={errorHandler(GroupEventDetails)} />
             <Route path="events/" component={errorHandler(GroupEvents)} />
-            <Route path="hashes/" component={errorHandler(GroupHashes)} />
             <Route path="tags/" component={errorHandler(GroupTags)} />
             <Route path="tags/:tagKey/" component={errorHandler(GroupTagValues)} />
             <Route path="feedback/" component={errorHandler(GroupUserReports)} />
+            <Route path="grouping/" component={errorHandler(GroupGroupingView)} />
+
           </Route>
         </Route>
       </Route>
