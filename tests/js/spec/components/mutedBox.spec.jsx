@@ -13,7 +13,7 @@ describe('MutedBox', function() {
       expect(toJson(wrapper)).toMatchSnapshot();
     });
     it('handles ignoreCount', function() {
-      let wrapper = shallow(<MutedBox statusDetails={{ignoreUserCount: 100}} />);
+      let wrapper = shallow(<MutedBox statusDetails={{ignoreCount: 100}} />);
       expect(toJson(wrapper)).toMatchSnapshot();
     });
     it('handles ignoreCount with ignoreWindow', function() {

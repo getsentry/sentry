@@ -7,7 +7,7 @@ import ConfigStore from '../stores/configStore.jsx';
 
 const StackedBarChart = React.createClass({
   propTypes: {
-    // TODO(dcramer): DEPRECATED, use series instead
+    /** TODO(dcramer): DEPRECATED, use series instead */
     points: React.PropTypes.arrayOf(
       React.PropTypes.shape({
         x: React.PropTypes.number.isRequired,

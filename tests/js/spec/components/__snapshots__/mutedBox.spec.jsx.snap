@@ -26,11 +26,11 @@ exports[`MutedBox render() handles ignoreCount 1`] = `
   />
   <p>
     <span>
-      This issue has been ignored until it affects 
+      This issue has been ignored until it occurs 
       <strong>
         100
       </strong>
-       more user(s)
+       more time(s)
        — 
     </span>
     You will not be notified of any changes and it will not show up by default in feeds.

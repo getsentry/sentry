@@ -11,6 +11,7 @@ const DropdownLink = React.createClass({
     disabled: React.PropTypes.bool,
     onOpen: React.PropTypes.func,
     onClose: React.PropTypes.func,
+    anchor: React.PropTypes.oneOf(['right', 'left']),
     topLevelClasses: React.PropTypes.string,
     menuClasses: React.PropTypes.string
   },
@@ -58,22 +59,30 @@ const DropdownLink = React.createClass({
   },
 
   render() {
-    let className = classNames({
+    let {anchor, disabled} = this.props;
+
+    let isRight = anchor === 'right';
+    let isLeft = anchor === 'left';
+
+    let className = classNames(this.props.className, {
+      'dropdown-menu-right': isRight,
+      'dropdown-menu-left': isLeft,
       'dropdown-toggle': true,
-      disabled: this.props.disabled
+      disabled
     });
 
-    let topLevelClasses = classNames({
+    let topLevelClasses = classNames(this.props.topLevelClasses, {
+      'pull-right': isRight,
+      'anchor-right': isRight,
+      'pull-left': isLeft,
+      'anchor-left': isLeft,
       dropdown: true,
       open: this.state.isOpen
     });
 
     return (
-      <span className={classNames(this.props.topLevelClasses, topLevelClasses)}>
-        <a
-          className={classNames(this.props.className, className)}
-          data-toggle="dropdown"
-          ref="dropdownToggle">
+      <span className={topLevelClasses}>
+        <a className={className} data-toggle="dropdown" ref="dropdownToggle">
           {this.props.title}
           {this.props.caret && <i className="icon-arrow-down" />}
         </a>

@@ -7,7 +7,13 @@ import {t} from '../locale';
 
 export default React.createClass({
   propTypes: {
-    statusDetails: React.PropTypes.object.isRequired
+    statusDetails: React.PropTypes.shape({
+      /** Ignore until unix timestamp */
+      ignoreUntil: React.PropTypes.string,
+      ignoreCount: React.PropTypes.number,
+      ignoreUserCount: React.PropTypes.number,
+      ignoreWindow: React.PropTypes.number
+    }).isRequired
   },
 
   mixins: [PureRenderMixin],
