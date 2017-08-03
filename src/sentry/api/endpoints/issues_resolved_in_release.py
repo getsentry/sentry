@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+from itertools import chain
 from rest_framework.response import Response
 
 from sentry.api.base import DocSection
@@ -9,8 +10,10 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import StreamGroupSerializer
 from sentry.models import (
     Group,
+    GroupCommitResolution,
     GroupResolution,
     Release,
+    ReleaseCommit,
 )
 
 
@@ -36,11 +39,29 @@ class IssuesResolvedInReleaseEndpoint(ProjectEndpoint):
         except Release.DoesNotExist:
             raise ResourceDoesNotExist
 
-        groups = Group.objects.filter(
-            project=project,
-            id__in=GroupResolution.objects.filter(
+        ids_from_GroupResolution = GroupResolution.objects.filter(
+            release=release,
+        ).values_list(
+            'group_id', flat=True
+        ).values_list(
+            'group_id',
+            flat=True,
+        )
+
+        ids_from_GroupCommitResolution = GroupCommitResolution.objects.filter(
+            commit_id__in=ReleaseCommit.objects.filter(
                 release=release,
-            ).values_list('group_id', flat=True)
+            ).values_list(
+                'commit_id',
+                flat=True,
+            )
+        ).values_list(
+            'group_id',
+            flat=True,
+        )
+
+        groups = Group.objects.filter(
+            project=project, id__in=chain(ids_from_GroupResolution, ids_from_GroupCommitResolution)
         )
 
         context = serialize(list(groups), request.user, StreamGroupSerializer(stats_period=None))
