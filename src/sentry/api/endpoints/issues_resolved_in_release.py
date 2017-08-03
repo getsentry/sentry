@@ -43,9 +43,6 @@ class IssuesResolvedInReleaseEndpoint(ProjectEndpoint):
             release=release,
         ).values_list(
             'group_id', flat=True
-        ).values_list(
-            'group_id',
-            flat=True,
         )
 
         ids_from_GroupCommitResolution = GroupCommitResolution.objects.filter(
