@@ -375,28 +375,29 @@ class ClientApiHelper(object):
         }
 
     def should_filter(self, project, data, ip_address=None):
+        """
+        returns a string with the reason of why event is getting filtered
+        so that we can store it in metrics
+        """
         if ip_address and not is_valid_ip(project, ip_address):
-            return True
+            return 'ip_address'
 
         release = data.get('release')
         if release and not is_valid_release(project, release):
-            return True
+            return 'release_version'
 
         message_interface = data.get('sentry.interfaces.Message', {})
         error_message = message_interface.get('formatted', ''
                                               ) or message_interface.get('message', '')
-        # messages can be sent as non-strings
-        if not isinstance(error_message, six.string_types):
-            error_message = json.dumps(error_message)
         if error_message and not is_valid_error_message(project, error_message):
-            return True
+            return 'error_message'
 
         for filter_cls in filters.all():
             filter_obj = filter_cls(project)
             if filter_obj.is_enabled() and filter_obj.test(data):
-                return True
+                return 'other_filter'
 
-        return False
+        return ''
 
     def validate_data(self, project, data):
         # TODO(dcramer): move project out of the data packet
@@ -843,7 +844,7 @@ class CspApiHelper(ClientApiHelper):
 
     def should_filter(self, project, data, ip_address=None):
         if not is_valid_csp_report(data['sentry.interfaces.Csp'], project):
-            return True
+            return 'invalid_csp'
         return super(CspApiHelper, self).should_filter(project, data, ip_address)
 
     def validate_data(self, project, data):
