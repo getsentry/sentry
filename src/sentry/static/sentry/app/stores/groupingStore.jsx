@@ -8,15 +8,12 @@ import GroupingActions from '../actions/groupingActions';
 const api = new Client();
 
 // Between 0-100
-const SIMILARITY_THRESHOLD = 50;
+const MIN_SCORE = 0.60;
 
 // @param score: {[key: string]: number}
-const getAvgScore = score => {
-  let scoreKeys = (score && Object.keys(score)) || [];
-  return Math.round(
-    scoreKeys.map(key => score[key]).reduce((acc, s) => acc + s * 100, 0) /
-      scoreKeys.length
-  );
+const checkBelowThreshold = scores => {
+  let scoreKeys = (scores && Object.keys(scores)) || [];
+  return !scoreKeys.map(key => scores[key]).find(score => score >= MIN_SCORE);
 };
 
 const GroupingStore = Reflux.createStore({
@@ -132,14 +129,12 @@ const GroupingStore = Reflux.createStore({
         return item;
       },
       similar: ([issue, score]) => {
-        // Hide items with a low average score
-        let avgScore = getAvgScore(score);
-        let isBelowThreshold = avgScore < SIMILARITY_THRESHOLD;
+        // Hide items with a low scores
+        let isBelowThreshold = checkBelowThreshold(score);
 
         return {
           issue,
           score,
-          avgScore,
           isBelowThreshold
         };
       }

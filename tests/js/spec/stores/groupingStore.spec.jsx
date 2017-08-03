@@ -67,7 +67,7 @@ describe('Grouping Store', function() {
           {
             'exception:stacktrace:pairs': 0.375,
             'exception:stacktrace:application-chunks': 0.175,
-            'message:message:character-shingles': 0.675
+            'message:message:character-shingles': 0.775
           }
         ],
         [
@@ -123,8 +123,8 @@ describe('Grouping Store', function() {
       let calls = trigger.mock.calls;
       let arg = calls[calls.length - 1][0];
 
-      expect(arg.filteredSimilarItems.length).toBe(2);
-      expect(arg.similarItems.length).toBe(1);
+      expect(arg.filteredSimilarItems.length).toBe(1);
+      expect(arg.similarItems.length).toBe(2);
       expect(arg).toMatchObject({
         loading: false,
         error: false,
@@ -132,7 +132,12 @@ describe('Grouping Store', function() {
         mergedItems: [],
         similarItems: [
           {
-            avgScore: 100,
+            isBelowThreshold: false,
+            issue: {
+              id: '274'
+            }
+          },
+          {
             isBelowThreshold: false,
             issue: {
               id: '275'
@@ -141,14 +146,6 @@ describe('Grouping Store', function() {
         ],
         filteredSimilarItems: [
           {
-            avgScore: 41,
-            isBelowThreshold: true,
-            issue: {
-              id: '274'
-            }
-          },
-          {
-            avgScore: 0,
             isBelowThreshold: true,
             issue: {
               id: '216'
