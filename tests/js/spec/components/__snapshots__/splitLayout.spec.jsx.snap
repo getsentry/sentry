@@ -1,0 +1,57 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`SplitLayout renders with multiple children 1`] = `
+<SpreadLayout
+  className="split-layout"
+>
+  <div
+    className="split-layout-child"
+  >
+    child #1
+  </div>
+  <div
+    className="split-layout-child"
+  >
+    child #2
+  </div>
+  <div
+    className="split-layout-child"
+  >
+    child #3
+  </div>
+</SpreadLayout>
+`;
+
+exports[`SplitLayout renders with one child 1`] = `
+<SpreadLayout
+  className="split-layout"
+>
+  <div
+    className="split-layout-child"
+  >
+    child
+  </div>
+</SpreadLayout>
+`;
+
+exports[`SplitLayout renders with responsive property 1`] = `
+<SpreadLayout
+  className="split-layout allow-responsive"
+>
+  <div
+    className="split-layout-child"
+  >
+    child #1
+  </div>
+  <div
+    className="split-layout-child"
+  >
+    child #2
+  </div>
+  <div
+    className="split-layout-child"
+  >
+    child #3
+  </div>
+</SpreadLayout>
+`;

@@ -1,0 +1,367 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`EventOrGroupHeader Event hides level tag 1`] = `
+<div
+  className="event-issue-header"
+>
+  <h3
+    className="truncate"
+  >
+    <Link
+      onlyActiveOnIndex={false}
+      style={Object {}}
+      to="/orgId/projectId/issues/groupID/events/id/"
+    >
+      <span
+        className="icon icon-soundoff"
+      />
+      <span
+        className="icon icon-star-solid"
+      />
+      <EventOrGroupTitle
+        data={
+          Object {
+            "culprit": undefined,
+            "eventID": "eventID",
+            "groupID": "groupID",
+            "id": "id",
+            "metadata": Object {
+              "directive": "metadata directive",
+              "message": "metadata message",
+              "title": "metadata title",
+              "type": "metadata type",
+              "uri": "metadata uri",
+              "value": "metadata value",
+            },
+            "type": "default",
+          }
+        }
+        hideLevel={true}
+        orgId="orgId"
+        projectId="projectId"
+      />
+    </Link>
+  </h3>
+</div>
+`;
+
+exports[`EventOrGroupHeader Event renders with \`type = csp\` 1`] = `
+<div
+  className="event-issue-header"
+>
+  <h3
+    className="truncate"
+  >
+    <Link
+      onlyActiveOnIndex={false}
+      style={Object {}}
+      to="/orgId/projectId/issues/groupID/events/id/"
+    >
+      <span
+        className="icon icon-soundoff"
+      />
+      <span
+        className="icon icon-star-solid"
+      />
+      <EventOrGroupTitle
+        data={
+          Object {
+            "culprit": undefined,
+            "eventID": "eventID",
+            "groupID": "groupID",
+            "id": "id",
+            "metadata": Object {
+              "directive": "metadata directive",
+              "message": "metadata message",
+              "title": "metadata title",
+              "type": "metadata type",
+              "uri": "metadata uri",
+              "value": "metadata value",
+            },
+            "type": "csp",
+          }
+        }
+        orgId="orgId"
+        projectId="projectId"
+      />
+    </Link>
+  </h3>
+  <div
+    className="event-message truncate"
+  >
+    <span
+      className="message"
+    >
+      metadata message
+    </span>
+  </div>
+</div>
+`;
+
+exports[`EventOrGroupHeader Event renders with \`type = default\` 1`] = `
+<div
+  className="event-issue-header"
+>
+  <h3
+    className="truncate"
+  >
+    <Link
+      onlyActiveOnIndex={false}
+      style={Object {}}
+      to="/orgId/projectId/issues/groupID/events/id/"
+    >
+      <span
+        className="icon icon-soundoff"
+      />
+      <span
+        className="icon icon-star-solid"
+      />
+      <EventOrGroupTitle
+        data={
+          Object {
+            "culprit": undefined,
+            "eventID": "eventID",
+            "groupID": "groupID",
+            "id": "id",
+            "metadata": Object {
+              "directive": "metadata directive",
+              "message": "metadata message",
+              "title": "metadata title",
+              "type": "metadata type",
+              "uri": "metadata uri",
+              "value": "metadata value",
+            },
+            "type": "default",
+          }
+        }
+        orgId="orgId"
+        projectId="projectId"
+      />
+    </Link>
+  </h3>
+</div>
+`;
+
+exports[`EventOrGroupHeader Event renders with \`type = error\` 1`] = `
+<div
+  className="event-issue-header"
+>
+  <h3
+    className="truncate"
+  >
+    <Link
+      onlyActiveOnIndex={false}
+      style={Object {}}
+      to="/orgId/projectId/issues/groupID/events/id/"
+    >
+      <span
+        className="icon icon-soundoff"
+      />
+      <span
+        className="icon icon-star-solid"
+      />
+      <EventOrGroupTitle
+        data={
+          Object {
+            "culprit": undefined,
+            "eventID": "eventID",
+            "groupID": "groupID",
+            "id": "id",
+            "metadata": Object {
+              "directive": "metadata directive",
+              "message": "metadata message",
+              "title": "metadata title",
+              "type": "metadata type",
+              "uri": "metadata uri",
+              "value": "metadata value",
+            },
+            "type": "error",
+          }
+        }
+        orgId="orgId"
+        projectId="projectId"
+      />
+    </Link>
+  </h3>
+  <div
+    className="event-message truncate"
+  >
+    <span
+      className="message"
+    >
+      metadata value
+    </span>
+  </div>
+</div>
+`;
+
+exports[`EventOrGroupHeader Group renders with \`type = csp\` 1`] = `
+<div
+  className="event-issue-header"
+>
+  <h3
+    className="truncate"
+  >
+    <Link
+      onlyActiveOnIndex={false}
+      style={Object {}}
+      to="/orgId/projectId/issues/id/"
+    >
+      <span
+        className="error-level truncate"
+      >
+        error
+      </span>
+      <span
+        className="icon icon-soundoff"
+      />
+      <span
+        className="icon icon-star-solid"
+      />
+      <EventOrGroupTitle
+        data={
+          Object {
+            "culprit": "culprit",
+            "id": "id",
+            "level": "error",
+            "metadata": Object {
+              "directive": "metadata directive",
+              "message": "metadata message",
+              "title": "metadata title",
+              "type": "metadata type",
+              "uri": "metadata uri",
+              "value": "metadata value",
+            },
+            "type": "csp",
+          }
+        }
+        orgId="orgId"
+        projectId="projectId"
+      />
+    </Link>
+  </h3>
+  <div
+    className="event-message truncate"
+  >
+    <span
+      className="message"
+    >
+      metadata message
+    </span>
+  </div>
+</div>
+`;
+
+exports[`EventOrGroupHeader Group renders with \`type = default\` 1`] = `
+<div
+  className="event-issue-header"
+>
+  <h3
+    className="truncate"
+  >
+    <Link
+      onlyActiveOnIndex={false}
+      style={Object {}}
+      to="/orgId/projectId/issues/id/"
+    >
+      <span
+        className="error-level truncate"
+      >
+        error
+      </span>
+      <span
+        className="icon icon-soundoff"
+      />
+      <span
+        className="icon icon-star-solid"
+      />
+      <EventOrGroupTitle
+        data={
+          Object {
+            "culprit": "culprit",
+            "id": "id",
+            "level": "error",
+            "metadata": Object {
+              "directive": "metadata directive",
+              "message": "metadata message",
+              "title": "metadata title",
+              "type": "metadata type",
+              "uri": "metadata uri",
+              "value": "metadata value",
+            },
+            "type": "default",
+          }
+        }
+        orgId="orgId"
+        projectId="projectId"
+      />
+    </Link>
+  </h3>
+  <div
+    className="event-message truncate"
+  >
+    <span
+      className="message"
+    >
+      culprit
+    </span>
+  </div>
+</div>
+`;
+
+exports[`EventOrGroupHeader Group renders with \`type = error\` 1`] = `
+<div
+  className="event-issue-header"
+>
+  <h3
+    className="truncate"
+  >
+    <Link
+      onlyActiveOnIndex={false}
+      style={Object {}}
+      to="/orgId/projectId/issues/id/"
+    >
+      <span
+        className="error-level truncate"
+      >
+        error
+      </span>
+      <span
+        className="icon icon-soundoff"
+      />
+      <span
+        className="icon icon-star-solid"
+      />
+      <EventOrGroupTitle
+        data={
+          Object {
+            "culprit": "culprit",
+            "id": "id",
+            "level": "error",
+            "metadata": Object {
+              "directive": "metadata directive",
+              "message": "metadata message",
+              "title": "metadata title",
+              "type": "metadata type",
+              "uri": "metadata uri",
+              "value": "metadata value",
+            },
+            "type": "error",
+          }
+        }
+        orgId="orgId"
+        projectId="projectId"
+      />
+    </Link>
+  </h3>
+  <div
+    className="event-message truncate"
+  >
+    <span
+      className="message"
+    >
+      metadata value
+    </span>
+  </div>
+</div>
+`;
