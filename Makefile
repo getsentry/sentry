@@ -118,6 +118,14 @@ test-python:
 	py.test tests/integration tests/sentry || exit 1
 	@echo ""
 
+test-network:
+	@echo "--> Building platform assets"
+ 	sentry init
+	@echo "from sentry.utils.integrationdocs import sync_docs; sync_docs()" | sentry exec
+	@echo "--> Running network tests"
+	py.test tests/network
+	@echo ""
+
 test-acceptance:
 	@echo "--> Building static assets"
 	@${NPM_ROOT}/.bin/webpack
@@ -217,6 +225,7 @@ travis-test-sqlite: test-python-coverage
 travis-test-postgres: test-python-coverage
 travis-test-mysql: test-python-coverage
 travis-test-acceptance: test-acceptance
+travis-test-network: test-network
 travis-test-js: test-js
 travis-test-cli: test-cli
 travis-test-dist:

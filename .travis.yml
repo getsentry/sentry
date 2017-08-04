@@ -67,6 +67,10 @@ matrix:
         - redis-server
         - postgresql
     - python: 2.7
+      env: TEST_SUITE=network DB=postgres
+      services:
+        - postgresql
+    - python: 2.7
       env: TEST_SUITE=mysql DB=mysql
       services:
         - memcached
