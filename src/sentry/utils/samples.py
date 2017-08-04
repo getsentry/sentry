@@ -202,8 +202,6 @@ def create_sample_event(project, platform=None, default=None, raw=True, sample_n
 
     data.update(kwargs)
 
-    data['level'] = 0
-
     manager = EventManager(data)
     manager.normalize()
     return manager.save(project.id, raw=raw)
