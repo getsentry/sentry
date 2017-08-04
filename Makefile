@@ -118,6 +118,9 @@ test-js:
 	@echo ""
 
 test-python:
+	@echo "--> Building platform assets"
+	sentry init
+	@echo "from sentry.utils.integrationdocs import sync_docs; sync_docs()" | sentry exec
 	@echo "--> Running Python tests"
 	py.test tests/integration tests/sentry || exit 1
 	@echo ""
@@ -141,6 +144,9 @@ test-acceptance:
 	@echo ""
 
 test-python-coverage:
+	@echo "--> Building platform assets"
+	sentry init
+	@echo "from sentry.utils.integrationdocs import sync_docs; sync_docs()" | sentry exec
 	@echo "--> Running Python tests"
 	SOUTH_TESTS_MIGRATE=1 coverage run --source=src/sentry -m py.test tests/integration tests/sentry
 	@echo ""
