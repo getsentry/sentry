@@ -15,9 +15,6 @@ storiesOf('Formatters', module)
     () => (
       <div>
         <div>
-          <DateTime />
-        </div>
-        <div>
           <DateTime date={1500000000000} />
         </div>
         <div>
