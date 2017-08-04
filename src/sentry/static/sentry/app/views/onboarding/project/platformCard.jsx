@@ -14,7 +14,9 @@ const PlatformCard = React.createClass({
     let platform = flattenedPlatforms.find(p => p.id === this.props.platform);
 
     return (
-      <span className={classnames('platform-card', this.props.className)}>
+      <span
+        className={classnames('platform-card', this.props.className)}
+        onClick={this.props.onClick}>
         <PlatformiconTile {...this.props} />
         <h5> {platform.name} </h5>
       </span>

@@ -8,10 +8,6 @@ import ProjectDocsContext from '../../projectInstall/docsContext';
 import ProjectInstallPlatform from '../../projectInstall/platform';
 
 const Configure = React.createClass({
-  propTypes: {
-    next: React.PropTypes.func
-  },
-
   mixins: [ApiMixin],
 
   componentWillMount() {
