@@ -131,6 +131,9 @@ test-network:
 	@echo ""
 
 test-acceptance:
+	@echo "--> Building platform assets"
+	sentry init
+	@echo "from sentry.utils.integrationdocs import sync_docs; sync_docs()" | sentry exec
 	@echo "--> Building static assets"
 	@${NPM_ROOT}/.bin/webpack
 	@echo "--> Running acceptance tests"
