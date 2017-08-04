@@ -120,7 +120,7 @@ test-python:
 
 test-network:
 	@echo "--> Building platform assets"
- 	sentry init
+	sentry init
 	@echo "from sentry.utils.integrationdocs import sync_docs; sync_docs()" | sentry exec
 	@echo "--> Running network tests"
 	py.test tests/network
