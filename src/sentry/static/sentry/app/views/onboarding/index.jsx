@@ -26,19 +26,18 @@ const OnboardingWizard = React.createClass({
   },
 
   renderStep() {
+    let {projectName, platform} = this.state;
+
     const stepProps = {
       next: this.next,
-      platform: this.state.platform,
+      platform: platform,
       setPlatform: p => {
-        if (
-          !this.state.projectName ||
-          getPlatformName(this.state.platform) === this.state.projectName
-        ) {
+        if (!projectName || (platform && getPlatformName(platform) === projectName)) {
           this.setState({projectName: getPlatformName(p)});
         }
         this.setState({platform: p});
       },
-      name: this.state.projectName,
+      name: projectName,
       setName: n => this.setState({projectName: n})
     };
 
