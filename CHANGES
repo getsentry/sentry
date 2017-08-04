@@ -1,5 +1,5 @@
-Version 8.19 (Unreleased)
--------------------------
+Version 8.19
+------------
 
 - Hide project filter when there are no projects to list.
 - Added lookup methods to constants to get a unique `integration_id` for a given

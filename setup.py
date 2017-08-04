@@ -45,7 +45,7 @@ sys.path.insert(0, os.path.join(ROOT, 'src'))
 from sentry.utils.distutils import (BuildAssetsCommand, BuildIntegrationDocsCommand)
 
 # The version of sentry
-VERSION = '8.19.0.dev0'
+VERSION = '8.19.0'
 
 # Hack to prevent stupid "TypeError: 'NoneType' object is not callable" error
 # in multiprocessing/util.py _exit_function when running `python
