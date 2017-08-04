@@ -7,7 +7,7 @@
   },
   "dependencies": {
     "babel-core": "6.21.0",
-    "babel-gettext-extractor": "^2.0.0",
+    "babel-gettext-extractor": "^3.0.0",
     "babel-loader": "^7.0.0",
     "babel-plugin-add-module-exports": "^0.2.1",
     "babel-plugin-idx": "^1.5.1",
