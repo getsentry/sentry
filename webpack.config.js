@@ -182,7 +182,6 @@ var appConfig = {
   },
   output: {
     path: distPath,
-    publicPath: '/_static/sentry/dist/',
     filename: '[name].js',
     libraryTarget: 'var',
     library: 'exports',
