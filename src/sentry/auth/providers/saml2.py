@@ -2,8 +2,7 @@ from __future__ import absolute_import, print_function
 
 from django.conf import settings
 from django.core.urlresolvers import reverse
-from django.http import (HttpResponse, HttpResponseRedirect,
-                         HttpResponseServerError)
+from django.http import (HttpResponse, HttpResponseRedirect, HttpResponseServerError)
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 
@@ -11,17 +10,14 @@ from onelogin.saml2.auth import OneLogin_Saml2_Auth, OneLogin_Saml2_Settings
 
 from sentry.auth import Provider, AuthView
 from sentry.auth.exceptions import IdentityNotValid
-from sentry.models import (AuthProvider, Organization, OrganizationStatus,
-                           User, UserEmail)
+from sentry.models import (AuthProvider, Organization, OrganizationStatus, User, UserEmail)
 from sentry.utils.http import absolute_uri
 from sentry.utils.auth import login, get_login_redirect
 
 
 def get_provider(organization_slug):
     try:
-        organization = Organization.objects.get(
-            slug=organization_slug
-        )
+        organization = Organization.objects.get(slug=organization_slug)
     except Organization.DoesNotExist:
         return HttpResponseRedirect(reverse('sentry-login'))
 
@@ -29,9 +25,7 @@ def get_provider(organization_slug):
         return HttpResponseRedirect(reverse('sentry-login'))
 
     try:
-        auth_provider = AuthProvider.objects.get(
-            organization=organization
-        )
+        auth_provider = AuthProvider.objects.get(organization=organization)
         return auth_provider.get_provider()
     except AuthProvider.DoesNotExist:
         return HttpResponseRedirect(reverse('sentry-login'))
@@ -65,25 +59,28 @@ class SAML2ACSView(AuthView):
         email = self.retrieve_email(attributes, nameid, provider.config)
 
         # Filter users based on the emails provided in the commits
-        user_emails = list(UserEmail.objects.filter(
-            email__iexact=email,
-            is_verified=True
-        ).order_by('id'))
+        user_emails = list(
+            UserEmail.objects.filter(email__iexact=email, is_verified=True).order_by('id')
+        )
 
         if user_emails:
-            users = list(User.objects.filter(
-                id__in=set((ue.user_id for ue in user_emails)),
-                is_active=True,
-                sentry_orgmember_set__organization_id=organization.id
-            )[0:2])
+            users = list(
+                User.objects.filter(
+                    id__in=set((ue.user_id for ue in user_emails)),
+                    is_active=True,
+                    sentry_orgmember_set__organization_id=organization.id
+                )[0:2]
+            )
             if users:
                 if len(users) == 1:
                     user = users[0]
                     user.backend = settings.AUTHENTICATION_BACKENDS[0]
-                    if login(request,
-                             user,
-                             after_2fa=request.build_absolute_uri(),
-                             organization_id=organization.id):
+                    if login(
+                        request,
+                        user,
+                        after_2fa=request.build_absolute_uri(),
+                        organization_id=organization.id
+                    ):
                         request.session['saml'] = {
                             'nameid': nameid,
                             'nameid_format': auth.get_nameid_format(),
@@ -91,25 +88,35 @@ class SAML2ACSView(AuthView):
                         }
                     return HttpResponseRedirect(get_login_redirect(request))
                 else:
-                    return HttpResponseServerError("Found several accounts related with %s on this organization" % email)
+                    return HttpResponseServerError(
+                        "Found several accounts related with %s on this organization" % email
+                    )
             else:
-                return HttpResponseServerError("The user %s is not related with this organization" % email)
+                return HttpResponseServerError(
+                    "The user %s is not related with this organization" % email
+                )
         else:
-            return HttpResponseServerError("An user with a verified mail: %s does not exist" % email)
+            return HttpResponseServerError(
+                "An user with a verified mail: %s does not exist" % email
+            )
 
     def retrieve_email(self, attributes, nameid, config):
         possible_mail = None
         if nameid and '@' in nameid:
             possible_mail = nameid
 
-        if attributes and 'attribute_mapping' in config and 'attribute_mapping_email' in config['attribute_mapping']:
+        if attributes and 'attribute_mapping' in config and 'attribute_mapping_email' in config[
+            'attribute_mapping'
+        ]:
             email_mapping = config['attribute_mapping']['attribute_mapping_email']
             if email_mapping and email_mapping in attributes:
                 return attributes[email_mapping][0]
             elif possible_mail:
                 return possible_mail
             else:
-                raise Exception("Email was not provided by the IdP and is required in order to execute the SAML process")
+                raise Exception(
+                    "Email was not provided by the IdP and is required in order to execute the SAML process"
+                )
         elif possible_mail:
             return possible_mail
         else:
@@ -117,7 +124,9 @@ class SAML2ACSView(AuthView):
 
     def retrieve_firstname(self, attributes, config):
         firstname = None
-        if attributes and 'attribute_mapping' in config and 'attribute_mapping_firstname' in config['attribute_mapping']:
+        if attributes and 'attribute_mapping' in config and 'attribute_mapping_firstname' in config[
+            'attribute_mapping'
+        ]:
             firstname_mapping = config['attribute_mapping']['attribute_mapping_firstname']
             if firstname_mapping and firstname_mapping in attributes:
                 firstname = attributes[firstname_mapping][0]
@@ -141,11 +150,8 @@ class SAML2MetadataView(AuthView):
 
 
 class SAML2Provider(Provider):
-
     def get_auth_pipeline(self):
-        return [
-            SAML2LoginView()
-        ]
+        return [SAML2LoginView()]
 
     def build_config(self, state):
         data = {}
@@ -165,7 +171,7 @@ class SAML2Provider(Provider):
 
     def build_identity(self, state):
         # return None   # TODO  If I return None, then a loop after execute the config
-                        # happens from organizations/<org>/auth/ to /auth/login/  /<org>/
+        # happens from organizations/<org>/auth/ to /auth/login/  /<org>/
         identity = {}
         if state and 'contact' in state:
             identity['id'] = state['contact']
@@ -173,7 +179,9 @@ class SAML2Provider(Provider):
         return identity
 
     def build_saml_config(self, org_slug):
-        metadata_url = absolute_uri(reverse('sentry-auth-organization-saml-metadata', args=[org_slug]))
+        metadata_url = absolute_uri(
+            reverse('sentry-auth-organization-saml-metadata', args=[org_slug])
+        )
         acs_url = absolute_uri(reverse('sentry-auth-organization-saml-acs', args=[org_slug]))
 
         saml_config = {}
