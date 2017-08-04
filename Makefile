@@ -3,7 +3,7 @@ MAKEFLAGS += --jobs=$(CPUS)
 NPM_ROOT = ./node_modules
 STATIC_DIR = src/sentry/static/sentry
 
-develop-only: update-submodules install-python install-yarn
+develop-only: update-submodules install-brew install-python install-yarn
 
 develop: setup-git develop-only
 	@echo ""
@@ -16,6 +16,9 @@ install-yarn:
 	# Fix phantomjs-prebuilt not installed via yarn
 	# See: https://github.com/karma-runner/karma-phantomjs-launcher/issues/120#issuecomment-262634703
 	node ./node_modules/phantomjs-prebuilt/install.js
+
+install-brew:
+	@hash brew 2> /dev/null && brew bundle || (echo '! Homebrew not found, skipping system dependencies.')
 
 install-python:
 	# must be executed serialially
