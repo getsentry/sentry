@@ -193,6 +193,7 @@ travis-install-mysql: travis-install-python
 	pip install mysqlclient
 	echo 'create database sentry;' | mysql -uroot
 travis-install-acceptance: install-yarn travis-install-postgres
+travis-install-network: travis-install-postgres
 travis-install-js:
 	$(MAKE) travis-upgrade-pip
 	$(MAKE) install-python install-yarn
