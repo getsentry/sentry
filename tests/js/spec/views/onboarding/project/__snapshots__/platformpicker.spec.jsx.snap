@@ -495,6 +495,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
       >
         <span
           className="platform-card"
+          onClick={[Function]}
         >
           <PlatformiconTile
             className=""
@@ -524,6 +525,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
       >
         <span
           className="platform-card"
+          onClick={[Function]}
         >
           <PlatformiconTile
             className=""
@@ -553,6 +555,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
       >
         <span
           className="platform-card"
+          onClick={[Function]}
         >
           <PlatformiconTile
             className=""
@@ -582,6 +585,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
       >
         <span
           className="platform-card"
+          onClick={[Function]}
         >
           <PlatformiconTile
             className=""
@@ -611,6 +615,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
       >
         <span
           className="platform-card"
+          onClick={[Function]}
         >
           <PlatformiconTile
             className=""
@@ -640,6 +645,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
       >
         <span
           className="platform-card"
+          onClick={[Function]}
         >
           <PlatformiconTile
             className=""
@@ -669,6 +675,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
       >
         <span
           className="platform-card"
+          onClick={[Function]}
         >
           <PlatformiconTile
             className=""
@@ -698,6 +705,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
       >
         <span
           className="platform-card"
+          onClick={[Function]}
         >
           <PlatformiconTile
             className=""
@@ -727,6 +735,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
       >
         <span
           className="platform-card"
+          onClick={[Function]}
         >
           <PlatformiconTile
             className=""
@@ -756,6 +765,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
       >
         <span
           className="platform-card"
+          onClick={[Function]}
         >
           <PlatformiconTile
             className=""
@@ -785,6 +795,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
       >
         <span
           className="platform-card"
+          onClick={[Function]}
         >
           <PlatformiconTile
             className=""
@@ -814,6 +825,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
       >
         <span
           className="platform-card"
+          onClick={[Function]}
         >
           <PlatformiconTile
             className=""
@@ -843,6 +855,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
       >
         <span
           className="platform-card"
+          onClick={[Function]}
         >
           <PlatformiconTile
             className=""
@@ -872,6 +885,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
       >
         <span
           className="platform-card"
+          onClick={[Function]}
         >
           <PlatformiconTile
             className=""
@@ -901,6 +915,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
       >
         <span
           className="platform-card"
+          onClick={[Function]}
         >
           <PlatformiconTile
             className=""
@@ -930,6 +945,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
       >
         <span
           className="platform-card"
+          onClick={[Function]}
         >
           <PlatformiconTile
             className=""
@@ -959,6 +975,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
       >
         <span
           className="platform-card"
+          onClick={[Function]}
         >
           <PlatformiconTile
             className=""
@@ -988,6 +1005,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
       >
         <span
           className="platform-card"
+          onClick={[Function]}
         >
           <PlatformiconTile
             className=""
@@ -1017,6 +1035,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
       >
         <span
           className="platform-card"
+          onClick={[Function]}
         >
           <PlatformiconTile
             className=""
@@ -1046,6 +1065,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
       >
         <span
           className="platform-card"
+          onClick={[Function]}
         >
           <PlatformiconTile
             className=""
@@ -1075,6 +1095,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
       >
         <span
           className="platform-card"
+          onClick={[Function]}
         >
           <PlatformiconTile
             className=""
@@ -1104,6 +1125,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
       >
         <span
           className="platform-card"
+          onClick={[Function]}
         >
           <PlatformiconTile
             className=""
@@ -1133,6 +1155,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
       >
         <span
           className="platform-card"
+          onClick={[Function]}
         >
           <PlatformiconTile
             className=""
@@ -1162,6 +1185,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
       >
         <span
           className="platform-card"
+          onClick={[Function]}
         >
           <PlatformiconTile
             className=""
@@ -1191,6 +1215,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
       >
         <span
           className="platform-card"
+          onClick={[Function]}
         >
           <PlatformiconTile
             className=""
@@ -1220,6 +1245,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
       >
         <span
           className="platform-card"
+          onClick={[Function]}
         >
           <PlatformiconTile
             className=""
@@ -1249,6 +1275,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
       >
         <span
           className="platform-card"
+          onClick={[Function]}
         >
           <PlatformiconTile
             className=""
@@ -1278,6 +1305,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
       >
         <span
           className="platform-card"
+          onClick={[Function]}
         >
           <PlatformiconTile
             className=""
@@ -1307,6 +1335,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
       >
         <span
           className="platform-card"
+          onClick={[Function]}
         >
           <PlatformiconTile
             className=""
@@ -1336,6 +1365,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
       >
         <span
           className="platform-card"
+          onClick={[Function]}
         >
           <PlatformiconTile
             className=""
@@ -1365,6 +1395,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
       >
         <span
           className="platform-card"
+          onClick={[Function]}
         >
           <PlatformiconTile
             className=""
@@ -1394,6 +1425,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
       >
         <span
           className="platform-card"
+          onClick={[Function]}
         >
           <PlatformiconTile
             className=""
@@ -1423,6 +1455,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
       >
         <span
           className="platform-card"
+          onClick={[Function]}
         >
           <PlatformiconTile
             className=""
@@ -1452,6 +1485,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
       >
         <span
           className="platform-card"
+          onClick={[Function]}
         >
           <PlatformiconTile
             className=""
@@ -1481,6 +1515,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
       >
         <span
           className="platform-card"
+          onClick={[Function]}
         >
           <PlatformiconTile
             className=""
@@ -1510,6 +1545,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
       >
         <span
           className="platform-card"
+          onClick={[Function]}
         >
           <PlatformiconTile
             className=""
@@ -1539,6 +1575,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
       >
         <span
           className="platform-card"
+          onClick={[Function]}
         >
           <PlatformiconTile
             className=""
@@ -1568,6 +1605,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
       >
         <span
           className="platform-card"
+          onClick={[Function]}
         >
           <PlatformiconTile
             className=""
@@ -1597,6 +1635,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
       >
         <span
           className="platform-card"
+          onClick={[Function]}
         >
           <PlatformiconTile
             className=""
@@ -1626,6 +1665,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
       >
         <span
           className="platform-card"
+          onClick={[Function]}
         >
           <PlatformiconTile
             className=""
@@ -1655,6 +1695,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
       >
         <span
           className="platform-card"
+          onClick={[Function]}
         >
           <PlatformiconTile
             className=""
@@ -1684,6 +1725,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
       >
         <span
           className="platform-card"
+          onClick={[Function]}
         >
           <PlatformiconTile
             className=""
@@ -1713,6 +1755,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
       >
         <span
           className="platform-card"
+          onClick={[Function]}
         >
           <PlatformiconTile
             className=""

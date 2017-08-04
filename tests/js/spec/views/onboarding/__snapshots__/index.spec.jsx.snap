@@ -273,6 +273,7 @@ exports[`OnboardingWizard render() should fill in project name if its empty when
                     >
                       <span
                         className="platform-card selected"
+                        onClick={[Function]}
                       >
                         <PlatformiconTile
                           className="selected"
@@ -302,6 +303,7 @@ exports[`OnboardingWizard render() should fill in project name if its empty when
                     >
                       <span
                         className="platform-card"
+                        onClick={[Function]}
                       >
                         <PlatformiconTile
                           className=""
@@ -331,6 +333,7 @@ exports[`OnboardingWizard render() should fill in project name if its empty when
                     >
                       <span
                         className="platform-card"
+                        onClick={[Function]}
                       >
                         <PlatformiconTile
                           className=""
@@ -360,6 +363,7 @@ exports[`OnboardingWizard render() should fill in project name if its empty when
                     >
                       <span
                         className="platform-card"
+                        onClick={[Function]}
                       >
                         <PlatformiconTile
                           className=""
@@ -389,6 +393,7 @@ exports[`OnboardingWizard render() should fill in project name if its empty when
                     >
                       <span
                         className="platform-card"
+                        onClick={[Function]}
                       >
                         <PlatformiconTile
                           className=""
@@ -418,6 +423,7 @@ exports[`OnboardingWizard render() should fill in project name if its empty when
                     >
                       <span
                         className="platform-card"
+                        onClick={[Function]}
                       >
                         <PlatformiconTile
                           className=""
@@ -447,6 +453,7 @@ exports[`OnboardingWizard render() should fill in project name if its empty when
                     >
                       <span
                         className="platform-card"
+                        onClick={[Function]}
                       >
                         <PlatformiconTile
                           className=""
@@ -476,6 +483,7 @@ exports[`OnboardingWizard render() should fill in project name if its empty when
                     >
                       <span
                         className="platform-card"
+                        onClick={[Function]}
                       >
                         <PlatformiconTile
                           className=""
@@ -505,6 +513,7 @@ exports[`OnboardingWizard render() should fill in project name if its empty when
                     >
                       <span
                         className="platform-card"
+                        onClick={[Function]}
                       >
                         <PlatformiconTile
                           className=""
@@ -534,6 +543,7 @@ exports[`OnboardingWizard render() should fill in project name if its empty when
                     >
                       <span
                         className="platform-card"
+                        onClick={[Function]}
                       >
                         <PlatformiconTile
                           className=""
@@ -563,6 +573,7 @@ exports[`OnboardingWizard render() should fill in project name if its empty when
                     >
                       <span
                         className="platform-card"
+                        onClick={[Function]}
                       >
                         <PlatformiconTile
                           className=""
