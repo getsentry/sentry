@@ -1,6 +1,5 @@
 import React from 'react';
 import {shallow} from 'enzyme';
-import toJson from 'enzyme-to-json';
 
 import AdminSettings from 'app/views/adminSettings';
 
@@ -121,7 +120,7 @@ describe('AdminSettings', function() {
           router: TestStubs.router()
         }
       });
-      expect(toJson(wrapper)).toMatchSnapshot();
+      expect(wrapper).toMatchSnapshot();
     });
   });
 });

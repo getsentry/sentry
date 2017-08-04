@@ -81,6 +81,7 @@
     "lint": "node_modules/.bin/eslint tests/js src/sentry/static/sentry/app --ext .jsx"
   },
   "jest": {
+    "snapshotSerializers": ["enzyme-to-json/serializer"],
     "modulePaths": [
       "<rootDir>/src/sentry/static/sentry"
     ],

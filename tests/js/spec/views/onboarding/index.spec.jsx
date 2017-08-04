@@ -1,6 +1,5 @@
 import React from 'react';
 import {shallow, mount} from 'enzyme';
-import toJson from 'enzyme-to-json';
 
 import {Client} from 'app/api';
 import OnboardingWizard from 'app/views/onboarding/';
@@ -36,7 +35,7 @@ describe('OnboardingWizard', function() {
       let wrapper = shallow(<OnboardingWizard {...props} />, {
         organization: {id: '1337', slug: 'testOrg'}
       });
-      expect(toJson(wrapper)).toMatchSnapshot();
+      expect(wrapper).toMatchSnapshot();
     });
 
     it('should fill in project name if its empty when platform is chosen', function() {
@@ -79,7 +78,7 @@ describe('OnboardingWizard', function() {
       node.props().onClick();
       expect(wrapper.state().projectName).toBe('another');
 
-      expect(toJson(wrapper)).toMatchSnapshot();
+      expect(wrapper).toMatchSnapshot();
     });
   });
 });
