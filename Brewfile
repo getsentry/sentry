@@ -1,0 +1,6 @@
+brew 'nodejs'
+brew 'openssl'
+brew 'postgresql'
+brew 'python'
+brew 'redis'
+brew 'yarn'
