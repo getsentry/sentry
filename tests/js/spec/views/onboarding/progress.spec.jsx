@@ -1,6 +1,5 @@
 import React from 'react';
 import {shallow} from 'enzyme';
-import toJson from 'enzyme-to-json';
 
 import ProgressNodes from 'app/views/onboarding/progress';
 
@@ -29,7 +28,7 @@ describe('ProgressNodes', function() {
 
       expect(wrapper.find('.done')).toHaveLength(2);
 
-      expect(toJson(wrapper)).toMatchSnapshot();
+      expect(wrapper).toMatchSnapshot();
     });
 
     it('should render step 1 if has projectId', function() {
@@ -50,7 +49,7 @@ describe('ProgressNodes', function() {
 
       expect(wrapper.find('.done')).toHaveLength(4);
 
-      expect(toJson(wrapper)).toMatchSnapshot();
+      expect(wrapper).toMatchSnapshot();
     });
   });
 });

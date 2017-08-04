@@ -1,6 +1,5 @@
 import React from 'react';
 import {shallow} from 'enzyme';
-import toJson from 'enzyme-to-json';
 
 import CustomResolutionModal from 'app/components/customResolutionModal';
 
@@ -15,7 +14,7 @@ describe('CustomResolutionModal', function() {
           onSelected={() => false}
         />
       );
-      expect(toJson(wrapper)).toMatchSnapshot();
+      expect(wrapper).toMatchSnapshot();
     });
   });
 });
