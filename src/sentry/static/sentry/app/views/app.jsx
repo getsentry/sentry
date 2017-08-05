@@ -1,3 +1,7 @@
+/*global __webpack_public_path__ */
+/*eslint no-undef:0, no-native-reassign:0 */
+if (window.globalStaticUrl) __webpack_public_path__ = globalStaticUrl; // defined in layout.html
+
 import React from 'react';
 import $ from 'jquery';
 import Cookies from 'js-cookie';

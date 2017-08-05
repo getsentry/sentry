@@ -13,6 +13,7 @@
   "plugins": [
     "transform-class-properties",
     "transform-object-rest-spread",
+    "syntax-dynamic-import",
     "lodash",
     [
       "babel-plugin-transform-builtin-extend",

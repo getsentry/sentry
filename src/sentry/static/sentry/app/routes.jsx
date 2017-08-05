@@ -20,9 +20,7 @@ import AdminQueue from './views/adminQueue';
 import AdminSettings from './views/adminSettings';
 import AdminUsers from './views/adminUsers';
 import App from './views/app';
-import GroupActivity from './views/groupActivity';
 import GroupDetails from './views/groupDetails';
-import GroupEventDetails from './views/groupEventDetails';
 import GroupEvents from './views/groupEvents';
 import GroupTags from './views/groupTags';
 import GroupTagValues from './views/groupTagValues';
@@ -77,8 +75,6 @@ import ReleaseDetails from './views/releaseDetails';
 import ReleaseNewEvents from './views/releaseNewEvents';
 import ReleaseOverview from './views/releases/releaseOverview';
 import RouteNotFound from './views/routeNotFound';
-import SharedGroupDetails from './views/sharedGroupDetails';
-import Stream from './views/stream';
 import TeamCreate from './views/teamCreate';
 import TeamDetails from './views/teamDetails';
 import TeamMembers from './views/teamMembers';
@@ -93,6 +89,10 @@ function appendTrailingSlash(nextState, replaceState) {
   if (lastChar !== '/') {
     replaceState(nextState, nextState.location.pathname + '/');
   }
+}
+
+function loadRoute(cb) {
+  return module => cb(null, module.default);
 }
 
 function routes() {
@@ -141,7 +141,12 @@ function routes() {
       </Route>
 
       <Redirect from="/share/group/:shareId/" to="/share/issue/:shareId/" />
-      <Route path="/share/issue/:shareId/" component={errorHandler(SharedGroupDetails)} />
+      <Route
+        path="/share/issue/:shareId/"
+        getComponent={(loc, cb) => {
+          import('./views/sharedGroupDetails').then(loadRoute(cb));
+        }}
+      />
 
       <Route path="/organizations/new/" component={errorHandler(OrganizationCreate)} />
 
@@ -235,8 +240,17 @@ function routes() {
         </Route>
 
         <Route path=":projectId/" component={errorHandler(ProjectDetails)}>
-          <IndexRoute component={errorHandler(Stream)} />
-          <Route path="searches/:searchId/" component={errorHandler(Stream)} />
+          <IndexRoute
+            getComponent={(loc, cb) => {
+              import('./views/stream').then(loadRoute(cb));
+            }}
+          />
+          <Route
+            path="searches/:searchId/"
+            getComponent={(loc, cb) => {
+              import('./views/stream').then(loadRoute(cb));
+            }}
+          />
           <Route path="dashboard/" component={errorHandler(ProjectDashboard)} />
           <Route path="events/" component={errorHandler(ProjectEvents)} />
           <Route path="releases/" component={errorHandler(ProjectReleases)} />
@@ -285,14 +299,25 @@ function routes() {
             </Route>
           </Route>
           <Redirect from="group/:groupId/" to="issues/:groupId/" />
-          <Route
-            path="issues/:groupId/"
-            component={errorHandler(GroupDetails)}
-            ignoreScrollBehavior>
-            <IndexRoute component={errorHandler(GroupEventDetails)} />
+          <Route path="issues/:groupId/" component={GroupDetails} ignoreScrollBehavior>
+            <IndexRoute
+              getComponent={(loc, cb) => {
+                import('./views/groupEventDetails').then(loadRoute(cb));
+              }}
+            />
 
-            <Route path="activity/" component={errorHandler(GroupActivity)} />
-            <Route path="events/:eventId/" component={errorHandler(GroupEventDetails)} />
+            <Route
+              path="activity/"
+              getComponent={(loc, cb) => {
+                import('./views/groupActivity').then(loadRoute(cb));
+              }}
+            />
+            <Route
+              path="events/:eventId/"
+              getComponent={(loc, cb) => {
+                import('./views/groupEventDetails').then(loadRoute(cb));
+              }}
+            />
             <Route path="events/" component={errorHandler(GroupEvents)} />
             <Route path="tags/" component={errorHandler(GroupTags)} />
             <Route path="tags/:tagKey/" component={errorHandler(GroupTagValues)} />
