@@ -60,6 +60,45 @@ class SensitiveDataFilterTest(TestCase):
         assert 'apiKey' in vars
         assert vars['apiKey'] == FILTER_MASK
 
+    def test_message(self):
+        data = {
+            'message':
+            'something happened when calling https://ab:cd@foobar.com, credit card number %s',
+            'params': ['4111111111111111'],
+            'formatted':
+            'something happened when calling https://ab:cd@foobar.com, credit card number 4111111111111111',
+            'sentry.interfaces.Message': {
+                'message':
+                'something happened when calling https://ab:cd@foobar.com, credit card number %s',
+                'params': ['4111111111111111'],
+                'formatted':
+                'something happened when calling https://ab:cd@foobar.com, credit card number 4111111111111111'
+            }
+        }
+
+        proc = SensitiveDataFilter()
+        proc.apply(data)
+
+        assert 'message' in data
+        assert data[
+            'message'
+        ] == 'something happened when calling https://ab:[Filtered]@foobar.com, credit card number %s'
+        assert 'params' in data
+        assert data['params'] == ['[Filtered]']
+        assert 'formatted' in data
+        assert data['formatted'] == '[Filtered]'
+        assert 'sentry.interfaces.Message' in data
+
+        interface_msg = data['sentry.interfaces.Message']
+        assert 'message' in interface_msg
+        assert interface_msg[
+            'message'
+        ] == 'something happened when calling https://ab:[Filtered]@foobar.com, credit card number %s'
+        assert 'params' in interface_msg
+        assert interface_msg['params'] == ['[Filtered]']
+        assert 'formatted' in interface_msg
+        assert interface_msg['formatted'] == '[Filtered]'
+
     def test_stacktrace(self):
         data = {
             'sentry.interfaces.Stacktrace': {

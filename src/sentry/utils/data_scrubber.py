@@ -73,6 +73,12 @@ class SensitiveDataFilter(object):
 
     def apply(self, data):
         # TODO(dcramer): move this into each interface
+        if 'sentry.interfaces.Message' in data:
+            self.filter_message(data['sentry.interfaces.Message'])
+
+        if 'message' in data:
+            self.filter_message(data)
+
         if 'sentry.interfaces.Stacktrace' in data:
             self.filter_stacktrace(data['sentry.interfaces.Stacktrace'])
 
@@ -131,6 +137,16 @@ class SensitiveDataFilter(object):
             if field in key and value not in NOT_SCRUBBED_VALUES:
                 return FILTER_MASK
         return value
+
+    def filter_message(self, data):
+        for property in ['message', 'formatted']:
+            if property not in data:
+                continue
+            data[property] = self.sanitize(property, data[property])
+        for property in ['params']:
+            if property not in data:
+                continue
+            data[property] = varmap(self.sanitize, data[property])
 
     def filter_stacktrace(self, data):
         if 'frames' not in data:

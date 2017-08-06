@@ -1,6 +1,8 @@
 Version 8.20 (Unreleased)
 -------------------------
 
+- Let data scrubbers also work on issue messages
+
 Version 8.19
 ------------
 
