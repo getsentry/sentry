@@ -107,6 +107,7 @@ exports[`OnboardingWizard render() should fill in project name if its empty when
                 platform="csharp"
                 setName={[Function]}
                 setPlatform={[Function]}
+                showOther={true}
               >
                 <div
                   className="platform-picker"

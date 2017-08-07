@@ -329,6 +329,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
     }
   }
   setPlatform={[Function]}
+  showOther={true}
 >
   <div
     className="platform-picker"

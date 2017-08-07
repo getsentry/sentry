@@ -23,6 +23,7 @@ exports[`Project render() should render NotFound if no matching organization 1`]
     platform=""
     setName={[Function]}
     setPlatform={[Function]}
+    showOther={true}
   />
   <div
     className="project-name client-platform"
@@ -97,6 +98,7 @@ exports[`Project render() should set required class on empty submit 1`] = `
       platform=""
       setName={[Function]}
       setPlatform={[Function]}
+      showOther={true}
     >
       <div
         className="platform-picker"
