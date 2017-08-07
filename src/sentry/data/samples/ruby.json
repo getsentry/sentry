@@ -1,71 +1,744 @@
 {
-    "sentry.interfaces.Exception": {
-        "exc_omitted": null,
-        "values": [
-            {
-                "stacktrace": {
-                    "frames": [
-                        {
-                            "function": "<main>",
-                            "abs_path": "bin/raven",
-                            "pre_context": [
-                                "    if !dsn\n",
-                                "      puts \"Usage: raven test <dsn>\"\n",
-                                "    else\n"
-                            ],
-                            "post_context": [
-                                "    end\n",
-                                "  else\n",
-                                "    puts parser\n"
-                            ],
-                            "in_app": true,
-                            "lineno": 36,
-                            "filename": "bin/raven",
-                            "context_line": "      Raven::CLI::test(dsn)\n"
-                        },
-                        {
-                            "function": "test",
-                            "abs_path": "/Users/User/Development/raven-ruby/lib/raven/cli.rb",
-                            "pre_context": [
-                                "      puts \"\"\n",
-                                "\n",
-                                "      begin\n"
-                            ],
-                            "post_context": [
-                                "      rescue ZeroDivisionError => exception\n",
-                                "        evt = Raven.capture_exception(exception)\n",
-                                "      end\n"
-                            ],
-                            "in_app": false,
-                            "lineno": 31,
-                            "filename": "raven/cli.rb",
-                            "context_line": "        1 / 0\n"
-                        },
-                        {
-                            "function": "/",
-                            "abs_path": "/Users/User/Development/raven-ruby/lib/raven/cli.rb",
-                            "pre_context": [
-                                "      puts \"\"\n",
-                                "\n",
-                                "      begin\n"
-                            ],
-                            "post_context": [
-                                "      rescue ZeroDivisionError => exception\n",
-                                "        evt = Raven.capture_exception(exception)\n",
-                                "      end\n"
-                            ],
-                            "in_app": false,
-                            "lineno": 31,
-                            "filename": "raven/cli.rb",
-                            "context_line": "        1 / 0\n"
-                        }
-                    ],
-                    "frames_omitted": null
-                },
-                "type": "ZeroDivisionError",
-                "module": "",
-                "value": "divided by 0"
-            }
-        ]
+  "dist": null,
+  "platform": "ruby",
+  "culprit": "raven\/cli.rb in \/ at line 31",
+  "message": "ZeroDivisionError: divided by 0",
+  "tags": [
+    [
+      "transaction",
+      "raven\/cli.rb in \/ at line 31"
+    ],
+    [
+      "level",
+      "error"
+    ],
+    [
+      "environment",
+      "default"
+    ],
+    [
+      "logger",
+      "ruby"
+    ],
+  ],
+  "errors": [
+    
+  ],
+  "extra": {
+    "server": {
+      "runtime": {
+        "version": "ruby 2.4.1p111 (2017-03-22 revision 58053) [x86_64-darwin16]",
+        "name": "ruby"
+      },
+      "os": {
+        "name": "Darwin",
+        "build": "16.7.0"
+      }
     }
+  },
+  "fingerprint": [
+    "{{ default }}"
+  ],
+  "metadata": {
+    "type": "ZeroDivisionError",
+    "value": "divided by 0"
+  },
+  "modules": {
+    "sentry-raven": "2.6.2"
+  },
+  "sdk": {
+    "client_ip": "192.168.0.1",
+    "version": "2.6.2",
+    "name": "raven-ruby"
+  },
+  "sentry.interfaces.Exception": {
+    "exc_omitted": null,
+    "values": [
+      {
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "<main>",
+              "abs_path": "\/Users\/sentry\/.gem\/ruby\/2.4.1\/bin\/bundle",
+              "pre_context": [
+                "  end\n",
+                "end\n",
+                "\n"
+              ],
+              "post_context": [
+                "",
+                "",
+                ""
+              ],
+              "in_app": false,
+              "lineno": 22,
+              "filename": "\/Users\/sentry\/.gem\/ruby\/2.4.1\/bin\/bundle",
+              "context_line": "load Gem.activate_bin_path('bundler', 'bundle', version)\n"
+            },
+            {
+              "function": "load",
+              "abs_path": "\/Users\/sentry\/.gem\/ruby\/2.4.1\/bin\/bundle",
+              "pre_context": [
+                "  end\n",
+                "end\n",
+                "\n"
+              ],
+              "post_context": [
+                "",
+                "",
+                ""
+              ],
+              "in_app": false,
+              "lineno": 22,
+              "filename": "\/Users\/sentry\/.gem\/ruby\/2.4.1\/bin\/bundle",
+              "context_line": "load Gem.activate_bin_path('bundler', 'bundle', version)\n"
+            },
+            {
+              "function": "<top (required)>",
+              "abs_path": "\/Users\/sentry\/.gem\/ruby\/2.4.1\/gems\/bundler-1.15.3\/exe\/bundle",
+              "pre_context": [
+                "end\n",
+                "\n",
+                "require \"bundler\/friendly_errors\"\n"
+              ],
+              "post_context": [
+                "  require \"bundler\/cli\"\n",
+                "\n",
+                "  # Allow any command to use --help flag to show help for that command\n"
+              ],
+              "in_app": false,
+              "lineno": 22,
+              "filename": "\/Users\/sentry\/.gem\/ruby\/2.4.1\/gems\/bundler-1.15.3\/exe\/bundle",
+              "context_line": "Bundler.with_friendly_errors do\n"
+            },
+            {
+              "function": "with_friendly_errors",
+              "abs_path": "\/Users\/sentry\/.gem\/ruby\/2.4.1\/gems\/bundler-1.15.3\/lib\/bundler\/friendly_errors.rb",
+              "pre_context": [
+                "  end\n",
+                "\n",
+                "  def self.with_friendly_errors\n"
+              ],
+              "post_context": [
+                "  rescue Exception => e\n",
+                "    FriendlyErrors.log_error(e)\n",
+                "    exit FriendlyErrors.exit_status(e)\n"
+              ],
+              "in_app": false,
+              "lineno": 121,
+              "filename": "bundler\/friendly_errors.rb",
+              "context_line": "    yield\n"
+            },
+            {
+              "function": "block in <top (required)>",
+              "abs_path": "\/Users\/sentry\/.gem\/ruby\/2.4.1\/gems\/bundler-1.15.3\/exe\/bundle",
+              "pre_context": [
+                "  help_flag_used = ARGV.any? {|a| help_flags.include? a }\n",
+                "  args = help_flag_used ? Bundler::CLI.reformatted_help_args(ARGV) : ARGV\n",
+                "\n"
+              ],
+              "post_context": [
+                "end\n",
+                "",
+                ""
+              ],
+              "in_app": false,
+              "lineno": 30,
+              "filename": "\/Users\/sentry\/.gem\/ruby\/2.4.1\/gems\/bundler-1.15.3\/exe\/bundle",
+              "context_line": "  Bundler::CLI.start(args, :debug => true)\n"
+            },
+            {
+              "function": "start",
+              "abs_path": "\/Users\/sentry\/.gem\/ruby\/2.4.1\/gems\/bundler-1.15.3\/lib\/bundler\/cli.rb",
+              "pre_context": [
+                "    ).freeze\n",
+                "\n",
+                "    def self.start(*)\n"
+              ],
+              "post_context": [
+                "    rescue Exception => e\n",
+                "      Bundler.ui = UI::Shell.new\n",
+                "      raise e\n"
+              ],
+              "in_app": false,
+              "lineno": 13,
+              "filename": "bundler\/cli.rb",
+              "context_line": "      super\n"
+            },
+            {
+              "function": "start",
+              "abs_path": "\/Users\/sentry\/.gem\/ruby\/2.4.1\/gems\/bundler-1.15.3\/lib\/bundler\/vendor\/thor\/lib\/thor\/base.rb",
+              "pre_context": [
+                "      #\n",
+                "      def start(given_args = ARGV, config = {})\n",
+                "        config[:shell] ||= Bundler::Thor::Base.shell.new\n"
+              ],
+              "post_context": [
+                "      rescue Bundler::Thor::Error => e\n",
+                "        config[:debug] || ENV[\"THOR_DEBUG\"] == \"1\" ? (raise e) : config[:shell].error(e.message)\n",
+                "        exit(1) if exit_on_failure?\n"
+              ],
+              "in_app": false,
+              "lineno": 444,
+              "filename": "bundler\/vendor\/thor\/lib\/thor\/base.rb",
+              "context_line": "        dispatch(nil, given_args.dup, nil, config)\n"
+            },
+            {
+              "function": "dispatch",
+              "abs_path": "\/Users\/sentry\/.gem\/ruby\/2.4.1\/gems\/bundler-1.15.3\/lib\/bundler\/cli.rb",
+              "pre_context": [
+                "    end\n",
+                "\n",
+                "    def self.dispatch(*)\n"
+              ],
+              "post_context": [
+                "        i.send(:print_command)\n",
+                "        i.send(:warn_on_outdated_bundler)\n",
+                "      end\n"
+              ],
+              "in_app": false,
+              "lineno": 22,
+              "filename": "bundler\/cli.rb",
+              "context_line": "      super do |i|\n"
+            },
+            {
+              "function": "dispatch",
+              "abs_path": "\/Users\/sentry\/.gem\/ruby\/2.4.1\/gems\/bundler-1.15.3\/lib\/bundler\/vendor\/thor\/lib\/thor.rb",
+              "pre_context": [
+                "      yield instance if block_given?\n",
+                "      args = instance.args\n",
+                "      trailing = args[Range.new(arguments.size, -1)]\n"
+              ],
+              "post_context": [
+                "    end\n",
+                "\n",
+                "    # The banner for this class. You can customize it if you are invoking the\n"
+              ],
+              "in_app": false,
+              "lineno": 369,
+              "filename": "bundler\/vendor\/thor\/lib\/thor.rb",
+              "context_line": "      instance.invoke_command(command, trailing || [])\n"
+            },
+            {
+              "function": "invoke_command",
+              "abs_path": "\/Users\/sentry\/.gem\/ruby\/2.4.1\/gems\/bundler-1.15.3\/lib\/bundler\/vendor\/thor\/lib\/thor\/invocation.rb",
+              "pre_context": [
+                "\n",
+                "      unless current.include?(command.name)\n",
+                "        current << command.name\n"
+              ],
+              "post_context": [
+                "      end\n",
+                "    end\n",
+                "    alias_method :invoke_task, :invoke_command\n"
+              ],
+              "in_app": false,
+              "lineno": 126,
+              "filename": "bundler\/vendor\/thor\/lib\/thor\/invocation.rb",
+              "context_line": "        command.run(self, *args)\n"
+            },
+            {
+              "function": "run",
+              "abs_path": "\/Users\/sentry\/.gem\/ruby\/2.4.1\/gems\/bundler-1.15.3\/lib\/bundler\/vendor\/thor\/lib\/thor\/command.rb",
+              "pre_context": [
+                "        instance.class.handle_no_command_error(name)\n",
+                "      elsif public_method?(instance)\n",
+                "        arity = instance.method(name).arity\n"
+              ],
+              "post_context": [
+                "      elsif local_method?(instance, :method_missing)\n",
+                "        instance.__send__(:method_missing, name.to_sym, *args)\n",
+                "      else\n"
+              ],
+              "in_app": false,
+              "lineno": 27,
+              "filename": "bundler\/vendor\/thor\/lib\/thor\/command.rb",
+              "context_line": "        instance.__send__(name, *args)\n"
+            },
+            {
+              "function": "exec",
+              "abs_path": "\/Users\/sentry\/.gem\/ruby\/2.4.1\/gems\/bundler-1.15.3\/lib\/bundler\/cli.rb",
+              "pre_context": [
+                "    map \"e\" => \"exec\"\n",
+                "    def exec(*args)\n",
+                "      require \"bundler\/cli\/exec\"\n"
+              ],
+              "post_context": [
+                "    end\n",
+                "\n",
+                "    desc \"config NAME [VALUE]\", \"retrieve or set a configuration value\"\n"
+              ],
+              "in_app": false,
+              "lineno": 365,
+              "filename": "bundler\/cli.rb",
+              "context_line": "      Exec.new(options, args).run\n"
+            },
+            {
+              "function": "run",
+              "abs_path": "\/Users\/sentry\/.gem\/ruby\/2.4.1\/gems\/bundler-1.15.3\/lib\/bundler\/cli\/exec.rb",
+              "pre_context": [
+                "      SharedHelpers.set_bundle_environment\n",
+                "      if bin_path = Bundler.which(cmd)\n",
+                "        if !Bundler.settings[:disable_exec_load] && ruby_shebang?(bin_path)\n"
+              ],
+              "post_context": [
+                "        end\n",
+                "        # First, try to exec directly to something in PATH\n",
+                "        if Bundler.current_ruby.jruby_18?\n"
+              ],
+              "in_app": false,
+              "lineno": 27,
+              "filename": "bundler\/cli\/exec.rb",
+              "context_line": "          return kernel_load(bin_path, *args)\n"
+            },
+            {
+              "function": "kernel_load",
+              "abs_path": "\/Users\/sentry\/.gem\/ruby\/2.4.1\/gems\/bundler-1.15.3\/lib\/bundler\/cli\/exec.rb",
+              "pre_context": [
+                "      require \"bundler\/setup\"\n",
+                "      signals = Signal.list.keys - RESERVED_SIGNALS\n",
+                "      signals.each {|s| trap(s, \"DEFAULT\") }\n"
+              ],
+              "post_context": [
+                "    rescue SystemExit\n",
+                "      raise\n",
+                "    rescue Exception => e # rubocop:disable Lint\/RescueException\n"
+              ],
+              "in_app": false,
+              "lineno": 74,
+              "filename": "bundler\/cli\/exec.rb",
+              "context_line": "      Kernel.load(file)\n"
+            },
+            {
+              "function": "load",
+              "abs_path": "\/Users\/sentry\/.gem\/ruby\/2.4.1\/gems\/bundler-1.15.3\/lib\/bundler\/cli\/exec.rb",
+              "pre_context": [
+                "      require \"bundler\/setup\"\n",
+                "      signals = Signal.list.keys - RESERVED_SIGNALS\n",
+                "      signals.each {|s| trap(s, \"DEFAULT\") }\n"
+              ],
+              "post_context": [
+                "    rescue SystemExit\n",
+                "      raise\n",
+                "    rescue Exception => e # rubocop:disable Lint\/RescueException\n"
+              ],
+              "in_app": false,
+              "lineno": 74,
+              "filename": "bundler\/cli\/exec.rb",
+              "context_line": "      Kernel.load(file)\n"
+            },
+            {
+              "function": "<top (required)>",
+              "abs_path": "\/Users\/sentry\/Code\/codetriage\/vendor\/bundle\/ruby\/2.4.0\/bin\/rake",
+              "pre_context": [
+                "  end\n",
+                "end\n",
+                "\n"
+              ],
+              "post_context": [
+                "",
+                "",
+                ""
+              ],
+              "in_app": false,
+              "lineno": 22,
+              "filename": "bundle\/ruby\/2.4.0\/bin\/rake",
+              "context_line": "load Gem.activate_bin_path('rake', 'rake', version)\n"
+            },
+            {
+              "function": "load",
+              "abs_path": "\/Users\/sentry\/Code\/codetriage\/vendor\/bundle\/ruby\/2.4.0\/bin\/rake",
+              "pre_context": [
+                "  end\n",
+                "end\n",
+                "\n"
+              ],
+              "post_context": [
+                "",
+                "",
+                ""
+              ],
+              "in_app": false,
+              "lineno": 22,
+              "filename": "bundle\/ruby\/2.4.0\/bin\/rake",
+              "context_line": "load Gem.activate_bin_path('rake', 'rake', version)\n"
+            },
+            {
+              "function": "<top (required)>",
+              "abs_path": "\/Users\/sentry\/Code\/codetriage\/vendor\/bundle\/ruby\/2.4.0\/gems\/rake-10.5.0\/bin\/rake",
+              "pre_context": [
+                "\n",
+                "require 'rake'\n",
+                "\n"
+              ],
+              "post_context": [
+                "",
+                "",
+                ""
+              ],
+              "in_app": false,
+              "lineno": 33,
+              "filename": "bundle\/ruby\/2.4.0\/gems\/rake-10.5.0\/bin\/rake",
+              "context_line": "Rake.application.run\n"
+            },
+            {
+              "function": "run",
+              "abs_path": "\/Users\/sentry\/Code\/codetriage\/vendor\/bundle\/ruby\/2.4.0\/gems\/rake-10.5.0\/lib\/rake\/application.rb",
+              "pre_context": [
+                "    # +init+ on your application.  Then define any tasks.  Finally,\n",
+                "    # call +top_level+ to run your top level tasks.\n",
+                "    def run\n"
+              ],
+              "post_context": [
+                "        init\n",
+                "        load_rakefile\n",
+                "        top_level\n"
+              ],
+              "in_app": false,
+              "lineno": 75,
+              "filename": "rake\/application.rb",
+              "context_line": "      standard_exception_handling do\n"
+            },
+            {
+              "function": "standard_exception_handling",
+              "abs_path": "\/Users\/sentry\/Code\/codetriage\/vendor\/bundle\/ruby\/2.4.0\/gems\/rake-10.5.0\/lib\/rake\/application.rb",
+              "pre_context": [
+                "\n",
+                "    # Provide standard exception handling for the given block.\n",
+                "    def standard_exception_handling # :nodoc:\n"
+              ],
+              "post_context": [
+                "    rescue SystemExit\n",
+                "      # Exit silently with current status\n",
+                "      raise\n"
+              ],
+              "in_app": false,
+              "lineno": 176,
+              "filename": "rake\/application.rb",
+              "context_line": "      yield\n"
+            },
+            {
+              "function": "block in run",
+              "abs_path": "\/Users\/sentry\/Code\/codetriage\/vendor\/bundle\/ruby\/2.4.0\/gems\/rake-10.5.0\/lib\/rake\/application.rb",
+              "pre_context": [
+                "      standard_exception_handling do\n",
+                "        init\n",
+                "        load_rakefile\n"
+              ],
+              "post_context": [
+                "      end\n",
+                "    end\n",
+                "\n"
+              ],
+              "in_app": false,
+              "lineno": 78,
+              "filename": "rake\/application.rb",
+              "context_line": "        top_level\n"
+            },
+            {
+              "function": "top_level",
+              "abs_path": "\/Users\/sentry\/Code\/codetriage\/vendor\/bundle\/ruby\/2.4.0\/gems\/rake-10.5.0\/lib\/rake\/application.rb",
+              "pre_context": [
+                "\n",
+                "    # Run the top level tasks of a Rake application.\n",
+                "    def top_level\n"
+              ],
+              "post_context": [
+                "        if options.show_tasks\n",
+                "          display_tasks_and_comments\n",
+                "        elsif options.show_prereqs\n"
+              ],
+              "in_app": false,
+              "lineno": 100,
+              "filename": "rake\/application.rb",
+              "context_line": "      run_with_threads do\n"
+            },
+            {
+              "function": "run_with_threads",
+              "abs_path": "\/Users\/sentry\/Code\/codetriage\/vendor\/bundle\/ruby\/2.4.0\/gems\/rake-10.5.0\/lib\/rake\/application.rb",
+              "pre_context": [
+                "    def run_with_threads\n",
+                "      thread_pool.gather_history if options.job_stats == :history\n",
+                "\n"
+              ],
+              "post_context": [
+                "\n",
+                "      thread_pool.join\n",
+                "      if options.job_stats\n"
+              ],
+              "in_app": false,
+              "lineno": 115,
+              "filename": "rake\/application.rb",
+              "context_line": "      yield\n"
+            },
+            {
+              "function": "block in top_level",
+              "abs_path": "\/Users\/sentry\/Code\/codetriage\/vendor\/bundle\/ruby\/2.4.0\/gems\/rake-10.5.0\/lib\/rake\/application.rb",
+              "pre_context": [
+                "        elsif options.show_prereqs\n",
+                "          display_prerequisites\n",
+                "        else\n"
+              ],
+              "post_context": [
+                "        end\n",
+                "      end\n",
+                "    end\n"
+              ],
+              "in_app": false,
+              "lineno": 106,
+              "filename": "rake\/application.rb",
+              "context_line": "          top_level_tasks.each { |task_name| invoke_task(task_name) }\n"
+            },
+            {
+              "function": "each",
+              "abs_path": "\/Users\/sentry\/Code\/codetriage\/vendor\/bundle\/ruby\/2.4.0\/gems\/rake-10.5.0\/lib\/rake\/application.rb",
+              "pre_context": [
+                "        elsif options.show_prereqs\n",
+                "          display_prerequisites\n",
+                "        else\n"
+              ],
+              "post_context": [
+                "        end\n",
+                "      end\n",
+                "    end\n"
+              ],
+              "in_app": false,
+              "lineno": 106,
+              "filename": "rake\/application.rb",
+              "context_line": "          top_level_tasks.each { |task_name| invoke_task(task_name) }\n"
+            },
+            {
+              "function": "block (2 levels) in top_level",
+              "abs_path": "\/Users\/sentry\/Code\/codetriage\/vendor\/bundle\/ruby\/2.4.0\/gems\/rake-10.5.0\/lib\/rake\/application.rb",
+              "pre_context": [
+                "        elsif options.show_prereqs\n",
+                "          display_prerequisites\n",
+                "        else\n"
+              ],
+              "post_context": [
+                "        end\n",
+                "      end\n",
+                "    end\n"
+              ],
+              "in_app": false,
+              "lineno": 106,
+              "filename": "rake\/application.rb",
+              "context_line": "          top_level_tasks.each { |task_name| invoke_task(task_name) }\n"
+            },
+            {
+              "function": "invoke_task",
+              "abs_path": "\/Users\/sentry\/Code\/codetriage\/vendor\/bundle\/ruby\/2.4.0\/gems\/rake-10.5.0\/lib\/rake\/application.rb",
+              "pre_context": [
+                "    def invoke_task(task_string) # :nodoc:\n",
+                "      name, args = parse_task_string(task_string)\n",
+                "      t = self[name]\n"
+              ],
+              "post_context": [
+                "    end\n",
+                "\n",
+                "    def parse_task_string(string) # :nodoc:\n"
+              ],
+              "in_app": false,
+              "lineno": 150,
+              "filename": "rake\/application.rb",
+              "context_line": "      t.invoke(*args)\n"
+            },
+            {
+              "function": "invoke",
+              "abs_path": "\/Users\/sentry\/Code\/codetriage\/vendor\/bundle\/ruby\/2.4.0\/gems\/rake-10.5.0\/lib\/rake\/task.rb",
+              "pre_context": [
+                "    # Invoke the task if it is needed.  Prerequisites are invoked first.\n",
+                "    def invoke(*args)\n",
+                "      task_args = TaskArguments.new(arg_names, args)\n"
+              ],
+              "post_context": [
+                "    end\n",
+                "\n",
+                "    # Same as invoke, but explicitly pass a call chain to detect\n"
+              ],
+              "in_app": false,
+              "lineno": 165,
+              "filename": "rake\/task.rb",
+              "context_line": "      invoke_with_call_chain(task_args, InvocationChain::EMPTY)\n"
+            },
+            {
+              "function": "invoke_with_call_chain",
+              "abs_path": "\/Users\/sentry\/Code\/codetriage\/vendor\/bundle\/ruby\/2.4.0\/gems\/rake-10.5.0\/lib\/rake\/task.rb",
+              "pre_context": [
+                "    # circular dependencies.\n",
+                "    def invoke_with_call_chain(task_args, invocation_chain) # :nodoc:\n",
+                "      new_chain = InvocationChain.append(self, invocation_chain)\n"
+              ],
+              "post_context": [
+                "        if application.options.trace\n",
+                "          application.trace \"** Invoke #{name} #{format_trace_flags}\"\n",
+                "        end\n"
+              ],
+              "in_app": false,
+              "lineno": 172,
+              "filename": "rake\/task.rb",
+              "context_line": "      @lock.synchronize do\n"
+            },
+            {
+              "function": "mon_synchronize",
+              "abs_path": "\/Users\/sentry\/.rubies\/ruby-2.4.1\/lib\/ruby\/2.4.0\/monitor.rb",
+              "pre_context": [
+                "  def mon_synchronize\n",
+                "    mon_enter\n",
+                "    begin\n"
+              ],
+              "post_context": [
+                "    ensure\n",
+                "      mon_exit\n",
+                "    end\n"
+              ],
+              "in_app": false,
+              "lineno": 214,
+              "filename": "monitor.rb",
+              "context_line": "      yield\n"
+            },
+            {
+              "function": "block in invoke_with_call_chain",
+              "abs_path": "\/Users\/sentry\/Code\/codetriage\/vendor\/bundle\/ruby\/2.4.0\/gems\/rake-10.5.0\/lib\/rake\/task.rb",
+              "pre_context": [
+                "        return if @already_invoked\n",
+                "        @already_invoked = true\n",
+                "        invoke_prerequisites(task_args, new_chain)\n"
+              ],
+              "post_context": [
+                "      end\n",
+                "    rescue Exception => ex\n",
+                "      add_chain_to(ex, new_chain)\n"
+              ],
+              "in_app": false,
+              "lineno": 179,
+              "filename": "rake\/task.rb",
+              "context_line": "        execute(task_args) if needed?\n"
+            },
+            {
+              "function": "execute",
+              "abs_path": "\/Users\/sentry\/Code\/codetriage\/vendor\/bundle\/ruby\/2.4.0\/gems\/rake-10.5.0\/lib\/rake\/task.rb",
+              "pre_context": [
+                "      end\n",
+                "      application.trace \"** Execute #{name}\" if application.options.trace\n",
+                "      application.enhance_with_matching_rule(name) if @actions.empty?\n"
+              ],
+              "post_context": [
+                "        case act.arity\n",
+                "        when 1\n",
+                "          act.call(self)\n"
+              ],
+              "in_app": false,
+              "lineno": 235,
+              "filename": "rake\/task.rb",
+              "context_line": "      @actions.each do |act|\n"
+            },
+            {
+              "function": "each",
+              "abs_path": "\/Users\/sentry\/Code\/codetriage\/vendor\/bundle\/ruby\/2.4.0\/gems\/rake-10.5.0\/lib\/rake\/task.rb",
+              "pre_context": [
+                "      end\n",
+                "      application.trace \"** Execute #{name}\" if application.options.trace\n",
+                "      application.enhance_with_matching_rule(name) if @actions.empty?\n"
+              ],
+              "post_context": [
+                "        case act.arity\n",
+                "        when 1\n",
+                "          act.call(self)\n"
+              ],
+              "in_app": false,
+              "lineno": 235,
+              "filename": "rake\/task.rb",
+              "context_line": "      @actions.each do |act|\n"
+            },
+            {
+              "function": "block in execute",
+              "abs_path": "\/Users\/sentry\/Code\/codetriage\/vendor\/bundle\/ruby\/2.4.0\/gems\/rake-10.5.0\/lib\/rake\/task.rb",
+              "pre_context": [
+                "        when 1\n",
+                "          act.call(self)\n",
+                "        else\n"
+              ],
+              "post_context": [
+                "        end\n",
+                "      end\n",
+                "    end\n"
+              ],
+              "in_app": false,
+              "lineno": 240,
+              "filename": "rake\/task.rb",
+              "context_line": "          act.call(self, args)\n"
+            },
+            {
+              "function": "block (2 levels) in <main>",
+              "abs_path": "\/Users\/sentry\/Code\/codetriage\/vendor\/bundle\/ruby\/2.4.0\/bundler\/gems\/raven-ruby-061ee7b27200\/lib\/raven\/integrations\/tasks.rb",
+              "pre_context": [
+                "  task :test, [:dsn] do |_t, args|\n",
+                "    Rake::Task[\"environment\"].invoke if Rake::Task.tasks.map(&:to_s).include?(\"environment\")\n",
+                "\n"
+              ],
+              "post_context": [
+                "  end\n",
+                "end\n",
+                ""
+              ],
+              "in_app": false,
+              "lineno": 9,
+              "filename": "raven\/integrations\/tasks.rb",
+              "context_line": "    Raven::CLI.test(args.dsn)\n"
+            },
+            {
+              "function": "test",
+              "abs_path": "\/Users\/sentry\/Code\/codetriage\/vendor\/bundle\/ruby\/2.4.0\/bundler\/gems\/raven-ruby-061ee7b27200\/lib\/raven\/cli.rb",
+              "pre_context": [
+                "      instance.logger.debug \"\"\n",
+                "\n",
+                "      begin\n"
+              ],
+              "post_context": [
+                "      rescue ZeroDivisionError => exception\n",
+                "        evt = instance.capture_exception(exception)\n",
+                "      end\n"
+              ],
+              "in_app": false,
+              "lineno": 31,
+              "filename": "raven\/cli.rb",
+              "context_line": "        1 \/ 0\n"
+            },
+            {
+              "function": "\/",
+              "abs_path": "\/Users\/sentry\/Code\/codetriage\/vendor\/bundle\/ruby\/2.4.0\/bundler\/gems\/raven-ruby-061ee7b27200\/lib\/raven\/cli.rb",
+              "pre_context": [
+                "      instance.logger.debug \"\"\n",
+                "\n",
+                "      begin\n"
+              ],
+              "post_context": [
+                "      rescue ZeroDivisionError => exception\n",
+                "        evt = instance.capture_exception(exception)\n",
+                "      end\n"
+              ],
+              "in_app": false,
+              "lineno": 31,
+              "filename": "raven\/cli.rb",
+              "context_line": "        1 \/ 0\n"
+            }
+          ],
+          "registers": null,
+          "frames_omitted": null
+        },
+        "mechanism": null,
+        "raw_stacktrace": null,
+        "value": "divided by 0",
+        "thread_id": null,
+        "module": "",
+        "type": "ZeroDivisionError"
+      }
+    ]
+  },
+  "sentry.interfaces.Message": {
+    "message": "ZeroDivisionError: divided by 0"
+  },
+  "type": "error",
+  "version": "5"
 }
