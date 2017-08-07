@@ -127,7 +127,6 @@ test-python: build-platform-assets
 	py.test tests/integration tests/sentry || exit 1
 	@echo ""
 
-<<<<<<< HEAD
 test-network:
 	@echo "--> Building platform assets"
 	sentry init
@@ -135,11 +134,6 @@ test-network:
 	@echo "--> Running network tests"
 	py.test tests/network
 	@echo ""
-
-test-acceptance:
-	@echo "--> Building platform assets"
-	sentry init
-	@echo "from sentry.utils.integrationdocs import sync_docs; sync_docs()" | sentry exec
 
 test-acceptance: build-platform-assets
 	@echo "--> Building static assets"
