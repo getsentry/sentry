@@ -89,14 +89,14 @@ class Migration(SchemaMigration):
             }),
             'client_id': (
                 'django.db.models.fields.CharField', [], {
-                    'default': "'b65469a112c94be782870289631e91b68f7d9faa3fed4436a4dc87f0c415a80e'",
+                    'default': "'bfdcf569b33041ee8b22145e5b75b3fbc8832552ff064366ba7179d74a846060'",
                     'unique': 'True',
                     'max_length': '64'
                 }
             ),
             'client_secret': (
                 'sentry.db.models.fields.encrypted.EncryptedTextField', [], {
-                    'default': "'c655510307b247d4aa685bc803b0ca6fb66428cfb3914a2e9d57d0fa03291301'"
+                    'default': "'fb5ef79c22314ece8bfc7cea3ba2702999703da2817b4d51be2c1890e66ba9ee'"
                 }
             ),
             'date_added':
@@ -114,7 +114,7 @@ class Migration(SchemaMigration):
             }),
             'name': (
                 'django.db.models.fields.CharField', [], {
-                    'default': "'Inviting Ewe'",
+                    'default': "'Hot Phoenix'",
                     'max_length': '64',
                     'blank': 'True'
                 }
@@ -186,14 +186,14 @@ class Migration(SchemaMigration):
             ),
             'code': (
                 'django.db.models.fields.CharField', [], {
-                    'default': "'ab432b876e2f4bdf86e51bb7ca115456'",
+                    'default': "'839a54a8acba4909857c81ad20d7c0ca'",
                     'max_length': '64',
                     'db_index': 'True'
                 }
             ),
             'expires_at': (
                 'django.db.models.fields.DateTimeField', [], {
-                    'default': 'datetime.datetime(2017, 7, 28, 0, 0)',
+                    'default': 'datetime.datetime(2017, 8, 7, 0, 0)',
                     'db_index': 'True'
                 }
             ),
@@ -284,7 +284,7 @@ class Migration(SchemaMigration):
             }),
             'expires_at': (
                 'django.db.models.fields.DateTimeField', [], {
-                    'default': 'datetime.datetime(2017, 8, 27, 0, 0)',
+                    'default': 'datetime.datetime(2017, 9, 6, 0, 0)',
                     'null': 'True'
                 }
             ),
@@ -294,7 +294,7 @@ class Migration(SchemaMigration):
             }),
             'refresh_token': (
                 'django.db.models.fields.CharField', [], {
-                    'default': "'6edbd517ff74493d9c1c017e02abf32b1f96f52d12eb47aea51998b1d2ff6e35'",
+                    'default': "'cbcb83f5450e4e75bf798687876a3def19078e2982ac41fa9b63cb5ad532d0ab'",
                     'max_length': '64',
                     'unique': 'True',
                     'null': 'True'
@@ -310,7 +310,7 @@ class Migration(SchemaMigration):
             }),
             'token': (
                 'django.db.models.fields.CharField', [], {
-                    'default': "'6d29a73fa9f74f248326a21f2c7ea68f0e87208b97f042c68b653fd62ff27750'",
+                    'default': "'bf7f18a0f26c4090b93a6c23a40f76e629118a8766264f1983e97eeebffd3108'",
                     'unique': 'True',
                     'max_length': '64'
                 }
@@ -504,7 +504,7 @@ class Migration(SchemaMigration):
             }),
             'date_expires': (
                 'django.db.models.fields.DateTimeField', [], {
-                    'default': 'datetime.datetime(2017, 8, 4, 0, 0)',
+                    'default': 'datetime.datetime(2017, 8, 14, 0, 0)',
                     'null': 'True',
                     'blank': 'True'
                 }
@@ -1783,6 +1783,50 @@ class Migration(SchemaMigration):
                 }
             )
         },
+        'sentry.integration': {
+            'Meta': {
+                'unique_together': "(('provider', 'external_id'),)",
+                'object_name': 'Integration'
+            },
+            'config': ('jsonfield.fields.JSONField', [], {
+                'default': '{}'
+            }),
+            'default_auth_id': (
+                'sentry.db.models.fields.bounded.BoundedPositiveIntegerField', [], {
+                    'null': 'True',
+                    'db_index': 'True'
+                }
+            ),
+            'external_id': ('django.db.models.fields.CharField', [], {
+                'max_length': '64'
+            }),
+            'id':
+            ('sentry.db.models.fields.bounded.BoundedBigAutoField', [], {
+                'primary_key': 'True'
+            }),
+            'name': ('django.db.models.fields.CharField', [], {
+                'max_length': '200'
+            }),
+            'organizations': (
+                'django.db.models.fields.related.ManyToManyField', [], {
+                    'related_name': "'integrations'",
+                    'symmetrical': 'False',
+                    'through': "orm['sentry.OrganizationIntegration']",
+                    'to': "orm['sentry.Organization']"
+                }
+            ),
+            'projects': (
+                'django.db.models.fields.related.ManyToManyField', [], {
+                    'related_name': "'integrations'",
+                    'symmetrical': 'False',
+                    'through': "orm['sentry.ProjectIntegration']",
+                    'to': "orm['sentry.Project']"
+                }
+            ),
+            'provider': ('django.db.models.fields.CharField', [], {
+                'max_length': '64'
+            })
+        },
         'sentry.lostpasswordhash': {
             'Meta': {
                 'object_name': 'LostPasswordHash'
@@ -1916,6 +1960,26 @@ class Migration(SchemaMigration):
                 'sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {
                     'related_name': "'avatar'",
                     'unique': 'True',
+                    'to': "orm['sentry.Organization']"
+                }
+            )
+        },
+        'sentry.organizationintegration': {
+            'Meta': {
+                'unique_together': "(('organization', 'integration'),)",
+                'object_name': 'OrganizationIntegration'
+            },
+            'id':
+            ('sentry.db.models.fields.bounded.BoundedBigAutoField', [], {
+                'primary_key': 'True'
+            }),
+            'integration': (
+                'sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {
+                    'to': "orm['sentry.Integration']"
+                }
+            ),
+            'organization': (
+                'sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {
                     'to': "orm['sentry.Organization']"
                 }
             )
@@ -2234,6 +2298,29 @@ class Migration(SchemaMigration):
             'uuid': ('django.db.models.fields.CharField', [], {
                 'max_length': '36'
             })
+        },
+        'sentry.projectintegration': {
+            'Meta': {
+                'unique_together': "(('project', 'integration'),)",
+                'object_name': 'ProjectIntegration'
+            },
+            'config': ('jsonfield.fields.JSONField', [], {
+                'default': '{}'
+            }),
+            'id':
+            ('sentry.db.models.fields.bounded.BoundedBigAutoField', [], {
+                'primary_key': 'True'
+            }),
+            'integration': (
+                'sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {
+                    'to': "orm['sentry.Integration']"
+                }
+            ),
+            'project': (
+                'sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {
+                    'to': "orm['sentry.Project']"
+                }
+            )
         },
         'sentry.projectkey': {
             'Meta': {
@@ -2644,6 +2731,12 @@ class Migration(SchemaMigration):
             ('sentry.db.models.fields.bounded.BoundedBigAutoField', [], {
                 'primary_key': 'True'
             }),
+            'integration_id': (
+                'sentry.db.models.fields.bounded.BoundedPositiveIntegerField', [], {
+                    'null': 'True',
+                    'db_index': 'True'
+                }
+            ),
             'name': ('django.db.models.fields.CharField', [], {
                 'max_length': '200'
             }),
@@ -2802,12 +2895,12 @@ class Migration(SchemaMigration):
             }),
             'date_scheduled': (
                 'django.db.models.fields.DateTimeField', [], {
-                    'default': 'datetime.datetime(2017, 8, 27, 0, 0)'
+                    'default': 'datetime.datetime(2017, 9, 6, 0, 0)'
                 }
             ),
             'guid': (
                 'django.db.models.fields.CharField', [], {
-                    'default': "'d1e174a287cd438f83e332dd0e9c5e95'",
+                    'default': "'87ce4b6202334db0898c55929f87d6c5'",
                     'unique': 'True',
                     'max_length': '32'
                 }
@@ -3083,7 +3176,7 @@ class Migration(SchemaMigration):
             ),
             'validation_hash': (
                 'django.db.models.fields.CharField', [], {
-                    'default': "u'Xnose30888IKtTKPsBnALEV0f74drO2i'",
+                    'default': "u'QgXnTd6KSUOSlWHNu4M007fv9ivzp5eu'",
                     'max_length': '32'
                 }
             )
