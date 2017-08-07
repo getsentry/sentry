@@ -11,7 +11,12 @@ const categoryList = Object.keys(categoryLists).concat('All');
 const PlatformPicker = React.createClass({
   propTypes: {
     setPlatform: React.PropTypes.func.isRequired,
-    platform: React.PropTypes.string
+    platform: React.PropTypes.string,
+    showOther: React.PropTypes.bool
+  },
+
+  getDefaultProps() {
+    return {showOther: true};
   },
 
   getInitialState() {
@@ -34,6 +39,10 @@ const PlatformPicker = React.createClass({
 
     if (!filtered.length) {
       filtered = flattenedPlatforms.filter(subsetMatch);
+    }
+
+    if (!this.props.showOther) {
+      filtered = filtered.filter(({id}) => id !== 'other');
     }
 
     if (!filtered.length) {

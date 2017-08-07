@@ -74,7 +74,7 @@ const ProjectInstallOverview = React.createClass({
                 })}
               </small>
             </p>}
-        <PlatformPicker setPlatform={this.redirectToDocs} />
+        <PlatformPicker setPlatform={this.redirectToDocs} showOther={false} />
         <p>
           {tct(
             `
