@@ -333,7 +333,7 @@ class StoreView(APIView):
         )
 
         should_filter = helper.should_filter(project, data, ip_address=remote_addr)
-        if should_filter:
+        if should_filter[0]:
             tsdb.incr_multi(
                 [
                     (tsdb.models.project_total_received, project.id),
@@ -344,7 +344,7 @@ class StoreView(APIView):
                     (tsdb.models.key_total_blacklisted, key.id),
                 ]
             )
-            metrics.incr('events.blacklisted', tags={'reason': should_filter})
+            metrics.incr('events.blacklisted', tags={'reason': should_filter[1]})
             event_filtered.send_robust(
                 ip=remote_addr,
                 project=project,
