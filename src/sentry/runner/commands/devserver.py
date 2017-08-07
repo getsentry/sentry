@@ -24,11 +24,16 @@ from sentry.runner.decorators import configuration, log_options
     default=False,
     help='Automatic browser refreshing on webpack builds'
 )
+@click.option(
+    '--styleguide/--no-styleguide',
+    default=False,
+    help='Start local styleguide web server on port 9001'
+)
 @click.option('--environment', default='development', help='The environment name.')
 @click.argument('bind', default='127.0.0.1:8000', metavar='ADDRESS')
 @log_options()
 @configuration
-def devserver(reload, watchers, workers, browser_reload, environment, bind):
+def devserver(reload, watchers, workers, browser_reload, styleguide, environment, bind):
     "Starts a lightweight web server for development."
     if ':' in bind:
         host, port = bind.split(':', 1)
@@ -140,6 +145,9 @@ def devserver(reload, watchers, workers, browser_reload, environment, bind):
     daemons += [
         ('server', ['sentry', 'run', 'web']),
     ]
+
+    if styleguide:
+        daemons += [('storybook', ['yarn', 'storybook'])]
 
     cwd = os.path.realpath(os.path.join(settings.PROJECT_ROOT, os.pardir, os.pardir))
 

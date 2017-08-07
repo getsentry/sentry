@@ -114,6 +114,7 @@ test-js:
 	@${NPM_ROOT}/.bin/webpack
 	@echo "--> Running JavaScript tests"
 	@npm run test-ci
+	@npm run snapshot
 	@echo ""
 
 test-python:

@@ -78,16 +78,19 @@
     "test-ci": "npm run test -- --runInBand",
     "test-watch": "npm run test -- --watch",
     "jest": "NODE_ENV=test node_modules/.bin/jest",
-    "lint": "node_modules/.bin/eslint tests/js src/sentry/static/sentry/app --ext .jsx"
+    "lint": "node_modules/.bin/eslint tests/js src/sentry/static/sentry/app --ext .jsx",
+    "storybook": "start-storybook -p 9001 -c .storybook",
+    "snapshot": "build-storybook && percy-storybook --widths=375,1280"
   },
   "jest": {
     "snapshotSerializers": ["enzyme-to-json/serializer"],
+    "moduleNameMapper": {
+      "\\.(css|less)$": "<rootDir>/tests/js/helpers/importStyleMock.js",
+      "integration-docs-platforms": "<rootDir>/tests/fixtures/_platforms.json"
+    },
     "modulePaths": [
       "<rootDir>/src/sentry/static/sentry"
     ],
-    "moduleNameMapper": {
-      "integration-docs-platforms": "<rootDir>/tests/fixtures/_platforms.json"
-    },
     "setupFiles": [
       "<rootDir>/tests/js/setup.js"
     ],
@@ -97,6 +100,10 @@
     ]
   },
   "devDependencies": {
+    "@percy-io/react-percy-storybook": "^1.0.2",
+    "@storybook/addon-actions": "3.2.0",
+    "@storybook/addon-info": "3.2.0",
+    "@storybook/react": "3.2.0",
     "babel-eslint": "7.1.1",
     "babel-jest": "^19.0.0",
     "chai": "3.4.1",
