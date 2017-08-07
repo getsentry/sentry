@@ -233,6 +233,7 @@ travis-test-mysql: test-python-coverage
 travis-test-acceptance: test-acceptance
 travis-test-network: test-network
 travis-test-js: test-js
+	PERCY_TOKEN=$STORYBOOK_PERCY_TOKEN PERCY_PROJECT=$STORYBOOK_PERCY_PROJECT
 travis-test-cli: test-cli
 travis-test-dist:
 	SENTRY_BUILD=$(TRAVIS_COMMIT) SENTRY_LIGHT_BUILD=0 python setup.py sdist bdist_wheel
