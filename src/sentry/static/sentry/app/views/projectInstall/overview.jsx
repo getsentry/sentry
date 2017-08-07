@@ -1,7 +1,9 @@
 import React from 'react';
-import {Link} from 'react-router';
+import {browserHistory} from 'react-router';
 
 import AutoSelectText from '../../components/autoSelectText';
+import PlatformPicker from '../onboarding/project/platformpicker';
+
 import {t, tct} from '../../locale';
 
 const ProjectInstallOverview = React.createClass({
@@ -19,20 +21,15 @@ const ProjectInstallOverview = React.createClass({
     return location.href.indexOf('getting-started') > 0;
   },
 
-  getIntegrationLink(root, platform, display) {
+  redirectToDocs(platform) {
     let {orgId, projectId} = this.props.params;
     let rootUrl = `/${orgId}/${projectId}/settings/install`;
+
     if (this.isGettingStarted()) {
       rootUrl = `/${orgId}/${projectId}/getting-started`;
     }
-    return (
-      <li className={`${root} ${platform}`} key={platform}>
-        <span className={`platformicon platformicon-${platform}`} />
-        <Link to={`${rootUrl}/${platform}/`}>
-          {display}
-        </Link>
-      </li>
-    );
+
+    browserHistory.push(`${rootUrl}/${platform}/`);
   },
 
   toggleDsn() {
@@ -40,21 +37,11 @@ const ProjectInstallOverview = React.createClass({
   },
 
   render() {
-    let data = this.state.data;
-    let frameworkList = [];
-    let languageList = [];
-    data.platforms.forEach(platform => {
-      platform.integrations.forEach(integration => {
-        if (integration.type === 'framework') frameworkList.push([platform, integration]);
-        else if (integration.type === 'language')
-          languageList.push([platform, integration]);
-      });
-    });
+    let {data} = this.state;
 
     return (
       <div>
         <h1>{t('Configure your application')}</h1>
-
         <p>
           {t(
             'Get started by selecting the platform or language that powers your application.'
@@ -63,8 +50,6 @@ const ProjectInstallOverview = React.createClass({
 
         {this.state.showDsn
           ? <div>
-              <h3>{t('DSN')}</h3>
-
               <div className="control-group">
                 <label>{t('DSN')}</label>
                 <AutoSelectText className="form-control disabled">
@@ -89,35 +74,7 @@ const ProjectInstallOverview = React.createClass({
                 })}
               </small>
             </p>}
-
-        <h3>{t('Popular')}</h3>
-
-        <ul className="client-platform-list">
-          {this.getIntegrationLink('javascript', 'javascript', 'JavaScript')}
-          {this.getIntegrationLink('python', 'python-django', 'Django')}
-          {this.getIntegrationLink('ruby', 'ruby-rails', 'Rails')}
-          {this.getIntegrationLink('node', 'node-express', 'Express')}
-          {this.getIntegrationLink('php', 'php-laravel', 'Laravel')}
-          {this.getIntegrationLink('php', 'php-symfony2', 'Symfony2')}
-          {this.getIntegrationLink('java', 'java-log4j', 'Log4j')}
-        </ul>
-
-        <h3>{t('Frameworks')}</h3>
-        <ul className="client-platform-list">
-          {frameworkList.map(item => {
-            let [platform, integration] = item;
-            return this.getIntegrationLink(platform.id, integration.id, integration.name);
-          })}
-        </ul>
-
-        <h3>{t('Languages')}</h3>
-        <ul className="client-platform-list">
-          {languageList.map(item => {
-            let [platform, integration] = item;
-            return this.getIntegrationLink(platform.id, integration.id, integration.name);
-          })}
-        </ul>
-
+        <PlatformPicker setPlatform={this.redirectToDocs} />
         <p>
           {tct(
             `
