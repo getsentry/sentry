@@ -105,8 +105,10 @@ def load_data(platform, default=None, timestamp=None, sample_name=None):
     data = None
     language = None
 
-    if INTEGRATION_ID_TO_PLATFORM_DATA.get(platform)['type'] != 'language':
-        language = INTEGRATION_ID_TO_PLATFORM_DATA.get(platform).get('language')
+    if platform in INTEGRATION_ID_TO_PLATFORM_DATA and 'type' in INTEGRATION_ID_TO_PLATFORM_DATA[
+        platform
+    ] and INTEGRATION_ID_TO_PLATFORM_DATA[platform]['type'] != 'language':
+        language = INTEGRATION_ID_TO_PLATFORM_DATA[platform]['language']
 
     for platform in (platform, language, default):
         if platform is None:
