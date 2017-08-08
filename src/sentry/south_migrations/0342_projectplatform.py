@@ -29,7 +29,6 @@ class Migration(DataMigration):
 
             if projectplatform:
                 Project.objects.filter(id=project.id).update(platform=projectplatform.platform)
-                project.save()
 
     def backwards(self, orm):
         "Write your backwards methods here."
