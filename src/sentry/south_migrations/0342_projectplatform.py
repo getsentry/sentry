@@ -28,7 +28,7 @@ class Migration(DataMigration):
                                                              ).order_by('-last_seen').first()
 
             if projectplatform:
-                project.platform = projectplatform.platform
+                Project.objects.filter(id=project.id).update(platform=projectplatform.platform)
                 project.save()
 
     def backwards(self, orm):
