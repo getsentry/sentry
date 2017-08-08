@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+from uuid import uuid4
+
 from django import forms
 from django.contrib import messages
 from django.core.urlresolvers import reverse
@@ -58,12 +60,15 @@ class TransferProjectView(ProjectView):
                     context=context,
                 ).send_async([email])
 
+                transaction_id = uuid4().hex
+
                 self.create_audit_entry(
                     request=request,
                     organization=project.organization,
                     target_object=project.id,
                     event=AuditLogEntryEvent.PROJECT_REQUEST_TRANSFER,
                     data=project.get_audit_log_data(),
+                    transaction_id=transaction_id,
                 )
 
             messages.add_message(

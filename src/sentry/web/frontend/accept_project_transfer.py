@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+from uuid import uuid4
+
 from django import forms
 from sentry.web.frontend.base import BaseView
 from django.core.urlresolvers import reverse
@@ -48,12 +50,15 @@ class AcceptProjectTransferView(BaseView):
             project.organization = new_team.organization
             project.save()
 
+            transaction_id = uuid4().hex
+
             self.create_audit_entry(
                 request=request,
                 organization=project.organization,
                 target_object=project.id,
                 event=AuditLogEntryEvent.PROJECT_ACCEPT_TRANSFER,
                 data=project.get_audit_log_data(),
+                transaction_id=transaction_id,
             )
 
             return HttpResponseRedirect(
