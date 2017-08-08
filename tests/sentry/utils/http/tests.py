@@ -277,6 +277,9 @@ class IsValidReleaseTestCase(TestCase):
         assert not self.is_valid_release('1.2.3', ['1.2.*', '1.3.0', '1.3.1'])
         assert not self.is_valid_release('1.2.3', ['1.3.0', '1.*', '1.3.1'])
 
+    def test_garbage_data(self):
+        assert self.is_valid_release(1, ['1.2.3'])
+
 
 class IsValidErrorMessageTestCase(TestCase):
     def is_valid_error_message(self, value, inputs):
@@ -302,6 +305,11 @@ class IsValidErrorMessageTestCase(TestCase):
         assert not self.is_valid_error_message(
             'ZeroDivisionError: divided by 0', ['ImportError*', 'TypeError*', '*: divided by 0']
         )
+
+    def test_garbage_data(self):
+        assert self.is_valid_error_message(1, ['ImportError*'])
+        assert self.is_valid_error_message(None, ['ImportError*'])
+        assert self.is_valid_error_message({}, ['ImportError*'])
 
 
 class OriginFromRequestTestCase(TestCase):
