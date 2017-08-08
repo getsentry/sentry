@@ -47,6 +47,7 @@ exports[`ProjectSelector render() can filter projects by project name 1`] = `
       </Link>
       Select a project
       <DropdownLink
+        anchorRight={false}
         caret={true}
         disabled={false}
         onClose={[Function]}
@@ -164,6 +165,7 @@ exports[`ProjectSelector render() can filter projects by team name/project name 
       </Link>
       Select a project
       <DropdownLink
+        anchorRight={false}
         caret={true}
         disabled={false}
         onClose={[Function]}
@@ -270,6 +272,7 @@ exports[`ProjectSelector render() lists projects and has filter 1`] = `
     </Link>
     Select a project
     <DropdownLink
+      anchorRight={false}
       caret={true}
       disabled={false}
       onClose={[Function]}
@@ -328,6 +331,7 @@ exports[`ProjectSelector render() should show empty message and create project b
     </Link>
     Select a project
     <DropdownLink
+      anchorRight={false}
       caret={true}
       disabled={false}
       onClose={[Function]}
@@ -379,6 +383,7 @@ exports[`ProjectSelector render() should show empty message with no projects but
     </Link>
     Select a project
     <DropdownLink
+      anchorRight={false}
       caret={true}
       disabled={false}
       onClose={[Function]}
@@ -448,6 +453,7 @@ exports[`ProjectSelector render() shows empty filter message when filtering has 
       </Link>
       Select a project
       <DropdownLink
+        anchorRight={false}
         caret={true}
         disabled={false}
         onClose={[Function]}
