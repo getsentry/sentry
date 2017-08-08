@@ -4,7 +4,7 @@ from django import forms
 from sentry.web.frontend.base import BaseView
 from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect, Http404
-from sentry.models import OrganizationMember, Organization, Team, Project
+from sentry.models import AuditLogEntryEvent, OrganizationMember, Organization, Team, Project
 
 
 class AcceptProjectTransferForm(forms.Form):
@@ -24,34 +24,44 @@ class AcceptProjectTransferForm(forms.Form):
 
 
 class AcceptProjectTransferView(BaseView):
-        required_scope = 'org:admin'
-        sudo_required = True
+    required_scope = 'org:admin'
+    sudo_required = True
 
-        def get_form(self, request):
-            if request.method == 'POST':
-                return AcceptProjectTransferForm(request, request.POST, initial=request.POST)
-            return AcceptProjectTransferForm(request)
+    def get_form(self, request):
+        if request.method == 'POST':
+            return AcceptProjectTransferForm(request, request.POST, initial=request.POST)
+        return AcceptProjectTransferForm(request)
 
-        def handle(self, request, *args, **kwargs):
-            try:
-                project_id = request.GET['project_id']
-            except KeyError:
-                raise Http404
+    def handle(self, request, *args, **kwargs):
+        try:
+            project_id = request.GET['project_id']
+        except KeyError:
+            raise Http404
 
-            form = self.get_form(request)
-            if form.is_valid():
-                # transfer the project
-                team_id = form.cleaned_data.get('team')
-                new_team = Team.objects.get(id=team_id)
-                project = Project.objects.get(id=project_id)
-                project.team = new_team
-                project.organization = new_team.organization
-                project.save()
+        form = self.get_form(request)
+        if form.is_valid():
+            # transfer the project
+            team_id = form.cleaned_data.get('team')
+            new_team = Team.objects.get(id=team_id)
+            project = Project.objects.get(id=project_id)
+            project.team = new_team
+            project.organization = new_team.organization
+            project.save()
 
-                return HttpResponseRedirect(reverse('sentry-organization-home', args=[new_team.organization.slug]))
+            self.create_audit_entry(
+                request=request,
+                organization=project.organization,
+                target_object=project.id,
+                event=AuditLogEntryEvent.PROJECT_ACCEPT_TRANSFER,
+                data=project.get_audit_log_data(),
+            )
 
-            context = {
-                'project': Project.objects.get(id=project_id),
-                'form': form,
-            }
-            return self.respond('sentry/projects/accept_project_transfer.html', context)
+            return HttpResponseRedirect(
+                reverse('sentry-organization-home', args=[new_team.organization.slug])
+            )
+
+        context = {
+            'project': Project.objects.get(id=project_id),
+            'form': form,
+        }
+        return self.respond('sentry/projects/accept_project_transfer.html', context)
