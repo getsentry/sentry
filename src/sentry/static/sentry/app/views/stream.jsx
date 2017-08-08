@@ -648,7 +648,7 @@ const Stream = React.createClass({
       sampleLink = (
         <p>
           <Link to={`/${org.slug}/${project.slug}/issues/${sampleIssueId}/?sample`}>
-            {tct('Or see your sample %s event', platformName)}
+            {tct('Or see your sample event')}
           </Link>
         </p>
       );
@@ -656,7 +656,7 @@ const Stream = React.createClass({
       sampleLink = (
         <p>
           <a onClick={this.createSampleEvent.bind(this, project.platform)}>
-            {tct('Create a sample %s event', platformName)}
+            {t('Create a sample event')}
           </a>
         </p>
       );
