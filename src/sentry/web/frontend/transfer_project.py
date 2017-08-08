@@ -10,12 +10,15 @@ from django.utils.translation import ugettext_lazy as _
 from sentry import roles, options
 from sentry.web.frontend.base import ProjectView
 from sentry.utils.email import MessageBuilder
-from sentry.models import OrganizationMember
+from sentry.models import AuditLogEntryEvent, OrganizationMember
 
 
 class TransferProjectForm(forms.Form):
-    email = forms.CharField(label=_('Organization Owner'), max_length=200,
-        widget=forms.TextInput(attrs={'placeholder': _('user@company.com')}))
+    email = forms.CharField(
+        label=_('Organization Owner'),
+        max_length=200,
+        widget=forms.TextInput(attrs={'placeholder': _('user@company.com')})
+    )
 
 
 class TransferProjectView(ProjectView):
@@ -42,20 +45,32 @@ class TransferProjectView(ProjectView):
                     'email': email,
                     'project_name': project.name,
                     'request_time': timezone.now(),
-                    'url': 'dev.getsentry.net:8000/accept-transfer/?project_id=' + '%s' % (project.id),
+                    'url':
+                    'dev.getsentry.net:8000/accept-transfer/?project_id=' + '%s' % (project.id),
                     'requester': request.user
                 }
                 MessageBuilder(
-                    subject='%sRequest for Project Transfer' % (options.get('mail.subject-prefix'),),
+                    subject='%sRequest for Project Transfer' %
+                    (options.get('mail.subject-prefix'), ),
                     template='sentry/emails/transfer_project.txt',
                     html_template='sentry/emails/transfer_project.html',
                     type='org.confirm_delete',
                     context=context,
                 ).send_async([email])
 
+                self.create_audit_entry(
+                    request=request,
+                    organization=project.organization,
+                    target_object=project.id,
+                    event=AuditLogEntryEvent.PROJECT_REQUEST_TRANSFER,
+                    data=project.get_audit_log_data(),
+                )
+
             messages.add_message(
                 request, messages.SUCCESS,
-                _(u'A request was sent to move project %r to a different organization') % (project.name.encode('utf-8'),))
+                _(u'A request was sent to move project %r to a different organization') %
+                (project.name.encode('utf-8'), )
+            )
 
             return HttpResponseRedirect(
                 reverse('sentry-organization-home', args=[team.organization.slug])
