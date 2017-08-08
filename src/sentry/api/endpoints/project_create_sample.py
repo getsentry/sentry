@@ -11,12 +11,9 @@ class ProjectCreateSampleEndpoint(ProjectEndpoint):
     permission_classes = (ProjectPermission, )
 
     def post(self, request, project):
-        if project.platform:
-            event = create_sample_event(
-                project, platform=project.platform, default='javascript', level=0
-            )
-        else:
-            event = create_sample_event(project, platform='javascript', level=0)
+        event = create_sample_event(
+            project, platform=project.platform, default='javascript', level=0
+        )
 
         data = serialize(event, request.user)
 
