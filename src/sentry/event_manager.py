@@ -36,7 +36,7 @@ from sentry.plugins import plugins
 from sentry.signals import first_event_received, regression_signal
 from sentry.tasks.merge import merge_group
 from sentry.tasks.post_process import post_process_group
-from sentry.utils.cache import default_cache
+from sentry.utils.cache import default_cache, hash_cache
 from sentry.utils.db import get_db_engine
 from sentry.utils.safe import safe_execute, trim, trim_dict
 from sentry.utils.strings import truncatechars
@@ -875,10 +875,8 @@ class EventManager(object):
                 existing_group_id = h.group_id
                 break
             if h.group_tombstone_id is not None:
-                # TODO(jess): figure out if there are problems with this
-                from sentry.cache import default_cache as other_default_cache
                 key = get_raw_cache_key(project.id, event.event_id)
-                original_data = other_default_cache.get(key)
+                original_data = hash_cache.get(key)
                 pre_process_hashes = get_preprocess_hashes(original_data)
 
                 if pre_process_hashes is not None:
