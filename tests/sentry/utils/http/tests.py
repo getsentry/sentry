@@ -15,8 +15,13 @@ from sentry.utils.http import (
     is_valid_origin,
     get_origins,
     absolute_uri,
-    is_valid_ip,
     origin_from_request,
+)
+from sentry.utils.data_filters import (
+    is_valid_ip,
+    is_valid_release,
+    is_valid_error_message,
+    FilterTypes,
 )
 
 
@@ -239,7 +244,7 @@ class IsValidOriginTestCase(TestCase):
 class IsValidIPTestCase(TestCase):
     def is_valid_ip(self, ip, inputs):
         self.project.update_option('sentry:blacklisted_ips', inputs)
-        return is_valid_ip(ip, self.project)
+        return is_valid_ip(self.project, ip)
 
     def test_not_in_blacklist(self):
         assert self.is_valid_ip('127.0.0.1', [])
@@ -255,6 +260,48 @@ class IsValidIPTestCase(TestCase):
 
     def test_garbage_input(self):
         assert self.is_valid_ip('127.0.0.1', ['lol/bar'])
+
+
+class IsValidReleaseTestCase(TestCase):
+    def is_valid_release(self, value, inputs):
+        self.project.update_option('sentry:{}'.format(FilterTypes.RELEASES), inputs)
+        return is_valid_release(self.project, value)
+
+    def test_release_not_in_list(self):
+        assert self.is_valid_release('1.2.3', None)
+        assert self.is_valid_release('1.2.3', [])
+        assert self.is_valid_release('1.2.3', ['1.1.1', '1.1.2', '1.2.1'])
+
+    def test_release_match_list(self):
+        assert not self.is_valid_release('1.2.3', ['1.2.3'])
+        assert not self.is_valid_release('1.2.3', ['1.2.*', '1.3.0', '1.3.1'])
+        assert not self.is_valid_release('1.2.3', ['1.3.0', '1.*', '1.3.1'])
+
+
+class IsValidErrorMessageTestCase(TestCase):
+    def is_valid_error_message(self, value, inputs):
+        self.project.update_option('sentry:{}'.format(FilterTypes.ERROR_MESSAGES), inputs)
+        return is_valid_error_message(self.project, value)
+
+    def test_error_class_not_in_list(self):
+        assert self.is_valid_error_message(
+            'ZeroDivisionError: integer division or modulo by zero', None
+        )
+        assert self.is_valid_error_message(
+            'ZeroDivisionError: integer division or modulo by zero', []
+        )
+        assert self.is_valid_error_message(
+            'ZeroDivisionError: integer division or modulo by zero',
+            ['TypeError*', '*: cannot import name*']
+        )
+
+    def test_error_class_match_list(self):
+        assert not self.is_valid_error_message(
+            'ImportError: cannot import name is_valid', ['*: cannot import name*']
+        )
+        assert not self.is_valid_error_message(
+            'ZeroDivisionError: divided by 0', ['ImportError*', 'TypeError*', '*: divided by 0']
+        )
 
 
 class OriginFromRequestTestCase(TestCase):

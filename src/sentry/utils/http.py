@@ -7,7 +7,6 @@ sentry.utils.http
 """
 from __future__ import absolute_import
 
-import ipaddress
 import six
 
 from collections import namedtuple
@@ -207,35 +206,6 @@ def is_valid_origin(origin, project=None, allowed=None):
         if parsed.path.startswith(path):
             return True
     return False
-
-
-def is_valid_ip(ip_address, project):
-    """
-    Verify that an IP address is not being blacklisted
-    for the given project.
-    """
-    blacklist = project.get_option('sentry:blacklisted_ips')
-    if not blacklist:
-        return True
-
-    for addr in blacklist:
-        # We want to error fast if it's an exact match
-        if ip_address == addr:
-            return False
-
-        # Check to make sure it's actually a range before
-        try:
-            if '/' in addr and (
-                ipaddress.ip_address(six.text_type(ip_address)) in ipaddress.ip_network(
-                    six.text_type(addr), strict=False
-                )
-            ):
-                return False
-        except ValueError:
-            # Ignore invalid values here
-            pass
-
-    return True
 
 
 def origin_from_request(request):
