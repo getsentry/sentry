@@ -10,6 +10,7 @@ from sentry.api.serializers.models.group import StreamGroupSerializer
 from sentry.models import (
     Group,
     GroupCommitResolution,
+    GroupResolution,
     Release,
     ReleaseCommit,
 )
@@ -37,14 +38,27 @@ class IssuesResolvedInReleaseEndpoint(ProjectEndpoint):
         except Release.DoesNotExist:
             raise ResourceDoesNotExist
 
-        groups = Group.objects.filter(
-            project=project,
-            id__in=GroupCommitResolution.objects.filter(
+        group_ids = set()
+        group_ids |= set(
+            GroupResolution.objects.filter(
+                release=release,
+            ).values_list('group_id', flat=True)
+        )
+        group_ids |= set(
+            GroupCommitResolution.objects.filter(
                 commit_id__in=ReleaseCommit.objects.filter(
                     release=release,
-                ).values_list('commit_id', flat=True),
-            ).values_list('group_id', flat=True),
+                ).values_list(
+                    'commit_id',
+                    flat=True,
+                )
+            ).values_list(
+                'group_id',
+                flat=True,
+            )
         )
+
+        groups = Group.objects.filter(project=project, id__in=group_ids)
 
         context = serialize(list(groups), request.user, StreamGroupSerializer(stats_period=None))
         return Response(context)
