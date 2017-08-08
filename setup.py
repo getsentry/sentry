@@ -81,7 +81,7 @@ tests_require = [
     'pytest-timeout>=0.5.0,<0.6.0',
     'pytest-xdist>=1.11.0,<1.12.0',
     'python-coveralls',
-    'responses',
+    'responses<0.6.2',  # 0.6.2 has a bug that causes our tests to fail.
 ]
 
 install_requires = [
