@@ -80,7 +80,7 @@
     "jest": "NODE_ENV=test node_modules/.bin/jest",
     "lint": "node_modules/.bin/eslint tests/js src/sentry/static/sentry/app --ext .jsx",
     "storybook": "start-storybook -p 9001 -c .storybook",
-    "snapshot": "build-storybook && percy-storybook --widths=375,1280"
+    "snapshot": "build-storybook && PERCY_TOKEN=$STORYBOOK_PERCY_TOKEN PERCY_PROJECT=$STORYBOOK_PERCY_PROJECT percy-storybook --widths=375,1280"
   },
   "jest": {
     "snapshotSerializers": ["enzyme-to-json/serializer"],
