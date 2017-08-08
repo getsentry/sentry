@@ -17,26 +17,17 @@ class Migration(DataMigration):
         db.start_transaction()
 
     def _forwards(self, orm):
+        from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
 
         Project = orm['sentry.Project']
         ProjectPlatform = orm['sentry.ProjectPlatform']
 
-        # RangeQuerySetWrapperWithProgressBar throws a `AttributeError: 'dict' object has no attribute 'pk'`
-        # if I try to wrap the queryset with it.
-        # It's a relatively small dataset: the queryset will return about 70,000 rows in production.
-        queryset = ProjectPlatform.objects.values('project_id').annotate(
-            platforms=Count('platform')
-        )
-        for row in queryset:
-            if row['platforms'] == 1:
-                projectplatform = ProjectPlatform.objects.filter(project_id=row['project_id']
-                                                                 ).first()
-            else:
-                projectplatform = ProjectPlatform.objects.filter(project_id=row['project_id']
-                                                                 ).order_by('-last_seen')[0]
+        queryset = Project.objects.all()
+        for project in RangeQuerySetWrapperWithProgressBar(queryset):
+            projectplatform = ProjectPlatform.objects.filter(project_id=project.id
+                                                             ).order_by('-last_seen').first()
 
-            project = Project.objects.get(pk=row['project_id'])
-            if project.platform == None:
+            if projectplatform:
                 project.platform = projectplatform.platform
                 project.save()
 
