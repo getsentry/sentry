@@ -114,8 +114,7 @@ test-js:
 	@${NPM_ROOT}/.bin/webpack
 	@echo "--> Running JavaScript tests"
 	@npm run test-ci
-
-	@npm run snapshot PERCY_TOKEN=$STORYBOOK_PERCY_TOKEN PERCY_PROJECT=$STORYBOOK_PERCY_PROJECT
+	@PERCY_TOKEN=$STORYBOOK_PERCY_TOKEN PERCY_PROJECT=$STORYBOOK_PERCY_PROJECT npm run snapshot
 	@echo ""
 
 test-python:
