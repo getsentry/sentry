@@ -4,11 +4,22 @@ from south.db import db
 from south.v2 import SchemaMigration
 from django.db import models
 
+from sentry.utils.db import is_postgres
+
 
 class Migration(SchemaMigration):
     def forwards(self, orm):
         # Adding index on 'GroupCommitResolution', fields ['commit_id']
-        db.create_index('sentry_groupcommitresolution', ['commit_id'])
+        if is_postgres():
+            db.commit_transaction()
+            db.execute(
+                "CREATE INDEX CONCURRENTLY {} ON sentry_groupcommitresolution (commit_id)".format(
+                    db.create_index_name('sentry_groupcommitresolution', ['commit_id']),
+                )
+            )
+            db.start_transaction()
+        else:
+            db.create_index('sentry_groupcommitresolution', ['commit_id'])
 
     def backwards(self, orm):
         # Removing index on 'GroupCommitResolution', fields ['commit_id']
