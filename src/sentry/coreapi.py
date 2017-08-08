@@ -28,8 +28,12 @@ from time import time
 from sentry import filters
 from sentry.cache import default_cache
 from sentry.constants import (
-    CLIENT_RESERVED_ATTRS, DEFAULT_LOG_LEVEL, LOG_LEVELS_MAP, MAX_TAG_VALUE_LENGTH,
-    MAX_TAG_KEY_LENGTH, VALID_PLATFORMS
+    CLIENT_RESERVED_ATTRS,
+    DEFAULT_LOG_LEVEL,
+    LOG_LEVELS_MAP,
+    MAX_TAG_VALUE_LENGTH,
+    MAX_TAG_KEY_LENGTH,
+    VALID_PLATFORMS,
 )
 from sentry.db.models import BoundedIntegerField
 from sentry.interfaces.base import get_interface, InterfaceValidationError
@@ -41,7 +45,9 @@ from sentry.tasks.store import preprocess_event, \
 from sentry.utils import json
 from sentry.utils.auth import parse_auth_header
 from sentry.utils.csp import is_valid_csp_report
-from sentry.utils.http import is_valid_ip, origin_from_request
+from sentry.utils.http import origin_from_request
+from sentry.utils.data_filters import is_valid_ip, \
+    is_valid_release, is_valid_error_message
 from sentry.utils.strings import decompress
 from sentry.utils.validators import is_float, is_event_id
 
@@ -369,18 +375,31 @@ class ClientApiHelper(object):
         }
 
     def should_filter(self, project, data, ip_address=None):
-        # TODO(dcramer): read filters from options such as:
-        # - ignore errors from spiders/bots
-        # - ignore errors from legacy browsers
-        if ip_address and not is_valid_ip(ip_address, project):
-            return True
+        """
+        returns (result: bool, reason: string or None)
+        Result is True if an event should be filtered
+        The reason for filtering is passed along as a string
+        so that we can store it in metrics
+        """
+        if ip_address and not is_valid_ip(project, ip_address):
+            return (True, 'ip_address')
+
+        release = data.get('release')
+        if release and not is_valid_release(project, release):
+            return (True, 'release_version')
+
+        message_interface = data.get('sentry.interfaces.Message', {})
+        error_message = message_interface.get('formatted', ''
+                                              ) or message_interface.get('message', '')
+        if error_message and not is_valid_error_message(project, error_message):
+            return (True, 'error_message')
 
         for filter_cls in filters.all():
             filter_obj = filter_cls(project)
             if filter_obj.is_enabled() and filter_obj.test(data):
-                return True
+                return (True, 'other_filter')
 
-        return False
+        return (False, )
 
     def validate_data(self, project, data):
         # TODO(dcramer): move project out of the data packet
@@ -827,7 +846,7 @@ class CspApiHelper(ClientApiHelper):
 
     def should_filter(self, project, data, ip_address=None):
         if not is_valid_csp_report(data['sentry.interfaces.Csp'], project):
-            return True
+            return (True, 'invalid_csp')
         return super(CspApiHelper, self).should_filter(project, data, ip_address)
 
     def validate_data(self, project, data):

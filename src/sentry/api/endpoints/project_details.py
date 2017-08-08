@@ -8,7 +8,8 @@ from django.db import IntegrityError, transaction
 from django.utils import timezone
 from rest_framework import serializers, status
 from rest_framework.response import Response
-
+from sentry import features
+from sentry.utils.data_filters import FilterTypes
 from sentry.api.base import DocSection
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.api.decorators import sudo_required
@@ -53,10 +54,12 @@ def update_project_scenario(runner):
         )
 
 
-def clean_newline_inputs(value):
+def clean_newline_inputs(value, case_insensitive=True):
     result = []
     for v in value.split('\n'):
-        v = v.lower().strip()
+        if case_insensitive:
+            v = v.lower()
+        v = v.strip()
         if v:
             result.append(v)
     return result
@@ -163,8 +166,8 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         :auth: required
         """
         has_project_write = (
-            (request.auth and request.auth.has_scope('project:write')) or
-            (request.access and request.access.has_scope('project:write'))
+            (request.auth and request.auth.has_scope('project:write'))
+            or (request.access and request.access.has_scope('project:write'))
         )
 
         if has_project_write:
@@ -274,6 +277,33 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                     'sentry:blacklisted_ips',
                     clean_newline_inputs(options['filters:blacklisted_ips'])
                 )
+            if 'filters:{}'.format(FilterTypes.RELEASES) in options:
+                if features.has('projects:additional-data-filters', project, actor=request.user):
+                    project.update_option(
+                        'sentry:{}'.format(FilterTypes.RELEASES),
+                        clean_newline_inputs(options['filters:{}'.format(FilterTypes.RELEASES)])
+                    )
+                else:
+                    return Response(
+                        {
+                            'detail': ['You do not have that feature enabled']
+                        }, status=400
+                    )
+            if 'filters:{}'.format(FilterTypes.ERROR_MESSAGES) in options:
+                if features.has('projects:additional-data-filters', project, actor=request.user):
+                    project.update_option(
+                        'sentry:{}'.format(FilterTypes.ERROR_MESSAGES),
+                        clean_newline_inputs(
+                            options['filters:{}'.format(FilterTypes.ERROR_MESSAGES)],
+                            case_insensitive=False
+                        )
+                    )
+                else:
+                    return Response(
+                        {
+                            'detail': ['You do not have that feature enabled']
+                        }, status=400
+                    )
 
             self.create_audit_entry(
                 request=request,

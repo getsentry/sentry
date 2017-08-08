@@ -12,6 +12,7 @@ from sentry.models import ProjectKey
 from sentry.signals import event_accepted, event_dropped, event_filtered
 from sentry.testutils import (assert_mock_called_once_with_partial, TestCase)
 from sentry.utils import json
+from sentry.utils.data_filters import FilterTypes
 
 
 class CspReportViewTest(TestCase):
@@ -127,8 +128,171 @@ class StoreViewTest(TestCase):
         self.assertEquals(resp['Access-Control-Allow-Origin'], 'http://foo.com')
 
     @mock.patch('sentry.coreapi.is_valid_ip', mock.Mock(return_value=False))
-    def test_request_with_backlisted_ip(self):
+    def test_request_with_blacklisted_ip(self):
         resp = self._postWithHeader({})
+        assert resp.status_code == 403, (resp.status_code, resp.content)
+
+    @mock.patch('sentry.coreapi.is_valid_release', mock.Mock(return_value=False))
+    def test_request_with_filtered_release(self):
+        body = {
+            "release": "abcdefg",
+            "message": "foo bar",
+            "sentry.interfaces.User": {
+                "ip_address": "127.0.0.1"
+            },
+            "sentry.interfaces.Http": {
+                "method": "GET",
+                "url": "http://example.com/",
+                "env": {
+                    "REMOTE_ADDR": "127.0.0.1"
+                }
+            },
+        }
+        resp = self._postWithHeader(body)
+        assert resp.status_code == 403, (resp.status_code, resp.content)
+
+    @mock.patch('sentry.coreapi.is_valid_error_message', mock.Mock(return_value=False))
+    def test_request_with_filtered_error(self):
+        body = {
+            "release": "abcdefg",
+            "message": "foo bar",
+            "sentry.interfaces.User": {
+                "ip_address": "127.0.0.1"
+            },
+            "sentry.interfaces.Http": {
+                "method": "GET",
+                "url": "http://example.com/",
+                "env": {
+                    "REMOTE_ADDR": "127.0.0.1"
+                }
+            },
+        }
+        resp = self._postWithHeader(body)
+        assert resp.status_code == 403, (resp.status_code, resp.content)
+
+    def test_request_with_invalid_ip(self):
+        self.project.update_option('sentry:blacklisted_ips', ['127.0.0.1'])
+        body = {
+            "release": "abcdefg",
+            "message": "foo bar",
+            "sentry.interfaces.User": {
+                "ip_address": "127.0.0.1"
+            },
+            "sentry.interfaces.Http": {
+                "method": "GET",
+                "url": "http://example.com/",
+                "env": {
+                    "REMOTE_ADDR": "127.0.0.1"
+                }
+            },
+        }
+        resp = self._postWithHeader(body)
+        assert resp.status_code == 403, (resp.status_code, resp.content)
+
+    def test_request_with_invalid_release(self):
+        self.project.update_option('sentry:{}'.format(FilterTypes.RELEASES), ['1.3.2'])
+        body = {
+            "release": "1.3.2",
+            "message": "foo bar",
+            "sentry.interfaces.User": {
+                "ip_address": "127.0.0.1"
+            },
+            "sentry.interfaces.Http": {
+                "method": "GET",
+                "url": "http://example.com/",
+                "env": {
+                    "REMOTE_ADDR": "127.0.0.1"
+                }
+            },
+        }
+        resp = self._postWithHeader(body)
+        assert resp.status_code == 403, (resp.status_code, resp.content)
+
+    def test_request_with_short_release_globbing(self):
+        self.project.update_option('sentry:{}'.format(FilterTypes.RELEASES), ['1.*'])
+        body = {
+            "release": "1.3.2",
+            "message": "foo bar",
+            "sentry.interfaces.User": {
+                "ip_address": "127.0.0.1"
+            },
+            "sentry.interfaces.Http": {
+                "method": "GET",
+                "url": "http://example.com/",
+                "env": {
+                    "REMOTE_ADDR": "127.0.0.1"
+                }
+            },
+        }
+        resp = self._postWithHeader(body)
+        assert resp.status_code == 403, (resp.status_code, resp.content)
+
+    def test_request_with_longer_release_globbing(self):
+        self.project.update_option('sentry:{}'.format(FilterTypes.RELEASES), ['2.1.*'])
+        body = {
+            "release": "2.1.3",
+            "message": "foo bar",
+            "sentry.interfaces.User": {
+                "ip_address": "127.0.0.1"
+            },
+            "sentry.interfaces.Http": {
+                "method": "GET",
+                "url": "http://example.com/",
+                "env": {
+                    "REMOTE_ADDR": "127.0.0.1"
+                }
+            },
+        }
+        resp = self._postWithHeader(body)
+        assert resp.status_code == 403, (resp.status_code, resp.content)
+
+    def test_request_with_invalid_error_messages(self):
+        self.project.update_option(
+            'sentry:{}'.format(FilterTypes.ERROR_MESSAGES), ['ZeroDivisionError*']
+        )
+        body = {
+            "release": "abcdefg",
+            "sentry.interfaces.User": {
+                "ip_address": "127.0.0.1"
+            },
+            "sentry.interfaces.Http": {
+                "method": "GET",
+                "url": "http://example.com/",
+                "env": {
+                    "REMOTE_ADDR": "127.0.0.1"
+                }
+            },
+            "sentry.interfaces.Message": {
+                "formatted": "ZeroDivisionError: integer division or modulo by zero",
+                "message": "%s: integer division or modulo by zero",
+            },
+        }
+        resp = self._postWithHeader(body)
+        assert resp.status_code == 403, (resp.status_code, resp.content)
+
+    def test_request_with_beggining_glob(self):
+        self.project.update_option(
+            'sentry:{}'.format(FilterTypes.ERROR_MESSAGES),
+            ['*: integer division or modulo by zero']
+        )
+        body = {
+            "release": "abcdefg",
+            "sentry.interfaces.User": {
+                "ip_address": "127.0.0.1"
+            },
+            "sentry.interfaces.Http": {
+                "method": "GET",
+                "url": "http://example.com/",
+                "env": {
+                    "REMOTE_ADDR": "127.0.0.1"
+                }
+            },
+            "sentry.interfaces.Message": {
+                "message": "ZeroDivisionError: integer division or modulo by zero",
+                "formatted": "",
+            },
+        }
+        resp = self._postWithHeader(body)
         assert resp.status_code == 403, (resp.status_code, resp.content)
 
     @mock.patch('sentry.coreapi.ClientApiHelper.insert_data_to_database')
@@ -369,7 +533,7 @@ class StoreViewTest(TestCase):
     @mock.patch('sentry.coreapi.ClientApiHelper.insert_data_to_database', Mock())
     @mock.patch('sentry.coreapi.ClientApiHelper.should_filter')
     def test_filtered_signal(self, mock_should_filter):
-        mock_should_filter.return_value = True
+        mock_should_filter.return_value = 'ip_address'
 
         mock_event_filtered = Mock()
 

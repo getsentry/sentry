@@ -13,6 +13,7 @@ from sentry.models import (
     Project, ProjectBookmark, ProjectOption, ProjectPlatform, ProjectStatus, Release, UserOption,
     DEFAULT_SUBJECT_TEMPLATE
 )
+from sentry.utils.data_filters import FilterTypes
 
 STATUS_LABELS = {
     ProjectStatus.VISIBLE: 'active',
@@ -68,7 +69,8 @@ class ProjectSerializer(Serializer):
 
         feature_list = []
         for feature in (
-            'global-events', 'data-forwarding', 'rate-limits', 'custom-filters', 'similarity-view'
+            'global-events', 'data-forwarding', 'rate-limits', 'custom-filters', 'similarity-view',
+            'additional-data-filters',
         ):
             if features.has('projects:' + feature, obj, actor=user):
                 feature_list.append(feature)
@@ -137,6 +139,8 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             'sentry:default_environment',
             'sentry:reprocessing_active',
             'sentry:blacklisted_ips',
+            'sentry:releases',
+            'sentry:error_messages',
             'feedback:branding',
             'digests:mail:minimum_delay',
             'digests:mail:maximum_delay',
@@ -247,6 +251,11 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                     bool(attrs['options'].get('sentry:reprocessing_active', False)),
                     'filters:blacklisted_ips':
                     '\n'.join(attrs['options'].get('sentry:blacklisted_ips', [])),
+                    'filters:{}'.format(FilterTypes.RELEASES):
+                    '\n'.join(attrs['options'].get('sentry:{}'.format(FilterTypes.RELEASES), [])),
+                    'filters:{}'.format(FilterTypes.ERROR_MESSAGES):
+                    '\n'.
+                    join(attrs['options'].get('sentry:{}'.format(FilterTypes.ERROR_MESSAGES), [])),
                     'feedback:branding':
                     attrs['options'].get('feedback:branding', '1') == '1',
                 },
