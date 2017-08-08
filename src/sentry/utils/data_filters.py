@@ -11,6 +11,8 @@ import fnmatch
 import ipaddress
 import six
 
+from django.utils.encoding import force_text
+
 
 class FilterTypes(object):
     ERROR_MESSAGES = 'error_messages'
@@ -51,10 +53,11 @@ def is_valid_release(project, release):
     Verify that a release is not being filtered
     for the given project.
     """
-    release = release.lower()
     invalid_versions = project.get_option('sentry:{}'.format(FilterTypes.RELEASES))
     if not invalid_versions:
         return True
+
+    release = force_text(release).lower()
 
     for version in invalid_versions:
         if fnmatch.fnmatch(release, version.lower()):
@@ -68,10 +71,11 @@ def is_valid_error_message(project, message):
     Verify that an error message is not being filtered
     for the given project.
     """
-    message = message.lower()
     filtered_errors = project.get_option('sentry:{}'.format(FilterTypes.ERROR_MESSAGES))
     if not filtered_errors:
         return True
+
+    message = force_text(message).lower()
 
     for error in filtered_errors:
         if fnmatch.fnmatch(message, error.lower()):
