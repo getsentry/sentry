@@ -51,7 +51,7 @@ def is_valid_release(project, release):
     Verify that a release is not being filtered
     for the given project.
     """
-    release = release.lower()
+    release = six.text_type(release).lower()
     invalid_versions = project.get_option('sentry:{}'.format(FilterTypes.RELEASES))
     if not invalid_versions:
         return True
@@ -68,7 +68,7 @@ def is_valid_error_message(project, message):
     Verify that an error message is not being filtered
     for the given project.
     """
-    message = message.lower()
+    message = six.text_type(message).lower()
     filtered_errors = project.get_option('sentry:{}'.format(FilterTypes.ERROR_MESSAGES))
     if not filtered_errors:
         return True
