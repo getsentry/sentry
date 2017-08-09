@@ -100,8 +100,6 @@ def load_data(platform, default=None, timestamp=None, sample_name=None):
     #     event so it's not an empty project.
     #   * When a user clicks Test Configuration from notification plugin settings page,
     #     a fake event is generated to go through the pipeline.
-    sample_name = sample_name or INTEGRATION_ID_TO_PLATFORM_DATA[platform]['name']
-
     data = None
     language = None
     platform_data = INTEGRATION_ID_TO_PLATFORM_DATA.get(platform)
@@ -113,6 +111,7 @@ def load_data(platform, default=None, timestamp=None, sample_name=None):
         if platform is None:
             continue
 
+        sample_name = sample_name or INTEGRATION_ID_TO_PLATFORM_DATA[platform]['name']
         json_path = os.path.join(DATA_ROOT, 'samples', '%s.json' % (platform.encode('utf-8'), ))
 
         if not os.path.exists(json_path):
