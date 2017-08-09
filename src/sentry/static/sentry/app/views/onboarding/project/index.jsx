@@ -7,11 +7,11 @@ import {t} from '../../../locale';
 
 const Project = React.createClass({
   propTypes: {
-    next: React.PropTypes.func.isRequired,
-    setPlatform: React.PropTypes.func.isRequired,
-    platform: React.PropTypes.string.isRequired,
-    setName: React.PropTypes.func.isRequired,
-    name: React.PropTypes.string.isRequired
+    next: React.PropTypes.func,
+    setPlatform: React.PropTypes.func,
+    platform: React.PropTypes.string,
+    setName: React.PropTypes.func,
+    name: React.PropTypes.string
   },
 
   getInitialState() {
@@ -35,7 +35,7 @@ const Project = React.createClass({
     return (
       <div className="onboarding-info">
         <h2>{t('Choose a language or framework')}</h2>
-        <PlatformPicker {...this.props} />
+        <PlatformPicker {...this.props} showOther={true} />
         <div className="project-name client-platform">
           <h4>{t('Give your project a name') + ':'}</h4>
           <div

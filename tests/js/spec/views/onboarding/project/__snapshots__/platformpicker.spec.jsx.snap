@@ -27,6 +27,7 @@ exports[`PlatformPicker render() should only render Mobile platforms under Mobil
           onChange={[Function]}
           placeholder="Filter"
           type="text"
+          value=""
         />
       </div>
     </li>
@@ -130,6 +131,7 @@ exports[`PlatformPicker render() should render renderPlatformList with Python wh
           onChange={[Function]}
           placeholder="Filter"
           type="text"
+          value="py"
         />
       </div>
     </li>
@@ -258,6 +260,7 @@ exports[`PlatformPicker render() should render renderPlatformList with community
           onChange={[Function]}
           placeholder="Filter"
           type="text"
+          value="aaaaaa"
         />
       </div>
     </li>
@@ -329,6 +332,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
     }
   }
   setPlatform={[Function]}
+  showOther={true}
 >
   <div
     className="platform-picker"
@@ -356,6 +360,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
             onChange={[Function]}
             placeholder="Filter"
             type="text"
+            value=""
           />
         </div>
       </li>

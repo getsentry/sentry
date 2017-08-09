@@ -159,7 +159,66 @@
     position: absolute;
   }
 
-  .platform-picker{
+  .project-name{
+    background: #fff;
+    box-shadow: 0 -1px 0 rgba(0,0,0, .1);
+    padding: 20px 0;
+    position: sticky;
+    bottom: 0;
+    .clearfix;
+
+    .platform-tile{
+      display: inline-block;
+      vertical-align: middle;
+    }
+
+    .project-name-wrapper {
+      .form-control;
+      position: relative;
+      padding-left: 44px;
+      width: 300px;
+      float: left;
+
+      &.required{
+        border: 1px #e03e2f solid;
+      }
+
+      input {
+        background: none;
+        border: 0;
+        display: block;
+        width: 100%;
+        font-weight: 600;
+
+        &:focus {
+          outline: none;
+        }
+
+        &::placeholder {
+          color: @50;
+        }
+      }
+
+      .platform-tile {
+        position: absolute;
+        left: 6px;
+        top: 3px;
+        .platformicon {
+          color: @40 !important;
+        }
+      }
+    }
+  }
+
+  .install .install-content {
+    padding-left: 15px; // Fix .row negative margin
+  }
+}
+
+
+.platform-picker{
+    border-bottom: 1px solid @trim;
+
     .nav-tabs {
       border-bottom: 1px solid @trim;
       margin: 0 0 15px;
@@ -237,59 +296,3 @@
       line-height: 1.2;
     }
   }
-
-  .project-name{
-    background: #fff;
-    box-shadow: 0 -1px 0 rgba(0,0,0, .1);
-    padding: 20px 0;
-    position: sticky;
-    bottom: 0;
-    .clearfix;
-
-    .platform-tile{
-      display: inline-block;
-      vertical-align: middle;
-    }
-
-    .project-name-wrapper {
-      .form-control;
-      position: relative;
-      padding-left: 44px;
-      width: 300px;
-      float: left;
-
-      &.required{
-        border: 1px #e03e2f solid;
-      }
-
-      input {
-        background: none;
-        border: 0;
-        display: block;
-        width: 100%;
-        font-weight: 600;
-
-        &:focus {
-          outline: none;
-        }
-
-        &::placeholder {
-          color: @50;
-        }
-      }
-
-      .platform-tile {
-        position: absolute;
-        left: 6px;
-        top: 3px;
-        .platformicon {
-          color: @40 !important;
-        }
-      }
-    }
-  }
-
-  .install .install-content {
-    padding-left: 15px; // Fix .row negative margin
-  }
-}
