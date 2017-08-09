@@ -13,7 +13,7 @@ from datetime import datetime, timedelta
 
 import six
 
-from sentry.constants import DATA_ROOT
+from sentry.constants import DATA_ROOT, INTEGRATION_ID_TO_PLATFORM_DATA
 from sentry.event_manager import EventManager
 from sentry.interfaces.user import User as UserInterface
 from sentry.utils import json
@@ -100,14 +100,19 @@ def load_data(platform, default=None, timestamp=None, sample_name=None):
     #     event so it's not an empty project.
     #   * When a user clicks Test Configuration from notification plugin settings page,
     #     a fake event is generated to go through the pipeline.
-    sample_name = sample_name or platform
-
     data = None
-    for platform in (platform, default):
+    language = None
+    platform_data = INTEGRATION_ID_TO_PLATFORM_DATA.get(platform)
+
+    if platform_data is not None and platform_data['type'] != 'language':
+        language = platform_data['language']
+
+    for platform in (platform, language, default):
         if platform is None:
             continue
 
-        json_path = os.path.join(DATA_ROOT, 'samples', '%s.json' % (sample_name.encode('utf-8'), ))
+        sample_name = sample_name or INTEGRATION_ID_TO_PLATFORM_DATA[platform]['name']
+        json_path = os.path.join(DATA_ROOT, 'samples', '%s.json' % (platform.encode('utf-8'), ))
 
         if not os.path.exists(json_path):
             continue

@@ -13,6 +13,7 @@ class ConstantsTest(TestCase):
         'java-log4j': {},
         'java-log4j2': {},
         'java-android': {},
+        'javascript': {},
     }
 
     def test_marketing_slug_to_integration_id(self):

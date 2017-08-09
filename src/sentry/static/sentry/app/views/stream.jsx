@@ -537,6 +537,20 @@ const Stream = React.createClass({
     browserHistory.pushState(null, path, queryParams);
   },
 
+  createSampleEvent() {
+    let params = this.props.params;
+    let url = `/projects/${params.orgId}/${params.projectId}/create-sample/`;
+    this.api.request(url, {
+      method: 'POST',
+      success: data => {
+        browserHistory.pushState(
+          null,
+          `/${params.orgId}/${params.projectId}/issues/${data.groupID}/`
+        );
+      }
+    });
+  },
+
   renderProcessingIssuesHint() {
     let pi = this.state.processingIssues;
     if (!pi || this.showingProcessingIssues()) {
@@ -626,14 +640,24 @@ const Stream = React.createClass({
     let sampleLink = null;
     if (this.state.groupIds.length > 0) {
       let sampleIssueId = this.state.groupIds[0];
+
       sampleLink = (
         <p>
           <Link to={`/${org.slug}/${project.slug}/issues/${sampleIssueId}/?sample`}>
-            {t('Or see a sample Javascript event')}
+            {tct('Or see your sample event')}
           </Link>
         </p>
       );
+    } else {
+      sampleLink = (
+        <p>
+          <a onClick={this.createSampleEvent.bind(this, project.platform)}>
+            {t('Create a sample event')}
+          </a>
+        </p>
+      );
     }
+
     return (
       <div className="box awaiting-events">
         <div className="wrap">
