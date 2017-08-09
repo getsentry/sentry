@@ -4,13 +4,19 @@ from south.db import db
 from south.v2 import SchemaMigration
 from django.db import models
 
+from sentry.utils.db import is_postgres
+
 
 class Migration(SchemaMigration):
     def forwards(self, orm):
         # Adding index on 'ProjectPlatform', fields ['last_seen']
         if is_postgres():
             db.commit_transaction()
-            db.execute("CREATE INDEX CONCURRENTLY {} ON sentry_projectplatform (last_seen)")
+            db.execute(
+                "CREATE INDEX CONCURRENTLY {} ON sentry_projectplatform (last_seen)".format(
+                    db.create_index_name('sentry_projectplatform', ['last_seen']),
+                )
+            )
             db.start_transaction()
         else:
             db.create_index('sentry_projectplatform', ['last_seen'])
