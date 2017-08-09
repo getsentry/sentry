@@ -24,7 +24,19 @@
         "configFile": ".eslintrc"
     },
 
+    "files.associations": {
+        "*.jsx": "javascriptreact"
+    },
+
     "[javascript]": {
+        "editor.formatOnSave": true
+    },
+
+    "[javascriptreact]": {
+        "editor.formatOnSave": true
+    },
+
+    "[less]": {
         "editor.formatOnSave": true
     },
 
@@ -41,5 +53,5 @@
     // tests is often in your way and misclicked
     "python.unitTest.pyTestEnabled": false,
     "python.unitTest.unittestEnabled": false,
-    "python.unitTest.nosetestsEnabled": false
+    "python.unitTest.nosetestsEnabled": false,
 }
