@@ -33,7 +33,7 @@ const OrganizationStats = React.createClass({
       orgTotal: null,
       projectTotals: null,
       querySince: since,
-      queryUntil: until,
+      queryUntil: until
     };
   },
 
@@ -49,7 +49,7 @@ const OrganizationStats = React.createClass({
       this.setState({
         projectsError: false,
         projectsRequestsPending: 1,
-        projectsLoading: true,
+        projectsLoading: true
       });
     }
   },
@@ -94,14 +94,14 @@ const OrganizationStats = React.createClass({
         this.setState({
           pageLinks: jqxhr.getResponseHeader('Link'),
           projectMap: projectMap,
-          projectsRequestsPending: this.state.projectsRequestsPending,
+          projectsRequestsPending: this.state.projectsRequestsPending
         });
       },
       error: () => {
         this.setState({
-          projectsError: true,
+          projectsError: true
         });
-      },
+      }
     });
   },
 
@@ -112,7 +112,7 @@ const OrganizationStats = React.createClass({
       statsRequestsPending: 3,
       projectsError: false,
       projectsLoading: true,
-      projectsRequestsPending: 4,
+      projectsRequestsPending: 4
     });
 
     let statEndpoint = this.getOrganizationStatsEndpoint();
@@ -123,21 +123,21 @@ const OrganizationStats = React.createClass({
           since: this.state.querySince,
           until: this.state.queryUntil,
           resolution: '1h',
-          stat: statName,
+          stat: statName
         },
         success: data => {
           this.state.rawOrgData[statName] = data;
           this.state.statsRequestsPending -= 1;
           this.setState({
             rawOrgData: this.state.rawOrgData,
-            statsRequestsPending: this.state.statsRequestsPending,
+            statsRequestsPending: this.state.statsRequestsPending
           });
         },
         error: () => {
           this.setState({
-            statsError: true,
+            statsError: true
           });
-        },
+        }
       });
     });
 
@@ -147,21 +147,21 @@ const OrganizationStats = React.createClass({
           since: this.state.querySince,
           until: this.state.queryUntil,
           stat: statName,
-          group: 'project',
+          group: 'project'
         },
         success: data => {
           this.state.rawProjectData[statName] = data;
           this.state.projectsRequestsPending -= 1;
           this.setState({
             rawProjectData: this.state.rawProjectData,
-            projectsRequestsPending: this.state.projectsRequestsPending,
+            projectsRequestsPending: this.state.projectsRequestsPending
           });
         },
         error: () => {
           this.setState({
-            projectsError: true,
+            projectsError: true
           });
-        },
+        }
       });
     });
 
@@ -192,7 +192,7 @@ const OrganizationStats = React.createClass({
       let dAccepted = Math.max(0, dReceived - dRejected - dBlacklisted);
       orgPoints.push({
         x: point[0],
-        y: [dAccepted, dRejected, dBlacklisted],
+        y: [dAccepted, dRejected, dBlacklisted]
       });
       oReceived += dReceived;
       oRejected += dRejected;
@@ -209,9 +209,9 @@ const OrganizationStats = React.createClass({
         rejected: oRejected,
         blacklisted: oBlacklisted,
         accepted: Math.max(0, oReceived - oRejected - oBlacklisted),
-        avgRate: aReceived[1] ? parseInt(aReceived[0] / aReceived[1] / 60, 10) : 0,
+        avgRate: aReceived[1] ? parseInt(aReceived[0] / aReceived[1] / 60, 10) : 0
       },
-      statsLoading: false,
+      statsLoading: false
     });
   },
 
@@ -232,12 +232,12 @@ const OrganizationStats = React.createClass({
         received: pReceived,
         rejected: pRejected,
         blacklisted: pBlacklisted,
-        accepted: Math.max(0, pReceived - pRejected - pBlacklisted),
+        accepted: Math.max(0, pReceived - pRejected - pBlacklisted)
       });
     });
     this.setState({
       projectTotals: projectTotals,
-      projectsLoading: false,
+      projectsLoading: false
     });
   },
 
@@ -330,7 +330,7 @@ const OrganizationStats = React.createClass({
           <Pagination pageLinks={this.state.pageLinks} {...this.props} />}
       </OrganizationHomeContainer>
     );
-  },
+  }
 });
 
 export default OrganizationStats;

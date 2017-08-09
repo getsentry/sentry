@@ -12,7 +12,7 @@ const Footer = React.createClass({
     });
 
     return {
-      hooks: hooks,
+      hooks: hooks
     };
   },
 
@@ -47,7 +47,7 @@ const Footer = React.createClass({
         </div>
       </footer>
     );
-  },
+  }
 });
 
 export default Footer;

@@ -7,11 +7,11 @@ export default React.createClass({
   propTypes: {
     pageLinks: React.PropTypes.string,
     to: React.PropTypes.string,
-    onCursor: React.PropTypes.func,
+    onCursor: React.PropTypes.func
   },
 
   contextTypes: {
-    location: React.PropTypes.object,
+    location: React.PropTypes.object
   },
 
   getDefaultProps() {
@@ -19,9 +19,9 @@ export default React.createClass({
       onCursor: (cursor, path, query) => {
         browserHistory.pushState(null, path, {
           ...query,
-          cursor: cursor,
+          cursor: cursor
         });
-      },
+      }
     };
   },
 
@@ -69,5 +69,5 @@ export default React.createClass({
         </div>
       </div>
     );
-  },
+  }
 });

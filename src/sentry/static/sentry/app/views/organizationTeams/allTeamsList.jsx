@@ -11,7 +11,7 @@ const AllTeamsList = React.createClass({
     access: React.PropTypes.object,
     organization: PropTypes.Organization,
     teamList: React.PropTypes.arrayOf(PropTypes.Team),
-    openMembership: React.PropTypes.bool,
+    openMembership: React.PropTypes.bool
   },
 
   render() {
@@ -44,10 +44,10 @@ const AllTeamsList = React.createClass({
       "You don't have any teams for this organization yet. Get started by [link:creating your first team].",
       {
         root: <p />,
-        link: <Link to={`/organizations/${organization.slug}/teams/new/`} />,
+        link: <Link to={`/organizations/${organization.slug}/teams/new/`} />
       }
     );
-  },
+  }
 });
 
 export default AllTeamsList;

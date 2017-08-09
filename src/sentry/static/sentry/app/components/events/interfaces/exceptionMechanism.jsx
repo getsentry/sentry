@@ -5,7 +5,7 @@ import Pill from '../../pill';
 const ExceptionMechanism = React.createClass({
   propTypes: {
     data: React.PropTypes.object.isRequired,
-    platform: React.PropTypes.string,
+    platform: React.PropTypes.string
   },
 
   render() {
@@ -48,7 +48,7 @@ const ExceptionMechanism = React.createClass({
         </Pills>
       </div>
     );
-  },
+  }
 });
 
 export default ExceptionMechanism;

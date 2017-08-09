@@ -31,7 +31,7 @@ function getProjectInfoForReview(org) {
         requiresReview: false,
         canReview: canReview,
         teamName: team.name,
-        callSign: project.callSign || null,
+        callSign: project.callSign || null
       });
     }
   }
@@ -42,7 +42,7 @@ function getProjectInfoForReview(org) {
     projects: memberProjects.concat(nonMemberProjects),
     requiresReview: requiresReview,
     canReviewAnything: canReviewAnything,
-    hasNonMemberProjects: nonMemberProjects.length > 0,
+    hasNonMemberProjects: nonMemberProjects.length > 0
   };
 }
 
@@ -53,7 +53,7 @@ const SetCallsignsAction = React.createClass({
     return {
       isLoading: true,
       info: {},
-      slugs: {},
+      slugs: {}
     };
   },
 
@@ -63,7 +63,7 @@ const SetCallsignsAction = React.createClass({
 
   onSubmit(event) {
     this.setState({
-      isLoading: true,
+      isLoading: true
     });
 
     let orgId = this.getOrganization().slug;
@@ -81,17 +81,17 @@ const SetCallsignsAction = React.createClass({
       },
       complete: () => {
         this.setState({
-          isLoading: false,
+          isLoading: false
         });
-      },
+      }
     });
   },
 
   onSetShortName(projectId, event) {
     this.setState({
       slugs: update(this.state.slugs, {
-        [projectId]: {$set: event.target.value.toUpperCase().trim()},
-      }),
+        [projectId]: {$set: event.target.value.toUpperCase().trim()}
+      })
     });
   },
 
@@ -105,7 +105,7 @@ const SetCallsignsAction = React.createClass({
     this.setState({
       info: info,
       slugs: slugs,
-      isLoading: false,
+      isLoading: false
     });
   },
 
@@ -203,7 +203,7 @@ const SetCallsignsAction = React.createClass({
         </form>
       </ActionOverlay>
     );
-  },
+  }
 });
 
 SetCallsignsAction.requiresAction = function(org) {

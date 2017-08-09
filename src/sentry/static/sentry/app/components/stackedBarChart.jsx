@@ -12,7 +12,7 @@ const StackedBarChart = React.createClass({
       React.PropTypes.shape({
         x: React.PropTypes.number.isRequired,
         y: React.PropTypes.array.isRequired,
-        label: React.PropTypes.string,
+        label: React.PropTypes.string
       })
     ),
     series: React.PropTypes.arrayOf(
@@ -20,10 +20,10 @@ const StackedBarChart = React.createClass({
         data: React.PropTypes.arrayOf(
           React.PropTypes.shape({
             x: React.PropTypes.number.isRequired,
-            y: React.PropTypes.number,
+            y: React.PropTypes.number
           })
         ),
-        label: React.PropTypes.string,
+        label: React.PropTypes.string
       })
     ),
     interval: React.PropTypes.string,
@@ -34,11 +34,11 @@ const StackedBarChart = React.createClass({
     markers: React.PropTypes.arrayOf(
       React.PropTypes.shape({
         x: React.PropTypes.number.isRequired,
-        label: React.PropTypes.string,
+        label: React.PropTypes.string
       })
     ),
     tooltip: React.PropTypes.func,
-    barClasses: React.PropTypes.array,
+    barClasses: React.PropTypes.array
   },
 
   mixins: [
@@ -63,9 +63,9 @@ const StackedBarChart = React.createClass({
           if (pointIdx)
             return tooltipFunc(chart.state.pointIndex[pointIdx], pointIdx, chart);
           else return this.getAttribute('data-title');
-        },
+        }
       };
-    }),
+    })
   ],
 
   statics: {
@@ -100,7 +100,7 @@ const StackedBarChart = React.createClass({
         });
       });
       return points;
-    },
+    }
   },
 
   getDefaultProps() {
@@ -114,7 +114,7 @@ const StackedBarChart = React.createClass({
       markers: [],
       width: null,
       barClasses: ['chart-bar'],
-      tooltip: this.renderTooltip,
+      tooltip: this.renderTooltip
     };
   },
 
@@ -132,7 +132,7 @@ const StackedBarChart = React.createClass({
     return {
       series: series,
       pointIndex: StackedBarChart.pointIndex(series),
-      interval: StackedBarChart.getInterval(series),
+      interval: StackedBarChart.getInterval(series)
     };
   },
 
@@ -150,7 +150,7 @@ const StackedBarChart = React.createClass({
       this.setState({
         series: series,
         pointIndex: StackedBarChart.pointIndex(series),
-        interval: StackedBarChart.getInterval(series),
+        interval: StackedBarChart.getInterval(series)
       });
     }
   },
@@ -286,7 +286,7 @@ const StackedBarChart = React.createClass({
           style={{
             height: pct + '%',
             bottom: prevPct + '%',
-            backgroundColor: this.state.series[i].color || null,
+            backgroundColor: this.state.series[i].color || null
           }}>
           {y}
         </span>
@@ -358,7 +358,7 @@ const StackedBarChart = React.createClass({
         </span>
       </figure>
     );
-  },
+  }
 });
 
 export default StackedBarChart;

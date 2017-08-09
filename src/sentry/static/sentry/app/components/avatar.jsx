@@ -10,21 +10,21 @@ const Avatar = React.createClass({
     size: React.PropTypes.number,
     default: React.PropTypes.string,
     title: React.PropTypes.string,
-    gravatar: React.PropTypes.bool,
+    gravatar: React.PropTypes.bool
   },
 
   getDefaultProps() {
     return {
       className: 'avatar',
       size: 64,
-      gravatar: true,
+      gravatar: true
     };
   },
 
   getInitialState() {
     return {
       showBackupAvatar: false,
-      loadError: false,
+      loadError: false
     };
   },
 
@@ -35,7 +35,7 @@ const Avatar = React.createClass({
 
     let query = {
       s: this.props.size || undefined,
-      d: this.props.default || 'blank',
+      d: this.props.default || 'blank'
     };
 
     url += '?' + $.param(query);
@@ -73,7 +73,7 @@ const Avatar = React.createClass({
     let props = {
       title: this.props.title,
       onError: this.onError,
-      onLoad: this.onLoad,
+      onLoad: this.onLoad
     };
     if (user.options && user.options.avatarType) {
       avatarType = user.options.avatarType;
@@ -99,7 +99,7 @@ const Avatar = React.createClass({
         {this.renderImg()}
       </span>
     );
-  },
+  }
 });
 
 export default Avatar;

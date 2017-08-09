@@ -14,17 +14,17 @@ const RequestInterface = React.createClass({
     event: PropTypes.Event.isRequired,
     type: React.PropTypes.string.isRequired,
     data: React.PropTypes.object.isRequired,
-    isShare: React.PropTypes.bool,
+    isShare: React.PropTypes.bool
   },
 
   contextTypes: {
     organization: PropTypes.Organization,
-    project: PropTypes.Project,
+    project: PropTypes.Project
   },
 
   getInitialState() {
     return {
-      view: 'rich',
+      view: 'rich'
     };
   },
 
@@ -37,7 +37,7 @@ const RequestInterface = React.createClass({
 
   toggleView(value) {
     this.setState({
-      view: value,
+      view: value
     });
   },
 
@@ -125,7 +125,7 @@ const RequestInterface = React.createClass({
           : <RichHttpContent data={data} />}
       </GroupEventDataSection>
     );
-  },
+  }
 });
 
 export default RequestInterface;

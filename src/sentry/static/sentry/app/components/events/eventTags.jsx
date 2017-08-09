@@ -15,7 +15,7 @@ const EventTags = React.createClass({
     group: PropTypes.Group.isRequired,
     event: PropTypes.Event.isRequired,
     orgId: React.PropTypes.string.isRequired,
-    projectId: React.PropTypes.string.isRequired,
+    projectId: React.PropTypes.string.isRequired
   },
 
   render() {
@@ -37,7 +37,7 @@ const EventTags = React.createClass({
                 <Link
                   to={{
                     pathname: `/${orgId}/${projectId}/`,
-                    query: {query: `${tag.key}:"${tag.value}"`},
+                    query: {query: `${tag.key}:"${tag.value}"`}
                   }}>
                   {deviceNameMapper(tag.value)}
                 </Link>
@@ -51,7 +51,7 @@ const EventTags = React.createClass({
         </Pills>
       </EventDataSection>
     );
-  },
+  }
 });
 
 export default EventTags;

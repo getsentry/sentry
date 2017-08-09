@@ -32,7 +32,7 @@ const TeamStatsBar = React.createClass({
         </div>
       </div>
     );
-  },
+  }
 });
 
 export default TeamStatsBar;

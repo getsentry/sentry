@@ -9,7 +9,7 @@ import ContextData from '../contextData';
 const DeviceInterface = React.createClass({
   propTypes: {
     group: PropTypes.Group.isRequired,
-    event: PropTypes.Event.isRequired,
+    event: PropTypes.Event.isRequired
   },
 
   getInitialState() {
@@ -74,7 +74,7 @@ const DeviceInterface = React.createClass({
         </table>
       </GroupEventDataSection>
     );
-  },
+  }
 });
 
 export default DeviceInterface;

@@ -25,7 +25,7 @@ function getAlertTypeForProblem(problem) {
 
 const App = React.createClass({
   childContextTypes: {
-    location: React.PropTypes.object,
+    location: React.PropTypes.object
   },
 
   mixins: [ApiMixin],
@@ -34,33 +34,33 @@ const App = React.createClass({
     return {
       loading: false,
       error: false,
-      needsUpgrade: ConfigStore.get('needsUpgrade'),
+      needsUpgrade: ConfigStore.get('needsUpgrade')
     };
   },
 
   getChildContext() {
     return {
-      location: this.props.location,
+      location: this.props.location
     };
   },
 
   componentWillMount() {
     this.api.request('/organizations/', {
       query: {
-        member: '1',
+        member: '1'
       },
       success: data => {
         OrganizationStore.load(data);
         this.setState({
-          loading: false,
+          loading: false
         });
       },
       error: () => {
         this.setState({
           loading: false,
-          error: true,
+          error: true
         });
-      },
+      }
     });
 
     this.api.request('/internal/health/', {
@@ -71,18 +71,18 @@ const App = React.createClass({
               id: problem.id,
               message: problem.message,
               type: getAlertTypeForProblem(problem),
-              url: problem.url,
+              url: problem.url
             });
           });
         }
       },
-      error: () => {}, // TODO: do something?
+      error: () => {} // TODO: do something?
     });
 
     ConfigStore.get('messages').forEach(msg => {
       AlertActions.addAlert({
         message: msg.message,
-        type: msg.level,
+        type: msg.level
       });
     });
 
@@ -135,7 +135,7 @@ const App = React.createClass({
         {this.props.children}
       </OrganizationsLoader>
     );
-  },
+  }
 });
 
 export default App;

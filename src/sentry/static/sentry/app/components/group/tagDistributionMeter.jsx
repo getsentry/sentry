@@ -12,7 +12,7 @@ const TagDistributionMeter = React.createClass({
     tag: React.PropTypes.string.isRequired,
     name: React.PropTypes.string,
     orgId: React.PropTypes.string.isRequired,
-    projectId: React.PropTypes.string.isRequired,
+    projectId: React.PropTypes.string.isRequired
   },
 
   mixins: [
@@ -20,15 +20,15 @@ const TagDistributionMeter = React.createClass({
     TooltipMixin({
       html: true,
       selector: '.segment',
-      container: 'body',
-    }),
+      container: 'body'
+    })
   ],
 
   getInitialState() {
     return {
       loading: true,
       error: false,
-      data: null,
+      data: null
     };
   },
 
@@ -55,7 +55,7 @@ const TagDistributionMeter = React.createClass({
 
     this.setState({
       loading: true,
-      error: false,
+      error: false
     });
 
     this.api.request(url, {
@@ -63,15 +63,15 @@ const TagDistributionMeter = React.createClass({
         this.setState({
           data: data,
           error: false,
-          loading: false,
+          loading: false
         });
       },
       error: () => {
         this.setState({
           error: true,
-          loading: false,
+          loading: false
         });
-      },
+      }
     });
   },
 
@@ -173,7 +173,7 @@ const TagDistributionMeter = React.createClass({
         {this.renderBody()}
       </div>
     );
-  },
+  }
 });
 
 export default TagDistributionMeter;

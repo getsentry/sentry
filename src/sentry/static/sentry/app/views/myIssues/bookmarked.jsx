@@ -20,7 +20,7 @@ const Bookmarked = React.createClass({
         {...this.props}
       />
     );
-  },
+  }
 });
 
 export default Bookmarked;

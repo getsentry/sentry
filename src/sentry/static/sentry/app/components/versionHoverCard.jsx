@@ -17,7 +17,7 @@ const VersionHoverCard = React.createClass({
   propTypes: {
     version: React.PropTypes.string.isRequired,
     orgId: React.PropTypes.string.isRequired,
-    projectId: React.PropTypes.string.isRequired,
+    projectId: React.PropTypes.string.isRequired
   },
 
   mixins: [ApiMixin],
@@ -29,7 +29,7 @@ const VersionHoverCard = React.createClass({
       data: {},
       visible: false,
       hasRepos: false,
-      deploys: [],
+      deploys: []
     };
   },
 
@@ -51,15 +51,15 @@ const VersionHoverCard = React.createClass({
       method: 'GET',
       success: data => {
         this.setState({
-          release: data,
+          release: data
         });
       },
       error: () => {
         this.setState({
-          error: true,
+          error: true
         });
       },
-      complete: done,
+      complete: done
     });
 
     // repos
@@ -68,15 +68,15 @@ const VersionHoverCard = React.createClass({
       method: 'GET',
       success: data => {
         this.setState({
-          hasRepos: data.length > 0,
+          hasRepos: data.length > 0
         });
       },
       error: () => {
         this.setState({
-          error: true,
+          error: true
         });
       },
-      complete: done,
+      complete: done
     });
 
     //deploys
@@ -87,21 +87,21 @@ const VersionHoverCard = React.createClass({
       method: 'GET',
       success: data => {
         this.setState({
-          deploys: data,
+          deploys: data
         });
       },
       error: () => {
         this.setState({
-          error: true,
+          error: true
         });
       },
-      complete: done,
+      complete: done
     });
   },
 
   toggleHovercard() {
     this.setState({
-      visible: !this.state.visible,
+      visible: !this.state.visible
     });
   },
 
@@ -194,7 +194,7 @@ const VersionHoverCard = React.createClass({
                           width: 86,
                           maxWidth: 86,
                           textAlign: 'center',
-                          fontSize: 12,
+                          fontSize: 12
                         }}>
                         {env}
                       </strong>
@@ -205,7 +205,7 @@ const VersionHoverCard = React.createClass({
                             position: 'absolute',
                             left: 98,
                             width: '50%',
-                            padding: '3px 0',
+                            padding: '3px 0'
                           }}>
                           <TimeSince date={dateFinished} />
                         </span>}
@@ -239,7 +239,7 @@ const VersionHoverCard = React.createClass({
           </div>}
       </span>
     );
-  },
+  }
 });
 
 export default VersionHoverCard;

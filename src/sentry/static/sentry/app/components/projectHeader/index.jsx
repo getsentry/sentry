@@ -10,7 +10,7 @@ const ProjectHeader = React.createClass({
   propTypes: {
     project: React.PropTypes.object.isRequired,
     organization: React.PropTypes.object.isRequired,
-    activeSection: React.PropTypes.string,
+    activeSection: React.PropTypes.string
   },
 
   render() {
@@ -87,7 +87,7 @@ const ProjectHeader = React.createClass({
         </div>
       </div>
     );
-  },
+  }
 });
 
 export default ProjectHeader;

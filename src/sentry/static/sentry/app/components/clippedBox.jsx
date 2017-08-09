@@ -8,7 +8,7 @@ const ClippedBox = React.createClass({
     defaultClipped: React.PropTypes.bool,
     clipHeight: React.PropTypes.number,
     btnClassName: React.PropTypes.string,
-    btnText: React.PropTypes.string,
+    btnText: React.PropTypes.string
   },
 
   getDefaultProps() {
@@ -17,14 +17,14 @@ const ClippedBox = React.createClass({
       clipHeight: 200,
       renderedHeight: null,
       btnClassName: 'btn btn-primary btn-xs show-more',
-      btnText: t('Show More'),
+      btnText: t('Show More')
     };
   },
 
   getInitialState() {
     return {
       clipped: this.props.defaultClipped,
-      revealed: false, // True once user has clicked "Show More" button
+      revealed: false // True once user has clicked "Show More" button
     };
   },
 
@@ -36,7 +36,7 @@ const ClippedBox = React.createClass({
       // okay if this causes re-render; cannot determine until
       // rendered first anyways
       this.setState({
-        clipped: true,
+        clipped: true
       });
     }
   },
@@ -46,7 +46,7 @@ const ClippedBox = React.createClass({
 
     this.setState({
       clipped: false,
-      revealed: true,
+      revealed: true
     });
   },
 
@@ -77,7 +77,7 @@ const ClippedBox = React.createClass({
           </div>}
       </div>
     );
-  },
+  }
 });
 
 export default ClippedBox;

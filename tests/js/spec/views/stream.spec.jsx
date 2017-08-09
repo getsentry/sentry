@@ -38,23 +38,23 @@ describe('Stream', function() {
       project: {
         id: '3559',
         slug: 'foo-project',
-        firstEvent: true,
+        firstEvent: true
       },
       organization: {
         id: '1337',
-        slug: 'foo-org',
+        slug: 'foo-org'
       },
-      team: {id: '2448'},
+      team: {id: '2448'}
     };
 
     let props = {
       setProjectNavSection: function() {},
       location: {query: {query: 'is:unresolved'}, search: 'query=is:unresolved'},
-      params: {orgId: '123', projectId: '456'},
+      params: {orgId: '123', projectId: '456'}
     };
 
     this.wrapper = shallow(<Stream {...props} />, {
-      context: this.context,
+      context: this.context
     });
   });
 
@@ -111,7 +111,7 @@ describe('Stream', function() {
       this.sandbox.stub(Client.prototype, 'request', function(url, options) {
         requestOptions = options;
         return {
-          cancel: requestCancel,
+          cancel: requestCancel
         };
       });
 
@@ -127,7 +127,7 @@ describe('Stream', function() {
 
       // when request "completes", lastRequest is cleared
       requestOptions.complete({
-        getResponseHeader: () => DEFAULT_LINKS_HEADER,
+        getResponseHeader: () => DEFAULT_LINKS_HEADER
       });
 
       expect(stream.lastRequest).toBeNull();
@@ -152,7 +152,7 @@ describe('Stream', function() {
       wrapper.setState({
         error: 'Something bad happened',
         loading: false,
-        dataLoading: false,
+        dataLoading: false
       });
       expect(wrapper.find(LoadingError).length).toBeTruthy();
     });
@@ -163,7 +163,7 @@ describe('Stream', function() {
         error: false,
         groupIds: ['1'],
         loading: false,
-        dataLoading: false,
+        dataLoading: false
       });
       expect(wrapper.find('.group-list').length).toBeTruthy();
     });
@@ -175,7 +175,7 @@ describe('Stream', function() {
         error: false,
         groupIds: [],
         loading: false,
-        dataLoading: false,
+        dataLoading: false
       });
       expect(wrapper.find('.empty-stream').length).toBeTruthy();
     });
@@ -189,7 +189,7 @@ describe('Stream', function() {
         error: false,
         groupIds: [],
         loading: false,
-        dataLoading: false,
+        dataLoading: false
       });
 
       expect(this.wrapper.find('.awaiting-events').length).toEqual(1);
@@ -203,9 +203,9 @@ describe('Stream', function() {
           ...this.context,
           project: {
             ...this.context.project,
-            firstEvent: true,
-          },
-        },
+            firstEvent: true
+          }
+        }
       });
 
       expect(wrapper.state('realtimeActive')).toBe(false);
@@ -218,16 +218,16 @@ describe('Stream', function() {
           ...this.context,
           project: {
             ...this.context.project,
-            firstEvent: false,
-          },
-        },
+            firstEvent: false
+          }
+        }
       });
 
       wrapper.setState({
         error: false,
         groupIds: [],
         loading: false,
-        dataLoading: false,
+        dataLoading: false
       });
 
       Cookies.remove('realtimeActive');
@@ -240,16 +240,16 @@ describe('Stream', function() {
           ...this.context,
           project: {
             ...this.context.project,
-            firstEvent: false,
-          },
-        },
+            firstEvent: false
+          }
+        }
       });
 
       wrapper.setState({
         error: false,
         groupIds: [],
         loading: false,
-        dataLoading: false,
+        dataLoading: false
       });
 
       expect(wrapper.state('realtimeActive')).toBe(true);
@@ -305,7 +305,7 @@ describe('Stream', function() {
         error: false,
         searchId: null,
         query: 'is:unresolved',
-        sort: 'date',
+        sort: 'date'
       };
 
       let actual = this.wrapper.instance().getInitialState();
@@ -316,7 +316,7 @@ describe('Stream', function() {
       let props = {
         setProjectNavSection: function() {},
         location: {query: {sort: 'freq'}, search: 'sort=freq'},
-        params: {orgId: '123', projectId: '456'},
+        params: {orgId: '123', projectId: '456'}
       };
 
       let expected = {
@@ -332,11 +332,11 @@ describe('Stream', function() {
         error: false,
         query: '',
         sort: 'freq',
-        searchId: null,
+        searchId: null
       };
 
       let stream = shallow(<Stream {...props} />, {
-        context: this.context,
+        context: this.context
       }).instance();
 
       let actual = stream.getInitialState();
@@ -347,7 +347,7 @@ describe('Stream', function() {
       let props = {
         setProjectNavSection: function() {},
         location: {query: {sort: 'freq'}, search: 'sort=freq'},
-        params: {orgId: '123', projectId: '456', searchId: '789'},
+        params: {orgId: '123', projectId: '456', searchId: '789'}
       };
 
       let expected = {
@@ -363,15 +363,15 @@ describe('Stream', function() {
         error: false,
         query: 'is:unresolved',
         sort: 'freq',
-        searchId: '789',
+        searchId: '789'
       };
 
       let wrapper = shallow(<Stream {...props} />, {
-        context: this.context,
+        context: this.context
       });
 
       wrapper.setState({
-        savedSearchList: [{id: '789', query: 'is:unresolved', name: 'test'}],
+        savedSearchList: [{id: '789', query: 'is:unresolved', name: 'test'}]
       });
 
       let actual = wrapper.instance().getInitialState();
@@ -382,7 +382,7 @@ describe('Stream', function() {
       let props = {
         setProjectNavSection: function() {},
         location: {query: {sort: 'freq'}, search: 'sort=freq'},
-        params: {orgId: '123', projectId: '456', searchId: '799'},
+        params: {orgId: '123', projectId: '456', searchId: '799'}
       };
 
       let expected = {
@@ -398,11 +398,11 @@ describe('Stream', function() {
         error: false,
         query: '',
         sort: 'freq',
-        searchId: null,
+        searchId: null
       };
 
       let stream = shallow(<Stream {...props} />, {
-        context: this.context,
+        context: this.context
       }).instance();
 
       let actual = stream.getInitialState();

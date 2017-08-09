@@ -9,7 +9,7 @@ const GroupReleaseChart = React.createClass({
   propTypes: {
     group: PropTypes.Group.isRequired,
     release: React.PropTypes.shape({
-      version: React.PropTypes.string.isRequired,
+      version: React.PropTypes.string.isRequired
     }),
     releaseStats: React.PropTypes.object,
     statsPeriod: React.PropTypes.string.isRequired,
@@ -17,7 +17,7 @@ const GroupReleaseChart = React.createClass({
     environmentStats: React.PropTypes.object,
     firstSeen: React.PropTypes.string,
     lastSeen: React.PropTypes.string,
-    title: React.PropTypes.string,
+    title: React.PropTypes.string
   },
 
   getInitialState(props) {
@@ -40,7 +40,7 @@ const GroupReleaseChart = React.createClass({
 
     return {
       releasePoints: releasePoints,
-      envPoints: envPoints,
+      envPoints: envPoints
     };
   },
 
@@ -108,7 +108,7 @@ const GroupReleaseChart = React.createClass({
       let remaining = point[1] - rData - eData;
       return {
         x: point[0],
-        y: [rData, eData, remaining >= 0 ? remaining : 0],
+        y: [rData, eData, remaining >= 0 ? remaining : 0]
       };
     });
 
@@ -120,7 +120,7 @@ const GroupReleaseChart = React.createClass({
         markers.push({
           label: t('First seen'),
           x: firstSeenX,
-          className: 'first-seen',
+          className: 'first-seen'
         });
       }
     }
@@ -131,7 +131,7 @@ const GroupReleaseChart = React.createClass({
         markers.push({
           label: t('Last seen'),
           x: lastSeenX,
-          className: 'last-seen',
+          className: 'last-seen'
         });
       }
     }
@@ -153,7 +153,7 @@ const GroupReleaseChart = React.createClass({
         />
       </div>
     );
-  },
+  }
 });
 
 export default GroupReleaseChart;

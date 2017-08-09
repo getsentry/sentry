@@ -2,7 +2,7 @@ import React from 'react';
 
 const SharedGroupHeader = React.createClass({
   propTypes: {
-    group: React.PropTypes.object.isRequired,
+    group: React.PropTypes.object.isRequired
   },
 
   render() {
@@ -22,7 +22,7 @@ const SharedGroupHeader = React.createClass({
         </div>
       </div>
     );
-  },
+  }
 });
 
 export default SharedGroupHeader;

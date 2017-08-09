@@ -295,5 +295,5 @@ export default {
   Collection: Collection,
   PendingChangeQueue: PendingChangeQueue,
   StreamManager: StreamManager,
-  CursorPoller: CursorPoller,
+  CursorPoller: CursorPoller
 };

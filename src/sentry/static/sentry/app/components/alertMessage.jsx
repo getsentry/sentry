@@ -9,8 +9,8 @@ const AlertMessage = React.createClass({
       id: React.PropTypes.string,
       message: React.PropTypes.string.isRequired,
       type: React.PropTypes.oneOf(['success', 'error', 'warning']),
-      url: React.PropTypes.string,
-    }),
+      url: React.PropTypes.string
+    })
   },
 
   mixins: [PureRenderMixin],
@@ -44,7 +44,7 @@ const AlertMessage = React.createClass({
         </div>
       </div>
     );
-  },
+  }
 });
 
 export default AlertMessage;

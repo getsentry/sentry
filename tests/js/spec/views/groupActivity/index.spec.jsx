@@ -23,8 +23,8 @@ describe('GroupActivity', function() {
         group: {id: '1337'},
         project: {id: 'foo'},
         team: {id: '1'},
-        organization: {id: 'bar'},
-      },
+        organization: {id: 'bar'}
+      }
     });
     expect(wrapper.find(NoteInput)).toHaveLength(1);
   });
@@ -36,8 +36,8 @@ describe('GroupActivity', function() {
           group: {id: '1337'},
           project: {id: 'foo'},
           team: {id: '1'},
-          organization: {id: 'bar'},
-        },
+          organization: {id: 'bar'}
+        }
       }).instance();
     });
 

@@ -10,19 +10,19 @@ import SplitLayout from '../../components/splitLayout';
 
 const MergedToolbar = React.createClass({
   propTypes: {
-    onUnmerge: PropTypes.func,
+    onUnmerge: PropTypes.func
   },
   mixins: [Reflux.listenTo(GroupingStore, 'onGroupingUpdate')],
   getInitialState() {
     return {
-      unmergeCount: 0,
+      unmergeCount: 0
     };
   },
 
   onGroupingUpdate({unmergeList}) {
     if (unmergeList && unmergeList.size !== this.state.unmergedCount) {
       this.setState({
-        unmergeCount: unmergeList.size,
+        unmergeCount: unmergeList.size
       });
     }
   },
@@ -57,7 +57,7 @@ const MergedToolbar = React.createClass({
         </SplitLayout>
       </div>
     );
-  },
+  }
 });
 
 export default MergedToolbar;

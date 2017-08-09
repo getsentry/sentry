@@ -15,7 +15,7 @@ const GroupTags = React.createClass({
     return {
       tagList: null,
       loading: true,
-      error: false,
+      error: false
     };
   },
 
@@ -26,7 +26,7 @@ const GroupTags = React.createClass({
   fetchData() {
     this.setState({
       loading: true,
-      error: false,
+      error: false
     });
 
     // TODO(dcramer): each tag should be a separate query as the tags endpoint
@@ -39,7 +39,7 @@ const GroupTags = React.createClass({
         this.setState({
           tagList: data,
           error: false,
-          loading: false,
+          loading: false
         });
       },
       error: error => {
@@ -48,9 +48,9 @@ const GroupTags = React.createClass({
         }
         this.setState({
           error: true,
-          loading: false,
+          loading: false
         });
-      },
+      }
     });
   },
 
@@ -81,7 +81,7 @@ const GroupTags = React.createClass({
                 className="tag-bar"
                 to={{
                   pathname: `/${orgId}/${projectId}/`,
-                  query: {query: tag.key + ':' + '"' + tagValue.value + '"'},
+                  query: {query: tag.key + ':' + '"' + tagValue.value + '"'}
                 }}>
                 <span className="tag-bar-background" style={{width: pct + '%'}} />
                 <span className="tag-bar-label">
@@ -133,7 +133,7 @@ const GroupTags = React.createClass({
         </div>
       </div>
     );
-  },
+  }
 });
 
 export default GroupTags;

@@ -6,12 +6,12 @@ import _ from 'lodash';
 const DateTime = React.createClass({
   propTypes: {
     date: React.PropTypes.any.isRequired,
-    seconds: React.PropTypes.bool,
+    seconds: React.PropTypes.bool
   },
 
   getDefaultProps() {
     return {
-      seconds: true,
+      seconds: true
     };
   },
 
@@ -37,7 +37,7 @@ const DateTime = React.createClass({
         {moment(date).format(format)}
       </time>
     );
-  },
+  }
 });
 
 export default DateTime;

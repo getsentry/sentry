@@ -15,16 +15,16 @@ describe('ProjectSelector', function() {
         projects: [
           {
             slug: 'test-project',
-            name: 'Test Project',
+            name: 'Test Project'
           },
           {
             slug: 'another-project',
-            name: 'Another Project',
-          },
-        ],
-      },
+            name: 'Another Project'
+          }
+        ]
+      }
     ],
-    access: [],
+    access: []
   };
   describe('render()', function() {
     it('should show empty message with no projects button, when no projects, and has no "project:write" access', function() {
@@ -34,12 +34,12 @@ describe('ProjectSelector', function() {
             id: 'org',
             slug: 'org-slug',
             teams: [],
-            access: [],
+            access: []
           }}
           projectId=""
         />,
         {
-          context: {router: TestStubs.router()},
+          context: {router: TestStubs.router()}
         }
       );
       expect(wrapper).toMatchSnapshot();
@@ -52,12 +52,12 @@ describe('ProjectSelector', function() {
             id: 'org',
             slug: 'org-slug',
             teams: [],
-            access: ['project:write'],
+            access: ['project:write']
           }}
           projectId=""
         />,
         {
-          context: {router: TestStubs.router()},
+          context: {router: TestStubs.router()}
         }
       );
       expect(wrapper).toMatchSnapshot();
@@ -65,7 +65,7 @@ describe('ProjectSelector', function() {
 
     it('lists projects and has filter', function() {
       let wrapper = shallow(<ProjectSelector organization={mockOrg} projectId="" />, {
-        context: {router: TestStubs.router()},
+        context: {router: TestStubs.router()}
       });
       expect(wrapper).toMatchSnapshot();
     });

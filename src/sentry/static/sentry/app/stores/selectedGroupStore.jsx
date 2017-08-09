@@ -89,7 +89,7 @@ const SelectedGroupStore = Reflux.createStore({
     }
 
     this.trigger();
-  },
+  }
 });
 
 export default SelectedGroupStore;

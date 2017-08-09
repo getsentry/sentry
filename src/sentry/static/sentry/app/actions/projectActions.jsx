@@ -7,5 +7,5 @@ export default Reflux.createActions([
   'updateSuccess',
   'loadStats',
   'loadStatsError',
-  'loadStatsSuccess',
+  'loadStatsSuccess'
 ]);

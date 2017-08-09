@@ -9,11 +9,11 @@ describe('TeamCreate', function() {
       let wrapper = shallow(
         <TeamCreate
           params={{
-            orgId: 'org',
+            orgId: 'org'
           }}
         />,
         {
-          context: {router: TestStubs.router()},
+          context: {router: TestStubs.router()}
         }
       );
       expect(wrapper).toMatchSnapshot();

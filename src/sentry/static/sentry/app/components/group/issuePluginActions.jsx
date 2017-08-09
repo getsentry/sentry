@@ -10,7 +10,7 @@ import {toTitleCase} from '../../utils';
 
 const IssuePluginActions = React.createClass({
   propTypes: {
-    plugin: React.PropTypes.object.isRequired,
+    plugin: React.PropTypes.object.isRequired
   },
 
   mixins: [ApiMixin, GroupState],
@@ -19,7 +19,7 @@ const IssuePluginActions = React.createClass({
     return {
       showModal: false,
       actionType: null,
-      pluginLoading: false,
+      pluginLoading: false
     };
   },
 
@@ -36,13 +36,13 @@ const IssuePluginActions = React.createClass({
   ACTION_LABELS: {
     create: t('Create New Issue'),
     link: t('Link with Existing Issue'),
-    unlink: t('Unlink Issue'),
+    unlink: t('Unlink Issue')
   },
 
   loadPlugin(data) {
     this.setState(
       {
-        pluginLoading: true,
+        pluginLoading: true
       },
       () => {
         plugins.load(data, () => {
@@ -55,14 +55,14 @@ const IssuePluginActions = React.createClass({
   openModal(action) {
     this.setState({
       showModal: true,
-      actionType: action,
+      actionType: action
     });
   },
 
   closeModal() {
     this.setState({
       showModal: false,
-      actionType: null,
+      actionType: null
     });
   },
 
@@ -138,13 +138,13 @@ const IssuePluginActions = React.createClass({
                 project: this.getProject(),
                 organization: this.getOrganization(),
                 actionType: this.state.actionType,
-                onSuccess: this.closeModal,
+                onSuccess: this.closeModal
               })}
           </Modal.Body>
         </Modal>
       </span>
     );
-  },
+  }
 });
 
 export default IssuePluginActions;

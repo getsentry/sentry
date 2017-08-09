@@ -6,7 +6,7 @@ const Switch = React.createClass({
     isActive: React.PropTypes.bool,
     isLoading: React.PropTypes.bool,
     isDisabled: React.PropTypes.bool,
-    toggle: React.PropTypes.func.isRequired,
+    toggle: React.PropTypes.func.isRequired
   },
 
   render() {
@@ -37,7 +37,7 @@ const Switch = React.createClass({
         <span className="switch-toggle" />
       </div>
     );
-  },
+  }
 });
 
 export default Switch;

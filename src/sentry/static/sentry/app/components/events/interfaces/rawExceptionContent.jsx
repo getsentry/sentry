@@ -10,7 +10,7 @@ const RawExceptionContent = React.createClass({
     type: React.PropTypes.oneOf(['original', 'minified']),
     platform: React.PropTypes.string,
     eventId: React.PropTypes.string,
-    values: React.PropTypes.array.isRequired,
+    values: React.PropTypes.array.isRequired
   },
 
   mixins: [ApiMixin],
@@ -19,7 +19,7 @@ const RawExceptionContent = React.createClass({
     return {
       loading: false,
       error: false,
-      crashReport: '',
+      crashReport: ''
     };
   },
 
@@ -44,7 +44,7 @@ const RawExceptionContent = React.createClass({
     this.setState({
       loading: true,
       error: false,
-      crashReport: '',
+      crashReport: ''
     });
     this.api.request(this.getAppleCrashReportEndpoint(), {
       method: 'GET',
@@ -52,15 +52,15 @@ const RawExceptionContent = React.createClass({
         this.setState({
           error: false,
           loading: false,
-          crashReport: data,
+          crashReport: data
         });
       },
       error: () => {
         this.setState({
           error: true,
-          loading: false,
+          loading: false
         });
-      },
+      }
     });
   },
 
@@ -109,7 +109,7 @@ const RawExceptionContent = React.createClass({
         {children}
       </div>
     );
-  },
+  }
 });
 
 export default RawExceptionContent;

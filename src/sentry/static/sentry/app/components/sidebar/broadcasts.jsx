@@ -15,7 +15,7 @@ const Broadcasts = React.createClass({
     showPanel: React.PropTypes.bool,
     currentPanel: React.PropTypes.string,
     hidePanel: React.PropTypes.func,
-    onShowPanel: React.PropTypes.func.isRequired,
+    onShowPanel: React.PropTypes.func.isRequired
   },
 
   mixins: [ApiMixin],
@@ -24,7 +24,7 @@ const Broadcasts = React.createClass({
     return {
       broadcasts: [],
       loading: true,
-      error: false,
+      error: false
     };
   },
 
@@ -56,17 +56,17 @@ const Broadcasts = React.createClass({
       success: data => {
         this.setState({
           broadcasts: data,
-          loading: false,
+          loading: false
         });
         this.poller = window.setTimeout(this.fetchData, POLLER_DELAY);
       },
       error: () => {
         this.setState({
           loading: false,
-          error: true,
+          error: true
         });
         this.poller = window.setTimeout(this.fetchData, POLLER_DELAY);
-      },
+      }
     });
   },
 
@@ -93,16 +93,16 @@ const Broadcasts = React.createClass({
       method: 'PUT',
       query: {id: unseenBroadcastIds},
       data: {
-        hasSeen: '1',
+        hasSeen: '1'
       },
       success: () => {
         this.setState({
           broadcasts: this.state.broadcasts.map(item => {
             item.hasSeen = true;
             return item;
-          }),
+          })
         });
-      },
+      }
     });
   },
 
@@ -142,7 +142,7 @@ const Broadcasts = React.createClass({
           </SidebarPanel>}
       </li>
     );
-  },
+  }
 });
 
 export default Broadcasts;

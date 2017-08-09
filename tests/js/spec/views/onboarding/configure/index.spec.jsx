@@ -20,19 +20,19 @@ describe('Configure should render correctly', function() {
       next: () => {},
       params: {
         projectId: 'testProject',
-        orgId: 'testOrg',
-      },
+        orgId: 'testOrg'
+      }
     };
 
     it("shouldn't redirect for a found platform", function() {
       let props = {
-        ...baseProps,
+        ...baseProps
       };
       props.params.platform = 'node';
 
       let wrapper = shallow(<Configure {...props} />, {
         context: {organization: {id: '1337', slug: 'testOrg', teams: [['testProject']]}},
-        childContextTypes: {organization: PropTypes.Organization},
+        childContextTypes: {organization: PropTypes.Organization}
       });
 
       const component = wrapper.instance();
@@ -50,7 +50,7 @@ describe('Configure should render correctly', function() {
 
     it('should redirect to if no matching platform', function() {
       let props = {
-        ...baseProps,
+        ...baseProps
       };
       props.params.platform = 'other';
 
@@ -69,9 +69,9 @@ describe('Configure should render correctly', function() {
           organization: {
             id: '1337',
             slug: 'testOrg',
-            teams: [['testProject']],
-          },
-        },
+            teams: [['testProject']]
+          }
+        }
       });
 
       expect(wrapper).toMatchSnapshot();
@@ -80,7 +80,7 @@ describe('Configure should render correctly', function() {
 
     it('should render platform docs', function() {
       let props = {
-        ...baseProps,
+        ...baseProps
       };
       props.params.platform = 'node';
 
@@ -96,14 +96,14 @@ describe('Configure should render correctly', function() {
                 projects: [
                   {
                     slug: 'testProject',
-                    id: 'testProject',
-                  },
-                ],
-              },
-            ],
-          },
+                    id: 'testProject'
+                  }
+                ]
+              }
+            ]
+          }
         },
-        childContextTypes: {organization: PropTypes.Organization},
+        childContextTypes: {organization: PropTypes.Organization}
       });
       expect(wrapper).toMatchSnapshot();
       expect(this.stubbedApiRequest.callCount).toEqual(4);

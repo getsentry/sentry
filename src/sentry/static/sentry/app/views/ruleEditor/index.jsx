@@ -14,7 +14,7 @@ const RuleEditor = React.createClass({
     conditions: React.PropTypes.array.isRequired,
     rule: React.PropTypes.object.isRequired,
     project: React.PropTypes.object.isRequired,
-    organization: React.PropTypes.object.isRequired,
+    organization: React.PropTypes.object.isRequired
   },
 
   mixins: [ApiMixin],
@@ -22,7 +22,7 @@ const RuleEditor = React.createClass({
   getInitialState() {
     return {
       loading: false,
-      error: null,
+      error: null
     };
   },
 
@@ -61,7 +61,7 @@ const RuleEditor = React.createClass({
       actions: actions,
       conditions: conditions,
       frequency: frequency,
-      name: name,
+      name: name
     };
     let rule = this.props.rule;
     let project = this.props.project;
@@ -81,12 +81,12 @@ const RuleEditor = React.createClass({
       error: response => {
         this.setState({
           error: response.responseJSON || {__all__: 'Unknown error'},
-          loading: false,
+          loading: false
         });
       },
       complete: () => {
         IndicatorStore.remove(loadingIndicator);
-      },
+      }
     });
   },
 
@@ -234,7 +234,7 @@ const RuleEditor = React.createClass({
                           {t('30 days')}
                         </option>
                       </SelectInput>
-                    ),
+                    )
                   }
                 )}
               </h6>
@@ -249,7 +249,7 @@ const RuleEditor = React.createClass({
         </div>
       </form>
     );
-  },
+  }
 });
 
 export default RuleEditor;

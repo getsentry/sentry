@@ -9,19 +9,19 @@ const FileChange = React.createClass({
   propTypes: {
     filename: React.PropTypes.string.isRequired,
     authors: React.PropTypes.array.isRequired,
-    types: React.PropTypes.object.isRequired,
+    types: React.PropTypes.object.isRequired
   },
 
   mixins: [
     ApiMixin,
     TooltipMixin({
-      selector: '.tip',
-    }),
+      selector: '.tip'
+    })
   ],
 
   getInitialState() {
     return {
-      loading: true,
+      loading: true
     };
   },
 
@@ -65,7 +65,7 @@ const FileChange = React.createClass({
         </div>
       </li>
     );
-  },
+  }
 });
 
 export default FileChange;

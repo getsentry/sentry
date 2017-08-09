@@ -17,13 +17,13 @@ window.TestStubs = {
     goForward: sinon.spy(),
     setRouteLeaveHook: sinon.spy(),
     isActive: sinon.spy(),
-    createHref: sinon.spy(),
+    createHref: sinon.spy()
   }),
   Team: (...params) => {
     return {
       slug: 'team-slug',
       name: 'Team Name',
-      ...params,
+      ...params
     };
   },
   Project: (...params) => {
@@ -33,16 +33,16 @@ window.TestStubs = {
       subjectTemplate: '[$project] ${tag:level}: $title',
       digestsMinDelay: 5,
       digestsMaxDelay: 60,
-      ...params,
+      ...params
     };
   },
   Organization: (...params) => {
     return {
       slug: 'org-slug',
       name: 'Organization Name',
-      ...params,
+      ...params
     };
-  },
+  }
 };
 
 // this is very commonly used, so expose it globally
@@ -55,7 +55,7 @@ ConfigStore.loadInitialData({
     isAuthenticated: true,
     email: 'foo@example.com',
     options: {
-      timezone: 'UTC',
-    },
-  },
+      timezone: 'UTC'
+    }
+  }
 });

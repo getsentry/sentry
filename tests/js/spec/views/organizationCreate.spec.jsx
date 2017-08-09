@@ -7,7 +7,7 @@ describe('OrganizationCreate', function() {
   describe('render()', function() {
     it('renders correctly', function() {
       let wrapper = shallow(<OrganizationCreate />, {
-        context: {router: TestStubs.router()},
+        context: {router: TestStubs.router()}
       });
       expect(wrapper).toMatchSnapshot();
     });

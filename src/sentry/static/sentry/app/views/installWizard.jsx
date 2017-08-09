@@ -13,7 +13,7 @@ const InstallWizardSettings = React.createClass({
   propTypes: {
     options: React.PropTypes.object.isRequired,
     formDisabled: React.PropTypes.bool,
-    onSubmit: React.PropTypes.func.isRequired,
+    onSubmit: React.PropTypes.func.isRequired
   },
 
   getInitialState() {
@@ -60,7 +60,7 @@ const InstallWizardSettings = React.createClass({
     return {
       options: options,
       required: requiredOptions,
-      fields: fields,
+      fields: fields
     };
   },
 
@@ -68,7 +68,7 @@ const InstallWizardSettings = React.createClass({
     let options = {...this.state.options};
     options[name].value = value;
     this.setState({
-      options: options,
+      options: options
     });
   },
 
@@ -99,12 +99,12 @@ const InstallWizardSettings = React.createClass({
         </div>
       </form>
     );
-  },
+  }
 });
 
 const InstallWizard = React.createClass({
   propTypes: {
-    onConfigured: React.PropTypes.func.isRequired,
+    onConfigured: React.PropTypes.func.isRequired
   },
 
   mixins: [ApiMixin],
@@ -116,7 +116,7 @@ const InstallWizard = React.createClass({
       options: {},
       submitError: false,
       submitErrorType: null,
-      submitInProgress: false,
+      submitInProgress: false
     };
   },
 
@@ -142,22 +142,22 @@ const InstallWizard = React.createClass({
         this.setState({
           options: data,
           loading: false,
-          error: false,
+          error: false
         });
       },
       error: () => {
         this.setState({
           loading: false,
-          error: true,
+          error: true
         });
-      },
+      }
     });
   },
 
   onSubmit(options) {
     this.setState({
       submitInProgress: true,
-      submitError: false,
+      submitError: false
     });
     let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
 
@@ -171,7 +171,7 @@ const InstallWizard = React.createClass({
       data: data,
       success: () => {
         this.setState({
-          submitInProgress: false,
+          submitInProgress: false
         });
         this.props.onConfigured();
       },
@@ -211,12 +211,12 @@ const InstallWizard = React.createClass({
           submitInProgress: false,
           submitError: true,
           submitErrorMessage: errorMessage,
-          submitErrorType: err.error,
+          submitErrorType: err.error
         });
       },
       complete: () => {
         IndicatorStore.remove(loadingIndicator);
-      },
+      }
     });
   },
 
@@ -227,7 +227,7 @@ const InstallWizard = React.createClass({
       options,
       submitError,
       submitErrorMessage,
-      submitInProgress,
+      submitInProgress
     } = this.state;
     let version = ConfigStore.get('version');
     return (
@@ -269,7 +269,7 @@ const InstallWizard = React.createClass({
         </div>
       </DocumentTitle>
     );
-  },
+  }
 });
 
 export default InstallWizard;

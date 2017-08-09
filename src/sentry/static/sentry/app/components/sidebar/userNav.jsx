@@ -7,7 +7,7 @@ import {t} from '../../locale';
 
 const UserNav = React.createClass({
   contextTypes: {
-    location: React.PropTypes.object,
+    location: React.PropTypes.object
   },
 
   shouldComponentUpdate(nextProps, nextState) {
@@ -45,7 +45,7 @@ const UserNav = React.createClass({
         </MenuItem>
       </DropdownLink>
     );
-  },
+  }
 });
 
 export default UserNav;

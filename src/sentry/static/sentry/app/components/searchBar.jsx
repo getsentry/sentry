@@ -8,7 +8,7 @@ const SearchBar = React.createClass({
     defaultQuery: React.PropTypes.string,
     onSearch: React.PropTypes.func,
     onQueryChange: React.PropTypes.func,
-    placeholder: React.PropTypes.string,
+    placeholder: React.PropTypes.string
   },
 
   mixins: [PureRenderMixin],
@@ -18,13 +18,13 @@ const SearchBar = React.createClass({
       defaultQuery: '',
       query: '',
       onSearch: function() {},
-      onQueryChange: function() {},
+      onQueryChange: function() {}
     };
   },
 
   getInitialState() {
     return {
-      query: this.props.query || this.props.defaultQuery,
+      query: this.props.query || this.props.defaultQuery
     };
   },
 
@@ -46,7 +46,7 @@ const SearchBar = React.createClass({
 
   onQueryFocus() {
     this.setState({
-      dropdownVisible: true,
+      dropdownVisible: true
     });
   },
 
@@ -85,7 +85,7 @@ const SearchBar = React.createClass({
         </form>
       </div>
     );
-  },
+  }
 });
 
 export default SearchBar;

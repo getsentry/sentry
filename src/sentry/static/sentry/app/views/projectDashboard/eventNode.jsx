@@ -7,7 +7,7 @@ import ProjectState from '../../mixins/projectState';
 
 const EventNode = React.createClass({
   propTypes: {
-    group: PropTypes.Group.isRequired,
+    group: PropTypes.Group.isRequired
   },
 
   mixins: [ProjectState],
@@ -61,7 +61,7 @@ const EventNode = React.createClass({
         </div>
       </li>
     );
-  },
+  }
 });
 
 export default EventNode;

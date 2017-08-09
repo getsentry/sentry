@@ -7,7 +7,7 @@ import ProjectSelector from '../../components/projectHeader/projectSelector';
 const GettingStartedBody = React.createClass({
   contextTypes: {
     project: React.PropTypes.object,
-    organization: React.PropTypes.object,
+    organization: React.PropTypes.object
   },
 
   render() {
@@ -28,7 +28,7 @@ const GettingStartedBody = React.createClass({
         </div>
       </div>
     );
-  },
+  }
 });
 
 const GettingStarted = React.createClass({
@@ -41,7 +41,7 @@ const GettingStarted = React.createClass({
         </GettingStartedBody>
       </ProjectContext>
     );
-  },
+  }
 });
 
 export default GettingStarted;

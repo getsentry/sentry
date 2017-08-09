@@ -4,7 +4,7 @@ const PlatformiconTile = React.createClass({
   propTypes: {
     platform: React.PropTypes.string,
     onClick: React.PropTypes.func,
-    className: React.PropTypes.string,
+    className: React.PropTypes.string
   },
 
   render() {
@@ -19,7 +19,7 @@ const PlatformiconTile = React.createClass({
         <span className={`platformicon platformicon-${platform}`} />
       </li>
     );
-  },
+  }
 });
 
 export default PlatformiconTile;

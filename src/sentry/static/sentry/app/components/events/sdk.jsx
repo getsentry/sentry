@@ -7,7 +7,7 @@ import {t} from '../../locale';
 const EventSdk = React.createClass({
   propTypes: {
     group: PropTypes.Group.isRequired,
-    event: PropTypes.Event.isRequired,
+    event: PropTypes.Event.isRequired
   },
 
   render() {
@@ -52,7 +52,7 @@ const EventSdk = React.createClass({
         </table>
       </GroupEventDataSection>
     );
-  },
+  }
 });
 
 export default EventSdk;

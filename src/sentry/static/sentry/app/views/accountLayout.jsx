@@ -79,7 +79,7 @@ const AccountLayout = React.createClass({
         {this.props.children}
       </NarrowLayout>
     );
-  },
+  }
 });
 
 export default AccountLayout;

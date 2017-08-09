@@ -4,19 +4,19 @@ const Truncate = React.createClass({
   propTypes: {
     value: React.PropTypes.string.isRequired,
     leftTrim: React.PropTypes.bool,
-    maxLength: React.PropTypes.number,
+    maxLength: React.PropTypes.number
   },
 
   getDefaultProps() {
     return {
       leftTrim: false,
-      maxLength: 50,
+      maxLength: 50
     };
   },
 
   getInitialState() {
     return {
-      isExpanded: false,
+      isExpanded: false
     };
   },
 
@@ -73,7 +73,7 @@ const Truncate = React.createClass({
           </span>}
       </span>
     );
-  },
+  }
 });
 
 export default Truncate;

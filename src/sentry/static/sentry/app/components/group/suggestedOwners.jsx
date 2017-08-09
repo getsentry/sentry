@@ -10,7 +10,7 @@ import {t} from '../../locale';
 
 const SuggestedOwners = React.createClass({
   propTypes: {
-    event: React.PropTypes.object,
+    event: React.PropTypes.object
   },
 
   mixins: [
@@ -21,8 +21,8 @@ const SuggestedOwners = React.createClass({
       html: true,
       container: 'body',
       template:
-        '<div class="tooltip" role="tooltip"><div class="tooltip-arrow"></div><div class="tooltip-inner tooltip-owners"></div></div>',
-    }),
+        '<div class="tooltip" role="tooltip"><div class="tooltip-arrow"></div><div class="tooltip-inner tooltip-owners"></div></div>'
+    })
   ],
 
   getInitialState() {
@@ -62,14 +62,14 @@ const SuggestedOwners = React.createClass({
       {
         success: (data, _, jqXHR) => {
           this.setState({
-            owners: data.committers,
+            owners: data.committers
           });
         },
         error: error => {
           this.setState({
-            owners: undefined,
+            owners: undefined
           });
-        },
+        }
       }
     );
   },
@@ -143,7 +143,7 @@ const SuggestedOwners = React.createClass({
         </div>
       </div>
     );
-  },
+  }
 });
 
 export default SuggestedOwners;

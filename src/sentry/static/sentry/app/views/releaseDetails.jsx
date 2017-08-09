@@ -13,15 +13,15 @@ import {t} from '../locale';
 
 const ReleaseDetails = React.createClass({
   propTypes: {
-    setProjectNavSection: React.PropTypes.func,
+    setProjectNavSection: React.PropTypes.func
   },
 
   contextTypes: {
-    location: React.PropTypes.object,
+    location: React.PropTypes.object
   },
 
   childContextTypes: {
-    release: React.PropTypes.object,
+    release: React.PropTypes.object
   },
 
   mixins: [ApiMixin, ProjectState],
@@ -30,13 +30,13 @@ const ReleaseDetails = React.createClass({
     return {
       release: null,
       loading: true,
-      error: false,
+      error: false
     };
   },
 
   getChildContext() {
     return {
-      release: this.state.release,
+      release: this.state.release
     };
   },
 
@@ -55,22 +55,22 @@ const ReleaseDetails = React.createClass({
   fetchData() {
     this.setState({
       loading: true,
-      error: false,
+      error: false
     });
 
     this.api.request(this.getReleaseDetailsEndpoint(), {
       success: data => {
         this.setState({
           loading: false,
-          release: data,
+          release: data
         });
       },
       error: () => {
         this.setState({
           loading: false,
-          error: true,
+          error: true
         });
-      },
+      }
     });
   },
 
@@ -196,12 +196,12 @@ const ReleaseDetails = React.createClass({
             </ul>
           </div>
           {React.cloneElement(this.props.children, {
-            release: release,
+            release: release
           })}
         </div>
       </DocumentTitle>
     );
-  },
+  }
 });
 
 export default ReleaseDetails;

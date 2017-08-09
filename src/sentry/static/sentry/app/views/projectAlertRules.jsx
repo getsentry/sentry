@@ -13,7 +13,7 @@ const RuleRow = React.createClass({
     orgId: React.PropTypes.string.isRequired,
     projectId: React.PropTypes.string.isRequired,
     data: React.PropTypes.object.isRequired,
-    onDelete: React.PropTypes.func.isRequired,
+    onDelete: React.PropTypes.func.isRequired
   },
 
   mixins: [ApiMixin],
@@ -21,7 +21,7 @@ const RuleRow = React.createClass({
   getInitialState() {
     return {
       loading: false,
-      error: false,
+      error: false
     };
   },
 
@@ -41,11 +41,11 @@ const RuleRow = React.createClass({
       error: () => {
         this.setState({
           error: true,
-          loading: false,
+          loading: false
         });
         IndicatorStore.remove(loadingIndicator);
         IndicatorStore.add(t('Unable to save changes. Please try again.'), 'error');
-      },
+      }
     });
   },
 
@@ -117,7 +117,7 @@ const RuleRow = React.createClass({
         </div>
       </div>
     );
-  },
+  }
 });
 
 const ProjectAlertRules = React.createClass({
@@ -127,7 +127,7 @@ const ProjectAlertRules = React.createClass({
     return {
       loading: true,
       error: false,
-      ruleList: [],
+      ruleList: []
     };
   },
 
@@ -142,21 +142,21 @@ const ProjectAlertRules = React.createClass({
         this.setState({
           error: false,
           loading: false,
-          ruleList: data,
+          ruleList: data
         });
       },
       error: () => {
         this.setState({
           error: true,
-          loading: false,
+          loading: false
         });
-      },
+      }
     });
   },
 
   onDeleteRule(rule) {
     this.setState({
-      ruleList: this.state.ruleList.filter(r => r.id !== rule.id),
+      ruleList: this.state.ruleList.filter(r => r.id !== rule.id)
     });
   },
 
@@ -235,7 +235,7 @@ const ProjectAlertRules = React.createClass({
         {this.renderBody()}
       </div>
     );
-  },
+  }
 });
 
 export default ProjectAlertRules;

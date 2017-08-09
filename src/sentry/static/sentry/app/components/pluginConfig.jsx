@@ -12,7 +12,7 @@ const PluginConfig = React.createClass({
     organization: React.PropTypes.object.isRequired,
     project: React.PropTypes.object.isRequired,
     data: React.PropTypes.object.isRequired,
-    onDisablePlugin: React.PropTypes.func,
+    onDisablePlugin: React.PropTypes.func
   },
 
   mixins: [ApiMixin],
@@ -21,14 +21,14 @@ const PluginConfig = React.createClass({
     return {
       onDisablePlugin: () => {
         window.location.reload();
-      },
+      }
     };
   },
 
   getInitialState() {
     return {
       loading: !plugins.isLoaded(this.props.data),
-      testResults: '',
+      testResults: ''
     };
   },
 
@@ -53,7 +53,7 @@ const PluginConfig = React.createClass({
 
     this.setState(
       {
-        loading: true,
+        loading: true
       },
       () => {
         plugins.load(data, () => {
@@ -78,7 +78,7 @@ const PluginConfig = React.createClass({
       },
       error: error => {
         IndicatorStore.add(t('Unable to disable plugin. Please try again.'), 'error');
-      },
+      }
     });
   },
 
@@ -87,7 +87,7 @@ const PluginConfig = React.createClass({
     this.api.request(this.getPluginEndpoint(), {
       method: 'POST',
       data: {
-        test: true,
+        test: true
       },
       success: data => {
         this.setState({testResults: JSON.stringify(data.detail)});
@@ -99,7 +99,7 @@ const PluginConfig = React.createClass({
           t('An unexpected error occurred while testing your plugin. Please try again.'),
           'error'
         );
-      },
+      }
     });
   },
 
@@ -149,12 +149,12 @@ const PluginConfig = React.createClass({
             ? <LoadingIndicator />
             : plugins.get(data).renderSettings({
                 organization: this.props.organization,
-                project: this.props.project,
+                project: this.props.project
               })}
         </div>
       </div>
     );
-  },
+  }
 });
 
 export default PluginConfig;

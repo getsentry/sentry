@@ -6,7 +6,7 @@ describe('StreamManager', function() {
     this.store = Reflux.createStore({
       add() {},
       getAllItems() {},
-      remove() {},
+      remove() {}
     });
   });
 

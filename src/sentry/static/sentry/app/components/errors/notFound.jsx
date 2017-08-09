@@ -33,7 +33,7 @@ const NotFound = React.createClass({
         </p>
       </div>
     );
-  },
+  }
 });
 
 export default NotFound;

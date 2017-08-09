@@ -21,7 +21,7 @@ import {sortArray} from '../utils';
 const AssignedIssues = React.createClass({
   propTypes: {
     statsPeriod: React.PropTypes.string,
-    pageSize: React.PropTypes.number,
+    pageSize: React.PropTypes.number
   },
 
   getEndpoint() {
@@ -64,7 +64,7 @@ const AssignedIssues = React.createClass({
           query={{
             statsPeriod: this.props.statsPeriod,
             per_page: this.props.pageSize,
-            status: 'unresolved',
+            status: 'unresolved'
           }}
           pagination={false}
           renderEmpty={this.renderEmpty}
@@ -73,13 +73,13 @@ const AssignedIssues = React.createClass({
         />
       </div>
     );
-  },
+  }
 });
 
 const NewIssues = React.createClass({
   propTypes: {
     statsPeriod: React.PropTypes.string,
-    pageSize: React.PropTypes.number,
+    pageSize: React.PropTypes.number
   },
 
   getEndpoint() {
@@ -115,7 +115,7 @@ const NewIssues = React.createClass({
           query={{
             statsPeriod: this.props.statsPeriod,
             per_page: this.props.pageSize,
-            status: 'unresolved',
+            status: 'unresolved'
           }}
           pagination={false}
           renderEmpty={this.renderEmpty}
@@ -124,7 +124,7 @@ const NewIssues = React.createClass({
         />
       </div>
     );
-  },
+  }
 });
 
 function ProjectSparkline(props) {
@@ -140,20 +140,20 @@ function ProjectSparkline(props) {
   );
 }
 ProjectSparkline.propTypes = {
-  data: React.PropTypes.array.isRequired,
+  data: React.PropTypes.array.isRequired
 };
 
 const ProjectList = React.createClass({
   propTypes: {
     teams: React.PropTypes.array,
-    maxProjects: React.PropTypes.number,
+    maxProjects: React.PropTypes.number
   },
 
   mixins: [OrganizationState],
 
   getDefaultProps() {
     return {
-      maxProjects: 8,
+      maxProjects: 8
     };
   },
 
@@ -221,7 +221,7 @@ const ProjectList = React.createClass({
         </ul>
       </div>
     );
-  },
+  }
 });
 
 const Activity = React.createClass({
@@ -249,14 +249,14 @@ const Activity = React.createClass({
           ref="activityFeed"
           endpoint={this.getEndpoint()}
           query={{
-            per_page: 10,
+            per_page: 10
           }}
           pagination={false}
           {...this.props}
         />
       </div>
     );
-  },
+  }
 });
 
 const OrganizationDashboard = React.createClass({
@@ -265,13 +265,13 @@ const OrganizationDashboard = React.createClass({
   getDefaultProps() {
     return {
       statsPeriod: '24h',
-      pageSize: 5,
+      pageSize: 5
     };
   },
 
   getInitialState() {
     return {
-      teams: TeamStore.getAll(),
+      teams: TeamStore.getAll()
     };
   },
 
@@ -281,8 +281,8 @@ const OrganizationDashboard = React.createClass({
       query: {
         since: new Date().getTime() / 1000 - 3600 * 24,
         stat: 'generated',
-        group: 'project',
-      },
+        group: 'project'
+      }
     });
   },
 
@@ -292,7 +292,7 @@ const OrganizationDashboard = React.createClass({
 
   onTeamListChange() {
     this.setState({
-      teams: TeamStore.getAll(),
+      teams: TeamStore.getAll()
     });
   },
 
@@ -312,7 +312,7 @@ const OrganizationDashboard = React.createClass({
         </div>
       </OrganizationHomeContainer>
     );
-  },
+  }
 });
 
 export default OrganizationDashboard;

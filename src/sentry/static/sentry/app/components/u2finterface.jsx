@@ -9,12 +9,12 @@ const U2fInterface = React.createClass({
     challengeData: React.PropTypes.object.isRequired,
     flowMode: React.PropTypes.string.isRequired,
     onTap: React.PropTypes.func,
-    silentIfUnsupported: React.PropTypes.bool,
+    silentIfUnsupported: React.PropTypes.bool
   },
 
   getDefaultProps() {
     return {
-      silentIfUnsupported: false,
+      silentIfUnsupported: false
     };
   },
 
@@ -25,14 +25,14 @@ const U2fInterface = React.createClass({
       challengeElement: null,
       hasBeenTapped: false,
       deviceFailure: null,
-      responseElement: null,
+      responseElement: null
     };
   },
 
   componentDidMount() {
     u2f.isSupported().then(supported => {
       this.setState({
-        isSupported: supported,
+        isSupported: supported
       });
       if (!supported) {
         return;
@@ -45,7 +45,7 @@ const U2fInterface = React.createClass({
     this.setState(
       {
         hasBeenTapped: false,
-        deviceFailure: null,
+        deviceFailure: null
       },
       () => {
         this.invokeU2fFlow();
@@ -67,7 +67,7 @@ const U2fInterface = React.createClass({
       .then(data => {
         this.setState(
           {
-            hasBeenTapped: true,
+            hasBeenTapped: true
           },
           () => {
             this.state.responseElement.value = JSON.stringify(data);
@@ -90,7 +90,7 @@ const U2fInterface = React.createClass({
         }
         this.setState({
           deviceFailure: failure,
-          hasBeenTapped: false,
+          hasBeenTapped: false
         });
       });
   },
@@ -98,14 +98,14 @@ const U2fInterface = React.createClass({
   bindChallengeElement(ref) {
     this.setState({
       challengeElement: ref,
-      formElement: ref.form,
+      formElement: ref.form
     });
     ref.value = JSON.stringify(this.props.challengeData);
   },
 
   bindResponseElement(ref) {
     this.setState({
-      responseElement: ref,
+      responseElement: ref
     });
   },
 
@@ -162,9 +162,9 @@ const U2fInterface = React.createClass({
                 {
                   p1: <p />,
                   p2: <p />,
-                  support: support,
+                  support: support
                 }
-              ),
+              )
             }[deviceFailure]
           }
         </p>
@@ -223,7 +223,7 @@ const U2fInterface = React.createClass({
     } else {
       return this.renderPrompt();
     }
-  },
+  }
 });
 
 export default U2fInterface;

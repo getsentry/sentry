@@ -14,7 +14,7 @@ import {t} from '../locale';
 
 const ReleaseArtifacts = React.createClass({
   contextTypes: {
-    release: React.PropTypes.object,
+    release: React.PropTypes.object
   },
 
   mixins: [
@@ -22,8 +22,8 @@ const ReleaseArtifacts = React.createClass({
     OrganizationState,
     TooltipMixin({
       selector: '.tip',
-      trigger: 'hover',
-    }),
+      trigger: 'hover'
+    })
   ],
 
   getInitialState() {
@@ -31,7 +31,7 @@ const ReleaseArtifacts = React.createClass({
       loading: true,
       error: false,
       fileList: [],
-      pageLinks: null,
+      pageLinks: null
     };
   },
 
@@ -55,7 +55,7 @@ const ReleaseArtifacts = React.createClass({
   fetchData() {
     this.setState({
       loading: true,
-      error: false,
+      error: false
     });
 
     this.api.request(this.getFilesEndpoint(), {
@@ -66,16 +66,16 @@ const ReleaseArtifacts = React.createClass({
           error: false,
           loading: false,
           fileList: data,
-          pageLinks: jqXHR.getResponseHeader('Link'),
+          pageLinks: jqXHR.getResponseHeader('Link')
         });
         this.attachTooltips();
       },
       error: () => {
         this.setState({
           error: true,
-          loading: false,
+          loading: false
         });
-      },
+      }
     });
   },
 
@@ -90,21 +90,21 @@ const ReleaseArtifacts = React.createClass({
         });
 
         this.setState({
-          fileList: fileList,
+          fileList: fileList
         });
 
         IndicatorStore.add(t('Artifact removed.'), 'success', {
-          duration: 4000,
+          duration: 4000
         });
       },
       error: () => {
         IndicatorStore.add(t('Unable to remove artifact. Please try again.'), 'error', {
-          duration: 4000,
+          duration: 4000
         });
       },
       complete: () => {
         IndicatorStore.remove(loadingIndicator);
-      },
+      }
     });
   },
 
@@ -195,7 +195,7 @@ const ReleaseArtifacts = React.createClass({
         <Pagination pageLinks={this.state.pageLinks} />
       </div>
     );
-  },
+  }
 });
 
 export default ReleaseArtifacts;

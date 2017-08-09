@@ -20,7 +20,7 @@ const StreamGroup = React.createClass({
     orgId: React.PropTypes.string.isRequired,
     projectId: React.PropTypes.string.isRequired,
     statsPeriod: React.PropTypes.string.isRequired,
-    canSelect: React.PropTypes.bool,
+    canSelect: React.PropTypes.bool
   },
 
   mixins: [Reflux.listenTo(GroupStore, 'onGroupChange'), ProjectState],
@@ -29,20 +29,20 @@ const StreamGroup = React.createClass({
     return {
       canSelect: true,
       id: '',
-      statsPeriod: '24h',
+      statsPeriod: '24h'
     };
   },
 
   getInitialState() {
     return {
-      data: GroupStore.get(this.props.id),
+      data: GroupStore.get(this.props.id)
     };
   },
 
   componentWillReceiveProps(nextProps) {
     if (nextProps.id != this.props.id) {
       this.setState({
-        data: GroupStore.get(this.props.id),
+        data: GroupStore.get(this.props.id)
       });
     }
   },
@@ -64,7 +64,7 @@ const StreamGroup = React.createClass({
     let id = this.props.id;
     let data = GroupStore.get(id);
     this.setState({
-      data: data,
+      data: data
     });
   },
 
@@ -129,6 +129,6 @@ const StreamGroup = React.createClass({
         </div>
       </li>
     );
-  },
+  }
 });
 export default StreamGroup;

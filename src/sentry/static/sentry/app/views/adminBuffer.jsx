@@ -7,7 +7,7 @@ const AdminBuffer = React.createClass({
   getInitialState() {
     return {
       since: new Date().getTime() / 1000 - 3600 * 24 * 7,
-      resolution: '1h',
+      resolution: '1h'
     };
   },
 
@@ -58,7 +58,7 @@ const AdminBuffer = React.createClass({
         </div>
       </div>
     );
-  },
+  }
 });
 
 export default AdminBuffer;

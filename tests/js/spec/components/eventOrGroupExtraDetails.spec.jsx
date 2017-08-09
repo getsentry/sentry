@@ -5,7 +5,7 @@ import EventOrGroupExtraDetails from 'app/components/eventOrGroupExtraDetails';
 
 jest.mock('app/mixins/projectState', () => {
   return {
-    getFeatures: () => new Set(['callsigns']),
+    getFeatures: () => new Set(['callsigns'])
   };
 });
 

@@ -10,7 +10,7 @@ import {t} from '../../../locale';
 
 const RichHttpContent = React.createClass({
   propTypes: {
-    data: React.PropTypes.object.isRequired,
+    data: React.PropTypes.object.isRequired
   },
 
   /**
@@ -116,7 +116,7 @@ const RichHttpContent = React.createClass({
           </ClippedBox>}
       </div>
     );
-  },
+  }
 });
 
 export default RichHttpContent;

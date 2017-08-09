@@ -13,7 +13,7 @@ const CrashContent = React.createClass({
     stackType: React.PropTypes.string,
     newestFirst: React.PropTypes.bool.isRequired,
     exception: React.PropTypes.object,
-    stacktrace: React.PropTypes.object,
+    stacktrace: React.PropTypes.object
   },
 
   renderException() {
@@ -57,7 +57,7 @@ const CrashContent = React.createClass({
       return this.renderStacktrace();
     }
     return null;
-  },
+  }
 });
 
 export default CrashContent;

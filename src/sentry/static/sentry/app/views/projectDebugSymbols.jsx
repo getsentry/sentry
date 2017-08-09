@@ -24,7 +24,7 @@ const ProjectDebugSymbols = React.createClass({
       activeVersion: null,
       activeBuilds: null,
       activeBuild: null,
-      activeDsyms: null,
+      activeDsyms: null
     };
   },
 
@@ -42,15 +42,15 @@ const ProjectDebugSymbols = React.createClass({
           debugSymbols: data.debugSymbols,
           unreferencedDebugSymbols: data.unreferencedDebugSymbols,
           apps: data.apps,
-          pageLinks: jqXHR.getResponseHeader('Link'),
+          pageLinks: jqXHR.getResponseHeader('Link')
         });
       },
       error: () => {
         this.setState({
           error: true,
-          loading: false,
+          loading: false
         });
-      },
+      }
     });
   },
 
@@ -58,7 +58,7 @@ const ProjectDebugSymbols = React.createClass({
     this.setState({
       activeAppID: appID,
       activeVersion: version,
-      activeBuilds: builds,
+      activeBuilds: builds
     });
   },
 
@@ -66,13 +66,13 @@ const ProjectDebugSymbols = React.createClass({
     this.setState({
       showModal: true,
       activeBuild: build,
-      activeDsyms: dsyms,
+      activeDsyms: dsyms
     });
   },
 
   closeModal() {
     this.setState({
-      showModal: false,
+      showModal: false
     });
   },
 
@@ -433,7 +433,7 @@ const ProjectDebugSymbols = React.createClass({
         </Modal>
       </div>
     );
-  },
+  }
 });
 
 export default ProjectDebugSymbols;

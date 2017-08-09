@@ -14,8 +14,8 @@ const GroupSeenBy = React.createClass({
     GroupState,
     TooltipMixin({
       html: true,
-      selector: '.tip',
-    }),
+      selector: '.tip'
+    })
   ],
 
   render() {
@@ -60,7 +60,7 @@ const GroupSeenBy = React.createClass({
         </ul>
       </div>
     );
-  },
+  }
 });
 
 export default GroupSeenBy;

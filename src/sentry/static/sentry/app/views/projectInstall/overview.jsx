@@ -6,12 +6,12 @@ import {t, tct} from '../../locale';
 
 const ProjectInstallOverview = React.createClass({
   propTypes: {
-    platformData: React.PropTypes.object,
+    platformData: React.PropTypes.object
   },
 
   getInitialState() {
     return {
-      data: this.props.platformData,
+      data: this.props.platformData
     };
   },
 
@@ -93,7 +93,7 @@ const ProjectInstallOverview = React.createClass({
           : <p>
               <small>
                 {tct('Already have things setup? [link:Get your DSN].', {
-                  link: <a onClick={this.toggleDsn} />,
+                  link: <a onClick={this.toggleDsn} />
                 })}
               </small>
             </p>}
@@ -139,13 +139,13 @@ const ProjectInstallOverview = React.createClass({
              client integrations, please visit see [docLink:our in-depth documentation].
           `,
             {
-              docLink: <a href="https://docs.sentry.io" />,
+              docLink: <a href="https://docs.sentry.io" />
             }
           )}
         </p>
       </div>
     );
-  },
+  }
 });
 
 export default ProjectInstallOverview;

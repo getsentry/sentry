@@ -19,7 +19,6 @@
     "prettier.singleQuote": true,
     "prettier.printWidth": 90,
     "prettier.jsxBracketSameLine": true,
-    "prettier.trailingComma": "es5",
 
     "eslint.options": {
         "configFile": ".eslintrc"

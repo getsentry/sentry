@@ -16,8 +16,8 @@ describe('StreamTagStore', function() {
       this.sandbox.stub(MemberListStore, 'getAll').returns([
         {
           username: 'janesmith',
-          email: 'janesmith@example.org',
-        },
+          email: 'janesmith@example.org'
+        }
       ]);
       StreamTagStore.onMemberListStoreChange();
       expect(StreamTagStore.tags.assigned.values).toEqual(['me', 'janesmith']);
@@ -26,13 +26,13 @@ describe('StreamTagStore', function() {
     it("should fall back to email when username isn't available", () => {
       this.sandbox.stub(MemberListStore, 'getAll').returns([
         {
-          email: 'janesmith@example.org',
-        },
+          email: 'janesmith@example.org'
+        }
       ]);
       StreamTagStore.onMemberListStoreChange();
       expect(StreamTagStore.tags.assigned.values).toEqual([
         'me',
-        'janesmith@example.org',
+        'janesmith@example.org'
       ]);
     });
   });
@@ -44,14 +44,14 @@ describe('StreamTagStore', function() {
       StreamTagStore.onLoadTagsSuccess([
         {
           key: 'mytag',
-          name: 'My Custom Tag',
-        },
+          name: 'My Custom Tag'
+        }
       ]);
 
       expect(StreamTagStore.tags.mytag).toEqual({
         key: 'mytag',
         name: 'My Custom Tag',
-        values: [],
+        values: []
       });
 
       expect(StreamTagStore.trigger.calledOnce).toBeTruthy();
@@ -62,8 +62,8 @@ describe('StreamTagStore', function() {
       StreamTagStore.onLoadTagsSuccess([
         {
           key: 'is',
-          name: 'Custom Assigned To',
-        },
+          name: 'Custom Assigned To'
+        }
       ]);
 
       expect(StreamTagStore.tags.is).toEqual(isTag);

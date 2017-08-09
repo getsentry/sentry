@@ -18,7 +18,7 @@ const TeamDetails = React.createClass({
     return {
       loading: true,
       error: false,
-      team: null,
+      team: null
     };
   },
 
@@ -35,7 +35,7 @@ const TeamDetails = React.createClass({
       this.setState(
         {
           loading: true,
-          error: false,
+          error: false
         },
         this.fetchData
       );
@@ -50,15 +50,15 @@ const TeamDetails = React.createClass({
         this.setState({
           team: data,
           loading: false,
-          error: false,
+          error: false
         });
       },
       error: () => {
         this.setState({
           loading: false,
-          error: true,
+          error: true
         });
-      },
+      }
     });
   },
 
@@ -74,8 +74,8 @@ const TeamDetails = React.createClass({
       this.setState({
         team: {
           ...team,
-          ...data,
-        },
+          ...data
+        }
       });
     }
   },
@@ -116,11 +116,11 @@ const TeamDetails = React.createClass({
 
         {React.cloneElement(this.props.children, {
           team: team,
-          onTeamChange: this.onTeamChange,
+          onTeamChange: this.onTeamChange
         })}
       </OrganizationHomeContainer>
     );
-  },
+  }
 });
 
 export default TeamDetails;

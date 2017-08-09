@@ -16,7 +16,7 @@ const ProjectUserReports = React.createClass({
   propTypes: {
     defaultQuery: React.PropTypes.string,
     defaultStatus: React.PropTypes.string,
-    setProjectNavSection: React.PropTypes.func,
+    setProjectNavSection: React.PropTypes.func
   },
 
   mixins: [ApiMixin],
@@ -24,7 +24,7 @@ const ProjectUserReports = React.createClass({
   getDefaultProps() {
     return {
       defaultQuery: '',
-      defaultStatus: 'unresolved',
+      defaultStatus: 'unresolved'
     };
   },
 
@@ -36,7 +36,7 @@ const ProjectUserReports = React.createClass({
       pageLinks: '',
       query: this.props.defaultQuery,
       status: this.props.defaultStatus,
-      ...this.getQueryStringState(this.props),
+      ...this.getQueryStringState(this.props)
     };
   },
 
@@ -61,7 +61,7 @@ const ProjectUserReports = React.createClass({
       : this.props.defaultQuery;
     return {
       query: query,
-      status: status,
+      status: status
     };
   },
 
@@ -82,7 +82,7 @@ const ProjectUserReports = React.createClass({
   fetchData() {
     this.setState({
       loading: true,
-      error: false,
+      error: false
     });
 
     this.api.request(this.getEndpoint(), {
@@ -93,15 +93,15 @@ const ProjectUserReports = React.createClass({
           error: false,
           loading: false,
           reportList: data,
-          pageLinks: jqXHR.getResponseHeader('Link'),
+          pageLinks: jqXHR.getResponseHeader('Link')
         });
       },
       error: () => {
         this.setState({
           error: true,
-          loading: false,
+          loading: false
         });
-      },
+      }
     });
   },
 
@@ -111,7 +111,7 @@ const ProjectUserReports = React.createClass({
       ...this.props.location.query,
       limit: 50,
       query: this.state.query,
-      status: this.state.status,
+      status: this.state.status
     };
 
     return `/projects/${params.orgId}/${params.projectId}/user-reports/?${jQuery.param(
@@ -247,7 +247,7 @@ const ProjectUserReports = React.createClass({
         <Pagination pageLinks={this.state.pageLinks} />
       </div>
     );
-  },
+  }
 });
 
 export default ProjectUserReports;

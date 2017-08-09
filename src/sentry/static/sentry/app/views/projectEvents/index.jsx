@@ -13,14 +13,14 @@ import {t} from '../../locale';
 const ProjectEvents = React.createClass({
   propTypes: {
     defaultQuery: React.PropTypes.string,
-    setProjectNavSection: React.PropTypes.func,
+    setProjectNavSection: React.PropTypes.func
   },
 
   mixins: [ApiMixin],
 
   getDefaultProps() {
     return {
-      defaultQuery: '',
+      defaultQuery: ''
     };
   },
 
@@ -32,7 +32,7 @@ const ProjectEvents = React.createClass({
       loading: true,
       error: false,
       query: queryParams.query || this.props.defaultQuery,
-      pageLinks: '',
+      pageLinks: ''
     };
   },
 
@@ -46,7 +46,7 @@ const ProjectEvents = React.createClass({
       let queryParams = nextProps.location.query;
       this.setState(
         {
-          query: queryParams.query,
+          query: queryParams.query
         },
         this.fetchData
       );
@@ -64,7 +64,7 @@ const ProjectEvents = React.createClass({
   fetchData() {
     this.setState({
       loading: true,
-      error: false,
+      error: false
     });
 
     this.api.request(this.getEndpoint(), {
@@ -73,15 +73,15 @@ const ProjectEvents = React.createClass({
           error: false,
           loading: false,
           eventList: data,
-          pageLinks: jqXHR.getResponseHeader('Link'),
+          pageLinks: jqXHR.getResponseHeader('Link')
         });
       },
       error: () => {
         this.setState({
           error: true,
-          loading: false,
+          loading: false
         });
-      },
+      }
     });
   },
 
@@ -94,7 +94,7 @@ const ProjectEvents = React.createClass({
     let queryParams = {
       ...this.props.location.query,
       limit: 50,
-      query: this.state.query,
+      query: this.state.query
     };
 
     return `/projects/${params.orgId}/${params.projectId}/events/?${jQuery.param(
@@ -213,7 +213,7 @@ const ProjectEvents = React.createClass({
         <Pagination pageLinks={this.state.pageLinks} />
       </div>
     );
-  },
+  }
 });
 
 export default ProjectEvents;

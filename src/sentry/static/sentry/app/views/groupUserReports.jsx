@@ -18,7 +18,7 @@ const GroupUserReports = React.createClass({
       loading: true,
       error: false,
       reportList: [],
-      pageLinks: '',
+      pageLinks: ''
     };
   },
 
@@ -38,7 +38,7 @@ const GroupUserReports = React.createClass({
 
     this.setState({
       loading: true,
-      error: false,
+      error: false
     });
 
     this.api.request('/issues/' + this.getGroup().id + '/user-reports/?' + querystring, {
@@ -47,15 +47,15 @@ const GroupUserReports = React.createClass({
           error: false,
           loading: false,
           reportList: data,
-          pageLinks: jqXHR.getResponseHeader('Link'),
+          pageLinks: jqXHR.getResponseHeader('Link')
         });
       },
       error: error => {
         this.setState({
           error: true,
-          loading: false,
+          loading: false
         });
-      },
+      }
     });
   },
 
@@ -115,7 +115,7 @@ const GroupUserReports = React.createClass({
         </p>
       </div>
     );
-  },
+  }
 });
 
 export default GroupUserReports;

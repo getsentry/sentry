@@ -6,7 +6,7 @@ import FormField from './formField';
 export default class MultipleCheckboxField extends FormField {
   static propTypes = {
     ...FormField.propTypes,
-    choices: React.PropTypes.array.isRequired,
+    choices: React.PropTypes.array.isRequired
   };
 
   // XXX(dcramer): this comes from TooltipMixin

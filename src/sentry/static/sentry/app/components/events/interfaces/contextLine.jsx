@@ -28,7 +28,7 @@ const ContextLine = function(props) {
 
 ContextLine.propTypes = {
   line: React.PropTypes.array.isRequired,
-  isActive: React.PropTypes.bool,
+  isActive: React.PropTypes.bool
 };
 
 export default ContextLine;

@@ -11,7 +11,7 @@ class DigestSettings extends React.Component {
     orgId: React.PropTypes.string.isRequired,
     projectId: React.PropTypes.string.isRequired,
     initialData: React.PropTypes.object.isRequired,
-    onSave: React.PropTypes.func.isRequired,
+    onSave: React.PropTypes.func.isRequired
   };
 
   render() {
@@ -77,7 +77,7 @@ class GeneralSettings extends React.Component {
     orgId: React.PropTypes.string.isRequired,
     projectId: React.PropTypes.string.isRequired,
     initialData: React.PropTypes.object,
-    onSave: React.PropTypes.func.isRequired,
+    onSave: React.PropTypes.func.isRequired
   };
 
   render() {
@@ -119,14 +119,14 @@ export default class ProjectAlertSettings extends AsyncView {
     // not initially defining them (though they are bound before) ever
     // rendered
     organization: React.PropTypes.object,
-    project: React.PropTypes.object,
+    project: React.PropTypes.object
   };
 
   getEndpoints() {
     let {orgId, projectId} = this.props.params;
     return [
       ['project', `/projects/${orgId}/${projectId}/`],
-      ['pluginList', `/projects/${orgId}/${projectId}/plugins/`],
+      ['pluginList', `/projects/${orgId}/${projectId}/plugins/`]
     ];
   }
 
@@ -135,8 +135,8 @@ export default class ProjectAlertSettings extends AsyncView {
     this.setState({
       project: {
         ...this.state.project,
-        ...data,
-      },
+        ...data
+      }
     });
   };
 
@@ -145,8 +145,8 @@ export default class ProjectAlertSettings extends AsyncView {
     this.setState({
       project: {
         ...this.state.project,
-        ...data,
-      },
+        ...data
+      }
     });
   };
 
@@ -156,9 +156,9 @@ export default class ProjectAlertSettings extends AsyncView {
         if (p.id !== plugin.id) return p;
         return {
           ...plugin,
-          enabled: true,
+          enabled: true
         };
-      }),
+      })
     });
   };
 
@@ -168,9 +168,9 @@ export default class ProjectAlertSettings extends AsyncView {
         if (p.id !== plugin.id) return p;
         return {
           ...plugin,
-          enabled: false,
+          enabled: false
         };
-      }),
+      })
     });
   };
 
@@ -208,7 +208,7 @@ export default class ProjectAlertSettings extends AsyncView {
               'looking to change which notifications you receive ' +
               'you may do so from your [link:account settings].',
             {
-              link: <a href="/account/settings/notifications/" />,
+              link: <a href="/account/settings/notifications/" />
             }
           )}
         </div>
@@ -217,7 +217,7 @@ export default class ProjectAlertSettings extends AsyncView {
           orgId={orgId}
           projectId={projectId}
           initialData={{
-            subjectTemplate: this.state.project.subjectTemplate,
+            subjectTemplate: this.state.project.subjectTemplate
           }}
           onSave={this.onGeneralChange}
         />
@@ -227,7 +227,7 @@ export default class ProjectAlertSettings extends AsyncView {
           projectId={projectId}
           initialData={{
             digestsMinDelay: this.state.project.digestsMinDelay,
-            digestsMaxDelay: this.state.project.digestsMaxDelay,
+            digestsMaxDelay: this.state.project.digestsMaxDelay
           }}
           onSave={this.onDigestsChange}
         />

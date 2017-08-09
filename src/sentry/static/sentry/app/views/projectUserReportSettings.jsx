@@ -10,7 +10,7 @@ const ProjectFeedbackSettingsForm = React.createClass({
   propTypes: {
     orgId: React.PropTypes.string.isRequired,
     projectId: React.PropTypes.string.isRequired,
-    initialData: React.PropTypes.object.isRequired,
+    initialData: React.PropTypes.object.isRequired
   },
 
   mixins: [ApiMixin],
@@ -25,7 +25,7 @@ const ProjectFeedbackSettingsForm = React.createClass({
     }
     return {
       formData: formData,
-      errors: {},
+      errors: {}
     };
   },
 
@@ -33,7 +33,7 @@ const ProjectFeedbackSettingsForm = React.createClass({
     let formData = this.state.formData;
     formData[name] = value;
     this.setState({
-      formData: formData,
+      formData: formData
     });
   },
 
@@ -45,7 +45,7 @@ const ProjectFeedbackSettingsForm = React.createClass({
     }
     this.setState(
       {
-        state: FormState.SAVING,
+        state: FormState.SAVING
       },
       () => {
         let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
@@ -56,18 +56,18 @@ const ProjectFeedbackSettingsForm = React.createClass({
           success: data => {
             this.setState({
               state: FormState.READY,
-              errors: {},
+              errors: {}
             });
           },
           error: error => {
             this.setState({
               state: FormState.ERROR,
-              errors: error.responseJSON,
+              errors: error.responseJSON
             });
           },
           complete: () => {
             IndicatorStore.remove(loadingIndicator);
-          },
+          }
         });
       }
     );
@@ -104,12 +104,12 @@ const ProjectFeedbackSettingsForm = React.createClass({
         </fieldset>
       </form>
     );
-  },
+  }
 });
 
 const ProjectUserReportSettings = React.createClass({
   propTypes: {
-    setProjectNavSection: React.PropTypes.func,
+    setProjectNavSection: React.PropTypes.func
   },
 
   mixins: [ApiMixin],
@@ -121,7 +121,7 @@ const ProjectUserReportSettings = React.createClass({
       expected: 2,
 
       keyList: [],
-      projectOptions: {},
+      projectOptions: {}
     };
   },
 
@@ -175,7 +175,7 @@ const ProjectUserReportSettings = React.createClass({
         this.setState({
           expected: expected,
           loading: expected > 0,
-          keyList: data,
+          keyList: data
         });
       },
       error: () => {
@@ -183,9 +183,9 @@ const ProjectUserReportSettings = React.createClass({
         this.setState({
           error: true,
           expected: expected,
-          loading: expected > 0,
+          loading: expected > 0
         });
-      },
+      }
     });
 
     this.api.request(`/projects/${orgId}/${projectId}/`, {
@@ -194,7 +194,7 @@ const ProjectUserReportSettings = React.createClass({
         this.setState({
           expected: expected,
           loading: expected > 0,
-          projectOptions: data.options,
+          projectOptions: data.options
         });
       },
       error: () => {
@@ -202,9 +202,9 @@ const ProjectUserReportSettings = React.createClass({
         this.setState({
           expected: expected,
           error: true,
-          loading: expected > 0,
+          loading: expected > 0
         });
-      },
+      }
     });
   },
 
@@ -265,7 +265,7 @@ const ProjectUserReportSettings = React.createClass({
   handleClick() {
     Raven.showReportDialog({
       // should never make it to the Sentry API, but just in case, use throwaway id
-      eventId: '00000000000000000000000000000000',
+      eventId: '00000000000000000000000000000000'
     });
   },
 
@@ -350,7 +350,7 @@ const ProjectUserReportSettings = React.createClass({
         </div>
       </div>
     );
-  },
+  }
 });
 
 export default ProjectUserReportSettings;

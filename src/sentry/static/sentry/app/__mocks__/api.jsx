@@ -12,7 +12,7 @@ export class Client {
       statusCode: 200,
       body: '',
       method: 'GET',
-      ...response,
+      ...response
     });
   }
 
@@ -27,7 +27,7 @@ export class Client {
     return this.request(path, {
       method: 'PUT',
       data: {merge: 1},
-      ...options,
+      ...options
     });
   }
 
@@ -44,14 +44,14 @@ export class Client {
         options.error({
           status: 404,
           responseText: 'HTTP 404',
-          responseJSON: null,
+          responseJSON: null
         });
     } else if (response.statusCode !== 200) {
       options.error &&
         options.error({
           status: response.statusCode,
           responseText: JSON.stringify(response.body),
-          responseJSON: response.body,
+          responseJSON: response.body
         });
     } else {
       options.success &&

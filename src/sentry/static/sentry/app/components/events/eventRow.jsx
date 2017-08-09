@@ -8,19 +8,19 @@ const EventRow = React.createClass({
   propTypes: {
     id: React.PropTypes.string.isRequired,
     orgSlug: React.PropTypes.string.isRequired,
-    projectSlug: React.PropTypes.string.isRequired,
+    projectSlug: React.PropTypes.string.isRequired
   },
 
   getInitialState() {
     return {
-      event: EventStore.get(this.props.id),
+      event: EventStore.get(this.props.id)
     };
   },
 
   componentWillReceiveProps(nextProps) {
     if (nextProps.id != this.props.id) {
       this.setState({
-        event: EventStore.get(this.props.id),
+        event: EventStore.get(this.props.id)
       });
     }
   },
@@ -70,7 +70,7 @@ const EventRow = React.createClass({
         </td>
       </tr>
     );
-  },
+  }
 });
 
 export default EventRow;

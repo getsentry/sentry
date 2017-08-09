@@ -9,12 +9,12 @@ import {t} from '../../locale';
 
 const ProjectSettings = React.createClass({
   propTypes: {
-    setProjectNavSection: React.PropTypes.func,
+    setProjectNavSection: React.PropTypes.func
   },
 
   contextTypes: {
     location: React.PropTypes.object,
-    organization: React.PropTypes.object,
+    organization: React.PropTypes.object
   },
 
   mixins: [ApiMixin, OrganizationState],
@@ -23,7 +23,7 @@ const ProjectSettings = React.createClass({
     return {
       loading: true,
       error: false,
-      project: null,
+      project: null
     };
   },
 
@@ -41,7 +41,7 @@ const ProjectSettings = React.createClass({
       this.setState(
         {
           loading: true,
-          error: false,
+          error: false
         },
         this.fetchData
       );
@@ -56,15 +56,15 @@ const ProjectSettings = React.createClass({
         this.setState({
           project: data,
           loading: false,
-          error: false,
+          error: false
         });
       },
       error: () => {
         this.setState({
           loading: false,
-          error: true,
+          error: true
         });
-      },
+      }
     });
   },
 
@@ -190,12 +190,12 @@ const ProjectSettings = React.createClass({
           {React.cloneElement(this.props.children, {
             setProjectNavSection: this.props.setProjectNavSection,
             project: project,
-            organization: this.context.organization,
+            organization: this.context.organization
           })}
         </div>
       </div>
     );
-  },
+  }
 });
 
 export default ProjectSettings;

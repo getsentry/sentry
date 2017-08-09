@@ -7,11 +7,11 @@ import LoadingIndicator from '../components/loadingIndicator';
 const ActionOverlay = React.createClass({
   propTypes: {
     actionId: React.PropTypes.string.isRequired,
-    isLoading: React.PropTypes.bool,
+    isLoading: React.PropTypes.bool
   },
 
   contextTypes: {
-    router: React.PropTypes.object.isRequired,
+    router: React.PropTypes.object.isRequired
   },
 
   mixins: [OrganizationState],
@@ -69,7 +69,7 @@ const ActionOverlay = React.createClass({
         </div>
       </div>
     );
-  },
+  }
 });
 
 export default ActionOverlay;

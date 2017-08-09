@@ -10,7 +10,7 @@ import {t} from '../../locale';
 const AccountLimit = React.createClass({
   propTypes: {
     value: React.PropTypes.number,
-    onChange: React.PropTypes.func.isRequired,
+    onChange: React.PropTypes.func.isRequired
   },
 
   getRateLimitValues() {
@@ -46,12 +46,12 @@ const AccountLimit = React.createClass({
         }}
       />
     );
-  },
+  }
 });
 
 const RateLimitEditor = React.createClass({
   propTypes: {
-    organization: React.PropTypes.object.isRequired,
+    organization: React.PropTypes.object.isRequired
   },
 
   mixins: [ApiMixin],
@@ -66,19 +66,19 @@ const RateLimitEditor = React.createClass({
       savedProjectLimit: projectLimit,
       currentAccountLimit: accountLimit,
       savedAccountLimit: accountLimit,
-      saving: false,
+      saving: false
     };
   },
 
   onProjectLimitChange(value) {
     this.setState({
-      currentProjectLimit: value,
+      currentProjectLimit: value
     });
   },
 
   onAccountLimitChange(value) {
     this.setState({
-      currentAccountLimit: value,
+      currentAccountLimit: value
     });
   },
 
@@ -90,14 +90,14 @@ const RateLimitEditor = React.createClass({
     this.setState(
       {
         saving: true,
-        error: false,
+        error: false
       },
       () => {
         this.api.request(`/organizations/${this.props.organization.slug}/`, {
           method: 'PUT',
           data: {
             projectRateLimit: this.state.currentProjectLimit,
-            accountRateLimit: this.state.currentAccountLimit,
+            accountRateLimit: this.state.currentAccountLimit
           },
           success: data => {
             // TODO(dcramer): propagate this change correctly (how??)
@@ -106,16 +106,16 @@ const RateLimitEditor = React.createClass({
             this.setState({
               saving: false,
               savedProjectLimit: data.quota.projectLimit,
-              savedAccountLimit: data.quota.accountLimit,
+              savedAccountLimit: data.quota.accountLimit
             });
           },
           error: () => {
             this.setState({saving: false});
             IndicatorStore.remove(loadingIndicator);
             IndicatorStore.add(t('Unable to save changes. Please try again.'), 'error', {
-              duration: 3000,
+              duration: 3000
             });
-          },
+          }
         });
       }
     );
@@ -127,7 +127,7 @@ const RateLimitEditor = React.createClass({
       savedProjectLimit,
       currentAccountLimit,
       savedAccountLimit,
-      saving,
+      saving
     } = this.state;
     let {maxRate, maxRateInterval} = this.props.organization.quota;
     let canSave =
@@ -182,7 +182,7 @@ const RateLimitEditor = React.createClass({
         </div>
       </form>
     );
-  },
+  }
 });
 
 const OrganizationRateLimits = React.createClass({
@@ -207,7 +207,7 @@ const OrganizationRateLimits = React.createClass({
         </div>
       </OrganizationHomeContainer>
     );
-  },
+  }
 });
 
 export default OrganizationRateLimits;

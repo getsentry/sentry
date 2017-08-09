@@ -7,8 +7,8 @@ describe('AvatarCropper', function() {
     email: 'a@example.com',
     avatar: {
       avatarType: 'gravatar',
-      avatarUuid: '2d641b5d-8c74-44de-9cb6-fbd54701b35e',
-    },
+      avatarUuid: '2d641b5d-8c74-44de-9cb6-fbd54701b35e'
+    }
   };
 
   describe('getDiffNW', function() {

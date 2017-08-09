@@ -6,7 +6,7 @@ const RouteError = React.createClass({
   propTypes: {
     error: React.PropTypes.object.isRequired,
     // not used yet, but future proofing
-    onRetry: React.PropTypes.func,
+    onRetry: React.PropTypes.func
   },
 
   componentWillMount() {
@@ -67,7 +67,7 @@ const RouteError = React.createClass({
         </ul>
       </div>
     );
-  },
+  }
 });
 
 export default RouteError;

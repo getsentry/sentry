@@ -45,7 +45,7 @@ const EVENT_TYPES = [
   'sso-identity.link',
   'api-key.create',
   'api-key.edit',
-  'api-key.remove',
+  'api-key.remove'
 ].sort();
 
 const OrganizationAuditLog = React.createClass({
@@ -55,7 +55,7 @@ const OrganizationAuditLog = React.createClass({
     return {
       loading: true,
       error: false,
-      entryList: [],
+      entryList: []
     };
   },
 
@@ -78,7 +78,7 @@ const OrganizationAuditLog = React.createClass({
 
   fetchData() {
     this.setState({
-      loading: true,
+      loading: true
     });
 
     this.api.request(this.getEndpoint(), {
@@ -88,15 +88,15 @@ const OrganizationAuditLog = React.createClass({
           loading: false,
           error: false,
           entryList: data,
-          pageLinks: jqXHR.getResponseHeader('Link'),
+          pageLinks: jqXHR.getResponseHeader('Link')
         });
       },
       error: () => {
         this.setState({
           loading: false,
-          error: true,
+          error: true
         });
-      },
+      }
     });
   },
 
@@ -115,7 +115,7 @@ const OrganizationAuditLog = React.createClass({
       return;
     }
     let queryParams = {
-      event: value,
+      event: value
     };
     browserHistory.pushState(null, this.props.location.pathname, queryParams);
   },
@@ -234,7 +234,7 @@ const OrganizationAuditLog = React.createClass({
         </OrganizationHomeContainer>
       </DocumentTitle>
     );
-  },
+  }
 });
 
 export default OrganizationAuditLog;

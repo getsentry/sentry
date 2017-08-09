@@ -21,7 +21,7 @@ const GroupListHeader = React.createClass({
         </div>
       </div>
     );
-  },
+  }
 });
 
 export default GroupListHeader;

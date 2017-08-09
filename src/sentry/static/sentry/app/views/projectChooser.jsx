@@ -73,7 +73,7 @@ const ProjectChooser = React.createClass({
         </div>
       </div>
     );
-  },
+  }
 });
 
 export default ProjectChooser;

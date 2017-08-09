@@ -20,7 +20,7 @@ const Viewed = React.createClass({
         {...this.props}
       />
     );
-  },
+  }
 });
 
 export default Viewed;

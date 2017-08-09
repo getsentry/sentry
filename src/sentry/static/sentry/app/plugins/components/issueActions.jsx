@@ -26,7 +26,7 @@ class IssueActions extends PluginComponentBase {
         : FormState.READY,
       error: null,
       createFormData: {},
-      linkFormData: {},
+      linkFormData: {}
     });
   }
 
@@ -79,7 +79,7 @@ class IssueActions extends PluginComponentBase {
 
   errorHandler(error) {
     let state = {
-      loading: false,
+      loading: false
     };
     if (error.status === 400 && error.responseJSON) {
       state.error = error.responseJSON;
@@ -102,12 +102,12 @@ class IssueActions extends PluginComponentBase {
               createFieldList: data,
               error: null,
               loading: false,
-              createFormData: createFormData,
+              createFormData: createFormData
             },
             this.onLoadSuccess
           );
         },
-        error: this.errorHandler,
+        error: this.errorHandler
       });
     } else if (this.props.actionType === 'link') {
       this.api.request(this.getPluginLinkEndpoint(), {
@@ -121,12 +121,12 @@ class IssueActions extends PluginComponentBase {
               linkFieldList: data,
               error: null,
               loading: false,
-              linkFormData: linkFormData,
+              linkFormData: linkFormData
             },
             this.onLoadSuccess
           );
         },
-        error: this.errorHandler,
+        error: this.errorHandler
       });
     }
   }
@@ -143,7 +143,7 @@ class IssueActions extends PluginComponentBase {
       error: this.onSaveError.bind(this, error => {
         this.setError(error, t('There was an error creating the issue.'));
       }),
-      complete: this.onSaveComplete,
+      complete: this.onSaveComplete
     });
   }
 
@@ -154,7 +154,7 @@ class IssueActions extends PluginComponentBase {
       error: this.onSaveError.bind(this, error => {
         this.setError(error, t('There was an error linking the issue.'));
       }),
-      complete: this.onSaveComplete,
+      complete: this.onSaveComplete
     });
   }
 
@@ -164,7 +164,7 @@ class IssueActions extends PluginComponentBase {
       error: this.onSaveError.bind(this, error => {
         this.setError(error, t('There was an error unlinking the issue.'));
       }),
-      complete: this.onSaveComplete,
+      complete: this.onSaveComplete
     });
   }
 
@@ -196,7 +196,7 @@ class IssueActions extends PluginComponentBase {
                         this.getGroup().id +
                         '/plugins/' +
                         this.props.plugin.slug +
-                        '/autocomplete',
+                        '/autocomplete'
                     },
                     field
                   );
@@ -206,7 +206,7 @@ class IssueActions extends PluginComponentBase {
                     {this.renderField({
                       config: field,
                       formData: this.state.createFormData,
-                      onChange: this.changeField.bind(this, 'create', field.name),
+                      onChange: this.changeField.bind(this, 'create', field.name)
                     })}
                   </div>
                 );
@@ -228,7 +228,7 @@ class IssueActions extends PluginComponentBase {
                         this.getGroup().id +
                         '/plugins/' +
                         this.props.plugin.slug +
-                        '/autocomplete',
+                        '/autocomplete'
                     },
                     field
                   );
@@ -238,7 +238,7 @@ class IssueActions extends PluginComponentBase {
                     {this.renderField({
                       config: field,
                       formData: this.state.linkFormData,
-                      onChange: this.changeField.bind(this, 'link', field.name),
+                      onChange: this.changeField.bind(this, 'link', field.name)
                     })}
                   </div>
                 );
@@ -372,7 +372,7 @@ class IssueActions extends PluginComponentBase {
 IssueActions.propTypes = {
   plugin: React.PropTypes.object.isRequired,
   actionType: React.PropTypes.oneOf(['unlink', 'link', 'create']).isRequired,
-  onSuccess: React.PropTypes.func,
+  onSuccess: React.PropTypes.func
 };
 
 export default IssueActions;

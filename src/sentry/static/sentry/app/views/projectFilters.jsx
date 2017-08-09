@@ -28,7 +28,7 @@ const FilterSwitch = function(props) {
 FilterSwitch.propTypes = {
   data: React.PropTypes.object.isRequired,
   onToggle: React.PropTypes.func.isRequired,
-  size: React.PropTypes.string.isRequired,
+  size: React.PropTypes.string.isRequired
 };
 
 const FilterRow = React.createClass({
@@ -36,13 +36,13 @@ const FilterRow = React.createClass({
     orgId: React.PropTypes.string.isRequired,
     projectId: React.PropTypes.string.isRequired,
     data: React.PropTypes.object.isRequired,
-    onToggle: React.PropTypes.func.isRequired,
+    onToggle: React.PropTypes.func.isRequired
   },
 
   getInitialState() {
     return {
       loading: false,
-      error: false,
+      error: false
     };
   },
 
@@ -64,7 +64,7 @@ const FilterRow = React.createClass({
               <small
                 className="help-block"
                 dangerouslySetInnerHTML={{
-                  __html: marked(data.description),
+                  __html: marked(data.description)
                 }}
               />}
           </div>
@@ -74,40 +74,40 @@ const FilterRow = React.createClass({
         </div>
       </div>
     );
-  },
+  }
 });
 
 const LEGACY_BROWSER_SUBFILTERS = {
   ie_pre_9: {
     icon: 'internet-explorer',
     helpText: 'Version 8 and lower',
-    title: 'Internet Explorer',
+    title: 'Internet Explorer'
   },
   ie9: {
     icon: 'internet-explorer',
     helpText: 'Version 9',
-    title: 'Internet Explorer',
+    title: 'Internet Explorer'
   },
   ie10: {
     icon: 'internet-explorer',
     helpText: 'Version 10',
-    title: 'Internet Explorer',
+    title: 'Internet Explorer'
   },
   opera_pre_15: {
     icon: 'opera',
     helpText: 'Version 14 and lower',
-    title: 'Opera',
+    title: 'Opera'
   },
   safari_pre_6: {
     icon: 'safari',
     helpText: 'Version 5 and lower',
-    title: 'Safari',
+    title: 'Safari'
   },
   android_pre_4: {
     icon: 'android',
     helpText: 'Version 3 and lower',
-    title: 'Android',
-  },
+    title: 'Android'
+  }
 };
 
 const LEGACY_BROWSER_KEYS = Object.keys(LEGACY_BROWSER_SUBFILTERS);
@@ -117,7 +117,7 @@ const LegacyBrowserFilterRow = React.createClass({
     orgId: React.PropTypes.string.isRequired,
     projectId: React.PropTypes.string.isRequired,
     data: React.PropTypes.object.isRequired,
-    onToggle: React.PropTypes.func.isRequired,
+    onToggle: React.PropTypes.func.isRequired
   },
 
   getInitialState() {
@@ -132,7 +132,7 @@ const LegacyBrowserFilterRow = React.createClass({
     return {
       loading: false,
       error: false,
-      subfilters: initialSubfilters,
+      subfilters: initialSubfilters
     };
   },
 
@@ -151,7 +151,7 @@ const LegacyBrowserFilterRow = React.createClass({
 
     this.setState(
       {
-        subfilters: new Set(subfilters),
+        subfilters: new Set(subfilters)
       },
       () => {
         this.props.onToggle(this.props.data, subfilters);
@@ -206,7 +206,7 @@ const LegacyBrowserFilterRow = React.createClass({
               <small
                 className="help-block"
                 dangerouslySetInnerHTML={{
-                  __html: marked(data.description),
+                  __html: marked(data.description)
                 }}
               />}
           </div>
@@ -223,14 +223,14 @@ const LegacyBrowserFilterRow = React.createClass({
         {this.renderSubfilters()}
       </div>
     );
-  },
+  }
 });
 
 const ProjectFiltersSettingsForm = React.createClass({
   propTypes: {
     orgId: React.PropTypes.string.isRequired,
     projectId: React.PropTypes.string.isRequired,
-    initialData: React.PropTypes.object.isRequired,
+    initialData: React.PropTypes.object.isRequired
   },
 
   mixins: [ApiMixin, ProjectState],
@@ -245,7 +245,7 @@ const ProjectFiltersSettingsForm = React.createClass({
     return {
       hasChanged: false,
       formData: formData,
-      errors: {},
+      errors: {}
     };
   },
 
@@ -254,7 +254,7 @@ const ProjectFiltersSettingsForm = React.createClass({
     formData[name] = value;
     this.setState({
       formData: {...formData},
-      hasChanged: true,
+      hasChanged: true
     });
   },
 
@@ -266,7 +266,7 @@ const ProjectFiltersSettingsForm = React.createClass({
     }
     this.setState(
       {
-        state: FormState.SAVING,
+        state: FormState.SAVING
       },
       () => {
         let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
@@ -278,18 +278,18 @@ const ProjectFiltersSettingsForm = React.createClass({
             this.setState({
               state: FormState.READY,
               errors: {},
-              hasChanged: false,
+              hasChanged: false
             });
           },
           error: error => {
             this.setState({
               state: FormState.ERROR,
-              errors: error.responseJSON,
+              errors: error.responseJSON
             });
           },
           complete: () => {
             IndicatorStore.remove(loadingIndicator);
-          },
+          }
         });
       }
     );
@@ -370,7 +370,7 @@ const ProjectFiltersSettingsForm = React.createClass({
         </fieldset>
       </form>
     );
-  },
+  }
 });
 
 const ProjectFilters = React.createClass({
@@ -395,7 +395,7 @@ const ProjectFilters = React.createClass({
       blankStats: false,
       activeSection: 'data-filters',
       tombstones: [],
-      tombstoneError: false,
+      tombstoneError: false
     };
   },
 
@@ -422,9 +422,9 @@ const ProjectFilters = React.createClass({
         let expected = this.state.expected - 1;
         this.setState({
           expected: expected,
-          loading: expected > 0,
+          loading: expected > 0
         });
-      },
+      }
     });
 
     this.api.request(`/projects/${orgId}/${projectId}/stats/`, {
@@ -432,7 +432,7 @@ const ProjectFilters = React.createClass({
         since: this.state.querySince,
         until: this.state.queryUntil,
         resolution: '1d',
-        stat: 'blacklisted',
+        stat: 'blacklisted'
       },
       success: data => {
         this.setState({rawStatsData: data});
@@ -444,9 +444,9 @@ const ProjectFilters = React.createClass({
         let expected = this.state.expected - 1;
         this.setState({
           expected: expected,
-          loading: expected > 0,
+          loading: expected > 0
         });
-      },
+      }
     });
 
     this.api.request(`/projects/${orgId}/${projectId}/`, {
@@ -460,9 +460,9 @@ const ProjectFilters = React.createClass({
         let expected = this.state.expected - 1;
         this.setState({
           expected: expected,
-          loading: expected > 0,
+          loading: expected > 0
         });
-      },
+      }
     });
 
     this.api.request(`/projects/${orgId}/${projectId}/tombstones/`, {
@@ -472,9 +472,9 @@ const ProjectFilters = React.createClass({
       },
       error: () => {
         this.setState({
-          tombstoneError: true,
+          tombstoneError: true
         });
-      },
+      }
     });
   },
 
@@ -487,12 +487,12 @@ const ProjectFilters = React.createClass({
       }
       return {
         x: x,
-        y: [y],
+        y: [y]
       };
     });
     this.setState({
       stats: points,
-      blankStats: blank,
+      blankStats: blank
     });
   },
 
@@ -518,24 +518,24 @@ const ProjectFilters = React.createClass({
         stateFilter.active = active;
 
         this.setState({
-          filterList: [...this.state.filterList],
+          filterList: [...this.state.filterList]
         });
         IndicatorStore.remove(loadingIndicator);
       },
       error: () => {
         this.setState({
           error: true,
-          loading: false,
+          loading: false
         });
         IndicatorStore.remove(loadingIndicator);
         IndicatorStore.add(t('Unable to save changes. Please try again.'), 'error');
-      },
+      }
     });
   },
 
   setProjectNavSection(section) {
     this.setState({
-      activeSection: section,
+      activeSection: section
     });
   },
 
@@ -569,7 +569,7 @@ const ProjectFilters = React.createClass({
               data: filter,
               orgId: orgId,
               projectId: projectId,
-              onToggle: this.onToggleFilter,
+              onToggle: this.onToggleFilter
             };
             return filter.id === 'legacy-browsers'
               ? <LegacyBrowserFilterRow {...props} />
@@ -674,7 +674,7 @@ const ProjectFilters = React.createClass({
         {this.renderBody()}
       </div>
     );
-  },
+  }
 });
 
 export default ProjectFilters;

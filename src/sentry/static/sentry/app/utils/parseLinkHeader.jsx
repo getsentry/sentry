@@ -15,7 +15,7 @@ export default function(header) {
     links[match[2]] = {
       href: match[1],
       results: hasResults,
-      cursor: match[4],
+      cursor: match[4]
     };
   });
 

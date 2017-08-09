@@ -11,7 +11,7 @@ const MergedList = React.createClass({
   propTypes: {
     onUnmerge: PropTypes.func.isRequired,
     items: PropTypes.arrayOf(Event),
-    pageLinks: PropTypes.string,
+    pageLinks: PropTypes.string
   },
 
   renderEmpty() {
@@ -54,7 +54,7 @@ const MergedList = React.createClass({
     }
 
     return this.renderEmpty();
-  },
+  }
 });
 
 export default MergedList;

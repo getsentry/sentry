@@ -22,7 +22,7 @@ const DataForwardingStats = React.createClass({
       loading: true,
       error: false,
       stats: null,
-      emptyStats: false,
+      emptyStats: false
     };
   },
 
@@ -37,7 +37,7 @@ const DataForwardingStats = React.createClass({
         since: this.state.since,
         until: this.state.until,
         resolution: '1d',
-        stat: 'forwarded',
+        stat: 'forwarded'
       },
       success: data => {
         let emptyStats = true;
@@ -49,12 +49,12 @@ const DataForwardingStats = React.createClass({
           stats: stats,
           emptyStats: emptyStats,
           error: false,
-          loading: false,
+          loading: false
         });
       },
       error: () => {
         this.setState({error: true, loading: false});
-      },
+      }
     });
   },
 
@@ -94,7 +94,7 @@ const DataForwardingStats = React.createClass({
             </div>}
       </div>
     );
-  },
+  }
 });
 
 export default React.createClass({
@@ -105,7 +105,7 @@ export default React.createClass({
       loading: true,
       error: false,
       pluginList: [],
-      hooksDisabled: HookStore.get('project:data-forwarding:disabled'),
+      hooksDisabled: HookStore.get('project:data-forwarding:disabled')
     };
   },
 
@@ -120,15 +120,15 @@ export default React.createClass({
         this.setState({
           error: false,
           loading: false,
-          pluginList: data.filter(p => p.type === 'data-forwarding'),
+          pluginList: data.filter(p => p.type === 'data-forwarding')
         });
       },
       error: () => {
         this.setState({
           error: true,
-          loading: false,
+          loading: false
         });
-      },
+      }
     });
   },
 
@@ -138,9 +138,9 @@ export default React.createClass({
         if (p.id !== plugin.id) return p;
         return {
           ...plugin,
-          enabled: true,
+          enabled: true
         };
-      }),
+      })
     });
   },
 
@@ -150,9 +150,9 @@ export default React.createClass({
         if (p.id !== plugin.id) return p;
         return {
           ...plugin,
-          enabled: false,
+          enabled: false
         };
-      }),
+      })
     });
   },
 
@@ -237,5 +237,5 @@ export default React.createClass({
         {this.renderBody()}
       </div>
     );
-  },
+  }
 });

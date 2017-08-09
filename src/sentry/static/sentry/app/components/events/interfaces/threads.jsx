@@ -130,7 +130,7 @@ const Thread = React.createClass({
     stackType: React.PropTypes.string,
     newestFirst: React.PropTypes.bool,
     exception: React.PropTypes.object,
-    stacktrace: React.PropTypes.object,
+    stacktrace: React.PropTypes.object
   },
 
   renderMissingStacktrace() {
@@ -163,7 +163,7 @@ const Thread = React.createClass({
       stackType,
       newestFirst,
       exception,
-      stacktrace,
+      stacktrace
     } = this.props;
     return (
       <div className="thread">
@@ -188,7 +188,7 @@ const Thread = React.createClass({
             />}
       </div>
     );
-  },
+  }
 });
 
 const ThreadsInterface = React.createClass({
@@ -197,7 +197,7 @@ const ThreadsInterface = React.createClass({
     event: PropTypes.Event.isRequired,
     type: React.PropTypes.string.isRequired,
     data: React.PropTypes.object.isRequired,
-    platform: React.PropTypes.string,
+    platform: React.PropTypes.string
   },
 
   getInitialState() {
@@ -206,13 +206,13 @@ const ThreadsInterface = React.createClass({
       activeThread: thread,
       stackView: getIntendedStackView(thread, this.props.event),
       stackType: 'original',
-      newestFirst: isStacktraceNewestFirst(),
+      newestFirst: isStacktraceNewestFirst()
     };
   },
 
   toggleStack(value) {
     this.setState({
-      stackView: value,
+      stackView: value
     });
   },
 
@@ -236,7 +236,7 @@ const ThreadsInterface = React.createClass({
     this.setState({
       activeThread: thread,
       stackView: newStackView,
-      stackType: 'original',
+      stackType: 'original'
     });
   },
 
@@ -304,7 +304,7 @@ const ThreadsInterface = React.createClass({
         />
       </GroupEventDataSection>
     );
-  },
+  }
 });
 
 export default ThreadsInterface;

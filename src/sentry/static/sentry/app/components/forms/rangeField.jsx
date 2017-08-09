@@ -16,7 +16,7 @@ export default class RangeField extends InputField {
     max: React.PropTypes.number,
     step: React.PropTypes.number,
     snap: React.PropTypes.bool,
-    allowedValues: React.PropTypes.arrayOf(React.PropTypes.number),
+    allowedValues: React.PropTypes.arrayOf(React.PropTypes.number)
   };
 
   static defaultProps = {
@@ -26,7 +26,7 @@ export default class RangeField extends InputField {
     max: 100,
     step: 1,
     snap: true,
-    allowedValues: null,
+    allowedValues: null
   };
 
   componentDidMount() {
@@ -62,7 +62,7 @@ export default class RangeField extends InputField {
         step: this.props.step,
         snap: this.props.snap,
         allowedValues: this.props.allowedValues,
-        classSuffix: suffixClassNames,
+        classSuffix: suffixClassNames
       });
   }
 
@@ -75,7 +75,7 @@ export default class RangeField extends InputField {
     return {
       min: this.props.min,
       max: this.props.max,
-      step: this.props.step,
+      step: this.props.step
     };
   }
 

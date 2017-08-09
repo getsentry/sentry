@@ -4,12 +4,12 @@ import {t} from '../locale';
 const LoadingError = React.createClass({
   propTypes: {
     onRetry: React.PropTypes.func,
-    message: React.PropTypes.string,
+    message: React.PropTypes.string
   },
 
   getDefaultProps() {
     return {
-      message: t('There was an error loading data.'),
+      message: t('There was an error loading data.')
     };
   },
 
@@ -32,7 +32,7 @@ const LoadingError = React.createClass({
         </p>
       </div>
     );
-  },
+  }
 });
 
 export default LoadingError;

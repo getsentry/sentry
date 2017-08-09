@@ -10,7 +10,7 @@ describe('RichHttpContent', function() {
       data: '',
       headers: [],
       cookies: [],
-      env: {},
+      env: {}
     };
     this.elem = shallow(<RichHttpContent data={this.data} />).instance();
     this.sandbox = sinon.sandbox.create();
@@ -38,7 +38,7 @@ describe('RichHttpContent', function() {
 
       expect(
         elem.objectToSortedTupleArray({
-          foo: ['bar', 'baz'],
+          foo: ['bar', 'baz']
         })
       ).toEqual([['foo', 'bar'], ['foo', 'baz']]);
 
@@ -54,7 +54,7 @@ describe('RichHttpContent', function() {
     it('should return plain-text when unrecognized Content-Type and not parsable as JSON', function() {
       let out = this.elem.getBodySection({
         headers: [], // no content-type header,
-        data: 'helloworld',
+        data: 'helloworld'
       });
 
       expect(out.type).toEqual('pre');
@@ -63,7 +63,7 @@ describe('RichHttpContent', function() {
     it('should return a KeyValueList element when Content-Type is x-www-form-urlencoded', function() {
       let out = this.elem.getBodySection({
         headers: [['lol', 'no'], ['Content-Type', 'application/x-www-form-urlencoded']], // no content-type header,
-        data: 'foo=bar&bar=baz',
+        data: 'foo=bar&bar=baz'
       });
 
       // NOTE: ContextData is stubbed in tests; instead returns <div className="ContextData"/>
@@ -74,7 +74,7 @@ describe('RichHttpContent', function() {
     it('should return plain-text when Content-Type is x-www-form-urlencoded and query string cannot be parsed', function() {
       let out = this.elem.getBodySection({
         headers: [['Content-Type', 'application/x-www-form-urlencoded']],
-        data: 'foo=hello%2...', // note: broken URL encoded value (%2 vs %2F)
+        data: 'foo=hello%2...' // note: broken URL encoded value (%2 vs %2F)
       });
 
       expect(out.type).toEqual('pre');
@@ -83,33 +83,33 @@ describe('RichHttpContent', function() {
     it('should return a ContextData element when Content-Type is application/json', function() {
       let out = this.elem.getBodySection({
         headers: [['lol', 'no'], ['Content-Type', 'application/json']], // no content-type header,
-        data: JSON.stringify({foo: 'bar'}),
+        data: JSON.stringify({foo: 'bar'})
       });
 
       // NOTE: ContextData is stubbed in tests; instead returns <div className="ContextData"/>
       expect(out.type.displayName).toEqual('ContextData');
       expect(out.props.data).toEqual({
-        foo: 'bar',
+        foo: 'bar'
       });
     });
 
     it('should return a ContextData element when content is JSON, ignoring Content-Type', function() {
       let out = this.elem.getBodySection({
         headers: [['Content-Type', 'application/x-www-form-urlencoded']], // no content-type header,
-        data: JSON.stringify({foo: 'bar'}),
+        data: JSON.stringify({foo: 'bar'})
       });
 
       // NOTE: ContextData is stubbed in tests; instead returns <div className="ContextData"/>
       expect(out.type.displayName).toEqual('ContextData');
       expect(out.props.data).toEqual({
-        foo: 'bar',
+        foo: 'bar'
       });
     });
 
     it('should return plain-text when JSON is not parsable', function() {
       let out = this.elem.getBodySection({
         headers: [['lol', 'no'], ['Content-Type', 'application/json']],
-        data: 'lol not json',
+        data: 'lol not json'
       });
 
       expect(out.type).toEqual('pre');
@@ -123,7 +123,7 @@ describe('RichHttpContent', function() {
         data: '',
         headers: [],
         cookies: [],
-        env: {},
+        env: {}
       };
       expect(() => shallow(<RichHttpContent data={data} />)).not.toThrow(URIError);
     });
@@ -134,7 +134,7 @@ describe('RichHttpContent', function() {
         data: [{foo: 'bar', baz: 1}],
         headers: [],
         cookies: [],
-        env: {},
+        env: {}
       };
 
       expect(() => mount(<RichHttpContent data={data} />)).not.toThrow();

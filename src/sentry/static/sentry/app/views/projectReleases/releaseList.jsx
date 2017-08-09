@@ -9,7 +9,7 @@ const ReleaseList = React.createClass({
   propTypes: {
     orgId: React.PropTypes.string.isRequired,
     projectId: React.PropTypes.string.isRequired,
-    releaseList: React.PropTypes.array.isRequired,
+    releaseList: React.PropTypes.array.isRequired
   },
 
   render() {
@@ -48,7 +48,7 @@ const ReleaseList = React.createClass({
         })}
       </ul>
     );
-  },
+  }
 });
 
 export default ReleaseList;

@@ -19,7 +19,7 @@ const KeyRow = React.createClass({
     data: React.PropTypes.object.isRequired,
     access: React.PropTypes.object.isRequired,
     onToggle: React.PropTypes.func.isRequired,
-    onRemove: React.PropTypes.func.isRequired,
+    onRemove: React.PropTypes.func.isRequired
   },
 
   mixins: [ApiMixin],
@@ -27,7 +27,7 @@ const KeyRow = React.createClass({
   getInitialState() {
     return {
       loading: false,
-      error: false,
+      error: false
     };
   },
 
@@ -54,10 +54,10 @@ const KeyRow = React.createClass({
       error: () => {
         this.setState({
           error: true,
-          loading: false,
+          loading: false
         });
         IndicatorStore.remove(loadingIndicator);
-      },
+      }
     });
   },
 
@@ -75,17 +75,17 @@ const KeyRow = React.createClass({
       error: () => {
         this.setState({
           error: true,
-          loading: false,
+          loading: false
         });
         IndicatorStore.remove(loadingIndicator);
-      },
+      }
     });
   },
 
   handleEnable() {
     this.handleUpdate(
       {
-        isActive: true,
+        isActive: true
       },
       this.props.onToggle
     );
@@ -94,7 +94,7 @@ const KeyRow = React.createClass({
   handleDisable() {
     this.handleUpdate(
       {
-        isActive: false,
+        isActive: false
       },
       this.props.onToggle
     );
@@ -106,7 +106,7 @@ const KeyRow = React.createClass({
     let controls = [
       <Link key="edit" to={editUrl} className="btn btn-default btn-sm">
         {t('Details')}
-      </Link>,
+      </Link>
     ];
     if (access.has('project:write')) {
       controls.push(
@@ -171,7 +171,7 @@ const KeyRow = React.createClass({
             </AutoSelectText>
             <div className="help-block">
               {tct('Use your public DSN with browser-based SDKs such as [raven-js].', {
-                'raven-js': <a href="https://github.com/getsentry/raven-js">raven-js</a>,
+                'raven-js': <a href="https://github.com/getsentry/raven-js">raven-js</a>
               })}
             </div>
           </div>
@@ -187,7 +187,7 @@ const KeyRow = React.createClass({
                 'Use your CSP endpoint in the [directive] directive in your [header] header.',
                 {
                   directive: <code>report-uri</code>,
-                  header: <code>Content-Security-Policy</code>,
+                  header: <code>Content-Security-Policy</code>
                 }
               )}
             </div>
@@ -195,7 +195,7 @@ const KeyRow = React.createClass({
         </ClippedBox>
       </div>
     );
-  },
+  }
 });
 
 export default React.createClass({
@@ -205,7 +205,7 @@ export default React.createClass({
     return {
       loading: true,
       error: false,
-      keyList: [],
+      keyList: []
     };
   },
 
@@ -221,15 +221,15 @@ export default React.createClass({
           error: false,
           loading: false,
           keyList: data,
-          pageLinks: jqXHR.getResponseHeader('Link'),
+          pageLinks: jqXHR.getResponseHeader('Link')
         });
       },
       error: () => {
         this.setState({
           error: true,
-          loading: false,
+          loading: false
         });
-      },
+      }
     });
   },
 
@@ -238,7 +238,7 @@ export default React.createClass({
       return {
         keyList: state.keyList.filter(key => {
           return key.id !== data.id;
-        }),
+        })
       };
     });
   },
@@ -261,7 +261,7 @@ export default React.createClass({
       success: (data, _, jqXHR) => {
         this.setState(state => {
           return {
-            keyList: [...state.keyList, data],
+            keyList: [...state.keyList, data]
           };
         });
         IndicatorStore.remove(loadingIndicator);
@@ -269,7 +269,7 @@ export default React.createClass({
       error: () => {
         IndicatorStore.remove(loadingIndicator);
         IndicatorStore.add(t('Unable to create new key. Please try again.'), 'error');
-      },
+      }
     });
   },
 
@@ -349,5 +349,5 @@ export default React.createClass({
         </div>
       </DocumentTitle>
     );
-  },
+  }
 });

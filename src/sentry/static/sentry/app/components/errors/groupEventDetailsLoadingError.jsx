@@ -7,7 +7,7 @@ const GroupEventDetailsLoadingError = ({onRetry}) => {
   const reasons = [
     t('The events are still processing and are on their way'),
     t('The events have been deleted'),
-    t('There is an internal systems error or active issue'),
+    t('There is an internal systems error or active issue')
   ];
 
   return (
@@ -34,7 +34,7 @@ const GroupEventDetailsLoadingError = ({onRetry}) => {
 };
 
 GroupEventDetailsLoadingError.propTypes = {
-  onRetry: PropTypes.func,
+  onRetry: PropTypes.func
 };
 
 export default GroupEventDetailsLoadingError;

@@ -15,7 +15,7 @@ const SavedSearchRow = React.createClass({
     access: React.PropTypes.object.isRequired,
     onDefault: React.PropTypes.func.isRequired,
     onUserDefault: React.PropTypes.func.isRequired,
-    onRemove: React.PropTypes.func.isRequired,
+    onRemove: React.PropTypes.func.isRequired
   },
 
   mixins: [ApiMixin],
@@ -23,7 +23,7 @@ const SavedSearchRow = React.createClass({
   getInitialState() {
     return {
       loading: false,
-      error: false,
+      error: false
     };
   },
 
@@ -45,10 +45,10 @@ const SavedSearchRow = React.createClass({
       error: () => {
         this.setState({
           error: true,
-          loading: false,
+          loading: false
         });
         IndicatorStore.remove(loadingIndicator);
-      },
+      }
     });
   },
 
@@ -66,17 +66,17 @@ const SavedSearchRow = React.createClass({
       error: () => {
         this.setState({
           error: true,
-          loading: false,
+          loading: false
         });
         IndicatorStore.remove(loadingIndicator);
-      },
+      }
     });
   },
 
   handleDefault() {
     this.handleUpdate(
       {
-        isDefault: true,
+        isDefault: true
       },
       this.props.onDefault
     );
@@ -85,7 +85,7 @@ const SavedSearchRow = React.createClass({
   handleUserDefault() {
     this.handleUpdate(
       {
-        isUserDefault: true,
+        isUserDefault: true
       },
       this.props.onUserDefault
     );
@@ -131,7 +131,7 @@ const SavedSearchRow = React.createClass({
           </td>}
       </tr>
     );
-  },
+  }
 });
 
 const ProjectSavedSearches = React.createClass({
@@ -141,7 +141,7 @@ const ProjectSavedSearches = React.createClass({
     return {
       loading: true,
       error: false,
-      savedSearchList: [],
+      savedSearchList: []
     };
   },
 
@@ -157,15 +157,15 @@ const ProjectSavedSearches = React.createClass({
           error: false,
           loading: false,
           savedSearchList: data,
-          pageLinks: jqXHR.getResponseHeader('Link'),
+          pageLinks: jqXHR.getResponseHeader('Link')
         });
       },
       error: () => {
         this.setState({
           error: true,
-          loading: false,
+          loading: false
         });
-      },
+      }
     });
   },
 
@@ -174,7 +174,7 @@ const ProjectSavedSearches = React.createClass({
     this.setState({
       savedSearchList: savedSearchList.filter(search => {
         return search.id !== data.id;
-      }),
+      })
     });
   },
 
@@ -184,7 +184,7 @@ const ProjectSavedSearches = React.createClass({
       search.isDefault = data.id === search.id;
     });
     this.setState({
-      savedSearchList: savedSearchList,
+      savedSearchList: savedSearchList
     });
   },
 
@@ -194,7 +194,7 @@ const ProjectSavedSearches = React.createClass({
       search.isUserDefault = data.id === search.id;
     });
     this.setState({
-      savedSearchList: savedSearchList,
+      savedSearchList: savedSearchList
     });
   },
 
@@ -274,7 +274,7 @@ const ProjectSavedSearches = React.createClass({
         {this.renderBody()}
       </div>
     );
-  },
+  }
 });
 
 export default ProjectSavedSearches;

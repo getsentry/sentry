@@ -11,12 +11,12 @@ describe('ProjectAlertSettings', function() {
     MockApiClient.addMockResponse({
       url: `/projects/${this.org.slug}/${this.project.slug}/`,
       method: 'GET',
-      body: this.project,
+      body: this.project
     });
     MockApiClient.addMockResponse({
       url: `/projects/${this.org.slug}/${this.project.slug}/plugins/`,
       method: 'GET',
-      body: [],
+      body: []
     });
   });
 
@@ -29,8 +29,8 @@ describe('ProjectAlertSettings', function() {
         />,
         {
           context: {
-            router: TestStubs.router(),
-          },
+            router: TestStubs.router()
+          }
         }
       );
       expect(wrapper).toMatchSnapshot();

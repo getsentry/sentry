@@ -15,7 +15,7 @@ const generateClassName = function(name) {
 
 const NoSummary = React.createClass({
   propTypes: {
-    title: React.PropTypes.string.isRequired,
+    title: React.PropTypes.string.isRequired
   },
 
   render() {
@@ -27,13 +27,13 @@ const NoSummary = React.createClass({
         </h3>
       </div>
     );
-  },
+  }
 });
 
 const GenericSummary = React.createClass({
   propTypes: {
     data: React.PropTypes.object.isRequired,
-    unknownTitle: React.PropTypes.string.isRequired,
+    unknownTitle: React.PropTypes.string.isRequired
   },
 
   render() {
@@ -56,12 +56,12 @@ const GenericSummary = React.createClass({
         </p>
       </div>
     );
-  },
+  }
 });
 
 const UserSummary = React.createClass({
   propTypes: {
-    data: React.PropTypes.object.isRequired,
+    data: React.PropTypes.object.isRequired
   },
 
   render() {
@@ -101,12 +101,12 @@ const UserSummary = React.createClass({
             </p>}
       </div>
     );
-  },
+  }
 });
 
 const DeviceSummary = React.createClass({
   propTypes: {
-    data: React.PropTypes.object.isRequired,
+    data: React.PropTypes.object.isRequired
   },
 
   render() {
@@ -130,13 +130,13 @@ const DeviceSummary = React.createClass({
         </p>
       </div>
     );
-  },
+  }
 });
 
 const EventContextSummary = React.createClass({
   propTypes: {
     group: PropTypes.Group.isRequired,
-    event: PropTypes.Event.isRequired,
+    event: PropTypes.Event.isRequired
   },
 
   render() {
@@ -202,7 +202,7 @@ const EventContextSummary = React.createClass({
         {children}
       </div>
     );
-  },
+  }
 });
 
 export default EventContextSummary;

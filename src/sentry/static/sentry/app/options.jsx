@@ -7,16 +7,16 @@ import {EmailField, TextField, BooleanField} from './components/forms';
 // This are ordered based on their display order visually
 const sections = [
   {
-    key: 'system',
+    key: 'system'
   },
   {
     key: 'mail',
-    heading: t('Outbound email'),
+    heading: t('Outbound email')
   },
   {
     key: 'auth',
-    heading: t('Authentication'),
-  },
+    heading: t('Authentication')
+  }
 ];
 
 // This are ordered based on their display order visually
@@ -26,7 +26,7 @@ const definitions = [
     label: t('Root URL'),
     placeholder: 'https://sentry.example.com',
     help: t('The root web address which is used to communicate with the Sentry backend.'),
-    defaultValue: () => `${document.location.protocol}//${document.location.host}`,
+    defaultValue: () => `${document.location.protocol}//${document.location.host}`
   },
   {
     key: 'system.admin-email',
@@ -35,7 +35,7 @@ const definitions = [
     help: t('The technical contact for this Sentry installation.'),
     // TODO(dcramer): this should not be hardcoded to a component
     component: EmailField,
-    defaultValue: () => ConfigStore.get('user').email,
+    defaultValue: () => ConfigStore.get('user').email
   },
   {
     key: 'system.support-email',
@@ -44,7 +44,7 @@ const definitions = [
     help: t('The support contact for this Sentry installation.'),
     // TODO(dcramer): this should not be hardcoded to a component
     component: EmailField,
-    defaultValue: () => ConfigStore.get('user').email,
+    defaultValue: () => ConfigStore.get('user').email
   },
   {
     key: 'system.security-email',
@@ -53,7 +53,7 @@ const definitions = [
     help: t('The security contact for this Sentry installation.'),
     // TODO(dcramer): this should not be hardcoded to a component
     component: EmailField,
-    defaultValue: () => ConfigStore.get('user').email,
+    defaultValue: () => ConfigStore.get('user').email
   },
   {
     key: 'system.rate-limit',
@@ -61,14 +61,14 @@ const definitions = [
     placeholder: 'e.g. 500',
     help: t(
       'The maximum number of events the system should accept per minute. A value of 0 will disable the default rate limit.'
-    ),
+    )
   },
   {
     key: 'auth.allow-registration',
     label: t('Allow Registration'),
     help: t('Allow anyone to create an account and access this Sentry installation.'),
     component: BooleanField,
-    defaultValue: () => false,
+    defaultValue: () => false
   },
   {
     key: 'auth.ip-rate-limit',
@@ -76,7 +76,7 @@ const definitions = [
     placeholder: 'e.g. 10',
     help: t(
       'The maximum number of times an authentication attempt may be made by a single IP address in a 60 second window.'
-    ),
+    )
   },
   {
     key: 'auth.user-rate-limit',
@@ -84,7 +84,7 @@ const definitions = [
     placeholder: 'e.g. 10',
     help: t(
       'The maximum number of times an authentication attempt may be made against a single account in a 60 second window.'
-    ),
+    )
   },
   {
     key: 'api.rate-limit.org-create',
@@ -92,31 +92,31 @@ const definitions = [
     placeholder: 'e.g. 5',
     help: t(
       'The maximum number of organizations which may be created by a single account in a one hour window.'
-    ),
+    )
   },
   {
     key: 'mail.from',
     label: t('Email From'),
     component: EmailField,
     defaultValue: () => `sentry@${document.location.hostname}`,
-    help: t('Email address to be used in From for all outbound email.'),
+    help: t('Email address to be used in From for all outbound email.')
   },
   {
     key: 'mail.host',
     label: t('SMTP Host'),
     placeholder: 'localhost',
-    defaultValue: () => 'localhost',
+    defaultValue: () => 'localhost'
   },
   {
     key: 'mail.port',
     label: t('SMTP Port'),
     placeholder: '25',
-    defaultValue: () => '25',
+    defaultValue: () => '25'
   },
   {
     key: 'mail.username',
     label: t('SMTP Username'),
-    defaultValue: () => '',
+    defaultValue: () => ''
   },
   {
     key: 'mail.password',
@@ -125,14 +125,14 @@ const definitions = [
     // there's a way to reveal it. Without being able to see the password, it's
     // impossible to confirm if it's right.
     // component: PasswordField,
-    defaultValue: () => '',
+    defaultValue: () => ''
   },
   {
     key: 'mail.use-tls',
     label: t('Use TLS?'),
     component: BooleanField,
-    defaultValue: () => false,
-  },
+    defaultValue: () => false
+  }
 ];
 
 const definitionsMap = _.keyBy(definitions, def => def.key);
@@ -140,7 +140,7 @@ const definitionsMap = _.keyBy(definitions, def => def.key);
 const disabledReasons = {
   diskPriority:
     'This setting is defined in config.yml and may not be changed via the web UI.',
-  smtpDisabled: 'SMTP mail has been disabled, so this option is unavailable',
+  smtpDisabled: 'SMTP mail has been disabled, so this option is unavailable'
 };
 
 export function getOption(option) {

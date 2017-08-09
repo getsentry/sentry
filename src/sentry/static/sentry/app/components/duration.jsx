@@ -2,7 +2,7 @@ import React from 'react';
 
 const Duration = React.createClass({
   propTypes: {
-    seconds: React.PropTypes.number.isRequired,
+    seconds: React.PropTypes.number.isRequired
   },
 
   getDuration() {
@@ -39,7 +39,7 @@ const Duration = React.createClass({
         {this.getDuration()}
       </span>
     );
-  },
+  }
 });
 
 export default Duration;

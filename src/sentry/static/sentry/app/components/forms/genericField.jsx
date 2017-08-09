@@ -30,7 +30,7 @@ class GenericField extends React.Component {
       help:
         defined(config.help) && config.help !== ''
           ? <span dangerouslySetInnerHTML={{__html: config.help}} />
-          : null,
+          : null
     });
 
     switch (config.type) {
@@ -71,7 +71,7 @@ GenericField.propTypes = {
   formData: React.PropTypes.object,
   formErrors: React.PropTypes.object,
   formState: React.PropTypes.string.isRequired,
-  onChange: React.PropTypes.func,
+  onChange: React.PropTypes.func
 };
 
 export default GenericField;

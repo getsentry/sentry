@@ -18,9 +18,9 @@ describe('AdminSettings', function() {
               required: true,
               disabled: true,
               allowEmpty: true,
-              isSet: true,
+              isSet: true
             },
-            value: 'https://sentry.example.com',
+            value: 'https://sentry.example.com'
           },
           'system.admin-email': {
             field: {
@@ -29,9 +29,9 @@ describe('AdminSettings', function() {
               required: true,
               disabled: true,
               allowEmpty: false,
-              isSet: true,
+              isSet: true
             },
-            value: 'foo@example.com',
+            value: 'foo@example.com'
           },
           'system.support-email': {
             field: {
@@ -40,9 +40,9 @@ describe('AdminSettings', function() {
               required: true,
               disabled: true,
               allowEmpty: false,
-              isSet: true,
+              isSet: true
             },
-            value: 'foo@example.com',
+            value: 'foo@example.com'
           },
           'system.security-email': {
             field: {
@@ -51,9 +51,9 @@ describe('AdminSettings', function() {
               required: true,
               disabled: true,
               allowEmpty: false,
-              isSet: true,
+              isSet: true
             },
-            value: 'foo@example.com',
+            value: 'foo@example.com'
           },
           'system.rate-limit': {
             field: {
@@ -62,9 +62,9 @@ describe('AdminSettings', function() {
               required: true,
               disabled: true,
               allowEmpty: false,
-              isSet: true,
+              isSet: true
             },
-            value: 25,
+            value: 25
           },
           'auth.allow-registration': {
             field: {
@@ -73,9 +73,9 @@ describe('AdminSettings', function() {
               required: true,
               disabled: true,
               allowEmpty: false,
-              isSet: true,
+              isSet: true
             },
-            value: true,
+            value: true
           },
           'auth.ip-rate-limit': {
             field: {
@@ -84,9 +84,9 @@ describe('AdminSettings', function() {
               required: true,
               disabled: true,
               allowEmpty: false,
-              isSet: true,
+              isSet: true
             },
-            value: 25,
+            value: 25
           },
           'auth.user-rate-limit': {
             field: {
@@ -95,9 +95,9 @@ describe('AdminSettings', function() {
               required: true,
               disabled: true,
               allowEmpty: false,
-              isSet: true,
+              isSet: true
             },
-            value: 25,
+            value: 25
           },
           'api.rate-limit.org-create': {
             field: {
@@ -106,19 +106,19 @@ describe('AdminSettings', function() {
               required: true,
               disabled: true,
               allowEmpty: false,
-              isSet: true,
+              isSet: true
             },
-            value: 25,
-          },
-        },
+            value: 25
+          }
+        }
       });
     });
 
     it('renders', function() {
       let wrapper = shallow(<AdminSettings params={{}} />, {
         context: {
-          router: TestStubs.router(),
-        },
+          router: TestStubs.router()
+        }
       });
       expect(wrapper).toMatchSnapshot();
     });

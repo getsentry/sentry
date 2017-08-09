@@ -13,14 +13,14 @@ import {t, tct} from '../locale';
 const ApiTokenRow = React.createClass({
   propTypes: {
     token: React.PropTypes.object.isRequired,
-    onRemove: React.PropTypes.func.isRequired,
+    onRemove: React.PropTypes.func.isRequired
   },
 
   mixins: [ApiMixin],
 
   getInitialState() {
     return {
-      loading: false,
+      loading: false
     };
   },
 
@@ -31,7 +31,7 @@ const ApiTokenRow = React.createClass({
 
     this.setState(
       {
-        loading: true,
+        loading: true
       },
       () => {
         let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
@@ -45,7 +45,7 @@ const ApiTokenRow = React.createClass({
           error: () => {
             IndicatorStore.remove(loadingIndicator);
             IndicatorStore.add(t('Unable to remove token. Please try again.'), 'error');
-          },
+          }
         });
       }
     );
@@ -88,7 +88,7 @@ const ApiTokenRow = React.createClass({
         </td>
       </tr>
     );
-  },
+  }
 });
 
 const ApiTokens = React.createClass({
@@ -98,7 +98,7 @@ const ApiTokens = React.createClass({
     return {
       loading: true,
       error: false,
-      tokenList: [],
+      tokenList: []
     };
   },
 
@@ -112,7 +112,7 @@ const ApiTokens = React.createClass({
 
   fetchData() {
     this.setState({
-      loading: true,
+      loading: true
     });
 
     this.api.request('/api-tokens/', {
@@ -120,21 +120,21 @@ const ApiTokens = React.createClass({
         this.setState({
           loading: false,
           error: false,
-          tokenList: data,
+          tokenList: data
         });
       },
       error: () => {
         this.setState({
           loading: false,
-          error: true,
+          error: true
         });
-      },
+      }
     });
   },
 
   onRemoveToken(token) {
     this.setState({
-      tokenList: this.state.tokenList.filter(tk => tk.token !== token.token),
+      tokenList: this.state.tokenList.filter(tk => tk.token !== token.token)
     });
   },
 
@@ -191,7 +191,7 @@ const ApiTokens = React.createClass({
             {tct(
               'For more information on how to use the web API, see our [link:documentation].',
               {
-                link: <a href="https://docs.sentry.io/hosted/api/" />,
+                link: <a href="https://docs.sentry.io/hosted/api/" />
               }
             )}
           </p>
@@ -218,7 +218,7 @@ const ApiTokens = React.createClass({
         </div>
       </DocumentTitle>
     );
-  },
+  }
 });
 
 export default ApiTokens;

@@ -11,7 +11,7 @@ const Note = React.createClass({
     author: React.PropTypes.object.isRequired,
     item: React.PropTypes.object.isRequired,
     onEdit: React.PropTypes.func.isRequired,
-    onDelete: React.PropTypes.func.isRequired,
+    onDelete: React.PropTypes.func.isRequired
   },
 
   canEdit() {
@@ -44,7 +44,7 @@ const Note = React.createClass({
         <div dangerouslySetInnerHTML={{__html: noteBody}} />
       </div>
     );
-  },
+  }
 });
 
 export default Note;

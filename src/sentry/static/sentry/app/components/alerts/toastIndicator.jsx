@@ -13,7 +13,7 @@ function ToastIndicator({type, children}) {
 }
 
 ToastIndicator.propTypes = {
-  type: React.PropTypes.string.isRequired,
+  type: React.PropTypes.string.isRequired
 };
 
 export default ToastIndicator;

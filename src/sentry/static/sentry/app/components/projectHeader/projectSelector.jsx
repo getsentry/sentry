@@ -19,18 +19,18 @@ const ProjectSelector = React.createClass({
     // Accepts a project id (slug) and not a project *object* because ProjectSelector
     // is created from Django templates, and only organization is serialized
     projectId: React.PropTypes.string,
-    organization: React.PropTypes.object.isRequired,
+    organization: React.PropTypes.object.isRequired
   },
 
   contextTypes: {
-    location: React.PropTypes.object,
+    location: React.PropTypes.object
   },
 
   mixins: [ApiMixin],
 
   getDefaultProps() {
     return {
-      projectId: null,
+      projectId: null
     };
   },
 
@@ -38,7 +38,7 @@ const ProjectSelector = React.createClass({
     return {
       filter: '',
       currentIndex: -1,
-      ...this.getProjectState({filter: ''}),
+      ...this.getProjectState({filter: ''})
     };
   },
 
@@ -58,7 +58,7 @@ const ProjectSelector = React.createClass({
     this.setState({
       filter: evt.target.value,
       currentIndex: -1,
-      ...this.getProjectState({filter: evt.target.value}),
+      ...this.getProjectState({filter: evt.target.value})
     });
   },
 
@@ -89,7 +89,7 @@ const ProjectSelector = React.createClass({
     this.setState({
       filter: '',
       currentIndex: -1,
-      ...this.getProjectState({filter: ''}),
+      ...this.getProjectState({filter: ''})
     });
     // dropdownLink might not exist because we try to close within
     // onFilterBlur above after a timeout. My hunch is that sometimes
@@ -110,7 +110,7 @@ const ProjectSelector = React.createClass({
       // property. For example - when project selector is loaded on
       // Django-powered Settings pages.
 
-      ...this.getProjectUrlProps(project),
+      ...this.getProjectUrlProps(project)
     };
 
     return (
@@ -207,7 +207,7 @@ const ProjectSelector = React.createClass({
     if (this.refs.filter) {
       ReactDOM.findDOMNode(this.refs.filter).focus();
       this.setState({
-        ...this.getProjectState(this.state),
+        ...this.getProjectState(this.state)
       });
     }
   },
@@ -216,7 +216,7 @@ const ProjectSelector = React.createClass({
     this.setState({
       filter: '',
       currentIndex: -1,
-      ...this.getProjectState({filter: ''}),
+      ...this.getProjectState({filter: ''})
     });
   },
 
@@ -225,13 +225,13 @@ const ProjectSelector = React.createClass({
     if (evt.key === 'Down' || evt.keyCode === 40) {
       if (this.state.currentIndex + 1 < projects.length) {
         this.setState({
-          currentIndex: this.state.currentIndex + 1,
+          currentIndex: this.state.currentIndex + 1
         });
       }
     } else if (evt.key === 'Up' || evt.keyCode === 38) {
       if (this.state.currentIndex > 0) {
         this.setState({
-          currentIndex: this.state.currentIndex - 1,
+          currentIndex: this.state.currentIndex - 1
         });
       }
     } else if (evt.key === 'Enter' || evt.keyCode === 13) {
@@ -274,7 +274,7 @@ const ProjectSelector = React.createClass({
     return {
       projectList: projectList,
       activeTeam: activeTeam,
-      activeProject: activeProject,
+      activeProject: activeProject
     };
   },
 
@@ -307,7 +307,7 @@ const ProjectSelector = React.createClass({
                 {t('Create project')}
               </a>
             </MenuItem>
-          : null,
+          : null
       ];
     }
   },
@@ -333,7 +333,7 @@ const ProjectSelector = React.createClass({
     const hasFilter = !!this.state.filter;
     const hasProjects = children && !!children.length;
     const dropdownClassNames = classNames('project-dropdown', {
-      'is-empty': !hasProjects,
+      'is-empty': !hasProjects
     });
 
     return (
@@ -369,13 +369,13 @@ const ProjectSelector = React.createClass({
               organization: org,
               hasProjectWrite: access.has('project:write'),
               projects: children,
-              filter: this.state.filter,
+              filter: this.state.filter
             })}
           </DropdownLink>
         </h3>
       </div>
     );
-  },
+  }
 });
 
 export default ProjectSelector;

@@ -13,18 +13,18 @@ import {t, tct} from '../../locale';
 const GroupSidebar = React.createClass({
   propTypes: {
     group: React.PropTypes.object,
-    event: React.PropTypes.object,
+    event: React.PropTypes.object
   },
 
   contextTypes: {
-    location: React.PropTypes.object,
+    location: React.PropTypes.object
   },
 
   mixins: [ApiMixin, GroupState],
 
   getInitialState() {
     return {
-      participants: [],
+      participants: []
     };
   },
 
@@ -34,14 +34,14 @@ const GroupSidebar = React.createClass({
       success: data => {
         this.setState({
           participants: data,
-          error: false,
+          error: false
         });
       },
       error: () => {
         this.setState({
-          error: true,
+          error: true
         });
-      },
+      }
     });
   },
 
@@ -54,7 +54,7 @@ const GroupSidebar = React.createClass({
     ),
     mentioned: t(
       "You're receiving updates because you have been mentioned in this issue."
-    ),
+    )
   },
 
   toggleSubscription() {
@@ -69,8 +69,8 @@ const GroupSidebar = React.createClass({
         projectId: project.slug,
         itemIds: [group.id],
         data: {
-          isSubscribed: !group.isSubscribed,
-        },
+          isSubscribed: !group.isSubscribed
+        }
       },
       {
         complete: () => {
@@ -78,18 +78,18 @@ const GroupSidebar = React.createClass({
             success: data => {
               this.setState({
                 participants: data,
-                error: false,
+                error: false
               });
               IndicatorStore.remove(loadingIndicator);
             },
             error: () => {
               this.setState({
-                error: true,
+                error: true
               });
               IndicatorStore.remove(loadingIndicator);
-            },
+            }
           });
-        },
+        }
       }
     );
   },
@@ -144,7 +144,7 @@ const GroupSidebar = React.createClass({
         result = tct(
           "You're receiving updates because you are [link:subscribed to workflow notifications] for this project.",
           {
-            link: <a href="/account/settings/notifications/" />,
+            link: <a href="/account/settings/notifications/" />
           }
         );
       }
@@ -227,7 +227,7 @@ const GroupSidebar = React.createClass({
         </a>
       </div>
     );
-  },
+  }
 });
 
 export default GroupSidebar;

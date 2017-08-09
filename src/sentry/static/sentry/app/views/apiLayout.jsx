@@ -22,7 +22,7 @@ const ApiDashboard = React.createClass({
         {this.props.children}
       </NarrowLayout>
     );
-  },
+  }
 });
 
 export default ApiDashboard;

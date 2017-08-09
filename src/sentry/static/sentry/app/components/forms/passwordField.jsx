@@ -8,13 +8,13 @@ export default class PasswordField extends InputField {
   static propTypes = {
     ...InputField.propTypes,
     hasSavedValue: React.PropTypes.bool,
-    prefix: React.PropTypes.string,
+    prefix: React.PropTypes.string
   };
 
   static defaultProps = {
     ...InputField.defaultProps,
     hasSavedValue: false,
-    prefix: '',
+    prefix: ''
   };
 
   constructor(props, context) {
@@ -32,7 +32,7 @@ export default class PasswordField extends InputField {
       nextProps.formState === FormState.READY
     ) {
       this.setState({
-        editing: false,
+        editing: false
       });
     }
   }
@@ -45,7 +45,7 @@ export default class PasswordField extends InputField {
     e.preventDefault();
     this.setState(
       {
-        editing: false,
+        editing: false
       },
       () => {
         this.setValue('');
@@ -56,7 +56,7 @@ export default class PasswordField extends InputField {
   startEdit = e => {
     e.preventDefault();
     this.setState({
-      editing: true,
+      editing: true
     });
   };
 

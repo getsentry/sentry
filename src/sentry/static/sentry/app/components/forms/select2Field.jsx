@@ -47,7 +47,7 @@ class Select2Field extends InputField {
       allowClear: this.props.allowClear,
       allowEmpty: this.props.allowEmpty,
       width: 'element',
-      escapeMarkup: !this.props.escapeMarkup ? m => m : undefined,
+      escapeMarkup: !this.props.escapeMarkup ? m => m : undefined
     };
   }
 
@@ -66,7 +66,7 @@ Select2Field.propTypes = Object.assign(
     allowClear: React.PropTypes.bool,
     allowEmpty: React.PropTypes.bool,
     multiple: React.PropTypes.bool,
-    escapeMarkup: React.PropTypes.bool,
+    escapeMarkup: React.PropTypes.bool
   },
   InputField.propTypes
 );
@@ -75,7 +75,7 @@ Select2Field.defaultProps = Object.assign({}, InputField.defaultProps, {
   allowEmpty: false,
   placeholder: '--',
   escapeMarkup: true,
-  multiple: false,
+  multiple: false
 });
 
 export default Select2Field;

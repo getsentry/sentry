@@ -14,7 +14,7 @@ const CompactIssueHeader = React.createClass({
   propTypes: {
     data: React.PropTypes.object.isRequired,
     orgId: React.PropTypes.string.isRequired,
-    projectId: React.PropTypes.string.isRequired,
+    projectId: React.PropTypes.string.isRequired
   },
 
   getTitle() {
@@ -113,7 +113,7 @@ const CompactIssueHeader = React.createClass({
         </div>
       </div>
     );
-  },
+  }
 });
 
 const CompactIssue = React.createClass({
@@ -122,21 +122,21 @@ const CompactIssue = React.createClass({
     id: React.PropTypes.string,
     orgId: React.PropTypes.string,
     statsPeriod: React.PropTypes.string,
-    showActions: React.PropTypes.bool,
+    showActions: React.PropTypes.bool
   },
 
   mixins: [ApiMixin, Reflux.listenTo(GroupStore, 'onGroupChange')],
 
   getInitialState() {
     return {
-      issue: this.props.data || GroupStore.get(this.props.id),
+      issue: this.props.data || GroupStore.get(this.props.id)
     };
   },
 
   componentWillReceiveProps(nextProps) {
     if (nextProps.id != this.props.id) {
       this.setState({
-        issue: GroupStore.get(this.props.id),
+        issue: GroupStore.get(this.props.id)
       });
     }
   },
@@ -148,13 +148,13 @@ const CompactIssue = React.createClass({
     let id = this.props.id;
     let issue = GroupStore.get(id);
     this.setState({
-      issue: issue,
+      issue: issue
     });
   },
 
   onSnooze(duration) {
     let data = {
-      status: 'ignored',
+      status: 'ignored'
     };
 
     if (duration) data.ignoreDuration = duration;
@@ -171,12 +171,12 @@ const CompactIssue = React.createClass({
         orgId: this.props.orgId,
         projectId: issue.project.slug,
         itemIds: [issue.id],
-        data: data,
+        data: data
       },
       {
         complete: () => {
           IndicatorStore.remove(loadingIndicator);
-        },
+        }
       }
     );
   },
@@ -229,7 +229,7 @@ const CompactIssue = React.createClass({
               <li>
                 <a
                   onClick={this.onUpdate.bind(this, {
-                    status: issue.status !== 'resolved' ? 'resolved' : 'unresolved',
+                    status: issue.status !== 'resolved' ? 'resolved' : 'unresolved'
                   })}>
                   <span className="icon-checkmark" />
                 </a>
@@ -259,7 +259,7 @@ const CompactIssue = React.createClass({
         {this.props.children}
       </li>
     );
-  },
+  }
 });
 
 export default CompactIssue;

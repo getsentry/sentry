@@ -17,7 +17,7 @@ const GroupEventDetails = React.createClass({
       loading: true,
       error: false,
       event: null,
-      eventNavLinks: '',
+      eventNavLinks: ''
     };
   },
 
@@ -41,7 +41,7 @@ const GroupEventDetails = React.createClass({
 
     this.setState({
       loading: true,
-      error: false,
+      error: false
     });
 
     this.api.request(url, {
@@ -49,7 +49,7 @@ const GroupEventDetails = React.createClass({
         this.setState({
           event: data,
           error: false,
-          loading: false,
+          loading: false
         });
 
         this.api.bulkUpdate({
@@ -57,15 +57,15 @@ const GroupEventDetails = React.createClass({
           projectId: this.getProject().slug,
           itemIds: [this.getGroup().id],
           failSilently: true,
-          data: {hasSeen: true},
+          data: {hasSeen: true}
         });
       },
       error: () => {
         this.setState({
           error: true,
-          loading: false,
+          loading: false
         });
-      },
+      }
     });
   },
 
@@ -109,7 +109,7 @@ const GroupEventDetails = React.createClass({
         </div>
       </div>
     );
-  },
+  }
 });
 
 export default GroupEventDetails;

@@ -7,7 +7,7 @@ import SpreadLayout from './spreadLayout';
 // "responsive" will change flex-direction to be column on small widths
 const SplitLayout = ({children, className, responsive, ...props}) => {
   const cx = classNames('split-layout', className, {
-    'allow-responsive': responsive,
+    'allow-responsive': responsive
   });
 
   return (
@@ -15,7 +15,7 @@ const SplitLayout = ({children, className, responsive, ...props}) => {
       {React.Children.map(children, child => {
         const childProps = (child && child.props) || {};
         return React.cloneElement(child, {
-          className: classNames(childProps.className, 'split-layout-child'),
+          className: classNames(childProps.className, 'split-layout-child')
         });
       })}
     </SpreadLayout>
@@ -24,7 +24,7 @@ const SplitLayout = ({children, className, responsive, ...props}) => {
 
 SplitLayout.propTypes = {
   children: PropTypes.node,
-  responsive: PropTypes.bool,
+  responsive: PropTypes.bool
 };
 
 export default SplitLayout;

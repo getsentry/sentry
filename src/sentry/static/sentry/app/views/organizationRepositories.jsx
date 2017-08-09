@@ -13,7 +13,7 @@ import {t, tct} from '../locale';
 import {sortArray, parseGitHubRepo} from '../utils';
 
 const UNKNOWN_ERROR = {
-  error_type: 'unknown',
+  error_type: 'unknown'
 };
 
 class AddRepositoryLink extends PluginComponentBase {
@@ -26,7 +26,7 @@ class AddRepositoryLink extends PluginComponentBase {
       loading: true,
       state: FormState.LOADING,
       error: {},
-      formData: {},
+      formData: {}
     });
 
     ['onOpen', 'onCancel', 'formSubmit', 'changeField'].map(
@@ -57,13 +57,13 @@ class AddRepositoryLink extends PluginComponentBase {
         : this.state.formData;
     this.setState(
       {
-        state: FormState.SAVING,
+        state: FormState.SAVING
       },
       () => {
         this.api.request(`/organizations/${this.props.orgId}/repos/`, {
           data: {
             provider: this.props.provider.id,
-            ...repoName,
+            ...repoName
           },
           method: 'POST',
           success: this.onSaveSuccess.bind(this, data => {
@@ -73,10 +73,10 @@ class AddRepositoryLink extends PluginComponentBase {
           error: this.onSaveError.bind(this, error => {
             this.setState({
               error: error.responseJSON || UNKNOWN_ERROR || UNKNOWN_ERROR,
-              state: FormState.error,
+              state: FormState.error
             });
           }),
-          complete: this.onSaveComplete,
+          complete: this.onSaveComplete
         });
       }
     );
@@ -106,7 +106,7 @@ class AddRepositoryLink extends PluginComponentBase {
                 config: field,
                 formData: this.state.formData,
                 formErrors: errors,
-                onChange: this.changeField.bind(this, field.name),
+                onChange: this.changeField.bind(this, field.name)
               })}
             </div>
           );
@@ -145,7 +145,7 @@ class AddRepositoryLink extends PluginComponentBase {
               : tct(
                   'An unknown error occurred. Need help with this? [link:Contact support]',
                   {
-                    link: <a href="https://sentry.io/support/" />,
+                    link: <a href="https://sentry.io/support/" />
                   }
                 )}
           </p>
@@ -199,7 +199,7 @@ class AddRepositoryLink extends PluginComponentBase {
 }
 
 AddRepositoryLink.propTypes = {
-  provider: React.PropTypes.object.isRequired,
+  provider: React.PropTypes.object.isRequired
 };
 
 const OrganizationRepositories = React.createClass({
@@ -210,7 +210,7 @@ const OrganizationRepositories = React.createClass({
       loading: true,
       error: false,
       itemList: null,
-      repoConfig: null,
+      repoConfig: null
     };
   },
 
@@ -224,30 +224,30 @@ const OrganizationRepositories = React.createClass({
       success: data => {
         this.setState({
           itemList: data,
-          loading: !this.state.repoConfig,
+          loading: !this.state.repoConfig
         });
       },
       error: () => {
         this.setState({
           loading: !this.state.repoConfig,
-          error: true,
+          error: true
         });
-      },
+      }
     });
     this.api.request(`/organizations/${this.props.params.orgId}/config/repos/`, {
       method: 'GET',
       success: data => {
         this.setState({
           repoConfig: data,
-          loading: !this.state.itemList,
+          loading: !this.state.itemList
         });
       },
       error: () => {
         this.setState({
           loading: !this.state.itemList,
-          error: true,
+          error: true
         });
-      },
+      }
     });
   },
 
@@ -265,17 +265,17 @@ const OrganizationRepositories = React.createClass({
           }
         });
         this.setState({
-          itemList: itemList,
+          itemList: itemList
         });
       },
       error: () => {
         IndicatorStore.add(t('An error occurred.'), 'error', {
-          duration: 3000,
+          duration: 3000
         });
       },
       complete: () => {
         IndicatorStore.remove(indicator);
-      },
+      }
     });
   },
 
@@ -292,17 +292,17 @@ const OrganizationRepositories = React.createClass({
           }
         });
         this.setState({
-          itemList: itemList,
+          itemList: itemList
         });
       },
       error: () => {
         IndicatorStore.add(t('An error occurred.'), 'error', {
-          duration: 3000,
+          duration: 3000
         });
       },
       complete: () => {
         IndicatorStore.remove(indicator);
-      },
+      }
     });
   },
 
@@ -310,7 +310,7 @@ const OrganizationRepositories = React.createClass({
     let itemList = this.state.itemList;
     itemList.push(repo);
     this.setState({
-      itemList: sortArray(itemList, item => item.name),
+      itemList: sortArray(itemList, item => item.name)
     });
   },
 
@@ -366,7 +366,7 @@ const OrganizationRepositories = React.createClass({
               )}
               &nbsp;
               {tct('See our [link:documentation] for more details.', {
-                link: <a href="https://docs.sentry.io/learn/releases/" />,
+                link: <a href="https://docs.sentry.io/learn/releases/" />
               })}
             </p>
           </div>}
@@ -442,7 +442,7 @@ const OrganizationRepositories = React.createClass({
             </div>}
       </OrganizationHomeContainer>
     );
-  },
+  }
 });
 
 export default OrganizationRepositories;

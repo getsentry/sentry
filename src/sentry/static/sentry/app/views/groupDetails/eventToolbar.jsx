@@ -35,14 +35,14 @@ let GroupEventToolbar = React.createClass({
     orgId: React.PropTypes.string.isRequired,
     projectId: React.PropTypes.string.isRequired,
     group: PropTypes.Group.isRequired,
-    event: PropTypes.Event.isRequired,
+    event: PropTypes.Event.isRequired
   },
 
   mixins: [
     TooltipMixin({
       html: true,
-      selector: '.tip',
-    }),
+      selector: '.tip'
+    })
   ],
 
   shouldComponentUpdate(nextProps, nextState) {
@@ -128,14 +128,14 @@ let GroupEventToolbar = React.createClass({
           </Link>
         : <a key="latest" className="btn btn-default disabled">
             <span className="icon-skip-forward" />
-          </a>,
+          </a>
     ];
 
     // TODO: possible to define this as a route in react-router, but without a corresponding
     //       React component?
     let jsonUrl = `/${orgId}/${projectId}/issues/${groupId}/events/${evt.id}/json/`;
     let style = {
-      borderBottom: '1px dotted #dfe3ea',
+      borderBottom: '1px dotted #dfe3ea'
     };
 
     let latencyThreshold = 30 * 60 * 1000; // 30 minutes
@@ -165,7 +165,7 @@ let GroupEventToolbar = React.createClass({
         </span>
       </div>
     );
-  },
+  }
 });
 
 export default GroupEventToolbar;

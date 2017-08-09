@@ -10,21 +10,21 @@ import LinkWithConfirmation from '../../components/linkWithConfirmation';
 
 const SimilarToolbar = React.createClass({
   propTypes: {
-    onMerge: PropTypes.func.isRequired,
+    onMerge: PropTypes.func.isRequired
   },
 
   mixins: [Reflux.listenTo(GroupingStore, 'onGroupingUpdate')],
 
   getInitialState() {
     return {
-      mergeCount: 0,
+      mergeCount: 0
     };
   },
 
   onGroupingUpdate({mergeList}) {
     if (mergeList && mergeList.size !== this.state.mergedCount) {
       this.setState({
-        mergeCount: mergeList.size,
+        mergeCount: mergeList.size
       });
     }
   },
@@ -61,7 +61,7 @@ const SimilarToolbar = React.createClass({
         </SplitLayout>
       </div>
     );
-  },
+  }
 });
 
 export default SimilarToolbar;

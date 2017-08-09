@@ -8,7 +8,7 @@ const ContextBlock = React.createClass({
   propTypes: {
     alias: React.PropTypes.string.isRequired,
     data: React.PropTypes.object.isRequired,
-    knownData: React.PropTypes.array,
+    knownData: React.PropTypes.array
   },
 
   render() {
@@ -46,7 +46,7 @@ const ContextBlock = React.createClass({
         <KeyValueList data={data} isSorted={false} />
       </div>
     );
-  },
+  }
 });
 
 export default ContextBlock;

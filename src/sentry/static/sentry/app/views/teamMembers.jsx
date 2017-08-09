@@ -14,7 +14,7 @@ const TeamMembers = React.createClass({
     return {
       loading: true,
       error: false,
-      memberList: null,
+      memberList: null
     };
   },
 
@@ -31,7 +31,7 @@ const TeamMembers = React.createClass({
       this.setState(
         {
           loading: true,
-          error: false,
+          error: false
         },
         this.fetchData
       );
@@ -46,15 +46,15 @@ const TeamMembers = React.createClass({
         this.setState({
           memberList: data,
           loading: false,
-          error: false,
+          error: false
         });
       },
       error: () => {
         this.setState({
           loading: false,
-          error: true,
+          error: true
         });
-      },
+      }
     });
   },
 
@@ -120,7 +120,7 @@ const TeamMembers = React.createClass({
         </table>
       </div>
     );
-  },
+  }
 });
 
 export default TeamMembers;

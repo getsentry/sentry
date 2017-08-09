@@ -16,7 +16,7 @@ import {t} from '../../locale';
 
 const ReleaseOverview = React.createClass({
   contextTypes: {
-    release: React.PropTypes.object,
+    release: React.PropTypes.object
   },
 
   mixins: [ApiMixin],
@@ -28,7 +28,7 @@ const ReleaseOverview = React.createClass({
       projects: [],
       fileList: [],
       deploys: [],
-      hasRepos: false,
+      hasRepos: false
     };
   },
 
@@ -43,14 +43,14 @@ const ReleaseOverview = React.createClass({
       data: this.props.location.query,
       success: (data, _, jqXHR) => {
         this.setState({
-          fileList: data,
+          fileList: data
         });
       },
       error: () => {
         this.setState({
-          error: true,
+          error: true
         });
-      },
+      }
     });
     this.getReleaseProjects();
     this.getDeploys();
@@ -64,14 +64,14 @@ const ReleaseOverview = React.createClass({
       method: 'GET',
       success: (data, _, jqXHR) => {
         this.setState({
-          projects: data.projects,
+          projects: data.projects
         });
       },
       error: () => {
         this.setState({
-          error: true,
+          error: true
         });
-      },
+      }
     });
   },
 
@@ -83,14 +83,14 @@ const ReleaseOverview = React.createClass({
       success: (data, _, jqXHR) => {
         this.setState({
           deploys: data,
-          loading: false,
+          loading: false
         });
       },
       error: () => {
         this.setState({
-          error: true,
+          error: true
         });
-      },
+      }
     });
   },
 
@@ -101,14 +101,14 @@ const ReleaseOverview = React.createClass({
       method: 'GET',
       success: (data, _, jqXHR) => {
         this.setState({
-          hasRepos: data.length > 0,
+          hasRepos: data.length > 0
         });
       },
       error: () => {
         this.setState({
-          error: true,
+          error: true
         });
-      },
+      }
     });
   },
 
@@ -143,7 +143,7 @@ const ReleaseOverview = React.createClass({
         fbr[repoName][filename] = {
           authors: {},
           types: new Set(),
-          repos: new Set(),
+          repos: new Set()
         };
       }
 
@@ -182,7 +182,7 @@ const ReleaseOverview = React.createClass({
               endpoint={`/projects/${orgId}/${projectId}/issues/`}
               query={{
                 query: 'first-release:"' + version + '"',
-                limit: 5,
+                limit: 5
               }}
               statsPeriod="0"
               pagination={false}
@@ -291,7 +291,7 @@ const ReleaseOverview = React.createClass({
         </div>
       </div>
     );
-  },
+  }
 });
 
 export default ReleaseOverview;

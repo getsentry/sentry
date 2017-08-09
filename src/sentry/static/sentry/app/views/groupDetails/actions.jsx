@@ -23,22 +23,22 @@ const ResolveActions = React.createClass({
     latestRelease: React.PropTypes.object,
     onUpdate: React.PropTypes.func.isRequired,
     orgId: React.PropTypes.string.isRequired,
-    projectId: React.PropTypes.string.isRequired,
+    projectId: React.PropTypes.string.isRequired
   },
 
   getInitialState() {
     return {
-      modal: false,
+      modal: false
     };
   },
 
   onCustomResolution(statusDetails) {
     this.setState({
-      modal: false,
+      modal: false
     });
     this.props.onUpdate({
       status: 'resolved',
-      statusDetails: statusDetails,
+      statusDetails: statusDetails
     });
   },
 
@@ -113,8 +113,8 @@ const ResolveActions = React.createClass({
                     onUpdate({
                       status: 'resolved',
                       statusDetails: {
-                        inNextRelease: true,
-                      },
+                        inNextRelease: true
+                      }
                     })
                   );
                 }}
@@ -129,8 +129,8 @@ const ResolveActions = React.createClass({
                     onUpdate({
                       status: 'resolved',
                       statusDetails: {
-                        inRelease: latestRelease ? latestRelease.version : 'latest',
-                      },
+                        inRelease: latestRelease ? latestRelease.version : 'latest'
+                      }
                     })
                   );
                 }}
@@ -151,18 +151,18 @@ const ResolveActions = React.createClass({
         </div>
       </div>
     );
-  },
+  }
 });
 
 const IgnoreActions = React.createClass({
   propTypes: {
     group: React.PropTypes.object.isRequired,
-    onUpdate: React.PropTypes.func.isRequired,
+    onUpdate: React.PropTypes.func.isRequired
   },
 
   getInitialState() {
     return {
-      modal: false,
+      modal: false
     };
   },
 
@@ -180,7 +180,7 @@ const IgnoreActions = React.createClass({
 
   onCustomIgnore(statusDetails) {
     this.setState({
-      modal: false,
+      modal: false
     });
     this.onIgnore(statusDetails);
   },
@@ -188,7 +188,7 @@ const IgnoreActions = React.createClass({
   onIgnore(statusDetails) {
     return this.props.onUpdate({
       status: 'ignored',
-      statusDetails: statusDetails || {},
+      statusDetails: statusDetails || {}
     });
   },
 
@@ -256,7 +256,7 @@ const IgnoreActions = React.createClass({
                     <MenuItem noAnchor={true} key={duration}>
                       <a
                         onClick={this.onIgnore.bind(this, {
-                          ignoreDuration: duration,
+                          ignoreDuration: duration
                         })}>
                         <Duration seconds={duration * 60} />
                       </a>
@@ -282,7 +282,7 @@ const IgnoreActions = React.createClass({
                         <MenuItem noAnchor={true}>
                           <a
                             onClick={this.onIgnore.bind(this, {
-                              ignoreCount: count,
+                              ignoreCount: count
                             })}>
                             {t('from now')}
                           </a>
@@ -293,7 +293,7 @@ const IgnoreActions = React.createClass({
                               <a
                                 onClick={this.onIgnore.bind(this, {
                                   ignoreCount: count,
-                                  ignoreWindow: hours,
+                                  ignoreWindow: hours
                                 })}>
                                 {label}
                               </a>
@@ -323,7 +323,7 @@ const IgnoreActions = React.createClass({
                         <MenuItem noAnchor={true}>
                           <a
                             onClick={this.onIgnore.bind(this, {
-                              ignoreUserCount: count,
+                              ignoreUserCount: count
                             })}>
                             {t('from now')}
                           </a>
@@ -334,7 +334,7 @@ const IgnoreActions = React.createClass({
                               <a
                                 onClick={this.onIgnore.bind(this, {
                                   ignoreUserCount: count,
-                                  ignoreUserWindow: hours,
+                                  ignoreUserWindow: hours
                                 })}>
                                 {label}
                               </a>
@@ -357,14 +357,14 @@ const IgnoreActions = React.createClass({
         </div>
       </div>
     );
-  },
+  }
 });
 
 const DeleteActions = React.createClass({
   propTypes: {
     project: React.PropTypes.object.isRequired,
     onDelete: React.PropTypes.func.isRequired,
-    onDiscard: React.PropTypes.func.isRequired,
+    onDiscard: React.PropTypes.func.isRequired
   },
 
   render() {
@@ -400,7 +400,7 @@ const DeleteActions = React.createClass({
           </DropdownLink>}
       </div>
     );
-  },
+  }
 });
 
 export default React.createClass({
@@ -409,8 +409,8 @@ export default React.createClass({
     GroupState,
     TooltipMixin({
       selector: '.tip',
-      container: 'body',
-    }),
+      container: 'body'
+    })
   ],
 
   getInitialState() {
@@ -427,14 +427,14 @@ export default React.createClass({
       {
         orgId: org.slug,
         projectId: project.slug,
-        itemIds: [group.id],
+        itemIds: [group.id]
       },
       {
         complete: () => {
           IndicatorStore.remove(loadingIndicator);
 
           browserHistory.pushState(null, `/${org.slug}/${project.slug}/`);
-        },
+        }
       }
     );
   },
@@ -450,12 +450,12 @@ export default React.createClass({
         orgId: org.slug,
         projectId: project.slug,
         itemIds: [group.id],
-        data: data,
+        data: data
       },
       {
         complete: () => {
           IndicatorStore.remove(loadingIndicator);
-        },
+        }
       }
     );
   },
@@ -485,7 +485,7 @@ export default React.createClass({
       },
       complete: () => {
         IndicatorStore.remove(loadingIndicator);
-      },
+      }
     });
   },
 
@@ -564,5 +564,5 @@ export default React.createClass({
           </a>}
       </div>
     );
-  },
+  }
 });

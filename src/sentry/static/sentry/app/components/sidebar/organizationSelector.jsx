@@ -16,11 +16,11 @@ const OrganizationSelector = React.createClass({
     showPanel: React.PropTypes.bool,
     togglePanel: React.PropTypes.func,
     hidePanel: React.PropTypes.func,
-    currentPanel: React.PropTypes.string,
+    currentPanel: React.PropTypes.string
   },
 
   contextTypes: {
-    location: React.PropTypes.object,
+    location: React.PropTypes.object
   },
 
   mixins: [AppState],
@@ -102,7 +102,7 @@ const OrganizationSelector = React.createClass({
           </SidebarPanel>}
       </div>
     );
-  },
+  }
 });
 
 export default OrganizationSelector;

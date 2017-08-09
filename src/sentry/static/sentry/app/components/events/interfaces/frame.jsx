@@ -28,21 +28,21 @@ const Frame = React.createClass({
     isExpanded: React.PropTypes.bool,
     emptySourceNotation: React.PropTypes.bool,
     isOnlyFrame: React.PropTypes.bool,
-    timesRepeated: React.PropTypes.number,
+    timesRepeated: React.PropTypes.number
   },
 
   mixins: [
     TooltipMixin({
       html: true,
       selector: '.tip',
-      trigger: 'hover',
-    }),
+      trigger: 'hover'
+    })
   ],
 
   getDefaultProps() {
     return {
       isExpanded: false,
-      emptySourceNotation: false,
+      emptySourceNotation: false
     };
   },
 
@@ -51,7 +51,7 @@ const Frame = React.createClass({
     // data synchronization is not important
     // https://facebook.github.io/react/tips/props-in-getInitialState-as-anti-pattern.html
     return {
-      isExpanded: this.props.isExpanded,
+      isExpanded: this.props.isExpanded
     };
   },
 
@@ -59,7 +59,7 @@ const Frame = React.createClass({
     evt && evt.preventDefault();
 
     this.setState({
-      isExpanded: !this.state.isExpanded,
+      isExpanded: !this.state.isExpanded
     });
   },
 
@@ -415,7 +415,7 @@ const Frame = React.createClass({
       'system-frame': !data.inApp,
       'frame-errors': data.errors,
       'leads-to-app': this.leadsToApp(),
-      [this.getPlatform()]: true,
+      [this.getPlatform()]: true
     });
     let props = {className: className};
 
@@ -427,7 +427,7 @@ const Frame = React.createClass({
         {context}
       </li>
     );
-  },
+  }
 });
 
 export default Frame;

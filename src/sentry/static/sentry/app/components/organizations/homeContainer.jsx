@@ -11,8 +11,8 @@ const HomeContainer = React.createClass({
   mixins: [
     OrganizationState,
     TooltipMixin({
-      selector: '.tip',
-    }),
+      selector: '.tip'
+    })
   ],
 
   render() {
@@ -66,7 +66,7 @@ const HomeContainer = React.createClass({
         </div>
       </div>
     );
-  },
+  }
 });
 
 export default HomeContainer;

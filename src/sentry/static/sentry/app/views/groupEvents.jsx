@@ -22,7 +22,7 @@ const GroupEvents = React.createClass({
       loading: true,
       error: false,
       pageLinks: '',
-      query: queryParams.query || '',
+      query: queryParams.query || ''
     };
   },
 
@@ -38,7 +38,7 @@ const GroupEvents = React.createClass({
       let queryParams = nextProps.location.query;
       this.setState(
         {
-          query: queryParams.query,
+          query: queryParams.query
         },
         this.fetchData
       );
@@ -62,7 +62,7 @@ const GroupEvents = React.createClass({
     let queryParams = {
       ...this.props.location.query,
       limit: 50,
-      query: this.state.query,
+      query: this.state.query
     };
 
     return `/issues/${params.groupId}/events/?${jQuery.param(queryParams)}`;
@@ -73,7 +73,7 @@ const GroupEvents = React.createClass({
 
     this.setState({
       loading: true,
-      error: false,
+      error: false
     });
 
     this.api.request(this.getEndpoint(), {
@@ -84,7 +84,7 @@ const GroupEvents = React.createClass({
           eventList: data,
           error: false,
           loading: false,
-          pageLinks: jqXHR.getResponseHeader('Link'),
+          pageLinks: jqXHR.getResponseHeader('Link')
         });
       },
       error: err => {
@@ -92,9 +92,9 @@ const GroupEvents = React.createClass({
         error = error.detail || true;
         this.setState({
           error,
-          loading: false,
+          loading: false
         });
-      },
+      }
     });
   },
 
@@ -256,7 +256,7 @@ const GroupEvents = React.createClass({
         {this.renderBody()}
       </div>
     );
-  },
+  }
 });
 
 export default GroupEvents;

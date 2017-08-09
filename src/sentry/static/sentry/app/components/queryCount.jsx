@@ -10,7 +10,7 @@ import classNames from 'classnames';
 function QueryCount({className, count, max, hideIfEmpty, inline}) {
   const countOrMax = typeof max !== 'undefined' && count >= max ? `${max}+` : count;
   const cx = classNames('query-count', className, {
-    inline,
+    inline
   });
 
   if (hideIfEmpty && !count) {
@@ -32,11 +32,11 @@ QueryCount.propTypes = {
   count: PropTypes.number,
   max: PropTypes.number,
   hideIfEmpty: PropTypes.bool,
-  inline: PropTypes.bool,
+  inline: PropTypes.bool
 };
 QueryCount.defaultProps = {
   hideIfEmpty: true,
-  inline: true,
+  inline: true
 };
 
 export default QueryCount;

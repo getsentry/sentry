@@ -6,19 +6,19 @@ const Snooze = {
   // all values in minutes
   '30MINUTES': 30,
   '2HOURS': 60 * 2,
-  '24HOURS': 60 * 24,
+  '24HOURS': 60 * 24
 };
 
 const SnoozeAction = React.createClass({
   propTypes: {
     disabled: React.PropTypes.bool,
     onSnooze: React.PropTypes.func.isRequired,
-    tooltip: React.PropTypes.string,
+    tooltip: React.PropTypes.string
   },
 
   getInitialState() {
     return {
-      isModalOpen: false,
+      isModalOpen: false
     };
   },
 
@@ -27,7 +27,7 @@ const SnoozeAction = React.createClass({
       return;
     }
     this.setState({
-      isModalOpen: !this.state.isModalOpen,
+      isModalOpen: !this.state.isModalOpen
     });
   },
 
@@ -93,7 +93,7 @@ const SnoozeAction = React.createClass({
         </Modal>
       </a>
     );
-  },
+  }
 });
 
 export default SnoozeAction;

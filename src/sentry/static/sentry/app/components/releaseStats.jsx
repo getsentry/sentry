@@ -5,13 +5,13 @@ import {t} from '../locale';
 
 const ReleaseStats = React.createClass({
   propTypes: {
-    release: React.PropTypes.object,
+    release: React.PropTypes.object
   },
 
   mixins: [
     TooltipMixin({
-      selector: '.tip',
-    }),
+      selector: '.tip'
+    })
   ],
 
   render() {
@@ -48,7 +48,7 @@ const ReleaseStats = React.createClass({
         </div>
       </div>
     );
-  },
+  }
 });
 
 export default ReleaseStats;

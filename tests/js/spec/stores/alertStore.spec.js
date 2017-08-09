@@ -12,12 +12,12 @@ describe('AlertStore', function() {
     it('should add a new alert with incrementing key', function() {
       AlertStore.onAddAlert({
         message: 'Bzzzzzzp *crash*',
-        type: 'error',
+        type: 'error'
       });
 
       AlertStore.onAddAlert({
         message: 'Everything is super',
-        type: 'info',
+        type: 'info'
       });
 
       expect(AlertStore.alerts.length).toEqual(2);
@@ -31,7 +31,7 @@ describe('AlertStore', function() {
       AlertStore.alerts = [
         {key: 1, message: 'foo', type: 'error'},
         {key: 2, message: 'bar', type: 'error'},
-        {key: 3, message: 'baz', type: 'error'},
+        {key: 3, message: 'baz', type: 'error'}
       ];
 
       AlertStore.onCloseAlert(AlertStore.alerts[1]);

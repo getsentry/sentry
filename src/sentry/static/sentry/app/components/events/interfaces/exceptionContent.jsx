@@ -10,7 +10,7 @@ const ExceptionContent = React.createClass({
     values: React.PropTypes.array.isRequired,
     view: React.PropTypes.string.isRequired,
     platform: React.PropTypes.string,
-    newestFirst: React.PropTypes.bool,
+    newestFirst: React.PropTypes.bool
   },
 
   render() {
@@ -55,7 +55,7 @@ const ExceptionContent = React.createClass({
         {children}
       </div>
     );
-  },
+  }
 });
 
 export default ExceptionContent;

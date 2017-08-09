@@ -5,7 +5,7 @@ import {t} from '../locale';
 
 const U2fEnrollment = React.createClass({
   propTypes: {
-    enrollmentData: React.PropTypes.object,
+    enrollmentData: React.PropTypes.object
   },
 
   render() {
@@ -21,7 +21,7 @@ const U2fEnrollment = React.createClass({
         </p>
       </U2fInterface>
     );
-  },
+  }
 });
 
 export default U2fEnrollment;

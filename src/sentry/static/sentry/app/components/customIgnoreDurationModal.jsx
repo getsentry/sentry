@@ -8,18 +8,18 @@ export default React.createClass({
     onSelected: React.PropTypes.func,
     onCanceled: React.PropTypes.func,
     show: React.PropTypes.bool,
-    label: React.PropTypes.string,
+    label: React.PropTypes.string
   },
 
   getDefaultProps() {
     return {
-      label: t('Ignore this issue until it occurs after ..'),
+      label: t('Ignore this issue until it occurs after ..')
     };
   },
 
   getInitialState() {
     return {
-      dateWarning: false,
+      dateWarning: false
     };
   },
 
@@ -42,7 +42,7 @@ export default React.createClass({
     const minutes = this.selectedIgnoreMinutes();
 
     this.setState({
-      dateWarning: minutes <= 0,
+      dateWarning: minutes <= 0
     });
 
     if (minutes > 0) {
@@ -123,5 +123,5 @@ export default React.createClass({
         </div>
       </Modal>
     );
-  },
+  }
 });

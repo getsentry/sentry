@@ -19,9 +19,9 @@ class EventOrGroupHeader extends React.Component {
       title: PropTypes.string,
       metadata: Metadata,
       groupID: PropTypes.string,
-      culprit: PropTypes.string,
+      culprit: PropTypes.string
     }),
-    hideLevel: PropTypes.bool,
+    hideLevel: PropTypes.bool
   };
 
   getMessage() {

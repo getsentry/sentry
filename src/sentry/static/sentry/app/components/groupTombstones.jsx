@@ -12,7 +12,7 @@ import {t, tct} from '../locale';
 const GroupTombstoneRow = React.createClass({
   propTypes: {
     data: React.PropTypes.object.isRequired,
-    undiscard: React.PropTypes.func.isRequired,
+    undiscard: React.PropTypes.func.isRequired
   },
   render() {
     let {data, undiscard} = this.props;
@@ -66,7 +66,7 @@ const GroupTombstoneRow = React.createClass({
         </div>
       </li>
     );
-  },
+  }
 });
 
 const GroupTombstones = React.createClass({
@@ -75,7 +75,7 @@ const GroupTombstones = React.createClass({
     projectId: React.PropTypes.string.isRequired,
     tombstones: React.PropTypes.array.isRequired,
     tombstoneError: React.PropTypes.bool.isRequired,
-    fetchData: React.PropTypes.func.isRequired,
+    fetchData: React.PropTypes.func.isRequired
   },
 
   mixins: [ApiMixin],
@@ -88,15 +88,15 @@ const GroupTombstones = React.createClass({
       success: data => {
         AlertActions.addAlert({
           message: t('Events similar to these will no longer be filtered'),
-          type: 'success',
+          type: 'success'
         });
       },
       error: () => {
         AlertActions.addAlert({
           message: t('We were unable to discard this group'),
-          type: 'error',
+          type: 'error'
         });
-      },
+      }
     });
     this.props.fetchData();
   },
@@ -137,7 +137,7 @@ const GroupTombstones = React.createClass({
         </div>
       </div>
     );
-  },
+  }
 });
 
 export default GroupTombstones;

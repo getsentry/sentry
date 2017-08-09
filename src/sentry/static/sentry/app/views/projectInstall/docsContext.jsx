@@ -14,7 +14,7 @@ const ProjectDocsContext = React.createClass({
       loading: true,
       platformList: null,
       project: null,
-      team: null,
+      team: null
     };
   },
 
@@ -35,9 +35,9 @@ const ProjectDocsContext = React.createClass({
       success: data => {
         this.setState({
           loading: false,
-          data: data,
+          data: data
         });
-      },
+      }
     });
   },
 
@@ -47,9 +47,9 @@ const ProjectDocsContext = React.createClass({
 
     let data = this.state.data;
     return React.cloneElement(this.props.children, {
-      platformData: data,
+      platformData: data
     });
-  },
+  }
 });
 
 export default ProjectDocsContext;

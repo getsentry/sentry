@@ -8,7 +8,7 @@ export default React.createClass({
   getInitialState() {
     return {
       since: new Date().getTime() / 1000 - 3600 * 24 * 7,
-      resolution: '1h',
+      resolution: '1h'
     };
   },
 
@@ -35,5 +35,5 @@ export default React.createClass({
         </div>
       </div>
     );
-  },
+  }
 });

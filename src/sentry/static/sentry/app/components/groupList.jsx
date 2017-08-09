@@ -18,18 +18,18 @@ const GroupList = React.createClass({
     canSelectGroups: React.PropTypes.bool,
     orgId: React.PropTypes.string.isRequired,
     projectId: React.PropTypes.string.isRequired,
-    bulkActions: React.PropTypes.bool.isRequired,
+    bulkActions: React.PropTypes.bool.isRequired
   },
 
   contextTypes: {
-    location: React.PropTypes.object,
+    location: React.PropTypes.object
   },
 
   mixins: [ProjectState, Reflux.listenTo(GroupStore, 'onGroupChange'), ApiMixin],
 
   getDefaultProps() {
     return {
-      canSelectGroups: true,
+      canSelectGroups: true
     };
   },
 
@@ -37,7 +37,7 @@ const GroupList = React.createClass({
     return {
       loading: true,
       error: false,
-      groupIds: [],
+      groupIds: []
     };
   },
 
@@ -69,7 +69,7 @@ const GroupList = React.createClass({
 
     this.setState({
       loading: true,
-      error: false,
+      error: false
     });
 
     this.api.request(this.getGroupListEndpoint(), {
@@ -79,15 +79,15 @@ const GroupList = React.createClass({
         this.setState({
           error: false,
           loading: false,
-          pageLinks: jqXHR.getResponseHeader('Link'),
+          pageLinks: jqXHR.getResponseHeader('Link')
         });
       },
       error: () => {
         this.setState({
           error: true,
-          loading: false,
+          loading: false
         });
-      },
+      }
     });
   },
 
@@ -106,7 +106,7 @@ const GroupList = React.createClass({
     let groupIds = this._streamManager.getAllItems().map(item => item.id);
     if (!utils.valueIsEqual(groupIds, this.state.groupIds)) {
       this.setState({
-        groupIds: groupIds,
+        groupIds: groupIds
       });
     }
   },
@@ -150,7 +150,7 @@ const GroupList = React.createClass({
         </ul>
       </div>
     );
-  },
+  }
 });
 
 export default GroupList;

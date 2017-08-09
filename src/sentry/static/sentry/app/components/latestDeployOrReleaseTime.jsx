@@ -7,14 +7,14 @@ import {t} from '../locale';
 const LatestDeployOrReleaseTime = React.createClass({
   propTypes: {
     orgId: React.PropTypes.string.isRequired,
-    release: React.PropTypes.object.isRequired,
+    release: React.PropTypes.object.isRequired
   },
 
   mixins: [
     ApiMixin,
     TooltipMixin({
-      selector: '.tip',
-    }),
+      selector: '.tip'
+    })
   ],
 
   componentDidUpdate(prevProps, prevState) {
@@ -42,7 +42,7 @@ const LatestDeployOrReleaseTime = React.createClass({
                     width: 70,
                     maxWidth: 86,
                     textAlign: 'center',
-                    fontSize: 12,
+                    fontSize: 12
                   }}>
                   {latestDeploy.environment + ' '}
                 </span>{' '}
@@ -62,7 +62,7 @@ const LatestDeployOrReleaseTime = React.createClass({
             </p>}
       </div>
     );
-  },
+  }
 });
 
 export default LatestDeployOrReleaseTime;

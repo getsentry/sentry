@@ -8,11 +8,11 @@ import _ from 'lodash';
  */
 const Link = React.createClass({
   propTypes: {
-    to: React.PropTypes.string.isRequired,
+    to: React.PropTypes.string.isRequired
   },
 
   contextTypes: {
-    location: React.PropTypes.object,
+    location: React.PropTypes.object
   },
 
   render() {
@@ -30,7 +30,7 @@ const Link = React.createClass({
         </a>
       );
     }
-  },
+  }
 });
 
 export default Link;

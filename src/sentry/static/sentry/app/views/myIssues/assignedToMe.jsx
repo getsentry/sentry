@@ -20,7 +20,7 @@ const AssignedToMe = React.createClass({
         {...this.props}
       />
     );
-  },
+  }
 });
 
 export default AssignedToMe;

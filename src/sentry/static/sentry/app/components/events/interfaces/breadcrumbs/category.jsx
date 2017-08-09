@@ -4,7 +4,7 @@ const Category = React.createClass({
   propTypes: {
     value: React.PropTypes.string,
     title: React.PropTypes.string,
-    hideIfEmpty: React.PropTypes.bool,
+    hideIfEmpty: React.PropTypes.bool
   },
 
   render() {
@@ -26,7 +26,7 @@ const Category = React.createClass({
         {title}
       </span>
     );
-  },
+  }
 });
 
 export default Category;

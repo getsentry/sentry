@@ -3,7 +3,7 @@ import {formatBytes} from '../utils';
 
 const FileSize = React.createClass({
   propTypes: {
-    bytes: React.PropTypes.number.isRequired,
+    bytes: React.PropTypes.number.isRequired
   },
 
   render: function() {
@@ -12,7 +12,7 @@ const FileSize = React.createClass({
         {formatBytes(this.props.bytes)}
       </span>
     );
-  },
+  }
 });
 
 export default FileSize;

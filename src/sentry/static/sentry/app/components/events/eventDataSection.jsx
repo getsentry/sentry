@@ -7,12 +7,12 @@ const GroupEventDataSection = React.createClass({
     event: PropTypes.Event.isRequired,
     title: React.PropTypes.any,
     type: React.PropTypes.string.isRequired,
-    wrapTitle: React.PropTypes.bool,
+    wrapTitle: React.PropTypes.bool
   },
 
   getDefaultProps() {
     return {
-      wrapTitle: true,
+      wrapTitle: true
     };
   },
 
@@ -57,7 +57,7 @@ const GroupEventDataSection = React.createClass({
         </div>
       </div>
     );
-  },
+  }
 });
 
 export default GroupEventDataSection;

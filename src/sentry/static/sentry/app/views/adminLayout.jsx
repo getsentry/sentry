@@ -16,7 +16,7 @@ export default React.createClass({
     });
 
     return {
-      hooksManage: hooksManage,
+      hooksManage: hooksManage
     };
   },
 
@@ -77,5 +77,5 @@ export default React.createClass({
         </div>
       </DocumentTitle>
     );
-  },
+  }
 });

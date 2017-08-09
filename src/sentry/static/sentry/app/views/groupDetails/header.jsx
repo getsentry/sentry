@@ -16,19 +16,19 @@ import {t} from '../../locale';
 
 const GroupHeader = React.createClass({
   propTypes: {
-    group: React.PropTypes.object.isRequired,
+    group: React.PropTypes.object.isRequired
   },
 
   contextTypes: {
-    location: React.PropTypes.object,
+    location: React.PropTypes.object
   },
 
   mixins: [
     ApiMixin,
     ProjectState,
     TooltipMixin({
-      selector: '.tip',
-    }),
+      selector: '.tip'
+    })
   ],
 
   onToggleMute() {
@@ -43,13 +43,13 @@ const GroupHeader = React.createClass({
         projectId: project.slug,
         itemIds: [group.id],
         data: {
-          status: group.status === 'ignored' ? 'unresolved' : 'ignored',
-        },
+          status: group.status === 'ignored' ? 'unresolved' : 'ignored'
+        }
       },
       {
         complete: () => {
           IndicatorStore.remove(loadingIndicator);
-        },
+        }
       }
     );
   },
@@ -71,13 +71,13 @@ const GroupHeader = React.createClass({
         projectId: project.slug,
         itemIds: [group.id],
         data: {
-          isPublic: !group.isPublic,
-        },
+          isPublic: !group.isPublic
+        }
       },
       {
         complete: () => {
           IndicatorStore.remove(loadingIndicator);
-        },
+        }
       }
     );
   },
@@ -144,7 +144,7 @@ const GroupHeader = React.createClass({
                   <Link
                     to={{
                       pathname: `/${orgId}/${projectId}/`,
-                      query: {query: 'logger:' + group.logger},
+                      query: {query: 'logger:' + group.logger}
                     }}>
                     {group.logger}
                   </Link>
@@ -246,7 +246,7 @@ const GroupHeader = React.createClass({
         </ul>
       </div>
     );
-  },
+  }
 });
 
 export default GroupHeader;

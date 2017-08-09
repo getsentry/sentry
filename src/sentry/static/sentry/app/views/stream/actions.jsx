@@ -23,12 +23,12 @@ const IgnoreActions = React.createClass({
     allInQuerySelected: React.PropTypes.bool.isRequired,
     pageSelected: React.PropTypes.bool.isRequired,
     onUpdate: React.PropTypes.func.isRequired,
-    query: React.PropTypes.string,
+    query: React.PropTypes.string
   },
 
   getInitialState() {
     return {
-      modal: false,
+      modal: false
     };
   },
 
@@ -46,7 +46,7 @@ const IgnoreActions = React.createClass({
 
   onCustomIgnore(statusDetails) {
     this.setState({
-      modal: false,
+      modal: false
     });
     this.onIgnore(statusDetails);
   },
@@ -54,7 +54,7 @@ const IgnoreActions = React.createClass({
   onIgnore(statusDetails) {
     return this.props.onUpdate({
       status: 'ignored',
-      statusDetails: statusDetails || {},
+      statusDetails: statusDetails || {}
     });
   },
 
@@ -93,7 +93,7 @@ const IgnoreActions = React.createClass({
             ),
       confirmLabel: this.props.allInQuerySelected
         ? t('Ignore all issues')
-        : count => tn('Ignore %d selected issue', 'Ignore %d selected issues', count),
+        : count => tn('Ignore %d selected issue', 'Ignore %d selected issues', count)
     };
     return (
       <div style={{display: 'inline-block'}}>
@@ -144,7 +144,7 @@ const IgnoreActions = React.createClass({
                     <MenuItem noAnchor={true} key={duration}>
                       <ActionLink
                         onAction={this.onIgnore.bind(this, {
-                          ignoreDuration: duration,
+                          ignoreDuration: duration
                         })}
                         {...actionLinkProps}>
                         <Duration seconds={duration * 60} />
@@ -171,7 +171,7 @@ const IgnoreActions = React.createClass({
                         <MenuItem noAnchor={true}>
                           <ActionLink
                             onAction={this.onIgnore.bind(this, {
-                              ignoreCount: count,
+                              ignoreCount: count
                             })}
                             {...actionLinkProps}>
                             {t('from now')}
@@ -183,7 +183,7 @@ const IgnoreActions = React.createClass({
                               <ActionLink
                                 onAction={this.onIgnore.bind(this, {
                                   ignoreCount: count,
-                                  ignoreWindow: hours,
+                                  ignoreWindow: hours
                                 })}
                                 {...actionLinkProps}>
                                 {label}
@@ -214,7 +214,7 @@ const IgnoreActions = React.createClass({
                         <MenuItem noAnchor={true}>
                           <ActionLink
                             onAction={this.onIgnore.bind(this, {
-                              ignoreUserCount: count,
+                              ignoreUserCount: count
                             })}
                             {...actionLinkProps}>
                             {t('from now')}
@@ -226,7 +226,7 @@ const IgnoreActions = React.createClass({
                               <ActionLink
                                 onAction={this.onIgnore.bind(this, {
                                   ignoreUserCount: count,
-                                  ignoreUserWindow: hours,
+                                  ignoreUserWindow: hours
                                 })}
                                 {...actionLinkProps}>
                                 {label}
@@ -250,7 +250,7 @@ const IgnoreActions = React.createClass({
         </div>
       </div>
     );
-  },
+  }
 });
 
 const ResolveActions = React.createClass({
@@ -263,22 +263,22 @@ const ResolveActions = React.createClass({
     allInQuerySelected: React.PropTypes.bool.isRequired,
     pageSelected: React.PropTypes.bool.isRequired,
     onUpdate: React.PropTypes.func.isRequired,
-    query: React.PropTypes.string,
+    query: React.PropTypes.string
   },
 
   getInitialState() {
     return {
-      modal: false,
+      modal: false
     };
   },
 
   onCustomResolution(statusDetails) {
     this.setState({
-      modal: false,
+      modal: false
     });
     this.props.onUpdate({
       status: 'resolved',
-      statusDetails: statusDetails,
+      statusDetails: statusDetails
     });
   },
 
@@ -318,7 +318,7 @@ const ResolveActions = React.createClass({
             ),
       confirmLabel: this.props.allInQuerySelected
         ? t('Ignore all issues')
-        : count => tn('Resolve %d selected issue', 'Resolve %d selected issues', count),
+        : count => tn('Resolve %d selected issue', 'Resolve %d selected issues', count)
     };
     return (
       <div style={{display: 'inline-block'}}>
@@ -351,7 +351,7 @@ const ResolveActions = React.createClass({
                 onAction={() =>
                   this.props.onUpdate({
                     status: 'resolved',
-                    statusDetails: {inNextRelease: true},
+                    statusDetails: {inNextRelease: true}
                   })}
                 {...actionLinkProps}>
                 {t('The next release')}
@@ -361,8 +361,8 @@ const ResolveActions = React.createClass({
                   this.props.onUpdate({
                     status: 'resolved',
                     statusDetails: {
-                      inRelease: latestRelease ? latestRelease.version : 'latest',
-                    },
+                      inRelease: latestRelease ? latestRelease.version : 'latest'
+                    }
                   })}
                 {...actionLinkProps}>
                 {latestRelease
@@ -377,7 +377,7 @@ const ResolveActions = React.createClass({
         </div>
       </div>
     );
-  },
+  }
 });
 
 const StreamActions = React.createClass({
@@ -392,7 +392,7 @@ const StreamActions = React.createClass({
     statsPeriod: React.PropTypes.string.isRequired,
     query: React.PropTypes.string.isRequired,
     hasReleases: React.PropTypes.bool,
-    latestRelease: React.PropTypes.object,
+    latestRelease: React.PropTypes.object
   },
 
   mixins: [
@@ -403,12 +403,12 @@ const StreamActions = React.createClass({
       container: 'body',
       constraints: [
         {
-          attachment: 'together',
-        },
-      ],
+          attachment: 'together'
+        }
+      ]
     }),
     Reflux.listenTo(SelectedGroupStore, 'onSelectedGroupChange'),
-    PureRenderMixin,
+    PureRenderMixin
   ],
 
   getDefaultProps() {
@@ -422,7 +422,7 @@ const StreamActions = React.createClass({
       anySelected: false,
       multiSelected: false, // more than one selected
       pageSelected: false, // all on current page selected (e.g. 25)
-      allInQuerySelected: false, // all in current search query selected (e.g. 1000+)
+      allInQuerySelected: false // all in current search query selected (e.g. 1000+)
     };
   },
 
@@ -436,7 +436,7 @@ const StreamActions = React.createClass({
 
   selectAll() {
     this.setState({
-      allInQuerySelected: true,
+      allInQuerySelected: true
     });
   },
 
@@ -474,12 +474,12 @@ const StreamActions = React.createClass({
           projectId: this.props.projectId,
           itemIds: itemIds,
           data: data,
-          query: this.props.query,
+          query: this.props.query
         },
         {
           complete: () => {
             IndicatorStore.remove(loadingIndicator);
-          },
+          }
         }
       );
     });
@@ -494,12 +494,12 @@ const StreamActions = React.createClass({
           orgId: this.props.orgId,
           projectId: this.props.projectId,
           itemIds: itemIds,
-          query: this.props.query,
+          query: this.props.query
         },
         {
           complete: () => {
             IndicatorStore.remove(loadingIndicator);
-          },
+          }
         }
       );
     });
@@ -514,12 +514,12 @@ const StreamActions = React.createClass({
           orgId: this.props.orgId,
           projectId: this.props.projectId,
           itemIds: itemIds,
-          query: this.props.query,
+          query: this.props.query
         },
         {
           complete: () => {
             IndicatorStore.remove(loadingIndicator);
-          },
+          }
         }
       );
     });
@@ -530,7 +530,7 @@ const StreamActions = React.createClass({
       pageSelected: SelectedGroupStore.allSelected(),
       multiSelected: SelectedGroupStore.multiSelected(),
       anySelected: SelectedGroupStore.anySelected(),
-      allInQuerySelected: false, // any change resets
+      allInQuerySelected: false // any change resets
     });
   },
 
@@ -817,7 +817,7 @@ const StreamActions = React.createClass({
           </div>}
       </div>
     );
-  },
+  }
 });
 
 export default StreamActions;

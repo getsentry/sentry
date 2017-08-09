@@ -21,7 +21,7 @@ const EventsPerHour = React.createClass({
       formattedData: null,
       querySince: since,
       queryUntil: until,
-      error: false,
+      error: false
     };
   },
 
@@ -38,7 +38,7 @@ const EventsPerHour = React.createClass({
     let query = {
       since: this.state.querySince,
       until: this.state.queryUntil,
-      resolution: '1h',
+      resolution: '1h'
     };
 
     $.when
@@ -49,7 +49,7 @@ const EventsPerHour = React.createClass({
           this.api.request(statEndpoint, {
             query: Object.assign({stat: stat}, query),
             success: deferred.resolve.bind(deferred),
-            error: deferred.reject.bind(deferred),
+            error: deferred.reject.bind(deferred)
           });
           return deferred;
         })
@@ -62,7 +62,7 @@ const EventsPerHour = React.createClass({
           }
           this.setState({
             rawOrgData: rawOrgData,
-            formattedData: this.formatData(rawOrgData),
+            formattedData: this.formatData(rawOrgData)
           });
         }.bind(this)
       )
@@ -83,7 +83,7 @@ const EventsPerHour = React.createClass({
         data: rawData[stat].map(([x, y]) => {
           return {x, y};
         }),
-        label: stat,
+        label: stat
       };
     });
   },
@@ -114,7 +114,7 @@ const EventsPerHour = React.createClass({
         />
       </div>
     );
-  },
+  }
 });
 
 export default EventsPerHour;

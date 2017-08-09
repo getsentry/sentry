@@ -8,12 +8,12 @@ const Version = React.createClass({
     anchor: React.PropTypes.bool,
     version: React.PropTypes.string.isRequired,
     orgId: React.PropTypes.string,
-    projectId: React.PropTypes.string,
+    projectId: React.PropTypes.string
   },
 
   getDefaultProps() {
     return {
-      anchor: true,
+      anchor: true
     };
   },
 
@@ -37,7 +37,7 @@ const Version = React.createClass({
         {shortVersion}
       </span>
     );
-  },
+  }
 });
 
 export default Version;

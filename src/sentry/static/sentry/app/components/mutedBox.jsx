@@ -7,7 +7,7 @@ import {t} from '../locale';
 
 export default React.createClass({
   propTypes: {
-    statusDetails: React.PropTypes.object.isRequired,
+    statusDetails: React.PropTypes.object.isRequired
   },
 
   mixins: [PureRenderMixin],
@@ -74,5 +74,5 @@ export default React.createClass({
         </p>
       </div>
     );
-  },
+  }
 });

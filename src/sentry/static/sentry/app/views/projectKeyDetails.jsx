@@ -18,7 +18,7 @@ import {
   FormState,
   NumberField,
   Select2Field,
-  TextField,
+  TextField
 } from '../components/forms';
 import {t, tct} from '../locale';
 
@@ -35,7 +35,7 @@ const KeyStats = React.createClass({
       loading: true,
       error: false,
       stats: null,
-      emptyStats: false,
+      emptyStats: false
     };
   },
 
@@ -49,7 +49,7 @@ const KeyStats = React.createClass({
       query: {
         since: this.state.since,
         until: this.state.until,
-        resolution: '1d',
+        resolution: '1d'
       },
       success: data => {
         let emptyStats = true;
@@ -57,19 +57,19 @@ const KeyStats = React.createClass({
           if (p.total) emptyStats = false;
           return {
             x: p.ts,
-            y: [p.accepted, p.dropped],
+            y: [p.accepted, p.dropped]
           };
         });
         this.setState({
           stats: stats,
           emptyStats: emptyStats,
           error: false,
-          loading: false,
+          loading: false
         });
       },
       error: () => {
         this.setState({error: true, loading: false});
-      },
+      }
     });
   },
 
@@ -130,7 +130,7 @@ const KeyStats = React.createClass({
             </div>}
       </div>
     );
-  },
+  }
 });
 
 const KeySettings = React.createClass({
@@ -142,7 +142,7 @@ const KeySettings = React.createClass({
     initialData: React.PropTypes.object,
     onRemove: React.PropTypes.func.isRequired,
     onSave: React.PropTypes.func.isRequired,
-    rateLimitsEnabled: React.PropTypes.bool,
+    rateLimitsEnabled: React.PropTypes.bool
   },
 
   mixins: [ApiMixin],
@@ -151,7 +151,7 @@ const KeySettings = React.createClass({
     return {
       formData: Object.assign({}, this.props.initialData),
       errors: {},
-      hooksDisabled: HookStore.get('project:rate-limits:disabled'),
+      hooksDisabled: HookStore.get('project:rate-limits:disabled')
     };
   },
 
@@ -160,8 +160,8 @@ const KeySettings = React.createClass({
       return {
         formData: {
           ...state.formData,
-          [name]: value,
-        },
+          [name]: value
+        }
       };
     });
   },
@@ -173,9 +173,9 @@ const KeySettings = React.createClass({
           ...state.formData,
           rateLimit: {
             ...(state.formData.rateLimit || {}),
-            [name]: value,
-          },
-        },
+            [name]: value
+          }
+        }
       };
     });
   },
@@ -188,7 +188,7 @@ const KeySettings = React.createClass({
     }
     this.setState(
       {
-        state: FormState.SAVING,
+        state: FormState.SAVING
       },
       () => {
         let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
@@ -200,18 +200,18 @@ const KeySettings = React.createClass({
             this.props.onSave(data);
             this.setState({
               state: FormState.READY,
-              errors: {},
+              errors: {}
             });
           },
           error: error => {
             this.setState({
               state: FormState.ERROR,
-              errors: error.responseJSON,
+              errors: error.responseJSON
             });
           },
           complete: () => {
             IndicatorStore.remove(loadingIndicator);
-          },
+          }
         });
       }
     );
@@ -232,10 +232,10 @@ const KeySettings = React.createClass({
       error: () => {
         this.setState({
           error: true,
-          loading: false,
+          loading: false
         });
         IndicatorStore.remove(loadingIndicator);
-      },
+      }
     });
   },
 
@@ -250,7 +250,7 @@ const KeySettings = React.createClass({
       [240, '4 hours'],
       [360, '6 hours'],
       [720, '12 hours'],
-      [1440, '24 hours'],
+      [1440, '24 hours']
     ];
   },
 
@@ -418,9 +418,7 @@ const KeySettings = React.createClass({
               </AutoSelectText>
               <div className="help-block">
                 {tct('Use your public DSN with browser-based SDKs such as [raven-js].', {
-                  'raven-js': (
-                    <a href="https://github.com/getsentry/raven-js">raven-js</a>
-                  ),
+                  'raven-js': <a href="https://github.com/getsentry/raven-js">raven-js</a>
                 })}
               </div>
             </div>
@@ -436,7 +434,7 @@ const KeySettings = React.createClass({
                   'Use your CSP endpoint in the [directive] directive in your [header] header.',
                   {
                     directive: <code>report-uri</code>,
-                    header: <code>Content-Security-Policy</code>,
+                    header: <code>Content-Security-Policy</code>
                   }
                 )}
               </div>
@@ -497,7 +495,7 @@ const KeySettings = React.createClass({
           </div>}
       </form>
     );
-  },
+  }
 });
 
 export default React.createClass({
@@ -507,7 +505,7 @@ export default React.createClass({
     return {
       loading: true,
       error: false,
-      data: null,
+      data: null
     };
   },
 
@@ -522,15 +520,15 @@ export default React.createClass({
         this.setState({
           error: false,
           loading: false,
-          data: data,
+          data: data
         });
       },
       error: () => {
         this.setState({
           error: true,
-          loading: false,
+          loading: false
         });
-      },
+      }
     });
   },
 
@@ -575,7 +573,7 @@ export default React.createClass({
             initialData={{
               isActive: data.isActive,
               name: data.name,
-              rateLimit: data.rateLimit,
+              rateLimit: data.rateLimit
             }}
             rateLimitsEnabled={this.getProjectFeatures().has('rate-limits')}
             data={data}
@@ -585,5 +583,5 @@ export default React.createClass({
         </div>
       </DocumentTitle>
     );
-  },
+  }
 });

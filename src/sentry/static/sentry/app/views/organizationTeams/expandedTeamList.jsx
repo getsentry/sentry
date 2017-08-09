@@ -17,7 +17,7 @@ const ExpandedTeamList = React.createClass({
     organization: PropTypes.Organization.isRequired,
     teamList: React.PropTypes.arrayOf(PropTypes.Team).isRequired,
     projectStats: React.PropTypes.object,
-    hasTeams: React.PropTypes.bool,
+    hasTeams: React.PropTypes.bool
   },
 
   mixins: [
@@ -29,16 +29,16 @@ const ExpandedTeamList = React.createClass({
           return this.getAttribute('data-isbookmarked') === 'true'
             ? 'Remove from bookmarks'
             : 'Add to bookmarks';
-        },
+        }
       };
-    }),
+    })
   ],
 
   leaveTeam(team) {
     // TODO(dcramer): handle loading indicator
     this.api.leaveTeam({
       orgId: this.props.organization.slug,
-      teamId: team.slug,
+      teamId: team.slug
     });
   },
 
@@ -66,9 +66,7 @@ const ExpandedTeamList = React.createClass({
               {tct(
                 'There are no projects in this team. Get started by [link:creating your first project].',
                 {
-                  link: (
-                    <a href={this.urlPrefix() + '/projects/new/?team=' + team.slug} />
-                  ),
+                  link: <a href={this.urlPrefix() + '/projects/new/?team=' + team.slug} />
                 }
               )}
             </p>
@@ -116,8 +114,8 @@ const ExpandedTeamList = React.createClass({
       orgId: this.props.organization.slug,
       projectId: project.slug,
       data: {
-        isBookmarked: !project.isBookmarked,
-      },
+        isBookmarked: !project.isBookmarked
+      }
     });
   },
 
@@ -169,7 +167,7 @@ const ExpandedTeamList = React.createClass({
                       to={`/organizations/${this.props.organization.slug}/all-teams/`}
                     />
                   ),
-                  createLink: <Link to={this.urlPrefix() + '/teams/new/'} />,
+                  createLink: <Link to={this.urlPrefix() + '/teams/new/'} />
                 }
               )
             : tct('You are not a member of any teams. [joinLink:Join a team].', {
@@ -177,7 +175,7 @@ const ExpandedTeamList = React.createClass({
                   <Link
                     to={`/organizations/${this.props.organization.slug}/all-teams/`}
                   />
-                ),
+                )
               })}
         </p>
       );
@@ -187,7 +185,7 @@ const ExpandedTeamList = React.createClass({
         {tct(
           'You dont have any teams for this organization yet. Get started by [link:creating your first team].',
           {
-            link: <Link to={this.urlPrefix() + '/teams/new/'} />,
+            link: <Link to={this.urlPrefix() + '/teams/new/'} />
           }
         )}
       </p>
@@ -208,7 +206,7 @@ const ExpandedTeamList = React.createClass({
         {hasTeams ? this.renderTeamNodes() : this.renderEmpty()}
       </div>
     );
-  },
+  }
 });
 
 export default ExpandedTeamList;

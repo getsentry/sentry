@@ -9,7 +9,7 @@ let validHookNames = new Set([
   'routes:admin',
   'routes:organization',
   'project:data-forwarding:disabled',
-  'project:rate-limits:disabled',
+  'project:rate-limits:disabled'
 ]);
 
 const HookStore = Reflux.createStore({
@@ -40,7 +40,7 @@ const HookStore = Reflux.createStore({
 
   get(hookName) {
     return this.hooks[hookName] || [];
-  },
+  }
 });
 
 export default HookStore;

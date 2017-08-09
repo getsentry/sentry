@@ -8,7 +8,7 @@ const ProjectDetailsLayout = React.createClass({
 
   getInitialState() {
     return {
-      projectNavSection: null,
+      projectNavSection: null
     };
   },
 
@@ -19,7 +19,7 @@ const ProjectDetailsLayout = React.createClass({
    */
   setProjectNavSection(section) {
     this.setState({
-      projectNavSection: section,
+      projectNavSection: section
     });
   },
 
@@ -37,13 +37,13 @@ const ProjectDetailsLayout = React.createClass({
           <div className="content">
             {React.cloneElement(this.props.children, {
               setProjectNavSection: this.setProjectNavSection,
-              memberList: this.state.memberList,
+              memberList: this.state.memberList
             })}
           </div>
         </div>
       </div>
     );
-  },
+  }
 });
 
 export default ProjectDetailsLayout;

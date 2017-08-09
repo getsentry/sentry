@@ -11,26 +11,26 @@ export default React.createClass({
     orgId: React.PropTypes.string.isRequired,
     projectId: React.PropTypes.string.isRequired,
     issue: React.PropTypes.object.isRequired,
-    card: React.PropTypes.bool,
+    card: React.PropTypes.bool
   },
 
   mixins: [ApiMixin],
 
   getDefaultProps() {
     return {
-      card: true,
+      card: true
     };
   },
 
   getInitialState() {
     return {
-      visible: false,
+      visible: false
     };
   },
 
   toggleHovercard() {
     this.setState({
-      visible: !this.state.visible,
+      visible: !this.state.visible
     });
   },
 
@@ -89,7 +89,7 @@ export default React.createClass({
                     <Link
                       to={{
                         pathname: `/${orgId}/${projectId}/`,
-                        query: {query: 'logger:' + issue.logger},
+                        query: {query: 'logger:' + issue.logger}
                       }}>
                       {issue.logger}
                     </Link>
@@ -156,5 +156,5 @@ export default React.createClass({
           </div>}
       </span>
     );
-  },
+  }
 });

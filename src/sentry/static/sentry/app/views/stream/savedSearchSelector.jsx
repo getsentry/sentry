@@ -21,7 +21,7 @@ const SaveSearchButton = React.createClass({
     tooltip: React.PropTypes.string,
     buttonTitle: React.PropTypes.string,
 
-    onSave: React.PropTypes.func.isRequired,
+    onSave: React.PropTypes.func.isRequired
   },
 
   mixins: [ApiMixin],
@@ -30,9 +30,9 @@ const SaveSearchButton = React.createClass({
     return {
       isModalOpen: false,
       formData: {
-        query: this.props.query,
+        query: this.props.query
       },
-      errors: {},
+      errors: {}
     };
   },
 
@@ -44,8 +44,8 @@ const SaveSearchButton = React.createClass({
       isModalOpen: !this.state.isModalOpen,
       state: FormState.READY,
       formData: {
-        query: this.props.query,
-      },
+        query: this.props.query
+      }
     });
   },
 
@@ -53,7 +53,7 @@ const SaveSearchButton = React.createClass({
     let formData = this.state.formData;
     formData[name] = value;
     this.setState({
-      formData: formData,
+      formData: formData
     });
   },
 
@@ -73,7 +73,7 @@ const SaveSearchButton = React.createClass({
     }
     this.setState(
       {
-        state: FormState.SAVING,
+        state: FormState.SAVING
       },
       () => {
         let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
@@ -86,7 +86,7 @@ const SaveSearchButton = React.createClass({
             this.props.onSave(data);
             this.setState({
               state: FormState.READY,
-              errors: {},
+              errors: {}
             });
           },
           error: err => {
@@ -94,12 +94,12 @@ const SaveSearchButton = React.createClass({
             errors = errors.detail || true;
             this.setState({
               state: FormState.ERROR,
-              errors: errors,
+              errors: errors
             });
           },
           complete: () => {
             IndicatorStore.remove(loadingIndicator);
-          },
+          }
         });
       }
     );
@@ -179,7 +179,7 @@ const SaveSearchButton = React.createClass({
         </Modal>
       </a>
     );
-  },
+  }
 });
 
 const SavedSearchSelector = React.createClass({
@@ -191,7 +191,7 @@ const SavedSearchSelector = React.createClass({
     savedSearchList: React.PropTypes.array.isRequired,
     queryCount: React.PropTypes.number,
     queryMaxCount: React.PropTypes.number,
-    onSavedSearchCreate: React.PropTypes.func.isRequired,
+    onSavedSearchCreate: React.PropTypes.func.isRequired
   },
 
   mixins: [ApiMixin],
@@ -260,7 +260,7 @@ const SavedSearchSelector = React.createClass({
         </DropdownLink>
       </div>
     );
-  },
+  }
 });
 
 export default SavedSearchSelector;

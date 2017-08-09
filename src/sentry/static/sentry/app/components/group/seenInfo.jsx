@@ -15,14 +15,14 @@ const SeenInfo = React.createClass({
     date: React.PropTypes.any,
     dateGlobal: React.PropTypes.any,
     release: React.PropTypes.shape({
-      version: React.PropTypes.string.isRequired,
+      version: React.PropTypes.string.isRequired
     }),
     environment: React.PropTypes.string,
-    hasRelease: React.PropTypes.bool.isRequired,
+    hasRelease: React.PropTypes.bool.isRequired
   },
 
   contextTypes: {
-    organization: React.PropTypes.object,
+    organization: React.PropTypes.object
   },
 
   mixins: [
@@ -47,7 +47,7 @@ const SeenInfo = React.createClass({
                   <dd key="0.1">
                     <TimeSince date={date} />
                     <br />
-                  </dd>,
+                  </dd>
                 ]}
                 <dt key="1">Globally:</dt>
                 <dd key="1.1">
@@ -57,9 +57,9 @@ const SeenInfo = React.createClass({
               </dl>
             </div>
           );
-        },
+        }
       };
-    }),
+    })
   ],
 
   shouldComponentUpdate(nextProps, nextState) {
@@ -124,7 +124,7 @@ const SeenInfo = React.createClass({
             : <dd key={5}>n/a</dd>}
       </dl>
     );
-  },
+  }
 });
 
 export default SeenInfo;

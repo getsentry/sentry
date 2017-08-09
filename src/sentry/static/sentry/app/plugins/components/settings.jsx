@@ -18,7 +18,7 @@ class PluginSettings extends PluginComponentBase {
       rawData: {},
       // override default FormState.READY if api requests are
       // necessary to even load the form
-      state: FormState.LOADING,
+      state: FormState.LOADING
     });
   }
 
@@ -56,15 +56,15 @@ class PluginSettings extends PluginComponentBase {
           fieldList: data.config,
           formData: formData,
           initialData: initialData,
-          errors: {},
+          errors: {}
         });
       }),
       error: this.onSaveError.bind(this, error => {
         this.setState({
-          errors: (error.responseJSON || {}).errors || {},
+          errors: (error.responseJSON || {}).errors || {}
         });
       }),
-      complete: this.onSaveComplete,
+      complete: this.onSaveComplete
     });
   }
 
@@ -74,7 +74,7 @@ class PluginSettings extends PluginComponentBase {
         if (!data.config) {
           this.setState(
             {
-              rawData: data,
+              rawData: data
             },
             this.onLoadSuccess
           );
@@ -90,14 +90,14 @@ class PluginSettings extends PluginComponentBase {
           {
             fieldList: data.config,
             formData: formData,
-            initialData: initialData,
+            initialData: initialData
             // call this here to prevent FormState.READY from being
             // set before fieldList is
           },
           this.onLoadSuccess
         );
       },
-      error: this.onLoadError,
+      error: this.onLoadError
     });
   }
 
@@ -132,7 +132,7 @@ class PluginSettings extends PluginComponentBase {
       return (
         <div className="alert alert-error m-b-1">
           {tct('An unknown error occurred. Need help with this? [link:Contact support]', {
-            link: <a href="https://sentry.io/support/" />,
+            link: <a href="https://sentry.io/support/" />
           })}
         </div>
       );
@@ -157,7 +157,7 @@ class PluginSettings extends PluginComponentBase {
             config: f,
             formData: this.state.formData,
             formErrors: this.state.errors,
-            onChange: this.changeField.bind(this, f.name),
+            onChange: this.changeField.bind(this, f.name)
           });
         })}
       </Form>
@@ -168,7 +168,7 @@ class PluginSettings extends PluginComponentBase {
 PluginSettings.propTypes = {
   organization: React.PropTypes.object.isRequired,
   project: React.PropTypes.object.isRequired,
-  plugin: React.PropTypes.object.isRequired,
+  plugin: React.PropTypes.object.isRequired
 };
 
 export default PluginSettings;

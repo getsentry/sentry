@@ -44,19 +44,19 @@ const ReleaseAnnouncement = ({close}) => {
 };
 
 ReleaseAnnouncement.propTypes = {
-  close: React.PropTypes.func.isRequired,
+  close: React.PropTypes.func.isRequired
 };
 
 const BroadcastModal = React.createClass({
   propTypes: {
-    closeBroadcast: React.PropTypes.func.isRequired,
+    closeBroadcast: React.PropTypes.func.isRequired
   },
   mixins: [ApiMixin],
 
   getInitialState() {
     return {
       alerts: [ReleaseAnnouncement],
-      index: 0,
+      index: 0
     };
   },
 
@@ -73,8 +73,8 @@ const BroadcastModal = React.createClass({
     let user = ConfigStore.get('user');
     let markedData = {
       options: {
-        seenReleaseBroadcast: true,
-      },
+        seenReleaseBroadcast: true
+      }
     };
     this.api.request(`/users/${user.id}/`, {
       method: 'PUT',
@@ -86,7 +86,7 @@ const BroadcastModal = React.createClass({
       error: err => {
         logAjaxError(err);
         this.props.closeBroadcast();
-      },
+      }
     });
   },
 
@@ -144,7 +144,7 @@ const BroadcastModal = React.createClass({
         </div>
       </div>
     );
-  },
+  }
 });
 
 export default BroadcastModal;

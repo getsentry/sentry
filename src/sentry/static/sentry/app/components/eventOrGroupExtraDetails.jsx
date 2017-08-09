@@ -14,11 +14,11 @@ const EventOrGroupExtraDetails = React.createClass({
     lastSeen: PropTypes.string,
     shortId: PropTypes.string,
     subscriptionDetails: PropTypes.shape({
-      reason: PropTypes.string,
+      reason: PropTypes.string
     }),
     numComments: PropTypes.number,
     logger: PropTypes.string,
-    annotations: PropTypes.arrayOf(PropTypes.string),
+    annotations: PropTypes.arrayOf(PropTypes.string)
   },
 
   mixins: [ProjectState],
@@ -34,7 +34,7 @@ const EventOrGroupExtraDetails = React.createClass({
       subscriptionDetails,
       numComments,
       logger,
-      annotations,
+      annotations
     } = this.props;
     let styles = {};
     if (subscriptionDetails && subscriptionDetails.reason === 'mentioned') {
@@ -72,8 +72,8 @@ const EventOrGroupExtraDetails = React.createClass({
                 to={{
                   pathname: `/${orgId}/${projectId}/`,
                   query: {
-                    query: 'logger:' + logger,
-                  },
+                    query: 'logger:' + logger
+                  }
                 }}>
                 {logger}
               </Link>
@@ -84,7 +84,7 @@ const EventOrGroupExtraDetails = React.createClass({
                 <li
                   className="event-annotation"
                   dangerouslySetInnerHTML={{
-                    __html: annotation,
+                    __html: annotation
                   }}
                   key={key}
                 />
@@ -93,6 +93,6 @@ const EventOrGroupExtraDetails = React.createClass({
         </ul>
       </div>
     );
-  },
+  }
 });
 export default EventOrGroupExtraDetails;

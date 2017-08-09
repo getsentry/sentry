@@ -12,7 +12,7 @@ const SimilarItemPropType = PropTypes.shape({
   issue: Group,
   score: PropTypes.object,
   avgScore: PropTypes.number,
-  isBelowThreshold: PropTypes.bool,
+  isBelowThreshold: PropTypes.bool
 });
 
 const SimilarList = React.createClass({
@@ -22,12 +22,12 @@ const SimilarList = React.createClass({
     onMerge: PropTypes.func.isRequired,
     pageLinks: PropTypes.string,
     items: PropTypes.arrayOf(SimilarItemPropType),
-    filteredItems: PropTypes.arrayOf(SimilarItemPropType),
+    filteredItems: PropTypes.arrayOf(SimilarItemPropType)
   },
 
   getInitialState() {
     return {
-      showAllItems: false,
+      showAllItems: false
     };
   },
 
@@ -94,7 +94,7 @@ const SimilarList = React.createClass({
         {this.renderEmpty()}
       </div>
     );
-  },
+  }
 });
 
 export default SimilarList;

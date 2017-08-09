@@ -11,20 +11,20 @@ const Incidents = React.createClass({
     showPanel: React.PropTypes.bool,
     currentPanel: React.PropTypes.string,
     hidePanel: React.PropTypes.func,
-    onShowPanel: React.PropTypes.func.isRequired,
+    onShowPanel: React.PropTypes.func.isRequired
   },
 
   mixins: [Reflux.listenTo(IncidentStore, 'onIncidentChange')],
 
   getInitialState() {
     return {
-      status: null,
+      status: null
     };
   },
 
   onIncidentChange(status) {
     this.setState({
-      status: {...status},
+      status: {...status}
     });
   },
 
@@ -76,7 +76,7 @@ const Incidents = React.createClass({
           </SidebarPanel>}
       </li>
     );
-  },
+  }
 });
 
 export default Incidents;

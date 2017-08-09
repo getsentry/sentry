@@ -10,7 +10,7 @@ function getUserDisplayName(name) {
 
 const UserInfo = React.createClass({
   propTypes: {
-    user: React.PropTypes.any.isRequired,
+    user: React.PropTypes.any.isRequired
   },
 
   render() {
@@ -32,7 +32,7 @@ const UserInfo = React.createClass({
         {displayName}
       </span>
     );
-  },
+  }
 });
 
 export default UserInfo;

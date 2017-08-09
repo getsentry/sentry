@@ -6,7 +6,7 @@ import {defined, formatBytes} from '../../../utils';
 const DeviceContextType = React.createClass({
   propTypes: {
     alias: React.PropTypes.string.isRequired,
-    data: React.PropTypes.object.isRequired,
+    data: React.PropTypes.object.isRequired
   },
 
   formatMemory(memory_size, free_memory, usable_memory) {
@@ -93,12 +93,12 @@ const DeviceContextType = React.createClass({
           ['?Capacity', storage],
           ['?Simulator', simulator],
           ['?Boot Time', boot_time],
-          ['?Timezone', timezone],
+          ['?Timezone', timezone]
         ]}
         alias={this.props.alias}
       />
     );
-  },
+  }
 });
 
 DeviceContextType.getTitle = function(value) {

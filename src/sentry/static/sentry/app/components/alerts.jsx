@@ -10,7 +10,7 @@ const Alerts = React.createClass({
 
   getInitialState() {
     return {
-      alerts: [],
+      alerts: []
     };
   },
 
@@ -22,7 +22,7 @@ const Alerts = React.createClass({
         })}
       </div>
     );
-  },
+  }
 });
 
 export default Alerts;

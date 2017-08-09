@@ -12,7 +12,7 @@ const AllTeamsRow = React.createClass({
     access: React.PropTypes.object.isRequired,
     organization: React.PropTypes.object.isRequired,
     team: React.PropTypes.object.isRequired,
-    openMembership: React.PropTypes.bool.isRequired,
+    openMembership: React.PropTypes.bool.isRequired
   },
 
   mixins: [ApiMixin],
@@ -20,68 +20,68 @@ const AllTeamsRow = React.createClass({
   getInitialState() {
     return {
       loading: false,
-      error: false,
+      error: false
     };
   },
 
   joinTeam() {
     this.setState({
-      loading: true,
+      loading: true
     });
 
     this.api.joinTeam(
       {
         orgId: this.props.organization.slug,
-        teamId: this.props.team.slug,
+        teamId: this.props.team.slug
       },
       {
         success: () => {
           this.setState({
             loading: false,
-            error: false,
+            error: false
           });
         },
         error: () => {
           this.setState({
             loading: false,
-            error: true,
+            error: true
           });
           AlertActions.addAlert({
             message: t('There was an error while trying to join the team.'),
-            type: 'error',
+            type: 'error'
           });
-        },
+        }
       }
     );
   },
 
   leaveTeam() {
     this.setState({
-      loading: true,
+      loading: true
     });
 
     this.api.leaveTeam(
       {
         orgId: this.props.organization.slug,
-        teamId: this.props.team.slug,
+        teamId: this.props.team.slug
       },
       {
         success: () => {
           this.setState({
             loading: false,
-            error: false,
+            error: false
           });
         },
         error: () => {
           this.setState({
             loading: false,
-            error: true,
+            error: true
           });
           AlertActions.addAlert({
             message: t('There was an error while trying to leave the team.'),
-            type: 'error',
+            type: 'error'
           });
-        },
+        }
       }
     );
   },
@@ -124,7 +124,7 @@ const AllTeamsRow = React.createClass({
         </td>
       </tr>
     );
-  },
+  }
 });
 
 export default AllTeamsRow;

@@ -5,7 +5,7 @@ import {t} from '../locale';
 export default React.createClass({
   propTypes: {
     plugins: React.PropTypes.array.isRequired,
-    onEnablePlugin: React.PropTypes.func.isRequired,
+    onEnablePlugin: React.PropTypes.func.isRequired
   },
 
   enablePlugin(plugin) {
@@ -40,5 +40,5 @@ export default React.createClass({
         </div>
       </div>
     );
-  },
+  }
 });

@@ -3,7 +3,7 @@ import {t} from '../../../locale';
 
 const Waiting = React.createClass({
   propTypes: {
-    skip: React.PropTypes.func,
+    skip: React.PropTypes.func
   },
 
   render() {
@@ -24,7 +24,7 @@ const Waiting = React.createClass({
         </div>
       </div>
     );
-  },
+  }
 });
 
 export default Waiting;

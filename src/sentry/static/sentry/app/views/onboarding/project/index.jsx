@@ -11,7 +11,7 @@ const Project = React.createClass({
     setPlatform: React.PropTypes.func.isRequired,
     platform: React.PropTypes.string.isRequired,
     setName: React.PropTypes.func.isRequired,
-    name: React.PropTypes.string.isRequired,
+    name: React.PropTypes.string.isRequired
   },
 
   getInitialState() {
@@ -44,7 +44,7 @@ const Project = React.createClass({
           </h4>
           <div
             className={classnames('project-name-wrapper', {
-              required: this.state.projectRequired,
+              required: this.state.projectRequired
             })}>
             <PlatformiconTile platform={this.props.platform} />
             <input
@@ -62,7 +62,7 @@ const Project = React.createClass({
         </div>
       </div>
     );
-  },
+  }
 });
 
 export default Project;

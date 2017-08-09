@@ -9,19 +9,19 @@ import PureRenderMixin from 'react-addons-pure-render-mixin';
  */
 const StrictClick = React.createClass({
   propTypes: {
-    onClick: React.PropTypes.func,
+    onClick: React.PropTypes.func
   },
 
   mixins: [PureRenderMixin],
 
   statics: {
     MAX_DELTA_X: 10,
-    MAX_DELTA_Y: 10,
+    MAX_DELTA_Y: 10
   },
 
   getInitialState() {
     return {
-      startCoords: null,
+      startCoords: null
     };
   },
 
@@ -29,8 +29,8 @@ const StrictClick = React.createClass({
     this.setState({
       startCoords: {
         x: evt.screenX,
-        y: evt.screenY,
-      },
+        y: evt.screenY
+      }
     });
   },
 
@@ -48,7 +48,7 @@ const StrictClick = React.createClass({
       this.props.onClick(evt);
     }
     this.setState({
-      startCoords: null,
+      startCoords: null
     });
   },
 
@@ -58,9 +58,9 @@ const StrictClick = React.createClass({
 
     return React.cloneElement(this.props.children, {
       onMouseDown: this.handleMouseDown,
-      onClick: this.handleMouseClick,
+      onClick: this.handleMouseClick
     });
-  },
+  }
 });
 
 export default StrictClick;

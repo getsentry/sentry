@@ -19,7 +19,7 @@ const ProjectTable = React.createClass({
     projectMap: React.PropTypes.object.isRequired,
     projectTotals: React.PropTypes.array.isRequired,
     orgTotal: React.PropTypes.object.isRequired,
-    organization: React.PropTypes.object.isRequired,
+    organization: React.PropTypes.object.isRequired
   },
 
   mixins: [PureRenderMixin],
@@ -113,7 +113,7 @@ const ProjectTable = React.createClass({
         </tbody>
       </table>
     );
-  },
+  }
 });
 
 export default ProjectTable;

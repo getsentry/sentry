@@ -12,7 +12,7 @@ import {t} from '../locale';
 const CommitBar = React.createClass({
   propTypes: {
     totalCommits: React.PropTypes.number.isRequired,
-    authorCommits: React.PropTypes.number.isRequired,
+    authorCommits: React.PropTypes.number.isRequired
   },
 
   render() {
@@ -20,27 +20,27 @@ const CommitBar = React.createClass({
     barStyle.width = this.props.authorCommits / this.props.totalCommits * 100 + '%';
 
     return <div className="commit-bar" style={barStyle} />;
-  },
+  }
 });
 
 const CommitAuthorStats = React.createClass({
   propTypes: {
     orgId: React.PropTypes.string.isRequired,
     projectId: React.PropTypes.string.isRequired,
-    version: React.PropTypes.string.isRequired,
+    version: React.PropTypes.string.isRequired
   },
 
   mixins: [
     ApiMixin,
     TooltipMixin({
-      selector: '.tip',
-    }),
+      selector: '.tip'
+    })
   ],
 
   getInitialState() {
     return {
       loading: true,
-      error: false,
+      error: false
     };
   },
 
@@ -56,15 +56,15 @@ const CommitAuthorStats = React.createClass({
           error: false,
           loading: false,
           commitList: data,
-          pageLinks: jqXHR.getResponseHeader('Link'),
+          pageLinks: jqXHR.getResponseHeader('Link')
         });
       },
       error: () => {
         this.setState({
           error: true,
-          loading: false,
+          loading: false
         });
-      },
+      }
     });
   },
 
@@ -95,7 +95,7 @@ const CommitAuthorStats = React.createClass({
       if (!_commitAuthors.hasOwnProperty(author.email)) {
         _commitAuthors[author.email] = {
           commitCount: 1,
-          author: author,
+          author: author
         };
       } else {
         _commitAuthors[author.email].commitCount += 1;
@@ -143,7 +143,7 @@ const CommitAuthorStats = React.createClass({
         </ul>
       </div>
     );
-  },
+  }
 });
 
 export default CommitAuthorStats;

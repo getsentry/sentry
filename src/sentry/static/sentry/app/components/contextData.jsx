@@ -50,7 +50,7 @@ function analyzeStringForRepr(value) {
     repr: value,
     isString: true,
     isMultiLine: false,
-    isStripped: false,
+    isStripped: false
   };
 
   // stripped for security reasons
@@ -70,12 +70,12 @@ function analyzeStringForRepr(value) {
 
 const ContextData = React.createClass({
   propTypes: {
-    data: React.PropTypes.any,
+    data: React.PropTypes.any
   },
 
   getDefaultProps() {
     return {
-      data: null,
+      data: null
     };
   },
 
@@ -128,7 +128,7 @@ const ContextData = React.createClass({
               (valueInfo.isMultiLine ? ' val-string-multiline' : '')
             }>
             {valueInfo.repr}
-          </span>,
+          </span>
         ];
 
         if (valueInfo.isString && isUrl(value)) {
@@ -253,7 +253,7 @@ const ContextData = React.createClass({
         {this.renderValue(data)}
       </pre>
     );
-  },
+  }
 });
 
 export default ContextData;

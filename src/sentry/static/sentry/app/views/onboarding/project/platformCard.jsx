@@ -7,7 +7,7 @@ import classnames from 'classnames';
 const PlatformCard = React.createClass({
   propTypes: {
     platform: React.PropTypes.string,
-    onClick: React.PropTypes.func,
+    onClick: React.PropTypes.func
   },
 
   render() {
@@ -23,7 +23,7 @@ const PlatformCard = React.createClass({
         </h5>
       </span>
     );
-  },
+  }
 });
 
 export default PlatformCard;

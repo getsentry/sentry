@@ -30,8 +30,8 @@ export function setLocale(locale) {
     domain: 'sentry',
     missing_key_callback: function(key) {},
     locale_data: {
-      sentry: translations,
-    },
+      sentry: translations
+    }
   });
 }
 
@@ -191,10 +191,10 @@ function mark(rv) {
     ref: null,
     props: {
       className: 'translation-wrapper',
-      children: _.isArray(rv) ? rv : [rv],
+      children: _.isArray(rv) ? rv : [rv]
     },
     _owner: null,
-    _store: {},
+    _store: {}
   };
 
   proxy.toString = function() {

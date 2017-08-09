@@ -17,7 +17,7 @@ const MenuItem = React.createClass({
     to: React.PropTypes.string,
     query: React.PropTypes.object,
     linkClassName: React.PropTypes.string,
-    onClick: React.PropTypes.func,
+    onClick: React.PropTypes.func
   },
 
   handleClick(e) {
@@ -56,7 +56,7 @@ const MenuItem = React.createClass({
     let classes = {
       'dropdown-header': this.props.header,
       divider: this.props.divider,
-      active: this.props.isActive,
+      active: this.props.isActive
     };
 
     let children = null;
@@ -78,7 +78,7 @@ const MenuItem = React.createClass({
         {children}
       </li>
     );
-  },
+  }
 });
 
 export default MenuItem;

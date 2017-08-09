@@ -11,7 +11,7 @@ import Raven from 'raven-js';
 
 const OnboardingWizard = React.createClass({
   contextTypes: {
-    organization: React.PropTypes.object,
+    organization: React.PropTypes.object
   },
 
   mixins: [ApiMixin],
@@ -21,7 +21,7 @@ const OnboardingWizard = React.createClass({
       loading: true,
       error: false,
       platform: '',
-      projectName: '',
+      projectName: ''
     };
   },
 
@@ -38,7 +38,7 @@ const OnboardingWizard = React.createClass({
         this.setState({platform: p});
       },
       name: projectName,
-      setName: n => this.setState({projectName: n}),
+      setName: n => this.setState({projectName: n})
     };
 
     return React.cloneElement(this.props.children, stepProps);
@@ -57,7 +57,7 @@ const OnboardingWizard = React.createClass({
 
     if (!projectName) {
       Raven.captureMessage('Onboarding no project name ', {
-        extra: {props: this.props, state: this.state},
+        extra: {props: this.props, state: this.state}
       });
     }
 
@@ -65,13 +65,13 @@ const OnboardingWizard = React.createClass({
       method: 'POST',
       data: {
         name: projectName,
-        platform: platform,
+        platform: platform
       },
       success: data => {
         data = {
           ...data,
           orgId: orgId,
-          teamId: orgId,
+          teamId: orgId
         };
 
         ProjectActions.createSuccess(data);
@@ -85,15 +85,15 @@ const OnboardingWizard = React.createClass({
           extra: {
             err,
             props: this.props,
-            state: this.state,
-          },
+            state: this.state
+          }
         });
 
         this.setState({
           loading: false,
-          error: true,
+          error: true
         });
-      },
+      }
     });
   },
 
@@ -113,7 +113,7 @@ const OnboardingWizard = React.createClass({
         </div>
       </div>
     );
-  },
+  }
 });
 
 export default OnboardingWizard;

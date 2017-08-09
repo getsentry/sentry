@@ -6,13 +6,13 @@ import {userDisplayName} from '../../utils/formatters';
 
 const GroupParticipants = React.createClass({
   propTypes: {
-    participants: React.PropTypes.array.isRequired,
+    participants: React.PropTypes.array.isRequired
   },
 
   mixins: [
     TooltipMixin({
-      selector: '.tip',
-    }),
+      selector: '.tip'
+    })
   ],
 
   render() {
@@ -36,7 +36,7 @@ const GroupParticipants = React.createClass({
         </ul>
       </div>
     );
-  },
+  }
 });
 
 export default GroupParticipants;

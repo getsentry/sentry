@@ -23,7 +23,7 @@ const OnboardingStatus = React.createClass({
     currentPanel: React.PropTypes.string,
     onShowPanel: React.PropTypes.func,
     showPanel: React.PropTypes.bool,
-    hidePanel: React.PropTypes.func,
+    hidePanel: React.PropTypes.func
   },
 
   render() {
@@ -37,7 +37,7 @@ const OnboardingStatus = React.createClass({
         100
     ).toString();
     let style = {
-      height: percentage + '%',
+      height: percentage + '%'
     };
 
     return (
@@ -57,7 +57,7 @@ const OnboardingStatus = React.createClass({
           </SidebarPanel>}
       </li>
     );
-  },
+  }
 });
 
 function getFirstRequiredAdminAction(org) {
@@ -72,14 +72,14 @@ function getFirstRequiredAdminAction(org) {
 
 const Sidebar = React.createClass({
   contextTypes: {
-    location: React.PropTypes.object,
+    location: React.PropTypes.object
   },
 
   mixins: [ApiMixin, OrganizationState],
 
   getInitialState: function() {
     return {
-      showTodos: location.hash === '#welcome',
+      showTodos: location.hash === '#welcome'
     };
   },
 
@@ -126,14 +126,14 @@ const Sidebar = React.createClass({
   hidePanel() {
     this.setState({
       showPanel: false,
-      currentPanel: '',
+      currentPanel: ''
     });
   },
 
   showPanel(panel) {
     this.setState({
       showPanel: true,
-      currentPanel: panel,
+      currentPanel: panel
     });
   },
 
@@ -231,7 +231,7 @@ const Sidebar = React.createClass({
               query={{
                 statsPeriod: '24h',
                 per_page: 10,
-                status: 'unresolved',
+                status: 'unresolved'
               }}
               pagination={false}
               renderEmpty={() =>
@@ -251,7 +251,7 @@ const Sidebar = React.createClass({
               query={{
                 statsPeriod: '24h',
                 per_page: 10,
-                status: 'unresolved',
+                status: 'unresolved'
               }}
               pagination={false}
               renderEmpty={() =>
@@ -271,7 +271,7 @@ const Sidebar = React.createClass({
               query={{
                 statsPeriod: '24h',
                 per_page: 10,
-                status: 'unresolved',
+                status: 'unresolved'
               }}
               pagination={false}
               renderEmpty={() =>
@@ -338,7 +338,7 @@ const Sidebar = React.createClass({
         {this.renderRequiredActions()}
       </nav>
     );
-  },
+  }
 });
 
 export default Sidebar;

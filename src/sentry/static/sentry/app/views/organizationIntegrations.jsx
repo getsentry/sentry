@@ -14,7 +14,7 @@ const OrganizationIntegrations = React.createClass({
     return {
       loading: true,
       error: null,
-      ingtegrationList: null,
+      ingtegrationList: null
     };
   },
 
@@ -28,15 +28,15 @@ const OrganizationIntegrations = React.createClass({
       success: data => {
         this.setState({
           ingtegrationList: data,
-          loading: false,
+          loading: false
         });
       },
       error: err => {
         this.setState({
           loading: false,
-          error: err.responseJSON,
+          error: err.responseJSON
         });
-      },
+      }
     });
   },
 
@@ -47,7 +47,7 @@ const OrganizationIntegrations = React.createClass({
       data: {
         providerId: providerId,
         defaultAuthId: auth.defaultAuthId,
-        integrationId: auth.integrationId,
+        integrationId: auth.integrationId
       },
       success: data => {
         // TODO(jess): we should sort this alphabetically
@@ -56,18 +56,18 @@ const OrganizationIntegrations = React.createClass({
         });
         ingtegrationList.push(data);
         this.setState({
-          ingtegrationList: ingtegrationList,
+          ingtegrationList: ingtegrationList
         });
       },
       error: err => {
         this.setState({
           loading: false,
-          error: err.responseJSON,
+          error: err.responseJSON
         });
       },
       complete: () => {
         IndicatorStore.remove(indicator);
-      },
+      }
     });
   },
 
@@ -171,7 +171,7 @@ const OrganizationIntegrations = React.createClass({
                 : tct(
                     'An unknown error occurred. Need help with this? [link:Contact support]',
                     {
-                      link: <a href="https://sentry.io/support/" />,
+                      link: <a href="https://sentry.io/support/" />
                     }
                   )}
             </p>
@@ -194,7 +194,7 @@ const OrganizationIntegrations = React.createClass({
         {this.renderBody()}
       </OrganizationHomeContainer>
     );
-  },
+  }
 });
 
 export default OrganizationIntegrations;

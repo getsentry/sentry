@@ -10,7 +10,7 @@ const ProjectCspSettingsForm = React.createClass({
   propTypes: {
     orgId: React.PropTypes.string.isRequired,
     projectId: React.PropTypes.string.isRequired,
-    initialData: React.PropTypes.object.isRequired,
+    initialData: React.PropTypes.object.isRequired
   },
 
   mixins: [ApiMixin],
@@ -25,7 +25,7 @@ const ProjectCspSettingsForm = React.createClass({
     }
     return {
       formData: formData,
-      errors: {},
+      errors: {}
     };
   },
 
@@ -33,7 +33,7 @@ const ProjectCspSettingsForm = React.createClass({
     let formData = this.state.formData;
     formData[name] = value;
     this.setState({
-      formData: formData,
+      formData: formData
     });
   },
 
@@ -45,7 +45,7 @@ const ProjectCspSettingsForm = React.createClass({
     }
     this.setState(
       {
-        state: FormState.SAVING,
+        state: FormState.SAVING
       },
       () => {
         let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
@@ -56,18 +56,18 @@ const ProjectCspSettingsForm = React.createClass({
           success: data => {
             this.setState({
               state: FormState.READY,
-              errors: {},
+              errors: {}
             });
           },
           error: error => {
             this.setState({
               state: FormState.ERROR,
-              errors: error.responseJSON,
+              errors: error.responseJSON
             });
           },
           complete: () => {
             IndicatorStore.remove(loadingIndicator);
-          },
+          }
         });
       }
     );
@@ -118,12 +118,12 @@ const ProjectCspSettingsForm = React.createClass({
         </fieldset>
       </form>
     );
-  },
+  }
 });
 
 const ProjectCspSettings = React.createClass({
   propTypes: {
-    setProjectNavSection: React.PropTypes.func,
+    setProjectNavSection: React.PropTypes.func
   },
 
   mixins: [ApiMixin],
@@ -134,7 +134,7 @@ const ProjectCspSettings = React.createClass({
       expected: 2,
       error: false,
       keyList: [],
-      projectOptions: {},
+      projectOptions: {}
     };
   },
 
@@ -167,7 +167,7 @@ const ProjectCspSettings = React.createClass({
         this.setState({
           expected: expected,
           loading: expected > 0,
-          keyList: data,
+          keyList: data
         });
       },
       error: () => {
@@ -175,9 +175,9 @@ const ProjectCspSettings = React.createClass({
         this.setState({
           expected: expected,
           error: true,
-          loading: expected > 0,
+          loading: expected > 0
         });
-      },
+      }
     });
 
     this.api.request(`/projects/${orgId}/${projectId}/`, {
@@ -186,7 +186,7 @@ const ProjectCspSettings = React.createClass({
         this.setState({
           expected: expected,
           loading: expected > 0,
-          projectOptions: data.options,
+          projectOptions: data.options
         });
       },
       error: () => {
@@ -194,9 +194,9 @@ const ProjectCspSettings = React.createClass({
         this.setState({
           expected: expected,
           error: true,
-          loading: expected > 0,
+          loading: expected > 0
         });
-      },
+      }
     });
   },
 
@@ -330,7 +330,7 @@ const ProjectCspSettings = React.createClass({
         </div>
       </div>
     );
-  },
+  }
 });
 
 export default ProjectCspSettings;

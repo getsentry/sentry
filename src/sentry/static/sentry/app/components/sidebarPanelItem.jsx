@@ -6,7 +6,7 @@ const SidebarPanelItem = React.createClass({
     image: React.PropTypes.string,
     message: React.PropTypes.any,
     link: React.PropTypes.string,
-    hasSeen: React.PropTypes.bool,
+    hasSeen: React.PropTypes.bool
   },
 
   render() {
@@ -38,7 +38,7 @@ const SidebarPanelItem = React.createClass({
           </p>}
       </div>
     );
-  },
+  }
 });
 
 export default SidebarPanelItem;

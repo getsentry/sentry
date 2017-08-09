@@ -18,7 +18,7 @@ export default React.createClass({
       loading: true,
       error: false,
       taskName: null,
-      taskList: [],
+      taskList: []
     };
   },
 
@@ -33,14 +33,14 @@ export default React.createClass({
         this.setState({
           taskList: data,
           loading: false,
-          error: false,
+          error: false
         });
       },
       error: data => {
         this.setState({
-          error: true,
+          error: true
         });
-      },
+      }
     });
   },
 
@@ -57,7 +57,7 @@ export default React.createClass({
     }
     this.setState({
       since: new Date().getTime() / 1000 - seconds,
-      timeWindow,
+      timeWindow
     });
   },
 
@@ -147,5 +147,5 @@ export default React.createClass({
               </div>}
       </div>
     );
-  },
+  }
 });

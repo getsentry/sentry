@@ -18,7 +18,7 @@ describe('logging', function() {
       logAjaxError(
         {
           status: 500,
-          responseJSON: {detail: 'A bad thing happened'},
+          responseJSON: {detail: 'A bad thing happened'}
         },
         {foo: 'bar'} /* context */
       );
@@ -34,7 +34,7 @@ describe('logging', function() {
       logAjaxError(
         {
           status: 401,
-          responseText: 'You are not authenticated',
+          responseText: 'You are not authenticated'
         },
         {foo: 'bar'} /* context */
       );

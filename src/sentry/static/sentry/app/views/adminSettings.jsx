@@ -15,7 +15,7 @@ const optionsAvailable = [
   'auth.allow-registration',
   'auth.ip-rate-limit',
   'auth.user-rate-limit',
-  'api.rate-limit.org-create',
+  'api.rate-limit.org-create'
 ];
 
 export default class AdminSettings extends AsyncView {

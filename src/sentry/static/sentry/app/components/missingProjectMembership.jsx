@@ -7,7 +7,7 @@ import {t} from '../locale';
 const MissingProjectMembership = React.createClass({
   propTypes: {
     organization: React.PropTypes.object.isRequired,
-    team: React.PropTypes.object.isRequired,
+    team: React.PropTypes.object.isRequired
   },
 
   mixins: [ApiMixin],
@@ -15,37 +15,37 @@ const MissingProjectMembership = React.createClass({
   getInitialState() {
     return {
       loading: false,
-      error: false,
+      error: false
     };
   },
 
   joinTeam() {
     this.setState({
-      loading: true,
+      loading: true
     });
 
     this.api.joinTeam(
       {
         orgId: this.props.organization.slug,
-        teamId: this.props.team.slug,
+        teamId: this.props.team.slug
       },
       {
         success: () => {
           this.setState({
             loading: false,
-            error: false,
+            error: false
           });
         },
         error: () => {
           this.setState({
             loading: false,
-            error: true,
+            error: true
           });
           AlertActions.addAlert({
             message: 'There was an error while trying to join the team.',
-            type: 'error',
+            type: 'error'
           });
-        },
+        }
       }
     );
   },
@@ -89,7 +89,7 @@ const MissingProjectMembership = React.createClass({
         </div>
       </div>
     );
-  },
+  }
 });
 
 export default MissingProjectMembership;

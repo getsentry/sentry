@@ -12,7 +12,7 @@ const Indicators = React.createClass({
 
   getInitialState() {
     return {
-      items: [],
+      items: []
     };
   },
 
@@ -41,7 +41,7 @@ const Indicators = React.createClass({
         </ReactCSSTransitionGroup>
       </div>
     );
-  },
+  }
 });
 
 export default Indicators;

@@ -17,7 +17,7 @@ const CommitLink = React.createClass({
   propTypes: {
     commitId: React.PropTypes.string,
     repository: React.PropTypes.object,
-    inline: React.PropTypes.bool,
+    inline: React.PropTypes.bool
   },
 
   getCommitUrl() {
@@ -51,7 +51,7 @@ const CommitLink = React.createClass({
       : <span>
           {shortId}
         </span>;
-  },
+  }
 });
 
 const ReleaseCommit = React.createClass({
@@ -60,7 +60,7 @@ const ReleaseCommit = React.createClass({
     commitMessage: React.PropTypes.string,
     commitDateCreated: React.PropTypes.string,
     author: React.PropTypes.object,
-    repository: React.PropTypes.object,
+    repository: React.PropTypes.object
   },
 
   renderMessage(message) {
@@ -97,7 +97,7 @@ const ReleaseCommit = React.createClass({
         </div>
       </li>
     );
-  },
+  }
 });
 
 const ReleaseCommits = React.createClass({
@@ -108,7 +108,7 @@ const ReleaseCommits = React.createClass({
       loading: true,
       error: false,
       commitList: [],
-      activeRepo: null,
+      activeRepo: null
     };
   },
 
@@ -126,15 +126,15 @@ const ReleaseCommits = React.createClass({
           error: false,
           loading: false,
           commitList: data,
-          pageLinks: jqXHR.getResponseHeader('Link'),
+          pageLinks: jqXHR.getResponseHeader('Link')
         });
       },
       error: () => {
         this.setState({
           error: true,
-          loading: false,
+          loading: false
         });
-      },
+      }
     });
   },
 
@@ -150,7 +150,7 @@ const ReleaseCommits = React.createClass({
 
   setActiveRepo(repo) {
     this.setState({
-      activeRepo: repo,
+      activeRepo: repo
     });
   },
 
@@ -260,7 +260,7 @@ const ReleaseCommits = React.createClass({
             })}
       </div>
     );
-  },
+  }
 });
 
 export default ReleaseCommits;

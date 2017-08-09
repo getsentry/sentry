@@ -14,12 +14,12 @@ const DetailedError = React.createClass({
     /* Detailed error explanation */
     message: PropTypes.node,
     /* Hide support links in footer of error message */
-    hideSupportLinks: PropTypes.bool,
+    hideSupportLinks: PropTypes.bool
   },
 
   getDefaultProps() {
     return {
-      hideSupportLinks: false,
+      hideSupportLinks: false
     };
   },
 
@@ -62,7 +62,7 @@ const DetailedError = React.createClass({
         </div>
       </div>
     );
-  },
+  }
 });
 
 export default DetailedError;

@@ -30,7 +30,7 @@ const AdminUsers = React.createClass({
       </td>,
       <td style={{textAlign: 'center'}}>
         {prettyDate(row.lastLogin)}
-      </td>,
+      </td>
     ];
   },
 
@@ -38,7 +38,7 @@ const AdminUsers = React.createClass({
     let columns = [
       <th>User</th>,
       <th style={{textAlign: 'center', width: 150}}>Joined</th>,
-      <th style={{textAlign: 'center', width: 150}}>Last Login</th>,
+      <th style={{textAlign: 'center', width: 150}}>Last Login</th>
     ];
 
     return (
@@ -56,8 +56,8 @@ const AdminUsers = React.createClass({
           filters={{
             status: {
               name: 'Status',
-              options: [['active', 'Active'], ['disabled', 'Disabled']],
-            },
+              options: [['active', 'Active'], ['disabled', 'Disabled']]
+            }
           }}
           sortOptions={[['date', 'Date Joined']]}
           defaultSort="date"
@@ -65,7 +65,7 @@ const AdminUsers = React.createClass({
         />
       </div>
     );
-  },
+  }
 });
 
 export default AdminUsers;

@@ -16,7 +16,7 @@ export default React.createClass({
     onCanceled: React.PropTypes.func.isRequired,
     orgId: React.PropTypes.string.isRequired,
     projectId: React.PropTypes.string.isRequired,
-    show: React.PropTypes.bool,
+    show: React.PropTypes.bool
   },
 
   getInitialState() {
@@ -32,7 +32,7 @@ export default React.createClass({
 
   onSubmit() {
     this.props.onSelected({
-      inRelease: this.state.version,
+      inRelease: this.state.version
     });
   },
 
@@ -100,5 +100,5 @@ export default React.createClass({
         </div>
       </Modal>
     );
-  },
+  }
 });

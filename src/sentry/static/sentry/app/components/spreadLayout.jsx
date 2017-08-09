@@ -16,7 +16,7 @@ const SpreadLayout = ({children, className, ...props}) => {
 SpreadLayout.propTypes = {
   children: PropTypes.node,
   style: PropTypes.object,
-  className: PropTypes.string,
+  className: PropTypes.string
 };
 
 export default SpreadLayout;

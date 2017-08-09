@@ -23,13 +23,13 @@ describe('PlatformPicker', function() {
       params: {
         setPlatform: '',
         platform: '',
-        isActive: '',
-      },
+        isActive: ''
+      }
     };
 
     it('should only render Mobile platforms under Mobile tab', function() {
       let props = {
-        ...baseProps,
+        ...baseProps
       };
 
       let wrapper = shallow(<PlatformPicker {...props} />);
@@ -46,7 +46,7 @@ describe('PlatformPicker', function() {
 
     it('should render renderPlatformList with Python when filtered with py', function() {
       let props = {
-        ...baseProps,
+        ...baseProps
       };
 
       let wrapper = shallow(<PlatformPicker {...props} />);
@@ -64,7 +64,7 @@ describe('PlatformPicker', function() {
 
     it('should render renderPlatformList with community SDKs message if platform not found', function() {
       let props = {
-        ...baseProps,
+        ...baseProps
       };
 
       let wrapper = shallow(<PlatformPicker {...props} />);
@@ -77,16 +77,16 @@ describe('PlatformPicker', function() {
 
     it('should update State.tab onClick when particular tab is clicked', function() {
       let props = {
-        ...baseProps,
+        ...baseProps
       };
 
       let wrapper = mount(<PlatformPicker {...props} />, {
         context: {
-          router: TestStubs.router(),
+          router: TestStubs.router()
         },
         childContextTypes: {
-          router: React.PropTypes.object,
-        },
+          router: React.PropTypes.object
+        }
       });
 
       let testListLink = wrapper.find('ListLink').last().find('a');

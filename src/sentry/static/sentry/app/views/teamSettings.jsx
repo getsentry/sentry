@@ -8,7 +8,7 @@ export default class TeamSettings extends AsyncView {
   static propTypes = {
     ...AsyncView.propTypes,
     team: React.PropTypes.object.isRequired,
-    onTeamChange: React.PropTypes.func.isRequired,
+    onTeamChange: React.PropTypes.func.isRequired
   };
 
   getTitle() {
@@ -27,7 +27,7 @@ export default class TeamSettings extends AsyncView {
             apiEndpoint={`/teams/${orgId}/${teamId}/`}
             initialData={{
               name: team.name,
-              slug: team.slug,
+              slug: team.slug
             }}
             onSubmitSuccess={this.props.onTeamChange}
             requireChanges={true}>

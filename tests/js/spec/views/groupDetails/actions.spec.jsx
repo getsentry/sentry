@@ -22,21 +22,21 @@ describe('GroupActions', function() {
           group: {
             id: '1337',
             pluginActions: [],
-            pluginIssues: [],
+            pluginIssues: []
           },
           organization: {
             id: '4660',
-            slug: 'org',
+            slug: 'org'
           },
           project: {
             id: '2448',
-            slug: 'project',
+            slug: 'project'
           },
           team: {
             id: '3559',
-            slug: 'team',
-          },
-        },
+            slug: 'team'
+          }
+        }
       });
       expect(wrapper).toMatchSnapshot();
     });

@@ -6,7 +6,7 @@ import {t} from '../../locale';
 
 const HomeSidebar = React.createClass({
   contextTypes: {
-    location: React.PropTypes.object,
+    location: React.PropTypes.object
   },
 
   mixins: [OrganizationState],
@@ -20,7 +20,7 @@ const HomeSidebar = React.createClass({
     });
 
     return {
-      hooks: hooks,
+      hooks: hooks
     };
   },
 
@@ -127,7 +127,7 @@ const HomeSidebar = React.createClass({
         {this.state.hooks}
       </div>
     );
-  },
+  }
 });
 
 export default HomeSidebar;

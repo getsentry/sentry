@@ -12,20 +12,20 @@ export default React.createClass({
     countLabel: React.PropTypes.string.isRequired,
     countName: React.PropTypes.string.isRequired,
     windowName: React.PropTypes.string.isRequired,
-    windowChoices: React.PropTypes.array.isRequired,
+    windowChoices: React.PropTypes.array.isRequired
   },
 
   getInitialState() {
     return {
       count: 100,
-      window: '',
+      window: ''
     };
   },
 
   onSubmit() {
     this.props.onSelected({
       [this.props.countName]: this.state.count,
-      [this.props.windowName]: this.state.window,
+      [this.props.windowName]: this.state.window
     });
   },
 
@@ -91,5 +91,5 @@ export default React.createClass({
         </div>
       </Modal>
     );
-  },
+  }
 });

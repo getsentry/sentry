@@ -18,7 +18,7 @@ describe('OrganizationTeams', function() {
   describe('fetchStats()', function() {
     it('should make a request to the organizations endpoint', function() {
       let organizationTeams = shallow(<OrganizationTeams params={{orgId: '123'}} />, {
-        organization: {id: '1337'},
+        organization: {id: '1337'}
       }).instance();
 
       // NOTE: creation of OrganizationTeams causes a bunch of API requests to fire ...

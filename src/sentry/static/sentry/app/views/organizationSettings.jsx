@@ -6,7 +6,7 @@ import {
   FormState,
   Select2Field,
   TextField,
-  TextareaField,
+  TextareaField
 } from '../components/forms';
 import IndicatorStore from '../stores/indicatorStore';
 import LoadingIndicator from '../components/loadingIndicator';
@@ -20,7 +20,7 @@ const OrganizationSettingsForm = React.createClass({
     orgId: React.PropTypes.string.isRequired,
     access: React.PropTypes.object.isRequired,
     initialData: React.PropTypes.object.isRequired,
-    onSave: React.PropTypes.func.isRequired,
+    onSave: React.PropTypes.func.isRequired
   },
 
   mixins: [ApiMixin],
@@ -29,7 +29,7 @@ const OrganizationSettingsForm = React.createClass({
     return {
       formData: this.buildFormData(this.props.initialData),
       errors: {},
-      hasChanges: false,
+      hasChanges: false
     };
   },
 
@@ -45,7 +45,7 @@ const OrganizationSettingsForm = React.createClass({
       dataScrubberDefaults: data.dataScrubberDefaults,
       scrubIPAddresses: data.scrubIPAddresses,
       safeFields: data.safeFields.join('\n'),
-      sensitiveFields: data.sensitiveFields.join('\n'),
+      sensitiveFields: data.sensitiveFields.join('\n')
     };
     if (this.props.access.has('org:admin')) {
       result.defaultRole = data.defaultRole;
@@ -56,11 +56,11 @@ const OrganizationSettingsForm = React.createClass({
   onFieldChange(name, value) {
     let formData = {
       ...this.state.formData,
-      [name]: value,
+      [name]: value
     };
     this.setState({
       hasChanges: true,
-      formData: formData,
+      formData: formData
     });
   },
 
@@ -74,7 +74,7 @@ const OrganizationSettingsForm = React.createClass({
     this.setState(
       {
         state: FormState.SAVING,
-        hasChanges: false,
+        hasChanges: false
       },
       () => {
         let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
@@ -85,29 +85,29 @@ const OrganizationSettingsForm = React.createClass({
           data: {
             ...formData,
             safeFields: extractMultilineFields(formData.safeFields),
-            sensitiveFields: extractMultilineFields(formData.sensitiveFields),
+            sensitiveFields: extractMultilineFields(formData.sensitiveFields)
           },
           success: data => {
             this.props.onSave(data);
             this.setState({
               state: FormState.READY,
-              errors: {},
+              errors: {}
             });
             IndicatorStore.remove(loadingIndicator);
             IndicatorStore.add(t('Changes saved.'), 'success', {
-              duration: 1500,
+              duration: 1500
             });
           },
           error: error => {
             this.setState({
               state: FormState.ERROR,
-              errors: error.responseJSON,
+              errors: error.responseJSON
             });
             IndicatorStore.remove(loadingIndicator);
             IndicatorStore.add(t('Unable to save changes. Please try again.'), 'error', {
-              duration: 3000,
+              duration: 3000
             });
-          },
+          }
         });
       }
     );
@@ -313,7 +313,7 @@ const OrganizationSettingsForm = React.createClass({
         </fieldset>
       </form>
     );
-  },
+  }
 });
 
 const OrganizationSettings = React.createClass({
@@ -323,7 +323,7 @@ const OrganizationSettings = React.createClass({
     return {
       loading: true,
       error: false,
-      data: null,
+      data: null
     };
   },
 
@@ -337,15 +337,15 @@ const OrganizationSettings = React.createClass({
       success: data => {
         this.setState({
           data: data,
-          loading: false,
+          loading: false
         });
       },
       error: () => {
         this.setState({
           loading: false,
-          error: true,
+          error: true
         });
-      },
+      }
     });
   },
 
@@ -402,7 +402,7 @@ const OrganizationSettings = React.createClass({
           </div>}
       </OrganizationHomeContainer>
     );
-  },
+  }
 });
 
 export default OrganizationSettings;

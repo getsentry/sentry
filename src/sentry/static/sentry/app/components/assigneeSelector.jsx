@@ -17,15 +17,15 @@ import {t} from '../locale';
 
 const AssigneeSelector = React.createClass({
   propTypes: {
-    id: React.PropTypes.string.isRequired,
+    id: React.PropTypes.string.isRequired
   },
 
   mixins: [
     Reflux.listenTo(GroupStore, 'onGroupChange'),
     TooltipMixin({
-      selector: '.tip',
+      selector: '.tip'
     }),
-    ApiMixin,
+    ApiMixin
   ],
 
   statics: {
@@ -52,7 +52,7 @@ const AssigneeSelector = React.createClass({
       return [members[sessionUserIndex]]
         .concat(members.slice(0, sessionUserIndex))
         .concat(members.slice(sessionUserIndex + 1));
-    },
+    }
   },
 
   getInitialState() {
@@ -62,7 +62,7 @@ const AssigneeSelector = React.createClass({
       assignedTo: group.assignedTo,
       memberList: MemberListStore.getAll(),
       filter: '',
-      loading: false,
+      loading: false
     };
   },
 
@@ -73,7 +73,7 @@ const AssigneeSelector = React.createClass({
       this.setState({
         assignedTo: group.assignedTo,
         memberList: MemberListStore.getAll(),
-        loading: loading,
+        loading: loading
       });
     }
   },
@@ -110,7 +110,7 @@ const AssigneeSelector = React.createClass({
     let group = GroupStore.get(this.props.id);
     this.setState({
       assignedTo: group && group.assignedTo,
-      loading: GroupStore.hasStatus(this.props.id, 'assignTo'),
+      loading: GroupStore.hasStatus(this.props.id, 'assignTo')
     });
   },
 
@@ -129,7 +129,7 @@ const AssigneeSelector = React.createClass({
       this.refs.dropdown.close();
     } else {
       this.setState({
-        filter: evt.target.value,
+        filter: evt.target.value
       });
     }
   },
@@ -152,7 +152,7 @@ const AssigneeSelector = React.createClass({
 
   onDropdownClose() {
     this.setState({
-      filter: '',
+      filter: ''
     });
   },
 
@@ -209,7 +209,7 @@ const AssigneeSelector = React.createClass({
           <span>
             {t('No matching users found.')}
           </span>
-        </li>,
+        </li>
       ];
     }
 
@@ -261,7 +261,7 @@ const AssigneeSelector = React.createClass({
         </div>
       </div>
     );
-  },
+  }
 });
 
 export default AssigneeSelector;
