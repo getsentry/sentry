@@ -60,6 +60,9 @@ class MinHashIndex(object):
 
         return arguments
 
+    def _get_connection(self, scope):
+        return self.cluster.get_local_client_for_key(scope)
+
     def classify(self, scope, items, timestamp=None):
         if timestamp is None:
             timestamp = int(time.time())
@@ -79,7 +82,7 @@ class MinHashIndex(object):
         return [
             [(item, float(score)) for item, score in result]
             for result in index(
-                self.cluster.get_local_client_for_key(scope),
+                self._get_connection(scope),
                 [],
                 arguments,
             )
@@ -105,7 +108,7 @@ class MinHashIndex(object):
         return [
             [(item, float(score)) for item, score in result]
             for result in index(
-                self.cluster.get_local_client_for_key(scope),
+                self._get_connection(scope),
                 [],
                 arguments,
             )
@@ -132,7 +135,7 @@ class MinHashIndex(object):
         arguments.extend(self.__build_signatures(items))
 
         return index(
-            self.cluster.get_local_client_for_key(scope),
+            self._get_connection(scope),
             [],
             arguments,
         )
@@ -156,7 +159,7 @@ class MinHashIndex(object):
             arguments.extend([idx, source])
 
         return index(
-            self.cluster.get_local_client_for_key(scope),
+            self._get_connection(scope),
             [],
             arguments,
         )
@@ -179,7 +182,7 @@ class MinHashIndex(object):
             arguments.extend([idx, key])
 
         return index(
-            self.cluster.get_local_client_for_key(scope),
+            self._get_connection(scope),
             [],
             arguments,
         )
@@ -248,7 +251,7 @@ class MinHashIndex(object):
             arguments.extend([idx, key])
 
         return index(
-            self.cluster.get_local_client_for_key(scope),
+            self._get_connection(scope),
             [],
             arguments,
         )
@@ -271,7 +274,7 @@ class MinHashIndex(object):
             arguments.extend([idx, key, data])
 
         return index(
-            self.cluster.get_local_client_for_key(scope),
+            self._get_connection(scope),
             [],
             arguments,
         )
