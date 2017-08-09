@@ -2,9 +2,9 @@ import React from 'react';
 import OrganizationState from '../../mixins/organizationState';
 import ApiMixin from '../../mixins/apiMixin';
 import Badge from '../../components/badge';
-import ListLink from '../../components/listLink';
 import LoadingError from '../../components/loadingError';
 import LoadingIndicator from '../../components/loadingIndicator';
+import {NavHeader, NavStacked, NavItem} from '../../components/navigation';
 import {t} from '../../locale';
 
 const ProjectSettings = React.createClass({
@@ -85,36 +85,38 @@ const ProjectSettings = React.createClass({
     return (
       <div className="row">
         <div className="col-md-2">
-          <h6 className="nav-header">{t('Configuration')}</h6>
-          <ul className="nav nav-stacked">
-            <li><a href={`${settingsUrlRoot}/`}>{t('General')}</a></li>
-            <ListLink
+          <NavHeader>{t('Configuration')}</NavHeader>
+          <NavStacked>
+            <NavItem href={`${settingsUrlRoot}/`}>{t('General')}</NavItem>
+            <NavItem
               to={`/${orgId}/${projectId}/settings/alerts/`}
               isActive={loc => path.indexOf(loc.pathname) === 0}>
               {t('Alerts')}
-            </ListLink>
+            </NavItem>
             {features.has('quotas') &&
-              <li><a href={`${settingsUrlRoot}/quotas/`}>{t('Rate Limits')}</a></li>}
-            <li><a href={`${settingsUrlRoot}/tags/`}>{t('Tags')}</a></li>
-            <li>
-              <a href={`${settingsUrlRoot}/issue-tracking/`}>{t('Issue Tracking')}</a>
-            </li>
+              <NavItem href={`${settingsUrlRoot}/quotas/`}>
+                {t('Rate Limits')}
+              </NavItem>}
+            <NavItem href={`${settingsUrlRoot}/tags/`}>{t('Tags')}</NavItem>
+            <NavItem href={`${settingsUrlRoot}/issue-tracking/`}>
+              {t('Issue Tracking')}
+            </NavItem>
             {access.has('project:write') &&
-              <ListLink
+              <NavItem
                 to={`/${orgId}/${projectId}/settings/release-tracking/`}
                 isActive={loc => path.indexOf(loc.pathname) === 0}>
                 {t('Release Tracking')}
-              </ListLink>}
-            <ListLink to={`/${orgId}/${projectId}/settings/data-forwarding/`}>
+              </NavItem>}
+            <NavItem to={`/${orgId}/${projectId}/settings/data-forwarding/`}>
               {t('Data Forwarding')}
-            </ListLink>
-            <ListLink to={`/${orgId}/${projectId}/settings/saved-searches/`}>
+            </NavItem>
+            <NavItem to={`/${orgId}/${projectId}/settings/saved-searches/`}>
               {t('Saved Searches')}
-            </ListLink>
-            <ListLink to={`/${orgId}/${projectId}/settings/debug-symbols/`}>
+            </NavItem>
+            <NavItem to={`/${orgId}/${projectId}/settings/debug-symbols/`}>
               {t('Debug Information Files')}
-            </ListLink>
-            <ListLink
+            </NavItem>
+            <NavItem
               className="badged"
               to={`/${orgId}/${projectId}/settings/processing-issues/`}>
               {t('Processing Issues')}
@@ -123,42 +125,46 @@ const ProjectSettings = React.createClass({
                   text={processingIssues > 99 ? '99+' : processingIssues + ''}
                   isNew={true}
                 />}
-            </ListLink>
-          </ul>
-          <h6 className="nav-header">{t('Data')}</h6>
-          <ul className="nav nav-stacked">
-            <ListLink
+            </NavItem>
+          </NavStacked>
+          <NavHeader className="nav-header">{t('Data')}</NavHeader>
+          <NavStacked>
+            <NavItem
               to={rootInstallPath}
               isActive={loc => {
                 // Because react-router 1.0 removes router.isActive(route)
                 return path === rootInstallPath || /install\/[\w\-]+\/$/.test(path);
               }}>
               {t('Error Tracking')}
-            </ListLink>
-            <ListLink to={`/${orgId}/${projectId}/settings/csp/`}>
+            </NavItem>
+            <NavItem to={`/${orgId}/${projectId}/settings/csp/`}>
               {t('CSP Reports')}
-            </ListLink>
-            <ListLink to={`/${orgId}/${projectId}/settings/user-feedback/`}>
+            </NavItem>
+            <NavItem to={`/${orgId}/${projectId}/settings/user-feedback/`}>
               {t('User Feedback')}
-            </ListLink>
-            <ListLink to={`/${orgId}/${projectId}/settings/filters/`}>
+            </NavItem>
+            <NavItem to={`/${orgId}/${projectId}/settings/filters/`}>
               {t('Inbound Filters')}
-            </ListLink>
-            <ListLink to={`/${orgId}/${projectId}/settings/keys/`}>
+            </NavItem>
+            <NavItem to={`/${orgId}/${projectId}/settings/keys/`}>
               {t('Client Keys')} (DSN)
-            </ListLink>
-          </ul>
-          <h6 className="nav-header">{t('Integrations')}</h6>
-          <ul className="nav nav-stacked">
-            <li><a href={`${settingsUrlRoot}/plugins/`}>{t('All Integrations')}</a></li>
+            </NavItem>
+          </NavStacked>
+          <NavHeader className="nav-header">{t('Integrations')}</NavHeader>
+          <NavStacked>
+            <NavItem href={`${settingsUrlRoot}/plugins/`}>
+              {t('All Integrations')}
+            </NavItem>
             {project.plugins.filter(p => p.enabled).map(plugin => {
               return (
-                <li key={plugin.id}>
-                  <a href={`${settingsUrlRoot}/plugins/${plugin.id}/`}>{plugin.name}</a>
-                </li>
+                <NavItem
+                  key={plugin.id}
+                  href={`${settingsUrlRoot}/plugins/${plugin.id}/`}>
+                  {plugin.name}
+                </NavItem>
               );
             })}
-          </ul>
+          </NavStacked>
         </div>
         <div className="col-md-10">
           {React.cloneElement(this.props.children, {

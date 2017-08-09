@@ -1,8 +1,8 @@
 import React from 'react';
-import ListLink from '../listLink';
 import OrganizationState from '../../mixins/organizationState';
 import HookStore from '../../stores/hookStore';
 import {t} from '../../locale';
+import {NavHeader, NavStacked, NavItem, NavDivider} from '../../components/navigation';
 
 const HomeSidebar = React.createClass({
   contextTypes: {
@@ -28,21 +28,23 @@ const HomeSidebar = React.createClass({
     let access = this.getAccess();
     let features = this.getFeatures();
     let org = this.getOrganization();
-
     let orgId = org.slug;
+    let hasPendingAccessRequests =
+      access.has('org:write') && org.pendingAccessRequests > 0;
+
     return (
       <div>
-        <h6 className="nav-header">{t('Organization')}</h6>
-        <ul className="nav nav-stacked">
-          <ListLink
+        <NavHeader>{t('Organization')}</NavHeader>
+        <NavStacked>
+          <NavItem
             to={`/${orgId}/`}
             isActive={() => {
               // return true if path matches /organizations/slug-name/teams/ OR /organizations/slug-name/all-teams/
               return /^\/[^\/]+\/$/.test(this.context.location.pathname);
             }}>
             {t('Dashboard')}
-          </ListLink>
-          <ListLink
+          </NavItem>
+          <NavItem
             to={`/organizations/${orgId}/teams/`}
             isActive={() => {
               // return true if path matches /organizations/slug-name/teams/ OR /organizations/slug-name/all-teams/
@@ -51,64 +53,64 @@ const HomeSidebar = React.createClass({
               );
             }}>
             {t('Projects & Teams')}
-          </ListLink>
+          </NavItem>
           {access.has('org:read') &&
-            <ListLink to={`/organizations/${orgId}/stats/`}>{t('Stats')}</ListLink>}
-        </ul>
-        <div>
-          <h6 className="nav-header with-divider">{t('Issues')}</h6>
-          <ul className="nav nav-stacked">
-            <ListLink to={`/organizations/${orgId}/issues/assigned/`}>
-              {t('Assigned to Me')}
-            </ListLink>
-            <ListLink to={`/organizations/${orgId}/issues/bookmarks/`}>
-              {t('Bookmarks')}
-            </ListLink>
-            <ListLink to={`/organizations/${orgId}/issues/history/`}>
-              {t('History')}
-            </ListLink>
-          </ul>
-        </div>
+            <NavItem to={`/organizations/${orgId}/stats/`}>{t('Stats')}</NavItem>}
+        </NavStacked>
+
+        <NavDivider />
+
+        <NavHeader>{t('Issues')}</NavHeader>
+        <NavStacked>
+          <NavItem to={`/organizations/${orgId}/issues/assigned/`}>
+            {t('Assigned to Me')}
+          </NavItem>
+          <NavItem to={`/organizations/${orgId}/issues/bookmarks/`}>
+            {t('Bookmarks')}
+          </NavItem>
+          <NavItem to={`/organizations/${orgId}/issues/history/`}>
+            {t('History')}
+          </NavItem>
+        </NavStacked>
+
         {access.has('org:read') &&
           <div>
-            <h6 className="nav-header with-divider">{t('Manage')}</h6>
-            <ul className="nav nav-stacked">
+            <NavDivider />
+            <NavHeader>{t('Manage')}</NavHeader>
+            <NavStacked>
               {access.has('org:read') &&
-                <li>
-                  <a href={`/organizations/${orgId}/members/`}>
-                    {t('Members')}&nbsp;
-                    {access.has('org:write') &&
-                      org.pendingAccessRequests > 0 &&
-                      <span className="badge" style={{marginLeft: 5}}>
-                        {org.pendingAccessRequests}
-                      </span>}
-                  </a>
-                </li>}
+                <NavItem href={`/organizations/${orgId}/members/`}>
+                  {t('Members')}&nbsp;
+                  {hasPendingAccessRequests &&
+                    <span className="badge" style={{marginLeft: 5}}>
+                      {org.pendingAccessRequests}
+                    </span>}
+                </NavItem>}
               {features.has('sso') &&
                 access.has('org:admin') &&
-                <li><a href={`/organizations/${orgId}/auth/`}>{t('Auth')}</a></li>}
+                <NavItem href={`/organizations/${orgId}/auth/`}>{t('Auth')}</NavItem>}
               {access.has('org:admin') &&
                 features.has('api-keys') &&
-                <li>
-                  <a href={`/organizations/${orgId}/api-keys/`}>{t('API Keys')}</a>
-                </li>}
+                <NavItem href={`/organizations/${orgId}/api-keys/`}>
+                  {t('API Keys')}
+                </NavItem>}
               {access.has('org:write') &&
-                <ListLink to={`/organizations/${orgId}/audit-log/`}>
+                <NavItem to={`/organizations/${orgId}/audit-log/`}>
                   {t('Audit Log')}
-                </ListLink>}
+                </NavItem>}
               {access.has('org:write') &&
-                <ListLink to={`/organizations/${orgId}/rate-limits/`}>
+                <NavItem to={`/organizations/${orgId}/rate-limits/`}>
                   {t('Rate Limits')}
-                </ListLink>}
+                </NavItem>}
               {access.has('org:write') &&
-                <ListLink to={`/organizations/${orgId}/repos/`}>
+                <NavItem to={`/organizations/${orgId}/repos/`}>
                   {t('Repositories')}
-                </ListLink>}
+                </NavItem>}
               {access.has('org:write') &&
-                <ListLink to={`/organizations/${orgId}/settings/`}>
+                <NavItem to={`/organizations/${orgId}/settings/`}>
                   {t('Settings')}
-                </ListLink>}
-            </ul>
+                </NavItem>}
+            </NavStacked>
           </div>}
         {this.state.hooks}
       </div>
