@@ -1,6 +1,11 @@
 Version 8.20 (Unreleased)
 -------------------------
 
+Schema Changes
+~~~~~~~~~~~~~~
+- Added index on ``GroupCommitResolution.commit_id``
+
+
 Version 8.19
 ------------
 
