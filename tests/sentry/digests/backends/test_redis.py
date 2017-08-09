@@ -91,6 +91,7 @@ class RedisBackendTestCase(TestCase):
                 assert set(records) == set([])
 
         assert set(backend.schedule(time.time())) == set()
+        assert len(backend._get_connection('timeline').keys('d:*')) == 0
 
     def test_missing_record_contents(self):
         backend = RedisBackend()
