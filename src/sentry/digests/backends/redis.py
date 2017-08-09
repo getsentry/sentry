@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import logging
+import six
 import time
 
 from contextlib import contextmanager
@@ -212,7 +213,10 @@ class RedisBackend(Backend):
                 )
             except ResponseError as e:
                 if 'err(invalid_state):' in e.message:
-                    raise InvalidState
+                    six.raise_from(
+                        InvalidState('Timeline is not in the ready state.'),
+                        e,
+                    )
                 else:
                     raise
 
