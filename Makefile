@@ -93,6 +93,11 @@ update-submodules:
 	git submodule update
 	@echo ""
 
+build-platform-assets:
+	@echo "--> Building platform assets"
+	sentry init
+	@echo "from sentry.utils.integrationdocs import sync_docs; sync_docs()" | sentry exec
+
 test: develop lint test-js test-python test-cli
 
 testloop: develop
@@ -117,7 +122,7 @@ test-js:
 	@npm run snapshot
 	@echo ""
 
-test-python:
+test-python: build-platform-assets
 	@echo "--> Running Python tests"
 	py.test tests/integration tests/sentry || exit 1
 	@echo ""
@@ -130,14 +135,14 @@ test-network:
 	py.test tests/network
 	@echo ""
 
-test-acceptance:
+test-acceptance: build-platform-assets
 	@echo "--> Building static assets"
 	@${NPM_ROOT}/.bin/webpack
 	@echo "--> Running acceptance tests"
 	py.test tests/acceptance
 	@echo ""
 
-test-python-coverage:
+test-python-coverage: build-platform-assets
 	@echo "--> Running Python tests"
 	SOUTH_TESTS_MIGRATE=1 coverage run --source=src/sentry -m py.test tests/integration tests/sentry
 	@echo ""
