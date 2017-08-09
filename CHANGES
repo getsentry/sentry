@@ -1,6 +1,10 @@
 Version 8.20 (Unreleased)
 -------------------------
 
+Schema Changes
+~~~~~~~~~~~~~~
+- Added index on ``ProjectPlatform(last_seen)`` column
+
 Version 8.19
 ------------
 

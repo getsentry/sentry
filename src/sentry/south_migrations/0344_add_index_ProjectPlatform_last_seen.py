@@ -8,7 +8,12 @@ from django.db import models
 class Migration(SchemaMigration):
     def forwards(self, orm):
         # Adding index on 'ProjectPlatform', fields ['last_seen']
-        db.create_index('sentry_projectplatform', ['last_seen'])
+        if is_postgres():
+            db.commit_transaction()
+            db.execute("CREATE INDEX CONCURRENTLY {} ON sentry_projectplatform (last_seen)")
+            db.start_transaction()
+        else:
+            db.create_index('sentry_projectplatform', ['last_seen'])
 
     def backwards(self, orm):
         # Removing index on 'ProjectPlatform', fields ['last_seen']
