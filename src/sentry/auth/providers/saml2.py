@@ -6,13 +6,21 @@ from django.http import (HttpResponse, HttpResponseRedirect, HttpResponseServerE
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 
-from onelogin.saml2.auth import OneLogin_Saml2_Auth, OneLogin_Saml2_Settings
-
 from sentry.auth import Provider, AuthView
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.models import (AuthProvider, Organization, OrganizationStatus, User, UserEmail)
 from sentry.utils.http import absolute_uri
 from sentry.utils.auth import login, get_login_redirect
+
+try:
+    from onelogin.saml2.auth import OneLogin_Saml2_Auth, OneLogin_Saml2_Settings
+except ImportError:
+
+    def OneLogin_Saml2_Auth(*args, **kwargs):
+        raise NotImplementedError('Missing SAML libraries')
+
+    def OneLogin_Saml2_Settings(*args, **kwargs):
+        raise NotImplementedError('Missing SAML libraries')
 
 
 def get_provider(organization_slug):

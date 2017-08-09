@@ -112,7 +112,6 @@ install_requires = [
     'mock>=0.8.0,<1.1',
     'mmh3>=2.3.1,<2.4',
     'oauth2>=1.5.167',
-    'python3-saml>=1.2.6',
     'percy>=0.4.5',
     'petname>=2.0,<2.1',
     'Pillow>=3.2.0,<3.3.0',
@@ -143,6 +142,10 @@ install_requires = [
     'rb>=1.7.0,<2.0.0',
     'qrcode>=5.2.2,<6.0.0',
     'python-u2flib-server>=4.0.1,<4.1.0',
+]
+
+saml_requires = [
+    'python3-saml>=1.2.6',
 ]
 
 
@@ -193,6 +196,7 @@ setup(
     extras_require={
         'dev': dev_requires,
         'postgres': [],
+        'saml': saml_requires,
         'tests': tests_require,
     },
     cmdclass=cmdclass,
