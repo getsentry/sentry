@@ -157,8 +157,16 @@ class RedisBackend(Backend):
             timestamp = time.time()
 
         for host in self.cluster.hosts:
-            for key, timestamp in self.__schedule_partition(host, deadline, timestamp):
-                yield ScheduleEntry(key, float(timestamp))
+            try:
+                for key, timestamp in self.__schedule_partition(host, deadline, timestamp):
+                    yield ScheduleEntry(key, float(timestamp))
+            except Exception as error:
+                logger.error(
+                    'Failed to perform scheduling for partition %r due to error: %r',
+                    host,
+                    error,
+                    exc_info=True
+                )
 
     def __maintenance_partition(self, host, deadline, timestamp):
         return script(
@@ -178,7 +186,15 @@ class RedisBackend(Backend):
             timestamp = time.time()
 
         for host in self.cluster.hosts:
-            self.__maintenance_partition(host, deadline, timestamp)
+            try:
+                self.__maintenance_partition(host, deadline, timestamp)
+            except Exception as error:
+                logger.error(
+                    'Failed to perform maintenance on digest partition %r due to error: %r',
+                    host,
+                    error,
+                    exc_info=True
+                )
 
     @contextmanager
     def digest(self, key, minimum_delay=None, timestamp=None):
