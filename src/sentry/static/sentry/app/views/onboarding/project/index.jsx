@@ -34,10 +34,14 @@ const Project = React.createClass({
   render() {
     return (
       <div className="onboarding-info">
-        <h2>{t('Choose a language or framework')}</h2>
+        <h2>
+          {t('Choose a language or framework')}
+        </h2>
         <PlatformPicker {...this.props} />
         <div className="project-name client-platform">
-          <h4>{t('Give your project a name') + ':'}</h4>
+          <h4>
+            {t('Give your project a name') + ':'}
+          </h4>
           <div
             className={classnames('project-name-wrapper', {
               required: this.state.projectRequired

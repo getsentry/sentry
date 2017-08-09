@@ -20,7 +20,9 @@ export default class TeamCreate extends AsyncView {
     let {orgId} = this.props.params;
     return (
       <NarrowLayout>
-        <h3>{t('Create a New Team')}</h3>
+        <h3>
+          {t('Create a New Team')}
+        </h3>
 
         <p>
           {t(

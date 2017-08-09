@@ -125,7 +125,9 @@ const IssuePluginActions = React.createClass({
           backdrop="static"
           enforceFocus={false}>
           <Modal.Header closeButton>
-            <Modal.Title>{plugin.title + ' Issue'}</Modal.Title>
+            <Modal.Title>
+              {plugin.title + ' Issue'}
+            </Modal.Title>
           </Modal.Header>
           <Modal.Body>
             {!this.state.pluginLoading &&

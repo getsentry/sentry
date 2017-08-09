@@ -27,8 +27,7 @@ const EventErrorItem = React.createClass({
       <li>
         {error.message}
         <small>
-          {' '}
-          <a style={{marginLeft: 10}} onClick={this.toggle}>
+          {' '}<a style={{marginLeft: 10}} onClick={this.toggle}>
             {isOpen ? t('Collapse') : t('Expand')}
           </a>
         </small>

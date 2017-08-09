@@ -91,19 +91,27 @@ const TeamDetails = React.createClass({
 
     return (
       <OrganizationHomeContainer>
-        <h3>{team.name}</h3>
+        <h3>
+          {team.name}
+        </h3>
 
         {access.has('team:admin') &&
           <DropdownLink
             topLevelClasses="pull-right anchor-right"
             className="dropdown-menu-right"
             title={t('More')}>
-            <MenuItem href={`${routePrefix}/remove/`}>{t('Remove Team')}</MenuItem>
+            <MenuItem href={`${routePrefix}/remove/`}>
+              {t('Remove Team')}
+            </MenuItem>
           </DropdownLink>}
 
         <ul className="nav nav-tabs border-bottom">
-          <ListLink to={`${routePrefix}/settings/`}>{t('Settings')}</ListLink>
-          <ListLink to={`${routePrefix}/members/`}>{t('Members')}</ListLink>
+          <ListLink to={`${routePrefix}/settings/`}>
+            {t('Settings')}
+          </ListLink>
+          <ListLink to={`${routePrefix}/members/`}>
+            {t('Members')}
+          </ListLink>
         </ul>
 
         {React.cloneElement(this.props.children, {

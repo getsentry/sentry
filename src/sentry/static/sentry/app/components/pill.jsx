@@ -32,8 +32,13 @@ const Pill = React.createClass({
 
     return (
       <li className={(className || '') + (extraClass ? ' ' + extraClass : '')} {...props}>
-        <span className="key">{name}</span>
-        <span className="value">{renderedValue}{children}</span>
+        <span className="key">
+          {name}
+        </span>
+        <span className="value">
+          {renderedValue}
+          {children}
+        </span>
       </li>
     );
   }

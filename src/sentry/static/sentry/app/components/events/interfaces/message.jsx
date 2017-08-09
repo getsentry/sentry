@@ -32,8 +32,12 @@ const MessageInterface = React.createClass({
         {data.params &&
           !data.formatted &&
           <div>
-            <h5>{t('Params')}</h5>
-            <pre className="plain">{JSON.stringify(data.params, null, 2)}</pre>
+            <h5>
+              {t('Params')}
+            </h5>
+            <pre className="plain">
+              {JSON.stringify(data.params, null, 2)}
+            </pre>
           </div>}
       </EventDataSection>
     );

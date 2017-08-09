@@ -146,7 +146,9 @@ class PluginSettings extends PluginComponentBase {
         {this.state.errors.__all__ &&
           <div className="alert alert-block alert-error">
             <ul>
-              <li>{this.state.errors.__all__}</li>
+              <li>
+                {this.state.errors.__all__}
+              </li>
             </ul>
           </div>}
         {this.state.fieldList.map(f => {

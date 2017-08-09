@@ -138,12 +138,17 @@ const U2fInterface = React.createClass({
     let {deviceFailure} = this.state;
     let supportMail = ConfigStore.get('supportEmail');
     let support = supportMail
-      ? <a href={'mailto:' + supportMail}>{supportMail}</a>
-      : <span>{t('Support')}</span>;
+      ? <a href={'mailto:' + supportMail}>
+          {supportMail}
+        </a>
+      : <span>
+          {t('Support')}
+        </span>;
     return (
       <div className="failure-message">
         <p>
-          <strong>{t('Error: ')}</strong> {
+          <strong>{t('Error: ')}</strong>{' '}
+          {
             {
               DEVICE_ERROR: t('Your U2F device reported an error.'),
               DUPLICATE_DEVICE: t('This device is already in use.'),
@@ -165,7 +170,9 @@ const U2fInterface = React.createClass({
         </p>
         {this.canTryAgain() &&
           <p>
-            <a onClick={this.onTryAgain} className="btn btn-primary">{t('Try Again')}</a>
+            <a onClick={this.onTryAgain} className="btn btn-primary">
+              {t('Try Again')}
+            </a>
           </p>}
       </div>
     );
@@ -184,8 +191,8 @@ const U2fInterface = React.createClass({
       <div
         className={
           'u2f-box' +
-            (this.state.hasBeenTapped ? ' tapped' : '') +
-            (this.state.deviceFailure ? ' device-failure' : '')
+          (this.state.hasBeenTapped ? ' tapped' : '') +
+          (this.state.deviceFailure ? ' device-failure' : '')
         }>
         <div className="device-animation-frame">
           <div className="device-failed" />

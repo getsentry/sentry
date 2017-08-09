@@ -3,7 +3,8 @@ export default function(header) {
     return {};
   }
 
-  let header_vals = header.split(','), links = {};
+  let header_vals = header.split(','),
+    links = {};
 
   header_vals.forEach(val => {
     let match = /<([^>]+)>; rel="([^"]+)"(?:; results="([^"]+)")?(?:; cursor="([^"]+)")?/g.exec(

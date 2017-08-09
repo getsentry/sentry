@@ -101,8 +101,14 @@ const GroupSidebar = React.createClass({
       if (issue) {
         issues.push(
           <dl key={plugin.slug}>
-            <dt>{plugin.title + ': '}</dt>
-            <dd><a href={issue.url}>{issue.label}</a></dd>
+            <dt>
+              {plugin.title + ': '}
+            </dt>
+            <dd>
+              <a href={issue.url}>
+                {issue.label}
+              </a>
+            </dd>
           </dl>
         );
       }
@@ -110,7 +116,11 @@ const GroupSidebar = React.createClass({
     if (issues.length) {
       return (
         <div>
-          <h6><span>{t('External Issues')}</span></h6>
+          <h6>
+            <span>
+              {t('External Issues')}
+            </span>
+          </h6>
           {issues}
         </div>
       );
@@ -180,7 +190,11 @@ const GroupSidebar = React.createClass({
 
         {this.renderPluginIssue()}
 
-        <h6><span>{t('Tags')}</span></h6>
+        <h6>
+          <span>
+            {t('Tags')}
+          </span>
+        </h6>
         {group.tags.map(data => {
           return (
             <TagDistributionMeter
@@ -196,13 +210,19 @@ const GroupSidebar = React.createClass({
 
         {this.renderParticipantData()}
 
-        <h6><span>{t('Notifications')}</span></h6>
-        <p className="help-block">{this.getNotificationText()}</p>
+        <h6>
+          <span>
+            {t('Notifications')}
+          </span>
+        </h6>
+        <p className="help-block">
+          {this.getNotificationText()}
+        </p>
         <a
-          className={`btn btn-default btn-subscribe ${group.isSubscribed && 'subscribed'}`}
+          className={`btn btn-default btn-subscribe ${group.isSubscribed &&
+            'subscribed'}`}
           onClick={this.toggleSubscription}>
-          <span className="icon-signal" />
-          {' '}
+          <span className="icon-signal" />{' '}
           {group.isSubscribed ? t('Unsubscribe') : t('Subscribe')}
         </a>
       </div>

@@ -150,7 +150,11 @@ const Sidebar = React.createClass({
       // When no organization, just render Sentry logo at top
       return (
         <ul className="navbar-nav">
-          <li><a className="logo" href="/"><span className="icon-sentry-logo" /></a></li>
+          <li>
+            <a className="logo" href="/">
+              <span className="icon-sentry-logo" />
+            </a>
+          </li>
         </ul>
       );
     }
@@ -230,11 +234,10 @@ const Sidebar = React.createClass({
                 status: 'unresolved'
               }}
               pagination={false}
-              renderEmpty={() => (
+              renderEmpty={() =>
                 <div className="sidebar-panel-empty" key="none">
                   {t('No issues have been assigned to you.')}
-                </div>
-              )}
+                </div>}
               ref="issueList"
               showActions={false}
               params={{orgId: org.slug}}
@@ -251,11 +254,10 @@ const Sidebar = React.createClass({
                 status: 'unresolved'
               }}
               pagination={false}
-              renderEmpty={() => (
+              renderEmpty={() =>
                 <div className="sidebar-panel-empty" key="no">
                   {t('You have no bookmarked issues.')}
-                </div>
-              )}
+                </div>}
               ref="issueList"
               showActions={false}
               params={{orgId: org.slug}}
@@ -272,11 +274,10 @@ const Sidebar = React.createClass({
                 status: 'unresolved'
               }}
               pagination={false}
-              renderEmpty={() => (
+              renderEmpty={() =>
                 <div className="sidebar-panel-empty" key="none">
                   {t('No recently viewed issues.')}
-                </div>
-              )}
+                </div>}
               ref="issueList"
               showActions={false}
               params={{orgId: org.slug}}
@@ -297,7 +298,7 @@ const Sidebar = React.createClass({
       return (
         <span className="admin-action-message">
           <a href={url}>
-            {t('Required Action:')}{' '}{requiredAction.getActionLinkTitle()}
+            {t('Required Action:')} {requiredAction.getActionLinkTitle()}
           </a>
         </span>
       );

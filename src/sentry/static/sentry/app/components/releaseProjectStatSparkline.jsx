@@ -51,7 +51,9 @@ const ReleaseProjectStatSparkline = React.createClass({
   getNewIssuesCount() {
     let {orgId, version} = this.props;
     let projectId = this.props.project.slug;
-    let issuesPath = `/projects/${orgId}/${projectId}/releases/${encodeURIComponent(version)}/`;
+    let issuesPath = `/projects/${orgId}/${projectId}/releases/${encodeURIComponent(
+      version
+    )}/`;
     this.api.request(issuesPath, {
       method: 'GET',
       success: (data, _, jqXHR) => {

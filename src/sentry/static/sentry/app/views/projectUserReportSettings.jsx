@@ -285,17 +285,24 @@ const ProjectUserReportSettings = React.createClass({
     // TODO(dcramer): localize when language is final
     return (
       <div>
-        <h1>{t('User Feedback')}</h1>
+        <h1>
+          {t('User Feedback')}
+        </h1>
 
         <div className="alert alert-block alert-info">
-          Psst! This feature is still a work-in-progress. Thanks for being an early adopter!
+          Psst! This feature is still a work-in-progress. Thanks for being an early
+          adopter!
         </div>
 
         <p>
-          Enabling User Feedback allows you to interact with your users on an unprecedented level. Collect additional details about issues affecting them, and more importantly reach out to them with resolutions.
+          Enabling User Feedback allows you to interact with your users on an
+          unprecedented level. Collect additional details about issues affecting them, and
+          more importantly reach out to them with resolutions.
         </p>
         <p>
-          When configured, your users will be presented with a dialog prompting them for additional information. That information will get attached to the issue in Sentry
+          When configured, your users will be presented with a dialog prompting them for
+          additional information. That information will get attached to the issue in
+          Sentry
         </p>
         <p>
           <a className="btn btn-primary" onClick={this.handleClick}>
@@ -305,23 +312,33 @@ const ProjectUserReportSettings = React.createClass({
 
         <div className="box">
           <div className="box-header">
-            <h3>{t('Integration')}</h3>
+            <h3>
+              {t('Integration')}
+            </h3>
           </div>
           <div className="box-content with-padding">
             <p>
-              The following example uses our Django integration. Check the documentation for the SDK you're using for more details.
+              The following example uses our Django integration. Check the documentation
+              for the SDK you're using for more details.
             </p>
-            <pre>{this.getInstructions()}</pre>
+            <pre>
+              {this.getInstructions()}
+            </pre>
             <p>
-              If you're capturing an error with our Browser JS SDK, things get even simpler:
+              If you're capturing an error with our Browser JS SDK, things get even
+              simpler:
             </p>
-            <pre>{this.getBrowserJSInstructions()}</pre>
+            <pre>
+              {this.getBrowserJSInstructions()}
+            </pre>
           </div>
         </div>
 
         <div className="box">
           <div className="box-header">
-            <h3>{t('Settings')}</h3>
+            <h3>
+              {t('Settings')}
+            </h3>
           </div>
           <div className="box-content with-padding">
             <ProjectFeedbackSettingsForm
@@ -331,7 +348,6 @@ const ProjectUserReportSettings = React.createClass({
             />
           </div>
         </div>
-
       </div>
     );
   }

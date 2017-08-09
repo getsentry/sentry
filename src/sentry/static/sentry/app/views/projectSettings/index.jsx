@@ -85,19 +85,35 @@ const ProjectSettings = React.createClass({
     return (
       <div className="row">
         <div className="col-md-2">
-          <h6 className="nav-header">{t('Configuration')}</h6>
+          <h6 className="nav-header">
+            {t('Configuration')}
+          </h6>
           <ul className="nav nav-stacked">
-            <li><a href={`${settingsUrlRoot}/`}>{t('General')}</a></li>
+            <li>
+              <a href={`${settingsUrlRoot}/`}>
+                {t('General')}
+              </a>
+            </li>
             <ListLink
               to={`/${orgId}/${projectId}/settings/alerts/`}
               isActive={loc => path.indexOf(loc.pathname) === 0}>
               {t('Alerts')}
             </ListLink>
             {features.has('quotas') &&
-              <li><a href={`${settingsUrlRoot}/quotas/`}>{t('Rate Limits')}</a></li>}
-            <li><a href={`${settingsUrlRoot}/tags/`}>{t('Tags')}</a></li>
+              <li>
+                <a href={`${settingsUrlRoot}/quotas/`}>
+                  {t('Rate Limits')}
+                </a>
+              </li>}
             <li>
-              <a href={`${settingsUrlRoot}/issue-tracking/`}>{t('Issue Tracking')}</a>
+              <a href={`${settingsUrlRoot}/tags/`}>
+                {t('Tags')}
+              </a>
+            </li>
+            <li>
+              <a href={`${settingsUrlRoot}/issue-tracking/`}>
+                {t('Issue Tracking')}
+              </a>
             </li>
             {access.has('project:write') &&
               <ListLink
@@ -125,7 +141,9 @@ const ProjectSettings = React.createClass({
                 />}
             </ListLink>
           </ul>
-          <h6 className="nav-header">{t('Data')}</h6>
+          <h6 className="nav-header">
+            {t('Data')}
+          </h6>
           <ul className="nav nav-stacked">
             <ListLink
               to={rootInstallPath}
@@ -148,13 +166,21 @@ const ProjectSettings = React.createClass({
               {t('Client Keys')} (DSN)
             </ListLink>
           </ul>
-          <h6 className="nav-header">{t('Integrations')}</h6>
+          <h6 className="nav-header">
+            {t('Integrations')}
+          </h6>
           <ul className="nav nav-stacked">
-            <li><a href={`${settingsUrlRoot}/plugins/`}>{t('All Integrations')}</a></li>
+            <li>
+              <a href={`${settingsUrlRoot}/plugins/`}>
+                {t('All Integrations')}
+              </a>
+            </li>
             {project.plugins.filter(p => p.enabled).map(plugin => {
               return (
                 <li key={plugin.id}>
-                  <a href={`${settingsUrlRoot}/plugins/${plugin.id}/`}>{plugin.name}</a>
+                  <a href={`${settingsUrlRoot}/plugins/${plugin.id}/`}>
+                    {plugin.name}
+                  </a>
                 </li>
               );
             })}

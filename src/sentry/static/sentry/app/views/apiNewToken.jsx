@@ -52,7 +52,9 @@ export default class ApiNewToken extends AsyncView {
 
     return (
       <NarrowLayout>
-        <h3>{t('Create New Token')}</h3>
+        <h3>
+          {t('Create New Token')}
+        </h3>
         <hr />
         <p>
           {t(

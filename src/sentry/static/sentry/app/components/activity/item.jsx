@@ -55,9 +55,9 @@ const ActivityItem = React.createClass({
     let issue = item.issue;
 
     let issueLink = issue
-      ? (<IssueLink orgId={orgId} projectId={project.slug} issue={issue}>
+      ? <IssueLink orgId={orgId} projectId={project.slug} issue={issue}>
           {issue.shortId}
-        </IssueLink>)
+        </IssueLink>
       : null;
 
     switch (item.type) {
@@ -216,7 +216,11 @@ const ActivityItem = React.createClass({
         if (assignee && assignee.email) {
           return tct('[author] assigned [issue] to [assignee]', {
             author: author,
-            assignee: <span title={assignee.email}>{assignee.name}</span>,
+            assignee: (
+              <span title={assignee.email}>
+                {assignee.name}
+              </span>
+            ),
             issue: issueLink
           });
         } else if (data.assigneeEmail) {
@@ -273,7 +277,9 @@ const ActivityItem = React.createClass({
 
     let avatar = item.user
       ? <Avatar user={item.user} size={64} className="avatar" />
-      : <div className="avatar sentry"><span className="icon-sentry-logo" /></div>;
+      : <div className="avatar sentry">
+          <span className="icon-sentry-logo" />
+        </div>;
 
     let author = {
       name: item.user ? item.user.name : 'Sentry',
@@ -288,7 +294,9 @@ const ActivityItem = React.createClass({
             {this.formatProjectActivity(
               <span>
                 {author.avatar}
-                <span className="activity-author">{author.name}</span>
+                <span className="activity-author">
+                  {author.name}
+                </span>
               </span>,
               item
             )}
@@ -314,12 +322,16 @@ const ActivityItem = React.createClass({
             {this.formatProjectActivity(
               <span>
                 {author.avatar}
-                <span className="activity-author">{author.name}</span>
+                <span className="activity-author">
+                  {author.name}
+                </span>
               </span>,
               item
             )}
             <div className="activity-item-bubble">
-              <a href={item.data.location}>{item.data.title}</a>
+              <a href={item.data.location}>
+                {item.data.title}
+              </a>
             </div>
             <div className="activity-meta">
               <Link className="project" to={`/${orgId}/${item.project.slug}/`}>
@@ -338,7 +350,9 @@ const ActivityItem = React.createClass({
             {this.formatProjectActivity(
               <span>
                 {author.avatar}
-                <span className="activity-author">{author.name}</span>
+                <span className="activity-author">
+                  {author.name}
+                </span>
               </span>,
               item
             )}

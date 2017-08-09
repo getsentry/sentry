@@ -15,10 +15,12 @@ export default React.createClass({
   renderReason() {
     let {params, statusDetails} = this.props;
     let actor = statusDetails.actor
-      ? (<strong>
+      ? <strong>
           <Avatar user={statusDetails.actor} size={20} className="avatar" />
-          <span style={{marginLeft: 5}}>{statusDetails.actor.name}</span>
-        </strong>)
+          <span style={{marginLeft: 5}}>
+            {statusDetails.actor.name}
+          </span>
+        </strong>
       : null;
 
     if (statusDetails.inNextRelease && statusDetails.actor) {
@@ -56,7 +58,9 @@ export default React.createClass({
     return (
       <div className="box">
         <span className="icon icon-checkmark" />
-        <p>{this.renderReason()}</p>
+        <p>
+          {this.renderReason()}
+        </p>
       </div>
     );
   }

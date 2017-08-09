@@ -119,8 +119,14 @@ export default class FormField extends React.Component {
             <span className="disabled-indicator tip" title={this.props.disabledReason}>
               <span className="icon-question" />
             </span>}
-          {defined(this.props.help) && <p className="help-block">{this.props.help}</p>}
-          {error && <p className="error">{error}</p>}
+          {defined(this.props.help) &&
+            <p className="help-block">
+              {this.props.help}
+            </p>}
+          {error &&
+            <p className="error">
+              {error}
+            </p>}
         </div>
       </div>
     );

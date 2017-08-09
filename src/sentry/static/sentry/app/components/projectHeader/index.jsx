@@ -66,8 +66,12 @@ const ProjectHeader = React.createClass({
                 }
               />
               {project.isBookmarked
-                ? <span>{t('Unstar Project')}</span>
-                : <span>{t('Star Project')}</span>}
+                ? <span>
+                    {t('Unstar Project')}
+                  </span>
+                : <span>
+                    {t('Star Project')}
+                  </span>}
             </a>
           </BookmarkToggle>
           {access.has('project:write') &&

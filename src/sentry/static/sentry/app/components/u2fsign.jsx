@@ -31,12 +31,12 @@ const U2fSign = React.createClass({
           `
               )
             : displayMode === 'sudo'
-                ? t(
-                    `
+              ? t(
+                  `
             Alternatively you can use your U2F device to confirm the action.
           `
-                  )
-                : null}
+                )
+              : null}
         </p>
       </U2fInterface>
     );

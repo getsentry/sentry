@@ -118,7 +118,9 @@ const RuleEditor = React.createClass({
                   )}
                 </p>
               </div>}
-            <h6>{t('Rule name')}:</h6>
+            <h6>
+              {t('Rule name')}:
+            </h6>
             <div className="control-group">
               <input
                 ref="name"
@@ -142,9 +144,15 @@ const RuleEditor = React.createClass({
                     value={actionMatch}
                     style={{width: 80}}
                     required={true}>
-                    <option value="all">{t('all')}</option>
-                    <option value="any">{t('any')}</option>
-                    <option value="none">{t('none')}</option>
+                    <option value="all">
+                      {t('all')}
+                    </option>
+                    <option value="any">
+                      {t('any')}
+                    </option>
+                    <option value="none">
+                      {t('none')}
+                    </option>
                   </SelectInput>
                 )}
               </h6>
@@ -166,7 +174,9 @@ const RuleEditor = React.createClass({
 
             <hr />
 
-            <h6>{t('Take these actions:')}</h6>
+            <h6>
+              {t('Take these actions:')}
+            </h6>
 
             {this.hasError('actions') &&
               <p className="error">
@@ -196,15 +206,33 @@ const RuleEditor = React.createClass({
                         value={frequency}
                         style={{width: 150}}
                         required={true}>
-                        <option value="5">{t('5 minutes')}</option>
-                        <option value="10">{t('10 minutes')}</option>
-                        <option value="30">{t('30 minutes')}</option>
-                        <option value="60">{t('60 minutes')}</option>
-                        <option value="180">{t('3 hours')}</option>
-                        <option value="720">{t('12 hours')}</option>
-                        <option value="1440">{t('24 hours')}</option>
-                        <option value="10080">{t('one week')}</option>
-                        <option value="43200">{t('30 days')}</option>
+                        <option value="5">
+                          {t('5 minutes')}
+                        </option>
+                        <option value="10">
+                          {t('10 minutes')}
+                        </option>
+                        <option value="30">
+                          {t('30 minutes')}
+                        </option>
+                        <option value="60">
+                          {t('60 minutes')}
+                        </option>
+                        <option value="180">
+                          {t('3 hours')}
+                        </option>
+                        <option value="720">
+                          {t('12 hours')}
+                        </option>
+                        <option value="1440">
+                          {t('24 hours')}
+                        </option>
+                        <option value="10080">
+                          {t('one week')}
+                        </option>
+                        <option value="43200">
+                          {t('30 days')}
+                        </option>
                       </SelectInput>
                     )
                   }

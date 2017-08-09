@@ -64,9 +64,13 @@ const ApiApplicationRow = React.createClass({
       <tr>
         <td>
           <h4 style={{marginBottom: 5}}>
-            <Link to={`/api/applications/${app.id}/`}>{app.name}</Link>
+            <Link to={`/api/applications/${app.id}/`}>
+              {app.name}
+            </Link>
           </h4>
-          <small style={{color: '#999'}}>{app.clientID}</small>
+          <small style={{color: '#999'}}>
+            {app.clientID}
+          </small>
         </td>
         <td style={{width: 32}}>
           <a
@@ -180,12 +184,18 @@ const ApiApplications = React.createClass({
           <table className="table">
             <tbody>
               {this.state.loading
-                ? <tr><td colSpan="2"><LoadingIndicator /></td></tr>
+                ? <tr>
+                    <td colSpan="2">
+                      <LoadingIndicator />
+                    </td>
+                  </tr>
                 : this.state.error
-                    ? <tr>
-                        <td colSpan="2"><LoadingError onRetry={this.fetchData} /></td>
-                      </tr>
-                    : this.renderResults()}
+                  ? <tr>
+                      <td colSpan="2">
+                        <LoadingError onRetry={this.fetchData} />
+                      </td>
+                    </tr>
+                  : this.renderResults()}
             </tbody>
           </table>
 

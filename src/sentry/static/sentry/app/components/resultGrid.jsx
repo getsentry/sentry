@@ -68,7 +68,9 @@ const Filter = React.createClass({
     return (
       <div className="filter-options">
         {this.props.options.length === 1
-          ? <strong>{this.getCurrentLabel()}</strong>
+          ? <strong>
+              {this.getCurrentLabel()}
+            </strong>
           : this.getSelector()}
       </div>
     );
@@ -118,7 +120,9 @@ const SortBy = React.createClass({
       <div className="sort-options">
         Showing results sorted by
         {this.props.options.length === 1
-          ? <strong className="sorted-by">{this.getCurrentSortLabel()}</strong>
+          ? <strong className="sorted-by">
+              {this.getCurrentSortLabel()}
+            </strong>
           : this.getSortBySelector()}
       </div>
     );
@@ -286,9 +290,7 @@ const ResultGrid = React.createClass({
   renderNoResults() {
     return (
       <tr>
-        <td colSpan={this.props.columns.length}>
-          No results found.
-        </td>
+        <td colSpan={this.props.columns.length}>No results found.</td>
       </tr>
     );
   },
@@ -359,10 +361,10 @@ const ResultGrid = React.createClass({
             {this.state.loading
               ? this.renderLoading()
               : this.state.error
-                  ? this.renderError()
-                  : this.state.rows.length === 0
-                      ? this.renderNoResults()
-                      : this.renderResults()}
+                ? this.renderError()
+                : this.state.rows.length === 0
+                  ? this.renderNoResults()
+                  : this.renderResults()}
           </tbody>
         </table>
         {this.props.hasPagination &&

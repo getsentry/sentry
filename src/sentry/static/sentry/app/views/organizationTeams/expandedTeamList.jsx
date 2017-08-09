@@ -94,7 +94,9 @@ const ExpandedTeamList = React.createClass({
                 {t('Team Settings')}
               </Link>}
           </div>
-          <h3>{team.name}</h3>
+          <h3>
+            {team.name}
+          </h3>
         </div>
         <div className="box-content">
           <table className="table table-no-top-border m-b-0">
@@ -144,7 +146,9 @@ const ExpandedTeamList = React.createClass({
         </td>
         <td className="align-right project-chart">
           {chartData &&
-            <LazyLoad><BarChart points={chartData} label="events" /></LazyLoad>}
+            <LazyLoad>
+              <BarChart points={chartData} label="events" />
+            </LazyLoad>}
         </td>
       </tr>
     );

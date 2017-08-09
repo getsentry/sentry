@@ -29,12 +29,21 @@ const EventOrGroupTitle = React.createClass({
     if (subtitle) {
       return (
         <span>
-          <span style={{marginRight: 10}}>{title}</span>
-          <em>{subtitle}</em><br />
+          <span style={{marginRight: 10}}>
+            {title}
+          </span>
+          <em>
+            {subtitle}
+          </em>
+          <br />
         </span>
       );
     }
-    return <span>{title}</span>;
+    return (
+      <span>
+        {title}
+      </span>
+    );
   }
 });
 

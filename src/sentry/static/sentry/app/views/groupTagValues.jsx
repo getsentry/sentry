@@ -101,7 +101,9 @@ const GroupTagValues = React.createClass({
         <tr key={tagValueIdx}>
           <td className="bar-cell">
             <span className="bar" style={{width: pct + '%'}} />
-            <span className="label">{pct}%</span>
+            <span className="label">
+              {pct}%
+            </span>
           </td>
           <td>
             <Link
@@ -150,7 +152,9 @@ const GroupTagValues = React.createClass({
             <tr>
               <th style={{width: 30}}>%</th>
               <th />
-              <th style={{width: 200}}>{t('Last Seen')}</th>
+              <th style={{width: 200}}>
+                {t('Last Seen')}
+              </th>
             </tr>
           </thead>
           <tbody>

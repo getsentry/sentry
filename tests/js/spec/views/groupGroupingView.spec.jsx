@@ -20,7 +20,8 @@ const mockData = {
         lastSeen: '2017-07-25T02:22:19Z',
         numComments: 0,
         userCount: 1,
-        culprit: 'Constructor.onGroupingUpdate(app/views/groupGrouping/groupingMergedList)',
+        culprit:
+          'Constructor.onGroupingUpdate(app/views/groupGrouping/groupingMergedList)',
         title: 'ReferenceError: unmergedList is not defined',
         id: '274',
         assignedTo: null,
@@ -125,7 +126,8 @@ const mockData = {
           isActive: true,
           has2fa: false,
           name: 'billy@sentry.io',
-          avatarUrl: 'https://secure.gravatar.com/avatar/7b544e8eb9d08ed777be5aa82121155a?s=32&d=mm',
+          avatarUrl:
+            'https://secure.gravatar.com/avatar/7b544e8eb9d08ed777be5aa82121155a?s=32&d=mm',
           dateJoined: '2017-06-26T21:02:13.264Z',
           emails: [{is_verified: false, id: '1', email: 'billy@sentry.io'}],
           avatar: {avatarUuid: null, avatarType: 'letter_avatar'},
@@ -201,7 +203,8 @@ const mockData = {
         user: {ip_address: '127.0.0.1', email: 'billy@sentry.io', id: '1'},
         context: {'session:duration': 46363},
         entries: [],
-        message: "TypeError Cannot read property 'assignedTo' of undefined app/components/assigneeSelector in assignedTo",
+        message:
+          "TypeError Cannot read property 'assignedTo' of undefined app/components/assigneeSelector in assignedTo",
         sdk: {
           clientIP: '127.0.0.1',
           version: '3.16.1',
@@ -262,7 +265,8 @@ const mockData = {
         user: {ip_address: '127.0.0.1', email: 'billy@sentry.io', id: '1'},
         context: {'session:duration': 46363},
         entries: [],
-        message: "TypeError Cannot read property 'assignedTo' of undefined app/components/assigneeSelector in assignedTo",
+        message:
+          "TypeError Cannot read property 'assignedTo' of undefined app/components/assigneeSelector in assignedTo",
         sdk: {
           clientIP: '127.0.0.1',
           version: '3.16.1',

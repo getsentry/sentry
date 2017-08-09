@@ -27,7 +27,11 @@ const UserInfo = React.createClass({
     let name = user.name || user.email;
     let displayName = getUserDisplayName(name);
 
-    return <span title={name} {...other}>{displayName}</span>;
+    return (
+      <span title={name} {...other}>
+        {displayName}
+      </span>
+    );
   }
 });
 

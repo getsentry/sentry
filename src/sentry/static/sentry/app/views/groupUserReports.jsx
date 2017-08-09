@@ -80,7 +80,9 @@ const GroupUserReports = React.createClass({
           <Avatar user={item} size={64} className="avatar" />
           <div className="activity-bubble">
             <TimeSince date={item.dateCreated} />
-            <div className="activity-author">{item.name} <small>{item.email}</small></div>
+            <div className="activity-author">
+              {item.name} <small>{item.email}</small>
+            </div>
             <p dangerouslySetInnerHTML={{__html: body}} />
           </div>
         </li>
@@ -103,7 +105,9 @@ const GroupUserReports = React.createClass({
     return (
       <div className="box empty-stream">
         <span className="icon icon-exclamation" />
-        <p>{t('No user reports have been collected for this event.')}</p>
+        <p>
+          {t('No user reports have been collected for this event.')}
+        </p>
         <p>
           <Link to={this.getUserReportsUrl()}>
             {t('Learn how to integrate User Feedback')}

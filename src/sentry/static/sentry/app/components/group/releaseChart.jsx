@@ -74,13 +74,18 @@ const GroupReleaseChart = React.createClass({
       `<dd>${intcomma(totalY)} event${totalY !== 1 ? 's' : ''}</dd>` +
       (environment
         ? '<dt class="environment"><span></span></dt>' +
-            `<dd>${intcomma(envPoints[point.x] || 0)} event${envPoints[point.x] !== 1 ? 's' : ''}` +
-            `<small>in ${escape(environment)}</small></dd>`
+          `<dd>${intcomma(envPoints[point.x] || 0)} event${envPoints[point.x] !== 1
+            ? 's'
+            : ''}` +
+          `<small>in ${escape(environment)}</small></dd>`
         : '') +
       (release
         ? '<dt class="active"><span></span></dt>' +
-            `<dd>${intcomma(releasePoints[point.x] || 0)} event${releasePoints[point.x] !== 1 ? 's' : ''}` +
-            `<small>in ${escape(release.version.substr(0, 12))}</small></dd>`
+          `<dd>${intcomma(releasePoints[point.x] || 0)} event${releasePoints[point.x] !==
+          1
+            ? 's'
+            : ''}` +
+          `<small>in ${escape(release.version.substr(0, 12))}</small></dd>`
         : '') +
       '</dl>' +
       '</div>'
@@ -133,7 +138,11 @@ const GroupReleaseChart = React.createClass({
 
     return (
       <div className={className}>
-        <h6><span>{this.props.title}</span></h6>
+        <h6>
+          <span>
+            {this.props.title}
+          </span>
+        </h6>
         <StackedBarChart
           points={points}
           height={40}

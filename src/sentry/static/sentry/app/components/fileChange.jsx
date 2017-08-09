@@ -33,7 +33,9 @@ const FileChange = React.createClass({
         <div className="row row-flex row-center-vertically">
           <div className="col-sm-9 truncate">
             <IconFileGeneric className="icon-file-generic" size={15} />
-            <span className="file-name">{filename}</span>
+            <span className="file-name">
+              {filename}
+            </span>
           </div>
           <div className="col-sm-3 avatar-grid align-right">
             {authors.map((author, i) => {

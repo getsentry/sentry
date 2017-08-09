@@ -74,7 +74,7 @@ describe('Grouping Store', function() {
           {
             id: '275'
           },
-          {'exception:stacktrace:pairs': 1.000}
+          {'exception:stacktrace:pairs': 1.0}
         ],
         [
           {

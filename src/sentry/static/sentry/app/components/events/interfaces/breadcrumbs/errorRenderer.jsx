@@ -9,7 +9,13 @@ const ErrorRenderer = React.createClass({
   },
 
   renderUrl(url) {
-    return url.match(/^https?:\/\//) ? <a href={url}>{url}</a> : <em>{url}</em>;
+    return url.match(/^https?:\/\//)
+      ? <a href={url}>
+          {url}
+        </a>
+      : <em>
+          {url}
+        </em>;
   },
 
   render() {
@@ -28,7 +34,10 @@ const ErrorRenderer = React.createClass({
       <SummaryLine crumb={crumb}>
         <pre>
           <code>
-            {type && <strong>{type}: </strong>}
+            {type &&
+              <strong>
+                {type}:{' '}
+              </strong>}
             {messages.join('. ')}
           </code>
         </pre>

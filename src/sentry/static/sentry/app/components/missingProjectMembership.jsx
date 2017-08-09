@@ -58,9 +58,13 @@ const MissingProjectMembership = React.createClass({
       <div className="container">
         <div className="box alert-box">
           <span className="icon icon-exclamation" />
-          <p>{"You're not a member of this project."}</p>
+          <p>
+            {"You're not a member of this project."}
+          </p>
           {openMembership
-            ? <p>{t('To view this data you must first join the %s team.', team.name)}</p>
+            ? <p>
+                {t('To view this data you must first join the %s team.', team.name)}
+              </p>
             : <p>
                 {t(
                   'To view this data you must first request access to the %s team.',
@@ -71,14 +75,16 @@ const MissingProjectMembership = React.createClass({
             {this.state.loading
               ? <a className="btn btn-default btn-loading btn-disabled">...</a>
               : team.isPending
-                  ? <a className="btn btn-default btn-disabled">{t('Request Pending')}</a>
-                  : openMembership
-                      ? <a className="btn btn-default" onClick={this.joinTeam}>
-                          {t('Join Team')}
-                        </a>
-                      : <a className="btn btn-default" onClick={this.joinTeam}>
-                          {t('Request Access')}
-                        </a>}
+                ? <a className="btn btn-default btn-disabled">
+                    {t('Request Pending')}
+                  </a>
+                : openMembership
+                  ? <a className="btn btn-default" onClick={this.joinTeam}>
+                      {t('Join Team')}
+                    </a>
+                  : <a className="btn btn-default" onClick={this.joinTeam}>
+                      {t('Request Access')}
+                    </a>}
           </p>
         </div>
       </div>

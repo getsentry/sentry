@@ -52,7 +52,9 @@ const NumberConfirm = React.createClass({
         enforceFocus={true}
         bsSize="sm">
         <Modal.Header closeButton>
-          <Modal.Title>{t('Please enter your code:')}</Modal.Title>
+          <Modal.Title>
+            {t('Please enter your code:')}
+          </Modal.Title>
         </Modal.Header>
         <Modal.Body>
           <ReactCodeInput

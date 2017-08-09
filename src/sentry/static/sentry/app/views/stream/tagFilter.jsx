@@ -96,7 +96,8 @@ const StreamTagFilter = React.createClass({
   },
 
   getTagValuesAPIEndpoint() {
-    return `/api/0/projects/${this.props.orgId}/${this.props.projectId}/tags/${this.props.tag.key}/values/`;
+    return `/api/0/projects/${this.props.orgId}/${this.props.projectId}/tags/${this.props
+      .tag.key}/values/`;
   },
 
   onSelectValue(evt) {
@@ -115,17 +116,22 @@ const StreamTagFilter = React.createClass({
     let tag = this.props.tag;
     return (
       <div className="stream-tag-filter">
-        <h6 className="nav-header">{tag.name}</h6>
+        <h6 className="nav-header">
+          {tag.name}
+        </h6>
 
         {this.props.tag.predefined
           ? <select ref="select" onChange={function() {}}>
               <option key="empty" />
               {this.props.tag.values.map(val => {
-                return <option key={val}>{val}</option>;
+                return (
+                  <option key={val}>
+                    {val}
+                  </option>
+                );
               })}
             </select>
           : <input type="hidden" ref="select" value={this.props.value} />}
-
       </div>
     );
   }

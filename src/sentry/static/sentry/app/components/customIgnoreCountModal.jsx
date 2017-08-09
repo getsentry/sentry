@@ -38,7 +38,9 @@ export default React.createClass({
     return (
       <Modal show={this.props.show} animation={false} onHide={this.props.onCanceled}>
         <div className="modal-header">
-          <h4>{this.props.label}</h4>
+          <h4>
+            {this.props.label}
+          </h4>
         </div>
         <div className="modal-body">
           <form className="m-b-1">

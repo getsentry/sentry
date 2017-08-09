@@ -96,8 +96,12 @@ const SavedSearchRow = React.createClass({
     return (
       <tr>
         <td>
-          <h5 style={{marginBottom: 5}}>{data.name}</h5>
-          <code>{data.query}</code>
+          <h5 style={{marginBottom: 5}}>
+            {data.name}
+          </h5>
+          <code>
+            {data.query}
+          </code>
         </td>
         <td style={{textAlign: 'center'}}>
           <input
@@ -217,7 +221,9 @@ const ProjectSavedSearches = React.createClass({
     return (
       <div className="box empty-stream">
         <span className="icon icon-exclamation" />
-        <p>{t('There are no saved searches for this project.')}</p>
+        <p>
+          {t('There are no saved searches for this project.')}
+        </p>
       </div>
     );
   },
@@ -262,7 +268,9 @@ const ProjectSavedSearches = React.createClass({
     // TODO(dcramer): localize when language is final
     return (
       <div>
-        <h2>{t('Saved Searches')}</h2>
+        <h2>
+          {t('Saved Searches')}
+        </h2>
         {this.renderBody()}
       </div>
     );

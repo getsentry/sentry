@@ -20,10 +20,14 @@ const ExceptionContent = React.createClass({
       return (
         <div key={excIdx} className="exception">
           <h5 className="break-word" style={{marginBottom: 5}}>
-            <span>{exc.type}</span>
+            <span>
+              {exc.type}
+            </span>
           </h5>
           {exc.value &&
-            <pre className="exc-message" style={{marginTop: 0}}>{exc.value}</pre>}
+            <pre className="exc-message" style={{marginTop: 0}}>
+              {exc.value}
+            </pre>}
           {exc.mechanism &&
             <ExceptionMechanism data={exc.mechanism} platform={this.props.platform} />}
           {defined(exc.stacktrace) &&

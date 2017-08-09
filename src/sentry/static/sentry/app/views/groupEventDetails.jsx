@@ -5,8 +5,7 @@ import GroupEventToolbar from './groupDetails/eventToolbar';
 import GroupSidebar from '../components/group/sidebar';
 import GroupState from '../mixins/groupState';
 import MutedBox from '../components/mutedBox';
-import GroupEventDetailsLoadingError
-  from '../components/errors/groupEventDetailsLoadingError';
+import GroupEventDetailsLoadingError from '../components/errors/groupEventDetailsLoadingError';
 import LoadingIndicator from '../components/loadingIndicator';
 import ResolutionBox from '../components/resolutionBox';
 
@@ -35,9 +34,10 @@ const GroupEventDetails = React.createClass({
   fetchData() {
     let eventId = this.props.params.eventId || 'latest';
 
-    let url = eventId === 'latest' || eventId === 'oldest'
-      ? '/issues/' + this.getGroup().id + '/events/' + eventId + '/'
-      : '/events/' + eventId + '/';
+    let url =
+      eventId === 'latest' || eventId === 'oldest'
+        ? '/issues/' + this.getGroup().id + '/events/' + eventId + '/'
+        : '/events/' + eventId + '/';
 
     this.setState({
       loading: true,
@@ -95,13 +95,13 @@ const GroupEventDetails = React.createClass({
             {this.state.loading
               ? <LoadingIndicator />
               : this.state.error
-                  ? <GroupEventDetailsLoadingError onRetry={this.fetchData} />
-                  : <EventEntries
-                      group={group}
-                      event={evt}
-                      orgId={params.orgId}
-                      project={this.getProject()}
-                    />}
+                ? <GroupEventDetailsLoadingError onRetry={this.fetchData} />
+                : <EventEntries
+                    group={group}
+                    event={evt}
+                    orgId={params.orgId}
+                    project={this.getProject()}
+                  />}
           </div>
           <div className="secondary">
             <GroupSidebar group={group} event={evt} />

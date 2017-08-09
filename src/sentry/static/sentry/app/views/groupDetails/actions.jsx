@@ -102,7 +102,9 @@ const ResolveActions = React.createClass({
             caret={true}
             className={resolveClassName}
             title="">
-            <MenuItem header={true}>{t('Resolved In')}</MenuItem>
+            <MenuItem header={true}>
+              {t('Resolved In')}
+            </MenuItem>
             <MenuItem noAnchor={true}>
               <a
                 onClick={() => {
@@ -390,7 +392,9 @@ const DeleteActions = React.createClass({
                     'Are you sure you wish to continue?'
                 )}
                 onConfirm={this.props.onDiscard}>
-                <span>{t('Delete and discard future events')}</span>
+                <span>
+                  {t('Delete and discard future events')}
+                </span>
               </LinkWithConfirmation>
             </li>
           </DropdownLink>}
@@ -538,22 +542,23 @@ export default React.createClass({
               </DropdownLink>
             </div>
           : group.pluginActions.length !== 0 &&
-              group.pluginActions.map((action, actionIdx) => {
-                return (
-                  <div className="btn-group" key={actionIdx}>
-                    <a className="btn btn-default btn-sm" href={action[1]}>
-                      {action[0]}
-                    </a>
-                  </div>
-                );
-              })}
+            group.pluginActions.map((action, actionIdx) => {
+              return (
+                <div className="btn-group" key={actionIdx}>
+                  <a className="btn btn-default btn-sm" href={action[1]}>
+                    {action[0]}
+                  </a>
+                </div>
+              );
+            })}
         {group.pluginIssues &&
           group.pluginIssues.map(plugin => {
             return <IssuePluginActions key={plugin.slug} plugin={plugin} />;
           })}
         {!hasIssueTracking &&
           <a
-            href={`/${this.getOrganization().slug}/${this.getProject().slug}/settings/issue-tracking/`}
+            href={`/${this.getOrganization().slug}/${this.getProject()
+              .slug}/settings/issue-tracking/`}
             className={'btn btn-default btn-sm btn-config-issue-tracking'}>
             {t('Link Issue Tracker')}
           </a>}

@@ -63,7 +63,10 @@ const ClippedBox = React.createClass({
       <div
         className={className}
         style={{maxHeight: this.state.clipped ? this.props.clipHeight : null}}>
-        {this.props.title && <h5>{this.props.title}</h5>}
+        {this.props.title &&
+          <h5>
+            {this.props.title}
+          </h5>}
         {this.props.children}
 
         {this.state.clipped &&

@@ -361,9 +361,10 @@ const SearchBar = React.createClass({
       // Move active selection up/down
       delete searchItems[state.activeSearchItem].active;
 
-      state.activeSearchItem = evt.key === 'ArrowDown'
-        ? Math.min(state.activeSearchItem + 1, searchItems.length - 1)
-        : Math.max(state.activeSearchItem - 1, 0);
+      state.activeSearchItem =
+        evt.key === 'ArrowDown'
+          ? Math.min(state.activeSearchItem + 1, searchItems.length - 1)
+          : Math.max(state.activeSearchItem - 1, 0);
 
       searchItems[state.activeSearchItem].active = true;
       this.setState({searchItems: searchItems.slice(0)});
@@ -392,11 +393,12 @@ const SearchBar = React.createClass({
 
       newQuery = query.slice(0, lastTermIndex); // get text preceding last term
 
-      newQuery = last.indexOf(':') > -1
-        ? // tag key present: replace everything after colon with replaceText
-          newQuery.replace(/\:"[^"]*"?$|\:\S*$/, ':' + replaceText)
-        : // no tag key present: replace last token with replaceText
-          newQuery.replace(/\S+$/, replaceText);
+      newQuery =
+        last.indexOf(':') > -1
+          ? // tag key present: replace everything after colon with replaceText
+            newQuery.replace(/\:"[^"]*"?$|\:\S*$/, ':' + replaceText)
+          : // no tag key present: replace last token with replaceText
+            newQuery.replace(/\S+$/, replaceText);
 
       newQuery = newQuery.concat(query.slice(lastTermIndex));
     }

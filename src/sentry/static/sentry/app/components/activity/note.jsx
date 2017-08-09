@@ -30,7 +30,9 @@ const Note = React.createClass({
           {author.name}
           {this.canEdit() &&
             <span className="editor-tools">
-              <a onClick={onEdit}>{t('Edit')}</a>
+              <a onClick={onEdit}>
+                {t('Edit')}
+              </a>
               <LinkWithConfirmation
                 className="danger"
                 message={t('Are you sure you wish to delete this comment?')}

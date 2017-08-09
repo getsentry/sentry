@@ -38,7 +38,9 @@ const SearchDropdown = React.createClass({
     return (
       <span>
         {text.substr(0, idx)}
-        <strong>{text.substr(idx, searchSubstring.length)}</strong>
+        <strong>
+          {text.substr(idx, searchSubstring.length)}
+        </strong>
         {text.substr(idx + searchSubstring.length)}
       </span>
     );
@@ -68,7 +70,11 @@ const SearchDropdown = React.createClass({
                         {this.renderDescription(item)}
                       </span>
                     </h4>
-                    {item.example ? <p className="search-example">{item.example}</p> : ''}
+                    {item.example
+                      ? <p className="search-example">
+                          {item.example}
+                        </p>
+                      : ''}
                   </li>
                 );
               })}

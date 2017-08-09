@@ -54,9 +54,10 @@ const Stream = React.createClass({
     let searchId = this.props.params.searchId || null;
     let project = this.getProject();
     let realtimeActiveCookie = Cookies.get('realtimeActive');
-    let realtimeActive = typeof realtimeActiveCookie === 'undefined'
-      ? project && !project.firstEvent
-      : realtimeActiveCookie === 'true';
+    let realtimeActive =
+      typeof realtimeActiveCookie === 'undefined'
+        ? project && !project.firstEvent
+        : realtimeActiveCookie === 'true';
 
     return {
       groupIds: [],
@@ -363,7 +364,8 @@ const Stream = React.createClass({
           if (data[0].matchingEventId) {
             return void browserHistory.pushState(
               null,
-              `/${this.props.params.orgId}/${data[0].project.slug}/issues/${data[0].id}/events/${data[0].matchingEventId}/`
+              `/${this.props.params.orgId}/${data[0].project.slug}/issues/${data[0]
+                .id}/events/${data[0].matchingEventId}/`
             );
           }
           return void browserHistory.pushState(
@@ -380,12 +382,10 @@ const Stream = React.createClass({
         return void this.setState({
           error: false,
           dataLoading: false,
-          queryCount: typeof queryCount !== 'undefined'
-            ? parseInt(queryCount, 10) || 0
-            : 0,
-          queryMaxCount: typeof queryMaxCount !== 'undefined'
-            ? parseInt(queryMaxCount, 10) || 0
-            : 0,
+          queryCount:
+            typeof queryCount !== 'undefined' ? parseInt(queryCount, 10) || 0 : 0,
+          queryMaxCount:
+            typeof queryMaxCount !== 'undefined' ? parseInt(queryMaxCount, 10) || 0 : 0,
           pageLinks: jqXHR.getResponseHeader('Link')
         });
       },
@@ -610,12 +610,7 @@ const Stream = React.createClass({
           <Link to={link} className="btn btn-default btn-sm pull-right">
             {t('Show details')}
           </Link>}
-        {icon}
-        {' '}
-        <strong>{issues}</strong>
-        {' '}
-        {lastEvent}
-        {' '}
+        {icon} <strong>{issues}</strong> {lastEvent}{' '}
       </div>
     );
   },
@@ -632,7 +627,11 @@ const Stream = React.createClass({
         />
       );
     });
-    return <ul className="group-list" ref="groupList">{groupNodes}</ul>;
+    return (
+      <ul className="group-list" ref="groupList">
+        {groupNodes}
+      </ul>
+    );
   },
   renderAwaitingEvents() {
     let org = this.getOrganization();
@@ -661,8 +660,12 @@ const Stream = React.createClass({
     return (
       <div className="box awaiting-events">
         <div className="wrap">
-          <div className="robot"><span className="eye" /></div>
-          <h3>{t('Waiting for events…')}</h3>
+          <div className="robot">
+            <span className="eye" />
+          </div>
+          <h3>
+            {t('Waiting for events…')}
+          </h3>
           <p>
             {tct(
               'Our error robot is waiting to [cross:devour] receive your first event.',
@@ -687,7 +690,9 @@ const Stream = React.createClass({
     return (
       <div className="box empty-stream">
         <span className="icon icon-exclamation" />
-        <p>{t('Sorry, no events match your filters.')}</p>
+        <p>
+          {t('Sorry, no events match your filters.')}
+        </p>
       </div>
     );
   },

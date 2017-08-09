@@ -162,19 +162,31 @@ const Frame = React.createClass({
         );
       }
       if (defined(data.function)) {
-        title.push(<span className="in-at" key="in"> in </span>);
+        title.push(
+          <span className="in-at" key="in">
+            {' '}in{' '}
+          </span>
+        );
       }
     }
 
     if (defined(data.function)) {
-      title.push(<code key="function" className="function">{data.function}</code>);
+      title.push(
+        <code key="function" className="function">
+          {data.function}
+        </code>
+      );
     }
 
     // we don't want to render out zero line numbers which are used to
     // indicate lack of source information for native setups.  We could
     // TODO(mitsuhiko): only do this for events from native platforms?
     if (defined(data.lineNo) && data.lineNo != 0) {
-      title.push(<span className="in-at in-at-line" key="no"> at line </span>);
+      title.push(
+        <span className="in-at in-at-line" key="no">
+          {' '}at line{' '}
+        </span>
+      );
       title.push(
         <code key="line" className="lineno">
           {defined(data.colNo) ? `${data.lineNo}:${data.colNo}` : data.lineNo}
@@ -183,7 +195,11 @@ const Frame = React.createClass({
     }
 
     if (defined(data.package)) {
-      title.push(<span className="within" key="within"> within </span>);
+      title.push(
+        <span className="within" key="within">
+          {' '}within{' '}
+        </span>
+      );
       title.push(
         <code title={data.package} className="package" key="package">
           {trimPackage(data.package)}
@@ -251,7 +267,9 @@ const Frame = React.createClass({
       context = (
         <div className="empty-context">
           <span className="icon icon-exclamation" />
-          <p>{t('No additional details are available for this frame.')}</p>
+          <p>
+            {t('No additional details are available for this frame.')}
+          </p>
         </div>
       );
     }
@@ -321,7 +339,9 @@ const Frame = React.createClass({
           className="repeated-frames"
           title={`Frame repeated ${this.props.timesRepeated} times`}>
           <span className="icon-refresh" />
-          <span>{this.props.timesRepeated}</span>
+          <span>
+            {this.props.timesRepeated}
+          </span>
         </span>
       );
     } else return null;
@@ -355,7 +375,9 @@ const Frame = React.createClass({
             {data.instructionAddr}
           </span>
           <span className="symbol">
-            <code>{data.function || '<unknown>'}</code>
+            <code>
+              {data.function || '<unknown>'}
+            </code>
             {data.filename &&
               <span className="filename">
                 {data.filename}

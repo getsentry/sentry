@@ -13,7 +13,9 @@ const ProjectLabel = React.createClass({
     let project = this.props.project;
     return (
       <span className="project-label">
-        <span className="project-name">{project.name}</span>
+        <span className="project-name">
+          {project.name}
+        </span>
       </span>
     );
   }

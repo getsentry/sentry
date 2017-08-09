@@ -58,7 +58,9 @@ const OrganizationIssueList = React.createClass({
             </Link>
           </div>
         </div>
-        <h3>{this.props.title}</h3>
+        <h3>
+          {this.props.title}
+        </h3>
         <IssueList
           endpoint={this.props.endpoint}
           query={{

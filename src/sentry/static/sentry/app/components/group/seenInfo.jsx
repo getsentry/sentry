@@ -36,17 +36,23 @@ const SeenInfo = React.createClass({
           let {date, dateGlobal, environment, title} = instance.props;
           return componentToString(
             <div style={{width: 170}}>
-              <div className="time-label">{title}</div>
+              <div className="time-label">
+                {title}
+              </div>
               <dl className="flat">
                 {environment && [
-                  <dt key="0">{toTitleCase(environment)}</dt>,
+                  <dt key="0">
+                    {toTitleCase(environment)}
+                  </dt>,
                   <dd key="0.1">
-                    <TimeSince date={date} /><br />
+                    <TimeSince date={date} />
+                    <br />
                   </dd>
                 ]}
                 <dt key="1">Globally:</dt>
                 <dd key="1.1">
-                  <TimeSince date={dateGlobal} /><br />
+                  <TimeSince date={dateGlobal} />
+                  <br />
                 </dd>
               </dl>
             </div>
@@ -73,19 +79,33 @@ const SeenInfo = React.createClass({
     let {date, dateGlobal, environment, release, orgId, projectId} = this.props;
     return (
       <dl className="seen-info">
-        <dt key={0}>{t('When')}:</dt>
+        <dt key={0}>
+          {t('When')}:
+        </dt>
         {date
           ? <dd key={1}>
-              <span className="tip"><TimeSince date={date} /></span><br />
-              <small><DateTime date={date} seconds={true} /></small>
+              <span className="tip">
+                <TimeSince date={date} />
+              </span>
+              <br />
+              <small>
+                <DateTime date={date} seconds={true} />
+              </small>
             </dd>
           : dateGlobal && environment === ''
-              ? <dd key={1}>
-                  <span className="tip"><TimeSince date={dateGlobal} /></span><br />
-                  <small><DateTime date={dateGlobal} seconds={true} /></small>
-                </dd>
-              : <dd key={1}>n/a</dd>}
-        <dt key={4}>{t('Release')}:</dt>
+            ? <dd key={1}>
+                <span className="tip">
+                  <TimeSince date={dateGlobal} />
+                </span>
+                <br />
+                <small>
+                  <DateTime date={dateGlobal} seconds={true} />
+                </small>
+              </dd>
+            : <dd key={1}>n/a</dd>}
+        <dt key={4}>
+          {t('Release')}:
+        </dt>
         {defined(release)
           ? <dd key={5}>
               <VersionHoverCard
@@ -96,12 +116,12 @@ const SeenInfo = React.createClass({
               </VersionHoverCard>
             </dd>
           : !this.props.hasRelease
-              ? <dd key={5}>
-                  <small style={{marginLeft: 5, fontStyle: 'italic'}}>
-                    <a href={this.getReleaseTrackingUrl()}>not configured</a>
-                  </small>
-                </dd>
-              : <dd key={5}>n/a</dd>}
+            ? <dd key={5}>
+                <small style={{marginLeft: 5, fontStyle: 'italic'}}>
+                  <a href={this.getReleaseTrackingUrl()}>not configured</a>
+                </small>
+              </dd>
+            : <dd key={5}>n/a</dd>}
       </dl>
     );
   }

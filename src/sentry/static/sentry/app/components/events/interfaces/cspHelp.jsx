@@ -137,7 +137,9 @@ const CSPHelp = React.createClass({
     return (
       <div>
         <h4>
-          <code>{key}</code>
+          <code>
+            {key}
+          </code>
         </h4>
         <blockquote dangerouslySetInnerHTML={getHelp(key)} />
         <p style={{textAlign: 'right'}}>

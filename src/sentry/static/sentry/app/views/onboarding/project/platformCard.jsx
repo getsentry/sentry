@@ -18,7 +18,9 @@ const PlatformCard = React.createClass({
         className={classnames('platform-card', this.props.className)}
         onClick={this.props.onClick}>
         <PlatformiconTile {...this.props} />
-        <h5> {platform.name} </h5>
+        <h5>
+          {' '}{platform.name}{' '}
+        </h5>
       </span>
     );
   }

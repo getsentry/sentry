@@ -46,18 +46,22 @@ const Incidents = React.createClass({
             title={t('Recent status updates')}
             hidePanel={this.props.hidePanel}>
             <ul className="incident-list list-unstyled">
-              {status.incidents.map(incident => (
+              {status.incidents.map(incident =>
                 <li className="incident-item" key={incident.id}>
-                  <h4>{incident.title}</h4>
+                  <h4>
+                    {incident.title}
+                  </h4>
                   {incident.updates
                     ? <div>
                         <h6>Latest updates:</h6>
                         <ul className="status-list list-unstyled">
-                          {incident.updates.map((update, key) => (
+                          {incident.updates.map((update, key) =>
                             <li className="status-item" key={key}>
-                              <p>{update}</p>
+                              <p>
+                                {update}
+                              </p>
                             </li>
-                          ))}
+                          )}
                         </ul>
                       </div>
                     : null}
@@ -67,7 +71,7 @@ const Incidents = React.createClass({
                     </a>
                   </p>
                 </li>
-              ))}
+              )}
             </ul>
           </SidebarPanel>}
       </li>

@@ -54,7 +54,11 @@ const LinkWithConfirmation = React.createClass({
           animation={false}
           onHide={this.onToggle}>
           <div className="modal-body">
-            <p><strong>{this.props.message}</strong></p>
+            <p>
+              <strong>
+                {this.props.message}
+              </strong>
+            </p>
           </div>
           <div className="modal-footer">
             <button type="button" className="btn btn-default" onClick={this.onToggle}>

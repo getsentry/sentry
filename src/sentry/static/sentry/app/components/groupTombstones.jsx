@@ -25,15 +25,21 @@ const GroupTombstoneRow = React.createClass({
                 {data.level}
               </span>
               <span>
-                <span style={{marginRight: 10}}>{data.type}</span>
-                <em>{data.culprit}</em><br />
+                <span style={{marginRight: 10}}>
+                  {data.type}
+                </span>
+                <em>
+                  {data.culprit}
+                </em>
+                <br />
               </span>
             </h3>
             <div className="event-message truncate">
-              <span className="message">{data.message}</span>
+              <span className="message">
+                {data.message}
+              </span>
             </div>
             <div className="event-extra">
-
               <LinkWithConfirmation
                 title={t('Undiscard')}
                 className="btn btn-warning btn-xs"
@@ -47,7 +53,9 @@ const GroupTombstoneRow = React.createClass({
                 onConfirm={() => {
                   undiscard(data.id);
                 }}>
-                <span>{t('Undiscard')}</span>
+                <span>
+                  {t('Undiscard')}
+                </span>
               </LinkWithConfirmation>
               {data.actor &&
                 <span style={{marginLeft: 10}} className="event-message actor">
@@ -94,7 +102,11 @@ const GroupTombstones = React.createClass({
   },
 
   renderEmpty() {
-    return <div className="box empty">{t('None')}</div>;
+    return (
+      <div className="box empty">
+        {t('None')}
+      </div>
+    );
   },
 
   render() {
@@ -105,7 +117,9 @@ const GroupTombstones = React.createClass({
       <div>
         <div className="row" style={{paddingTop: 10}}>
           <div className="col-sm-8">
-            <h5>{t('Discarded Groups')}</h5>
+            <h5>
+              {t('Discarded Groups')}
+            </h5>
             {tombstones.length
               ? <ul className="group-list">
                   {tombstones.map(data => {

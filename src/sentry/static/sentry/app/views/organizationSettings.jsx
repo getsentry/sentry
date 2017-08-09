@@ -151,7 +151,9 @@ const OrganizationSettingsForm = React.createClass({
             )}
           </div>}
         <fieldset>
-          <legend style={{marginTop: 0}}>{t('General')}</legend>
+          <legend style={{marginTop: 0}}>
+            {t('General')}
+          </legend>
 
           <TextField
             key="name"
@@ -184,7 +186,9 @@ const OrganizationSettingsForm = React.createClass({
             onChange={this.onFieldChange.bind(this, 'isEarlyAdopter')}
           />
 
-          <legend>{t('Membership')}</legend>
+          <legend>
+            {t('Membership')}
+          </legend>
 
           {access.has('org:admin') &&
             <Select2Field
@@ -210,7 +214,9 @@ const OrganizationSettingsForm = React.createClass({
             onChange={this.onFieldChange.bind(this, 'openMembership')}
           />
 
-          <legend>{t('Security & Privacy')}</legend>
+          <legend>
+            {t('Security & Privacy')}
+          </legend>
 
           <BooleanField
             key="allowSharedIssues"
@@ -358,7 +364,9 @@ const OrganizationSettings = React.createClass({
 
     return (
       <OrganizationHomeContainer>
-        <h3>{t('Organization Settings')}</h3>
+        <h3>
+          {t('Organization Settings')}
+        </h3>
         <div className="box">
           <div className="box-content with-padding">
             <OrganizationSettingsForm
@@ -374,7 +382,9 @@ const OrganizationSettings = React.createClass({
           !data.isDefault &&
           <div className="box">
             <div className="box-header">
-              <h3>{t('Remove Organization')}</h3>
+              <h3>
+                {t('Remove Organization')}
+              </h3>
             </div>
             <div className="box-content with-padding">
               <p>

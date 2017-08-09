@@ -19,7 +19,9 @@ class DigestSettings extends React.Component {
     return (
       <div className="box">
         <div className="box-header">
-          <h3>{t('Digests')}</h3>
+          <h3>
+            {t('Digests')}
+          </h3>
         </div>
         <div className="box-content with-padding">
           <p>
@@ -83,7 +85,9 @@ class GeneralSettings extends React.Component {
     return (
       <div className="box">
         <div className="box-header">
-          <h3>{t('Email Settings')}</h3>
+          <h3>
+            {t('Email Settings')}
+          </h3>
         </div>
 
         <div className="box-content with-padding">
@@ -185,7 +189,9 @@ export default class ProjectAlertSettings extends AsyncView {
           <span className="icon-plus" />
           {t('New Alert Rule')}
         </a>
-        <h2>{t('Alerts')}</h2>
+        <h2>
+          {t('Alerts')}
+        </h2>
 
         <ul className="nav nav-tabs" style={{borderBottom: '1px solid #ddd'}}>
           <ListLink to={`/${orgId}/${projectId}/settings/alerts/`} index={true}>

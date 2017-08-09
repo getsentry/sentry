@@ -92,7 +92,11 @@ const TodoItem = React.createClass({
             {this.props.task.status == 'skipped' && <span className="icon-x" />}
             {this.props.task.status == 'pending' && <span className="icon-ellipsis" />}
           </div>
-          <a href={learnMoreUrl}><h4>{this.props.task.title}</h4></a>
+          <a href={learnMoreUrl}>
+            <h4>
+              {this.props.task.title}
+            </h4>
+          </a>
           <p>
             {description}
           </p>
@@ -131,15 +135,14 @@ const Confirmation = React.createClass({
   render: function() {
     return (
       <div className="ob-confirmation" onClick={this.dismiss}>
-        <h3>{t('Need help?')}</h3>
+        <h3>
+          {t('Need help?')}
+        </h3>
         <p>
           <a href="mailto:support@sentry.io?subject=Help with onboarding">
             {t('Ask us!')}
-          </a>
-          {' '}
-          ·
-          {' '}
-          <a onClick={this.skip}>{t('Skip')}</a>
+          </a>{' '}
+          · <a onClick={this.skip}>{t('Skip')}</a>
         </p>
       </div>
     );

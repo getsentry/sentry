@@ -55,15 +55,21 @@ const AuthorizationRow = React.createClass({
     return (
       <tr>
         <td>
-          <h5 style={{marginBottom: 5}}>{authorization.application.name}</h5>
+          <h5 style={{marginBottom: 5}}>
+            {authorization.application.name}
+          </h5>
           {authorization.homepageUrl &&
             <div style={{marginBottom: 5}}>
               <small>
-                <a href={authorization.homepageUrl}>{authorization.homepageUrl}</a>
+                <a href={authorization.homepageUrl}>
+                  {authorization.homepageUrl}
+                </a>
               </small>
             </div>}
           <div>
-            <small style={{color: '#999'}}>{authorization.scopes.join(', ')}</small>
+            <small style={{color: '#999'}}>
+              {authorization.scopes.join(', ')}
+            </small>
           </div>
         </td>
         <td style={{width: 32}}>
@@ -136,9 +142,7 @@ class AccountAuthorizations extends AsyncView {
         {this.renderResults()}
         <p>
           <small>
-            You can manage your own applications via the
-            {' '}
-            <a href="/api/">API dashboard</a>
+            You can manage your own applications via the <a href="/api/">API dashboard</a>
             .
           </small>
         </p>

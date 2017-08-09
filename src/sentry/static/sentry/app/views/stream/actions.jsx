@@ -63,11 +63,17 @@ const IgnoreActions = React.createClass({
     if (this.state.allInQuerySelected) {
       extraDescription = this.props.query
         ? <div>
-            <p>{t('This will apply to the current search query:')}</p>
-            <pre>{this.props.query}</pre>
+            <p>
+              {t('This will apply to the current search query:')}
+            </p>
+            <pre>
+              {this.props.query}
+            </pre>
           </div>
         : <p className="error">
-            <strong>{t('This will apply to ALL issues in this project!')}</strong>
+            <strong>
+              {t('This will apply to ALL issues in this project!')}
+            </strong>
           </p>;
     }
     let linkClassName = 'group-ignore btn btn-default btn-sm';
@@ -282,11 +288,17 @@ const ResolveActions = React.createClass({
     if (this.state.allInQuerySelected) {
       extraDescription = this.props.query
         ? <div>
-            <p>{t('This will apply to the current search query:')}</p>
-            <pre>{this.props.query}</pre>
+            <p>
+              {t('This will apply to the current search query:')}
+            </p>
+            <pre>
+              {this.props.query}
+            </pre>
           </div>
         : <p className="error">
-            <strong>{t('This will apply to ALL issues in this project!')}</strong>
+            <strong>
+              {t('This will apply to ALL issues in this project!')}
+            </strong>
           </p>;
     }
     let linkClassName = 'group-resolve btn btn-default btn-sm';
@@ -331,7 +343,9 @@ const ResolveActions = React.createClass({
             className={linkClassName}
             title=""
             disabled={!this.props.anySelected}>
-            <MenuItem header={true}>{t('Resolved In')}</MenuItem>
+            <MenuItem header={true}>
+              {t('Resolved In')}
+            </MenuItem>
             <MenuItem noAnchor={true}>
               <ActionLink
                 onAction={() =>
@@ -535,11 +549,17 @@ const StreamActions = React.createClass({
     if (this.state.allInQuerySelected) {
       extraDescription = this.props.query
         ? <div>
-            <p>{t('This will apply to the current search query:')}</p>
-            <pre>{this.props.query}</pre>
+            <p>
+              {t('This will apply to the current search query:')}
+            </p>
+            <pre>
+              {this.props.query}
+            </pre>
           </div>
         : <p className="error">
-            <strong>{t('This will apply to ALL issues in this project!')}</strong>
+            <strong>
+              {t('This will apply to ALL issues in this project!')}
+            </strong>
           </p>;
     }
 
@@ -739,7 +759,9 @@ const StreamActions = React.createClass({
             <div className="btn-group">
               <a
                 className="btn btn-default btn-sm hidden-xs realtime-control tip"
-                title={`${this.props.realtimeActive ? 'Pause' : 'Enable'} real-time updates`}
+                title={`${this.props.realtimeActive
+                  ? 'Pause'
+                  : 'Enable'} real-time updates`}
                 onClick={this.onRealtimeChange}>
                 {this.props.realtimeActive
                   ? <span className="icon icon-pause" />
@@ -750,13 +772,19 @@ const StreamActions = React.createClass({
           <div className="hidden-sm stream-actions-assignee col-md-1" />
           <div className="stream-actions-level col-md-1 hidden-xs" />
           <div className="hidden-sm hidden-xs stream-actions-graph col-md-2">
-            <span className="stream-actions-graph-label">{t('Graph:')}</span>
+            <span className="stream-actions-graph-label">
+              {t('Graph:')}
+            </span>
             <ul className="toggle-graph">
               <li className={this.props.statsPeriod === '24h' ? 'active' : ''}>
-                <a onClick={this.selectStatsPeriod.bind(this, '24h')}>{t('24h')}</a>
+                <a onClick={this.selectStatsPeriod.bind(this, '24h')}>
+                  {t('24h')}
+                </a>
               </li>
               <li className={this.props.statsPeriod === '14d' ? 'active' : ''}>
-                <a onClick={this.selectStatsPeriod.bind(this, '14d')}>{t('14d')}</a>
+                <a onClick={this.selectStatsPeriod.bind(this, '14d')}>
+                  {t('14d')}
+                </a>
               </li>
             </ul>
           </div>
@@ -772,7 +800,9 @@ const StreamActions = React.createClass({
           <div className="row stream-select-all-notice">
             <div className="col-md-12">
               {this.state.allInQuerySelected
-                ? <strong>{t('All issues matching this search query selected.')}</strong>
+                ? <strong>
+                    {t('All issues matching this search query selected.')}
+                  </strong>
                 : <span>
                     {tn(
                       '%d issue on this page selected.',

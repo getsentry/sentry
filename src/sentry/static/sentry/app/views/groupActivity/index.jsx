@@ -114,7 +114,11 @@ const GroupActivity = React.createClass({
         return t('%(author)s created an issue on %(provider)s titled %(title)s', {
           author: author,
           provider: data.provider,
-          title: <a href={data.location}>{data.title}</a>
+          title: (
+            <a href={data.location}>
+              {data.title}
+            </a>
+          )
         });
       case 'unmerge_source':
         return tn(
@@ -205,7 +209,9 @@ const GroupActivity = React.createClass({
     let children = group.activity.map((item, itemIdx) => {
       let avatar = item.user
         ? <Avatar user={item.user} size={64} className="avatar" />
-        : <div className="avatar sentry"><span className="icon-sentry-logo" /></div>;
+        : <div className="avatar sentry">
+            <span className="icon-sentry-logo" />
+          </div>;
 
       let author = {
         name: item.user ? item.user.name : 'Sentry',
@@ -233,7 +239,9 @@ const GroupActivity = React.createClass({
               {this.formatActivity(
                 <span key="author">
                   {author.avatar}
-                  <span className="activity-author">{author.name}</span>
+                  <span className="activity-author">
+                    {author.name}
+                  </span>
                 </span>,
                 item,
                 this.props.params

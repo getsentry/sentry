@@ -24,21 +24,39 @@ const CompactIssueHeader = React.createClass({
       case 'error':
         return (
           <span>
-            <span style={{marginRight: 10}}>{metadata.type}</span>
-            <em>{data.culprit}</em><br />
+            <span style={{marginRight: 10}}>
+              {metadata.type}
+            </span>
+            <em>
+              {data.culprit}
+            </em>
+            <br />
           </span>
         );
       case 'csp':
         return (
           <span>
-            <span style={{marginRight: 10}}>{metadata.directive}</span>
-            <em>{metadata.uri}</em><br />
+            <span style={{marginRight: 10}}>
+              {metadata.directive}
+            </span>
+            <em>
+              {metadata.uri}
+            </em>
+            <br />
           </span>
         );
       case 'default':
-        return <span>{metadata.title}</span>;
+        return (
+          <span>
+            {metadata.title}
+          </span>
+        );
       default:
-        return <span>{data.title}</span>;
+        return (
+          <span>
+            {data.title}
+          </span>
+        );
     }
   },
 
@@ -74,7 +92,9 @@ const CompactIssueHeader = React.createClass({
         </h3>
         <div className="event-extra">
           <span className="project-name">
-            <Link to={`/${orgId}/${projectId}/`}>{data.project.name}</Link>
+            <Link to={`/${orgId}/${projectId}/`}>
+              {data.project.name}
+            </Link>
           </span>
           {data.numComments !== 0 &&
             <span>
@@ -82,10 +102,14 @@ const CompactIssueHeader = React.createClass({
                 to={`/${orgId}/${projectId}/issues/${data.id}/activity/`}
                 className="comments">
                 <span className="icon icon-comments" style={styles} />
-                <span className="tag-count">{data.numComments}</span>
+                <span className="tag-count">
+                  {data.numComments}
+                </span>
               </Link>
             </span>}
-          <span className="culprit">{this.getMessage()}</span>
+          <span className="culprit">
+            {this.getMessage()}
+          </span>
         </div>
       </div>
     );
@@ -224,7 +248,12 @@ const CompactIssue = React.createClass({
                   onSnooze={this.onSnooze}
                 />
               </li>
-              {false && <li><a href="#"><span className="icon-user" /></a></li>}
+              {false &&
+                <li>
+                  <a href="#">
+                    <span className="icon-user" />
+                  </a>
+                </li>}
             </DropdownLink>
           </div>}
         {this.props.children}

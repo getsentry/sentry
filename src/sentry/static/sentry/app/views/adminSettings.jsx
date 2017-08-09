@@ -42,7 +42,9 @@ export default class AdminSettings extends AsyncView {
 
     return (
       <div>
-        <h3>{t('Settings')}</h3>
+        <h3>
+          {t('Settings')}
+        </h3>
 
         <ApiForm
           apiMethod="PUT"

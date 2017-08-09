@@ -138,7 +138,9 @@ const SetCallsignsAction = React.createClass({
 
     return (
       <ActionOverlay actionId="SET_CALLSIGNS" isLoading={this.state.isLoading}>
-        <h1>{t('Review Call Signs for Projects')}</h1>
+        <h1>
+          {t('Review Call Signs for Projects')}
+        </h1>
         <p>
           {t(
             'Sentry now requires you to specify a call sign (short name) for each project in the organization “%s”. These short names are used to identify the project in the issue IDs.  Ideally they are two or three letter long.',
@@ -146,9 +148,13 @@ const SetCallsignsAction = React.createClass({
           )}
         </p>
         {info.hasNonMemberProjects
-          ? <p>{t('Projects of teams you are not a member of are not shown.')}</p>
+          ? <p>
+              {t('Projects of teams you are not a member of are not shown.')}
+            </p>
           : null}
-        <p>{t('Projects which have been previously reviewed are shown in green.')}</p>
+        <p>
+          {t('Projects which have been previously reviewed are shown in green.')}
+        </p>
         <form className="form-horizontal">
           {info.memberProjects.map(project => {
             let inputId = 'input-' + project.projectId;

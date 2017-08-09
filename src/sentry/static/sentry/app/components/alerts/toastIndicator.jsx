@@ -5,7 +5,9 @@ function ToastIndicator({type, children}) {
   return (
     <div className={classNames('toast', type)}>
       <span className="icon" />
-      <div className="toast-message">{children}</div>
+      <div className="toast-message">
+        {children}
+      </div>
     </div>
   );
 }

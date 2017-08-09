@@ -45,8 +45,12 @@ const GroupEventDataSection = React.createClass({
               <em className="icon-anchor" />
             </a>
             {this.props.wrapTitle
-              ? <h3>{this.props.title}</h3>
-              : <div>{this.props.title}</div>}
+              ? <h3>
+                  {this.props.title}
+                </h3>
+              : <div>
+                  {this.props.title}
+                </div>}
           </div>}
         <div className="box-content with-padding">
           {this.props.children}

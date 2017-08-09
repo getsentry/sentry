@@ -104,7 +104,9 @@ const ProjectDebugSymbols = React.createClass({
     return (
       <div className="box empty-stream">
         <span className="icon icon-exclamation" />
-        <p>{t('There are no debug symbols for this project.')}</p>
+        <p>
+          {t('There are no debug symbols for this project.')}
+        </p>
       </div>
     );
   },
@@ -177,7 +179,9 @@ const ProjectDebugSymbols = React.createClass({
                       onClick={() => this.setActive(app.id, version, builds)}>
                       <div className="row">
                         <div className="col-xs-8 event-details">
-                          <h3 className="truncate">{version}</h3>
+                          <h3 className="truncate">
+                            {version}
+                          </h3>
                           <div className="event-message">
                             {t('Builds')}: {Object.keys(builds).length}
                           </div>
@@ -280,7 +284,9 @@ const ProjectDebugSymbols = React.createClass({
     if (raw && dsyms.length >= 100) {
       moreSymbolsHidden = (
         <tr className="text-center" key="empty-row">
-          <td colSpan="5">{t('There are more symbols than are shown here.')}</td>
+          <td colSpan="5">
+            {t('There are more symbols than are shown here.')}
+          </td>
         </tr>
       );
     }
@@ -292,14 +298,27 @@ const ProjectDebugSymbols = React.createClass({
       }
       return (
         <tr key={key}>
-          <td><code className="small">{dsym.uuid}</code></td>
-          <td>{
-            dsym.symbolType === 'proguard' && dsym.objectName === 'proguard-mapping'
-            ? '-' : dsym.objectName}</td>
-          <td>{dsym.symbolType === 'proguard' && dsym.cpuName === 'any'
-            ? 'proguard' : `${dsym.cpuName} (${dsym.symbolType})`}</td>
-          <td><DateTime date={dsym.dateCreated} /></td>
-          <td><FileSize bytes={dsym.size} /></td>
+          <td>
+            <code className="small">
+              {dsym.uuid}
+            </code>
+          </td>
+          <td>
+            {dsym.symbolType === 'proguard' && dsym.objectName === 'proguard-mapping'
+              ? '-'
+              : dsym.objectName}
+          </td>
+          <td>
+            {dsym.symbolType === 'proguard' && dsym.cpuName === 'any'
+              ? 'proguard'
+              : `${dsym.cpuName} (${dsym.symbolType})`}
+          </td>
+          <td>
+            <DateTime date={dsym.dateCreated} />
+          </td>
+          <td>
+            <FileSize bytes={dsym.size} />
+          </td>
         </tr>
       );
     });
@@ -314,7 +333,9 @@ const ProjectDebugSymbols = React.createClass({
     }
     return (
       <div>
-        <h3>{t('Unreferenced Debug Information Files')}</h3>
+        <h3>
+          {t('Unreferenced Debug Information Files')}
+        </h3>
         <p>
           {t(
             `
@@ -329,11 +350,21 @@ const ProjectDebugSymbols = React.createClass({
         <table className="table">
           <thead>
             <tr>
-              <th>{t('UUID')}</th>
-              <th>{t('Object')}</th>
-              <th>{t('Type')}</th>
-              <th>{t('Uploaded')}</th>
-              <th>{t('Size')}</th>
+              <th>
+                {t('UUID')}
+              </th>
+              <th>
+                {t('Object')}
+              </th>
+              <th>
+                {t('Type')}
+              </th>
+              <th>
+                {t('Uploaded')}
+              </th>
+              <th>
+                {t('Size')}
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -347,14 +378,18 @@ const ProjectDebugSymbols = React.createClass({
   render() {
     return (
       <div>
-        <h1>{t('Debug Information Files')}</h1>
-        <p>{t(`
+        <h1>
+          {t('Debug Information Files')}
+        </h1>
+        <p>
+          {t(`
           Here you can find uploaded debug information (for instance debug
           symbol files or proguard mappings).  This is used to convert
           addresses and minified function names from crash dumps
           into function names and locations.  For JavaScript debug support
           look at releases instead.
-        `)}</p>
+        `)}
+        </p>
         {this.renderDebugTable()}
         {this.renderUnreferencedDebugSymbols()}
         <Modal
@@ -373,11 +408,21 @@ const ProjectDebugSymbols = React.createClass({
             <table className="table">
               <thead>
                 <tr>
-                  <th>{t('UUID')}</th>
-                  <th>{t('Object')}</th>
-                  <th>{t('Type')}</th>
-                  <th>{t('Uploaded')}</th>
-                  <th>{t('Size')}</th>
+                  <th>
+                    {t('UUID')}
+                  </th>
+                  <th>
+                    {t('Object')}
+                  </th>
+                  <th>
+                    {t('Type')}
+                  </th>
+                  <th>
+                    {t('Uploaded')}
+                  </th>
+                  <th>
+                    {t('Size')}
+                  </th>
                 </tr>
               </thead>
               <tbody>

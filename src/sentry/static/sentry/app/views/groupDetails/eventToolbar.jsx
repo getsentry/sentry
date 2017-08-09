@@ -105,7 +105,9 @@ let GroupEventToolbar = React.createClass({
             className="btn btn-default">
             {t('Older')}
           </Link>
-        : <a key="prev" className="btn btn-default disabled">{t('Older')}</a>,
+        : <a key="prev" className="btn btn-default disabled">
+            {t('Older')}
+          </a>,
       evt.nextEventID
         ? <Link
             key="next"
@@ -113,7 +115,9 @@ let GroupEventToolbar = React.createClass({
             className="btn btn-default">
             {t('Newer')}
           </Link>
-        : <a key="next" className="btn btn-default disabled">{t('Newer')}</a>,
+        : <a key="next" className="btn btn-default disabled">
+            {t('Newer')}
+          </a>,
       evt.nextEventID
         ? <Link
             key="latest"
@@ -146,7 +150,9 @@ let GroupEventToolbar = React.createClass({
             {eventNavNodes}
           </div>
         </div>
-        <h4>{t('Event')} <span className="event-id">{evt.eventID}</span></h4>
+        <h4>
+          {t('Event')} <span className="event-id">{evt.eventID}</span>
+        </h4>
         <span>
           {/* use a key here to force removal of tooltip parent - fixes #3341 */}
           <span className="tip" data-title={this.getDateTooltip()} key={evt.id}>

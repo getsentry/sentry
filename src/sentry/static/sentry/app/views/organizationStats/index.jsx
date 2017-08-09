@@ -55,7 +55,8 @@ const OrganizationStats = React.createClass({
   },
 
   componentDidUpdate(prevProps) {
-    let prevParams = prevProps.params, currentParams = this.props.params;
+    let prevParams = prevProps.params,
+      currentParams = this.props.params;
 
     if (prevParams.orgId !== currentParams.orgId) {
       this.fetchData();
@@ -263,7 +264,9 @@ const OrganizationStats = React.createClass({
   render() {
     return (
       <OrganizationHomeContainer>
-        <h3>{t('Stats')}</h3>
+        <h3>
+          {t('Stats')}
+        </h3>
         <div className="row">
           <div className="col-md-9">
             <p>
@@ -279,44 +282,49 @@ const OrganizationStats = React.createClass({
           </div>
           {!this.state.statsLoading &&
             <div className="col-md-3 stats-column">
-              <h6 className="nav-header">{t('Events per minute')}</h6>
-              <p className="count">{this.state.orgTotal.avgRate}</p>
+              <h6 className="nav-header">
+                {t('Events per minute')}
+              </h6>
+              <p className="count">
+                {this.state.orgTotal.avgRate}
+              </p>
             </div>}
         </div>
         <div className="organization-stats">
           {this.state.statsLoading
             ? <LoadingIndicator />
             : this.state.statsError
-                ? <LoadingError onRetry={this.fetchData} />
-                : <div className="bar-chart">
-                    <StackedBarChart
-                      points={this.state.orgStats}
-                      height={150}
-                      label="events"
-                      className="standard-barchart"
-                      barClasses={['accepted', 'rate-limited', 'black-listed']}
-                      tooltip={this.renderTooltip}
-                    />
-                  </div>}
+              ? <LoadingError onRetry={this.fetchData} />
+              : <div className="bar-chart">
+                  <StackedBarChart
+                    points={this.state.orgStats}
+                    height={150}
+                    label="events"
+                    className="standard-barchart"
+                    barClasses={['accepted', 'rate-limited', 'black-listed']}
+                    tooltip={this.renderTooltip}
+                  />
+                </div>}
         </div>
 
         <div className="box">
           <div className="box-header">
-            <h3>{t('Events by Project')}</h3>
+            <h3>
+              {t('Events by Project')}
+            </h3>
           </div>
           <div className="box-content">
             {this.state.statsLoading || this.state.projectsLoading
               ? <LoadingIndicator />
               : this.state.projectsError
-                  ? <LoadingError onRetry={this.fetchData} />
-                  : <ProjectTable
-                      projectTotals={this.state.projectTotals}
-                      orgTotal={this.state.orgTotal}
-                      organization={this.getOrganization()}
-                      projectMap={this.state.projectMap}
-                    />}
+                ? <LoadingError onRetry={this.fetchData} />
+                : <ProjectTable
+                    projectTotals={this.state.projectTotals}
+                    orgTotal={this.state.orgTotal}
+                    organization={this.getOrganization()}
+                    projectMap={this.state.projectMap}
+                  />}
           </div>
-
         </div>
         {this.state.pageLinks &&
           <Pagination pageLinks={this.state.pageLinks} {...this.props} />}

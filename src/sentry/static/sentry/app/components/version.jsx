@@ -25,14 +25,18 @@ const Version = React.createClass({
       return (
         // NOTE: version is encoded because it can contain slashes "/",
         //       which can interfere with URL construction
-        (
-          <Link to={`/${orgId}/${projectId}/releases/${encodeURIComponent(version)}/`}>
-            <span title={version}>{shortVersion}</span>
-          </Link>
-        )
+        <Link to={`/${orgId}/${projectId}/releases/${encodeURIComponent(version)}/`}>
+          <span title={version}>
+            {shortVersion}
+          </span>
+        </Link>
       );
     }
-    return <span title={version}>{shortVersion}</span>;
+    return (
+      <span title={version}>
+        {shortVersion}
+      </span>
+    );
   }
 });
 

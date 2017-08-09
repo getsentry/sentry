@@ -119,7 +119,9 @@ const SaveSearchButton = React.createClass({
         <Modal show={this.state.isModalOpen} animation={false} onHide={this.onToggle}>
           <form onSubmit={this.onSubmit}>
             <div className="modal-header">
-              <h4>{t('Save Current Search')}</h4>
+              <h4>
+                {t('Save Current Search')}
+              </h4>
             </div>
             <div className="modal-body">
               {this.state.state === FormState.ERROR &&
@@ -210,8 +212,12 @@ const SavedSearchSelector = React.createClass({
       // search ID, and pass that into the backend (probably)
       return (
         <MenuItem to={`/${orgId}/${projectId}/searches/${search.id}/`} key={search.id}>
-          <strong>{search.name}</strong>
-          <code>{search.query}</code>
+          <strong>
+            {search.name}
+          </strong>
+          <code>
+            {search.query}
+          </code>
         </MenuItem>
       );
     });
@@ -220,7 +226,9 @@ const SavedSearchSelector = React.createClass({
         <DropdownLink
           title={
             <span>
-              <span>{this.getTitle()}</span>
+              <span>
+                {this.getTitle()}
+              </span>
               <QueryCount count={queryCount} max={queryMaxCount} />
             </span>
           }>

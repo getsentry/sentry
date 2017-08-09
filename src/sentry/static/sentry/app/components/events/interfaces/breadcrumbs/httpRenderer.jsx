@@ -9,7 +9,13 @@ const HttpRenderer = React.createClass({
   },
 
   renderUrl(url) {
-    return url.match(/^https?:\/\//) ? <a href={url}>{url}</a> : <em>{url}</em>;
+    return url.match(/^https?:\/\//)
+      ? <a href={url}>
+          {url}
+        </a>
+      : <em>
+          {url}
+        </em>;
   },
 
   render() {
@@ -19,9 +25,16 @@ const HttpRenderer = React.createClass({
       <SummaryLine crumb={crumb}>
         <pre>
           <code>
-            {method && <strong>{method} </strong>}
+            {method &&
+              <strong>
+                {method}{' '}
+              </strong>}
             {url && this.renderUrl(url)}
-            {status_code !== undefined ? <span>{' [' + status_code + ']'}</span> : ''}
+            {status_code !== undefined
+              ? <span>
+                  {' [' + status_code + ']'}
+                </span>
+              : ''}
           </code>
         </pre>
       </SummaryLine>

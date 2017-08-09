@@ -15,7 +15,9 @@ const SharedGroupHeader = React.createClass({
             {group.title}
           </h3>
           <div className="event-message">
-            <span className="message">{group.culprit}</span>
+            <span className="message">
+              {group.culprit}
+            </span>
           </div>
         </div>
       </div>

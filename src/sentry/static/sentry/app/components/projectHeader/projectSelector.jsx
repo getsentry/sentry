@@ -126,16 +126,17 @@ const ProjectSelector = React.createClass({
     if (!hasSingleTeam && project.name.indexOf(team.name) === -1) {
       label = (
         <span>
-          {team.name}
-          {' '}
-          /
-          {' '}
+          {team.name} /{' '}
           <ProjectLabel project={project} organization={this.props.organization} />
         </span>
       );
       text = team.name + ' / ' + project.name;
     } else {
-      label = <span>{project.name}</span>;
+      label = (
+        <span>
+          {project.name}
+        </span>
+      );
       text = project.name;
     }
 
@@ -183,7 +184,11 @@ const ProjectSelector = React.createClass({
     let label = this.getProjectLabel(team, project);
 
     if (!this.context.location) {
-      return <a {...this.getProjectUrlProps(project)}>{label}</a>;
+      return (
+        <a {...this.getProjectUrlProps(project)}>
+          {label}
+        </a>
+      );
     }
 
     let orgId = org.slug;
@@ -346,7 +351,6 @@ const ProjectSelector = React.createClass({
             topLevelClasses={dropdownClassNames}
             onOpen={this.onOpen}
             onClose={this.onClose}>
-
             {(hasFilter || hasProjects) &&
               <li className="project-filter" key="_filter">
                 <input

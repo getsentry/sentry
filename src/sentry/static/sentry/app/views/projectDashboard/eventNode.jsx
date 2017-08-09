@@ -35,8 +35,12 @@ const EventNode = React.createClass({
       <li className="group">
         <div className="row">
           <div className="col-xs-8 event-details">
-            <h3 className="truncate">{this.makeGroupLink(group.title)}</h3>
-            <div className="event-message">{group.culprit}</div>
+            <h3 className="truncate">
+              {this.makeGroupLink(group.title)}
+            </h3>
+            <div className="event-message">
+              {group.culprit}
+            </div>
             <div className="event-extra">
               <ul>
                 <li>

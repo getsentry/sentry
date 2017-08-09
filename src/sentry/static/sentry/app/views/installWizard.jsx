@@ -87,8 +87,7 @@ const InstallWizardSettings = React.createClass({
     return (
       <form onSubmit={this.onSubmit}>
         <p>
-          Welcome to Sentry, yo! Complete setup by filling out the required
-          configuration.
+          Welcome to Sentry, yo! Complete setup by filling out the required configuration.
         </p>
 
         {getForm(fields)}
@@ -237,31 +236,35 @@ const InstallWizard = React.createClass({
           <div className="pattern" />
           <div className="setup-wizard">
             <h1>
-              <span>{t('Welcome to Sentry')}</span>
-              <small>{version.current}</small>
+              <span>
+                {t('Welcome to Sentry')}
+              </span>
+              <small>
+                {version.current}
+              </small>
             </h1>
             {loading
               ? <LoadingIndicator>
                   {t('Please wait while we load configuration.')}
                 </LoadingIndicator>
               : error
-                  ? <div className="loading-error">
-                      <span className="icon-exclamation" />
-                      {t(
-                        'We were unable to load the required configuration from the Sentry server. Please take a look at the service logs.'
-                      )}
-                    </div>
-                  : <div>
-                      {submitError &&
-                        <div className="alert alert-block alert-error">
-                          {submitErrorMessage}
-                        </div>}
-                      <InstallWizardSettings
-                        options={options}
-                        onSubmit={this.onSubmit}
-                        formDisabled={submitInProgress}
-                      />
-                    </div>}
+                ? <div className="loading-error">
+                    <span className="icon-exclamation" />
+                    {t(
+                      'We were unable to load the required configuration from the Sentry server. Please take a look at the service logs.'
+                    )}
+                  </div>
+                : <div>
+                    {submitError &&
+                      <div className="alert alert-block alert-error">
+                        {submitErrorMessage}
+                      </div>}
+                    <InstallWizardSettings
+                      options={options}
+                      onSubmit={this.onSubmit}
+                      formDisabled={submitInProgress}
+                    />
+                  </div>}
           </div>
         </div>
       </DocumentTitle>

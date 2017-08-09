@@ -138,7 +138,9 @@ const RateLimitEditor = React.createClass({
     return (
       <form onSubmit={this.onSubmit} className="ref-rate-limit-editor">
         <p>
-          Rate limits allow you to control how much data is stored for this organization. When a rate is exceeded the system will begin discarding data until the next interval.
+          Rate limits allow you to control how much data is stored for this organization.
+          When a rate is exceeded the system will begin discarding data until the next
+          interval.
         </p>
 
         <h5>Account Limit</h5>
@@ -149,15 +151,8 @@ const RateLimitEditor = React.createClass({
               onChange={this.onAccountLimitChange}
             />
           : <p>
-              Your account is limited to a maximum of
-              {' '}
-              {maxRate}
-              {' '}
-              events per
-              {' '}
-              {maxRateInterval}
-              {' '}
-              seconds.
+              Your account is limited to a maximum of {maxRate} events per{' '}
+              {maxRateInterval} seconds.
             </p>}
 
         <h5>Per-Project Limit</h5>
@@ -202,7 +197,9 @@ const OrganizationRateLimits = React.createClass({
       <OrganizationHomeContainer>
         <div className="box">
           <div className="box-header">
-            <h3>{t('Rate Limits')}</h3>
+            <h3>
+              {t('Rate Limits')}
+            </h3>
           </div>
           <div className="box-content with-padding">
             <RateLimitEditor organization={org} />

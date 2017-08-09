@@ -124,7 +124,9 @@ const PluginConfig = React.createClass({
                 {t('Disable')}
               </a>
             </div>}
-          <h3>{data.name}</h3>
+          <h3>
+            {data.name}
+          </h3>
         </div>
         <div className="box-content with-padding">
           {data.status === 'beta'
@@ -136,10 +138,10 @@ const PluginConfig = React.createClass({
             : null}
           {this.state.testResults != ''
             ? <div className="alert alert-block alert-warning">
-                <strong>
-                  Test Results:{' '}
-                </strong>
-                <p>{this.state.testResults}</p>
+                <strong>Test Results: </strong>
+                <p>
+                  {this.state.testResults}
+                </p>
               </div>
             : null}
           <div dangerouslySetInnerHTML={this.createMarkup()} />

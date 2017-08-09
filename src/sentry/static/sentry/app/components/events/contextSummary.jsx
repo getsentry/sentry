@@ -22,7 +22,9 @@ const NoSummary = React.createClass({
     return (
       <div className="context-item">
         <span className="context-item-icon" />
-        <h3>{this.props.title}</h3>
+        <h3>
+          {this.props.title}
+        </h3>
       </div>
     );
   }
@@ -46,8 +48,12 @@ const GenericSummary = React.createClass({
     return (
       <div className={`context-item ${className}`}>
         <span className="context-item-icon" />
-        <h3>{data.name}</h3>
-        <p><strong>{t('Version:')}</strong> {data.version || t('Unknown')}</p>
+        <h3>
+          {data.name}
+        </h3>
+        <p>
+          <strong>{t('Version:')}</strong> {data.version || t('Unknown')}
+        </p>
       </div>
     );
   }
@@ -81,12 +87,18 @@ const UserSummary = React.createClass({
               gravatar={false}
             />
           : <span className="context-item-icon" />}
-        <h3>{userTitle}</h3>
+        <h3>
+          {userTitle}
+        </h3>
         {user.id && user.id !== userTitle
-          ? <p><strong>{t('ID:')}</strong> {user.id}</p>
+          ? <p>
+              <strong>{t('ID:')}</strong> {user.id}
+            </p>
           : user.username &&
-              user.username !== userTitle &&
-              <p><strong>{t('Username:')}</strong> {user.username}</p>}
+            user.username !== userTitle &&
+            <p>
+              <strong>{t('Username:')}</strong> {user.username}
+            </p>}
       </div>
     );
   }
@@ -110,8 +122,12 @@ const DeviceSummary = React.createClass({
     return (
       <div className={`context-item ${className}`}>
         <span className="context-item-icon" />
-        <h3>{deviceNameMapper(data.model)}</h3>
-        <p>{data.arch || data.model_id || ''}</p>
+        <h3>
+          {deviceNameMapper(data.model)}
+        </h3>
+        <p>
+          {data.arch || data.model_id || ''}
+        </p>
       </div>
     );
   }

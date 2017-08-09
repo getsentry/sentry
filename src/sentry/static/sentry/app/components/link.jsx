@@ -17,11 +17,18 @@ const Link = React.createClass({
 
   render() {
     if (this.context.location) {
-      return <RouterLink {...this.props}>{this.props.children}</RouterLink>;
+      return (
+        <RouterLink {...this.props}>
+          {this.props.children}
+        </RouterLink>
+      );
     } else {
-      let props = _.omit(this.props, 'to');
-      props.href = this.props.to;
-      return <a {...props}>{this.props.children}</a>;
+      let props = {..._.omit(this.props, 'to'), href: this.props.to};
+      return (
+        <a {...props}>
+          {this.props.children}
+        </a>
+      );
     }
   }
 });

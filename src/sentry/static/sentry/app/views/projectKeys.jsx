@@ -132,12 +132,20 @@ const KeyRow = React.createClass({
     return (
       <div className={`client-key-item ${!data.isActive ? 'disabled' : ''}`}>
         <div className="pull-right" style={{marginTop: -10}}>
-          {controls.map((c, n) => <span key={n}> {c}</span>)}
+          {controls.map((c, n) =>
+            <span key={n}>
+              {' '}{c}
+            </span>
+          )}
         </div>
         <h5>
-          <Link to={editUrl}>{data.label}</Link>
+          <Link to={editUrl}>
+            {data.label}
+          </Link>
           {!data.isActive &&
-            <small> <i className="icon icon-ban" /> {t('Disabled')}</small>}
+            <small>
+              {' '}<i className="icon icon-ban" /> {t('Disabled')}
+            </small>}
         </h5>
 
         <ClippedBox
@@ -146,14 +154,18 @@ const KeyRow = React.createClass({
           btnClassName="btn btn-default btn-sm"
           btnText={t('Expand')}>
           <div className="form-group">
-            <label>{t('DSN')}</label>
+            <label>
+              {t('DSN')}
+            </label>
             <AutoSelectText className="form-control disabled">
               {data.dsn.secret}
             </AutoSelectText>
           </div>
 
           <div className="form-group">
-            <label>{t('DSN (Public)')}</label>
+            <label>
+              {t('DSN (Public)')}
+            </label>
             <AutoSelectText className="form-control disabled">
               {data.dsn.public}
             </AutoSelectText>
@@ -164,7 +176,9 @@ const KeyRow = React.createClass({
             </div>
           </div>
           <div className="form-group">
-            <label>{t('CSP Endpoint')}</label>
+            <label>
+              {t('CSP Endpoint')}
+            </label>
             <AutoSelectText className="form-control disabled">
               {data.dsn.csp}
             </AutoSelectText>
@@ -280,7 +294,9 @@ export default React.createClass({
     return (
       <div className="box empty-stream">
         <span className="icon icon-exclamation" />
-        <p>{t('There are no keys active for this project.')}</p>
+        <p>
+          {t('There are no keys active for this project.')}
+        </p>
       </div>
     );
   },
@@ -319,14 +335,13 @@ export default React.createClass({
             <a onClick={this.onCreateKey} className="btn pull-right btn-primary btn-sm">
               <span className="icon-plus" />&nbsp;{t('Generate New Key')}
             </a>}
-          <h2>{t('Client Keys')}</h2>
+          <h2>
+            {t('Client Keys')}
+          </h2>
           <p>
-            To send data to Sentry you will need to configure an SDK with a client key (usually referred to as the
-            {' '}
-            <code>SENTRY_DSN</code>
-            {' '}
-            value). For more information on integrating Sentry with your application take a look at our
-            {' '}
+            To send data to Sentry you will need to configure an SDK with a client key
+            (usually referred to as the <code>SENTRY_DSN</code> value). For more
+            information on integrating Sentry with your application take a look at our{' '}
             <a href="https://docs.sentry.io/">documentation</a>
             .
           </p>

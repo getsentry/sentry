@@ -103,7 +103,9 @@ const EventsPerHour = React.createClass({
         <Link className="btn-sidebar-header" to={`/organizations/${org.slug}/stats/`}>
           {t('View Stats')}
         </Link>
-        <h6 className="nav-header">{t('Events Per Hour')}</h6>
+        <h6 className="nav-header">
+          {t('Events Per Hour')}
+        </h6>
         <StackedBarChart
           series={this.state.formattedData}
           className="dashboard-barchart standard-barchart"

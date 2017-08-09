@@ -61,13 +61,21 @@ const ApiTokenRow = React.createClass({
       <tr>
         <td>
           <div style={{marginBottom: 5}}>
-            <small><AutoSelectText>{token.token}</AutoSelectText></small>
+            <small>
+              <AutoSelectText>
+                {token.token}
+              </AutoSelectText>
+            </small>
           </div>
           <div style={{marginBottom: 5}}>
-            <small>Created <DateTime date={token.dateCreated} /></small>
+            <small>
+              Created <DateTime date={token.dateCreated} />
+            </small>
           </div>
           <div>
-            <small style={{color: '#999'}}>{token.scopes.join(', ')}</small>
+            <small style={{color: '#999'}}>
+              {token.scopes.join(', ')}
+            </small>
           </div>
         </td>
         <td style={{width: 32}}>
@@ -190,13 +198,8 @@ const ApiTokens = React.createClass({
 
           <p>
             <small>
-              psst. Looking for the
-              {' '}
-              <strong>DSN</strong>
-              {' '}
-              for an SDK? You'll find that under
-              {' '}
-              <strong>[Project] » Settings » Client Keys</strong>
+              psst. Looking for the <strong>DSN</strong> for an SDK? You'll find that
+              under <strong>[Project] » Settings » Client Keys</strong>
               .
             </small>
           </p>
@@ -204,8 +207,8 @@ const ApiTokens = React.createClass({
           {this.state.loading
             ? <LoadingIndicator />
             : this.state.error
-                ? <LoadingError onRetry={this.fetchData} />
-                : this.renderResults()}
+              ? <LoadingError onRetry={this.fetchData} />
+              : this.renderResults()}
 
           <div className="form-actions" style={{textAlign: 'right'}}>
             <Link to="/api/new-token/" className="btn btn-primary ref-create-token">

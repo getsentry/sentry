@@ -23,8 +23,8 @@ export function paramsToQueryArgs(params) {
   return params.itemIds
     ? {id: params.itemIds} // items matching array of itemids
     : params.query
-        ? {query: params.query} // items matching search query
-        : undefined; // all items
+      ? {query: params.query} // items matching search query
+      : undefined; // all items
 }
 
 export class Client {

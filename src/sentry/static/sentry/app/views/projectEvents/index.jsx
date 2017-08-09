@@ -97,7 +97,9 @@ const ProjectEvents = React.createClass({
       query: this.state.query
     };
 
-    return `/projects/${params.orgId}/${params.projectId}/events/?${jQuery.param(queryParams)}`;
+    return `/projects/${params.orgId}/${params.projectId}/events/?${jQuery.param(
+      queryParams
+    )}`;
   },
 
   renderStreamBody() {
@@ -125,7 +127,9 @@ const ProjectEvents = React.createClass({
     return (
       <div className="box empty-stream">
         <span className="icon icon-exclamation" />
-        <p>{t('Sorry, no events match your filters.')}</p>
+        <p>
+          {t('Sorry, no events match your filters.')}
+        </p>
       </div>
     );
   },
@@ -134,7 +138,9 @@ const ProjectEvents = React.createClass({
     return (
       <div className="box empty-stream">
         <span className="icon icon-exclamation" />
-        <p>{t("There don't seem to be any events.")}</p>
+        <p>
+          {t("There don't seem to be any events.")}
+        </p>
       </div>
     );
   },
@@ -146,7 +152,9 @@ const ProjectEvents = React.createClass({
       return (
         <tr key={event.id}>
           <td style={{width: 240}}>
-            <small><DateTime date={event.dateCreated} /></small>
+            <small>
+              <DateTime date={event.dateCreated} />
+            </small>
           </td>
           <td>
             <h5>
@@ -184,7 +192,9 @@ const ProjectEvents = React.createClass({
       <div>
         <div className="row release-list-header">
           <div className="col-sm-7">
-            <h3>{t('Events')}</h3>
+            <h3>
+              {t('Events')}
+            </h3>
           </div>
           <div className="col-sm-5 release-search">
             <SearchBar
@@ -196,7 +206,8 @@ const ProjectEvents = React.createClass({
           </div>
         </div>
         <div className="alert alert-block alert-info">
-          Psst! This feature is still a work-in-progress. Thanks for being an early adopter!
+          Psst! This feature is still a work-in-progress. Thanks for being an early
+          adopter!
         </div>
         {this.renderStreamBody()}
         <Pagination pageLinks={this.state.pageLinks} />

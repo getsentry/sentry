@@ -38,10 +38,16 @@ const Truncate = React.createClass({
     if (isTruncated) {
       if (leftTrim) {
         shortValue = (
-          <span>… {value.slice(value.length - (maxLength - 4), value.length)}</span>
+          <span>
+            … {value.slice(value.length - (maxLength - 4), value.length)}
+          </span>
         );
       } else {
-        shortValue = <span>{value.slice(0, maxLength - 4)} …</span>;
+        shortValue = (
+          <span>
+            {value.slice(0, maxLength - 4)} …
+          </span>
+        );
       }
     } else {
       shortValue = value;
@@ -58,8 +64,13 @@ const Truncate = React.createClass({
         onMouseOut={this.onBlur}
         onFocus={this.onFocus}
         onBlur={this.onBlur}>
-        <span className="short-value">{shortValue}</span>
-        {isTruncated && <span className="full-value">{value}</span>}
+        <span className="short-value">
+          {shortValue}
+        </span>
+        {isTruncated &&
+          <span className="full-value">
+            {value}
+          </span>}
       </span>
     );
   }

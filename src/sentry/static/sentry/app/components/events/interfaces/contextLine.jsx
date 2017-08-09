@@ -16,7 +16,12 @@ const ContextLine = function(props) {
 
   return (
     <li className={liClassName} key={line[0]}>
-      <span className="ws">{lineWs}</span><span className="contextline">{lineCode}</span>
+      <span className="ws">
+        {lineWs}
+      </span>
+      <span className="contextline">
+        {lineCode}
+      </span>
     </li>
   );
 };

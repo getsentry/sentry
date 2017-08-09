@@ -27,7 +27,12 @@ const DefaultRenderer = React.createClass({
 
     return (
       <SummaryLine crumb={crumb}>
-        {crumb.message && <pre><code>{crumb.message}</code></pre>}
+        {crumb.message &&
+          <pre>
+            <code>
+              {crumb.message}
+            </code>
+          </pre>}
       </SummaryLine>
     );
   },

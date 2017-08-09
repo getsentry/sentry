@@ -94,7 +94,9 @@ const OrganizationIntegrations = React.createClass({
       <div key={provider.id}>
         <div className="row">
           <div className="col-md-6">
-            <h3>{provider.name}</h3>
+            <h3>
+              {provider.name}
+            </h3>
           </div>
           <div className="col-md-6">
             {/* TODO(jess): we might want to only show this in certain

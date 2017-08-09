@@ -32,9 +32,7 @@ const ExceptionMechanism = React.createClass({
       const {posix_signal} = this.props.data;
       pills.push(
         <Pill key="signal" name="signal">
-          {posix_signal.name}
-          {' '}
-          <em>({posix_signal.signal})</em>
+          {posix_signal.name} <em>({posix_signal.signal})</em>
         </Pill>
       );
     }
@@ -45,7 +43,9 @@ const ExceptionMechanism = React.createClass({
 
     return (
       <div className="exception-mechanism">
-        <Pills>{pills}</Pills>
+        <Pills>
+          {pills}
+        </Pills>
       </div>
     );
   }

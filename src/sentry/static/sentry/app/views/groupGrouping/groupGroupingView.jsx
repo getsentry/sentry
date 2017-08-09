@@ -129,8 +129,7 @@ const GroupGroupingView = React.createClass({
     return (
       <div>
         <div className="alert alert-block alert-warning">
-          <strong>{t('Warning')}:</strong>
-          {' '}
+          <strong>{t('Warning')}:</strong>{' '}
           {t(
             'This is an experimental feature. Data may not be immediately available while we process the unmerge.'
           )}
@@ -160,7 +159,6 @@ const GroupGroupingView = React.createClass({
             busyMap={this.state.busy}
             hiddenMap={this.state.hidden}
           />}
-
       </div>
     );
   }

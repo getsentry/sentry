@@ -35,7 +35,11 @@ const StacktraceContent = React.createClass({
       firstFrameOmitted,
       lastFrameOmitted
     );
-    return <li {...props}>{text}</li>;
+    return (
+      <li {...props}>
+        {text}
+      </li>
+    );
   },
 
   frameIsVisible(frame, nextFrame) {
@@ -117,7 +121,9 @@ const StacktraceContent = React.createClass({
 
     return (
       <div className={className}>
-        <ul>{frames}</ul>
+        <ul>
+          {frames}
+        </ul>
       </div>
     );
   }

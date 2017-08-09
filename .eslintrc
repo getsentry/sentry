@@ -1,8 +1,16 @@
 {
+  "extends": [
+    "prettier"
+  ],
+
   "parser": "babel-eslint",
-  "ecmaFeatures": {
-    "jsx": true,
-    "modules": true
+  "parserOptions": {
+    "ecmaVersion": 6,
+    "sourceType": "module",
+    "ecmaFeatures": {
+      "jsx": true,
+      "modules": true
+    }
   },
   "env": {
     "browser": true,
@@ -188,10 +196,6 @@
     "react/react-in-jsx-scope": 2, // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/react-in-jsx-scope.md
     "react/self-closing-comp": 2, // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/self-closing-comp.md
     "react/sort-comp": 2, // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/sort-comp.md
-    "react/jsx-wrap-multilines": 2, // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/wrap-multilines.md
-    /**
-     * Custom
-     */
     "getsentry/jsx-needs-il8n": 0, // highlights literals in JSX components w/o translation tags
   }
 }

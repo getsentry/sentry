@@ -70,8 +70,7 @@ const OrganizationTeams = React.createClass({
                   {t('Your Teams')}
                 </ListLink>
                 <ListLink to={`/organizations/${org.slug}/all-teams/`}>
-                  {t('All Teams')}
-                  {' '}
+                  {t('All Teams')}{' '}
                   <span className="badge badge-soft">{allTeams.length}</span>
                 </ListLink>
               </ul>
@@ -80,8 +79,8 @@ const OrganizationTeams = React.createClass({
                     organization: org,
                     teamList: allTeams,
                     access: access,
-                    openMembership: features.has('open-membership') ||
-                      access.has('org:write')
+                    openMembership:
+                      features.has('open-membership') || access.has('org:write')
                   })
                 : <ExpandedTeamList
                     organization={org}

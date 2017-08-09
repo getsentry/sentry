@@ -11,7 +11,11 @@ function getView(view, data) {
     case 'report':
       return <CSPContent data={data} />;
     case 'raw':
-      return <pre>{JSON.stringify({'csp-report': data}, null, 2)}</pre>;
+      return (
+        <pre>
+          {JSON.stringify({'csp-report': data}, null, 2)}
+        </pre>
+      );
     case 'help':
       return <CSPHelp data={data} />;
     default:
@@ -67,7 +71,9 @@ const CSPInterface = React.createClass({
             {t('Help')}
           </a>
         </div>
-        <h3>{t('CSP Report')}</h3>
+        <h3>
+          {t('CSP Report')}
+        </h3>
       </div>
     );
 

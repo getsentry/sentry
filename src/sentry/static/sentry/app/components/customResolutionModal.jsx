@@ -75,7 +75,9 @@ export default React.createClass({
                         <Version version={release.version} anchor={false} />
                       </strong>
                       <br />
-                      <small>Created <TimeSince date={release.dateCreated} /></small>
+                      <small>
+                        Created <TimeSince date={release.dateCreated} />
+                      </small>
                     </div>
                   );
                 }}

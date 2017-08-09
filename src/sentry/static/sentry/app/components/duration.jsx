@@ -34,7 +34,11 @@ const Duration = React.createClass({
   },
 
   render() {
-    return <span className={this.props.className}>{this.getDuration()}</span>;
+    return (
+      <span className={this.props.className}>
+        {this.getDuration()}
+      </span>
+    );
   }
 });
 

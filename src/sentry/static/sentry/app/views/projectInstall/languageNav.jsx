@@ -28,7 +28,9 @@ const LanguageNav = React.createClass({
                   ? <span className="icon-minus" />
                   : <span className="icon-plus" />}
               </span>
-              <strong>{this.props.name}</strong>
+              <strong>
+                {this.props.name}
+              </strong>
             </a>
           </li>
           <span

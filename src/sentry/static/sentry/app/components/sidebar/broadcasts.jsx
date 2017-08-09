@@ -125,20 +125,20 @@ const Broadcasts = React.createClass({
             {loading
               ? <LoadingIndicator />
               : broadcasts.length === 0
-                  ? <div className="sidebar-panel-empty">
-                      {t('No recent updates from the Sentry team.')}
-                    </div>
-                  : broadcasts.map(item => {
-                      return (
-                        <SidebarPanelItem
-                          key={item.id}
-                          className={!item.hasSeen && 'unseen'}
-                          title={item.title}
-                          message={item.message}
-                          link={item.link}
-                        />
-                      );
-                    })}
+                ? <div className="sidebar-panel-empty">
+                    {t('No recent updates from the Sentry team.')}
+                  </div>
+                : broadcasts.map(item => {
+                    return (
+                      <SidebarPanelItem
+                        key={item.id}
+                        className={!item.hasSeen && 'unseen'}
+                        title={item.title}
+                        message={item.message}
+                        link={item.link}
+                      />
+                    );
+                  })}
           </SidebarPanel>}
       </li>
     );

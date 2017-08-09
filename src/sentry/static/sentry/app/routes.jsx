@@ -113,7 +113,6 @@ function routes() {
 
   return (
     <Route path="/" component={errorHandler(App)}>
-
       <Route path="/account/" component={errorHandler(AccountLayout)}>
         <Route path="authorizations/" component={errorHandler(AccountAuthorizations)} />
       </Route>
@@ -298,7 +297,6 @@ function routes() {
             <Route path="tags/:tagKey/" component={errorHandler(GroupTagValues)} />
             <Route path="feedback/" component={errorHandler(GroupUserReports)} />
             <Route path="grouping/" component={errorHandler(GroupGroupingView)} />
-
           </Route>
         </Route>
       </Route>

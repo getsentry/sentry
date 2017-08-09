@@ -91,7 +91,11 @@ const ContextChunk = React.createClass({
     return (
       <span>
         {title + ' '}
-        {alias !== type ? <small>({alias})</small> : null}
+        {alias !== type
+          ? <small>
+              ({alias})
+            </small>
+          : null}
       </span>
     );
   },
@@ -163,7 +167,11 @@ const ContextsInterface = React.createClass({
       );
     }
 
-    return <div>{children}</div>;
+    return (
+      <div>
+        {children}
+      </div>
+    );
   }
 });
 

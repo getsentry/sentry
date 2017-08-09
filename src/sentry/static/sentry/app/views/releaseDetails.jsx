@@ -104,8 +104,7 @@ const ReleaseDetails = React.createClass({
             <div className="row">
               <div className="col-sm-4 col-xs-12">
                 <h3>
-                  {t('Release')}
-                  {' '}
+                  {t('Release')}{' '}
                   <strong>
                     <Version
                       orgId={orgId}
@@ -116,8 +115,7 @@ const ReleaseDetails = React.createClass({
                   </strong>
                 </h3>
                 <div className="release-meta">
-                  <span className="icon icon-clock" />
-                  {' '}
+                  <span className="icon icon-clock" />{' '}
                   <TimeSince date={release.dateCreated} />
                 </div>
               </div>
@@ -126,7 +124,9 @@ const ReleaseDetails = React.createClass({
               </div>
               <div className="col-sm-2 hidden-xs">
                 <div className="release-stats">
-                  <h6 className="nav-header">{t('New Issues')}</h6>
+                  <h6 className="nav-header">
+                    {t('New Issues')}
+                  </h6>
                   <span className="stream-count">
                     <Count value={release.newGroups} />
                   </span>
@@ -134,7 +134,9 @@ const ReleaseDetails = React.createClass({
               </div>
               <div className="col-sm-2 hidden-xs">
                 <div className="release-stats">
-                  <h6 className="nav-header">{t('First Event')}</h6>
+                  <h6 className="nav-header">
+                    {t('First Event')}
+                  </h6>
                   {release.firstEvent
                     ? <span className="stream-count">
                         <TimeSince date={release.firstEvent} />
@@ -144,7 +146,9 @@ const ReleaseDetails = React.createClass({
               </div>
               <div className="col-sm-2 hidden-xs">
                 <div className="release-stats">
-                  <h6 className="nav-header">{t('Last Event')}</h6>
+                  <h6 className="nav-header">
+                    {t('Last Event')}
+                  </h6>
                   {release.lastEvent
                     ? <span className="stream-count">
                         <TimeSince date={release.lastEvent} />
@@ -155,7 +159,9 @@ const ReleaseDetails = React.createClass({
             </div>
             <ul className="nav nav-tabs">
               <ListLink
-                to={`/${orgId}/${projectId}/releases/${encodeURIComponent(release.version)}/`}
+                to={`/${orgId}/${projectId}/releases/${encodeURIComponent(
+                  release.version
+                )}/`}
                 isActive={loc => {
                   // react-router isActive will return true for any route that is part of the active route
                   // e.g. parent routes. To avoid matching on sub-routes, insist on strict path equality.
@@ -164,19 +170,27 @@ const ReleaseDetails = React.createClass({
                 {t('Overview')}
               </ListLink>
               <ListLink
-                to={`/${orgId}/${projectId}/releases/${encodeURIComponent(release.version)}/new-events/`}>
+                to={`/${orgId}/${projectId}/releases/${encodeURIComponent(
+                  release.version
+                )}/new-events/`}>
                 {t('New Issues')}
               </ListLink>
               <ListLink
-                to={`/${orgId}/${projectId}/releases/${encodeURIComponent(release.version)}/all-events/`}>
+                to={`/${orgId}/${projectId}/releases/${encodeURIComponent(
+                  release.version
+                )}/all-events/`}>
                 {t('All Issues')}
               </ListLink>
               <ListLink
-                to={`/${orgId}/${projectId}/releases/${encodeURIComponent(release.version)}/artifacts/`}>
+                to={`/${orgId}/${projectId}/releases/${encodeURIComponent(
+                  release.version
+                )}/artifacts/`}>
                 {t('Artifacts')}
               </ListLink>
               <ListLink
-                to={`/${orgId}/${projectId}/releases/${encodeURIComponent(release.version)}/commits/`}>
+                to={`/${orgId}/${projectId}/releases/${encodeURIComponent(
+                  release.version
+                )}/commits/`}>
                 {t('Commits')}
               </ListLink>
             </ul>

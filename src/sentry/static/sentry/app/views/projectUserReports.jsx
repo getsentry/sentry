@@ -114,7 +114,9 @@ const ProjectUserReports = React.createClass({
       status: this.state.status
     };
 
-    return `/projects/${params.orgId}/${params.projectId}/user-reports/?${jQuery.param(queryParams)}`;
+    return `/projects/${params.orgId}/${params.projectId}/user-reports/?${jQuery.param(
+      queryParams
+    )}`;
   },
 
   getUserReportsUrl() {
@@ -148,7 +150,9 @@ const ProjectUserReports = React.createClass({
     return (
       <div className="box empty-stream">
         <span className="icon icon-exclamation" />
-        <p>{t('Sorry, no results match your search query.')}</p>
+        <p>
+          {t('Sorry, no results match your search query.')}
+        </p>
       </div>
     );
   },
@@ -157,7 +161,9 @@ const ProjectUserReports = React.createClass({
     return (
       <div className="box empty-stream">
         <span className="icon icon-exclamation" />
-        <p>{t('No user reports have been collected for this project.')}</p>
+        <p>
+          {t('No user reports have been collected for this project.')}
+        </p>
         <p>
           <Link to={this.getUserReportsUrl()}>
             {t('Learn how to integrate User Feedback')}
@@ -212,7 +218,9 @@ const ProjectUserReports = React.createClass({
       <div>
         <div className="row release-list-header">
           <div className="col-sm-9">
-            <h3>{t('User Feedback')}</h3>
+            <h3>
+              {t('User Feedback')}
+            </h3>
           </div>
           <div className="col-sm-3" style={{textAlign: 'right'}}>
             <div className="btn-group">
@@ -232,7 +240,8 @@ const ProjectUserReports = React.createClass({
           </div>
         </div>
         <div className="alert alert-block alert-info">
-          Psst! This feature is still a work-in-progress. Thanks for being an early adopter!
+          Psst! This feature is still a work-in-progress. Thanks for being an early
+          adopter!
         </div>
         {this.renderStreamBody()}
         <Pagination pageLinks={this.state.pageLinks} />

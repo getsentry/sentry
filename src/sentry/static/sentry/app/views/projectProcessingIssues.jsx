@@ -22,7 +22,7 @@ const MESSAGES = {
   native_simulator_frame: t('Encountered an unprocessable simulator frame.'),
   native_unknown_image: t('An binary image is referenced that is unknown.'),
   proguard_missing_mapping: t('A proguard mapping file was missing.'),
-  proguard_missing_lineno: t('A proguard mapping file does not contain line info.'),
+  proguard_missing_lineno: t('A proguard mapping file does not contain line info.')
 };
 
 const HELP_LINKS = {
@@ -181,7 +181,9 @@ const ProjectProcessingIssues = React.createClass({
     return (
       <div className="box empty-stream">
         <span className="icon icon-exclamation" />
-        <p>{t('Good news! There are no processing issues.')}</p>
+        <p>
+          {t('Good news! There are no processing issues.')}
+        </p>
       </div>
     );
   },
@@ -201,10 +203,11 @@ const ProjectProcessingIssues = React.createClass({
     let helpLink = HELP_LINKS[item.type];
     return (
       <div className="processing-issue">
-        <span className="description">{description}</span>
-        {' '}
+        <span className="description">{description}</span>{' '}
         {helpLink &&
-          <a href={helpLink} className="help-link"><span className="icon-question" /></a>}
+          <a href={helpLink} className="help-link">
+            <span className="icon-question" />
+          </a>}
       </div>
     );
   },
@@ -216,10 +219,18 @@ const ProjectProcessingIssues = React.createClass({
 
     if (item.data._scope === 'native') {
       if (item.data.image_uuid) {
-        dsymUUID = <code className="uuid">{item.data.image_uuid}</code>;
+        dsymUUID = (
+          <code className="uuid">
+            {item.data.image_uuid}
+          </code>
+        );
       }
       if (item.data.image_path) {
-        dsymName = <em>{this.getImageName(item.data.image_path)}</em>;
+        dsymName = (
+          <em>
+            {this.getImageName(item.data.image_path)}
+          </em>
+        );
       }
       if (item.data.image_arch) {
         dsymArch = item.data.image_arch;
@@ -228,9 +239,18 @@ const ProjectProcessingIssues = React.createClass({
 
     return (
       <span>
-        {dsymUUID && <span> {dsymUUID}</span>}
-        {dsymArch && <span> {dsymArch}</span>}
-        {dsymName && <span> (for {dsymName})</span>}
+        {dsymUUID &&
+          <span>
+            {' '}{dsymUUID}
+          </span>}
+        {dsymArch &&
+          <span>
+            {' '}{dsymArch}
+          </span>}
+        {dsymName &&
+          <span>
+            {' '}(for {dsymName})
+          </span>}
       </span>
     );
   },
@@ -265,7 +285,9 @@ const ProjectProcessingIssues = React.createClass({
       fixLinkBlock = (
         <div className="panel panel-info">
           <div className="panel-heading">
-            <h3>{t('Having trouble uploading debug symbols? We can help!')}</h3>
+            <h3>
+              {t('Having trouble uploading debug symbols? We can help!')}
+            </h3>
           </div>
           <div className="panel-body">
             <div className="form-group" style={{marginBottom: 0}}>
@@ -340,7 +362,9 @@ const ProjectProcessingIssues = React.createClass({
     return (
       <div className="box">
         <div className="box-header">
-          <h3>{t('Settings')}</h3>
+          <h3>
+            {t('Settings')}
+          </h3>
         </div>
         <div className="box-content with-padding">
           <div className="row">
@@ -374,7 +398,9 @@ const ProjectProcessingIssues = React.createClass({
           {!access.has('project:write') &&
             <div className="row">
               <div className="col-md-12" style={{marginBottom: 20}}>
-                <strong>{t('Note: ')}</strong>
+                <strong>
+                  {t('Note: ')}
+                </strong>
                 {t('An admin can turn processing on or off')}
               </div>
             </div>}
@@ -421,7 +447,9 @@ const ProjectProcessingIssues = React.createClass({
   render() {
     return (
       <div>
-        <h1>{t('Processing Issues')}</h1>
+        <h1>
+          {t('Processing Issues')}
+        </h1>
         <p>
           {t(
             `

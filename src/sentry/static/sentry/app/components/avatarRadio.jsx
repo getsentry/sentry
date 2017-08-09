@@ -40,7 +40,9 @@ const AvatarRadio = React.createClass({
     }
     return (
       <div>
-        <legend>{t('Avatar Type')}</legend>
+        <legend>
+          {t('Avatar Type')}
+        </legend>
         <ul className="radio-inputs">
           {radios}
         </ul>

@@ -76,7 +76,9 @@ const RequestInterface = React.createClass({
           <a
             className={(view === 'curl' ? 'active' : '') + ' btn btn-default btn-sm'}
             onClick={this.toggleView.bind(this, 'curl')}>
-            <code>{'curl'}</code>
+            <code>
+              {'curl'}
+            </code>
           </a>
         </div>
       );
@@ -86,7 +88,9 @@ const RequestInterface = React.createClass({
       <h3 key="title">
         <a href={isValidUrl ? fullUrl : null} title={fullUrl}>
           <span className="path">
-            <strong>{data.method || 'GET'}</strong>
+            <strong>
+              {data.method || 'GET'}
+            </strong>
             <Truncate value={parsedUrl.pathname} maxLength={36} leftTrim={true} />
           </span>
           {isValidUrl &&
@@ -94,11 +98,17 @@ const RequestInterface = React.createClass({
               <em className="icon-open" />
             </span>}
         </a>
-        <small style={{marginLeft: 10}} className="host">{parsedUrl.hostname}</small>
+        <small style={{marginLeft: 10}} className="host">
+          {parsedUrl.hostname}
+        </small>
       </h3>
     );
 
-    let title = <div>{children}</div>;
+    let title = (
+      <div>
+        {children}
+      </div>
+    );
 
     return (
       <GroupEventDataSection
@@ -109,7 +119,9 @@ const RequestInterface = React.createClass({
         wrapTitle={false}
         className="request">
         {view === 'curl'
-          ? <pre>{getCurlCommand(data)}</pre>
+          ? <pre>
+              {getCurlCommand(data)}
+            </pre>
           : <RichHttpContent data={data} />}
       </GroupEventDataSection>
     );

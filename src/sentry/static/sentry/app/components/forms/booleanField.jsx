@@ -45,8 +45,14 @@ export default class BooleanField extends InputField {
                 <span className="icon-question" />
               </span>}
           </label>
-          {defined(this.props.help) && <p className="help-block">{this.props.help}</p>}
-          {error && <p className="error">{error}</p>}
+          {defined(this.props.help) &&
+            <p className="help-block">
+              {this.props.help}
+            </p>}
+          {error &&
+            <p className="error">
+              {error}
+            </p>}
         </div>
       </div>
     );

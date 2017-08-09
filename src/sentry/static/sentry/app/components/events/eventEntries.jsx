@@ -94,7 +94,9 @@ const EventEntries = React.createClass({
             event={evt}
             type={entry.type}
             title={entry.type}>
-            <p>{t('There was an error rendering this data.')}</p>
+            <p>
+              {t('There was an error rendering this data.')}
+            </p>
           </EventDataSection>
         );
       }

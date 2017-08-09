@@ -120,7 +120,7 @@ const ProjectDashboard = React.createClass({
                 }}
                 className={
                   'btn btn-sm btn-default' +
-                    (statsPeriod === PERIOD_HOUR ? ' active' : '')
+                  (statsPeriod === PERIOD_HOUR ? ' active' : '')
                 }>
                 {t('1 hour')}
               </Link>
@@ -141,13 +141,15 @@ const ProjectDashboard = React.createClass({
                 }}
                 className={
                   'btn btn-sm btn-default' +
-                    (statsPeriod === PERIOD_WEEK ? ' active' : '')
+                  (statsPeriod === PERIOD_WEEK ? ' active' : '')
                 }>
                 {t('1 week')}
               </Link>
             </div>
           </div>
-          <h3>{t('Overview')}</h3>
+          <h3>
+            {t('Overview')}
+          </h3>
         </div>
         <ProjectChart dateSince={dateSince} resolution={resolution} />
         <div className="row">

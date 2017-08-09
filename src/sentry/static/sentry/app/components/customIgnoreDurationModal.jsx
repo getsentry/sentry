@@ -70,12 +70,16 @@ export default React.createClass({
     return (
       <Modal show={this.props.show} animation={false} onHide={this.props.onCanceled}>
         <div className="modal-header">
-          <h4>{this.props.label}</h4>
+          <h4>
+            {this.props.label}
+          </h4>
         </div>
         <div className="modal-body">
           <form className="form-horizontal">
             <div className="control-group">
-              <h6 className="nav-header">{t('Date')}</h6>
+              <h6 className="nav-header">
+                {t('Date')}
+              </h6>
               <input
                 className="form-control"
                 type="date"
@@ -87,7 +91,9 @@ export default React.createClass({
               />
             </div>
             <div className="control-group m-b-1">
-              <h6 className="nav-header">{t('Time (UTC)')}</h6>
+              <h6 className="nav-header">
+                {t('Time (UTC)')}
+              </h6>
               <input
                 className="form-control"
                 type="time"

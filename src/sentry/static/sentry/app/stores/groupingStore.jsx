@@ -8,7 +8,7 @@ import GroupingActions from '../actions/groupingActions';
 const api = new Client();
 
 // Between 0-100
-const MIN_SCORE = 0.60;
+const MIN_SCORE = 0.6;
 
 // @param score: {[key: string]: number}
 const checkBelowThreshold = scores => {
@@ -69,8 +69,8 @@ const GroupingStore = Reflux.createStore({
   },
 
   checkForRemainingUnmergeItem() {
-    let lockedItems = Array.from(this.unmergeState.values()).filter(({busy}) => busy) || [
-    ];
+    let lockedItems =
+      Array.from(this.unmergeState.values()).filter(({busy}) => busy) || [];
     let hasRemainingItem =
       this.unmergeList.size + 1 === this.mergedItems.length - lockedItems.length;
 
@@ -206,9 +206,8 @@ const GroupingStore = Reflux.createStore({
       // make sure that not all events have been selected
 
       // Account for items in unmerge queue, or "locked" items
-      let lockedItems = Array.from(this.unmergeState.values()).filter(
-        ({busy}) => busy
-      ) || [];
+      let lockedItems =
+        Array.from(this.unmergeState.values()).filter(({busy}) => busy) || [];
 
       let canUnmerge =
         this.unmergeList.size + 1 < this.mergedItems.length - lockedItems.length;

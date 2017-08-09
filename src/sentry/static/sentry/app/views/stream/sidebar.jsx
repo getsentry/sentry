@@ -112,7 +112,9 @@ const StreamSidebar = React.createClass({
           ? <LoadingIndicator />
           : <div>
               <div className="stream-tag-filter">
-                <h6 className="nav-header">{t('Text')}</h6>
+                <h6 className="nav-header">
+                  {t('Text')}
+                </h6>
                 <form onSubmit={this.onTextFilterSubmit}>
                   <input
                     className="form-control"

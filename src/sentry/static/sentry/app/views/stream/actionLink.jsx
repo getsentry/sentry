@@ -115,9 +115,15 @@ const ActionLink = React.createClass({
           animation={false}
           onHide={this.handleToggle}>
           <div className="modal-body">
-            <p><strong>{confirmationQuestion}</strong></p>
+            <p>
+              <strong>
+                {confirmationQuestion}
+              </strong>
+            </p>
             {this.props.extraDescription}
-            <p>{t('This action cannot be undone.')}</p>
+            <p>
+              {t('This action cannot be undone.')}
+            </p>
           </div>
           <div className="modal-footer">
             <button type="button" className="btn btn-default" onClick={this.handleToggle}>

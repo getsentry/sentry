@@ -61,7 +61,9 @@ const EventOrGroupExtraDetails = React.createClass({
                 to={`/${orgId}/${projectId}/issues/${groupId}/activity/`}
                 className="comments">
                 <span className="icon icon-comments" style={styles} />
-                <span className="tag-count">{numComments}</span>
+                <span className="tag-count">
+                  {numComments}
+                </span>
               </Link>
             </li>}
           {logger &&

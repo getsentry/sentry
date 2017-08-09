@@ -33,7 +33,11 @@ const AssignedIssues = React.createClass({
   },
 
   renderEmpty() {
-    return <div className="box empty">{t('No issues have been assigned to you.')}</div>;
+    return (
+      <div className="box empty">
+        {t('No issues have been assigned to you.')}
+      </div>
+    );
   },
 
   refresh() {
@@ -190,11 +194,9 @@ const ProjectList = React.createClass({
         <h6 className="nav-header">Projects</h6>
         {bookmarkedProjects.length === 0 &&
           <div className="alert alert-info" style={{marginBottom: 10}}>
-            Bookmark your most used
-            {' '}
-            <Link to={`/organizations/${org.slug}/teams/`}>projects</Link>
-            {' '}
-            to have them appear here.
+            Bookmark your most used{' '}
+            <Link to={`/organizations/${org.slug}/teams/`}>projects</Link> to have them
+            appear here.
           </div>}
         <ul className="nav nav-stacked">
           {projects.map(project => {
@@ -209,7 +211,9 @@ const ProjectList = React.createClass({
                       <span className="bookmark icon-star-solid" />}
                     {project.name}
                   </h4>
-                  <h5>{project.teamName}</h5>
+                  <h5>
+                    {project.teamName}
+                  </h5>
                 </Link>
               </li>
             );

@@ -191,7 +191,8 @@ class IssueActions extends PluginComponentBase {
                 if (field.has_autocomplete) {
                   field = Object.assign(
                     {
-                      url: '/api/0/issues/' +
+                      url:
+                        '/api/0/issues/' +
                         this.getGroup().id +
                         '/plugins/' +
                         this.props.plugin.slug +
@@ -222,7 +223,8 @@ class IssueActions extends PluginComponentBase {
                 if (field.has_autocomplete) {
                   field = Object.assign(
                     {
-                      url: '/api/0/issues/' +
+                      url:
+                        '/api/0/issues/' +
                         this.getGroup().id +
                         '/plugins/' +
                         this.props.plugin.slug +
@@ -248,7 +250,9 @@ class IssueActions extends PluginComponentBase {
       case 'unlink':
         form = (
           <div>
-            <p>{t('Are you sure you want to unlink this issue?')}</p>
+            <p>
+              {t('Are you sure you want to unlink this issue?')}
+            </p>
             <button onClick={this.unlinkIssue} className="btn btn-danger">
               {t('Unlink Issue')}
             </button>
@@ -301,29 +305,39 @@ class IssueActions extends PluginComponentBase {
                   {
                     'Your server administrator will need to configure authentication with '
                   }
-                  <strong>{error.auth_provider}</strong>
+                  <strong>
+                    {error.auth_provider}
+                  </strong>
                   {' before you can use this plugin.'}
                 </p>
                 <p>The following settings must be configured:</p>
                 <ul>
                   {error.required_auth_settings.map((setting, i) => {
-                    return <li key={i}><code>{setting}</code></li>;
+                    return (
+                      <li key={i}>
+                        <code>
+                          {setting}
+                        </code>
+                      </li>
+                    );
                   })}
                 </ul>
               </div>
             : <p>
-                You still need to
-                {' '}
-                <a href={this.getPluginConfigureUrl()}>configure this plugin</a>
-                {' '}
-                before you can use it.
+                You still need to{' '}
+                <a href={this.getPluginConfigureUrl()}>configure this plugin</a> before
+                you can use it.
               </p>}
         </div>
       );
     } else if (error.error_type === 'validation') {
       let errors = [];
       for (let name in error.errors) {
-        errors.push(<p key={name}>{error.errors[name]}</p>);
+        errors.push(
+          <p key={name}>
+            {error.errors[name]}
+          </p>
+        );
       }
       return (
         <div className="alert alert-error alert-block">
@@ -333,7 +347,9 @@ class IssueActions extends PluginComponentBase {
     } else if (error.message) {
       return (
         <div className="alert alert-error alert-block">
-          <p>{error.message}</p>
+          <p>
+            {error.message}
+          </p>
         </div>
       );
     }

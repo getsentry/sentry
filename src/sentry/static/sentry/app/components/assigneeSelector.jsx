@@ -206,7 +206,9 @@ const AssigneeSelector = React.createClass({
     if (memberNodes.length === 0) {
       memberNodes = [
         <li className="not-found" key="no-user">
-          <span>{t('No matching users found.')}</span>
+          <span>
+            {t('No matching users found.')}
+          </span>
         </li>
       ];
     }
@@ -251,7 +253,9 @@ const AssigneeSelector = React.createClass({
                     </MenuItem>
                   : ''}
                 <li>
-                  <ul>{memberNodes}</ul>
+                  <ul>
+                    {memberNodes}
+                  </ul>
                 </li>
               </DropdownLink>}
         </div>

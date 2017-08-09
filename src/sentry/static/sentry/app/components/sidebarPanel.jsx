@@ -15,7 +15,9 @@ const SidebarPanel = React.createClass({
           <a className="close pull-right" onClick={this.props.hidePanel}>
             <span className="icon-close" />
           </a>
-          <h2>{this.props.title}</h2>
+          <h2>
+            {this.props.title}
+          </h2>
         </div>
         <div className="sidebar-panel-body">
           {!this.props.children &&

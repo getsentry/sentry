@@ -114,7 +114,8 @@ export const intcomma = function(x) {
 
 export function getQueryParams() {
   let hashes, hash;
-  let vars = {}, href = window.location.href;
+  let vars = {},
+    href = window.location.href;
 
   if (href.indexOf('?') == -1) return vars;
 
@@ -141,7 +142,8 @@ export function getQueryParams() {
 
 export function sortArray(arr, score_fn) {
   arr.sort((a, b) => {
-    let a_score = score_fn(a), b_score = score_fn(b);
+    let a_score = score_fn(a),
+      b_score = score_fn(b);
 
     for (let i = 0; i < a_score.length; i++) {
       if (a_score[i] > b_score[i]) {
@@ -222,7 +224,9 @@ export function formatBytes(bytes) {
 }
 
 export function getShortVersion(version) {
-  let match = version.match(/^(?:[a-zA-Z][a-zA-Z0-9-]+)(?:\.[a-zA-Z][a-zA-Z0-9-]+)+-(.*)$/);
+  let match = version.match(
+    /^(?:[a-zA-Z][a-zA-Z0-9-]+)(?:\.[a-zA-Z][a-zA-Z0-9-]+)+-(.*)$/
+  );
   if (match) {
     version = match[1];
   }

@@ -46,7 +46,9 @@ export default React.createClass({
       return (
         <div className="panel panel-default">
           <div className="panel-body p-b-0">
-            <p>{"Oops! Looks like there aren't any available integrations installed."}</p>
+            <p>
+              {"Oops! Looks like there aren't any available integrations installed."}
+            </p>
           </div>
         </div>
       );

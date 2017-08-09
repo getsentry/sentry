@@ -10,7 +10,9 @@ function Collapsed(props) {
       <span className="icon-container">
         <span className="icon icon-ellipsis" />
       </span>
-      <a onClick={props.onClick}>Show {props.count} collapsed crumbs</a>
+      <a onClick={props.onClick}>
+        Show {props.count} collapsed crumbs
+      </a>
     </li>
   );
 }
@@ -77,8 +79,7 @@ const BreadcrumbsInterface = React.createClass({
     return (
       <li className="crumb-empty">
         <p>
-          <span className="icon icon-exclamation" />
-          {' '}
+          <span className="icon icon-exclamation" />{' '}
           {t('Sorry, no breadcrumbs match your search query.')}
         </p>
       </li>
@@ -175,7 +176,9 @@ const BreadcrumbsInterface = React.createClass({
     let title = (
       <div>
         <h3>
-          <strong>{'Breadcrumbs'}</strong>
+          <strong>
+            {'Breadcrumbs'}
+          </strong>
         </h3>
         {this.getSearchField()}
       </div>

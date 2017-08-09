@@ -56,12 +56,18 @@ const RuleRow = React.createClass({
       <div className="box">
         <div className="box-header">
           <div className="pull-right">
-            <a className="btn btn-sm btn-default" href={editLink}>{t('Edit Rule')}</a>
+            <a className="btn btn-sm btn-default" href={editLink}>
+              {t('Edit Rule')}
+            </a>
             <a className="btn btn-sm btn-default" onClick={this.onDelete}>
               <span className="icon-trash" style={{marginRight: 3}} />
             </a>
           </div>
-          <h3><a href={editLink}>{data.name}</a></h3>
+          <h3>
+            <a href={editLink}>
+              {data.name}
+            </a>
+          </h3>
         </div>
         <div className="box-content with-padding">
           <div className="row">
@@ -75,7 +81,9 @@ const RuleRow = React.createClass({
                     {data.conditions.map((condition, i) => {
                       return (
                         <tr key={i}>
-                          <td>{condition.name}</td>
+                          <td>
+                            {condition.name}
+                          </td>
                         </tr>
                       );
                     })}
@@ -86,17 +94,19 @@ const RuleRow = React.createClass({
               {data.actions.length !== 0 &&
                 <div>
                   <h6>
-                    Take these actions at most
-                    {' '}
-                    <strong>once every <Duration seconds={data.frequency * 60} /></strong>
-                    {' '}
+                    Take these actions at most{' '}
+                    <strong>
+                      once every <Duration seconds={data.frequency * 60} />
+                    </strong>{' '}
                     for an issue:
                   </h6>
                   <table className="actions-list table">
                     {data.actions.map((action, i) => {
                       return (
                         <tr key={i}>
-                          <td>{action.name}</td>
+                          <td>
+                            {action.name}
+                          </td>
                         </tr>
                       );
                     })}
@@ -173,7 +183,9 @@ const ProjectAlertRules = React.createClass({
     return (
       <div className="box empty-stream">
         <span className="icon icon-exclamation" />
-        <p>{t('There are no alerts configured for this project.')}</p>
+        <p>
+          {t('There are no alerts configured for this project.')}
+        </p>
       </div>
     );
   },
@@ -207,7 +219,9 @@ const ProjectAlertRules = React.createClass({
           <span className="icon-plus" />
           {t('New Alert Rule')}
         </a>
-        <h2>{t('Alerts')}</h2>
+        <h2>
+          {t('Alerts')}
+        </h2>
 
         <ul className="nav nav-tabs" style={{borderBottom: '1px solid #ddd'}}>
           <ListLink to={`/${orgId}/${projectId}/settings/alerts/`} index={true}>

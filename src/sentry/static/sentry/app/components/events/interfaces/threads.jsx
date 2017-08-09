@@ -82,8 +82,8 @@ function getThreadTitle(thread, event, simplified) {
           {frame.filename
             ? trimFilename(frame.filename)
             : frame.package
-                ? trimPackage(frame.package)
-                : frame.module ? frame.module : '<unknown>'}
+              ? trimPackage(frame.package)
+              : frame.module ? frame.module : '<unknown>'}
         </em>
       );
     }

@@ -89,8 +89,12 @@ const TeamMembers = React.createClass({
           </colgroup>
           <thead>
             <tr>
-              <th>{t('Member')}</th>
-              <th>{t('Role')}</th>
+              <th>
+                {t('Member')}
+              </th>
+              <th>
+                {t('Role')}
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -99,10 +103,16 @@ const TeamMembers = React.createClass({
                 <tr key={i}>
                   <td className="table-user-info">
                     <Avatar user={member} size={80} />
-                    <h5><a href={`${memberPrefix}/${member.id}/`}>{member.email}</a></h5>
+                    <h5>
+                      <a href={`${memberPrefix}/${member.id}/`}>
+                        {member.email}
+                      </a>
+                    </h5>
                     {member.email}
                   </td>
-                  <td>{member.roleName}</td>
+                  <td>
+                    {member.roleName}
+                  </td>
                 </tr>
               );
             })}

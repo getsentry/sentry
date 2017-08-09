@@ -54,13 +54,9 @@ const DetailedError = React.createClass({
 
               {!hideSupportLinks &&
                 <div className="detailed-error-support-links">
-                  <a href="https://status.sentry.io/">
-                    Service status
-                  </a>
+                  <a href="https://status.sentry.io/">Service status</a>
 
-                  <a href="https://sentry.io/support/">
-                    Contact support
-                  </a>
+                  <a href="https://sentry.io/support/">Contact support</a>
                 </div>}
             </div>}
         </div>

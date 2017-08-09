@@ -258,10 +258,13 @@ const NoteInput = React.createClass({
               </a>
             </li>
             <li className={preview ? 'active' : ''}>
-              <a onClick={this.togglePreview}>{t('Preview')}</a>
+              <a onClick={this.togglePreview}>
+                {t('Preview')}
+              </a>
             </li>
             <li className="markdown">
-              <span className="icon-markdown" /><span className="supported">
+              <span className="icon-markdown" />
+              <span className="supported">
                 {t('Markdown supported')}
               </span>
             </li>
@@ -292,7 +295,9 @@ const NoteInput = React.createClass({
           <div className="activity-actions">
             {errorJSON &&
               errorJSON.detail &&
-              <small className="error">{errorJSON.detail}</small>}
+              <small className="error">
+                {errorJSON.detail}
+              </small>}
             <button className="btn btn-default" type="submit" disabled={loading}>
               {btnText}
             </button>

@@ -32,7 +32,9 @@ const HomeSidebar = React.createClass({
     let orgId = org.slug;
     return (
       <div>
-        <h6 className="nav-header">{t('Organization')}</h6>
+        <h6 className="nav-header">
+          {t('Organization')}
+        </h6>
         <ul className="nav nav-stacked">
           <ListLink
             to={`/${orgId}/`}
@@ -53,10 +55,14 @@ const HomeSidebar = React.createClass({
             {t('Projects & Teams')}
           </ListLink>
           {access.has('org:read') &&
-            <ListLink to={`/organizations/${orgId}/stats/`}>{t('Stats')}</ListLink>}
+            <ListLink to={`/organizations/${orgId}/stats/`}>
+              {t('Stats')}
+            </ListLink>}
         </ul>
         <div>
-          <h6 className="nav-header with-divider">{t('Issues')}</h6>
+          <h6 className="nav-header with-divider">
+            {t('Issues')}
+          </h6>
           <ul className="nav nav-stacked">
             <ListLink to={`/organizations/${orgId}/issues/assigned/`}>
               {t('Assigned to Me')}
@@ -71,7 +77,9 @@ const HomeSidebar = React.createClass({
         </div>
         {access.has('org:read') &&
           <div>
-            <h6 className="nav-header with-divider">{t('Manage')}</h6>
+            <h6 className="nav-header with-divider">
+              {t('Manage')}
+            </h6>
             <ul className="nav nav-stacked">
               {access.has('org:read') &&
                 <li>
@@ -86,11 +94,17 @@ const HomeSidebar = React.createClass({
                 </li>}
               {features.has('sso') &&
                 access.has('org:admin') &&
-                <li><a href={`/organizations/${orgId}/auth/`}>{t('Auth')}</a></li>}
+                <li>
+                  <a href={`/organizations/${orgId}/auth/`}>
+                    {t('Auth')}
+                  </a>
+                </li>}
               {access.has('org:admin') &&
                 features.has('api-keys') &&
                 <li>
-                  <a href={`/organizations/${orgId}/api-keys/`}>{t('API Keys')}</a>
+                  <a href={`/organizations/${orgId}/api-keys/`}>
+                    {t('API Keys')}
+                  </a>
                 </li>}
               {access.has('org:write') &&
                 <ListLink to={`/organizations/${orgId}/audit-log/`}>

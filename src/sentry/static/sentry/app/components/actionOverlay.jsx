@@ -52,7 +52,9 @@ const ActionOverlay = React.createClass({
           <div className="dialog">
             <div className="dialog-contents">
               <div className="discard-bar">
-                <a href={orgUrl} onClick={this.onDoThisLater}>{t('Do this later …')}</a>
+                <a href={orgUrl} onClick={this.onDoThisLater}>
+                  {t('Do this later …')}
+                </a>
               </div>
               <div className="content">
                 {children}

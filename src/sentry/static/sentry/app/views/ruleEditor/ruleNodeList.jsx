@@ -81,7 +81,11 @@ const RuleNodeList = React.createClass({
           <SelectInput onChange={this.onAddRow} style={{width: '100%'}}>
             <option key="blank" />
             {this.props.nodes.map(node => {
-              return <option value={node.id} key={node.id}>{node.label}</option>;
+              return (
+                <option value={node.id} key={node.id}>
+                  {node.label}
+                </option>
+              );
             })}
           </SelectInput>
         </fieldset>

@@ -139,8 +139,8 @@ class AsyncView extends React.Component {
         {this.state.loading
           ? this.renderLoading()
           : this.state.error
-              ? this.renderError(new Error('Unable to load all required endpoints'))
-              : this.renderBody()}
+            ? this.renderError(new Error('Unable to load all required endpoints'))
+            : this.renderBody()}
       </DocumentTitle>
     );
   }

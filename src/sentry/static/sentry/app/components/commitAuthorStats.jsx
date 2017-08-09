@@ -46,7 +46,9 @@ const CommitAuthorStats = React.createClass({
 
   componentDidMount() {
     let {orgId, projectId, version} = this.props;
-    let path = `/projects/${orgId}/${projectId}/releases/${encodeURIComponent(version)}/commits/`;
+    let path = `/projects/${orgId}/${projectId}/releases/${encodeURIComponent(
+      version
+    )}/commits/`;
     this.api.request(path, {
       method: 'GET',
       success: (data, _, jqXHR) => {
@@ -74,7 +76,11 @@ const CommitAuthorStats = React.createClass({
   },
 
   renderEmpty() {
-    return <div className="box empty">{t('No authors in this release')}</div>;
+    return (
+      <div className="box empty">
+        {t('No authors in this release')}
+      </div>
+    );
   },
 
   render() {

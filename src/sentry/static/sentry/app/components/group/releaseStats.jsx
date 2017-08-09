@@ -174,68 +174,74 @@ const GroupReleaseStats = React.createClass({
           {this.state.loading
             ? <LoadingIndicator />
             : this.state.error
-                ? <LoadingError />
-                : <div>
-                    <GroupReleaseChart
-                      group={group}
-                      environment={environment}
-                      environmentStats={data.environment.stats}
-                      release={data.currentRelease ? data.currentRelease.release : null}
-                      releaseStats={
-                        data.currentRelease ? data.currentRelease.stats : null
-                      }
-                      statsPeriod="24h"
-                      title={t('Last 24 Hours')}
-                      firstSeen={group.firstSeen}
-                      lastSeen={group.lastSeen}
-                    />
+              ? <LoadingError />
+              : <div>
+                  <GroupReleaseChart
+                    group={group}
+                    environment={environment}
+                    environmentStats={data.environment.stats}
+                    release={data.currentRelease ? data.currentRelease.release : null}
+                    releaseStats={data.currentRelease ? data.currentRelease.stats : null}
+                    statsPeriod="24h"
+                    title={t('Last 24 Hours')}
+                    firstSeen={group.firstSeen}
+                    lastSeen={group.lastSeen}
+                  />
 
-                    <GroupReleaseChart
-                      group={group}
-                      environment={environment}
-                      environmentStats={data.environment.stats}
-                      release={data.currentRelease ? data.currentRelease.release : null}
-                      releaseStats={
-                        data.currentRelease ? data.currentRelease.stats : null
-                      }
-                      statsPeriod="30d"
-                      title={t('Last 30 Days')}
-                      className="bar-chart-small"
-                      firstSeen={group.firstSeen}
-                      lastSeen={group.lastSeen}
-                    />
+                  <GroupReleaseChart
+                    group={group}
+                    environment={environment}
+                    environmentStats={data.environment.stats}
+                    release={data.currentRelease ? data.currentRelease.release : null}
+                    releaseStats={data.currentRelease ? data.currentRelease.stats : null}
+                    statsPeriod="30d"
+                    title={t('Last 30 Days')}
+                    className="bar-chart-small"
+                    firstSeen={group.firstSeen}
+                    lastSeen={group.lastSeen}
+                  />
 
-                    <h6>
-                      <span>{t('First seen')}</span>
-                      {environment && <small>({environment})</small>}
-                    </h6>
+                  <h6>
+                    <span>
+                      {t('First seen')}
+                    </span>
+                    {environment &&
+                      <small>
+                        ({environment})
+                      </small>}
+                  </h6>
 
-                    <SeenInfo
-                      orgId={orgId}
-                      projectId={projectId}
-                      date={firstSeenEnv}
-                      dateGlobal={group.firstSeen}
-                      hasRelease={hasRelease}
-                      environment={environment}
-                      release={data.firstRelease ? data.firstRelease.release : null}
-                      title={t('First seen')}
-                    />
+                  <SeenInfo
+                    orgId={orgId}
+                    projectId={projectId}
+                    date={firstSeenEnv}
+                    dateGlobal={group.firstSeen}
+                    hasRelease={hasRelease}
+                    environment={environment}
+                    release={data.firstRelease ? data.firstRelease.release : null}
+                    title={t('First seen')}
+                  />
 
-                    <h6>
-                      <span>{t('Last seen')}</span>
-                      {environment && <small>({environment})</small>}
-                    </h6>
-                    <SeenInfo
-                      orgId={orgId}
-                      projectId={projectId}
-                      date={lastSeenEnv}
-                      dateGlobal={group.lastSeen}
-                      hasRelease={hasRelease}
-                      environment={environment}
-                      release={data.lastRelease ? data.lastRelease.release : null}
-                      title={t('Last seen')}
-                    />
-                  </div>}
+                  <h6>
+                    <span>
+                      {t('Last seen')}
+                    </span>
+                    {environment &&
+                      <small>
+                        ({environment})
+                      </small>}
+                  </h6>
+                  <SeenInfo
+                    orgId={orgId}
+                    projectId={projectId}
+                    date={lastSeenEnv}
+                    dateGlobal={group.lastSeen}
+                    hasRelease={hasRelease}
+                    environment={environment}
+                    release={data.lastRelease ? data.lastRelease.release : null}
+                    title={t('Last seen')}
+                  />
+                </div>}
         </div>
       </div>
     );

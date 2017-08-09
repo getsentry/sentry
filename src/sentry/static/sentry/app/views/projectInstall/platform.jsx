@@ -136,7 +136,9 @@ const ProjectInstallPlatform = React.createClass({
             </a>
           </div>
 
-          <h3>{t('Configure %(integration)s', {integration: integration.name})}</h3>
+          <h3>
+            {t('Configure %(integration)s', {integration: integration.name})}
+          </h3>
         </div>
         <div className="box-content with-padding">
           <p>
@@ -156,8 +158,8 @@ const ProjectInstallPlatform = React.createClass({
           {this.state.loading
             ? <LoadingIndicator />
             : this.state.error
-                ? <LoadingError onRetry={this.fetchData} />
-                : <div dangerouslySetInnerHTML={{__html: this.state.html}} />}
+              ? <LoadingError onRetry={this.fetchData} />
+              : <div dangerouslySetInnerHTML={{__html: this.state.html}} />}
 
           {this.isGettingStarted() &&
             // Using <a /> instead of <Link /> as hashchange events are not

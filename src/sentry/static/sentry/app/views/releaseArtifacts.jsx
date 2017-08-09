@@ -47,7 +47,9 @@ const ReleaseArtifacts = React.createClass({
 
   getFilesEndpoint() {
     let params = this.props.params;
-    return `/projects/${params.orgId}/${params.projectId}/releases/${encodeURIComponent(params.version)}/files/`;
+    return `/projects/${params.orgId}/${params.projectId}/releases/${encodeURIComponent(
+      params.version
+    )}/files/`;
   },
 
   fetchData() {
@@ -113,7 +115,9 @@ const ReleaseArtifacts = React.createClass({
       return (
         <div className="box empty-stream">
           <span className="icon icon-exclamation" />
-          <p>{t('There are no artifacts uploaded for this release.')}</p>
+          <p>
+            {t('There are no artifacts uploaded for this release.')}
+          </p>
         </div>
       );
 
@@ -125,9 +129,15 @@ const ReleaseArtifacts = React.createClass({
         <div className="panel panel-default">
           <div className="panel-heading panel-heading-bold">
             <div className="row">
-              <div className="col-lg-7 col-sm-6">{'Name'}</div>
-              <div className="col-lg-2 col-sm-2">{'Distribution'}</div>
-              <div className="col-lg-1 col-sm-2">{'Size'}</div>
+              <div className="col-lg-7 col-sm-6">
+                {'Name'}
+              </div>
+              <div className="col-lg-2 col-sm-2">
+                {'Distribution'}
+              </div>
+              <div className="col-lg-1 col-sm-2">
+                {'Size'}
+              </div>
               <div className="col-lg-2 col-sm-2 align-right" />
             </div>
           </div>
@@ -137,10 +147,15 @@ const ReleaseArtifacts = React.createClass({
                 <li className="list-group-item" key={file.id}>
                   <div className="row row-flex row-center-vertically">
                     <div className="col-lg-7 col-sm-6" style={{wordWrap: 'break-word'}}>
-                      <strong>{file.name || '(empty)'}</strong>
+                      <strong>
+                        {file.name || '(empty)'}
+                      </strong>
                     </div>
                     <div className="col-lg-2 col-sm-2">
-                      {file.dist || <span className="text-light">{t('None')}</span>}
+                      {file.dist ||
+                        <span className="text-light">
+                          {t('None')}
+                        </span>}
                     </div>
                     <div className="col-lg-1 col-sm-2">
                       <FileSize bytes={file.size} />
@@ -150,8 +165,8 @@ const ReleaseArtifacts = React.createClass({
                         ? <a
                             href={
                               this.api.baseUrl +
-                                this.getFilesEndpoint() +
-                                `${file.id}/?download=1`
+                              this.getFilesEndpoint() +
+                              `${file.id}/?download=1`
                             }
                             className="btn btn-sm btn-default">
                             <span className="icon icon-open" />
@@ -168,7 +183,6 @@ const ReleaseArtifacts = React.createClass({
                         title={t('Delete artifact')}
                         message={t('Are you sure you want to remove this artifact?')}
                         onConfirm={this.handleRemove.bind(this, file.id)}>
-
                         <span className="icon icon-trash" />
                       </LinkWithConfirmation>
                     </div>

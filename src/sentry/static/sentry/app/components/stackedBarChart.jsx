@@ -245,7 +245,9 @@ const StackedBarChart = React.createClass({
 
     return (
       <a key={key} className={className} style={{height: '100%'}} data-title={title}>
-        <span>{marker.label}</span>
+        <span>
+          {marker.label}
+        </span>
       </a>
     );
   },
@@ -258,7 +260,8 @@ const StackedBarChart = React.createClass({
       `<div class="time-label">${timeLabel}</div>` +
       '</div>';
     if (this.props.label) {
-      title += `<div class="value-label">${totalY.toLocaleString()} ${this.props.label}</div>`;
+      title += `<div class="value-label">${totalY.toLocaleString()} ${this.props
+        .label}</div>`;
     }
     point.y.forEach((y, i) => {
       let s = this.state.series[i];
@@ -346,9 +349,13 @@ const StackedBarChart = React.createClass({
       <figure
         className={figureClass}
         style={{height: this.props.height, width: this.props.width}}>
-        <span className="max-y"><Count value={maxval} /></span>
+        <span className="max-y">
+          <Count value={maxval} />
+        </span>
         <span className="min-y">0</span>
-        <span>{this.renderChart()}</span>
+        <span>
+          {this.renderChart()}
+        </span>
       </figure>
     );
   }

@@ -375,15 +375,19 @@ const AvatarCropper = React.createClass({
         {!src &&
           <div className="image-well well blankslate">
             <p>
-              <a onClick={this.uploadClick}><strong>Upload a photo</strong></a>
-              {' '}
+              <a onClick={this.uploadClick}>
+                <strong>Upload a photo</strong>
+              </a>{' '}
               to get started.
             </p>
           </div>}
         {this.renderImageCrop()}
         {this.renderCanvas()}
         <div className="form-group">
-          {src && <a onClick={this.uploadClick}>{t('Change Photo')}</a>}
+          {src &&
+            <a onClick={this.uploadClick}>
+              {t('Change Photo')}
+            </a>}
           <input
             ref="file"
             type="file"

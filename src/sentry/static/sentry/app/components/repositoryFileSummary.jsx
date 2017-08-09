@@ -79,7 +79,9 @@ const RepositoryFileSummary = React.createClass({
             canCollapse &&
             <li className="list-group-item list-group-item-sm align-center">
               <span className="icon-container" />
-              <a onClick={this.onCollapseToggle}>{t('Collapse')}</a>
+              <a onClick={this.onCollapseToggle}>
+                {t('Collapse')}
+              </a>
             </li>}
         </ul>
       </div>

@@ -18,11 +18,19 @@ const AdminUsers = React.createClass({
           <a href={`/manage/users/${row.id}/`}>
             {row.username}
           </a>
-        </strong><br />
-        {row.email !== row.username && <small>{row.email}</small>}
+        </strong>
+        <br />
+        {row.email !== row.username &&
+          <small>
+            {row.email}
+          </small>}
       </td>,
-      <td style={{textAlign: 'center'}}>{prettyDate(row.dateJoined)}</td>,
-      <td style={{textAlign: 'center'}}>{prettyDate(row.lastLogin)}</td>
+      <td style={{textAlign: 'center'}}>
+        {prettyDate(row.dateJoined)}
+      </td>,
+      <td style={{textAlign: 'center'}}>
+        {prettyDate(row.lastLogin)}
+      </td>
     ];
   },
 
@@ -35,7 +43,9 @@ const AdminUsers = React.createClass({
 
     return (
       <div>
-        <h3>{t('Users')}</h3>
+        <h3>
+          {t('Users')}
+        </h3>
         <ResultGrid
           path="/manage/users/"
           endpoint={'/users/'}

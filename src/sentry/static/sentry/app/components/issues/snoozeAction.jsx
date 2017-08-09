@@ -47,7 +47,9 @@ const SnoozeAction = React.createClass({
         className={this.props.className}
         disabled={this.props.disabled}
         onClick={this.toggleModal}>
-        <span>{t('zZz')}</span>
+        <span>
+          {t('zZz')}
+        </span>
 
         <Modal
           show={this.state.isModalOpen}
@@ -56,7 +58,9 @@ const SnoozeAction = React.createClass({
           onHide={this.closeModal}
           bsSize="sm">
           <div className="modal-body">
-            <h5>{t('How long should we ignore this issue?')}</h5>
+            <h5>
+              {t('How long should we ignore this issue?')}
+            </h5>
             <ul className="nav nav-stacked nav-pills">
               <li>
                 <a onClick={this.onSnooze.bind(this, Snooze['30MINUTES'])}>
@@ -64,7 +68,9 @@ const SnoozeAction = React.createClass({
                 </a>
               </li>
               <li>
-                <a onClick={this.onSnooze.bind(this, Snooze['2HOURS'])}>{t('2 hours')}</a>
+                <a onClick={this.onSnooze.bind(this, Snooze['2HOURS'])}>
+                  {t('2 hours')}
+                </a>
               </li>
               <li>
                 <a onClick={this.onSnooze.bind(this, Snooze['24HOURS'])}>
@@ -72,7 +78,11 @@ const SnoozeAction = React.createClass({
                 </a>
               </li>
               {/* override click event object w/ undefined to indicate "no duration" */}
-              <li><a onClick={this.onSnooze.bind(this, undefined)}>{t('Forever')}</a></li>
+              <li>
+                <a onClick={this.onSnooze.bind(this, undefined)}>
+                  {t('Forever')}
+                </a>
+              </li>
             </ul>
           </div>
           <div className="modal-footer">

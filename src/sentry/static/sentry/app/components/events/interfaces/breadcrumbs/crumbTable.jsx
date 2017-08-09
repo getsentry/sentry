@@ -18,8 +18,14 @@ const CrumbTable = React.createClass({
     return _.map(this.props.kvData, (val, key) => {
       return (
         <tr key={key}>
-          <td className="key">{key}</td>
-          <td className="value"><pre>{val + ''}</pre></td>
+          <td className="key">
+            {key}
+          </td>
+          <td className="value">
+            <pre>
+              {val + ''}
+            </pre>
+          </td>
         </tr>
       );
     });
@@ -33,7 +39,9 @@ const CrumbTable = React.createClass({
             <td className="key">
               <Category value={this.props.crumb.category} />
             </td>
-            <td className="value">{this.props.summary}</td>
+            <td className="value">
+              {this.props.summary}
+            </td>
           </tr>
         </thead>
         <tbody>

@@ -44,7 +44,9 @@ const DeviceContextType = React.createClass({
       Number.isInteger(external_free_storage) &&
       external_free_storage > 0
     )
-      storage += ` (External Total: ${formatBytes(external_storage_size)} / Free: ${formatBytes(external_free_storage)})`;
+      storage += ` (External Total: ${formatBytes(
+        external_storage_size
+      )} / Free: ${formatBytes(external_free_storage)})`;
 
     return storage;
   },

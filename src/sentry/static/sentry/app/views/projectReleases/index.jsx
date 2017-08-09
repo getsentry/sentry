@@ -144,7 +144,9 @@ const ProjectReleases = React.createClass({
     return (
       <div className="box empty-stream">
         <span className="icon icon-exclamation" />
-        <p>{t('Sorry, no releases match your filters.')}</p>
+        <p>
+          {t('Sorry, no releases match your filters.')}
+        </p>
       </div>
     );
   },
@@ -153,7 +155,9 @@ const ProjectReleases = React.createClass({
     return (
       <div className="box empty-stream">
         <span className="icon icon-exclamation" />
-        <p>{t("There don't seem to be any releases yet.")}</p>
+        <p>
+          {t("There don't seem to be any releases yet.")}
+        </p>
         <p>
           <a href={this.getReleaseTrackingUrl()}>
             {t('Learn how to integrate Release Tracking')}
@@ -168,7 +172,9 @@ const ProjectReleases = React.createClass({
       <div>
         <div className="row release-list-header">
           <div className="col-sm-7">
-            <h3>{t('Releases')}</h3>
+            <h3>
+              {t('Releases')}
+            </h3>
           </div>
           <div className="col-sm-5 release-search">
             <SearchBar
@@ -182,7 +188,9 @@ const ProjectReleases = React.createClass({
         <div className="panel panel-default">
           <div className="panel-heading panel-heading-bold">
             <div className="row">
-              <div className="col-sm-8 col-xs-7">{t('Version')}</div>
+              <div className="col-sm-8 col-xs-7">
+                {t('Version')}
+              </div>
               <div className="col-sm-2 col-xs-3">
                 {t('New Issues')}
               </div>

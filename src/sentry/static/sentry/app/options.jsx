@@ -138,7 +138,8 @@ const definitions = [
 const definitionsMap = _.keyBy(definitions, def => def.key);
 
 const disabledReasons = {
-  diskPriority: 'This setting is defined in config.yml and may not be changed via the web UI.',
+  diskPriority:
+    'This setting is defined in config.yml and may not be changed via the web UI.',
   smtpDisabled: 'SMTP mail has been disabled, so this option is unavailable'
 };
 
@@ -173,7 +174,10 @@ export function getOptionField(option, field, value, onChange) {
 function getSectionFieldSet(section, fields) {
   return (
     <fieldset key={section.key}>
-      {section.heading && <legend>{section.heading}</legend>}
+      {section.heading &&
+        <legend>
+          {section.heading}
+        </legend>}
       {fields}
     </fieldset>
   );

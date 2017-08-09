@@ -156,12 +156,19 @@ const ProjectReleaseTracking = React.createClass({
   render() {
     let {organization, project} = this.props;
     let {pluginList} = this.state;
-    if (this.state.loading) return <div className="box"><LoadingIndicator /></div>;
+    if (this.state.loading)
+      return (
+        <div className="box">
+          <LoadingIndicator />
+        </div>
+      );
     else if (this.state.error) return <LoadingError onRetry={this.fetchData} />;
 
     return (
       <div>
-        <h2>{t('Release Tracking')}</h2>
+        <h2>
+          {t('Release Tracking')}
+        </h2>
         <p>
           {t(
             'Configure release tracking for this project to automatically record new releases of your application.'
@@ -169,7 +176,9 @@ const ProjectReleaseTracking = React.createClass({
         </p>
         <div className="box">
           <div className="box-header">
-            <h3>{t('Client Configuration')}</h3>
+            <h3>
+              {t('Client Configuration')}
+            </h3>
           </div>
           <div className="box-content with-padding">
             <p>
@@ -177,7 +186,9 @@ const ProjectReleaseTracking = React.createClass({
                 release: <code>release</code>
               })}
             </p>
-            <pre>{this.getReleaseClientConfigurationIntructions()}</pre>
+            <pre>
+              {this.getReleaseClientConfigurationIntructions()}
+            </pre>
             <p>
               {t(
                 "This will annotate each event with the version of your application, as well as automatically create a release entity in the system the first time it's seen."
@@ -193,7 +204,9 @@ const ProjectReleaseTracking = React.createClass({
 
         <div className="box">
           <div className="box-header">
-            <h3>{t('Token')}</h3>
+            <h3>
+              {t('Token')}
+            </h3>
           </div>
           <div className="box-content with-padding">
             <form>
@@ -221,7 +234,9 @@ const ProjectReleaseTracking = React.createClass({
 
         <div className="box">
           <div className="box-header">
-            <h3>{t('Webhook')}</h3>
+            <h3>
+              {t('Webhook')}
+            </h3>
           </div>
           <div className="box-content with-padding">
             <form>
@@ -231,7 +246,9 @@ const ProjectReleaseTracking = React.createClass({
                 )}
               </p>
 
-              <pre className="auto-select">{this.state.webhookUrl}</pre>
+              <pre className="auto-select">
+                {this.state.webhookUrl}
+              </pre>
 
               <p>
                 {t(
@@ -239,7 +256,9 @@ const ProjectReleaseTracking = React.createClass({
                 )}
               </p>
 
-              <pre className="auto-select">{this.getReleaseWebhookIntructions()}</pre>
+              <pre className="auto-select">
+                {this.getReleaseWebhookIntructions()}
+              </pre>
             </form>
           </div>
         </div>
@@ -253,7 +272,9 @@ const ProjectReleaseTracking = React.createClass({
         />
         <div className="box">
           <div className="box-header">
-            <h3>{t('API')}</h3>
+            <h3>
+              {t('API')}
+            </h3>
           </div>
           <div className="box-content with-padding">
             <p>
@@ -266,8 +287,7 @@ const ProjectReleaseTracking = React.createClass({
               {t('See the ')}
               <a href="https://docs.sentry.io/hosted/api/releases/">
                 {t('Releases API documentation')}
-              </a>
-              {' '}
+              </a>{' '}
               {t('for more information.')}
             </p>
           </div>

@@ -117,7 +117,9 @@ const GroupEvents = React.createClass({
     return (
       <div className="box empty-stream">
         <span className="icon icon-exclamation" />
-        <p>{t('Sorry, no events match your search query.')}</p>
+        <p>
+          {t('Sorry, no events match your search query.')}
+        </p>
       </div>
     );
   },
@@ -126,7 +128,9 @@ const GroupEvents = React.createClass({
     return (
       <div className="box empty-stream">
         <span className="icon icon-exclamation" />
-        <p>{t("There don't seem to be any events yet.")}</p>
+        <p>
+          {t("There don't seem to be any events yet.")}
+        </p>
       </div>
     );
   },
@@ -160,7 +164,9 @@ const GroupEvents = React.createClass({
               <Link to={`/${orgId}/${projectId}/issues/${groupId}/events/${event.id}/`}>
                 <DateTime date={event.dateCreated} />
               </Link>
-              <small>{(this.getEventTitle(event) || '').substr(0, 100)}</small>
+              <small>
+                {(this.getEventTitle(event) || '').substr(0, 100)}
+              </small>
             </h5>
           </td>
           {tagList.map(tag => {
@@ -196,7 +202,9 @@ const GroupEvents = React.createClass({
           <table className="table">
             <thead>
               <tr>
-                <th>{t('ID')}</th>
+                <th>
+                  {t('ID')}
+                </th>
                 {tagList.map(tag => {
                   return (
                     <th key={tag.key}>
@@ -204,7 +212,10 @@ const GroupEvents = React.createClass({
                     </th>
                   );
                 })}
-                {hasUser && <th>{t('User')}</th>}
+                {hasUser &&
+                  <th>
+                    {t('User')}
+                  </th>}
               </tr>
             </thead>
             <tbody>

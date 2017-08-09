@@ -18,7 +18,9 @@ export default React.createClass({
     return (
       <div className="box">
         <div className="box-header">
-          <h3>{t('Inactive Integrations')}</h3>
+          <h3>
+            {t('Inactive Integrations')}
+          </h3>
         </div>
         <div className="box-content with-padding">
           <ul className="integration-list">

@@ -18,11 +18,18 @@ const AdminProjects = React.createClass({
           <a href={`/${row.organization.slug}/${row.slug}/`}>
             {row.name}
           </a>
-        </strong><br />
-        <small>{row.organization.name}</small>
+        </strong>
+        <br />
+        <small>
+          {row.organization.name}
+        </small>
       </td>,
-      <td style={{textAlign: 'center'}}>{row.status}</td>,
-      <td style={{textAlign: 'right'}}>{prettyDate(row.dateCreated)}</td>
+      <td style={{textAlign: 'center'}}>
+        {row.status}
+      </td>,
+      <td style={{textAlign: 'right'}}>
+        {prettyDate(row.dateCreated)}
+      </td>
     ];
   },
 
@@ -35,7 +42,9 @@ const AdminProjects = React.createClass({
 
     return (
       <div>
-        <h3>{t('Projects')}</h3>
+        <h3>
+          {t('Projects')}
+        </h3>
         <ResultGrid
           path="/manage/projects/"
           endpoint={'/projects/'}

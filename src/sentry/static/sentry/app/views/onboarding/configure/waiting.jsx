@@ -15,7 +15,9 @@ const Waiting = React.createClass({
           </div>
         </div>
         <div className="wrap waiting-text">
-          <h3 className="animated-ellipsis">{t('Waiting to receive an error')}</h3>
+          <h3 className="animated-ellipsis">
+            {t('Waiting to receive an error')}
+          </h3>
           <div className="robot">
             <span className="eye" />
           </div>

@@ -45,20 +45,19 @@ const LatestDeployOrReleaseTime = React.createClass({
                     fontSize: 12
                   }}>
                   {latestDeploy.environment + ' '}
-                </span>
-                {' '}
-                <span className="icon icon-clock" />
-                {' '}
+                </span>{' '}
+                <span className="icon icon-clock" />{' '}
                 <TimeSince date={latestDeploy.dateFinished} />
                 {earlierDeploysNum > 0 &&
                   <span className="tip" title={earlierDeploysNum + t(' earlier deploys')}>
-                    <span className="badge">{earlierDeploysNum}</span>
+                    <span className="badge">
+                      {earlierDeploysNum}
+                    </span>
                   </span>}
               </p>
             </div>
           : <p className="m-b-0 text-light">
-              <span className="icon icon-clock" />
-              {' '}
+              <span className="icon icon-clock" />{' '}
               <TimeSince date={release.dateCreated} />
             </p>}
       </div>

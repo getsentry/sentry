@@ -14,7 +14,8 @@ describe('RuleNodeList', function() {
       {
         id: 'sentry.rules.conditions.event_frequency.EventFrequencyCondition',
         label: 'An event is seen more than {value} times in {interval}',
-        html: 'An event is seen more than <input id="id_value" name="value" placeholder="100" type="number" /> times ' +
+        html:
+          'An event is seen more than <input id="id_value" name="value" placeholder="100" type="number" /> times ' +
           'in <select id="id_interval" name="interval">↵<option value="1m">one minute</option>↵<option value="1h">one hour</option>↵</select>'
       }
     ];

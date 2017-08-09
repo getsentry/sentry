@@ -120,7 +120,11 @@ const IssueList = React.createClass({
   },
 
   renderEmpty() {
-    return <div className="box empty">{t('Nothing to show here, move along.')}</div>;
+    return (
+      <div className="box empty">
+        {t('Nothing to show here, move along.')}
+      </div>
+    );
   },
 
   render() {

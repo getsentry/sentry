@@ -92,28 +92,28 @@ const AllTeamsRow = React.createClass({
     return (
       <tr>
         <td>
-          <h5>{team.name}</h5>
+          <h5>
+            {team.name}
+          </h5>
         </td>
         <td className="actions align-right">
           {this.state.loading
             ? <a className="btn btn-default btn-sm btn-loading btn-disabled">...</a>
             : team.isMember
-                ? <a
-                    className="leave-team btn btn-default btn-sm"
-                    onClick={this.leaveTeam}>
-                    {t('Leave Team')}
+              ? <a className="leave-team btn btn-default btn-sm" onClick={this.leaveTeam}>
+                  {t('Leave Team')}
+                </a>
+              : team.isPending
+                ? <a className="btn btn-default btn-sm btn-disabled">
+                    {t('Request Pending')}
                   </a>
-                : team.isPending
-                    ? <a className="btn btn-default btn-sm btn-disabled">
-                        {t('Request Pending')}
-                      </a>
-                    : openMembership
-                        ? <a className="btn btn-default btn-sm" onClick={this.joinTeam}>
-                            {t('Join Team')}
-                          </a>
-                        : <a className="btn btn-default btn-sm" onClick={this.joinTeam}>
-                            {t('Request Access')}
-                          </a>}
+                : openMembership
+                  ? <a className="btn btn-default btn-sm" onClick={this.joinTeam}>
+                      {t('Join Team')}
+                    </a>
+                  : <a className="btn btn-default btn-sm" onClick={this.joinTeam}>
+                      {t('Request Access')}
+                    </a>}
           {access.has('team:write') &&
             <Link
               className="btn btn-default btn-sm"
