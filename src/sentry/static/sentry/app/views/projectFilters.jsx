@@ -7,9 +7,11 @@ import moment from 'moment';
 import ApiMixin from '../mixins/apiMixin';
 import IndicatorStore from '../stores/indicatorStore';
 import GroupTombstones from '../components/groupTombstones';
+import HookStore from '../stores/hookStore';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
 import ProjectState from '../mixins/projectState';
+import OrganizationState from '../mixins/organizationState';
 import StackedBarChart from '../components/stackedBarChart';
 import Switch from '../components/switch';
 import {FormState, TextareaField} from '../components/forms';
@@ -61,7 +63,9 @@ const FilterRow = React.createClass({
       <div style={{borderTop: '1px solid #f2f3f4', padding: '20px 0 0'}}>
         <div className="row">
           <div className="col-md-9">
-            <h5 style={{marginBottom: 10}}>{data.name}</h5>
+            <h5 style={{marginBottom: 10}}>
+              {data.name}
+            </h5>
             {data.description &&
               <small
                 className="help-block"
@@ -168,8 +172,12 @@ const LegacyBrowserFilterRow = React.createClass({
         <div className="col-md-4" key={key}>
           <div className="filter-grid-item">
             <div className={'filter-grid-icon icon-' + subfilter.icon} />
-            <h5>{subfilter.title}</h5>
-            <p className="help-block">{subfilter.helpText}</p>
+            <h5>
+              {subfilter.title}
+            </h5>
+            <p className="help-block">
+              {subfilter.helpText}
+            </p>
             <Switch
               isActive={this.state.subfilters.has(key)}
               toggle={this.onToggleSubfilters.bind(this, key)}
@@ -183,9 +191,11 @@ const LegacyBrowserFilterRow = React.createClass({
     // group entries into rows of 3
     let rows = _.groupBy(entries, (entry, i) => Math.floor(i / 3));
 
-    return _.toArray(rows).map((row, i) => (
-      <div className="row m-b-1" key={i}>{row}</div>
-    ));
+    return _.toArray(rows).map((row, i) =>
+      <div className="row m-b-1" key={i}>
+        {row}
+      </div>
+    );
   },
 
   render() {
@@ -195,7 +205,9 @@ const LegacyBrowserFilterRow = React.createClass({
       <div style={{borderTop: '1px solid #f2f3f4', padding: '20px 0 0'}}>
         <div className="row">
           <div className="col-md-9">
-            <h5 style={{marginBottom: 10}}>{data.name}</h5>
+            <h5 style={{marginBottom: 10}}>
+              {data.name}
+            </h5>
             {data.description &&
               <small
                 className="help-block"
@@ -249,7 +261,8 @@ const ProjectFiltersSettingsForm = React.createClass({
     return {
       hasChanged: false,
       formData,
-      errors: {}
+      errors: {},
+      hooksDisabled: HookStore.get('project:additional-data-filters:disabled')
     };
   },
 
@@ -309,6 +322,49 @@ const ProjectFiltersSettingsForm = React.createClass({
     );
   },
 
+  renderAdditionalFilters() {
+    let isSaving = this.state.state === FormState.SAVING;
+    let errors = this.state.errors;
+    return (
+      <div>
+        <h5>
+          {t('Filter errors from these releases:')}
+        </h5>
+        <TextareaField
+          key="release"
+          name="release"
+          help={this.renderLinkToGlobWiki()}
+          placeholder="e.g. 1.* or [!3].[0-9].*"
+          value={this.state.formData['filters:releases']}
+          error={errors['filters:releases']}
+          onChange={this.onFieldChange.bind(this, 'filters:releases')}
+        />
+        <h5>
+          {t('Filter errors by error message:')}
+        </h5>
+        <TextareaField
+          key="errorMessage"
+          name="errorMessage"
+          help={this.renderLinkToGlobWiki()}
+          placeholder="e.g. TypeError* or *: integer division or modulo by zero"
+          value={this.state.formData['filters:error_messages']}
+          error={errors['filters:error_messages']}
+          onChange={this.onFieldChange.bind(this, 'filters:error_messages')}
+        />
+      </div>
+    );
+  },
+
+  renderDisabledFeature() {
+    let project = this.getProject();
+    let organization = this.getOrganization();
+    return this.state.hooksDisabled
+      .map(hook => {
+        return hook(organization, project);
+      })
+      .shift();
+  },
+
   render() {
     let isSaving = this.state.state === FormState.SAVING;
     let errors = this.state.errors;
@@ -323,7 +379,9 @@ const ProjectFiltersSettingsForm = React.createClass({
             )}
           </div>}
         <fieldset>
-          <h5>{t('Filter errors from these IP addresses:')}</h5>
+          <h5>
+            {t('Filter errors from these IP addresses:')}
+          </h5>
           <TextareaField
             key="ip"
             name="ip"
@@ -333,29 +391,9 @@ const ProjectFiltersSettingsForm = React.createClass({
             error={errors['filters:blacklisted_ips']}
             onChange={this.onFieldChange.bind(this, 'filters:blacklisted_ips')}
           />
-          {features.has('additional-data-filters') &&
-            <div>
-              <h5>{t('Filter errors from these releases:')}</h5>
-              <TextareaField
-                key="release"
-                name="release"
-                help={this.renderLinkToGlobWiki()}
-                placeholder="e.g. 1.* or [!3].[0-9].*"
-                value={this.state.formData['filters:releases']}
-                error={errors['filters:releases']}
-                onChange={this.onFieldChange.bind(this, 'filters:releases')}
-              />
-              <h5>{t('Filter errors by error message:')}</h5>
-              <TextareaField
-                key="errorMessage"
-                name="errorMessage"
-                help={this.renderLinkToGlobWiki()}
-                placeholder="e.g. TypeError* or *: integer division or modulo by zero"
-                value={this.state.formData['filters:error_messages']}
-                error={errors['filters:error_messages']}
-                onChange={this.onFieldChange.bind(this, 'filters:error_messages')}
-              />
-            </div>}
+          {features.has('additional-data-filters')
+            ? this.renderAdditionalFilters()
+            : this.renderDisabledFeature()}
           <div className="pull-right">
             <button
               type="submit"
@@ -363,7 +401,6 @@ const ProjectFiltersSettingsForm = React.createClass({
               disabled={isSaving || !this.state.hasChanged}>
               {t('Save Changes')}
             </button>
-
           </div>
         </fieldset>
       </form>
@@ -691,7 +728,9 @@ const ProjectFilters = React.createClass({
       <div>
         <div className="box">
           <div className="box-header">
-            <h5>{t('Errors filtered in the last 30 days (by day)')}</h5>
+            <h5>
+              {t('Errors filtered in the last 30 days (by day)')}
+            </h5>
           </div>
           {!this.state.blankStats
             ? <StackedBarChart
@@ -703,7 +742,9 @@ const ProjectFilters = React.createClass({
               />
             : <div className="box-content">
                 <div className="blankslate p-y-2">
-                  <h5>{t('Nothing filtered in the last 30 days.')}</h5>
+                  <h5>
+                    {t('Nothing filtered in the last 30 days.')}
+                  </h5>
                   <p className="m-b-0">
                     {t(
                       'Issues filtered as a result of your settings below will be shown here.'
@@ -717,13 +758,17 @@ const ProjectFilters = React.createClass({
             <div className="p-t-1">
               <ul className="nav nav-tabs">
                 <li
-                  className={`col-xs-5  ${navSection == 'data-filters' ? 'active ' : ''}`}>
+                  className={`col-xs-5  ${navSection == 'data-filters'
+                    ? 'active '
+                    : ''}`}>
                   <a onClick={() => this.setProjectNavSection('data-filters')}>
                     {t('Data Filters')}
                   </a>
                 </li>
                 <li
-                  className={`col-xs-5 align-right ${navSection == 'discarded-groups' ? 'active ' : ''}`}>
+                  className={`col-xs-5 align-right ${navSection == 'discarded-groups'
+                    ? 'active '
+                    : ''}`}>
                   <a onClick={() => this.setProjectNavSection('discarded-groups')}>
                     {t('Discarded Groups')}
                   </a>
@@ -740,9 +785,13 @@ const ProjectFilters = React.createClass({
     // TODO(dcramer): localize when language is final
     return (
       <div>
-        <h1>{t('Inbound Data Filters')}</h1>
+        <h1>
+          {t('Inbound Data Filters')}
+        </h1>
         <p>
-          Filters allow you to prevent Sentry from storing events in certain situations. Filtered events are tracked separately from rate limits, and do not apply to any project quotas.
+          Filters allow you to prevent Sentry from storing events in certain situations.
+          Filtered events are tracked separately from rate limits, and do not apply to any
+          project quotas.
         </p>
         {this.renderBody()}
       </div>
