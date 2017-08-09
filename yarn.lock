@@ -2542,6 +2542,12 @@ escope@^3.6.0:
     esrecurse "^4.1.0"
     estraverse "^4.1.1"
 
+eslint-config-prettier@^2.3.0:
+  version "2.3.0"
+  resolved "https://registry.yarnpkg.com/eslint-config-prettier/-/eslint-config-prettier-2.3.0.tgz#b75b1eabea0c8b97b34403647ee25db349b9d8a0"
+  dependencies:
+    get-stdin "^5.0.1"
+
 eslint-plugin-getsentry@1.0.0:
   version "1.0.0"
   resolved "https://registry.yarnpkg.com/eslint-plugin-getsentry/-/eslint-plugin-getsentry-1.0.0.tgz#a6e65a30b5448dff38fec2f1947a619fe83763f9"
@@ -3050,6 +3056,10 @@ generate-object-property@^1.1.0:
 get-caller-file@^1.0.1:
   version "1.0.2"
   resolved "https://registry.yarnpkg.com/get-caller-file/-/get-caller-file-1.0.2.tgz#f702e63127e7e231c160a80c1554acb70d5047e5"
+
+get-stdin@^5.0.1:
+  version "5.0.1"
+  resolved "https://registry.yarnpkg.com/get-stdin/-/get-stdin-5.0.1.tgz#122e161591e21ff4c52530305693f20e6393a398"
 
 get-stream@^3.0.0:
   version "3.0.0"

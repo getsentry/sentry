@@ -193,6 +193,7 @@ def js_format(file_list=None):
             '--bracket-spacing=false',
             '--print-width=90',
             '--jsx-bracket-same-line=true',
+            '--trailing-comma=es5',
         ], js_file_list
     )
 
