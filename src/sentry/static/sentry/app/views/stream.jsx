@@ -24,7 +24,6 @@ import utils from '../utils';
 import {logAjaxError} from '../utils/logging';
 import parseLinkHeader from '../utils/parseLinkHeader';
 import {t, tn, tct} from '../locale';
-import {getPlatformName} from './onboarding/utils';
 
 const Stream = React.createClass({
   propTypes: {
@@ -638,9 +637,6 @@ const Stream = React.createClass({
   renderAwaitingEvents() {
     let org = this.getOrganization();
     let project = this.getProject();
-    let platformName = project.platform
-      ? getPlatformName(project.platform)
-      : 'JavaScript';
     let sampleLink = null;
     if (this.state.groupIds.length > 0) {
       let sampleIssueId = this.state.groupIds[0];
