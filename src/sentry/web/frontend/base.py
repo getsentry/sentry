@@ -8,7 +8,6 @@ from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_protect
-from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import View
 from sudo.views import redirect_to_sudo
 
@@ -41,8 +40,8 @@ class OrganizationMixin(object):
         # OrganizationBase
         active_organization = getattr(self, '_active_org', None)
         cached_active_org = (
-            active_organization and active_organization[0].slug == organization_slug and
-            active_organization[1] == request.user
+            active_organization and active_organization[0].slug == organization_slug
+            and active_organization[1] == request.user
         )
         if cached_active_org:
             return active_organization[0]
@@ -163,8 +162,7 @@ class BaseView(View, OrganizationMixin):
             self.sudo_required = sudo_required
         super(BaseView, self).__init__(*args, **kwargs)
 
-    #@method_decorator(csrf_protect)
-    @method_decorator(csrf_exempt)
+    @method_decorator(csrf_protect)
     def dispatch(self, request, *args, **kwargs):
         if self.is_auth_required(request, *args, **kwargs):
             return self.handle_auth_required(request, *args, **kwargs)
