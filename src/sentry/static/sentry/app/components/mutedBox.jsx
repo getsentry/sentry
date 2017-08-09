@@ -65,7 +65,8 @@ export default React.createClass({
         <span className="icon icon-soundoff" />
         <p>
           <span>
-            {this.renderReason()} —{' '}
+            {this.renderReason()}
+            {' — '}
           </span>
           {t(
             'You will not be notified of any changes and it will not show up by default in feeds.'
