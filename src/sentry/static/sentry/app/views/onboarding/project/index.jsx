@@ -7,11 +7,11 @@ import {t} from '../../../locale';
 
 const Project = React.createClass({
   propTypes: {
-    next: React.PropTypes.func.isRequired,
-    setPlatform: React.PropTypes.func.isRequired,
-    platform: React.PropTypes.string.isRequired,
-    setName: React.PropTypes.func.isRequired,
-    name: React.PropTypes.string.isRequired
+    next: React.PropTypes.func,
+    setPlatform: React.PropTypes.func,
+    platform: React.PropTypes.string,
+    setName: React.PropTypes.func,
+    name: React.PropTypes.string
   },
 
   getInitialState() {

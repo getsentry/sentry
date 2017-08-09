@@ -33,11 +33,11 @@ const PlatformPicker = React.createClass({
       platform => tab === 'All' || categoryLists[tab].includes(platform.id)
     );
 
-    let subsetMatch = ({id}) => id.includes(this.state.filter);
+    let subsetMatch = ({id}) => id.includes(this.state.filter.toLowerCase());
 
     let filtered = tabSubset.filter(subsetMatch);
 
-    if (!filtered.length) {
+    if (this.state.filter) {
       filtered = flattenedPlatforms.filter(subsetMatch);
     }
 
@@ -76,6 +76,7 @@ const PlatformPicker = React.createClass({
   },
 
   render() {
+    let {filter} = this.state;
     return (
       <div className="platform-picker">
         <ul className="nav nav-tabs">
@@ -84,6 +85,7 @@ const PlatformPicker = React.createClass({
               <span className="icon icon-search" />
               <input
                 type="text"
+                value={this.state.filter}
                 className="platform-filter"
                 label="Filter"
                 placeholder="Filter"
@@ -96,11 +98,12 @@ const PlatformPicker = React.createClass({
               <ListLink
                 key={categoryName}
                 onClick={e => {
-                  this.setState({tab: categoryName});
+                  this.setState({tab: categoryName, filter: ''});
                   e.preventDefault();
                 }}
                 to={''}
-                isActive={() => categoryName === this.state.tab}>
+                isActive={() =>
+                  (filter ? categoryName === 'All' : categoryName === this.state.tab)}>
                 {categoryName}
               </ListLink>
             );

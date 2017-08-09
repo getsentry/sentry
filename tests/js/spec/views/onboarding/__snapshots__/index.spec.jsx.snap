@@ -135,6 +135,7 @@ exports[`OnboardingWizard render() should fill in project name if its empty when
                           onChange={[Function]}
                           placeholder="Filter"
                           type="text"
+                          value=""
                         />
                       </div>
                     </li>
