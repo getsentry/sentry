@@ -57,6 +57,7 @@ import ProjectDataForwarding from './views/projectDataForwarding';
 import ProjectDetails from './views/projectDetails';
 import ProjectEvents from './views/projectEvents';
 import ProjectFilters from './views/projectFilters';
+import NewProject from './views/projectInstall/newProject';
 import ProjectGettingStarted from './views/projectInstall/gettingStarted';
 import ProjectDocsContext from './views/projectInstall/docsContext';
 import ProjectInstallOverview from './views/projectInstall/overview';
@@ -205,6 +206,11 @@ function routes() {
         <Route
           path="/organizations/:orgId/issues/history/"
           component={errorHandler(MyIssuesViewed)}
+        />
+
+        <Route
+          path="/organizations/:orgId/projects/new/"
+          component={errorHandler(NewProject)}
         />
 
         <Route
