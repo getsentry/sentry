@@ -17,7 +17,7 @@ const VersionHoverCard = React.createClass({
   propTypes: {
     version: React.PropTypes.string.isRequired,
     orgId: React.PropTypes.string.isRequired,
-    projectId: React.PropTypes.string.isRequired
+    projectId: React.PropTypes.string.isRequired,
   },
 
   mixins: [ApiMixin],
@@ -29,7 +29,7 @@ const VersionHoverCard = React.createClass({
       data: {},
       visible: false,
       hasRepos: false,
-      deploys: []
+      deploys: [],
     };
   },
 
@@ -44,20 +44,22 @@ const VersionHoverCard = React.createClass({
     });
 
     // releases
-    let releasePath = `/projects/${orgId}/${projectId}/releases/${encodeURIComponent(version)}/`;
+    let releasePath = `/projects/${orgId}/${projectId}/releases/${encodeURIComponent(
+      version
+    )}/`;
     this.api.request(releasePath, {
       method: 'GET',
       success: data => {
         this.setState({
-          release: data
+          release: data,
         });
       },
       error: () => {
         this.setState({
-          error: true
+          error: true,
         });
       },
-      complete: done
+      complete: done,
     });
 
     // repos
@@ -66,38 +68,40 @@ const VersionHoverCard = React.createClass({
       method: 'GET',
       success: data => {
         this.setState({
-          hasRepos: data.length > 0
+          hasRepos: data.length > 0,
         });
       },
       error: () => {
         this.setState({
-          error: true
+          error: true,
         });
       },
-      complete: done
+      complete: done,
     });
 
     //deploys
-    let deployPath = `/organizations/${orgId}/releases/${encodeURIComponent(version)}/deploys/`;
+    let deployPath = `/organizations/${orgId}/releases/${encodeURIComponent(
+      version
+    )}/deploys/`;
     this.api.request(deployPath, {
       method: 'GET',
       success: data => {
         this.setState({
-          deploys: data
+          deploys: data,
         });
       },
       error: () => {
         this.setState({
-          error: true
+          error: true,
         });
       },
-      complete: done
+      complete: done,
     });
   },
 
   toggleHovercard() {
     this.setState({
-      visible: !this.state.visible
+      visible: !this.state.visible,
     });
   },
 
@@ -107,7 +111,8 @@ const VersionHoverCard = React.createClass({
       <div className="version-hovercard blankslate m-a-0 p-x-1 p-y-1 align-center">
         <h5>Releases are better with commit data!</h5>
         <p>
-          Connect a repository to see commit info, files changed, and authors involved in future releases.
+          Connect a repository to see commit info, files changed, and authors involved in
+          future releases.
         </p>
         <a className="btn btn-primary" href={`/organizations/${orgId}/repos/`}>
           Connect a repository
@@ -137,26 +142,24 @@ const VersionHoverCard = React.createClass({
     return (
       <div>
         <div className="hovercard-header">
-          <span className="truncate">Release {shortVersion}</span>
+          <span className="truncate">
+            Release {shortVersion}
+          </span>
         </div>
         <div className="hovercard-body">
           <div className="row row-flex">
             <div className="col-xs-4">
               <h6>New Issues</h6>
-              <div className="count">{release.newGroups}</div>
+              <div className="count">
+                {release.newGroups}
+              </div>
             </div>
             <div className="col-xs-8">
               <h6>
-                {release.commitCount}
-                {' '}
-                {release.commitCount !== 1 ? t('commits ') : t('commit ')}
-                {' '}
-                {t('by ')}
-                {' '}
-                {release.authors.length}
-                {' '}
-                {release.authors.length !== 1 ? t('authors') : t('author')}
-                {' '}
+                {release.commitCount}{' '}
+                {release.commitCount !== 1 ? t('commits ') : t('commit ')} {t('by ')}{' '}
+                {release.authors.length}{' '}
+                {release.authors.length !== 1 ? t('authors') : t('author')}{' '}
               </h6>
               <div className="avatar-grid">
                 {release.authors.map((author, idx) => {
@@ -191,7 +194,7 @@ const VersionHoverCard = React.createClass({
                           width: 86,
                           maxWidth: 86,
                           textAlign: 'center',
-                          fontSize: 12
+                          fontSize: 12,
                         }}>
                         {env}
                       </strong>
@@ -202,7 +205,7 @@ const VersionHoverCard = React.createClass({
                             position: 'absolute',
                             left: 98,
                             width: '50%',
-                            padding: '3px 0'
+                            padding: '3px 0',
                           }}>
                           <TimeSince date={dateFinished} />
                         </span>}
@@ -225,14 +228,18 @@ const VersionHoverCard = React.createClass({
           <div className="hovercard">
             <div className="hovercard-hoverlap" />
             {this.state.loading
-              ? <div className="hovercard-body"><LoadingIndicator mini={true} /></div>
+              ? <div className="hovercard-body">
+                  <LoadingIndicator mini={true} />
+                </div>
               : this.state.error
-                  ? <div className="hovercard-body"><LoadingError /></div>
-                  : this.state.hasRepos ? this.renderBody() : this.renderRepoLink()}
+                ? <div className="hovercard-body">
+                    <LoadingError />
+                  </div>
+                : this.state.hasRepos ? this.renderBody() : this.renderRepoLink()}
           </div>}
       </span>
     );
-  }
+  },
 });
 
 export default VersionHoverCard;

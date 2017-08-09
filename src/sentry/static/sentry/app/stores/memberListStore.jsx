@@ -35,7 +35,7 @@ const MemberListStore = Reflux.createStore({
 
   getAll() {
     return this.items;
-  }
+  },
 });
 
 export default MemberListStore;

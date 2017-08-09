@@ -48,7 +48,7 @@ const Configure = React.createClass({
       },
       error: () => {
         this.setState({hasError: true});
-      }
+      },
     });
   },
 
@@ -74,7 +74,8 @@ const Configure = React.createClass({
             <ProjectDocsContext>
               <ProjectInstallPlatform
                 platformData={{
-                  hack: 'actually set by ProjectDocsContext, this object is here to avoid proptypes warnings'
+                  hack:
+                    'actually set by ProjectDocsContext, this object is here to avoid proptypes warnings',
                 }}
                 params={this.props.params}
                 linkPath={(_orgId, _projectId, _platform) =>
@@ -86,7 +87,7 @@ const Configure = React.createClass({
         </div>
       </div>
     );
-  }
+  },
 });
 
 export default Configure;

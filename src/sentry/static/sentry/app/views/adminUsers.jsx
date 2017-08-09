@@ -18,11 +18,19 @@ const AdminUsers = React.createClass({
           <a href={`/manage/users/${row.id}/`}>
             {row.username}
           </a>
-        </strong><br />
-        {row.email !== row.username && <small>{row.email}</small>}
+        </strong>
+        <br />
+        {row.email !== row.username &&
+          <small>
+            {row.email}
+          </small>}
       </td>,
-      <td style={{textAlign: 'center'}}>{prettyDate(row.dateJoined)}</td>,
-      <td style={{textAlign: 'center'}}>{prettyDate(row.lastLogin)}</td>
+      <td style={{textAlign: 'center'}}>
+        {prettyDate(row.dateJoined)}
+      </td>,
+      <td style={{textAlign: 'center'}}>
+        {prettyDate(row.lastLogin)}
+      </td>,
     ];
   },
 
@@ -30,12 +38,14 @@ const AdminUsers = React.createClass({
     let columns = [
       <th>User</th>,
       <th style={{textAlign: 'center', width: 150}}>Joined</th>,
-      <th style={{textAlign: 'center', width: 150}}>Last Login</th>
+      <th style={{textAlign: 'center', width: 150}}>Last Login</th>,
     ];
 
     return (
       <div>
-        <h3>{t('Users')}</h3>
+        <h3>
+          {t('Users')}
+        </h3>
         <ResultGrid
           path="/manage/users/"
           endpoint={'/users/'}
@@ -46,8 +56,8 @@ const AdminUsers = React.createClass({
           filters={{
             status: {
               name: 'Status',
-              options: [['active', 'Active'], ['disabled', 'Disabled']]
-            }
+              options: [['active', 'Active'], ['disabled', 'Disabled']],
+            },
           }}
           sortOptions={[['date', 'Date Joined']]}
           defaultSort="date"
@@ -55,7 +65,7 @@ const AdminUsers = React.createClass({
         />
       </div>
     );
-  }
+  },
 });
 
 export default AdminUsers;

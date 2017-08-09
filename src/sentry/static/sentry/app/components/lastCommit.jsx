@@ -8,7 +8,7 @@ import {t} from '../locale';
 const LastCommit = React.createClass({
   propTypes: {
     commit: React.PropTypes.object.isRequired,
-    headerClass: React.PropTypes.string
+    headerClass: React.PropTypes.string,
   },
 
   renderMessage(message) {
@@ -52,7 +52,7 @@ const LastCommit = React.createClass({
         </div>
       </div>
     );
-  }
+  },
 });
 
 export default LastCommit;

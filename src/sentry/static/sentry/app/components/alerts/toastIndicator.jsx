@@ -5,13 +5,15 @@ function ToastIndicator({type, children}) {
   return (
     <div className={classNames('toast', type)}>
       <span className="icon" />
-      <div className="toast-message">{children}</div>
+      <div className="toast-message">
+        {children}
+      </div>
     </div>
   );
 }
 
 ToastIndicator.propTypes = {
-  type: React.PropTypes.string.isRequired
+  type: React.PropTypes.string.isRequired,
 };
 
 export default ToastIndicator;

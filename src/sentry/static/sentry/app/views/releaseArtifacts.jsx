@@ -14,7 +14,7 @@ import {t} from '../locale';
 
 const ReleaseArtifacts = React.createClass({
   contextTypes: {
-    release: React.PropTypes.object
+    release: React.PropTypes.object,
   },
 
   mixins: [
@@ -22,8 +22,8 @@ const ReleaseArtifacts = React.createClass({
     OrganizationState,
     TooltipMixin({
       selector: '.tip',
-      trigger: 'hover'
-    })
+      trigger: 'hover',
+    }),
   ],
 
   getInitialState() {
@@ -31,7 +31,7 @@ const ReleaseArtifacts = React.createClass({
       loading: true,
       error: false,
       fileList: [],
-      pageLinks: null
+      pageLinks: null,
     };
   },
 
@@ -47,13 +47,15 @@ const ReleaseArtifacts = React.createClass({
 
   getFilesEndpoint() {
     let params = this.props.params;
-    return `/projects/${params.orgId}/${params.projectId}/releases/${encodeURIComponent(params.version)}/files/`;
+    return `/projects/${params.orgId}/${params.projectId}/releases/${encodeURIComponent(
+      params.version
+    )}/files/`;
   },
 
   fetchData() {
     this.setState({
       loading: true,
-      error: false
+      error: false,
     });
 
     this.api.request(this.getFilesEndpoint(), {
@@ -64,16 +66,16 @@ const ReleaseArtifacts = React.createClass({
           error: false,
           loading: false,
           fileList: data,
-          pageLinks: jqXHR.getResponseHeader('Link')
+          pageLinks: jqXHR.getResponseHeader('Link'),
         });
         this.attachTooltips();
       },
       error: () => {
         this.setState({
           error: true,
-          loading: false
+          loading: false,
         });
-      }
+      },
     });
   },
 
@@ -88,21 +90,21 @@ const ReleaseArtifacts = React.createClass({
         });
 
         this.setState({
-          fileList: fileList
+          fileList: fileList,
         });
 
         IndicatorStore.add(t('Artifact removed.'), 'success', {
-          duration: 4000
+          duration: 4000,
         });
       },
       error: () => {
         IndicatorStore.add(t('Unable to remove artifact. Please try again.'), 'error', {
-          duration: 4000
+          duration: 4000,
         });
       },
       complete: () => {
         IndicatorStore.remove(loadingIndicator);
-      }
+      },
     });
   },
 
@@ -113,7 +115,9 @@ const ReleaseArtifacts = React.createClass({
       return (
         <div className="box empty-stream">
           <span className="icon icon-exclamation" />
-          <p>{t('There are no artifacts uploaded for this release.')}</p>
+          <p>
+            {t('There are no artifacts uploaded for this release.')}
+          </p>
         </div>
       );
 
@@ -125,9 +129,15 @@ const ReleaseArtifacts = React.createClass({
         <div className="panel panel-default">
           <div className="panel-heading panel-heading-bold">
             <div className="row">
-              <div className="col-lg-7 col-sm-6">{'Name'}</div>
-              <div className="col-lg-2 col-sm-2">{'Distribution'}</div>
-              <div className="col-lg-1 col-sm-2">{'Size'}</div>
+              <div className="col-lg-7 col-sm-6">
+                {'Name'}
+              </div>
+              <div className="col-lg-2 col-sm-2">
+                {'Distribution'}
+              </div>
+              <div className="col-lg-1 col-sm-2">
+                {'Size'}
+              </div>
               <div className="col-lg-2 col-sm-2 align-right" />
             </div>
           </div>
@@ -137,10 +147,15 @@ const ReleaseArtifacts = React.createClass({
                 <li className="list-group-item" key={file.id}>
                   <div className="row row-flex row-center-vertically">
                     <div className="col-lg-7 col-sm-6" style={{wordWrap: 'break-word'}}>
-                      <strong>{file.name || '(empty)'}</strong>
+                      <strong>
+                        {file.name || '(empty)'}
+                      </strong>
                     </div>
                     <div className="col-lg-2 col-sm-2">
-                      {file.dist || <span className="text-light">{t('None')}</span>}
+                      {file.dist ||
+                        <span className="text-light">
+                          {t('None')}
+                        </span>}
                     </div>
                     <div className="col-lg-1 col-sm-2">
                       <FileSize bytes={file.size} />
@@ -150,8 +165,8 @@ const ReleaseArtifacts = React.createClass({
                         ? <a
                             href={
                               this.api.baseUrl +
-                                this.getFilesEndpoint() +
-                                `${file.id}/?download=1`
+                              this.getFilesEndpoint() +
+                              `${file.id}/?download=1`
                             }
                             className="btn btn-sm btn-default">
                             <span className="icon icon-open" />
@@ -168,7 +183,6 @@ const ReleaseArtifacts = React.createClass({
                         title={t('Delete artifact')}
                         message={t('Are you sure you want to remove this artifact?')}
                         onConfirm={this.handleRemove.bind(this, file.id)}>
-
                         <span className="icon icon-trash" />
                       </LinkWithConfirmation>
                     </div>
@@ -181,7 +195,7 @@ const ReleaseArtifacts = React.createClass({
         <Pagination pageLinks={this.state.pageLinks} />
       </div>
     );
-  }
+  },
 });
 
 export default ReleaseArtifacts;

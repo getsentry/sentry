@@ -9,7 +9,7 @@ import EventNode from './eventNode';
 const EventList = React.createClass({
   propTypes: {
     title: React.PropTypes.string.isRequired,
-    endpoint: React.PropTypes.string.isRequired
+    endpoint: React.PropTypes.string.isRequired,
   },
 
   mixins: [ApiMixin],
@@ -19,7 +19,7 @@ const EventList = React.createClass({
       groupList: [],
       loading: true,
       error: false,
-      statsPeriod: '24h'
+      statsPeriod: '24h',
     };
   },
 
@@ -31,7 +31,7 @@ const EventList = React.createClass({
     this.setState(
       {
         loading: true,
-        error: false
+        error: false,
       },
       this.fetchData
     );
@@ -55,27 +55,27 @@ const EventList = React.createClass({
     this.api.request(this.props.endpoint, {
       query: {
         limit: 5,
-        minutes: minutes
+        minutes: minutes,
       },
       success: data => {
         this.setState({
           groupList: data,
           loading: false,
-          error: false
+          error: false,
         });
       },
       error: () => {
         this.setState({
           loading: false,
-          error: true
+          error: true,
         });
-      }
+      },
     });
   },
 
   onSelectStatsPeriod(period) {
     this.setState({
-      statsPeriod: period
+      statsPeriod: period,
     });
   },
 
@@ -89,10 +89,16 @@ const EventList = React.createClass({
         <div className="box-header clearfix">
           <div className="row">
             <div className="col-xs-8">
-              <h3>{this.props.title}</h3>
+              <h3>
+                {this.props.title}
+              </h3>
             </div>
-            <div className="col-xs-2 align-right">{t('Events')}</div>
-            <div className="col-xs-2 align-right">{t('Users')}</div>
+            <div className="col-xs-2 align-right">
+              {t('Events')}
+            </div>
+            <div className="col-xs-2 align-right">
+              {t('Users')}
+            </div>
           </div>
         </div>
         <div className="box-content">
@@ -100,17 +106,19 @@ const EventList = React.createClass({
             {this.state.loading
               ? <LoadingIndicator />
               : this.state.error
-                  ? <LoadingError onRetry={this.fetchData} />
-                  : eventNodes.length
-                      ? <ul className="group-list group-list-small">
-                          {eventNodes}
-                        </ul>
-                      : <div className="group-list-empty">{t('No data available.')}</div>}
+                ? <LoadingError onRetry={this.fetchData} />
+                : eventNodes.length
+                  ? <ul className="group-list group-list-small">
+                      {eventNodes}
+                    </ul>
+                  : <div className="group-list-empty">
+                      {t('No data available.')}
+                    </div>}
           </div>
         </div>
       </div>
     );
-  }
+  },
 });
 
 export default EventList;

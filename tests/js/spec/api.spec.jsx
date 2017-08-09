@@ -20,7 +20,7 @@ describe('api', function() {
       expect(
         paramsToQueryArgs({
           itemIds: [1, 2, 3],
-          query: 'is:unresolved' // itemIds takes precedence
+          query: 'is:unresolved', // itemIds takes precedence
         })
       ).toEqual({id: [1, 2, 3]});
     });
@@ -29,7 +29,7 @@ describe('api', function() {
       expect(
         paramsToQueryArgs({
           query: 'is:unresolved',
-          foo: 'bar'
+          foo: 'bar',
         })
       ).toEqual({query: 'is:unresolved'});
     });
@@ -38,7 +38,7 @@ describe('api', function() {
       expect(
         paramsToQueryArgs({
           foo: 'bar',
-          bar: 'baz' // paramsToQueryArgs ignores these
+          bar: 'baz', // paramsToQueryArgs ignores these
         })
       ).toBeUndefined();
     });
@@ -52,15 +52,15 @@ describe('api', function() {
     describe('cancel()', function() {
       it('should abort any open XHR requests', function() {
         let req1 = new Request({
-          abort: sinon.stub()
+          abort: sinon.stub(),
         });
         let req2 = new Request({
-          abort: sinon.stub()
+          abort: sinon.stub(),
         });
 
         this.api.activeRequests = {
           1: req1,
-          2: req2
+          2: req2,
         };
 
         this.api.clear();
@@ -83,7 +83,7 @@ describe('api', function() {
         projectId: '1337',
         itemIds: [1, 2, 3],
         data: {status: 'unresolved'},
-        query: 'is:resolved'
+        query: 'is:resolved',
       });
 
       expect(this.api._wrapRequest.calledOnce).toBeTruthy();
@@ -97,7 +97,7 @@ describe('api', function() {
         projectId: '1337',
         itemIds: null,
         data: {status: 'unresolved'},
-        query: 'is:resolved'
+        query: 'is:resolved',
       });
 
       expect(this.api._wrapRequest.calledOnce).toBeTruthy();
@@ -120,7 +120,7 @@ describe('api', function() {
         projectId: '1337',
         itemIds: [1, 2, 3],
         data: {status: 'unresolved'},
-        query: 'is:resolved'
+        query: 'is:resolved',
       });
 
       expect(this.api._wrapRequest.calledOnce).toBeTruthy();
@@ -134,7 +134,7 @@ describe('api', function() {
         projectId: '1337',
         itemIds: null,
         data: {status: 'unresolved'},
-        query: 'is:resolved'
+        query: 'is:resolved',
       });
 
       expect(this.api._wrapRequest.calledOnce).toBeTruthy();

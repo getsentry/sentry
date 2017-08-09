@@ -30,8 +30,8 @@ export function setLocale(locale) {
     domain: 'sentry',
     missing_key_callback: function(key) {},
     locale_data: {
-      sentry: translations
-    }
+      sentry: translations,
+    },
   });
 }
 
@@ -148,7 +148,11 @@ export function renderComponentTemplate(template, components) {
 
     (template[group] || []).forEach(item => {
       if (_.isString(item)) {
-        children.push(<span key={idx++}>{item}</span>);
+        children.push(
+          <span key={idx++}>
+            {item}
+          </span>
+        );
       } else {
         children.push(renderGroup(item.group));
       }
@@ -158,7 +162,11 @@ export function renderComponentTemplate(template, components) {
     // span so that stuff shows up at least.
     let reference = components[group] || <span key={idx++} />;
     if (!React.isValidElement(reference)) {
-      reference = <span key={idx++}>{reference}</span>;
+      reference = (
+        <span key={idx++}>
+          {reference}
+        </span>
+      );
     }
 
     if (children.length > 0) {
@@ -183,10 +191,10 @@ function mark(rv) {
     ref: null,
     props: {
       className: 'translation-wrapper',
-      children: _.isArray(rv) ? rv : [rv]
+      children: _.isArray(rv) ? rv : [rv],
     },
     _owner: null,
-    _store: {}
+    _store: {},
   };
 
   proxy.toString = function() {

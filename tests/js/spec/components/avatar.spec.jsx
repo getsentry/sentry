@@ -6,7 +6,7 @@ describe('Avatar', function() {
   const USER = {
     id: 1,
     name: 'Jane Doe',
-    email: 'janedoe@example.com'
+    email: 'janedoe@example.com',
   };
 
   beforeEach(function() {
@@ -22,8 +22,8 @@ describe('Avatar', function() {
       let user = Object.assign({}, USER, {
         avatar: {
           avatarType: 'gravatar',
-          avatarUuid: '2d641b5d-8c74-44de-9cb6-fbd54701b35e'
-        }
+          avatarUuid: '2d641b5d-8c74-44de-9cb6-fbd54701b35e',
+        },
       });
       let avatar = shallow(<Avatar user={user} />).instance();
       this.sandbox.stub(avatar, 'buildGravatarUrl');
@@ -37,8 +37,8 @@ describe('Avatar', function() {
       let user = Object.assign({}, USER, {
         avatar: {
           avatarType: 'upload',
-          avatarUuid: '2d641b5d-8c74-44de-9cb6-fbd54701b35e'
-        }
+          avatarUuid: '2d641b5d-8c74-44de-9cb6-fbd54701b35e',
+        },
       });
       let avatar = shallow(<Avatar user={user} />).instance();
       this.sandbox.stub(avatar, 'buildGravatarUrl');
@@ -52,8 +52,8 @@ describe('Avatar', function() {
       let user = Object.assign({}, USER, {
         avatar: {
           avatarType: 'letter_avatar',
-          avatarUuid: '2d641b5d-8c74-44de-9cb6-fbd54701b35e'
-        }
+          avatarUuid: '2d641b5d-8c74-44de-9cb6-fbd54701b35e',
+        },
       });
       let avatar = shallow(<Avatar user={user} />).instance();
       this.sandbox.stub(avatar, 'buildGravatarUrl');

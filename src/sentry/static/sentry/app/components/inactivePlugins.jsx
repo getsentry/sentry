@@ -5,7 +5,7 @@ import {t} from '../locale';
 export default React.createClass({
   propTypes: {
     plugins: React.PropTypes.array.isRequired,
-    onEnablePlugin: React.PropTypes.func.isRequired
+    onEnablePlugin: React.PropTypes.func.isRequired,
   },
 
   enablePlugin(plugin) {
@@ -18,7 +18,9 @@ export default React.createClass({
     return (
       <div className="box">
         <div className="box-header">
-          <h3>{t('Inactive Integrations')}</h3>
+          <h3>
+            {t('Inactive Integrations')}
+          </h3>
         </div>
         <div className="box-content with-padding">
           <ul className="integration-list">
@@ -38,5 +40,5 @@ export default React.createClass({
         </div>
       </div>
     );
-  }
+  },
 });

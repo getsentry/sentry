@@ -9,8 +9,8 @@ const AlertMessage = React.createClass({
       id: React.PropTypes.string,
       message: React.PropTypes.string.isRequired,
       type: React.PropTypes.oneOf(['success', 'error', 'warning']),
-      url: React.PropTypes.string
-    })
+      url: React.PropTypes.string,
+    }),
   },
 
   mixins: [PureRenderMixin],
@@ -37,12 +37,14 @@ const AlertMessage = React.createClass({
           </button>
           <span className="icon" />
           {this.props.alert.url
-            ? <a href={this.props.alert.url}>{this.props.alert.message}</a>
+            ? <a href={this.props.alert.url}>
+                {this.props.alert.message}
+              </a>
             : this.props.alert.message}
         </div>
       </div>
     );
-  }
+  },
 });
 
 export default AlertMessage;

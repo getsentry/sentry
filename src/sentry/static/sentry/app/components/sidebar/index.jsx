@@ -23,7 +23,7 @@ const OnboardingStatus = React.createClass({
     currentPanel: React.PropTypes.string,
     onShowPanel: React.PropTypes.func,
     showPanel: React.PropTypes.bool,
-    hidePanel: React.PropTypes.func
+    hidePanel: React.PropTypes.func,
   },
 
   render() {
@@ -37,7 +37,7 @@ const OnboardingStatus = React.createClass({
         100
     ).toString();
     let style = {
-      height: percentage + '%'
+      height: percentage + '%',
     };
 
     return (
@@ -57,7 +57,7 @@ const OnboardingStatus = React.createClass({
           </SidebarPanel>}
       </li>
     );
-  }
+  },
 });
 
 function getFirstRequiredAdminAction(org) {
@@ -72,14 +72,14 @@ function getFirstRequiredAdminAction(org) {
 
 const Sidebar = React.createClass({
   contextTypes: {
-    location: React.PropTypes.object
+    location: React.PropTypes.object,
   },
 
   mixins: [ApiMixin, OrganizationState],
 
   getInitialState: function() {
     return {
-      showTodos: location.hash === '#welcome'
+      showTodos: location.hash === '#welcome',
     };
   },
 
@@ -126,14 +126,14 @@ const Sidebar = React.createClass({
   hidePanel() {
     this.setState({
       showPanel: false,
-      currentPanel: ''
+      currentPanel: '',
     });
   },
 
   showPanel(panel) {
     this.setState({
       showPanel: true,
-      currentPanel: panel
+      currentPanel: panel,
     });
   },
 
@@ -150,7 +150,11 @@ const Sidebar = React.createClass({
       // When no organization, just render Sentry logo at top
       return (
         <ul className="navbar-nav">
-          <li><a className="logo" href="/"><span className="icon-sentry-logo" /></a></li>
+          <li>
+            <a className="logo" href="/">
+              <span className="icon-sentry-logo" />
+            </a>
+          </li>
         </ul>
       );
     }
@@ -227,14 +231,13 @@ const Sidebar = React.createClass({
               query={{
                 statsPeriod: '24h',
                 per_page: 10,
-                status: 'unresolved'
+                status: 'unresolved',
               }}
               pagination={false}
-              renderEmpty={() => (
+              renderEmpty={() =>
                 <div className="sidebar-panel-empty" key="none">
                   {t('No issues have been assigned to you.')}
-                </div>
-              )}
+                </div>}
               ref="issueList"
               showActions={false}
               params={{orgId: org.slug}}
@@ -248,14 +251,13 @@ const Sidebar = React.createClass({
               query={{
                 statsPeriod: '24h',
                 per_page: 10,
-                status: 'unresolved'
+                status: 'unresolved',
               }}
               pagination={false}
-              renderEmpty={() => (
+              renderEmpty={() =>
                 <div className="sidebar-panel-empty" key="no">
                   {t('You have no bookmarked issues.')}
-                </div>
-              )}
+                </div>}
               ref="issueList"
               showActions={false}
               params={{orgId: org.slug}}
@@ -269,14 +271,13 @@ const Sidebar = React.createClass({
               query={{
                 statsPeriod: '24h',
                 per_page: 10,
-                status: 'unresolved'
+                status: 'unresolved',
               }}
               pagination={false}
-              renderEmpty={() => (
+              renderEmpty={() =>
                 <div className="sidebar-panel-empty" key="none">
                   {t('No recently viewed issues.')}
-                </div>
-              )}
+                </div>}
               ref="issueList"
               showActions={false}
               params={{orgId: org.slug}}
@@ -297,7 +298,7 @@ const Sidebar = React.createClass({
       return (
         <span className="admin-action-message">
           <a href={url}>
-            {t('Required Action:')}{' '}{requiredAction.getActionLinkTitle()}
+            {t('Required Action:')} {requiredAction.getActionLinkTitle()}
           </a>
         </span>
       );
@@ -337,7 +338,7 @@ const Sidebar = React.createClass({
         {this.renderRequiredActions()}
       </nav>
     );
-  }
+  },
 });
 
 export default Sidebar;

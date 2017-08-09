@@ -14,17 +14,17 @@ const RequestInterface = React.createClass({
     event: PropTypes.Event.isRequired,
     type: React.PropTypes.string.isRequired,
     data: React.PropTypes.object.isRequired,
-    isShare: React.PropTypes.bool
+    isShare: React.PropTypes.bool,
   },
 
   contextTypes: {
     organization: PropTypes.Organization,
-    project: PropTypes.Project
+    project: PropTypes.Project,
   },
 
   getInitialState() {
     return {
-      view: 'rich'
+      view: 'rich',
     };
   },
 
@@ -37,7 +37,7 @@ const RequestInterface = React.createClass({
 
   toggleView(value) {
     this.setState({
-      view: value
+      view: value,
     });
   },
 
@@ -76,7 +76,9 @@ const RequestInterface = React.createClass({
           <a
             className={(view === 'curl' ? 'active' : '') + ' btn btn-default btn-sm'}
             onClick={this.toggleView.bind(this, 'curl')}>
-            <code>{'curl'}</code>
+            <code>
+              {'curl'}
+            </code>
           </a>
         </div>
       );
@@ -86,7 +88,9 @@ const RequestInterface = React.createClass({
       <h3 key="title">
         <a href={isValidUrl ? fullUrl : null} title={fullUrl}>
           <span className="path">
-            <strong>{data.method || 'GET'}</strong>
+            <strong>
+              {data.method || 'GET'}
+            </strong>
             <Truncate value={parsedUrl.pathname} maxLength={36} leftTrim={true} />
           </span>
           {isValidUrl &&
@@ -94,11 +98,17 @@ const RequestInterface = React.createClass({
               <em className="icon-open" />
             </span>}
         </a>
-        <small style={{marginLeft: 10}} className="host">{parsedUrl.hostname}</small>
+        <small style={{marginLeft: 10}} className="host">
+          {parsedUrl.hostname}
+        </small>
       </h3>
     );
 
-    let title = <div>{children}</div>;
+    let title = (
+      <div>
+        {children}
+      </div>
+    );
 
     return (
       <GroupEventDataSection
@@ -109,11 +119,13 @@ const RequestInterface = React.createClass({
         wrapTitle={false}
         className="request">
         {view === 'curl'
-          ? <pre>{getCurlCommand(data)}</pre>
+          ? <pre>
+              {getCurlCommand(data)}
+            </pre>
           : <RichHttpContent data={data} />}
       </GroupEventDataSection>
     );
-  }
+  },
 });
 
 export default RequestInterface;

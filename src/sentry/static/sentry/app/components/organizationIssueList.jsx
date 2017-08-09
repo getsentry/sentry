@@ -10,7 +10,7 @@ const OrganizationIssueList = React.createClass({
   propTypes: {
     title: React.PropTypes.string,
     endpoint: React.PropTypes.string.isRequired,
-    pageSize: React.PropTypes.number
+    pageSize: React.PropTypes.number,
   },
 
   getInitialState() {
@@ -33,7 +33,7 @@ const OrganizationIssueList = React.createClass({
       ? location.query.status
       : 'unresolved';
     return {
-      status: status
+      status: status,
     };
   },
 
@@ -58,20 +58,22 @@ const OrganizationIssueList = React.createClass({
             </Link>
           </div>
         </div>
-        <h3>{this.props.title}</h3>
+        <h3>
+          {this.props.title}
+        </h3>
         <IssueList
           endpoint={this.props.endpoint}
           query={{
             status: this.state.status,
             statsPeriod: '24h',
-            per_page: this.props.pageSize || 25
+            per_page: this.props.pageSize || 25,
           }}
           statsPeriod="24h"
           {...this.props}
         />
       </OrganizationHomeContainer>
     );
-  }
+  },
 });
 
 export default OrganizationIssueList;

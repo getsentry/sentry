@@ -8,22 +8,22 @@ const StreamTagFilter = React.createClass({
     orgId: React.PropTypes.string.isRequired,
     projectId: React.PropTypes.string.isRequired,
     value: React.PropTypes.string,
-    onSelect: React.PropTypes.func
+    onSelect: React.PropTypes.func,
   },
 
   statics: {
     tagValueToSelect2Format: key => {
       return {
         id: key,
-        text: key
+        text: key,
       };
-    }
+    },
   },
 
   getDefaultProps() {
     return {
       tag: {},
-      value: ''
+      value: '',
     };
   },
 
@@ -31,7 +31,7 @@ const StreamTagFilter = React.createClass({
     return {
       query: '',
       loading: false,
-      value: this.props.value
+      value: this.props.value,
     };
   },
 
@@ -40,7 +40,7 @@ const StreamTagFilter = React.createClass({
 
     let selectOpts = {
       placeholder: '--',
-      allowClear: true
+      allowClear: true,
     };
 
     if (!this.props.tag.predefined) {
@@ -54,7 +54,7 @@ const StreamTagFilter = React.createClass({
           delay: 250,
           data: (term, page) => {
             return {
-              query: term
+              query: term,
             };
           },
           results: (data, page) => {
@@ -62,11 +62,11 @@ const StreamTagFilter = React.createClass({
             return {
               results: _.map(data, val =>
                 StreamTagFilter.tagValueToSelect2Format(val.value)
-              )
+              ),
             };
           },
-          cache: true
-        }
+          cache: true,
+        },
       });
     }
 
@@ -80,7 +80,7 @@ const StreamTagFilter = React.createClass({
     if (nextProps.value !== this.state.value) {
       this.setState(
         {
-          value: nextProps.value
+          value: nextProps.value,
         },
         () => {
           let select = this.refs.select;
@@ -96,13 +96,14 @@ const StreamTagFilter = React.createClass({
   },
 
   getTagValuesAPIEndpoint() {
-    return `/api/0/projects/${this.props.orgId}/${this.props.projectId}/tags/${this.props.tag.key}/values/`;
+    return `/api/0/projects/${this.props.orgId}/${this.props.projectId}/tags/${this.props
+      .tag.key}/values/`;
   },
 
   onSelectValue(evt) {
     let val = evt.target.value;
     this.setState({
-      value: val
+      value: val,
     });
 
     this.props.onSelect && this.props.onSelect(this.props.tag, val);
@@ -115,20 +116,25 @@ const StreamTagFilter = React.createClass({
     let tag = this.props.tag;
     return (
       <div className="stream-tag-filter">
-        <h6 className="nav-header">{tag.name}</h6>
+        <h6 className="nav-header">
+          {tag.name}
+        </h6>
 
         {this.props.tag.predefined
           ? <select ref="select" onChange={function() {}}>
               <option key="empty" />
               {this.props.tag.values.map(val => {
-                return <option key={val}>{val}</option>;
+                return (
+                  <option key={val}>
+                    {val}
+                  </option>
+                );
               })}
             </select>
           : <input type="hidden" ref="select" value={this.props.value} />}
-
       </div>
     );
-  }
+  },
 });
 
 export default StreamTagFilter;

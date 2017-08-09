@@ -27,19 +27,19 @@ const StacktraceInterface = React.createClass({
     event: PropTypes.Event.isRequired,
     type: React.PropTypes.string.isRequired,
     data: React.PropTypes.object.isRequired,
-    platform: React.PropTypes.string
+    platform: React.PropTypes.string,
   },
 
   getInitialState() {
     return {
       stackView: this.props.data.hasSystemFrames ? 'app' : 'full',
-      newestFirst: isStacktraceNewestFirst()
+      newestFirst: isStacktraceNewestFirst(),
     };
   },
 
   toggleStack(value) {
     this.setState({
-      stackView: value
+      stackView: value,
     });
   },
 
@@ -80,7 +80,7 @@ const StacktraceInterface = React.createClass({
         />
       </GroupEventDataSection>
     );
-  }
+  },
 });
 
 export default StacktraceInterface;

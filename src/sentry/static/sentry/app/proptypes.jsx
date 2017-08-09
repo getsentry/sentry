@@ -6,11 +6,11 @@ const Metadata = React.PropTypes.shape({
   directive: React.PropTypes.string,
   type: React.PropTypes.string,
   title: React.PropTypes.string,
-  uri: React.PropTypes.string
+  uri: React.PropTypes.string,
 });
 
 const User = React.PropTypes.shape({
-  id: React.PropTypes.string.isRequired
+  id: React.PropTypes.string.isRequired,
 });
 
 const Group = React.PropTypes.shape({
@@ -32,7 +32,7 @@ const Group = React.PropTypes.shape({
   permalink: React.PropTypes.string,
   project: React.PropTypes.shape({
     name: React.PropTypes.string,
-    slug: React.PropTypes.string
+    slug: React.PropTypes.string,
   }),
   shareId: React.PropTypes.string,
   shortId: React.PropTypes.string,
@@ -40,7 +40,7 @@ const Group = React.PropTypes.shape({
   statusDetails: React.PropTypes.object,
   title: React.PropTypes.string,
   type: React.PropTypes.oneOf(['error', 'csp', 'default']),
-  userCount: React.PropTypes.number
+  userCount: React.PropTypes.number,
 });
 
 const Event = React.PropTypes.shape({
@@ -52,14 +52,14 @@ const Event = React.PropTypes.shape({
   entries: React.PropTypes.arrayOf(
     React.PropTypes.shape({
       data: React.PropTypes.object,
-      type: React.PropTypes.string
+      type: React.PropTypes.string,
     })
   ),
   errors: React.PropTypes.arrayOf(
     React.PropTypes.shape({
       data: React.PropTypes.object,
       message: React.PropTypes.string,
-      type: React.PropTypes.string
+      type: React.PropTypes.string,
     })
   ),
   eventID: React.PropTypes.string,
@@ -74,32 +74,32 @@ const Event = React.PropTypes.shape({
   tags: React.PropTypes.arrayOf(
     React.PropTypes.shape({
       key: React.PropTypes.string,
-      value: React.PropTypes.string
+      value: React.PropTypes.string,
     })
   ),
   type: React.PropTypes.oneOf(['error', 'csp', 'default']),
-  user: React.PropTypes.object
+  user: React.PropTypes.object,
 });
 
 let PropTypes = {
   AnyModel: React.PropTypes.shape({
-    id: React.PropTypes.string.isRequired
+    id: React.PropTypes.string.isRequired,
   }),
   Group,
   Event,
   Organization: React.PropTypes.shape({
-    id: React.PropTypes.string.isRequired
+    id: React.PropTypes.string.isRequired,
   }),
   Project: React.PropTypes.shape({
-    id: React.PropTypes.string.isRequired
+    id: React.PropTypes.string.isRequired,
   }),
   TagKey: React.PropTypes.shape({
-    key: React.PropTypes.string.isRequired
+    key: React.PropTypes.string.isRequired,
   }),
   Team: React.PropTypes.shape({
-    id: React.PropTypes.string.isRequired
+    id: React.PropTypes.string.isRequired,
   }),
-  User
+  User,
 };
 
 export {Group, Event, Metadata};

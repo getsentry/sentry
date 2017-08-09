@@ -14,12 +14,12 @@ describe('AssigneeSelector', function() {
   const USER_1 = {
     id: 1,
     name: 'Jane Doe',
-    email: 'janedoe@example.com'
+    email: 'janedoe@example.com',
   };
   const USER_2 = {
     id: 2,
     name: 'John Smith',
-    email: 'johnsmith@example.com'
+    email: 'johnsmith@example.com',
   };
 
   beforeEach(function() {
@@ -29,7 +29,7 @@ describe('AssigneeSelector', function() {
     this.sandbox.stub(MemberListStore, 'getAll').returns([USER_1, USER_2]);
     this.sandbox.stub(GroupStore, 'get').returns({
       id: 1337,
-      assignedTo: null
+      assignedTo: null,
     });
   });
 
@@ -49,7 +49,7 @@ describe('AssigneeSelector', function() {
 
       it('should match on email', function() {
         expect(filterMembers([USER_1, USER_2], 'johnsmith@example.com')).toEqual([
-          USER_2
+          USER_2,
         ]);
       });
 
@@ -70,7 +70,7 @@ describe('AssigneeSelector', function() {
         this.sandbox.stub(ConfigStore, 'get').withArgs('user').returns({
           id: 2,
           name: 'John Smith',
-          email: 'johnsmith@example.com'
+          email: 'johnsmith@example.com',
         });
         expect(putSessionUserFirst([USER_1, USER_2])).toEqual([USER_2, USER_1]);
       });
@@ -79,7 +79,7 @@ describe('AssigneeSelector', function() {
         this.sandbox.stub(ConfigStore, 'get').withArgs('user').returns({
           id: 555,
           name: 'Here Comes a New Challenger',
-          email: 'guile@mail.us.af.mil'
+          email: 'guile@mail.us.af.mil',
         });
 
         expect(putSessionUserFirst([USER_1, USER_2])).toEqual([USER_1, USER_2]);

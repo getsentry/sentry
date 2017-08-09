@@ -20,7 +20,7 @@ const SCOPES = new Set([
   'org:write',
   'org:admin',
   'member:read',
-  'member:admin'
+  'member:admin',
 ]);
 
 const DEFAULT_SCOPES = new Set([
@@ -30,7 +30,7 @@ const DEFAULT_SCOPES = new Set([
   'project:releases',
   'org:read',
   'team:read',
-  'member:read'
+  'member:read',
 ]);
 
 export default class ApiNewToken extends AsyncView {
@@ -52,7 +52,9 @@ export default class ApiNewToken extends AsyncView {
 
     return (
       <NarrowLayout>
-        <h3>{t('Create New Token')}</h3>
+        <h3>
+          {t('Create New Token')}
+        </h3>
         <hr />
         <p>
           {t(
@@ -63,7 +65,7 @@ export default class ApiNewToken extends AsyncView {
           {tct(
             'For more information on how to use the web API, see our [link:documentation].',
             {
-              link: <a href="https://docs.sentry.io/hosted/api/" />
+              link: <a href="https://docs.sentry.io/hosted/api/" />,
             }
           )}
         </p>

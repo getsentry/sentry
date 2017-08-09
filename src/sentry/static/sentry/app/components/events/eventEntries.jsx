@@ -34,7 +34,7 @@ export const INTERFACES = {
   csp: CspInterface,
   breadcrumbs: BreadcrumbsInterface,
   threads: ThreadsInterface,
-  debugmeta: DebugMetaInterface
+  debugmeta: DebugMetaInterface,
 };
 
 const EventEntries = React.createClass({
@@ -45,12 +45,12 @@ const EventEntries = React.createClass({
     project: React.PropTypes.object.isRequired,
     // TODO(dcramer): ideally isShare would be replaced with simple permission
     // checks
-    isShare: React.PropTypes.bool
+    isShare: React.PropTypes.bool,
   },
 
   getDefaultProps() {
     return {
-      isShare: false
+      isShare: false,
     };
   },
 
@@ -94,7 +94,9 @@ const EventEntries = React.createClass({
             event={evt}
             type={entry.type}
             title={entry.type}>
-            <p>{t('There was an error rendering this data.')}</p>
+            <p>
+              {t('There was an error rendering this data.')}
+            </p>
           </EventDataSection>
         );
       }
@@ -142,7 +144,7 @@ const EventEntries = React.createClass({
         {!utils.objectIsEmpty(evt.sdk) && <EventSdk group={group} event={evt} />}
       </div>
     );
-  }
+  },
 });
 
 export default EventEntries;

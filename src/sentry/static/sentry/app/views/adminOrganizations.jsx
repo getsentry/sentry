@@ -14,9 +14,12 @@ const AdminOrganizations = React.createClass({
           <Link to={`/${row.slug}/`}>
             {row.name}
           </Link>
-        </strong><br />
-        <small>{row.slug}</small>
-      </td>
+        </strong>
+        <br />
+        <small>
+          {row.slug}
+        </small>
+      </td>,
     ];
   },
 
@@ -25,7 +28,9 @@ const AdminOrganizations = React.createClass({
 
     return (
       <div>
-        <h3>{t('Organizations')}</h3>
+        <h3>
+          {t('Organizations')}
+        </h3>
         <ResultGrid
           path="/manage/organizations/"
           endpoint={'/organizations/'}
@@ -38,14 +43,14 @@ const AdminOrganizations = React.createClass({
             ['members', 'Members'],
             ['events', 'Events'],
             ['projects', 'Projects'],
-            ['employees', 'Employees']
+            ['employees', 'Employees'],
           ]}
           defaultSort="date"
           {...this.props}
         />
       </div>
     );
-  }
+  },
 });
 
 export default AdminOrganizations;

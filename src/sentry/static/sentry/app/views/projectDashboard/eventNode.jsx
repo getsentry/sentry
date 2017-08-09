@@ -7,7 +7,7 @@ import ProjectState from '../../mixins/projectState';
 
 const EventNode = React.createClass({
   propTypes: {
-    group: PropTypes.Group.isRequired
+    group: PropTypes.Group.isRequired,
   },
 
   mixins: [ProjectState],
@@ -35,8 +35,12 @@ const EventNode = React.createClass({
       <li className="group">
         <div className="row">
           <div className="col-xs-8 event-details">
-            <h3 className="truncate">{this.makeGroupLink(group.title)}</h3>
-            <div className="event-message">{group.culprit}</div>
+            <h3 className="truncate">
+              {this.makeGroupLink(group.title)}
+            </h3>
+            <div className="event-message">
+              {group.culprit}
+            </div>
             <div className="event-extra">
               <ul>
                 <li>
@@ -57,7 +61,7 @@ const EventNode = React.createClass({
         </div>
       </li>
     );
-  }
+  },
 });
 
 export default EventNode;

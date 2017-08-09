@@ -7,14 +7,14 @@ import {t} from '../locale';
 const LatestDeployOrReleaseTime = React.createClass({
   propTypes: {
     orgId: React.PropTypes.string.isRequired,
-    release: React.PropTypes.object.isRequired
+    release: React.PropTypes.object.isRequired,
   },
 
   mixins: [
     ApiMixin,
     TooltipMixin({
-      selector: '.tip'
-    })
+      selector: '.tip',
+    }),
   ],
 
   componentDidUpdate(prevProps, prevState) {
@@ -42,28 +42,27 @@ const LatestDeployOrReleaseTime = React.createClass({
                     width: 70,
                     maxWidth: 86,
                     textAlign: 'center',
-                    fontSize: 12
+                    fontSize: 12,
                   }}>
                   {latestDeploy.environment + ' '}
-                </span>
-                {' '}
-                <span className="icon icon-clock" />
-                {' '}
+                </span>{' '}
+                <span className="icon icon-clock" />{' '}
                 <TimeSince date={latestDeploy.dateFinished} />
                 {earlierDeploysNum > 0 &&
                   <span className="tip" title={earlierDeploysNum + t(' earlier deploys')}>
-                    <span className="badge">{earlierDeploysNum}</span>
+                    <span className="badge">
+                      {earlierDeploysNum}
+                    </span>
                   </span>}
               </p>
             </div>
           : <p className="m-b-0 text-light">
-              <span className="icon icon-clock" />
-              {' '}
+              <span className="icon icon-clock" />{' '}
               <TimeSince date={release.dateCreated} />
             </p>}
       </div>
     );
-  }
+  },
 });
 
 export default LatestDeployOrReleaseTime;

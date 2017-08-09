@@ -6,12 +6,12 @@ import {t, tct} from '../../locale';
 
 const ProjectInstallOverview = React.createClass({
   propTypes: {
-    platformData: React.PropTypes.object
+    platformData: React.PropTypes.object,
   },
 
   getInitialState() {
     return {
-      data: this.props.platformData
+      data: this.props.platformData,
     };
   },
 
@@ -53,7 +53,9 @@ const ProjectInstallOverview = React.createClass({
 
     return (
       <div>
-        <h1>{t('Configure your application')}</h1>
+        <h1>
+          {t('Configure your application')}
+        </h1>
 
         <p>
           {t(
@@ -63,17 +65,23 @@ const ProjectInstallOverview = React.createClass({
 
         {this.state.showDsn
           ? <div>
-              <h3>{t('DSN')}</h3>
+              <h3>
+                {t('DSN')}
+              </h3>
 
               <div className="control-group">
-                <label>{t('DSN')}</label>
+                <label>
+                  {t('DSN')}
+                </label>
                 <AutoSelectText className="form-control disabled">
                   {data.dsn}
                 </AutoSelectText>
               </div>
 
               <div className="control-group">
-                <label>{t('Public DSN')}</label>
+                <label>
+                  {t('Public DSN')}
+                </label>
                 <AutoSelectText className="form-control disabled">
                   {data.dsnPublic}
                 </AutoSelectText>
@@ -85,12 +93,14 @@ const ProjectInstallOverview = React.createClass({
           : <p>
               <small>
                 {tct('Already have things setup? [link:Get your DSN].', {
-                  link: <a onClick={this.toggleDsn} />
+                  link: <a onClick={this.toggleDsn} />,
                 })}
               </small>
             </p>}
 
-        <h3>{t('Popular')}</h3>
+        <h3>
+          {t('Popular')}
+        </h3>
 
         <ul className="client-platform-list">
           {this.getIntegrationLink('javascript', 'javascript', 'JavaScript')}
@@ -102,7 +112,9 @@ const ProjectInstallOverview = React.createClass({
           {this.getIntegrationLink('java', 'java-log4j', 'Log4j')}
         </ul>
 
-        <h3>{t('Frameworks')}</h3>
+        <h3>
+          {t('Frameworks')}
+        </h3>
         <ul className="client-platform-list">
           {frameworkList.map(item => {
             let [platform, integration] = item;
@@ -110,7 +122,9 @@ const ProjectInstallOverview = React.createClass({
           })}
         </ul>
 
-        <h3>{t('Languages')}</h3>
+        <h3>
+          {t('Languages')}
+        </h3>
         <ul className="client-platform-list">
           {languageList.map(item => {
             let [platform, integration] = item;
@@ -125,13 +139,13 @@ const ProjectInstallOverview = React.createClass({
              client integrations, please visit see [docLink:our in-depth documentation].
           `,
             {
-              docLink: <a href="https://docs.sentry.io" />
+              docLink: <a href="https://docs.sentry.io" />,
             }
           )}
         </p>
       </div>
     );
-  }
+  },
 });
 
 export default ProjectInstallOverview;

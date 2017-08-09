@@ -16,11 +16,11 @@ const OrganizationSelector = React.createClass({
     showPanel: React.PropTypes.bool,
     togglePanel: React.PropTypes.func,
     hidePanel: React.PropTypes.func,
-    currentPanel: React.PropTypes.string
+    currentPanel: React.PropTypes.string,
   },
 
   contextTypes: {
-    location: React.PropTypes.object
+    location: React.PropTypes.object,
   },
 
   mixins: [AppState],
@@ -28,9 +28,17 @@ const OrganizationSelector = React.createClass({
   getLinkNode(org, child, className) {
     let url = `/${org.slug}/`;
     if (!this.context.location) {
-      return <a className={className} href={url}>{child}</a>;
+      return (
+        <a className={className} href={url}>
+          {child}
+        </a>
+      );
     }
-    return <Link className={className} to={`/${org.slug}/`}>{child}</Link>;
+    return (
+      <Link className={className} to={`/${org.slug}/`}>
+        {child}
+      </Link>
+    );
   },
 
   render() {
@@ -69,7 +77,9 @@ const OrganizationSelector = React.createClass({
                       <LetterAvatar displayName={org.name} identifier={org.slug} />,
                       'org-avatar'
                     )}
-                    <h5>{this.getLinkNode(org, org.name)}</h5>
+                    <h5>
+                      {this.getLinkNode(org, org.name)}
+                    </h5>
                     <p>
                       <a href={`/organizations/${org.slug}/settings/`}>
                         <span className="icon-settings" /> {t('Settings')}
@@ -92,7 +102,7 @@ const OrganizationSelector = React.createClass({
           </SidebarPanel>}
       </div>
     );
-  }
+  },
 });
 
 export default OrganizationSelector;

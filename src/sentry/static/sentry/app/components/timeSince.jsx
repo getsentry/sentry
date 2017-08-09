@@ -8,7 +8,7 @@ import _ from 'lodash';
 const TimeSince = React.createClass({
   propTypes: {
     date: React.PropTypes.any.isRequired,
-    suffix: React.PropTypes.string
+    suffix: React.PropTypes.string,
   },
 
   mixins: [PureRenderMixin],
@@ -19,18 +19,18 @@ const TimeSince = React.createClass({
         date = new Date(date);
       }
       return date;
-    }
+    },
   },
 
   getDefaultProps() {
     return {
-      suffix: 'ago'
+      suffix: 'ago',
     };
   },
 
   getInitialState() {
     return {
-      relative: this.getRelativeDate()
+      relative: this.getRelativeDate(),
     };
   },
 
@@ -50,7 +50,7 @@ const TimeSince = React.createClass({
 
     this.ticker = setTimeout(() => {
       this.setState({
-        relative: this.getRelativeDate()
+        relative: this.getRelativeDate(),
       });
       this.setRelativeDateTicker();
     }, ONE_MINUTE_IN_MS);
@@ -83,7 +83,7 @@ const TimeSince = React.createClass({
         {this.state.relative}
       </time>
     );
-  }
+  },
 });
 
 export default TimeSince;

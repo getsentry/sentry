@@ -12,20 +12,20 @@ export default React.createClass({
     countLabel: React.PropTypes.string.isRequired,
     countName: React.PropTypes.string.isRequired,
     windowName: React.PropTypes.string.isRequired,
-    windowChoices: React.PropTypes.array.isRequired
+    windowChoices: React.PropTypes.array.isRequired,
   },
 
   getInitialState() {
     return {
       count: 100,
-      window: ''
+      window: '',
     };
   },
 
   onSubmit() {
     this.props.onSelected({
       [this.props.countName]: this.state.count,
-      [this.props.windowName]: this.state.window
+      [this.props.windowName]: this.state.window,
     });
   },
 
@@ -38,7 +38,9 @@ export default React.createClass({
     return (
       <Modal show={this.props.show} animation={false} onHide={this.props.onCanceled}>
         <div className="modal-header">
-          <h4>{this.props.label}</h4>
+          <h4>
+            {this.props.label}
+          </h4>
         </div>
         <div className="modal-body">
           <form className="m-b-1">
@@ -89,5 +91,5 @@ export default React.createClass({
         </div>
       </Modal>
     );
-  }
+  },
 });

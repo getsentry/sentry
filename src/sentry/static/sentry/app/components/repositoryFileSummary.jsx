@@ -15,29 +15,29 @@ function Collapsed(props) {
 
 Collapsed.propTypes = {
   onClick: React.PropTypes.func.isRequired,
-  count: React.PropTypes.number.isRequired
+  count: React.PropTypes.number.isRequired,
 };
 
 const RepositoryFileSummary = React.createClass({
   propTypes: {
     fileChangeSummary: React.PropTypes.object,
-    repository: React.PropTypes.string
+    repository: React.PropTypes.string,
   },
 
   statics: {
-    MAX_WHEN_COLLAPSED: 5
+    MAX_WHEN_COLLAPSED: 5,
   },
 
   getInitialState() {
     return {
       loading: true,
-      collapsed: true
+      collapsed: true,
     };
   },
 
   onCollapseToggle() {
     this.setState({
-      collapsed: !this.state.collapsed
+      collapsed: !this.state.collapsed,
     });
   },
 
@@ -79,12 +79,14 @@ const RepositoryFileSummary = React.createClass({
             canCollapse &&
             <li className="list-group-item list-group-item-sm align-center">
               <span className="icon-container" />
-              <a onClick={this.onCollapseToggle}>{t('Collapse')}</a>
+              <a onClick={this.onCollapseToggle}>
+                {t('Collapse')}
+              </a>
             </li>}
         </ul>
       </div>
     );
-  }
+  },
 });
 
 export default RepositoryFileSummary;

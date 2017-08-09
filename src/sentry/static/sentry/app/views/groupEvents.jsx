@@ -22,7 +22,7 @@ const GroupEvents = React.createClass({
       loading: true,
       error: false,
       pageLinks: '',
-      query: queryParams.query || ''
+      query: queryParams.query || '',
     };
   },
 
@@ -38,7 +38,7 @@ const GroupEvents = React.createClass({
       let queryParams = nextProps.location.query;
       this.setState(
         {
-          query: queryParams.query
+          query: queryParams.query,
         },
         this.fetchData
       );
@@ -62,7 +62,7 @@ const GroupEvents = React.createClass({
     let queryParams = {
       ...this.props.location.query,
       limit: 50,
-      query: this.state.query
+      query: this.state.query,
     };
 
     return `/issues/${params.groupId}/events/?${jQuery.param(queryParams)}`;
@@ -73,7 +73,7 @@ const GroupEvents = React.createClass({
 
     this.setState({
       loading: true,
-      error: false
+      error: false,
     });
 
     this.api.request(this.getEndpoint(), {
@@ -84,7 +84,7 @@ const GroupEvents = React.createClass({
           eventList: data,
           error: false,
           loading: false,
-          pageLinks: jqXHR.getResponseHeader('Link')
+          pageLinks: jqXHR.getResponseHeader('Link'),
         });
       },
       error: err => {
@@ -92,9 +92,9 @@ const GroupEvents = React.createClass({
         error = error.detail || true;
         this.setState({
           error,
-          loading: false
+          loading: false,
         });
-      }
+      },
     });
   },
 
@@ -117,7 +117,9 @@ const GroupEvents = React.createClass({
     return (
       <div className="box empty-stream">
         <span className="icon icon-exclamation" />
-        <p>{t('Sorry, no events match your search query.')}</p>
+        <p>
+          {t('Sorry, no events match your search query.')}
+        </p>
       </div>
     );
   },
@@ -126,7 +128,9 @@ const GroupEvents = React.createClass({
     return (
       <div className="box empty-stream">
         <span className="icon icon-exclamation" />
-        <p>{t("There don't seem to be any events yet.")}</p>
+        <p>
+          {t("There don't seem to be any events yet.")}
+        </p>
       </div>
     );
   },
@@ -160,7 +164,9 @@ const GroupEvents = React.createClass({
               <Link to={`/${orgId}/${projectId}/issues/${groupId}/events/${event.id}/`}>
                 <DateTime date={event.dateCreated} />
               </Link>
-              <small>{(this.getEventTitle(event) || '').substr(0, 100)}</small>
+              <small>
+                {(this.getEventTitle(event) || '').substr(0, 100)}
+              </small>
             </h5>
           </td>
           {tagList.map(tag => {
@@ -196,7 +202,9 @@ const GroupEvents = React.createClass({
           <table className="table">
             <thead>
               <tr>
-                <th>{t('ID')}</th>
+                <th>
+                  {t('ID')}
+                </th>
                 {tagList.map(tag => {
                   return (
                     <th key={tag.key}>
@@ -204,7 +212,10 @@ const GroupEvents = React.createClass({
                     </th>
                   );
                 })}
-                {hasUser && <th>{t('User')}</th>}
+                {hasUser &&
+                  <th>
+                    {t('User')}
+                  </th>}
               </tr>
             </thead>
             <tbody>
@@ -245,7 +256,7 @@ const GroupEvents = React.createClass({
         {this.renderBody()}
       </div>
     );
-  }
+  },
 });
 
 export default GroupEvents;

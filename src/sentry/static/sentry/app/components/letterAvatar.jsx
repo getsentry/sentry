@@ -8,7 +8,7 @@ import React from 'react';
 const LetterAvatar = React.createClass({
   propTypes: {
     identifier: React.PropTypes.string.isRequired,
-    displayName: React.PropTypes.string.isRequired
+    displayName: React.PropTypes.string.isRequired,
   },
 
   COLORS: [
@@ -23,7 +23,7 @@ const LetterAvatar = React.createClass({
     '#6c5fc7', // purple
     '#4e3fb4', // purple_dark
     '#57b1be', // teal
-    '#847a8c' // gray
+    '#847a8c', // gray
   ],
 
   getColor() {
@@ -69,7 +69,7 @@ const LetterAvatar = React.createClass({
         </text>
       </svg>
     );
-  }
+  },
 });
 
 export default LetterAvatar;

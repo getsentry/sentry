@@ -25,11 +25,11 @@ describe('NumberField', function() {
         context: {
           form: {
             data: {
-              fieldName: 5
+              fieldName: 5,
             },
-            errors: {}
-          }
-        }
+            errors: {},
+          },
+        },
       });
       expect(wrapper).toMatchSnapshot();
     });

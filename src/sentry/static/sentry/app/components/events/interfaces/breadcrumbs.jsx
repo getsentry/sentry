@@ -10,7 +10,9 @@ function Collapsed(props) {
       <span className="icon-container">
         <span className="icon icon-ellipsis" />
       </span>
-      <a onClick={props.onClick}>Show {props.count} collapsed crumbs</a>
+      <a onClick={props.onClick}>
+        Show {props.count} collapsed crumbs
+      </a>
     </li>
   );
 }
@@ -28,7 +30,7 @@ function moduleToCategory(module) {
 
 Collapsed.propTypes = {
   onClick: React.PropTypes.func.isRequired,
-  count: React.PropTypes.number.isRequired
+  count: React.PropTypes.number.isRequired,
 };
 
 const BreadcrumbsInterface = React.createClass({
@@ -37,28 +39,28 @@ const BreadcrumbsInterface = React.createClass({
     event: PropTypes.Event.isRequired,
     type: React.PropTypes.string.isRequired,
     data: React.PropTypes.object.isRequired,
-    isShare: React.PropTypes.bool
+    isShare: React.PropTypes.bool,
   },
 
   contextTypes: {
     organization: PropTypes.Organization,
-    project: PropTypes.Project
+    project: PropTypes.Project,
   },
 
   statics: {
-    MAX_CRUMBS_WHEN_COLLAPSED: 10
+    MAX_CRUMBS_WHEN_COLLAPSED: 10,
   },
 
   getInitialState() {
     return {
       collapsed: true,
-      queryValue: ''
+      queryValue: '',
     };
   },
 
   onCollapseToggle() {
     this.setState({
-      collapsed: !this.state.collapsed
+      collapsed: !this.state.collapsed,
     });
   },
 
@@ -77,8 +79,7 @@ const BreadcrumbsInterface = React.createClass({
     return (
       <li className="crumb-empty">
         <p>
-          <span className="icon icon-exclamation" />
-          {' '}
+          <span className="icon icon-exclamation" />{' '}
           {t('Sorry, no breadcrumbs match your search query.')}
         </p>
       </li>
@@ -98,8 +99,8 @@ const BreadcrumbsInterface = React.createClass({
         category: moduleToCategory(module || null) || 'exception',
         data: {
           type: type,
-          value: value
-        }
+          value: value,
+        },
       };
     } else if (evt.message) {
       let levelTag = (evt.tags || []).find(tag => tag.key === 'level');
@@ -108,14 +109,14 @@ const BreadcrumbsInterface = React.createClass({
         type: 'message',
         level: level,
         category: 'message',
-        message: evt.message
+        message: evt.message,
       };
     }
 
     if (crumb) {
       Object.assign(crumb, {
         timestamp: evt.dateCreated,
-        last: true
+        last: true,
       });
     }
 
@@ -124,7 +125,7 @@ const BreadcrumbsInterface = React.createClass({
 
   setQuery(evt) {
     this.setState({
-      queryValue: evt.target.value
+      queryValue: evt.target.value,
     });
   },
 
@@ -141,7 +142,7 @@ const BreadcrumbsInterface = React.createClass({
   clearSearch() {
     this.setState({
       queryValue: '',
-      collapsed: true
+      collapsed: true,
     });
   },
 
@@ -175,7 +176,9 @@ const BreadcrumbsInterface = React.createClass({
     let title = (
       <div>
         <h3>
-          <strong>{'Breadcrumbs'}</strong>
+          <strong>
+            {'Breadcrumbs'}
+          </strong>
         </h3>
         {this.getSearchField()}
       </div>
@@ -224,7 +227,7 @@ const BreadcrumbsInterface = React.createClass({
         </ul>
       </GroupEventDataSection>
     );
-  }
+  },
 });
 
 export default BreadcrumbsInterface;

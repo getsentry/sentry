@@ -7,7 +7,7 @@ import {t} from '../../locale';
 
 const UserNav = React.createClass({
   contextTypes: {
-    location: React.PropTypes.object
+    location: React.PropTypes.object,
   },
 
   shouldComponentUpdate(nextProps, nextState) {
@@ -30,13 +30,22 @@ const UserNav = React.createClass({
 
     return (
       <DropdownLink topLevelClasses={this.props.className} title={title} caret={false}>
-        <MenuItem href="/account/settings/">{t('Account')}</MenuItem>
-        <MenuItem {...to('/api/')}>{t('API')}</MenuItem>
-        {user.isSuperuser && <MenuItem {...to('/manage/')}>{t('Admin')}</MenuItem>}
-        <MenuItem href="/auth/logout/">{t('Sign out')}</MenuItem>
+        <MenuItem href="/account/settings/">
+          {t('Account')}
+        </MenuItem>
+        <MenuItem {...to('/api/')}>
+          {t('API')}
+        </MenuItem>
+        {user.isSuperuser &&
+          <MenuItem {...to('/manage/')}>
+            {t('Admin')}
+          </MenuItem>}
+        <MenuItem href="/auth/logout/">
+          {t('Sign out')}
+        </MenuItem>
       </DropdownLink>
     );
-  }
+  },
 });
 
 export default UserNav;

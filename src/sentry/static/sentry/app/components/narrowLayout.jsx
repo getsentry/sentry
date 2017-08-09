@@ -31,7 +31,7 @@ const NarryLayout = React.createClass({
         <Footer />
       </div>
     );
-  }
+  },
 });
 
 export default NarryLayout;

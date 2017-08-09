@@ -3,12 +3,12 @@ import React from 'react';
 const LanguageNav = React.createClass({
   propTypes: {
     name: React.PropTypes.string.isRequired,
-    active: React.PropTypes.bool
+    active: React.PropTypes.bool,
   },
 
   getInitialState() {
     return {
-      isVisible: this.props.active || false
+      isVisible: this.props.active || false,
     };
   },
 
@@ -28,19 +28,21 @@ const LanguageNav = React.createClass({
                   ? <span className="icon-minus" />
                   : <span className="icon-plus" />}
               </span>
-              <strong>{this.props.name}</strong>
+              <strong>
+                {this.props.name}
+              </strong>
             </a>
           </li>
           <span
             style={{
-              display: isVisible ? 'block' : 'none'
+              display: isVisible ? 'block' : 'none',
             }}>
             {this.props.children}
           </span>
         </ul>
       </div>
     );
-  }
+  },
 });
 
 export default LanguageNav;

@@ -5,7 +5,7 @@ import Pill from '../../pill';
 const ExceptionMechanism = React.createClass({
   propTypes: {
     data: React.PropTypes.object.isRequired,
-    platform: React.PropTypes.string
+    platform: React.PropTypes.string,
   },
 
   render() {
@@ -32,9 +32,7 @@ const ExceptionMechanism = React.createClass({
       const {posix_signal} = this.props.data;
       pills.push(
         <Pill key="signal" name="signal">
-          {posix_signal.name}
-          {' '}
-          <em>({posix_signal.signal})</em>
+          {posix_signal.name} <em>({posix_signal.signal})</em>
         </Pill>
       );
     }
@@ -45,10 +43,12 @@ const ExceptionMechanism = React.createClass({
 
     return (
       <div className="exception-mechanism">
-        <Pills>{pills}</Pills>
+        <Pills>
+          {pills}
+        </Pills>
       </div>
     );
-  }
+  },
 });
 
 export default ExceptionMechanism;

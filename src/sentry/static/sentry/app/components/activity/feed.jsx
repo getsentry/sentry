@@ -13,7 +13,7 @@ const ActivityFeed = React.createClass({
     endpoint: React.PropTypes.string,
     query: React.PropTypes.object,
     renderEmpty: React.PropTypes.func,
-    pagination: React.PropTypes.bool
+    pagination: React.PropTypes.bool,
   },
 
   mixins: [ApiMixin],
@@ -21,7 +21,7 @@ const ActivityFeed = React.createClass({
   getDefaultProps() {
     return {
       pagination: true,
-      query: {}
+      query: {},
     };
   },
 
@@ -30,7 +30,7 @@ const ActivityFeed = React.createClass({
       itemList: [],
       loading: true,
       error: false,
-      pageLinks: null
+      pageLinks: null,
     };
   },
 
@@ -60,22 +60,22 @@ const ActivityFeed = React.createClass({
       method: 'GET',
       query: {
         cursor: location.query.cursor || '',
-        ...this.props.query
+        ...this.props.query,
       },
       success: (data, _, jqXHR) => {
         this.setState({
           loading: false,
           error: false,
           itemList: data,
-          pageLinks: jqXHR.getResponseHeader('Link')
+          pageLinks: jqXHR.getResponseHeader('Link'),
         });
       },
       error: () => {
         this.setState({
           loading: false,
-          error: true
+          error: true,
         });
-      }
+      },
     });
   },
 
@@ -94,7 +94,7 @@ const ActivityFeed = React.createClass({
                 return <ActivityItem key={item.id} orgId={orgId} item={item} />;
               } catch (ex) {
                 logException(ex, {
-                  itemId: item.id
+                  itemId: item.id,
                 });
                 return null;
               }
@@ -116,7 +116,11 @@ const ActivityFeed = React.createClass({
   },
 
   renderEmpty() {
-    return <div className="box empty">{t('Nothing to show here, move along.')}</div>;
+    return (
+      <div className="box empty">
+        {t('Nothing to show here, move along.')}
+      </div>
+    );
   },
 
   render() {
@@ -128,7 +132,7 @@ const ActivityFeed = React.createClass({
           <Pagination pageLinks={this.state.pageLinks} {...this.props} />}
       </div>
     );
-  }
+  },
 });
 
 export default ActivityFeed;

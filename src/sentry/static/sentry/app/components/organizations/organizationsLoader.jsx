@@ -9,20 +9,20 @@ const OrganizationsLoader = React.createClass({
   componentWillMount() {
     this.api.request('/organizations/', {
       query: {
-        member: '1'
+        member: '1',
       },
       success: data => {
         OrganizationStore.load(data);
         this.setState({
-          loading: false
+          loading: false,
         });
       },
       error: () => {
         this.setState({
           loading: false,
-          error: true
+          error: true,
         });
-      }
+      },
     });
   },
 
@@ -31,8 +31,12 @@ const OrganizationsLoader = React.createClass({
   },
 
   render() {
-    return <div>{this.props.children}</div>;
-  }
+    return (
+      <div>
+        {this.props.children}
+      </div>
+    );
+  },
 });
 
 export default OrganizationsLoader;

@@ -17,7 +17,7 @@ const ExpandedTeamList = React.createClass({
     organization: PropTypes.Organization.isRequired,
     teamList: React.PropTypes.arrayOf(PropTypes.Team).isRequired,
     projectStats: React.PropTypes.object,
-    hasTeams: React.PropTypes.bool
+    hasTeams: React.PropTypes.bool,
   },
 
   mixins: [
@@ -29,16 +29,16 @@ const ExpandedTeamList = React.createClass({
           return this.getAttribute('data-isbookmarked') === 'true'
             ? 'Remove from bookmarks'
             : 'Add to bookmarks';
-        }
+        },
       };
-    })
+    }),
   ],
 
   leaveTeam(team) {
     // TODO(dcramer): handle loading indicator
     this.api.leaveTeam({
       orgId: this.props.organization.slug,
-      teamId: team.slug
+      teamId: team.slug,
     });
   },
 
@@ -66,7 +66,9 @@ const ExpandedTeamList = React.createClass({
               {tct(
                 'There are no projects in this team. Get started by [link:creating your first project].',
                 {
-                  link: <a href={this.urlPrefix() + '/projects/new/?team=' + team.slug} />
+                  link: (
+                    <a href={this.urlPrefix() + '/projects/new/?team=' + team.slug} />
+                  ),
                 }
               )}
             </p>
@@ -94,7 +96,9 @@ const ExpandedTeamList = React.createClass({
                 {t('Team Settings')}
               </Link>}
           </div>
-          <h3>{team.name}</h3>
+          <h3>
+            {team.name}
+          </h3>
         </div>
         <div className="box-content">
           <table className="table table-no-top-border m-b-0">
@@ -112,8 +116,8 @@ const ExpandedTeamList = React.createClass({
       orgId: this.props.organization.slug,
       projectId: project.slug,
       data: {
-        isBookmarked: !project.isBookmarked
-      }
+        isBookmarked: !project.isBookmarked,
+      },
     });
   },
 
@@ -144,7 +148,9 @@ const ExpandedTeamList = React.createClass({
         </td>
         <td className="align-right project-chart">
           {chartData &&
-            <LazyLoad><BarChart points={chartData} label="events" /></LazyLoad>}
+            <LazyLoad>
+              <BarChart points={chartData} label="events" />
+            </LazyLoad>}
         </td>
       </tr>
     );
@@ -163,7 +169,7 @@ const ExpandedTeamList = React.createClass({
                       to={`/organizations/${this.props.organization.slug}/all-teams/`}
                     />
                   ),
-                  createLink: <Link to={this.urlPrefix() + '/teams/new/'} />
+                  createLink: <Link to={this.urlPrefix() + '/teams/new/'} />,
                 }
               )
             : tct('You are not a member of any teams. [joinLink:Join a team].', {
@@ -171,7 +177,7 @@ const ExpandedTeamList = React.createClass({
                   <Link
                     to={`/organizations/${this.props.organization.slug}/all-teams/`}
                   />
-                )
+                ),
               })}
         </p>
       );
@@ -181,7 +187,7 @@ const ExpandedTeamList = React.createClass({
         {tct(
           'You dont have any teams for this organization yet. Get started by [link:creating your first team].',
           {
-            link: <Link to={this.urlPrefix() + '/teams/new/'} />
+            link: <Link to={this.urlPrefix() + '/teams/new/'} />,
           }
         )}
       </p>
@@ -202,7 +208,7 @@ const ExpandedTeamList = React.createClass({
         {hasTeams ? this.renderTeamNodes() : this.renderEmpty()}
       </div>
     );
-  }
+  },
 });
 
 export default ExpandedTeamList;

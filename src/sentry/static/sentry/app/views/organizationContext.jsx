@@ -19,7 +19,7 @@ import OrganizationState from '../mixins/organizationState';
 import {t} from '../locale';
 
 let ERROR_TYPES = {
-  ORG_NOT_FOUND: 'ORG_NOT_FOUND'
+  ORG_NOT_FOUND: 'ORG_NOT_FOUND',
 };
 
 function getRequiredAdminActions(org) {
@@ -28,13 +28,13 @@ function getRequiredAdminActions(org) {
 
 const OrganizationContext = React.createClass({
   childContextTypes: {
-    organization: PropTypes.Organization
+    organization: PropTypes.Organization,
   },
 
   mixins: [
     ApiMixin,
     OrganizationState,
-    Reflux.listenTo(ProjectActions.createSuccess, 'onProjectCreation')
+    Reflux.listenTo(ProjectActions.createSuccess, 'onProjectCreation'),
   ],
 
   getInitialState() {
@@ -43,13 +43,13 @@ const OrganizationContext = React.createClass({
       error: false,
       errorType: null,
       organization: null,
-      showBroadcast: false
+      showBroadcast: false,
     };
   },
 
   getChildContext() {
     return {
-      organization: this.state.organization
+      organization: this.state.organization,
     };
   },
 
@@ -97,7 +97,7 @@ const OrganizationContext = React.createClass({
           error: false,
           errorType: null,
           hooks: hooks,
-          showBroadcast: this.shouldShowBroadcast(data)
+          showBroadcast: this.shouldShowBroadcast(data),
         });
 
         TeamStore.loadInitialData(data.teams);
@@ -119,9 +119,9 @@ const OrganizationContext = React.createClass({
         this.setState({
           loading: false,
           error: true,
-          errorType: errorType
+          errorType: errorType,
         });
-      }
+      },
     });
   },
 
@@ -193,7 +193,7 @@ const OrganizationContext = React.createClass({
         </div>
       </DocumentTitle>
     );
-  }
+  },
 });
 
 export default OrganizationContext;

@@ -16,7 +16,7 @@ import {t} from '../../locale';
 
 const ReleaseOverview = React.createClass({
   contextTypes: {
-    release: React.PropTypes.object
+    release: React.PropTypes.object,
   },
 
   mixins: [ApiMixin],
@@ -28,27 +28,29 @@ const ReleaseOverview = React.createClass({
       projects: [],
       fileList: [],
       deploys: [],
-      hasRepos: false
+      hasRepos: false,
     };
   },
 
   componentDidMount() {
     let {orgId, version} = this.props.params;
 
-    let path = `/organizations/${orgId}/releases/${encodeURIComponent(version)}/commitfiles/`;
+    let path = `/organizations/${orgId}/releases/${encodeURIComponent(
+      version
+    )}/commitfiles/`;
     this.api.request(path, {
       method: 'GET',
       data: this.props.location.query,
       success: (data, _, jqXHR) => {
         this.setState({
-          fileList: data
+          fileList: data,
         });
       },
       error: () => {
         this.setState({
-          error: true
+          error: true,
         });
-      }
+      },
     });
     this.getReleaseProjects();
     this.getDeploys();
@@ -62,14 +64,14 @@ const ReleaseOverview = React.createClass({
       method: 'GET',
       success: (data, _, jqXHR) => {
         this.setState({
-          projects: data.projects
+          projects: data.projects,
         });
       },
       error: () => {
         this.setState({
-          error: true
+          error: true,
         });
-      }
+      },
     });
   },
 
@@ -81,14 +83,14 @@ const ReleaseOverview = React.createClass({
       success: (data, _, jqXHR) => {
         this.setState({
           deploys: data,
-          loading: false
+          loading: false,
         });
       },
       error: () => {
         this.setState({
-          error: true
+          error: true,
         });
-      }
+      },
     });
   },
 
@@ -99,19 +101,23 @@ const ReleaseOverview = React.createClass({
       method: 'GET',
       success: (data, _, jqXHR) => {
         this.setState({
-          hasRepos: data.length > 0
+          hasRepos: data.length > 0,
         });
       },
       error: () => {
         this.setState({
-          error: true
+          error: true,
         });
-      }
+      },
     });
   },
 
   renderEmpty() {
-    return <div className="box empty">{t('None')}</div>;
+    return (
+      <div className="box empty">
+        {t('None')}
+      </div>
+    );
   },
 
   render() {
@@ -137,7 +143,7 @@ const ReleaseOverview = React.createClass({
         fbr[repoName][filename] = {
           authors: {},
           types: new Set(),
-          repos: new Set()
+          repos: new Set(),
         };
       }
 
@@ -152,32 +158,38 @@ const ReleaseOverview = React.createClass({
       <div>
         <div className="row" style={{paddingTop: 10}}>
           <div className="col-sm-8">
-            <h5>{t('Issues Resolved in this Release')}</h5>
+            <h5>
+              {t('Issues Resolved in this Release')}
+            </h5>
             <IssueList
-              endpoint={`/projects/${orgId}/${projectId}/releases/${encodeURIComponent(version)}/resolved/`}
+              endpoint={`/projects/${orgId}/${projectId}/releases/${encodeURIComponent(
+                version
+              )}/resolved/`}
               pagination={false}
-              renderEmpty={() => (
+              renderEmpty={() =>
                 <div className="box empty m-b-2" key="none">
                   {t('No issues resolved')}
-                </div>
-              )}
+                </div>}
               ref="issueList"
               showActions={false}
               params={{orgId: orgId}}
               className="m-b-2"
             />
-            <h5>{t('New Issues in this Release')}</h5>
+            <h5>
+              {t('New Issues in this Release')}
+            </h5>
             <IssueList
               endpoint={`/projects/${orgId}/${projectId}/issues/`}
               query={{
                 query: 'first-release:"' + version + '"',
-                limit: 5
+                limit: 5,
               }}
               statsPeriod="0"
               pagination={false}
-              renderEmpty={() => (
-                <div className="box empty m-b-2" key="none">{t('No new issues')}</div>
-              )}
+              renderEmpty={() =>
+                <div className="box empty m-b-2" key="none">
+                  {t('No new issues')}
+                </div>}
               ref="issueList"
               showActions={false}
               params={{orgId: orgId}}
@@ -229,13 +241,16 @@ const ReleaseOverview = React.createClass({
                   <span className="icon icon-git-commit" />
                   <h5>Releases are better with commit data!</h5>
                   <p>
-                    Connect a repository to see commit info, files changed, and authors involved in future releases.
+                    Connect a repository to see commit info, files changed, and authors
+                    involved in future releases.
                   </p>
                   <a className="btn btn-primary" href={`/organizations/${orgId}/repos/`}>
                     Connect a repository
                   </a>
                 </div>}
-            <h6 className="nav-header m-b-1">{t('Deploys')}</h6>
+            <h6 className="nav-header m-b-1">
+              {t('Deploys')}
+            </h6>
             <ul className="nav nav-stacked">
               {!deploys.length
                 ? this.renderEmpty()
@@ -262,7 +277,9 @@ const ReleaseOverview = React.createClass({
                               </span>
                             </div>
                             <div className="col-xs-6 align-right">
-                              <small><TimeSince date={deploy.dateFinished} /></small>
+                              <small>
+                                <TimeSince date={deploy.dateFinished} />
+                              </small>
                             </div>
                           </div>
                         </a>
@@ -274,7 +291,7 @@ const ReleaseOverview = React.createClass({
         </div>
       </div>
     );
-  }
+  },
 });
 
 export default ReleaseOverview;

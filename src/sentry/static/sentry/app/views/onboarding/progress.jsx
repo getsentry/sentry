@@ -5,11 +5,11 @@ import ConfigStore from '../../stores/configStore';
 
 const ProgressNodes = React.createClass({
   propTypes: {
-    params: React.PropTypes.object
+    params: React.PropTypes.object,
   },
 
   contextTypes: {
-    organization: React.PropTypes.object
+    organization: React.PropTypes.object,
   },
 
   steps: Object.keys(onboardingSteps),
@@ -23,7 +23,7 @@ const ProgressNodes = React.createClass({
   node(stepKey, stepIndex) {
     let nodeClass = classNames('node', {
       done: stepIndex < this.inferStep(),
-      active: stepIndex === this.inferStep()
+      active: stepIndex === this.inferStep(),
     });
 
     return (
@@ -59,7 +59,7 @@ const ProgressNodes = React.createClass({
         </div>
       </div>
     );
-  }
+  },
 });
 
 export default ProgressNodes;

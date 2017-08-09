@@ -17,15 +17,15 @@ const ActionLink = React.createClass({
     onlyIfBulk: React.PropTypes.bool,
     selectAllActive: React.PropTypes.bool.isRequired, // "select all" checkbox
     tooltip: React.PropTypes.string,
-    extraDescription: React.PropTypes.string
+    extraDescription: React.PropTypes.string,
   },
 
   mixins: [
     PureRenderMixin,
     TooltipMixin({
       html: false,
-      container: 'body'
-    })
+      container: 'body',
+    }),
   ],
 
   getDefaultProps() {
@@ -33,13 +33,13 @@ const ActionLink = React.createClass({
       buttonTitle: null, // title="..." (optional)
       onlyIfBulk: false,
       disabled: false,
-      extraDescription: null
+      extraDescription: null,
     };
   },
 
   getInitialState() {
     return {
-      isModalOpen: false
+      isModalOpen: false,
     };
   },
 
@@ -56,14 +56,14 @@ const ActionLink = React.createClass({
       return;
     }
     this.setState({
-      isModalOpen: !this.state.isModalOpen
+      isModalOpen: !this.state.isModalOpen,
     });
   },
 
   handleAction(evt) {
     this.props.onAction(evt);
     this.setState({
-      isModalOpen: false
+      isModalOpen: false,
     });
   },
 
@@ -115,9 +115,15 @@ const ActionLink = React.createClass({
           animation={false}
           onHide={this.handleToggle}>
           <div className="modal-body">
-            <p><strong>{confirmationQuestion}</strong></p>
+            <p>
+              <strong>
+                {confirmationQuestion}
+              </strong>
+            </p>
             {this.props.extraDescription}
-            <p>{t('This action cannot be undone.')}</p>
+            <p>
+              {t('This action cannot be undone.')}
+            </p>
           </div>
           <div className="modal-footer">
             <button type="button" className="btn btn-default" onClick={this.handleToggle}>
@@ -130,7 +136,7 @@ const ActionLink = React.createClass({
         </Modal>
       </a>
     );
-  }
+  },
 });
 
 export default ActionLink;

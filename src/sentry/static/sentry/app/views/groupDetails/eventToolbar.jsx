@@ -35,14 +35,14 @@ let GroupEventToolbar = React.createClass({
     orgId: React.PropTypes.string.isRequired,
     projectId: React.PropTypes.string.isRequired,
     group: PropTypes.Group.isRequired,
-    event: PropTypes.Event.isRequired
+    event: PropTypes.Event.isRequired,
   },
 
   mixins: [
     TooltipMixin({
       html: true,
-      selector: '.tip'
-    })
+      selector: '.tip',
+    }),
   ],
 
   shouldComponentUpdate(nextProps, nextState) {
@@ -105,7 +105,9 @@ let GroupEventToolbar = React.createClass({
             className="btn btn-default">
             {t('Older')}
           </Link>
-        : <a key="prev" className="btn btn-default disabled">{t('Older')}</a>,
+        : <a key="prev" className="btn btn-default disabled">
+            {t('Older')}
+          </a>,
       evt.nextEventID
         ? <Link
             key="next"
@@ -113,7 +115,9 @@ let GroupEventToolbar = React.createClass({
             className="btn btn-default">
             {t('Newer')}
           </Link>
-        : <a key="next" className="btn btn-default disabled">{t('Newer')}</a>,
+        : <a key="next" className="btn btn-default disabled">
+            {t('Newer')}
+          </a>,
       evt.nextEventID
         ? <Link
             key="latest"
@@ -124,14 +128,14 @@ let GroupEventToolbar = React.createClass({
           </Link>
         : <a key="latest" className="btn btn-default disabled">
             <span className="icon-skip-forward" />
-          </a>
+          </a>,
     ];
 
     // TODO: possible to define this as a route in react-router, but without a corresponding
     //       React component?
     let jsonUrl = `/${orgId}/${projectId}/issues/${groupId}/events/${evt.id}/json/`;
     let style = {
-      borderBottom: '1px dotted #dfe3ea'
+      borderBottom: '1px dotted #dfe3ea',
     };
 
     let latencyThreshold = 30 * 60 * 1000; // 30 minutes
@@ -146,7 +150,9 @@ let GroupEventToolbar = React.createClass({
             {eventNavNodes}
           </div>
         </div>
-        <h4>{t('Event')} <span className="event-id">{evt.eventID}</span></h4>
+        <h4>
+          {t('Event')} <span className="event-id">{evt.eventID}</span>
+        </h4>
         <span>
           {/* use a key here to force removal of tooltip parent - fixes #3341 */}
           <span className="tip" data-title={this.getDateTooltip()} key={evt.id}>
@@ -159,7 +165,7 @@ let GroupEventToolbar = React.createClass({
         </span>
       </div>
     );
-  }
+  },
 });
 
 export default GroupEventToolbar;

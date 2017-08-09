@@ -7,7 +7,7 @@ import KeyValueList from '../interfaces/keyValueList';
 
 const UserContextType = React.createClass({
   propTypes: {
-    data: React.PropTypes.object.isRequired
+    data: React.PropTypes.object.isRequired,
   },
 
   render() {
@@ -16,7 +16,13 @@ const UserContextType = React.createClass({
     let children = [];
 
     // Handle our native attributes special
-    user.id && builtins.push(['ID', <pre>{user.id}</pre>]);
+    user.id &&
+      builtins.push([
+        'ID',
+        <pre>
+          {user.id}
+        </pre>,
+      ]);
     user.email &&
       builtins.push([
         'Email',
@@ -25,11 +31,29 @@ const UserContextType = React.createClass({
           <a href={`mailto:${user.email}`} target="_blank" className="external-icon">
             <em className="icon-envelope" />
           </a>
-        </pre>
+        </pre>,
       ]);
-    user.username && builtins.push(['Username', <pre>{user.username}</pre>]);
-    user.ip_address && builtins.push(['IP Address', <pre>{user.ip_address}</pre>]);
-    user.name && builtins.push(['Name', <pre>{user.name}</pre>]);
+    user.username &&
+      builtins.push([
+        'Username',
+        <pre>
+          {user.username}
+        </pre>,
+      ]);
+    user.ip_address &&
+      builtins.push([
+        'IP Address',
+        <pre>
+          {user.ip_address}
+        </pre>,
+      ]);
+    user.name &&
+      builtins.push([
+        'Name',
+        <pre>
+          {user.name}
+        </pre>,
+      ]);
 
     // We also attach user supplied data as 'user.data'
     _.each(user.data, function(value, key) {
@@ -46,8 +70,12 @@ const UserContextType = React.createClass({
             {builtins.map(([key, value]) => {
               return (
                 <tr key={key}>
-                  <td className="key" key="0">{key}</td>
-                  <td className="value" key="1">{value}</td>
+                  <td className="key" key="0">
+                    {key}
+                  </td>
+                  <td className="value" key="1">
+                    {value}
+                  </td>
                 </tr>
               );
             })}
@@ -56,7 +84,7 @@ const UserContextType = React.createClass({
         {children && <KeyValueList data={children} isContextData={true} />}
       </div>
     );
-  }
+  },
 });
 
 UserContextType.getTitle = function(value) {

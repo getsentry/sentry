@@ -7,6 +7,6 @@ let GroupingActions = Reflux.createActions([
   'toggleUnmerge',
   'toggleMerge',
   'unmerge',
-  'merge'
+  'merge',
 ]);
 export default GroupingActions;

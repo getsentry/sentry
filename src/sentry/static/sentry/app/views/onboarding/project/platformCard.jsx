@@ -7,7 +7,7 @@ import classnames from 'classnames';
 const PlatformCard = React.createClass({
   propTypes: {
     platform: React.PropTypes.string,
-    onClick: React.PropTypes.func
+    onClick: React.PropTypes.func,
   },
 
   render() {
@@ -18,10 +18,12 @@ const PlatformCard = React.createClass({
         className={classnames('platform-card', this.props.className)}
         onClick={this.props.onClick}>
         <PlatformiconTile {...this.props} />
-        <h5> {platform.name} </h5>
+        <h5>
+          {' '}{platform.name}{' '}
+        </h5>
       </span>
     );
-  }
+  },
 });
 
 export default PlatformCard;

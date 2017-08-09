@@ -10,7 +10,7 @@ import {t} from '../../locale';
 const EventPackageData = React.createClass({
   propTypes: {
     group: PropTypes.Group.isRequired,
-    event: PropTypes.Event.isRequired
+    event: PropTypes.Event.isRequired,
   },
 
   shouldComponentUpdate(nextProps, nextState) {
@@ -31,7 +31,7 @@ const EventPackageData = React.createClass({
         </ClippedBox>
       </EventDataSection>
     );
-  }
+  },
 });
 
 export default EventPackageData;

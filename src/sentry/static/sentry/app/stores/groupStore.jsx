@@ -7,7 +7,7 @@ import _ from 'lodash';
 
 function showAlert(msg, type) {
   IndicatorStore.add(msg, type, {
-    duration: 4000
+    duration: 4000,
   });
 }
 
@@ -54,7 +54,7 @@ const GroupStore = Reflux.createStore({
       if (itemsById[item.id]) {
         this.items[idx] = {
           ...item,
-          ...itemsById[item.id]
+          ...itemsById[item.id],
         };
         delete itemsById[item.id];
       }
@@ -173,7 +173,7 @@ const GroupStore = Reflux.createStore({
           for (let c = 0; c < pendingForId.length; c++) {
             rItem = {
               ...rItem,
-              ...pendingForId[c].params
+              ...pendingForId[c].params,
             };
           }
         }
@@ -205,7 +205,7 @@ const GroupStore = Reflux.createStore({
         pendingById[item.id].forEach(change => {
           rItem = {
             ...rItem,
-            ...change.params
+            ...change.params,
           };
         });
       }
@@ -357,14 +357,14 @@ const GroupStore = Reflux.createStore({
       if (itemIds.indexOf(item.id) !== -1) {
         this.items[idx] = {
           ...item,
-          ...response
+          ...response,
         };
         this.clearStatus(item.id, 'update');
       }
     });
     this.pendingChanges.remove(changeId);
     this.trigger(new Set(itemIds));
-  }
+  },
 });
 
 export default GroupStore;

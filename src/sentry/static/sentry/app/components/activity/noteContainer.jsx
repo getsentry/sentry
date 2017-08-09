@@ -10,12 +10,12 @@ const NoteContainer = React.createClass({
     author: React.PropTypes.object.isRequired,
     onDelete: React.PropTypes.func.isRequired,
     sessionUser: React.PropTypes.object.isRequired,
-    memberList: React.PropTypes.array.isRequired
+    memberList: React.PropTypes.array.isRequired,
   },
 
   getInitialState() {
     return {
-      editing: false
+      editing: false,
     };
   },
 
@@ -55,7 +55,7 @@ const NoteContainer = React.createClass({
         </div>
       </li>
     );
-  }
+  },
 });
 
 export default NoteContainer;

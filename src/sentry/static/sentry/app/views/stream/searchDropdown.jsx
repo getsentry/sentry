@@ -10,7 +10,7 @@ const SearchDropdown = React.createClass({
     items: React.PropTypes.array.isRequired,
     searchSubstring: React.PropTypes.string,
     onClick: React.PropTypes.func.isRequired,
-    loading: React.PropTypes.bool
+    loading: React.PropTypes.bool,
   },
 
   mixins: [PureRenderMixin],
@@ -18,7 +18,7 @@ const SearchDropdown = React.createClass({
   getDefaultProps() {
     return {
       searchSubstring: '',
-      onClick: function() {}
+      onClick: function() {},
     };
   },
 
@@ -38,7 +38,9 @@ const SearchDropdown = React.createClass({
     return (
       <span>
         {text.substr(0, idx)}
-        <strong>{text.substr(idx, searchSubstring.length)}</strong>
+        <strong>
+          {text.substr(idx, searchSubstring.length)}
+        </strong>
         {text.substr(idx + searchSubstring.length)}
       </span>
     );
@@ -68,14 +70,18 @@ const SearchDropdown = React.createClass({
                         {this.renderDescription(item)}
                       </span>
                     </h4>
-                    {item.example ? <p className="search-example">{item.example}</p> : ''}
+                    {item.example
+                      ? <p className="search-example">
+                          {item.example}
+                        </p>
+                      : ''}
                   </li>
                 );
               })}
         </ul>
       </div>
     );
-  }
+  },
 });
 
 export default SearchDropdown;

@@ -6,7 +6,7 @@ import FormField from './formField';
 export default class InputField extends FormField {
   static propTypes = {
     ...FormField.propTypes,
-    placeholder: React.PropTypes.string
+    placeholder: React.PropTypes.string,
   };
 
   // XXX(dcramer): this comes from TooltipMixin

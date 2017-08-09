@@ -50,7 +50,7 @@ function analyzeStringForRepr(value) {
     repr: value,
     isString: true,
     isMultiLine: false,
-    isStripped: false
+    isStripped: false,
   };
 
   // stripped for security reasons
@@ -70,12 +70,12 @@ function analyzeStringForRepr(value) {
 
 const ContextData = React.createClass({
   propTypes: {
-    data: React.PropTypes.any
+    data: React.PropTypes.any,
   },
 
   getDefaultProps() {
     return {
-      data: null
+      data: null,
     };
   },
 
@@ -102,11 +102,20 @@ const ContextData = React.createClass({
 
     /*eslint no-shadow:0*/
     function walk(value, depth) {
-      let i = 0, children = [];
+      let i = 0,
+        children = [];
       if (value === null) {
-        return <span className="val-null">{'None'}</span>;
+        return (
+          <span className="val-null">
+            {'None'}
+          </span>
+        );
       } else if (value === true || value === false) {
-        return <span className="val-bool">{value ? 'True' : 'False'}</span>;
+        return (
+          <span className="val-bool">
+            {value ? 'True' : 'False'}
+          </span>
+        );
       } else if (_.isString(value)) {
         let valueInfo = analyzeStringForRepr(value);
 
@@ -115,11 +124,11 @@ const ContextData = React.createClass({
             key="value"
             className={
               (valueInfo.isString ? 'val-string' : 'val-repr') +
-                (valueInfo.isStripped ? ' val-stripped' : '') +
-                (valueInfo.isMultiLine ? ' val-string-multiline' : '')
+              (valueInfo.isStripped ? ' val-stripped' : '') +
+              (valueInfo.isMultiLine ? ' val-string-multiline' : '')
             }>
             {valueInfo.repr}
-          </span>
+          </span>,
         ];
 
         if (valueInfo.isString && isUrl(value)) {
@@ -132,27 +141,39 @@ const ContextData = React.createClass({
 
         return out;
       } else if (_.isNumber(value)) {
-        return <span className="val-number">{value}</span>;
+        return (
+          <span className="val-number">
+            {value}
+          </span>
+        );
       } else if (_.isArray(value)) {
         for (i = 0; i < value.length; i++) {
           children.push(
             <span className="val-array-item" key={i}>
               {walk(value[i], depth + 1)}
               {i < value.length - 1
-                ? <span className="val-array-sep">{', '}</span>
+                ? <span className="val-array-sep">
+                    {', '}
+                  </span>
                 : null}
             </span>
           );
         }
         return (
           <span className="val-array">
-            <span className="val-array-marker">{'['}</span>
+            <span className="val-array-marker">
+              {'['}
+            </span>
             {makeToggle(
               depth <= 2,
               children.length,
-              <span className="val-array-items">{children}</span>
+              <span className="val-array-items">
+                {children}
+              </span>
             )}
-            <span className="val-array-marker">{']'}</span>
+            <span className="val-array-marker">
+              {']'}
+            </span>
           </span>
         );
       } else {
@@ -163,13 +184,19 @@ const ContextData = React.createClass({
           children.push(
             <span className="val-dict-pair" key={key}>
               <span className="val-dict-key">
-                <span className="val-string">{key}</span>
+                <span className="val-string">
+                  {key}
+                </span>
               </span>
-              <span className="val-dict-col">{': '}</span>
+              <span className="val-dict-col">
+                {': '}
+              </span>
               <span className="val-dict-value">
                 {walk(value[key], depth + 1)}
                 {i < keys.length - 1
-                  ? <span className="val-dict-sep">{', '}</span>
+                  ? <span className="val-dict-sep">
+                      {', '}
+                    </span>
                   : null}
               </span>
             </span>
@@ -177,13 +204,19 @@ const ContextData = React.createClass({
         }
         return (
           <span className="val-dict">
-            <span className="val-dict-marker">{'{'}</span>
+            <span className="val-dict-marker">
+              {'{'}
+            </span>
             {makeToggle(
               depth <= 1,
               children.length,
-              <span className="val-dict-items">{children}</span>
+              <span className="val-dict-items">
+                {children}
+              </span>
             )}
-            <span className="val-dict-marker">{'}'}</span>
+            <span className="val-dict-marker">
+              {'}'}
+            </span>
           </span>
         );
       }
@@ -193,7 +226,11 @@ const ContextData = React.createClass({
 
   renderKeyPosValue(value) {
     if (_.isString(value)) {
-      return <span className="val-string">{value}</span>;
+      return (
+        <span className="val-string">
+          {value}
+        </span>
+      );
     }
     return this.renderValue(value);
   },
@@ -211,8 +248,12 @@ const ContextData = React.createClass({
     }
     other.className = 'val ' + (className || '');
 
-    return <pre {...other}>{this.renderValue(data)}</pre>;
-  }
+    return (
+      <pre {...other}>
+        {this.renderValue(data)}
+      </pre>
+    );
+  },
 });
 
 export default ContextData;

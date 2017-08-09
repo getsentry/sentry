@@ -6,7 +6,7 @@ import {defined} from '../../../utils';
 const OsContextType = React.createClass({
   propTypes: {
     alias: React.PropTypes.string.isRequired,
-    data: React.PropTypes.object.isRequired
+    data: React.PropTypes.object.isRequired,
   },
 
   render() {
@@ -18,12 +18,12 @@ const OsContextType = React.createClass({
           ['?Name', name],
           ['Version', version + (build ? ` (${build})` : '')],
           ['Kernel Version', kernel_version],
-          ['?Rooted', defined(rooted) ? rooted ? 'yes' : 'no' : null]
+          ['?Rooted', defined(rooted) ? (rooted ? 'yes' : 'no') : null],
         ]}
         alias={this.props.alias}
       />
     );
-  }
+  },
 });
 
 OsContextType.getTitle = function(value) {

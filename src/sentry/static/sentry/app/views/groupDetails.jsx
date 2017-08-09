@@ -11,25 +11,25 @@ import PropTypes from '../proptypes';
 import {t} from '../locale';
 
 let ERROR_TYPES = {
-  GROUP_NOT_FOUND: 'GROUP_NOT_FOUND'
+  GROUP_NOT_FOUND: 'GROUP_NOT_FOUND',
 };
 
 const GroupDetails = React.createClass({
   propTypes: {
     setProjectNavSection: React.PropTypes.func,
-    memberList: React.PropTypes.array
+    memberList: React.PropTypes.array,
   },
 
   childContextTypes: {
     group: PropTypes.Group,
-    location: React.PropTypes.object
+    location: React.PropTypes.object,
   },
 
   mixins: [ApiMixin, Reflux.listenTo(GroupStore, 'onGroupChange')],
 
   getDefaultProps() {
     return {
-      memberList: []
+      memberList: [],
     };
   },
 
@@ -38,14 +38,14 @@ const GroupDetails = React.createClass({
       group: null,
       loading: true,
       error: false,
-      errorType: null
+      errorType: null,
     };
   },
 
   getChildContext() {
     return {
       group: this.state.group,
-      location: this.props.location
+      location: this.props.location,
     };
   },
 
@@ -95,7 +95,7 @@ const GroupDetails = React.createClass({
         this.setState({
           loading: false,
           error: false,
-          errorType: null
+          errorType: null,
         });
 
         return void GroupStore.loadInitialData([data]);
@@ -111,9 +111,9 @@ const GroupDetails = React.createClass({
         this.setState({
           loading: false,
           error: true,
-          errorType: errorType
+          errorType: errorType,
         });
-      }
+      },
     });
   },
 
@@ -127,7 +127,7 @@ const GroupDetails = React.createClass({
           return;
         }
         this.setState({
-          group: group
+          group: group,
         });
       }
     }
@@ -186,12 +186,12 @@ const GroupDetails = React.createClass({
           />
           {React.cloneElement(this.props.children, {
             memberList: this.props.memberList,
-            group: group
+            group: group,
           })}
         </div>
       </DocumentTitle>
     );
-  }
+  },
 });
 
 export default GroupDetails;

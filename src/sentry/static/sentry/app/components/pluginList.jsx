@@ -12,7 +12,7 @@ export default React.createClass({
     project: React.PropTypes.object.isRequired,
     pluginList: React.PropTypes.array.isRequired,
     onDisablePlugin: React.PropTypes.func.isRequired,
-    onEnablePlugin: React.PropTypes.func.isRequired
+    onEnablePlugin: React.PropTypes.func.isRequired,
   },
 
   mixins: [ApiMixin],
@@ -30,7 +30,7 @@ export default React.createClass({
         },
         complete: () => {
           IndicatorStore.remove(loadingIndicator);
-        }
+        },
       }
     );
   },
@@ -46,7 +46,9 @@ export default React.createClass({
       return (
         <div className="panel panel-default">
           <div className="panel-body p-b-0">
-            <p>{"Oops! Looks like there aren't any available integrations installed."}</p>
+            <p>
+              {"Oops! Looks like there aren't any available integrations installed."}
+            </p>
           </div>
         </div>
       );
@@ -71,5 +73,5 @@ export default React.createClass({
         />
       </div>
     );
-  }
+  },
 });

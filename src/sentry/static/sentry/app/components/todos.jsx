@@ -8,14 +8,14 @@ import OrganizationState from '../mixins/organizationState';
 const TodoItem = React.createClass({
   propTypes: {
     task: React.PropTypes.object,
-    onSkip: React.PropTypes.func.isRequired
+    onSkip: React.PropTypes.func.isRequired,
   },
 
   mixins: [OrganizationState],
 
   getInitialState: function() {
     return {
-      showConfirmation: false
+      showConfirmation: false,
     };
   },
 
@@ -39,21 +39,21 @@ const TodoItem = React.createClass({
         classNames += ' checked';
         description = tct('[user] completed [dateCompleted]', {
           user: this.props.task.user,
-          dateCompleted: moment(this.props.task.dateCompleted).fromNow()
+          dateCompleted: moment(this.props.task.dateCompleted).fromNow(),
         });
         break;
       case 'pending':
         classNames += ' pending';
         description = tct('[user] kicked off [dateCompleted]', {
           user: this.props.task.user,
-          dateCompleted: moment(this.props.task.dateCompleted).fromNow()
+          dateCompleted: moment(this.props.task.dateCompleted).fromNow(),
         });
         break;
       case 'skipped':
         classNames += ' skipped';
         description = tct('[user] skipped [dateCompleted]', {
           user: this.props.task.user,
-          dateCompleted: moment(this.props.task.dateCompleted).fromNow()
+          dateCompleted: moment(this.props.task.dateCompleted).fromNow(),
         });
         break;
       default:
@@ -92,7 +92,11 @@ const TodoItem = React.createClass({
             {this.props.task.status == 'skipped' && <span className="icon-x" />}
             {this.props.task.status == 'pending' && <span className="icon-ellipsis" />}
           </div>
-          <a href={learnMoreUrl}><h4>{this.props.task.title}</h4></a>
+          <a href={learnMoreUrl}>
+            <h4>
+              {this.props.task.title}
+            </h4>
+          </a>
           <p>
             {description}
           </p>
@@ -109,14 +113,14 @@ const TodoItem = React.createClass({
           />}
       </li>
     );
-  }
+  },
 });
 
 const Confirmation = React.createClass({
   propTypes: {
     task: React.PropTypes.number,
     onSkip: React.PropTypes.func.isRequired,
-    dismiss: React.PropTypes.func.isRequired
+    dismiss: React.PropTypes.func.isRequired,
   },
 
   skip: function(e) {
@@ -131,19 +135,18 @@ const Confirmation = React.createClass({
   render: function() {
     return (
       <div className="ob-confirmation" onClick={this.dismiss}>
-        <h3>{t('Need help?')}</h3>
+        <h3>
+          {t('Need help?')}
+        </h3>
         <p>
           <a href="mailto:support@sentry.io?subject=Help with onboarding">
             {t('Ask us!')}
-          </a>
-          {' '}
-          ·
-          {' '}
-          <a onClick={this.skip}>{t('Skip')}</a>
+          </a>{' '}
+          · <a onClick={this.skip}>{t('Skip')}</a>
         </p>
       </div>
     );
-  }
+  },
 });
 
 const TodoList = React.createClass({
@@ -158,7 +161,7 @@ const TodoList = React.createClass({
         skippable: false,
         prereq: [],
         featureLocation: 'organization',
-        location: 'projects/new/'
+        location: 'projects/new/',
       },
       {
         task: 2,
@@ -167,7 +170,7 @@ const TodoList = React.createClass({
         skippable: false,
         prereq: [1],
         featureLocation: 'project',
-        location: 'settings/install/'
+        location: 'settings/install/',
       },
       {
         task: 3,
@@ -176,7 +179,7 @@ const TodoList = React.createClass({
         skippable: true,
         prereq: [],
         featureLocation: 'organization',
-        location: 'members/'
+        location: 'members/',
       },
       {
         task: 4,
@@ -185,7 +188,7 @@ const TodoList = React.createClass({
         skippable: true,
         prereq: [1, 2],
         featureLocation: 'organization',
-        location: 'projects/new/'
+        location: 'projects/new/',
       },
       {
         task: 5,
@@ -194,7 +197,7 @@ const TodoList = React.createClass({
         skippable: true,
         prereq: [1, 2],
         featureLocation: 'absolute',
-        location: 'https://docs.sentry.io/hosted/learn/context/#capturing-the-user'
+        location: 'https://docs.sentry.io/hosted/learn/context/#capturing-the-user',
       },
       {
         task: 6,
@@ -203,7 +206,7 @@ const TodoList = React.createClass({
         skippable: true,
         prereq: [1, 2],
         featureLocation: 'project',
-        location: 'settings/release-tracking/'
+        location: 'settings/release-tracking/',
       },
       {
         task: 7,
@@ -212,7 +215,7 @@ const TodoList = React.createClass({
         skippable: true,
         prereq: [1, 2], // Is one of the platforms javascript?
         featureLocation: 'absolute',
-        location: 'https://docs.sentry.io/hosted/clients/javascript/sourcemaps/'
+        location: 'https://docs.sentry.io/hosted/clients/javascript/sourcemaps/',
       },
       // {
       //   'task': 8,
@@ -230,7 +233,7 @@ const TodoList = React.createClass({
         skippable: true,
         prereq: [1, 2],
         featureLocation: 'project',
-        location: 'settings/issue-tracking/'
+        location: 'settings/issue-tracking/',
       },
       {
         task: 10,
@@ -239,15 +242,15 @@ const TodoList = React.createClass({
         skippable: true,
         prereq: [1, 2],
         featureLocation: 'project',
-        location: 'settings/alerts/'
-      }
-    ]
+        location: 'settings/alerts/',
+      },
+    ],
   },
 
   getInitialState() {
     return {
       tasks: [],
-      seeAll: false // Show all tasks, included those completed
+      seeAll: false, // Show all tasks, included those completed
     };
   },
 
@@ -279,7 +282,7 @@ const TodoList = React.createClass({
           return task;
         });
         this.setState({tasks: new_state});
-      }
+      },
     });
     this.getOnboardingTasks();
   },
@@ -305,7 +308,7 @@ const TodoList = React.createClass({
         </div>
       </div>
     );
-  }
+  },
 });
 
 export default TodoList;

@@ -11,7 +11,7 @@ import {t, tct} from '../../locale';
 const ProjectInstallPlatform = React.createClass({
   propTypes: {
     platformData: React.PropTypes.object.isRequired,
-    linkPath: React.PropTypes.func
+    linkPath: React.PropTypes.func,
   },
 
   mixins: [ApiMixin],
@@ -19,7 +19,7 @@ const ProjectInstallPlatform = React.createClass({
   getDefaultProps() {
     return {
       linkPath: (orgId, projectId, platform) =>
-        `/${orgId}/${projectId}/settings/install/${platform}/`
+        `/${orgId}/${projectId}/settings/install/${platform}/`,
     };
   },
 
@@ -47,7 +47,7 @@ const ProjectInstallPlatform = React.createClass({
       error: false,
       integration: integration,
       platform: platform,
-      html: null
+      html: null,
     };
   },
 
@@ -74,15 +74,15 @@ const ProjectInstallPlatform = React.createClass({
         this.setState({
           loading: false,
           error: false,
-          html: data.html
+          html: data.html,
         });
       },
       error: () => {
         this.setState({
           loading: false,
-          error: true
+          error: true,
         });
-      }
+      },
     });
   },
 
@@ -136,7 +136,9 @@ const ProjectInstallPlatform = React.createClass({
             </a>
           </div>
 
-          <h3>{t('Configure %(integration)s', {integration: integration.name})}</h3>
+          <h3>
+            {t('Configure %(integration)s', {integration: integration.name})}
+          </h3>
         </div>
         <div className="box-content with-padding">
           <p>
@@ -148,7 +150,7 @@ const ProjectInstallPlatform = React.createClass({
             `,
               {
                 integration: integration.name,
-                docLink: <a href={integration.link} />
+                docLink: <a href={integration.link} />,
               }
             )}
           </p>
@@ -156,8 +158,8 @@ const ProjectInstallPlatform = React.createClass({
           {this.state.loading
             ? <LoadingIndicator />
             : this.state.error
-                ? <LoadingError onRetry={this.fetchData} />
-                : <div dangerouslySetInnerHTML={{__html: this.state.html}} />}
+              ? <LoadingError onRetry={this.fetchData} />
+              : <div dangerouslySetInnerHTML={{__html: this.state.html}} />}
 
           {this.isGettingStarted() &&
             // Using <a /> instead of <Link /> as hashchange events are not
@@ -183,7 +185,7 @@ const ProjectInstallPlatform = React.createClass({
         {this.renderSidebar()}
       </div>
     );
-  }
+  },
 });
 
 export default ProjectInstallPlatform;

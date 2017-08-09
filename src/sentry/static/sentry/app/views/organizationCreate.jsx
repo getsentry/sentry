@@ -19,7 +19,9 @@ export default class OrganizationCreate extends AsyncView {
   renderBody() {
     return (
       <NarrowLayout>
-        <h3>{t('Create a New Organization')}</h3>
+        <h3>
+          {t('Create a New Organization')}
+        </h3>
 
         <p>
           {t(

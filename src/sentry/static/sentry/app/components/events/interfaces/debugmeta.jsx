@@ -9,7 +9,7 @@ const DebugMetaInterface = React.createClass({
   propTypes: {
     group: PropTypes.Group.isRequired,
     event: PropTypes.Event.isRequired,
-    data: React.PropTypes.object.isRequired
+    data: React.PropTypes.object.isRequired,
   },
 
   getImageDetail(img, evt) {
@@ -66,7 +66,7 @@ const DebugMetaInterface = React.createClass({
     }
 
     return result;
-  }
+  },
 });
 
 export default DebugMetaInterface;

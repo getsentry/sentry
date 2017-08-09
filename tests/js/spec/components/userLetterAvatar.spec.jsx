@@ -6,21 +6,21 @@ describe('LetterAvatar', function() {
   const USER_1 = {
     id: '1',
     name: 'Jane Doe',
-    email: 'janedoe@example.com'
+    email: 'janedoe@example.com',
   };
   const USER_2 = {
     id: '2',
-    email: 'johnsmith@example.com'
+    email: 'johnsmith@example.com',
   };
   const USER_3 = {
     id: '2',
-    username: 'foo@example.com'
+    username: 'foo@example.com',
   };
   const USER_4 = {
-    id: '2'
+    id: '2',
   };
   const USER_5 = {
-    ip_address: '127.0.0.1'
+    ip_address: '127.0.0.1',
   };
 
   describe('getDisplayName()', function() {

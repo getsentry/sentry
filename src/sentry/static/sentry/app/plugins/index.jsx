@@ -21,5 +21,5 @@ export default {
   get: registry.get.bind(registry),
   isLoaded: registry.isLoaded.bind(registry),
   load: registry.load.bind(registry),
-  loadAll: registry.loadAll.bind(registry)
+  loadAll: registry.loadAll.bind(registry),
 };

@@ -10,11 +10,11 @@ import {t} from '../../locale';
 
 const OrganizationStatOverview = React.createClass({
   propTypes: {
-    orgId: React.PropTypes.string
+    orgId: React.PropTypes.string,
   },
 
   contextTypes: {
-    location: React.PropTypes.object
+    location: React.PropTypes.object,
   },
 
   mixins: [ApiMixin, OrganizationState],
@@ -22,7 +22,7 @@ const OrganizationStatOverview = React.createClass({
   getInitialState() {
     return {
       totalRejected: null,
-      epm: null
+      epm: null,
     };
   },
 
@@ -39,7 +39,7 @@ const OrganizationStatOverview = React.createClass({
     this.api.request(statsEndpoint, {
       query: {
         since: new Date().getTime() / 1000 - 3600 * 24,
-        stat: 'rejected'
+        stat: 'rejected',
       },
       success: data => {
         let totalRejected = 0;
@@ -47,13 +47,13 @@ const OrganizationStatOverview = React.createClass({
           totalRejected += point[1];
         });
         this.setState({totalRejected: totalRejected});
-      }
+      },
     });
     this.api.request(statsEndpoint, {
       query: {
         since: new Date().getTime() / 1000 - 3600 * 3,
         resolution: '1h',
-        stat: 'received'
+        stat: 'received',
       },
       success: data => {
         let received = [0, 0];
@@ -65,7 +65,7 @@ const OrganizationStatOverview = React.createClass({
         });
         let epm = received[1] ? parseInt(received[0] / received[1] / 60, 10) : 0;
         this.setState({epm: epm});
-      }
+      },
     });
   },
 
@@ -79,17 +79,25 @@ const OrganizationStatOverview = React.createClass({
 
     return (
       <div className={this.props.className}>
-        <h6 className="nav-header">{t('Events Per Minute')}</h6>
-        <p className="count">{this.state.epm}</p>
-        <h6 className="nav-header">{t('Rejected in last 24h')}</h6>
-        <p className={classNames(rejectedClasses)}>{this.state.totalRejected}</p>
+        <h6 className="nav-header">
+          {t('Events Per Minute')}
+        </h6>
+        <p className="count">
+          {this.state.epm}
+        </p>
+        <h6 className="nav-header">
+          {t('Rejected in last 24h')}
+        </h6>
+        <p className={classNames(rejectedClasses)}>
+          {this.state.totalRejected}
+        </p>
         {access.has('org:read') &&
           <Link to={`/organizations/${this.props.orgId}/stats/`} className="stats-link">
             {t('View all stats')}
           </Link>}
       </div>
     );
-  }
+  },
 });
 
 export default OrganizationStatOverview;

@@ -5,13 +5,13 @@ import {t} from '../locale';
 
 const ReleaseStats = React.createClass({
   propTypes: {
-    release: React.PropTypes.object
+    release: React.PropTypes.object,
   },
 
   mixins: [
     TooltipMixin({
-      selector: '.tip'
-    })
+      selector: '.tip',
+    }),
   ],
 
   render() {
@@ -31,7 +31,9 @@ const ReleaseStats = React.createClass({
 
     return (
       <div className="release-stats">
-        <h6>{releaseSummary}</h6>
+        <h6>
+          {releaseSummary}
+        </h6>
         <div className="avatar-grid">
           {release.authors.map((author, i) => {
             return (
@@ -46,7 +48,7 @@ const ReleaseStats = React.createClass({
         </div>
       </div>
     );
-  }
+  },
 });
 
 export default ReleaseStats;

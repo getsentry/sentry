@@ -19,9 +19,9 @@ class EventOrGroupHeader extends React.Component {
       title: PropTypes.string,
       metadata: Metadata,
       groupID: PropTypes.string,
-      culprit: PropTypes.string
+      culprit: PropTypes.string,
     }),
-    hideLevel: PropTypes.bool
+    hideLevel: PropTypes.bool,
   };
 
   getMessage() {
@@ -42,14 +42,20 @@ class EventOrGroupHeader extends React.Component {
     let {hideLevel, orgId, projectId, data} = this.props;
     let {id, level, groupID} = data || {};
     let isEvent = !!data.eventID;
-    let url = `/${orgId}/${projectId}/issues/${isEvent ? groupID : id}/${isEvent ? `events/${data.id}/` : ''}`;
+    let url = `/${orgId}/${projectId}/issues/${isEvent ? groupID : id}/${isEvent
+      ? `events/${data.id}/`
+      : ''}`;
     let message = this.getMessage();
 
     return (
       <div className="event-issue-header">
         <h3 className="truncate">
           <Link to={url}>
-            {!hideLevel && level && <span className="error-level truncate">{level}</span>}
+            {!hideLevel &&
+              level &&
+              <span className="error-level truncate">
+                {level}
+              </span>}
             <span className="icon icon-soundoff" />
             <span className="icon icon-star-solid" />
             <EventOrGroupTitle {...this.props} />
@@ -57,7 +63,9 @@ class EventOrGroupHeader extends React.Component {
         </h3>
         {message &&
           <div className="event-message truncate">
-            <span className="message">{message}</span>
+            <span className="message">
+              {message}
+            </span>
           </div>}
       </div>
     );

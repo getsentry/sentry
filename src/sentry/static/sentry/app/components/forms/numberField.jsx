@@ -5,7 +5,7 @@ export default class NumberField extends InputField {
   static propTypes = {
     ...InputField.propTypes,
     min: React.PropTypes.number,
-    max: React.PropTypes.number
+    max: React.PropTypes.number,
   };
 
   coerceValue(value) {
@@ -19,7 +19,7 @@ export default class NumberField extends InputField {
   getAttributes() {
     return {
       min: this.props.min || undefined,
-      max: this.props.max || undefined
+      max: this.props.max || undefined,
     };
   }
 }

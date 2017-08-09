@@ -5,11 +5,17 @@ import SummaryLine from './summaryLine';
 
 const HttpRenderer = React.createClass({
   propTypes: {
-    crumb: React.PropTypes.object.isRequired
+    crumb: React.PropTypes.object.isRequired,
   },
 
   renderUrl(url) {
-    return url.match(/^https?:\/\//) ? <a href={url}>{url}</a> : <em>{url}</em>;
+    return url.match(/^https?:\/\//)
+      ? <a href={url}>
+          {url}
+        </a>
+      : <em>
+          {url}
+        </em>;
   },
 
   render() {
@@ -19,9 +25,16 @@ const HttpRenderer = React.createClass({
       <SummaryLine crumb={crumb}>
         <pre>
           <code>
-            {method && <strong>{method} </strong>}
+            {method &&
+              <strong>
+                {method}{' '}
+              </strong>}
             {url && this.renderUrl(url)}
-            {status_code !== undefined ? <span>{' [' + status_code + ']'}</span> : ''}
+            {status_code !== undefined
+              ? <span>
+                  {' [' + status_code + ']'}
+                </span>
+              : ''}
           </code>
         </pre>
       </SummaryLine>
@@ -30,7 +43,7 @@ const HttpRenderer = React.createClass({
     return (
       <CrumbTable title="HTTP Request" summary={summary} kvData={extra} {...this.props} />
     );
-  }
+  },
 });
 
 export default HttpRenderer;

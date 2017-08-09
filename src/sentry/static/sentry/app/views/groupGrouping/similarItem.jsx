@@ -18,7 +18,7 @@ const scoreComponents = {
   'exception:message:character-shingles': t('Exception'),
   'exception:stacktrace:application-chunks': t('App code'),
   'exception:stacktrace:pairs': t('Stacktrace'),
-  'message:message:character-shingles': t('Message')
+  'message:message:character-shingles': t('Message'),
 };
 
 const SimilarIssueItem = React.createClass({
@@ -37,11 +37,11 @@ const SimilarIssueItem = React.createClass({
         directive: PropTypes.string,
         type: PropTypes.string,
         title: PropTypes.string,
-        uri: PropTypes.string
+        uri: PropTypes.string,
       }).isRequired,
       culprit: PropTypes.string,
-      hideLevel: PropTypes.bool
-    })
+      hideLevel: PropTypes.bool,
+    }),
   },
   mixins: [Reflux.listenTo(GroupingStore, 'onGroupingUpdate')],
 
@@ -49,7 +49,7 @@ const SimilarIssueItem = React.createClass({
     return {
       visible: true,
       checked: false,
-      busy: false
+      busy: false,
     };
   },
 
@@ -61,7 +61,7 @@ const SimilarIssueItem = React.createClass({
         Object.keys(stateForId).forEach(key => {
           if (stateForId[key] !== this.state[key]) {
             this.setState({
-              [key]: stateForId[key]
+              [key]: stateForId[key],
             });
           }
         });
@@ -90,7 +90,7 @@ const SimilarIssueItem = React.createClass({
     }
 
     let cx = classNames('group', 'similar-issue', {
-      busy: this.state.busy
+      busy: this.state.busy,
     });
 
     return (
@@ -128,7 +128,7 @@ const SimilarIssueItem = React.createClass({
                     <span
                       style={{
                         fontWeight: 'bold',
-                        color
+                        color,
                       }}>
                       {this.displaySimilarity(score[scoreKey])}
                     </span>
@@ -137,7 +137,7 @@ const SimilarIssueItem = React.createClass({
                     className="similarity-score-bar"
                     style={{
                       width: `${Math.round(score[scoreKey] * 100)}%`,
-                      backgroundColor: color
+                      backgroundColor: color,
                     }}
                   />
                 </div>
@@ -151,7 +151,7 @@ const SimilarIssueItem = React.createClass({
         </SpreadLayout>
       </SplitLayout>
     );
-  }
+  },
 });
 
 export default SimilarIssueItem;

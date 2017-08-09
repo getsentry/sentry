@@ -15,15 +15,15 @@ const CrashHeader = React.createClass({
     stackView: React.PropTypes.string.isRequired,
     newestFirst: React.PropTypes.bool.isRequired,
     stackType: React.PropTypes.string, // 'original', 'minified', or falsy (none)
-    onChange: React.PropTypes.func
+    onChange: React.PropTypes.func,
   },
 
   mixins: [
     TooltipMixin({
       html: false,
       selector: '.tip',
-      trigger: 'hover'
-    })
+      trigger: 'hover',
+    }),
   ],
 
   hasSystemFrames() {
@@ -65,19 +65,19 @@ const CrashHeader = React.createClass({
 
   toggleOrder() {
     this.notify({
-      newestFirst: !this.props.newestFirst
+      newestFirst: !this.props.newestFirst,
     });
   },
 
   setStackType(type) {
     this.notify({
-      stackType: type
+      stackType: type,
     });
   },
 
   setStackView(view) {
     this.notify({
-      stackView: view
+      stackView: view,
     });
   },
 
@@ -142,12 +142,12 @@ const CrashHeader = React.createClass({
               }
               onClick={() => this.setStackType('minified')}>
               {this.getMinifiedButtonLabel()}
-            </a>
+            </a>,
           ]}
         </div>
       </div>
     );
-  }
+  },
 });
 
 export default CrashHeader;

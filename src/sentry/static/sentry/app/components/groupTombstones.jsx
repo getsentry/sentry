@@ -12,7 +12,7 @@ import {t, tct} from '../locale';
 const GroupTombstoneRow = React.createClass({
   propTypes: {
     data: React.PropTypes.object.isRequired,
-    undiscard: React.PropTypes.func.isRequired
+    undiscard: React.PropTypes.func.isRequired,
   },
   render() {
     let {data, undiscard} = this.props;
@@ -25,15 +25,21 @@ const GroupTombstoneRow = React.createClass({
                 {data.level}
               </span>
               <span>
-                <span style={{marginRight: 10}}>{data.type}</span>
-                <em>{data.culprit}</em><br />
+                <span style={{marginRight: 10}}>
+                  {data.type}
+                </span>
+                <em>
+                  {data.culprit}
+                </em>
+                <br />
               </span>
             </h3>
             <div className="event-message truncate">
-              <span className="message">{data.message}</span>
+              <span className="message">
+                {data.message}
+              </span>
             </div>
             <div className="event-extra">
-
               <LinkWithConfirmation
                 title={t('Undiscard')}
                 className="btn btn-warning btn-xs"
@@ -47,7 +53,9 @@ const GroupTombstoneRow = React.createClass({
                 onConfirm={() => {
                   undiscard(data.id);
                 }}>
-                <span>{t('Undiscard')}</span>
+                <span>
+                  {t('Undiscard')}
+                </span>
               </LinkWithConfirmation>
               {data.actor &&
                 <span style={{marginLeft: 10}} className="event-message actor">
@@ -58,7 +66,7 @@ const GroupTombstoneRow = React.createClass({
         </div>
       </li>
     );
-  }
+  },
 });
 
 const GroupTombstones = React.createClass({
@@ -67,7 +75,7 @@ const GroupTombstones = React.createClass({
     projectId: React.PropTypes.string.isRequired,
     tombstones: React.PropTypes.array.isRequired,
     tombstoneError: React.PropTypes.bool.isRequired,
-    fetchData: React.PropTypes.func.isRequired
+    fetchData: React.PropTypes.func.isRequired,
   },
 
   mixins: [ApiMixin],
@@ -80,21 +88,25 @@ const GroupTombstones = React.createClass({
       success: data => {
         AlertActions.addAlert({
           message: t('Events similar to these will no longer be filtered'),
-          type: 'success'
+          type: 'success',
         });
       },
       error: () => {
         AlertActions.addAlert({
           message: t('We were unable to discard this group'),
-          type: 'error'
+          type: 'error',
         });
-      }
+      },
     });
     this.props.fetchData();
   },
 
   renderEmpty() {
-    return <div className="box empty">{t('None')}</div>;
+    return (
+      <div className="box empty">
+        {t('None')}
+      </div>
+    );
   },
 
   render() {
@@ -105,7 +117,9 @@ const GroupTombstones = React.createClass({
       <div>
         <div className="row" style={{paddingTop: 10}}>
           <div className="col-sm-8">
-            <h5>{t('Discarded Groups')}</h5>
+            <h5>
+              {t('Discarded Groups')}
+            </h5>
             {tombstones.length
               ? <ul className="group-list">
                   {tombstones.map(data => {
@@ -123,7 +137,7 @@ const GroupTombstones = React.createClass({
         </div>
       </div>
     );
-  }
+  },
 });
 
 export default GroupTombstones;

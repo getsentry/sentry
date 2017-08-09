@@ -8,22 +8,30 @@ import _ from 'lodash';
  */
 const Link = React.createClass({
   propTypes: {
-    to: React.PropTypes.string.isRequired
+    to: React.PropTypes.string.isRequired,
   },
 
   contextTypes: {
-    location: React.PropTypes.object
+    location: React.PropTypes.object,
   },
 
   render() {
     if (this.context.location) {
-      return <RouterLink {...this.props}>{this.props.children}</RouterLink>;
+      return (
+        <RouterLink {...this.props}>
+          {this.props.children}
+        </RouterLink>
+      );
     } else {
       let props = _.omit(this.props, 'to');
       props.href = this.props.to;
-      return <a {...props}>{this.props.children}</a>;
+      return (
+        <a {...props}>
+          {this.props.children}
+        </a>
+      );
     }
-  }
+  },
 });
 
 export default Link;

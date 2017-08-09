@@ -18,7 +18,7 @@ import {
   FormState,
   NumberField,
   Select2Field,
-  TextField
+  TextField,
 } from '../components/forms';
 import {t, tct} from '../locale';
 
@@ -35,7 +35,7 @@ const KeyStats = React.createClass({
       loading: true,
       error: false,
       stats: null,
-      emptyStats: false
+      emptyStats: false,
     };
   },
 
@@ -49,7 +49,7 @@ const KeyStats = React.createClass({
       query: {
         since: this.state.since,
         until: this.state.until,
-        resolution: '1d'
+        resolution: '1d',
       },
       success: data => {
         let emptyStats = true;
@@ -57,19 +57,19 @@ const KeyStats = React.createClass({
           if (p.total) emptyStats = false;
           return {
             x: p.ts,
-            y: [p.accepted, p.dropped]
+            y: [p.accepted, p.dropped],
           };
         });
         this.setState({
           stats: stats,
           emptyStats: emptyStats,
           error: false,
-          loading: false
+          loading: false,
         });
       },
       error: () => {
         this.setState({error: true, loading: false});
-      }
+      },
     });
   },
 
@@ -94,13 +94,20 @@ const KeyStats = React.createClass({
   },
 
   render() {
-    if (this.state.loading) return <div className="box"><LoadingIndicator /></div>;
+    if (this.state.loading)
+      return (
+        <div className="box">
+          <LoadingIndicator />
+        </div>
+      );
     else if (this.state.error) return <LoadingError onRetry={this.fetchData} />;
 
     return (
       <div className="box">
         <div className="box-header">
-          <h5>{t('Key usage in the last 30 days (by day)')}</h5>
+          <h5>
+            {t('Key usage in the last 30 days (by day)')}
+          </h5>
         </div>
         {!this.state.emptyStats
           ? <StackedBarChart
@@ -113,7 +120,9 @@ const KeyStats = React.createClass({
             />
           : <div className="box-content">
               <div className="blankslate p-y-2">
-                <h5>{t('Nothing recorded in the last 30 days.')}</h5>
+                <h5>
+                  {t('Nothing recorded in the last 30 days.')}
+                </h5>
                 <p className="m-b-0">
                   {t('Total events captured using these credentials.')}
                 </p>
@@ -121,7 +130,7 @@ const KeyStats = React.createClass({
             </div>}
       </div>
     );
-  }
+  },
 });
 
 const KeySettings = React.createClass({
@@ -133,7 +142,7 @@ const KeySettings = React.createClass({
     initialData: React.PropTypes.object,
     onRemove: React.PropTypes.func.isRequired,
     onSave: React.PropTypes.func.isRequired,
-    rateLimitsEnabled: React.PropTypes.bool
+    rateLimitsEnabled: React.PropTypes.bool,
   },
 
   mixins: [ApiMixin],
@@ -142,7 +151,7 @@ const KeySettings = React.createClass({
     return {
       formData: Object.assign({}, this.props.initialData),
       errors: {},
-      hooksDisabled: HookStore.get('project:rate-limits:disabled')
+      hooksDisabled: HookStore.get('project:rate-limits:disabled'),
     };
   },
 
@@ -151,8 +160,8 @@ const KeySettings = React.createClass({
       return {
         formData: {
           ...state.formData,
-          [name]: value
-        }
+          [name]: value,
+        },
       };
     });
   },
@@ -164,9 +173,9 @@ const KeySettings = React.createClass({
           ...state.formData,
           rateLimit: {
             ...(state.formData.rateLimit || {}),
-            [name]: value
-          }
-        }
+            [name]: value,
+          },
+        },
       };
     });
   },
@@ -179,7 +188,7 @@ const KeySettings = React.createClass({
     }
     this.setState(
       {
-        state: FormState.SAVING
+        state: FormState.SAVING,
       },
       () => {
         let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
@@ -191,18 +200,18 @@ const KeySettings = React.createClass({
             this.props.onSave(data);
             this.setState({
               state: FormState.READY,
-              errors: {}
+              errors: {},
             });
           },
           error: error => {
             this.setState({
               state: FormState.ERROR,
-              errors: error.responseJSON
+              errors: error.responseJSON,
             });
           },
           complete: () => {
             IndicatorStore.remove(loadingIndicator);
-          }
+          },
         });
       }
     );
@@ -223,10 +232,10 @@ const KeySettings = React.createClass({
       error: () => {
         this.setState({
           error: true,
-          loading: false
+          loading: false,
         });
         IndicatorStore.remove(loadingIndicator);
-      }
+      },
     });
   },
 
@@ -241,7 +250,7 @@ const KeySettings = React.createClass({
       [240, '4 hours'],
       [360, '6 hours'],
       [720, '12 hours'],
-      [1440, '24 hours']
+      [1440, '24 hours'],
     ];
   },
 
@@ -260,7 +269,9 @@ const KeySettings = React.createClass({
           </div>}
         <div className="box">
           <div className="box-header">
-            <h3>{t('Details')}</h3>
+            <h3>
+              {t('Details')}
+            </h3>
           </div>
           <div className="box-content with-padding">
             <TextField
@@ -287,7 +298,9 @@ const KeySettings = React.createClass({
             />
 
             <div className="form-group">
-              <label>{t('Created')}</label>
+              <label>
+                {t('Created')}
+              </label>
               <div className="controls">
                 <DateTime date={data.dateCreated} />
               </div>
@@ -312,7 +325,9 @@ const KeySettings = React.createClass({
               .shift()
           : <div className="box">
               <div className="box-header">
-                <h3>{t('Rate Limits')}</h3>
+                <h3>
+                  {t('Rate Limits')}
+                </h3>
               </div>
               <div className="box-content with-padding">
                 <p>
@@ -321,7 +336,9 @@ const KeySettings = React.createClass({
                   }
                 </p>
                 <div className="form-group">
-                  <label>{t('Rate Limit')}</label>
+                  <label>
+                    {t('Rate Limit')}
+                  </label>
                   <div>
                     <div style={{width: 80, display: 'inline-block'}}>
                       <NumberField
@@ -373,7 +390,9 @@ const KeySettings = React.createClass({
             </div>}
         <div className="box dsn-credentials">
           <div className="box-header">
-            <h3>{t('Credentials')}</h3>
+            <h3>
+              {t('Credentials')}
+            </h3>
           </div>
           <div className="box-content with-padding">
             <p>
@@ -382,25 +401,33 @@ const KeySettings = React.createClass({
               )}
             </p>
             <div className="form-group">
-              <label>{t('DSN')}</label>
+              <label>
+                {t('DSN')}
+              </label>
               <AutoSelectText className="form-control disabled">
                 {data.dsn.secret}
               </AutoSelectText>
             </div>
 
             <div className="form-group">
-              <label>{t('DSN (Public)')}</label>
+              <label>
+                {t('DSN (Public)')}
+              </label>
               <AutoSelectText className="form-control disabled">
                 {data.dsn.public}
               </AutoSelectText>
               <div className="help-block">
                 {tct('Use your public DSN with browser-based SDKs such as [raven-js].', {
-                  'raven-js': <a href="https://github.com/getsentry/raven-js">raven-js</a>
+                  'raven-js': (
+                    <a href="https://github.com/getsentry/raven-js">raven-js</a>
+                  ),
                 })}
               </div>
             </div>
             <div className="form-group">
-              <label>{t('CSP Endpoint')}</label>
+              <label>
+                {t('CSP Endpoint')}
+              </label>
               <AutoSelectText className="form-control disabled">
                 {data.dsn.csp}
               </AutoSelectText>
@@ -409,13 +436,15 @@ const KeySettings = React.createClass({
                   'Use your CSP endpoint in the [directive] directive in your [header] header.',
                   {
                     directive: <code>report-uri</code>,
-                    header: <code>Content-Security-Policy</code>
+                    header: <code>Content-Security-Policy</code>,
                   }
                 )}
               </div>
             </div>
             <div className="form-group">
-              <label>{t('Public Key')}</label>
+              <label>
+                {t('Public Key')}
+              </label>
               <div className="controls">
                 <AutoSelectText className="form-control disabled">
                   {data.public}
@@ -423,7 +452,9 @@ const KeySettings = React.createClass({
               </div>
             </div>
             <div className="form-group">
-              <label>{t('Secret Key')}</label>
+              <label>
+                {t('Secret Key')}
+              </label>
               <div className="controls">
                 <AutoSelectText className="form-control disabled">
                   {data.secret}
@@ -431,7 +462,9 @@ const KeySettings = React.createClass({
               </div>
             </div>
             <div className="form-group">
-              <label>{t('Project ID')}</label>
+              <label>
+                {t('Project ID')}
+              </label>
               <div className="controls">
                 <AutoSelectText className="form-control disabled">
                   {data.projectId}
@@ -444,7 +477,9 @@ const KeySettings = React.createClass({
         {access.has('project:admin') &&
           <div className="box">
             <div className="box-header">
-              <h3>{t('Revoke Key')}</h3>
+              <h3>
+                {t('Revoke Key')}
+              </h3>
             </div>
             <div className="box-content with-padding">
               <p>
@@ -462,7 +497,7 @@ const KeySettings = React.createClass({
           </div>}
       </form>
     );
-  }
+  },
 });
 
 export default React.createClass({
@@ -472,7 +507,7 @@ export default React.createClass({
     return {
       loading: true,
       error: false,
-      data: null
+      data: null,
     };
   },
 
@@ -487,15 +522,15 @@ export default React.createClass({
         this.setState({
           error: false,
           loading: false,
-          data: data
+          data: data,
         });
       },
       error: () => {
         this.setState({
           error: true,
-          loading: false
+          loading: false,
         });
-      }
+      },
     });
   },
 
@@ -526,7 +561,9 @@ export default React.createClass({
     return (
       <DocumentTitle title={t('Key Details')}>
         <div className="ref-key-details">
-          <h2>{t('Key Details')}</h2>
+          <h2>
+            {t('Key Details')}
+          </h2>
 
           <KeyStats params={params} />
 
@@ -538,7 +575,7 @@ export default React.createClass({
             initialData={{
               isActive: data.isActive,
               name: data.name,
-              rateLimit: data.rateLimit
+              rateLimit: data.rateLimit,
             }}
             rateLimitsEnabled={this.getProjectFeatures().has('rate-limits')}
             data={data}
@@ -548,5 +585,5 @@ export default React.createClass({
         </div>
       </DocumentTitle>
     );
-  }
+  },
 });

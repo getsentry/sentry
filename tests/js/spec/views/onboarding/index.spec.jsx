@@ -20,20 +20,20 @@ describe('OnboardingWizard', function() {
       location: {query: {}},
       params: {
         projectId: '',
-        orgId: 'testOrg'
-      }
+        orgId: 'testOrg',
+      },
     };
 
     it('should render NotFound if no matching organization', function() {
       let props = {
         ...baseProps,
         params: {
-          orgId: 'my-cool-org'
-        }
+          orgId: 'my-cool-org',
+        },
       };
 
       let wrapper = shallow(<OnboardingWizard {...props} />, {
-        organization: {id: '1337', slug: 'testOrg'}
+        organization: {id: '1337', slug: 'testOrg'},
       });
       expect(wrapper).toMatchSnapshot();
     });
@@ -49,18 +49,18 @@ describe('OnboardingWizard', function() {
             name={''}
             setPlatform={jest.fn()}
           />
-        )
+        ),
       };
 
       let wrapper = mount(<OnboardingWizard {...props} />, {
         context: {
           organization: {id: '1337', slug: 'testOrg'},
-          router: TestStubs.router()
+          router: TestStubs.router(),
         },
         childContextTypes: {
           router: React.PropTypes.object,
-          organization: React.PropTypes.object
-        }
+          organization: React.PropTypes.object,
+        },
       });
 
       let node = wrapper.find('PlatformCard').first();

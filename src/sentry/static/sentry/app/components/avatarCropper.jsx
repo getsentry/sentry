@@ -7,20 +7,20 @@ const AvatarCropper = React.createClass({
   propTypes: {
     user: React.PropTypes.object.isRequired,
     updateDataUrlState: React.PropTypes.func.isRequired,
-    savedDataUrl: React.PropTypes.string
+    savedDataUrl: React.PropTypes.string,
   },
 
   getInitialState() {
     return {
       mousePosition: {
         pageX: null,
-        pageY: null
+        pageY: null,
       },
       resizeDimensions: {
         top: 0,
         left: 0,
-        size: 0
-      }
+        size: 0,
+      },
     };
   },
 
@@ -45,7 +45,7 @@ const AvatarCropper = React.createClass({
     this.setState(
       {
         file: file,
-        objectURL: window.URL.createObjectURL(file)
+        objectURL: window.URL.createObjectURL(file),
       },
       () => {
         this.props.updateDataUrlState({savedDataUrl: null});
@@ -80,7 +80,7 @@ const AvatarCropper = React.createClass({
     }
     this.setState({
       resizeDimensions: Object.assign({}, resizeDimensions, {top, left}),
-      mousePosition: {pageX, pageY}
+      mousePosition: {pageX, pageY},
     });
   },
 
@@ -100,8 +100,8 @@ const AvatarCropper = React.createClass({
     this.setState({
       mousePosition: {
         pageY: ev.pageY,
-        pageX: ev.pageX
-      }
+        pageX: ev.pageX,
+      },
     });
     this.startMove();
   },
@@ -120,8 +120,8 @@ const AvatarCropper = React.createClass({
       resizeDirection: direction,
       mousePosition: {
         pageY: ev.pageY,
-        pageX: ev.pageX
-      }
+        pageX: ev.pageX,
+      },
     });
   },
 
@@ -140,7 +140,7 @@ const AvatarCropper = React.createClass({
 
     this.setState({
       resizeDimensions: this.getNewDimensions($container, yDiff, xDiff),
-      mousePosition: {pageX: ev.pageX, pageY: ev.pageY}
+      mousePosition: {pageX: ev.pageX, pageY: ev.pageY},
     });
   },
 
@@ -229,7 +229,7 @@ const AvatarCropper = React.createClass({
   handleError(msg) {
     AlertActions.addAlert({
       message: t(msg),
-      type: 'error'
+      type: 'error',
     });
   },
 
@@ -267,7 +267,7 @@ const AvatarCropper = React.createClass({
     let dimension = Math.min($img.height(), $img.width());
     this.setState(
       {
-        resizeDimensions: Object.assign({size: dimension, top: 0, left: 0})
+        resizeDimensions: Object.assign({size: dimension, top: 0, left: 0}),
       },
       this.drawToCanvas
     );
@@ -323,7 +323,7 @@ const AvatarCropper = React.createClass({
       top: resizeDimensions.top,
       left: resizeDimensions.left,
       width: resizeDimensions.size,
-      height: resizeDimensions.size
+      height: resizeDimensions.size,
     };
     return (
       <div className="image-cropper">
@@ -367,7 +367,7 @@ const AvatarCropper = React.createClass({
   render() {
     let src = this.getImgSrc();
     let style = {
-      position: 'absolute'
+      position: 'absolute',
     };
 
     return (
@@ -375,15 +375,19 @@ const AvatarCropper = React.createClass({
         {!src &&
           <div className="image-well well blankslate">
             <p>
-              <a onClick={this.uploadClick}><strong>Upload a photo</strong></a>
-              {' '}
+              <a onClick={this.uploadClick}>
+                <strong>Upload a photo</strong>
+              </a>{' '}
               to get started.
             </p>
           </div>}
         {this.renderImageCrop()}
         {this.renderCanvas()}
         <div className="form-group">
-          {src && <a onClick={this.uploadClick}>{t('Change Photo')}</a>}
+          {src &&
+            <a onClick={this.uploadClick}>
+              {t('Change Photo')}
+            </a>}
           <input
             ref="file"
             type="file"
@@ -394,7 +398,7 @@ const AvatarCropper = React.createClass({
         </div>
       </div>
     );
-  }
+  },
 });
 
 export default AvatarCropper;

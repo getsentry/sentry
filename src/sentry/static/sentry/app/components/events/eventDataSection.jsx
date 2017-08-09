@@ -7,12 +7,12 @@ const GroupEventDataSection = React.createClass({
     event: PropTypes.Event.isRequired,
     title: React.PropTypes.any,
     type: React.PropTypes.string.isRequired,
-    wrapTitle: React.PropTypes.bool
+    wrapTitle: React.PropTypes.bool,
   },
 
   getDefaultProps() {
     return {
-      wrapTitle: true
+      wrapTitle: true,
     };
   },
 
@@ -45,15 +45,19 @@ const GroupEventDataSection = React.createClass({
               <em className="icon-anchor" />
             </a>
             {this.props.wrapTitle
-              ? <h3>{this.props.title}</h3>
-              : <div>{this.props.title}</div>}
+              ? <h3>
+                  {this.props.title}
+                </h3>
+              : <div>
+                  {this.props.title}
+                </div>}
           </div>}
         <div className="box-content with-padding">
           {this.props.children}
         </div>
       </div>
     );
-  }
+  },
 });
 
 export default GroupEventDataSection;

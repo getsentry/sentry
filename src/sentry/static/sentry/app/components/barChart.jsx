@@ -7,7 +7,7 @@ const BarChart = React.createClass({
       React.PropTypes.shape({
         x: React.PropTypes.number.isRequired,
         y: React.PropTypes.number.isRequired,
-        label: React.PropTypes.string
+        label: React.PropTypes.string,
       })
     ),
     interval: React.PropTypes.string,
@@ -18,14 +18,14 @@ const BarChart = React.createClass({
     markers: React.PropTypes.arrayOf(
       React.PropTypes.shape({
         x: React.PropTypes.number.isRequired,
-        label: React.PropTypes.string
+        label: React.PropTypes.string,
       })
-    )
+    ),
   },
 
   getDefaultProps() {
     return {
-      points: []
+      points: [],
     };
   },
 
@@ -35,7 +35,7 @@ const BarChart = React.createClass({
     });
     let props = Object.assign({}, this.props, {points: points});
     return <StackedBarChart {...props} />;
-  }
+  },
 });
 
 export default BarChart;

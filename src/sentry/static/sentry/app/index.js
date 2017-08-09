@@ -31,7 +31,7 @@ jQuery.ajaxSetup({
     if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
       xhr.setRequestHeader('X-CSRFToken', getCookie(csrfCookieName));
     }
-  }
+  },
 });
 
 // these get exported to a global variable, which is important as its the only
@@ -56,13 +56,13 @@ export default {
   React: React,
   ReactDOM: {
     findDOMNode: ReactDOM.findDOMNode,
-    render: ReactDOM.render
+    render: ReactDOM.render,
   },
   ReactDOMServer: {
-    renderToStaticMarkup: renderToStaticMarkup
+    renderToStaticMarkup: renderToStaticMarkup,
   },
   ReactBootstrap: {
-    Modal: ReactBootstrapModal
+    Modal: ReactBootstrapModal,
   },
   Reflux: Reflux,
   Router: Router,
@@ -78,13 +78,13 @@ export default {
       RangeField: require('./components/forms/rangeField').default,
       Select2Field: require('./components/forms/select2Field').default,
       TextField: require('./components/forms/textField').default,
-      TextareaField: require('./components/forms/textareaField').default
+      TextareaField: require('./components/forms/textareaField').default,
     },
     plugins: {
       add: plugins.add,
       addContext: plugins.addContext,
       BasePlugin: plugins.BasePlugin,
-      DefaultIssuePlugin: plugins.DefaultIssuePlugin
+      DefaultIssuePlugin: plugins.DefaultIssuePlugin,
     },
 
     Alerts: require('./components/alerts').default,
@@ -92,7 +92,7 @@ export default {
     AvatarSettings: require('./components/avatarSettings').default,
     mixins: {
       ApiMixin: require('./mixins/apiMixin').default,
-      TooltipMixin: require('./mixins/tooltip').default
+      TooltipMixin: require('./mixins/tooltip').default,
     },
     BarChart: require('./components/barChart').default,
     i18n: il8n,
@@ -129,7 +129,7 @@ export default {
     NumberConfirm: require('./components/confirms/numberConfirm').default,
     utils: {
       errorHandler: require('./utils/errorHandler').default,
-      logging: require('./utils/logging')
-    }
-  }
+      logging: require('./utils/logging'),
+    },
+  },
 };

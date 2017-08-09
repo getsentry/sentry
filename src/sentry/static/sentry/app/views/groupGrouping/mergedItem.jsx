@@ -21,8 +21,8 @@ const MergedItem = React.createClass({
       groupID: PropTypes.string,
       type: PropTypes.oneOf(['error', 'csp', 'default']),
       dateCreated: PropTypes.string,
-      platform: PropTypes.string
-    })
+      platform: PropTypes.string,
+    }),
   },
 
   mixins: [Reflux.listenTo(GroupingStore, 'onGroupingChange')],
@@ -30,7 +30,7 @@ const MergedItem = React.createClass({
   getInitialState() {
     return {
       checked: false,
-      busy: false
+      busy: false,
     };
   },
 
@@ -45,7 +45,7 @@ const MergedItem = React.createClass({
       if (stateForId[key] === this.state[key]) return;
 
       this.setState({
-        [key]: stateForId[key]
+        [key]: stateForId[key],
       });
     });
   },
@@ -63,7 +63,7 @@ const MergedItem = React.createClass({
     let {disabled, event, orgId, fingerprint, projectId, groupId} = this.props;
     let checkboxDisabled = disabled || this.state.disabled;
     let cx = classNames('group', 'merged-event', {
-      busy: this.state.busy
+      busy: this.state.busy,
     });
 
     // Not sure why, but `event` can be null
@@ -105,7 +105,7 @@ const MergedItem = React.createClass({
         </SpreadLayout>
       </SplitLayout>
     );
-  }
+  },
 });
 
 export default MergedItem;

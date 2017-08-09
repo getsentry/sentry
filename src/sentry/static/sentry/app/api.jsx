@@ -23,8 +23,8 @@ export function paramsToQueryArgs(params) {
   return params.itemIds
     ? {id: params.itemIds} // items matching array of itemids
     : params.query
-        ? {query: params.query} // items matching search query
-        : undefined; // all items
+      ? {query: params.query} // items matching search query
+      : undefined; // all items
 }
 
 export class Client {
@@ -97,11 +97,11 @@ export class Client {
         data: data,
         contentType: 'application/json',
         headers: {
-          Accept: 'application/json; charset=utf-8'
+          Accept: 'application/json; charset=utf-8',
         },
         success: this.wrapCallback(id, options.success),
         error: this.wrapCallback(id, options.error),
-        complete: this.wrapCallback(id, options.complete, true)
+        complete: this.wrapCallback(id, options.complete, true),
       })
     );
 
@@ -146,7 +146,7 @@ export class Client {
         },
         error: error => {
           GroupActions.deleteError(id, params.itemIds, error);
-        }
+        },
       },
       options
     );
@@ -170,7 +170,7 @@ export class Client {
         },
         error: error => {
           GroupActions.updateError(id, params.itemIds, error, params.failSilently);
-        }
+        },
       },
       options
     );
@@ -194,7 +194,7 @@ export class Client {
         },
         error: error => {
           GroupActions.mergeError(id, params.itemIds, error);
-        }
+        },
       },
       options
     );
@@ -205,7 +205,7 @@ export class Client {
     let id = this.uniqueId();
 
     GroupActions.assignTo(id, params.id, {
-      email: (params.member && params.member.email) || ''
+      email: (params.member && params.member.email) || '',
     });
 
     return this._wrapRequest(
@@ -221,7 +221,7 @@ export class Client {
         },
         error: error => {
           GroupActions.assignToError(id, params.id, error);
-        }
+        },
       },
       options
     );
@@ -249,7 +249,7 @@ export class Client {
         },
         error: error => {
           TeamActions.updateError(id, params.teamId, error);
-        }
+        },
       },
       options
     );
@@ -277,7 +277,7 @@ export class Client {
         },
         error: error => {
           TeamActions.updateError(id, params.teamId, error);
-        }
+        },
       },
       options
     );

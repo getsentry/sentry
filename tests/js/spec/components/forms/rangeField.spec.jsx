@@ -34,11 +34,11 @@ describe('RangeField', function() {
         context: {
           form: {
             data: {
-              fieldName: 2
+              fieldName: 2,
             },
-            errors: {}
-          }
-        }
+            errors: {},
+          },
+        },
       });
       expect(wrapper).toMatchSnapshot();
     });

@@ -33,7 +33,7 @@ const OrganizationStats = React.createClass({
       orgTotal: null,
       projectTotals: null,
       querySince: since,
-      queryUntil: until
+      queryUntil: until,
     };
   },
 
@@ -49,13 +49,14 @@ const OrganizationStats = React.createClass({
       this.setState({
         projectsError: false,
         projectsRequestsPending: 1,
-        projectsLoading: true
+        projectsLoading: true,
       });
     }
   },
 
   componentDidUpdate(prevProps) {
-    let prevParams = prevProps.params, currentParams = this.props.params;
+    let prevParams = prevProps.params,
+      currentParams = this.props.params;
 
     if (prevParams.orgId !== currentParams.orgId) {
       this.fetchData();
@@ -93,14 +94,14 @@ const OrganizationStats = React.createClass({
         this.setState({
           pageLinks: jqxhr.getResponseHeader('Link'),
           projectMap: projectMap,
-          projectsRequestsPending: this.state.projectsRequestsPending
+          projectsRequestsPending: this.state.projectsRequestsPending,
         });
       },
       error: () => {
         this.setState({
-          projectsError: true
+          projectsError: true,
         });
-      }
+      },
     });
   },
 
@@ -111,7 +112,7 @@ const OrganizationStats = React.createClass({
       statsRequestsPending: 3,
       projectsError: false,
       projectsLoading: true,
-      projectsRequestsPending: 4
+      projectsRequestsPending: 4,
     });
 
     let statEndpoint = this.getOrganizationStatsEndpoint();
@@ -122,21 +123,21 @@ const OrganizationStats = React.createClass({
           since: this.state.querySince,
           until: this.state.queryUntil,
           resolution: '1h',
-          stat: statName
+          stat: statName,
         },
         success: data => {
           this.state.rawOrgData[statName] = data;
           this.state.statsRequestsPending -= 1;
           this.setState({
             rawOrgData: this.state.rawOrgData,
-            statsRequestsPending: this.state.statsRequestsPending
+            statsRequestsPending: this.state.statsRequestsPending,
           });
         },
         error: () => {
           this.setState({
-            statsError: true
+            statsError: true,
           });
-        }
+        },
       });
     });
 
@@ -146,21 +147,21 @@ const OrganizationStats = React.createClass({
           since: this.state.querySince,
           until: this.state.queryUntil,
           stat: statName,
-          group: 'project'
+          group: 'project',
         },
         success: data => {
           this.state.rawProjectData[statName] = data;
           this.state.projectsRequestsPending -= 1;
           this.setState({
             rawProjectData: this.state.rawProjectData,
-            projectsRequestsPending: this.state.projectsRequestsPending
+            projectsRequestsPending: this.state.projectsRequestsPending,
           });
         },
         error: () => {
           this.setState({
-            projectsError: true
+            projectsError: true,
           });
-        }
+        },
       });
     });
 
@@ -191,7 +192,7 @@ const OrganizationStats = React.createClass({
       let dAccepted = Math.max(0, dReceived - dRejected - dBlacklisted);
       orgPoints.push({
         x: point[0],
-        y: [dAccepted, dRejected, dBlacklisted]
+        y: [dAccepted, dRejected, dBlacklisted],
       });
       oReceived += dReceived;
       oRejected += dRejected;
@@ -208,9 +209,9 @@ const OrganizationStats = React.createClass({
         rejected: oRejected,
         blacklisted: oBlacklisted,
         accepted: Math.max(0, oReceived - oRejected - oBlacklisted),
-        avgRate: aReceived[1] ? parseInt(aReceived[0] / aReceived[1] / 60, 10) : 0
+        avgRate: aReceived[1] ? parseInt(aReceived[0] / aReceived[1] / 60, 10) : 0,
       },
-      statsLoading: false
+      statsLoading: false,
     });
   },
 
@@ -231,12 +232,12 @@ const OrganizationStats = React.createClass({
         received: pReceived,
         rejected: pRejected,
         blacklisted: pBlacklisted,
-        accepted: Math.max(0, pReceived - pRejected - pBlacklisted)
+        accepted: Math.max(0, pReceived - pRejected - pBlacklisted),
       });
     });
     this.setState({
       projectTotals: projectTotals,
-      projectsLoading: false
+      projectsLoading: false,
     });
   },
 
@@ -263,7 +264,9 @@ const OrganizationStats = React.createClass({
   render() {
     return (
       <OrganizationHomeContainer>
-        <h3>{t('Stats')}</h3>
+        <h3>
+          {t('Stats')}
+        </h3>
         <div className="row">
           <div className="col-md-9">
             <p>
@@ -279,50 +282,55 @@ const OrganizationStats = React.createClass({
           </div>
           {!this.state.statsLoading &&
             <div className="col-md-3 stats-column">
-              <h6 className="nav-header">{t('Events per minute')}</h6>
-              <p className="count">{this.state.orgTotal.avgRate}</p>
+              <h6 className="nav-header">
+                {t('Events per minute')}
+              </h6>
+              <p className="count">
+                {this.state.orgTotal.avgRate}
+              </p>
             </div>}
         </div>
         <div className="organization-stats">
           {this.state.statsLoading
             ? <LoadingIndicator />
             : this.state.statsError
-                ? <LoadingError onRetry={this.fetchData} />
-                : <div className="bar-chart">
-                    <StackedBarChart
-                      points={this.state.orgStats}
-                      height={150}
-                      label="events"
-                      className="standard-barchart"
-                      barClasses={['accepted', 'rate-limited', 'black-listed']}
-                      tooltip={this.renderTooltip}
-                    />
-                  </div>}
+              ? <LoadingError onRetry={this.fetchData} />
+              : <div className="bar-chart">
+                  <StackedBarChart
+                    points={this.state.orgStats}
+                    height={150}
+                    label="events"
+                    className="standard-barchart"
+                    barClasses={['accepted', 'rate-limited', 'black-listed']}
+                    tooltip={this.renderTooltip}
+                  />
+                </div>}
         </div>
 
         <div className="box">
           <div className="box-header">
-            <h3>{t('Events by Project')}</h3>
+            <h3>
+              {t('Events by Project')}
+            </h3>
           </div>
           <div className="box-content">
             {this.state.statsLoading || this.state.projectsLoading
               ? <LoadingIndicator />
               : this.state.projectsError
-                  ? <LoadingError onRetry={this.fetchData} />
-                  : <ProjectTable
-                      projectTotals={this.state.projectTotals}
-                      orgTotal={this.state.orgTotal}
-                      organization={this.getOrganization()}
-                      projectMap={this.state.projectMap}
-                    />}
+                ? <LoadingError onRetry={this.fetchData} />
+                : <ProjectTable
+                    projectTotals={this.state.projectTotals}
+                    orgTotal={this.state.orgTotal}
+                    organization={this.getOrganization()}
+                    projectMap={this.state.projectMap}
+                  />}
           </div>
-
         </div>
         {this.state.pageLinks &&
           <Pagination pageLinks={this.state.pageLinks} {...this.props} />}
       </OrganizationHomeContainer>
     );
-  }
+  },
 });
 
 export default OrganizationStats;

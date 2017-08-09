@@ -6,7 +6,7 @@ import SummaryLine from './summaryLine';
 const DefaultRenderer = React.createClass({
   propTypes: {
     crumb: React.PropTypes.object.isRequired,
-    kvData: React.PropTypes.object
+    kvData: React.PropTypes.object,
   },
 
   getTitle() {
@@ -27,7 +27,12 @@ const DefaultRenderer = React.createClass({
 
     return (
       <SummaryLine crumb={crumb}>
-        {crumb.message && <pre><code>{crumb.message}</code></pre>}
+        {crumb.message &&
+          <pre>
+            <code>
+              {crumb.message}
+            </code>
+          </pre>}
       </SummaryLine>
     );
   },
@@ -41,7 +46,7 @@ const DefaultRenderer = React.createClass({
         {...this.props}
       />
     );
-  }
+  },
 });
 
 export default DefaultRenderer;

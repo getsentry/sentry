@@ -2,7 +2,7 @@ import React from 'react';
 
 const SharedGroupHeader = React.createClass({
   propTypes: {
-    group: React.PropTypes.object.isRequired
+    group: React.PropTypes.object.isRequired,
   },
 
   render() {
@@ -15,12 +15,14 @@ const SharedGroupHeader = React.createClass({
             {group.title}
           </h3>
           <div className="event-message">
-            <span className="message">{group.culprit}</span>
+            <span className="message">
+              {group.culprit}
+            </span>
           </div>
         </div>
       </div>
     );
-  }
+  },
 });
 
 export default SharedGroupHeader;

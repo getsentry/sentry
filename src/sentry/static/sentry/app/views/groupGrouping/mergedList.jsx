@@ -11,14 +11,16 @@ const MergedList = React.createClass({
   propTypes: {
     onUnmerge: PropTypes.func.isRequired,
     items: PropTypes.arrayOf(Event),
-    pageLinks: PropTypes.string
+    pageLinks: PropTypes.string,
   },
 
   renderEmpty() {
     return (
       <div className="box empty-stream">
         <span className="icon icon-exclamation" />
-        <p>{t("There don't seem to be any hashes for this issue.")}</p>
+        <p>
+          {t("There don't seem to be any hashes for this issue.")}
+        </p>
       </div>
     );
   },
@@ -30,11 +32,13 @@ const MergedList = React.createClass({
     if (hasResults) {
       return (
         <div className="grouping-list-container grouping-merged-list-container">
-          <h2>{t('Merged with this Issue')}</h2>
+          <h2>
+            {t('Merged with this Issue')}
+          </h2>
           <MergedToolbar onUnmerge={onUnmerge} />
 
           <div className="grouping-list">
-            {items.map(({id, latestEvent}) => (
+            {items.map(({id, latestEvent}) =>
               <MergedItem
                 key={id}
                 {...otherProps}
@@ -42,7 +46,7 @@ const MergedList = React.createClass({
                 fingerprint={id}
                 itemCount={items.length}
               />
-            ))}
+            )}
           </div>
           <Pagination pageLinks={pageLinks} />
         </div>
@@ -50,7 +54,7 @@ const MergedList = React.createClass({
     }
 
     return this.renderEmpty();
-  }
+  },
 });
 
 export default MergedList;

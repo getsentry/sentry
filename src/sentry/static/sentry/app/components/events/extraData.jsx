@@ -9,7 +9,7 @@ import {t} from '../../locale';
 const EventExtraData = React.createClass({
   propTypes: {
     group: PropTypes.Group.isRequired,
-    event: PropTypes.Event.isRequired
+    event: PropTypes.Event.isRequired,
   },
 
   shouldComponentUpdate(nextProps, nextState) {
@@ -28,7 +28,7 @@ const EventExtraData = React.createClass({
         <KeyValueList data={extraDataArray} isContextData={true} />
       </EventDataSection>
     );
-  }
+  },
 });
 
 export default EventExtraData;

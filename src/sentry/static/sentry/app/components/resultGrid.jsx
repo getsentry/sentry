@@ -13,7 +13,7 @@ const Filter = React.createClass({
     queryKey: React.PropTypes.string.isRequired,
     options: React.PropTypes.array.isRequired,
     path: React.PropTypes.string.isRequired,
-    value: React.PropTypes.any
+    value: React.PropTypes.any,
   },
 
   getCurrentLabel() {
@@ -26,7 +26,7 @@ const Filter = React.createClass({
 
   getDefaultItem() {
     let query = $.extend({}, this.props.location.query, {
-      cursor: ''
+      cursor: '',
     });
     delete query[this.props.queryKey];
 
@@ -68,11 +68,13 @@ const Filter = React.createClass({
     return (
       <div className="filter-options">
         {this.props.options.length === 1
-          ? <strong>{this.getCurrentLabel()}</strong>
+          ? <strong>
+              {this.getCurrentLabel()}
+            </strong>
           : this.getSelector()}
       </div>
     );
-  }
+  },
 });
 
 const SortBy = React.createClass({
@@ -80,7 +82,7 @@ const SortBy = React.createClass({
     options: React.PropTypes.array.isRequired,
     path: React.PropTypes.string.isRequired,
     location: React.PropTypes.string.isRequired,
-    value: React.PropTypes.any
+    value: React.PropTypes.any,
   },
 
   getCurrentSortLabel() {
@@ -95,7 +97,7 @@ const SortBy = React.createClass({
         {this.props.options.map(item => {
           let query = $.extend({}, this.props.location.query, {
             sortBy: item[0],
-            cursor: ''
+            cursor: '',
           });
           return (
             <MenuItem
@@ -118,11 +120,13 @@ const SortBy = React.createClass({
       <div className="sort-options">
         Showing results sorted by
         {this.props.options.length === 1
-          ? <strong className="sorted-by">{this.getCurrentSortLabel()}</strong>
+          ? <strong className="sorted-by">
+              {this.getCurrentSortLabel()}
+            </strong>
           : this.getSortBySelector()}
       </div>
     );
-  }
+  },
 });
 
 const ResultGrid = React.createClass({
@@ -140,7 +144,7 @@ const ResultGrid = React.createClass({
     method: React.PropTypes.string,
     options: React.PropTypes.array,
     path: React.PropTypes.string,
-    sortOptions: React.PropTypes.array
+    sortOptions: React.PropTypes.array,
   },
 
   mixins: [ApiMixin],
@@ -161,10 +165,10 @@ const ResultGrid = React.createClass({
         return [];
       },
       defaultParams: {
-        per_page: 50
+        per_page: 50,
       },
       hasPagination: true,
-      hasSearch: false
+      hasSearch: false,
     };
   },
 
@@ -178,7 +182,7 @@ const ResultGrid = React.createClass({
       pageLinks: null,
       query: queryParams.query || '',
       sortBy: queryParams.sortBy || this.props.defaultSort,
-      filters: Object.assign({}, queryParams)
+      filters: Object.assign({}, queryParams),
     };
   },
 
@@ -195,7 +199,7 @@ const ResultGrid = React.createClass({
         filters: Object.assign({}, queryParams),
         pageLinks: null,
         loading: true,
-        error: false
+        error: false,
       },
       this.fetchData
     );
@@ -208,7 +212,7 @@ const ResultGrid = React.createClass({
   refresh() {
     this.setState(
       {
-        loading: true
+        loading: true,
       },
       this.fetchData()
     );
@@ -231,15 +235,15 @@ const ResultGrid = React.createClass({
           loading: false,
           error: false,
           rows: data,
-          pageLinks: jqXHR.getResponseHeader('Link')
+          pageLinks: jqXHR.getResponseHeader('Link'),
         });
       },
       error: () => {
         this.setState({
           loading: false,
-          error: true
+          error: true,
         });
-      }
+      },
     });
   },
 
@@ -248,7 +252,7 @@ const ResultGrid = React.createClass({
     let {query} = this.state;
     let targetQueryParams = jQuery.extend({}, location.query || {}, {
       query: query,
-      cursor: ''
+      cursor: '',
     });
 
     e.preventDefault();
@@ -286,9 +290,7 @@ const ResultGrid = React.createClass({
   renderNoResults() {
     return (
       <tr>
-        <td colSpan={this.props.columns.length}>
-          No results found.
-        </td>
+        <td colSpan={this.props.columns.length}>No results found.</td>
       </tr>
     );
   },
@@ -359,10 +361,10 @@ const ResultGrid = React.createClass({
             {this.state.loading
               ? this.renderLoading()
               : this.state.error
-                  ? this.renderError()
-                  : this.state.rows.length === 0
-                      ? this.renderNoResults()
-                      : this.renderResults()}
+                ? this.renderError()
+                : this.state.rows.length === 0
+                  ? this.renderNoResults()
+                  : this.renderResults()}
           </tbody>
         </table>
         {this.props.hasPagination &&
@@ -370,7 +372,7 @@ const ResultGrid = React.createClass({
           <Pagination pageLinks={this.state.pageLinks} />}
       </div>
     );
-  }
+  },
 });
 
 export default ResultGrid;

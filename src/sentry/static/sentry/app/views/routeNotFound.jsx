@@ -26,7 +26,7 @@ const RouteNotFound = React.createClass({
         </div>
       </DocumentTitle>
     );
-  }
+  },
 });
 
 export default RouteNotFound;

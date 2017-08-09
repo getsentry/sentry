@@ -9,29 +9,24 @@ const ReleaseAnnouncement = ({close}) => {
   return (
     <div>
       <h3>
-        Releases are better with commits
-        {' '}
+        Releases are better with commits{' '}
         <span className="badge badge-square badge-new">NEW</span>
       </h3>
       <p>
         <img src={mediaUrl + 'images/onboarding/release-commits-modal.gif'} />
       </p>
       <h5 style={{lineHeight: '1.2'}}>
-        By integrating commit data with Sentry, you’ll unlock a number of helpful features:
+        By integrating commit data with Sentry, you’ll unlock a number of helpful
+        features:
       </h5>
       <ul>
         <li>
-          Enhanced releases overview page that allows you to see new and resolved issues, files changed and authors all in the same place
+          Enhanced releases overview page that allows you to see new and resolved issues,
+          files changed and authors all in the same place
         </li>
-        <li>
-          Resolving Sentry issues via commit messages
-        </li>
-        <li>
-          Suggested assignees for issues
-        </li>
-        <li>
-          Detailed summary emails when a deploy goes out
-        </li>
+        <li>Resolving Sentry issues via commit messages</li>
+        <li>Suggested assignees for issues</li>
+        <li>Detailed summary emails when a deploy goes out</li>
       </ul>
       <p className="release-buttons">
         <a className="btn btn-default btn-lg" href="#" onClick={close}>
@@ -49,19 +44,19 @@ const ReleaseAnnouncement = ({close}) => {
 };
 
 ReleaseAnnouncement.propTypes = {
-  close: React.PropTypes.func.isRequired
+  close: React.PropTypes.func.isRequired,
 };
 
 const BroadcastModal = React.createClass({
   propTypes: {
-    closeBroadcast: React.PropTypes.func.isRequired
+    closeBroadcast: React.PropTypes.func.isRequired,
   },
   mixins: [ApiMixin],
 
   getInitialState() {
     return {
       alerts: [ReleaseAnnouncement],
-      index: 0
+      index: 0,
     };
   },
 
@@ -78,8 +73,8 @@ const BroadcastModal = React.createClass({
     let user = ConfigStore.get('user');
     let markedData = {
       options: {
-        seenReleaseBroadcast: true
-      }
+        seenReleaseBroadcast: true,
+      },
     };
     this.api.request(`/users/${user.id}/`, {
       method: 'PUT',
@@ -91,7 +86,7 @@ const BroadcastModal = React.createClass({
       error: err => {
         logAjaxError(err);
         this.props.closeBroadcast();
-      }
+      },
     });
   },
 
@@ -149,7 +144,7 @@ const BroadcastModal = React.createClass({
         </div>
       </div>
     );
-  }
+  },
 });
 
 export default BroadcastModal;

@@ -16,19 +16,19 @@ import {t} from '../../locale';
 
 const GroupHeader = React.createClass({
   propTypes: {
-    group: React.PropTypes.object.isRequired
+    group: React.PropTypes.object.isRequired,
   },
 
   contextTypes: {
-    location: React.PropTypes.object
+    location: React.PropTypes.object,
   },
 
   mixins: [
     ApiMixin,
     ProjectState,
     TooltipMixin({
-      selector: '.tip'
-    })
+      selector: '.tip',
+    }),
   ],
 
   onToggleMute() {
@@ -43,13 +43,13 @@ const GroupHeader = React.createClass({
         projectId: project.slug,
         itemIds: [group.id],
         data: {
-          status: group.status === 'ignored' ? 'unresolved' : 'ignored'
-        }
+          status: group.status === 'ignored' ? 'unresolved' : 'ignored',
+        },
       },
       {
         complete: () => {
           IndicatorStore.remove(loadingIndicator);
-        }
+        },
       }
     );
   },
@@ -71,13 +71,13 @@ const GroupHeader = React.createClass({
         projectId: project.slug,
         itemIds: [group.id],
         data: {
-          isPublic: !group.isPublic
-        }
+          isPublic: !group.isPublic,
+        },
       },
       {
         complete: () => {
           IndicatorStore.remove(loadingIndicator);
-        }
+        },
       }
     );
   },
@@ -132,14 +132,19 @@ const GroupHeader = React.createClass({
               <EventOrGroupTitle data={group} />
             </h3>
             <div className="event-message">
-              <span className="error-level">{group.level}</span>
-              {message && <span className="message">{message}</span>}
+              <span className="error-level">
+                {group.level}
+              </span>
+              {message &&
+                <span className="message">
+                  {message}
+                </span>}
               {group.logger &&
                 <span className="event-annotation">
                   <Link
                     to={{
                       pathname: `/${orgId}/${projectId}/`,
-                      query: {query: 'logger:' + group.logger}
+                      query: {query: 'logger:' + group.logger},
                     }}>
                     {group.logger}
                   </Link>
@@ -173,17 +178,23 @@ const GroupHeader = React.createClass({
                   <ShortId shortId={group.shortId} />
                 </div>}
               <div className="assigned-to">
-                <h6 className="nav-header">{t('Assigned')}</h6>
+                <h6 className="nav-header">
+                  {t('Assigned')}
+                </h6>
                 <AssigneeSelector id={group.id} />
               </div>
               <div className="count align-right">
-                <h6 className="nav-header">{t('Events')}</h6>
+                <h6 className="nav-header">
+                  {t('Events')}
+                </h6>
                 <Link to={`/${orgId}/${projectId}/issues/${groupId}/events/`}>
                   <Count className="count" value={group.count} />
                 </Link>
               </div>
               <div className="count align-right">
-                <h6 className="nav-header">{t('Users')}</h6>
+                <h6 className="nav-header">
+                  {t('Users')}
+                </h6>
                 {userCount !== 0
                   ? <Link to={`/${orgId}/${projectId}/issues/${groupId}/tags/user/`}>
                       <Count className="count" value={userCount} />
@@ -219,8 +230,7 @@ const GroupHeader = React.createClass({
             {t('Comments')} <span className="badge animated">{group.numComments}</span>
           </ListLink>
           <ListLink to={`/${orgId}/${projectId}/issues/${groupId}/feedback/`}>
-            {t('User Feedback')}
-            {' '}
+            {t('User Feedback')}{' '}
             <span className="badge animated">{group.userReportCount}</span>
           </ListLink>
           <ListLink to={`/${orgId}/${projectId}/issues/${groupId}/tags/`}>
@@ -236,7 +246,7 @@ const GroupHeader = React.createClass({
         </ul>
       </div>
     );
-  }
+  },
 });
 
 export default GroupHeader;

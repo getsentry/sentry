@@ -16,7 +16,7 @@ const ProjectUserReports = React.createClass({
   propTypes: {
     defaultQuery: React.PropTypes.string,
     defaultStatus: React.PropTypes.string,
-    setProjectNavSection: React.PropTypes.func
+    setProjectNavSection: React.PropTypes.func,
   },
 
   mixins: [ApiMixin],
@@ -24,7 +24,7 @@ const ProjectUserReports = React.createClass({
   getDefaultProps() {
     return {
       defaultQuery: '',
-      defaultStatus: 'unresolved'
+      defaultStatus: 'unresolved',
     };
   },
 
@@ -36,7 +36,7 @@ const ProjectUserReports = React.createClass({
       pageLinks: '',
       query: this.props.defaultQuery,
       status: this.props.defaultStatus,
-      ...this.getQueryStringState(this.props)
+      ...this.getQueryStringState(this.props),
     };
   },
 
@@ -61,7 +61,7 @@ const ProjectUserReports = React.createClass({
       : this.props.defaultQuery;
     return {
       query: query,
-      status: status
+      status: status,
     };
   },
 
@@ -82,7 +82,7 @@ const ProjectUserReports = React.createClass({
   fetchData() {
     this.setState({
       loading: true,
-      error: false
+      error: false,
     });
 
     this.api.request(this.getEndpoint(), {
@@ -93,15 +93,15 @@ const ProjectUserReports = React.createClass({
           error: false,
           loading: false,
           reportList: data,
-          pageLinks: jqXHR.getResponseHeader('Link')
+          pageLinks: jqXHR.getResponseHeader('Link'),
         });
       },
       error: () => {
         this.setState({
           error: true,
-          loading: false
+          loading: false,
         });
-      }
+      },
     });
   },
 
@@ -111,10 +111,12 @@ const ProjectUserReports = React.createClass({
       ...this.props.location.query,
       limit: 50,
       query: this.state.query,
-      status: this.state.status
+      status: this.state.status,
     };
 
-    return `/projects/${params.orgId}/${params.projectId}/user-reports/?${jQuery.param(queryParams)}`;
+    return `/projects/${params.orgId}/${params.projectId}/user-reports/?${jQuery.param(
+      queryParams
+    )}`;
   },
 
   getUserReportsUrl() {
@@ -148,7 +150,9 @@ const ProjectUserReports = React.createClass({
     return (
       <div className="box empty-stream">
         <span className="icon icon-exclamation" />
-        <p>{t('Sorry, no results match your search query.')}</p>
+        <p>
+          {t('Sorry, no results match your search query.')}
+        </p>
       </div>
     );
   },
@@ -157,7 +161,9 @@ const ProjectUserReports = React.createClass({
     return (
       <div className="box empty-stream">
         <span className="icon icon-exclamation" />
-        <p>{t('No user reports have been collected for this project.')}</p>
+        <p>
+          {t('No user reports have been collected for this project.')}
+        </p>
         <p>
           <Link to={this.getUserReportsUrl()}>
             {t('Learn how to integrate User Feedback')}
@@ -212,7 +218,9 @@ const ProjectUserReports = React.createClass({
       <div>
         <div className="row release-list-header">
           <div className="col-sm-9">
-            <h3>{t('User Feedback')}</h3>
+            <h3>
+              {t('User Feedback')}
+            </h3>
           </div>
           <div className="col-sm-3" style={{textAlign: 'right'}}>
             <div className="btn-group">
@@ -232,13 +240,14 @@ const ProjectUserReports = React.createClass({
           </div>
         </div>
         <div className="alert alert-block alert-info">
-          Psst! This feature is still a work-in-progress. Thanks for being an early adopter!
+          Psst! This feature is still a work-in-progress. Thanks for being an early
+          adopter!
         </div>
         {this.renderStreamBody()}
         <Pagination pageLinks={this.state.pageLinks} />
       </div>
     );
-  }
+  },
 });
 
 export default ProjectUserReports;

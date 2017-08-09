@@ -8,12 +8,12 @@ import {t, tn} from '../../locale';
 const EventErrors = React.createClass({
   propTypes: {
     group: PropTypes.Group.isRequired,
-    event: PropTypes.Event.isRequired
+    event: PropTypes.Event.isRequired,
   },
 
   getInitialState() {
     return {
-      isOpen: false
+      isOpen: false,
     };
   },
 
@@ -56,7 +56,7 @@ const EventErrors = React.createClass({
         </ul>
       </EventDataSection>
     );
-  }
+  },
 });
 
 export default EventErrors;

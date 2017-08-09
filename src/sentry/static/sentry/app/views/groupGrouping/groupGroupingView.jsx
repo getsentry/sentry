@@ -12,7 +12,7 @@ import SimilarList from './similarList';
 
 const GroupGroupingView = React.createClass({
   propTypes: {
-    query: PropTypes.string
+    query: PropTypes.string,
   },
 
   mixins: [Reflux.listenTo(GroupingStore, 'onGroupingUpdate')],
@@ -25,7 +25,7 @@ const GroupGroupingView = React.createClass({
       mergedLinks: [],
       similarLinks: [],
       loading: true,
-      error: false
+      error: false,
     };
   },
 
@@ -49,7 +49,7 @@ const GroupGroupingView = React.createClass({
     similarLinks,
     filteredSimilarItems,
     loading,
-    error
+    error,
   }) {
     if (mergedItems && similarItems) {
       this.setState({
@@ -59,7 +59,7 @@ const GroupGroupingView = React.createClass({
         similarLinks,
         filteredSimilarItems,
         loading: typeof loading !== 'undefined' ? loading : false,
-        error: typeof error !== 'undefined' ? error : false
+        error: typeof error !== 'undefined' ? error : false,
       });
     }
   },
@@ -68,7 +68,7 @@ const GroupGroupingView = React.createClass({
     let params = this.props.params;
     let queryParams = {
       ...this.props.location.query,
-      limit: 50
+      limit: 50,
     };
     return `/issues/${params.groupId}/${type}/?${jQuery.param(queryParams)}`;
   },
@@ -76,20 +76,20 @@ const GroupGroupingView = React.createClass({
   fetchData() {
     this.setState({
       loading: true,
-      error: false
+      error: false,
     });
 
     GroupingActions.fetch([
       {
         endpoint: this.getEndpoint('hashes'),
         dataKey: 'merged',
-        queryParams: this.props.location.query
+        queryParams: this.props.location.query,
       },
       {
         endpoint: this.getEndpoint('similar'),
         dataKey: 'similar',
-        queryParams: this.props.location.query
-      }
+        queryParams: this.props.location.query,
+      },
     ]);
   },
 
@@ -99,7 +99,7 @@ const GroupGroupingView = React.createClass({
     if (params) {
       GroupingActions.merge({
         params,
-        query
+        query,
       });
     }
   },
@@ -111,7 +111,7 @@ const GroupGroupingView = React.createClass({
       groupId: params.groupId,
       loadingMessage: `${t('Unmerging events')}...`,
       successMessage: t('Events successfully queued for unmerging.'),
-      errorMessage: t('Unable to queue events for unmerging.')
+      errorMessage: t('Unable to queue events for unmerging.'),
     });
   },
 
@@ -129,8 +129,7 @@ const GroupGroupingView = React.createClass({
     return (
       <div>
         <div className="alert alert-block alert-warning">
-          <strong>{t('Warning')}:</strong>
-          {' '}
+          <strong>{t('Warning')}:</strong>{' '}
           {t(
             'This is an experimental feature. Data may not be immediately available while we process the unmerge.'
           )}
@@ -160,10 +159,9 @@ const GroupGroupingView = React.createClass({
             busyMap={this.state.busy}
             hiddenMap={this.state.hidden}
           />}
-
       </div>
     );
-  }
+  },
 });
 
 export default GroupGroupingView;

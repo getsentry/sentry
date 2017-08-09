@@ -10,7 +10,7 @@ import {t} from '../../../locale';
 
 const RichHttpContent = React.createClass({
   propTypes: {
-    data: React.PropTypes.object.isRequired
+    data: React.PropTypes.object.isRequired,
   },
 
   /**
@@ -57,7 +57,11 @@ const RichHttpContent = React.createClass({
     if (contentType === 'application/x-www-form-urlencoded') {
       return this.getQueryStringOrRaw(data.data);
     } else {
-      return <pre>{JSON.stringify(data.data, null, 2)}</pre>;
+      return (
+        <pre>
+          {JSON.stringify(data.data, null, 2)}
+        </pre>
+      );
     }
   },
 
@@ -69,7 +73,11 @@ const RichHttpContent = React.createClass({
         <KeyValueList data={this.objectToSortedTupleArray(queryString.parse(data))} />
       );
     } catch (e) {
-      return <pre>{data}</pre>;
+      return (
+        <pre>
+          {data}
+        </pre>
+      );
     }
   },
 
@@ -83,7 +91,9 @@ const RichHttpContent = React.createClass({
           </ClippedBox>}
         {data.fragment &&
           <ClippedBox title={t('Fragment')}>
-            <pre>{data.fragment}</pre>
+            <pre>
+              {data.fragment}
+            </pre>
           </ClippedBox>}
 
         {data.data &&
@@ -106,7 +116,7 @@ const RichHttpContent = React.createClass({
           </ClippedBox>}
       </div>
     );
-  }
+  },
 });
 
 export default RichHttpContent;

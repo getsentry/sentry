@@ -10,7 +10,7 @@ import {t} from '../../locale';
 
 const SuggestedOwners = React.createClass({
   propTypes: {
-    event: React.PropTypes.object
+    event: React.PropTypes.object,
   },
 
   mixins: [
@@ -20,8 +20,9 @@ const SuggestedOwners = React.createClass({
       selector: '.tip',
       html: true,
       container: 'body',
-      template: '<div class="tooltip" role="tooltip"><div class="tooltip-arrow"></div><div class="tooltip-inner tooltip-owners"></div></div>'
-    })
+      template:
+        '<div class="tooltip" role="tooltip"><div class="tooltip-arrow"></div><div class="tooltip-inner tooltip-owners"></div></div>',
+    }),
   ],
 
   getInitialState() {
@@ -61,14 +62,14 @@ const SuggestedOwners = React.createClass({
       {
         success: (data, _, jqXHR) => {
           this.setState({
-            owners: data.committers
+            owners: data.committers,
           });
         },
         error: error => {
           this.setState({
-            owners: undefined
+            owners: undefined,
           });
-        }
+        },
       }
     );
   },
@@ -94,10 +95,13 @@ const SuggestedOwners = React.createClass({
               : <div className="tooltip-owners-unknown">
                   <p className="tooltip-owners-unknown-email">
                     <span className="icon icon-circle-cross" />
-                    <strong>{author.email}</strong>
+                    <strong>
+                      {author.email}
+                    </strong>
                   </p>
                   <p>
-                    Sorry, we don't recognize this member. Make sure to link alternative emails in Account Settings.
+                    Sorry, we don't recognize this member. Make sure to link alternative
+                    emails in Account Settings.
                   </p>
                   <hr />
                 </div>}
@@ -127,7 +131,9 @@ const SuggestedOwners = React.createClass({
     return (
       <div className="m-b-1">
         <h6>
-          <span>{t('Suggested Owners')}</span>
+          <span>
+            {t('Suggested Owners')}
+          </span>
           <small style={{background: '#FFFFFF'}}>Click to assign</small>
         </h6>
         <div className="avatar-grid">
@@ -135,7 +141,7 @@ const SuggestedOwners = React.createClass({
         </div>
       </div>
     );
-  }
+  },
 });
 
 export default SuggestedOwners;

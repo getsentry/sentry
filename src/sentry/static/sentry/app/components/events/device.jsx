@@ -9,7 +9,7 @@ import ContextData from '../contextData';
 const DeviceInterface = React.createClass({
   propTypes: {
     group: PropTypes.Group.isRequired,
-    event: PropTypes.Event.isRequired
+    event: PropTypes.Event.isRequired,
   },
 
   getInitialState() {
@@ -23,8 +23,12 @@ const DeviceInterface = React.createClass({
       let value = data.data[key];
       return (
         <tr key={key}>
-          <td className="key">{key}</td>
-          <td className="value"><ContextData data={value} /></td>
+          <td className="key">
+            {key}
+          </td>
+          <td className="value">
+            <ContextData data={value} />
+          </td>
         </tr>
       );
     });
@@ -41,24 +45,36 @@ const DeviceInterface = React.createClass({
             {data.name &&
               <tr>
                 <td className="key">Name</td>
-                <td className="value"><pre>{data.name}</pre></td>
+                <td className="value">
+                  <pre>
+                    {data.name}
+                  </pre>
+                </td>
               </tr>}
             {data.version &&
               <tr>
                 <td className="key">Version</td>
-                <td className="value"><pre>{data.version}</pre></td>
+                <td className="value">
+                  <pre>
+                    {data.version}
+                  </pre>
+                </td>
               </tr>}
             {data.build &&
               <tr>
                 <td className="key">Build</td>
-                <td className="value"><pre>{data.build}</pre></td>
+                <td className="value">
+                  <pre>
+                    {data.build}
+                  </pre>
+                </td>
               </tr>}
             {extras}
           </tbody>
         </table>
       </GroupEventDataSection>
     );
-  }
+  },
 });
 
 export default DeviceInterface;

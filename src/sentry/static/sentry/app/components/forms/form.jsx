@@ -16,7 +16,7 @@ export default class Form extends React.Component {
     footerClass: React.PropTypes.string,
     extraButton: React.PropTypes.element,
     initialData: React.PropTypes.object,
-    requireChanges: React.PropTypes.bool
+    requireChanges: React.PropTypes.bool,
   };
 
   static defaultProps = {
@@ -25,11 +25,11 @@ export default class Form extends React.Component {
     submitDisabled: false,
     footerClass: 'form-actions align-right',
     className: 'form-stacked',
-    requireChanges: false
+    requireChanges: false,
   };
 
   static childContextTypes = {
-    form: React.PropTypes.object.isRequired
+    form: React.PropTypes.object.isRequired,
   };
 
   constructor(props, context) {
@@ -38,7 +38,7 @@ export default class Form extends React.Component {
       data: {...this.props.initialData},
       errors: {},
       initialData: {...this.props.initialData},
-      state: FormState.READY
+      state: FormState.READY,
     };
   }
 
@@ -48,8 +48,8 @@ export default class Form extends React.Component {
       form: {
         data,
         errors,
-        onFieldChange: this.onFieldChange
-      }
+        onFieldChange: this.onFieldChange,
+      },
     };
   }
 
@@ -68,7 +68,7 @@ export default class Form extends React.Component {
     this.setState({
       state: FormState.READY,
       errors: {},
-      initialData: newData
+      initialData: newData,
     });
     this.props.onSubmitSuccess && this.props.onSubmitSuccess(data);
   };
@@ -76,7 +76,7 @@ export default class Form extends React.Component {
   onSubmitError = error => {
     this.setState({
       state: FormState.ERROR,
-      errors: error.responseJSON
+      errors: error.responseJSON,
     });
     this.props.onSubmitError && this.props.onSubmitError(error);
   };
@@ -85,8 +85,8 @@ export default class Form extends React.Component {
     this.setState({
       data: {
         ...this.state.data,
-        [name]: value
-      }
+        [name]: value,
+      },
     });
   };
 

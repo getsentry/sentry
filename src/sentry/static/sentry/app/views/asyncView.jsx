@@ -39,7 +39,7 @@ class AsyncView extends React.Component {
       loading: true,
       // is there an error loading ANY data?
       error: false,
-      errors: {}
+      errors: {},
     };
     endpoints.forEach(([stateKey, endpoint]) => {
       state[stateKey] = null;
@@ -57,7 +57,7 @@ class AsyncView extends React.Component {
     if (!endpoints.length) {
       this.setState({
         loading: false,
-        error: false
+        error: false,
       });
       return;
     }
@@ -65,7 +65,7 @@ class AsyncView extends React.Component {
     this.setState({
       loading: true,
       error: false,
-      remainingRequests: endpoints.length
+      remainingRequests: endpoints.length,
     });
     endpoints.forEach(([stateKey, endpoint, params]) => {
       this.api.request(endpoint, {
@@ -76,7 +76,7 @@ class AsyncView extends React.Component {
             return {
               [stateKey]: data,
               remainingRequests: prevState.remainingRequests - 1,
-              loading: prevState.remainingRequests > 1
+              loading: prevState.remainingRequests > 1,
             };
           });
         },
@@ -86,14 +86,14 @@ class AsyncView extends React.Component {
               [stateKey]: null,
               errors: {
                 ...prevState.errors,
-                [stateKey]: error
+                [stateKey]: error,
               },
               remainingRequests: prevState.remainingRequests - 1,
               loading: prevState.remainingRequests > 1,
-              error: true
+              error: true,
             };
           });
-        }
+        },
       });
     });
   }
@@ -139,8 +139,8 @@ class AsyncView extends React.Component {
         {this.state.loading
           ? this.renderLoading()
           : this.state.error
-              ? this.renderError(new Error('Unable to load all required endpoints'))
-              : this.renderBody()}
+            ? this.renderError(new Error('Unable to load all required endpoints'))
+            : this.renderBody()}
       </DocumentTitle>
     );
   }
@@ -156,7 +156,7 @@ AsyncView.errorHandler = (component, fn) => {
         throw err;
       });
       component.setState({
-        error: err
+        error: err,
       });
       return null;
     }
@@ -164,7 +164,7 @@ AsyncView.errorHandler = (component, fn) => {
 };
 
 AsyncView.contextTypes = {
-  router: React.PropTypes.object.isRequired
+  router: React.PropTypes.object.isRequired,
 };
 
 export default AsyncView;

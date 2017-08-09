@@ -11,7 +11,11 @@ function getView(view, data) {
     case 'report':
       return <CSPContent data={data} />;
     case 'raw':
-      return <pre>{JSON.stringify({'csp-report': data}, null, 2)}</pre>;
+      return (
+        <pre>
+          {JSON.stringify({'csp-report': data}, null, 2)}
+        </pre>
+      );
     case 'help':
       return <CSPHelp data={data} />;
     default:
@@ -24,7 +28,7 @@ const CSPInterface = React.createClass({
     group: PropTypes.Group.isRequired,
     event: PropTypes.Event.isRequired,
     type: React.PropTypes.string.isRequired,
-    data: React.PropTypes.object.isRequired
+    data: React.PropTypes.object.isRequired,
   },
 
   getInitialState() {
@@ -34,13 +38,13 @@ const CSPInterface = React.createClass({
 
     return {
       view: 'report',
-      data: data
+      data: data,
     };
   },
 
   toggleView(value) {
     this.setState({
-      view: value
+      view: value,
     });
   },
 
@@ -67,7 +71,9 @@ const CSPInterface = React.createClass({
             {t('Help')}
           </a>
         </div>
-        <h3>{t('CSP Report')}</h3>
+        <h3>
+          {t('CSP Report')}
+        </h3>
       </div>
     );
 
@@ -83,7 +89,7 @@ const CSPInterface = React.createClass({
         {children}
       </GroupEventDataSection>
     );
-  }
+  },
 });
 
 export default CSPInterface;

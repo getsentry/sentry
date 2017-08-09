@@ -14,7 +14,7 @@ const OrganizationDetails = React.createClass({
         <Footer />
       </OrganizationContext>
     );
-  }
+  },
 });
 
 export default OrganizationDetails;

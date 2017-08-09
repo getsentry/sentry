@@ -12,7 +12,7 @@ BaseContext.displayName = 'BaseContext';
 
 BaseContext.propTypes = {
   alias: React.PropTypes.string.isRequired,
-  data: React.PropTypes.object.isRequired
+  data: React.PropTypes.object.isRequired,
 };
 
 BaseContext.getTitle = function(value) {

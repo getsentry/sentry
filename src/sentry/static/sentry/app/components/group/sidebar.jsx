@@ -13,18 +13,18 @@ import {t, tct} from '../../locale';
 const GroupSidebar = React.createClass({
   propTypes: {
     group: React.PropTypes.object,
-    event: React.PropTypes.object
+    event: React.PropTypes.object,
   },
 
   contextTypes: {
-    location: React.PropTypes.object
+    location: React.PropTypes.object,
   },
 
   mixins: [ApiMixin, GroupState],
 
   getInitialState() {
     return {
-      participants: []
+      participants: [],
     };
   },
 
@@ -34,14 +34,14 @@ const GroupSidebar = React.createClass({
       success: data => {
         this.setState({
           participants: data,
-          error: false
+          error: false,
         });
       },
       error: () => {
         this.setState({
-          error: true
+          error: true,
         });
-      }
+      },
     });
   },
 
@@ -54,7 +54,7 @@ const GroupSidebar = React.createClass({
     ),
     mentioned: t(
       "You're receiving updates because you have been mentioned in this issue."
-    )
+    ),
   },
 
   toggleSubscription() {
@@ -69,8 +69,8 @@ const GroupSidebar = React.createClass({
         projectId: project.slug,
         itemIds: [group.id],
         data: {
-          isSubscribed: !group.isSubscribed
-        }
+          isSubscribed: !group.isSubscribed,
+        },
       },
       {
         complete: () => {
@@ -78,18 +78,18 @@ const GroupSidebar = React.createClass({
             success: data => {
               this.setState({
                 participants: data,
-                error: false
+                error: false,
               });
               IndicatorStore.remove(loadingIndicator);
             },
             error: () => {
               this.setState({
-                error: true
+                error: true,
               });
               IndicatorStore.remove(loadingIndicator);
-            }
+            },
           });
-        }
+        },
       }
     );
   },
@@ -101,8 +101,14 @@ const GroupSidebar = React.createClass({
       if (issue) {
         issues.push(
           <dl key={plugin.slug}>
-            <dt>{plugin.title + ': '}</dt>
-            <dd><a href={issue.url}>{issue.label}</a></dd>
+            <dt>
+              {plugin.title + ': '}
+            </dt>
+            <dd>
+              <a href={issue.url}>
+                {issue.label}
+              </a>
+            </dd>
           </dl>
         );
       }
@@ -110,7 +116,11 @@ const GroupSidebar = React.createClass({
     if (issues.length) {
       return (
         <div>
-          <h6><span>{t('External Issues')}</span></h6>
+          <h6>
+            <span>
+              {t('External Issues')}
+            </span>
+          </h6>
           {issues}
         </div>
       );
@@ -134,7 +144,7 @@ const GroupSidebar = React.createClass({
         result = tct(
           "You're receiving updates because you are [link:subscribed to workflow notifications] for this project.",
           {
-            link: <a href="/account/settings/notifications/" />
+            link: <a href="/account/settings/notifications/" />,
           }
         );
       }
@@ -180,7 +190,11 @@ const GroupSidebar = React.createClass({
 
         {this.renderPluginIssue()}
 
-        <h6><span>{t('Tags')}</span></h6>
+        <h6>
+          <span>
+            {t('Tags')}
+          </span>
+        </h6>
         {group.tags.map(data => {
           return (
             <TagDistributionMeter
@@ -196,18 +210,24 @@ const GroupSidebar = React.createClass({
 
         {this.renderParticipantData()}
 
-        <h6><span>{t('Notifications')}</span></h6>
-        <p className="help-block">{this.getNotificationText()}</p>
+        <h6>
+          <span>
+            {t('Notifications')}
+          </span>
+        </h6>
+        <p className="help-block">
+          {this.getNotificationText()}
+        </p>
         <a
-          className={`btn btn-default btn-subscribe ${group.isSubscribed && 'subscribed'}`}
+          className={`btn btn-default btn-subscribe ${group.isSubscribed &&
+            'subscribed'}`}
           onClick={this.toggleSubscription}>
-          <span className="icon-signal" />
-          {' '}
+          <span className="icon-signal" />{' '}
           {group.isSubscribed ? t('Unsubscribe') : t('Subscribe')}
         </a>
       </div>
     );
-  }
+  },
 });
 
 export default GroupSidebar;

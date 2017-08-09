@@ -6,7 +6,7 @@ import FormField from './formField';
 export default class MultipleCheckboxField extends FormField {
   static propTypes = {
     ...FormField.propTypes,
-    choices: React.PropTypes.array.isRequired
+    choices: React.PropTypes.array.isRequired,
   };
 
   // XXX(dcramer): this comes from TooltipMixin
@@ -57,8 +57,14 @@ export default class MultipleCheckboxField extends FormField {
               <span className="icon-question" />
             </span>}
         </label>
-        {this.props.help && <p className="help-block">{this.props.help}</p>}
-        {error && <p className="error">{error}</p>}
+        {this.props.help &&
+          <p className="help-block">
+            {this.props.help}
+          </p>}
+        {error &&
+          <p className="error">
+            {error}
+          </p>}
         <div className="controls control-list">
           {this.props.choices.map(([value, label]) => {
             return (

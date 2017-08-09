@@ -9,7 +9,7 @@ import {Client} from 'app/api';
 jest.mock('app/api');
 jest.mock('app/mixins/projectState', () => {
   return {
-    getFeatures: () => new Set(['callsigns'])
+    getFeatures: () => new Set(['callsigns']),
   };
 });
 
@@ -20,7 +20,8 @@ const mockData = {
         lastSeen: '2017-07-25T02:22:19Z',
         numComments: 0,
         userCount: 1,
-        culprit: 'Constructor.onGroupingUpdate(app/views/groupGrouping/groupingMergedList)',
+        culprit:
+          'Constructor.onGroupingUpdate(app/views/groupGrouping/groupingMergedList)',
         title: 'ReferenceError: unmergedList is not defined',
         id: '274',
         assignedTo: null,
@@ -41,9 +42,9 @@ const mockData = {
         isSubscribed: true,
         isBookmarked: false,
         project: {name: 'Internal', slug: 'internal'},
-        statusDetails: {}
+        statusDetails: {},
       },
-      {'exception:stacktrace:pairs': 0.375}
+      {'exception:stacktrace:pairs': 0.375},
     ],
     [
       {
@@ -71,9 +72,9 @@ const mockData = {
         isSubscribed: true,
         isBookmarked: false,
         project: {name: 'Internal', slug: 'internal'},
-        statusDetails: {}
+        statusDetails: {},
       },
-      {'exception:stacktrace:pairs': 0.375}
+      {'exception:stacktrace:pairs': 0.375},
     ],
     [
       {
@@ -89,7 +90,7 @@ const mockData = {
         annotations: [],
         metadata: {
           type: 'TypeError',
-          value: "Cannot read property 'length' of undefined"
+          value: "Cannot read property 'length' of undefined",
         },
         status: 'unresolved',
         subscriptionDetails: null,
@@ -104,9 +105,9 @@ const mockData = {
         isSubscribed: true,
         isBookmarked: false,
         project: {name: 'Internal', slug: 'internal'},
-        statusDetails: {}
+        statusDetails: {},
       },
-      {'exception:stacktrace:pairs': 0.01264}
+      {'exception:stacktrace:pairs': 0.01264},
     ],
     [
       {
@@ -125,12 +126,13 @@ const mockData = {
           isActive: true,
           has2fa: false,
           name: 'billy@sentry.io',
-          avatarUrl: 'https://secure.gravatar.com/avatar/7b544e8eb9d08ed777be5aa82121155a?s=32&d=mm',
+          avatarUrl:
+            'https://secure.gravatar.com/avatar/7b544e8eb9d08ed777be5aa82121155a?s=32&d=mm',
           dateJoined: '2017-06-26T21:02:13.264Z',
           emails: [{is_verified: false, id: '1', email: 'billy@sentry.io'}],
           avatar: {avatarUuid: null, avatarType: 'letter_avatar'},
           lastLogin: '2017-07-25T01:00:50.473Z',
-          email: 'billy@sentry.io'
+          email: 'billy@sentry.io',
         },
         logger: 'javascript',
         type: 'error',
@@ -149,13 +151,13 @@ const mockData = {
         isSubscribed: true,
         isBookmarked: false,
         project: {name: 'Internal', slug: 'internal'},
-        statusDetails: {}
+        statusDetails: {},
       },
       {
         'exception:stacktrace:application-chunks': 0.000235,
-        'exception:stacktrace:pairs': 0.001488
-      }
-    ]
+        'exception:stacktrace:pairs': 0.001488,
+      },
+    ],
   ],
   merged: [
     {
@@ -173,27 +175,27 @@ const mockData = {
           {value: 'd5241c9d9d2bcda918c7af72f07cea1e39a096ac', key: 'release'},
           {
             value: 'app/components/assigneeSelector in assignedTo',
-            key: 'transaction'
+            key: 'transaction',
           },
           {
             value: 'http://localhost:8000/sentry/internal/issues/227/grouping/',
-            key: 'url'
+            key: 'url',
           },
-          {value: 'id:1', key: 'user'}
+          {value: 'id:1', key: 'user'},
         ],
         contexts: {
           os: {version: '10.12.5', type: 'os', name: 'Mac OS X'},
-          browser: {version: '59.0.3071', type: 'browser', name: 'Chrome'}
+          browser: {version: '59.0.3071', type: 'browser', name: 'Chrome'},
         },
         dateReceived: '2017-07-26T00:34:20Z',
         dateCreated: '2017-07-26T00:34:20Z',
         fingerprints: [
           '2c4887696f708c476a81ce4e834c4b02',
-          'e05da55328a860b21f62e371f0a7507d'
+          'e05da55328a860b21f62e371f0a7507d',
         ],
         metadata: {
           type: 'TypeError',
-          value: "Cannot read property 'assignedTo' of undefined"
+          value: "Cannot read property 'assignedTo' of undefined",
         },
         groupID: '268',
         platform: 'javascript',
@@ -201,7 +203,8 @@ const mockData = {
         user: {ip_address: '127.0.0.1', email: 'billy@sentry.io', id: '1'},
         context: {'session:duration': 46363},
         entries: [],
-        message: "TypeError Cannot read property 'assignedTo' of undefined app/components/assigneeSelector in assignedTo",
+        message:
+          "TypeError Cannot read property 'assignedTo' of undefined app/components/assigneeSelector in assignedTo",
         sdk: {
           clientIP: '127.0.0.1',
           version: '3.16.1',
@@ -209,15 +212,15 @@ const mockData = {
           upstream: {
             url: 'https://docs.sentry.io/clients/javascript/',
             isNewer: false,
-            name: 'raven-js'
-          }
+            name: 'raven-js',
+          },
         },
         type: 'error',
         id: '904',
-        size: 21896
+        size: 21896,
       },
       state: 'unlocked',
-      id: '2c4887696f708c476a81ce4e834c4b02'
+      id: '2c4887696f708c476a81ce4e834c4b02',
     },
     {
       latestEvent: {
@@ -234,27 +237,27 @@ const mockData = {
           {value: 'd5241c9d9d2bcda918c7af72f07cea1e39a096ac', key: 'release'},
           {
             value: 'app/components/assigneeSelector in assignedTo',
-            key: 'transaction'
+            key: 'transaction',
           },
           {
             value: 'http://localhost:8000/sentry/internal/issues/227/grouping/',
-            key: 'url'
+            key: 'url',
           },
-          {value: 'id:1', key: 'user'}
+          {value: 'id:1', key: 'user'},
         ],
         contexts: {
           os: {version: '10.12.5', type: 'os', name: 'Mac OS X'},
-          browser: {version: '59.0.3071', type: 'browser', name: 'Chrome'}
+          browser: {version: '59.0.3071', type: 'browser', name: 'Chrome'},
         },
         dateReceived: '2017-07-26T00:34:20Z',
         dateCreated: '2017-07-26T00:34:20Z',
         fingerprints: [
           '2c4887696f708c476a81ce4e834c4b02',
-          'e05da55328a860b21f62e371f0a7507d'
+          'e05da55328a860b21f62e371f0a7507d',
         ],
         metadata: {
           type: 'TypeError',
-          value: "Cannot read property 'assignedTo' of undefined"
+          value: "Cannot read property 'assignedTo' of undefined",
         },
         groupID: '268',
         platform: 'javascript',
@@ -262,7 +265,8 @@ const mockData = {
         user: {ip_address: '127.0.0.1', email: 'billy@sentry.io', id: '1'},
         context: {'session:duration': 46363},
         entries: [],
-        message: "TypeError Cannot read property 'assignedTo' of undefined app/components/assigneeSelector in assignedTo",
+        message:
+          "TypeError Cannot read property 'assignedTo' of undefined app/components/assigneeSelector in assignedTo",
         sdk: {
           clientIP: '127.0.0.1',
           version: '3.16.1',
@@ -270,28 +274,28 @@ const mockData = {
           upstream: {
             url: 'https://docs.sentry.io/clients/javascript/',
             isNewer: false,
-            name: 'raven-js'
-          }
+            name: 'raven-js',
+          },
         },
         type: 'error',
         id: '904',
-        size: 21896
+        size: 21896,
       },
       state: 'unlocked',
-      id: 'e05da55328a860b21f62e371f0a7507d'
-    }
-  ]
+      id: 'e05da55328a860b21f62e371f0a7507d',
+    },
+  ],
 };
 
 describe('Issues Grouping View', function() {
   beforeAll(function() {
     Client.addMockResponse({
       url: '/issues/groupId/hashes/?limit=50',
-      body: mockData.merged
+      body: mockData.merged,
     });
     Client.addMockResponse({
       url: '/issues/groupId/similar/?limit=50',
-      body: mockData.similar
+      body: mockData.similar,
     });
   });
 

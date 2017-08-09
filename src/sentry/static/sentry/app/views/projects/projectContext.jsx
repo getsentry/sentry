@@ -17,7 +17,7 @@ import {t} from '../../locale';
 const ERROR_TYPES = {
   MISSING_MEMBERSHIP: 'MISSING_MEMBERSHIP',
   PROJECT_NOT_FOUND: 'PROJECT_NOT_FOUND',
-  UNKNOWN: 'UNKNOWN'
+  UNKNOWN: 'UNKNOWN',
 };
 
 /**
@@ -30,12 +30,12 @@ const ERROR_TYPES = {
 const ProjectContext = React.createClass({
   propTypes: {
     projectId: React.PropTypes.string,
-    orgId: React.PropTypes.string
+    orgId: React.PropTypes.string,
   },
 
   childContextTypes: {
     project: PropTypes.Project,
-    team: PropTypes.Team
+    team: PropTypes.Team,
   },
 
   mixins: [
@@ -43,7 +43,7 @@ const ProjectContext = React.createClass({
     Reflux.connect(MemberListStore, 'memberList'),
     Reflux.listenTo(TeamStore, 'onTeamChange'),
     Reflux.listenTo(ProjectStore, 'onProjectChange'),
-    OrganizationState
+    OrganizationState,
   ],
 
   getInitialState() {
@@ -54,14 +54,14 @@ const ProjectContext = React.createClass({
       memberList: [],
       project: null,
       team: null,
-      projectNavSection: null
+      projectNavSection: null,
     };
   },
 
   getChildContext() {
     return {
       project: this.state.project,
-      team: this.state.team
+      team: this.state.team,
     };
   },
 
@@ -112,7 +112,7 @@ const ProjectContext = React.createClass({
     if (!itemIds.has(this.state.team.id)) return;
 
     this.setState({
-      team: {...TeamStore.getById(this.state.team.id)}
+      team: {...TeamStore.getById(this.state.team.id)},
     });
   },
 
@@ -121,7 +121,7 @@ const ProjectContext = React.createClass({
     if (!projectIds.has(this.state.project.id)) return;
 
     this.setState({
-      project: {...ProjectStore.getById(this.state.project.id)}
+      project: {...ProjectStore.getById(this.state.project.id)},
     });
   },
 
@@ -152,7 +152,7 @@ const ProjectContext = React.createClass({
       loading: true,
       // we bind project initially, but it'll rebind
       project: activeProject,
-      team: activeTeam
+      team: activeTeam,
     });
 
     if (activeProject && hasAccess) {
@@ -163,7 +163,7 @@ const ProjectContext = React.createClass({
             project: data,
             team: data.team,
             error: false,
-            errorType: null
+            errorType: null,
           });
         },
         error: error => {
@@ -171,37 +171,37 @@ const ProjectContext = React.createClass({
           this.setState({
             loading: false,
             error: false,
-            errorType: ERROR_TYPES.UNKNOWN
+            errorType: ERROR_TYPES.UNKNOWN,
           });
-        }
+        },
       });
       // TODO(dcramer): move member list to organization level
       this.api.request(this.getMemberListEndpoint(), {
         success: data => {
           MemberListStore.loadInitialData(data.filter(m => m.user).map(m => m.user));
-        }
+        },
       });
 
       this.api.request(this.getEnvironmentListEndpoint(), {
         success: data => {
           EnvironmentStore.loadInitialData(data);
-        }
+        },
       });
 
       this.setState({
-        loading: false
+        loading: false,
       });
     } else if (activeTeam && activeTeam.isMember) {
       this.setState({
         loading: false,
         error: true,
-        errorType: ERROR_TYPES.MISSING_MEMBERSHIP
+        errorType: ERROR_TYPES.MISSING_MEMBERSHIP,
       });
     } else {
       this.setState({
         loading: false,
         error: true,
-        errorType: ERROR_TYPES.PROJECT_NOT_FOUND
+        errorType: ERROR_TYPES.PROJECT_NOT_FOUND,
       });
     }
   },
@@ -218,7 +218,7 @@ const ProjectContext = React.createClass({
 
   setProjectNavSection(section) {
     this.setState({
-      projectNavSection: section
+      projectNavSection: section,
     });
   },
 
@@ -258,7 +258,7 @@ const ProjectContext = React.createClass({
         {this.renderBody()}
       </DocumentTitle>
     );
-  }
+  },
 });
 
 export default ProjectContext;

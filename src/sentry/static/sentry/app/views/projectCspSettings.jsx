@@ -10,7 +10,7 @@ const ProjectCspSettingsForm = React.createClass({
   propTypes: {
     orgId: React.PropTypes.string.isRequired,
     projectId: React.PropTypes.string.isRequired,
-    initialData: React.PropTypes.object.isRequired
+    initialData: React.PropTypes.object.isRequired,
   },
 
   mixins: [ApiMixin],
@@ -25,7 +25,7 @@ const ProjectCspSettingsForm = React.createClass({
     }
     return {
       formData: formData,
-      errors: {}
+      errors: {},
     };
   },
 
@@ -33,7 +33,7 @@ const ProjectCspSettingsForm = React.createClass({
     let formData = this.state.formData;
     formData[name] = value;
     this.setState({
-      formData: formData
+      formData: formData,
     });
   },
 
@@ -45,7 +45,7 @@ const ProjectCspSettingsForm = React.createClass({
     }
     this.setState(
       {
-        state: FormState.SAVING
+        state: FormState.SAVING,
       },
       () => {
         let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
@@ -56,18 +56,18 @@ const ProjectCspSettingsForm = React.createClass({
           success: data => {
             this.setState({
               state: FormState.READY,
-              errors: {}
+              errors: {},
             });
           },
           error: error => {
             this.setState({
               state: FormState.ERROR,
-              errors: error.responseJSON
+              errors: error.responseJSON,
             });
           },
           complete: () => {
             IndicatorStore.remove(loadingIndicator);
-          }
+          },
         });
       }
     );
@@ -118,12 +118,12 @@ const ProjectCspSettingsForm = React.createClass({
         </fieldset>
       </form>
     );
-  }
+  },
 });
 
 const ProjectCspSettings = React.createClass({
   propTypes: {
-    setProjectNavSection: React.PropTypes.func
+    setProjectNavSection: React.PropTypes.func,
   },
 
   mixins: [ApiMixin],
@@ -134,7 +134,7 @@ const ProjectCspSettings = React.createClass({
       expected: 2,
       error: false,
       keyList: [],
-      projectOptions: {}
+      projectOptions: {},
     };
   },
 
@@ -167,7 +167,7 @@ const ProjectCspSettings = React.createClass({
         this.setState({
           expected: expected,
           loading: expected > 0,
-          keyList: data
+          keyList: data,
         });
       },
       error: () => {
@@ -175,9 +175,9 @@ const ProjectCspSettings = React.createClass({
         this.setState({
           expected: expected,
           error: true,
-          loading: expected > 0
+          loading: expected > 0,
         });
-      }
+      },
     });
 
     this.api.request(`/projects/${orgId}/${projectId}/`, {
@@ -186,7 +186,7 @@ const ProjectCspSettings = React.createClass({
         this.setState({
           expected: expected,
           loading: expected > 0,
-          projectOptions: data.options
+          projectOptions: data.options,
         });
       },
       error: () => {
@@ -194,9 +194,9 @@ const ProjectCspSettings = React.createClass({
         this.setState({
           expected: expected,
           error: true,
-          loading: expected > 0
+          loading: expected > 0,
         });
-      }
+      },
     });
   },
 
@@ -251,23 +251,31 @@ const ProjectCspSettings = React.createClass({
     // TODO(dcramer): localize when language is final
     return (
       <div>
-        <h1>{t('CSP Reports')}</h1>
+        <h1>
+          {t('CSP Reports')}
+        </h1>
 
         <div className="alert alert-block alert-info">
-          Psst! This feature is still a work-in-progress. Thanks for being an early adopter!
+          Psst! This feature is still a work-in-progress. Thanks for being an early
+          adopter!
         </div>
 
         <p>
           <a href="https://en.wikipedia.org/wiki/Content_Security_Policy">
             Content Security Policy
-          </a>
-          {' '}
-          (CSP) is a security standard which helps prevent cross-site scripting (XSS), clickjacking and other code injection attacks resulting from execution of malicious content in the trusted web page context. It's enforced by browser vendors, and Sentry supports capturing CSP violations using the standard reporting hooks.
+          </a>{' '}
+          (CSP) is a security standard which helps prevent cross-site scripting (XSS),
+          clickjacking and other code injection attacks resulting from execution of
+          malicious content in the trusted web page context. It's enforced by browser
+          vendors, and Sentry supports capturing CSP violations using the standard
+          reporting hooks.
         </p>
 
         <div className="box">
           <div className="box-header">
-            <h3>{t('Settings')}</h3>
+            <h3>
+              {t('Settings')}
+            </h3>
           </div>
           <div className="box-content with-padding">
             <ProjectCspSettingsForm
@@ -280,33 +288,39 @@ const ProjectCspSettings = React.createClass({
 
         <div className="box">
           <div className="box-header">
-            <h3>{t('Integration')}</h3>
+            <h3>
+              {t('Integration')}
+            </h3>
           </div>
 
           <div className="box-content with-padding">
             <p>
-              To configure
-              {' '}
-              <acronym title="Content Security Policy">CSP</acronym>
-              {' '}
-              reports in Sentry, you'll need to send a header from your server describing your policy, as well specifying the authenticated Sentry endpoint.
+              To configure <acronym title="Content Security Policy">CSP</acronym> reports
+              in Sentry, you'll need to send a header from your server describing your
+              policy, as well specifying the authenticated Sentry endpoint.
             </p>
 
             <p>
               For example, in Python you might achieve this via a simple web middleware:
             </p>
 
-            <pre>{this.getInstructions()}</pre>
+            <pre>
+              {this.getInstructions()}
+            </pre>
 
             <p>
-              Alternatively you can setup CSP reports to simply send reports rather than actually enforcing the policy:
+              Alternatively you can setup CSP reports to simply send reports rather than
+              actually enforcing the policy:
             </p>
 
-            <pre>{this.getReportOnlyInstructions()}</pre>
+            <pre>
+              {this.getReportOnlyInstructions()}
+            </pre>
 
             <p>
-              We recommend setting this up to only run on a percentage of requests, as otherwise you may find that you've quickly exhausted your quota. For more information, take a look at
-              {' '}
+              We recommend setting this up to only run on a percentage of requests, as
+              otherwise you may find that you've quickly exhausted your quota. For more
+              information, take a look at{' '}
               <a href="http://www.html5rocks.com/en/tutorials/security/content-security-policy/">
                 the article on html5rocks.com
               </a>
@@ -316,7 +330,7 @@ const ProjectCspSettings = React.createClass({
         </div>
       </div>
     );
-  }
+  },
 });
 
 export default ProjectCspSettings;

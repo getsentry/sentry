@@ -8,7 +8,7 @@ describe('DropdownLink', function() {
     onOpen: () => {},
     onClose: () => {},
     topLevelClasses: 'React.PropTypes.string',
-    menuClasses: ''
+    menuClasses: '',
   };
 
   describe('componentWillUnmount()', function() {

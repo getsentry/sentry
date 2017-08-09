@@ -10,7 +10,7 @@ const CONTEXT_TYPES = {
   device: require('./contexts/device').default,
   os: require('./contexts/os').default,
   runtime: require('./contexts/runtime').default,
-  user: require('./contexts/user').default
+  user: require('./contexts/user').default,
 };
 
 function getContextComponent(type) {
@@ -35,12 +35,12 @@ const ContextChunk = React.createClass({
     group: React.PropTypes.object.isRequired,
     type: React.PropTypes.string.isRequired,
     alias: React.PropTypes.string.isRequired,
-    value: React.PropTypes.object.isRequired
+    value: React.PropTypes.object.isRequired,
   },
 
   getInitialState() {
     return {
-      isLoading: false
+      isLoading: false,
     };
   },
 
@@ -58,12 +58,12 @@ const ContextChunk = React.createClass({
     let sourcePlugin = getSourcePlugin(this.props.group.pluginContexts, this.props.type);
     if (!sourcePlugin) {
       this.setState({
-        pluginLoading: false
+        pluginLoading: false,
       });
     } else {
       this.setState(
         {
-          pluginLoading: true
+          pluginLoading: true,
         },
         () => {
           plugins.load(sourcePlugin, () => {
@@ -91,7 +91,11 @@ const ContextChunk = React.createClass({
     return (
       <span>
         {title + ' '}
-        {alias !== type ? <small>({alias})</small> : null}
+        {alias !== type
+          ? <small>
+              ({alias})
+            </small>
+          : null}
       </span>
     );
   },
@@ -122,13 +126,13 @@ const ContextChunk = React.createClass({
         <Component alias={alias} data={value} />
       </GroupEventDataSection>
     );
-  }
+  },
 });
 
 const ContextsInterface = React.createClass({
   propTypes: {
     event: React.PropTypes.object.isRequired,
-    group: React.PropTypes.object.isRequired
+    group: React.PropTypes.object.isRequired,
   },
 
   render() {
@@ -163,8 +167,12 @@ const ContextsInterface = React.createClass({
       );
     }
 
-    return <div>{children}</div>;
-  }
+    return (
+      <div>
+        {children}
+      </div>
+    );
+  },
 });
 
 export default ContextsInterface;

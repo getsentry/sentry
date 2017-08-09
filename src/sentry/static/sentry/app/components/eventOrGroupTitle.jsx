@@ -7,8 +7,8 @@ const EventOrGroupTitle = React.createClass({
       type: PropTypes.oneOf(['error', 'csp', 'default']).isRequired,
       title: PropTypes.string,
       metadata: Metadata.isRequired,
-      culprit: PropTypes.string
-    })
+      culprit: PropTypes.string,
+    }),
   },
 
   render() {
@@ -29,13 +29,22 @@ const EventOrGroupTitle = React.createClass({
     if (subtitle) {
       return (
         <span>
-          <span style={{marginRight: 10}}>{title}</span>
-          <em>{subtitle}</em><br />
+          <span style={{marginRight: 10}}>
+            {title}
+          </span>
+          <em>
+            {subtitle}
+          </em>
+          <br />
         </span>
       );
     }
-    return <span>{title}</span>;
-  }
+    return (
+      <span>
+        {title}
+      </span>
+    );
+  },
 });
 
 export default EventOrGroupTitle;

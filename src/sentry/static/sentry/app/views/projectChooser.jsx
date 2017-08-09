@@ -47,7 +47,9 @@ const ProjectChooser = React.createClass({
         <div className="box" key={i}>
           <div key={team.id}>
             <div className="box-header" key={team.id}>
-              <h3>{team.name}</h3>
+              <h3>
+                {team.name}
+              </h3>
             </div>
             <div className="box-content">
               <table className="table">
@@ -63,13 +65,15 @@ const ProjectChooser = React.createClass({
 
     return (
       <div className="container">
-        <h3>{t('Choose a project')}</h3>
+        <h3>
+          {t('Choose a project')}
+        </h3>
         <div className="team-list">
           {teamProjectList}
         </div>
       </div>
     );
-  }
+  },
 });
 
 export default ProjectChooser;

@@ -5,11 +5,17 @@ import SummaryLine from './summaryLine';
 
 const ErrorRenderer = React.createClass({
   propTypes: {
-    crumb: React.PropTypes.object.isRequired
+    crumb: React.PropTypes.object.isRequired,
   },
 
   renderUrl(url) {
-    return url.match(/^https?:\/\//) ? <a href={url}>{url}</a> : <em>{url}</em>;
+    return url.match(/^https?:\/\//)
+      ? <a href={url}>
+          {url}
+        </a>
+      : <em>
+          {url}
+        </em>;
   },
 
   render() {
@@ -28,7 +34,10 @@ const ErrorRenderer = React.createClass({
       <SummaryLine crumb={crumb}>
         <pre>
           <code>
-            {type && <strong>{type}: </strong>}
+            {type &&
+              <strong>
+                {type}:{' '}
+              </strong>}
             {messages.join('. ')}
           </code>
         </pre>
@@ -36,7 +45,7 @@ const ErrorRenderer = React.createClass({
     );
 
     return <CrumbTable title="Error" summary={summary} kvData={extra} {...this.props} />;
-  }
+  },
 });
 
 export default ErrorRenderer;

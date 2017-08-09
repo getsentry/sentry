@@ -12,7 +12,7 @@ const Footer = React.createClass({
     });
 
     return {
-      hooks: hooks
+      hooks: hooks,
     };
   },
 
@@ -22,8 +22,12 @@ const Footer = React.createClass({
       <footer>
         <div className="container">
           <div className="pull-right">
-            <a className="hidden-xs" href="/api/">{t('API')}</a>
-            <a href="/docs/">{t('Docs')}</a>
+            <a className="hidden-xs" href="/api/">
+              {t('API')}
+            </a>
+            <a href="/docs/">
+              {t('Docs')}
+            </a>
             <a
               className="hidden-xs"
               href="https://github.com/getsentry/sentry"
@@ -31,7 +35,9 @@ const Footer = React.createClass({
               {t('Contribute')}
             </a>
             {config.isOnPremise &&
-              <a className="hidden-xs" href="/out/">{t('Migrate to SaaS')}</a>}
+              <a className="hidden-xs" href="/out/">
+                {t('Migrate to SaaS')}
+              </a>}
           </div>
           <div className="version pull-left">
             {'Sentry'} {config.version.current}
@@ -41,7 +47,7 @@ const Footer = React.createClass({
         </div>
       </footer>
     );
-  }
+  },
 });
 
 export default Footer;

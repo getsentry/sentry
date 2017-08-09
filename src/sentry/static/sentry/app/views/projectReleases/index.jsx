@@ -14,14 +14,14 @@ import ReleaseList from './releaseList';
 const ProjectReleases = React.createClass({
   propTypes: {
     defaultQuery: React.PropTypes.string,
-    setProjectNavSection: React.PropTypes.func
+    setProjectNavSection: React.PropTypes.func,
   },
 
   mixins: [ApiMixin],
 
   getDefaultProps() {
     return {
-      defaultQuery: ''
+      defaultQuery: '',
     };
   },
 
@@ -33,7 +33,7 @@ const ProjectReleases = React.createClass({
       loading: true,
       error: false,
       query: queryParams.query || this.props.defaultQuery,
-      pageLinks: ''
+      pageLinks: '',
     };
   },
 
@@ -47,7 +47,7 @@ const ProjectReleases = React.createClass({
       let queryParams = nextProps.location.query;
       this.setState(
         {
-          query: queryParams.query
+          query: queryParams.query,
         },
         this.fetchData
       );
@@ -65,7 +65,7 @@ const ProjectReleases = React.createClass({
   fetchData() {
     this.setState({
       loading: true,
-      error: false
+      error: false,
     });
 
     this.api.request(this.getProjectReleasesEndpoint(), {
@@ -74,15 +74,15 @@ const ProjectReleases = React.createClass({
           error: false,
           loading: false,
           releaseList: data,
-          pageLinks: jqXHR.getResponseHeader('Link')
+          pageLinks: jqXHR.getResponseHeader('Link'),
         });
       },
       error: () => {
         this.setState({
           error: true,
-          loading: false
+          loading: false,
         });
-      }
+      },
     });
   },
 
@@ -91,7 +91,7 @@ const ProjectReleases = React.createClass({
     let queryParams = {
       ...this.props.location.query,
       per_page: 20,
-      query: this.state.query
+      query: this.state.query,
     };
 
     return (
@@ -144,7 +144,9 @@ const ProjectReleases = React.createClass({
     return (
       <div className="box empty-stream">
         <span className="icon icon-exclamation" />
-        <p>{t('Sorry, no releases match your filters.')}</p>
+        <p>
+          {t('Sorry, no releases match your filters.')}
+        </p>
       </div>
     );
   },
@@ -153,7 +155,9 @@ const ProjectReleases = React.createClass({
     return (
       <div className="box empty-stream">
         <span className="icon icon-exclamation" />
-        <p>{t("There don't seem to be any releases yet.")}</p>
+        <p>
+          {t("There don't seem to be any releases yet.")}
+        </p>
         <p>
           <a href={this.getReleaseTrackingUrl()}>
             {t('Learn how to integrate Release Tracking')}
@@ -168,7 +172,9 @@ const ProjectReleases = React.createClass({
       <div>
         <div className="row release-list-header">
           <div className="col-sm-7">
-            <h3>{t('Releases')}</h3>
+            <h3>
+              {t('Releases')}
+            </h3>
           </div>
           <div className="col-sm-5 release-search">
             <SearchBar
@@ -182,7 +188,9 @@ const ProjectReleases = React.createClass({
         <div className="panel panel-default">
           <div className="panel-heading panel-heading-bold">
             <div className="row">
-              <div className="col-sm-8 col-xs-7">{t('Version')}</div>
+              <div className="col-sm-8 col-xs-7">
+                {t('Version')}
+              </div>
               <div className="col-sm-2 col-xs-3">
                 {t('New Issues')}
               </div>
@@ -196,7 +204,7 @@ const ProjectReleases = React.createClass({
         <Pagination pageLinks={this.state.pageLinks} />
       </div>
     );
-  }
+  },
 });
 
 export default ProjectReleases;

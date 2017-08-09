@@ -10,7 +10,7 @@ const MessageInterface = React.createClass({
     group: PropTypes.Group.isRequired,
     event: PropTypes.Event.isRequired,
     type: React.PropTypes.string.isRequired,
-    data: React.PropTypes.object.isRequired
+    data: React.PropTypes.object.isRequired,
   },
 
   render() {
@@ -26,18 +26,22 @@ const MessageInterface = React.createClass({
           dangerouslySetInnerHTML={{
             __html: utils.nl2br(
               utils.urlize(utils.escape(data.formatted || data.message))
-            )
+            ),
           }}
         />
         {data.params &&
           !data.formatted &&
           <div>
-            <h5>{t('Params')}</h5>
-            <pre className="plain">{JSON.stringify(data.params, null, 2)}</pre>
+            <h5>
+              {t('Params')}
+            </h5>
+            <pre className="plain">
+              {JSON.stringify(data.params, null, 2)}
+            </pre>
           </div>}
       </EventDataSection>
     );
-  }
+  },
 });
 
 export default MessageInterface;

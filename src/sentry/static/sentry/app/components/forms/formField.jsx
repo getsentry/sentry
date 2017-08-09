@@ -17,23 +17,23 @@ export default class FormField extends React.Component {
     // the following should only be used without form context
     onChange: React.PropTypes.func,
     error: React.PropTypes.string,
-    value: React.PropTypes.any
+    value: React.PropTypes.any,
   };
 
   static defaultProps = {
     disabled: false,
-    required: false
+    required: false,
   };
 
   static contextTypes = {
-    form: React.PropTypes.object
+    form: React.PropTypes.object,
   };
 
   constructor(props, context) {
     super(props);
 
     this.state = {
-      value: this.getValue(props, context)
+      value: this.getValue(props, context),
     };
   }
 
@@ -84,7 +84,7 @@ export default class FormField extends React.Component {
     let form = (this.context || {}).form;
     this.setState(
       {
-        value: value
+        value: value,
       },
       () => {
         this.props.onChange && this.props.onChange(this.coerceValue(this.state.value));
@@ -119,8 +119,14 @@ export default class FormField extends React.Component {
             <span className="disabled-indicator tip" title={this.props.disabledReason}>
               <span className="icon-question" />
             </span>}
-          {defined(this.props.help) && <p className="help-block">{this.props.help}</p>}
-          {error && <p className="error">{error}</p>}
+          {defined(this.props.help) &&
+            <p className="help-block">
+              {this.props.help}
+            </p>}
+          {error &&
+            <p className="error">
+              {error}
+            </p>}
         </div>
       </div>
     );

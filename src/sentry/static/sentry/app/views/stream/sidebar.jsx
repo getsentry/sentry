@@ -16,14 +16,14 @@ const StreamSidebar = React.createClass({
     query: React.PropTypes.string,
     onQueryChange: React.PropTypes.func.isRequired,
     defaultQuery: React.PropTypes.string,
-    loading: React.PropTypes.bool
+    loading: React.PropTypes.bool,
   },
 
   getDefaultProps() {
     return {
       tags: {},
       query: '',
-      onQueryChange: function() {}
+      onQueryChange: function() {},
     };
   },
 
@@ -31,7 +31,7 @@ const StreamSidebar = React.createClass({
     let queryObj = queryToObj(this.props.query);
     return {
       queryObj: queryObj,
-      textFilter: queryObj.__text
+      textFilter: queryObj.__text,
     };
   },
 
@@ -44,7 +44,7 @@ const StreamSidebar = React.createClass({
       let queryObj = queryToObj(nextProps.query);
       this.setState({
         queryObj: queryObj,
-        textFilter: queryObj.__text
+        textFilter: queryObj.__text,
       });
     }
   },
@@ -56,7 +56,7 @@ const StreamSidebar = React.createClass({
 
     this.setState(
       {
-        queryObj: newQuery
+        queryObj: newQuery,
       },
       this.onQueryChange
     );
@@ -69,7 +69,7 @@ const StreamSidebar = React.createClass({
   debouncedTextChange: _.debounce(function(text) {
     this.setState(
       {
-        queryObj: {...this.state.queryObj, __text: text}
+        queryObj: {...this.state.queryObj, __text: text},
       },
       this.onQueryChange
     );
@@ -80,12 +80,12 @@ const StreamSidebar = React.createClass({
 
     let newQueryObj = {
       ...this.state.queryObj,
-      __text: this.state.textFilter
+      __text: this.state.textFilter,
     };
 
     this.setState(
       {
-        queryObj: newQueryObj
+        queryObj: newQueryObj,
       },
       this.onQueryChange
     );
@@ -99,7 +99,7 @@ const StreamSidebar = React.createClass({
   onClearSearch() {
     this.setState(
       {
-        textFilter: ''
+        textFilter: '',
       },
       this.onTextFilterSubmit
     );
@@ -112,7 +112,9 @@ const StreamSidebar = React.createClass({
           ? <LoadingIndicator />
           : <div>
               <div className="stream-tag-filter">
-                <h6 className="nav-header">{t('Text')}</h6>
+                <h6 className="nav-header">
+                  {t('Text')}
+                </h6>
                 <form onSubmit={this.onTextFilterSubmit}>
                   <input
                     className="form-control"
@@ -143,7 +145,7 @@ const StreamSidebar = React.createClass({
             </div>}
       </div>
     );
-  }
+  },
 });
 
 export default StreamSidebar;

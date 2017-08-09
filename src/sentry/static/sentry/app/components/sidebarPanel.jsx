@@ -5,7 +5,7 @@ const SidebarPanel = React.createClass({
   propTypes: {
     title: React.PropTypes.string,
     items: React.PropTypes.array,
-    hidePanel: React.PropTypes.func
+    hidePanel: React.PropTypes.func,
   },
 
   render() {
@@ -15,7 +15,9 @@ const SidebarPanel = React.createClass({
           <a className="close pull-right" onClick={this.props.hidePanel}>
             <span className="icon-close" />
           </a>
-          <h2>{this.props.title}</h2>
+          <h2>
+            {this.props.title}
+          </h2>
         </div>
         <div className="sidebar-panel-body">
           {!this.props.children &&
@@ -26,7 +28,7 @@ const SidebarPanel = React.createClass({
         </div>
       </div>
     );
-  }
+  },
 });
 
 export default SidebarPanel;

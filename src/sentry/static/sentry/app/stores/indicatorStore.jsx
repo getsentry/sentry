@@ -13,7 +13,7 @@ const IndicatorStore = Reflux.createStore({
       id: this.lastId++,
       message: message,
       type: type,
-      options: options
+      options: options,
     };
 
     if (options.duration) {
@@ -31,7 +31,7 @@ const IndicatorStore = Reflux.createStore({
       return item !== indicator;
     });
     this.trigger(this.items);
-  }
+  },
 });
 
 export default IndicatorStore;

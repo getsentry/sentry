@@ -7,7 +7,7 @@ const GroupEventDetailsLoadingError = ({onRetry}) => {
   const reasons = [
     t('The events are still processing and are on their way'),
     t('The events have been deleted'),
-    t('There is an internal systems error or active issue')
+    t('There is an internal systems error or active issue'),
   ];
 
   return (
@@ -17,13 +17,15 @@ const GroupEventDetailsLoadingError = ({onRetry}) => {
       heading={t('Sorry, the events for this issue could not be found.')}
       message={
         <div>
-          <p>{t('This could be due to a handful of reasons:')}</p>
+          <p>
+            {t('This could be due to a handful of reasons:')}
+          </p>
           <ol className="detailed-error-list">
-            {reasons.map((reason, i) => (
+            {reasons.map((reason, i) =>
               <li key={i}>
                 {reason}
               </li>
-            ))}
+            )}
           </ol>
         </div>
       }
@@ -32,7 +34,7 @@ const GroupEventDetailsLoadingError = ({onRetry}) => {
 };
 
 GroupEventDetailsLoadingError.propTypes = {
-  onRetry: PropTypes.func
+  onRetry: PropTypes.func,
 };
 
 export default GroupEventDetailsLoadingError;

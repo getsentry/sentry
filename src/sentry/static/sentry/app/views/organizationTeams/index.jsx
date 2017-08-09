@@ -21,7 +21,7 @@ const OrganizationTeams = React.createClass({
       teamList: sortArray(TeamStore.getAll(), function(o) {
         return o.name;
       }),
-      projectStats: {}
+      projectStats: {},
     };
   },
 
@@ -35,8 +35,8 @@ const OrganizationTeams = React.createClass({
       query: {
         since: new Date().getTime() / 1000 - 3600 * 24,
         stat: 'generated',
-        group: 'project'
-      }
+        group: 'project',
+      },
     });
   },
 
@@ -46,7 +46,7 @@ const OrganizationTeams = React.createClass({
     this.setState({
       teamList: sortArray(newTeamList, function(o) {
         return o.name;
-      })
+      }),
     });
   },
 
@@ -70,8 +70,7 @@ const OrganizationTeams = React.createClass({
                   {t('Your Teams')}
                 </ListLink>
                 <ListLink to={`/organizations/${org.slug}/all-teams/`}>
-                  {t('All Teams')}
-                  {' '}
+                  {t('All Teams')}{' '}
                   <span className="badge badge-soft">{allTeams.length}</span>
                 </ListLink>
               </ul>
@@ -80,8 +79,8 @@ const OrganizationTeams = React.createClass({
                     organization: org,
                     teamList: allTeams,
                     access: access,
-                    openMembership: features.has('open-membership') ||
-                      access.has('org:write')
+                    openMembership:
+                      features.has('open-membership') || access.has('org:write'),
                   })
                 : <ExpandedTeamList
                     organization={org}
@@ -99,7 +98,7 @@ const OrganizationTeams = React.createClass({
         </div>
       </OrganizationHomeContainer>
     );
-  }
+  },
 });
 
 export default OrganizationTeams;

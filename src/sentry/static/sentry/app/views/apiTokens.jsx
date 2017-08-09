@@ -13,14 +13,14 @@ import {t, tct} from '../locale';
 const ApiTokenRow = React.createClass({
   propTypes: {
     token: React.PropTypes.object.isRequired,
-    onRemove: React.PropTypes.func.isRequired
+    onRemove: React.PropTypes.func.isRequired,
   },
 
   mixins: [ApiMixin],
 
   getInitialState() {
     return {
-      loading: false
+      loading: false,
     };
   },
 
@@ -31,7 +31,7 @@ const ApiTokenRow = React.createClass({
 
     this.setState(
       {
-        loading: true
+        loading: true,
       },
       () => {
         let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
@@ -45,7 +45,7 @@ const ApiTokenRow = React.createClass({
           error: () => {
             IndicatorStore.remove(loadingIndicator);
             IndicatorStore.add(t('Unable to remove token. Please try again.'), 'error');
-          }
+          },
         });
       }
     );
@@ -61,13 +61,21 @@ const ApiTokenRow = React.createClass({
       <tr>
         <td>
           <div style={{marginBottom: 5}}>
-            <small><AutoSelectText>{token.token}</AutoSelectText></small>
+            <small>
+              <AutoSelectText>
+                {token.token}
+              </AutoSelectText>
+            </small>
           </div>
           <div style={{marginBottom: 5}}>
-            <small>Created <DateTime date={token.dateCreated} /></small>
+            <small>
+              Created <DateTime date={token.dateCreated} />
+            </small>
           </div>
           <div>
-            <small style={{color: '#999'}}>{token.scopes.join(', ')}</small>
+            <small style={{color: '#999'}}>
+              {token.scopes.join(', ')}
+            </small>
           </div>
         </td>
         <td style={{width: 32}}>
@@ -80,7 +88,7 @@ const ApiTokenRow = React.createClass({
         </td>
       </tr>
     );
-  }
+  },
 });
 
 const ApiTokens = React.createClass({
@@ -90,7 +98,7 @@ const ApiTokens = React.createClass({
     return {
       loading: true,
       error: false,
-      tokenList: []
+      tokenList: [],
     };
   },
 
@@ -104,7 +112,7 @@ const ApiTokens = React.createClass({
 
   fetchData() {
     this.setState({
-      loading: true
+      loading: true,
     });
 
     this.api.request('/api-tokens/', {
@@ -112,21 +120,21 @@ const ApiTokens = React.createClass({
         this.setState({
           loading: false,
           error: false,
-          tokenList: data
+          tokenList: data,
         });
       },
       error: () => {
         this.setState({
           loading: false,
-          error: true
+          error: true,
         });
-      }
+      },
     });
   },
 
   onRemoveToken(token) {
     this.setState({
-      tokenList: this.state.tokenList.filter(tk => tk.token !== token.token)
+      tokenList: this.state.tokenList.filter(tk => tk.token !== token.token),
     });
   },
 
@@ -183,20 +191,15 @@ const ApiTokens = React.createClass({
             {tct(
               'For more information on how to use the web API, see our [link:documentation].',
               {
-                link: <a href="https://docs.sentry.io/hosted/api/" />
+                link: <a href="https://docs.sentry.io/hosted/api/" />,
               }
             )}
           </p>
 
           <p>
             <small>
-              psst. Looking for the
-              {' '}
-              <strong>DSN</strong>
-              {' '}
-              for an SDK? You'll find that under
-              {' '}
-              <strong>[Project] » Settings » Client Keys</strong>
+              psst. Looking for the <strong>DSN</strong> for an SDK? You'll find that
+              under <strong>[Project] » Settings » Client Keys</strong>
               .
             </small>
           </p>
@@ -204,8 +207,8 @@ const ApiTokens = React.createClass({
           {this.state.loading
             ? <LoadingIndicator />
             : this.state.error
-                ? <LoadingError onRetry={this.fetchData} />
-                : this.renderResults()}
+              ? <LoadingError onRetry={this.fetchData} />
+              : this.renderResults()}
 
           <div className="form-actions" style={{textAlign: 'right'}}>
             <Link to="/api/new-token/" className="btn btn-primary ref-create-token">
@@ -215,7 +218,7 @@ const ApiTokens = React.createClass({
         </div>
       </DocumentTitle>
     );
-  }
+  },
 });
 
 export default ApiTokens;

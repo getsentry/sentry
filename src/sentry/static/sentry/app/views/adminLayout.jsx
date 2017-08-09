@@ -16,7 +16,7 @@ export default React.createClass({
     });
 
     return {
-      hooksManage: hooksManage
+      hooksManage: hooksManage,
     };
   },
 
@@ -35,14 +35,28 @@ export default React.createClass({
                 <div className="col-md-2">
                   <h6 className="nav-header">System</h6>
                   <ul className="nav nav-stacked">
-                    <ListLink index={true} to="/manage/">Overview</ListLink>
-                    <ListLink index={true} to="/manage/buffer/">Buffer</ListLink>
-                    <ListLink index={true} to="/manage/queue/">Queue</ListLink>
-                    <li><a href="/manage/status/environment/">Environment</a></li>
-                    <li><a href="/manage/status/packages/">Packages</a></li>
-                    <li><a href="/manage/status/mail/">Mail</a></li>
+                    <ListLink index={true} to="/manage/">
+                      Overview
+                    </ListLink>
+                    <ListLink index={true} to="/manage/buffer/">
+                      Buffer
+                    </ListLink>
+                    <ListLink index={true} to="/manage/queue/">
+                      Queue
+                    </ListLink>
+                    <li>
+                      <a href="/manage/status/environment/">Environment</a>
+                    </li>
+                    <li>
+                      <a href="/manage/status/packages/">Packages</a>
+                    </li>
+                    <li>
+                      <a href="/manage/status/mail/">Mail</a>
+                    </li>
                     <ListLink to="/manage/settings/">Settings</ListLink>
-                    <li><a href="/manage/status/warnings/">Warnings</a></li>
+                    <li>
+                      <a href="/manage/status/warnings/">Warnings</a>
+                    </li>
                   </ul>
 
                   <h6 className="nav-header">Manage</h6>
@@ -63,5 +77,5 @@ export default React.createClass({
         </div>
       </DocumentTitle>
     );
-  }
+  },
 });

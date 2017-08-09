@@ -7,14 +7,14 @@ describe('ProgressNodes', function() {
   describe('render()', function() {
     const baseProps = {
       params: {
-        projectId: ''
-      }
+        projectId: '',
+      },
     };
 
     const baseContext = {
       context: {
-        organization: {id: '1337', slug: 'testOrg'}
-      }
+        organization: {id: '1337', slug: 'testOrg'},
+      },
     };
 
     it('should render step 0 if no projectId', function() {
@@ -35,8 +35,8 @@ describe('ProgressNodes', function() {
       let props = {
         ...baseProps,
         params: {
-          projectId: 'my-cool-project'
-        }
+          projectId: 'my-cool-project',
+        },
       };
 
       let wrapper = shallow(<ProgressNodes {...props} />, baseContext);

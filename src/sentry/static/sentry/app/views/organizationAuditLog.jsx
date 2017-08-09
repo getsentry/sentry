@@ -45,7 +45,7 @@ const EVENT_TYPES = [
   'sso-identity.link',
   'api-key.create',
   'api-key.edit',
-  'api-key.remove'
+  'api-key.remove',
 ].sort();
 
 const OrganizationAuditLog = React.createClass({
@@ -55,7 +55,7 @@ const OrganizationAuditLog = React.createClass({
     return {
       loading: true,
       error: false,
-      entryList: []
+      entryList: [],
     };
   },
 
@@ -78,7 +78,7 @@ const OrganizationAuditLog = React.createClass({
 
   fetchData() {
     this.setState({
-      loading: true
+      loading: true,
     });
 
     this.api.request(this.getEndpoint(), {
@@ -88,15 +88,15 @@ const OrganizationAuditLog = React.createClass({
           loading: false,
           error: false,
           entryList: data,
-          pageLinks: jqXHR.getResponseHeader('Link')
+          pageLinks: jqXHR.getResponseHeader('Link'),
         });
       },
       error: () => {
         this.setState({
           loading: false,
-          error: true
+          error: true,
         });
-      }
+      },
     });
   },
 
@@ -115,14 +115,20 @@ const OrganizationAuditLog = React.createClass({
       return;
     }
     let queryParams = {
-      event: value
+      event: value,
     };
     browserHistory.pushState(null, this.props.location.pathname, queryParams);
   },
 
   renderResults() {
     if (this.state.entryList.length === 0) {
-      return <tr><td colSpan="4">{t('No results found.')}</td></tr>;
+      return (
+        <tr>
+          <td colSpan="4">
+            {t('No results found.')}
+          </td>
+        </tr>
+      );
     }
 
     return this.state.entryList.map(entry => {
@@ -130,11 +136,17 @@ const OrganizationAuditLog = React.createClass({
         <tr key={entry.id}>
           <td className="table-user-info">
             {entry.actor.email && <Avatar user={entry.actor} />}
-            <h5>{entry.actor.name}</h5>
+            <h5>
+              {entry.actor.name}
+            </h5>
             {entry.note}
           </td>
-          <td>{entry.event}</td>
-          <td>{entry.ipAddress}</td>
+          <td>
+            {entry.event}
+          </td>
+          <td>
+            {entry.ipAddress}
+          </td>
           <td>
             <DateTime date={entry.dateCreated} />
           </td>
@@ -149,7 +161,9 @@ const OrganizationAuditLog = React.createClass({
     return (
       <DocumentTitle title={this.getTitle()}>
         <OrganizationHomeContainer>
-          <h3>{t('Audit Log')}</h3>
+          <h3>
+            {t('Audit Log')}
+          </h3>
 
           <div className="pull-right">
             <form className="form-horizontal" style={{marginBottom: 20}}>
@@ -160,9 +174,15 @@ const OrganizationAuditLog = React.createClass({
                     onChange={this.onEventSelect}
                     value={currentEventType}
                     style={{width: 250}}>
-                    <option key="any" value="">{t('Any')}</option>
+                    <option key="any" value="">
+                      {t('Any')}
+                    </option>
                     {EVENT_TYPES.map(eventType => {
-                      return <option key={eventType}>{eventType}</option>;
+                      return (
+                        <option key={eventType}>
+                          {eventType}
+                        </option>
+                      );
                     })}
                   </SelectInput>
                 </div>
@@ -170,26 +190,42 @@ const OrganizationAuditLog = React.createClass({
             </form>
           </div>
 
-          <p>{t('Sentry keeps track of important events within your organization.')}</p>
+          <p>
+            {t('Sentry keeps track of important events within your organization.')}
+          </p>
 
           <div className="panel panel-default horizontal-scroll c-b">
             <table className="table">
               <thead>
                 <tr>
-                  <th>{t('Member')}</th>
-                  <th>{t('Action')}</th>
-                  <th>{t('IP')}</th>
-                  <th>{t('Time')}</th>
+                  <th>
+                    {t('Member')}
+                  </th>
+                  <th>
+                    {t('Action')}
+                  </th>
+                  <th>
+                    {t('IP')}
+                  </th>
+                  <th>
+                    {t('Time')}
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 {this.state.loading
-                  ? <tr><td colSpan="4"><LoadingIndicator /></td></tr>
+                  ? <tr>
+                      <td colSpan="4">
+                        <LoadingIndicator />
+                      </td>
+                    </tr>
                   : this.state.error
-                      ? <tr>
-                          <td colSpan="4"><LoadingError onRetry={this.fetchData} /></td>
-                        </tr>
-                      : this.renderResults()}
+                    ? <tr>
+                        <td colSpan="4">
+                          <LoadingError onRetry={this.fetchData} />
+                        </td>
+                      </tr>
+                    : this.renderResults()}
               </tbody>
             </table>
           </div>
@@ -198,7 +234,7 @@ const OrganizationAuditLog = React.createClass({
         </OrganizationHomeContainer>
       </DocumentTitle>
     );
-  }
+  },
 });
 
 export default OrganizationAuditLog;

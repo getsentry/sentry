@@ -12,18 +12,18 @@ const DropdownLink = React.createClass({
     onOpen: React.PropTypes.func,
     onClose: React.PropTypes.func,
     topLevelClasses: React.PropTypes.string,
-    menuClasses: React.PropTypes.string
+    menuClasses: React.PropTypes.string,
   },
 
   getDefaultProps() {
     return {
       disabled: false,
-      caret: true
+      caret: true,
     };
   },
   getInitialState() {
     return {
-      isOpen: false
+      isOpen: false,
     };
   },
 
@@ -32,7 +32,7 @@ const DropdownLink = React.createClass({
     jQuery(this.refs.dropdownToggle.parentNode)
       .on('shown.bs.dropdown', e => {
         this.setState({
-          isOpen: true
+          isOpen: true,
         });
         this.props.onOpen && this.props.onOpen(e);
       })
@@ -42,7 +42,7 @@ const DropdownLink = React.createClass({
             return;
           }
           this.setState({
-            isOpen: false
+            isOpen: false,
           });
           this.props.onClose && this.props.onClose(e);
         });
@@ -60,12 +60,12 @@ const DropdownLink = React.createClass({
   render() {
     let className = classNames({
       'dropdown-toggle': true,
-      disabled: this.props.disabled
+      disabled: this.props.disabled,
     });
 
     let topLevelClasses = classNames({
       dropdown: true,
-      open: this.state.isOpen
+      open: this.state.isOpen,
     });
 
     return (
@@ -82,7 +82,7 @@ const DropdownLink = React.createClass({
         </ul>
       </span>
     );
-  }
+  },
 });
 
 export default DropdownLink;

@@ -30,7 +30,7 @@ describe('KeyValueList', function() {
     it('should use a single space for values that are an empty string', function() {
       let data = [
         ['b', 'y'],
-        ['a', ''] // empty string
+        ['a', ''], // empty string
       ];
       let wrapper = shallow(<KeyValueList data={data} />);
 

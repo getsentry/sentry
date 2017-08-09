@@ -24,7 +24,7 @@ const NoteInput = React.createClass({
     group: React.PropTypes.object.isRequired,
     onFinish: React.PropTypes.func,
     memberList: React.PropTypes.array.isRequired,
-    sessionUser: React.PropTypes.object.isRequired
+    sessionUser: React.PropTypes.object.isRequired,
   },
 
   mixins: [PureRenderMixin, ApiMixin],
@@ -39,7 +39,7 @@ const NoteInput = React.createClass({
       .map(member => ({
         id: member.id,
         display: member.name,
-        email: member.email
+        email: member.email,
       }));
 
     if (updating) {
@@ -63,7 +63,7 @@ const NoteInput = React.createClass({
       updating: updating,
       value: defaultText,
       mentionsList: mentionsList,
-      mentions: []
+      mentions: [],
     };
   },
 
@@ -80,7 +80,7 @@ const NoteInput = React.createClass({
         localStorageKey,
         JSON.stringify({
           groupId: this.props.group.id,
-          value: nextState.value
+          value: nextState.value,
         })
       );
     } catch (ex) {
@@ -105,7 +105,7 @@ const NoteInput = React.createClass({
     this.setState({
       loading: true,
       error: false,
-      errorJSON: null
+      errorJSON: null,
     });
 
     if (this.state.updating) {
@@ -125,14 +125,14 @@ const NoteInput = React.createClass({
       method: 'POST',
       data: {
         text: this.state.value,
-        mentions: mentions
+        mentions: mentions,
       },
       error: error => {
         this.setState({
           loading: false,
           preview: false,
           error: true,
-          errorJSON: error.responseJSON || makeDefaultErrorJson()
+          errorJSON: error.responseJSON || makeDefaultErrorJson(),
         });
       },
       success: data => {
@@ -141,14 +141,14 @@ const NoteInput = React.createClass({
           preview: false,
           expanded: false,
           loading: false,
-          mentions: []
+          mentions: [],
         });
         GroupStore.addActivity(group.id, data);
         this.finish();
       },
       complete: () => {
         IndicatorStore.remove(loadingIndicator);
-      }
+      },
     });
   },
 
@@ -160,14 +160,14 @@ const NoteInput = React.createClass({
     this.api.request('/issues/' + group.id + '/comments/' + item.id + '/', {
       method: 'PUT',
       data: {
-        text: this.state.value
+        text: this.state.value,
       },
       error: error => {
         this.setState({
           loading: false,
           preview: false,
           error: true,
-          errorJSON: error.responseJSON || makeDefaultErrorJson()
+          errorJSON: error.responseJSON || makeDefaultErrorJson(),
         });
         IndicatorStore.remove(loadingIndicator);
       },
@@ -175,12 +175,12 @@ const NoteInput = React.createClass({
         this.setState({
           preview: false,
           expanded: false,
-          loading: false
+          loading: false,
         });
         GroupStore.updateActivity(group.id, item.id, {text: this.state.value});
         IndicatorStore.remove(loadingIndicator);
         this.finish();
-      }
+      },
     });
   },
 
@@ -258,10 +258,13 @@ const NoteInput = React.createClass({
               </a>
             </li>
             <li className={preview ? 'active' : ''}>
-              <a onClick={this.togglePreview}>{t('Preview')}</a>
+              <a onClick={this.togglePreview}>
+                {t('Preview')}
+              </a>
             </li>
             <li className="markdown">
-              <span className="icon-markdown" /><span className="supported">
+              <span className="icon-markdown" />
+              <span className="supported">
                 {t('Markdown supported')}
               </span>
             </li>
@@ -292,7 +295,9 @@ const NoteInput = React.createClass({
           <div className="activity-actions">
             {errorJSON &&
               errorJSON.detail &&
-              <small className="error">{errorJSON.detail}</small>}
+              <small className="error">
+                {errorJSON.detail}
+              </small>}
             <button className="btn btn-default" type="submit" disabled={loading}>
               {btnText}
             </button>
@@ -304,7 +309,7 @@ const NoteInput = React.createClass({
         </div>
       </form>
     );
-  }
+  },
 });
 
 export default NoteInput;

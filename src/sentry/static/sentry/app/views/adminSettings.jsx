@@ -15,7 +15,7 @@ const optionsAvailable = [
   'auth.allow-registration',
   'auth.ip-rate-limit',
   'auth.user-rate-limit',
-  'api.rate-limit.org-create'
+  'api.rate-limit.org-create',
 ];
 
 export default class AdminSettings extends AsyncView {
@@ -42,7 +42,9 @@ export default class AdminSettings extends AsyncView {
 
     return (
       <div>
-        <h3>{t('Settings')}</h3>
+        <h3>
+          {t('Settings')}
+        </h3>
 
         <ApiForm
           apiMethod="PUT"

@@ -31,7 +31,7 @@ function getProjectInfoForReview(org) {
         requiresReview: false,
         canReview: canReview,
         teamName: team.name,
-        callSign: project.callSign || null
+        callSign: project.callSign || null,
       });
     }
   }
@@ -42,7 +42,7 @@ function getProjectInfoForReview(org) {
     projects: memberProjects.concat(nonMemberProjects),
     requiresReview: requiresReview,
     canReviewAnything: canReviewAnything,
-    hasNonMemberProjects: nonMemberProjects.length > 0
+    hasNonMemberProjects: nonMemberProjects.length > 0,
   };
 }
 
@@ -53,7 +53,7 @@ const SetCallsignsAction = React.createClass({
     return {
       isLoading: true,
       info: {},
-      slugs: {}
+      slugs: {},
     };
   },
 
@@ -63,7 +63,7 @@ const SetCallsignsAction = React.createClass({
 
   onSubmit(event) {
     this.setState({
-      isLoading: true
+      isLoading: true,
     });
 
     let orgId = this.getOrganization().slug;
@@ -81,17 +81,17 @@ const SetCallsignsAction = React.createClass({
       },
       complete: () => {
         this.setState({
-          isLoading: false
+          isLoading: false,
         });
-      }
+      },
     });
   },
 
   onSetShortName(projectId, event) {
     this.setState({
       slugs: update(this.state.slugs, {
-        [projectId]: {$set: event.target.value.toUpperCase().trim()}
-      })
+        [projectId]: {$set: event.target.value.toUpperCase().trim()},
+      }),
     });
   },
 
@@ -105,7 +105,7 @@ const SetCallsignsAction = React.createClass({
     this.setState({
       info: info,
       slugs: slugs,
-      isLoading: false
+      isLoading: false,
     });
   },
 
@@ -138,7 +138,9 @@ const SetCallsignsAction = React.createClass({
 
     return (
       <ActionOverlay actionId="SET_CALLSIGNS" isLoading={this.state.isLoading}>
-        <h1>{t('Review Call Signs for Projects')}</h1>
+        <h1>
+          {t('Review Call Signs for Projects')}
+        </h1>
         <p>
           {t(
             'Sentry now requires you to specify a call sign (short name) for each project in the organization “%s”. These short names are used to identify the project in the issue IDs.  Ideally they are two or three letter long.',
@@ -146,9 +148,13 @@ const SetCallsignsAction = React.createClass({
           )}
         </p>
         {info.hasNonMemberProjects
-          ? <p>{t('Projects of teams you are not a member of are not shown.')}</p>
+          ? <p>
+              {t('Projects of teams you are not a member of are not shown.')}
+            </p>
           : null}
-        <p>{t('Projects which have been previously reviewed are shown in green.')}</p>
+        <p>
+          {t('Projects which have been previously reviewed are shown in green.')}
+        </p>
         <form className="form-horizontal">
           {info.memberProjects.map(project => {
             let inputId = 'input-' + project.projectId;
@@ -197,7 +203,7 @@ const SetCallsignsAction = React.createClass({
         </form>
       </ActionOverlay>
     );
-  }
+  },
 });
 
 SetCallsignsAction.requiresAction = function(org) {

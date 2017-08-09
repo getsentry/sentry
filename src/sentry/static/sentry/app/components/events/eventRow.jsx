@@ -8,19 +8,19 @@ const EventRow = React.createClass({
   propTypes: {
     id: React.PropTypes.string.isRequired,
     orgSlug: React.PropTypes.string.isRequired,
-    projectSlug: React.PropTypes.string.isRequired
+    projectSlug: React.PropTypes.string.isRequired,
   },
 
   getInitialState() {
     return {
-      event: EventStore.get(this.props.id)
+      event: EventStore.get(this.props.id),
     };
   },
 
   componentWillReceiveProps(nextProps) {
     if (nextProps.id != this.props.id) {
       this.setState({
-        event: EventStore.get(this.props.id)
+        event: EventStore.get(this.props.id),
       });
     }
   },
@@ -31,7 +31,8 @@ const EventRow = React.createClass({
 
   render() {
     let event = this.state.event;
-    let eventLink = `/${this.props.orgSlug}/${this.props.projectSlug}/issues/${event.groupID}/events/${event.id}/`;
+    let eventLink = `/${this.props.orgSlug}/${this.props
+      .projectSlug}/issues/${event.groupID}/events/${event.id}/`;
 
     let tagList = [];
     for (let key in event.tags) {
@@ -42,11 +43,17 @@ const EventRow = React.createClass({
       <tr>
         <td>
           <h5>
-            <Router.Link to={eventLink}>{event.message}</Router.Link>
+            <Router.Link to={eventLink}>
+              {event.message}
+            </Router.Link>
           </h5>
           <small className="tagList">
             {tagList.map(tag => {
-              return <span key={tag[0]}>{tag[0]} = {tag[1]} </span>;
+              return (
+                <span key={tag[0]}>
+                  {tag[0]} = {tag[1]}{' '}
+                </span>
+              );
             })}
           </small>
         </td>
@@ -63,7 +70,7 @@ const EventRow = React.createClass({
         </td>
       </tr>
     );
-  }
+  },
 });
 
 export default EventRow;

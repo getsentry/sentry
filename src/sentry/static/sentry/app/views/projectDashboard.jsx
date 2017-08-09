@@ -15,21 +15,21 @@ const PERIODS = new Set([PERIOD_HOUR, PERIOD_DAY, PERIOD_WEEK]);
 const ProjectDashboard = React.createClass({
   propTypes: {
     defaultStatsPeriod: React.PropTypes.string,
-    setProjectNavSection: React.PropTypes.func
+    setProjectNavSection: React.PropTypes.func,
   },
 
   mixins: [ProjectState],
 
   getDefaultProps() {
     return {
-      defaultStatsPeriod: PERIOD_DAY
+      defaultStatsPeriod: PERIOD_DAY,
     };
   },
 
   getInitialState() {
     return {
       statsPeriod: this.props.defaultStatsPeriod,
-      ...this.getQueryStringState()
+      ...this.getQueryStringState(),
     };
   },
 
@@ -51,7 +51,7 @@ const ProjectDashboard = React.createClass({
     }
 
     return {
-      statsPeriod: statsPeriod
+      statsPeriod: statsPeriod,
     };
   },
 
@@ -85,7 +85,7 @@ const ProjectDashboard = React.createClass({
     let qs = jQuery.param({
       sort: 'priority',
       query: 'is:unresolved',
-      since: dateSince
+      since: dateSince,
     });
     return '/projects/' + params.orgId + '/' + params.projectId + '/issues/?' + qs;
   },
@@ -95,7 +95,7 @@ const ProjectDashboard = React.createClass({
     let qs = jQuery.param({
       sort: 'new',
       query: 'is:unresolved',
-      since: dateSince
+      since: dateSince,
     });
     return '/projects/' + params.orgId + '/' + params.projectId + '/issues/?' + qs;
   },
@@ -116,18 +116,18 @@ const ProjectDashboard = React.createClass({
               <Link
                 to={{
                   pathname: url,
-                  query: {...routeQuery, statsPeriod: PERIOD_HOUR}
+                  query: {...routeQuery, statsPeriod: PERIOD_HOUR},
                 }}
                 className={
                   'btn btn-sm btn-default' +
-                    (statsPeriod === PERIOD_HOUR ? ' active' : '')
+                  (statsPeriod === PERIOD_HOUR ? ' active' : '')
                 }>
                 {t('1 hour')}
               </Link>
               <Link
                 to={{
                   pathname: url,
-                  query: {...routeQuery, statsPeriod: PERIOD_DAY}
+                  query: {...routeQuery, statsPeriod: PERIOD_DAY},
                 }}
                 className={
                   'btn btn-sm btn-default' + (statsPeriod === PERIOD_DAY ? ' active' : '')
@@ -137,17 +137,19 @@ const ProjectDashboard = React.createClass({
               <Link
                 to={{
                   pathname: url,
-                  query: {...routeQuery, statsPeriod: PERIOD_WEEK}
+                  query: {...routeQuery, statsPeriod: PERIOD_WEEK},
                 }}
                 className={
                   'btn btn-sm btn-default' +
-                    (statsPeriod === PERIOD_WEEK ? ' active' : '')
+                  (statsPeriod === PERIOD_WEEK ? ' active' : '')
                 }>
                 {t('1 week')}
               </Link>
             </div>
           </div>
-          <h3>{t('Overview')}</h3>
+          <h3>
+            {t('Overview')}
+          </h3>
         </div>
         <ProjectChart dateSince={dateSince} resolution={resolution} />
         <div className="row">
@@ -166,7 +168,7 @@ const ProjectDashboard = React.createClass({
         </div>
       </div>
     );
-  }
+  },
 });
 
 export default ProjectDashboard;

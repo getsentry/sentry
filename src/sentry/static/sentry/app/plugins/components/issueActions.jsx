@@ -26,7 +26,7 @@ class IssueActions extends PluginComponentBase {
         : FormState.READY,
       error: null,
       createFormData: {},
-      linkFormData: {}
+      linkFormData: {},
     });
   }
 
@@ -79,7 +79,7 @@ class IssueActions extends PluginComponentBase {
 
   errorHandler(error) {
     let state = {
-      loading: false
+      loading: false,
     };
     if (error.status === 400 && error.responseJSON) {
       state.error = error.responseJSON;
@@ -102,12 +102,12 @@ class IssueActions extends PluginComponentBase {
               createFieldList: data,
               error: null,
               loading: false,
-              createFormData: createFormData
+              createFormData: createFormData,
             },
             this.onLoadSuccess
           );
         },
-        error: this.errorHandler
+        error: this.errorHandler,
       });
     } else if (this.props.actionType === 'link') {
       this.api.request(this.getPluginLinkEndpoint(), {
@@ -121,12 +121,12 @@ class IssueActions extends PluginComponentBase {
               linkFieldList: data,
               error: null,
               loading: false,
-              linkFormData: linkFormData
+              linkFormData: linkFormData,
             },
             this.onLoadSuccess
           );
         },
-        error: this.errorHandler
+        error: this.errorHandler,
       });
     }
   }
@@ -143,7 +143,7 @@ class IssueActions extends PluginComponentBase {
       error: this.onSaveError.bind(this, error => {
         this.setError(error, t('There was an error creating the issue.'));
       }),
-      complete: this.onSaveComplete
+      complete: this.onSaveComplete,
     });
   }
 
@@ -154,7 +154,7 @@ class IssueActions extends PluginComponentBase {
       error: this.onSaveError.bind(this, error => {
         this.setError(error, t('There was an error linking the issue.'));
       }),
-      complete: this.onSaveComplete
+      complete: this.onSaveComplete,
     });
   }
 
@@ -164,7 +164,7 @@ class IssueActions extends PluginComponentBase {
       error: this.onSaveError.bind(this, error => {
         this.setError(error, t('There was an error unlinking the issue.'));
       }),
-      complete: this.onSaveComplete
+      complete: this.onSaveComplete,
     });
   }
 
@@ -191,11 +191,12 @@ class IssueActions extends PluginComponentBase {
                 if (field.has_autocomplete) {
                   field = Object.assign(
                     {
-                      url: '/api/0/issues/' +
+                      url:
+                        '/api/0/issues/' +
                         this.getGroup().id +
                         '/plugins/' +
                         this.props.plugin.slug +
-                        '/autocomplete'
+                        '/autocomplete',
                     },
                     field
                   );
@@ -205,7 +206,7 @@ class IssueActions extends PluginComponentBase {
                     {this.renderField({
                       config: field,
                       formData: this.state.createFormData,
-                      onChange: this.changeField.bind(this, 'create', field.name)
+                      onChange: this.changeField.bind(this, 'create', field.name),
                     })}
                   </div>
                 );
@@ -222,11 +223,12 @@ class IssueActions extends PluginComponentBase {
                 if (field.has_autocomplete) {
                   field = Object.assign(
                     {
-                      url: '/api/0/issues/' +
+                      url:
+                        '/api/0/issues/' +
                         this.getGroup().id +
                         '/plugins/' +
                         this.props.plugin.slug +
-                        '/autocomplete'
+                        '/autocomplete',
                     },
                     field
                   );
@@ -236,7 +238,7 @@ class IssueActions extends PluginComponentBase {
                     {this.renderField({
                       config: field,
                       formData: this.state.linkFormData,
-                      onChange: this.changeField.bind(this, 'link', field.name)
+                      onChange: this.changeField.bind(this, 'link', field.name),
                     })}
                   </div>
                 );
@@ -248,7 +250,9 @@ class IssueActions extends PluginComponentBase {
       case 'unlink':
         form = (
           <div>
-            <p>{t('Are you sure you want to unlink this issue?')}</p>
+            <p>
+              {t('Are you sure you want to unlink this issue?')}
+            </p>
             <button onClick={this.unlinkIssue} className="btn btn-danger">
               {t('Unlink Issue')}
             </button>
@@ -301,29 +305,39 @@ class IssueActions extends PluginComponentBase {
                   {
                     'Your server administrator will need to configure authentication with '
                   }
-                  <strong>{error.auth_provider}</strong>
+                  <strong>
+                    {error.auth_provider}
+                  </strong>
                   {' before you can use this plugin.'}
                 </p>
                 <p>The following settings must be configured:</p>
                 <ul>
                   {error.required_auth_settings.map((setting, i) => {
-                    return <li key={i}><code>{setting}</code></li>;
+                    return (
+                      <li key={i}>
+                        <code>
+                          {setting}
+                        </code>
+                      </li>
+                    );
                   })}
                 </ul>
               </div>
             : <p>
-                You still need to
-                {' '}
-                <a href={this.getPluginConfigureUrl()}>configure this plugin</a>
-                {' '}
-                before you can use it.
+                You still need to{' '}
+                <a href={this.getPluginConfigureUrl()}>configure this plugin</a> before
+                you can use it.
               </p>}
         </div>
       );
     } else if (error.error_type === 'validation') {
       let errors = [];
       for (let name in error.errors) {
-        errors.push(<p key={name}>{error.errors[name]}</p>);
+        errors.push(
+          <p key={name}>
+            {error.errors[name]}
+          </p>
+        );
       }
       return (
         <div className="alert alert-error alert-block">
@@ -333,7 +347,9 @@ class IssueActions extends PluginComponentBase {
     } else if (error.message) {
       return (
         <div className="alert alert-error alert-block">
-          <p>{error.message}</p>
+          <p>
+            {error.message}
+          </p>
         </div>
       );
     }
@@ -356,7 +372,7 @@ class IssueActions extends PluginComponentBase {
 IssueActions.propTypes = {
   plugin: React.PropTypes.object.isRequired,
   actionType: React.PropTypes.oneOf(['unlink', 'link', 'create']).isRequired,
-  onSuccess: React.PropTypes.func
+  onSuccess: React.PropTypes.func,
 };
 
 export default IssueActions;

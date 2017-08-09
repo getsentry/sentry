@@ -29,7 +29,7 @@ const HELP_LINKS = {
   native_missing_dsym: 'https://docs.sentry.io/clients/cocoa/dsym/',
   native_bad_dsym: 'https://docs.sentry.io/clients/cocoa/dsym/',
   native_missing_system_dsym: 'https://docs.sentry.io/server/dsym/',
-  native_missing_symbol: 'https://docs.sentry.io/server/dsym/'
+  native_missing_symbol: 'https://docs.sentry.io/server/dsym/',
 };
 
 const ProjectProcessingIssues = React.createClass({
@@ -42,7 +42,7 @@ const ProjectProcessingIssues = React.createClass({
       reprocessing: false,
       expected: 0,
       error: false,
-      processingIssues: null
+      processingIssues: null,
     };
   },
 
@@ -54,7 +54,7 @@ const ProjectProcessingIssues = React.createClass({
     let formData = this.state.formData;
     formData[name] = !this.state.formData['sentry:reprocessing_active'];
     this.setState({
-      formData: formData
+      formData: formData,
     });
     this.switchReporcessing();
   },
@@ -62,7 +62,7 @@ const ProjectProcessingIssues = React.createClass({
   fetchData() {
     let {orgId, projectId} = this.props.params;
     this.setState({
-      expected: this.state.expected + 2
+      expected: this.state.expected + 2,
     });
     this.api.request(`/projects/${orgId}/${projectId}/`, {
       success: (data, _, jqXHR) => {
@@ -70,7 +70,7 @@ const ProjectProcessingIssues = React.createClass({
         this.setState({
           expected: expected,
           loading: expected > 0,
-          formData: data.options
+          formData: data.options,
         });
       },
       error: () => {
@@ -78,9 +78,9 @@ const ProjectProcessingIssues = React.createClass({
         this.setState({
           expected: expected,
           error: true,
-          loading: expected > 0
+          loading: expected > 0,
         });
-      }
+      },
     });
 
     this.api.request(`/projects/${orgId}/${projectId}/processingissues/?detailed=1`, {
@@ -91,7 +91,7 @@ const ProjectProcessingIssues = React.createClass({
           error: false,
           loading: expected > 0,
           processingIssues: data,
-          pageLinks: jqXHR.getResponseHeader('Link')
+          pageLinks: jqXHR.getResponseHeader('Link'),
         });
       },
       error: () => {
@@ -99,15 +99,15 @@ const ProjectProcessingIssues = React.createClass({
         this.setState({
           expected: expected,
           error: true,
-          loading: expected > 0
+          loading: expected > 0,
         });
-      }
+      },
     });
   },
 
   sendReprocessing() {
     this.setState({
-      reprocessing: true
+      reprocessing: true,
     });
     let loadingIndicator = IndicatorStore.add(t('Started reprocessing..'));
     let {orgId, projectId} = this.props.params;
@@ -116,24 +116,24 @@ const ProjectProcessingIssues = React.createClass({
       success: (data, _, jqXHR) => {
         this.fetchData();
         this.setState({
-          reprocessing: false
+          reprocessing: false,
         });
       },
       error: () => {
         this.setState({
-          reprocessing: false
+          reprocessing: false,
         });
       },
       complete: () => {
         IndicatorStore.remove(loadingIndicator);
-      }
+      },
     });
   },
 
   deleteProcessingIssues() {
     let {orgId, projectId} = this.props.params;
     this.setState({
-      expected: this.state.expected + 1
+      expected: this.state.expected + 1,
     });
     this.api.request(`/projects/${orgId}/${projectId}/processingissues/?detailed=1`, {
       method: 'DELETE',
@@ -142,7 +142,7 @@ const ProjectProcessingIssues = React.createClass({
         this.setState({
           expected: expected,
           error: false,
-          loading: expected > 0
+          loading: expected > 0,
         });
         // we reload to get rid of the badge in the sidebar
         window.location.reload();
@@ -152,9 +152,9 @@ const ProjectProcessingIssues = React.createClass({
         this.setState({
           expected: expected,
           error: true,
-          loading: expected > 0
+          loading: expected > 0,
         });
-      }
+      },
     });
   },
 
@@ -181,7 +181,9 @@ const ProjectProcessingIssues = React.createClass({
     return (
       <div className="box empty-stream">
         <span className="icon icon-exclamation" />
-        <p>{t('Good news! There are no processing issues.')}</p>
+        <p>
+          {t('Good news! There are no processing issues.')}
+        </p>
       </div>
     );
   },
@@ -201,10 +203,11 @@ const ProjectProcessingIssues = React.createClass({
     let helpLink = HELP_LINKS[item.type];
     return (
       <div className="processing-issue">
-        <span className="description">{description}</span>
-        {' '}
+        <span className="description">{description}</span>{' '}
         {helpLink &&
-          <a href={helpLink} className="help-link"><span className="icon-question" /></a>}
+          <a href={helpLink} className="help-link">
+            <span className="icon-question" />
+          </a>}
       </div>
     );
   },
@@ -216,10 +219,18 @@ const ProjectProcessingIssues = React.createClass({
 
     if (item.data._scope === 'native') {
       if (item.data.image_uuid) {
-        dsymUUID = <code className="uuid">{item.data.image_uuid}</code>;
+        dsymUUID = (
+          <code className="uuid">
+            {item.data.image_uuid}
+          </code>
+        );
       }
       if (item.data.image_path) {
-        dsymName = <em>{this.getImageName(item.data.image_path)}</em>;
+        dsymName = (
+          <em>
+            {this.getImageName(item.data.image_path)}
+          </em>
+        );
       }
       if (item.data.image_arch) {
         dsymArch = item.data.image_arch;
@@ -228,9 +239,18 @@ const ProjectProcessingIssues = React.createClass({
 
     return (
       <span>
-        {dsymUUID && <span> {dsymUUID}</span>}
-        {dsymArch && <span> {dsymArch}</span>}
-        {dsymName && <span> (for {dsymName})</span>}
+        {dsymUUID &&
+          <span>
+            {' '}{dsymUUID}
+          </span>}
+        {dsymArch &&
+          <span>
+            {' '}{dsymArch}
+          </span>}
+        {dsymName &&
+          <span>
+            {' '}(for {dsymName})
+          </span>}
       </span>
     );
   },
@@ -265,7 +285,9 @@ const ProjectProcessingIssues = React.createClass({
       fixLinkBlock = (
         <div className="panel panel-info">
           <div className="panel-heading">
-            <h3>{t('Having trouble uploading debug symbols? We can help!')}</h3>
+            <h3>
+              {t('Having trouble uploading debug symbols? We can help!')}
+            </h3>
           </div>
           <div className="panel-body">
             <div className="form-group" style={{marginBottom: 0}}>
@@ -340,7 +362,9 @@ const ProjectProcessingIssues = React.createClass({
     return (
       <div className="box">
         <div className="box-header">
-          <h3>{t('Settings')}</h3>
+          <h3>
+            {t('Settings')}
+          </h3>
         </div>
         <div className="box-content with-padding">
           <div className="row">
@@ -374,7 +398,9 @@ const ProjectProcessingIssues = React.createClass({
           {!access.has('project:write') &&
             <div className="row">
               <div className="col-md-12" style={{marginBottom: 20}}>
-                <strong>{t('Note: ')}</strong>
+                <strong>
+                  {t('Note: ')}
+                </strong>
                 {t('An admin can turn processing on or off')}
               </div>
             </div>}
@@ -389,7 +415,7 @@ const ProjectProcessingIssues = React.createClass({
     }
     this.setState(
       {
-        state: FormState.SAVING
+        state: FormState.SAVING,
       },
       () => {
         let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
@@ -400,19 +426,19 @@ const ProjectProcessingIssues = React.createClass({
           success: data => {
             this.setState({
               state: FormState.READY,
-              errors: {}
+              errors: {},
             });
             this.deleteProcessingIssues();
           },
           error: error => {
             this.setState({
               state: FormState.ERROR,
-              errors: error.responseJSON
+              errors: error.responseJSON,
             });
           },
           complete: () => {
             IndicatorStore.remove(loadingIndicator);
-          }
+          },
         });
       }
     );
@@ -421,7 +447,9 @@ const ProjectProcessingIssues = React.createClass({
   render() {
     return (
       <div>
-        <h1>{t('Processing Issues')}</h1>
+        <h1>
+          {t('Processing Issues')}
+        </h1>
         <p>
           {t(
             `
@@ -438,7 +466,7 @@ const ProjectProcessingIssues = React.createClass({
         {this.renderReprocessingSettings()}
       </div>
     );
-  }
+  },
 });
 
 export default ProjectProcessingIssues;

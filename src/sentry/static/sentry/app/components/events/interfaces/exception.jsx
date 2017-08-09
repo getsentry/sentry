@@ -10,14 +10,14 @@ const ExceptionInterface = React.createClass({
     group: PropTypes.Group.isRequired,
     event: PropTypes.Event.isRequired,
     type: React.PropTypes.string.isRequired,
-    data: React.PropTypes.object.isRequired
+    data: React.PropTypes.object.isRequired,
   },
 
   getInitialState() {
     return {
       stackView: this.props.data.hasSystemFrames ? 'app' : 'full',
       newestFirst: isStacktraceNewestFirst(),
-      stackType: 'original'
+      stackType: 'original',
     };
   },
 
@@ -71,7 +71,7 @@ const ExceptionInterface = React.createClass({
         />
       </GroupEventDataSection>
     );
-  }
+  },
 });
 
 export default ExceptionInterface;

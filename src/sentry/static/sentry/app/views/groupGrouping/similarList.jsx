@@ -12,7 +12,7 @@ const SimilarItemPropType = PropTypes.shape({
   issue: Group,
   score: PropTypes.object,
   avgScore: PropTypes.number,
-  isBelowThreshold: PropTypes.bool
+  isBelowThreshold: PropTypes.bool,
 });
 
 const SimilarList = React.createClass({
@@ -22,12 +22,12 @@ const SimilarList = React.createClass({
     onMerge: PropTypes.func.isRequired,
     pageLinks: PropTypes.string,
     items: PropTypes.arrayOf(SimilarItemPropType),
-    filteredItems: PropTypes.arrayOf(SimilarItemPropType)
+    filteredItems: PropTypes.arrayOf(SimilarItemPropType),
   },
 
   getInitialState() {
     return {
-      showAllItems: false
+      showAllItems: false,
     };
   },
 
@@ -50,28 +50,30 @@ const SimilarList = React.createClass({
     if (hasResults) {
       return (
         <div className="grouping-list-container grouping-similar-list-container">
-          <h2>{t('Similar Issues')}</h2>
+          <h2>
+            {t('Similar Issues')}
+          </h2>
           <SimilarToolbar onMerge={onMerge} />
 
           <div className="grouping-list">
-            {items.map(item => (
+            {items.map(item =>
               <SimilarItem
                 key={item.issue.id}
                 orgId={orgId}
                 projectId={projectId}
                 {...item}
               />
-            ))}
+            )}
 
             {this.state.showAllItems &&
-              filteredItems.map(item => (
+              filteredItems.map(item =>
                 <SimilarItem
                   key={item.issue.id}
                   orgId={orgId}
                   projectId={projectId}
                   {...item}
                 />
-              ))}
+              )}
             {hasHiddenItems &&
               !this.state.showAllItems &&
               <div className="similar-items-footer">
@@ -92,7 +94,7 @@ const SimilarList = React.createClass({
         {this.renderEmpty()}
       </div>
     );
-  }
+  },
 });
 
 export default SimilarList;

@@ -8,14 +8,14 @@ import {t} from '../locale';
 const AuthorizationRow = React.createClass({
   propTypes: {
     authorization: React.PropTypes.object.isRequired,
-    onRevoke: React.PropTypes.func.isRequired
+    onRevoke: React.PropTypes.func.isRequired,
   },
 
   mixins: [ApiMixin],
 
   getInitialState() {
     return {
-      loading: false
+      loading: false,
     };
   },
 
@@ -26,7 +26,7 @@ const AuthorizationRow = React.createClass({
 
     this.setState(
       {
-        loading: true
+        loading: true,
       },
       () => {
         let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
@@ -40,7 +40,7 @@ const AuthorizationRow = React.createClass({
           error: () => {
             IndicatorStore.remove(loadingIndicator);
             IndicatorStore.add(t('Unable to save changes. Please try again.'), 'error');
-          }
+          },
         });
       }
     );
@@ -55,15 +55,21 @@ const AuthorizationRow = React.createClass({
     return (
       <tr>
         <td>
-          <h5 style={{marginBottom: 5}}>{authorization.application.name}</h5>
+          <h5 style={{marginBottom: 5}}>
+            {authorization.application.name}
+          </h5>
           {authorization.homepageUrl &&
             <div style={{marginBottom: 5}}>
               <small>
-                <a href={authorization.homepageUrl}>{authorization.homepageUrl}</a>
+                <a href={authorization.homepageUrl}>
+                  {authorization.homepageUrl}
+                </a>
               </small>
             </div>}
           <div>
-            <small style={{color: '#999'}}>{authorization.scopes.join(', ')}</small>
+            <small style={{color: '#999'}}>
+              {authorization.scopes.join(', ')}
+            </small>
           </div>
         </td>
         <td style={{width: 32}}>
@@ -76,7 +82,7 @@ const AuthorizationRow = React.createClass({
         </td>
       </tr>
     );
-  }
+  },
 });
 
 class AccountAuthorizations extends AsyncView {
@@ -90,7 +96,7 @@ class AccountAuthorizations extends AsyncView {
 
   onRevoke(authorization) {
     this.setState({
-      data: this.state.data.filter(a => a.id !== authorization.id)
+      data: this.state.data.filter(a => a.id !== authorization.id),
     });
   }
 
@@ -136,9 +142,7 @@ class AccountAuthorizations extends AsyncView {
         {this.renderResults()}
         <p>
           <small>
-            You can manage your own applications via the
-            {' '}
-            <a href="/api/">API dashboard</a>
+            You can manage your own applications via the <a href="/api/">API dashboard</a>
             .
           </small>
         </p>

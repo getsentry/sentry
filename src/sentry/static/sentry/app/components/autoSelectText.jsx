@@ -34,7 +34,7 @@ const AutoSelectText = React.createClass({
         {this.props.children}
       </div>
     );
-  }
+  },
 });
 
 export default AutoSelectText;

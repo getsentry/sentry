@@ -8,20 +8,20 @@ const LinkWithConfirmation = React.createClass({
     disabled: React.PropTypes.bool,
     message: React.PropTypes.string.isRequired,
     title: React.PropTypes.string.isRequired,
-    onConfirm: React.PropTypes.func.isRequired
+    onConfirm: React.PropTypes.func.isRequired,
   },
 
   mixins: [PureRenderMixin],
 
   getInitialState() {
     return {
-      isModalOpen: false
+      isModalOpen: false,
     };
   },
 
   onConfirm() {
     this.setState({
-      isModalOpen: false
+      isModalOpen: false,
     });
 
     this.props.onConfirm();
@@ -32,7 +32,7 @@ const LinkWithConfirmation = React.createClass({
       return;
     }
     this.setState({
-      isModalOpen: !this.state.isModalOpen
+      isModalOpen: !this.state.isModalOpen,
     });
   },
 
@@ -54,7 +54,11 @@ const LinkWithConfirmation = React.createClass({
           animation={false}
           onHide={this.onToggle}>
           <div className="modal-body">
-            <p><strong>{this.props.message}</strong></p>
+            <p>
+              <strong>
+                {this.props.message}
+              </strong>
+            </p>
           </div>
           <div className="modal-footer">
             <button type="button" className="btn btn-default" onClick={this.onToggle}>
@@ -67,7 +71,7 @@ const LinkWithConfirmation = React.createClass({
         </Modal>
       </a>
     );
-  }
+  },
 });
 
 export default LinkWithConfirmation;

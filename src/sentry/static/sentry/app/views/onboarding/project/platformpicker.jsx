@@ -11,13 +11,13 @@ const categoryList = Object.keys(categoryLists).concat('All');
 const PlatformPicker = React.createClass({
   propTypes: {
     setPlatform: React.PropTypes.func.isRequired,
-    platform: React.PropTypes.string
+    platform: React.PropTypes.string,
   },
 
   getInitialState() {
     return {
       tab: categoryList[0],
-      filter: ''
+      filter: '',
     };
   },
 
@@ -53,7 +53,7 @@ const PlatformPicker = React.createClass({
             <PlatformCard
               platform={platform.id}
               className={classnames({
-                selected: this.props.platform === platform.id
+                selected: this.props.platform === platform.id,
               })}
               key={platform.id}
               onClick={() => {
@@ -100,7 +100,7 @@ const PlatformPicker = React.createClass({
         {this.renderPlatformList()}
       </div>
     );
-  }
+  },
 });
 
 export default PlatformPicker;
