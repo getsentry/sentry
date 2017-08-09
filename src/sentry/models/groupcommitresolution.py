@@ -12,7 +12,7 @@ class GroupCommitResolution(Model):
     __core__ = False
 
     group_id = BoundedPositiveIntegerField()
-    commit_id = BoundedPositiveIntegerField()
+    commit_id = BoundedPositiveIntegerField(db_index=True)
     datetime = models.DateTimeField(default=timezone.now, db_index=True)
 
     class Meta:
