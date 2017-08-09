@@ -80,7 +80,9 @@ const SuggestedOwners = React.createClass({
     }
   },
 
-  renderCommitter({author, commits}) {
+  renderCommitter(commiter) {
+    let {author, commits} = commiter;
+
     return (
       <span
         key={author.id || author.email}
