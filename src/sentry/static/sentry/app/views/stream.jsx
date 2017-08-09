@@ -644,7 +644,7 @@ const Stream = React.createClass({
       sampleLink = (
         <p>
           <Link to={`/${org.slug}/${project.slug}/issues/${sampleIssueId}/?sample`}>
-            {tct('Or see your sample event')}
+            {t('Or see your sample event')}
           </Link>
         </p>
       );
