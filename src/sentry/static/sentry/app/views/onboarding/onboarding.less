@@ -1,24 +1,23 @@
 @onboarding-sidebar-width: 300px;
 
 .onboarding-container {
-
   margin-left: @onboarding-sidebar-width - @sidebar-width;
 
   max-width: 800px + @onboarding-sidebar-width;
 
-  @media(max-width: @screen-sm-max) {
-      margin-left: 0;
+  @media (max-width: @screen-sm-max) {
+    margin-left: 0;
   }
 
-  .step-container{
+  .step-container {
     padding: 0 40px;
   }
 
   // Awaiting event
 
   .awaiting-event {
-    background: rgba(255,255,255, .90);
-    box-shadow: 0 -1px 0 rgba(0,0,0, .1);
+    background: rgba(255, 255, 255, .90);
+    box-shadow: 0 -1px 0 rgba(0, 0, 0, .1);
     padding: 20px 0;
     position: sticky;
     bottom: 0;
@@ -50,37 +49,36 @@
     background: url(../../../images/sentry-robot.png);
     background-size: cover;
 
-  .eye {
-    display: block;
-    .square(4px);
-    border-radius: 6px;
-    position: absolute;
-    top: 21px;
-    left: 26px;
+    .eye {
+      display: block;
+      .square(4px);
+      border-radius: 6px;
+      position: absolute;
+      top: 21px;
+      left: 26px;
 
       -webkit-animation: blink-eye .6s infinite;
-      -moz-animation:    blink-eye .6s infinite;
-      -o-animation:      blink-eye .6s infinite;
-      animation:         blink-eye .6s infinite;
+      -moz-animation: blink-eye .6s infinite;
+      -o-animation: blink-eye .6s infinite;
+      animation: blink-eye .6s infinite;
     }
   }
 
-  .onboarding-sidebar{
+  .onboarding-sidebar {
     width: 300px;
     height: 100%;
     position: fixed;
     z-index: 10000;
     top: 0;
-    left:0;
+    left: 0;
     color: whitesmoke;
     background: url(../../../images/sentry-pattern-dark.png);
-    background-color: #3B3247;
+    background-color: #3b3247;
     background-size: 400px;
 
-    @media(max-width: @screen-sm-max) {
+    @media (max-width: @screen-sm-max) {
       display: none;
     }
-
 
     .sentry-flag {
       font-size: 24px;
@@ -91,8 +89,8 @@
       padding: 14px 20px 11px;
     }
 
-    .progress-nodes{
-      div.node{
+    .progress-nodes {
+      div.node {
         width: 190px;
         margin: auto;
         margin-bottom: 30px;
@@ -102,20 +100,20 @@
         padding-left: 26px;
         border-color: @50;
         line-height: 1.2;
-        text-shadow: 0 2px 5px rgba(0,0,0, .2);
+        text-shadow: 0 2px 5px rgba(0, 0, 0, .2);
 
-        &.active{
+        &.active {
           color: white;
           font-weight: 600;
 
-            &::before{
+          &::before {
             border-color: white;
           }
         }
 
         span.node {
-          &::before{
-            content:'';
+          &::before {
+            content: '';
             position: absolute;
             left: -10px;
             border-radius: 100%;
@@ -125,8 +123,8 @@
             border: 3px solid;
           }
 
-          &.done{
-            &::before{
+          &.done {
+            &::before {
               font-size: 14px;
               content: '●';
               text-align: center;
@@ -143,23 +141,25 @@
       text-align: center;
       width: 100%;
       padding: 20px;
-      p,a {
-        margin:0;
+      p,
+      a {
+        margin: 0;
         color: @40;
       }
 
-       &:hover p,a{
-        color:@30;
+      &:hover p,
+      a {
+        color: @30;
       }
     }
   }
 
-  .platformicon-stack{
+  .platformicon-stack {
     background-color: white;
     position: absolute;
   }
 
-  .platform-picker{
+  .platform-picker {
     .nav-tabs {
       border-bottom: 1px solid @trim;
       margin: 0 0 15px;
@@ -171,7 +171,7 @@
       position: relative;
       top: -4px;
 
-      @media(max-width: @screen-sm-max) {
+      @media (max-width: @screen-sm-max) {
         display: none;
       }
 
@@ -193,7 +193,7 @@
         color: @50;
       }
     }
-    .platform-tiles{
+    .platform-tiles {
       margin: auto;
       display: flex;
       flex-wrap: wrap;
@@ -207,7 +207,7 @@
         cursor: pointer;
         border-radius: 4px;
 
-        @media(max-width: @screen-sm-max) {
+        @media (max-width: @screen-sm-max) {
           width: 70px;
         }
 
@@ -217,13 +217,13 @@
 
         &.selected {
           background: darken(@alert-info-bg-color, 2);
-      }
+        }
       }
 
       &.client-platform-list li {
         margin: 0 auto;
       }
-      &.client-platform-list.shade{
+      &.client-platform-list.shade {
         background-color: @40;
         filter: brightness(0.4);
       }
@@ -238,15 +238,15 @@
     }
   }
 
-  .project-name{
+  .project-name {
     background: #fff;
-    box-shadow: 0 -1px 0 rgba(0,0,0, .1);
+    box-shadow: 0 -1px 0 rgba(0, 0, 0, .1);
     padding: 20px 0;
     position: sticky;
     bottom: 0;
     .clearfix;
 
-    .platform-tile{
+    .platform-tile {
       display: inline-block;
       vertical-align: middle;
     }
@@ -258,7 +258,7 @@
       width: 300px;
       float: left;
 
-      &.required{
+      &.required {
         border: 1px #e03e2f solid;
       }
 

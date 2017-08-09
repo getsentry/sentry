@@ -32,7 +32,8 @@
     }
   }
 
-  .box, .issue-list {
+  .box,
+  .issue-list {
     margin-bottom: 25px;
   }
 
@@ -107,7 +108,7 @@
         padding: 6px 12px;
         border: 1px solid @trim;
         border-radius: 3px;
-        box-shadow: 0 1px 1px rgba(0,0,0, .04);
+        box-shadow: 0 1px 1px rgba(0, 0, 0, .04);
         position: relative;
         overflow: hidden;
 
@@ -460,7 +461,6 @@ table.project-list {
   padding-bottom: 20px;
 }
 
-
 .api-key-detail .scopes,
 .control-group .control-list {
   .clearfix();
@@ -483,10 +483,10 @@ table.project-list {
     }
   }
 
-  .checkbox, .checkbox + .checkbox {
+  .checkbox,
+  .checkbox + .checkbox {
     margin: 0 0 15px;
   }
-
 }
 
 /**
@@ -508,13 +508,11 @@ table.project-list {
   }
 
   .member-role-highlight {
-
     td {
       background-color: @alert-info-bg-color;
     }
   }
 }
-
 
 /**
 * Stats Column
@@ -538,94 +536,103 @@ table.project-list {
  * ============================================================================
  */
 
- .onboarding-wrapper {
-   ul {
-     li {
-       position: relative;
-       padding: 15px 20px 15px 75px;
-       line-height: 1.2;
-       cursor: pointer;
-       border-bottom: 1px solid @trim;
-       background: #fff;
-       box-shadow: 0 1px 2px rgba(0,0,0, .06);
-       font-size: 14px;
+.onboarding-wrapper {
+  ul {
+    li {
+      position: relative;
+      padding: 15px 20px 15px 75px;
+      line-height: 1.2;
+      cursor: pointer;
+      border-bottom: 1px solid @trim;
+      background: #fff;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, .06);
+      font-size: 14px;
 
-       h4 {
-         font-size: 16px;
-         margin-bottom: 5px;
-         .culprit {
-           font-weight: normal;
-         }
-       }
-       a {
-         color: @link-color;
+      h4 {
+        font-size: 16px;
+        margin-bottom: 5px;
+        .culprit {
+          font-weight: normal;
+        }
+      }
+      a {
+        color: @link-color;
 
-         &:hover {
-           color: @link-color-hover;
-         }
-       }
+        &:hover {
+          color: @link-color-hover;
+        }
+      }
 
-       p {
-         margin: 0;
-       }
+      p {
+        margin: 0;
+      }
 
-       .todo-content {
-         position: relative;
-       }
+      .todo-content {
+        position: relative;
+      }
 
-       &.checked {
-         .ob-checkbox {
-           border-color: @green;
-         }
-       }
+      &.checked {
+        .ob-checkbox {
+          border-color: @green;
+        }
+      }
 
-       &.skipped {
+      &.skipped {
         h4 {
           color: @gray-light;
           text-decoration: line-through;
         }
-       }
+      }
 
-       &.pending {
-         position: relative;
+      &.pending {
+        position: relative;
 
-         .pending-bar {
-           position: absolute;
-           top: 0;
-           right: 0;
-           left:  0;
-           bottom: 0;
-           background-size: 30px 30px;
-           background-image: linear-gradient(135deg, rgba(0, 0, 0, .03) 25%, transparent 25%,transparent 50%, rgba(0, 0, 0, .03) 50%, rgba(0, 0, 0, .03) 75%,transparent 75%, transparent);
-           animation: animate-stripes 3s linear infinite;
+        .pending-bar {
+          position: absolute;
+          top: 0;
+          right: 0;
+          left: 0;
+          bottom: 0;
+          background-size: 30px 30px;
+          background-image: linear-gradient(
+            135deg,
+            rgba(0, 0, 0, .03) 25%,
+            transparent 25%,
+            transparent 50%,
+            rgba(0, 0, 0, .03) 50%,
+            rgba(0, 0, 0, .03) 75%,
+            transparent 75%,
+            transparent
+          );
+          animation: animate-stripes 3s linear infinite;
+        }
+      }
+
+      &.blur .todo-content {
+        -webkit-filter: ~"blur(3px)";
+      }
+
+      &:hover {
+        .skip-btn {
+          opacity: .85;
+          visibility: visible;
+
+          &:hover {
+            opacity: 1;
           }
-       }
-
-       &.blur .todo-content {
-         -webkit-filter: ~"blur(3px)";
-       }
-
-       &:hover {
-         .skip-btn {
-           opacity: .85;
-           visibility: visible;
-
-           &:hover {
-             opacity: 1;
-           }
-         }
-       }
-     }
-   }
+        }
+      }
+    }
+  }
 
   .ob-checkbox {
     .square(44px);
-      background: #fff;
-      border: 3px solid @20;
-      border-radius: 46px;
-      position: absolute;
-      top: -5px;
-      left: -58px;
+    background: #fff;
+    border: 3px solid @20;
+    border-radius: 46px;
+    position: absolute;
+    top: -5px;
+    left: -58px;
 
     .icon-checkmark {
       position: relative;
@@ -671,7 +678,7 @@ table.project-list {
   .ob-confirmation {
     position: absolute;
     z-index: 100;
-    background: rgba(255,255,255, .75);
+    background: rgba(255, 255, 255, .75);
     left: -15px;
     right: -15px;
     bottom: -10px;
@@ -698,11 +705,16 @@ table.project-list {
 }
 
 @keyframes animate-stripes {
-  0% {background-position: 0 0;} 100% {background-position: 60px 0;}
+  0% {
+    background-position: 0 0;
+  }
+  100% {
+    background-position: 60px 0;
+  }
 }
 
 .onboarding-progress-bar {
-  background: rgba(255,255,255, .15);
+  background: rgba(255, 255, 255, .15);
   width: 16px;
   height: 150px;
   float: right;
@@ -717,7 +729,7 @@ table.project-list {
     background: @green-light;
     padding-right: 0;
     border-radius: inherit;
-    box-shadow: 0 2px 1px rgba(0,0,0, .08);
+    box-shadow: 0 2px 1px rgba(0, 0, 0, .08);
     position: absolute;
     bottom: 0;
     left: 0;
@@ -769,8 +781,10 @@ table.project-list {
   }
 }
 
-.onboarding-progress-bar:hover, .active .onboarding-progress-bar, .onboarding-progress-bar.active {
-  background: rgba(255,255,255, .3);
+.onboarding-progress-bar:hover,
+.active .onboarding-progress-bar,
+.onboarding-progress-bar.active {
+  background: rgba(255, 255, 255, .3);
 }
 
 /**
@@ -784,13 +798,12 @@ table.project-list {
   color: @gray-light;
 }
 
-
 /**
 * Medium to small screens
 * ============================================================================
 */
 
-@media(max-width:991px) {
+@media (max-width: 991px) {
   .organization-home .col-md-2 {
     display: none;
   }
