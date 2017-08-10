@@ -192,7 +192,7 @@ class Backend(Service):
         "ready" state that were scheduled for execution prior to the deadline
         may still have outstanding tasks associated with them -- remember that
         without the ability to interrogate the queue, we are unable to identify
-        if these tasks have finished but were unable to bea removed from the
+        if these tasks have finished but were unable to be removed from the
         schedule, failed outright, or are still pending. As part of
         maintenance, those timelines are moved back to the "waiting" state for
         rescheduling, and if a pending task for a timeline that was previously
