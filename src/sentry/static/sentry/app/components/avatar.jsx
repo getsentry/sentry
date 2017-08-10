@@ -79,9 +79,9 @@ const Avatar = React.createClass({
       avatarType = user.options.avatarType;
     }
     if (avatarType === 'gravatar') {
-      return <img src={this.buildGravatarUrl()} {...props} />;
+      return <img src={this.buildGravatarUrl()} alt={user.name} {...props} />;
     } else if (avatarType === 'upload') {
-      return <img src={this.buildProfileUrl()} {...props} />;
+      return <img src={this.buildProfileUrl()} alt={user.name} {...props} />;
     } else {
       return <UserLetterAvatar user={user} />;
     }
