@@ -220,23 +220,28 @@ class RedisBackend(Backend):
                 else:
                     raise
 
+            records = map(
+                lambda (key, value, timestamp): Record(
+                    key,
+                    self.codec.decode(value) if value is not None else None,
+                    float(timestamp),
+                ),
+                response,
+            )
+
+            # If the record value is `None`, this means the record data was
+            # missing (it was presumably evicted by Redis) so we don't need to
+            # return it here.
             yield filter(
                 lambda record: record.value is not None,
-                map(
-                    lambda item: Record(
-                        item[0],
-                        self.codec.decode(item[1]) if item[1] is not None else None,
-                        float(item[2]),
-                    ),
-                    response,
-                )
+                records,
             )
 
             script(
                 connection,
                 [key],
                 ['DIGEST_CLOSE', self.namespace, self.ttl, timestamp, key, minimum_delay] +
-                [i[0] for i in response],
+                [record.key for record in records],
             )
 
     def delete(self, key, timestamp=None):
