@@ -236,70 +236,6 @@ const OldSidebar = React.createClass({
           </li>
         </ul>
 
-        {/* Panel bodies */}
-        {this.state.showPanel &&
-          this.state.currentPanel == 'assigned' &&
-          <SidebarPanel title={t('Assigned to me')} hidePanel={() => this.hidePanel()}>
-            <IssueList
-              endpoint={`/organizations/${org.slug}/members/me/issues/assigned/`}
-              query={{
-                statsPeriod: '24h',
-                per_page: 10,
-                status: 'unresolved'
-              }}
-              pagination={false}
-              renderEmpty={() => (
-                <div className="sidebar-panel-empty" key="none">
-                  {t('No issues have been assigned to you.')}
-                </div>
-              )}
-              ref="issueList"
-              showActions={false}
-              params={{orgId: org.slug}}
-            />
-          </SidebarPanel>}
-        {this.state.showPanel &&
-          this.state.currentPanel == 'bookmarks' &&
-          <SidebarPanel title={t('My Bookmarks')} hidePanel={() => this.hidePanel()}>
-            <IssueList
-              endpoint={`/organizations/${org.slug}/members/me/issues/bookmarked/`}
-              query={{
-                statsPeriod: '24h',
-                per_page: 10,
-                status: 'unresolved'
-              }}
-              pagination={false}
-              renderEmpty={() => (
-                <div className="sidebar-panel-empty" key="no">
-                  {t('You have no bookmarked issues.')}
-                </div>
-              )}
-              ref="issueList"
-              showActions={false}
-              params={{orgId: org.slug}}
-            />
-          </SidebarPanel>}
-        {this.state.showPanel &&
-          this.state.currentPanel == 'history' &&
-          <SidebarPanel title={t('Recently Viewed')} hidePanel={() => this.hidePanel()}>
-            <IssueList
-              endpoint={`/organizations/${org.slug}/members/me/issues/viewed/`}
-              query={{
-                statsPeriod: '24h',
-                per_page: 10,
-                status: 'unresolved'
-              }}
-              pagination={false}
-              renderEmpty={() => (
-                <div className="sidebar-panel-empty" key="none">
-                  {t('No recently viewed issues.')}
-                </div>
-              )}
-              ref="issueList"
-              showActions={false}
-              params={{orgId: org.slug}}
-            />
-          </SidebarPanel>}
       </div>
     );
   },
@@ -400,6 +336,12 @@ const UserDropdown = React.createClass({
 });
 
 const Sidebar = React.createClass({
+  contextTypes: {
+    location: React.PropTypes.object
+  },
+
+  mixins: [ApiMixin, OrganizationState],
+
   getInitialState: function() {
     return {
       collapsed: false
@@ -410,7 +352,26 @@ const Sidebar = React.createClass({
     jQuery(document.body).addClass('body-sidebar');
   },
 
+  componentDidMount() {
+    jQuery(window).on('hashchange', this.hashChangeHandler);
+    jQuery(document).on('click', this.documentClickHandler);
+
+    loadIncidents();
+  },
+
+  componentWillReceiveProps(nextProps, nextContext) {
+    let {location} = this.context;
+    let nextLocation = nextContext.location;
+
+    // Close active panel if we navigated anywhere
+    if (location.pathname != nextLocation.pathname) {
+      this.hidePanel();
+    }
+  },
+
   componentWillUnmount() {
+    jQuery(window).off('hashchange', this.hashChangeHandler);
+    jQuery(document).off('click', this.documentClickHandler);
     jQuery(document.body).removeClass('body-sidebar');
   },
 
@@ -425,7 +386,37 @@ const Sidebar = React.createClass({
     }
   },
 
+  hidePanel() {
+    this.setState({
+      showPanel: false,
+      currentPanel: ''
+    });
+  },
+
+  showPanel(panel) {
+    this.setState({
+      showPanel: true,
+      currentPanel: panel
+    });
+  },
+
+  togglePanel(panel) {
+    if (this.state.currentPanel === panel) this.hidePanel();
+    else this.showPanel(panel);
+  },
+
+  documentClickHandler(evt) {
+    // If click occurs outside of sidebar, close any
+    // active panel
+    if (!this.refs.sidebar.contains(evt.target)) {
+      this.hidePanel();
+    }
+  },
+
   render() {
+    let org = this.getOrganization();
+    let config = ConfigStore.getConfig();
+
     let classNames = 'sidebar ';
 
     if (this.state.collapsed) {
@@ -433,7 +424,7 @@ const Sidebar = React.createClass({
     }
 
     return (
-      <div className={classNames}>
+      <div className={classNames} ref="sidebar">
         <div className="sidebar-top">
           <SidebarSection>
             <UserDropdown collapsed={this.state.collapsed} />
@@ -498,6 +489,71 @@ const Sidebar = React.createClass({
             />
           </SidebarSection>
         </div>
+
+        {/* Panel bodies */}
+        {this.state.showPanel &&
+          this.state.currentPanel == 'assigned' &&
+          <SidebarPanel title={t('Assigned to me')} hidePanel={() => this.hidePanel()}>
+            <IssueList
+              endpoint={`/organizations/${org.slug}/members/me/issues/assigned/`}
+              query={{
+                statsPeriod: '24h',
+                per_page: 10,
+                status: 'unresolved'
+              }}
+              pagination={false}
+              renderEmpty={() => (
+                <div className="sidebar-panel-empty" key="none">
+                  {t('No issues have been assigned to you.')}
+                </div>
+              )}
+              ref="issueList"
+              showActions={false}
+              params={{orgId: org.slug}}
+            />
+          </SidebarPanel>}
+        {this.state.showPanel &&
+          this.state.currentPanel == 'bookmarks' &&
+          <SidebarPanel title={t('My Bookmarks')} hidePanel={() => this.hidePanel()}>
+            <IssueList
+              endpoint={`/organizations/${org.slug}/members/me/issues/bookmarked/`}
+              query={{
+                statsPeriod: '24h',
+                per_page: 10,
+                status: 'unresolved'
+              }}
+              pagination={false}
+              renderEmpty={() => (
+                <div className="sidebar-panel-empty" key="no">
+                  {t('You have no bookmarked issues.')}
+                </div>
+              )}
+              ref="issueList"
+              showActions={false}
+              params={{orgId: org.slug}}
+            />
+          </SidebarPanel>}
+        {this.state.showPanel &&
+          this.state.currentPanel == 'history' &&
+          <SidebarPanel title={t('Recently Viewed')} hidePanel={() => this.hidePanel()}>
+            <IssueList
+              endpoint={`/organizations/${org.slug}/members/me/issues/viewed/`}
+              query={{
+                statsPeriod: '24h',
+                per_page: 10,
+                status: 'unresolved'
+              }}
+              pagination={false}
+              renderEmpty={() => (
+                <div className="sidebar-panel-empty" key="none">
+                  {t('No recently viewed issues.')}
+                </div>
+              )}
+              ref="issueList"
+              showActions={false}
+              params={{orgId: org.slug}}
+            />
+          </SidebarPanel>}
       </div>
     );
   }

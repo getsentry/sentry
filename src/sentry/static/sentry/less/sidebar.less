@@ -14,6 +14,10 @@
   &.collapsed {
     padding-left: @sidebar-collapsed-width;
     background-size: @sidebar-collapsed-width;
+
+    .sidebar-panel {
+      left: @sidebar-collapsed-width;
+    }
   }
 }
 
@@ -31,6 +35,7 @@
   display: flex;
   flex-direction: column;
   justify-content: space-between;
+  z-index: 1000;
 
   &.collapsed {
     width: @sidebar-collapsed-width;
@@ -177,7 +182,7 @@
   left: @sidebar-expanded-width;
   bottom: 0;
   background: @white-darker;
-  z-index: 100;
+  z-index: 1000;
   color: @gray-darker;
   border-right: 1px solid @trim;
   box-shadow: 1px 0 2px rgba(0,0,0, .06);
