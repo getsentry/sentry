@@ -6,7 +6,7 @@ from django.db.models import Q
 from sentry.api.bases.organization import (OrganizationEndpoint, OrganizationPermission)
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
-from sentry.models import OrganizationMember, User
+from sentry.models import OrganizationMember
 from sentry.search.utils import tokenize_query
 
 
@@ -34,7 +34,7 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
             for key, value in six.iteritems(tokens):
                 if key == 'email':
                     queryset = queryset.filter(
-                        user_id__in=User.objects.filter(email__in=value).values('id')
+                        Q(user__email__in=value) | Q(user__emails__email__in=value)
                     )
 
         return self.paginate(
