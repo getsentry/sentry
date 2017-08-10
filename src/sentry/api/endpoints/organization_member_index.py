@@ -1,11 +1,13 @@
 from __future__ import absolute_import
+import six
 
 from django.db.models import Q
 
 from sentry.api.bases.organization import (OrganizationEndpoint, OrganizationPermission)
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
-from sentry.models import OrganizationMember
+from sentry.models import OrganizationMember, User
+from sentry.search.utils import tokenize_query
 
 
 class MemberPermission(OrganizationPermission):
@@ -25,6 +27,15 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
             Q(user__is_active=True) | Q(user__isnull=True),
             organization=organization,
         ).select_related('user').order_by('email', 'user__email')
+
+        query = request.GET.get('query')
+        if query:
+            tokens = tokenize_query(query)
+            for key, value in six.iteritems(tokens):
+                if key == 'email':
+                    queryset = queryset.filter(
+                        user_id__in=User.objects.filter(email__in=value).values('id')
+                    )
 
         return self.paginate(
             request=request,
