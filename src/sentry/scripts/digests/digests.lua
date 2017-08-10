@@ -225,7 +225,6 @@ local function close_digest(configuration, timeline_id, delay_minimum, ...)
     if #record_ids > 0 then
         redis.call('ZREM', digest_key, unpack(record_ids))
         for _, record_id in ipairs(record_ids) do
-            -- TODO: This could technically be called as a variadic instead, if it mattered.
             redis.call('DEL', configuration:get_timeline_record_key(timeline_id, record_id))
         end
     end
