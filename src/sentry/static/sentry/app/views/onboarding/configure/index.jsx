@@ -51,18 +51,25 @@ const Configure = React.createClass({
       success: data => {
         let {isFirst, hasSent} = this.state;
 
-        // this indicates that a real event has been sent to the project (the first one is the sample event)
-        let sentEvent = data.length > 1;
+        // this indicates that a real event has been sent to the project
+        var sentEvent = function() {
+          if (data.length == 1) {
+            let firstError = data[0];
+            return !firstError.message.includes('This is an example');
+          } else {
+            return data.length > 1;
+          }
+        };
 
         if (isFirst) {
           // record sentEvent value of first poll to avoid redirecting when someone has already sent an event
           this.setState({
             isFirst: false,
-            hasSent: sentEvent
+            hasSent: sentEvent()
           });
         } else {
           // if sentEvent changes from false to true then redirect
-          if (!hasSent && sentEvent) {
+          if (!hasSent && sentEvent()) {
             this.redirectUrl();
           }
         }
