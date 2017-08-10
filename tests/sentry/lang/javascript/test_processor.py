@@ -130,6 +130,41 @@ class FetchReleaseFileTest(TestCase):
 
         assert result == new_result
 
+    def test_fallbacks(self):
+        project = self.project
+        release = Release.objects.create(
+            organization_id=project.organization_id,
+            version='abc',
+        )
+        release.add_project(project)
+
+        file = File.objects.create(
+            name='~/file.min.js',
+            type='release.file',
+            headers={'Content-Type': 'application/json; charset=utf-8'},
+        )
+
+        binary_body = unicode_body.encode('utf-8')
+        file.putfile(six.BytesIO(binary_body))
+
+        ReleaseFile.objects.create(
+            name='~/file.min.js',
+            release=release,
+            organization_id=project.organization_id,
+            file=file,
+        )
+
+        result = fetch_release_file('http://example.com/file.min.js?lol', release)
+
+        assert type(result.body) is six.binary_type
+        assert result == http.UrlResult(
+            'http://example.com/file.min.js?lol',
+            {'content-type': 'application/json; charset=utf-8'},
+            binary_body,
+            200,
+            'utf-8',
+        )
+
 
 class FetchFileTest(TestCase):
     @responses.activate
