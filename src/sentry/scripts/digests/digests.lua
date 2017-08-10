@@ -172,10 +172,10 @@ local function add_record_to_timeline(configuration, timeline_id, record_id, val
 
     local ready = add_timeline_to_schedule(configuration, timeline_id, timestamp, delay_increment, delay_maximum)
 
-    -- TODO: `tonumber` should happen upstream
+    -- TODO: Validating `timeline_capacity` and casting to number should happen upstream.
     local timeline_capacity = tonumber(timeline_capacity)
+    -- TODO: Validating `truncation_chance` and casting to number should happen upstream.
     if timeline_capacity > 0 and math.random() < tonumber(truncation_chance) then
-        -- TODO: `tonumber` should happen upstream
         truncate_timeline(configuration, timeline_id, timeline_capacity)
     end
 
