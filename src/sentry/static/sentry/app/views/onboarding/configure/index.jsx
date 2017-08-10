@@ -52,7 +52,7 @@ const Configure = React.createClass({
         let {isFirst, hasSent} = this.state;
 
         // this indicates that a real event has been sent to the project
-        var sentEvent = function() {
+        let sentEvent = function() {
           if (data.length == 1) {
             let firstError = data[0];
             return !firstError.message.includes('This is an example');
