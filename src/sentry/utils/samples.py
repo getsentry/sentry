@@ -108,10 +108,14 @@ def load_data(platform, default=None, timestamp=None, sample_name=None):
         language = platform_data['language']
 
     for platform in (platform, language, default):
-        if platform is None:
+        if not platform:
             continue
 
-        sample_name = sample_name or INTEGRATION_ID_TO_PLATFORM_DATA[platform]['name']
+        try:
+            sample_name = sample_name or INTEGRATION_ID_TO_PLATFORM_DATA[platform]['name']
+        except KeyError:
+            continue
+
         json_path = os.path.join(DATA_ROOT, 'samples', '%s.json' % (platform.encode('utf-8'), ))
 
         if not os.path.exists(json_path):
