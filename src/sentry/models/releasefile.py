@@ -9,6 +9,7 @@ sentry.models.releasefile
 from __future__ import absolute_import
 
 from django.db import models
+from six.moves.urllib.parse import urlsplit, urlunsplit
 
 from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, Model, sane_repr
 from sentry.utils.hashlib import sha1_text
@@ -59,3 +60,25 @@ class ReleaseFile(Model):
         if dist is not None:
             return sha1_text(name + '\x00\x00' + dist).hexdigest()
         return sha1_text(name).hexdigest()
+
+    @classmethod
+    def normalize(cls, url):
+        """Transforms a full absolute url into 2 or 4 generalized options
+
+        * the original url as input
+        * (optional) original url without querystring
+        * the full url, but stripped of scheme and netloc
+        * (optional) full url without scheme and netloc or querystring
+        """
+        # Always ignore the fragment
+        scheme, netloc, path, query, _ = urlsplit(url)
+        uri_relative = (None, None, path, query, None)
+        uri_without_query = (scheme, netloc, path, None, None)
+        uri_relative_without_query = (None, None, path, None, None)
+        urls = [url]
+        if query:
+            urls.append(urlunsplit(uri_without_query))
+        urls.append('~' + urlunsplit(uri_relative))
+        if query:
+            urls.append('~' + urlunsplit(uri_relative_without_query))
+        return urls

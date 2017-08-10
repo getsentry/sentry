@@ -11,7 +11,7 @@ import zlib
 from django.conf import settings
 from os.path import splitext
 from requests.utils import get_encoding_from_headers
-from six.moves.urllib.parse import urlparse, urljoin, urlsplit
+from six.moves.urllib.parse import urljoin, urlsplit
 from libsourcemap import from_json as view_from_json
 
 # In case SSL is unavailable (light builds) we can't import this here.
@@ -197,28 +197,18 @@ def discover_sourcemap(result):
 def fetch_release_file(filename, release, dist=None):
     cache_key = 'releasefile:v1:%s:%s' % (release.id, md5_text(filename).hexdigest(), )
 
-    filename_path = None
-    if filename is not None:
-        # Reconstruct url without protocol + host
-        # e.g. http://example.com/foo?bar => ~/foo?bar
-        parsed_url = urlparse(filename)
-        filename_path = '~' + parsed_url.path
-        if parsed_url.query:
-            filename_path += '?' + parsed_url.query
-
     logger.debug('Checking cache for release artifact %r (release_id=%s)', filename, release.id)
     result = cache.get(cache_key)
 
     dist_name = dist and dist.name or None
 
     if result is None:
+        filename_choices = ReleaseFile.normalize(filename)
+        filename_idents = [ReleaseFile.get_ident(f, dist_name) for f in filename_choices]
+
         logger.debug(
             'Checking database for release artifact %r (release_id=%s)', filename, release.id
         )
-
-        filename_idents = [ReleaseFile.get_ident(filename, dist_name)]
-        if filename_path is not None and filename_path != filename:
-            filename_idents.append(ReleaseFile.get_ident(filename_path, dist_name))
 
         possible_files = list(
             ReleaseFile.objects.filter(
@@ -237,10 +227,15 @@ def fetch_release_file(filename, release, dist=None):
         elif len(possible_files) == 1:
             releasefile = possible_files[0]
         else:
-            # Prioritize releasefile that matches full url (w/ host)
-            # over hostless releasefile
-            target_ident = filename_idents[0]
-            releasefile = next((f for f in possible_files if f.ident == target_ident))
+            # Pick first one that matches in priority order.
+            # This is O(N*M) but there are only ever at most 4 things here
+            # so not really worth optimizing.
+            releasefile = next((
+                rf
+                for ident in filename_idents
+                for rf in possible_files
+                if rf.ident == ident
+            ))
 
         logger.debug(
             'Found release artifact %r (id=%s, release_id=%s)', filename, releasefile.id, release.id
