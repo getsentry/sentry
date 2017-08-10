@@ -26,9 +26,8 @@ from sentry.constants import (
     DEFAULT_LOGGER_NAME, EVENT_ORDERING_KEY, LOG_LEVELS, MAX_CULPRIT_LENGTH
 )
 from sentry.db.models import (
-    BaseManager, BoundedBigIntegerField, BoundedIntegerField,
-    BoundedPositiveIntegerField, FlexibleForeignKey, GzippedDictField, Model,
-    sane_repr
+    BaseManager, BoundedBigIntegerField, BoundedIntegerField, BoundedPositiveIntegerField,
+    FlexibleForeignKey, GzippedDictField, Model, sane_repr
 )
 from sentry.utils.http import absolute_uri
 from sentry.utils.numbers import base32_decode, base32_encode
@@ -104,11 +103,21 @@ class GroupManager(BaseManager):
         )
 
     def from_kwargs(self, project, **kwargs):
-        from sentry.event_manager import EventManager
+        from sentry.event_manager import HashDiscarded, EventManager
 
         manager = EventManager(kwargs)
         manager.normalize()
-        return manager.save(project)
+        try:
+            return manager.save(project)
+
+        # TODO(jess): this method maybe isn't even used?
+        except HashDiscarded as exc:
+            logger.info(
+                'discarded.hash', extra={
+                    'project_id': project,
+                    'description': exc.message,
+                }
+            )
 
     def add_tags(self, group, tags):
         from sentry.models import TagValue, GroupTagValue
@@ -122,27 +131,31 @@ class GroupManager(BaseManager):
             else:
                 key, value, data = tag_item
 
-            buffer.incr(TagValue, {
-                'times_seen': 1,
-            }, {
-                'project_id': project_id,
-                'key': key,
-                'value': value,
-            }, {
-                'last_seen': date,
-                'data': data,
-            })
+            buffer.incr(
+                TagValue, {
+                    'times_seen': 1,
+                }, {
+                    'project_id': project_id,
+                    'key': key,
+                    'value': value,
+                }, {
+                    'last_seen': date,
+                    'data': data,
+                }
+            )
 
-            buffer.incr(GroupTagValue, {
-                'times_seen': 1,
-            }, {
-                'group_id': group.id,
-                'key': key,
-                'value': value,
-            }, {
-                'project_id': project_id,
-                'last_seen': date,
-            })
+            buffer.incr(
+                GroupTagValue, {
+                    'times_seen': 1,
+                }, {
+                    'group_id': group.id,
+                    'key': key,
+                    'value': value,
+                }, {
+                    'project_id': project_id,
+                    'last_seen': date,
+                }
+            )
 
 
 class Group(Model):
@@ -152,27 +165,28 @@ class Group(Model):
     __core__ = False
 
     project = FlexibleForeignKey('sentry.Project', null=True)
-    logger = models.CharField(
-        max_length=64, blank=True, default=DEFAULT_LOGGER_NAME, db_index=True)
+    logger = models.CharField(max_length=64, blank=True, default=DEFAULT_LOGGER_NAME, db_index=True)
     level = BoundedPositiveIntegerField(
-        choices=LOG_LEVELS.items(), default=logging.ERROR, blank=True,
-        db_index=True)
+        choices=LOG_LEVELS.items(), default=logging.ERROR, blank=True, db_index=True
+    )
     message = models.TextField()
     culprit = models.CharField(
-        max_length=MAX_CULPRIT_LENGTH, blank=True, null=True,
-        db_column='view')
+        max_length=MAX_CULPRIT_LENGTH, blank=True, null=True, db_column='view'
+    )
     num_comments = BoundedPositiveIntegerField(default=0, null=True)
     platform = models.CharField(max_length=64, null=True)
-    status = BoundedPositiveIntegerField(default=0, choices=(
-        (GroupStatus.UNRESOLVED, _('Unresolved')),
-        (GroupStatus.RESOLVED, _('Resolved')),
-        (GroupStatus.IGNORED, _('Ignored')),
-    ), db_index=True)
+    status = BoundedPositiveIntegerField(
+        default=0,
+        choices=(
+            (GroupStatus.UNRESOLVED, _('Unresolved')), (GroupStatus.RESOLVED, _('Resolved')),
+            (GroupStatus.IGNORED, _('Ignored')),
+        ),
+        db_index=True
+    )
     times_seen = BoundedPositiveIntegerField(default=1, db_index=True)
     last_seen = models.DateTimeField(default=timezone.now, db_index=True)
     first_seen = models.DateTimeField(default=timezone.now, db_index=True)
-    first_release = FlexibleForeignKey('sentry.Release', null=True,
-                                       on_delete=models.PROTECT)
+    first_release = FlexibleForeignKey('sentry.Release', null=True, on_delete=models.PROTECT)
     resolved_at = models.DateTimeField(null=True, db_index=True)
     # active_at should be the same as first_seen by default
     active_at = models.DateTimeField(null=True, db_index=True)
@@ -190,15 +204,9 @@ class Group(Model):
         db_table = 'sentry_groupedmessage'
         verbose_name_plural = _('grouped messages')
         verbose_name = _('grouped message')
-        permissions = (
-            ("can_view", "Can view"),
-        )
-        index_together = (
-            ('project', 'first_release'),
-        )
-        unique_together = (
-            ('project', 'short_id'),
-        )
+        permissions = (("can_view", "Can view"), )
+        index_together = (('project', 'first_release'), )
+        unique_together = (('project', 'short_id'), )
 
     __repr__ = sane_repr('project_id')
 
@@ -219,16 +227,14 @@ class Group(Model):
         super(Group, self).save(*args, **kwargs)
 
     def get_absolute_url(self):
-        return absolute_uri(reverse('sentry-group', args=[
-            self.organization.slug, self.project.slug, self.id]))
+        return absolute_uri(
+            reverse('sentry-group', args=[self.organization.slug, self.project.slug, self.id])
+        )
 
     @property
     def qualified_short_id(self):
         if self.short_id is not None:
-            return '%s-%s' % (
-                self.project.slug.upper(),
-                base32_encode(self.short_id),
-            )
+            return '%s-%s' % (self.project.slug.upper(), base32_encode(self.short_id), )
 
     @property
     def event_set(self):
@@ -270,9 +276,8 @@ class Group(Model):
         return status
 
     def get_share_id(self):
-        return b16encode(
-            ('{}.{}'.format(self.project_id, self.id)).encode('utf-8')
-        ).lower().decode('utf-8')
+        return b16encode(('{}.{}'.format(self.project_id,
+                                         self.id)).encode('utf-8')).lower().decode('utf-8')
 
     @classmethod
     def from_share_id(cls, share_id):
@@ -352,11 +357,7 @@ class Group(Model):
             group_tags = list(group_tags.values_list('key', flat=True))
 
             tag_keys = dict(
-                (t.key, t)
-                for t in TagKey.objects.filter(
-                    project=self.project,
-                    key__in=group_tags
-                )
+                (t.key, t) for t in TagKey.objects.filter(project=self.project, key__in=group_tags)
             )
 
             results = []
@@ -433,20 +434,18 @@ class Group(Model):
         return et.to_string(self.get_event_metadata())
 
     def error(self):
-        warnings.warn('Group.error is deprecated, use Group.title',
-                      DeprecationWarning)
+        warnings.warn('Group.error is deprecated, use Group.title', DeprecationWarning)
         return self.title
+
     error.short_description = _('error')
 
     @property
     def message_short(self):
-        warnings.warn('Group.message_short is deprecated, use Group.title',
-                      DeprecationWarning)
+        warnings.warn('Group.message_short is deprecated, use Group.title', DeprecationWarning)
         return self.title
 
     def has_two_part_message(self):
-        warnings.warn('Group.has_two_part_message is no longer used',
-                      DeprecationWarning)
+        warnings.warn('Group.has_two_part_message is no longer used', DeprecationWarning)
         return False
 
     @property

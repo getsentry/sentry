@@ -13,12 +13,10 @@ import logging
 from sentry.tasks.base import instrumented_task
 from sentry.utils.locking import UnableToAcquireLock
 
-
 logger = logging.getLogger(__name__)
 
 
-@instrumented_task(
-    name='sentry.tasks.process_buffer.process_pending')
+@instrumented_task(name='sentry.tasks.process_buffer.process_pending')
 def process_pending():
     """
     Process pending buffers.
@@ -34,8 +32,7 @@ def process_pending():
         logger.warning('process_pending.fail', extra={'error': error})
 
 
-@instrumented_task(
-    name='sentry.tasks.process_buffer.process_incr')
+@instrumented_task(name='sentry.tasks.process_buffer.process_incr')
 def process_incr(**kwargs):
     """
     Processes a buffer event.

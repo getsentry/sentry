@@ -35,14 +35,15 @@ class Command(BaseCommand):
     help = 'Dump addresses that would get an email notification'
 
     option_list = BaseCommand.option_list + (
-        make_option('--organization',
+        make_option(
+            '--organization',
             action='store',
             type='int',
             dest='organization',
             default=0,
             help='',
-        ),
-        make_option('--project',
+        ), make_option(
+            '--project',
             action='store',
             type='int',
             dest='project',

@@ -20,11 +20,14 @@ class ProjectTagKeyDetailsTest(APITestCase):
 
         self.login_as(user=self.user)
 
-        url = reverse('sentry-api-0-project-tagkey-details', kwargs={
-            'organization_slug': project.organization.slug,
-            'project_slug': project.slug,
-            'key': tagkey.key,
-        })
+        url = reverse(
+            'sentry-api-0-project-tagkey-details',
+            kwargs={
+                'organization_slug': project.organization.slug,
+                'project_slug': project.slug,
+                'key': tagkey.key,
+            }
+        )
 
         response = self.client.get(url)
 
@@ -41,18 +44,19 @@ class ProjectTagKeyDeleteTest(APITestCase):
 
         self.login_as(user=self.user)
 
-        url = reverse('sentry-api-0-project-tagkey-details', kwargs={
-            'organization_slug': project.organization.slug,
-            'project_slug': project.slug,
-            'key': tagkey.key,
-        })
+        url = reverse(
+            'sentry-api-0-project-tagkey-details',
+            kwargs={
+                'organization_slug': project.organization.slug,
+                'project_slug': project.slug,
+                'key': tagkey.key,
+            }
+        )
 
         response = self.client.delete(url)
 
         assert response.status_code == 204
 
-        mock_delete_tag_key.delay.assert_called_once_with(
-            object_id=tagkey.id
-        )
+        mock_delete_tag_key.delay.assert_called_once_with(object_id=tagkey.id)
 
         assert TagKey.objects.get(id=tagkey.id).status == TagKeyStatus.PENDING_DELETION

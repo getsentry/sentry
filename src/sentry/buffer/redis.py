@@ -76,15 +76,14 @@ class RedisBuffer(Buffer):
         Returns a Redis-compatible key for the model given filters.
         """
         return 'b:k:%s:%s' % (
-            model._meta,
-            md5_text(
-                '&'.join('%s=%s' % (k, self._coerce_val(v))
-                    for k, v in sorted(six.iteritems(filters)))
+            model._meta, md5_text(
+                '&'.
+                join('%s=%s' % (k, self._coerce_val(v)) for k, v in sorted(six.iteritems(filters)))
             ).hexdigest(),
         )
 
     def _make_lock_key(self, key):
-        return 'l:%s' % (key,)
+        return 'l:%s' % (key, )
 
     def incr(self, model, columns, filters, extra=None):
         """
@@ -137,9 +136,11 @@ class RedisBuffer(Buffer):
                     for key in keys:
                         pending_buffer.append(key)
                         if pending_buffer.full():
-                            process_incr.apply_async(kwargs={
-                                'batch_keys': pending_buffer.flush(),
-                            })
+                            process_incr.apply_async(
+                                kwargs={
+                                    'batch_keys': pending_buffer.flush(),
+                                }
+                            )
                     conn.target([host_id]).zrem(self.pending_key, *keys)
 
             # queue up remainder of pending keys

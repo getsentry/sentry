@@ -6,13 +6,9 @@ from rest_framework import serializers
 from rest_framework.response import Response
 
 from sentry import roles
-from sentry.api.bases.organization import (
-    OrganizationEndpoint, OrganizationPermission
-)
+from sentry.api.bases.organization import (OrganizationEndpoint, OrganizationPermission)
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.models import (
-    AuditLogEntryEvent, AuthIdentity, AuthProvider, OrganizationMember
-)
+from sentry.models import (AuditLogEntryEvent, AuthIdentity, AuthProvider, OrganizationMember)
 from sentry.signals import sso_enabled
 
 ERR_NO_AUTH = 'You cannot remove this member with an unauthenticated API request.'

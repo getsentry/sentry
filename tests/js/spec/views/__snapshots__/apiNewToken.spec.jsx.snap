@@ -1,0 +1,126 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`ApiNewToken render() renders 1`] = `
+<DocumentTitle
+  title="Create API Token"
+>
+  <NarryLayout>
+    <h3>
+      Create New Token
+    </h3>
+    <hr />
+    <p>
+      Authentication tokens allow you to perform actions against the Sentry API on behalf of your account. They're the easiest way to get started using the API.
+    </p>
+    <p>
+      <span>
+        <span>
+          For more information on how to use the web API, see our 
+        </span>
+        <a
+          href="https://docs.sentry.io/hosted/api/"
+        >
+          <span>
+            documentation
+          </span>
+        </a>
+        <span>
+          .
+        </span>
+      </span>
+    </p>
+    <ApiForm
+      apiEndpoint="/api-tokens/"
+      apiMethod="POST"
+      cancelLabel="Cancel"
+      className="form-stacked api-new-token"
+      footerClass="form-actions align-right"
+      initialData={
+        Object {
+          "scopes": Array [
+            "event:admin",
+            "event:read",
+            "member:read",
+            "org:read",
+            "project:read",
+            "project:releases",
+            "team:read",
+          ],
+        }
+      }
+      onCancel={[Function]}
+      onSubmitSuccess={[Function]}
+      requireChanges={false}
+      submitDisabled={false}
+      submitLabel="Save Changes"
+    >
+      <MultipleCheckboxField
+        choices={
+          Array [
+            Array [
+              "project:read",
+              "project:read",
+            ],
+            Array [
+              "project:write",
+              "project:write",
+            ],
+            Array [
+              "project:admin",
+              "project:admin",
+            ],
+            Array [
+              "project:releases",
+              "project:releases",
+            ],
+            Array [
+              "team:read",
+              "team:read",
+            ],
+            Array [
+              "team:write",
+              "team:write",
+            ],
+            Array [
+              "team:admin",
+              "team:admin",
+            ],
+            Array [
+              "event:read",
+              "event:read",
+            ],
+            Array [
+              "event:admin",
+              "event:admin",
+            ],
+            Array [
+              "org:read",
+              "org:read",
+            ],
+            Array [
+              "org:write",
+              "org:write",
+            ],
+            Array [
+              "org:admin",
+              "org:admin",
+            ],
+            Array [
+              "member:read",
+              "member:read",
+            ],
+            Array [
+              "member:admin",
+              "member:admin",
+            ],
+          ]
+        }
+        disabled={false}
+        label="Scopes"
+        name="scopes"
+        required={true}
+      />
+    </ApiForm>
+  </NarryLayout>
+</DocumentTitle>
+`;

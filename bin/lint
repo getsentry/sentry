@@ -7,7 +7,7 @@ import sys
 # This is to avoid needing to have the `sentry` package explicitly installed.
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), os.pardir, 'src'))
 
-from sentry.lint.engine import check_files
+from sentry.lint.engine import run
 
 offset = 1
 js = True
@@ -26,4 +26,4 @@ file_list = sys.argv[offset:]
 if not file_list:
     file_list = None
 
-sys.exit(check_files(file_list, js=js, py=py))
+sys.exit(run(file_list, js=js, py=py, format=False))

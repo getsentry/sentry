@@ -3,9 +3,8 @@ from __future__ import absolute_import
 import six
 
 from sentry.models import (
-    Commit, CommitAuthor, Group, GroupCommitResolution, GroupRelease,
-    GroupResolution, GroupResolutionStatus, GroupStatus, Release,
-    ReleaseCommit, ReleaseEnvironment, ReleaseProject, Repository
+    Commit, CommitAuthor, Group, GroupCommitResolution, GroupRelease, GroupResolution, GroupStatus,
+    Release, ReleaseCommit, ReleaseEnvironment, ReleaseProject, Repository
 )
 
 from sentry.testutils import TestCase
@@ -14,51 +13,31 @@ from sentry.testutils import TestCase
 class MergeReleasesTest(TestCase):
     def test_simple(self):
         org = self.create_organization()
-        commit = Commit.objects.create(
-            organization_id=org.id,
-            repository_id=5
-        )
-        commit2 = Commit.objects.create(
-            organization_id=org.id,
-            repository_id=6
-        )
+        commit = Commit.objects.create(organization_id=org.id, repository_id=5)
+        commit2 = Commit.objects.create(organization_id=org.id, repository_id=6)
 
         # merge to
         project = self.create_project(organization=org, name='foo')
         release = Release.objects.create(version='abcdabc', organization=org)
         release.add_project(project)
         release_commit = ReleaseCommit.objects.create(
-            organization_id=org.id,
-            release=release,
-            commit=commit,
-            order=1
+            organization_id=org.id, release=release, commit=commit, order=1
         )
         release_environment = ReleaseEnvironment.objects.create(
-            organization_id=org.id,
-            project_id=project.id,
-            release_id=release.id,
-            environment_id=2
+            organization_id=org.id, project_id=project.id, release_id=release.id, environment_id=2
         )
         group_release = GroupRelease.objects.create(
-            project_id=project.id,
-            release_id=release.id,
-            group_id=1
+            project_id=project.id, release_id=release.id, group_id=1
         )
         group = self.create_group(project=project, first_release=release)
-        group_resolution = GroupResolution.objects.create(
-            group=group,
-            release=release
-        )
+        group_resolution = GroupResolution.objects.create(group=group, release=release)
 
         # merge from #1
         project2 = self.create_project(organization=org, name='bar')
         release2 = Release.objects.create(version='bbbbbbb', organization=org)
         release2.add_project(project2)
         release_commit2 = ReleaseCommit.objects.create(
-            organization_id=org.id,
-            release=release2,
-            commit=commit,
-            order=2
+            organization_id=org.id, release=release2, commit=commit, order=2
         )
         release_environment2 = ReleaseEnvironment.objects.create(
             organization_id=org.id,
@@ -67,25 +46,17 @@ class MergeReleasesTest(TestCase):
             environment_id=3,
         )
         group_release2 = GroupRelease.objects.create(
-            project_id=project2.id,
-            release_id=release2.id,
-            group_id=2
+            project_id=project2.id, release_id=release2.id, group_id=2
         )
         group2 = self.create_group(project=project2, first_release=release2)
-        group_resolution2 = GroupResolution.objects.create(
-            group=group2,
-            release=release2
-        )
+        group_resolution2 = GroupResolution.objects.create(group=group2, release=release2)
 
         # merge from #2
         project3 = self.create_project(organization=org, name='baz')
         release3 = Release.objects.create(version='cccccc', organization=org)
         release3.add_project(project3)
         release_commit3 = ReleaseCommit.objects.create(
-            organization_id=org.id,
-            release=release2,
-            commit=commit2,
-            order=3
+            organization_id=org.id, release=release2, commit=commit2, order=3
         )
         release_environment3 = ReleaseEnvironment.objects.create(
             organization_id=org.id,
@@ -94,15 +65,10 @@ class MergeReleasesTest(TestCase):
             environment_id=4,
         )
         group_release3 = GroupRelease.objects.create(
-            project_id=project3.id,
-            release_id=release3.id,
-            group_id=3
+            project_id=project3.id, release_id=release3.id, group_id=3
         )
         group3 = self.create_group(project=project3, first_release=release3)
-        group_resolution3 = GroupResolution.objects.create(
-            group=group3,
-            release=release3
-        )
+        group_resolution3 = GroupResolution.objects.create(group=group3, release=release3)
 
         Release.merge(release, [release2, release3])
 
@@ -143,6 +109,14 @@ class MergeReleasesTest(TestCase):
         assert not Release.objects.filter(id=release2.id).exists()
         assert not Release.objects.filter(id=release3.id).exists()
 
+    def test_short_version_dotted_prefix(self):
+        org = self.create_organization()
+
+        release = Release.objects.create(version='foo.bar.Baz-1.0', organization=org)
+
+        assert release.version == 'foo.bar.Baz-1.0'
+        assert release.short_version == '1.0'
+
 
 class SetCommitsTestCase(TestCase):
     def test_simple(self):
@@ -167,35 +141,32 @@ class SetCommitsTestCase(TestCase):
             key='lskfslknsdkcsnlkdflksfdkls',
         )
 
-        assert GroupCommitResolution.objects.filter(
-            group_id=group.id,
-            commit_id=commit.id
-        ).exists()
+        assert GroupCommitResolution.objects.filter(group_id=group.id, commit_id=commit.id).exists()
 
         release = Release.objects.create(version='abcdabc', organization=org)
         release.add_project(project)
-        release.set_commits([{
-            'id': commit.key,
-            'repository': repo.name,
-        }, {
-            'id': commit2.key,
-            'repository': repo.name,
-        }, {
-            'id': 'a' * 40,
-            'repository': repo.name,
-        }, {
-            'id': 'b' * 40,
-            'repository': repo.name,
-            'message': '#skipsentry',
-        }])
+        release.set_commits(
+            [
+                {
+                    'id': commit.key,
+                    'repository': repo.name,
+                }, {
+                    'id': commit2.key,
+                    'repository': repo.name,
+                }, {
+                    'id': 'a' * 40,
+                    'repository': repo.name,
+                }, {
+                    'id': 'b' * 40,
+                    'repository': repo.name,
+                    'message': '#skipsentry',
+                }
+            ]
+        )
 
         assert ReleaseCommit.objects.filter(commit=commit, release=release).exists()
         assert ReleaseCommit.objects.filter(commit=commit2, release=release).exists()
-        assert GroupResolution.objects.filter(group=group, release=release).exists()
-        assert GroupResolution.objects.get(
-            group=group,
-            release=release,
-        ).status == GroupResolutionStatus.RESOLVED
+
         assert Group.objects.get(id=group.id).status == GroupStatus.RESOLVED
         # test that backfilling works
         assert Commit.objects.filter(key='a' * 40, repository_id=repo.id).exists()
@@ -224,25 +195,29 @@ class SetCommitsTestCase(TestCase):
 
         release = Release.objects.create(version='abcdabc', organization=org)
         release.add_project(project)
-        release.set_commits([{
-            'id': 'a' * 40,
-            'repository': repo.name,
-            'author_email': 'foo@example.com',
-            'author_name': 'foo bar baz',
-            'message': 'i fixed a bug',
-        }, {
-            'id': 'b' * 40,
-            'repository': repo.name,
-            'author_email': 'foo@example.com',
-            'author_name': 'foo bar baz',
-            'message': 'i fixed another bug',
-        }, {
-            'id': 'c' * 40,
-            'repository': repo.name,
-            'author_email': 'foo@example.com',
-            'author_name': 'foo bar baz',
-            'message': 'fixes %s' % (group.qualified_short_id),
-        }])
+        release.set_commits(
+            [
+                {
+                    'id': 'a' * 40,
+                    'repository': repo.name,
+                    'author_email': 'foo@example.com',
+                    'author_name': 'foo bar baz',
+                    'message': 'i fixed a bug',
+                }, {
+                    'id': 'b' * 40,
+                    'repository': repo.name,
+                    'author_email': 'foo@example.com',
+                    'author_name': 'foo bar baz',
+                    'message': 'i fixed another bug',
+                }, {
+                    'id': 'c' * 40,
+                    'repository': repo.name,
+                    'author_email': 'foo@example.com',
+                    'author_name': 'foo bar baz',
+                    'message': 'fixes %s' % (group.qualified_short_id),
+                }
+            ]
+        )
 
         assert Commit.objects.filter(
             repository_id=repo.id,
@@ -296,7 +271,7 @@ class SetCommitsTestCase(TestCase):
         assert GroupResolution.objects.get(
             group=group,
             release=release,
-        ).status == GroupResolutionStatus.RESOLVED
+        ).status == GroupResolution.Status.resolved
         assert Group.objects.get(id=group.id).status == GroupStatus.RESOLVED
 
         latest_commit = Commit.objects.get(
@@ -333,16 +308,20 @@ class SetCommitsTestCase(TestCase):
 
         release = Release.objects.create(version='abcdabc', organization=org)
         release.add_project(project)
-        release.set_commits([{
-            'id': 'a' * 40,
-            'repository': repo.name,
-        }, {
-            'id': 'b' * 40,
-            'repository': repo.name,
-        }, {
-            'id': 'c' * 40,
-            'repository': repo.name,
-        }])
+        release.set_commits(
+            [
+                {
+                    'id': 'a' * 40,
+                    'repository': repo.name,
+                }, {
+                    'id': 'b' * 40,
+                    'repository': repo.name,
+                }, {
+                    'id': 'c' * 40,
+                    'repository': repo.name,
+                }
+            ]
+        )
 
         assert Commit.objects.filter(
             repository_id=repo.id,
@@ -364,3 +343,86 @@ class SetCommitsTestCase(TestCase):
         assert release.commit_count == 3
         assert release.authors == [six.text_type(author.id)]
         assert release.last_commit_id == latest_commit.id
+
+    def test_resolution_support_full_featured(self):
+        org = self.create_organization()
+        project = self.create_project(organization=org, name='foo')
+        group = self.create_group(project=project)
+
+        repo = Repository.objects.create(
+            organization_id=org.id,
+            name='test/repo',
+        )
+        author = CommitAuthor.objects.create(
+            organization_id=org.id,
+            name='Foo Bar',
+            email=self.user.email,
+        )
+        commit = Commit.objects.create(
+            organization_id=org.id,
+            repository_id=repo.id,
+            message='fixes %s' % (group.qualified_short_id),
+            key='alksdflskdfjsldkfajsflkslk',
+            author=author,
+        )
+
+        old_release = self.create_release(project=project, version='pre-1.0')
+
+        resolution = GroupResolution.objects.create(
+            group=group,
+            release=old_release,
+            type=GroupResolution.Type.in_next_release,
+            status=GroupResolution.Status.pending,
+        )
+
+        release = self.create_release(project=project, version='abcdabc')
+        release.set_commits([{
+            'id': commit.key,
+            'repository': repo.name,
+        }])
+
+        assert GroupCommitResolution.objects.filter(group_id=group.id, commit_id=commit.id).exists()
+
+        resolution = GroupResolution.objects.get(
+            group=group,
+        )
+        assert resolution.status == GroupResolution.Status.resolved
+        assert resolution.release == release
+        assert resolution.type == GroupResolution.Type.in_release
+        assert resolution.actor_id == self.user.id
+
+        assert Group.objects.get(id=group.id).status == GroupStatus.RESOLVED
+
+    def test_resolution_support_without_author(self):
+        org = self.create_organization()
+        project = self.create_project(organization=org, name='foo')
+        group = self.create_group(project=project)
+
+        repo = Repository.objects.create(
+            organization_id=org.id,
+            name='test/repo',
+        )
+        commit = Commit.objects.create(
+            organization_id=org.id,
+            repository_id=repo.id,
+            message='fixes %s' % (group.qualified_short_id),
+            key='alksdflskdfjsldkfajsflkslk',
+        )
+
+        release = self.create_release(project=project, version='abcdabc')
+        release.set_commits([{
+            'id': commit.key,
+            'repository': repo.name,
+        }])
+
+        assert GroupCommitResolution.objects.filter(group_id=group.id, commit_id=commit.id).exists()
+
+        resolution = GroupResolution.objects.get(
+            group=group,
+        )
+        assert resolution.status == GroupResolution.Status.resolved
+        assert resolution.release == release
+        assert resolution.type == GroupResolution.Type.in_release
+        assert resolution.actor_id is None
+
+        assert Group.objects.get(id=group.id).status == GroupStatus.RESOLVED

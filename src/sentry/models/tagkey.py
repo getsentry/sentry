@@ -13,9 +13,7 @@ from django.db import models
 from django.utils.translation import ugettext_lazy as _
 
 from sentry.constants import MAX_TAG_KEY_LENGTH, TAG_LABELS
-from sentry.db.models import (
-    Model, BoundedPositiveIntegerField, FlexibleForeignKey, sane_repr
-)
+from sentry.db.models import (Model, BoundedPositiveIntegerField, FlexibleForeignKey, sane_repr)
 from sentry.db.models.manager import BaseManager
 from sentry.utils.cache import cache
 
@@ -43,12 +41,12 @@ class TagKeyManager(BaseManager):
         key = self._get_cache_key(project.id)
         result = cache.get(key)
         if result is None:
-            result = list(self.filter(
-                project=project,
-                status=TagKeyStatus.VISIBLE,
-            ).order_by(
-                '-values_seen'
-            ).values_list('key', flat=True)[:20])
+            result = list(
+                self.filter(
+                    project=project,
+                    status=TagKeyStatus.VISIBLE,
+                ).order_by('-values_seen').values_list('key', flat=True)[:20]
+            )
             cache.set(key, result, 60)
         return result
 
@@ -63,18 +61,21 @@ class TagKey(Model):
     key = models.CharField(max_length=MAX_TAG_KEY_LENGTH)
     values_seen = BoundedPositiveIntegerField(default=0)
     label = models.CharField(max_length=64, null=True)
-    status = BoundedPositiveIntegerField(choices=(
-        (TagKeyStatus.VISIBLE, _('Visible')),
-        (TagKeyStatus.PENDING_DELETION, _('Pending Deletion')),
-        (TagKeyStatus.DELETION_IN_PROGRESS, _('Deletion in Progress')),
-    ), default=TagKeyStatus.VISIBLE)
+    status = BoundedPositiveIntegerField(
+        choices=(
+            (TagKeyStatus.VISIBLE,
+             _('Visible')), (TagKeyStatus.PENDING_DELETION, _('Pending Deletion')),
+            (TagKeyStatus.DELETION_IN_PROGRESS, _('Deletion in Progress')),
+        ),
+        default=TagKeyStatus.VISIBLE
+    )
 
     objects = TagKeyManager()
 
     class Meta:
         app_label = 'sentry'
         db_table = 'sentry_filterkey'
-        unique_together = (('project', 'key'),)
+        unique_together = (('project', 'key'), )
 
     __repr__ = sane_repr('project_id', 'key')
 

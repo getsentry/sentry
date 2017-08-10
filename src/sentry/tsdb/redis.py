@@ -29,9 +29,7 @@ from six.moves import reduce
 
 logger = logging.getLogger(__name__)
 
-
 SketchParameters = namedtuple('SketchParameters', 'depth width capacity')
-
 
 CountMinScript = Script(
     None,
@@ -193,17 +191,10 @@ class RedisTSDB(BaseTSDB):
                 for timestamp in series:
                     hash_key = self.make_counter_key(
                         model,
-                        self.normalize_to_rollup(
-                            timestamp,
-                            rollup
-                        ),
+                        self.normalize_to_rollup(timestamp, rollup),
                         model_key,
                     )
-                    results.append((
-                        to_timestamp(timestamp),
-                        key,
-                        client.hget(hash_key, model_key)
-                    ))
+                    results.append((to_timestamp(timestamp), key, client.hget(hash_key, model_key)))
 
         results_by_key = defaultdict(dict)
         for epoch, key, count in results:
@@ -277,7 +268,7 @@ class RedisTSDB(BaseTSDB):
                             )
 
     def record(self, model, key, values, timestamp=None):
-        self.record_multi(((model, key, values),), timestamp)
+        self.record_multi(((model, key, values), ), timestamp)
 
     def record_multi(self, items, timestamp=None):
         """
@@ -320,19 +311,21 @@ class RedisTSDB(BaseTSDB):
                 c = client.target_key(key)
                 r = responses[key] = []
                 for timestamp in series:
-                    r.append((
-                        timestamp,
-                        c.pfcount(
+                    r.append(
+                        (timestamp, c.pfcount(
                             self.make_key(
                                 model,
                                 rollup,
                                 timestamp,
                                 key,
                             ),
-                        ),
-                    ))
+                        ), )
+                    )
 
-        return {key: [(timestamp, promise.value) for timestamp, promise in value] for key, value in six.iteritems(responses)}
+        return {
+            key: [(timestamp, promise.value) for timestamp, promise in value]
+            for key, value in six.iteritems(responses)
+        }
 
     def get_distinct_counts_totals(self, model, keys, start, end=None, rollup=None):
         """
@@ -372,9 +365,7 @@ class RedisTSDB(BaseTSDB):
             """
             Return a list containing all keys for each interval in the series for a key.
             """
-            return [
-                self.make_key(model, rollup, timestamp, key)
-                for timestamp in series]
+            return [self.make_key(model, rollup, timestamp, key) for timestamp in series]
 
         router = self.cluster.get_router()
 
@@ -395,11 +386,7 @@ class RedisTSDB(BaseTSDB):
             client = self.cluster.get_local_client(host)
             with client.pipeline(transaction=False) as pipeline:
                 pipeline.execute_command(
-                    'PFMERGE',
-                    destination,
-                    *itertools.chain.from_iterable(
-                        map(expand_key, keys)
-                    )
+                    'PFMERGE', destination, *itertools.chain.from_iterable(map(expand_key, keys))
                 )
                 pipeline.get(destination)
                 pipeline.delete(destination)
@@ -410,10 +397,7 @@ class RedisTSDB(BaseTSDB):
             Calculate the cardinality of the provided HyperLogLog values.
             """
             destination = make_temporary_key('a')  # all values will be merged into this key
-            aggregates = {
-                make_temporary_key('a:{}'.format(host)): value
-                for host, value in values
-            }
+            aggregates = {make_temporary_key('a:{}'.format(host)): value for host, value in values}
 
             # Choose a random host to execute the reduction on. (We use a host
             # here that we've already accessed as part of this process -- this
@@ -601,11 +585,12 @@ class RedisTSDB(BaseTSDB):
 
         commands = {}
         for key in keys:
-            commands[key] = [(
-                CountMinScript,
-                self.make_frequency_table_keys(model, rollup, timestamp, key),
-                arguments,
-            ) for timestamp in series]
+            commands[key] = [
+                (
+                    CountMinScript, self.make_frequency_table_keys(model, rollup, timestamp, key),
+                    arguments,
+                ) for timestamp in series
+            ]
 
         def unpack_response(response):
             return {item: float(score) for item, score in response.value}
@@ -656,7 +641,9 @@ class RedisTSDB(BaseTSDB):
 
         responses = {}
 
-        for key, series in six.iteritems(self.get_frequency_series(model, items, start, end, rollup)):
+        for key, series in six.iteritems(
+            self.get_frequency_series(model, items, start, end, rollup)
+        ):
             response = responses[key] = {}
             for timestamp, results in series:
                 for member, value in results.items():
@@ -675,10 +662,7 @@ class RedisTSDB(BaseTSDB):
                 end=None,
                 rollup=rollup,
             )
-            rollups.append((
-                rollup,
-                map(to_datetime, series),
-            ))
+            rollups.append((rollup, map(to_datetime, series), ))
 
         exports = defaultdict(list)
 
@@ -692,10 +676,12 @@ class RedisTSDB(BaseTSDB):
                         source,
                     )
                     arguments = ['EXPORT'] + list(self.DEFAULT_SKETCH_PARAMETERS)
-                    exports[source].extend([
-                        (CountMinScript, keys, arguments),
-                        ('DEL',) + tuple(keys),
-                    ])
+                    exports[source].extend(
+                        [
+                            (CountMinScript, keys, arguments),
+                            ('DEL', ) + tuple(keys),
+                        ]
+                    )
 
         imports = []
 
@@ -703,16 +689,17 @@ class RedisTSDB(BaseTSDB):
             results = iter(results)
             for rollup, series in rollups:
                 for timestamp in series:
-                    imports.append((
-                        CountMinScript,
-                        self.make_frequency_table_keys(
-                            model,
-                            rollup,
-                            to_timestamp(timestamp),
-                            destination,
-                        ),
-                        ['IMPORT'] + list(self.DEFAULT_SKETCH_PARAMETERS) + next(results).value,
-                    ))
+                    imports.append(
+                        (
+                            CountMinScript, self.make_frequency_table_keys(
+                                model,
+                                rollup,
+                                to_timestamp(timestamp),
+                                destination,
+                            ),
+                            ['IMPORT'] + list(self.DEFAULT_SKETCH_PARAMETERS) + next(results).value,
+                        )
+                    )
                     next(results)  # pop off the result of DEL
 
         self.cluster.execute_commands({
@@ -728,5 +715,7 @@ class RedisTSDB(BaseTSDB):
                     for model in models:
                         for key in keys:
                             c = client.target_key(key)
-                            for k in self.make_frequency_table_keys(model, rollup, to_timestamp(timestamp), key):
+                            for k in self.make_frequency_table_keys(
+                                model, rollup, to_timestamp(timestamp), key
+                            ):
                                 c.delete(k)

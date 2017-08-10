@@ -5,6 +5,7 @@ from django.utils.http import urlquote
 from django.core.urlresolvers import reverse
 from exam import fixture
 
+from sentry import options
 from sentry.testutils import TestCase
 from sentry.models import User
 
@@ -33,11 +34,13 @@ class AuthLoginTest(TestCase):
         # load it once for test cookie
         self.client.get(self.path)
 
-        resp = self.client.post(self.path, {
-            'username': self.user.username,
-            'password': 'bizbar',
-            'op': 'login',
-        })
+        resp = self.client.post(
+            self.path, {
+                'username': self.user.username,
+                'password': 'bizbar',
+                'op': 'login',
+            }
+        )
         assert resp.status_code == 200
         assert resp.context['login_form'].errors['__all__'] == [
             u'Please enter a correct username and password. Note that both fields may be case-sensitive.'
@@ -47,31 +50,40 @@ class AuthLoginTest(TestCase):
         # load it once for test cookie
         self.client.get(self.path)
 
-        resp = self.client.post(self.path, {
-            'username': self.user.username,
-            'password': 'admin',
-            'op': 'login',
-        })
+        resp = self.client.post(
+            self.path, {
+                'username': self.user.username,
+                'password': 'admin',
+                'op': 'login',
+            }
+        )
         assert resp.status_code == 302
 
     def test_registration_disabled(self):
+        options.set('auth.allow-registration', True)
         with self.feature('auth:register', False):
             resp = self.client.get(self.path)
             assert resp.context['register_form'] is None
 
     def test_registration_valid(self):
+        options.set('auth.allow-registration', True)
         with self.feature('auth:register'):
-            resp = self.client.post(self.path, {
-                'username': 'test-a-really-long-email-address@example.com',
-                'password': 'foobar',
-                'op': 'register',
-            })
+            resp = self.client.post(
+                self.path, {
+                    'username': 'test-a-really-long-email-address@example.com',
+                    'password': 'foobar',
+                    'name': 'Foo Bar',
+                    'op': 'register',
+                }
+            )
         assert resp.status_code == 302
         user = User.objects.get(username='test-a-really-long-email-address@example.com')
         assert user.email == 'test-a-really-long-email-address@example.com'
         assert user.check_password('foobar')
+        assert user.name == 'Foo Bar'
 
     def test_register_renders_correct_template(self):
+        options.set('auth.allow-registration', True)
         register_path = reverse('sentry-register')
         resp = self.client.get(register_path)
 
@@ -85,7 +97,7 @@ class AuthLoginTest(TestCase):
             resp = self.client.get(self.path)
 
         assert resp.status_code == 302
-        assert resp['Location'] == 'http://testserver' + reverse('sentry-create-organization')
+        assert resp['Location'] == 'http://testserver/organizations/new/'
 
     def test_register_prefills_invite_email(self):
         self.session['invite_email'] = 'foo@example.com'
@@ -104,11 +116,13 @@ class AuthLoginTest(TestCase):
         next = '/welcome'
         self.client.get(self.path + '?next=' + next)
 
-        resp = self.client.post(self.path, {
-            'username': self.user.username,
-            'password': 'admin',
-            'op': 'login',
-        })
+        resp = self.client.post(
+            self.path, {
+                'username': self.user.username,
+                'password': 'admin',
+                'op': 'login',
+            }
+        )
         assert resp.status_code == 302
         assert resp.get('Location', '').endswith(next)
 
@@ -116,11 +130,13 @@ class AuthLoginTest(TestCase):
         next = "http://example.com"
         self.client.get(self.path + '?next=' + urlquote(next))
 
-        resp = self.client.post(self.path, {
-            'username': self.user.username,
-            'password': 'admin',
-            'op': 'login',
-        })
+        resp = self.client.post(
+            self.path, {
+                'username': self.user.username,
+                'password': 'admin',
+                'op': 'login',
+            }
+        )
         assert resp.status_code == 302
         assert next not in resp['Location']
         assert resp['Location'] == 'http://testserver/auth/login/'

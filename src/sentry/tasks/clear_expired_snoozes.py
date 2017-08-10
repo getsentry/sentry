@@ -6,13 +6,13 @@ from sentry.models import Group, GroupSnooze, GroupStatus
 from sentry.tasks.base import instrumented_task
 
 
-@instrumented_task(name='sentry.tasks.clear_expired_snoozes',
-                   time_limit=15,
-                   soft_time_limit=10)
+@instrumented_task(name='sentry.tasks.clear_expired_snoozes', time_limit=15, soft_time_limit=10)
 def clear_expired_snoozes():
-    group_list = list(GroupSnooze.objects.filter(
-        until__lte=timezone.now(),
-    ).values_list('group', flat=True))
+    group_list = list(
+        GroupSnooze.objects.filter(
+            until__lte=timezone.now(),
+        ).values_list('group', flat=True)
+    )
 
     Group.objects.filter(
         id__in=group_list,

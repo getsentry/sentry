@@ -24,6 +24,7 @@ class GroupHash(Model):
     project = FlexibleForeignKey('sentry.Project', null=True)
     hash = models.CharField(max_length=32)
     group = FlexibleForeignKey('sentry.Group', null=True)
+    group_tombstone_id = BoundedPositiveIntegerField(db_index=True, null=True)
     state = BoundedPositiveIntegerField(
         choices=[
             (State.LOCKED_IN_MIGRATION, _('Locked (Migration in Progress)')),
@@ -34,7 +35,7 @@ class GroupHash(Model):
     class Meta:
         app_label = 'sentry'
         db_table = 'sentry_grouphash'
-        unique_together = (('project', 'hash'),)
+        unique_together = (('project', 'hash'), )
 
     @staticmethod
     def fetch_last_processed_event_id(project_id, group_hash_ids):

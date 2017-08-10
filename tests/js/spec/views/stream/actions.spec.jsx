@@ -41,8 +41,8 @@ describe('StreamActions', function() {
 
         this.actions.actionSelectedGroups(callback);
 
-        expect(callback.withArgs(undefined).calledOnce).toBeTruthy;
-        expect(SelectedGroupStore.deselectAll.calledOnce).toBeTruthy;
+        expect(callback.withArgs(undefined).calledOnce).toBeTruthy();
+        expect(SelectedGroupStore.deselectAll.calledOnce).toBeTruthy();
 
         // all selected is reset
         expect(this.actions.state.allInQuerySelected, false);
@@ -60,8 +60,8 @@ describe('StreamActions', function() {
         let callback = this.sandbox.stub();
         this.actions.actionSelectedGroups(callback);
 
-        expect(callback.withArgs([1, 2, 3]).calledOnce).toBeTruthy;
-        expect(SelectedGroupStore.deselectAll.calledOnce).toBeTruthy;
+        expect(callback.withArgs([1, 2, 3]).calledOnce).toBeTruthy();
+        expect(SelectedGroupStore.deselectAll.calledOnce).toBeTruthy();
       });
     });
   });

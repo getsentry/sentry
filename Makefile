@@ -1,30 +1,40 @@
+CPUS ?= $(shell sysctl -n hw.ncpu 2> /dev/null || echo 1)
+MAKEFLAGS += --jobs=$(CPUS)
 NPM_ROOT = ./node_modules
 STATIC_DIR = src/sentry/static/sentry
 
-install-python:
-	@echo "--> Installing Python dependencies"
-	pip install "setuptools>=0.9.8"
-	# order matters here, base package must install first
-	pip install -e .
-	pip install ujson
-	pip install "file://`pwd`#egg=sentry[dev]"
+develop-only: update-submodules install-brew install-python install-yarn
+
+develop: setup-git develop-only
+	@echo ""
 
 install-yarn:
 	@echo "--> Installing Node dependencies"
-	@hash yarn 2> /dev/null || npm install -g yarn
+	@hash yarn 2> /dev/null || (echo 'Cannot continue with JavaScript dependencies. Please install yarn before proceeding. For more information refer to https://yarnpkg.com/lang/en/docs/install/'; echo 'If you are on a mac run:'; echo '  brew install yarn'; exit 1)
 	# Use NODE_ENV=development so that yarn installs both dependencies + devDependencies
 	NODE_ENV=development yarn install --ignore-optional --pure-lockfile
 	# Fix phantomjs-prebuilt not installed via yarn
 	# See: https://github.com/karma-runner/karma-phantomjs-launcher/issues/120#issuecomment-262634703
 	node ./node_modules/phantomjs-prebuilt/install.js
 
+install-brew:
+	@hash brew 2> /dev/null && brew bundle || (echo '! Homebrew not found, skipping system dependencies.')
+
+install-python:
+	# must be executed serialially
+	$(MAKE) install-python-base
+	$(MAKE) install-python-tests
+
+install-python-base:
+	@echo "--> Installing Python dependencies"
+	pip install "setuptools>=0.9.8" "pip>=8.0.0"
+	# order matters here, base package must install first
+	pip install -e .
+	pip install ujson
+	pip install "file://`pwd`#egg=sentry[dev]"
+
 install-python-tests:
 	pip install "file://`pwd`#egg=sentry[dev,tests,dsym]"
-
-develop-only: update-submodules install-python install-python-tests install-yarn
-
-develop: develop-only setup-git
-	@echo ""
 
 dev-postgres: install-python
 
@@ -83,6 +93,11 @@ update-submodules:
 	git submodule update
 	@echo ""
 
+build-platform-assets:
+	@echo "--> Building platform assets"
+	sentry init
+	@echo "from sentry.utils.integrationdocs import sync_docs; sync_docs()" | sentry exec
+
 test: develop lint test-js test-python test-cli
 
 testloop: develop
@@ -103,22 +118,31 @@ test-js:
 	@echo "--> Building static assets"
 	@${NPM_ROOT}/.bin/webpack
 	@echo "--> Running JavaScript tests"
-	@npm run test
+	@npm run test-ci
+	@npm run snapshot
 	@echo ""
 
-test-python:
+test-python: build-platform-assets
 	@echo "--> Running Python tests"
 	py.test tests/integration tests/sentry || exit 1
 	@echo ""
 
-test-acceptance:
+test-network:
+	@echo "--> Building platform assets"
+	sentry init
+	@echo "from sentry.utils.integrationdocs import sync_docs; sync_docs()" | sentry exec
+	@echo "--> Running network tests"
+	py.test tests/network
+	@echo ""
+
+test-acceptance: build-platform-assets
 	@echo "--> Building static assets"
 	@${NPM_ROOT}/.bin/webpack
 	@echo "--> Running acceptance tests"
 	py.test tests/acceptance
 	@echo ""
 
-test-python-coverage:
+test-python-coverage: build-platform-assets
 	@echo "--> Running Python tests"
 	SOUTH_TESTS_MIGRATE=1 coverage run --source=src/sentry -m py.test tests/integration tests/sentry
 	@echo ""
@@ -136,7 +160,7 @@ lint-js:
 	@echo ""
 
 coverage: develop
-	make test-python-coverage
+	$(MAKE) test-python-coverage
 	coverage html
 
 publish:
@@ -160,7 +184,9 @@ travis-upgrade-pip:
 travis-setup-cassandra:
 	echo "create keyspace sentry with replication = {'class' : 'SimpleStrategy', 'replication_factor': 1};" | cqlsh --cqlversion=3.1.7
 	echo 'create table nodestore (key text primary key, value blob, flags int);' | cqlsh -k sentry --cqlversion=3.1.7
-travis-install-python: travis-upgrade-pip install-python install-python-tests
+travis-install-python:
+	$(MAKE) travis-upgrade-pip
+	$(MAKE) install-python install-python
 	python -m pip install codecov
 travis-noop:
 	@echo "nothing to do here."
@@ -176,9 +202,14 @@ travis-install-mysql: travis-install-python
 	pip install mysqlclient
 	echo 'create database sentry;' | mysql -uroot
 travis-install-acceptance: install-yarn travis-install-postgres
-travis-install-js: travis-upgrade-pip install-python install-python-tests install-yarn
+travis-install-network: travis-install-postgres
+travis-install-js:
+	$(MAKE) travis-upgrade-pip
+	$(MAKE) install-python install-yarn
 travis-install-cli: travis-install-postgres
-travis-install-dist: travis-upgrade-pip install-python install-python-tests install-yarn
+travis-install-dist:
+	$(MAKE) travis-upgrade-pip
+	$(MAKE) install-python install-yarn
 travis-install-django-18: travis-install-postgres
 	pip install "Django>=1.8,<1.9"
 
@@ -190,6 +221,7 @@ travis-lint-sqlite: lint-python
 travis-lint-postgres: lint-python
 travis-lint-mysql: lint-python
 travis-lint-acceptance: travis-noop
+travis-lint-network: lint-python
 travis-lint-js: lint-js
 travis-lint-cli: travis-noop
 travis-lint-dist: travis-noop
@@ -204,6 +236,7 @@ travis-test-sqlite: test-python-coverage
 travis-test-postgres: test-python-coverage
 travis-test-mysql: test-python-coverage
 travis-test-acceptance: test-acceptance
+travis-test-network: test-network
 travis-test-js: test-js
 travis-test-cli: test-cli
 travis-test-dist:

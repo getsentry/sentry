@@ -7,9 +7,7 @@ import six
 
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
-from sentry.models import (
-    Release, ReleaseCommit, Commit, CommitFileChange, Event, Group
-)
+from sentry.models import (Release, ReleaseCommit, Commit, CommitFileChange, Event, Group)
 from sentry.api.serializers.models.commit import get_users_for_commits
 
 from django.db.models import Q
@@ -33,7 +31,6 @@ def score_path_match_length(path_a, path_b):
 
 
 class EventFileCommittersEndpoint(ProjectEndpoint):
-
     def _get_frame_paths(self, event):
         data = event.data
         try:
@@ -41,7 +38,7 @@ class EventFileCommittersEndpoint(ProjectEndpoint):
         except KeyError:
             try:
                 frames = data['sentry.interfaces.Exception']['values'][0]['stacktrace']['frames']
-            except KeyError:
+            except (KeyError, TypeError):
                 return []  # can't find stacktrace information
 
         return frames
@@ -64,10 +61,10 @@ class EventFileCommittersEndpoint(ProjectEndpoint):
     def _get_commit_file_changes(self, commits, path_name_set):
         # build a single query to get all of the commit file that might match the first n frames
 
-        path_query = reduce(operator.or_, (
-            Q(filename__endswith=next(tokenize_path(path)))
-            for path in path_name_set
-        ))
+        path_query = reduce(
+            operator.or_,
+            (Q(filename__endswith=next(tokenize_path(path))) for path in path_name_set)
+        )
 
         query = Q(commit__in=commits) & path_query
 
@@ -96,8 +93,7 @@ class EventFileCommittersEndpoint(ProjectEndpoint):
 
     def _get_commits_committer(self, commits, author_id):
         committer_commit_list = [
-            serialize(commit)
-            for commit in commits if commit.author.id == author_id
+            serialize(commit) for commit in commits if commit.author.id == author_id
         ]
 
         # filter out the author data
@@ -123,13 +119,15 @@ class EventFileCommittersEndpoint(ProjectEndpoint):
         sorted_committers = sorted(committers, key=committers.get)
         users_by_author = get_users_for_commits(commits)
 
-        user_dicts = [{
-            'author': users_by_author.get(six.text_type(author_id)),
-            'commits': self._get_commits_committer(
-                commits,
-                author_id,
-            )
-        } for author_id in sorted_committers]
+        user_dicts = [
+            {
+                'author': users_by_author.get(six.text_type(author_id)),
+                'commits': self._get_commits_committer(
+                    commits,
+                    author_id,
+                )
+            } for author_id in sorted_committers
+        ]
 
         return user_dicts
 
@@ -176,28 +174,29 @@ class EventFileCommittersEndpoint(ProjectEndpoint):
             file_changes = self._get_commit_file_changes(commits, path_set)
 
         commit_path_matches = {
-            path: self._match_commits_path(file_changes, path)
-            for path in path_set
+            path: self._match_commits_path(file_changes, path) for path in path_set
         }
 
-        annotated_frames = [{
-            'frame': frame,
-            'commits': commit_path_matches[frame['abs_path']]
-        } for frame in app_frames]
+        annotated_frames = [
+            {
+                'frame': frame,
+                'commits': commit_path_matches[frame['abs_path']]
+            } for frame in app_frames
+        ]
 
-        relevant_commits = list({
-            commit
-            for match in commit_path_matches
-            for commit in commit_path_matches[match]
-        })
+        relevant_commits = list(
+            {commit for match in commit_path_matches for commit in commit_path_matches[match]}
+        )
 
         committers = self._get_committers(annotated_frames, relevant_commits)
 
         # serialize the commit objects
-        serialized_annotated_frames = [{
-            'frame': frame['frame'],
-            'commits': serialize(frame['commits'])
-        } for frame in annotated_frames]
+        serialized_annotated_frames = [
+            {
+                'frame': frame['frame'],
+                'commits': serialize(frame['commits'])
+            } for frame in annotated_frames
+        ]
 
         data = {
             # map author ids to sentry user dicts

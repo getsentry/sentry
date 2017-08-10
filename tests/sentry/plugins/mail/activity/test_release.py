@@ -6,8 +6,8 @@ from django.core import mail
 from django.utils import timezone
 
 from sentry.models import (
-    Activity, Commit, CommitAuthor, Deploy, Environment,
-    GroupSubscriptionReason, Release, ReleaseCommit, Repository, UserEmail, UserOption, UserOptionValue
+    Activity, Commit, CommitAuthor, Deploy, Environment, GroupSubscriptionReason, Release,
+    ReleaseCommit, Repository, UserEmail, UserOption, UserOptionValue
 )
 from sentry.plugins.sentry_mail.activity.release import ReleaseActivityEmail
 from sentry.testutils import TestCase
@@ -97,8 +97,7 @@ class ReleaseTestCase(TestCase):
             release=self.release,
             organization_id=self.org.id,
             environment_id=Environment.objects.create(
-                name='production',
-                organization_id=self.org.id
+                name='production', organization_id=self.org.id
             ).id
         )
         repository = Repository.objects.create(
@@ -242,7 +241,8 @@ class ReleaseTestCase(TestCase):
                 project=self.project,
                 user=self.user,
                 type=Activity.RELEASE,
-                data={'version': 'a', 'deploy_id': 5},
+                data={'version': 'a',
+                      'deploy_id': 5},
             )
         )
 

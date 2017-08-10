@@ -25,9 +25,9 @@ class RedisTSDBTest(TestCase):
             ),
             vnodes=64,
             enable_frequency_sketches=True,
-            hosts={
-                i - 6: {'db': i} for i in xrange(6, 9)
-            },
+            hosts={i - 6: {
+                'db': i
+            } for i in xrange(6, 9)},
         )
 
     def tearDown(self):
@@ -59,10 +59,12 @@ class RedisTSDBTest(TestCase):
         self.db.incr(TSDBModel.project, 1, dts[0])
         self.db.incr(TSDBModel.project, 1, dts[1], count=3)
         self.db.incr(TSDBModel.project, 1, dts[2])
-        self.db.incr_multi([
-            (TSDBModel.project, 1),
-            (TSDBModel.project, 2),
-        ], dts[3], count=4)
+        self.db.incr_multi(
+            [
+                (TSDBModel.project, 1),
+                (TSDBModel.project, 2),
+            ], dts[3], count=4
+        )
 
         results = self.db.get_range(TSDBModel.project, [1], dts[0], dts[-1])
         assert results == {
@@ -144,31 +146,24 @@ class RedisTSDBTest(TestCase):
         self.db.record(
             model,
             1,
-            ('baz',),
+            ('baz', ),
             dts[1],
         )
 
-        self.db.record_multi((
-            (
-                model,
-                1,
-                ('foo', 'bar', 'baz'),
-            ),
-            (
-                model,
-                2,
-                ('bar',),
-            ),
-        ), dts[2])
+        self.db.record_multi(
+            ((model, 1, ('foo', 'bar', 'baz'), ), (model, 2, ('bar', ), ), ), dts[2]
+        )
 
         self.db.record(
             model,
             2,
-            ('foo',),
+            ('foo', ),
             dts[3],
         )
 
-        assert self.db.get_distinct_counts_series(model, [1], dts[0], dts[-1], rollup=3600) == {
+        assert self.db.get_distinct_counts_series(
+            model, [1], dts[0], dts[-1], rollup=3600
+        ) == {
             1: [
                 (timestamp(dts[0]), 2),
                 (timestamp(dts[1]), 1),
@@ -177,7 +172,9 @@ class RedisTSDBTest(TestCase):
             ],
         }
 
-        assert self.db.get_distinct_counts_series(model, [2], dts[0], dts[-1], rollup=3600) == {
+        assert self.db.get_distinct_counts_series(
+            model, [2], dts[0], dts[-1], rollup=3600
+        ) == {
             2: [
                 (timestamp(dts[0]), 0),
                 (timestamp(dts[1]), 0),
@@ -197,7 +194,9 @@ class RedisTSDBTest(TestCase):
 
         self.db.merge_distinct_counts(model, 1, [2], dts[0])
 
-        assert self.db.get_distinct_counts_series(model, [1], dts[0], dts[-1], rollup=3600) == {
+        assert self.db.get_distinct_counts_series(
+            model, [1], dts[0], dts[-1], rollup=3600
+        ) == {
             1: [
                 (timestamp(dts[0]), 2),
                 (timestamp(dts[1]), 1),
@@ -206,7 +205,9 @@ class RedisTSDBTest(TestCase):
             ],
         }
 
-        assert self.db.get_distinct_counts_series(model, [2], dts[0], dts[-1], rollup=3600) == {
+        assert self.db.get_distinct_counts_series(
+            model, [2], dts[0], dts[-1], rollup=3600
+        ) == {
             2: [
                 (timestamp(dts[0]), 0),
                 (timestamp(dts[1]), 0),
@@ -241,31 +242,30 @@ class RedisTSDBTest(TestCase):
         rollup = 3600
 
         self.db.record_frequency_multi(
-            (
-                (model, {
-                    'organization:1': {
-                        "project:1": 1,
-                        "project:2": 2,
-                        "project:3": 3,
-                    },
-                }),
-            ),
-            now
+            ((model, {
+                'organization:1': {
+                    "project:1": 1,
+                    "project:2": 2,
+                    "project:3": 3,
+                },
+            }), ), now
         )
 
         self.db.record_frequency_multi(
             (
-                (model, {
-                    'organization:1': {
-                        "project:1": 1,
-                        "project:2": 2,
-                        "project:3": 3,
-                        "project:4": 4,
-                    },
-                    "organization:2": {
-                        "project:5": 1.5,
-                    },
-                }),
+                (
+                    model, {
+                        'organization:1': {
+                            "project:1": 1,
+                            "project:2": 2,
+                            "project:3": 3,
+                            "project:4": 4,
+                        },
+                        "organization:2": {
+                            "project:5": 1.5,
+                        },
+                    }
+                ),
             ),
             now - timedelta(hours=1),
         )
@@ -319,22 +319,20 @@ class RedisTSDBTest(TestCase):
 
         assert self.db.get_most_frequent_series(
             model,
-            (
-                'organization:1',
-                'organization:2',
-                'organization:3',
-            ),
+            ('organization:1', 'organization:2', 'organization:3', ),
             now - timedelta(hours=1),
             now,
             rollup=rollup,
         ) == {
             'organization:1': [
-                (timestamp - rollup, {
-                    'project:1': 1.0,
-                    'project:2': 2.0,
-                    'project:3': 3.0,
-                    'project:4': 4.0,
-                }),
+                (
+                    timestamp - rollup, {
+                        'project:1': 1.0,
+                        'project:2': 2.0,
+                        'project:3': 3.0,
+                        'project:4': 4.0,
+                    }
+                ),
                 (timestamp, {
                     'project:1': 1.0,
                     'project:2': 2.0,
@@ -357,25 +355,29 @@ class RedisTSDBTest(TestCase):
             model,
             {
                 'organization:1': ("project:1", "project:2", "project:3", "project:4"),
-                'organization:2': ("project:5",),
+                'organization:2': ("project:5", ),
             },
             now - timedelta(hours=1),
             now,
             rollup=rollup,
         ) == {
             'organization:1': [
-                (timestamp - rollup, {
-                    "project:1": 1.0,
-                    "project:2": 2.0,
-                    "project:3": 3.0,
-                    "project:4": 4.0,
-                }),
-                (timestamp, {
-                    "project:1": 1.0,
-                    "project:2": 2.0,
-                    "project:3": 3.0,
-                    "project:4": 0.0,
-                }),
+                (
+                    timestamp - rollup, {
+                        "project:1": 1.0,
+                        "project:2": 2.0,
+                        "project:3": 3.0,
+                        "project:4": 4.0,
+                    }
+                ),
+                (
+                    timestamp, {
+                        "project:1": 1.0,
+                        "project:2": 2.0,
+                        "project:3": 3.0,
+                        "project:4": 0.0,
+                    }
+                ),
             ],
             'organization:2': [
                 (timestamp - rollup, {
@@ -391,7 +393,7 @@ class RedisTSDBTest(TestCase):
             model,
             {
                 'organization:1': ("project:1", "project:2", "project:3", "project:4", "project:5"),
-                'organization:2': ("project:1",),
+                'organization:2': ("project:1", ),
             },
             now - timedelta(hours=1),
             now,
@@ -433,9 +435,12 @@ class RedisTSDBTest(TestCase):
         CountMinScript(
             ['1:i', '1:e'],
             ['INCR'] + parameters + [
-                1, 'foo',
-                2, 'bar',
-                3, 'baz',
+                1,
+                'foo',
+                2,
+                'bar',
+                3,
+                'baz',
             ],
             client=client,
         )
@@ -443,15 +448,24 @@ class RedisTSDBTest(TestCase):
         CountMinScript(
             ['2:i', '2:e'],
             ['INCR'] + parameters + [
-                1, 'alpha',
-                2, 'beta',
-                3, 'gamma',
-                4, 'delta',
-                5, 'epsilon',
-                6, 'zeta',
-                7, 'eta',
-                8, 'theta',
-                9, 'iota',
+                1,
+                'alpha',
+                2,
+                'beta',
+                3,
+                'gamma',
+                4,
+                'delta',
+                5,
+                'epsilon',
+                6,
+                'zeta',
+                7,
+                'eta',
+                8,
+                'theta',
+                9,
+                'iota',
             ],
             client=client,
         )
@@ -486,12 +500,18 @@ class RedisTSDBTest(TestCase):
         CountMinScript(
             ['1:i', '1:e'],
             ['INCR'] + parameters + [
-                1, 'foo',
-                2, 'bar',
-                3, 'baz',
-                4, 'wilco',
-                5, 'tango',
-                6, 'foxtrot',
+                1,
+                'foo',
+                2,
+                'bar',
+                3,
+                'baz',
+                4,
+                'wilco',
+                5,
+                'tango',
+                6,
+                'foxtrot',
             ],
             client=client,
         )
@@ -499,15 +519,24 @@ class RedisTSDBTest(TestCase):
         CountMinScript(
             ['2:i', '2:e'],
             ['INCR'] + parameters + [
-                1, 'alpha',
-                2, 'beta',
-                3, 'gamma',
-                4, 'delta',
-                5, 'epsilon',
-                6, 'zeta',
-                7, 'eta',
-                8, 'theta',
-                9, 'iota',
+                1,
+                'alpha',
+                2,
+                'beta',
+                3,
+                'gamma',
+                4,
+                'delta',
+                5,
+                'epsilon',
+                6,
+                'zeta',
+                7,
+                'eta',
+                8,
+                'theta',
+                9,
+                'iota',
             ],
             client=client,
         )
@@ -554,9 +583,12 @@ class RedisTSDBTest(TestCase):
         CountMinScript(
             ['1:i', '1:e'],
             ['INCR'] + parameters + [
-                5, 'foo',
-                7, 'bar',
-                9, 'baz',
+                5,
+                'foo',
+                7,
+                'bar',
+                9,
+                'baz',
             ],
             client=client,
         )
@@ -564,15 +596,24 @@ class RedisTSDBTest(TestCase):
         CountMinScript(
             ['2:i', '2:e'],
             ['INCR'] + parameters + [
-                1, 'alpha',
-                2, 'beta',
-                3, 'gamma',
-                4, 'delta',
-                5, 'epsilon',
-                6, 'zeta',
-                7, 'eta',
-                8, 'theta',
-                9, 'iota',
+                1,
+                'alpha',
+                2,
+                'beta',
+                3,
+                'gamma',
+                4,
+                'delta',
+                5,
+                'epsilon',
+                6,
+                'zeta',
+                7,
+                'eta',
+                8,
+                'theta',
+                9,
+                'iota',
             ],
             client=client,
         )
@@ -619,15 +660,24 @@ class RedisTSDBTest(TestCase):
         CountMinScript(
             ['1:i', '1:e'],
             ['INCR'] + parameters + [
-                1, 'alpha',
-                2, 'beta',
-                3, 'gamma',
-                4, 'delta',
-                5, 'epsilon',
-                6, 'zeta',
-                7, 'eta',
-                8, 'theta',
-                9, 'iota',
+                1,
+                'alpha',
+                2,
+                'beta',
+                3,
+                'gamma',
+                4,
+                'delta',
+                5,
+                'epsilon',
+                6,
+                'zeta',
+                7,
+                'eta',
+                8,
+                'theta',
+                9,
+                'iota',
             ],
             client=client,
         )
@@ -635,9 +685,12 @@ class RedisTSDBTest(TestCase):
         CountMinScript(
             ['2:i', '2:e'],
             ['INCR'] + parameters + [
-                5, 'foo',
-                7, 'bar',
-                9, 'baz',
+                5,
+                'foo',
+                7,
+                'bar',
+                9,
+                'baz',
             ],
             client=client,
         )

@@ -99,7 +99,10 @@ class IssueTrackingPlugin(Plugin):
         if not request.user.is_authenticated():
             return True
 
-        return bool(not UserSocialAuth.objects.filter(user=request.user, provider=self.auth_provider).exists())
+        return bool(
+            not UserSocialAuth.objects.filter(user=request.user, provider=self.auth_provider
+                                              ).exists()
+        )
 
     def get_new_issue_title(self, **kwargs):
         """
@@ -117,7 +120,9 @@ class IssueTrackingPlugin(Plugin):
         """
         Return a Form for the "Create new issue" page.
         """
-        return self.new_issue_form(request.POST or None, initial=self.get_initial_form_data(request, group, event))
+        return self.new_issue_form(
+            request.POST or None, initial=self.get_initial_form_data(request, group, event)
+        )
 
     def get_new_issue_read_only_fields(self, *args, **kwargs):
         """
@@ -129,8 +134,9 @@ class IssueTrackingPlugin(Plugin):
     def get_link_existing_issue_form(self, request, group, event, **kwargs):
         if not self.link_issue_form:
             return None
-        return self.link_issue_form(request.POST or None,
-                                    initial=self.get_initial_link_form_data(request, group, event))
+        return self.link_issue_form(
+            request.POST or None, initial=self.get_initial_link_form_data(request, group, event)
+        )
 
     def get_issue_url(self, group, issue_id, **kwargs):
         """
@@ -193,18 +199,22 @@ class IssueTrackingPlugin(Plugin):
             else:
                 required_auth_settings = None
 
-            return self.render(self.not_configured_template, {
-                'title': self.get_title(),
-                'project': group.project,
-                'has_auth_configured': has_auth_configured,
-                'required_auth_settings': required_auth_settings,
-            })
+            return self.render(
+                self.not_configured_template, {
+                    'title': self.get_title(),
+                    'project': group.project,
+                    'has_auth_configured': has_auth_configured,
+                    'required_auth_settings': required_auth_settings,
+                }
+            )
 
         if self.needs_auth(project=group.project, request=request):
-            return self.render(self.needs_auth_template, {
-                'title': self.get_title(),
-                'project': group.project,
-            })
+            return self.render(
+                self.needs_auth_template, {
+                    'title': self.get_title(),
+                    'project': group.project,
+                }
+            )
 
         if GroupMeta.objects.get_value(group, '%s:tid' % self.get_conf_key(), None):
             if self.can_unlink_issues and request.GET.get('unlink'):
@@ -250,7 +260,12 @@ class IssueTrackingPlugin(Plugin):
                     data=issue_information,
                 )
 
-                issue_tracker_used.send(plugin=self, project=group.project, user=request.user, sender=IssueTrackingPlugin)
+                issue_tracker_used.send(
+                    plugin=self,
+                    project=group.project,
+                    user=request.user,
+                    sender=IssueTrackingPlugin
+                )
                 return self.redirect(group.get_absolute_url())
 
         elif op == 'link':
@@ -303,8 +318,9 @@ class IssueTrackingPlugin(Plugin):
         if not GroupMeta.objects.get_value(group, '%s:tid' % prefix, None):
             action_list.append((self.get_new_issue_title(), self.get_url(group)))
         elif self.can_unlink_issues:
-            action_list.append((self.get_unlink_issue_title(),
-                                '%s?unlink=1' % self.get_url(group).rstrip('/')))
+            action_list.append(
+                (self.get_unlink_issue_title(), '%s?unlink=1' % self.get_url(group).rstrip('/'))
+            )
         return action_list
 
     def tags(self, request, group, tag_list, **kwargs):
@@ -316,14 +332,18 @@ class IssueTrackingPlugin(Plugin):
         if not issue_id:
             return tag_list
 
-        tag_list.append(format_html('<a href="{}" rel="noreferrer">{}</a>',
-            self.get_issue_url(group=group, issue_id=issue_id),
-            self.get_issue_label(group=group, issue_id=issue_id),
-        ))
+        tag_list.append(
+            format_html(
+                '<a href="{}" rel="noreferrer">{}</a>',
+                self.get_issue_url(group=group, issue_id=issue_id),
+                self.get_issue_label(group=group, issue_id=issue_id),
+            )
+        )
 
         return tag_list
 
     def get_issue_doc_html(self, **kwargs):
         return ""
+
 
 IssuePlugin = IssueTrackingPlugin

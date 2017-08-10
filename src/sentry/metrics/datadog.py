@@ -43,10 +43,9 @@ class DatadogMetricsBackend(MetricsBackend):
             tags['instance'] = instance
         if tags:
             tags = ['{}:{}'.format(*i) for i in tags.items()]
-        self.stats.increment(self._get_key(key), amount,
-                             sample_rate=sample_rate,
-                             tags=tags,
-                             host=self.host)
+        self.stats.increment(
+            self._get_key(key), amount, sample_rate=sample_rate, tags=tags, host=self.host
+        )
 
     def timing(self, key, value, instance=None, tags=None, sample_rate=1):
         if tags is None:
@@ -57,6 +56,6 @@ class DatadogMetricsBackend(MetricsBackend):
             tags['instance'] = instance
         if tags:
             tags = ['{}:{}'.format(*i) for i in tags.items()]
-        self.stats.timing(self._get_key(key), value, sample_rate=sample_rate,
-                          tags=tags,
-                          host=self.host)
+        self.stats.timing(
+            self._get_key(key), value, sample_rate=sample_rate, tags=tags, host=self.host
+        )

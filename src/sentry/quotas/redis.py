@@ -22,8 +22,7 @@ is_rate_limited = load_script('quotas/is_rate_limited.lua')
 class BasicRedisQuota(object):
     __slots__ = ['key', 'limit', 'window', 'reason_code', 'enforce']
 
-    def __init__(self, key, limit=0, window=60, reason_code=None,
-                 enforce=True):
+    def __init__(self, key, limit=0, window=60, reason_code=None, enforce=True):
         self.key = key
         # maximum number of events in the given window, 0 indicates "no limit"
         self.limit = limit
@@ -53,9 +52,12 @@ class RedisQuota(Quota):
         except Exception as e:
             raise InvalidConfiguration(six.text_type(e))
 
-    def get_redis_key(self, key, timestamp, interval):
-        # TODO: This is going to be made "private" (name mangled.)
-        return '{}:{}:{}'.format(self.namespace, key, int(timestamp // interval))
+    def __get_redis_key(self, key, timestamp, interval, shift):
+        return '{}:{}:{}'.format(
+            self.namespace,
+            key,
+            int((timestamp - shift) // interval),
+        )
 
     def get_quotas(self, project, key=None):
         if key:
@@ -78,12 +80,14 @@ class RedisQuota(Quota):
         ]
         if key:
             kquota = self.get_key_quota(key)
-            results.append(BasicRedisQuota(
-                key='k:{}'.format(key.id),
-                limit=kquota[0],
-                window=kquota[1],
-                reason_code='key_quota',
-            ))
+            results.append(
+                BasicRedisQuota(
+                    key='k:{}'.format(key.id),
+                    limit=kquota[0],
+                    window=kquota[1],
+                    reason_code='key_quota',
+                )
+            )
         return results
 
     def get_usage(self, organization_id, quotas, timestamp=None):
@@ -95,10 +99,8 @@ class RedisQuota(Quota):
                 return None
 
             return client.get(
-                self.get_redis_key(
-                    quota.key,
-                    timestamp,
-                    quota.window,
+                self.__get_redis_key(
+                    quota.key, timestamp, quota.window, organization_id % quota.window
                 ),
             )
 
@@ -129,8 +131,7 @@ class RedisQuota(Quota):
             timestamp = time()
 
         quotas = [
-            quota
-            for quota in self.get_quotas(project, key=key)
+            quota for quota in self.get_quotas(project, key=key)
             # x = (key, limit, interval)
             if quota.limit > 0  # a zero limit means "no limit", not "reject all"
         ]
@@ -139,15 +140,16 @@ class RedisQuota(Quota):
         if not quotas:
             return NotRateLimited()
 
-        def get_next_period_start(interval):
+        def get_next_period_start(interval, shift):
             """Return the timestamp when the next rate limit period begins for an interval."""
-            return ((timestamp // interval) + 1) * interval
+            return (((timestamp - shift) // interval) + 1) * interval + shift
 
         keys = []
         args = []
         for quota in quotas:
-            keys.append(self.get_redis_key(quota.key, timestamp, quota.window))
-            expiry = get_next_period_start(quota.window) + self.grace
+            shift = project.organization_id % quota.window
+            keys.append(self.__get_redis_key(quota.key, timestamp, quota.window, shift))
+            expiry = get_next_period_start(quota.window, shift) + self.grace
             args.extend((quota.limit, int(expiry)))
 
         client = self.cluster.get_local_client_for_key(six.text_type(project.organization.pk))
@@ -160,7 +162,8 @@ class RedisQuota(Quota):
                     continue
                 if quota.enforce:
                     enforce = True
-                    delay = get_next_period_start(quota.window) - timestamp
+                    shift = project.organization_id % quota.window
+                    delay = get_next_period_start(quota.window, shift) - timestamp
                     if delay > worst_case[0]:
                         worst_case = (delay, quota.reason_code)
             if enforce:

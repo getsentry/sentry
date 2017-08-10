@@ -8,7 +8,7 @@ from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.content_negotiation import ConditionalContentNegotiation
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import ListField
-from sentry.models import ProjectDSymFile, create_files_from_macho_zip, \
+from sentry.models import ProjectDSymFile, create_files_from_dsym_zip, \
     VersionDSymFile, DSymApp, DSYM_PLATFORMS
 
 ERR_FILE_EXISTS = 'A file matching this uuid already exists'
@@ -17,7 +17,8 @@ ERR_FILE_EXISTS = 'A file matching this uuid already exists'
 class AssociateDsymSerializer(serializers.Serializer):
     checksums = ListField(child=serializers.CharField(max_length=40))
     platform = serializers.ChoiceField(choices=zip(
-        DSYM_PLATFORMS.keys(), DSYM_PLATFORMS.keys(),
+        DSYM_PLATFORMS.keys(),
+        DSYM_PLATFORMS.keys(),
     ))
     name = serializers.CharField(max_length=250)
     appId = serializers.CharField(max_length=250)
@@ -29,13 +30,13 @@ def upload_from_request(request, project=None):
     if 'file' not in request.FILES:
         return Response({'detail': 'Missing uploaded file'}, status=400)
     fileobj = request.FILES['file']
-    files = create_files_from_macho_zip(fileobj, project=project)
+    files = create_files_from_dsym_zip(fileobj, project=project)
     return Response(serialize(files, request.user), status=201)
 
 
 class DSymFilesEndpoint(ProjectEndpoint):
     doc_section = DocSection.PROJECTS
-    permission_classes = (ProjectReleasePermission,)
+    permission_classes = (ProjectReleasePermission, )
 
     content_negotiation_class = ConditionalContentNegotiation
 
@@ -53,9 +54,7 @@ class DSymFilesEndpoint(ProjectEndpoint):
         :auth: required
         """
 
-        apps = DSymApp.objects.filter(
-            project=project
-        )
+        apps = DSymApp.objects.filter(project=project)
         dsym_files = VersionDSymFile.objects.filter(
             dsym_app=apps
         ).select_related('projectdsymfile').order_by('-build', 'version')
@@ -65,11 +64,13 @@ class DSymFilesEndpoint(ProjectEndpoint):
             versiondsymfile__isnull=True,
         ).select_related('file')[:100]
 
-        return Response({
-            'apps': serialize(list(apps)),
-            'debugSymbols': serialize(list(dsym_files)),
-            'unreferencedDebugSymbols': serialize(list(file_list)),
-        })
+        return Response(
+            {
+                'apps': serialize(list(apps)),
+                'debugSymbols': serialize(list(dsym_files)),
+                'unreferencedDebugSymbols': serialize(list(file_list)),
+            }
+        )
 
     def post(self, request, project):
         """
@@ -97,7 +98,7 @@ class DSymFilesEndpoint(ProjectEndpoint):
 
 class UnknownDSymFilesEndpoint(ProjectEndpoint):
     doc_section = DocSection.PROJECTS
-    permission_classes = (ProjectReleasePermission,)
+    permission_classes = (ProjectReleasePermission, )
 
     def get(self, request, project):
         checksums = request.GET.getlist('checksums')
@@ -107,7 +108,7 @@ class UnknownDSymFilesEndpoint(ProjectEndpoint):
 
 class AssociateDSymFilesEndpoint(ProjectEndpoint):
     doc_section = DocSection.PROJECTS
-    permission_classes = (ProjectReleasePermission,)
+    permission_classes = (ProjectReleasePermission, )
 
     def post(self, request, project):
         serializer = AssociateDsymSerializer(data=request.DATA)
@@ -124,8 +125,7 @@ class AssociateDSymFilesEndpoint(ProjectEndpoint):
             data={'name': data['name']},
             platform=DSYM_PLATFORMS[data['platform']],
         )
-        dsym_files = ProjectDSymFile.objects.find_by_checksums(
-            data['checksums'], project)
+        dsym_files = ProjectDSymFile.objects.find_by_checksums(data['checksums'], project)
 
         for dsym_file in dsym_files:
             version_dsym_file, created = VersionDSymFile.objects.get_or_create(

@@ -1,10 +1,12 @@
 import React from 'react';
-import _ from 'underscore';
+import _ from 'lodash';
 
 import ApiMixin from '../mixins/apiMixin';
 import IndicatorStore from '../stores/indicatorStore';
+import GroupTombstones from '../components/groupTombstones';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
+import ProjectState from '../mixins/projectState';
 import StackedBarChart from '../components/stackedBarChart';
 import Switch from '../components/switch';
 import {FormState, TextareaField} from '../components/forms';
@@ -221,7 +223,7 @@ const ProjectFiltersSettingsForm = React.createClass({
     initialData: React.PropTypes.object.isRequired
   },
 
-  mixins: [ApiMixin],
+  mixins: [ApiMixin, ProjectState],
 
   getInitialState() {
     let formData = {};
@@ -283,9 +285,22 @@ const ProjectFiltersSettingsForm = React.createClass({
     );
   },
 
+  renderLinkToGlobWiki() {
+    return (
+      <span>
+        {t('Separate multiple entries with a newline. Allows ')}
+        <a href="https://en.wikipedia.org/wiki/Glob_(programming)">
+          {t('glob pattern matching.')}
+        </a>
+      </span>
+    );
+  },
+
   render() {
     let isSaving = this.state.state === FormState.SAVING;
     let errors = this.state.errors;
+    let features = this.getProjectFeatures();
+
     return (
       <form onSubmit={this.onSubmit} className="form-stacked p-b-1">
         {this.state.state === FormState.ERROR &&
@@ -295,16 +310,6 @@ const ProjectFiltersSettingsForm = React.createClass({
             )}
           </div>}
         <fieldset>
-          <div className="pull-right">
-
-            <button
-              type="submit"
-              className="btn btn-sm btn-primary"
-              disabled={isSaving || !this.state.hasChanged}>
-              {t('Save Changes')}
-            </button>
-
-          </div>
           <h5>{t('Filter errors from these IP addresses:')}</h5>
           <TextareaField
             key="ip"
@@ -315,6 +320,38 @@ const ProjectFiltersSettingsForm = React.createClass({
             error={errors['filters:blacklisted_ips']}
             onChange={this.onFieldChange.bind(this, 'filters:blacklisted_ips')}
           />
+          {features.has('additional-data-filters') &&
+            <div>
+              <h5>{t('Filter errors from these releases:')}</h5>
+              <TextareaField
+                key="release"
+                name="release"
+                help={this.renderLinkToGlobWiki()}
+                placeholder="e.g. 1.* or [!3].[0-9].*"
+                value={this.state.formData['filters:releases']}
+                error={errors['filters:releases']}
+                onChange={this.onFieldChange.bind(this, 'filters:releases')}
+              />
+              <h5>{t('Filter errors by error message:')}</h5>
+              <TextareaField
+                key="errorMessage"
+                name="errorMessage"
+                help={this.renderLinkToGlobWiki()}
+                placeholder="e.g. TypeError* or *: integer division or modulo by zero"
+                value={this.state.formData['filters:error_messages']}
+                error={errors['filters:error_messages']}
+                onChange={this.onFieldChange.bind(this, 'filters:error_messages')}
+              />
+            </div>}
+          <div className="pull-right">
+            <button
+              type="submit"
+              className="btn btn-sm btn-primary"
+              disabled={isSaving || !this.state.hasChanged}>
+              {t('Save Changes')}
+            </button>
+
+          </div>
         </fieldset>
       </form>
     );
@@ -322,7 +359,7 @@ const ProjectFiltersSettingsForm = React.createClass({
 });
 
 const ProjectFilters = React.createClass({
-  mixins: [ApiMixin],
+  mixins: [ApiMixin, ProjectState],
 
   getInitialState() {
     let until = Math.floor(new Date().getTime() / 1000);
@@ -340,7 +377,10 @@ const ProjectFilters = React.createClass({
       rawStatsData: null,
       processedStats: false,
       projectOptions: {},
-      blankStats: false
+      blankStats: false,
+      activeSection: 'data-filters',
+      tombstones: [],
+      tombstoneError: false
     };
   },
 
@@ -409,6 +449,18 @@ const ProjectFilters = React.createClass({
         });
       }
     });
+
+    this.api.request(`/projects/${orgId}/${projectId}/tombstones/`, {
+      method: 'GET',
+      success: tombstones => {
+        this.setState({tombstones});
+      },
+      error: () => {
+        this.setState({
+          tombstoneError: true
+        });
+      }
+    });
   },
 
   processStatsData() {
@@ -466,6 +518,12 @@ const ProjectFilters = React.createClass({
     });
   },
 
+  setProjectNavSection(section) {
+    this.setState({
+      activeSection: section
+    });
+  },
+
   renderBody() {
     let body;
 
@@ -484,57 +542,96 @@ const ProjectFilters = React.createClass({
     );
   },
 
-  renderResults() {
+  renderSection() {
+    let activeSection = this.state.activeSection;
     let {orgId, projectId} = this.props.params;
+    if (activeSection == 'data-filters') {
+      return (
+        <div>
+          {this.state.filterList.map(filter => {
+            let props = {
+              key: filter.id,
+              data: filter,
+              orgId: orgId,
+              projectId: projectId,
+              onToggle: this.onToggleFilter
+            };
+            return filter.id === 'legacy-browsers'
+              ? <LegacyBrowserFilterRow {...props} />
+              : <FilterRow {...props} />;
+          })}
+
+          <div style={{borderTop: '1px solid #f2f3f4', padding: '20px 0 0'}}>
+            <ProjectFiltersSettingsForm
+              orgId={orgId}
+              projectId={projectId}
+              initialData={this.state.projectOptions}
+            />
+          </div>
+        </div>
+      );
+    } else {
+      return (
+        <GroupTombstones
+          orgId={orgId}
+          projectId={projectId}
+          tombstones={this.state.tombstones}
+          tombstoneError={this.state.tombstoneError}
+          fetchData={this.fetchData}
+        />
+      );
+    }
+  },
+
+  renderResults() {
+    let navSection = this.state.activeSection;
+    let features = this.getProjectFeatures();
 
     return (
       <div>
-        <div className="panel panel-default">
-          <div className="panel-heading">
-            <h6>{t('Errors filtered in the last 30 days (by day)')}</h6>
+        <div className="box">
+          <div className="box-header">
+            <h5>{t('Errors filtered in the last 30 days (by day)')}</h5>
           </div>
-          <div className="panel-body p-a-0">
-            {!this.state.blankStats
-              ? <div className="inbound-filters-stats p-a-1">
-                  <div className="bar-chart">
-                    <StackedBarChart
-                      points={this.state.stats}
-                      height={50}
-                      barClasses={['filtered']}
-                      className="sparkline m-b-0"
-                    />
-                  </div>
-                </div>
-              : <div className="blankslate p-y-2">
+          {!this.state.blankStats
+            ? <StackedBarChart
+                points={this.state.stats}
+                height={50}
+                label="events"
+                barClasses={['filtered']}
+                className="standard-barchart"
+              />
+            : <div className="box-content">
+                <div className="blankslate p-y-2">
                   <h5>{t('Nothing filtered in the last 30 days.')}</h5>
                   <p className="m-b-0">
                     {t(
                       'Issues filtered as a result of your settings below will be shown here.'
                     )}
                   </p>
-                </div>}
-          </div>
+                </div>
+              </div>}
         </div>
-        {this.state.filterList.map(filter => {
-          let props = {
-            key: filter.id,
-            data: filter,
-            orgId: orgId,
-            projectId: projectId,
-            onToggle: this.onToggleFilter
-          };
-          return filter.id === 'legacy-browsers'
-            ? <LegacyBrowserFilterRow {...props} />
-            : <FilterRow {...props} />;
-        })}
-
-        <div style={{borderTop: '1px solid #f2f3f4', padding: '20px 0 0'}}>
-          <ProjectFiltersSettingsForm
-            orgId={orgId}
-            projectId={projectId}
-            initialData={this.state.projectOptions}
-          />
-        </div>
+        {features.has('custom-filters') &&
+          <div className="sub-header flex flex-container flex-vertically-centered">
+            <div className="p-t-1">
+              <ul className="nav nav-tabs">
+                <li
+                  className={`col-xs-5  ${navSection == 'data-filters' ? 'active ' : ''}`}>
+                  <a onClick={() => this.setProjectNavSection('data-filters')}>
+                    {t('Data Filters')}
+                  </a>
+                </li>
+                <li
+                  className={`col-xs-5 align-right ${navSection == 'discarded-groups' ? 'active ' : ''}`}>
+                  <a onClick={() => this.setProjectNavSection('discarded-groups')}>
+                    {t('Discarded Groups')}
+                  </a>
+                </li>
+              </ul>
+            </div>
+          </div>}
+        {this.renderSection()}
       </div>
     );
   },

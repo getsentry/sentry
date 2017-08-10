@@ -9,14 +9,8 @@ class ProjectIssuesTest(AcceptanceTestCase):
     def setUp(self):
         super(ProjectIssuesTest, self).setUp()
         self.user = self.create_user('foo@example.com')
-        self.org = self.create_organization(
-            owner=self.user,
-            name='Rowdy Tiger'
-        )
-        self.team = self.create_team(
-            organization=self.org,
-            name='Mariachi Band'
-        )
+        self.org = self.create_organization(owner=self.user, name='Rowdy Tiger')
+        self.team = self.create_team(organization=self.org, name='Mariachi Band')
         self.project = self.create_project(
             organization=self.org,
             team=self.team,
@@ -42,7 +36,7 @@ class ProjectIssuesTest(AcceptanceTestCase):
         )
         self.browser.get(self.path)
         self.browser.wait_until('.group-list')
-        self.browser.wait_until('.sparkline')
+        self.browser.wait_until('.barchart')
         self.browser.snapshot('project issues with issues')
 
     def test_with_no_issues(self):

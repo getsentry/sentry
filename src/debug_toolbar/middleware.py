@@ -104,9 +104,12 @@ class DebugToolbarMiddleware(object):
         # Check for responses where the toolbar can't be inserted.
         content_encoding = response.get('Content-Encoding', '')
         content_type = response.get('Content-Type', '').split(';')[0]
-        if any((getattr(response, 'streaming', False),
-                'gzip' in content_encoding,
-                content_type not in _HTML_TYPES)):
+        if any(
+            (
+                getattr(response, 'streaming', False), 'gzip' in content_encoding,
+                content_type not in _HTML_TYPES
+            )
+        ):
             return response
 
         # Collapse the toolbar by default if SHOW_COLLAPSED is set.
@@ -116,10 +119,10 @@ class DebugToolbarMiddleware(object):
         # Insert the toolbar in the response.
         content = force_text(response.content, encoding=settings.DEFAULT_CHARSET)
         insert_before = dt_settings.CONFIG['INSERT_BEFORE']
-        try:                    # Python >= 2.7
+        try:  # Python >= 2.7
             pattern = re.escape(insert_before)
             bits = re.split(pattern, content, flags=re.IGNORECASE)
-        except TypeError:       # Python < 2.7
+        except TypeError:  # Python < 2.7
             pattern = '(.+?)(%s|$)' % re.escape(insert_before)
             matches = re.findall(pattern, content, flags=re.DOTALL | re.IGNORECASE)
             bits = [m[0] for m in matches if m[1] == insert_before]

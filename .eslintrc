@@ -7,13 +7,15 @@
   "env": {
     "browser": true,
     "es6": true,
-    "mocha": true, // we use Chai, but close enough,
+    "jest": true,
     "jquery": true // hard-loaded into vendor.js
   },
   "globals": {
     "require": false,
     "expect": false,
     "sinon": false,
+    "MockApiClient": true,
+    "TestStubs": true,
     "Raven": true,
     "jest": true
   },

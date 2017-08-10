@@ -17,8 +17,7 @@ class TeamMembersEndpoint(TeamEndpoint):
         ).select_related('user')
 
         member_list = sorted(
-            queryset,
-            key=lambda x: x.user.get_display_name() if x.user_id else x.email
+            queryset, key=lambda x: x.user.get_display_name() if x.user_id else x.email
         )
 
         context = serialize(member_list, request.user)

@@ -1,5 +1,5 @@
 import React from 'react';
-import _ from 'underscore';
+import _ from 'lodash';
 
 import {Client} from '../../api';
 import {FormState, GenericField} from '../../components/forms';
@@ -16,8 +16,8 @@ const callbackWithArgs = function(callback, ...args) {
 };
 
 class PluginComponentBase extends React.Component {
-  constructor(props) {
-    super(props);
+  constructor(props, context) {
+    super(props, context);
 
     [
       'onLoadSuccess',

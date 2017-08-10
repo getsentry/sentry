@@ -22,6 +22,7 @@ class InMemoryTSDB(BaseTSDB):
 
     This should not be used in production as it will leak memory.
     """
+
     def __init__(self, *args, **kwargs):
         super(InMemoryTSDB, self).__init__(*args, **kwargs)
         self.flush()
@@ -214,17 +215,16 @@ class InMemoryTSDB(BaseTSDB):
             source = self.frequencies[model][key]
             for timestamp in series:
                 scores = source[self.normalize_ts_to_rollup(timestamp, rollup)]
-                result.append((
-                    timestamp,
-                    {k: scores.get(k, 0.0) for k in members},
-                ))
+                result.append((timestamp, {k: scores.get(k, 0.0) for k in members}, ))
 
         return results
 
     def get_frequency_totals(self, model, items, start, end=None, rollup=None):
         results = {}
 
-        for key, series in six.iteritems(self.get_frequency_series(model, items, start, end, rollup)):
+        for key, series in six.iteritems(
+            self.get_frequency_series(model, items, start, end, rollup)
+        ):
             result = results[key] = {}
             for timestamp, scores in series:
                 for member, score in scores.items():

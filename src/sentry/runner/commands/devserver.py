@@ -15,14 +15,25 @@ from sentry.runner.decorators import configuration, log_options
 
 @click.command()
 @click.option('--reload/--no-reload', default=True, help='Autoreloading of python files.')
-@click.option('--watchers/--no-watchers', default=True, help='Watch static files and recompile on changes.')
+@click.option(
+    '--watchers/--no-watchers', default=True, help='Watch static files and recompile on changes.'
+)
 @click.option('--workers/--no-workers', default=False, help='Run asynchronous workers.')
-@click.option('--browser-reload/--no-browser-reload', default=False, help='Automatic browser refreshing on webpack builds')
+@click.option(
+    '--browser-reload/--no-browser-reload',
+    default=False,
+    help='Automatic browser refreshing on webpack builds'
+)
+@click.option(
+    '--styleguide/--no-styleguide',
+    default=False,
+    help='Start local styleguide web server on port 9001'
+)
 @click.option('--environment', default='development', help='The environment name.')
 @click.argument('bind', default='127.0.0.1:8000', metavar='ADDRESS')
 @log_options()
 @configuration
-def devserver(reload, watchers, workers, browser_reload, environment, bind):
+def devserver(reload, watchers, workers, browser_reload, styleguide, environment, bind):
     "Starts a lightweight web server for development."
     if ':' in bind:
         host, port = bind.split(':', 1)
@@ -51,10 +62,12 @@ def devserver(reload, watchers, workers, browser_reload, environment, bind):
         except Exception:
             has_https = False
             from sentry.runner.initializer import show_big_error
-            show_big_error([
-                'missing `https` on your `$PATH`, but https is needed',
-                '`$ brew install mattrobenolt/stuff/https`',
-            ])
+            show_big_error(
+                [
+                    'missing `https` on your `$PATH`, but https is needed',
+                    '`$ brew install mattrobenolt/stuff/https`',
+                ]
+            )
 
     uwsgi_overrides = {
         # Make sure we don't try and use uwsgi protocol
@@ -76,7 +89,9 @@ def devserver(reload, watchers, workers, browser_reload, environment, bind):
 
     if workers:
         if settings.CELERY_ALWAYS_EAGER:
-            raise click.ClickException('Disable CELERY_ALWAYS_EAGER in your settings file to spawn workers.')
+            raise click.ClickException(
+                'Disable CELERY_ALWAYS_EAGER in your settings file to spawn workers.'
+            )
 
         daemons += [
             ('worker', ['sentry', 'run', 'worker', '-c', '1', '--autoreload']),
@@ -131,13 +146,18 @@ def devserver(reload, watchers, workers, browser_reload, environment, bind):
         ('server', ['sentry', 'run', 'web']),
     ]
 
+    if styleguide:
+        daemons += [('storybook', ['yarn', 'storybook'])]
+
     cwd = os.path.realpath(os.path.join(settings.PROJECT_ROOT, os.pardir, os.pardir))
 
     manager = Manager()
     for name, cmd in daemons:
         manager.add_process(
-            name, list2cmdline(cmd),
-            quiet=False, cwd=cwd,
+            name,
+            list2cmdline(cmd),
+            quiet=False,
+            cwd=cwd,
         )
 
     manager.loop()

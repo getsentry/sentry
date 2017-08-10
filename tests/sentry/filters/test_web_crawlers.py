@@ -26,7 +26,9 @@ class WebCrawlersFilterTest(TestCase):
         assert self.apply_filter(data)
 
     def test_does_not_filter_chrome(self):
-        data = self.get_mock_data('Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36')
+        data = self.get_mock_data(
+            'Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36'
+        )
         assert not self.apply_filter(data)
 
     def test_filters_twitterbot(self):

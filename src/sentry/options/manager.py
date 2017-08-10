@@ -86,7 +86,8 @@ class OptionsManager(object):
         # Enforce immutability on key
         assert not (opt.flags & FLAG_IMMUTABLE), '%r cannot be changed at runtime' % key
         # Enforce immutability if value is already set on disk
-        assert not (opt.flags & FLAG_PRIORITIZE_DISK and settings.SENTRY_OPTIONS.get(key)), '%r cannot be changed at runtime because it is configured on disk' % key
+        assert not (opt.flags & FLAG_PRIORITIZE_DISK and settings.SENTRY_OPTIONS.get(key)
+                    ), '%r cannot be changed at runtime because it is configured on disk' % key
 
         if coerce:
             value = opt.type(value)
@@ -190,8 +191,15 @@ class OptionsManager(object):
 
         return self.store.delete(opt)
 
-    def register(self, key, default=None, type=None, flags=DEFAULT_FLAGS,
-                 ttl=DEFAULT_KEY_TTL, grace=DEFAULT_KEY_GRACE):
+    def register(
+        self,
+        key,
+        default=None,
+        type=None,
+        flags=DEFAULT_FLAGS,
+        ttl=DEFAULT_KEY_TTL,
+        grace=DEFAULT_KEY_GRACE
+    ):
         assert key not in self.registry, 'Option already registered: %r' % key
 
         if len(key) > 64:
@@ -201,7 +209,9 @@ class OptionsManager(object):
         # see what value is returns, so we can use that to derive the type
         if not callable(default):
             default_value = default
-            default = lambda: default_value
+
+            def default():
+                return default_value
         else:
             default_value = default()
 
@@ -211,7 +221,10 @@ class OptionsManager(object):
             # is specified and we assume six.text_type for safety
             if default_value is None:
                 default_value = u''
-                default = lambda: default_value
+
+                def default():
+                    return default_value
+
             type = type_from_value(default_value)
 
         # We disallow None as a value for options since this is ambiguous and doesn't

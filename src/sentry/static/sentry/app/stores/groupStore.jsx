@@ -1,10 +1,9 @@
-import jQuery from 'jquery';
 import Reflux from 'reflux';
 import GroupActions from '../actions/groupActions';
 import IndicatorStore from './indicatorStore';
 import PendingChangeQueue from '../utils/pendingChangeQueue';
 import {t} from '../locale';
-import _ from 'underscore';
+import _ from 'lodash';
 
 function showAlert(msg, type) {
   IndicatorStore.add(msg, type, {
@@ -53,7 +52,10 @@ const GroupStore = Reflux.createStore({
     // See if any existing items are updated by this new set of items
     this.items.forEach((item, idx) => {
       if (itemsById[item.id]) {
-        this.items[idx] = jQuery.extend(true, {}, item, itemsById[item.id]);
+        this.items[idx] = {
+          ...item,
+          ...itemsById[item.id]
+        };
         delete itemsById[item.id];
       }
     });
@@ -166,10 +168,13 @@ const GroupStore = Reflux.createStore({
         let rItem = this.items[i];
         if (pendingForId.length) {
           // copy the object so dirty state doesnt mutate original
-          rItem = jQuery.extend(true, {}, rItem);
+          rItem = {...rItem};
 
           for (let c = 0; c < pendingForId.length; c++) {
-            rItem = jQuery.extend(true, rItem, pendingForId[c].params);
+            rItem = {
+              ...rItem,
+              ...pendingForId[c].params
+            };
           }
         }
         return rItem;
@@ -196,9 +201,12 @@ const GroupStore = Reflux.createStore({
       let rItem = item;
       if (!_.isUndefined(pendingById[item.id])) {
         // copy the object so dirty state doesnt mutate original
-        rItem = jQuery.extend(true, {}, rItem);
+        rItem = {...rItem};
         pendingById[item.id].forEach(change => {
-          rItem = jQuery.extend(true, rItem, change.params);
+          rItem = {
+            ...rItem,
+            ...change.params
+          };
         });
       }
       return rItem;
@@ -252,12 +260,33 @@ const GroupStore = Reflux.createStore({
     this.trigger(new Set(itemIds));
   },
 
+  onDiscard(changeId, itemId) {
+    this.addStatus(itemId, 'discard');
+    this.trigger(new Set([itemId]));
+  },
+
+  onDiscardError(changeId, itemId, response) {
+    this.clearStatus(itemId, 'discard');
+    showAlert(t('Unable to discard event. Please try again.'), 'error');
+    this.trigger(new Set([itemId]));
+  },
+
+  onDiscardSuccess(changeId, itemId, response) {
+    delete this.statuses[itemId];
+    this.clearStatus(itemId, 'discard');
+    this.items = this.items.filter(item => item.id !== itemId);
+    showAlert(t('Similar events will be filtered and discarded.'), 'success');
+    this.trigger(new Set([itemId]));
+  },
+
   onMerge(changeId, itemIds) {
     itemIds = this._itemIdsOrAll(itemIds);
 
     itemIds.forEach(itemId => {
       this.addStatus(itemId, 'merge');
     });
+    // XXX(billy): Not sure if this is a bug or not but do we need to publish all itemIds?
+    // Seems like we only need to publish parent id
     this.trigger(new Set(itemIds));
   },
 
@@ -326,7 +355,10 @@ const GroupStore = Reflux.createStore({
 
     this.items.forEach((item, idx) => {
       if (itemIds.indexOf(item.id) !== -1) {
-        this.items[idx] = jQuery.extend(true, {}, item, response);
+        this.items[idx] = {
+          ...item,
+          ...response
+        };
         this.clearStatus(item.id, 'update');
       }
     });

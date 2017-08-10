@@ -34,6 +34,7 @@ class ToolbarCache(object):
     def get(self):
         return self._toolbars.get(thread.get_ident(), None)
 
+
 toolbar_cache = ToolbarCache()
 
 
@@ -106,10 +107,6 @@ class DebugMiddleware(object):
         # (NB: Django's model for middleware doesn't guarantee anything.)
         for panel in reversed(toolbar.enabled_panels):
             panel.disable_instrumentation()
-
-        # Collapse the toolbar by default if SHOW_COLLAPSED is set.
-        if 'djdt' in request.COOKIES:
-            response.delete_cookie('djdt')
 
         try:
             content = force_text(response.content, encoding='utf-8')

@@ -14,8 +14,8 @@ from django.utils.translation import ugettext_lazy as _
 
 from sentry.app import locks
 from sentry.models import (
-    AuditLogEntry, AuditLogEntryEvent, AuthIdentity, AuthProvider, Organization,
-    OrganizationMember, OrganizationMemberTeam, User
+    AuditLogEntry, AuditLogEntryEvent, AuthIdentity, AuthProvider, Organization, OrganizationMember,
+    OrganizationMemberTeam, User, UserEmail
 )
 from sentry.tasks.auth import email_missing_links
 from sentry.utils import auth
@@ -29,7 +29,9 @@ from . import manager
 
 OK_LINK_IDENTITY = _('You have successfully linked your account to your SSO provider.')
 
-OK_SETUP_SSO = _('SSO has been configured for your organization and any existing members have been sent an email to link their accounts.')
+OK_SETUP_SSO = _(
+    'SSO has been configured for your organization and any existing members have been sent an email to link their accounts.'
+)
 
 ERR_UID_MISMATCH = _('There was an error encountered during authentication.')
 
@@ -74,9 +76,7 @@ class AuthHelper(object):
         auth_provider_id = session.get('ap')
         provider_key = session.get('p')
         if auth_provider_id:
-            auth_provider = AuthProvider.objects.get(
-                id=auth_provider_id
-            )
+            auth_provider = AuthProvider.objects.get(id=auth_provider_id)
         elif provider_key:
             auth_provider = None
 
@@ -84,11 +84,11 @@ class AuthHelper(object):
             id=session['org'],
         )
 
-        return cls(request, organization, flow,
-                   auth_provider=auth_provider, provider_key=provider_key)
+        return cls(
+            request, organization, flow, auth_provider=auth_provider, provider_key=provider_key
+        )
 
-    def __init__(self, request, organization, flow, auth_provider=None,
-                 provider_key=None):
+    def __init__(self, request, organization, flow, auth_provider=None, provider_key=None):
         assert provider_key or auth_provider
 
         self.request = request
@@ -114,9 +114,7 @@ class AuthHelper(object):
         # we serialize the pipeline to be [AuthView().get_ident(), ...] which
         # allows us to determine if the pipeline has changed during the auth
         # flow or if the user is somehow circumventing a chunk of it
-        self.signature = md5_text(
-            ' '.join(av.get_ident() for av in self.pipeline)
-        ).hexdigest()
+        self.signature = md5_text(' '.join(av.get_ident() for av in self.pipeline)).hexdigest()
 
     def pipeline_is_valid(self):
         session = self.request.session.get('auth', {})
@@ -305,7 +303,8 @@ class AuthHelper(object):
             )
 
             messages.add_message(
-                request, messages.SUCCESS,
+                request,
+                messages.SUCCESS,
                 OK_LINK_IDENTITY,
             )
 
@@ -391,6 +390,15 @@ class AuthHelper(object):
     def _get_identifier(self, identity):
         return identity.get('email') or identity.get('id')
 
+    def _find_existing_user(self, email):
+        return User.objects.filter(
+            id__in=UserEmail.objects.filter(
+                email__iexact=email,
+                is_verified=True,
+            ).values('user'),
+            is_active=True,
+        ).first()
+
     def _handle_unknown_identity(self, identity):
         """
         Flow is activated upon a user logging in to where an AuthIdentity is
@@ -412,7 +420,7 @@ class AuthHelper(object):
             # TODO(dcramer): its possible they have multiple accounts and at
             # least one is managed (per the check below)
             try:
-                existing_user = auth.find_users(identity['email'], is_active=True)[0]
+                existing_user = self._find_existing_user(identity['email'])
             except IndexError:
                 existing_user = None
 
@@ -429,11 +437,13 @@ class AuthHelper(object):
                     organization=self.organization,
                 ).exists()
                 if has_membership:
-                    if not auth.login(request, existing_user,
-                                      after_2fa=request.build_absolute_uri(),
-                                      organization_id=self.organization.id):
-                        return HttpResponseRedirect(auth.get_login_redirect(
-                            self.request))
+                    if not auth.login(
+                        request,
+                        existing_user,
+                        after_2fa=request.build_absolute_uri(),
+                        organization_id=self.organization.id
+                    ):
+                        return HttpResponseRedirect(auth.get_login_redirect(self.request))
                     # assume they've confirmed they want to attach the identity
                     op = 'confirm'
                 else:
@@ -467,11 +477,13 @@ class AuthHelper(object):
                 #
                 # If there is no 2fa we don't need to do this and can just
                 # go on.
-                if not auth.login(request, login_form.get_user(),
-                                  after_2fa=request.build_absolute_uri(),
-                                  organization_id=self.organization.id):
-                    return HttpResponseRedirect(auth.get_login_redirect(
-                        self.request))
+                if not auth.login(
+                    request,
+                    login_form.get_user(),
+                    after_2fa=request.build_absolute_uri(),
+                    organization_id=self.organization.id
+                ):
+                    return HttpResponseRedirect(auth.get_login_redirect(self.request))
             else:
                 auth.log_auth_failure(request, request.POST.get('username'))
         else:
@@ -479,28 +491,35 @@ class AuthHelper(object):
 
         if not op:
             if request.user.is_authenticated():
-                return self.respond('sentry/auth-confirm-link.html', {
+                return self.respond(
+                    'sentry/auth-confirm-link.html', {
+                        'identity': identity,
+                        'existing_user': request.user,
+                        'identity_display_name': self._get_display_name(identity),
+                        'identity_identifier': self._get_identifier(identity)
+                    }
+                )
+
+            return self.respond(
+                'sentry/auth-confirm-identity.html', {
+                    'existing_user': existing_user,
                     'identity': identity,
-                    'existing_user': request.user,
+                    'login_form': login_form,
                     'identity_display_name': self._get_display_name(identity),
                     'identity_identifier': self._get_identifier(identity)
-                })
-
-            return self.respond('sentry/auth-confirm-identity.html', {
-                'existing_user': existing_user,
-                'identity': identity,
-                'login_form': login_form,
-                'identity_display_name': self._get_display_name(identity),
-                'identity_identifier': self._get_identifier(identity)
-            })
+                }
+            )
 
         user = auth_identity.user
         user.backend = settings.AUTHENTICATION_BACKENDS[0]
 
         # XXX(dcramer): this is repeated from above
-        if not auth.login(request, user,
-                          after_2fa=request.build_absolute_uri(),
-                          organization_id=self.organization.id):
+        if not auth.login(
+            request,
+            user,
+            after_2fa=request.build_absolute_uri(),
+            organization_id=self.organization.id
+        ):
             return HttpResponseRedirect(auth.get_login_redirect(self.request))
 
         self.clear_session()
@@ -537,9 +556,12 @@ class AuthHelper(object):
         user = auth_identity.user
         user.backend = settings.AUTHENTICATION_BACKENDS[0]
 
-        if not auth.login(self.request, user,
-                          after_2fa=self.request.build_absolute_uri(),
-                          organization_id=self.organization.id):
+        if not auth.login(
+            self.request,
+            user,
+            after_2fa=self.request.build_absolute_uri(),
+            organization_id=self.organization.id
+        ):
             return HttpResponseRedirect(auth.get_login_redirect(self.request))
 
         self.clear_session()
@@ -640,15 +662,18 @@ class AuthHelper(object):
         )
 
         messages.add_message(
-            self.request, messages.SUCCESS,
+            self.request,
+            messages.SUCCESS,
             OK_SETUP_SSO,
         )
 
         self.clear_session()
 
-        next_uri = reverse('sentry-organization-auth-settings', args=[
-            self.organization.slug,
-        ])
+        next_uri = reverse(
+            'sentry-organization-auth-settings', args=[
+                self.organization.slug,
+            ]
+        )
         return HttpResponseRedirect(next_uri)
 
     def respond(self, template, context=None, status=200):
@@ -658,8 +683,7 @@ class AuthHelper(object):
         if context:
             default_context.update(context)
 
-        return render_to_response(template, default_context, self.request,
-                                  status=status)
+        return render_to_response(template, default_context, self.request, status=status)
 
     def error(self, message):
         session = self.request.session['auth']
@@ -668,10 +692,13 @@ class AuthHelper(object):
             redirect_uri = reverse('sentry-auth-organization', args=[self.organization.slug])
 
         elif session['flow'] == self.FLOW_SETUP_PROVIDER:
-            redirect_uri = reverse('sentry-organization-auth-settings', args=[self.organization.slug])
+            redirect_uri = reverse(
+                'sentry-organization-auth-settings', args=[self.organization.slug]
+            )
 
         messages.add_message(
-            self.request, messages.ERROR,
+            self.request,
+            messages.ERROR,
             u'Authentication error: {}'.format(message),
         )
 

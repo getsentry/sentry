@@ -15,13 +15,10 @@ from sentry.models import (
 )
 from sentry.tasks.base import instrumented_task
 
-
 logger = logging.getLogger(__name__)
 
 
-@instrumented_task(
-    name='sentry.tasks.digests.schedule_digests',
-    queue='digests.scheduling')
+@instrumented_task(name='sentry.tasks.digests.schedule_digests', queue='digests.scheduling')
 def schedule_digests():
     from sentry import digests
 
@@ -42,9 +39,7 @@ def schedule_digests():
         deliver_digest.delay(entry.key, entry.timestamp)
 
 
-@instrumented_task(
-    name='sentry.tasks.digests.deliver_digest',
-    queue='digests.delivery')
+@instrumented_task(name='sentry.tasks.digests.deliver_digest', queue='digests.delivery')
 def deliver_digest(key, schedule_timestamp=None):
     from sentry import digests
 
@@ -56,8 +51,7 @@ def deliver_digest(key, schedule_timestamp=None):
         return
 
     minimum_delay = ProjectOption.objects.get_value(
-        project,
-        get_option_key(plugin.get_conf_key(), 'minimum_delay')
+        project, get_option_key(plugin.get_conf_key(), 'minimum_delay')
     )
 
     try:

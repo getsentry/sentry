@@ -24,7 +24,7 @@ class OrganizationAccessRequest(Model):
     class Meta:
         app_label = 'sentry'
         db_table = 'sentry_organizationaccessrequest'
-        unique_together = (('team', 'member'),)
+        unique_together = (('team', 'member'), )
 
     __repr__ = sane_repr('team_id', 'member_id')
 
@@ -37,13 +37,23 @@ class OrganizationAccessRequest(Model):
         organization = self.team.organization
 
         context = {
-            'email': email,
-            'name': user.get_display_name(),
-            'organization': organization,
-            'team': self.team,
-            'url': absolute_uri(reverse('sentry-organization-members', kwargs={
-                'organization_slug': organization.slug,
-            }) + '?ref=access-requests'),
+            'email':
+            email,
+            'name':
+            user.get_display_name(),
+            'organization':
+            organization,
+            'team':
+            self.team,
+            'url':
+            absolute_uri(
+                reverse(
+                    'sentry-organization-members',
+                    kwargs={
+                        'organization_slug': organization.slug,
+                    }
+                ) + '?ref=access-requests'
+            ),
         }
 
         msg = MessageBuilder(
@@ -54,18 +64,12 @@ class OrganizationAccessRequest(Model):
             context=context,
         )
 
-        global_roles = [
-            r.id for r in roles.with_scope('org:write')
-            if r.is_global
-        ]
-        team_roles = [
-            r.id for r in roles.with_scope('team:write')
-        ]
+        global_roles = [r.id for r in roles.with_scope('org:write') if r.is_global]
+        team_roles = [r.id for r in roles.with_scope('team:write')]
 
         # find members which are either team scoped or have access to all teams
         member_list = OrganizationMember.objects.filter(
-            Q(role__in=global_roles) |
-            Q(teams=self.team, role__in=team_roles),
+            Q(role__in=global_roles) | Q(teams=self.team, role__in=team_roles),
             organization=self.team.organization,
             user__isnull=False,
         ).select_related('user')

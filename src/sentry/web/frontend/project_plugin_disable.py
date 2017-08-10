@@ -13,11 +13,26 @@ class ProjectPluginDisableView(ProjectView):
         try:
             plugin = plugins.get(slug)
         except KeyError:
-            return self.redirect(reverse('sentry-configure-project-plugin', args=[project.organization.slug, project.slug, slug]))
+            return self.redirect(
+                reverse(
+                    'sentry-configure-project-plugin',
+                    args=[project.organization.slug, project.slug, slug]
+                )
+            )
 
         if not plugin.is_enabled(project):
-            return self.redirect(reverse('sentry-configure-project-plugin', args=[project.organization.slug, project.slug, slug]))
+            return self.redirect(
+                reverse(
+                    'sentry-configure-project-plugin',
+                    args=[project.organization.slug, project.slug, slug]
+                )
+            )
 
         plugin.disable(project=project)
 
-        return self.redirect(reverse('sentry-configure-project-plugin', args=[project.organization.slug, project.slug, slug]))
+        return self.redirect(
+            reverse(
+                'sentry-configure-project-plugin',
+                args=[project.organization.slug, project.slug, slug]
+            )
+        )

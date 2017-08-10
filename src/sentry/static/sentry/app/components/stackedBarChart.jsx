@@ -1,15 +1,28 @@
 import moment from 'moment';
+import _ from 'lodash';
 import React from 'react';
-import {intcomma, valueIsEqual} from '../utils';
 import TooltipMixin from '../mixins/tooltip';
+import Count from './count';
 import ConfigStore from '../stores/configStore.jsx';
 
 const StackedBarChart = React.createClass({
   propTypes: {
+    // TODO(dcramer): DEPRECATED, use series instead
     points: React.PropTypes.arrayOf(
       React.PropTypes.shape({
         x: React.PropTypes.number.isRequired,
         y: React.PropTypes.array.isRequired,
+        label: React.PropTypes.string
+      })
+    ),
+    series: React.PropTypes.arrayOf(
+      React.PropTypes.shape({
+        data: React.PropTypes.arrayOf(
+          React.PropTypes.shape({
+            x: React.PropTypes.number.isRequired,
+            y: React.PropTypes.number
+          })
+        ),
         label: React.PropTypes.string
       })
     ),
@@ -47,7 +60,8 @@ const StackedBarChart = React.createClass({
           let pointIdx = this.getAttribute('data-point-index');
           let tooltipFunc = chart.props.tooltip || chart.renderTooltip;
 
-          if (pointIdx) return tooltipFunc(chart.props.points[pointIdx], pointIdx, chart);
+          if (pointIdx)
+            return tooltipFunc(chart.state.pointIndex[pointIdx], pointIdx, chart);
           else return this.getAttribute('data-title');
         }
       };
@@ -55,18 +69,48 @@ const StackedBarChart = React.createClass({
   ],
 
   statics: {
-    getInterval(points) {
-      return points.length > 1 ? points[1].x - points[0].x : null;
+    getInterval(series) {
+      // TODO(dcramer): not guaranteed correct
+      return series.length && series[0].data.length > 1
+        ? series[0].data[1].x - series[0].data[0].x
+        : null;
+    },
+
+    pointsToSeries(points) {
+      let series = [];
+      points.forEach((p, pIdx) => {
+        p.y.forEach((y, yIdx) => {
+          if (!series[yIdx]) {
+            series[yIdx] = {data: []};
+          }
+          series[yIdx].data.push({x: p.x, y: y});
+        });
+      });
+      return series;
+    },
+
+    pointIndex(series) {
+      let points = {};
+      series.forEach(s => {
+        s.data.forEach(p => {
+          if (!points[p.x]) {
+            points[p.x] = {y: [], x: p.x};
+          }
+          points[p.x].y.push(p.y);
+        });
+      });
+      return points;
     }
   },
 
   getDefaultProps() {
     return {
-      className: '',
+      className: 'sparkline',
       height: null,
-      label: 'events',
+      label: '',
       placement: 'bottom',
       points: [],
+      series: [],
       markers: [],
       width: null,
       barClasses: ['chart-bar'],
@@ -75,21 +119,44 @@ const StackedBarChart = React.createClass({
   },
 
   getInitialState() {
+    // massage points
+    let series = this.props.series;
+    if (this.props.points.length) {
+      if (series.length) {
+        throw new Error('Only one of [points|series] should be specified.');
+      }
+
+      series = StackedBarChart.pointsToSeries(this.props.points);
+    }
+
     return {
-      interval: StackedBarChart.getInterval(this.props.points)
+      series: series,
+      pointIndex: StackedBarChart.pointIndex(series),
+      interval: StackedBarChart.getInterval(series)
     };
   },
 
   componentWillReceiveProps(nextProps) {
-    if (nextProps.points) {
+    if (nextProps.points || nextProps.series) {
+      let series = nextProps.series;
+      if (nextProps.points.length) {
+        if (series.length) {
+          throw new Error('Only one of [points|series] should be specified.');
+        }
+
+        series = StackedBarChart.pointsToSeries(nextProps.points);
+      }
+
       this.setState({
-        interval: StackedBarChart.getInterval(nextProps.points)
+        series: series,
+        pointIndex: StackedBarChart.pointIndex(series),
+        interval: StackedBarChart.getInterval(series)
       });
     }
   },
 
   shouldComponentUpdate(nextProps, nextState) {
-    return !valueIsEqual(this.props, nextProps, true);
+    return !_.isEqual(this.props, nextProps, true);
   },
 
   use24Hours() {
@@ -122,7 +189,7 @@ const StackedBarChart = React.createClass({
   timeLabelAsDay(point) {
     let timeMoment = moment(point.x * 1000);
 
-    return '<span>' + timeMoment.format('LL') + '</span>';
+    return `<span>${timeMoment.format('LL')}</span>`;
   },
 
   timeLabelAsRange(interval, point) {
@@ -159,17 +226,12 @@ const StackedBarChart = React.createClass({
   },
 
   maxPointValue() {
-    let maxval = 10;
-    this.props.points.forEach(point => {
-      let totalY = 0;
-      point.y.forEach(y => {
-        totalY += y;
-      });
-      if (totalY > maxval) {
-        maxval = totalY;
-      }
-    });
-    return maxval;
+    return Math.max(
+      10,
+      this.state.series
+        .map(s => Math.max(...s.data.map(p => p.y)))
+        .reduce((a, b) => a + b)
+    );
   },
 
   renderMarker(marker) {
@@ -182,11 +244,7 @@ const StackedBarChart = React.createClass({
     let key = ['m', marker.className, marker.x].join('-');
 
     return (
-      <a
-        key={key}
-        className={className}
-        style={{height: this.props.height}}
-        data-title={title}>
+      <a key={key} className={className} style={{height: '100%'}} data-title={title}>
         <span>{marker.label}</span>
       </a>
     );
@@ -194,27 +252,26 @@ const StackedBarChart = React.createClass({
 
   renderTooltip(point, pointIdx) {
     let timeLabel = this.getTimeLabel(point);
-    let totalY = 0;
-    for (let i = 0; i < point.y.length; i++) {
-      totalY += point.y[i];
-    }
+    let totalY = point.y.reduce((a, b) => a + b);
     let title =
       '<div style="width:130px">' +
       `<div class="time-label">${timeLabel}</div>` +
-      `<div class="value-label">${intcomma(totalY)} ${this.props.label}</div>` +
       '</div>';
-    if (point.label) {
-      title += '<div>(' + point.label + ')</div>';
+    if (this.props.label) {
+      title += `<div class="value-label">${totalY.toLocaleString()} ${this.props.label}</div>`;
     }
+    point.y.forEach((y, i) => {
+      let s = this.state.series[i];
+      if (s.label) {
+        title += `<div><span style="color:${s.color}">${s.label}:</span> ${(y || 0)
+          .toLocaleString()}</div>`;
+      }
+    });
     return title;
   },
 
-  renderChartColumn(pointIdx, maxval, pointWidth) {
-    let point = this.props.points[pointIdx];
-    let totalY = 0;
-    for (let i = 0; i < point.y.length; i++) {
-      totalY += point.y[i];
-    }
+  renderChartColumn(point, maxval, pointWidth) {
+    let totalY = point.y.reduce((a, b) => a + b);
     let totalPct = totalY / maxval;
     let prevPct = 0;
     let pts = point.y.map((y, i) => {
@@ -223,7 +280,11 @@ const StackedBarChart = React.createClass({
         <span
           key={i}
           className={this.props.barClasses[i]}
-          style={{height: pct + '%', bottom: prevPct + '%'}}>
+          style={{
+            height: pct + '%',
+            bottom: prevPct + '%',
+            backgroundColor: this.state.series[i].color || null
+          }}>
           {y}
         </span>
       );
@@ -234,28 +295,38 @@ const StackedBarChart = React.createClass({
       <a
         key={point.x}
         className="chart-column tip"
-        data-point-index={pointIdx}
-        style={{width: pointWidth, height: this.props.height}}>
+        data-point-index={point.x}
+        style={{width: pointWidth, height: '100%'}}>
         {pts}
       </a>
     );
   },
 
   renderChart() {
-    let points = this.props.points;
-    let pointWidth = this.floatFormat(100.0 / points.length, 2) + '%';
+    let {pointIndex, series} = this.state;
+    let totalPoints = Math.max(...series.map(s => s.data.length));
+    let pointWidth = this.floatFormat(100.0 / totalPoints, 2) + '%';
 
     let maxval = this.maxPointValue();
-
     let markers = this.props.markers.slice();
 
+    // group points, then resort
+    let points = Object.keys(pointIndex)
+      .map(k => {
+        let p = pointIndex[k];
+        return {x: p.x, y: p.y};
+      })
+      .sort((a, b) => {
+        return a.x - b.x;
+      });
+
     let children = [];
-    points.forEach((point, pointIdx) => {
+    points.forEach(point => {
       while (markers.length && markers[0].x <= point.x) {
         children.push(this.renderMarker(markers.shift()));
       }
 
-      children.push(this.renderChartColumn(pointIdx, maxval, pointWidth));
+      children.push(this.renderChartColumn(point, maxval, pointWidth));
     });
 
     // in bizarre case where markers never got rendered, render them last
@@ -275,7 +346,7 @@ const StackedBarChart = React.createClass({
       <figure
         className={figureClass}
         style={{height: this.props.height, width: this.props.width}}>
-        <span className="max-y">{maxval}</span>
+        <span className="max-y"><Count value={maxval} /></span>
         <span className="min-y">0</span>
         <span>{this.renderChart()}</span>
       </figure>

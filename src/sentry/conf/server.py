@@ -23,7 +23,10 @@ from sentry.utils.types import type_from_value
 from datetime import timedelta
 from six.moves.urllib.parse import urlparse
 
-gettext_noop = lambda s: s
+
+def gettext_noop(s):
+    return s
+
 
 socket.setdefaulttimeout(5)
 
@@ -100,7 +103,6 @@ DATABASES = {
     }
 }
 
-
 if 'DATABASE_URL' in os.environ:
     url = urlparse(os.environ['DATABASE_URL'])
 
@@ -108,13 +110,15 @@ if 'DATABASE_URL' in os.environ:
     DATABASES['default'] = DATABASES.get('default', {})
 
     # Update with environment configuration.
-    DATABASES['default'].update({
-        'NAME': url.path[1:],
-        'USER': url.username,
-        'PASSWORD': url.password,
-        'HOST': url.hostname,
-        'PORT': url.port,
-    })
+    DATABASES['default'].update(
+        {
+            'NAME': url.path[1:],
+            'USER': url.username,
+            'PASSWORD': url.password,
+            'HOST': url.hostname,
+            'PORT': url.port,
+        }
+    )
     if url.scheme == 'postgres':
         DATABASES['default']['ENGINE'] = 'sentry.db.postgres'
 
@@ -129,84 +133,55 @@ TIME_ZONE = 'UTC'
 LANGUAGE_CODE = 'en-us'
 
 LANGUAGES = (
-    ('af', gettext_noop('Afrikaans')),
-    ('ar', gettext_noop('Arabic')),
-    ('az', gettext_noop('Azerbaijani')),
-    ('bg', gettext_noop('Bulgarian')),
-    ('be', gettext_noop('Belarusian')),
-    ('bn', gettext_noop('Bengali')),
-    ('br', gettext_noop('Breton')),
-    ('bs', gettext_noop('Bosnian')),
-    ('ca', gettext_noop('Catalan')),
-    ('cs', gettext_noop('Czech')),
-    ('cy', gettext_noop('Welsh')),
-    ('da', gettext_noop('Danish')),
-    ('de', gettext_noop('German')),
-    ('el', gettext_noop('Greek')),
-    ('en', gettext_noop('English')),
-    ('eo', gettext_noop('Esperanto')),
-    ('es', gettext_noop('Spanish')),
-    ('et', gettext_noop('Estonian')),
-    ('eu', gettext_noop('Basque')),
-    ('fa', gettext_noop('Persian')),
-    ('fi', gettext_noop('Finnish')),
-    ('fr', gettext_noop('French')),
-    ('ga', gettext_noop('Irish')),
-    ('gl', gettext_noop('Galician')),
-    ('he', gettext_noop('Hebrew')),
-    ('hi', gettext_noop('Hindi')),
-    ('hr', gettext_noop('Croatian')),
-    ('hu', gettext_noop('Hungarian')),
-    ('ia', gettext_noop('Interlingua')),
-    ('id', gettext_noop('Indonesian')),
-    ('is', gettext_noop('Icelandic')),
-    ('it', gettext_noop('Italian')),
-    ('ja', gettext_noop('Japanese')),
-    ('ka', gettext_noop('Georgian')),
-    ('kk', gettext_noop('Kazakh')),
-    ('km', gettext_noop('Khmer')),
-    ('kn', gettext_noop('Kannada')),
-    ('ko', gettext_noop('Korean')),
-    ('lb', gettext_noop('Luxembourgish')),
-    ('lt', gettext_noop('Lithuanian')),
-    ('lv', gettext_noop('Latvian')),
-    ('mk', gettext_noop('Macedonian')),
-    ('ml', gettext_noop('Malayalam')),
-    ('mn', gettext_noop('Mongolian')),
-    ('my', gettext_noop('Burmese')),
-    ('nb', gettext_noop('Norwegian Bokmal')),
-    ('ne', gettext_noop('Nepali')),
-    ('nl', gettext_noop('Dutch')),
-    ('nn', gettext_noop('Norwegian Nynorsk')),
-    ('os', gettext_noop('Ossetic')),
-    ('pa', gettext_noop('Punjabi')),
-    ('pl', gettext_noop('Polish')),
-    ('pt', gettext_noop('Portuguese')),
-    ('pt-br', gettext_noop('Brazilian Portuguese')),
-    ('ro', gettext_noop('Romanian')),
-    ('ru', gettext_noop('Russian')),
-    ('sk', gettext_noop('Slovak')),
-    ('sl', gettext_noop('Slovenian')),
-    ('sq', gettext_noop('Albanian')),
-    ('sr', gettext_noop('Serbian')),
-    ('sv-se', gettext_noop('Swedish')),
-    ('sw', gettext_noop('Swahili')),
-    ('ta', gettext_noop('Tamil')),
-    ('te', gettext_noop('Telugu')),
-    ('th', gettext_noop('Thai')),
-    ('tr', gettext_noop('Turkish')),
-    ('tt', gettext_noop('Tatar')),
-    ('udm', gettext_noop('Udmurt')),
-    ('uk', gettext_noop('Ukrainian')),
-    ('ur', gettext_noop('Urdu')),
-    ('vi', gettext_noop('Vietnamese')),
-    ('zh-cn', gettext_noop('Simplified Chinese')),
-    ('zh-tw', gettext_noop('Traditional Chinese')),
+    ('af',
+     gettext_noop('Afrikaans')), ('ar',
+                                  gettext_noop('Arabic')), ('az', gettext_noop('Azerbaijani')),
+    ('bg',
+     gettext_noop('Bulgarian')), ('be',
+                                  gettext_noop('Belarusian')), ('bn', gettext_noop('Bengali')),
+    ('br', gettext_noop('Breton')), ('bs',
+                                     gettext_noop('Bosnian')), ('ca', gettext_noop('Catalan')),
+    ('cs', gettext_noop('Czech')), ('cy', gettext_noop('Welsh')), ('da', gettext_noop('Danish')),
+    ('de', gettext_noop('German')), ('el', gettext_noop('Greek')), ('en', gettext_noop('English')),
+    ('eo', gettext_noop('Esperanto')), ('es',
+                                        gettext_noop('Spanish')), ('et', gettext_noop('Estonian')),
+    ('eu', gettext_noop('Basque')), ('fa',
+                                     gettext_noop('Persian')), ('fi', gettext_noop('Finnish')),
+    ('fr', gettext_noop('French')), ('ga', gettext_noop('Irish')), ('gl', gettext_noop('Galician')),
+    ('he', gettext_noop('Hebrew')), ('hi', gettext_noop('Hindi')), ('hr', gettext_noop('Croatian')),
+    ('hu',
+     gettext_noop('Hungarian')), ('ia',
+                                  gettext_noop('Interlingua')), ('id', gettext_noop('Indonesian')),
+    ('is', gettext_noop('Icelandic')), ('it',
+                                        gettext_noop('Italian')), ('ja', gettext_noop('Japanese')),
+    ('ka', gettext_noop('Georgian')), ('kk', gettext_noop('Kazakh')), ('km', gettext_noop('Khmer')),
+    ('kn',
+     gettext_noop('Kannada')), ('ko',
+                                gettext_noop('Korean')), ('lb', gettext_noop('Luxembourgish')),
+    ('lt',
+     gettext_noop('Lithuanian')), ('lv',
+                                   gettext_noop('Latvian')), ('mk', gettext_noop('Macedonian')),
+    ('ml', gettext_noop('Malayalam')), ('mn',
+                                        gettext_noop('Mongolian')), ('my', gettext_noop('Burmese')),
+    ('nb', gettext_noop('Norwegian Bokmal')), ('ne', gettext_noop('Nepali')),
+    ('nl', gettext_noop('Dutch')), ('nn', gettext_noop('Norwegian Nynorsk')),
+    ('os', gettext_noop('Ossetic')), ('pa',
+                                      gettext_noop('Punjabi')), ('pl', gettext_noop('Polish')),
+    ('pt', gettext_noop('Portuguese')), ('pt-br', gettext_noop('Brazilian Portuguese')),
+    ('ro', gettext_noop('Romanian')), ('ru', gettext_noop('Russian')),
+    ('sk', gettext_noop('Slovak')), ('sl',
+                                     gettext_noop('Slovenian')), ('sq', gettext_noop('Albanian')),
+    ('sr', gettext_noop('Serbian')), ('sv-se',
+                                      gettext_noop('Swedish')), ('sw', gettext_noop('Swahili')),
+    ('ta', gettext_noop('Tamil')), ('te', gettext_noop('Telugu')), ('th', gettext_noop('Thai')),
+    ('tr', gettext_noop('Turkish')), ('tt', gettext_noop('Tatar')), ('udm', gettext_noop('Udmurt')),
+    ('uk', gettext_noop('Ukrainian')), ('ur',
+                                        gettext_noop('Urdu')), ('vi', gettext_noop('Vietnamese')),
+    ('zh-cn', gettext_noop('Simplified Chinese')), ('zh-tw', gettext_noop('Traditional Chinese')),
 )
 
 from .locale import CATALOGS
-LANGUAGES = tuple((code, name) for code, name in LANGUAGES
-                  if code in CATALOGS)
+LANGUAGES = tuple((code, name) for code, name in LANGUAGES if code in CATALOGS)
 
 SUPPORTED_LANGUAGES = frozenset(CATALOGS)
 
@@ -222,11 +197,9 @@ USE_L10N = True
 
 USE_TZ = True
 
-
 # List of callables that know how to import templates from various sources.
 TEMPLATE_LOADERS = (
-    'django.template.loaders.filesystem.Loader',
-    'django.template.loaders.app_directories.Loader',
+    'django.template.loaders.filesystem.Loader', 'django.template.loaders.app_directories.Loader',
 )
 
 MIDDLEWARE_CLASSES = (
@@ -243,6 +216,7 @@ MIDDLEWARE_CLASSES = (
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'sentry.middleware.auth.AuthenticationMiddleware',
+    'sentry.middleware.user.UserActiveMiddleware',
     'sentry.middleware.sudo.SudoMiddleware',
     'sentry.middleware.superuser.SuperuserMiddleware',
     'sentry.middleware.locale.SentryLocaleMiddleware',
@@ -263,8 +237,7 @@ TEMPLATE_DIRS = (
 
 TEMPLATE_CONTEXT_PROCESSORS = (
     'django.contrib.auth.context_processors.auth',
-    'django.contrib.messages.context_processors.messages',
-    'django.core.context_processors.csrf',
+    'django.contrib.messages.context_processors.messages', 'django.core.context_processors.csrf',
     'django.core.context_processors.request',
     'social_auth.context_processors.social_auth_by_name_backends',
     'social_auth.context_processors.social_auth_backends',
@@ -273,37 +246,19 @@ TEMPLATE_CONTEXT_PROCESSORS = (
 )
 
 INSTALLED_APPS = (
-    'django.contrib.admin',
-    'django.contrib.auth',
-    'django.contrib.contenttypes',
-    'django.contrib.messages',
-    'django.contrib.sessions',
-    'django.contrib.sites',
-    'django.contrib.staticfiles',
-
-    'crispy_forms',
-    'debug_toolbar',
-    'raven.contrib.django.raven_compat',
-    'rest_framework',
-    'sentry',
-    'sentry.analytics',
-    'sentry.analytics.events',
-    'sentry.nodestore',
-    'sentry.search',
-    'sentry.lang.javascript',
-    'sentry.lang.native',
-    'sentry.plugins.sentry_interface_types',
-    'sentry.plugins.sentry_mail',
-    'sentry.plugins.sentry_urls',
-    'sentry.plugins.sentry_useragents',
-    'sentry.plugins.sentry_webhooks',
-    'social_auth',
-    'sudo',
+    'django.contrib.admin', 'django.contrib.auth', 'django.contrib.contenttypes',
+    'django.contrib.messages', 'django.contrib.sessions', 'django.contrib.sites',
+    'django.contrib.staticfiles', 'crispy_forms', 'debug_toolbar',
+    'raven.contrib.django.raven_compat', 'rest_framework', 'sentry', 'sentry.analytics',
+    'sentry.analytics.events', 'sentry.nodestore', 'sentry.search', 'sentry.lang.java',
+    'sentry.lang.javascript', 'sentry.lang.native', 'sentry.plugins.sentry_interface_types',
+    'sentry.plugins.sentry_mail', 'sentry.plugins.sentry_urls', 'sentry.plugins.sentry_useragents',
+    'sentry.plugins.sentry_webhooks', 'social_auth', 'sudo',
 )
 
 import django
 if django.VERSION < (1, 7):
-    INSTALLED_APPS += ('south',)
+    INSTALLED_APPS += ('south', )
 
 STATIC_ROOT = os.path.realpath(os.path.join(PROJECT_ROOT, 'static'))
 STATIC_URL = '/_static/{version}/'
@@ -318,9 +273,7 @@ ASSET_VERSION = 0
 # setup a default media root to somewhere useless
 MEDIA_ROOT = '/tmp/sentry-media'
 
-LOCALE_PATHS = (
-    os.path.join(PROJECT_ROOT, 'locale'),
-)
+LOCALE_PATHS = (os.path.join(PROJECT_ROOT, 'locale'), )
 
 CSRF_FAILURE_VIEW = 'sentry.web.frontend.csrf_failure.view'
 CSRF_COOKIE_NAME = 'sc'
@@ -340,9 +293,11 @@ AUTHENTICATION_BACKENDS = (
     'sentry.utils.auth.EmailAuthBackend',
     # TODO(dcramer): we can't remove these until we rewrite more of social auth
     'social_auth.backends.github.GithubBackend',
+    'social_auth.backends.github_apps.GithubAppsBackend',
     'social_auth.backends.bitbucket.BitbucketBackend',
     'social_auth.backends.trello.TrelloBackend',
     'social_auth.backends.asana.AsanaBackend',
+    'social_auth.backends.slack.SlackBackend',
 )
 
 AUTH_PASSWORD_VALIDATORS = [
@@ -363,10 +318,9 @@ AUTH_PASSWORD_VALIDATORS = [
 SOCIAL_AUTH_USER_MODEL = AUTH_USER_MODEL = 'sentry.User'
 
 SOCIAL_AUTH_AUTHENTICATION_BACKENDS = (
-    'social_auth.backends.github.GithubBackend',
-    'social_auth.backends.bitbucket.BitbucketBackend',
-    'social_auth.backends.trello.TrelloBackend',
-    'social_auth.backends.asana.AsanaBackend',
+    'social_auth.backends.github.GithubBackend', 'social_auth.backends.bitbucket.BitbucketBackend',
+    'social_auth.backends.trello.TrelloBackend', 'social_auth.backends.asana.AsanaBackend',
+    'social_auth.backends.slack.SlackBackend', 'social_auth.backends.github_apps.GithubAppsBackend',
 )
 
 SESSION_ENGINE = "django.contrib.sessions.backends.signed_cookies"
@@ -378,6 +332,9 @@ GOOGLE_OAUTH2_CLIENT_SECRET = ''
 
 GITHUB_APP_ID = ''
 GITHUB_API_SECRET = ''
+
+GITHUB_APPS_APP_ID = ''
+GITHUB_APPS_API_SECRET = ''
 
 TRELLO_API_KEY = ''
 TRELLO_API_SECRET = ''
@@ -404,21 +361,29 @@ INITIAL_CUSTOM_USER_MIGRATION = '0108_fix_user'
 # Auth engines and the settings required for them to be listed
 AUTH_PROVIDERS = {
     'github': ('GITHUB_APP_ID', 'GITHUB_API_SECRET'),
+    'github_apps': ('GITHUB_APPS_APP_ID', 'GITHUB_APPS_API_SECRET'),
     'trello': ('TRELLO_API_KEY', 'TRELLO_API_SECRET'),
     'bitbucket': ('BITBUCKET_CONSUMER_KEY', 'BITBUCKET_CONSUMER_SECRET'),
     'asana': ('ASANA_CLIENT_ID', 'ASANA_CLIENT_SECRET'),
+    'slack': ('SLACK_CLIENT_ID', 'SLACK_CLIENT_SECRET'),
 }
 
 AUTH_PROVIDER_LABELS = {
     'github': 'GitHub',
+    'github_apps': 'GitHub Apps',
     'trello': 'Trello',
     'bitbucket': 'Bitbucket',
-    'asana': 'Asana'
+    'asana': 'Asana',
+    'slack': 'Slack'
 }
 
 import random
 
-SOCIAL_AUTH_DEFAULT_USERNAME = lambda: random.choice(['Darth Vader', 'Obi-Wan Kenobi', 'R2-D2', 'C-3PO', 'Yoda'])
+
+def SOCIAL_AUTH_DEFAULT_USERNAME():
+    return random.choice(['Darth Vader', 'Obi-Wan Kenobi', 'R2-D2', 'C-3PO', 'Yoda'])
+
+
 SOCIAL_AUTH_PROTECTED_USER_FIELDS = ['email']
 SOCIAL_AUTH_FORCE_POST_DISCONNECT = True
 
@@ -447,26 +412,13 @@ CELERY_CREATE_MISSING_QUEUES = True
 CELERY_REDIRECT_STDOUTS = False
 CELERYD_HIJACK_ROOT_LOGGER = False
 CELERY_IMPORTS = (
-    'sentry.tasks.auth',
-    'sentry.tasks.auto_resolve_issues',
-    'sentry.tasks.beacon',
-    'sentry.tasks.check_auth',
-    'sentry.tasks.clear_expired_snoozes',
-    'sentry.tasks.collect_project_platforms',
-    'sentry.tasks.commits',
-    'sentry.tasks.deletion',
-    'sentry.tasks.digests',
-    'sentry.tasks.dsymcache',
-    'sentry.tasks.email',
-    'sentry.tasks.merge',
-    'sentry.tasks.options',
-    'sentry.tasks.ping',
-    'sentry.tasks.post_process',
-    'sentry.tasks.process_buffer',
-    'sentry.tasks.reports',
-    'sentry.tasks.reprocessing',
-    'sentry.tasks.store',
-    'sentry.tasks.unmerge',
+    'sentry.tasks.auth', 'sentry.tasks.auto_resolve_issues', 'sentry.tasks.beacon',
+    'sentry.tasks.check_auth', 'sentry.tasks.clear_expired_snoozes',
+    'sentry.tasks.collect_project_platforms', 'sentry.tasks.commits', 'sentry.tasks.deletion',
+    'sentry.tasks.digests', 'sentry.tasks.dsymcache', 'sentry.tasks.email', 'sentry.tasks.merge',
+    'sentry.tasks.options', 'sentry.tasks.ping', 'sentry.tasks.post_process',
+    'sentry.tasks.process_buffer', 'sentry.tasks.reports', 'sentry.tasks.reprocessing',
+    'sentry.tasks.scheduler', 'sentry.tasks.store', 'sentry.tasks.unmerge',
 )
 CELERY_QUEUES = [
     Queue('alerts', routing_key='alerts'),
@@ -478,11 +430,11 @@ CELERY_QUEUES = [
     Queue('digests.scheduling', routing_key='digests.scheduling'),
     Queue('email', routing_key='email'),
     Queue('events.preprocess_event', routing_key='events.preprocess_event'),
-    Queue('events.reprocessing.preprocess_event',
-          routing_key='events.reprocessing.preprocess_event'),
+    Queue(
+        'events.reprocessing.preprocess_event', routing_key='events.reprocessing.preprocess_event'
+    ),
     Queue('events.process_event', routing_key='events.process_event'),
-    Queue('events.reprocessing.process_event',
-          routing_key='events.reprocessing.process_event'),
+    Queue('events.reprocessing.process_event', routing_key='events.reprocessing.process_event'),
     Queue('events.reprocess_events', routing_key='events.reprocess_events'),
     Queue('events.save_event', routing_key='events.save_event'),
     Queue('merge', routing_key='merge'),
@@ -498,7 +450,7 @@ CELERY_QUEUES = [
 for queue in CELERY_QUEUES:
     queue.durable = False
 
-CELERY_ROUTES = ('sentry.queue.routers.SplitQueueRouter',)
+CELERY_ROUTES = ('sentry.queue.routers.SplitQueueRouter', )
 
 
 def create_partitioned_queues(name):
@@ -508,6 +460,7 @@ def create_partitioned_queues(name):
             '{0}-{1}'.format(name, num),
             exchange=exchange,
         ))
+
 
 create_partitioned_queues('counters')
 create_partitioned_queues('triggers')
@@ -523,6 +476,13 @@ CELERYBEAT_SCHEDULE = {
             'expires': 60,
             'queue': 'auth',
         }
+    },
+    'enqueue-scheduled-jobs': {
+        'task': 'sentry.tasks.enqueue_scheduled_jobs',
+        'schedule': timedelta(minutes=1),
+        'options': {
+            'expires': 60,
+        },
     },
     'send-beacon': {
         'task': 'sentry.tasks.send_beacon',
@@ -605,8 +565,10 @@ CELERYBEAT_SCHEDULE = {
         },
     },
     'schedule-weekly-organization-reports': {
-        'task': 'sentry.tasks.reports.prepare_reports',
-        'schedule': crontab(
+        'task':
+        'sentry.tasks.reports.prepare_reports',
+        'schedule':
+        crontab(
             minute=0,
             hour=12,  # 05:00 PDT, 09:00 EDT, 12:00 UTC
             day_of_week='monday',
@@ -721,9 +683,7 @@ LOGGING = {
 
 REST_FRAMEWORK = {
     'TEST_REQUEST_DEFAULT_FORMAT': 'json',
-    'DEFAULT_PERMISSION_CLASSES': (
-        'sentry.api.permissions.NoPermission',
-    ),
+    'DEFAULT_PERMISSION_CLASSES': ('sentry.api.permissions.NoPermission', ),
 }
 
 CRISPY_TEMPLATE_PACK = 'bootstrap3'
@@ -735,11 +695,8 @@ PERCY_DEFAULT_TESTING_WIDTHS = (1280, 375)
 # Debugger
 
 DEBUG_TOOLBAR_PANELS = (
-    'debug_toolbar.panels.timer.TimerPanel',
-    'sentry.debug.panels.route.RoutePanel',
-    'debug_toolbar.panels.templates.TemplatesPanel',
-
-    'debug_toolbar.panels.sql.SQLPanel',
+    'debug_toolbar.panels.timer.TimerPanel', 'sentry.debug.panels.route.RoutePanel',
+    'debug_toolbar.panels.templates.TemplatesPanel', 'debug_toolbar.panels.sql.SQLPanel',
     # TODO(dcramer): https://github.com/getsentry/sentry/issues/1722
     # 'sentry.debug.panels.redis.RedisPanel',
 )
@@ -757,12 +714,17 @@ SENTRY_FEATURES = {
     'organizations:sso': True,
     'organizations:callsigns': True,
     'organizations:group-unmerge': False,
+    'organizations:integrations-v3': False,
+    'projects:similarity-view': True,
     'projects:global-events': False,
     'projects:plugins': True,
     'projects:dsym': False,
     'projects:sample-events': True,
     'projects:data-forwarding': True,
     'projects:rate-limits': True,
+    'projects:custom-filters': False,
+    'projects:additional-data-filters': False,
+    'projects:stream-hit-counts': False,
 }
 
 # Default time zone for localization in the UI.
@@ -772,9 +734,7 @@ SENTRY_DEFAULT_TIME_ZONE = 'UTC'
 # Enable the Sentry Debugger (Beta)
 SENTRY_DEBUGGER = DEBUG
 
-SENTRY_IGNORE_EXCEPTIONS = (
-    'OperationalError',
-)
+SENTRY_IGNORE_EXCEPTIONS = ('OperationalError', )
 
 # Should we send the beacon to the upstream server?
 SENTRY_BEACON = True
@@ -809,11 +769,7 @@ SENTRY_SAMPLE_RATES = (
     (10000000, 2000),
 )
 SENTRY_MAX_SAMPLE_RATE = 10000
-SENTRY_SAMPLE_TIMES = (
-    (3600, 1),
-    (360, 10),
-    (60, 60),
-)
+SENTRY_SAMPLE_TIMES = ((3600, 1), (360, 10), (60, 60), )
 SENTRY_MAX_SAMPLE_TIME = 10000
 
 # Web Service
@@ -876,13 +832,14 @@ SENTRY_ANALYTICS_ALIASES = {
 # This list is a bit fragile and hardcoded, but it's unlikely that
 # a user will be using a different backend that also mandates SMTP
 # credentials.
-SENTRY_SMTP_DISABLED_BACKENDS = frozenset((
-    'django.core.mail.backends.dummy.EmailBackend',
-    'django.core.mail.backends.console.EmailBackend',
-    'django.core.mail.backends.locmem.EmailBackend',
-    'django.core.mail.backends.filebased.EmailBackend',
-    'sentry.utils.email.PreviewBackend',
-))
+SENTRY_SMTP_DISABLED_BACKENDS = frozenset(
+    (
+        'django.core.mail.backends.dummy.EmailBackend',
+        'django.core.mail.backends.console.EmailBackend',
+        'django.core.mail.backends.locmem.EmailBackend',
+        'django.core.mail.backends.filebased.EmailBackend', 'sentry.utils.email.PreviewBackend',
+    )
+)
 
 # Should users without superuser permissions be allowed to
 # make projects public
@@ -1013,53 +970,47 @@ SENTRY_DISALLOWED_IPS = ()
 # 'name' in SENTRY_MANAGED_USER_FIELDS.
 SENTRY_MANAGED_USER_FIELDS = ()
 
-SENTRY_SCOPES = set([
-    'org:read',
-    'org:write',
-    'org:admin',
-    'member:read',
-    'member:write',
-    'member:admin',
-    'team:read',
-    'team:write',
-    'team:admin',
-    'project:read',
-    'project:write',
-    'project:admin',
-    'project:releases',
-    'event:read',
-    'event:write',
-    'event:admin',
-])
+SENTRY_SCOPES = set(
+    [
+        'org:read',
+        'org:write',
+        'org:admin',
+        'member:read',
+        'member:write',
+        'member:admin',
+        'team:read',
+        'team:write',
+        'team:admin',
+        'project:read',
+        'project:write',
+        'project:admin',
+        'project:releases',
+        'event:read',
+        'event:write',
+        'event:admin',
+    ]
+)
 
 SENTRY_SCOPE_SETS = (
     (
         ('org:admin', 'Read, write, and admin access to organization details.'),
         ('org:write', 'Read and write access to organization details.'),
         ('org:read', 'Read access to organization details.'),
-    ),
-    (
+    ), (
         ('member:admin', 'Read, write, and admin access to organization members.'),
         ('member:write', 'Read and write access to organization members.'),
         ('member:read', 'Read access to organization members.'),
-    ),
-    (
+    ), (
         ('team:admin', 'Read, write, and admin access to teams.'),
-        ('team:write', 'Read and write access to teams.'),
-        ('team:read', 'Read access to teams.'),
-    ),
-    (
+        ('team:write', 'Read and write access to teams.'), ('team:read', 'Read access to teams.'),
+    ), (
         ('project:admin', 'Read, write, and admin access to projects.'),
-        ('project:write', 'Read and write access to projects.'),
-        ('project:read', 'Read access to projects.'),
-    ),
-    (
-        ('project:releases', 'Read, write, and admin access to project releases.'),
-    ),
-    (
+        ('project:write',
+         'Read and write access to projects.'), ('project:read', 'Read access to projects.'),
+    ), (('project:releases', 'Read, write, and admin access to project releases.'), ), (
         ('event:admin', 'Read, write, and admin access to events.'),
-        ('event:write', 'Read and write access to events.'),
-        ('event:read', 'Read access to events.'),
+        ('event:write',
+         'Read and write access to events.'), ('event:read', 'Read access to events.'),
     ),
 )
 
@@ -1071,50 +1022,108 @@ SENTRY_DEFAULT_ROLE = 'member'
 # in the chain (they still require the appropriate scope).
 SENTRY_ROLES = (
     {
-        'id': 'member',
-        'name': 'Member',
-        'desc': 'Members can view and act on events, as well as view most other data within the organization.',
-        'scopes': set([
-            'event:read', 'event:write', 'event:admin', 'project:releases',
-            'project:read', 'org:read', 'member:read', 'team:read',
-        ]),
-    },
-    {
-        'id': 'admin',
-        'name': 'Admin',
-        'desc': 'Admin privileges on any teams of which they\'re a member. They can create new teams and projects, as well as remove teams and projects which they already hold membership on.',
-        'scopes': set([
-            'event:read', 'event:write', 'event:admin',
-            'org:read', 'member:read',
-            'project:read', 'project:write', 'project:admin', 'project:releases',
-            'team:read', 'team:write', 'team:admin',
-        ]),
-    },
-    {
-        'id': 'manager',
-        'name': 'Manager',
-        'desc': 'Gains admin access on all teams as well as the ability to add and remove members.',
-        'is_global': True,
-        'scopes': set([
-            'event:read', 'event:write', 'event:admin',
-            'member:read', 'member:write', 'member:admin',
-            'project:read', 'project:write', 'project:admin', 'project:releases',
-            'team:read', 'team:write', 'team:admin',
-            'org:read', 'org:write',
-        ]),
-    },
-    {
-        'id': 'owner',
-        'name': 'Owner',
-        'desc': 'Gains full permission across the organization. Can manage members as well as perform catastrophic operations such as removing the organization.',
-        'is_global': True,
-        'scopes': set([
-            'org:read', 'org:write', 'org:admin',
-            'member:read', 'member:write', 'member:admin',
-            'team:read', 'team:write', 'team:admin',
-            'project:read', 'project:write', 'project:admin', 'project:releases',
-            'event:read', 'event:write', 'event:admin',
-        ]),
+        'id':
+        'member',
+        'name':
+        'Member',
+        'desc':
+        'Members can view and act on events, as well as view most other data within the organization.',
+        'scopes':
+        set(
+            [
+                'event:read',
+                'event:write',
+                'event:admin',
+                'project:releases',
+                'project:read',
+                'org:read',
+                'member:read',
+                'team:read',
+            ]
+        ),
+    }, {
+        'id':
+        'admin',
+        'name':
+        'Admin',
+        'desc':
+        'Admin privileges on any teams of which they\'re a member. They can create new teams and projects, as well as remove teams and projects which they already hold membership on.',
+        'scopes':
+        set(
+            [
+                'event:read',
+                'event:write',
+                'event:admin',
+                'org:read',
+                'member:read',
+                'project:read',
+                'project:write',
+                'project:admin',
+                'project:releases',
+                'team:read',
+                'team:write',
+                'team:admin',
+            ]
+        ),
+    }, {
+        'id':
+        'manager',
+        'name':
+        'Manager',
+        'desc':
+        'Gains admin access on all teams as well as the ability to add and remove members.',
+        'is_global':
+        True,
+        'scopes':
+        set(
+            [
+                'event:read',
+                'event:write',
+                'event:admin',
+                'member:read',
+                'member:write',
+                'member:admin',
+                'project:read',
+                'project:write',
+                'project:admin',
+                'project:releases',
+                'team:read',
+                'team:write',
+                'team:admin',
+                'org:read',
+                'org:write',
+            ]
+        ),
+    }, {
+        'id':
+        'owner',
+        'name':
+        'Owner',
+        'desc':
+        'Gains full permission across the organization. Can manage members as well as perform catastrophic operations such as removing the organization.',
+        'is_global':
+        True,
+        'scopes':
+        set(
+            [
+                'org:read',
+                'org:write',
+                'org:admin',
+                'member:read',
+                'member:write',
+                'member:admin',
+                'team:read',
+                'team:write',
+                'team:admin',
+                'project:read',
+                'project:write',
+                'project:admin',
+                'project:releases',
+                'event:read',
+                'event:write',
+                'event:admin',
+            ]
+        ),
     },
 )
 
@@ -1142,8 +1151,15 @@ SENTRY_API_RESPONSE_DELAY = 150 if IS_DEV else None
 # XXX(dcramer): this doesn't work outside of a source distribution as the
 # webpack.config.js is not part of Sentry's datafiles
 SENTRY_WATCHERS = (
-    ('webpack', [os.path.join(NODE_MODULES_ROOT, '.bin', 'webpack'), '--output-pathinfo', '--watch',
-     "--config={}".format(os.path.normpath(os.path.join(PROJECT_ROOT, os.pardir, os.pardir, "webpack.config.js")))]),
+    (
+        'webpack', [
+            os.path.join(NODE_MODULES_ROOT, '.bin', 'webpack'), '--output-pathinfo', '--watch',
+            "--config={}".format(
+                os.path.
+                normpath(os.path.join(PROJECT_ROOT, os.pardir, os.pardir, "webpack.config.js"))
+            )
+        ]
+    ),
 )
 
 # Max file size for avatar photo uploads
@@ -1173,6 +1189,7 @@ def get_raven_config():
         ],
     }
 
+
 RAVEN_CONFIG = get_raven_config()
 
 # Config options that are explicitly disabled from Django
@@ -1194,27 +1211,23 @@ SUDO_URL = 'sentry-sudo'
 
 # TODO(dcramer): move this to sentry.io so it can be automated
 SDK_VERSIONS = {
-    'raven-java': '8.0.0',
-    'raven-js': '3.15.0',
-    'raven-node': '1.1.4',
-    'raven-python': '6.0.0',
-    'raven-ruby': '2.4.0',
-    'sentry-laravel': '0.6.1',
-    'sentry-php': '1.6.2',
-    'sentry-swift': '2.1.2',
+    'raven-js': '3.16.0',
+    'raven-node': '2.1.0',
+    'raven-python': '6.1.0',
+    'raven-ruby': '2.5.3',
+    'sentry-cocoa': '3.1.2',
+    'sentry-java': '1.2.0',
+    'sentry-laravel': '0.7.0',
+    'sentry-php': '1.7.0',
 }
 
 SDK_URLS = {
-    'raven-java': 'https://docs.sentry.io/clients/java/',
-    'raven-java:android': 'https://docs.sentry.io/clients/java/modules/android/',
-    'raven-java:log4j': 'https://docs.sentry.io/clients/java/modules/log4j/',
-    'raven-java:log4j2': 'https://docs.sentry.io/clients/java/modules/log4j2/',
-    'raven-java:logback': 'https://docs.sentry.io/clients/java/modules/logback/',
     'raven-js': 'https://docs.sentry.io/clients/javascript/',
     'raven-node': 'https://docs.sentry.io/clients/node/',
     'raven-python': 'https://docs.sentry.io/clients/python/',
     'raven-ruby': 'https://docs.sentry.io/clients/ruby/',
     'raven-swift': 'https://docs.sentry.io/clients/cocoa/',
+    'sentry-java': 'https://docs.sentry.io/clients/java/',
     'sentry-php': 'https://docs.sentry.io/clients/php/',
     'sentry-laravel': 'https://docs.sentry.io/clients/php/integrations/laravel/',
     'sentry-swift': 'https://docs.sentry.io/clients/cocoa/',
@@ -1222,9 +1235,16 @@ SDK_URLS = {
 
 DEPRECATED_SDKS = {
     # sdk name => new sdk name
+    'raven-java': 'sentry-java',
+    'raven-java:android': 'sentry-java',
+    'raven-java:log4j': 'sentry-java',
+    'raven-java:log4j2': 'sentry-java',
+    'raven-java:logback': 'sentry-java',
     'raven-objc': 'sentry-swift',
     'raven-php': 'sentry-php',
     'sentry-android': 'raven-java',
+    'sentry-swift': 'sentry-cocoa',
+
     # The Ruby SDK used to go by the name 'sentry-raven'...
     'sentry-raven': 'raven-ruby',
 }

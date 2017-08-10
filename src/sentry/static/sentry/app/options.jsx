@@ -1,5 +1,5 @@
 import React from 'react';
-import _ from 'underscore';
+import _ from 'lodash';
 import ConfigStore from './stores/configStore';
 import {t} from './locale';
 import {EmailField, TextField, BooleanField} from './components/forms';
@@ -12,6 +12,10 @@ const sections = [
   {
     key: 'mail',
     heading: t('Outbound email')
+  },
+  {
+    key: 'auth',
+    heading: t('Authentication')
   }
 ];
 
@@ -58,6 +62,13 @@ const definitions = [
     help: t(
       'The maximum number of events the system should accept per minute. A value of 0 will disable the default rate limit.'
     )
+  },
+  {
+    key: 'auth.allow-registration',
+    label: t('Allow Registration'),
+    help: t('Allow anyone to create an account and access this Sentry installation.'),
+    component: BooleanField,
+    defaultValue: () => false
   },
   {
     key: 'auth.ip-rate-limit',
@@ -124,7 +135,7 @@ const definitions = [
   }
 ];
 
-const definitionsMap = _.indexBy(definitions, 'key');
+const definitionsMap = _.keyBy(definitions, def => def.key);
 
 const disabledReasons = {
   diskPriority: 'This setting is defined in config.yml and may not be changed via the web UI.',
@@ -139,7 +150,7 @@ function optionsForSection(section) {
   return definitions.filter(option => option.key.split('.')[0] === section.key);
 }
 
-export function getOptionField(option, onChange, value, field) {
+export function getOptionField(option, field, value, onChange) {
   let meta = {...getOption(option), ...field};
   let Field = meta.component || TextField;
   return (

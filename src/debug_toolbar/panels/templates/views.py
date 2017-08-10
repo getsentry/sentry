@@ -35,7 +35,7 @@ def template_source(request):
             source, display_name = loader.load_template_source(template_name)
             break
         except TemplateDoesNotExist:
-            source = "Template Does Not Exist: %s" % (template_name,)
+            source = "Template Does Not Exist: %s" % (template_name, )
 
     try:
         from pygments import highlight
@@ -49,7 +49,8 @@ def template_source(request):
         pass
 
     # Using render_to_response avoids running global context processors.
-    return render_to_response('debug_toolbar/panels/template_source.html', {
-        'source': source,
-        'template_name': template_name
-    })
+    return render_to_response(
+        'debug_toolbar/panels/template_source.html',
+        {'source': source,
+         'template_name': template_name}
+    )

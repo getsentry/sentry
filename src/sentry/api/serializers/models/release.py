@@ -9,8 +9,7 @@ from itertools import izip
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.db.models.query import in_iexact
 from sentry.models import (
-    Commit, CommitAuthor, Deploy, Release, ReleaseProject, TagValue, User,
-    UserEmail
+    Commit, CommitAuthor, Deploy, Release, ReleaseProject, TagValue, User, UserEmail
 )
 
 
@@ -29,14 +28,16 @@ def get_users_for_authors(organization_id, authors, user=None):
     }
     """
     # Filter users based on the emails provided in the commits
-    user_emails = UserEmail.objects.filter(
-        in_iexact('email', [a.email for a in authors]),
-    ).order_by('id')
+    user_emails = list(
+        UserEmail.objects.filter(
+            in_iexact('email', [a.email for a in authors]),
+        ).order_by('id')
+    )
 
     # Filter users belonging to the organization associated with
     # the release
     users = User.objects.filter(
-        id__in=set((ue.user_id for ue in user_emails)),
+        id__in={ue.user_id for ue in user_emails},
         is_active=True,
         sentry_orgmember_set__organization_id=organization_id
     )
@@ -55,10 +56,10 @@ def get_users_for_authors(organization_id, authors, user=None):
 
     results = {}
     for author in authors:
-        results[six.text_type(author.id)] = users_by_email.get(author.email, {
-            'name': author.name,
-            'email': author.email
-        })
+        results[six.text_type(author.id)] = users_by_email.get(
+            author.email, {'name': author.name,
+                           'email': author.email}
+        )
 
     return results
 
@@ -109,9 +110,7 @@ class ReleaseSerializer(Serializer):
             commit_list = list(Commit.objects.filter(
                 id__in=commit_ids,
             ).select_related('author'))
-            commits = {
-                c.id: d for c, d in izip(commit_list, serialize(commit_list, user))
-            }
+            commits = {c.id: d for c, d in izip(commit_list, serialize(commit_list, user))}
         else:
             commits = {}
 
@@ -150,9 +149,7 @@ class ReleaseSerializer(Serializer):
             deploy_list = list(Deploy.objects.filter(
                 id__in=deploy_ids,
             ))
-            deploys = {
-                d.id: c for d, c in izip(deploy_list, serialize(deploy_list, user))
-            }
+            deploys = {d.id: c for d, c in izip(deploy_list, serialize(deploy_list, user))}
         else:
             deploys = {}
 
@@ -168,9 +165,9 @@ class ReleaseSerializer(Serializer):
         if project:
             project_ids = [project.id]
         else:
-            project_ids = ReleaseProject.objects.filter(
-                release__in=item_list
-            ).values_list('project_id', flat=True)
+            project_ids = ReleaseProject.objects.filter(release__in=item_list).values_list(
+                'project_id', flat=True
+            )
 
         tags = {}
         tks = TagValue.objects.filter(
@@ -185,37 +182,37 @@ class ReleaseSerializer(Serializer):
                 'last_seen': max(tk.last_seen, val['last_seen']) if val else tk.last_seen
             }
         owners = {
-            d['id']: d
-            for d in serialize(set(i.owner for i in item_list if i.owner_id), user)
+            d['id']: d for d in serialize(set(i.owner for i in item_list if i.owner_id), user)
         }
 
         if project:
-            group_counts_by_release = dict(ReleaseProject.objects.filter(
-                project=project,
-                release__in=item_list
-            ).values_list('release_id', 'new_groups'))
+            group_counts_by_release = dict(
+                ReleaseProject.objects.filter(project=project, release__in=item_list)
+                .values_list('release_id', 'new_groups')
+            )
         else:
             # assume it should be a sum across release
             # if no particular project specified
             group_counts_by_release = dict(
                 ReleaseProject.objects.filter(release__in=item_list, new_groups__isnull=False)
-                                      .values('release_id')
-                                      .annotate(new_groups=Sum('new_groups'))
-                                      .values_list('release_id', 'new_groups')
+                .values('release_id').annotate(new_groups=Sum('new_groups'))
+                .values_list('release_id', 'new_groups')
             )
 
         release_metadata_attrs = self._get_commit_metadata(item_list, user)
         deploy_metadata_attrs = self._get_deploy_metadata(item_list, user)
 
         release_projects = defaultdict(list)
-        project_releases = ReleaseProject.objects.filter(
-            release__in=item_list
-        ).values('release_id', 'project__slug', 'project__name')
+        project_releases = ReleaseProject.objects.filter(release__in=item_list).values(
+            'release_id', 'project__slug', 'project__name'
+        )
         for pr in project_releases:
-            release_projects[pr['release_id']].append({
-                'slug': pr['project__slug'],
-                'name': pr['project__name'],
-            })
+            release_projects[pr['release_id']].append(
+                {
+                    'slug': pr['project__slug'],
+                    'name': pr['project__name'],
+                }
+            )
 
         result = {}
         for item in item_list:
@@ -248,10 +245,12 @@ class ReleaseSerializer(Serializer):
             'projects': attrs.get('projects', [])
         }
         if attrs['tag']:
-            d.update({
-                'lastEvent': attrs['tag']['last_seen'],
-                'firstEvent': attrs['tag']['first_seen'],
-            })
+            d.update(
+                {
+                    'lastEvent': attrs['tag']['last_seen'],
+                    'firstEvent': attrs['tag']['first_seen'],
+                }
+            )
         else:
             d.update({
                 'lastEvent': None,

@@ -99,7 +99,13 @@ const ProjectChart = React.createClass({
 
     return (
       <div className="chart-wrapper">
-        <BarChart points={points} markers={markers} className="sparkline" />
+        <BarChart
+          points={points}
+          markers={markers}
+          label="events"
+          height={150}
+          className="standard-barchart"
+        />
         <small className="date-legend">
           {moment(this.props.dateSince * 1000).format('LL')}
         </small>
@@ -108,19 +114,9 @@ const ProjectChart = React.createClass({
   },
 
   render() {
-    return (
-      <div className="box project-chart">
-        <div className="box-content with-padding">
-          <div className="bar-chart">
-            {this.state.loading
-              ? <LoadingIndicator />
-              : this.state.error
-                  ? <LoadingError onRetry={this.fetchData} />
-                  : this.renderChart()}
-          </div>
-        </div>
-      </div>
-    );
+    return this.state.loading
+      ? <LoadingIndicator />
+      : this.state.error ? <LoadingError onRetry={this.fetchData} /> : this.renderChart();
   }
 });
 

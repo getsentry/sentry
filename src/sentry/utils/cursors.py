@@ -26,7 +26,8 @@ class Cursor(object):
 
     def __repr__(self):
         return '<%s: value=%s offset=%s is_prev=%s>' % (
-            type(self), self.value, self.offset, int(self.is_prev))
+            type(self), self.value, self.offset, int(self.is_prev)
+        )
 
     def __nonzero__(self):
         return self.has_results
@@ -44,10 +45,12 @@ class Cursor(object):
 
 
 class CursorResult(Sequence):
-    def __init__(self, results, next, prev):
+    def __init__(self, results, next, prev, hits=None, max_hits=None):
         self.results = results
         self.next = next
         self.prev = prev
+        self.hits = hits
+        self.max_hits = max_hits
 
     def __len__(self):
         return len(self.results)
@@ -82,7 +85,7 @@ class CursorResult(Sequence):
         )
 
 
-def build_cursor(results, key, limit=100, cursor=None):
+def build_cursor(results, key, limit=100, cursor=None, hits=None, max_hits=None):
     if cursor is None:
         cursor = Cursor(0, 0, 0)
 
@@ -167,4 +170,6 @@ def build_cursor(results, key, limit=100, cursor=None):
         results=results,
         next=next_cursor,
         prev=prev_cursor,
+        hits=hits,
+        max_hits=max_hits,
     )

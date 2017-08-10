@@ -303,7 +303,6 @@ const OrganizationDashboard = React.createClass({
           </div>
           <div className="col-md-4">
             <EventsPerHour {...this.props} />
-            <hr />
             <ProjectList {...this.props} teams={this.state.teams} />
           </div>
         </div>

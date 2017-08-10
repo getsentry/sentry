@@ -31,7 +31,9 @@ class NotificationSettingsTest(TestCase):
         team = self.create_team(organization=organization)
         project = self.create_project(organization=organization, team=team)
         team2 = self.create_team(organization=organization)
-        self.create_project(organization=organization, team=team, status=ProjectStatus.PENDING_DELETION)
+        self.create_project(
+            organization=organization, team=team, status=ProjectStatus.PENDING_DELETION
+        )
         self.create_project(organization=organization, team=team2)
         self.create_member(organization=organization, user=user, teams=[project.team])
         self.login_as(user)
@@ -63,9 +65,7 @@ class NotificationSettingsTest(TestCase):
         })
         assert resp.status_code == 302
 
-        options = UserOption.objects.get_all_values(
-            user=self.user
-        )
+        options = UserOption.objects.get_all_values(user=self.user)
 
         assert options.get('workflow:notifications') == '0'
 
@@ -74,9 +74,7 @@ class NotificationSettingsTest(TestCase):
         })
         assert resp.status_code == 302
 
-        options = UserOption.objects.get_all_values(
-            user=self.user
-        )
+        options = UserOption.objects.get_all_values(user=self.user)
 
         assert options.get('workflow:notifications') == \
             UserOptionValue.participating_only
@@ -89,9 +87,7 @@ class NotificationSettingsTest(TestCase):
         })
         assert resp.status_code == 302
 
-        options = UserOption.objects.get_all_values(
-            user=self.user
-        )
+        options = UserOption.objects.get_all_values(user=self.user)
 
         assert options.get('subscribe_by_default') == '1'
 

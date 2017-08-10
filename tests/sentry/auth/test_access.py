@@ -26,7 +26,8 @@ class FromUserTest(TestCase):
         user = self.create_user()
         organization = self.create_organization(owner=self.user)
         member = self.create_member(
-            organization=organization, user=user,
+            organization=organization,
+            user=user,
             role='owner',
         )
         team = self.create_team(organization=organization)
@@ -46,7 +47,8 @@ class FromUserTest(TestCase):
             flags=0,  # disable default allow_joinleave
         )
         member = self.create_member(
-            organization=organization, user=user,
+            organization=organization,
+            user=user,
             role='member',
         )
         team = self.create_team(organization=organization)
@@ -66,8 +68,10 @@ class FromUserTest(TestCase):
             flags=Organization.flags.allow_joinleave,
         )
         member = self.create_member(
-            organization=organization, user=user,
-            role='member', teams=(),
+            organization=organization,
+            user=user,
+            role='member',
+            teams=(),
         )
         team = self.create_team(organization=organization)
 

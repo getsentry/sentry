@@ -92,9 +92,11 @@ def sort_dependencies(app_list):
             else:
                 skipped.append((model, deps))
         if not changed:
-            raise RuntimeError("Can't resolve dependencies for %s in serialized app list." %
-                ', '.join('%s.%s' % (model._meta.app_label, model._meta.object_name)
-                for model, deps in sorted(skipped, key=lambda obj: obj[0].__name__))
+            raise RuntimeError(
+                "Can't resolve dependencies for %s in serialized app list." % ', '.join(
+                    '%s.%s' % (model._meta.app_label, model._meta.object_name)
+                    for model, deps in sorted(skipped, key=lambda obj: obj[0].__name__)
+                )
             )
         model_dependencies = skipped
 
@@ -104,7 +106,9 @@ def sort_dependencies(app_list):
 @click.command()
 @click.argument('dest', default='-', type=click.File('wb'))
 @click.option('--silent', '-q', default=False, is_flag=True, help='Silence all debug output.')
-@click.option('--indent', default=2, help='Number of spaces to indent for the JSON output. (default: 2)')
+@click.option(
+    '--indent', default=2, help='Number of spaces to indent for the JSON output. (default: 2)'
+)
 @click.option('--exclude', default=None, help='Models to exclude from export.', metavar='MODELS')
 @configuration
 def export(dest, silent, indent, exclude):
@@ -129,7 +133,7 @@ def export(dest, silent, indent, exclude):
                 model._meta.proxy
             ):
                 if not silent:
-                    click.echo(">> Skipping model <%s>" % (model.__name__,), err=True)
+                    click.echo(">> Skipping model <%s>" % (model.__name__, ), err=True)
                 continue
 
             queryset = model._base_manager.order_by(model._meta.pk.name)
@@ -138,5 +142,6 @@ def export(dest, silent, indent, exclude):
 
     if not silent:
         click.echo('>> Beginning export', err=True)
-    serializers.serialize("json", yield_objects(), indent=indent, stream=dest,
-                          use_natural_keys=True)
+    serializers.serialize(
+        "json", yield_objects(), indent=indent, stream=dest, use_natural_keys=True
+    )

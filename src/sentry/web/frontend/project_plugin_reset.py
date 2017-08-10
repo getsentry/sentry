@@ -13,8 +13,18 @@ class ProjectPluginResetView(ProjectView):
         try:
             plugin = plugins.get(slug)
         except KeyError:
-            return self.redirect(reverse('sentry-configure-project-plugin', args=[project.organization.slug, project.slug, slug]))
+            return self.redirect(
+                reverse(
+                    'sentry-configure-project-plugin',
+                    args=[project.organization.slug, project.slug, slug]
+                )
+            )
 
         plugin.reset_options(project=project)
 
-        return self.redirect(reverse('sentry-configure-project-plugin', args=[project.organization.slug, project.slug, slug]))
+        return self.redirect(
+            reverse(
+                'sentry-configure-project-plugin',
+                args=[project.organization.slug, project.slug, slug]
+            )
+        )

@@ -16,8 +16,7 @@ from django.utils.translation import ugettext_lazy as _
 from uuid import uuid4
 
 from sentry.db.models import (
-    ArrayField, Model, BaseManager, BoundedPositiveIntegerField, FlexibleForeignKey,
-    sane_repr
+    ArrayField, Model, BaseManager, BoundedPositiveIntegerField, FlexibleForeignKey, sane_repr
 )
 
 
@@ -33,35 +32,31 @@ class ApiKey(Model):
     organization = FlexibleForeignKey('sentry.Organization', related_name='key_set')
     label = models.CharField(max_length=64, blank=True, default='Default')
     key = models.CharField(max_length=32, unique=True)
-    scopes = BitField(flags=(
-        ('project:read', 'project:read'),
-        ('project:write', 'project:write'),
-        ('project:admin', 'project:admin'),
-        ('project:releases', 'project:releases'),
-        ('team:read', 'team:read'),
-        ('team:write', 'team:write'),
-        ('team:admin', 'team:admin'),
-        ('event:read', 'event:read'),
-        ('event:write', 'event:write'),
-        ('event:admin', 'event:admin'),
-        ('org:read', 'org:read'),
-        ('org:write', 'org:write'),
-        ('org:admin', 'org:admin'),
-        ('member:read', 'member:read'),
-        ('member:write', 'member:write'),
-        ('member:admin', 'member:admin'),
-    ))
+    scopes = BitField(
+        flags=(
+            ('project:read', 'project:read'), ('project:write',
+                                               'project:write'), ('project:admin', 'project:admin'),
+            ('project:releases', 'project:releases'), ('team:read',
+                                                       'team:read'), ('team:write', 'team:write'),
+            ('team:admin', 'team:admin'), ('event:read',
+                                           'event:read'), ('event:write', 'event:write'),
+            ('event:admin', 'event:admin'), ('org:read', 'org:read'), ('org:write', 'org:write'),
+            ('org:admin',
+             'org:admin'), ('member:read',
+                            'member:read'), ('member:write',
+                                             'member:write'), ('member:admin', 'member:admin'),
+        )
+    )
     scope_list = ArrayField(of=models.TextField)
-    status = BoundedPositiveIntegerField(default=0, choices=(
-        (ApiKeyStatus.ACTIVE, _('Active')),
-        (ApiKeyStatus.INACTIVE, _('Inactive')),
-    ), db_index=True)
+    status = BoundedPositiveIntegerField(
+        default=0,
+        choices=((ApiKeyStatus.ACTIVE, _('Active')), (ApiKeyStatus.INACTIVE, _('Inactive')), ),
+        db_index=True
+    )
     date_added = models.DateTimeField(default=timezone.now)
     allowed_origins = models.TextField(blank=True, null=True)
 
-    objects = BaseManager(cache_fields=(
-        'key',
-    ))
+    objects = BaseManager(cache_fields=('key', ))
 
     class Meta:
         app_label = 'sentry'

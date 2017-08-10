@@ -9,8 +9,8 @@ from six.moves.urllib.parse import urlparse
 from uuid import uuid4
 
 from sentry.db.models import (
-    Model, BaseManager, BoundedPositiveIntegerField, EncryptedTextField,
-    FlexibleForeignKey, sane_repr
+    Model, BaseManager, BoundedPositiveIntegerField, EncryptedTextField, FlexibleForeignKey,
+    sane_repr
 )
 
 
@@ -25,18 +25,21 @@ class ApiApplication(Model):
     __core__ = True
 
     client_id = models.CharField(
-        max_length=64, unique=True,
-        default=lambda: ApiApplication.generate_token())
-    client_secret = EncryptedTextField(
-        default=lambda: ApiApplication.generate_token())
+        max_length=64, unique=True, default=lambda: ApiApplication.generate_token()
+    )
+    client_secret = EncryptedTextField(default=lambda: ApiApplication.generate_token())
     owner = FlexibleForeignKey('sentry.User')
     name = models.CharField(
-        max_length=64, blank=True,
-        default=lambda: petname.Generate(2, ' ', letters=10).title())
-    status = BoundedPositiveIntegerField(default=0, choices=(
-        (ApiApplicationStatus.active, _('Active')),
-        (ApiApplicationStatus.inactive, _('Inactive')),
-    ), db_index=True)
+        max_length=64, blank=True, default=lambda: petname.Generate(2, ' ', letters=10).title()
+    )
+    status = BoundedPositiveIntegerField(
+        default=0,
+        choices=(
+            (ApiApplicationStatus.active, _('Active')),
+            (ApiApplicationStatus.inactive, _('Inactive')),
+        ),
+        db_index=True
+    )
     allowed_origins = models.TextField(blank=True, null=True)
     redirect_uris = models.TextField()
 
@@ -46,9 +49,7 @@ class ApiApplication(Model):
 
     date_added = models.DateTimeField(default=timezone.now)
 
-    objects = BaseManager(cache_fields=(
-        'client_id',
-    ))
+    objects = BaseManager(cache_fields=('client_id', ))
 
     class Meta:
         app_label = 'sentry'

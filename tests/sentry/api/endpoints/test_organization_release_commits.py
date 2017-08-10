@@ -42,10 +42,13 @@ class ReleaseCommitsListTest(APITestCase):
             commit=commit2,
             order=0,
         )
-        url = reverse('sentry-api-0-organization-release-commits', kwargs={
-            'organization_slug': project.organization.slug,
-            'version': release.version,
-        })
+        url = reverse(
+            'sentry-api-0-organization-release-commits',
+            kwargs={
+                'organization_slug': project.organization.slug,
+                'version': release.version,
+            }
+        )
 
         self.login_as(user=self.user)
 

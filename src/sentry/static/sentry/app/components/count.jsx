@@ -1,6 +1,6 @@
 import React from 'react';
 
-const Count = React.createClass({
+export default React.createClass({
   propTypes: {
     value: React.PropTypes.any.isRequired
   },
@@ -32,12 +32,12 @@ const Count = React.createClass({
         return '' + this.floatFormat(number / x, 1) + y;
       }
     }
-    return '' + number;
+    return '' + number.toLocaleString();
   },
 
   render() {
-    return <span>{this.formatNumber(this.props.value)}</span>;
+    let {value, className} = this.props;
+
+    return <span className={className}>{this.formatNumber(value)}</span>;
   }
 });
-
-export default Count;

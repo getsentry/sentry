@@ -18,15 +18,12 @@ from sentry.utils import metrics
 from sentry.stacktraces import StacktraceProcessor
 from sentry.reprocessing import report_processing_issue
 
-
 logger = logging.getLogger(__name__)
-
 
 FRAME_CACHE_VERSION = 5
 
 
 class NativeStacktraceProcessor(StacktraceProcessor):
-
     def __init__(self, *args, **kwargs):
         StacktraceProcessor.__init__(self, *args, **kwargs)
         debug_meta = self.data.get('debug_meta')
@@ -37,16 +34,18 @@ class NativeStacktraceProcessor(StacktraceProcessor):
             self.available = True
             self.debug_meta = debug_meta
             self.sdk_info = get_sdk_from_event(self.data)
-            self.image_lookup = ImageLookup(self.debug_meta['images'])
+            self.image_lookup = ImageLookup(
+                [img for img in self.debug_meta['images'] if img['type'] == 'apple']
+            )
         else:
             self.available = False
 
     def close(self):
         StacktraceProcessor.close(self)
         if self.dsyms_referenced:
-            metrics.incr('dsyms.processed',
-                         amount=len(self.dsyms_referenced),
-                         instance=self.project.id)
+            metrics.incr(
+                'dsyms.processed', amount=len(self.dsyms_referenced), instance=self.project.id
+            )
         if self.sym is not None:
             self.sym.close()
             self.sym = None
@@ -78,16 +77,12 @@ class NativeStacktraceProcessor(StacktraceProcessor):
             }
 
         return find_best_instruction(
-            processable_frame['instruction_addr'],
-            self.cpu_name, meta=meta)
+            processable_frame['instruction_addr'], self.cpu_name, meta=meta
+        )
 
     def handles_frame(self, frame, stacktrace_info):
         platform = frame.get('platform') or self.data.get('platform')
-        return (
-            platform == 'cocoa' and
-            self.available and
-            'instruction_addr' in frame
-        )
+        return (platform == 'cocoa' and self.available and 'instruction_addr' in frame)
 
     def preprocess_frame(self, processable_frame):
         instr_addr = self.find_best_instruction(processable_frame)
@@ -101,26 +96,28 @@ class NativeStacktraceProcessor(StacktraceProcessor):
         }
 
         if img is not None:
-            processable_frame.set_cache_key_from_values((
-                FRAME_CACHE_VERSION,
-                # Because the images can move around, we want to rebase
-                # the address for the cache key to be within the image
-                # the same way as we do it in the symbolizer.
-                rebase_addr(instr_addr, img),
-                img['uuid'].lower(),
-                img['cpu_type'],
-                img['cpu_subtype'],
-                img['image_size'],
-            ))
+            processable_frame.set_cache_key_from_values(
+                (
+                    FRAME_CACHE_VERSION,
+                    # Because the images can move around, we want to rebase
+                    # the address for the cache key to be within the image
+                    # the same way as we do it in the symbolizer.
+                    rebase_addr(instr_addr, img),
+                    img['uuid'].lower(),
+                    img['cpu_type'],
+                    img['cpu_subtype'],
+                    img['image_size'],
+                )
+            )
 
     def preprocess_step(self, processing_task):
         if not self.available:
             return False
 
         referenced_images = set(
-            pf.data['image_uuid']
-            for pf in processing_task.iter_processable_frames(self)
-            if pf.cache_value is None and pf.data['image_uuid'] is not None)
+            pf.data['image_uuid'] for pf in processing_task.iter_processable_frames(self)
+            if pf.cache_value is None and pf.data['image_uuid'] is not None
+        )
 
         def on_referenced(dsym_file):
             app_info = version_build_from_data(self.data)
@@ -146,10 +143,13 @@ class NativeStacktraceProcessor(StacktraceProcessor):
                     # happen in some cases anyways we ignore it.
                     pass
 
-        self.sym = Symbolizer(self.project, self.image_lookup,
-                              cpu_name=self.cpu_name,
-                              referenced_images=referenced_images,
-                              on_dsym_file_referenced=on_referenced)
+        self.sym = Symbolizer(
+            self.project,
+            self.image_lookup,
+            cpu_name=self.cpu_name,
+            referenced_images=referenced_images,
+            on_dsym_file_referenced=on_referenced
+        )
 
         if options.get('symbolserver.enabled'):
             self.fetch_system_symbols(processing_task)
@@ -162,18 +162,19 @@ class NativeStacktraceProcessor(StacktraceProcessor):
             if pf.cache_value is not None or img is None or \
                self.sym.is_image_from_app_bundle(img):
                 continue
-            to_lookup.append({
-                'object_uuid': img['uuid'],
-                'object_name': img['name'],
-                'addr': '0x%x' % rebase_addr(pf.data['instruction_addr'], img)
-            })
+            to_lookup.append(
+                {
+                    'object_uuid': img['uuid'],
+                    'object_name': img['name'],
+                    'addr': '0x%x' % rebase_addr(pf.data['instruction_addr'], img)
+                }
+            )
             pf_list.append(pf)
 
         if not to_lookup:
             return
 
-        rv = lookup_system_symbols(to_lookup, self.sdk_info,
-                                   self.sym.cpu_name)
+        rv = lookup_system_symbols(to_lookup, self.sdk_info, self.sym.cpu_name)
         if rv is not None:
             for symrv, pf in zip(rv, pf_list):
                 if symrv is None:
@@ -190,7 +191,9 @@ class NativeStacktraceProcessor(StacktraceProcessor):
             # Construct a raw frame that is used by the symbolizer
             # backend.  We only assemble the bare minimum we need here.
             instruction_addr = processable_frame.data['instruction_addr']
-            in_app = self.sym.is_in_app(instruction_addr)
+            in_app = self.sym.is_in_app(instruction_addr, sdk_info=self.sdk_info)
+            if in_app and raw_frame.get('function') is not None:
+                in_app = not self.sym.is_internal_function(raw_frame['function'])
             if raw_frame.get('in_app') is None:
                 raw_frame['in_app'] = in_app
             img_uuid = processable_frame.data['image_uuid']
@@ -198,15 +201,18 @@ class NativeStacktraceProcessor(StacktraceProcessor):
                 self.dsyms_referenced.add(img_uuid)
             try:
                 symbolicated_frames = self.sym.symbolize_frame(
-                    instruction_addr, self.sdk_info,
-                    symbolserver_match=processable_frame.data['symbolserver_match'])
+                    instruction_addr,
+                    self.sdk_info,
+                    symbolserver_match=processable_frame.data['symbolserver_match']
+                )
                 if not symbolicated_frames:
                     return None, [raw_frame], []
             except SymbolicationFailed as e:
                 # User fixable but fatal errors are reported as processing
                 # issues
                 if e.is_user_fixable and e.is_fatal:
-                    report_processing_issue(self.data,
+                    report_processing_issue(
+                        self.data,
                         scope='native',
                         object='dsym:%s' % e.image_uuid,
                         type=e.type,
@@ -228,16 +234,17 @@ class NativeStacktraceProcessor(StacktraceProcessor):
                 # optional dsyms)
                 errors = []
                 if e.is_user_fixable or e.is_sdk_failure:
-                    errors.append({
-                        'type': e.type,
-                        'image_uuid': e.image_uuid,
-                        'image_path': e.image_path,
-                        'image_arch': e.image_arch,
-                        'message': e.message,
-                    })
+                    errors.append(
+                        {
+                            'type': e.type,
+                            'image_uuid': e.image_uuid,
+                            'image_path': e.image_path,
+                            'image_arch': e.image_arch,
+                            'message': e.message,
+                        }
+                    )
                 else:
-                    logger.debug('Failed to symbolicate with native backend',
-                                 exc_info=True)
+                    logger.debug('Failed to symbolicate with native backend', exc_info=True)
                 return [raw_frame], [raw_frame], errors
 
             processable_frame.set_cache_value([in_app, symbolicated_frames])
@@ -260,7 +267,8 @@ class NativeStacktraceProcessor(StacktraceProcessor):
             if sfrm.get('package'):
                 new_frame['package'] = sfrm['package']
             if new_frame.get('in_app') is None:
-                new_frame['in_app'] = in_app
+                new_frame['in_app'
+                          ] = (in_app and not self.sym.is_internal_function(new_frame['function']))
             new_frames.append(new_frame)
 
         return new_frames, [raw_frame], []
@@ -269,7 +277,6 @@ class NativeStacktraceProcessor(StacktraceProcessor):
 class NativePlugin(Plugin2):
     can_disable = False
 
-    def get_stacktrace_processors(self, data, stacktrace_infos,
-                                  platforms, **kwargs):
+    def get_stacktrace_processors(self, data, stacktrace_infos, platforms, **kwargs):
         if 'cocoa' in platforms:
             return [NativeStacktraceProcessor]

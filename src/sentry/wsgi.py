@@ -11,7 +11,6 @@ import os
 import os.path
 import sys
 
-
 # Add the project to the python path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), os.pardir))
 
@@ -37,6 +36,7 @@ class FileWrapperWSGIHandler(WSGIHandler):
 
     Note: this was added natively into Django 1.8, so if by some reason,
     we upgraded, this wouldn't be relevant anymore."""
+
     def __call__(self, environ, start_response):
         response = super(FileWrapperWSGIHandler, self).__call__(environ, start_response)
         if hasattr(response, 'streaming') and response.streaming:
@@ -47,6 +47,7 @@ class FileWrapperWSGIHandler(WSGIHandler):
                 # that wsgi.file_wrapper does exist. It'd be exceptional otherwise.
                 pass
         return response
+
 
 # Run WSGI handler for the application
 from raven.contrib.django.middleware.wsgi import Sentry

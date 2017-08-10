@@ -13,7 +13,7 @@ from datetime import datetime, timedelta
 
 import six
 
-from sentry.constants import DATA_ROOT
+from sentry.constants import DATA_ROOT, INTEGRATION_ID_TO_PLATFORM_DATA
 from sentry.event_manager import EventManager
 from sentry.interfaces.user import User as UserInterface
 from sentry.utils import json
@@ -33,19 +33,31 @@ def random_ip():
     while first in not_valid:
         first = random.randrange(1, 256)
 
-    return '.'.join((
-        six.text_type(first),
-        six.text_type(random.randrange(1, 256)),
-        six.text_type(random.randrange(1, 256)),
-        six.text_type(random.randrange(1, 256))
-    ))
+    return '.'.join(
+        (
+            six.text_type(first), six.text_type(random.randrange(1, 256)),
+            six.text_type(random.randrange(1, 256)), six.text_type(random.randrange(1, 256))
+        )
+    )
 
 
 def random_username():
-    return random.choice([
-        'jess', 'david', 'chris', 'eric', 'katie', 'ben', 'armin', 'saloni',
-        'max', 'meredith', 'matt', 'sentry',
-    ])
+    return random.choice(
+        [
+            'jess',
+            'david',
+            'chris',
+            'eric',
+            'katie',
+            'ben',
+            'armin',
+            'saloni',
+            'max',
+            'meredith',
+            'matt',
+            'sentry',
+        ]
+    )
 
 
 def name_for_username(username):
@@ -68,13 +80,15 @@ def generate_user(username=None, email=None, ip_address=None, id=None):
     if username is None and email is None:
         username = random_username()
         email = '{}@example.com'.format(username)
-    return UserInterface.to_python({
-        'id': id,
-        'username': username,
-        'email': email,
-        'ip_address': ip_address or random_ip(),
-        'name': name_for_username(username),
-    }).to_json()
+    return UserInterface.to_python(
+        {
+            'id': id,
+            'username': username,
+            'email': email,
+            'ip_address': ip_address or random_ip(),
+            'name': name_for_username(username),
+        }
+    ).to_json()
 
 
 def load_data(platform, default=None, timestamp=None, sample_name=None):
@@ -86,14 +100,19 @@ def load_data(platform, default=None, timestamp=None, sample_name=None):
     #     event so it's not an empty project.
     #   * When a user clicks Test Configuration from notification plugin settings page,
     #     a fake event is generated to go through the pipeline.
-    sample_name = sample_name or platform
-
     data = None
-    for platform in (platform, default):
+    language = None
+    platform_data = INTEGRATION_ID_TO_PLATFORM_DATA.get(platform)
+
+    if platform_data is not None and platform_data['type'] != 'language':
+        language = platform_data['language']
+
+    for platform in (platform, language, default):
         if platform is None:
             continue
 
-        json_path = os.path.join(DATA_ROOT, 'samples', '%s.json' % (sample_name.encode('utf-8'),))
+        sample_name = sample_name or INTEGRATION_ID_TO_PLATFORM_DATA[platform]['name']
+        json_path = os.path.join(DATA_ROOT, 'samples', '%s.json' % (platform.encode('utf-8'), ))
 
         if not os.path.exists(json_path):
             continue
@@ -109,7 +128,7 @@ def load_data(platform, default=None, timestamp=None, sample_name=None):
         return data
 
     data['platform'] = platform
-    data['message'] = 'This is an example %s exception' % (sample_name,)
+    data['message'] = 'This is an example %s exception' % (sample_name, )
     data['sentry.interfaces.User'] = generate_user(
         ip_address='127.0.0.1',
         username='sentry',
@@ -134,9 +153,12 @@ def load_data(platform, default=None, timestamp=None, sample_name=None):
         "cookies": 'foo=bar;biz=baz',
         "url": "http://example.com/foo",
         "headers": {
-            "Referer": "http://example.com",
-            "Content-Type": "application/json",
-            "User-Agent": "Mozilla/5.0 (Windows NT 6.2; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/28.0.1500.72 Safari/537.36"
+            "Referer":
+            "http://example.com",
+            "Content-Type":
+            "application/json",
+            "User-Agent":
+            "Mozilla/5.0 (Windows NT 6.2; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/28.0.1500.72 Safari/537.36"
         },
         "env": {
             'ENV': 'prod',
@@ -167,8 +189,7 @@ def load_data(platform, default=None, timestamp=None, sample_name=None):
     return data
 
 
-def create_sample_event(project, platform=None, default=None, raw=True,
-                        sample_name=None, **kwargs):
+def create_sample_event(project, platform=None, default=None, raw=True, sample_name=None, **kwargs):
     if not platform and not default:
         return
 

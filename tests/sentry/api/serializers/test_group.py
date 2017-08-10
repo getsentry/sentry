@@ -2,14 +2,15 @@
 
 from __future__ import absolute_import
 
+import six
+
 from datetime import timedelta
 from django.utils import timezone
 from mock import patch
 
 from sentry.api.serializers import serialize
 from sentry.models import (
-    GroupResolution, GroupResolutionStatus, GroupSnooze, GroupSubscription,
-    GroupStatus, Release, UserOption, UserOptionValue
+    GroupResolution, GroupSnooze, GroupSubscription, GroupStatus, UserOption, UserOptionValue
 )
 from sentry.testutils import TestCase
 
@@ -45,20 +46,32 @@ class GroupSerializerTest(TestCase):
 
         result = serialize(group, user)
         assert result['status'] == 'ignored'
-        assert result['statusDetails'] == {
-            'ignoreCount': snooze.count,
-            'ignoreUntil': snooze.until,
-            'ignoreUserCount': snooze.user_count,
-            'ignoreUserWindow': snooze.user_window,
-            'ignoreWindow': snooze.window,
-        }
+        assert result['statusDetails']['ignoreCount'] == snooze.count
+        assert result['statusDetails']['ignoreWindow'] == snooze.window
+        assert result['statusDetails']['ignoreUserCount'] == snooze.user_count
+        assert result['statusDetails']['ignoreUserWindow'] == snooze.user_window
+        assert result['statusDetails']['ignoreUntil'] == snooze.until
+        assert result['statusDetails']['actor'] is None
+
+    def test_is_ignored_with_valid_snooze_and_actor(self):
+        now = timezone.now().replace(microsecond=0)
+
+        user = self.create_user()
+        group = self.create_group(
+            status=GroupStatus.IGNORED,
+        )
+        GroupSnooze.objects.create(
+            group=group,
+            until=now + timedelta(minutes=1),
+            actor_id=user.id,
+        )
+
+        result = serialize(group, user)
+        assert result['status'] == 'ignored'
+        assert result['statusDetails']['actor']['id'] == six.text_type(user.id)
 
     def test_resolved_in_next_release(self):
-        release = Release.objects.create(
-            organization_id=self.project.organization_id,
-            version='a',
-        )
-        release.add_project(self.project)
+        release = self.create_release(project=self.project, version='a')
         user = self.create_user()
         group = self.create_group(
             status=GroupStatus.RESOLVED,
@@ -66,18 +79,15 @@ class GroupSerializerTest(TestCase):
         GroupResolution.objects.create(
             group=group,
             release=release,
+            type=GroupResolution.Type.in_next_release,
         )
 
         result = serialize(group, user)
         assert result['status'] == 'resolved'
-        assert result['statusDetails'] == {'inRelease': 'a'}
+        assert result['statusDetails'] == {'inNextRelease': True, 'actor': None}
 
-    def test_resolved_in_next_release_expired_resolution(self):
-        release = Release.objects.create(
-            organization_id=self.project.organization_id,
-            version='a',
-        )
-        release.add_project(self.project)
+    def test_resolved_in_release(self):
+        release = self.create_release(project=self.project, version='a')
         user = self.create_user()
         group = self.create_group(
             status=GroupStatus.RESOLVED,
@@ -85,12 +95,29 @@ class GroupSerializerTest(TestCase):
         GroupResolution.objects.create(
             group=group,
             release=release,
-            status=GroupResolutionStatus.RESOLVED,
+            type=GroupResolution.Type.in_release,
         )
 
         result = serialize(group, user)
         assert result['status'] == 'resolved'
-        assert result['statusDetails'] == {}
+        assert result['statusDetails'] == {'inRelease': 'a', 'actor': None}
+
+    def test_resolved_with_actor(self):
+        release = self.create_release(project=self.project, version='a')
+        user = self.create_user()
+        group = self.create_group(
+            status=GroupStatus.RESOLVED,
+        )
+        GroupResolution.objects.create(
+            group=group,
+            release=release,
+            type=GroupResolution.Type.in_release,
+            actor_id=user.id,
+        )
+
+        result = serialize(group, user)
+        assert result['status'] == 'resolved'
+        assert result['statusDetails']['actor']['id'] == six.text_type(user.id)
 
     @patch('sentry.models.Group.is_over_resolve_age')
     def test_auto_resolved(self, mock_is_over_resolve_age):
@@ -138,11 +165,10 @@ class GroupSerializerTest(TestCase):
         group = self.create_group()
 
         combinations = (
-            ((None, None), True),
-            ((UserOptionValue.all_conversations, None), True),
+            ((None, None), True), ((UserOptionValue.all_conversations, None), True),
             ((UserOptionValue.all_conversations, UserOptionValue.all_conversations), True),
-            ((UserOptionValue.all_conversations, UserOptionValue.participating_only), False),
-            ((UserOptionValue.participating_only, None), False),
+            ((UserOptionValue.all_conversations, UserOptionValue.participating_only),
+             False), ((UserOptionValue.participating_only, None), False),
             ((UserOptionValue.participating_only, UserOptionValue.all_conversations), True),
             ((UserOptionValue.participating_only, UserOptionValue.participating_only), False),
         )
@@ -167,7 +193,10 @@ class GroupSerializerTest(TestCase):
             default_value, project_value = options
             maybe_set_value(None, default_value)
             maybe_set_value(group.project, project_value)
-            assert serialize(group, user)['isSubscribed'] is expected_result, 'expected {!r} for {!r}'.format(expected_result, options)
+            assert serialize(group, user
+                             )['isSubscribed'] is expected_result, 'expected {!r} for {!r}'.format(
+                                 expected_result, options
+                             )  # noqa
 
     def test_no_user_unsubscribed(self):
         group = self.create_group()

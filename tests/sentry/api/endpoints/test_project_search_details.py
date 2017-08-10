@@ -19,11 +19,14 @@ class ProjectSearchDetailsTest(APITestCase):
             query='',
         )
 
-        url = reverse('sentry-api-0-project-search-details', kwargs={
-            'organization_slug': project.organization.slug,
-            'project_slug': project.slug,
-            'search_id': search.id,
-        })
+        url = reverse(
+            'sentry-api-0-project-search-details',
+            kwargs={
+                'organization_slug': project.organization.slug,
+                'project_slug': project.slug,
+                'search_id': search.id,
+            }
+        )
         response = self.client.get(url)
 
         assert response.status_code == 200, response.content
@@ -41,11 +44,14 @@ class UpdateProjectSearchDetailsTest(APITestCase):
             query='',
         )
 
-        url = reverse('sentry-api-0-project-search-details', kwargs={
-            'organization_slug': project.organization.slug,
-            'project_slug': project.slug,
-            'search_id': search.id,
-        })
+        url = reverse(
+            'sentry-api-0-project-search-details',
+            kwargs={
+                'organization_slug': project.organization.slug,
+                'project_slug': project.slug,
+                'search_id': search.id,
+            }
+        )
         response = self.client.put(url, {'name': 'bar'})
 
         assert response.status_code == 200, response.content
@@ -71,11 +77,14 @@ class UpdateProjectSearchDetailsTest(APITestCase):
             is_default=True,
         )
 
-        url = reverse('sentry-api-0-project-search-details', kwargs={
-            'organization_slug': project.organization.slug,
-            'project_slug': project.slug,
-            'search_id': search.id,
-        })
+        url = reverse(
+            'sentry-api-0-project-search-details',
+            kwargs={
+                'organization_slug': project.organization.slug,
+                'project_slug': project.slug,
+                'search_id': search.id,
+            }
+        )
         response = self.client.put(url, {'isDefault': True})
 
         assert response.status_code == 200, response.content
@@ -109,11 +118,14 @@ class UpdateProjectSearchDetailsTest(APITestCase):
             user=self.user,
         )
 
-        url = reverse('sentry-api-0-project-search-details', kwargs={
-            'organization_slug': project.organization.slug,
-            'project_slug': project.slug,
-            'search_id': search2.id,
-        })
+        url = reverse(
+            'sentry-api-0-project-search-details',
+            kwargs={
+                'organization_slug': project.organization.slug,
+                'project_slug': project.slug,
+                'search_id': search2.id,
+            }
+        )
         response = self.client.put(url, {'isUserDefault': True})
 
         assert response.status_code == 200, response.content
@@ -152,17 +164,23 @@ class UpdateProjectSearchDetailsTest(APITestCase):
 
         self.login_as(user=member)
 
-        url = reverse('sentry-api-0-project-search-details', kwargs={
-            'organization_slug': project.organization.slug,
-            'project_slug': project.slug,
-            'search_id': search.id,
-        })
-        response = self.client.put(url, {
-            # these params get ignored barring isUserDefault
-            'name': 'baz',
-            'isUserDefault': True,
-            'isDefault': True,
-        })
+        url = reverse(
+            'sentry-api-0-project-search-details',
+            kwargs={
+                'organization_slug': project.organization.slug,
+                'project_slug': project.slug,
+                'search_id': search.id,
+            }
+        )
+        response = self.client.put(
+            url,
+            {
+                # these params get ignored barring isUserDefault
+                'name': 'baz',
+                'isUserDefault': True,
+                'isDefault': True,
+            }
+        )
 
         assert response.status_code == 200, response.content
         assert response.data['id'] == six.text_type(search.id)
@@ -189,11 +207,14 @@ class DeleteProjectSearchTest(APITestCase):
             query='',
         )
 
-        url = reverse('sentry-api-0-project-search-details', kwargs={
-            'organization_slug': project.organization.slug,
-            'project_slug': project.slug,
-            'search_id': search.id,
-        })
+        url = reverse(
+            'sentry-api-0-project-search-details',
+            kwargs={
+                'organization_slug': project.organization.slug,
+                'project_slug': project.slug,
+                'search_id': search.id,
+            }
+        )
         response = self.client.delete(url)
 
         assert response.status_code == 204, response.content

@@ -6,6 +6,7 @@ import CustomIgnoreDurationModal from '../../components/customIgnoreDurationModa
 import CustomResolutionModal from '../../components/customResolutionModal';
 import DropdownLink from '../../components/dropdownLink';
 import Duration from '../../components/duration';
+import GroupActions from '../../actions/groupActions';
 import GroupState from '../../mixins/groupState';
 import IndicatorStore from '../../stores/indicatorStore';
 import IssuePluginActions from '../../components/group/issuePluginActions';
@@ -13,11 +14,13 @@ import MenuItem from '../../components/menuItem';
 import LinkWithConfirmation from '../../components/linkWithConfirmation';
 import TooltipMixin from '../../mixins/tooltip';
 import {t} from '../../locale';
+import {getShortVersion} from '../../utils';
 
 const ResolveActions = React.createClass({
   propTypes: {
     group: React.PropTypes.object.isRequired,
     hasRelease: React.PropTypes.bool.isRequired,
+    latestRelease: React.PropTypes.object,
     onUpdate: React.PropTypes.func.isRequired,
     orgId: React.PropTypes.string.isRequired,
     projectId: React.PropTypes.string.isRequired
@@ -40,7 +43,7 @@ const ResolveActions = React.createClass({
   },
 
   render() {
-    let {group, hasRelease, onUpdate} = this.props;
+    let {group, hasRelease, latestRelease, onUpdate} = this.props;
     let resolveClassName = 'group-resolve btn btn-default btn-sm';
     if (group.status === 'resolved') {
       resolveClassName += ' active';
@@ -99,7 +102,7 @@ const ResolveActions = React.createClass({
             caret={true}
             className={resolveClassName}
             title="">
-            <MenuItem header={true}>Resolved In</MenuItem>
+            <MenuItem header={true}>{t('Resolved In')}</MenuItem>
             <MenuItem noAnchor={true}>
               <a
                 onClick={() => {
@@ -124,14 +127,16 @@ const ResolveActions = React.createClass({
                     onUpdate({
                       status: 'resolved',
                       statusDetails: {
-                        inRelease: 'latest'
+                        inRelease: latestRelease ? latestRelease.version : 'latest'
                       }
                     })
                   );
                 }}
                 className={actionClassName}
                 title={actionTitle}>
-                {t('The current release')}
+                {latestRelease
+                  ? t('The current release (%s)', getShortVersion(latestRelease.version))
+                  : t('The current release')}
               </a>
               <a
                 onClick={() => hasRelease && this.setState({modal: true})}
@@ -353,6 +358,47 @@ const IgnoreActions = React.createClass({
   }
 });
 
+const DeleteActions = React.createClass({
+  propTypes: {
+    project: React.PropTypes.object.isRequired,
+    onDelete: React.PropTypes.func.isRequired,
+    onDiscard: React.PropTypes.func.isRequired
+  },
+
+  render() {
+    let features = new Set(this.props.project.features);
+    return (
+      <div className="btn-group">
+        <LinkWithConfirmation
+          className="group-remove btn btn-default btn-sm"
+          title={t('Delete')}
+          message={t(
+            'Deleting this event is permanent. Are you sure you wish to continue?'
+          )}
+          onConfirm={this.props.onDelete}>
+          <span className="icon-trash" />
+        </LinkWithConfirmation>
+        {features.has('custom-filters') &&
+          <DropdownLink caret={true} className="group-delete btn btn-default btn-sm">
+            <li>
+              <LinkWithConfirmation
+                title={t('Discard')}
+                message={t(
+                  'Discarding this event will result in the deletion ' +
+                    'of most data associated with this issue and future ' +
+                    'events being discarded before reaching your stream. ' +
+                    'Are you sure you wish to continue?'
+                )}
+                onConfirm={this.props.onDiscard}>
+                <span>{t('Delete and discard future events')}</span>
+              </LinkWithConfirmation>
+            </li>
+          </DropdownLink>}
+      </div>
+    );
+  }
+});
+
 export default React.createClass({
   mixins: [
     ApiMixin,
@@ -414,6 +460,31 @@ export default React.createClass({
     this.onUpdate({isBookmarked: !this.getGroup().isBookmarked});
   },
 
+  onDiscard() {
+    let group = this.getGroup();
+    let project = this.getProject();
+    let org = this.getOrganization();
+    let id = this.api.uniqueId();
+    let loadingIndicator = IndicatorStore.add(t('Discarding event..'));
+
+    GroupActions.discard(id, group.id);
+
+    this.api.request(`/issues/${group.id}/`, {
+      method: 'PUT',
+      data: {discard: true},
+      success: response => {
+        GroupActions.discardSuccess(id, group.id, response);
+        browserHistory.pushState(null, `/${org.slug}/${project.slug}/`);
+      },
+      error: error => {
+        GroupActions.discardError(id, group.id, error);
+      },
+      complete: () => {
+        IndicatorStore.remove(loadingIndicator);
+      }
+    });
+  },
+
   render() {
     let group = this.getGroup();
     let project = this.getProject();
@@ -434,6 +505,7 @@ export default React.createClass({
         <ResolveActions
           group={group}
           hasRelease={hasRelease}
+          latestRelease={project.latestRelease}
           onUpdate={this.onUpdate}
           orgId={org.slug}
           projectId={project.slug}
@@ -448,17 +520,11 @@ export default React.createClass({
             <span className="icon-star-solid" />
           </a>
         </div>
-        <div className="btn-group">
-          <LinkWithConfirmation
-            className="group-remove btn btn-default btn-sm"
-            title={t('Delete')}
-            message={t(
-              'Deleting this event is permanent. Are you sure you wish to continue?'
-            )}
-            onConfirm={this.onDelete}>
-            <span className="icon-trash" />
-          </LinkWithConfirmation>
-        </div>
+        <DeleteActions
+          project={project}
+          onDelete={this.onDelete}
+          onDiscard={this.onDiscard}
+        />
         {group.pluginActions.length > 1
           ? <div className="btn-group more">
               <DropdownLink className="btn btn-default btn-sm" title={t('More')}>

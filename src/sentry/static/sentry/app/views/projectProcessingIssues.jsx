@@ -20,7 +20,9 @@ const MESSAGES = {
   native_missing_system_dsym: t('A system debug symbol file was missing.'),
   native_missing_symbol: t('Unable to resolve a symbol.'),
   native_simulator_frame: t('Encountered an unprocessable simulator frame.'),
-  native_unknown_image: t('An binary image is referenced that is unknown.')
+  native_unknown_image: t('An binary image is referenced that is unknown.'),
+  proguard_missing_mapping: t('A proguard mapping file was missing.'),
+  proguard_missing_lineno: t('A proguard mapping file does not contain line info.'),
 };
 
 const HELP_LINKS = {

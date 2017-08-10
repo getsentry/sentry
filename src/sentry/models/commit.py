@@ -5,12 +5,13 @@ import re
 from django.db import models
 from django.utils import timezone
 
-from sentry.db.models import (
-    BoundedPositiveIntegerField, FlexibleForeignKey, Model, sane_repr
-)
+from sentry.db.models import (BoundedPositiveIntegerField, FlexibleForeignKey, Model, sane_repr)
 from sentry.utils.cache import memoize
 
-_fixes_re = re.compile(r'\b(?:Fix|Fixes|Fixed|Close|Closes|Closed|Resolve|Resolves|Resolved)\s+([A-Za-z0-9_\-\s\,]+)\b', re.I)
+_fixes_re = re.compile(
+    r'\b(?:Fix|Fixes|Fixed|Close|Closes|Closed|Resolve|Resolves|Resolved)\s+([A-Za-z0-9_\-\s\,]+)\b',
+    re.I
+)
 _short_id_re = re.compile(r'\b([A-Z0-9_-]+-[A-Z0-9]+)\b', re.I)
 
 
@@ -29,12 +30,8 @@ class Commit(Model):
     class Meta:
         app_label = 'sentry'
         db_table = 'sentry_commit'
-        index_together = (
-            ('repository_id', 'date_added'),
-        )
-        unique_together = (
-            ('repository_id', 'key'),
-        )
+        index_together = (('repository_id', 'date_added'), )
+        unique_together = (('repository_id', 'key'), )
 
     __repr__ = sane_repr('organization_id', 'repository_id', 'key')
 

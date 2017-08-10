@@ -1,13 +1,11 @@
 from __future__ import absolute_import, print_function
 
-
 from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.db import transaction
 from django.views.decorators.cache import never_cache
 from django.contrib import messages
 
-from sentry import features
 from sentry.auth.helper import AuthHelper
 from sentry.constants import WARN_SESSION_EXPIRED
 from sentry.models import AuthProvider, Organization, OrganizationStatus
@@ -22,7 +20,8 @@ class AuthOrganizationLoginView(BaseView):
     def get_login_form(self, request):
         op = request.POST.get('op')
         return AuthenticationForm(
-            request, request.POST if op == 'login' else None,
+            request,
+            request.POST if op == 'login' else None,
         )
 
     def get_register_form(self, request):
@@ -32,7 +31,7 @@ class AuthOrganizationLoginView(BaseView):
         )
 
     def handle_basic_auth(self, request, organization):
-        can_register = features.has('auth:register') or request.session.get('can_register')
+        can_register = auth.has_user_registration() or request.session.get('can_register')
 
         op = request.POST.get('op')
         login_form = self.get_login_form(request)
@@ -49,10 +48,7 @@ class AuthOrganizationLoginView(BaseView):
                 'role': 'member',
             }
 
-            organization.member_set.create(
-                user=user,
-                **defaults
-            )
+            organization.member_set.create(user=user, **defaults)
 
             # HACK: grab whatever the first backend is and assume it works
             user.backend = settings.AUTHENTICATION_BACKENDS[0]
@@ -65,8 +61,7 @@ class AuthOrganizationLoginView(BaseView):
             return self.redirect(auth.get_login_redirect(request))
 
         elif login_form.is_valid():
-            auth.login(request, login_form.get_user(),
-                       organization_id=organization.id)
+            auth.login(request, login_form.get_user(), organization_id=organization.id)
 
             return self.redirect(auth.get_login_redirect(request))
 
@@ -107,9 +102,7 @@ class AuthOrganizationLoginView(BaseView):
     @transaction.atomic
     def handle(self, request, organization_slug):
         try:
-            organization = Organization.objects.get(
-                slug=organization_slug
-            )
+            organization = Organization.objects.get(slug=organization_slug)
         except Organization.DoesNotExist:
             return self.redirect(reverse('sentry-login'))
 
@@ -119,9 +112,7 @@ class AuthOrganizationLoginView(BaseView):
         request.session.set_test_cookie()
 
         try:
-            auth_provider = AuthProvider.objects.get(
-                organization=organization
-            )
+            auth_provider = AuthProvider.objects.get(organization=organization)
         except AuthProvider.DoesNotExist:
             auth_provider = None
 

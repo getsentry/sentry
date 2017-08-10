@@ -137,7 +137,7 @@ const GroupReleaseChart = React.createClass({
         <StackedBarChart
           points={points}
           height={40}
-          className="sparkline"
+          label="events"
           markers={markers}
           barClasses={['release', 'environment', 'inactive']}
           tooltip={this.renderTooltip}

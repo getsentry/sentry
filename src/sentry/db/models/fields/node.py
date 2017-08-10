@@ -24,7 +24,7 @@ from sentry.utils.strings import decompress, compress
 
 from .gzippeddict import GzippedDictField
 
-__all__ = ('NodeField',)
+__all__ = ('NodeField', )
 
 logger = logging.getLogger('sentry')
 
@@ -66,9 +66,8 @@ class NodeData(collections.MutableMapping):
     def __repr__(self):
         cls_name = type(self).__name__
         if self._node_data:
-            return '<%s: id=%s data=%r>' % (
-                cls_name, self.id, repr(self._node_data))
-        return '<%s: id=%s>' % (cls_name, self.id,)
+            return '<%s: id=%s data=%r>' % (cls_name, self.id, repr(self._node_data))
+        return '<%s: id=%s>' % (cls_name, self.id, )
 
     def get_ref(self, instance):
         ref_func = self.field.ref_func
@@ -98,9 +97,9 @@ class NodeData(collections.MutableMapping):
         self.ref = data.pop('_ref', ref)
         self.ref_version = data.pop('_ref_version', None)
         if self.ref_version == self.field.ref_version and ref is not None and self.ref != ref:
-            raise NodeIntegrityFailure('Node reference for %s is invalid: %s != %s' % (
-                self.id, ref, self.ref,
-            ))
+            raise NodeIntegrityFailure(
+                'Node reference for %s is invalid: %s != %s' % (self.id, ref, self.ref, )
+            )
         self._node_data = data
 
     def bind_ref(self, instance):
@@ -115,6 +114,7 @@ class NodeField(GzippedDictField):
     Similar to the gzippedictfield except that it stores a reference
     to an external node.
     """
+
     def __init__(self, *args, **kwargs):
         self.ref_func = kwargs.pop('ref_func', None)
         self.ref_version = kwargs.pop('ref_version', None)
@@ -122,10 +122,7 @@ class NodeField(GzippedDictField):
 
     def contribute_to_class(self, cls, name):
         super(NodeField, self).contribute_to_class(cls, name)
-        post_delete.connect(
-            self.on_delete,
-            sender=self.model,
-            weak=False)
+        post_delete.connect(self.on_delete, sender=self.model, weak=False)
 
     def on_delete(self, instance, **kwargs):
         value = getattr(instance, self.name)
@@ -165,9 +162,8 @@ class NodeField(GzippedDictField):
         else:
             nodestore.set(value.id, value.data)
 
-        return compress(pickle.dumps({
-            'node_id': value.id
-        }))
+        return compress(pickle.dumps({'node_id': value.id}))
+
 
 if hasattr(models, 'SubfieldBase'):
     NodeField = six.add_metaclass(models.SubfieldBase)(NodeField)

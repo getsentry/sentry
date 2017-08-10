@@ -1,4 +1,5 @@
 import React from 'react';
+import {Link} from 'react-router';
 
 import PropTypes from '../../proptypes';
 
@@ -43,7 +44,7 @@ const AllTeamsList = React.createClass({
       "You don't have any teams for this organization yet. Get started by [link:creating your first team].",
       {
         root: <p />,
-        link: <a href={`/organizations/${organization.slug}/teams/new/`} />
+        link: <Link to={`/organizations/${organization.slug}/teams/new/`} />
       }
     );
   }

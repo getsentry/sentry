@@ -14,14 +14,18 @@ from .base import BaseBuildCommand
 
 class BuildAssetsCommand(BaseBuildCommand):
     user_options = BaseBuildCommand.user_options + [
-        ('asset-json-path=', None,
-         'Relative path for JSON manifest. Defaults to {dist_name}/assets.json'),
-        ('inplace', 'i',
-         "ignore build-lib and put compiled javascript files into the source " +
-         "directory alongside your pure Python modules"),
-        ('force', 'f',
-         "Force rebuilding of static content. Defaults to rebuilding on version "
-         "change detection."),
+        (
+            'asset-json-path=', None,
+            'Relative path for JSON manifest. Defaults to {dist_name}/assets.json'
+        ),
+        (
+            'inplace', 'i', "ignore build-lib and put compiled javascript files into the source " +
+            "directory alongside your pure Python modules"
+        ),
+        (
+            'force', 'f', "Force rebuilding of static content. Defaults to rebuilding on version "
+            "change detection."
+        ),
     ]
 
     description = 'build static media assets'
@@ -38,9 +42,7 @@ class BuildAssetsCommand(BaseBuildCommand):
         ]
 
     def get_manifest_additions(self):
-        return (
-            'src/' + self.asset_json_path,
-        )
+        return ('src/' + self.asset_json_path, )
 
     def _get_package_version(self):
         """
@@ -55,8 +57,7 @@ class BuildAssetsCommand(BaseBuildCommand):
             version = None
             build = None
         else:
-            log.info('pulled version information from \'sentry\' module'.format(
-                     sentry.__file__))
+            log.info('pulled version information from \'sentry\' module'.format(sentry.__file__))
             version = self.distribution.get_version()
             build = sentry.__build__
         finally:
@@ -101,11 +102,13 @@ class BuildAssetsCommand(BaseBuildCommand):
 
     def _build(self):
         version_info = self._get_package_version()
-        log.info('building assets for {} v{} (build {})'.format(
-            self.distribution.get_name(),
-            version_info['version'] or 'UNKNOWN',
-            version_info['build'] or 'UNKNOWN',
-        ))
+        log.info(
+            'building assets for {} v{} (build {})'.format(
+                self.distribution.get_name(),
+                version_info['version'] or 'UNKNOWN',
+                version_info['build'] or 'UNKNOWN',
+            )
+        )
         if not version_info['version'] or not version_info['build']:
             log.fatal('Could not determine sentry version or build')
             sys.exit(1)
@@ -114,8 +117,10 @@ class BuildAssetsCommand(BaseBuildCommand):
             self._build_static()
         except Exception:
             traceback.print_exc()
-            log.fatal('unable to build Sentry\'s static assets!\n'
-                      'Hint: You might be running an invalid version of NPM.')
+            log.fatal(
+                'unable to build Sentry\'s static assets!\n'
+                'Hint: You might be running an invalid version of NPM.'
+            )
             sys.exit(1)
 
         log.info('writing version manifest')
@@ -131,8 +136,7 @@ class BuildAssetsCommand(BaseBuildCommand):
         env = dict(os.environ)
         env['SENTRY_STATIC_DIST_PATH'] = self.sentry_static_dist_path
         env['NODE_ENV'] = 'production'
-        self._run_command(['node_modules/.bin/webpack', '--bail'],
-                          env=env)
+        self._run_command(['node_modules/.bin/webpack', '--bail'], env=env)
 
     def _write_version_file(self, version_info):
         manifest = {
@@ -146,9 +150,7 @@ class BuildAssetsCommand(BaseBuildCommand):
 
     @property
     def sentry_static_dist_path(self):
-        return os.path.abspath(os.path.join(
-            self.build_lib, 'sentry/static/sentry/dist'))
+        return os.path.abspath(os.path.join(self.build_lib, 'sentry/static/sentry/dist'))
 
     def get_asset_json_path(self):
-        return os.path.abspath(os.path.join(
-            self.build_lib, self.asset_json_path))
+        return os.path.abspath(os.path.join(self.build_lib, self.asset_json_path))

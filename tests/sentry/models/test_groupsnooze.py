@@ -129,13 +129,15 @@ class GroupSnoozeTest(TestCase):
         snooze = GroupSnooze.objects.create(
             group=self.group,
             count=100,
-            window=60,
+            window=24 * 60,
         )
-        tsdb.incr(
-            tsdb.models.group,
-            self.group.id,
-            count=100,
-        )
+        for n in range(6):
+            tsdb.incr(
+                tsdb.models.group,
+                self.group.id,
+                count=20,
+                timestamp=mock_now() - timedelta(minutes=n),
+            )
         assert not snooze.is_valid(test_rates=True)
 
     @mock.patch('django.utils.timezone.now')

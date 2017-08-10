@@ -15,8 +15,8 @@ from django.db.models import Q
 from sentry.api.paginator import DateTimePaginator, Paginator
 from sentry.search.base import ANY, EMPTY, SearchBackend
 from sentry.search.django.constants import (
-    MSSQL_ENGINES, MSSQL_SORT_CLAUSES, MYSQL_SORT_CLAUSES, ORACLE_SORT_CLAUSES,
-    SORT_CLAUSES, SQLITE_SORT_CLAUSES
+    MSSQL_ENGINES, MSSQL_SORT_CLAUSES, MYSQL_SORT_CLAUSES, ORACLE_SORT_CLAUSES, SORT_CLAUSES,
+    SQLITE_SORT_CLAUSES
 )
 from sentry.utils.db import get_db_engine
 
@@ -64,21 +64,42 @@ class DjangoSearchBackend(SearchBackend):
                 return None
         return matches
 
-    def _build_queryset(self, project, query=None, status=None, tags=None,
-                        bookmarked_by=None, assigned_to=None, first_release=None,
-                        sort_by='date', unassigned=None, subscribed_by=None,
-                        age_from=None, age_from_inclusive=True,
-                        age_to=None, age_to_inclusive=True,
-                        last_seen_from=None, last_seen_from_inclusive=True,
-                        last_seen_to=None, last_seen_to_inclusive=True,
-                        date_from=None, date_from_inclusive=True,
-                        date_to=None, date_to_inclusive=True,
-                        active_at_from=None, active_at_from_inclusive=True,
-                        active_at_to=None, active_at_to_inclusive=True,
-                        times_seen=None,
-                        times_seen_lower=None, times_seen_lower_inclusive=True,
-                        times_seen_upper=None, times_seen_upper_inclusive=True,
-                        cursor=None, limit=None):
+    def _build_queryset(
+        self,
+        project,
+        query=None,
+        status=None,
+        tags=None,
+        bookmarked_by=None,
+        assigned_to=None,
+        first_release=None,
+        sort_by='date',
+        unassigned=None,
+        subscribed_by=None,
+        age_from=None,
+        age_from_inclusive=True,
+        age_to=None,
+        age_to_inclusive=True,
+        last_seen_from=None,
+        last_seen_from_inclusive=True,
+        last_seen_to=None,
+        last_seen_to_inclusive=True,
+        date_from=None,
+        date_from_inclusive=True,
+        date_to=None,
+        date_to_inclusive=True,
+        active_at_from=None,
+        active_at_from_inclusive=True,
+        active_at_to=None,
+        active_at_to_inclusive=True,
+        times_seen=None,
+        times_seen_lower=None,
+        times_seen_lower_inclusive=True,
+        times_seen_upper=None,
+        times_seen_upper_inclusive=True,
+        cursor=None,
+        limit=None
+    ):
         from sentry.models import Event, Group, GroupSubscription, GroupStatus
 
         engine = get_db_engine('default')
@@ -90,15 +111,11 @@ class DjangoSearchBackend(SearchBackend):
             # we should at least optimize this in Postgres so that it does
             # the query filter **after** the index filters, and restricts the
             # result set
-            queryset = queryset.filter(
-                Q(message__icontains=query) |
-                Q(culprit__icontains=query)
-            )
+            queryset = queryset.filter(Q(message__icontains=query) | Q(culprit__icontains=query))
 
         if status is None:
             status_in = (
-                GroupStatus.PENDING_DELETION,
-                GroupStatus.DELETION_IN_PROGRESS,
+                GroupStatus.PENDING_DELETION, GroupStatus.DELETION_IN_PROGRESS,
                 GroupStatus.PENDING_MERGE,
             )
             queryset = queryset.exclude(status__in=status_in)
@@ -226,10 +243,7 @@ class DjangoSearchBackend(SearchBackend):
                 event_queryset = event_queryset.filter(message__icontains=query)
 
             # limit to the first 1000 results
-            group_ids = event_queryset.distinct().values_list(
-                'group_id',
-                flat=True
-            )[:1000]
+            group_ids = event_queryset.distinct().values_list('group_id', flat=True)[:1000]
 
             # if Event is not on the primary database remove Django's
             # implicit subquery by coercing to a list
@@ -259,7 +273,7 @@ class DjangoSearchBackend(SearchBackend):
         )
         return queryset
 
-    def query(self, project, **kwargs):
+    def query(self, project, count_hits=False, **kwargs):
         queryset = self._build_queryset(project=project, **kwargs)
 
         sort_by = kwargs.get('sort_by', 'date')
@@ -284,6 +298,5 @@ class DjangoSearchBackend(SearchBackend):
             sort_clause = '-sort_value'
 
         queryset = queryset.order_by(sort_clause)
-
         paginator = paginator_cls(queryset, sort_clause)
-        return paginator.get_result(limit, cursor)
+        return paginator.get_result(limit, cursor, count_hits=count_hits)

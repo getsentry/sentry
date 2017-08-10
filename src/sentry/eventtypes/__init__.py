@@ -5,7 +5,6 @@ from .csp import CspEvent
 from .error import ErrorEvent
 from .manager import EventTypeManager
 
-
 # types are ordered by priority, default should always be last
 default_manager = EventTypeManager()
 default_manager.register(CspEvent)
