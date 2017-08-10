@@ -120,7 +120,7 @@ local function add_timeline_to_schedule(configuration, timeline_id, timestamp, i
     -- min(current schedule + increment value, maximum delay after last
     -- processing time).
     local last_processed = tonumber(redis.call('GET', configuration:get_timeline_last_processed_timestamp_key(timeline_id)))
-    local update = nil;
+    local update = nil
     if last_processed == nil then
         -- If the last processed timestamp is missing for some reason (possibly
         -- evicted), be conservative and allow the timeline to be scheduled
