@@ -190,17 +190,18 @@ local function digest_timeline(configuration, timeline_id)
 
     local digest_key = configuration:get_timeline_digest_key(timeline_id)
     local timeline_key = configuration:get_timeline_key(timeline_id)
-    if redis.call('EXISTS', digest_key) == 1 then
-        -- If the digest set already exists (possibly because we already tried
-        -- to send it and failed for some reason), merge any new data into it.
-        -- TODO: It might make sense to trim here to avoid returning capacity *
-        -- 2 if timeline was full when it was previously digested.
-        redis.call('ZUNIONSTORE', digest_key, 2, timeline_key, digest_key, 'AGGREGATE', 'MAX')
-        redis.call('DEL', timeline_key)
-        redis.call('EXPIRE', digest_key, configuration.ttl)
-    elseif redis.call('EXISTS', timeline_key) == 1 then
-        -- Otherwise, we can just move the timeline contents to the digest key.
-        redis.call('RENAME', timeline_key, digest_key)
+    if redis.call('EXISTS', timeline_key) == 1 then
+        if redis.call('EXISTS', digest_key) == 1 then
+            -- If the digest set already exists (possibly because we already tried
+            -- to send it and failed for some reason), merge any new data into it.
+            -- TODO: It might make sense to trim here to avoid returning capacity *
+            -- 2 if timeline was full when it was previously digested.
+            redis.call('ZUNIONSTORE', digest_key, 2, timeline_key, digest_key, 'AGGREGATE', 'MAX')
+            redis.call('DEL', timeline_key)
+        else
+            -- Otherwise, we can just move the timeline contents to the digest key.
+            redis.call('RENAME', timeline_key, digest_key)
+        end
         redis.call('EXPIRE', digest_key, configuration.ttl)
     end
 
