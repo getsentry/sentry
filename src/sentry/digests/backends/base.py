@@ -28,7 +28,7 @@ class Backend(Service):
     """
     A digest backend coordinates the addition of records to timelines, as well
     as scheduling their digestion (processing.) This allows for summarizations
-    of activity that was recorded as having occurrred during a window of time.
+    of activity that was recorded as having occurred during a window of time.
 
     A timeline is the central abstraction for digests. A timeline is a
     reverse-chronological set of records. Timelines are identified by a unique
@@ -182,7 +182,7 @@ class Backend(Service):
 
         This is designed to handle the situation where task execution is
         managed by a separate system such as RabbitMQ & Celery from scheduling.
-        A digest task may not be able to be succesfully retried after a failure
+        A digest task may not be able to be successfully retried after a failure
         (e.g. if the process executing the task can no longer communicate with
         the messaging broker) which can result in a task remaining in the ready
         state without an execution plan.
