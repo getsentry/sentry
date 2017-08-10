@@ -229,8 +229,9 @@ local function close_digest(configuration, timeline_id, delay_minimum, ...)
         end
     end
 
-    -- We always add to the ready set if we digested any number of records or
-    -- there are contents waiting to be delivered.
+    -- If this digest didn't contain any data (no record IDs) and there isn't
+    -- any data left in the timeline or digest sets, we can safely remove this
+    -- timeline reference from all schedule sets.
     if #record_ids > 0 or redis.call('ZCARD', timeline_key) > 0 or redis.call('ZCARD', digest_key) > 0 then
         redis.call('SETEX', configuration:get_timeline_last_processed_timestamp_key(timeline_id), configuration.ttl, configuration.timestamp)
         redis.call('ZREM', configuration:get_schedule_ready_key(), timeline_id)
