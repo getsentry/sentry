@@ -1,0 +1,35 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Button renders 1`] = `
+<button
+  className="button button-primary button-lg"
+  onClick={[Function]}
+  role="button"
+>
+  Button
+</button>
+`;
+
+exports[`Button renders normal link 1`] = `
+<a
+  className="button button-default"
+  href="/some/relative/url"
+  onClick={[Function]}
+  role="button"
+>
+  Normal Link
+</a>
+`;
+
+exports[`Button renders react-router link 1`] = `
+<Link
+  className="button button-default"
+  onClick={[Function]}
+  onlyActiveOnIndex={false}
+  role="button"
+  style={Object {}}
+  to="/some/route"
+>
+  Router Link
+</Link>
+`;
