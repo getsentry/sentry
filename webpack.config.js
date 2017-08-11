@@ -1,5 +1,5 @@
 /*eslint-env node*/
-/*eslint no-var:0*/
+/*eslint no-var:0 import/no-nodejs-modules:0 */
 var path = require('path'),
   fs = require('fs'),
   webpack = require('webpack'),
@@ -16,8 +16,9 @@ if (process.env.SENTRY_STATIC_DIST_PATH) {
 
 var IS_PRODUCTION = process.env.NODE_ENV === 'production';
 var IS_TEST = process.env.NODE_ENV === 'TEST' || process.env.TEST_SUITE;
-
-var REFRESH = process.env.WEBPACK_LIVERELOAD === '1';
+var WEBPACK_DEV_PORT = process.env.WEBPACK_DEV_PORT;
+var SENTRY_DEVSERVER_PORT = process.env.SENTRY_DEVSERVER_PORT;
+var USE_HOT_MODULE_RELOAD = !IS_PRODUCTION && WEBPACK_DEV_PORT && SENTRY_DEVSERVER_PORT;
 
 var babelConfig = JSON.parse(fs.readFileSync(path.join(__dirname, '.babelrc')));
 babelConfig.cacheDirectory = true;
@@ -42,9 +43,11 @@ if (process.env.SENTRY_EXTRACT_TRANSLATIONS === '1') {
 }
 
 var appEntry = {
-  app: 'app',
+  app: ['app'],
   vendor: [
     'babel-polyfill',
+    // Yes this is included in prod builds, but has no effect on render and build size in prod
+    'react-hot-loader/patch',
     'bootstrap/js/dropdown',
     'bootstrap/js/tab',
     'bootstrap/js/tooltip',
@@ -236,7 +239,7 @@ var legacyCssConfig = {
   },
   plugins: [new ExtractTextPlugin('[name].css')],
   resolve: {
-    extensions: ['.less'],
+    extensions: ['.less', '.js'],
     modules: [path.join(__dirname, staticPrefix), 'node_modules']
   },
   module: {
@@ -256,6 +259,32 @@ var legacyCssConfig = {
     ]
   }
 };
+
+// Dev only! Hot module reloading
+if (USE_HOT_MODULE_RELOAD) {
+  // Otherwise with hot reloads we get module ID number
+  appConfig.plugins.push(new webpack.NamedModulesPlugin());
+
+  // HMR
+  appConfig.plugins.push(new webpack.HotModuleReplacementPlugin());
+  appConfig.devServer = {
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Credentials': 'true'
+    },
+    // Required for getsentry
+    disableHostCheck: true,
+    contentBase: './src/sentry/static/sentry',
+    hot: true,
+    // If below is false, will reload on errors
+    hotOnly: true,
+    port: WEBPACK_DEV_PORT
+  };
+
+  // Required, without this we get this on updates:
+  // [HMR] Update failed: SyntaxError: Unexpected token < in JSON at position 12
+  appConfig.output.publicPath = 'http://localhost:' + WEBPACK_DEV_PORT + '/';
+}
 
 var minificationPlugins = [
   // This compression-webpack-plugin generates pre-compressed files
@@ -280,12 +309,6 @@ var minificationPlugins = [
         appConfig.devtool.indexOf('source-map') >= 0)
   })
 ];
-
-if (!IS_PRODUCTION && REFRESH) {
-  appConfig.plugins.push(
-    new (require('webpack-livereload-plugin'))({appendScriptTag: true})
-  );
-}
 
 if (IS_PRODUCTION) {
   // NOTE: can't do plugins.push(Array) because webpack/webpack#2217
