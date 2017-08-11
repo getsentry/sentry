@@ -16,14 +16,14 @@ class OrganizationMemberListTest(APITestCase):
 
         self.login_as(user=self.user_1)
 
-    def test_simple(self):
-        url = reverse(
+        self.url = reverse(
             'sentry-api-0-organization-member-index', kwargs={
                 'organization_slug': self.org.slug,
             }
         )
 
-        response = self.client.get(url)
+    def test_simple(self):
+        response = self.client.get(self.url)
 
         assert response.status_code == 200
         assert len(response.data) == 2
@@ -31,13 +31,15 @@ class OrganizationMemberListTest(APITestCase):
         assert response.data[1]['email'] == self.user_1.email
 
     def test_email_query(self):
-        url = reverse(
-            'sentry-api-0-organization-member-index', kwargs={
-                'organization_slug': self.org.slug,
-            }
-        )
+        response = self.client.get(self.url + "?query=email:foo@localhost")
 
-        response = self.client.get(url + "?query=email:foo@localhost")
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert response.data[0]['email'] == self.user_1.email
+
+    def test_user_email_email_query(self):
+        self.create_useremail(self.user_1, 'baz@localhost')
+        response = self.client.get(self.url + "?query=email:baz@localhost")
 
         assert response.status_code == 200
         assert len(response.data) == 1
