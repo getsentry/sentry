@@ -9,11 +9,11 @@ function table.extend(t, items, length)
     end
 end
 
-function table.slice(t, ...)
-    local start, stop = ...
+function table.slice(t, start, stop)
     if stop == nil then
         stop = #t
     end
+
     local result = {}
     for i = start, stop do
         result[i - start + 1] = t[i]
