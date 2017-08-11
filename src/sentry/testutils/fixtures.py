@@ -370,6 +370,17 @@ class Fixtures(object):
 
         return user
 
+    def create_useremail(self, user, email, **kwargs):
+        if not email:
+            email = uuid4().hex + '@example.com'
+
+        kwargs.setdefault('is_verified', True)
+
+        useremail = UserEmail(user=user, email=email, **kwargs)
+        useremail.save()
+
+        return useremail
+
     def create_event(self, event_id=None, **kwargs):
         if event_id is None:
             event_id = uuid4().hex
