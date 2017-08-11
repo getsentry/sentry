@@ -1,5 +1,6 @@
 Version 8.20 (Unreleased)
 -------------------------
+- Add raw data toggle for Additional Data
 
 Schema Changes
 ~~~~~~~~~~~~~~
