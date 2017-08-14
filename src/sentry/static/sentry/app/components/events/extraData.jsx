@@ -29,22 +29,6 @@ const EventExtraData = React.createClass({
     });
   },
 
-  renderRaw() {
-    let extraRawData = JSON.stringify(this.props.event.context);
-    // extraRawData = [extraRawData];
-    return (
-      <table className="table key-value">
-        <tbody>
-          <tr>
-            <td className="value">
-              <ContextData data={extraRawData} />
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    );
-  },
-
   render() {
     let extraDataArray = objectToArray(this.props.event.context);
     return (
