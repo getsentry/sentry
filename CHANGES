@@ -1,5 +1,6 @@
 Version 8.20 (Unreleased)
 -------------------------
+- Make BitBucket repositories enabled by default
 
 Schema Changes
 ~~~~~~~~~~~~~~
