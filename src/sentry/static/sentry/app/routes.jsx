@@ -43,7 +43,9 @@ import OrganizationSettings from './views/organizationSettings';
 import OrganizationStats from './views/organizationStats';
 import OrganizationTeams from './views/organizationTeams';
 import OnboardingWizard from './views/onboarding/index';
-import OnboardingProject from './views/onboarding/project/index';
+import CreateProject from './views/onboarding/createProject';
+// import OnboardingProject from './views/onboarding/project/index';
+
 import OnboardingConfigure from './views/onboarding/configure/index';
 
 import AllTeamsList from './views/organizationTeams/allTeamsList';
@@ -148,7 +150,7 @@ function routes() {
 
       <Route path="/onboarding/:orgId/" component={errorHandler(OrganizationContext)}>
         <Route path="" component={errorHandler(OnboardingWizard)}>
-          <IndexRoute component={errorHandler(OnboardingProject)} />
+          <IndexRoute component={errorHandler(CreateProject)} />
           <Route
             path=":projectId/configure/(:platform)"
             component={errorHandler(OnboardingConfigure)}

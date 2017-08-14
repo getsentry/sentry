@@ -34,7 +34,7 @@ const Project = React.createClass({
   render() {
     return (
       <div className="onboarding-info">
-        <h2>{t('Choose a language or framework')}</h2>
+        <h4>{t('Choose a language or framework' + ':')}</h4>
         <PlatformPicker {...this.props} showOther={true} />
         <div className="new-project-name client-platform">
           <h4>{t('Give your project a name') + ':'}</h4>
