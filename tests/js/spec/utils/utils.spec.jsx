@@ -1,4 +1,9 @@
-import {valueIsEqual, extractMultilineFields, parseGitHubRepo} from 'app/utils';
+import {
+  valueIsEqual,
+  extractMultilineFields,
+  parseGitHubRepo,
+  parseBitBucketRepo
+} from 'app/utils';
 
 describe('utils.valueIsEqual', function() {
   it('should return true when objects are deeply equal', function() {
@@ -152,6 +157,35 @@ describe('utils.parseGitHubRepo', function() {
     );
     it('should work for nothing passed', function() {
       expect(parseGitHubRepo().toEqual());
+    });
+  });
+});
+
+describe('utils.parseBitBucketRepo', function() {
+  it('should work for simple BitBucket url', function() {
+    expect(parseBitBucketRepo('bitbucket.org/example/example')).toEqual(
+      'example/example'
+    );
+  });
+  it('should work for full BitBucket url', function() {
+    expect(parseBitBucketRepo('https://bitbucket.org/example/example')).toEqual(
+      'example/example'
+    );
+  });
+  it('should work for trailing slash', function() {
+    expect(parseBitBucketRepo('https://bitbucket.org/example/example/')).toEqual(
+      'example/example'
+    );
+  });
+  it('should work for repo only', function() {
+    expect(parseBitBucketRepo('example/example')).toEqual('example/example');
+  });
+  it('should parse repo from url with extra info', function() {
+    expect(parseBitBucketRepo('bitbucket.org/example/example/commits/adsadsa')).toEqual(
+      'example/example'
+    );
+    it('should work for nothing passed', function() {
+      expect(parseBitBucketRepo().toEqual());
     });
   });
 });

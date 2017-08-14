@@ -222,7 +222,9 @@ export function formatBytes(bytes) {
 }
 
 export function getShortVersion(version) {
-  let match = version.match(/^(?:[a-zA-Z][a-zA-Z0-9-]+)(?:\.[a-zA-Z][a-zA-Z0-9-]+)+-(.*)$/);
+  let match = version.match(
+    /^(?:[a-zA-Z][a-zA-Z0-9-]+)(?:\.[a-zA-Z][a-zA-Z0-9-]+)+-(.*)$/
+  );
   if (match) {
     version = match[1];
   }
@@ -230,6 +232,18 @@ export function getShortVersion(version) {
     version = version.substr(0, 7);
   }
   return version;
+}
+
+export function parseBitBucketRepo(repo) {
+  if (repo) {
+    let re = /bitbucket\.org\/([^\/]+\/[^\/]+)/i;
+    let match = repo.match(re);
+    let parsedRepo;
+    match ? (parsedRepo = match[1]) : (parsedRepo = repo);
+    return parsedRepo;
+  } else {
+    return repo;
+  }
 }
 
 export function parseGitHubRepo(repo) {
