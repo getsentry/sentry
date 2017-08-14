@@ -9,13 +9,15 @@ const KeyValueList = React.createClass({
     data: React.PropTypes.any.isRequired,
     isContextData: React.PropTypes.bool,
     isSorted: React.PropTypes.bool,
-    onClick: React.PropTypes.func
+    onClick: React.PropTypes.func,
+    raw: React.PropTypes.bool
   },
 
   getDefaultProps() {
     return {
       isContextData: false,
-      isSorted: true
+      isSorted: true,
+      raw: false
     };
   },
 
@@ -31,7 +33,7 @@ const KeyValueList = React.createClass({
     }
 
     data = this.props.isSorted ? _.sortBy(data, [(key, value) => key]) : data;
-
+    let raw = this.props.raw;
     const props = this.props.onClick ? {onClick: this.props.onClick} : {};
     return (
       <table className="table key-value" {...props}>
@@ -40,16 +42,24 @@ const KeyValueList = React.createClass({
             if (this.props.isContextData) {
               return [
                 <tr key={key}>
-                  <td className="key">{key}</td>
-                  <td className="value"><ContextData data={value} /></td>
+                  <td className="key">
+                    {key}
+                  </td>
+                  <td className="value">
+                    <ContextData data={!raw ? value : JSON.stringify(value)} />
+                  </td>
                 </tr>
               ];
             } else {
               return [
                 <tr key={key}>
-                  <td className="key">{key}</td>
+                  <td className="key">
+                    {key}
+                  </td>
                   <td className="value">
-                    <pre>{deviceNameMapper('' + value || ' ')}</pre>
+                    <pre>
+                      {deviceNameMapper('' + value || ' ')}
+                    </pre>
                   </td>
                 </tr>
               ];

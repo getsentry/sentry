@@ -25,7 +25,7 @@ const EventExtraData = React.createClass({
 
   toggleRaw(shouldBeRaw) {
     this.setState({
-      raw: !this.state.raw
+      raw: shouldBeRaw
     });
   },
 
@@ -45,32 +45,18 @@ const EventExtraData = React.createClass({
     );
   },
 
-  renderPretty() {
-    let extraDataArray = objectToArray(this.props.event.context);
-    return <KeyValueList data={extraDataArray} isContextData={true} />;
-  },
-
   render() {
+    let extraDataArray = objectToArray(this.props.event.context);
     return (
-      <div>
+      <div className="extra-data">
         <EventDataSection
           group={this.props.group}
           event={this.props.event}
           type="extra"
-          title={t('Additional Data')}>
-          <div className="btn-group">
-            <a
-              className={(!this.state.raw ? 'active' : '') + ' btn btn-default btn-sm'}
-              onClick={this.toggleRaw}>
-              {t('Formatted')}
-            </a>
-            <a
-              className={(this.state.raw ? 'active' : '') + ' btn btn-default btn-sm'}
-              onClick={this.toggleRaw}>
-              {t('Raw')}
-            </a>
-          </div>
-          {this.state.raw ? this.renderRaw() : this.renderPretty()}
+          title={t('Additional Data')}
+          toggleRaw={this.toggleRaw}
+          raw={this.state.raw}>
+          <KeyValueList data={extraDataArray} isContextData={true} raw={this.state.raw} />
         </EventDataSection>
       </div>
     );
