@@ -1,17 +1,22 @@
-function table.extend(t, items)
-    for _, item in ipairs(items) do
-        table.insert(t, item)
+function table.extend(t, items, length)
+    -- The table length can be provided if you know the length of the table
+    -- beforehand to avoid a potentially expensive length operator call.
+    if length == nil then
+        length = #t
+    end
+    for i, item in ipairs(items) do
+        t[length + i] = item
     end
 end
 
-function table.slice(t, ...)
-    local start, stop = ...
+function table.slice(t, start, stop)
     if stop == nil then
         stop = #t
     end
+
     local result = {}
     for i = start, stop do
-        table.insert(result, t[i])
+        result[i - start + 1] = t[i]
     end
     return result
 end
@@ -39,11 +44,13 @@ local function zrange_move_slice(source, destination, threshold, callback)
         return
     end
 
+    local i = 0
     local zadd_args = {}
     local zrem_args = {}
     for key, score in zrange_scored_iterator(keys) do
-        table.insert(zrem_args, key)
-        table.extend(zadd_args, {score, key})
+        zrem_args[i + 1] = key
+        table.extend(zadd_args, {score, key}, i * 2)
+        i = i + 1
         callback(key, score)
     end
 
@@ -81,12 +88,14 @@ end
 
 local function schedule(configuration, deadline)
     local response = {}
+    local i = 0
     zrange_move_slice(
         configuration:get_schedule_waiting_key(),
         configuration:get_schedule_ready_key(),
         deadline,
         function (timeline_id, timestamp)
-            table.insert(response, {timeline_id, timestamp})
+            i = i + 1
+            response[i] = {timeline_id, timestamp}
         end
     )
     return response
@@ -207,12 +216,14 @@ local function digest_timeline(configuration, timeline_id)
 
     local results = {}
     local records = redis.call('ZREVRANGE', digest_key, 0, -1, 'WITHSCORES')
+    local i = 0
     for key, score in zrange_scored_iterator(records) do
-        table.insert(results, {
+        i = i + 1
+        results[i] = {
             key,
             redis.call('GET', configuration:get_timeline_record_key(timeline_id, key)),
             score
-        })
+        }
     end
 
     return results
