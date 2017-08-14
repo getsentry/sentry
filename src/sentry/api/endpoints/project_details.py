@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import six
 import logging
 from uuid import uuid4
 
@@ -180,6 +181,16 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             return Response(serializer.errors, status=400)
 
         result = serializer.object
+
+        if not has_project_write:
+            for key in six.iterkeys(ProjectAdminSerializer.base_fields):
+                if request.DATA.get(key) and not result.get(key):
+                    return Response(
+                        {
+                            'detail': ['You do not have permission to perform this action.']
+                        },
+                        status=403
+                    )
 
         changed = False
         if result.get('slug'):
