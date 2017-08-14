@@ -23,7 +23,6 @@ const DebugMetaInterface = React.createClass({
     if (name == 'dyld_sim') return null; // this is only for simulator builds
 
     let version = null;
-
     if (
       Number.isInteger(img.major_version) &&
       Number.isInteger(img.minor_version) &&
@@ -31,7 +30,7 @@ const DebugMetaInterface = React.createClass({
     ) {
       if (img.major_version == 0 && img.minor_version == 0 && img.revision_version == 0) {
         // we show the version
-        version = (evt.release && evt.release.version) || 'unknown';
+        version = (evt.release && evt.release.shortVersion) || 'unknown';
       } else
         version = `${img.major_version}.${img.minor_version}.${img.revision_version}`;
     } else version = img.uuid;
