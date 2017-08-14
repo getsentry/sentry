@@ -1,29 +1,23 @@
 from __future__ import absolute_import, print_function
 
-from django.db import models, transaction
+from django.db import models, IntegrityError
 from django.utils import timezone
 from jsonfield import JSONField
 
-from sentry.db.models import (BaseManager, Model, sane_repr)
+from sentry.db.models import (Model, sane_repr)
 
 
-class ScheduledJobManager(BaseManager):
-    def schedule_job(self, payload, job):
-        name, date_scheduled = job
-        created_job = self.create(name=name, payload=payload, date_scheduled=date_scheduled)
-        return created_job
-
-    def bulk_schedule_jobs(self, payload, jobs):
-        all_jobs = []
-
-        for job in jobs:
-            name, date_scheduled = job
-
-            all_jobs.append(ScheduledJob(name=name, payload=payload, date_scheduled=date_scheduled))
-
-        with transaction.atomic():
-            self.bulk_create(all_jobs)
-            return True
+def schedule_jobs(jobs):
+    try:
+        ScheduledJob.objects.bulk_create(
+            [
+                ScheduledJob(payload=payload, name=name, date_scheduled=date_scheduled)
+                for ((payload, name, date_scheduled)) in jobs
+            ]
+        )
+        return True
+    except IntegrityError:
+        return False
 
 
 class ScheduledJob(Model):
@@ -33,8 +27,6 @@ class ScheduledJob(Model):
     payload = JSONField()
     date_added = models.DateTimeField(default=timezone.now)
     date_scheduled = models.DateTimeField()
-
-    objects = ScheduledJobManager()
 
     class Meta:
         app_label = 'sentry'
