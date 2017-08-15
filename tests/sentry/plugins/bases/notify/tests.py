@@ -10,3 +10,11 @@ class NotifyPlugin(TestCase):
         n.slug = 'slack'
         url = 'https://sentry.io/'
         assert n.add_notification_referrer_param(url) == url + '?referrer=' + n.slug
+
+        url = 'https://sentry.io/?referrer=notslack'
+        assert n.add_notification_referrer_param(url) == 'https://sentry.io/?referrer=slack'
+
+        url = 'https://sentry.io/?utm_source=google'
+        assert n.add_notification_referrer_param(
+            url
+        ) == 'https://sentry.io/?referrer=slack&utm_source=google'
