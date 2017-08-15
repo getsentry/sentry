@@ -145,6 +145,9 @@ def is_url(filename):
 
 
 def is_unhashable_function(function):
+    # TODO(dcramer): lambda$ is Java specific
+    # TODO(dcramer): [Anonymous is PHP specific (used for things like SQL
+    # queries and JSON data)
     return function.startswith(('lambda$', '[Anonymous'))
 
 
@@ -512,19 +515,12 @@ class Frame(Interface):
         return is_url(self.abs_path)
 
     def is_caused_by(self):
-        # XXX(dcramer): dont compute hash using frames containing the 'Caused by'
-        # text as it contains an exception value which may may contain dynamic
-        # values (see raven-java#125)
         return is_caused_by(self.filename)
 
     def is_unhashable_module(self):
-        # TODO(dcramer): this is Java specific
         return is_unhashable_module(self.module)
 
     def is_unhashable_function(self):
-        # TODO(dcramer): lambda$ is Java specific
-        # TODO(dcramer): [Anonymous is PHP specific (used for things like SQL
-        # queries and JSON data)
         return is_unhashable_function(self.function)
 
     def to_string(self, event):
