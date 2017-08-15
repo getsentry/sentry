@@ -863,9 +863,7 @@ class EventManagerTest(TransactionTestCase):
             fingerprint=['a' * 32],
         )
         manager = EventManager(event_data)
-
         key = get_raw_cache_key(1, event_data['event_id'])
-
         hash_cache.set(key, event_data)
 
         with self.tasks():
