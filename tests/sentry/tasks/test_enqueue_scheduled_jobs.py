@@ -2,7 +2,10 @@ from __future__ import absolute_import, print_function
 
 from datetime import timedelta
 from django.utils import timezone
+from django.core.exceptions import ValidationError
 from mock import patch
+
+import pytest
 
 from sentry.models import ScheduledJob
 from sentry.models.scheduledjob import schedule_jobs
@@ -55,16 +58,18 @@ class EnqueueScheduledJobsTest(TestCase):
                 }, 'sentry.tasks.enqueue_scheduled_jobs', timezone.now() + timedelta(days=1)
             )
         ]
-        sj = schedule_jobs(job)
-        assert sj is True
+        schedule_jobs(job)
+        assert ScheduledJob.objects.filter(
+            name='sentry.tasks.enqueue_scheduled_jobs',
+        ).exists()
 
     def test_schedule_job_order(self):
-        job = [
-            (
-                'sentry.tasks.enqueue_scheduled_jobs', {
-                    'foo': 'baz'
-                }, timezone.now() + timedelta(days=1)
-            )
-        ]
-        sj = schedule_jobs(job)
-        assert sj is False
+        with pytest.raises(ValidationError, message="Check order of input"):
+            job = [
+                (
+                    'sentry.tasks.enqueue_scheduled_jobs', {
+                        'foo': 'baz'
+                    }, timezone.now() + timedelta(days=1)
+                )
+            ]
+            schedule_jobs(job)

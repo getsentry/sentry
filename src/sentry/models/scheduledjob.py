@@ -1,7 +1,6 @@
 from __future__ import absolute_import, print_function
 
 from django.db import models
-from django.core.exceptions import ValidationError
 from django.utils import timezone
 from jsonfield import JSONField
 
@@ -9,16 +8,13 @@ from sentry.db.models import (Model, sane_repr)
 
 
 def schedule_jobs(jobs):
-    try:
-        ScheduledJob.objects.bulk_create(
-            [
-                ScheduledJob(payload=payload, name=name, date_scheduled=date_scheduled)
-                for ((payload, name, date_scheduled)) in jobs
-            ]
-        )
-        return True
-    except ValidationError:
-        return False
+    ScheduledJob.objects.bulk_create(
+        [
+            ScheduledJob(payload=payload, name=name, date_scheduled=date_scheduled)
+            for ((payload, name, date_scheduled)) in jobs
+        ]
+    )
+    return True
 
 
 class ScheduledJob(Model):
