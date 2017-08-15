@@ -55,22 +55,6 @@ const Configure = React.createClass({
     }
   },
 
-  checkPollEventData(data) {
-    let {isFirstTimePolling} = this.state;
-
-    if (isFirstTimePolling) {
-      // record sentEvent value of first poll to avoid redirecting when someone has already sent an event
-      this.setState({
-        isFirstTimePolling: false,
-        hasSentRealEvent: this.sentRealEvent(data)
-      });
-    } else {
-      this.setState({
-        hasSentRealEvent: this.sentRealEvent(data)
-      });
-    }
-  },
-
   redirectUrl() {
     let {orgId, projectId} = this.props.params;
 
@@ -84,7 +68,10 @@ const Configure = React.createClass({
     this.api.request(`/projects/${orgId}/${projectId}/events/`, {
       method: 'GET',
       success: data => {
-        this.checkPollEventData(data);
+        this.setState({
+          isFirstTimePolling: false,
+          hasSentRealEvent: this.sentRealEvent(data)
+        });
       },
 
       error: err => {
