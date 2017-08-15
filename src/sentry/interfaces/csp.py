@@ -138,8 +138,19 @@ class Csp(Interface):
 
     def get_tags(self):
         return (
-            ('effective-directive', self.effective_directive), ('blocked-uri', self.blocked_uri),
+            ('effective-directive', self.effective_directive),
+            ('blocked-uri', self.sanitized_blocked_uri()),
         )
+
+    def sanitized_blocked_uri(self):
+        # HACK: This is 100% to work around Stripe urls
+        # that will casually put extremely sensitive information
+        # in querystrings. The real solution is to apply
+        # data scrubbing to all tags generically
+        uri = self.blocked_uri
+        if uri[:23] == 'https://api.stripe.com/':
+            return urlunsplit(urlsplit(uri)[:3] + (None, None))
+        return uri
 
     @memoize
     def _normalized_blocked_uri(self):

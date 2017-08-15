@@ -386,3 +386,17 @@ class SensitiveDataFilterTest(TestCase):
         assert proc.sanitize('is_authenticated', 'foobar') == FILTER_MASK
         assert proc.sanitize('is_authenticated', 'null') == 'null'
         assert proc.sanitize('is_authenticated', True) is True
+
+    def test_csp_blocked_uri(self):
+        data = {
+            'sentry.interfaces.Csp': {
+                'blocked_uri': 'https://example.com/?foo=4571234567890111&bar=baz',
+            }
+        }
+
+        proc = SensitiveDataFilter()
+        proc.apply(data)
+
+        assert 'sentry.interfaces.Csp' in data
+        csp = data['sentry.interfaces.Csp']
+        assert csp['blocked_uri'] == 'https://example.com/?foo=[Filtered]&bar=baz'

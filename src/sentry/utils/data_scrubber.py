@@ -9,6 +9,7 @@ from __future__ import absolute_import
 
 import re
 import six
+from six.moves.urllib.parse import urlsplit, urlunsplit
 
 from sentry.constants import DEFAULT_SCRUBBED_FIELDS, FILTER_MASK, NOT_SCRUBBED_VALUES
 
@@ -91,6 +92,9 @@ class SensitiveDataFilter(object):
         if 'sentry.interfaces.User' in data:
             self.filter_user(data['sentry.interfaces.User'])
 
+        if 'sentry.interfaces.Csp' in data:
+            self.filter_csp(data['sentry.interfaces.Csp'])
+
         if 'extra' in data:
             data['extra'] = varmap(self.sanitize, data['extra'])
 
@@ -169,3 +173,25 @@ class SensitiveDataFilter(object):
             val = data.get(key)
             if val:
                 data[key] = varmap(self.sanitize, val)
+
+    def filter_csp(self, data):
+        for key in 'blocked_uri', 'document_uri':
+            if key not in data:
+                continue
+            value = data[key]
+            if not isinstance(value, six.string_types):
+                continue
+            if '?' not in value:
+                continue
+            if '=' not in value:
+                continue
+            scheme, netloc, path, query, fragment = urlsplit(value)
+            querybits = []
+            for bit in query.split('&'):
+                chunk = bit.split('=')
+                if len(chunk) == 2:
+                    querybits.append((chunk[0], self.sanitize(*chunk)))
+                else:
+                    querybits.append(chunk)
+            query = '&'.join('='.join(k) for k in querybits)
+            data[key] = urlunsplit((scheme, netloc, path, query, fragment))
