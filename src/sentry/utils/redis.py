@@ -7,6 +7,7 @@ import six
 from threading import Lock
 
 import rb
+import rediscluster
 from pkg_resources import resource_string
 from redis.client import Script
 from redis.connection import ConnectionPool
@@ -53,27 +54,60 @@ def make_rb_cluster(*args, **kwargs):
     return _make_rb_cluster(*args, **kwargs)
 
 
+class _RBCluster(object):
+    def supports(self, config):
+        return not config.get('is_redis_cluster', False)
+
+    def factory(self, **config):
+        return _make_rb_cluster(**config)
+
+    def __str__(self):
+        return 'Redis Blaster Cluster'
+
+
+class _RedisCluster(object):
+    def supports(self, config):
+        return config.get('is_redis_cluster', False)
+
+    def factory(self, **config):
+        nodes = map(lambda n: n[1], config.get('hosts').items())
+        return rediscluster.StrictRedisCluster(startup_nodes=nodes, decode_responses=True)
+
+    def __str__(self):
+        return 'Redis Cluster'
+
+
 class ClusterManager(object):
-    def __init__(self, options_manager):
+    def __init__(self, options_manager, cluster_type=_RBCluster):
         self.__clusters = {}
         self.__options_manager = options_manager
+        self.__cluster_type = cluster_type()
 
     def get(self, key):
         cluster = self.__clusters.get(key)
 
-        if cluster is None:
-            # TODO: This would probably be safer with a lock, but I'm not sure
-            # that it's necessary.
-            configuration = self.__options_manager.get('redis.clusters').get(key)
-            if configuration is None:
-                raise KeyError('Invalid cluster name: {}'.format(key))
+        if cluster:
+            return cluster
 
-            cluster = self.__clusters[key] = _make_rb_cluster(**configuration)
+        # TODO: This would probably be safer with a lock, but I'm not sure
+        # that it's necessary.
+        configuration = self.__options_manager.get('redis.clusters').get(key)
+        if configuration is None:
+            raise KeyError('Invalid cluster name: {}'.format(key))
+
+        if not self.__cluster_type.supports(configuration):
+            raise KeyError('Invalid cluster type, expected: {}'.format(self.__cluster_type))
+
+        cluster = self.__clusters[key] = self.__cluster_type.factory(**configuration)
 
         return cluster
 
 
+# TODO(epurkhiser): When migration of all rb cluster to true redis clusters has
+# completed, remove the rb ``clusters`` module variable and rename
+# redis_clusters to clusters.
 clusters = ClusterManager(options.default_manager)
+redis_clusters = ClusterManager(options.default_manager, _RedisCluster)
 
 
 def get_cluster_from_options(setting, options, cluster_manager=clusters):

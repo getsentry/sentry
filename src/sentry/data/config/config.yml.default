@@ -38,6 +38,9 @@ system.secret-key: '%(secret_key)s'
 # The ``redis.clusters`` setting is used, unsurprisingly, to configure Redis
 # clusters. These clusters can be then referred to by name when configuring
 # backends such as the cache, digests, or TSDB backend.
+#
+# Clusters that are inteded to be connected to as true Redis Clusters should be
+# marked with the ``is_redis_cluster`` flag.
 redis.clusters:
   default:
     hosts:
