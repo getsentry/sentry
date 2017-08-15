@@ -1,3 +1,4 @@
+brew 'libxmlsec1'
 brew 'nodejs'
 brew 'openssl'
 brew 'postgresql'

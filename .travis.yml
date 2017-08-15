@@ -18,6 +18,7 @@ addons:
       - ubuntu-toolchain-r-test
     packages:
       - g++-4.8
+      - libxmlsec1-dev
 env:
   global:
     - NODE_ENV=production

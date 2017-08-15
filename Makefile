@@ -31,10 +31,10 @@ install-python-base:
 	# order matters here, base package must install first
 	pip install -e .
 	pip install ujson
-	pip install "file://`pwd`#egg=sentry[dev]"
+	pip install "file://`pwd`#egg=sentry[dev,saml]"
 
 install-python-tests:
-	pip install "file://`pwd`#egg=sentry[dev,tests,dsym]"
+	pip install "file://`pwd`#egg=sentry[dev,tests,saml]"
 
 dev-postgres: install-python
 

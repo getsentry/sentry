@@ -144,6 +144,10 @@ install_requires = [
     'python-u2flib-server>=4.0.1,<4.1.0',
 ]
 
+saml_requires = [
+    'python3-saml>=1.2.6,<1.3',
+]
+
 
 class SentrySDistCommand(SDistCommand):
     # If we are not a light build we want to also execute build_assets as
@@ -192,6 +196,7 @@ setup(
     extras_require={
         'dev': dev_requires,
         'postgres': [],
+        'saml': saml_requires,
         'tests': tests_require,
     },
     cmdclass=cmdclass,
