@@ -2,6 +2,9 @@ from __future__ import absolute_import
 
 import pytest
 
+from datetime import timedelta
+from django.utils import timezone
+
 from sentry.api.paginator import (Paginator, DateTimePaginator, OffsetPaginator)
 from sentry.models import User
 from sentry.testutils import TestCase
@@ -119,3 +122,27 @@ class DateTimePaginatorTest(TestCase):
         assert result3[0] == res1
         assert result3.next
         assert not result3.prev
+
+    @pytest.mark.xfail
+    def test_polling_behavior(self):
+        date_joined = timezone.now()
+
+        res1 = self.create_user('foo@example.com', date_joined=date_joined)
+        res2 = self.create_user('bar@example.com', date_joined=date_joined)
+
+        queryset = User.objects.all()
+
+        paginator = DateTimePaginator(queryset, '-date_joined')
+        result1 = paginator.get_result(limit=10, cursor=None)
+        assert len(result1) == 2, result1
+        assert result1[1] == res2
+        assert result1[0] == res1
+
+        res3 = self.create_user('baz@example.com', date_joined=date_joined + timedelta(seconds=1))
+
+        result2 = paginator.get_result(limit=10, cursor=result1.prev)
+        assert len(result2) == 1, result2
+        assert result2[0] == res3
+
+        result3 = paginator.get_result(limit=10, cursor=result1.next)
+        assert len(result3) == 0, result3
