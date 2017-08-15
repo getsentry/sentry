@@ -8,6 +8,12 @@ sentry.plugins.bases.notify
 from __future__ import absolute_import, print_function
 
 import logging
+from six.moves.urllib.parse import (
+    urlparse,
+    urlencode,
+    urlunparse,
+    parse_qs,
+)
 
 from django import forms
 
@@ -44,6 +50,7 @@ class BaseNotificationUserOptionsForm(forms.Form):
 
 
 class NotificationPlugin(Plugin):
+    slug = ''
     description = (
         'Notify project members when a new event is seen for the first time, or when an '
         'already resolved event has changed back to unresolved.'
@@ -161,6 +168,18 @@ class NotificationPlugin(Plugin):
 
     def get_notification_doc_html(self, **kwargs):
         return ""
+
+    def add_notification_referrer_param(self, url):
+        if self.slug:
+            parsed_url = urlparse(url)
+            query = parse_qs(parsed_url.query)
+            query['referrer'] = self.slug
+
+            url_list = list(parsed_url)
+            url_list[4] = urlencode(query, doseq=True)
+            return urlunparse(url_list)
+
+        return url
 
 
 # Backwards-compatibility
