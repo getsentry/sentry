@@ -170,13 +170,16 @@ class NotificationPlugin(Plugin):
         return ""
 
     def add_notification_referrer_param(self, url):
-        parsed_url = urlparse(url)
-        query = parse_qs(parsed_url.query)
-        query['referrer'] = self.slug
+        if self.slug:
+            parsed_url = urlparse(url)
+            query = parse_qs(parsed_url.query)
+            query['referrer'] = self.slug
 
-        url_list = list(parsed_url)
-        url_list[4] = urlencode(query, doseq=True)
-        return urlunparse(url_list)
+            url_list = list(parsed_url)
+            url_list[4] = urlencode(query, doseq=True)
+            return urlunparse(url_list)
+
+        return url
 
 
 # Backwards-compatibility
