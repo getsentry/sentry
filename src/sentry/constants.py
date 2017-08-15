@@ -149,7 +149,7 @@ CLIENT_RESERVED_ATTRS = (
 
 DEFAULT_SCRUBBED_FIELDS = (
     'password', 'secret', 'passwd', 'api_key', 'apikey', 'access_token', 'auth', 'credentials',
-    'mysql_pwd', 'stripeToken',
+    'mysql_pwd', 'stripeToken', 'card[number]',
 )
 
 NOT_SCRUBBED_VALUES = set([
