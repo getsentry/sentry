@@ -1,6 +1,7 @@
 from __future__ import absolute_import, print_function
 
-from django.db import models, IntegrityError
+from django.db import models
+from django.core.exceptions import ValidationError
 from django.utils import timezone
 from jsonfield import JSONField
 
@@ -16,7 +17,7 @@ def schedule_jobs(jobs):
             ]
         )
         return True
-    except IntegrityError:
+    except ValidationError:
         return False
 
 

@@ -5,6 +5,7 @@ from django.utils import timezone
 from mock import patch
 
 from sentry.models import ScheduledJob
+from sentry.models.scheduledjob import schedule_jobs
 from sentry.testutils import TestCase
 from sentry.tasks.scheduler import enqueue_scheduled_jobs
 
@@ -41,3 +42,29 @@ class EnqueueScheduledJobsTest(TestCase):
             'sentry.tasks.enqueue_scheduled_jobs',
             kwargs={'foo': 'bar'},
         )
+
+    def test_schedule_job(self):
+        job = [
+            (
+                {
+                    'foo': 'baz'
+                }, 'sentry.tasks.enqueue_scheduled_jobs', timezone.now() + timedelta(days=1)
+            ), (
+                {
+                    'aads': 'asasd'
+                }, 'sentry.tasks.enqueue_scheduled_jobs', timezone.now() + timedelta(days=1)
+            )
+        ]
+        sj = schedule_jobs(job)
+        assert sj is True
+
+    def test_schedule_job_order(self):
+        job = [
+            (
+                'sentry.tasks.enqueue_scheduled_jobs', {
+                    'foo': 'baz'
+                }, timezone.now() + timedelta(days=1)
+            )
+        ]
+        sj = schedule_jobs(job)
+        assert sj is False
