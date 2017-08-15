@@ -1,9 +1,4 @@
-import {
-  valueIsEqual,
-  extractMultilineFields,
-  parseGitHubRepo,
-  parseBitBucketRepo
-} from 'app/utils';
+import {valueIsEqual, extractMultilineFields, parseRepo} from 'app/utils';
 
 describe('utils.valueIsEqual', function() {
   it('should return true when objects are deeply equal', function() {
@@ -134,58 +129,36 @@ five`
   });
 });
 
-describe('utils.parseGitHubRepo', function() {
+describe('utils.parseRepo', function() {
   it('should work for simple github url', function() {
-    expect(parseGitHubRepo('github.com/example/example')).toEqual('example/example');
+    expect(parseRepo('github.com/example/example')).toEqual('example/example');
   });
   it('should work for full github url', function() {
-    expect(parseGitHubRepo('https://github.com/example/example')).toEqual(
-      'example/example'
-    );
+    expect(parseRepo('https://github.com/example/example')).toEqual('example/example');
   });
   it('should work for trailing slash', function() {
-    expect(parseGitHubRepo('https://github.com/example/example/')).toEqual(
-      'example/example'
-    );
+    expect(parseRepo('https://github.com/example/example/')).toEqual('example/example');
   });
-  it('should work for repo only', function() {
-    expect(parseGitHubRepo('example/example')).toEqual('example/example');
-  });
-  it('should parse repo from url with extra info', function() {
-    expect(parseGitHubRepo('github.com/example/example/commits/adsadsa')).toEqual(
-      'example/example'
-    );
-    it('should work for nothing passed', function() {
-      expect(parseGitHubRepo().toEqual());
-    });
-  });
-});
-
-describe('utils.parseBitBucketRepo', function() {
   it('should work for simple BitBucket url', function() {
-    expect(parseBitBucketRepo('bitbucket.org/example/example')).toEqual(
-      'example/example'
-    );
+    expect(parseRepo('bitbucket.org/example/example')).toEqual('example/example');
   });
   it('should work for full BitBucket url', function() {
-    expect(parseBitBucketRepo('https://bitbucket.org/example/example')).toEqual(
-      'example/example'
-    );
+    expect(parseRepo('https://bitbucket.org/example/example')).toEqual('example/example');
   });
   it('should work for trailing slash', function() {
-    expect(parseBitBucketRepo('https://bitbucket.org/example/example/')).toEqual(
+    expect(parseRepo('https://bitbucket.org/example/example/')).toEqual(
       'example/example'
     );
   });
   it('should work for repo only', function() {
-    expect(parseBitBucketRepo('example/example')).toEqual('example/example');
+    expect(parseRepo('example/example')).toEqual('example/example');
   });
   it('should parse repo from url with extra info', function() {
-    expect(parseBitBucketRepo('bitbucket.org/example/example/commits/adsadsa')).toEqual(
+    expect(parseRepo('github.com/example/example/commits/adsadsa')).toEqual(
       'example/example'
     );
     it('should work for nothing passed', function() {
-      expect(parseBitBucketRepo().toEqual());
+      expect(parseRepo().toEqual());
     });
   });
 });

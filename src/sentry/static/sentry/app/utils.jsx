@@ -234,27 +234,14 @@ export function getShortVersion(version) {
   return version;
 }
 
-export function parseBitBucketRepo(repo) {
-  if (repo) {
-    let re = /bitbucket\.org\/([^\/]+\/[^\/]+)/i;
-    let match = repo.match(re);
-    let parsedRepo;
-    match ? (parsedRepo = match[1]) : (parsedRepo = repo);
-    return parsedRepo;
-  } else {
+export function parseRepo(repo) {
+  if (!repo) {
     return repo;
-  }
-}
-
-export function parseGitHubRepo(repo) {
-  if (repo) {
-    let re = /github\.com\/([^\/]+\/[^\/]+)/i;
-    let match = repo.match(re);
-    let parsedRepo;
-    match ? (parsedRepo = match[1]) : (parsedRepo = repo);
-    return parsedRepo;
   } else {
-    return repo;
+    let re = /(?:github\.com|bitbucket\.org)\/([^\/]+\/[^\/]+)/i;
+    let match = repo.match(re);
+    let parsedRepo = match ? match[1] : repo;
+    return parsedRepo;
   }
 }
 

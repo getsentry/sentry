@@ -10,7 +10,7 @@ import MenuItem from '../components/menuItem';
 import OrganizationHomeContainer from '../components/organizations/homeContainer';
 import PluginComponentBase from '../components/bases/pluginComponentBase';
 import {t, tct} from '../locale';
-import {sortArray, parseGitHubRepo, parseBitBucketRepo} from '../utils';
+import {sortArray, parseRepo} from '../utils';
 
 const UNKNOWN_ERROR = {
   error_type: 'unknown'
@@ -51,14 +51,7 @@ class AddRepositoryLink extends PluginComponentBase {
 
   onSubmit() {
     // TODO(dcramer): set form saving state
-    let repoName;
-    if (this.props.provider.id === 'github') {
-      repoName = {name: parseGitHubRepo(this.state.formData.name)};
-    } else if (this.props.provider.id === 'bitbucket') {
-      repoName = {name: parseBitBucketRepo(this.state.formData.name)};
-    } else {
-      repoName = this.state.formData;
-    }
+    let repoName = {name: parseRepo(this.state.formData.name)};
 
     this.setState(
       {
