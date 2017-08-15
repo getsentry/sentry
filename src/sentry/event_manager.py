@@ -90,7 +90,7 @@ def is_invalid_stack(frames):
 
     frame = frames[0]
     abs_path = frame.get('abs_path', '')
-    return not frame['function'] and (abs_path.startswith('blob:') or is_url(abs_path))
+    return not frame.get('function') and (abs_path.startswith('blob:') or is_url(abs_path))
 
 
 def get_frame_hash(platform, frame):
@@ -98,7 +98,7 @@ def get_frame_hash(platform, frame):
     # Safari throws [native code] frames in for calls like ``forEach``
     # whereas Chrome ignores these. Let's remove it from the hashing algo
     # so that they're more likely to group together
-    if frame['filename'] == '[native code]':
+    if frame.get('filename') == '[native code]':
         return output
 
     if frame.get('module'):
@@ -169,7 +169,7 @@ def get_exception_hash(platform, exception):
 
     if not output:
         for value in exception['values']:
-            output.extend(value.get_hash(platform=platform))
+            output.extend([v for v in [value.get('type'), value.get('value')] if v])
 
     return output
 
@@ -197,7 +197,7 @@ def get_preprocess_hashes(data):
         # i think data should be validated at this point?
         output = [template['filename'], template['context_line']]
 
-    if not output:
+    if not output and data.get('message'):
         output = [data['message']]
 
     if fingerprint:
@@ -987,15 +987,16 @@ class EventManager(object):
             if h.group_tombstone_id is not None:
                 key = get_raw_cache_key(project.id, event.event_id)
                 original_data = hash_cache.get(key)
-                pre_process_hashes = get_preprocess_hashes(original_data)
+                if original_data:
+                    pre_process_hashes = get_preprocess_hashes(original_data)
 
-                if pre_process_hashes is not None:
-                    for ph in pre_process_hashes:
-                        PreProcessGroupHash.objects.create(
-                            project=project,
-                            hash=ph,
-                            group_tombstone_id=h.group_tombstone_id,
-                        )
+                    if pre_process_hashes is not None:
+                        for ph in pre_process_hashes:
+                            PreProcessGroupHash.objects.create(
+                                project=project,
+                                hash=ph,
+                                group_tombstone_id=h.group_tombstone_id,
+                            )
 
                 raise HashDiscarded('Matches group tombstone %s' % h.group_tombstone_id)
 

@@ -74,8 +74,9 @@ def _do_preprocess_event(cache_key, data, start_time, event_id, process_event):
     if should_process(data):
         # save another version of data to generate
         # preprocessing hash that won't be modified by pipeline
-        raw_cache_key = get_raw_cache_key(data['project'], data['event_id'])
-        hash_cache.set(raw_cache_key, data)
+        if data.get('event_id'):
+            raw_cache_key = get_raw_cache_key(data['project'], data['event_id'])
+            hash_cache.set(raw_cache_key, data)
         process_event.delay(cache_key=cache_key, start_time=start_time, event_id=event_id)
         return
 
