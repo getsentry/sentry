@@ -54,17 +54,24 @@ class EnqueueScheduledJobsTest(TestCase):
                 }, 'sentry.tasks.enqueue_scheduled_jobs', timezone.now() + timedelta(days=1)
             ), (
                 {
-                    'aads': 'asasd'
-                }, 'sentry.tasks.enqueue_scheduled_jobs', timezone.now() + timedelta(days=1)
+                    'foo': 'baz'
+                }, 'sentry.tasks.enqueue_scheduled_jobs_followup',
+                timezone.now() + timedelta(days=1)
             )
         ]
         schedule_jobs(job)
-        assert ScheduledJob.objects.filter(
-            name='sentry.tasks.enqueue_scheduled_jobs',
-        ).exists()
+        assert set(
+            ScheduledJob.objects.filter(
+                payload={'foo': 'baz'},
+            ).values_list('name', flat=True)
+        ) == set(
+            ['sentry.tasks.enqueue_scheduled_jobs', 'sentry.tasks.enqueue_scheduled_jobs_followup']
+        )
 
     def test_schedule_job_order(self):
-        with pytest.raises(ValidationError, message="Check order of input"):
+        with pytest.raises(
+            ValidationError, message="ValidationError raised. Check order of inputs"
+        ):
             job = [
                 (
                     'sentry.tasks.enqueue_scheduled_jobs', {
