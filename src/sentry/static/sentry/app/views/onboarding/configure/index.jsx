@@ -14,8 +14,8 @@ const Configure = React.createClass({
 
   getInitialState() {
     return {
-      isFirst: true,
-      hasSent: false
+      isFirstTimePolling: true,
+      hasSentRealEvent: false
     };
   },
 
@@ -32,8 +32,43 @@ const Configure = React.createClass({
     }, 2000);
   },
 
+  componentWillUpdate(nextProps, nextState) {
+    if (
+      !this.state.isFirstTimePolling &&
+      nextState.hasSentRealEvent == true &&
+      this.state.hasSentRealEvent == false
+    ) {
+      this.redirectUrl();
+    }
+  },
+
   componentWillUnmount() {
     clearInterval(this.timer);
+  },
+
+  sentRealEvent(data) {
+    if (data.length == 1) {
+      let firstError = data[0];
+      return !firstError.message.includes('This is an example');
+    } else {
+      return data.length > 1;
+    }
+  },
+
+  checkPollEventData(data) {
+    let {isFirstTimePolling} = this.state;
+
+    if (isFirstTimePolling) {
+      // record sentEvent value of first poll to avoid redirecting when someone has already sent an event
+      this.setState({
+        isFirstTimePolling: false,
+        hasSentRealEvent: this.sentRealEvent(data)
+      });
+    } else {
+      this.setState({
+        hasSentRealEvent: this.sentRealEvent(data)
+      });
+    }
   },
 
   redirectUrl() {
@@ -49,30 +84,7 @@ const Configure = React.createClass({
     this.api.request(`/projects/${orgId}/${projectId}/events/`, {
       method: 'GET',
       success: data => {
-        let {isFirst, hasSent} = this.state;
-
-        // this indicates that a real event has been sent to the project
-        let sentEvent = function() {
-          if (data.length == 1) {
-            let firstError = data[0];
-            return !firstError.message.includes('This is an example');
-          } else {
-            return data.length > 1;
-          }
-        };
-
-        if (isFirst) {
-          // record sentEvent value of first poll to avoid redirecting when someone has already sent an event
-          this.setState({
-            isFirst: false,
-            hasSent: sentEvent()
-          });
-        } else {
-          // if sentEvent changes from false to true then redirect
-          if (!hasSent && sentEvent()) {
-            this.redirectUrl();
-          }
-        }
+        this.checkPollEventData(data);
       },
 
       error: err => {
@@ -113,7 +125,7 @@ const Configure = React.createClass({
               />
             </ProjectDocsContext>
           </ProjectContext>
-          <Waiting skip={this.submit} hasEvent={this.state.hasSent} />
+          <Waiting skip={this.submit} hasEvent={this.state.hasSentRealEvent} />
         </div>
       </div>
     );
