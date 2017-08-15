@@ -1,12 +1,13 @@
 from __future__ import absolute_import
 
 import itertools
+import logging
 
 from django.conf import settings
 
 from sentry.interfaces.stacktrace import Frame
 from sentry.similarity.encoder import Encoder
-from sentry.similarity.index import MinHashIndex
+from sentry.similarity.index import MinHashIndex, NoopIndex
 from sentry.similarity.features import (
     ExceptionFeature,
     FeatureSet,
@@ -18,6 +19,8 @@ from sentry.similarity.signatures import MinHashSignatureBuilder
 from sentry.utils import redis
 from sentry.utils.datastructures import BidirectionalMapping
 from sentry.utils.iterators import shingle
+
+logger = logging.getLogger(__name__)
 
 
 def text_shingle(n, value):
@@ -57,21 +60,31 @@ def get_frame_attributes(frame):
     return attributes
 
 
-features = FeatureSet(
-    MinHashIndex(
-        redis.clusters.get(
+def _make_index():
+    try:
+        cluster = redis.redis_clusters.get(
             getattr(
                 settings,
                 'SENTRY_SIMILARITY_INDEX_REDIS_CLUSTER',
-                'default',
-            ),
-        ),
+                'similarity',
+            )
+        )
+    except KeyError:
+        logger.info('No redis cluster provided for similarity, using NOOP index.')
+        return NoopIndex()
+
+    return MinHashIndex(
+        cluster,
         'sim:1',
         MinHashSignatureBuilder(16, 0xFFFF),
         8,
         60 * 60 * 24 * 30,
         3,
-    ),
+    )
+
+
+features = FeatureSet(
+    _make_index(),
     Encoder({
         Frame: get_frame_attributes,
     }),
