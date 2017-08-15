@@ -12,7 +12,7 @@ from six.moves.urllib.parse import (
     urlparse,
     urlencode,
     urlunparse,
-    parse_qsl,
+    parse_qs,
 )
 
 from django import forms
@@ -171,11 +171,11 @@ class NotificationPlugin(Plugin):
 
     def add_notification_referrer_param(self, url):
         parsed_url = urlparse(url)
-        query = dict(parse_qsl(parsed_url.query))
+        query = parse_qs(parsed_url.query)
         query['referrer'] = self.slug
 
         url_list = list(parsed_url)
-        url_list[4] = urlencode(query)
+        url_list[4] = urlencode(query, doseq=True)
         return urlunparse(url_list)
 
 
