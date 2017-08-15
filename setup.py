@@ -145,7 +145,7 @@ install_requires = [
 ]
 
 saml_requires = [
-    'python3-saml>=1.2.6',
+    'python3-saml>=1.2.6,<1.3',
 ]
 
 
