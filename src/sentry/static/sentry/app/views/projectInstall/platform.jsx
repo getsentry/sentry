@@ -160,8 +160,6 @@ const ProjectInstallPlatform = React.createClass({
                 : <div dangerouslySetInnerHTML={{__html: this.state.html}} />}
 
           {this.isGettingStarted() &&
-            // Using <a /> instead of <Link /> as hashchange events are not
-            // triggered when switching views within React Router
             <p>
               <Link
                 to={`/${orgId}/${projectId}/#welcome`}

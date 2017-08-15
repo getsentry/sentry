@@ -22,11 +22,8 @@ const CreateProject = React.createClass({
 
   getDefaultProps() {
     return {
-      getDocsUrl: ({orgSlug, project, teamSlug}) => {
-        // let org = this.context.organization;]
-        let path = `/onboarding/${orgSlug}/${project.slug}/configure/${this.state.platform}`;
-        return path;
-      }
+      getDocsUrl: ({slug, projectSlug, platform}) =>
+        `/onboarding/${slug}/${projectSlug}/configure/${platform}`
     };
   },
 
@@ -56,16 +53,10 @@ const CreateProject = React.createClass({
         platform: platform
       },
       success: data => {
-        data = {
-          ...data,
-          orgSlug: slug,
-          teamId: teams[0].slug
-        };
-        //TODO ENSURE THIS IS WELL FORMED FOR WHATEVER THIS THING WANTS
         ProjectActions.createSuccess(data);
 
         // navigate to new url _now_
-        const url = this.props.getDocsUrl(data);
+        const url = this.props.getDocsUrl({slug, projectSlug: data.slug, platform});
         browserHistory.push(url);
       },
       error: err => {

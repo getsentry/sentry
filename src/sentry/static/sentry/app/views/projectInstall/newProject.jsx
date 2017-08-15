@@ -33,7 +33,12 @@ const newProject = React.createClass({
           <div className="content">
             <DocumentTitle title={'Sentry'} />
             <h2>Create a New Project:</h2>
-            <CreateProject />
+            <CreateProject
+              getDocsUrl={({slug, projectSlug, platform}) => {
+                if (platform === 'other') platform = '';
+                return `/${slug}/${projectSlug}/getting-started/${platform}`;
+              }}
+            />
           </div>
         </div>
       </div>
