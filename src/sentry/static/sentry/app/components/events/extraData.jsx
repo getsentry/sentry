@@ -2,7 +2,6 @@ import React from 'react';
 
 import PropTypes from '../../proptypes';
 import {objectToArray} from '../../utils';
-import ContextData from '../contextData';
 import EventDataSection from './eventDataSection';
 import KeyValueList from './interfaces/keyValueList';
 import {t} from '../../locale';
