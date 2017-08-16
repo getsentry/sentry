@@ -230,8 +230,8 @@ const GroupHeader = React.createClass({
             {t('Events')}
           </ListLink>
           {hasGroupingView &&
-            <ListLink to={`/${orgId}/${projectId}/issues/${groupId}/grouping/`}>
-              {t('Grouping')}
+            <ListLink to={`/${orgId}/${projectId}/issues/${groupId}/similar/`}>
+              {t('Similar Issues')}
             </ListLink>}
         </ul>
       </div>
