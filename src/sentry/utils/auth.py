@@ -91,23 +91,14 @@ def get_login_url(reset=False):
 
 
 def initiate_login(request, next_url=None):
-    try:
-        del request.session['_after_2fa']
-    except KeyError:
-        pass
-
-    try:
-        del request.session['_pending_2fa']
-    except KeyError:
-        pass
+    for key in ('_next', '_after_2fa', '_pending_2fa'):
+        try:
+            del request.session[key]
+        except KeyError:
+            pass
 
     if next_url:
         request.session['_next'] = next_url
-    else:
-        try:
-            del request.session['_next']
-        except KeyError:
-            pass
 
 
 def get_login_redirect(request, default=None):
