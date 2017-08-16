@@ -128,13 +128,38 @@ const GroupingStore = Reflux.createStore({
         });
         return item;
       },
-      similar: ([issue, score]) => {
+      similar: ([issue, scoreMap]) => {
         // Hide items with a low scores
-        let isBelowThreshold = checkBelowThreshold(score);
+        let isBelowThreshold = checkBelowThreshold(scoreMap);
+
+        // List of scores indexed by interface (i.e., exception and message)
+        let scoresByInterface = Object.keys(scoreMap)
+          .map(scoreKey => [scoreKey, scoreMap[scoreKey]])
+          .reduce((acc, [scoreKey, score]) => {
+            // tokenize scorekey, first token is the interface name
+            let [interfaceName] = scoreKey.split(':');
+            if (!acc[interfaceName]) {
+              acc[interfaceName] = [];
+            }
+            acc[interfaceName].push([scoreKey, score]);
+
+            return acc;
+          }, {});
+
+        // Aggregate score by interface
+        let aggregate = Object.keys(scoresByInterface)
+          .map(interfaceName => [interfaceName, scoresByInterface[interfaceName]])
+          .reduce((acc, [interfaceName, scores]) => {
+            let avg = scores.reduce((sum, [, score]) => sum + score, 0) / scores.length;
+            acc[interfaceName] = avg;
+            return acc;
+          }, {});
 
         return {
           issue,
-          score,
+          score: scoreMap,
+          scoresByInterface,
+          aggregate,
           isBelowThreshold
         };
       }

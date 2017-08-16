@@ -7,8 +7,8 @@ import GroupingActions from '../../actions/groupingActions';
 import GroupingStore from '../../stores/groupingStore';
 import LoadingError from '../../components/loadingError';
 import LoadingIndicator from '../../components/loadingIndicator';
-import MergedList from './mergedList';
 import ProjectState from '../../mixins/projectState';
+import MergedList from './mergedList';
 import SimilarList from './similarList';
 
 const GroupGroupingView = React.createClass({
@@ -170,7 +170,6 @@ const GroupGroupingView = React.createClass({
             busyMap={this.state.busy}
             hiddenMap={this.state.hidden}
           />}
-
       </div>
     );
   }

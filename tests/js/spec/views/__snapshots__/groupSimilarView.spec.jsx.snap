@@ -1,6 +1,6 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`Issues Grouping View renders initially with loading component 1`] = `
+exports[`Issues Similar View renders initially with loading component 1`] = `
 <div>
   <div
     className="alert alert-block alert-warning"
@@ -16,7 +16,7 @@ exports[`Issues Grouping View renders initially with loading component 1`] = `
 </div>
 `;
 
-exports[`Issues Grouping View renders with mocked data 1`] = `
+exports[`Issues Similar View renders with mocked data 1`] = `
 <GroupGroupingView
   location={Object {}}
   params={
@@ -54,7 +54,7 @@ exports[`Issues Grouping View renders with mocked data 1`] = `
 </GroupGroupingView>
 `;
 
-exports[`Issues Grouping View renders with mocked data 2`] = `
+exports[`Issues Similar View renders with mocked data 2`] = `
 <GroupGroupingView
   location={Object {}}
   params={

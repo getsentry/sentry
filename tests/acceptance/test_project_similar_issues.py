@@ -33,13 +33,13 @@ class ProjectIssuesGroupingTest(AcceptanceTestCase):
         )
         return event
 
-    def test_issues_grouping_tab(self):
+    def test_issues_similar_issues_tab(self):
         event = self.create_sample_event(
             platform='python',
         )
 
         self.browser.get(
-            '/{}/{}/issues/{}/grouping/'.format(self.org.slug, self.project.slug, event.group.id)
+            '/{}/{}/issues/{}/similar/'.format(self.org.slug, self.project.slug, event.group.id)
         )
-        self.browser.wait_until('.grouping-merged-list-container')
-        self.browser.snapshot('issue details grouping tab')
+        self.browser.wait_until('.similar-list-container')
+        self.browser.snapshot('issue details, similar issues tab')

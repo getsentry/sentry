@@ -6,7 +6,7 @@ import {t} from '../../locale';
 import GroupingStore from '../../stores/groupingStore';
 
 import SpreadLayout from '../../components/spreadLayout';
-import SplitLayout from '../../components/splitLayout';
+import FlowLayout from '../../components/flowLayout';
 import LinkWithConfirmation from '../../components/linkWithConfirmation';
 
 const SimilarToolbar = React.createClass({
@@ -33,22 +33,10 @@ const SimilarToolbar = React.createClass({
   render() {
     let {onMerge} = this.props;
     return (
-      <div className="grouping-toolbar stream-actions">
-        <SplitLayout responsive>
-          <SpreadLayout>
-            <div className="stream-actions-header">
-              {t('Issue')}
-            </div>
-            <div className="stream-actions-header event-count-header">
-              {t('Events')}
-            </div>
-          </SpreadLayout>
-
-          <SpreadLayout>
-            <div className="stream-actions-header event-similar-header">
-              {t('Similarity Score')}
-            </div>
-            <div className="grouping-toolbar-actions">
+      <SpreadLayout responsive className="similar-toolbar stream-actions">
+        <FlowLayout style={{flex: 1}}>
+          <FlowLayout>
+            <div className="similar-toolbar-actions">
               <LinkWithConfirmation
                 disabled={this.state.mergeCount === 0}
                 title={t(`Merging ${this.state.mergeCount} issues`)}
@@ -58,9 +46,21 @@ const SimilarToolbar = React.createClass({
                 {t('Merge')} ({this.state.mergeCount || 0})
               </LinkWithConfirmation>
             </div>
-          </SpreadLayout>
-        </SplitLayout>
-      </div>
+          </FlowLayout>
+        </FlowLayout>
+
+        <div className="similar-score-columns">
+          <div className="stream-actions-header similar-score-column event-count-header">
+            {t('Events')}
+          </div>
+          <div className="stream-actions-header similar-score-column event-similar-header">
+            {t('Exception')}
+          </div>
+          <div className="stream-actions-header similar-score-column event-similar-header">
+            {t('Message')}
+          </div>
+        </div>
+      </SpreadLayout>
     );
   }
 });

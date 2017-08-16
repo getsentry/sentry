@@ -3,7 +3,7 @@ import React from 'react';
 import {mount, shallow} from 'enzyme';
 import toJson from 'enzyme-to-json';
 
-import GroupGroupingView from 'app/views/groupGrouping/groupGroupingView';
+import GroupSimilarView from 'app/views/groupSimilar/groupSimilarView';
 import {Client} from 'app/api';
 
 jest.mock('app/api');
@@ -21,7 +21,7 @@ const mockData = {
         lastSeen: '2017-07-25T02:22:19Z',
         numComments: 0,
         userCount: 1,
-        culprit: 'Constructor.onGroupingUpdate(app/views/groupGrouping/groupingMergedList)',
+        culprit: 'Constructor.onSimilarUpdate(app/views/groupSimilar/groupingMergedList)',
         title: 'ReferenceError: unmergedList is not defined',
         id: '274',
         assignedTo: null,
@@ -51,7 +51,7 @@ const mockData = {
         lastSeen: '2017-07-25T02:20:35Z',
         numComments: 0,
         userCount: 1,
-        culprit: 'size(app/views/groupGrouping/groupingMergedList)',
+        culprit: 'size(app/views/groupSimilar/groupingMergedList)',
         title: "TypeError: Cannot read property 'size' of undefined",
         id: '275',
         assignedTo: null,
@@ -81,7 +81,7 @@ const mockData = {
         lastSeen: '2017-07-24T23:41:44Z',
         numComments: 0,
         userCount: 3,
-        culprit: 'length(app/views/groupGrouping/groupGroupingView)',
+        culprit: 'length(app/views/groupSimilar/groupSimilarView)',
         title: "TypeError: Cannot read property 'length' of undefined",
         id: '271',
         assignedTo: null,
@@ -284,7 +284,7 @@ const mockData = {
   ]
 };
 
-describe('Issues Grouping View', function() {
+describe('Issues Similar View', function() {
   beforeAll(function() {
     Client.addMockResponse({
       url: '/issues/groupId/hashes/?limit=50',
@@ -298,7 +298,7 @@ describe('Issues Grouping View', function() {
 
   it('renders initially with loading component', function() {
     let component = shallow(
-      <GroupGroupingView params={{groupId: 'groupId'}} location={{}} />
+      <GroupSimilarView params={{groupId: 'groupId'}} location={{}} />
     );
 
     expect(toJson(component)).toMatchSnapshot();
@@ -306,7 +306,7 @@ describe('Issues Grouping View', function() {
 
   it('renders with mocked data', function(done) {
     let wrapper = mount(
-      <GroupGroupingView
+      <GroupSimilarView
         params={{orgId: 'orgId', projectId: 'projectId', groupId: 'groupId'}}
         location={{}}
       />
