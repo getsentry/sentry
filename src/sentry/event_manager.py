@@ -139,7 +139,7 @@ def get_frame_hash(platform, frame):
         else:
             output.append(remove_function_outliers(frame['function']))
     elif frame.get('lineno') is not None and frame.get('colno') is not None:
-        output.extend([six.text_type(frame['lineno']), six.text_type(frame['colno'])])
+        output.extend([frame['lineno'], frame['colno']])
     return output
 
 
@@ -188,14 +188,18 @@ def get_preprocess_hashes(data):
     output = []
 
     if exception is not None:
-        output = get_exception_hash(data['platform'], exception)
+        result = get_exception_hash(data['platform'], exception)
+        if result:
+            output.append(result)
 
     if stacktrace is not None and not output:
-        output = get_stacktrace_hash(data['platform'], stacktrace)
+        result = get_stacktrace_hash(data['platform'], stacktrace)
+        if result:
+            output.append(result)
 
     if template is not None and not output:
         # i think data should be validated at this point?
-        output = [template['filename'], template['context_line']]
+        output.append([template['filename'], template['context_line']])
 
     if not output and data.get('message'):
         output = [data['message']]
