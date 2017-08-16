@@ -107,3 +107,14 @@ class RedisBackendTestCase(TestCase):
         # contents were merged back into the digest.
         with backend.digest('timeline', 0) as records:
             assert set(records) == set([record_2])
+
+    def test_large_digest(self):
+        backend = RedisBackend()
+
+        n = 16384
+        t = time.time()
+        for i in xrange(n):
+            backend.add('timeline', Record('record:{}'.format(i), '{}'.format(i), t))
+
+        with backend.digest('timeline', 0) as records:
+            assert len(set(records)) == n
