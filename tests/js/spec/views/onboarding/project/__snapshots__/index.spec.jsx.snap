@@ -4,9 +4,9 @@ exports[`Project render() should render NotFound if no matching organization 1`]
 <div
   className="onboarding-info"
 >
-  <h2>
-    Choose a language or framework
-  </h2>
+  <h4>
+    Choose a language or framework:
+  </h4>
   <PlatformPicker
     location={
       Object {
@@ -26,7 +26,7 @@ exports[`Project render() should render NotFound if no matching organization 1`]
     showOther={true}
   />
   <div
-    className="project-name client-platform"
+    className="new-project-name client-platform"
   >
     <h4>
       Give your project a name:
@@ -78,9 +78,9 @@ exports[`Project render() should set required class on empty submit 1`] = `
   <div
     className="onboarding-info"
   >
-    <h2>
-      Choose a language or framework
-    </h2>
+    <h4>
+      Choose a language or framework:
+    </h4>
     <PlatformPicker
       location={
         Object {
@@ -743,7 +743,7 @@ exports[`Project render() should set required class on empty submit 1`] = `
       </div>
     </PlatformPicker>
     <div
-      className="project-name client-platform"
+      className="new-project-name client-platform"
     >
       <h4>
         Give your project a name:

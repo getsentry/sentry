@@ -10,7 +10,7 @@ import {t, tct} from '../../locale';
 
 const ProjectInstallPlatform = React.createClass({
   propTypes: {
-    platformData: React.PropTypes.object.isRequired,
+    platformData: React.PropTypes.object,
     linkPath: React.PropTypes.func
   },
 
