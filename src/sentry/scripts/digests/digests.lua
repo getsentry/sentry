@@ -1,5 +1,7 @@
 -- Utilities
 
+local VARIADIC_CALL_CHUNK_SIZE  = 250
+
 local noop = function ()
     return
 end
@@ -16,6 +18,31 @@ function table.extend(t, items, length)
     end
     for i, item in ipairs(items) do
         t[length + i] = item
+    end
+end
+
+local function chunked(size, iterator, state, ...)
+    local next = {iterator(state, ...)}
+    local chunk_count = 1
+
+    return function ()
+        local item_count = 0
+        if #next == 0 then
+            return nil
+        end
+
+        return chunk_count, function ()
+            if item_count == size or #next == 0 then
+                chunk_count = chunk_count + 1
+                return nil
+            end
+
+            local result = next
+            next = {iterator(state, result[1])}
+
+            item_count = item_count + 1
+            return item_count, unpack(result)
+        end
     end
 end
 
@@ -105,8 +132,21 @@ local function zrange_move_slice(source, destination, threshold, callback)
     -- TODO: This should support modifiers, and maintenance ZADD should include
     -- the "NX" modifier to avoid resetting schedules during a race conditions
     -- between a digest task and the maintenance task.
-    redis.call('ZADD', destination, unpack(zadd_args))
-    redis.call('ZREM', source, unpack(zrem_args))
+    for _, chunk_iterator in chunked(VARIADIC_CALL_CHUNK_SIZE, ipairs(zadd_args)) do
+        local items = {}
+        for i, _, item in chunk_iterator do
+            items[i] = item
+        end
+        redis.call('ZADD', destination, unpack(items))
+    end
+
+    for _, chunk_iterator in chunked(VARIADIC_CALL_CHUNK_SIZE, ipairs(zrem_args)) do
+        local items = {}
+        for i, _, item in chunk_iterator do
+            items[i] = item
+        end
+        redis.call('ZREM', source, unpack(items))
+    end
 end
 
 local function zset_trim(key, capacity, callback)
@@ -281,11 +321,13 @@ local function close_digest(configuration, timeline_id, delay_minimum, record_id
     local timeline_key = configuration:get_timeline_key(timeline_id)
     local digest_key = configuration:get_timeline_digest_key(timeline_id)
 
-    if #record_ids > 0 then
-        redis.call('ZREM', digest_key, unpack(record_ids))
-        for _, record_id in ipairs(record_ids) do
+    for _, chunk_iterator in chunked(VARIADIC_CALL_CHUNK_SIZE, ipairs(record_ids)) do
+        local record_id_chunk = {}
+        for i, _, record_id in chunk_iterator do
             redis.call('DEL', configuration:get_timeline_record_key(timeline_id, record_id))
+            record_id_chunk[i] = record_id
         end
+        redis.call('ZREM', digest_key, unpack(record_id_chunk))
     end
 
     -- If this digest didn't contain any data (no record IDs) and there isn't
