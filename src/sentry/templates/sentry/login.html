@@ -7,6 +7,10 @@
 {% block title %}{% trans "Login" %} | {{ block.super }}{% endblock %}
 
 {% block auth_main %}
+  {% if banner %}
+    <h4>{{ banner }}</h4>
+  {% endif %}
+
   <ul class="nav nav-tabs auth-toggle border-bottom">
     <li{% if op == "login" %} class="active"{% endif %}>
       <a href="#login" data-toggle="tab">{% trans "Login" %}</a>
@@ -35,7 +39,7 @@
         {% endfor %}
 
         <fieldset class="form-actions">
-          <button type="submit" class="btn btn-primary">{% trans "Login" %}</button> <a class="pull-right" style="margin-top: 7px" href="{% url 'sentry-account-recover' %}">{% trans "Lost your password?" %}</a>
+          <button type="submit" class="btn btn-primary">{% trans "Continue" %}</button> <a class="pull-right" style="margin-top: 7px" href="{% url 'sentry-account-recover' %}">{% trans "Lost your password?" %}</a>
         </fieldset>
       </form>
     </div>
@@ -52,7 +56,7 @@
         {% endfor %}
 
         <fieldset class="form-actions">
-          <button type="submit" class="btn btn-primary">{% trans "Register" %}</button>
+          <button type="submit" class="btn btn-primary">{% trans "Continue" %}</button>
         </fieldset>
       </form>
     </div>
@@ -64,13 +68,14 @@
 
         <div class="control-group">
           <div class="controls">
-            <label style="display: block">SSO URL</label>
-            <span style="padding: 7px 0; font-size: 15px">{{ server_hostname }}/</span> <input style="width: 240px; margin: 0 0 4px; padding: 5px 8px; display: inline" type="text" class="form-control" name="organization" placeholder="acme">
+            <label style="display: block">{% trans "Organization ID" %}*</label>
+            <input type="text" class="form-control" name="organization" placeholder="acme" required>
             <p class="help-block">Enter your organization's ID and we'll get things started.</p>
+            <p class="help-block">Your ID is the reference used when Sentry generates URLs.<br />e.g. <code>{{ server_hostname }}/<strong>acme</strong>/</code></p>
           </div>
         </div>
         <div class="form-actions" style="margin-top: 25px">
-          <button class="btn btn-primary">Sign in</button>
+          <button class="btn btn-primary">{% trans "Continue" %}</button>
         </div>
       </form>
     </div>
