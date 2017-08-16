@@ -8,7 +8,7 @@ class AuthTest(AcceptanceTestCase):
         self.browser.get('/auth/login/')
         self.browser.find_element_by_id('id_username').send_keys(username)
         self.browser.find_element_by_id('id_password').send_keys(password)
-        self.browser.find_element_by_xpath("//button[contains(text(), 'Login')]").click()
+        self.browser.find_element_by_xpath("//button[contains(text(), 'Continue')]").click()
 
     def test_renders(self):
         self.browser.get('/auth/login/')

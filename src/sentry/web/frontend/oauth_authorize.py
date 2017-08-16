@@ -6,20 +6,19 @@ from django.conf import settings
 from django.db import IntegrityError, transaction
 from django.utils import timezone
 from django.utils.safestring import mark_safe
-from django.views.decorators.cache import never_cache
 from six.moves.urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 
 from sentry.models import (
     ApiApplication, ApiApplicationStatus, ApiAuthorization, ApiGrant, ApiToken
 )
-from sentry.web.frontend.base import BaseView
+from sentry.web.frontend.auth_login import AuthLoginView
 
 
-class OAuthAuthorizeView(BaseView):
-    @never_cache
-    def dispatch(self, request, *args, **kwargs):
-        with transaction.atomic():
-            return super(OAuthAuthorizeView, self).dispatch(request, *args, **kwargs)
+class OAuthAuthorizeView(AuthLoginView):
+    auth_required = False
+
+    def get_next_uri(self, request, *args, **kwargs):
+        return request.get_full_path()
 
     def redirect_response(self, response_type, redirect_uri, params):
         if response_type == 'token':
@@ -45,6 +44,10 @@ class OAuthAuthorizeView(BaseView):
                 'state': state,
             }
         )
+
+    def respond_login(self, request, context, application):
+        context['banner'] = 'Connect Sentry to {}'.format(application.name)
+        return self.respond('sentry/login.html', context)
 
     def get(self, request):
         response_type = request.GET.get('response_type')
@@ -102,6 +105,19 @@ class OAuthAuthorizeView(BaseView):
                     )
         else:
             scopes = []
+
+        payload = {
+            'rt': response_type,
+            'cid': client_id,
+            'ru': redirect_uri,
+            'sc': scopes,
+            'st': state,
+            'uid': request.user.id if request.user.is_authenticated() else '',
+        }
+        request.session['oa2'] = payload
+
+        if not request.user.is_authenticated():
+            return super(OAuthAuthorizeView, self).get(request, application)
 
         if not force_prompt:
             try:
@@ -171,14 +187,6 @@ class OAuthAuthorizeView(BaseView):
                 }
             )
 
-        if payload['uid'] != request.user.id:
-            return self.respond(
-                'sentry/oauth-error.html', {
-                    'error':
-                    'We were unable to complete your request. Please re-initiate the authorization flow.',
-                }
-            )
-
         try:
             application = ApiApplication.objects.get(
                 client_id=payload['cid'],
@@ -188,6 +196,22 @@ class OAuthAuthorizeView(BaseView):
             return self.respond(
                 'sentry/oauth-error.html', {
                     'error': mark_safe('Missing or invalid <em>client_id</em> parameter.'),
+                }
+            )
+
+        if not request.user.is_authenticated():
+            response = super(OAuthAuthorizeView, self).post(request, application)
+            # once they login, bind their user ID
+            if request.user.is_authenticated():
+                request.session['oa2']['uid'] = request.user.id
+                request.session.modified = True
+            return response
+
+        if payload['uid'] != request.user.id:
+            return self.respond(
+                'sentry/oauth-error.html', {
+                    'error':
+                    'We were unable to complete your request. Please re-initiate the authorization flow.',
                 }
             )
 
