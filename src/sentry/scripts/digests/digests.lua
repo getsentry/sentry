@@ -310,11 +310,13 @@ local function close_digest(configuration, timeline_id, delay_minimum, record_id
 
     for _, chunk_iterator in chunked(1000, ipairs(record_ids)) do
         local record_id_chunk = {}
+        local record_key_chunk = {}
         for i, _, record_id in chunk_iterator do
-            redis.call('DEL', configuration:get_timeline_record_key(timeline_id, record_id))
             record_id_chunk[i] = record_id
+            record_key_chunk[i] = configuration:get_timeline_record_key(timeline_id, record_id)
         end
         redis.call('ZREM', digest_key, unpack(record_id_chunk))
+        redis.call('DEL', unpack(record_key_chunk))
     end
 
     -- If this digest didn't contain any data (no record IDs) and there isn't
