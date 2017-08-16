@@ -11,7 +11,7 @@ def schedule_jobs(jobs):
     ScheduledJob.objects.bulk_create(
         [
             ScheduledJob(payload=payload, name=name, date_scheduled=date_scheduled)
-            for ((payload, name, date_scheduled)) in jobs
+            for (payload, name, date_scheduled) in jobs
         ]
     )
     return True
