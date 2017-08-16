@@ -174,13 +174,11 @@ def get_exception_hash(platform, exception):
     return output
 
 
-def get_preprocess_hashes(data):
+def get_preprocess_defaults(data):
     from sentry.coreapi import LazyData
     if isinstance(data, LazyData):
         data = dict(data.items())
 
-    fingerprint = data.get('fingerprint')
-    checksum = data.get('checksum')
     stacktrace = data.get('sentry.interfaces.Stacktrace')
     exception = data.get('sentry.interfaces.Exception')
     template = data.get('sentry.interfaces.Template')
@@ -204,6 +202,14 @@ def get_preprocess_hashes(data):
     if not output and data.get('message'):
         output = [data['message']]
 
+    return output
+
+
+def get_preprocess_hashes(data):
+    fingerprint = data.get('fingerprint')
+    checksum = data.get('checksum')
+    output = get_preprocess_defaults(data)
+
     if fingerprint:
         default_values = set(['{{ default }}', '{{default}}'])
         if any(d in fingerprint for d in default_values):
@@ -219,7 +225,7 @@ def get_preprocess_hashes(data):
                     result.extend(output[idx])
                 else:
                     result.append(bit)
-            hashes.append(result)
+            hashes.append(md5_from_hash(result))
     elif checksum:
         hashes = [checksum]
     else:
