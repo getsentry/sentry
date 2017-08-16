@@ -397,9 +397,9 @@ class ClientApiHelper(object):
         for filter_cls in filters.all():
             filter_obj = filter_cls(project)
             if filter_obj.is_enabled() and filter_obj.test(data):
-                return (True, 'other_filter')
+                return (True, filter_obj.id)
 
-        return (False, )
+        return (False, None)
 
     def validate_data(self, project, data):
         # TODO(dcramer): move project out of the data packet

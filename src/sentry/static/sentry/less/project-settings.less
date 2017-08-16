@@ -7,6 +7,53 @@
   padding-top: 20px;
 }
 
+/**
+* Inbound Data Filters
+* ============================================================================
+*/
+
+.filtered-stats-barchart {
+    height: 100px;
+
+    a {
+      > span {
+        left: 2px;
+        right: 2px;
+
+        &.ip_address {
+          background: @red-light;
+        }
+
+        &.release_version {
+          background: @orange-light;
+        }
+
+        &.error_message {
+          background: @purple;
+        }
+
+        &.browser_extensions {
+          background: @gray;
+        }
+
+        &.legacy_browsers {
+          background: @red;
+        }
+
+        &.localhost {
+          background: @orange;
+        }
+
+        &.web_crawlers {
+          background: @red;
+        }
+
+        &.invalid_csp {
+          background: @blue;
+        }
+      }
+    }
+  }
 
 /**
 * Rules

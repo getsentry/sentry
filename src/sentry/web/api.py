@@ -344,6 +344,23 @@ class StoreView(APIView):
                     (tsdb.models.key_total_blacklisted, key.id),
                 ]
             )
+            if should_filter[1] == 'ip_address':
+                tsdb.incr(tsdb.models.project_total_received_ip_address, project.id)
+            elif should_filter[1] == 'release_version':
+                tsdb.incr(tsdb.models.project_total_received_release_version, project.id)
+            elif should_filter[1] == 'error_message':
+                tsdb.incr(tsdb.models.project_total_received_error_message, project.id)
+            elif should_filter[1] == 'browser-extensions':
+                tsdb.incr(tsdb.models.project_total_received_browser_extensions, project.id)
+            elif should_filter[1] == 'legacy-browsers':
+                tsdb.incr(tsdb.models.project_total_received_legacy_browsers, project.id)
+            elif should_filter[1] == 'localhost':
+                tsdb.incr(tsdb.models.project_total_received_localhost, project.id)
+            elif should_filter[1] == 'web-crawlers':
+                tsdb.incr(tsdb.models.project_total_received_web_crawlers, project.id)
+            elif should_filter[1] == 'invalid_csp':
+                tsdb.incr(tsdb.models.project_total_received_invalid_csp, project.id)
+
             metrics.incr('events.blacklisted', tags={'reason': should_filter[1]})
             event_filtered.send_robust(
                 ip=remote_addr,

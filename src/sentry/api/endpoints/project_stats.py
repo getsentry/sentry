@@ -60,6 +60,22 @@ class ProjectStatsEndpoint(ProjectEndpoint, StatsMixin):
             stat_model = tsdb.models.project
         elif stat == 'forwarded':
             stat_model = tsdb.models.project_total_forwarded
+        elif stat == 'ip_address':
+            stat_model = tsdb.models.project_total_received_ip_address
+        elif stat == 'release_version':
+            stat_model = tsdb.models.project_total_received_release_version
+        elif stat == 'error_message':
+            stat_model = tsdb.models.project_total_received_error_message
+        elif stat == 'browser_extensions':
+            stat_model = tsdb.models.project_total_received_browser_extensions
+        elif stat == 'legacy_browsers':
+            stat_model = tsdb.models.project_total_received_legacy_browsers
+        elif stat == 'localhost':
+            stat_model = tsdb.models.project_total_received_localhost
+        elif stat == 'web_crawlers':
+            stat_model = tsdb.models.project_total_received_web_crawlers
+        elif stat == 'invalid_csp':
+            stat_model = tsdb.models.project_total_received_invalid_csp
         else:
             raise ValueError('Invalid stat: %s' % stat)
 

@@ -367,7 +367,7 @@ const ProjectFilters = React.createClass({
     let since = until - 3600 * 24 * 30;
 
     return {
-      expected: 3,
+      expected: 2,
       loading: true,
       error: false,
       statsError: false,
@@ -390,9 +390,71 @@ const ProjectFilters = React.createClass({
   },
 
   componentDidUpdate(prevProps) {
-    if (!this.state.loading && !this.state.stats) {
-      this.processStatsData();
+    if (!this.state.loading && !this.state.formattedData) {
+      this.render();
     }
+  },
+
+  STAT_OPTS: [
+    'ip_address',
+    'release_version',
+    'error_message',
+    'browser_extensions',
+    'legacy_browsers',
+    'localhost',
+    'web_crawlers',
+    'invalid_csp'
+  ],
+
+  formatData(rawData) {
+    return this.STAT_OPTS.map(stat => {
+      return {
+        data: rawData[stat].map(([x, y]) => {
+          return {x, y};
+        }),
+        label: stat
+      };
+    });
+  },
+
+  getFilterStats() {
+    let {orgId, projectId} = this.props.params;
+    let statEndpoint = `/projects/${orgId}/${projectId}/stats/`;
+    let query = {
+      since: this.state.querySince,
+      until: this.state.queryUntil,
+      resolution: '1d'
+    };
+    $.when
+      .apply(
+        $,
+        this.STAT_OPTS.map(stat => {
+          let deferred = $.Deferred();
+          this.api.request(statEndpoint, {
+            query: Object.assign({stat: stat}, query),
+            success: deferred.resolve.bind(deferred),
+            error: deferred.reject.bind(deferred)
+          });
+          return deferred;
+        })
+      )
+      .done(
+        function() {
+          let rawOrgData = {};
+          for (let i = 0; i < this.STAT_OPTS.length; i++) {
+            rawOrgData[this.STAT_OPTS[i]] = arguments[i][0];
+          }
+          this.setState({
+            rawOrgData: rawOrgData,
+            formattedData: this.formatData(rawOrgData)
+          });
+        }.bind(this)
+      )
+      .fail(
+        function() {
+          this.setState({error: true});
+        }.bind(this)
+      );
   },
 
   fetchData() {
@@ -413,27 +475,7 @@ const ProjectFilters = React.createClass({
       }
     });
 
-    this.api.request(`/projects/${orgId}/${projectId}/stats/`, {
-      query: {
-        since: this.state.querySince,
-        until: this.state.queryUntil,
-        resolution: '1d',
-        stat: 'blacklisted'
-      },
-      success: data => {
-        this.setState({rawStatsData: data});
-      },
-      error: () => {
-        this.setState({error: true});
-      },
-      complete: () => {
-        let expected = this.state.expected - 1;
-        this.setState({
-          expected,
-          loading: expected > 0
-        });
-      }
-    });
+    this.getFilterStats();
 
     this.api.request(`/projects/${orgId}/${projectId}/`, {
       success: (data, textStatus, jqXHR) => {
@@ -528,7 +570,7 @@ const ProjectFilters = React.createClass({
   renderBody() {
     let body;
 
-    if (this.state.loading || !this.state.stats) body = this.renderLoading();
+    if (this.state.loading || !this.state.formattedData) body = this.renderLoading();
     else if (this.state.error) body = <LoadingError onRetry={this.fetchData} />;
     else body = this.renderResults();
 
@@ -596,11 +638,11 @@ const ProjectFilters = React.createClass({
           </div>
           {!this.state.blankStats
             ? <StackedBarChart
-                points={this.state.stats}
-                height={50}
+                series={this.state.formattedData}
+                // height={100}
                 label="events"
-                barClasses={['filtered']}
-                className="standard-barchart"
+                barClasses={this.STAT_OPTS}
+                className="standard-barchart filtered-stats-barchart"
               />
             : <div className="box-content">
                 <div className="blankslate p-y-2">
