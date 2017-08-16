@@ -12,37 +12,82 @@ from sentry.utils.http import is_valid_origin
 # Default block list sourced from personal experience as well as
 # reputable blogs from Twitter and Dropbox
 DISALLOWED_SOURCES = (
-    'chrome://*', 'chrome-extension://*', 'chromeinvokeimmediate://*'
-    'chromenull://*', 'safari-extension://*', 'mxaddon-pkg://*', 'jar://*',
-    'webviewprogressproxy://*', 'tmtbff://*', 'mbinit://*', 'symres://*', 'resource://*',
-    '*.metrext.com', 'static.image2play.com', '*.tlscdn.com',
-    '73a5b0806e464be8bd4e694c744624f0.com', '020dfefc4ac745dab7594f2f771c1ded.com',
-    '*.superfish.com', 'addons.mozilla.org', 'v.zilionfast.in', 'widgets.amung.us',
-    '*.superfish.com', 'xls.searchfun.in', 'istatic.datafastguru.info', 'v.zilionfast.in',
-    'localhost', 'resultshub-a.akamaihd.net', 'pulseadnetwork.com', 'gateway.zscalertwo.net',
-    'www.passpack.com', 'middlerush-a.akamaihd.net', 'www.websmartcenter.com', 'a.linkluster.com',
-    'saveyoutime.ru', 'cdncache-a.akamaihd.net', 'x.rafomedia.com', 'savingsslider-a.akamaihd.net',
-    'injections.adguard.com', 'icontent.us', 'amiok.org', 'connectionstrenth.com', 'siteheart.net',
-)
+    'chrome://*',
+    'chrome-extension://*',
+    'chromeinvokeimmediate://*'
+    'chromenull://*',
+    'safari-extension://*',
+    'mxaddon-pkg://*',
+    'jar://*',
+    'webviewprogressproxy://*',
+    'tmtbff://*',
+    'mbinit://*',
+    'symres://*',
+    'resource://*',
+    '*.metrext.com',
+    'static.image2play.com',
+    '*.tlscdn.com',
+    '73a5b0806e464be8bd4e694c744624f0.com',
+    '020dfefc4ac745dab7594f2f771c1ded.com',
+    '*.superfish.com',
+    'addons.mozilla.org',
+    'v.zilionfast.in',
+    'widgets.amung.us',
+    '*.superfish.com',
+    'xls.searchfun.in',
+    'istatic.datafastguru.info',
+    'v.zilionfast.in',
+    'localhost',
+    'resultshub-a.akamaihd.net',
+    'pulseadnetwork.com',
+    'gateway.zscalertwo.net',
+    'www.passpack.com',
+    'middlerush-a.akamaihd.net',
+    'www.websmartcenter.com',
+    'a.linkluster.com',
+    'saveyoutime.ru',
+    'cdncache-a.akamaihd.net',
+    'x.rafomedia.com',
+    'savingsslider-a.akamaihd.net',
+    'injections.adguard.com',
+    'icontent.us',
+    'amiok.org',
+    'connectionstrenth.com',
+    'siteheart.net',
+)  # yapf: disable
 
-ALLOWED_DIRECTIVES = frozenset(
-    (
-        'base-uri', 'child-src', 'connect-src', 'default-src', 'font-src', 'form-action',
-        'frame-ancestors', 'img-src', 'manifest-src', 'media-src', 'object-src', 'plugin-types',
-        'referrer', 'script-src', 'style-src', 'upgrade-insecure-requests',
+ALLOWED_DIRECTIVES = frozenset((
+    'base-uri',
+    'child-src',
+    'connect-src',
+    'default-src',
+    'font-src',
+    'form-action',
+    'frame-ancestors',
+    'img-src',
+    'manifest-src',
+    'media-src',
+    'object-src',
+    'plugin-types',
+    'referrer',
+    'script-src',
+    'style-src',
+    'upgrade-insecure-requests',
 
-        # Deprecated directives
-        # > Note: This directive is deprecated. Use child-src instead.
-        # > https://developer.mozilla.org/en-US/docs/Web/Security/CSP/CSP_policy_directives#frame-src
-        # 'frame-src',
+    # Deprecated directives
+    # > Note: This directive is deprecated. Use child-src instead.
+    # > https://developer.mozilla.org/en-US/docs/Web/Security/CSP/CSP_policy_directives#frame-src
+    # 'frame-src',
 
-        # I don't really know what this even is.
-        # 'sandbox',
-    )
-)
+    # I don't really know what this even is.
+    # 'sandbox',
+))  # yapf: disable
 
 # URIs that are pure noise and will never be actionable
-DISALLOWED_BLOCKED_URIS = frozenset(('about', 'ms-browser-extension', ))
+DISALLOWED_BLOCKED_URIS = frozenset((
+    'about',
+    'ms-browser-extension',
+))  # yapf: disable
 
 
 def is_valid_csp_report(report, project=None):
