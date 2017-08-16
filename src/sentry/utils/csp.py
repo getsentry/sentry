@@ -20,6 +20,7 @@ DISALLOWED_SOURCES = (
     'mxaddon-pkg://*',
     'jar://*',
     'webviewprogressproxy://*',
+    'ms-browser-extension://*',
     'tmtbff://*',
     'mbinit://*',
     'symres://*',
