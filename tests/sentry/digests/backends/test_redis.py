@@ -81,6 +81,37 @@ class RedisBackendTestCase(TestCase):
         with backend.digest('timeline', 0) as records:
             assert set(records) == set([record_1, record_2])
 
+    def test_maintenance_failure_recovery_with_capacity(self):
+        backend = RedisBackend(capacity=10, truncation_chance=0.0)
+
+        t = time.time()
+
+        # Add 10 items to the timeline.
+        for i in xrange(10):
+            backend.add('timeline', Record('record:{}'.format(i), '{}'.format(i), t + i))
+
+        try:
+            with backend.digest('timeline', 0) as records:
+                raise Exception('This causes the digest to not be closed.')
+        except Exception:
+            pass
+
+        # There are now 10 items in the digest, let's add 10 more to the timeline.
+        for i in xrange(10, 20):
+            backend.add('timeline', Record('record:{}'.format(i), '{}'.format(i), t + i))
+
+        # Maintenance should move the timeline back to the waiting state, ...
+        backend.maintenance(time.time())
+
+        # The schedule should now contain the timeline.
+        assert set(entry.key for entry in backend.schedule(time.time())) == set(['timeline'])
+
+        # Only the new records should exist -- the older one should have been
+        # trimmed to avoid unbounded growth.
+        with backend.digest('timeline', 0) as records:
+            assert set(record.key
+                       for record in records) == set('record:{}'.format(i) for i in xrange(10, 20))
+
     def test_delete(self):
         backend = RedisBackend()
         backend.add('timeline', Record('record:1', 'value', time.time()))
