@@ -1,3 +1,13 @@
+-- Utilities
+
+local noop = function ()
+    return
+end
+
+local function identity(...)
+    return ...
+end
+
 function table.extend(t, items, length)
     -- The table length can be provided if you know the length of the table
     -- beforehand to avoid a potentially expensive length operator call.
@@ -9,21 +19,59 @@ function table.extend(t, items, length)
     end
 end
 
-function table.slice(t, start, stop)
-    if stop == nil then
-        stop = #t
+
+-- Argument Parsing
+
+local function argument_parser(callback)
+    if callback == nil then
+        callback = identity
     end
 
-    local result = {}
-    for i = start, stop do
-        result[i - start + 1] = t[i]
+    return function (cursor, arguments)
+        return cursor + 1, callback(arguments[cursor])
     end
-    return result
 end
 
-local noop = function ()
-    return
+local function object_argument_parser(schema, callback)
+    if callback == nil then
+        callback = identity
+    end
+
+    return function (cursor, arguments)
+        local result = {}
+        for i, specification in ipairs(schema) do
+            local key, parser = unpack(specification)
+            cursor, result[key] = parser(cursor, arguments)
+        end
+        return cursor, callback(result)
+    end
 end
+
+local function variadic_argument_parser(argument_parser)
+    return function (cursor, arguments)
+        local results = {}
+        local i = 1
+        while arguments[cursor] ~= nil do
+            cursor, results[i] = argument_parser(cursor, arguments)
+            i = i + 1
+        end
+        return cursor, results
+    end
+end
+
+local function multiple_argument_parser(...)
+    local parsers = {...}
+    return function (cursor, arguments)
+        local results = {}
+        for i, parser in ipairs(parsers) do
+            cursor, results[i] = parser(cursor, arguments)
+        end
+        return cursor, unpack(results)
+    end
+end
+
+
+-- Redis Helpers
 
 local function zrange_scored_iterator(result)
     local i = -1
@@ -85,6 +133,9 @@ local function zset_trim(key, capacity, callback)
 
     return n
 end
+
+
+-- Timeline and Schedule Operations
 
 local function schedule(configuration, deadline)
     local response = {}
@@ -181,10 +232,7 @@ local function add_record_to_timeline(configuration, timeline_id, record_id, val
 
     local ready = add_timeline_to_schedule(configuration, timeline_id, timestamp, delay_increment, delay_maximum)
 
-    -- TODO: Validating `timeline_capacity` and casting to number should happen upstream.
-    local timeline_capacity = tonumber(timeline_capacity)
-    -- TODO: Validating `truncation_chance` and casting to number should happen upstream.
-    if timeline_capacity > 0 and math.random() < tonumber(truncation_chance) then
+    if timeline_capacity > 0 and math.random() < truncation_chance then
         truncate_timeline(configuration, timeline_id, timeline_capacity)
     end
 
@@ -229,8 +277,7 @@ local function digest_timeline(configuration, timeline_id)
     return results
 end
 
-local function close_digest(configuration, timeline_id, delay_minimum, ...)
-    local record_ids = {...}
+local function close_digest(configuration, timeline_id, delay_minimum, record_ids)
     local timeline_key = configuration:get_timeline_key(timeline_id)
     local digest_key = configuration:get_timeline_digest_key(timeline_id)
 
@@ -263,14 +310,14 @@ local function delete_timeline(configuration, timeline_id)
     redis.call('ZREM', configuration:get_schedule_waiting_key(), timeline_id)
 end
 
-local function parse_arguments(arguments)
-    -- TODO: These need validation!
-    local configuration = {
-        namespace = arguments[1],
-        ttl = tonumber(arguments[2]),
-        timestamp = tonumber(arguments[3]),
-    }
 
+-- Command Execution
+
+local configuration_argument_parser = object_argument_parser({
+    {"namespace", argument_parser()},
+    {"ttl", argument_parser(tonumber)},
+    {"timestamp", argument_parser(tonumber)},
+}, function (configuration)
     math.randomseed(configuration.timestamp)
 
     function configuration:get_schedule_waiting_key()
@@ -297,34 +344,79 @@ local function parse_arguments(arguments)
         return string.format('%s:t:%s:r:%s', self.namespace, timeline_id, record_id)
     end
 
-    return configuration, table.slice(arguments, 4)
-end
+    return configuration
+end)
 
 local commands = {
-    SCHEDULE = function (arguments)
-        local configuration, arguments = parse_arguments(arguments)
-        return schedule(configuration, unpack(arguments))
+    SCHEDULE = function (cursor, arguments)
+        local cursor, configuration, deadline = multiple_argument_parser(
+            configuration_argument_parser,
+            argument_parser(tonumber)
+        )(cursor, arguments)
+        return schedule(configuration, deadline)
     end,
-    MAINTENANCE = function (arguments)
-        local configuration, arguments = parse_arguments(arguments)
-        return maintenance(configuration, unpack(arguments))
+    MAINTENANCE = function (cursor, arguments)
+        local cursor, configuration, deadline = multiple_argument_parser(
+            configuration_argument_parser,
+            argument_parser(tonumber)
+        )(cursor, arguments)
+        return maintenance(configuration, deadline)
     end,
-    ADD = function (arguments)
-        local configuration, arguments = parse_arguments(arguments)
-        return add_record_to_timeline(configuration, unpack(arguments))
+    ADD = function (cursor, arguments)
+        local cursor, configuration, arguments = multiple_argument_parser(
+            configuration_argument_parser,
+            object_argument_parser({
+                {"timeline_id", argument_parser()},
+                {"record_id", argument_parser()},
+                {"value", argument_parser()},
+                {"timestamp", argument_parser(tonumber)},
+                {"delay_increment", argument_parser(tonumber)},
+                {"delay_maximum", argument_parser(tonumber)},
+                {"timeline_capacity", argument_parser(tonumber)},
+                {"truncation_chance", argument_parser(tonumber)},
+            })
+        )(cursor, arguments)
+        return add_record_to_timeline(
+            configuration,
+            arguments.timeline_id,
+            arguments.record_id,
+            arguments.value,
+            arguments.timestamp,
+            arguments.delay_increment,
+            arguments.delay_maximum,
+            arguments.timeline_capacity,
+            arguments.truncation_chance
+        )
     end,
-    DELETE = function (arguments)
-        local configuration, arguments = parse_arguments(arguments)
-        return delete_timeline(configuration, unpack(arguments))
+    DELETE = function (cursor, arguments)
+        local cursor, configuration, timeline_id = multiple_argument_parser(
+            configuration_argument_parser,
+            argument_parser()
+        )(cursor, arguments)
+        return delete_timeline(configuration, timeline_id)
     end,
-    DIGEST_OPEN = function (arguments)
-        local configuration, arguments = parse_arguments(arguments)
-        return digest_timeline(configuration, unpack(arguments))
+    DIGEST_OPEN = function (cursor, arguments)
+        local cursor, configuration, timeline_id = multiple_argument_parser(
+            configuration_argument_parser,
+            argument_parser()
+        )(cursor, arguments)
+        return digest_timeline(configuration, timeline_id)
     end,
-    DIGEST_CLOSE = function (arguments)
-        local configuration, arguments = parse_arguments(arguments)
-        return close_digest(configuration, unpack(arguments))
+    DIGEST_CLOSE = function (cursor, arguments)
+        local cursor, configuration, timeline_id, delay_minimum, record_ids = multiple_argument_parser(
+            configuration_argument_parser,
+            argument_parser(),
+            argument_parser(tonumber),
+            variadic_argument_parser(argument_parser())
+        )(cursor, arguments)
+        return close_digest(configuration, timeline_id, delay_minimum, record_ids)
     end,
 }
 
-return commands[ARGV[1]](table.slice(ARGV, 2))
+local cursor, command = argument_parser(
+    function (argument)
+        return commands[argument]
+    end
+)(1, ARGV)
+
+return command(cursor, ARGV)
