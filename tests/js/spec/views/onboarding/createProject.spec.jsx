@@ -2,10 +2,10 @@ import React from 'react';
 import {shallow, mount} from 'enzyme';
 
 import {Client} from 'app/api';
-import OnboardingWizard from 'app/views/onboarding/';
+import CreateProject from 'app/views/onboarding/createProject';
 import Project from 'app/views/onboarding/project';
 
-describe('OnboardingWizard', function() {
+describe('CreateProject', function() {
   beforeEach(function() {
     this.sandbox = sinon.sandbox.create();
     this.stubbedApiRequest = this.sandbox.stub(Client.prototype, 'request');
@@ -32,13 +32,13 @@ describe('OnboardingWizard', function() {
         }
       };
 
-      let wrapper = shallow(<OnboardingWizard {...props} />, {
+      let wrapper = shallow(<CreateProject {...props} />, {
         organization: {id: '1337', slug: 'testOrg'}
       });
       expect(wrapper).toMatchSnapshot();
     });
 
-    it('should render and respond to click events', function() {
+    it('should fill in project name if its empty when platform is chosen', function() {
       let props = {
         ...baseProps,
         children: (
@@ -52,7 +52,7 @@ describe('OnboardingWizard', function() {
         )
       };
 
-      let wrapper = mount(<OnboardingWizard {...props} />, {
+      let wrapper = mount(<CreateProject {...props} />, {
         context: {
           organization: {id: '1337', slug: 'testOrg'},
           router: TestStubs.router()
@@ -63,9 +63,21 @@ describe('OnboardingWizard', function() {
         }
       });
 
-      expect(wrapper).toMatchSnapshot();
       let node = wrapper.find('PlatformCard').first();
       node.props().onClick();
+      expect(wrapper.state().projectName).toBe('C#');
+
+      node = wrapper.find('PlatformCard').last();
+      node.props().onClick();
+      expect(wrapper.state().projectName).toBe('Rails');
+
+      //but not replace it when project name is something else:
+      wrapper.setState({projectName: 'another'});
+
+      node = wrapper.find('PlatformCard').first();
+      node.props().onClick();
+      expect(wrapper.state().projectName).toBe('another');
+
       expect(wrapper).toMatchSnapshot();
     });
   });
