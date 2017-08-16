@@ -1,0 +1,191 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`ScoreBar has custom palette 1`] = `
+<div
+  className="score-bar vertical"
+>
+  <div
+    className="score-bar-bar"
+    style={
+      Object {
+        "backgroundColor": "purple",
+        "height": undefined,
+        "width": undefined,
+      }
+    }
+  />
+  <div
+    className="score-bar-bar"
+    style={
+      Object {
+        "backgroundColor": "purple",
+        "height": undefined,
+        "width": undefined,
+      }
+    }
+  />
+  <div
+    className="score-bar-bar"
+    style={
+      Object {
+        "backgroundColor": "purple",
+        "height": undefined,
+        "width": undefined,
+      }
+    }
+  />
+  <div
+    className="score-bar-bar"
+    style={
+      Object {
+        "backgroundColor": "purple",
+        "height": undefined,
+        "width": undefined,
+      }
+    }
+  />
+  <div
+    className="score-bar-bar"
+    style={
+      Object {
+        "backgroundColor": "purple",
+        "height": undefined,
+        "width": undefined,
+      }
+    }
+  />
+  <div
+    className="score-bar-bar"
+    style={
+      Object {
+        "backgroundColor": "purple",
+        "height": undefined,
+        "width": undefined,
+      }
+    }
+  />
+  <div
+    className="score-bar-bar"
+    style={
+      Object {
+        "backgroundColor": "purple",
+        "height": undefined,
+        "width": undefined,
+      }
+    }
+  />
+  <div
+    className="score-bar-bar empty"
+    style={
+      Object {
+        "height": undefined,
+        "width": undefined,
+      }
+    }
+  />
+</div>
+`;
+
+exports[`ScoreBar renders 1`] = `
+<div
+  className="score-bar horizontal"
+>
+  <div
+    className="score-bar-bar orange"
+    style={
+      Object {
+        "height": undefined,
+        "width": undefined,
+      }
+    }
+  />
+  <div
+    className="score-bar-bar orange"
+    style={
+      Object {
+        "height": undefined,
+        "width": undefined,
+      }
+    }
+  />
+  <div
+    className="score-bar-bar orange"
+    style={
+      Object {
+        "height": undefined,
+        "width": undefined,
+      }
+    }
+  />
+  <div
+    className="score-bar-bar empty"
+    style={
+      Object {
+        "height": undefined,
+        "width": undefined,
+      }
+    }
+  />
+  <div
+    className="score-bar-bar empty"
+    style={
+      Object {
+        "height": undefined,
+        "width": undefined,
+      }
+    }
+  />
+</div>
+`;
+
+exports[`ScoreBar renders vertically 1`] = `
+<div
+  className="score-bar vertical"
+>
+  <div
+    className="score-bar-bar red"
+    style={
+      Object {
+        "height": undefined,
+        "width": undefined,
+      }
+    }
+  />
+  <div
+    className="score-bar-bar red"
+    style={
+      Object {
+        "height": undefined,
+        "width": undefined,
+      }
+    }
+  />
+  <div
+    className="score-bar-bar empty"
+    style={
+      Object {
+        "height": undefined,
+        "width": undefined,
+      }
+    }
+  />
+  <div
+    className="score-bar-bar empty"
+    style={
+      Object {
+        "height": undefined,
+        "width": undefined,
+      }
+    }
+  />
+  <div
+    className="score-bar-bar empty"
+    style={
+      Object {
+        "height": undefined,
+        "width": undefined,
+      }
+    }
+  />
+</div>
+`;
