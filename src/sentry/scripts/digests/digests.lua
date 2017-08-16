@@ -1,7 +1,5 @@
 -- Utilities
 
-local VARIADIC_CALL_CHUNK_SIZE  = 250
-
 local noop = function ()
     return
 end
@@ -119,33 +117,22 @@ local function zrange_move_slice(source, destination, threshold, callback)
         return
     end
 
-    local i = 0
-    local zadd_args = {}
-    local zrem_args = {}
-    for key, score in zrange_scored_iterator(keys) do
-        zrem_args[i + 1] = key
-        table.extend(zadd_args, {score, key}, i * 2)
-        i = i + 1
-        callback(key, score)
-    end
-
-    -- TODO: This should support modifiers, and maintenance ZADD should include
-    -- the "NX" modifier to avoid resetting schedules during a race conditions
-    -- between a digest task and the maintenance task.
-    for _, chunk_iterator in chunked(VARIADIC_CALL_CHUNK_SIZE, ipairs(zadd_args)) do
-        local items = {}
-        for i, _, item in chunk_iterator do
-            items[i] = item
+    -- NOTE: The actual number of arguments is the chunk size * 2, since the
+    -- ZADD command takes two arguments per item.
+    for _, chunk_iterator in chunked(500, zrange_scored_iterator(keys)) do
+        local zadd_args = {}
+        local zrem_args = {}
+        for i, key, score in chunk_iterator do
+            table.extend(zadd_args, {score, key}, (i - 1) * 2)
+            zrem_args[i] = key
+            callback(key, score)
         end
-        redis.call('ZADD', destination, unpack(items))
-    end
 
-    for _, chunk_iterator in chunked(VARIADIC_CALL_CHUNK_SIZE, ipairs(zrem_args)) do
-        local items = {}
-        for i, _, item in chunk_iterator do
-            items[i] = item
-        end
-        redis.call('ZREM', source, unpack(items))
+        -- TODO: This should support modifiers, and maintenance ZADD should
+        -- include the "NX" modifier to avoid resetting schedules during a race
+        -- conditions between a digest task and the maintenance task.
+        redis.call('ZADD', destination, unpack(zadd_args))
+        redis.call('ZREM', source, unpack(zrem_args))
     end
 end
 
@@ -321,7 +308,7 @@ local function close_digest(configuration, timeline_id, delay_minimum, record_id
     local timeline_key = configuration:get_timeline_key(timeline_id)
     local digest_key = configuration:get_timeline_digest_key(timeline_id)
 
-    for _, chunk_iterator in chunked(VARIADIC_CALL_CHUNK_SIZE, ipairs(record_ids)) do
+    for _, chunk_iterator in chunked(1000, ipairs(record_ids)) do
         local record_id_chunk = {}
         for i, _, record_id in chunk_iterator do
             redis.call('DEL', configuration:get_timeline_record_key(timeline_id, record_id))
