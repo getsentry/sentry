@@ -23,7 +23,7 @@ class AssociateDsymSerializer(serializers.Serializer):
     name = serializers.CharField(max_length=250)
     appId = serializers.CharField(max_length=250)
     version = serializers.CharField(max_length=40)
-    build = serializers.CharField(max_length=40, null=True)
+    build = serializers.CharField(max_length=40, required=False)
 
 
 def upload_from_request(request, project=None):
