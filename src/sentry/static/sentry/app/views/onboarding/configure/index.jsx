@@ -7,8 +7,17 @@ import ProjectContext from '../../projects/projectContext';
 import ProjectDocsContext from '../../projectInstall/docsContext';
 import ProjectInstallPlatform from '../../projectInstall/platform';
 
+import Raven from 'raven-js';
+
 const Configure = React.createClass({
   mixins: [ApiMixin],
+
+  getInitialState() {
+    return {
+      isFirstTimePolling: true,
+      hasSentRealEvent: false
+    };
+  },
 
   componentWillMount() {
     let {platform} = this.props.params;
@@ -16,16 +25,34 @@ const Configure = React.createClass({
     if (!platform || platform === 'other') {
       this.redirectToNeutralDocs();
     }
-  },
 
-  componentDidMount() {
+    this.fetchEventData();
     this.timer = setInterval(() => {
       this.fetchEventData();
     }, 2000);
   },
 
+  componentWillUpdate(nextProps, nextState) {
+    if (
+      !this.state.isFirstTimePolling &&
+      nextState.hasSentRealEvent == true &&
+      this.state.hasSentRealEvent == false
+    ) {
+      this.redirectUrl();
+    }
+  },
+
   componentWillUnmount() {
     clearInterval(this.timer);
+  },
+
+  sentRealEvent(data) {
+    if (data.length == 1) {
+      let firstError = data[0];
+      return !firstError.message.includes('This is an example');
+    } else {
+      return data.length > 1;
+    }
   },
 
   redirectUrl() {
@@ -41,13 +68,16 @@ const Configure = React.createClass({
     this.api.request(`/projects/${orgId}/${projectId}/events/`, {
       method: 'GET',
       success: data => {
-        // this indicates that a real event has been sent to the project (the first one is the sample event)
-        if (data.length > 1) {
-          this.redirectUrl();
-        }
+        this.setState({
+          isFirstTimePolling: false,
+          hasSentRealEvent: this.sentRealEvent(data)
+        });
       },
-      error: () => {
-        this.setState({hasError: true});
+
+      error: err => {
+        Raven.captureMessage('Polling for events in onboarding configure failed', {
+          extra: err
+        });
       }
     });
   },
@@ -82,7 +112,7 @@ const Configure = React.createClass({
               />
             </ProjectDocsContext>
           </ProjectContext>
-          <Waiting skip={this.submit} />
+          <Waiting skip={this.submit} hasEvent={this.state.hasSentRealEvent} />
         </div>
       </div>
     );
