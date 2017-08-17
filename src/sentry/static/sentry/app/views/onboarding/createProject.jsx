@@ -1,11 +1,12 @@
 import React from 'react';
-import {browserHistory} from 'react-router';
+import {browserHistory, Link} from 'react-router';
 
 import ApiMixin from '../../mixins/apiMixin';
 import ProjectActions from '../../actions/projectActions';
 import {getPlatformName} from './utils';
 
 import OnboardingProject from '../onboarding/project';
+import {t} from '../../locale';
 
 import Raven from 'raven-js';
 
@@ -82,7 +83,7 @@ const CreateProject = React.createClass({
 
   render() {
     let {projectName, platform} = this.state;
-
+    let {slug, teams} = this.context.organization;
     const stepProps = {
       next: this.next,
       platform: platform,
@@ -96,7 +97,21 @@ const CreateProject = React.createClass({
       setName: n => this.setState({projectName: n})
     };
 
-    return <OnboardingProject {...stepProps} />;
+    return (
+      <div>
+        {!teams.length &&
+          <div>
+            {t(
+              'You cannot create a new project because there are no teams to assign it to.'
+            )}
+            <Link to={`/organizations/${slug}/teams/new/`} className="btn btn-primary">
+              {t('Create a Team')}
+            </Link>
+          </div>}
+
+        <OnboardingProject {...stepProps} />
+      </div>
+    );
   }
 });
 

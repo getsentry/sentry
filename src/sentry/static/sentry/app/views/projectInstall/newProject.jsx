@@ -9,18 +9,6 @@ const newProject = React.createClass({
     organization: React.PropTypes.object
   },
 
-  renderStep() {},
-
-  getProjectUrlProps(project) {
-    let org = this.context.organization;
-    let path = `/${org.slug}/${project.slug}/settings/install/${this.state.platform}`;
-    return path;
-  },
-
-  next() {
-    this.createProject();
-  },
-
   render() {
     return (
       <div className="getting-started">
