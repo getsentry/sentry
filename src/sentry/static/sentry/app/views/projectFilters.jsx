@@ -367,7 +367,7 @@ const ProjectFilters = React.createClass({
     let since = until - 3600 * 24 * 30;
 
     return {
-      expected: 2,
+      expected: 3,
       loading: true,
       error: false,
       statsError: false,
@@ -376,9 +376,9 @@ const ProjectFilters = React.createClass({
       queryUntil: until,
       stats: null,
       rawStatsData: null,
-      processedStats: false,
+      formattedData: null,
       projectOptions: {},
-      blankStats: false,
+      blankStats: true,
       activeSection: 'data-filters',
       tombstones: [],
       tombstoneError: false
@@ -410,6 +410,9 @@ const ProjectFilters = React.createClass({
     return this.STAT_OPTS.map(stat => {
       return {
         data: rawData[stat].map(([x, y]) => {
+          if (y > 0) {
+            this.setState({blankStats: false});
+          }
           return {x, y};
         }),
         label: stat
@@ -440,13 +443,16 @@ const ProjectFilters = React.createClass({
       )
       .done(
         function() {
-          let rawOrgData = {};
+          let rawStatsData = {};
+          let expected = this.state.expected - 1;
           for (let i = 0; i < this.STAT_OPTS.length; i++) {
-            rawOrgData[this.STAT_OPTS[i]] = arguments[i][0];
+            rawStatsData[this.STAT_OPTS[i]] = arguments[i][0];
           }
           this.setState({
-            rawOrgData: rawOrgData,
-            formattedData: this.formatData(rawOrgData)
+            rawStatsData: rawStatsData,
+            formattedData: this.formatData(rawStatsData),
+            expected: expected,
+            loading: expected > 0
           });
         }.bind(this)
       )
@@ -503,24 +509,6 @@ const ProjectFilters = React.createClass({
           tombstoneError: true
         });
       }
-    });
-  },
-
-  processStatsData() {
-    let blank = true; // Keep track if the entire graph is blank or not.
-    let points = this.state.rawStatsData.map(point => {
-      let [x, y] = point;
-      if (y > 0) {
-        blank = false;
-      }
-      return {
-        x,
-        y: [y]
-      };
-    });
-    this.setState({
-      stats: points,
-      blankStats: blank
     });
   },
 
@@ -639,7 +627,6 @@ const ProjectFilters = React.createClass({
           {!this.state.blankStats
             ? <StackedBarChart
                 series={this.state.formattedData}
-                // height={100}
                 label="events"
                 barClasses={this.STAT_OPTS}
                 className="standard-barchart filtered-stats-barchart"
