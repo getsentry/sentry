@@ -4,8 +4,6 @@ import classNames from 'classnames';
 import SpreadLayout from './spreadLayout';
 
 // Flexbox, use when you want your children to be equal sizes
-//
-// "responsive" will change flex-direction to be column on small widths
 const SplitLayout = ({children, className, responsive, ...props}) => {
   const cx = classNames('split-layout', className, {
     'allow-responsive': responsive
