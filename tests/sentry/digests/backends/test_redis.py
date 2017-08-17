@@ -111,7 +111,7 @@ class RedisBackendTestCase(TestCase):
     def test_large_digest(self):
         backend = RedisBackend()
 
-        n = 16384
+        n = 8192
         t = time.time()
         for i in xrange(n):
             backend.add('timeline', Record('record:{}'.format(i), '{}'.format(i), t))
