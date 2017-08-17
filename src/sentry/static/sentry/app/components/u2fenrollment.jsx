@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 
 import U2fInterface from './u2finterface';
@@ -5,7 +6,7 @@ import {t} from '../locale';
 
 const U2fEnrollment = React.createClass({
   propTypes: {
-    enrollmentData: React.PropTypes.object
+    enrollmentData: PropTypes.object
   },
 
   render() {

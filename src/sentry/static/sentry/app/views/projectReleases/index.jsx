@@ -1,4 +1,5 @@
 import jQuery from 'jquery';
+import PropTypes from 'prop-types';
 import React from 'react';
 import {browserHistory} from 'react-router';
 
@@ -13,8 +14,8 @@ import ReleaseList from './releaseList';
 
 const ProjectReleases = React.createClass({
   propTypes: {
-    defaultQuery: React.PropTypes.string,
-    setProjectNavSection: React.PropTypes.func
+    defaultQuery: PropTypes.string,
+    setProjectNavSection: PropTypes.func
   },
 
   mixins: [ApiMixin],

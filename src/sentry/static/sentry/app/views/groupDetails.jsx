@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import Reflux from 'reflux';
 import {browserHistory} from 'react-router';
@@ -7,7 +8,7 @@ import GroupHeader from './groupDetails/header';
 import GroupStore from '../stores/groupStore';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
-import PropTypes from '../proptypes';
+import CustomPropTypes from '../proptypes';
 import {t} from '../locale';
 
 let ERROR_TYPES = {
@@ -16,13 +17,13 @@ let ERROR_TYPES = {
 
 const GroupDetails = React.createClass({
   propTypes: {
-    setProjectNavSection: React.PropTypes.func,
-    memberList: React.PropTypes.array
+    setProjectNavSection: PropTypes.func,
+    memberList: PropTypes.array
   },
 
   childContextTypes: {
-    group: PropTypes.Group,
-    location: React.PropTypes.object
+    group: CustomPropTypes.Group,
+    location: PropTypes.object
   },
 
   mixins: [ApiMixin, Reflux.listenTo(GroupStore, 'onGroupChange')],

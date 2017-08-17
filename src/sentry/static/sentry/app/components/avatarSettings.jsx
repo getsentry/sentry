@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 
 import AlertActions from '../actions/alertActions';
@@ -10,7 +11,7 @@ import {t} from '../locale';
 
 const AvatarSettings = React.createClass({
   propTypes: {
-    userId: React.PropTypes.number
+    userId: PropTypes.number
   },
 
   mixins: [ApiMixin],

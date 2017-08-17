@@ -1,4 +1,5 @@
 import DocumentTitle from 'react-document-title';
+import PropTypes from 'prop-types';
 import React from 'react';
 import {isEqual} from 'lodash';
 
@@ -164,7 +165,7 @@ AsyncView.errorHandler = (component, fn) => {
 };
 
 AsyncView.contextTypes = {
-  router: React.PropTypes.object.isRequired
+  router: PropTypes.object.isRequired
 };
 
 export default AsyncView;

@@ -2,13 +2,13 @@ import React from 'react';
 
 import EventDataSection from './eventDataSection';
 import EventErrorItem from './errorItem';
-import PropTypes from '../../proptypes';
+import CustomPropTypes from '../../proptypes';
 import {t, tn} from '../../locale';
 
 const EventErrors = React.createClass({
   propTypes: {
-    group: PropTypes.Group.isRequired,
-    event: PropTypes.Event.isRequired
+    group: CustomPropTypes.Group.isRequired,
+    event: CustomPropTypes.Event.isRequired
   },
 
   getInitialState() {

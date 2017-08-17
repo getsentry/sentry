@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import classnames from 'classnames';
 
@@ -7,11 +8,11 @@ import {t} from '../../../locale';
 
 const Project = React.createClass({
   propTypes: {
-    next: React.PropTypes.func,
-    setPlatform: React.PropTypes.func,
-    platform: React.PropTypes.string,
-    setName: React.PropTypes.func,
-    name: React.PropTypes.string
+    next: PropTypes.func,
+    setPlatform: PropTypes.func,
+    platform: PropTypes.string,
+    setName: PropTypes.func,
+    name: PropTypes.string
   },
 
   getInitialState() {

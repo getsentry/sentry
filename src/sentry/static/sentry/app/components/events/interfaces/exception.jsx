@@ -1,16 +1,17 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import GroupEventDataSection from '../eventDataSection';
-import PropTypes from '../../../proptypes';
+import CustomPropTypes from '../../../proptypes';
 import {isStacktraceNewestFirst} from './stacktrace';
 import CrashHeader from './crashHeader';
 import CrashContent from './crashContent';
 
 const ExceptionInterface = React.createClass({
   propTypes: {
-    group: PropTypes.Group.isRequired,
-    event: PropTypes.Event.isRequired,
-    type: React.PropTypes.string.isRequired,
-    data: React.PropTypes.object.isRequired
+    group: CustomPropTypes.Group.isRequired,
+    event: CustomPropTypes.Event.isRequired,
+    type: PropTypes.string.isRequired,
+    data: PropTypes.object.isRequired
   },
 
   getInitialState() {

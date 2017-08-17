@@ -1,13 +1,14 @@
+import PropTypes from 'prop-types';
 import React from 'react';
-import PropTypes from '../../proptypes';
+import CustomPropTypes from '../../proptypes';
 
 const GroupEventDataSection = React.createClass({
   propTypes: {
-    group: PropTypes.Group.isRequired,
-    event: PropTypes.Event.isRequired,
-    title: React.PropTypes.any,
-    type: React.PropTypes.string.isRequired,
-    wrapTitle: React.PropTypes.bool
+    group: CustomPropTypes.Group.isRequired,
+    event: CustomPropTypes.Event.isRequired,
+    title: PropTypes.any,
+    type: PropTypes.string.isRequired,
+    wrapTitle: PropTypes.bool
   },
 
   getDefaultProps() {

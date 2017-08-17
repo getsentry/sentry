@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import moment from 'moment';
 import ConfigStore from '../stores/configStore.jsx';
@@ -5,8 +6,8 @@ import _ from 'lodash';
 
 const DateTime = React.createClass({
   propTypes: {
-    date: React.PropTypes.any.isRequired,
-    seconds: React.PropTypes.bool
+    date: PropTypes.any.isRequired,
+    seconds: PropTypes.bool
   },
 
   getDefaultProps() {

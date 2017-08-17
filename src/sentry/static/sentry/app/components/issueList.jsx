@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 
 import ApiMixin from '../mixins/apiMixin';
@@ -9,12 +10,12 @@ import {t} from '../locale';
 
 const IssueList = React.createClass({
   propTypes: {
-    endpoint: React.PropTypes.string.isRequired,
-    query: React.PropTypes.object,
-    pagination: React.PropTypes.bool,
-    renderEmpty: React.PropTypes.func,
-    statsPeriod: React.PropTypes.string,
-    showActions: React.PropTypes.bool
+    endpoint: PropTypes.string.isRequired,
+    query: PropTypes.object,
+    pagination: PropTypes.bool,
+    renderEmpty: PropTypes.func,
+    statsPeriod: PropTypes.string,
+    showActions: PropTypes.bool
   },
 
   mixins: [ApiMixin],
