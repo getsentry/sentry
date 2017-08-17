@@ -96,7 +96,10 @@ class RedisBackendTestCase(TestCase):
         except Exception:
             pass
 
-        # There are now 10 items in the digest, let's add 10 more to the timeline.
+        # The 10 existing items should now be in the digest set (the exception
+        # prevented the close operation from occurring, so they were never
+        # deleted from Redis or removed from the digest set.) If we add 10 more
+        # items, they should be added to the timeline set (not the digest set.)
         for i in xrange(10, 20):
             backend.add('timeline', Record('record:{}'.format(i), '{}'.format(i), t + i))
 
@@ -107,7 +110,7 @@ class RedisBackendTestCase(TestCase):
         assert set(entry.key for entry in backend.schedule(time.time())) == set(['timeline'])
 
         # Only the new records should exist -- the older one should have been
-        # trimmed to avoid unbounded growth.
+        # trimmed to avoid the digest growing beyond the timeline capacity.
         with backend.digest('timeline', 0) as records:
             assert set(record.key
                        for record in records) == set('record:{}'.format(i) for i in xrange(10, 20))
