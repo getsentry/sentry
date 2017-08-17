@@ -4,9 +4,6 @@ import classNames from 'classnames';
 import {t} from '../locale';
 import SpreadLayout from './spreadLayout';
 
-import '../../less/components/similarScoreCard.less';
-
-// TODO(billy): Replace this with a quantified aggregate score
 const scoreComponents = {
   'exception:message:character-shingles': t('Exception Message'),
   'exception:stacktrace:application-chunks': t('Application Code'),
