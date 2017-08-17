@@ -49,11 +49,11 @@ const SimilarList = React.createClass({
 
     if (hasResults) {
       return (
-        <div className="grouping-list-container grouping-similar-list-container">
+        <div className="similar-list-container">
           <h2>{t('Similar Issues')}</h2>
           <SimilarToolbar onMerge={onMerge} />
 
-          <div className="grouping-list">
+          <div className="similar-list">
             {items.map(item => (
               <SimilarItem
                 key={item.issue.id}
@@ -88,7 +88,7 @@ const SimilarList = React.createClass({
     }
 
     return (
-      <div className="grouping-list-container grouping-similar-list-container">
+      <div className="similar-list-container">
         {this.renderEmpty()}
       </div>
     );

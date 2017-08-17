@@ -2,7 +2,6 @@ import React, {PropTypes} from 'react';
 import Reflux from 'reflux';
 import classNames from 'classnames';
 
-import {t} from '../../locale';
 import GroupingStore from '../../stores/groupingStore';
 import GroupingActions from '../../actions/groupingActions';
 
@@ -10,22 +9,27 @@ import Count from '../../components/count';
 import EventOrGroupHeader from '../../components/eventOrGroupHeader';
 import EventOrGroupExtraDetails from '../../components/eventOrGroupExtraDetails';
 import SpreadLayout from '../../components/spreadLayout';
-import SplitLayout from '../../components/splitLayout';
+import FlowLayout from '../../components/flowLayout';
 import Checkbox from '../../components/checkbox';
+import ScoreBar from '../../components/scoreBar';
+import Hovercard from '../../components/hovercard';
+import SimilarScoreCard from '../../components/similarScoreCard';
 
-// TODO(billy): Replace this with a quantified aggregate score
-const scoreComponents = {
-  'exception:message:character-shingles': t('Exception'),
-  'exception:stacktrace:application-chunks': t('App code'),
-  'exception:stacktrace:pairs': t('Stacktrace'),
-  'message:message:character-shingles': t('Message')
-};
+const similarInterfaces = ['exception', 'message'];
 
 const SimilarIssueItem = React.createClass({
   propTypes: {
     orgId: PropTypes.string.isRequired,
     projectId: PropTypes.string.isRequired,
     score: PropTypes.object,
+    scoresByInterface: PropTypes.shape({
+      exception: PropTypes.array,
+      message: PropTypes.array
+    }),
+    aggregate: PropTypes.shape({
+      exception: PropTypes.number,
+      message: PropTypes.number
+    }),
     issue: PropTypes.shape({
       id: PropTypes.string.isRequired,
       level: PropTypes.string.isRequired,
@@ -69,10 +73,6 @@ const SimilarIssueItem = React.createClass({
     }
   },
 
-  displaySimilarity(value) {
-    return isNaN(value) ? '' : `${Math.round(value * 100)}%`;
-  },
-
   handleToggle(e) {
     let {issue} = this.props;
 
@@ -83,7 +83,7 @@ const SimilarIssueItem = React.createClass({
   },
 
   render() {
-    let {score, issue, orgId, projectId} = this.props;
+    let {aggregate, scoresByInterface, issue, orgId, projectId} = this.props;
 
     if (!this.state.visible) {
       return null;
@@ -94,62 +94,48 @@ const SimilarIssueItem = React.createClass({
     });
 
     return (
-      <SplitLayout className={cx} responsive onClick={this.handleToggle}>
-        <SpreadLayout>
-          <div className="event-details">
-            <EventOrGroupHeader
-              orgId={orgId}
-              projectId={projectId}
-              data={issue}
-              hideLevel
-            />
-            <EventOrGroupExtraDetails
-              {...issue}
-              groupId={issue.id}
-              orgId={orgId}
-              projectId={projectId}
-              group
-            />
-          </div>
+      <SpreadLayout className={cx} responsive onClick={this.handleToggle}>
+        <FlowLayout style={{flex: 1}}>
+          <FlowLayout style={{flex: 1}}>
+            <div className="action-column">
+              <Checkbox id={issue.id} value={issue.id} checked={this.state.checked} />
+            </div>
+            <div className="event-details level-error" style={{flex: 1}}>
+              <EventOrGroupHeader orgId={orgId} projectId={projectId} data={issue} />
+              <EventOrGroupExtraDetails
+                {...issue}
+                groupId={issue.id}
+                orgId={orgId}
+                projectId={projectId}
+                lastSeen={null}
+                group
+              />
+            </div>
+          </FlowLayout>
+        </FlowLayout>
 
-          <Count className="event-count" value={issue.count} />
-        </SpreadLayout>
+        <div className="similar-score-columns">
+          <Count className="similar-score-column" value={issue.count} />
 
-        <SpreadLayout>
-          <div className="similarity-score">
-            {Object.keys(score).map(scoreKey => {
-              const color = `hsl(${score[scoreKey] * 100},40%,50%)`;
-              return (
-                <div key={scoreKey} className="similarity-score-row">
-                  <div className="similarity-score-label">
-                    <span>
-                      {scoreComponents[scoreKey]}
-                    </span>
-                    <span
-                      style={{
-                        fontWeight: 'bold',
-                        color
-                      }}>
-                      {this.displaySimilarity(score[scoreKey])}
-                    </span>
-                  </div>
-                  <div
-                    className="similarity-score-bar"
-                    style={{
-                      width: `${Math.round(score[scoreKey] * 100)}%`,
-                      backgroundColor: color
-                    }}
-                  />
-                </div>
-              );
-            })}
-          </div>
+          {similarInterfaces.map(interfaceName => {
+            let avgScore = aggregate[interfaceName];
+            let scoreList = scoresByInterface[interfaceName] || [];
+            // Check for valid number (and not NaN)
+            let scoreValue = typeof avgScore === 'number' && !Number.isNaN(avgScore)
+              ? avgScore
+              : 0;
 
-          <div className="action-column">
-            <Checkbox id={issue.id} value={issue.id} checked={this.state.checked} />
-          </div>
-        </SpreadLayout>
-      </SplitLayout>
+            return (
+              <div key={interfaceName} className="similar-score-column">
+                <Hovercard
+                  body={scoreList.length && <SimilarScoreCard scoreList={scoreList} />}>
+                  <ScoreBar vertical score={Math.round(scoreValue * 5)} />
+                </Hovercard>
+              </div>
+            );
+          })}
+        </div>
+      </SpreadLayout>
     );
   }
 });
