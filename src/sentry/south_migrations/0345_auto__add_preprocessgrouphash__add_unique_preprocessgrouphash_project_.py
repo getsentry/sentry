@@ -89,14 +89,14 @@ class Migration(SchemaMigration):
             }),
             'client_id': (
                 'django.db.models.fields.CharField', [], {
-                    'default': "'bfdcf569b33041ee8b22145e5b75b3fbc8832552ff064366ba7179d74a846060'",
+                    'default': "'71b3782a934d4ec9a30612c8da4f7fdb62ddd2c743ba411592006b660ca8d266'",
                     'unique': 'True',
                     'max_length': '64'
                 }
             ),
             'client_secret': (
                 'sentry.db.models.fields.encrypted.EncryptedTextField', [], {
-                    'default': "'fb5ef79c22314ece8bfc7cea3ba2702999703da2817b4d51be2c1890e66ba9ee'"
+                    'default': "'11a9eb31b22548e29f09c9f997e4b717b4de9ffa69e24eb283b9b1b55fd96a51'"
                 }
             ),
             'date_added':
@@ -114,7 +114,7 @@ class Migration(SchemaMigration):
             }),
             'name': (
                 'django.db.models.fields.CharField', [], {
-                    'default': "'Hot Phoenix'",
+                    'default': "'Pleasing Mustang'",
                     'max_length': '64',
                     'blank': 'True'
                 }
@@ -186,14 +186,14 @@ class Migration(SchemaMigration):
             ),
             'code': (
                 'django.db.models.fields.CharField', [], {
-                    'default': "'839a54a8acba4909857c81ad20d7c0ca'",
+                    'default': "'fcc868ab02ee4948808b116a791333aa'",
                     'max_length': '64',
                     'db_index': 'True'
                 }
             ),
             'expires_at': (
                 'django.db.models.fields.DateTimeField', [], {
-                    'default': 'datetime.datetime(2017, 8, 7, 0, 0)',
+                    'default': 'datetime.datetime(2017, 8, 17, 0, 0)',
                     'db_index': 'True'
                 }
             ),
@@ -284,7 +284,7 @@ class Migration(SchemaMigration):
             }),
             'expires_at': (
                 'django.db.models.fields.DateTimeField', [], {
-                    'default': 'datetime.datetime(2017, 9, 6, 0, 0)',
+                    'default': 'datetime.datetime(2017, 9, 16, 0, 0)',
                     'null': 'True'
                 }
             ),
@@ -294,7 +294,7 @@ class Migration(SchemaMigration):
             }),
             'refresh_token': (
                 'django.db.models.fields.CharField', [], {
-                    'default': "'cbcb83f5450e4e75bf798687876a3def19078e2982ac41fa9b63cb5ad532d0ab'",
+                    'default': "'0d507959838c45fa9d3c8fd45f7336cb994f081da46a40d2b93aec9e2e222610'",
                     'max_length': '64',
                     'unique': 'True',
                     'null': 'True'
@@ -310,7 +310,7 @@ class Migration(SchemaMigration):
             }),
             'token': (
                 'django.db.models.fields.CharField', [], {
-                    'default': "'bf7f18a0f26c4090b93a6c23a40f76e629118a8766264f1983e97eeebffd3108'",
+                    'default': "'0e1e9216bb2745559e86a9a46b55af330d719ebff0d8444da7019a3854cb6e7e'",
                     'unique': 'True',
                     'max_length': '64'
                 }
@@ -504,7 +504,7 @@ class Migration(SchemaMigration):
             }),
             'date_expires': (
                 'django.db.models.fields.DateTimeField', [], {
-                    'default': 'datetime.datetime(2017, 8, 14, 0, 0)',
+                    'default': 'datetime.datetime(2017, 8, 24, 0, 0)',
                     'null': 'True',
                     'blank': 'True'
                 }
@@ -1334,7 +1334,11 @@ class Migration(SchemaMigration):
                 'unique_together': "(('group_id', 'commit_id'),)",
                 'object_name': 'GroupCommitResolution'
             },
-            'commit_id': ('sentry.db.models.fields.bounded.BoundedPositiveIntegerField', [], {}),
+            'commit_id': (
+                'sentry.db.models.fields.bounded.BoundedPositiveIntegerField', [], {
+                    'db_index': 'True'
+                }
+            ),
             'datetime': (
                 'django.db.models.fields.DateTimeField', [], {
                     'default': 'datetime.datetime.now',
@@ -2895,12 +2899,12 @@ class Migration(SchemaMigration):
             }),
             'date_scheduled': (
                 'django.db.models.fields.DateTimeField', [], {
-                    'default': 'datetime.datetime(2017, 9, 6, 0, 0)'
+                    'default': 'datetime.datetime(2017, 9, 16, 0, 0)'
                 }
             ),
             'guid': (
                 'django.db.models.fields.CharField', [], {
-                    'default': "'87ce4b6202334db0898c55929f87d6c5'",
+                    'default': "'7750a829834f4ae69812e3b0d2bcb2c3'",
                     'unique': 'True',
                     'max_length': '32'
                 }
@@ -3176,7 +3180,7 @@ class Migration(SchemaMigration):
             ),
             'validation_hash': (
                 'django.db.models.fields.CharField', [], {
-                    'default': "u'QgXnTd6KSUOSlWHNu4M007fv9ivzp5eu'",
+                    'default': "u'ybQoa86dCqNDDgWJ5MAC9tcOHsGXyAIl'",
                     'max_length': '32'
                 }
             )
