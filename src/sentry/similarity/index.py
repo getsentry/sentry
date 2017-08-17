@@ -185,33 +185,27 @@ class MinHashIndex(object):
             scope,
         ]
 
-        clients = map(
-            self.cluster.get_local_client,
-            self.cluster.hosts,
-        )
+        cursors = {idx: 0 for idx in indices}
+        while cursors:
+            requests = []
+            for idx, cursor in cursors.items():
+                requests.append([idx, cursor, batch])
 
-        for client in clients:
-            cursors = {idx: 0 for idx in indices}
-            while cursors:
-                requests = []
-                for idx, cursor in cursors.items():
-                    requests.append([idx, cursor, batch])
+            responses = self.__index(scope, arguments + flatten(requests))
 
-                responses = self.__index(scope, arguments + flatten(requests))
+            for (idx, _, _), (cursor, chunk) in zip(requests, responses):
+                cursor = int(cursor)
+                if cursor == 0:
+                    del cursors[idx]
+                else:
+                    cursors[idx] = cursor
 
-                for (idx, _, _), (cursor, chunk) in zip(requests, responses):
-                    cursor = int(cursor)
-                    if cursor == 0:
-                        del cursors[idx]
-                    else:
-                        cursors[idx] = cursor
-
-                    yield client, idx, chunk
+                yield idx, chunk
 
     def flush(self, scope, indices, batch=1000, timestamp=None):
-        for client, index, chunk in self.scan(scope, indices, batch, timestamp):
+        for index, chunk in self.scan(scope, indices, batch, timestamp):
             if chunk:
-                client.delete(*chunk)
+                self.cluster.delete(*chunk)
 
     def export(self, scope, items, timestamp=None):
         if timestamp is None:
