@@ -112,8 +112,8 @@ class RedisBackendTestCase(TestCase):
         # Only the new records should exist -- the older one should have been
         # trimmed to avoid the digest growing beyond the timeline capacity.
         with backend.digest('timeline', 0) as records:
-            assert set(record.key
-                       for record in records) == set('record:{}'.format(i) for i in xrange(10, 20))
+            expected_keys = set('record:{}'.format(i) for i in xrange(10, 20))
+            assert set(record.key for record in records) == expected_keys
 
     def test_delete(self):
         backend = RedisBackend()
