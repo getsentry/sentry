@@ -32,7 +32,6 @@ const newProject = React.createClass({
         <div className="container">
           <div className="content">
             <DocumentTitle title={'Sentry'} />
-            <h2>Create a New Project:</h2>
             <CreateProject
               getDocsUrl={({slug, projectSlug, platform}) => {
                 if (platform === 'other') platform = '';
