@@ -153,3 +153,86 @@ class PreProcessingHashTest(TestCase):
         def_checksums = get_preprocess_hashes(event_data2)
         assert len(fp_checksums) == len(def_checksums)
         assert def_checksums != fp_checksums
+
+    def test_exception_with_stacktrace(self):
+        data = {
+            'sentry.interfaces.Exception': {
+                'exc_omitted':
+                None,
+                'values': [
+                    {
+                        'mechanism': None,
+                        'module': None,
+                        'raw_stacktrace': None,
+                        'stacktrace': {
+                            'frames': [
+                                {
+                                    'abs_path':
+                                    u'http://localhost:8000/_static/373562702009df1692da6eb80a933139f29e094b/sentry/dist/vendor.js',
+                                    'colno':
+                                    22,
+                                    'filename':
+                                    u'/_static/373562702009df1692da6eb80a933139f29e094b/sentry/dist/vendor.js',
+                                    'function':
+                                    u'Object.receiveComponent',
+                                    'in_app':
+                                    True,
+                                    'lineno':
+                                    17866
+                                }, {
+                                    'abs_path':
+                                    u'http://localhost:8000/_static/373562702009df1692da6eb80a933139f29e094b/sentry/dist/vendor.js',
+                                    'colno':
+                                    10,
+                                    'filename':
+                                    u'/_static/373562702009df1692da6eb80a933139f29e094b/sentry/dist/vendor.js',
+                                    'function':
+                                    u'ReactCompositeComponentWrapper.receiveComponent',
+                                    'in_app':
+                                    True,
+                                    'lineno':
+                                    74002
+                                }, {
+                                    'abs_path':
+                                    u'http://localhost:8000/_static/373562702009df1692da6eb80a933139f29e094b/sentry/dist/app.js',
+                                    'colno':
+                                    9,
+                                    'filename':
+                                    u'/_static/373562702009df1692da6eb80a933139f29e094b/sentry/dist/app.js',
+                                    'function':
+                                    u'Constructor.render',
+                                    'in_app':
+                                    True,
+                                    'lineno':
+                                    47628
+                                }
+                            ],
+                            'frames_omitted':
+                            None,
+                            'registers':
+                            None
+                        },
+                        'thread_id': None,
+                        'type': u'TypeError',
+                        'value': u"Cannot set property 'b' of null"
+                    }
+                ]
+            }
+        }
+
+        event_data = self.make_event_data(
+            data=data,
+            platform='javascript',
+        )
+
+        assert get_preprocess_defaults(event_data) == [
+            [
+                u'/_static/<version>/sentry/dist/vendor.js',
+                u'Object.receiveComponent',
+                u'/_static/<version>/sentry/dist/vendor.js',
+                u'ReactCompositeComponentWrapper.receiveComponent',
+                u'/_static/<version>/sentry/dist/app.js',
+                u'Constructor.render',
+                u'TypeError',
+            ]
+        ]
