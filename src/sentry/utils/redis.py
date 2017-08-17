@@ -70,7 +70,7 @@ class _RedisCluster(object):
         return config.get('is_redis_cluster', False)
 
     def factory(self, **config):
-        nodes = map(lambda n: n[1], config.get('hosts').items())
+        nodes = config.get('hosts').values()
         return rediscluster.StrictRedisCluster(startup_nodes=nodes, decode_responses=True)
 
     def __str__(self):
