@@ -39,8 +39,17 @@ system.secret-key: '%(secret_key)s'
 # clusters. These clusters can be then referred to by name when configuring
 # backends such as the cache, digests, or TSDB backend.
 #
-# Clusters that are inteded to be connected to as true Redis Clusters should be
-# marked with the ``is_redis_cluster`` flag.
+# Two types of clusters are currently supported:
+#
+#   rb.Cluster
+#   A redis blaster cluster is the traditional cluster used by most services
+#   within sentry. This is the default type cluster type.
+#
+#   rediscluster.StrictRedisCluster
+#   An official Redis Cluster can be configured by marking the named group with
+#   the ``is_redis_cluster: True`` flag. In future versions of Sentry more
+#   services will require this type of cluster.
+#
 redis.clusters:
   default:
     hosts:
