@@ -266,7 +266,7 @@ local function add_record_to_timeline(configuration, timeline_id, record_id, val
     return ready
 end
 
-local function digest_timeline(configuration, timeline_id)
+local function digest_timeline(configuration, timeline_id, timeline_capacity)
     -- Check to ensure that the timeline is in the correct state.
     if redis.call('ZSCORE', configuration:get_schedule_ready_key(), timeline_id) == false then
         error('err(invalid_state): timeline is not in the ready state, cannot be digested')
@@ -278,10 +278,15 @@ local function digest_timeline(configuration, timeline_id)
         if redis.call('EXISTS', digest_key) == 1 then
             -- If the digest set already exists (possibly because we already tried
             -- to send it and failed for some reason), merge any new data into it.
-            -- TODO: It might make sense to trim here to avoid returning capacity *
-            -- 2 if timeline was full when it was previously digested.
             redis.call('ZUNIONSTORE', digest_key, 2, timeline_key, digest_key, 'AGGREGATE', 'MAX')
             redis.call('DEL', timeline_key)
+
+            -- After merging, we have to do a capacity check (if we didn't,
+            -- it's possible that this digest could grow to an unbounded size
+            -- if it is never actually closed.)
+            if timeline_capacity > 0 then
+                truncate_digest(configuration, timeline_id, timeline_capacity)
+            end
         else
             -- Otherwise, we can just move the timeline contents to the digest key.
             redis.call('RENAME', timeline_key, digest_key)
@@ -427,11 +432,12 @@ local commands = {
         return delete_timeline(configuration, timeline_id)
     end,
     DIGEST_OPEN = function (cursor, arguments)
-        local cursor, configuration, timeline_id = multiple_argument_parser(
+        local cursor, configuration, timeline_id, timeline_capacity = multiple_argument_parser(
             configuration_argument_parser,
-            argument_parser()
+            argument_parser(),
+            argument_parser(tonumber)
         )(cursor, arguments)
-        return digest_timeline(configuration, timeline_id)
+        return digest_timeline(configuration, timeline_id, timeline_capacity)
     end,
     DIGEST_CLOSE = function (cursor, arguments)
         local cursor, configuration, timeline_id, delay_minimum, record_ids = multiple_argument_parser(
