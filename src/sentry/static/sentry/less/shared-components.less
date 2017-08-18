@@ -498,6 +498,11 @@ table.integrations {
     border: 0;
     margin-bottom: 0;
 
+    & > thead > tr > th,
+    & > tbody > tr > td {
+      padding: 10px 15px;
+    }
+
     h5 {
       margin-bottom: 0;
       font-size: 16px;
@@ -509,8 +514,17 @@ table.integrations {
       }
     }
 
+    th {
+      text-transform: uppercase;
+      font-size: 14px;
+      color: #95899f;
+    }
+
     th, td {
       white-space: nowrap;
+      // #2d2635;
+      //
+      // fingerprint #3c3644
     }
 
     .table-user-info {
@@ -531,6 +545,7 @@ table.integrations {
     time {
       white-space: nowrap;
     }
+
   }
 }
 /**

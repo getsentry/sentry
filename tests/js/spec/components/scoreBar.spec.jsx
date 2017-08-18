@@ -12,12 +12,27 @@ describe('ScoreBar', function() {
   });
 
   it('renders', function() {
-    let wrapper = shallow(<ScoreBar score={3} />);
+    let wrapper = shallow(<ScoreBar size={60} thickness={2} score={3} />);
     expect(wrapper).toMatchSnapshot();
   });
 
   it('renders vertically', function() {
-    let wrapper = shallow(<ScoreBar vertical score={2} />);
+    let wrapper = shallow(<ScoreBar size={60} thickness={2} vertical score={2} />);
+    expect(wrapper).toMatchSnapshot();
+  });
+
+  it('renders with score = 0', function() {
+    let wrapper = shallow(<ScoreBar size={60} thickness={2} score={0} />);
+    expect(wrapper).toMatchSnapshot();
+  });
+
+  it('renders with score > max score', function() {
+    let wrapper = shallow(<ScoreBar size={60} thickness={2} score={10} />);
+    expect(wrapper).toMatchSnapshot();
+  });
+
+  it('renders with < 0 score', function() {
+    let wrapper = shallow(<ScoreBar size={60} thickness={2} score={-2} />);
     expect(wrapper).toMatchSnapshot();
   });
 
@@ -25,6 +40,8 @@ describe('ScoreBar', function() {
     let wrapper = shallow(
       <ScoreBar
         vertical
+        size={60}
+        thickness={2}
         score={7}
         palette={['white', 'red', 'red', 'pink', 'pink', 'purple', 'purple', 'black']}
       />

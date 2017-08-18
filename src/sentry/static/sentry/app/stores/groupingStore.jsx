@@ -32,6 +32,7 @@ const GroupingStore = Reflux.createStore({
       unmergeList: new Set(),
       unmergeState: new Map(),
       unmergeDisabled: false,
+      unmergeCollapseState: new Set(),
 
       similarItems: [],
       filteredSimilarItems: [],
@@ -320,7 +321,6 @@ const GroupingStore = Reflux.createStore({
           {
             orgId,
             projectId,
-            // parent = last element in array
             itemIds: [...ids, groupId],
             query
           },
@@ -353,6 +353,43 @@ const GroupingStore = Reflux.createStore({
     return promise;
   },
 
+  onMergeSuccess(id, ids, response) {
+    if (!response || !response.merge || !response.merge.parent) return;
+
+    this.trigger({
+      mergedParent: response.merge.parent
+    });
+  },
+
+  onExpandFingerprints() {
+    this.setStateForId(this.unmergeState, this.mergedItems.map(({id}) => id), {
+      collapsed: false
+    });
+
+    this.trigger({
+      unmergeCollapseState: this.unmergeCollapseState
+    });
+  },
+
+  onCollapseFingerprints() {
+    this.setStateForId(this.unmergeState, this.mergedItems.map(({id}) => id), {
+      collapsed: true
+    });
+
+    this.trigger({
+      unmergeState: this.unmergeState
+    });
+  },
+
+  onToggleCollapseFingerprint(fingerprint) {
+    let collapsed =
+      this.unmergeState.has(fingerprint) && this.unmergeState.get(fingerprint).collapsed;
+    this.setStateForId(this.unmergeState, fingerprint, {collapsed: !collapsed});
+    this.trigger({
+      unmergeState: this.unmergeState
+    });
+  },
+
   triggerFetchState() {
     let state = {
       similarItems: this.similarItems.filter(({isBelowThreshold}) => !isBelowThreshold),
@@ -374,7 +411,12 @@ const GroupingStore = Reflux.createStore({
   },
 
   triggerUnmergeState() {
-    let state = pick(this, ['unmergeDisabled', 'unmergeState', 'unmergeList']);
+    let state = pick(this, [
+      'unmergeDisabled',
+      'unmergeState',
+      'unmergeList',
+      'unmergeCollapseState'
+    ]);
     this.trigger(state);
     return state;
   },

@@ -96,8 +96,8 @@ const SimilarIssueItem = React.createClass({
 
     return (
       <SpreadLayout className={cx} responsive onClick={this.handleToggle}>
-        <FlowLayout style={{flex: 1}}>
-          <FlowLayout style={{flex: 1}}>
+        <FlowLayout truncate>
+          <FlowLayout truncate>
             <div className="action-column">
               <Checkbox id={issue.id} value={issue.id} checked={this.state.checked} />
             </div>

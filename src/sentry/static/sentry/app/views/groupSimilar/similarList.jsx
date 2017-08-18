@@ -1,14 +1,12 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import {t} from '../../locale';
 import {Group} from '../../proptypes';
-
+import {t} from '../../locale';
 import Pagination from '../../components/pagination';
 import QueryCount from '../../components/queryCount';
-
-import SimilarToolbar from './similarToolbar';
 import SimilarItem from './similarItem';
+import SimilarToolbar from './similarToolbar';
 
 const SimilarItemPropType = PropTypes.shape({
   issue: Group,
@@ -25,6 +23,12 @@ const SimilarList = React.createClass({
     pageLinks: PropTypes.string,
     items: PropTypes.arrayOf(SimilarItemPropType),
     filteredItems: PropTypes.arrayOf(SimilarItemPropType)
+  },
+
+  getDefaultProps() {
+    return {
+      filteredItems: []
+    };
   },
 
   getInitialState() {
@@ -44,57 +48,53 @@ const SimilarList = React.createClass({
     );
   },
 
+  handleShowAll() {
+    this.setState({showAllItems: true});
+  },
+
   render() {
     let {orgId, projectId, items, filteredItems, pageLinks, onMerge} = this.props;
     let hasHiddenItems = !!filteredItems.length;
     let hasResults = items.length > 0 || hasHiddenItems;
+    let itemsWithFiltered = items.concat(
+      (this.state.showAllItems && filteredItems) || []
+    );
 
-    if (hasResults) {
+    if (!hasResults) {
       return (
         <div className="similar-list-container">
-          <h2>
-            <span>{t('Similar Issues')}</span>
-            <QueryCount count={items.length} />
-          </h2>
-          <SimilarToolbar onMerge={onMerge} />
-
-          <div className="similar-list">
-            {items.map(item => (
-              <SimilarItem
-                key={item.issue.id}
-                orgId={orgId}
-                projectId={projectId}
-                {...item}
-              />
-            ))}
-
-            {this.state.showAllItems &&
-              filteredItems.map(item => (
-                <SimilarItem
-                  key={item.issue.id}
-                  orgId={orgId}
-                  projectId={projectId}
-                  {...item}
-                />
-              ))}
-            {hasHiddenItems &&
-              !this.state.showAllItems &&
-              <div className="similar-items-footer">
-                <button
-                  className="btn btn-default btn-xl"
-                  onClick={() => this.setState({showAllItems: true})}>
-                  Show {filteredItems.length} issues below threshold
-                </button>
-              </div>}
-          </div>
-          <Pagination pageLinks={pageLinks} />
+          {this.renderEmpty()}
         </div>
       );
     }
 
     return (
       <div className="similar-list-container">
-        {this.renderEmpty()}
+        <h2>
+          <span>{t('Similar Issues')}</span>
+          <QueryCount count={items.length + filteredItems.length} />
+        </h2>
+        <SimilarToolbar onMerge={onMerge} />
+
+        <div className="similar-list">
+          {itemsWithFiltered.map(item => (
+            <SimilarItem
+              key={item.issue.id}
+              orgId={orgId}
+              projectId={projectId}
+              {...item}
+            />
+          ))}
+
+          {hasHiddenItems &&
+            !this.state.showAllItems &&
+            <div className="similar-items-footer">
+              <button className="btn btn-default btn-xl" onClick={this.handleShowAll}>
+                Show {filteredItems.length} issues below threshold
+              </button>
+            </div>}
+        </div>
+        <Pagination pageLinks={pageLinks} />
       </div>
     );
   }

@@ -9,8 +9,8 @@ exports[`ScoreBar has custom palette 1`] = `
     style={
       Object {
         "backgroundColor": "purple",
-        "height": undefined,
-        "width": undefined,
+        "height": 2,
+        "width": 60,
       }
     }
   />
@@ -19,8 +19,8 @@ exports[`ScoreBar has custom palette 1`] = `
     style={
       Object {
         "backgroundColor": "purple",
-        "height": undefined,
-        "width": undefined,
+        "height": 2,
+        "width": 60,
       }
     }
   />
@@ -29,8 +29,8 @@ exports[`ScoreBar has custom palette 1`] = `
     style={
       Object {
         "backgroundColor": "purple",
-        "height": undefined,
-        "width": undefined,
+        "height": 2,
+        "width": 60,
       }
     }
   />
@@ -39,8 +39,8 @@ exports[`ScoreBar has custom palette 1`] = `
     style={
       Object {
         "backgroundColor": "purple",
-        "height": undefined,
-        "width": undefined,
+        "height": 2,
+        "width": 60,
       }
     }
   />
@@ -49,8 +49,8 @@ exports[`ScoreBar has custom palette 1`] = `
     style={
       Object {
         "backgroundColor": "purple",
-        "height": undefined,
-        "width": undefined,
+        "height": 2,
+        "width": 60,
       }
     }
   />
@@ -59,8 +59,8 @@ exports[`ScoreBar has custom palette 1`] = `
     style={
       Object {
         "backgroundColor": "purple",
-        "height": undefined,
-        "width": undefined,
+        "height": 2,
+        "width": 60,
       }
     }
   />
@@ -69,8 +69,8 @@ exports[`ScoreBar has custom palette 1`] = `
     style={
       Object {
         "backgroundColor": "purple",
-        "height": undefined,
-        "width": undefined,
+        "height": 2,
+        "width": 60,
       }
     }
   />
@@ -78,8 +78,8 @@ exports[`ScoreBar has custom palette 1`] = `
     className="score-bar-bar empty"
     style={
       Object {
-        "height": undefined,
-        "width": undefined,
+        "height": 2,
+        "width": 60,
       }
     }
   />
@@ -94,8 +94,8 @@ exports[`ScoreBar renders 1`] = `
     className="score-bar-bar orange"
     style={
       Object {
-        "height": undefined,
-        "width": undefined,
+        "height": 60,
+        "width": 2,
       }
     }
   />
@@ -103,8 +103,8 @@ exports[`ScoreBar renders 1`] = `
     className="score-bar-bar orange"
     style={
       Object {
-        "height": undefined,
-        "width": undefined,
+        "height": 60,
+        "width": 2,
       }
     }
   />
@@ -112,8 +112,8 @@ exports[`ScoreBar renders 1`] = `
     className="score-bar-bar orange"
     style={
       Object {
-        "height": undefined,
-        "width": undefined,
+        "height": 60,
+        "width": 2,
       }
     }
   />
@@ -121,8 +121,8 @@ exports[`ScoreBar renders 1`] = `
     className="score-bar-bar empty"
     style={
       Object {
-        "height": undefined,
-        "width": undefined,
+        "height": 60,
+        "width": 2,
       }
     }
   />
@@ -130,8 +130,8 @@ exports[`ScoreBar renders 1`] = `
     className="score-bar-bar empty"
     style={
       Object {
-        "height": undefined,
-        "width": undefined,
+        "height": 60,
+        "width": 2,
       }
     }
   />
@@ -146,8 +146,8 @@ exports[`ScoreBar renders vertically 1`] = `
     className="score-bar-bar red"
     style={
       Object {
-        "height": undefined,
-        "width": undefined,
+        "height": 2,
+        "width": 60,
       }
     }
   />
@@ -155,8 +155,8 @@ exports[`ScoreBar renders vertically 1`] = `
     className="score-bar-bar red"
     style={
       Object {
-        "height": undefined,
-        "width": undefined,
+        "height": 2,
+        "width": 60,
       }
     }
   />
@@ -164,8 +164,8 @@ exports[`ScoreBar renders vertically 1`] = `
     className="score-bar-bar empty"
     style={
       Object {
-        "height": undefined,
-        "width": undefined,
+        "height": 2,
+        "width": 60,
       }
     }
   />
@@ -173,8 +173,8 @@ exports[`ScoreBar renders vertically 1`] = `
     className="score-bar-bar empty"
     style={
       Object {
-        "height": undefined,
-        "width": undefined,
+        "height": 2,
+        "width": 60,
       }
     }
   />
@@ -182,8 +182,164 @@ exports[`ScoreBar renders vertically 1`] = `
     className="score-bar-bar empty"
     style={
       Object {
-        "height": undefined,
-        "width": undefined,
+        "height": 2,
+        "width": 60,
+      }
+    }
+  />
+</div>
+`;
+
+exports[`ScoreBar renders with < 0 score 1`] = `
+<div
+  className="score-bar horizontal"
+>
+  <div
+    className="score-bar-bar empty"
+    style={
+      Object {
+        "height": 60,
+        "width": 2,
+      }
+    }
+  />
+  <div
+    className="score-bar-bar empty"
+    style={
+      Object {
+        "height": 60,
+        "width": 2,
+      }
+    }
+  />
+  <div
+    className="score-bar-bar empty"
+    style={
+      Object {
+        "height": 60,
+        "width": 2,
+      }
+    }
+  />
+  <div
+    className="score-bar-bar empty"
+    style={
+      Object {
+        "height": 60,
+        "width": 2,
+      }
+    }
+  />
+  <div
+    className="score-bar-bar empty"
+    style={
+      Object {
+        "height": 60,
+        "width": 2,
+      }
+    }
+  />
+</div>
+`;
+
+exports[`ScoreBar renders with score = 0 1`] = `
+<div
+  className="score-bar horizontal"
+>
+  <div
+    className="score-bar-bar empty"
+    style={
+      Object {
+        "height": 60,
+        "width": 2,
+      }
+    }
+  />
+  <div
+    className="score-bar-bar empty"
+    style={
+      Object {
+        "height": 60,
+        "width": 2,
+      }
+    }
+  />
+  <div
+    className="score-bar-bar empty"
+    style={
+      Object {
+        "height": 60,
+        "width": 2,
+      }
+    }
+  />
+  <div
+    className="score-bar-bar empty"
+    style={
+      Object {
+        "height": 60,
+        "width": 2,
+      }
+    }
+  />
+  <div
+    className="score-bar-bar empty"
+    style={
+      Object {
+        "height": 60,
+        "width": 2,
+      }
+    }
+  />
+</div>
+`;
+
+exports[`ScoreBar renders with score > max score 1`] = `
+<div
+  className="score-bar horizontal"
+>
+  <div
+    className="score-bar-bar green"
+    style={
+      Object {
+        "height": 60,
+        "width": 2,
+      }
+    }
+  />
+  <div
+    className="score-bar-bar green"
+    style={
+      Object {
+        "height": 60,
+        "width": 2,
+      }
+    }
+  />
+  <div
+    className="score-bar-bar green"
+    style={
+      Object {
+        "height": 60,
+        "width": 2,
+      }
+    }
+  />
+  <div
+    className="score-bar-bar green"
+    style={
+      Object {
+        "height": 60,
+        "width": 2,
+      }
+    }
+  />
+  <div
+    className="score-bar-bar green"
+    style={
+      Object {
+        "height": 60,
+        "width": 2,
       }
     }
   />
