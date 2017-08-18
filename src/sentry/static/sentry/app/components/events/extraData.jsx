@@ -12,21 +12,36 @@ const EventExtraData = React.createClass({
     event: PropTypes.Event.isRequired
   },
 
+  getInitialState() {
+    return {
+      raw: false
+    };
+  },
+
   shouldComponentUpdate(nextProps, nextState) {
-    return this.props.event.id !== nextProps.event.id;
+    return this.props.event.id !== nextProps.event.id || this.state.raw !== nextState.raw;
+  },
+
+  toggleRaw(shouldBeRaw) {
+    this.setState({
+      raw: shouldBeRaw
+    });
   },
 
   render() {
     let extraDataArray = objectToArray(this.props.event.context);
-
     return (
-      <EventDataSection
-        group={this.props.group}
-        event={this.props.event}
-        type="extra"
-        title={t('Additional Data')}>
-        <KeyValueList data={extraDataArray} isContextData={true} />
-      </EventDataSection>
+      <div className="extra-data">
+        <EventDataSection
+          group={this.props.group}
+          event={this.props.event}
+          type="extra"
+          title={t('Additional Data')}
+          toggleRaw={this.toggleRaw}
+          raw={this.state.raw}>
+          <KeyValueList data={extraDataArray} isContextData={true} raw={this.state.raw} />
+        </EventDataSection>
+      </div>
     );
   }
 });
