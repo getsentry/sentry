@@ -16,7 +16,8 @@ const CreateProject = React.createClass({
   },
 
   contextTypes: {
-    organization: React.PropTypes.object
+    organization: React.PropTypes.object,
+    location: React.PropTypes.object
   },
 
   mixins: [ApiMixin],
@@ -29,17 +30,23 @@ const CreateProject = React.createClass({
   },
 
   getInitialState() {
+    let {teams} = this.context.organization;
+    let accessTeams = teams.filter(team => team.hasAccess);
+
+    let team =
+      this.context.location.query.team || (accessTeams.length && accessTeams[0].slug);
     return {
       loading: true,
       error: false,
       platform: '',
-      projectName: ''
+      projectName: '',
+      team: team
     };
   },
 
   createProject() {
-    let {teams, slug} = this.context.organization;
-    let {projectName, platform} = this.state;
+    let {slug} = this.context.organization;
+    let {projectName, platform, team} = this.state;
 
     if (!projectName) {
       Raven.captureMessage('Onboarding no project name ', {
@@ -47,7 +54,7 @@ const CreateProject = React.createClass({
       });
     }
 
-    this.api.request(`/teams/${slug}/${teams[0].slug}/projects/`, {
+    this.api.request(`/teams/${slug}/${team}/projects/`, {
       method: 'POST',
       data: {
         name: projectName,
@@ -84,6 +91,8 @@ const CreateProject = React.createClass({
   render() {
     let {projectName, platform} = this.state;
     let {slug, teams} = this.context.organization;
+    let accessTeams = teams.filter(team => team.hasAccess);
+
     const stepProps = {
       next: this.next,
       platform: platform,
@@ -94,22 +103,26 @@ const CreateProject = React.createClass({
         this.setState({platform: p});
       },
       name: projectName,
-      setName: n => this.setState({projectName: n})
+      setName: n => this.setState({projectName: n}),
+      team: this.state.team,
+      teams: accessTeams,
+      setTeam: teamSlug => this.setState({team: teamSlug})
     };
 
     return (
       <div>
-        {!teams.length &&
-          <div>
-            {t(
-              'You cannot create a new project because there are no teams to assign it to.'
-            )}
-            <Link to={`/organizations/${slug}/teams/new/`} className="btn btn-primary">
-              {t('Create a Team')}
-            </Link>
-          </div>}
-
-        <OnboardingProject {...stepProps} />
+        {accessTeams.length
+          ? <OnboardingProject {...stepProps} />
+          : <div>
+              <h4>
+                {t(
+                  'You cannot create a new project because there are no teams to assign it to.'
+                )}
+              </h4>
+              <Link to={`/organizations/${slug}/teams/new/`} className="btn btn-primary">
+                {t('Create a Team')}
+              </Link>
+            </div>}
       </div>
     );
   }

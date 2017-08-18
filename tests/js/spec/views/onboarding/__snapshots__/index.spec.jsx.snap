@@ -118,6 +118,9 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
             platform=""
             setName={[Function]}
             setPlatform={[Function]}
+            setTeam={[Function]}
+            team=""
+            teams={Array []}
           >
             <div
               className="onboarding-info"
@@ -131,7 +134,10 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
                 platform=""
                 setName={[Function]}
                 setPlatform={[Function]}
+                setTeam={[Function]}
                 showOther={true}
+                team=""
+                teams={Array []}
               >
                 <div
                   className="platform-picker"
@@ -626,40 +632,47 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
                 </div>
               </PlatformPicker>
               <div
-                className="new-project-name client-platform"
+                className="create-project-form"
               >
-                <h4>
-                  Give your project a name:
-                </h4>
                 <div
-                  className="project-name-wrapper"
+                  className="new-project-name client-platform"
                 >
-                  <PlatformiconTile
-                    platform=""
+                  <h4>
+                    Give your project a name:
+                  </h4>
+                  <div
+                    className="project-name-wrapper"
                   >
-                    <li
-                      className="platform-tile list-unstyled   undefined"
+                    <PlatformiconTile
+                      platform=""
                     >
-                      <span
-                        className="platformicon platformicon-"
-                      />
-                    </li>
-                  </PlatformiconTile>
-                  <input
-                    label="Project Name"
-                    name="name"
-                    onChange={[Function]}
-                    placeholder="Project name"
-                    type="text"
-                    value=""
-                  />
+                      <li
+                        className="platform-tile list-unstyled   undefined"
+                      >
+                        <span
+                          className="platformicon platformicon-"
+                        />
+                      </li>
+                    </PlatformiconTile>
+                    <input
+                      label="Project Name"
+                      name="name"
+                      onChange={[Function]}
+                      placeholder="Project name"
+                      type="text"
+                      value=""
+                    />
+                  </div>
                 </div>
-                <button
-                  className="btn btn-primary pull-right"
-                  onClick={[Function]}
-                >
-                  Continue
-                </button>
+                <bound renderTeamPicker />
+                <div>
+                  <button
+                    className="btn btn-primary submit-new-team"
+                    onClick={[Function]}
+                  >
+                    Continue
+                  </button>
+                </div>
               </div>
             </div>
           </Project>
@@ -764,6 +777,9 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
             platform=""
             setName={[Function]}
             setPlatform={[Function]}
+            setTeam={[Function]}
+            team=""
+            teams={Array []}
           >
             <div
               className="onboarding-info"
@@ -777,7 +793,10 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                 platform=""
                 setName={[Function]}
                 setPlatform={[Function]}
+                setTeam={[Function]}
                 showOther={true}
+                team=""
+                teams={Array []}
               >
                 <div
                   className="platform-picker"
@@ -1422,40 +1441,47 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                 </div>
               </PlatformPicker>
               <div
-                className="new-project-name client-platform"
+                className="create-project-form"
               >
-                <h4>
-                  Give your project a name:
-                </h4>
                 <div
-                  className="project-name-wrapper"
+                  className="new-project-name client-platform"
                 >
-                  <PlatformiconTile
-                    platform=""
+                  <h4>
+                    Give your project a name:
+                  </h4>
+                  <div
+                    className="project-name-wrapper"
                   >
-                    <li
-                      className="platform-tile list-unstyled   undefined"
+                    <PlatformiconTile
+                      platform=""
                     >
-                      <span
-                        className="platformicon platformicon-"
-                      />
-                    </li>
-                  </PlatformiconTile>
-                  <input
-                    label="Project Name"
-                    name="name"
-                    onChange={[Function]}
-                    placeholder="Project name"
-                    type="text"
-                    value=""
-                  />
+                      <li
+                        className="platform-tile list-unstyled   undefined"
+                      >
+                        <span
+                          className="platformicon platformicon-"
+                        />
+                      </li>
+                    </PlatformiconTile>
+                    <input
+                      label="Project Name"
+                      name="name"
+                      onChange={[Function]}
+                      placeholder="Project name"
+                      type="text"
+                      value=""
+                    />
+                  </div>
                 </div>
-                <button
-                  className="btn btn-primary pull-right"
-                  onClick={[Function]}
-                >
-                  Continue
-                </button>
+                <bound renderTeamPicker />
+                <div>
+                  <button
+                    className="btn btn-primary submit-new-team"
+                    onClick={[Function]}
+                  >
+                    Continue
+                  </button>
+                </div>
               </div>
             </div>
           </Project>

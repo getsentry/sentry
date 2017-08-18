@@ -1,5 +1,23 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
+exports[`CreateProject render() should block if you have access to no teams 1`] = `
+<div>
+  <div>
+    <h4>
+      You cannot create a new project because there are no teams to assign it to.
+    </h4>
+    <Link
+      className="btn btn-primary"
+      onlyActiveOnIndex={false}
+      style={Object {}}
+      to="/organizations/testOrg/teams/new/"
+    >
+      Create a Team
+    </Link>
+  </div>
+</div>
+`;
+
 exports[`CreateProject render() should fill in project name if its empty when platform is chosen 1`] = `
 <CreateProject
   getDocsUrl={[Function]}
@@ -15,566 +33,589 @@ exports[`CreateProject render() should fill in project name if its empty when pl
     }
   }
 >
-  <Project
-    name="another"
-    next={[Function]}
-    platform="csharp"
-    setName={[Function]}
-    setPlatform={[Function]}
-  >
-    <div
-      className="onboarding-info"
+  <div>
+    <Project
+      name="another"
+      next={[Function]}
+      platform="csharp"
+      setName={[Function]}
+      setPlatform={[Function]}
+      setTeam={[Function]}
+      team="test"
+      teams={
+        Array [
+          Object {
+            "hasAccess": true,
+            "id": "1",
+            "name": "test",
+            "slug": "test",
+          },
+        ]
+      }
     >
-      <h4>
-        Choose a language or framework:
-      </h4>
-      <PlatformPicker
-        name="another"
-        next={[Function]}
-        platform="csharp"
-        setName={[Function]}
-        setPlatform={[Function]}
-        showOther={true}
-      >
-        <div
-          className="platform-picker"
-        >
-          <ul
-            className="nav nav-tabs"
-          >
-            <li
-              style={
-                Object {
-                  "float": "right",
-                  "marginRight": 0,
-                }
-              }
-            >
-              <div
-                className="platform-filter-container"
-              >
-                <span
-                  className="icon icon-search"
-                />
-                <input
-                  className="platform-filter"
-                  label="Filter"
-                  onChange={[Function]}
-                  placeholder="Filter"
-                  type="text"
-                  value=""
-                />
-              </div>
-            </li>
-            <ListLink
-              activeClassName="active"
-              index={false}
-              isActive={[Function]}
-              onClick={[Function]}
-              to=""
-            >
-              <li
-                className="active"
-              >
-                <Link
-                  onClick={[Function]}
-                  onlyActiveOnIndex={false}
-                  style={Object {}}
-                  to=""
-                >
-                  <a
-                    onClick={[Function]}
-                    style={Object {}}
-                  >
-                    Popular
-                  </a>
-                </Link>
-              </li>
-            </ListLink>
-            <ListLink
-              activeClassName="active"
-              index={false}
-              isActive={[Function]}
-              onClick={[Function]}
-              to=""
-            >
-              <li
-                className=""
-              >
-                <Link
-                  onClick={[Function]}
-                  onlyActiveOnIndex={false}
-                  style={Object {}}
-                  to=""
-                >
-                  <a
-                    onClick={[Function]}
-                    style={Object {}}
-                  >
-                    Frontend
-                  </a>
-                </Link>
-              </li>
-            </ListLink>
-            <ListLink
-              activeClassName="active"
-              index={false}
-              isActive={[Function]}
-              onClick={[Function]}
-              to=""
-            >
-              <li
-                className=""
-              >
-                <Link
-                  onClick={[Function]}
-                  onlyActiveOnIndex={false}
-                  style={Object {}}
-                  to=""
-                >
-                  <a
-                    onClick={[Function]}
-                    style={Object {}}
-                  >
-                    Mobile
-                  </a>
-                </Link>
-              </li>
-            </ListLink>
-            <ListLink
-              activeClassName="active"
-              index={false}
-              isActive={[Function]}
-              onClick={[Function]}
-              to=""
-            >
-              <li
-                className=""
-              >
-                <Link
-                  onClick={[Function]}
-                  onlyActiveOnIndex={false}
-                  style={Object {}}
-                  to=""
-                >
-                  <a
-                    onClick={[Function]}
-                    style={Object {}}
-                  >
-                    Backend
-                  </a>
-                </Link>
-              </li>
-            </ListLink>
-            <ListLink
-              activeClassName="active"
-              index={false}
-              isActive={[Function]}
-              onClick={[Function]}
-              to=""
-            >
-              <li
-                className=""
-              >
-                <Link
-                  onClick={[Function]}
-                  onlyActiveOnIndex={false}
-                  style={Object {}}
-                  to=""
-                >
-                  <a
-                    onClick={[Function]}
-                    style={Object {}}
-                  >
-                    All
-                  </a>
-                </Link>
-              </li>
-            </ListLink>
-          </ul>
-          <ul
-            className="client-platform-list platform-tiles"
-          >
-            <PlatformCard
-              className="selected"
-              onClick={[Function]}
-              platform="csharp"
-            >
-              <span
-                className="platform-card selected"
-                onClick={[Function]}
-              >
-                <PlatformiconTile
-                  className="selected"
-                  onClick={[Function]}
-                  platform="csharp"
-                >
-                  <li
-                    className="platform-tile list-unstyled csharp csharp selected"
-                    onClick={[Function]}
-                  >
-                    <span
-                      className="platformicon platformicon-csharp"
-                    />
-                  </li>
-                </PlatformiconTile>
-                <h5>
-                   
-                  C#
-                   
-                </h5>
-              </span>
-            </PlatformCard>
-            <PlatformCard
-              className=""
-              onClick={[Function]}
-              platform="java"
-            >
-              <span
-                className="platform-card"
-                onClick={[Function]}
-              >
-                <PlatformiconTile
-                  className=""
-                  onClick={[Function]}
-                  platform="java"
-                >
-                  <li
-                    className="platform-tile list-unstyled java java "
-                    onClick={[Function]}
-                  >
-                    <span
-                      className="platformicon platformicon-java"
-                    />
-                  </li>
-                </PlatformiconTile>
-                <h5>
-                   
-                  Java
-                   
-                </h5>
-              </span>
-            </PlatformCard>
-            <PlatformCard
-              className=""
-              onClick={[Function]}
-              platform="javascript"
-            >
-              <span
-                className="platform-card"
-                onClick={[Function]}
-              >
-                <PlatformiconTile
-                  className=""
-                  onClick={[Function]}
-                  platform="javascript"
-                >
-                  <li
-                    className="platform-tile list-unstyled javascript javascript "
-                    onClick={[Function]}
-                  >
-                    <span
-                      className="platformicon platformicon-javascript"
-                    />
-                  </li>
-                </PlatformiconTile>
-                <h5>
-                   
-                  JavaScript
-                   
-                </h5>
-              </span>
-            </PlatformCard>
-            <PlatformCard
-              className=""
-              onClick={[Function]}
-              platform="javascript-react"
-            >
-              <span
-                className="platform-card"
-                onClick={[Function]}
-              >
-                <PlatformiconTile
-                  className=""
-                  onClick={[Function]}
-                  platform="javascript-react"
-                >
-                  <li
-                    className="platform-tile list-unstyled javascript-react javascript "
-                    onClick={[Function]}
-                  >
-                    <span
-                      className="platformicon platformicon-javascript-react"
-                    />
-                  </li>
-                </PlatformiconTile>
-                <h5>
-                   
-                  React
-                   
-                </h5>
-              </span>
-            </PlatformCard>
-            <PlatformCard
-              className=""
-              onClick={[Function]}
-              platform="node-express"
-            >
-              <span
-                className="platform-card"
-                onClick={[Function]}
-              >
-                <PlatformiconTile
-                  className=""
-                  onClick={[Function]}
-                  platform="node-express"
-                >
-                  <li
-                    className="platform-tile list-unstyled node-express node "
-                    onClick={[Function]}
-                  >
-                    <span
-                      className="platformicon platformicon-node-express"
-                    />
-                  </li>
-                </PlatformiconTile>
-                <h5>
-                   
-                  Express
-                   
-                </h5>
-              </span>
-            </PlatformCard>
-            <PlatformCard
-              className=""
-              onClick={[Function]}
-              platform="php-laravel"
-            >
-              <span
-                className="platform-card"
-                onClick={[Function]}
-              >
-                <PlatformiconTile
-                  className=""
-                  onClick={[Function]}
-                  platform="php-laravel"
-                >
-                  <li
-                    className="platform-tile list-unstyled php-laravel php "
-                    onClick={[Function]}
-                  >
-                    <span
-                      className="platformicon platformicon-php-laravel"
-                    />
-                  </li>
-                </PlatformiconTile>
-                <h5>
-                   
-                  Laravel
-                   
-                </h5>
-              </span>
-            </PlatformCard>
-            <PlatformCard
-              className=""
-              onClick={[Function]}
-              platform="php-symfony2"
-            >
-              <span
-                className="platform-card"
-                onClick={[Function]}
-              >
-                <PlatformiconTile
-                  className=""
-                  onClick={[Function]}
-                  platform="php-symfony2"
-                >
-                  <li
-                    className="platform-tile list-unstyled php-symfony2 php "
-                    onClick={[Function]}
-                  >
-                    <span
-                      className="platformicon platformicon-php-symfony2"
-                    />
-                  </li>
-                </PlatformiconTile>
-                <h5>
-                   
-                  Symfony2
-                   
-                </h5>
-              </span>
-            </PlatformCard>
-            <PlatformCard
-              className=""
-              onClick={[Function]}
-              platform="python-django"
-            >
-              <span
-                className="platform-card"
-                onClick={[Function]}
-              >
-                <PlatformiconTile
-                  className=""
-                  onClick={[Function]}
-                  platform="python-django"
-                >
-                  <li
-                    className="platform-tile list-unstyled python-django python "
-                    onClick={[Function]}
-                  >
-                    <span
-                      className="platformicon platformicon-python-django"
-                    />
-                  </li>
-                </PlatformiconTile>
-                <h5>
-                   
-                  Django
-                   
-                </h5>
-              </span>
-            </PlatformCard>
-            <PlatformCard
-              className=""
-              onClick={[Function]}
-              platform="python-flask"
-            >
-              <span
-                className="platform-card"
-                onClick={[Function]}
-              >
-                <PlatformiconTile
-                  className=""
-                  onClick={[Function]}
-                  platform="python-flask"
-                >
-                  <li
-                    className="platform-tile list-unstyled python-flask python "
-                    onClick={[Function]}
-                  >
-                    <span
-                      className="platformicon platformicon-python-flask"
-                    />
-                  </li>
-                </PlatformiconTile>
-                <h5>
-                   
-                  Flask
-                   
-                </h5>
-              </span>
-            </PlatformCard>
-            <PlatformCard
-              className=""
-              onClick={[Function]}
-              platform="python"
-            >
-              <span
-                className="platform-card"
-                onClick={[Function]}
-              >
-                <PlatformiconTile
-                  className=""
-                  onClick={[Function]}
-                  platform="python"
-                >
-                  <li
-                    className="platform-tile list-unstyled python python "
-                    onClick={[Function]}
-                  >
-                    <span
-                      className="platformicon platformicon-python"
-                    />
-                  </li>
-                </PlatformiconTile>
-                <h5>
-                   
-                  Python
-                   
-                </h5>
-              </span>
-            </PlatformCard>
-            <PlatformCard
-              className=""
-              onClick={[Function]}
-              platform="ruby-rails"
-            >
-              <span
-                className="platform-card"
-                onClick={[Function]}
-              >
-                <PlatformiconTile
-                  className=""
-                  onClick={[Function]}
-                  platform="ruby-rails"
-                >
-                  <li
-                    className="platform-tile list-unstyled ruby-rails ruby "
-                    onClick={[Function]}
-                  >
-                    <span
-                      className="platformicon platformicon-ruby-rails"
-                    />
-                  </li>
-                </PlatformiconTile>
-                <h5>
-                   
-                  Rails
-                   
-                </h5>
-              </span>
-            </PlatformCard>
-          </ul>
-        </div>
-      </PlatformPicker>
       <div
-        className="new-project-name client-platform"
+        className="onboarding-info"
       >
         <h4>
-          Give your project a name:
+          Choose a language or framework:
         </h4>
-        <div
-          className="project-name-wrapper"
+        <PlatformPicker
+          name="another"
+          next={[Function]}
+          platform="csharp"
+          setName={[Function]}
+          setPlatform={[Function]}
+          setTeam={[Function]}
+          showOther={true}
+          team="test"
+          teams={
+            Array [
+              Object {
+                "hasAccess": true,
+                "id": "1",
+                "name": "test",
+                "slug": "test",
+              },
+            ]
+          }
         >
-          <PlatformiconTile
-            platform="csharp"
+          <div
+            className="platform-picker"
           >
-            <li
-              className="platform-tile list-unstyled csharp csharp undefined"
+            <ul
+              className="nav nav-tabs"
             >
-              <span
-                className="platformicon platformicon-csharp"
-              />
-            </li>
-          </PlatformiconTile>
-          <input
-            label="Project Name"
-            name="name"
-            onChange={[Function]}
-            placeholder="Project name"
-            type="text"
-            value="another"
-          />
-        </div>
-        <button
-          className="btn btn-primary pull-right"
-          onClick={[Function]}
+              <li
+                style={
+                  Object {
+                    "float": "right",
+                    "marginRight": 0,
+                  }
+                }
+              >
+                <div
+                  className="platform-filter-container"
+                >
+                  <span
+                    className="icon icon-search"
+                  />
+                  <input
+                    className="platform-filter"
+                    label="Filter"
+                    onChange={[Function]}
+                    placeholder="Filter"
+                    type="text"
+                    value=""
+                  />
+                </div>
+              </li>
+              <ListLink
+                activeClassName="active"
+                index={false}
+                isActive={[Function]}
+                onClick={[Function]}
+                to=""
+              >
+                <li
+                  className="active"
+                >
+                  <Link
+                    onClick={[Function]}
+                    onlyActiveOnIndex={false}
+                    style={Object {}}
+                    to=""
+                  >
+                    <a
+                      onClick={[Function]}
+                      style={Object {}}
+                    >
+                      Popular
+                    </a>
+                  </Link>
+                </li>
+              </ListLink>
+              <ListLink
+                activeClassName="active"
+                index={false}
+                isActive={[Function]}
+                onClick={[Function]}
+                to=""
+              >
+                <li
+                  className=""
+                >
+                  <Link
+                    onClick={[Function]}
+                    onlyActiveOnIndex={false}
+                    style={Object {}}
+                    to=""
+                  >
+                    <a
+                      onClick={[Function]}
+                      style={Object {}}
+                    >
+                      Frontend
+                    </a>
+                  </Link>
+                </li>
+              </ListLink>
+              <ListLink
+                activeClassName="active"
+                index={false}
+                isActive={[Function]}
+                onClick={[Function]}
+                to=""
+              >
+                <li
+                  className=""
+                >
+                  <Link
+                    onClick={[Function]}
+                    onlyActiveOnIndex={false}
+                    style={Object {}}
+                    to=""
+                  >
+                    <a
+                      onClick={[Function]}
+                      style={Object {}}
+                    >
+                      Mobile
+                    </a>
+                  </Link>
+                </li>
+              </ListLink>
+              <ListLink
+                activeClassName="active"
+                index={false}
+                isActive={[Function]}
+                onClick={[Function]}
+                to=""
+              >
+                <li
+                  className=""
+                >
+                  <Link
+                    onClick={[Function]}
+                    onlyActiveOnIndex={false}
+                    style={Object {}}
+                    to=""
+                  >
+                    <a
+                      onClick={[Function]}
+                      style={Object {}}
+                    >
+                      Backend
+                    </a>
+                  </Link>
+                </li>
+              </ListLink>
+              <ListLink
+                activeClassName="active"
+                index={false}
+                isActive={[Function]}
+                onClick={[Function]}
+                to=""
+              >
+                <li
+                  className=""
+                >
+                  <Link
+                    onClick={[Function]}
+                    onlyActiveOnIndex={false}
+                    style={Object {}}
+                    to=""
+                  >
+                    <a
+                      onClick={[Function]}
+                      style={Object {}}
+                    >
+                      All
+                    </a>
+                  </Link>
+                </li>
+              </ListLink>
+            </ul>
+            <ul
+              className="client-platform-list platform-tiles"
+            >
+              <PlatformCard
+                className="selected"
+                onClick={[Function]}
+                platform="csharp"
+              >
+                <span
+                  className="platform-card selected"
+                  onClick={[Function]}
+                >
+                  <PlatformiconTile
+                    className="selected"
+                    onClick={[Function]}
+                    platform="csharp"
+                  >
+                    <li
+                      className="platform-tile list-unstyled csharp csharp selected"
+                      onClick={[Function]}
+                    >
+                      <span
+                        className="platformicon platformicon-csharp"
+                      />
+                    </li>
+                  </PlatformiconTile>
+                  <h5>
+                     
+                    C#
+                     
+                  </h5>
+                </span>
+              </PlatformCard>
+              <PlatformCard
+                className=""
+                onClick={[Function]}
+                platform="java"
+              >
+                <span
+                  className="platform-card"
+                  onClick={[Function]}
+                >
+                  <PlatformiconTile
+                    className=""
+                    onClick={[Function]}
+                    platform="java"
+                  >
+                    <li
+                      className="platform-tile list-unstyled java java "
+                      onClick={[Function]}
+                    >
+                      <span
+                        className="platformicon platformicon-java"
+                      />
+                    </li>
+                  </PlatformiconTile>
+                  <h5>
+                     
+                    Java
+                     
+                  </h5>
+                </span>
+              </PlatformCard>
+              <PlatformCard
+                className=""
+                onClick={[Function]}
+                platform="javascript"
+              >
+                <span
+                  className="platform-card"
+                  onClick={[Function]}
+                >
+                  <PlatformiconTile
+                    className=""
+                    onClick={[Function]}
+                    platform="javascript"
+                  >
+                    <li
+                      className="platform-tile list-unstyled javascript javascript "
+                      onClick={[Function]}
+                    >
+                      <span
+                        className="platformicon platformicon-javascript"
+                      />
+                    </li>
+                  </PlatformiconTile>
+                  <h5>
+                     
+                    JavaScript
+                     
+                  </h5>
+                </span>
+              </PlatformCard>
+              <PlatformCard
+                className=""
+                onClick={[Function]}
+                platform="javascript-react"
+              >
+                <span
+                  className="platform-card"
+                  onClick={[Function]}
+                >
+                  <PlatformiconTile
+                    className=""
+                    onClick={[Function]}
+                    platform="javascript-react"
+                  >
+                    <li
+                      className="platform-tile list-unstyled javascript-react javascript "
+                      onClick={[Function]}
+                    >
+                      <span
+                        className="platformicon platformicon-javascript-react"
+                      />
+                    </li>
+                  </PlatformiconTile>
+                  <h5>
+                     
+                    React
+                     
+                  </h5>
+                </span>
+              </PlatformCard>
+              <PlatformCard
+                className=""
+                onClick={[Function]}
+                platform="node-express"
+              >
+                <span
+                  className="platform-card"
+                  onClick={[Function]}
+                >
+                  <PlatformiconTile
+                    className=""
+                    onClick={[Function]}
+                    platform="node-express"
+                  >
+                    <li
+                      className="platform-tile list-unstyled node-express node "
+                      onClick={[Function]}
+                    >
+                      <span
+                        className="platformicon platformicon-node-express"
+                      />
+                    </li>
+                  </PlatformiconTile>
+                  <h5>
+                     
+                    Express
+                     
+                  </h5>
+                </span>
+              </PlatformCard>
+              <PlatformCard
+                className=""
+                onClick={[Function]}
+                platform="php-laravel"
+              >
+                <span
+                  className="platform-card"
+                  onClick={[Function]}
+                >
+                  <PlatformiconTile
+                    className=""
+                    onClick={[Function]}
+                    platform="php-laravel"
+                  >
+                    <li
+                      className="platform-tile list-unstyled php-laravel php "
+                      onClick={[Function]}
+                    >
+                      <span
+                        className="platformicon platformicon-php-laravel"
+                      />
+                    </li>
+                  </PlatformiconTile>
+                  <h5>
+                     
+                    Laravel
+                     
+                  </h5>
+                </span>
+              </PlatformCard>
+              <PlatformCard
+                className=""
+                onClick={[Function]}
+                platform="php-symfony2"
+              >
+                <span
+                  className="platform-card"
+                  onClick={[Function]}
+                >
+                  <PlatformiconTile
+                    className=""
+                    onClick={[Function]}
+                    platform="php-symfony2"
+                  >
+                    <li
+                      className="platform-tile list-unstyled php-symfony2 php "
+                      onClick={[Function]}
+                    >
+                      <span
+                        className="platformicon platformicon-php-symfony2"
+                      />
+                    </li>
+                  </PlatformiconTile>
+                  <h5>
+                     
+                    Symfony2
+                     
+                  </h5>
+                </span>
+              </PlatformCard>
+              <PlatformCard
+                className=""
+                onClick={[Function]}
+                platform="python-django"
+              >
+                <span
+                  className="platform-card"
+                  onClick={[Function]}
+                >
+                  <PlatformiconTile
+                    className=""
+                    onClick={[Function]}
+                    platform="python-django"
+                  >
+                    <li
+                      className="platform-tile list-unstyled python-django python "
+                      onClick={[Function]}
+                    >
+                      <span
+                        className="platformicon platformicon-python-django"
+                      />
+                    </li>
+                  </PlatformiconTile>
+                  <h5>
+                     
+                    Django
+                     
+                  </h5>
+                </span>
+              </PlatformCard>
+              <PlatformCard
+                className=""
+                onClick={[Function]}
+                platform="python-flask"
+              >
+                <span
+                  className="platform-card"
+                  onClick={[Function]}
+                >
+                  <PlatformiconTile
+                    className=""
+                    onClick={[Function]}
+                    platform="python-flask"
+                  >
+                    <li
+                      className="platform-tile list-unstyled python-flask python "
+                      onClick={[Function]}
+                    >
+                      <span
+                        className="platformicon platformicon-python-flask"
+                      />
+                    </li>
+                  </PlatformiconTile>
+                  <h5>
+                     
+                    Flask
+                     
+                  </h5>
+                </span>
+              </PlatformCard>
+              <PlatformCard
+                className=""
+                onClick={[Function]}
+                platform="python"
+              >
+                <span
+                  className="platform-card"
+                  onClick={[Function]}
+                >
+                  <PlatformiconTile
+                    className=""
+                    onClick={[Function]}
+                    platform="python"
+                  >
+                    <li
+                      className="platform-tile list-unstyled python python "
+                      onClick={[Function]}
+                    >
+                      <span
+                        className="platformicon platformicon-python"
+                      />
+                    </li>
+                  </PlatformiconTile>
+                  <h5>
+                     
+                    Python
+                     
+                  </h5>
+                </span>
+              </PlatformCard>
+              <PlatformCard
+                className=""
+                onClick={[Function]}
+                platform="ruby-rails"
+              >
+                <span
+                  className="platform-card"
+                  onClick={[Function]}
+                >
+                  <PlatformiconTile
+                    className=""
+                    onClick={[Function]}
+                    platform="ruby-rails"
+                  >
+                    <li
+                      className="platform-tile list-unstyled ruby-rails ruby "
+                      onClick={[Function]}
+                    >
+                      <span
+                        className="platformicon platformicon-ruby-rails"
+                      />
+                    </li>
+                  </PlatformiconTile>
+                  <h5>
+                     
+                    Rails
+                     
+                  </h5>
+                </span>
+              </PlatformCard>
+            </ul>
+          </div>
+        </PlatformPicker>
+        <div
+          className="create-project-form"
         >
-          Continue
-        </button>
+          <div
+            className="new-project-name client-platform"
+          >
+            <h4>
+              Give your project a name:
+            </h4>
+            <div
+              className="project-name-wrapper"
+            >
+              <PlatformiconTile
+                platform="csharp"
+              >
+                <li
+                  className="platform-tile list-unstyled csharp csharp undefined"
+                >
+                  <span
+                    className="platformicon platformicon-csharp"
+                  />
+                </li>
+              </PlatformiconTile>
+              <input
+                label="Project Name"
+                name="name"
+                onChange={[Function]}
+                placeholder="Project name"
+                type="text"
+                value="another"
+              />
+            </div>
+          </div>
+          <bound renderTeamPicker />
+          <div>
+            <button
+              className="btn btn-primary submit-new-team"
+              onClick={[Function]}
+            >
+              Continue
+            </button>
+          </div>
+        </div>
       </div>
-    </div>
-  </Project>
+    </Project>
+  </div>
 </CreateProject>
-`;
-
-exports[`CreateProject render() should render NotFound if no matching organization 1`] = `
-<Project
-  name=""
-  next={[Function]}
-  platform=""
-  setName={[Function]}
-  setPlatform={[Function]}
-/>
 `;

@@ -24,16 +24,24 @@ describe('CreateProject', function() {
       }
     };
 
-    it('should render NotFound if no matching organization', function() {
+    it('should block if you have access to no teams', function() {
       let props = {
-        ...baseProps,
-        params: {
-          orgId: 'my-cool-org'
-        }
+        ...baseProps
       };
 
       let wrapper = shallow(<CreateProject {...props} />, {
-        organization: {id: '1337', slug: 'testOrg'}
+        context: {
+          organization: {
+            id: '1',
+            slug: 'testOrg',
+            teams: [{slug: 'test', id: '1', name: 'test', hasAccess: false}]
+          },
+          location: {query: {}}
+        },
+        childContextTypes: {
+          organization: React.PropTypes.object,
+          location: React.PropTypes.object
+        }
       });
       expect(wrapper).toMatchSnapshot();
     });
@@ -54,12 +62,18 @@ describe('CreateProject', function() {
 
       let wrapper = mount(<CreateProject {...props} />, {
         context: {
-          organization: {id: '1337', slug: 'testOrg'},
-          router: TestStubs.router()
+          organization: {
+            id: '1',
+            slug: 'testOrg',
+            teams: [{slug: 'test', id: '1', name: 'test', hasAccess: true}]
+          },
+          router: TestStubs.router(),
+          location: {query: {}}
         },
         childContextTypes: {
           router: React.PropTypes.object,
-          organization: React.PropTypes.object
+          organization: React.PropTypes.object,
+          location: React.PropTypes.object
         }
       });
 
