@@ -8,20 +8,20 @@ import MenuItem from 'sentry-ui/menuItem';
 
 storiesOf('DropdownLink', module)
   .add(
-    'anchor right',
-    withInfo('Anchors to right side')(() => (
+    'anchor left (default)',
+    withInfo('Anchors to left side')(() => (
       <div className="clearfix">
-        <DropdownLink anchor="right" title="Test">
+        <DropdownLink title="Test">
           <MenuItem href="">Item</MenuItem>
         </DropdownLink>
       </div>
     ))
   )
   .add(
-    'anchor left',
-    withInfo('Anchors to left side')(() => (
+    'anchor right',
+    withInfo('Anchors to right side')(() => (
       <div className="clearfix">
-        <DropdownLink anchor="left" title="Test">
+        <DropdownLink anchorRight title="Test">
           <MenuItem href="">Item</MenuItem>
         </DropdownLink>
       </div>

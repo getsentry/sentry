@@ -250,6 +250,7 @@ const OrganizationRepositories = React.createClass({
   },
 
   deleteRepo(repo) {
+    // eslint-disable-next-line no-alert
     if (!confirm(t('Are you sure you want to remove this repository?'))) return;
 
     let indicator = IndicatorStore.add(t('Saving changes..'));
@@ -335,7 +336,7 @@ const OrganizationRepositories = React.createClass({
       <OrganizationHomeContainer>
         <div className="pull-right">
           <DropdownLink
-            topLevelClasses="anchor-right"
+            anchorRight
             className="btn btn-primary btn-sm"
             title={t('Add Repository')}>
             {this.state.repoConfig.providers.map(provider => {

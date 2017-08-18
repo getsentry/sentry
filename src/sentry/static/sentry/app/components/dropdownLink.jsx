@@ -7,10 +7,13 @@ require('bootstrap/js/dropdown');
 const DropdownLink = React.createClass({
   propTypes: {
     title: React.PropTypes.node,
+    /** display dropdown caret */
     caret: React.PropTypes.bool,
     disabled: React.PropTypes.bool,
     onOpen: React.PropTypes.func,
     onClose: React.PropTypes.func,
+    /** anchors menu to the right */
+    anchorRight: React.PropTypes.bool,
     topLevelClasses: React.PropTypes.string,
     menuClasses: React.PropTypes.string
   },
@@ -18,6 +21,7 @@ const DropdownLink = React.createClass({
   getDefaultProps() {
     return {
       disabled: false,
+      anchorRight: false,
       caret: true
     };
   },
@@ -58,22 +62,27 @@ const DropdownLink = React.createClass({
   },
 
   render() {
-    let className = classNames({
+    let {anchorRight, disabled} = this.props;
+
+    // Default anchor = left
+    let isRight = anchorRight;
+
+    let className = classNames(this.props.className, {
+      'dropdown-menu-right': isRight,
       'dropdown-toggle': true,
-      disabled: this.props.disabled
+      disabled
     });
 
-    let topLevelClasses = classNames({
+    let topLevelClasses = classNames(this.props.topLevelClasses, {
+      'pull-right': isRight,
+      'anchor-right': isRight,
       dropdown: true,
       open: this.state.isOpen
     });
 
     return (
-      <span className={classNames(this.props.topLevelClasses, topLevelClasses)}>
-        <a
-          className={classNames(this.props.className, className)}
-          data-toggle="dropdown"
-          ref="dropdownToggle">
+      <span className={topLevelClasses}>
+        <a className={className} data-toggle="dropdown" ref="dropdownToggle">
           {this.props.title}
           {this.props.caret && <i className="icon-arrow-down" />}
         </a>
