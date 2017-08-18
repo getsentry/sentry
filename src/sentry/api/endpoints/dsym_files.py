@@ -131,7 +131,7 @@ class AssociateDSymFilesEndpoint(ProjectEndpoint):
             version_dsym_file, created = VersionDSymFile.objects.get_or_create(
                 dsym_file=dsym_file,
                 version=data['version'],
-                build=data['build'],
+                build=data.get('build'),
                 defaults=dict(dsym_app=dsym_app),
             )
             if created:
