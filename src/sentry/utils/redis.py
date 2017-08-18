@@ -5,6 +5,7 @@ import posixpath
 import six
 
 from threading import Lock
+from weakref import WeakKeyDictionary
 
 import rb
 from pkg_resources import resource_string
@@ -142,7 +143,8 @@ def check_cluster_versions(cluster, required, recommended=None, label=None):
 
 
 def load_script(path):
-    script = Script(None, resource_string('sentry', posixpath.join('scripts', path)))
+    cache = WeakKeyDictionary()
+    source = resource_string('sentry', posixpath.join('scripts', path))
 
     # This changes the argument order of the ``Script.__call__`` method to
     # encourage using the script with a specific Redis client, rather
@@ -157,6 +159,11 @@ def load_script(path):
         followed by the values that will be provided as ``KEYS`` and ``ARGV``
         to the script as two sequence arguments.
         """.format(path)
+        script = cache.get(client)
+        if script is None:
+            script = cache[client] = Script(client, source)
+            script.registered_client = None  # prevent circular reference
+
         return script(keys, args, client)
 
     return call_script
