@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import ConfigStore from '../../stores/configStore';
 import DropdownLink from '../dropdownLink';
@@ -7,7 +8,7 @@ import {t} from '../../locale';
 
 const UserNav = React.createClass({
   contextTypes: {
-    location: React.PropTypes.object
+    location: PropTypes.object
   },
 
   shouldComponentUpdate(nextProps, nextState) {

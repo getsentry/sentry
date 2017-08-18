@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import {Link} from 'react-router';
 import classNames from 'classnames';
@@ -10,11 +11,11 @@ import {t} from '../../locale';
 
 const OrganizationStatOverview = React.createClass({
   propTypes: {
-    orgId: React.PropTypes.string
+    orgId: PropTypes.string
   },
 
   contextTypes: {
-    location: React.PropTypes.object
+    location: PropTypes.object
   },
 
   mixins: [ApiMixin, OrganizationState],

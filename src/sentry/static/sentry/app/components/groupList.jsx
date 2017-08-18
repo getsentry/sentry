@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import Reflux from 'reflux';
 import jQuery from 'jquery';
@@ -14,15 +15,15 @@ import {t} from '../locale';
 
 const GroupList = React.createClass({
   propTypes: {
-    query: React.PropTypes.string.isRequired,
-    canSelectGroups: React.PropTypes.bool,
-    orgId: React.PropTypes.string.isRequired,
-    projectId: React.PropTypes.string.isRequired,
-    bulkActions: React.PropTypes.bool.isRequired
+    query: PropTypes.string.isRequired,
+    canSelectGroups: PropTypes.bool,
+    orgId: PropTypes.string.isRequired,
+    projectId: PropTypes.string.isRequired,
+    bulkActions: PropTypes.bool.isRequired
   },
 
   contextTypes: {
-    location: React.PropTypes.object
+    location: PropTypes.object
   },
 
   mixins: [ProjectState, Reflux.listenTo(GroupStore, 'onGroupChange'), ApiMixin],

@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import ListLink from '../listLink';
 import OrganizationState from '../../mixins/organizationState';
@@ -6,7 +7,7 @@ import {t} from '../../locale';
 
 const HomeSidebar = React.createClass({
   contextTypes: {
-    location: React.PropTypes.object
+    location: PropTypes.object
   },
 
   mixins: [OrganizationState],

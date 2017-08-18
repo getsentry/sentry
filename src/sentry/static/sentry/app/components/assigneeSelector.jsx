@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import ReactDOM from 'react-dom';
 import Reflux from 'reflux';
@@ -17,7 +18,7 @@ import {t} from '../locale';
 
 const AssigneeSelector = React.createClass({
   propTypes: {
-    id: React.PropTypes.string.isRequired
+    id: PropTypes.string.isRequired
   },
 
   mixins: [

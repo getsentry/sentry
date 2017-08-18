@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import Modal from 'react-bootstrap/lib/Modal';
 import PureRenderMixin from 'react-addons-pure-render-mixin';
@@ -5,10 +6,10 @@ import {t} from '../locale';
 
 const LinkWithConfirmation = React.createClass({
   propTypes: {
-    disabled: React.PropTypes.bool,
-    message: React.PropTypes.string.isRequired,
-    title: React.PropTypes.string.isRequired,
-    onConfirm: React.PropTypes.func.isRequired
+    disabled: PropTypes.bool,
+    message: PropTypes.string.isRequired,
+    title: PropTypes.string.isRequired,
+    onConfirm: PropTypes.func.isRequired
   },
 
   mixins: [PureRenderMixin],

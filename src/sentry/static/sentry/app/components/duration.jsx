@@ -1,8 +1,9 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 
 const Duration = React.createClass({
   propTypes: {
-    seconds: React.PropTypes.number.isRequired
+    seconds: PropTypes.number.isRequired
   },
 
   getDuration() {

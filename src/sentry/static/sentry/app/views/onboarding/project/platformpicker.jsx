@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import ListLink from '../../../components/listLink';
 import classnames from 'classnames';
@@ -10,9 +11,9 @@ const categoryList = Object.keys(categoryLists).concat('All');
 
 const PlatformPicker = React.createClass({
   propTypes: {
-    setPlatform: React.PropTypes.func.isRequired,
-    platform: React.PropTypes.string,
-    showOther: React.PropTypes.bool
+    setPlatform: PropTypes.func.isRequired,
+    platform: PropTypes.string,
+    showOther: PropTypes.bool
   },
 
   getDefaultProps() {

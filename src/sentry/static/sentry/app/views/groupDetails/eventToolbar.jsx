@@ -1,9 +1,10 @@
 import {Link} from 'react-router';
 import moment from 'moment';
+import PropTypes from 'prop-types';
 import React from 'react';
 
 import ConfigStore from '../../stores/configStore';
-import PropTypes from '../../proptypes';
+import CustomPropTypes from '../../proptypes';
 import DateTime from '../../components/dateTime';
 import FileSize from '../../components/fileSize';
 import TooltipMixin from '../../mixins/tooltip';
@@ -32,10 +33,10 @@ let formatDateDelta = (reference, observed) => {
 
 let GroupEventToolbar = React.createClass({
   propTypes: {
-    orgId: React.PropTypes.string.isRequired,
-    projectId: React.PropTypes.string.isRequired,
-    group: PropTypes.Group.isRequired,
-    event: PropTypes.Event.isRequired
+    orgId: PropTypes.string.isRequired,
+    projectId: PropTypes.string.isRequired,
+    group: CustomPropTypes.Group.isRequired,
+    event: CustomPropTypes.Event.isRequired
   },
 
   mixins: [

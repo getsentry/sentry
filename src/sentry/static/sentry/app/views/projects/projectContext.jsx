@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import Reflux from 'reflux';
 import DocumentTitle from 'react-document-title';
@@ -9,7 +10,7 @@ import LoadingError from '../../components/loadingError';
 import LoadingIndicator from '../../components/loadingIndicator';
 import MissingProjectMembership from '../../components/missingProjectMembership';
 import OrganizationState from '../../mixins/organizationState';
-import PropTypes from '../../proptypes';
+import CustomPropTypes from '../../proptypes';
 import TeamStore from '../../stores/teamStore';
 import ProjectStore from '../../stores/projectStore';
 import {t} from '../../locale';
@@ -29,13 +30,13 @@ const ERROR_TYPES = {
  */
 const ProjectContext = React.createClass({
   propTypes: {
-    projectId: React.PropTypes.string,
-    orgId: React.PropTypes.string
+    projectId: PropTypes.string,
+    orgId: PropTypes.string
   },
 
   childContextTypes: {
-    project: PropTypes.Project,
-    team: PropTypes.Team
+    project: CustomPropTypes.Project,
+    team: CustomPropTypes.Team
   },
 
   mixins: [

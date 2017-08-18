@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import _ from 'lodash';
 
@@ -164,9 +165,9 @@ class PluginSettings extends PluginComponentBase {
 }
 
 PluginSettings.propTypes = {
-  organization: React.PropTypes.object.isRequired,
-  project: React.PropTypes.object.isRequired,
-  plugin: React.PropTypes.object.isRequired
+  organization: PropTypes.object.isRequired,
+  project: PropTypes.object.isRequired,
+  plugin: PropTypes.object.isRequired
 };
 
 export default PluginSettings;

@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import FileChange from './fileChange';
 import {t, tn} from '../locale';
@@ -14,14 +15,14 @@ function Collapsed(props) {
 }
 
 Collapsed.propTypes = {
-  onClick: React.PropTypes.func.isRequired,
-  count: React.PropTypes.number.isRequired
+  onClick: PropTypes.func.isRequired,
+  count: PropTypes.number.isRequired
 };
 
 const RepositoryFileSummary = React.createClass({
   propTypes: {
-    fileChangeSummary: React.PropTypes.object,
-    repository: React.PropTypes.string
+    fileChangeSummary: PropTypes.object,
+    repository: PropTypes.string
   },
 
   statics: {

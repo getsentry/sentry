@@ -1,11 +1,12 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import PluginConfig from '../components/pluginConfig';
 
 const ProjectIssueTracking = React.createClass({
   propTypes: {
-    organization: React.PropTypes.object.isRequired,
-    project: React.PropTypes.object.isRequired,
-    dataList: React.PropTypes.array.isRequired
+    organization: PropTypes.object.isRequired,
+    project: PropTypes.object.isRequired,
+    dataList: PropTypes.array.isRequired
   },
 
   render() {

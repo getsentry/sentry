@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import DocumentTitle from 'react-document-title';
 import {Link} from 'react-router';
@@ -10,8 +11,8 @@ import {t} from '../locale';
 
 const ApiApplicationRow = React.createClass({
   propTypes: {
-    app: React.PropTypes.object.isRequired,
-    onRemove: React.PropTypes.func.isRequired
+    app: PropTypes.object.isRequired,
+    onRemove: PropTypes.func.isRequired
   },
 
   mixins: [ApiMixin],
@@ -83,7 +84,7 @@ const ApiApplicationRow = React.createClass({
 
 const ApiApplications = React.createClass({
   contextTypes: {
-    router: React.PropTypes.object.isRequired
+    router: PropTypes.object.isRequired
   },
 
   mixins: [ApiMixin],

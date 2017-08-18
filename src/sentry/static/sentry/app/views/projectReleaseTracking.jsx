@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import _ from 'lodash';
 
@@ -10,8 +11,8 @@ import LoadingIndicator from '../components/loadingIndicator';
 
 const ProjectReleaseTracking = React.createClass({
   propTypes: {
-    organization: React.PropTypes.object,
-    project: React.PropTypes.object
+    organization: PropTypes.object,
+    project: PropTypes.object
   },
 
   mixins: [ApiMixin],

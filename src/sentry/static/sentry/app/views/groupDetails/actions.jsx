@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import {browserHistory} from 'react-router';
 import ApiMixin from '../../mixins/apiMixin';
@@ -18,12 +19,12 @@ import {getShortVersion} from '../../utils';
 
 const ResolveActions = React.createClass({
   propTypes: {
-    group: React.PropTypes.object.isRequired,
-    hasRelease: React.PropTypes.bool.isRequired,
-    latestRelease: React.PropTypes.object,
-    onUpdate: React.PropTypes.func.isRequired,
-    orgId: React.PropTypes.string.isRequired,
-    projectId: React.PropTypes.string.isRequired
+    group: PropTypes.object.isRequired,
+    hasRelease: PropTypes.bool.isRequired,
+    latestRelease: PropTypes.object,
+    onUpdate: PropTypes.func.isRequired,
+    orgId: PropTypes.string.isRequired,
+    projectId: PropTypes.string.isRequired
   },
 
   getInitialState() {
@@ -154,8 +155,8 @@ const ResolveActions = React.createClass({
 
 const IgnoreActions = React.createClass({
   propTypes: {
-    group: React.PropTypes.object.isRequired,
-    onUpdate: React.PropTypes.func.isRequired
+    group: PropTypes.object.isRequired,
+    onUpdate: PropTypes.func.isRequired
   },
 
   getInitialState() {
@@ -360,9 +361,9 @@ const IgnoreActions = React.createClass({
 
 const DeleteActions = React.createClass({
   propTypes: {
-    project: React.PropTypes.object.isRequired,
-    onDelete: React.PropTypes.func.isRequired,
-    onDiscard: React.PropTypes.func.isRequired
+    project: PropTypes.object.isRequired,
+    onDelete: PropTypes.func.isRequired,
+    onDiscard: PropTypes.func.isRequired
   },
 
   render() {

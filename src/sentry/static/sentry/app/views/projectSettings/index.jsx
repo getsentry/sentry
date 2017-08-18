@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import OrganizationState from '../../mixins/organizationState';
 import ApiMixin from '../../mixins/apiMixin';
@@ -9,12 +10,12 @@ import {t} from '../../locale';
 
 const ProjectSettings = React.createClass({
   propTypes: {
-    setProjectNavSection: React.PropTypes.func
+    setProjectNavSection: PropTypes.func
   },
 
   contextTypes: {
-    location: React.PropTypes.object,
-    organization: React.PropTypes.object
+    location: PropTypes.object,
+    organization: PropTypes.object
   },
 
   mixins: [ApiMixin, OrganizationState],

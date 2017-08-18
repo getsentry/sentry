@@ -1,6 +1,7 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import GroupEventDataSection from '../eventDataSection';
-import PropTypes from '../../../proptypes';
+import CustomPropTypes from '../../../proptypes';
 import Breadcrumb from './breadcrumbs/breadcrumb';
 import {t} from '../../../locale';
 
@@ -27,22 +28,22 @@ function moduleToCategory(module) {
 }
 
 Collapsed.propTypes = {
-  onClick: React.PropTypes.func.isRequired,
-  count: React.PropTypes.number.isRequired
+  onClick: PropTypes.func.isRequired,
+  count: PropTypes.number.isRequired
 };
 
 const BreadcrumbsInterface = React.createClass({
   propTypes: {
-    group: PropTypes.Group.isRequired,
-    event: PropTypes.Event.isRequired,
-    type: React.PropTypes.string.isRequired,
-    data: React.PropTypes.object.isRequired,
-    isShare: React.PropTypes.bool
+    group: CustomPropTypes.Group.isRequired,
+    event: CustomPropTypes.Event.isRequired,
+    type: PropTypes.string.isRequired,
+    data: PropTypes.object.isRequired,
+    isShare: PropTypes.bool
   },
 
   contextTypes: {
-    organization: PropTypes.Organization,
-    project: PropTypes.Project
+    organization: CustomPropTypes.Organization,
+    project: CustomPropTypes.Project
   },
 
   statics: {

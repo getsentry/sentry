@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import ReleaseStats from '../../components/releaseStats';
 import Count from '../../components/count';
@@ -7,9 +8,9 @@ import LatestDeployOrReleaseTime from '../../components/latestDeployOrReleaseTim
 
 const ReleaseList = React.createClass({
   propTypes: {
-    orgId: React.PropTypes.string.isRequired,
-    projectId: React.PropTypes.string.isRequired,
-    releaseList: React.PropTypes.array.isRequired
+    orgId: PropTypes.string.isRequired,
+    projectId: PropTypes.string.isRequired,
+    releaseList: PropTypes.array.isRequired
   },
 
   render() {

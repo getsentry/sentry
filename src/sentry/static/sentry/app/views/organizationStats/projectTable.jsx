@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import {Link} from 'react-router';
 import Count from '../../components/count';
@@ -16,10 +17,10 @@ let getPercent = (item, total) => {
 
 const ProjectTable = React.createClass({
   propTypes: {
-    projectMap: React.PropTypes.object.isRequired,
-    projectTotals: React.PropTypes.array.isRequired,
-    orgTotal: React.PropTypes.object.isRequired,
-    organization: React.PropTypes.object.isRequired
+    projectMap: PropTypes.object.isRequired,
+    projectTotals: PropTypes.array.isRequired,
+    orgTotal: PropTypes.object.isRequired,
+    organization: PropTypes.object.isRequired
   },
 
   mixins: [PureRenderMixin],

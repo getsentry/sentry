@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import {Link} from 'react-router';
 
@@ -5,10 +6,10 @@ import {getShortVersion} from '../utils';
 
 const Version = React.createClass({
   propTypes: {
-    anchor: React.PropTypes.bool,
-    version: React.PropTypes.string.isRequired,
-    orgId: React.PropTypes.string,
-    projectId: React.PropTypes.string
+    anchor: PropTypes.bool,
+    version: PropTypes.string.isRequired,
+    orgId: PropTypes.string,
+    projectId: PropTypes.string
   },
 
   getDefaultProps() {

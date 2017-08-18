@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import moment from 'moment';
 import ApiMixin from '../../mixins/apiMixin';
@@ -8,8 +9,8 @@ import ProjectState from '../../mixins/projectState';
 
 const ProjectChart = React.createClass({
   propTypes: {
-    dateSince: React.PropTypes.number.isRequired,
-    resolution: React.PropTypes.string.isRequired
+    dateSince: PropTypes.number.isRequired,
+    resolution: PropTypes.string.isRequired
   },
 
   mixins: [ApiMixin, ProjectState],

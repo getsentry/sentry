@@ -7,11 +7,13 @@ import ProgressNodes from './progress';
 import ProjectActions from '../../actions/projectActions';
 import {getPlatformName} from './utils';
 
+import PropTypes from 'prop-types';
+
 import Raven from 'raven-js';
 
 const OnboardingWizard = React.createClass({
   contextTypes: {
-    organization: React.PropTypes.object
+    organization: PropTypes.object
   },
 
   mixins: [ApiMixin],

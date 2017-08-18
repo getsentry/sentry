@@ -1,14 +1,15 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import ReactDOM from 'react-dom';
 import {t} from '../locale';
 
 const ClippedBox = React.createClass({
   propTypes: {
-    title: React.PropTypes.string,
-    defaultClipped: React.PropTypes.bool,
-    clipHeight: React.PropTypes.number,
-    btnClassName: React.PropTypes.string,
-    btnText: React.PropTypes.string
+    title: PropTypes.string,
+    defaultClipped: PropTypes.bool,
+    clipHeight: PropTypes.number,
+    btnClassName: PropTypes.string,
+    btnText: PropTypes.string
   },
 
   getDefaultProps() {
