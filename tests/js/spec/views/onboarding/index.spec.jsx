@@ -69,7 +69,7 @@ describe('OnboardingWizard', function() {
 
       node = wrapper.find('PlatformCard').last();
       node.props().onClick();
-      expect(wrapper.state().projectName).toBe('Rails');
+      expect(wrapper.state().projectName).toBe('Ruby');
 
       //but not replace it when project name is something else:
       wrapper.setState({projectName: 'another'});
