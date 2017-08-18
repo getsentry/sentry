@@ -142,28 +142,20 @@ def check_cluster_versions(cluster, required, recommended=None, label=None):
     )
 
 
-def load_script(path):
-    cache = WeakKeyDictionary()
-    source = resource_string('sentry', posixpath.join('scripts', path))
+class ScriptManager(object):
+    def __init__(self, path):
+        self.__source = resource_string('sentry', posixpath.join('scripts', path))
+        self.__cache = WeakKeyDictionary()
 
-    # This changes the argument order of the ``Script.__call__`` method to
-    # encourage using the script with a specific Redis client, rather
-    # than implicitly using the first client that the script was registered
-    # with. (This can prevent lots of bizzare behavior when dealing with
-    # clusters of Redis servers.)
-    def call_script(client, keys, args):
-        """
-        Executes {!r} as a Lua script on a Redis server.
+    def __call__(self, client, keys, args):
+        return self.for_client(client)(keys, args, client)
 
-        Takes the client to execute the script on as the first argument,
-        followed by the values that will be provided as ``KEYS`` and ``ARGV``
-        to the script as two sequence arguments.
-        """.format(path)
-        script = cache.get(client)
+    def for_cluster(self, cluster):
+        return self.for_client(cluster.get_local_client(0))
+
+    def for_client(self, client):
+        script = self.__cache.get(client)
         if script is None:
-            script = cache[client] = Script(client, source)
+            script = self.__cache[client] = Script(client, self.__source)
             script.registered_client = None  # prevent circular reference
-
-        return script(keys, args, client)
-
-    return call_script
+        return script

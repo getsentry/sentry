@@ -18,23 +18,16 @@ from hashlib import md5
 
 import six
 from django.utils import timezone
-from pkg_resources import resource_string
-from redis.client import Script
 
 from sentry.tsdb.base import BaseTSDB
 from sentry.utils.dates import to_datetime, to_timestamp
-from sentry.utils.redis import check_cluster_versions, get_cluster_from_options
+from sentry.utils.redis import ScriptManager, check_cluster_versions, get_cluster_from_options
 from sentry.utils.versioning import Version
 from six.moves import reduce
 
 logger = logging.getLogger(__name__)
 
 SketchParameters = namedtuple('SketchParameters', 'depth width capacity')
-
-CountMinScript = Script(
-    None,
-    resource_string('sentry', 'scripts/tsdb/cmsketch.lua'),
-)
 
 
 class RedisTSDB(BaseTSDB):
@@ -98,6 +91,7 @@ class RedisTSDB(BaseTSDB):
         self.prefix = prefix
         self.vnodes = vnodes
         self.enable_frequency_sketches = options.pop('enable_frequency_sketches', False)
+        self.countmin_script = ScriptManager('tsdb/cmsketch.lua').for_cluster(self.cluster)
         super(RedisTSDB, self).__init__(**options)
 
     def validate(self):
@@ -544,7 +538,7 @@ class RedisTSDB(BaseTSDB):
                 # Since we're essentially merging dictionaries, we need to
                 # append this to any value that already exists at the key.
                 cmds = commands.setdefault(key, [])
-                cmds.append((CountMinScript, keys, arguments))
+                cmds.append((self.countmin_script, keys, arguments))
                 for k, t in expirations.items():
                     cmds.append(('EXPIREAT', k, t))
 
@@ -565,7 +559,7 @@ class RedisTSDB(BaseTSDB):
             ks = []
             for timestamp in series:
                 ks.extend(self.make_frequency_table_keys(model, rollup, timestamp, key))
-            commands[key] = [(CountMinScript, ks, arguments)]
+            commands[key] = [(self.countmin_script, ks, arguments)]
 
         results = {}
         for key, responses in self.cluster.execute_commands(commands).items():
@@ -587,8 +581,8 @@ class RedisTSDB(BaseTSDB):
         for key in keys:
             commands[key] = [
                 (
-                    CountMinScript, self.make_frequency_table_keys(model, rollup, timestamp, key),
-                    arguments,
+                    self.countmin_script,
+                    self.make_frequency_table_keys(model, rollup, timestamp, key), arguments,
                 ) for timestamp in series
             ]
 
@@ -622,7 +616,7 @@ class RedisTSDB(BaseTSDB):
             for timestamp in series:
                 ks.extend(self.make_frequency_table_keys(model, rollup, timestamp, key))
 
-            commands[key] = [(CountMinScript, ks, arguments + members)]
+            commands[key] = [(self.countmin_script, ks, arguments + members)]
 
         results = {}
 
@@ -678,7 +672,7 @@ class RedisTSDB(BaseTSDB):
                     arguments = ['EXPORT'] + list(self.DEFAULT_SKETCH_PARAMETERS)
                     exports[source].extend(
                         [
-                            (CountMinScript, keys, arguments),
+                            (self.countmin_script, keys, arguments),
                             ('DEL', ) + tuple(keys),
                         ]
                     )
@@ -691,7 +685,7 @@ class RedisTSDB(BaseTSDB):
                 for timestamp in series:
                     imports.append(
                         (
-                            CountMinScript, self.make_frequency_table_keys(
+                            self.countmin_script, self.make_frequency_table_keys(
                                 model,
                                 rollup,
                                 to_timestamp(timestamp),
