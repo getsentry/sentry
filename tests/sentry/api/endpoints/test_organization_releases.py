@@ -237,6 +237,16 @@ class OrganizationReleaseCreateTest(APITestCase):
             ReleaseCommit.objects.filter(release=release).values_list('commit__key', flat=True)
         )
 
+        # check that commits are overwritten
+        assert release_commits1 == [
+            u'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+            u'62de626b7c7cfb8e77efb4273b1a3df4123e6216',
+            u'58de626b7c7cfb8e77efb4273b1a3df4123e6345',
+        ]
+
+        # should be 201 because project was added
+        assert response.status_code == 201, response.content
+
         with self.tasks():
             with patch.object(DummyRepositoryProvider, 'compare_commits') as mock_compare_commits:
                 mock_compare_commits.return_value = [
@@ -272,19 +282,12 @@ class OrganizationReleaseCreateTest(APITestCase):
         )
 
         # check that commits are overwritten
-        assert release_commits1 == [
-            u'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
-            u'62de626b7c7cfb8e77efb4273b1a3df4123e6216',
-            u'58de626b7c7cfb8e77efb4273b1a3df4123e6345',
-        ]
         assert release_commits2 == [
             u'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
             u'cccccccccccccccccccccccccccccccccccccccc',
             u'dddddddddddddddddddddddddddddddddddddddd',
         ]
 
-        # should be 201 because project was added
-        assert response.status_code == 201, response.content
         assert response2.status_code == 208, response.content
         assert Release.objects.filter(version='1.2.1', organization=org).count() == 1
         # make sure project was added
