@@ -8,6 +8,8 @@ import GroupingStore from '../../stores/groupingStore';
 import SpreadLayout from '../../components/spreadLayout';
 import FlowLayout from '../../components/flowLayout';
 import LinkWithConfirmation from '../../components/linkWithConfirmation';
+import Toolbar from '../../components/toolbar';
+import ToolbarHeader from '../../components/toolbarHeader';
 
 const SimilarToolbar = React.createClass({
   propTypes: {
@@ -33,34 +35,36 @@ const SimilarToolbar = React.createClass({
   render() {
     let {onMerge} = this.props;
     return (
-      <SpreadLayout responsive className="similar-toolbar stream-actions">
-        <FlowLayout style={{flex: 1}}>
-          <FlowLayout>
-            <div className="similar-toolbar-actions">
-              <LinkWithConfirmation
-                disabled={this.state.mergeCount === 0}
-                title={t(`Merging ${this.state.mergeCount} issues`)}
-                message={t('Are you sure you want to merge these issues?')}
-                className="btn btn-sm btn-default"
-                onConfirm={onMerge}>
-                {t('Merge')} ({this.state.mergeCount || 0})
-              </LinkWithConfirmation>
-            </div>
+      <Toolbar className="similar-toolbar">
+        <SpreadLayout responsive>
+          <FlowLayout style={{flex: 1}}>
+            <FlowLayout>
+              <div className="similar-toolbar-actions">
+                <LinkWithConfirmation
+                  disabled={this.state.mergeCount === 0}
+                  title={t(`Merging ${this.state.mergeCount} issues`)}
+                  message={t('Are you sure you want to merge these issues?')}
+                  className="btn btn-sm btn-default"
+                  onConfirm={onMerge}>
+                  {t('Merge')} ({this.state.mergeCount || 0})
+                </LinkWithConfirmation>
+              </div>
+            </FlowLayout>
           </FlowLayout>
-        </FlowLayout>
 
-        <div className="similar-score-columns">
-          <div className="stream-actions-header similar-score-column event-count-header">
-            {t('Events')}
+          <div className="similar-score-columns">
+            <ToolbarHeader className="similar-score-column event-count-header">
+              {t('Events')}
+            </ToolbarHeader>
+            <ToolbarHeader className="similar-score-column event-similar-header">
+              {t('Exception')}
+            </ToolbarHeader>
+            <ToolbarHeader className="similar-score-column event-similar-header">
+              {t('Message')}
+            </ToolbarHeader>
           </div>
-          <div className="stream-actions-header similar-score-column event-similar-header">
-            {t('Exception')}
-          </div>
-          <div className="stream-actions-header similar-score-column event-similar-header">
-            {t('Message')}
-          </div>
-        </div>
-      </SpreadLayout>
+        </SpreadLayout>
+      </Toolbar>
     );
   }
 });
