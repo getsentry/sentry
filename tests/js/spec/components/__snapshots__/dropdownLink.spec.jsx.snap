@@ -1,0 +1,53 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`DropdownLink renders and anchors to left by default 1`] = `
+<span
+  className="top-level-class dropdown"
+>
+  <a
+    className="dropdown-toggle"
+    data-toggle="dropdown"
+  >
+    test
+    <i
+      className="icon-arrow-down"
+    />
+  </a>
+  <ul
+    className="dropdown-menu"
+  >
+    <div>
+      1
+    </div>
+    <div>
+      2
+    </div>
+  </ul>
+</span>
+`;
+
+exports[`DropdownLink renders and anchors to right 1`] = `
+<span
+  className="top-level-class pull-right anchor-right dropdown"
+>
+  <a
+    className="dropdown-menu-right dropdown-toggle"
+    data-toggle="dropdown"
+  >
+    test
+    <i
+      className="icon-arrow-down"
+    />
+  </a>
+  <ul
+    className="dropdown-menu"
+  >
+    <div>
+      1
+    </div>
+    <div>
+      2
+    </div>
+  </ul>
+</span>
+`;
