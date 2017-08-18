@@ -13,7 +13,12 @@ const Popular = [
   'php-symfony2',
   'java',
   'csharp',
-  'exilir'
+  'exilir',
+  'php',
+  'ruby',
+  'node',
+  'cocoa',
+  'javascript-angular'
 ];
 
 const Frontend = [

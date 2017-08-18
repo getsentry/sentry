@@ -331,6 +331,36 @@ exports[`OnboardingWizard render() should fill in project name if its empty when
                     <PlatformCard
                       className=""
                       onClick={[Function]}
+                      platform="javascript-angular"
+                    >
+                      <span
+                        className="platform-card"
+                        onClick={[Function]}
+                      >
+                        <PlatformiconTile
+                          className=""
+                          onClick={[Function]}
+                          platform="javascript-angular"
+                        >
+                          <li
+                            className="platform-tile list-unstyled javascript-angular javascript "
+                            onClick={[Function]}
+                          >
+                            <span
+                              className="platformicon platformicon-javascript-angular"
+                            />
+                          </li>
+                        </PlatformiconTile>
+                        <h5>
+                           
+                          Angular
+                           
+                        </h5>
+                      </span>
+                    </PlatformCard>
+                    <PlatformCard
+                      className=""
+                      onClick={[Function]}
                       platform="javascript"
                     >
                       <span
@@ -421,6 +451,36 @@ exports[`OnboardingWizard render() should fill in project name if its empty when
                     <PlatformCard
                       className=""
                       onClick={[Function]}
+                      platform="node"
+                    >
+                      <span
+                        className="platform-card"
+                        onClick={[Function]}
+                      >
+                        <PlatformiconTile
+                          className=""
+                          onClick={[Function]}
+                          platform="node"
+                        >
+                          <li
+                            className="platform-tile list-unstyled node node "
+                            onClick={[Function]}
+                          >
+                            <span
+                              className="platformicon platformicon-node"
+                            />
+                          </li>
+                        </PlatformiconTile>
+                        <h5>
+                           
+                          Node.js
+                           
+                        </h5>
+                      </span>
+                    </PlatformCard>
+                    <PlatformCard
+                      className=""
+                      onClick={[Function]}
                       platform="php-laravel"
                     >
                       <span
@@ -444,6 +504,36 @@ exports[`OnboardingWizard render() should fill in project name if its empty when
                         <h5>
                            
                           Laravel
+                           
+                        </h5>
+                      </span>
+                    </PlatformCard>
+                    <PlatformCard
+                      className=""
+                      onClick={[Function]}
+                      platform="php"
+                    >
+                      <span
+                        className="platform-card"
+                        onClick={[Function]}
+                      >
+                        <PlatformiconTile
+                          className=""
+                          onClick={[Function]}
+                          platform="php"
+                        >
+                          <li
+                            className="platform-tile list-unstyled php php "
+                            onClick={[Function]}
+                          >
+                            <span
+                              className="platformicon platformicon-php"
+                            />
+                          </li>
+                        </PlatformiconTile>
+                        <h5>
+                           
+                          PHP
                            
                         </h5>
                       </span>
@@ -571,6 +661,36 @@ exports[`OnboardingWizard render() should fill in project name if its empty when
                     <PlatformCard
                       className=""
                       onClick={[Function]}
+                      platform="cocoa"
+                    >
+                      <span
+                        className="platform-card"
+                        onClick={[Function]}
+                      >
+                        <PlatformiconTile
+                          className=""
+                          onClick={[Function]}
+                          platform="cocoa"
+                        >
+                          <li
+                            className="platform-tile list-unstyled cocoa cocoa "
+                            onClick={[Function]}
+                          >
+                            <span
+                              className="platformicon platformicon-cocoa"
+                            />
+                          </li>
+                        </PlatformiconTile>
+                        <h5>
+                           
+                          React-Native
+                           
+                        </h5>
+                      </span>
+                    </PlatformCard>
+                    <PlatformCard
+                      className=""
+                      onClick={[Function]}
                       platform="ruby-rails"
                     >
                       <span
@@ -594,6 +714,36 @@ exports[`OnboardingWizard render() should fill in project name if its empty when
                         <h5>
                            
                           Rails
+                           
+                        </h5>
+                      </span>
+                    </PlatformCard>
+                    <PlatformCard
+                      className=""
+                      onClick={[Function]}
+                      platform="ruby"
+                    >
+                      <span
+                        className="platform-card"
+                        onClick={[Function]}
+                      >
+                        <PlatformiconTile
+                          className=""
+                          onClick={[Function]}
+                          platform="ruby"
+                        >
+                          <li
+                            className="platform-tile list-unstyled ruby ruby "
+                            onClick={[Function]}
+                          >
+                            <span
+                              className="platformicon platformicon-ruby"
+                            />
+                          </li>
+                        </PlatformiconTile>
+                        <h5>
+                           
+                          Ruby
                            
                         </h5>
                       </span>
