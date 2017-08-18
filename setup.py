@@ -125,7 +125,7 @@ install_requires = [
     'python-openid>=2.2',
     'PyYAML>=3.11,<3.12',
     'raven>=5.29.0,<6.0.0',
-    'redis>=2.10.3,<2.10.6',
+    'redis>=2.10.3,<2.11.0',
     'requests[security]>=2.9.1,<2.13.0',
     'selenium==3.4.3',
     'simplejson>=3.2.0,<3.9.0',
