@@ -22,7 +22,7 @@ from sentry.utils.dates import to_datetime, to_timestamp
 try:
     xrange          # Python 2
 except NameError:
-    xrange = range  # Python 3
+    xrange = range  # Python 3
 
 
 @pytest.yield_fixture(scope="module")
