@@ -243,10 +243,10 @@ class UnmergeTestCase(TestCase):
 
         events = OrderedDict()
 
-        for event in (create_message_event('This is message #%s.', i) for i in xrange(10)):
+        for event in (create_message_event('This is message #%s.', i) for i in range(10)):
             events.setdefault(get_fingerprint(event), []).append(event)
 
-        for event in (create_message_event('This is message #%s!', i) for i in xrange(10, 17)):
+        for event in (create_message_event('This is message #%s!', i) for i in range(10, 17)):
             events.setdefault(get_fingerprint(event), []).append(event)
 
         assert len(events) == 2
