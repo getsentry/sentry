@@ -425,7 +425,7 @@ def report(request):
     )
 
     projects = []
-    for i in xrange(0, random.randint(1, 8)):
+    for i in range(0, random.randint(1, 8)):
         name = ' '.join(random.sample(loremipsum.words, random.randint(1, 4)))
         projects.append(
             Project(
