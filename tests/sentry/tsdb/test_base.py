@@ -54,22 +54,22 @@ class BaseTSDBTest(TestCase):
 
         start = now() - timedelta(seconds=30)
         assert self.tsdb.get_optimal_rollup_series(start) == (
-            10, [to_timestamp(start + timedelta(seconds=10) * i) for i in xrange(4)],
+            10, [to_timestamp(start + timedelta(seconds=10) * i) for i in range(4)],
         )
 
         start = now() - timedelta(minutes=30)
         assert self.tsdb.get_optimal_rollup_series(start) == (
-            ONE_MINUTE, [to_timestamp(start + timedelta(minutes=1) * i) for i in xrange(31)],
+            ONE_MINUTE, [to_timestamp(start + timedelta(minutes=1) * i) for i in range(31)],
         )
 
         start = now() - timedelta(hours=5)
         assert self.tsdb.get_optimal_rollup_series(start) == (
-            ONE_HOUR, [to_timestamp(start + timedelta(hours=1) * i) for i in xrange(6)],
+            ONE_HOUR, [to_timestamp(start + timedelta(hours=1) * i) for i in range(6)],
         )
 
         start = now() - timedelta(days=7)
         assert self.tsdb.get_optimal_rollup_series(start) == (
-            ONE_DAY, [to_timestamp(start + timedelta(hours=24) * i) for i in xrange(8)],
+            ONE_DAY, [to_timestamp(start + timedelta(hours=24) * i) for i in range(8)],
         )
 
     @mock.patch('django.utils.timezone.now')
