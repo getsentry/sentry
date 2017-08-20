@@ -19,11 +19,7 @@ from sentry.tasks.reports import (
 from sentry.testutils.cases import TestCase
 from sentry.utils.dates import to_datetime, to_timestamp
 
-try:
-    xrange          # Python 2
-except NameError:
-    xrange = range  # Python 3
-
+from six.moves import xrange
 
 @pytest.yield_fixture(scope="module")
 def interval():
