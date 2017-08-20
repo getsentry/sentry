@@ -12,6 +12,7 @@ from sentry.rules.conditions.event_frequency import (
     EventFrequencyCondition, EventUniqueUserFrequencyCondition
 )
 from sentry.testutils.cases import RuleTestCase
+from six.moves import xrange
 
 
 class FrequencyConditionMixin(object):
