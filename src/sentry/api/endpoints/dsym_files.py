@@ -23,7 +23,7 @@ class AssociateDsymSerializer(serializers.Serializer):
     name = serializers.CharField(max_length=250)
     appId = serializers.CharField(max_length=250)
     version = serializers.CharField(max_length=40)
-    build = serializers.CharField(max_length=40)
+    build = serializers.CharField(max_length=40, required=False)
 
 
 def upload_from_request(request, project=None):
@@ -131,7 +131,7 @@ class AssociateDSymFilesEndpoint(ProjectEndpoint):
             version_dsym_file, created = VersionDSymFile.objects.get_or_create(
                 dsym_file=dsym_file,
                 version=data['version'],
-                build=data['build'],
+                build=data.get('build'),
                 defaults=dict(dsym_app=dsym_app),
             )
             if created:
