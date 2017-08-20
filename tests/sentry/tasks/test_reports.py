@@ -21,6 +21,7 @@ from sentry.utils.dates import to_datetime, to_timestamp
 
 from six.moves import xrange
 
+
 @pytest.yield_fixture(scope="module")
 def interval():
     stop = datetime(2016, 9, 12, tzinfo=pytz.utc)
