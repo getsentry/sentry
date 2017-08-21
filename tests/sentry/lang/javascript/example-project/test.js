@@ -1,22 +1,24 @@
-function onSuccess(data) {}
+var makeAFailure = (function() {
+  function onSuccess(data) {}
 
-function onFailure(data) {
-  throw new Error('failed!');
-}
-
-function invoke(data) {
-  var cb = null;
-  if (data.failed) {
-    cb = onFailure;
-  } else {
-    cb = onSuccess;
+  function onFailure(data) {
+    throw new Error('failed!');
   }
-  cb(data);
-}
 
-function test() {
-  var data = {failed: true, value: 42};
-  invoke(data);
-}
+  function invoke(data) {
+    var cb = null;
+    if (data.failed) {
+      cb = onFailure;
+    } else {
+      cb = onSuccess;
+    }
+    cb(data);
+  }
 
-module.exports = test;
+  function test() {
+    var data = {failed: true, value: 42};
+    invoke(data);
+  }
+
+  return test;
+})();
