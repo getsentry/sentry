@@ -45,8 +45,8 @@ def get_files(path):
 def get_modified_files(path):
     return [
         s
-        for s in check_output(['git', 'diff-index', '--cached', '--name-only', 'HEAD'])
-        .split('\n') if s
+        for s in check_output(['git', 'diff-index', '--cached', '--name-only', 'HEAD']).split('\n')
+        if s
     ]
 
 
@@ -68,7 +68,6 @@ def get_js_files(file_list=None):
     if file_list is None:
         file_list = ['tests/js', 'src/sentry/static/sentry/app']
     return [x for x in get_files_for_list(file_list) if x.endswith(('.js', '.jsx'))]
-    return file_list
 
 
 def get_python_files(file_list=None):
@@ -178,6 +177,10 @@ def js_format(file_list=None):
         return False
 
     js_file_list = get_js_files(file_list)
+
+    # manually exclude some bad files
+    js_file_list = [x for x in js_file_list if '/javascript/example-project/' not in x]
+
     return run_formatter(
         [
             prettier_path, '--write', '--single-quote', '--bracket-spacing=false',
