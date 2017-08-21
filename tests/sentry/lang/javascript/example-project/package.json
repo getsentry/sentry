@@ -1,0 +1,6 @@
+{
+  "dependencies": {
+    "stacktrace-js": "^2.0.0",
+    "uglify": "^0.1.5"
+  }
+}
