@@ -18,6 +18,7 @@ const SimilarItemPropType = PropTypes.shape({
 const SimilarList = React.createClass({
   propTypes: {
     orgId: PropTypes.string.isRequired,
+    groupId: PropTypes.string.isRequired,
     projectId: PropTypes.string.isRequired,
     onMerge: PropTypes.func.isRequired,
     pageLinks: PropTypes.string,
@@ -53,7 +54,15 @@ const SimilarList = React.createClass({
   },
 
   render() {
-    let {orgId, projectId, items, filteredItems, pageLinks, onMerge} = this.props;
+    let {
+      orgId,
+      groupId,
+      projectId,
+      items,
+      filteredItems,
+      pageLinks,
+      onMerge
+    } = this.props;
     let hasHiddenItems = !!filteredItems.length;
     let hasResults = items.length > 0 || hasHiddenItems;
     let itemsWithFiltered = items.concat(
@@ -82,6 +91,7 @@ const SimilarList = React.createClass({
               key={item.issue.id}
               orgId={orgId}
               projectId={projectId}
+              groupId={groupId}
               {...item}
             />
           ))}

@@ -54,6 +54,7 @@
     "react-addons-update": "15.3.2",
     "react-bootstrap": "^0.29.5",
     "react-code-input": "1.0.8",
+    "react-diff": "^0.0.7",
     "react-document-title": "1.0.4",
     "react-dom": "15.3.2",
     "react-icon-base": "^2.0.4",

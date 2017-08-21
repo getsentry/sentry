@@ -1,3 +1,7 @@
+/*global __webpack_public_path__ */
+/*eslint no-native-reassign:0 */
+if (window.globalStaticUrl) __webpack_public_path__ = window.globalStaticUrl; // defined in layout.html
+
 import PropTypes from 'prop-types';
 import React from 'react';
 import $ from 'jquery';
