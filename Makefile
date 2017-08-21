@@ -7,7 +7,7 @@ ifneq "$(wildcard /usr/local/opt/libxmlsec1/lib)" ""
 	LDFLAGS += -L/usr/local/opt/libxmlsec1/lib
 endif
 ifneq "$(wildcard /usr/local/opt/openssl/lib)" ""
-	LDFLAGS +=- L/usr/local/opt/openssl/lib
+	LDFLAGS += -L/usr/local/opt/openssl/lib
 endif
 
 PIP = LDFLAGS="$(LDFLAGS)" pip
