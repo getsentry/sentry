@@ -30,8 +30,11 @@ if not pcall(redis.replicate_commands) then
     redis.log(redis.LOG_DEBUG, 'Could not enable script effects replication.')
 end
 
-local function identity(value)
-    return value
+
+-- Utilities
+
+local function identity(...)
+    return ...
 end
 
 local function range(start, stop)
@@ -104,61 +107,118 @@ end
 
 -- Argument Parsing and Validation
 
-local function parse_number(value)
+local function validate_value(value)
+    assert(value ~= nil, 'got nil, expected value')
+    return value
+end
+
+local function validate_number(value)
     local result = tonumber(value)
-    assert(result ~= nil, 'got nil, expected number')
+    assert(result ~= nil, string.format('got nil (%q), expected number', value))
     return result
 end
 
-local function parse_integer(value)
-    local result = parse_number(value)
-    assert(result % 1 == 0, 'got float, expected integer')
+local function validate_integer(value)
+    local result = validate_number(value)
+    assert(result % 1 == 0, string.format('got float (%q), expected integer', value))
     return result
 end
 
-local function build_argument_parser(fields)
-    return function (arguments, offset)
-        if offset == nil then
-            offset = 0
-        end
-        local results = {}
-        for i = 1, #fields do
-            local name, parser = unpack(fields[i])
-            local value = arguments[i]
-            local ok, result = pcall(parser, value)
-            if not ok then
-                error(string.format('received invalid argument for %q in position %s with value %q; %s', name, offset + i, value, result))
-            else
-                results[name] = result
-            end
-        end
-        return results, table.slice(arguments, #fields + 1)
+local function argument_parser(callback)
+    if callback == nil then
+        callback = identity
+    end
+
+    return function (cursor, arguments)
+        return cursor + 1, callback(arguments[cursor])
     end
 end
 
-local function build_variadic_argument_parser(fields, validator)
-    if validator == nil then
-        validator = identity
+local function flag_argument_parser(flags)
+    return function (cursor, arguments)
+        local result = {}
+        while flags[arguments[cursor]] do
+            result[arguments[cursor]] = true
+            cursor = cursor + 1
+        end
+        return cursor, result
     end
-    local parser = build_argument_parser(fields)
-    return function (arguments, offset)
-        if offset == nil then
-            offset = 0
+end
+
+local function repeated_argument_parser(argument_parser, quantity_parser, callback)
+    if quantity_parser == nil then
+        quantity_parser = function (cursor, arguments)
+            return cursor + 1, validate_integer(arguments[cursor])
         end
-        if #arguments % #fields ~= 0 then
-            -- TODO: make this error less crummy
-            error('invalid number of arguments')
-        end
+    end
+
+    if callback == nil then
+        callback = identity
+    end
+
+    return function (cursor, arguments)
         local results = {}
-        for i = 1, #arguments, #fields do
-            local value, _ = parser(table.slice(arguments, i, i + #fields - 1), i)
-            table.insert(
-                results,
-                validator(value)
-            )
+        local cursor, count = quantity_parser(cursor, arguments)
+        for i = 1, count do
+            cursor, results[i] = argument_parser(cursor, arguments)
         end
-        return results
+        return cursor, callback(results)
     end
+end
+
+local function object_argument_parser(schema, callback)
+    if callback == nil then
+        callback = identity
+    end
+
+    return function (cursor, arguments)
+        local result = {}
+        for i, specification in ipairs(schema) do
+            local key, parser = unpack(specification)
+            cursor, result[key] = parser(cursor, arguments)
+        end
+        return cursor, callback(result)
+    end
+end
+
+local function variadic_argument_parser(argument_parser)
+    return function (cursor, arguments)
+        local results = {}
+        local i = 1
+        while arguments[cursor] ~= nil do
+            cursor, results[i] = argument_parser(cursor, arguments)
+            i = i + 1
+        end
+        return cursor, results
+    end
+end
+
+local function multiple_argument_parser(...)
+    local parsers = {...}
+    return function (cursor, arguments)
+        local results = {}
+        for i, parser in ipairs(parsers) do
+            cursor, results[i] = parser(cursor, arguments)
+        end
+        return cursor, unpack(results)
+    end
+end
+
+local function frequencies_argument_parser(configuration)
+    return repeated_argument_parser(
+        function (cursor, arguments)
+            local buckets = {}
+            return repeated_argument_parser(
+                function (cursor, arguments)
+                    buckets[validate_value(arguments[cursor])] = validate_integer(arguments[cursor + 1])
+                    return cursor + 2
+                end
+            )(cursor, arguments), buckets
+        end,
+        function (cursor, arguments)
+            return cursor, configuration.bands
+        end
+    )
 end
 
 
@@ -192,28 +252,6 @@ local function redis_hgetall_response_to_table(response, value_type)
         result[response[i]] = value_type(response[i + 1])
     end
     return result
-end
-
-
--- Generic Configuration
-
-local configuration_parser = build_argument_parser({
-    {"timestamp", parse_integer},
-    {"namespace", identity},
-    {"bands", parse_integer},
-    {"interval", parse_integer},
-    {"retention", parse_integer},  -- how many previous intervals to store (does not include current interval)
-    {"scope", function (value)
-        assert(value ~= nil)
-        return value
-    end}
-})
-
-local function takes_configuration(command)
-    return function(arguments)
-        local configuration, arguments = configuration_parser(arguments)
-        return command(configuration, arguments)
-    end
 end
 
 
@@ -278,63 +316,8 @@ local function scale_to_total(values)
     return result
 end
 
-local function collect_index_key_pairs(arguments, validator)
-    return build_variadic_argument_parser({
-        {"index", identity},
-        {"key", identity},
-    }, validator)(arguments)
-end
-
 
 -- Signature Matching
-
-local function parse_band(configuration, arguments, cursor)
-    local result = {}
-
-    local count = tonumber(arguments[cursor])
-    cursor = cursor + 1
-
-    for i = 1, count do
-        result[arguments[cursor]] = tonumber(arguments[cursor + 1])
-        cursor = cursor + 2
-    end
-
-    return result, cursor
-end
-
-local function parse_signature(configuration, arguments, cursor)
-    local result = {}
-
-    result.index = arguments[cursor]
-    cursor = cursor + 1
-
-    for i = 1, configuration.bands do
-        result[i], cursor = parse_band(
-            configuration,
-            arguments,
-            cursor
-        )
-    end
-
-    return result, cursor
-end
-
-local function parse_signatures(configuration, arguments, cursor)
-    local result = {}
-
-    local count = tonumber(arguments[cursor])
-    cursor = cursor + 1
-
-    for i = 1, count  do
-        result[i], cursor = parse_signature(
-            configuration,
-            arguments,
-            cursor
-        )
-    end
-
-    return result, cursor
-end
 
 local function fetch_candidates(configuration, time_series, index, frequencies)
     --[[
@@ -492,15 +475,20 @@ end
 
 -- Command Parsing
 
+local takes_configuration = identity  -- XXX: LOL
+
 local commands = {
     RECORD = takes_configuration(
-        function (configuration, arguments)
-            local key = arguments[1]
-            local signatures = parse_signatures(
-                configuration,
-                arguments,
-                2
-            )
+        function (configuration, cursor, arguments)
+            local cursor, key, signatures = multiple_argument_parser(
+                argument_parser(validate_value),
+                variadic_argument_parser(
+                    object_argument_parser({
+                        {"index", argument_parser(validate_value)},
+                        {"frequencies", frequencies_argument_parser(configuration)},
+                    })
+                )
+            )(cursor, arguments)
 
             local time = math.floor(configuration.timestamp / configuration.interval)
             local expiration = get_index_expiration_time(
@@ -514,7 +502,7 @@ local commands = {
                 function (signature)
                     local results = {}
 
-                    for band, buckets in ipairs(signature) do
+                    for band, buckets in ipairs(signature.frequencies) do
                         for bucket, count in pairs(buckets) do
                             local bucket_membership_key = get_bucket_membership_key(
                                 configuration,
@@ -547,12 +535,16 @@ local commands = {
         end
     ),
     CLASSIFY = takes_configuration(
-        function (configuration, arguments)
-            local signatures = parse_signatures(
-                configuration,
-                arguments,
-                1
-            )
+        function (configuration, cursor, arguments)
+            local cursor, signatures = multiple_argument_parser(
+                variadic_argument_parser(
+                    object_argument_parser({
+                        {"index", argument_parser(validate_value)},
+                        {"frequencies", frequencies_argument_parser(configuration)},
+                    })
+                )
+            )(cursor, arguments)
+
             local time_series = get_active_indices(
                 configuration.interval,
                 configuration.retention,
@@ -566,7 +558,7 @@ local commands = {
                         configuration,
                         time_series,
                         signature.index,
-                        signature
+                        signature.frequencies
                     )
 
                     -- Sort the results in descending order (most similar first.)
@@ -594,9 +586,13 @@ local commands = {
         end
     ),
     COMPARE = takes_configuration(
-        function (configuration, arguments)
-            local item_key = arguments[1]
-            local indices = table.slice(arguments, 2)
+        function (configuration, cursor, arguments)
+            local cursor, item_key, indices = multiple_argument_parser(
+                argument_parser(validate_value),
+                variadic_argument_parser(
+                    argument_parser(validate_value)
+                )
+            )(cursor, arguments)
 
             local time_series = get_active_indices(
                 configuration.interval,
@@ -644,15 +640,17 @@ local commands = {
         end
     ),
     MERGE = takes_configuration(
-        function (configuration, arguments)
-            local destination_key = arguments[1]
-            local sources = collect_index_key_pairs(
-                table.slice(arguments, 2),
-                function (entry)
+        function (configuration, cursor, arguments)
+            local cursor, destination_key = argument_parser(validate_value)(cursor, arguments)
+            local cursor, sources = variadic_argument_parser(
+                object_argument_parser({
+                    {"index", argument_parser(validate_value)},
+                    {"key", argument_parser(validate_value)},
+                }, function (entry)
                     assert(entry.key ~= destination_key, 'cannot merge destination into itself')
                     return entry
-                end
-            )
+                end)
+            )(cursor, arguments)
 
             local time_series = get_active_indices(
                 configuration.interval,
@@ -733,8 +731,14 @@ local commands = {
         end
     ),
     DELETE = takes_configuration(
-        function (configuration, arguments)
-            local sources = collect_index_key_pairs(arguments)
+        function (configuration, cursor, arguments)
+            local cursor, sources = variadic_argument_parser(
+                object_argument_parser({
+                    {"index", argument_parser(validate_value)},
+                    {"key", argument_parser(validate_value)},
+                })
+            )(cursor, arguments)
+
             local time_series = get_active_indices(
                 configuration.interval,
                 configuration.retention,
@@ -789,12 +793,14 @@ local commands = {
         data already exists at the new destination, the imported data will be
         appended to the existing data.
         ]]--
-        function (configuration, arguments)
-            local entries = build_variadic_argument_parser({
-                {'index', identity},
-                {'key', identity},
-                {'data', cmsgpack.unpack},
-            })(arguments)
+        function (configuration, cursor, arguments)
+            local cursor, entries = variadic_argument_parser(
+                object_argument_parser({
+                    {'index', argument_parser(validate_value)},
+                    {'key', argument_parser(validate_value)},
+                    {'data', argument_parser(cmsgpack.unpack)}
+                })
+            )(cursor, arguments)
 
             for _, entry in ipairs(entries) do
                 for band, data in ipairs(entry.data) do
@@ -864,7 +870,14 @@ local commands = {
         be represented as an empty list. The consumer of this data must convert
         it back to the correct type.)
         ]]--
-        function (configuration, arguments)
+        function (configuration, cursor, arguments)
+            local cursor, entries = variadic_argument_parser(
+                object_argument_parser({
+                    {'index', argument_parser(validate_value)},
+                    {'key', argument_parser(validate_value)},
+                })
+            )(cursor, arguments)
+
             local bands = range(1, configuration.bands)
             local time_series = get_active_indices(
                 configuration.interval,
@@ -872,7 +885,7 @@ local commands = {
                 configuration.timestamp
             )
             return table.imap(
-                collect_index_key_pairs(arguments),
+                entries,
                 function (source)
                     return cmsgpack.pack(
                         table.imap(
@@ -907,14 +920,16 @@ local commands = {
         end
     ),
     SCAN = takes_configuration(
-        function (configuration, arguments)
-            local arguments = build_variadic_argument_parser({
-                {"index", identity},
-                {"cursor", identity},
-                {"count", identity},
-            })(arguments)
+        function (configuration, cursor, arguments)
+            local cursor, entries = variadic_argument_parser(
+                object_argument_parser({
+                    {'index', argument_parser(validate_value)},
+                    {'cursor', argument_parser(validate_value)},
+                    {'count', argument_parser(validate_integer)}
+                })
+            )(cursor, arguments)
             return table.imap(
-                arguments,
+                entries,
                 function (argument)
                     return redis.call(
                         'SCAN',
@@ -936,14 +951,22 @@ local commands = {
     )
 }
 
+local cursor, command, configuration = multiple_argument_parser(
+    argument_parser(
+        function (value)
+            local command = commands[value]
+            assert(command ~= nil)
+            return command
+        end
+    ),
+    object_argument_parser({
+        {"timestamp", argument_parser(validate_number)},
+        {"namespace", argument_parser()},
+        {"bands", argument_parser(validate_integer)},
+        {"interval", argument_parser(validate_integer)},
+        {"retention", argument_parser(validate_integer)},  -- how many previous intervals to store (does not include current interval)
+        {"scope", argument_parser(validate_value)},
+    })
+)(1, ARGV)
 
-local command_parser = build_argument_parser({
-    {"command", function (value)
-        local command = commands[value]
-        assert(command ~= nil)
-        return command
-    end},
-})
-
-local parsed, arguments = command_parser(ARGV)
-return parsed.command(arguments)
+return command(configuration, cursor, ARGV)
