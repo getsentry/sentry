@@ -523,9 +523,10 @@ const Sidebar = React.createClass({
           <hr />
           <SidebarSection>
             <SidebarItem
+              active={this.state.currentPanel == 'broadcasts'}
               icon={<IconSidebarWhatsNew size={22} />}
               label={t("What's new")}
-              onClick={() => this.togglePanel('assigned')}
+              onClick={() => this.togglePanel('broadcasts')}
             />
             {!config.isOnPremise
               ? <SidebarItem
@@ -620,6 +621,11 @@ const Sidebar = React.createClass({
               showActions={false}
               params={{orgId: org.slug}}
             />
+          </SidebarPanel>}
+        {this.state.showPanel &&
+          this.state.currentPanel == 'broadcasts' &&
+          <SidebarPanel title={t("What's New")} hidePanel={() => this.hidePanel()}>
+            <Broadcasts />
           </SidebarPanel>}
       </div>
     );

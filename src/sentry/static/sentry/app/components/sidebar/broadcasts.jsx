@@ -109,38 +109,27 @@ const Broadcasts = React.createClass({
   render() {
     let {broadcasts, loading} = this.state;
     return (
-      <li className={this.props.currentPanel == 'broadcasts' ? 'active' : null}>
-        <a
-          className="broadcasts-toggle"
-          onClick={this.onShowPanel}
-          title="Updates from Sentry">
-          <span className="icon icon-globe" />
-          {this.getUnseenIds() > 0 && <span className="activity-indicator" />}
-        </a>
-        {this.props.showPanel &&
-          this.props.currentPanel == 'broadcasts' &&
-          <SidebarPanel
-            title={t('Recent updates from Sentry')}
-            hidePanel={this.props.hidePanel}>
-            {loading
-              ? <LoadingIndicator />
-              : broadcasts.length === 0
-                  ? <div className="sidebar-panel-empty">
-                      {t('No recent updates from the Sentry team.')}
-                    </div>
-                  : broadcasts.map(item => {
-                      return (
-                        <SidebarPanelItem
-                          key={item.id}
-                          className={!item.hasSeen && 'unseen'}
-                          title={item.title}
-                          message={item.message}
-                          link={item.link}
-                        />
-                      );
-                    })}
-          </SidebarPanel>}
-      </li>
+      <span>
+        {/* 'this.getUnseenIds() > 0 && <span className="activity-indicator" />' */}
+
+        {loading
+          ? <LoadingIndicator />
+          : broadcasts.length === 0
+              ? <div className="sidebar-panel-empty">
+                  {t('No recent updates from the Sentry team.')}
+                </div>
+              : broadcasts.map(item => {
+                  return (
+                    <SidebarPanelItem
+                      key={item.id}
+                      className={!item.hasSeen && 'unseen'}
+                      title={item.title}
+                      message={item.message}
+                      link={item.link}
+                    />
+                  );
+                })}
+      </span>
     );
   }
 });
