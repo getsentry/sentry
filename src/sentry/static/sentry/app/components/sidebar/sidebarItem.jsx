@@ -32,13 +32,13 @@ const SidebarItem = React.createClass({
 
     if (this.props.to) {
       return (
-        <Link className={classNames} {...props}>
+        <Link className={classNames} {...props} title={label}>
           {innerItem}
         </Link>
       );
     }
     return (
-      <a className={classNames} {...props}>
+      <a href={href} className={classNames} {...props} title={label}>
         {innerItem}
       </a>
     );
