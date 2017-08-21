@@ -11,15 +11,6 @@ const OnboardingWizard = React.createClass({
 
   mixins: [ApiMixin],
 
-  getInitialState() {
-    return {
-      // loading: true,
-      // error: false,
-      // platform: '',
-      // projectName: ''
-    };
-  },
-
   renderStep() {
     return React.cloneElement(this.props.children);
   },
