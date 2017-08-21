@@ -580,3 +580,42 @@ class ReleaseDeleteTest(APITestCase):
         )
         assert response.status_code == 400
         assert response.data == {'refs': [u'Invalid repository names: not_a_repo']}
+
+    def test_bad_commit_list(self):
+        user = self.create_user(is_staff=False, is_superuser=False)
+        org = self.create_organization()
+        org.flags.allow_joinleave = False
+        org.save()
+
+        team = self.create_team(organization=org)
+        project = self.create_project(name='foo', organization=org, team=team)
+        Repository.objects.create(organization_id=org.id, name='a_repo')
+        release = Release.objects.create(
+            organization_id=org.id,
+            version='abcabcabc',
+        )
+
+        release.add_project(project)
+
+        self.create_member(teams=[team], user=user, organization=org)
+        self.login_as(user=user)
+
+        url = reverse(
+            'sentry-api-0-organization-release-details',
+            kwargs={
+                'organization_slug': org.slug,
+                'version': release.version,
+            }
+        )
+        response = self.client.put(
+            url,
+            data={
+                'version': '1.2.1',
+                'projects': [project.slug],
+                'commits': [{
+                    'repository': 'a_repo',
+                }]
+            }
+        )
+        assert response.status_code == 400
+        assert response.data == {'commits': ['id: This field is required.']}
