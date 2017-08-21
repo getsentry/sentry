@@ -7,8 +7,8 @@ function dumpSentryStacktrace(frames) {
   var newFrames = [];
 
   frames.forEach(function(frame) {
-    var match = frame.fileName.match(/^.*\/(.*?)$/);
-    if (!match || match[1] != 'test.js') {
+    var match = frame.fileName.match(/^.*\/(test(\.min)?\.js)$/);
+    if (!match) {
       return;
     }
     newFrames.push({

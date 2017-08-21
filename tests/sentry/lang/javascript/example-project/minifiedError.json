@@ -1,1 +1,23 @@
-[]
+[
+  {
+    "abs_path": "http://example.com/static/test.min.js",
+    "filename": "test.min.js",
+    "function": "i",
+    "lineno": 1,
+    "colno": 125
+  },
+  {
+    "abs_path": "http://example.com/static/test.min.js",
+    "filename": "test.min.js",
+    "function": "u",
+    "lineno": 1,
+    "colno": 197
+  },
+  {
+    "abs_path": "http://example.com/static/test.min.js",
+    "filename": "test.min.js",
+    "function": "f",
+    "lineno": 1,
+    "colno": 244
+  }
+]
