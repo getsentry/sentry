@@ -411,7 +411,6 @@ const Sidebar = React.createClass({
       showPanel: true,
       currentPanel: panel
     });
-    console.log(this.state.currentPanel);
   },
 
   togglePanel(panel) {
