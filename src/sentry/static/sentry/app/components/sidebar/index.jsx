@@ -2,8 +2,11 @@ import React from 'react';
 import $ from 'jquery';
 
 import ApiMixin from '../../mixins/apiMixin';
+import DropdownLink from '../dropdownLink';
+import MenuItem from '../menuItem';
 import OrganizationState from '../../mixins/organizationState';
 import {load as loadIncidents} from '../../actionCreators/incidents';
+import {t} from '../../locale';
 
 import Broadcasts from './broadcasts';
 import Incidents from './incidents';
@@ -14,8 +17,6 @@ import SidebarPanel from '../sidebarPanel';
 import TodoList from '../todos';
 import IssueList from '../issueList';
 import ConfigStore from '../../stores/configStore';
-
-import {t} from '../../locale';
 
 import IconSidebarOverview from '../../icons/icon-sidebar-overview';
 import IconSidebarIssues from '../../icons/icon-sidebar-issues';
@@ -305,31 +306,87 @@ const SidebarSection = React.createClass({
 });
 
 const SidebarItem = React.createClass({
-  render() {
+  propTypes: {
+    href: React.PropTypes.string,
+    onClick: React.PropTypes.func,
+    to: React.PropTypes.string
+  },
+  innerItem() {
     return (
-      <div className="sidebar-item" {...this.props}>
+      <span>
         <span className="sidebar-item-icon">
           {this.props.icon}
         </span>
         <span className="sidebar-item-label">{this.props.label}</span>
-      </div>
+      </span>
+    );
+  },
+
+  render() {
+    let classNames = 'sidebar-item';
+
+    const {icon, label, active, to, href, ...props} = this.props;
+
+    const innerItem = this.innerItem();
+
+    if (active) {
+      classNames += ' active';
+    }
+
+    if (this.props.to) {
+      return (
+        <Link className={classNames} {...this.props}>
+          {innerItem}
+        </Link>
+      );
+    }
+    return (
+      <a className={classNames} {...this.props}>
+        {innerItem}
+      </a>
     );
   }
 });
 
 const UserDropdown = React.createClass({
+  contextTypes: {
+    location: React.PropTypes.object
+  },
   render() {
+    const org = this.props.org;
+    let user = ConfigStore.get('user');
+
+    let to = url => (this.context.location ? {to: url} : {href: url});
+
     return (
       <div className="user-dropdown">
         {this.props.collapsed && <div className="user-dropdown-org-icon" />}
         {!this.props.collapsed &&
           <div>
-            <div className="user-dropdown-org-name">Sentry</div>
-            <div className="user-dropdown-user-name">Matt Robenolt</div>
+            <div className="user-dropdown-org-name">
+              <DropdownLink caret={true} title={org.name}>
+                <MenuItem header>{org.name}</MenuItem>
+                <MenuItem href={`/organizations/${org.slug}/settings/`}>
+                  {t('Organization settings')}
+                </MenuItem>
+                <MenuItem href={`/organizations/${org.slug}/teams/`}>
+                  {t('Projects')}
+                </MenuItem>
+                <MenuItem href={`/organizations/${org.slug}/members/`}>
+                  {t('Members')}
+                </MenuItem>
+                <MenuItem>Switch organizations...</MenuItem>
+                <MenuItem divider />
+                <MenuItem header>{user.name}</MenuItem>
+                <MenuItem href="/account/settings/">{t('Account settings')}</MenuItem>
+                <MenuItem {...to('/api/')}>{t('API keys')}</MenuItem>
+                {user.isSuperuser &&
+                  <MenuItem {...to('/manage/')}>{t('Admin')}</MenuItem>}
+                <MenuItem href="/auth/logout/">{t('Sign out')}</MenuItem>
+              </DropdownLink>
+            </div>
+            <div className="user-dropdown-user-name">{user.name}</div>
           </div>}
-        <ul className="user-dropdown-menu" style={{display: 'none'}}>
-          <li>WUT</li>
-        </ul>
       </div>
     );
   }
@@ -427,7 +484,7 @@ const Sidebar = React.createClass({
       <div className={classNames} ref="sidebar">
         <div className="sidebar-top">
           <SidebarSection>
-            <UserDropdown collapsed={this.state.collapsed} />
+            <UserDropdown collapsed={this.state.collapsed} org={org} />
           </SidebarSection>
           <hr />
           <SidebarSection>
@@ -445,16 +502,19 @@ const Sidebar = React.createClass({
           <hr />
           <SidebarSection>
             <SidebarItem
+              active={this.state.currentPanel == 'assigned'}
               icon={<IconSidebarUser size={22} />}
               label={t('Assigned to me')}
               onClick={() => this.togglePanel('assigned')}
             />
             <SidebarItem
+              active={this.state.currentPanel == 'bookmarks'}
               icon={<IconSidebarBookmarks size={22} />}
               label={t('Starred issues')}
               onClick={() => this.togglePanel('bookmarks')}
             />
             <SidebarItem
+              active={this.state.currentPanel == 'history'}
               icon={<IconSidebarHistory size={22} />}
               label={t('Recently viewed')}
               onClick={() => this.togglePanel('history')}
@@ -467,11 +527,18 @@ const Sidebar = React.createClass({
               label={t("What's new")}
               onClick={() => this.togglePanel('assigned')}
             />
-            <SidebarItem
-              icon={<IconSidebarSupport size={22} />}
-              label={t('Support')}
-              onClick={() => this.togglePanel('bookmarks')}
-            />
+            {!config.isOnPremise
+              ? <SidebarItem
+                  icon={<IconSidebarSupport size={22} />}
+                  label={t('Support')}
+                  to="/organizations/${org.slug}/support/"
+                />
+              : <SidebarItem
+                  icon={<IconSidebarSupport size={22} />}
+                  label={t('Support forum')}
+                  href="https://forum.sentry.io/"
+                />}
+
             <SidebarItem
               icon={<IconSidebarStatus size={22} />}
               label={t('Service status')}
@@ -483,7 +550,7 @@ const Sidebar = React.createClass({
           <hr />
           <SidebarSection>
             <SidebarItem
-              icon={<IconSidebarCollapse size={22} />}
+              icon={<IconSidebarCollapse size={22} className="toggle-collapse-icon" />}
               label={t('Collapse')}
               onClick={() => this.toggleSidebar()}
             />

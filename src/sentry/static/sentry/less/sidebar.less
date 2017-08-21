@@ -18,12 +18,15 @@
     .sidebar-panel {
       left: @sidebar-collapsed-width;
     }
+
+    .toggle-collapse-icon {
+      transform: rotate(180deg);
+    }
   }
 }
 
 .sidebar {
   background: @sidebar-bg-color;
-  overflow: hidden;
   color: @50;
   line-height: 1;
   padding: 0 20px;
@@ -35,7 +38,7 @@
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  z-index: 1000;
+  z-index: 10000;
 
   &.collapsed {
     width: @sidebar-collapsed-width;
@@ -58,12 +61,21 @@
     font-weight: bold;
     color: #fff;
     margin-top: -4px;
+
+    a {
+      color: inherit;
+    }
   }
 
   .user-dropdown-user-name {
     font-size: 14px;
     line-height: 22px;
     margin-bottom: -4px;
+  }
+
+  .dropdown-menu {
+    top: 48px;
+    min-width: 180px;
   }
 }
 
@@ -74,59 +86,47 @@
 .sidebar hr {
   width: 30px;
   border-top-color: @80;
-  margin: 0;
+  margin: 0 !important;
 }
 
 .sidebar-item {
-  display: flex;
-  align-items: center;
+  color: inherit;
+  position: relative;
   cursor: pointer;
   font-size: 16px;
   line-height: 32px;
   height: 32px;
+  display: flex;
+
+  > span {
+    display: flex;
+    align-items: center;
+  }
 
   .transition(.15s color linear);
 
+  &:before {
+    display: block;
+    content: "";
+    position: absolute;
+    top: 5px;
+    left: -20px;
+    bottom: 5px;
+    width: 4px;
+    border-radius: 0 3px 3px 0;
+    background-color: transparent;
+    .transition(.15s background-color linear);
+  }
+
   &:hover {
     color: @30;
-
-    // .sidebar-item-icon {
-    //    path, circle, rect {
-    //     stroke-dasharray: 6;
-    //     stroke-dashoffset: 6;
-    //     animation: offset 1s ease forwards;
-    //   }
-
-    //   .cog {
-    //     transform-origin: 50% 50%;
-    //     animation: rotateCog 3s linear infinite;
-    //     circle {
-    //       stroke-dasharray: 0;
-    //       stroke-dashoffset: 100;
-    //     }
-    //   }
-
-    //   .clock {
-    //     stroke-dasharray: 25;
-    //     stroke-dashoffset: 25;
-    //   }
-
-    //   .clock-big-hand {
-    //     stroke-dasharray: 0;
-    //     transform-origin: bottom center;
-    //     animation: rotate 2s linear infinite;
-    //   }
-
-    //   .clock-little-hand {
-    //     stroke-dasharray: 0;
-    //     transform-origin: top left;
-    //     animation: rotate 12s linear infinite;
-    //   }
-    // }
   }
 
   &.active {
     color: @white;
+    &:before {
+      background-color: @red;
+    }
   }
 }
 
@@ -140,12 +140,16 @@
     display: block;
     margin: 0 auto;
   }
+
+  .toggle-collapse-icon {
+    transform: rotate(0deg);
+    .transition(.3s transform ease);
+  }
 }
 
 .sidebar-item-label {
   margin-left: 12px;
   white-space: nowrap;
-  transition: .15s linear all;
   opacity: 1;
 }
 
