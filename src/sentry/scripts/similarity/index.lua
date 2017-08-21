@@ -45,16 +45,6 @@ local function range(start, stop)
     return result
 end
 
-function table.ifilter(t, f)
-    local result = {}
-    for i, value in ipairs(t) do
-        if f(value) then
-            table.insert(result, value)
-        end
-    end
-    return result
-end
-
 function table.imap(t, f)
     local result = {}
     for i, value in ipairs(t) do
@@ -91,15 +81,6 @@ function table.izip(...)
             table.insert(item, args[j][i])
         end
         table.insert(result, item)
-    end
-    return result
-end
-
-function table.slice(t, start, stop)
-    -- NOTE: ``stop`` is inclusive!
-    local result = {}
-    for i = start or 1, stop or #t do
-        table.insert(result, t[i])
     end
     return result
 end
