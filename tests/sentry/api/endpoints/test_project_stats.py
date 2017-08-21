@@ -30,3 +30,71 @@ class ProjectStatsTest(APITestCase):
         for point in response.data[:-1]:
             assert point[1] == 0
         assert len(response.data) == 24
+
+    def test_get_error_message_stats(self):
+        self.login_as(user=self.user)
+
+        project1 = self.create_project(name='foo')
+
+        STAT_OPTS = {
+            'ip_address': 1,
+            'release_version': 2,
+            'error_message': 3,
+            'browser_extensions': 4,
+            'legacy_browsers': 5,
+            'localhost': 6,
+            'web_crawlers': 7,
+            'invalid_csp': 8,
+        }
+
+        tsdb.incr(
+            tsdb.models.project_total_received_ip_address,
+            project1.id,
+            count=STAT_OPTS['ip_address']
+        )
+        tsdb.incr(
+            tsdb.models.project_total_received_release_version,
+            project1.id,
+            count=STAT_OPTS['release_version']
+        )
+        tsdb.incr(
+            tsdb.models.project_total_received_error_message,
+            project1.id,
+            count=STAT_OPTS['error_message']
+        )
+        tsdb.incr(
+            tsdb.models.project_total_received_browser_extensions,
+            project1.id,
+            count=STAT_OPTS['browser_extensions']
+        )
+        tsdb.incr(
+            tsdb.models.project_total_received_legacy_browsers,
+            project1.id,
+            count=STAT_OPTS['legacy_browsers']
+        )
+        tsdb.incr(
+            tsdb.models.project_total_received_localhost, project1.id, count=STAT_OPTS['localhost']
+        )
+        tsdb.incr(
+            tsdb.models.project_total_received_web_crawlers,
+            project1.id,
+            count=STAT_OPTS['web_crawlers']
+        )
+        tsdb.incr(
+            tsdb.models.project_total_received_invalid_csp,
+            project1.id,
+            count=STAT_OPTS['invalid_csp']
+        )
+
+        url = reverse(
+            'sentry-api-0-project-stats',
+            kwargs={
+                'organization_slug': project1.organization.slug,
+                'project_slug': project1.slug,
+            }
+        )
+        for stat in STAT_OPTS.keys():
+            response = self.client.get(url, {'stat': stat}, format='json')
+            assert response.status_code == 200, response.content
+            assert len(response.data) == 24
+            assert response.data[-1][1] == STAT_OPTS[stat], response.data

@@ -374,7 +374,6 @@ const ProjectFilters = React.createClass({
       filterList: [],
       querySince: since,
       queryUntil: until,
-      stats: null,
       rawStatsData: null,
       formattedData: null,
       projectOptions: {},
