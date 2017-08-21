@@ -150,7 +150,7 @@ const GroupingStore = Reflux.createStore({
         let aggregate = Object.keys(scoresByInterface)
           .map(interfaceName => [interfaceName, scoresByInterface[interfaceName]])
           .reduce((acc, [interfaceName, scores]) => {
-            let avg = scores.reduce((sum, [, score]) => sum + score, 0);
+            let avg = scores.reduce((sum, [, score]) => sum + score, 0) / scores.length;
             acc[interfaceName] = avg;
             return acc;
           }, {});
