@@ -3,11 +3,15 @@ from __future__ import absolute_import
 import six
 
 from collections import defaultdict
+from datetime import timedelta
 from django.db.models import Q
 from django.db.models.aggregates import Count
+from django.utils import timezone
 
+from sentry import tsdb
 from sentry.api.serializers import register, serialize, Serializer
 from sentry.api.serializers.models.plugin import PluginSerializer
+from sentry.constants import StatsPeriod
 from sentry.digests import backend as digests
 from sentry.models import (
     Project, ProjectBookmark, ProjectOption, ProjectPlatform, ProjectStatus, Release, UserOption,
@@ -22,6 +26,12 @@ STATUS_LABELS = {
     ProjectStatus.DELETION_IN_PROGRESS: 'deleted',
 }
 
+STATS_PERIOD_CHOICES = {
+    '30d': StatsPeriod(30, timedelta(hours=24)),
+    '14d': StatsPeriod(14, timedelta(hours=24)),
+    '24h': StatsPeriod(24, timedelta(hours=1)),
+}
+
 
 @register(Project)
 class ProjectSerializer(Serializer):
@@ -29,6 +39,12 @@ class ProjectSerializer(Serializer):
     This is primarily used to summarize projects. We utilize it when doing bulk loads for things
     such as "show all projects for this organization", and its attributes be kept to a minimum.
     """
+
+    def __init__(self, stats_period=None):
+        if stats_period is not None:
+            assert stats_period in STATS_PERIOD_CHOICES
+
+        self.stats_period = stats_period
 
     def get_attrs(self, item_list, user):
         project_ids = [i.id for i in item_list]
@@ -52,6 +68,22 @@ class ProjectSerializer(Serializer):
             user_options = {}
             default_subscribe = False
 
+        if self.stats_period:
+            # we need to compute stats at 1d (1h resolution), and 14d
+            project_ids = [o.id for o in item_list]
+
+            segments, interval = STATS_PERIOD_CHOICES[self.stats_period]
+            now = timezone.now()
+            stats = tsdb.get_range(
+                model=tsdb.models.project_total_received,
+                keys=project_ids,
+                end=now,
+                start=now - ((segments - 1) * interval),
+                rollup=int(interval.total_seconds()),
+            )
+        else:
+            stats = None
+
         result = {}
         for item in item_list:
             result[item] = {
@@ -62,6 +94,8 @@ class ProjectSerializer(Serializer):
                     default_subscribe,
                 )),
             }
+            if stats:
+                result[item]['stats'] = stats[item.id]
         return result
 
     def serialize(self, obj, attrs, user):
@@ -80,7 +114,7 @@ class ProjectSerializer(Serializer):
 
         status_label = STATUS_LABELS.get(obj.status, 'unknown')
 
-        return {
+        context = {
             'id': six.text_type(obj.id),
             'slug': obj.slug,
             'name': obj.name,
@@ -94,6 +128,9 @@ class ProjectSerializer(Serializer):
             'status': status_label,
             'platform': obj.platform,
         }
+        if 'stats' in attrs:
+            context['stats'] = attrs['stats']
+        return context
 
 
 class ProjectWithOrganizationSerializer(ProjectSerializer):

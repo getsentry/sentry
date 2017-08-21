@@ -1,6 +1,6 @@
 from __future__ import absolute_import, print_function
 
-from collections import defaultdict, namedtuple
+from collections import defaultdict
 from datetime import timedelta
 from itertools import izip
 
@@ -11,7 +11,7 @@ from django.utils import timezone
 
 from sentry import tsdb
 from sentry.api.serializers import Serializer, register, serialize
-from sentry.constants import LOG_LEVELS
+from sentry.constants import LOG_LEVELS, StatsPeriod
 from sentry.models import (
     Group, GroupAssignee, GroupBookmark, GroupMeta, GroupResolution, GroupSeen, GroupSnooze,
     GroupStatus, GroupSubscription, GroupSubscriptionReason, GroupTagKey, User, UserOption,
@@ -291,9 +291,6 @@ class GroupSerializer(Serializer):
             'hasSeen': attrs['has_seen'],
             'annotations': attrs['annotations'],
         }
-
-
-StatsPeriod = namedtuple('StatsPeriod', ('segments', 'interval'))
 
 
 class StreamGroupSerializer(GroupSerializer):
