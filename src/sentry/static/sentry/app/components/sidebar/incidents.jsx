@@ -1,10 +1,13 @@
 import React from 'react';
 import Reflux from 'reflux';
 
+import SidebarItem from './sidebarItem';
 import SidebarPanel from './sidebarPanel';
 
 import IncidentStore from '../../stores/incidentStore';
 import {t} from '../../locale';
+
+import IconSidebarStatus from '../../icons/icon-sidebar-status';
 
 const Incidents = React.createClass({
   propTypes: {
@@ -33,12 +36,13 @@ const Incidents = React.createClass({
     if (!status) return null;
 
     return (
-      status &&
-      status.incidents.length > 0 &&
-      <li className={this.props.currentPanel == 'statusupdate' ? 'active' : null}>
-        <a onClick={this.props.onShowPanel}>
-          <span className="icon icon-alert animated pulse infinite" />
-        </a>
+      <div>
+        <SidebarItem
+          active={this.props.currentPanel == 'statusupdate'}
+          icon={<IconSidebarStatus size={22} className="animated pulse infinite" />}
+          label={t('Service status')}
+          onClick={() => this.props.onShowPanel()}
+        />
         {this.props.showPanel &&
           this.props.currentPanel == 'statusupdate' &&
           status &&
@@ -70,7 +74,7 @@ const Incidents = React.createClass({
               ))}
             </ul>
           </SidebarPanel>}
-      </li>
+      </div>
     );
   }
 });

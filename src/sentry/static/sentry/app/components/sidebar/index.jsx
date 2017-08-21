@@ -28,7 +28,6 @@ import IconSidebarUser from '../../icons/icon-sidebar-user';
 import IconSidebarBookmarks from '../../icons/icon-sidebar-bookmarks';
 import IconSidebarHistory from '../../icons/icon-sidebar-history';
 import IconSidebarSupport from '../../icons/icon-sidebar-support';
-import IconSidebarStatus from '../../icons/icon-sidebar-status';
 import IconSidebarCollapse from '../../icons/icon-sidebar-collapse';
 
 const OnboardingStatus = React.createClass({
@@ -412,6 +411,7 @@ const Sidebar = React.createClass({
       showPanel: true,
       currentPanel: panel
     });
+    console.log(this.state.currentPanel);
   },
 
   togglePanel(panel) {
@@ -496,11 +496,11 @@ const Sidebar = React.createClass({
                   label={t('Support forum')}
                   href="https://forum.sentry.io/"
                 />}
-
-            <SidebarItem
-              icon={<IconSidebarStatus size={22} />}
-              label={t('Service status')}
-              onClick={() => this.togglePanel('history')}
+            <Incidents
+              showPanel={this.state.showPanel}
+              currentPanel={this.state.currentPanel}
+              onShowPanel={() => this.togglePanel('statusupdate')}
+              hidePanel={() => this.hidePanel()}
             />
           </SidebarSection>
         </div>
