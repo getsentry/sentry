@@ -1,7 +1,7 @@
 import React from 'react';
 import {Link} from 'react-router';
 
-import SidebarPanel from '../sidebarPanel';
+import SidebarPanel from './sidebarPanel';
 import LetterAvatar from '../letterAvatar';
 
 import AppState from '../../mixins/appState';

@@ -4,8 +4,11 @@ import ApiMixin from '../../mixins/apiMixin';
 import LoadingIndicator from '../loadingIndicator';
 import {t} from '../../locale';
 
-import SidebarPanel from '../sidebarPanel';
-import SidebarPanelItem from '../sidebarPanelItem';
+import SidebarItem from './sidebarItem';
+import SidebarPanel from './sidebarPanel';
+import SidebarPanelItem from './sidebarPanelItem';
+
+import IconSidebarWhatsNew from '../../icons/icon-sidebar-whats-new';
 
 const MARK_SEEN_DELAY = 1000;
 const POLLER_DELAY = 60000;
@@ -108,28 +111,44 @@ const Broadcasts = React.createClass({
 
   render() {
     let {broadcasts, loading} = this.state;
-    return (
-      <span>
-        {/* 'this.getUnseenIds() > 0 && <span className="activity-indicator" />' */}
 
-        {loading
-          ? <LoadingIndicator />
-          : broadcasts.length === 0
-              ? <div className="sidebar-panel-empty">
-                  {t('No recent updates from the Sentry team.')}
-                </div>
-              : broadcasts.map(item => {
-                  return (
-                    <SidebarPanelItem
-                      key={item.id}
-                      className={!item.hasSeen && 'unseen'}
-                      title={item.title}
-                      message={item.message}
-                      link={item.link}
-                    />
-                  );
-                })}
-      </span>
+    let unseenPosts = this.getUnseenIds();
+
+    return (
+      <div>
+        <SidebarItem
+          active={this.props.currentPanel == 'broadcasts'}
+          badge="5"
+          icon={<IconSidebarWhatsNew size={22} />}
+          label={t("What's new")}
+          onClick={this.onShowPanel}
+        />
+
+        {this.props.showPanel &&
+          this.props.currentPanel == 'broadcasts' &&
+          <SidebarPanel
+            title={t("What's new in Sentry")}
+            hidePanel={this.props.hidePanel}>
+            {loading
+              ? <LoadingIndicator />
+              : broadcasts.length === 0
+                  ? <div className="sidebar-panel-empty">
+                      {t('No recent updates from the Sentry team.')}
+                    </div>
+                  : broadcasts.map(item => {
+                      return (
+                        <SidebarPanelItem
+                          key={item.id}
+                          className={!item.hasSeen && 'unseen'}
+                          title={item.title}
+                          message={item.message}
+                          link={item.link}
+                        />
+                      );
+                    })}
+          </SidebarPanel>}
+
+      </div>
     );
   }
 });

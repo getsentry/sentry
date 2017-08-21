@@ -13,7 +13,8 @@ import Incidents from './incidents';
 import UserNav from './userNav';
 import requiredAdminActions from '../requiredAdminActions';
 import OrganizationSelector from './organizationSelector';
-import SidebarPanel from '../sidebarPanel';
+import SidebarPanel from './sidebarPanel';
+import SidebarItem from './sidebarItem';
 import TodoList from '../todos';
 import IssueList from '../issueList';
 import ConfigStore from '../../stores/configStore';
@@ -26,7 +27,6 @@ import IconSidebarSettings from '../../icons/icon-sidebar-settings';
 import IconSidebarUser from '../../icons/icon-sidebar-user';
 import IconSidebarBookmarks from '../../icons/icon-sidebar-bookmarks';
 import IconSidebarHistory from '../../icons/icon-sidebar-history';
-import IconSidebarWhatsNew from '../../icons/icon-sidebar-whats-new';
 import IconSidebarSupport from '../../icons/icon-sidebar-support';
 import IconSidebarStatus from '../../icons/icon-sidebar-status';
 import IconSidebarCollapse from '../../icons/icon-sidebar-collapse';
@@ -305,49 +305,6 @@ const SidebarSection = React.createClass({
   }
 });
 
-const SidebarItem = React.createClass({
-  propTypes: {
-    href: React.PropTypes.string,
-    onClick: React.PropTypes.func,
-    to: React.PropTypes.string
-  },
-  innerItem() {
-    return (
-      <span>
-        <span className="sidebar-item-icon">
-          {this.props.icon}
-        </span>
-        <span className="sidebar-item-label">{this.props.label}</span>
-      </span>
-    );
-  },
-
-  render() {
-    let classNames = 'sidebar-item';
-
-    const {icon, label, active, to, href, ...props} = this.props;
-
-    const innerItem = this.innerItem();
-
-    if (active) {
-      classNames += ' active';
-    }
-
-    if (this.props.to) {
-      return (
-        <Link className={classNames} {...props}>
-          {innerItem}
-        </Link>
-      );
-    }
-    return (
-      <a className={classNames} {...props}>
-        {innerItem}
-      </a>
-    );
-  }
-});
-
 const UserDropdown = React.createClass({
   contextTypes: {
     location: React.PropTypes.object
@@ -522,11 +479,11 @@ const Sidebar = React.createClass({
           </SidebarSection>
           <hr />
           <SidebarSection>
-            <SidebarItem
-              active={this.state.currentPanel == 'broadcasts'}
-              icon={<IconSidebarWhatsNew size={22} />}
-              label={t("What's new")}
-              onClick={() => this.togglePanel('broadcasts')}
+            <Broadcasts
+              showPanel={this.state.showPanel}
+              currentPanel={this.state.currentPanel}
+              onShowPanel={() => this.togglePanel('broadcasts')}
+              hidePanel={() => this.hidePanel()}
             />
             {!config.isOnPremise
               ? <SidebarItem
@@ -621,11 +578,6 @@ const Sidebar = React.createClass({
               showActions={false}
               params={{orgId: org.slug}}
             />
-          </SidebarPanel>}
-        {this.state.showPanel &&
-          this.state.currentPanel == 'broadcasts' &&
-          <SidebarPanel title={t("What's New")} hidePanel={() => this.hidePanel()}>
-            <Broadcasts />
           </SidebarPanel>}
       </div>
     );
