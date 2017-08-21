@@ -407,7 +407,7 @@ class ReleaseRefsSerializerTest(TestCase):
 
         assert not serializer.is_valid()
         assert serializer.errors == {
-            'refs': [u'Incorrect type. Expected value, but got null'],
+            'refs': ['non_field_errors: No input provided'],
         }
 
         # test good refs
