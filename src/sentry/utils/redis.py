@@ -59,6 +59,12 @@ class _RBCluster(object):
         return not config.get('is_redis_cluster', False)
 
     def factory(self, **config):
+        # rb expects a dict of { host, port } dicts where the key is the host
+        # ID. Coerce the configuration into the correct format if necessary.
+        hosts = config['hosts']
+        hosts = {k: v for k, v in enumerate(hosts)} if isinstance(hosts, list) else hosts
+        config['hosts'] = hosts
+
         return _make_rb_cluster(**config)
 
     def __str__(self):
@@ -70,8 +76,12 @@ class _RedisCluster(object):
         return config.get('is_redis_cluster', False)
 
     def factory(self, **config):
-        nodes = config.get('hosts').values()
-        return rediscluster.StrictRedisCluster(startup_nodes=nodes, decode_responses=True)
+        # StrictRedisCluster expects a list of { host, port } dicts. Coerce the
+        # configuration into the correct format if necessary.
+        hosts = config.get('hosts')
+        hosts = hosts.values() if isinstance(hosts, dict) else hosts
+
+        return rediscluster.StrictRedisCluster(startup_nodes=hosts, decode_responses=True)
 
     def __str__(self):
         return 'Redis Cluster'
