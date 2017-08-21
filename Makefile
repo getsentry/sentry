@@ -40,10 +40,10 @@ install-python-base:
 	# order matters here, base package must install first
 	$(PIP) install -e .
 	$(PIP) install ujson
-	$(PIP) install "file://`pwd`#egg=sentry[dev,saml]"
+	$(PIP) install "file://`pwd`#egg=sentry[dev]"
 
 install-python-tests:
-	$(PIP) install "file://`pwd`#egg=sentry[dev,tests,saml]"
+	$(PIP) install "file://`pwd`#egg=sentry[dev,tests]"
 
 dev-postgres: install-python
 
