@@ -29,7 +29,7 @@ from sentry.constants import (
 from sentry.interfaces.base import get_interface
 from sentry.models import (
     Activity, Environment, Event, EventMapping, EventUser, Group, GroupHash, GroupRelease,
-    GroupResolution, GroupStatus, Project, Release, ReleaseEnvironment, ReleaseProject, TagKey,
+    GroupResolution, GroupStatus, Project, Release, ReleaseEnvironment, ReleaseProject, TagValue,
     UserReport
 )
 from sentry.plugins import plugins
@@ -249,7 +249,7 @@ class EventManager(object):
             data['logger'] = DEFAULT_LOGGER_NAME
         else:
             logger = trim(data['logger'].strip(), 64)
-            if TagKey.is_valid_key(logger):
+            if TagValue.is_valid_value(logger):
                 data['logger'] = logger
             else:
                 data['logger'] = DEFAULT_LOGGER_NAME
