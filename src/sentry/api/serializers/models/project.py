@@ -181,7 +181,7 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                     JOIN sentry_release_project lrp
                     ON lrp.release_id = lrr.id
                     WHERE lrp.project_id = p.id
-                    ORDER BY lrr.date_added DESC
+                    ORDER BY COALESCE(lrr.date_released, lrr.date_added) DESC
                     LIMIT 1
                 ) as release_id,
                 p.id as project_id
