@@ -118,7 +118,7 @@ const Broadcasts = React.createClass({
       <div>
         <SidebarItem
           active={this.props.currentPanel == 'broadcasts'}
-          badge="5"
+          badge={unseenPosts.length}
           icon={<IconSidebarWhatsNew size={22} />}
           label={t("What's new")}
           onClick={this.onShowPanel}
