@@ -27,11 +27,12 @@ class ProjectOverviewTest(AcceptanceTestCase):
         )
         self.browser.get(self.path)
         self.browser.wait_until('.chart-wrapper')
-        self.browser.wait_until('.event-details')
+        self.browser.wait_until_not('.loading')
         self.browser.snapshot('project dashboard with issues')
 
     def test_with_no_issues(self):
         self.project.update(first_event=timezone.now())
         self.browser.get(self.path)
+        self.browser.wait_until_not('.loading')
         self.browser.wait_until('.group-list-empty')
         self.browser.snapshot('project dashboard without issues')
