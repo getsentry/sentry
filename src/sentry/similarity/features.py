@@ -138,7 +138,7 @@ class FeatureSet(object):
             scope,
             key,
             items,
-            timestamp=to_timestamp(event.datetime),
+            timestamp=int(to_timestamp(event.datetime)),
         )
 
     def classify(self, events):
@@ -181,7 +181,7 @@ class FeatureSet(object):
             self.index.classify(
                 scope,
                 items,
-                timestamp=to_timestamp(event.datetime),
+                timestamp=int(to_timestamp(event.datetime)),
             ),
         )
 
