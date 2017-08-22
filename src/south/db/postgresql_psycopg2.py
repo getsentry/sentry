@@ -57,7 +57,8 @@ class DatabaseOperations(generic.DatabaseOperations):
             """,
             [old_table_name + '_id_seq']
         ):
-            generic.DatabaseOperations.rename_table(self, old_table_name + "_id_seq", table_name + "_id_seq")
+            generic.DatabaseOperations.rename_table(
+                self, old_table_name + "_id_seq", table_name + "_id_seq")
 
         # Rename primary key index, will not rename other indices on
         # the table that are used by django (e.g. foreign keys). Until
@@ -76,7 +77,8 @@ class DatabaseOperations(generic.DatabaseOperations):
             [table_name]
         )
         if old_table_name + "_pkey" in pkey_index_names:
-            generic.DatabaseOperations.rename_table(self, old_table_name + "_pkey", table_name + "_pkey")
+            generic.DatabaseOperations.rename_table(
+                self, old_table_name + "_pkey", table_name + "_pkey")
 
     def rename_index(self, old_index_name, index_name):
         "Rename an index individually"
