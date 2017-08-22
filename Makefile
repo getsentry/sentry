@@ -7,7 +7,7 @@ ifneq "$(wildcard /usr/local/opt/libxmlsec1/lib)" ""
 	LDFLAGS += -L/usr/local/opt/libxmlsec1/lib
 endif
 ifneq "$(wildcard /usr/local/opt/openssl/lib)" ""
-	LDFLAGS +=- L/usr/local/opt/openssl/lib
+	LDFLAGS += -L/usr/local/opt/openssl/lib
 endif
 
 PIP = LDFLAGS="$(LDFLAGS)" pip
@@ -40,10 +40,10 @@ install-python-base:
 	# order matters here, base package must install first
 	$(PIP) install -e .
 	$(PIP) install ujson
-	$(PIP) install "file://`pwd`#egg=sentry[dev,saml]"
+	$(PIP) install "file://`pwd`#egg=sentry[dev]"
 
 install-python-tests:
-	$(PIP) install "file://`pwd`#egg=sentry[dev,tests,saml]"
+	$(PIP) install "file://`pwd`#egg=sentry[dev,tests]"
 
 dev-postgres: install-python
 
