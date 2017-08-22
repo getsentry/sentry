@@ -341,13 +341,18 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
         except ValidationError as exc:
             return Response({'detail': six.text_type(exc)}, status=400)
 
-        count_hits = features.has('projects:stream-hit-counts', project=project, actor=request.user)
+        count_hits = features.has(
+            'projects:stream-hit-counts',
+            project=project,
+            actor=request.user)
 
         cursor_result = search.query(count_hits=count_hits, **query_kwargs)
 
         results = list(cursor_result)
 
-        context = serialize(results, request.user, StreamGroupSerializer(stats_period=stats_period))
+        context = serialize(
+            results, request.user, StreamGroupSerializer(
+                stats_period=stats_period))
 
         # HACK: remove auto resolved entries
         if query_kwargs.get('status') == GroupStatus.UNRESOLVED:

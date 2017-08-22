@@ -193,7 +193,8 @@ def load_data(platform, default=None, timestamp=None, sample_name=None):
     return data
 
 
-def create_sample_event(project, platform=None, default=None, raw=True, sample_name=None, **kwargs):
+def create_sample_event(project, platform=None, default=None,
+                        raw=True, sample_name=None, **kwargs):
     if not platform and not default:
         return
 

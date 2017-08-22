@@ -19,7 +19,8 @@ delete_logger = logging.getLogger('sentry.deletions.api')
 
 @scenario('GetTeam')
 def get_team_scenario(runner):
-    runner.request(method='GET', path='/teams/%s/%s/' % (runner.org.slug, runner.default_team.slug))
+    runner.request(method='GET', path='/teams/%s/%s/' %
+                   (runner.org.slug, runner.default_team.slug))
 
 
 @scenario('UpdateTeam')

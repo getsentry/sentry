@@ -28,7 +28,8 @@ EXTENSION_EXC_VALUES = re.compile(
                 # See http://stackoverflow.com/questions/4113268
                 'bmi_SafeAddOnload',
                 'EBCallBackMessageReceived',
-                # See https://groups.google.com/a/chromium.org/forum/#!topic/chromium-discuss/7VU0_VvC7mE
+                # See
+                # https://groups.google.com/a/chromium.org/forum/#!topic/chromium-discuss/7VU0_VvC7mE
                 '_gCrWeb',
                 # See http://toolbar.conduit.com/Debveloper/HtmlAndGadget/Methods/JSInjection.aspx
                 'conduitPage',

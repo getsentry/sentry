@@ -180,7 +180,10 @@ def tokens_from_name(value, remove_digits=False):
             yield word
 
 
-valid_dot_atom_characters = frozenset(string.ascii_letters + string.digits + ".!#$%&'*+-/=?^_`{|}~")
+valid_dot_atom_characters = frozenset(
+    string.ascii_letters +
+    string.digits +
+    ".!#$%&'*+-/=?^_`{|}~")
 
 
 def is_valid_dot_atom(value):

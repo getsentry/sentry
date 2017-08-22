@@ -165,7 +165,11 @@ class Group(Model):
     __core__ = False
 
     project = FlexibleForeignKey('sentry.Project', null=True)
-    logger = models.CharField(max_length=64, blank=True, default=DEFAULT_LOGGER_NAME, db_index=True)
+    logger = models.CharField(
+        max_length=64,
+        blank=True,
+        default=DEFAULT_LOGGER_NAME,
+        db_index=True)
     level = BoundedPositiveIntegerField(
         choices=LOG_LEVELS.items(), default=logging.ERROR, blank=True, db_index=True
     )
@@ -292,7 +296,8 @@ class Group(Model):
         return cls.objects.get(project=project_id, id=group_id)
 
     def get_score(self):
-        return int(math.log(self.times_seen) * 600 + float(time.mktime(self.last_seen.timetuple())))
+        return int(math.log(self.times_seen) * 600 +
+                   float(time.mktime(self.last_seen.timetuple())))
 
     def get_latest_event(self):
         from sentry.models import Event
