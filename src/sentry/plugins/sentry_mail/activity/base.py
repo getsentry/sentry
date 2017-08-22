@@ -164,7 +164,8 @@ class ActivityEmail(object):
             )
         avatar_type = user.get_avatar_type()
         if avatar_type == 'upload':
-            return '<img class="avatar" src="{}" />'.format(escape(self._get_user_avatar_url(user)))
+            return '<img class="avatar" src="{}" />'.format(
+                escape(self._get_user_avatar_url(user)))
         elif avatar_type == 'letter_avatar':
             return get_email_avatar(user.get_display_name(), user.get_label(), 20, False)
         else:
