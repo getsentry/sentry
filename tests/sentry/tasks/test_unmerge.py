@@ -451,7 +451,7 @@ class UnmergeTestCase(TestCase):
         time_series = tsdb.get_range(
             tsdb.models.group,
             [source.id, destination.id],
-            now,
+            now - timedelta(seconds=rollup_duration),
             now + shift(16),
             rollup_duration,
         )
@@ -473,10 +473,10 @@ class UnmergeTestCase(TestCase):
             actual = dict(actual)
 
             for key, value in expected.items():
-                assert actual[key] == value
+                assert actual.get(key, 0) == value
 
             for key in set(actual.keys()) - set(expected.keys()):
-                assert actual[key] == default
+                assert actual.get(key, 0) == default
 
         assert_series_contains(
             get_expected_series_values(rollup_duration, events.values()[0]),
@@ -493,7 +493,7 @@ class UnmergeTestCase(TestCase):
         time_series = tsdb.get_distinct_counts_series(
             tsdb.models.users_affected_by_group,
             [source.id, destination.id],
-            now,
+            now - timedelta(seconds=rollup_duration),
             now + shift(16),
             rollup_duration,
         )
@@ -534,7 +534,7 @@ class UnmergeTestCase(TestCase):
         time_series = tsdb.get_most_frequent_series(
             tsdb.models.frequent_releases_by_group,
             [source.id, destination.id],
-            now,
+            now - timedelta(seconds=rollup_duration),
             now + shift(16),
             rollup_duration,
         )
@@ -581,7 +581,7 @@ class UnmergeTestCase(TestCase):
         time_series = tsdb.get_most_frequent_series(
             tsdb.models.frequent_environments_by_group,
             [source.id, destination.id],
-            now,
+            now - timedelta(seconds=rollup_duration),
             now + shift(16),
             rollup_duration,
         )
