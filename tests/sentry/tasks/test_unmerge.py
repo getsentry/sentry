@@ -8,6 +8,7 @@ from collections import OrderedDict
 from datetime import datetime, timedelta
 
 import pytz
+from django.utils import timezone
 
 from sentry.app import tsdb
 from sentry.event_manager import ScoreClause
@@ -152,10 +153,10 @@ class UnmergeTestCase(TestCase):
         }
 
     def test_unmerge(self):
-        now = datetime(2017, 5, 3, 6, 6, 6, tzinfo=pytz.utc)
-
         def shift(i):
             return timedelta(seconds=1 << i)
+
+        now = timezone.now() - shift(16)
 
         project = self.create_project()
         source = self.create_group(project)
