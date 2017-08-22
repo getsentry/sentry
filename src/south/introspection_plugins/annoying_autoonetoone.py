@@ -7,5 +7,5 @@ if 'annoying' in settings.INSTALLED_APPS:
     except ImportError:
         pass
     else:
-        #django-annoying's AutoOneToOneField is essentially a OneToOneField.
+        # django-annoying's AutoOneToOneField is essentially a OneToOneField.
         add_introspection_rules([], ["^annoying\.fields\.AutoOneToOneField"])

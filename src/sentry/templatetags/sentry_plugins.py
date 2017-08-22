@@ -21,7 +21,12 @@ def get_actions(group, request):
 
     action_list = []
     for plugin in plugins.for_project(project, version=1):
-        results = safe_execute(plugin.actions, request, group, action_list, _with_transaction=False)
+        results = safe_execute(
+            plugin.actions,
+            request,
+            group,
+            action_list,
+            _with_transaction=False)
 
         if not results:
             continue

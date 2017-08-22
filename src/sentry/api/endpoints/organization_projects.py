@@ -10,6 +10,8 @@ from sentry.api.serializers.models.project import ProjectWithTeamSerializer
 from sentry.models import Project, Team
 from sentry.utils.apidocs import scenario, attach_scenarios
 
+ERR_INVALID_STATS_PERIOD = "Invalid stats_period. Valid choices are '', '24h', '14d', and '30d'"
+
 
 @scenario('ListOrganizationProjects')
 def list_organization_projects_scenario(runner):
@@ -31,6 +33,24 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint):
                                           which the projects should be listed.
         :auth: required
         """
+        stats_period = request.GET.get('statsPeriod')
+        if stats_period not in (None, '', '24h', '14d', '30d'):
+            return Response(
+                {
+                    'error': {
+                        'params': {
+                            'stats_period': {
+                                'message': ERR_INVALID_STATS_PERIOD
+                            },
+                        },
+                    }
+                },
+                status=400
+            )
+        elif not stats_period:
+            # disable stats
+            stats_period = None
+
         if request.auth and not request.user.is_authenticated():
             # TODO: remove this, no longer supported probably
             if hasattr(request.auth, 'project'):
@@ -63,6 +83,8 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint):
             request=request,
             queryset=queryset,
             order_by='slug',
-            on_results=lambda x: serialize(x, request.user, ProjectWithTeamSerializer()),
+            on_results=lambda x: serialize(x, request.user, ProjectWithTeamSerializer(
+                stats_period=stats_period,
+            )),
             paginator_cls=OffsetPaginator,
         )
