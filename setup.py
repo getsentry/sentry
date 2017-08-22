@@ -109,11 +109,10 @@ install_requires = [
     'hiredis>=0.1.0,<0.2.0',
     'honcho>=0.7.0,<0.8.0',
     'kombu==3.0.35',
-    'lxml>=3.4.1',
-
     'ipaddress>=1.0.16,<1.1.0',
     'libsourcemap>=0.7.2,<0.8.0',
     'loremipsum>=1.0.5,<1.1.0',
+    'lxml>=3.4.1',
     'mock>=0.8.0,<1.1',
     'mmh3>=2.3.1,<2.4',
     'oauth2>=1.5.167',
