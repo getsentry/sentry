@@ -110,7 +110,9 @@ class StatusDetailsValidator(serializers.Serializer):
                 attrs[source] = Release.objects.filter(
                     projects=project,
                     organization_id=project.organization_id,
-                ).order_by('-date_added')[0]
+                ).extra(select={
+                    'sort': 'COALESCE(date_released, date_added)',
+                }).order_by('-sort')[0]
             except IndexError:
                 raise serializers.ValidationError(
                     'No release data present in the system to form a basis for \'Next Release\''
@@ -491,7 +493,9 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
                 release = Release.objects.filter(
                     projects=project,
                     organization_id=project.organization_id,
-                ).order_by('-date_added')[0]
+                ).extra(select={
+                    'sort': 'COALESCE(date_released, date_added)',
+                }).order_by('-sort')[0]
                 activity_type = Activity.SET_RESOLVED_IN_RELEASE
                 activity_data = {
                     # no version yet
