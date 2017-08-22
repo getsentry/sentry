@@ -128,6 +128,7 @@ class GithubAuth(BaseOAuth2):
                                      'organization')
         return data
 
+
 # Backend definition
 BACKENDS = {
     'github': GithubAuth,

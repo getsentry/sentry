@@ -32,6 +32,7 @@ def _add_doc(func, doc):
     """Add documentation to a function."""
     func.__doc__ = doc
 
+
 if PY3:
     def iteritems(d, **kw):
         return iter(d.items(**kw))
