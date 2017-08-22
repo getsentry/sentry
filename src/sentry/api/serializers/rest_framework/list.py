@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import six
+
 from rest_framework.serializers import WritableField, ValidationError
 
 
@@ -35,6 +37,12 @@ class ListField(WritableField):
 
         return [self.child.from_native(item) for item in value]
 
+    def format_child_errors(self):
+        errors = []
+        for k, v in six.iteritems(self.child.errors):
+            errors.append('%s: %s' % (k, v[0]))
+        return ', '.join(errors)
+
     def validate(self, value):
         if not value and self.required:
             raise ValidationError(self.error_messages['required'])
@@ -44,6 +52,10 @@ class ListField(WritableField):
             raise ValidationError(msg % type(value).__name__)
 
         if self.child:
+            # the `self.child.from_native` call might have already
+            # validated/changed data so check for child errors first
+            if self.child.errors:
+                raise ValidationError(self.format_child_errors())
             for item in value:
                 if item is None and not self.allow_null:
                     raise ValidationError('Incorrect type. Expected value, but got null')
