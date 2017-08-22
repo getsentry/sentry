@@ -156,7 +156,7 @@ class UnmergeTestCase(TestCase):
         def shift(i):
             return timedelta(seconds=1 << i)
 
-        now = timezone.now() - shift(16)
+        now = timezone.now().replace(microsecond=0) - shift(16)
 
         project = self.create_project()
         source = self.create_group(project)
