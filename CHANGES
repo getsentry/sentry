@@ -6,6 +6,7 @@ Schema Changes
 ~~~~~~~~~~~~~~
 - Added index on ``ProjectPlatform(last_seen)`` column
 - Added index on ``GroupCommitResolution.commit_id``
+- Enable ``citext`` extension in Postgres.
 
 Version 8.19
 ------------
