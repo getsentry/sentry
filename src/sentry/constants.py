@@ -14,7 +14,7 @@ import logging
 import os.path
 import six
 
-from collections import OrderedDict
+from collections import OrderedDict, namedtuple
 from django.conf import settings
 from django.utils.translation import ugettext_lazy as _
 from operator import attrgetter
@@ -330,3 +330,6 @@ class ObjectStatus(object):
                                        'hidden'), (cls.PENDING_DELETION, 'pending_deletion'),
             (cls.DELETION_IN_PROGRESS, 'deletion_in_progress'),
         )
+
+
+StatsPeriod = namedtuple('StatsPeriod', ('segments', 'interval'))

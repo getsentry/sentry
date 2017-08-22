@@ -37,12 +37,15 @@ from setuptools import setup, find_packages
 from setuptools.command.sdist import sdist as SDistCommand
 from setuptools.command.develop import develop as DevelopCommand
 
-ROOT = os.path.realpath(os.path.join(os.path.dirname(sys.modules['__main__'].__file__)))
+ROOT = os.path.realpath(os.path.join(os.path.dirname(
+    sys.modules['__main__'].__file__)))
 
 # Add Sentry to path so we can import distutils
 sys.path.insert(0, os.path.join(ROOT, 'src'))
 
-from sentry.utils.distutils import (BuildAssetsCommand, BuildIntegrationDocsCommand)
+from sentry.utils.distutils import (
+    BuildAssetsCommand, BuildIntegrationDocsCommand
+)
 
 # The version of sentry
 VERSION = '8.20.0.dev0'
@@ -60,11 +63,11 @@ for m in ('multiprocessing', 'billiard'):
 IS_LIGHT_BUILD = os.environ.get('SENTRY_LIGHT_BUILD') == '1'
 
 dev_requires = [
+    'autopep8',
     'Babel',
     'flake8>=2.6,<2.7',
     'pycodestyle>=2.0,<2.1',
     'isort>=4.2.2,<4.3.0',
-    'yapf==0.16.2',
 ]
 
 tests_require = [
@@ -83,6 +86,7 @@ tests_require = [
     'python-coveralls',
     'responses<0.6.2',  # 0.6.2 has a bug that causes our tests to fail.
 ]
+
 
 install_requires = [
     'botocore<1.5.71',
@@ -105,10 +109,10 @@ install_requires = [
     'hiredis>=0.1.0,<0.2.0',
     'honcho>=0.7.0,<0.8.0',
     'kombu==3.0.35',
-    'lxml>=3.4.1',
     'ipaddress>=1.0.16,<1.1.0',
     'libsourcemap>=0.7.2,<0.8.0',
     'loremipsum>=1.0.5,<1.1.0',
+    'lxml>=3.4.1',
     'mock>=0.8.0,<1.1',
     'mmh3>=2.3.1,<2.4',
     'oauth2>=1.5.167',
@@ -158,6 +162,7 @@ class SentrySDistCommand(SDistCommand):
 
 
 class SentryBuildCommand(BuildCommand):
+
     def run(self):
         BuildCommand.run(self)
         if not IS_LIGHT_BUILD:
@@ -166,6 +171,7 @@ class SentryBuildCommand(BuildCommand):
 
 
 class SentryDevelopCommand(DevelopCommand):
+
     def run(self):
         DevelopCommand.run(self)
         if not IS_LIGHT_BUILD:
@@ -180,6 +186,7 @@ cmdclass = {
     'build_assets': BuildAssetsCommand,
     'build_integration_docs': BuildIntegrationDocsCommand,
 }
+
 
 setup(
     name='sentry',
@@ -206,12 +213,17 @@ setup(
         'console_scripts': [
             'sentry = sentry.runner:main',
         ],
-        'flake8.extension': [],
+        'flake8.extension': [
+        ],
     },
     classifiers=[
-        'Framework :: Django', 'Intended Audience :: Developers',
-        'Intended Audience :: System Administrators', 'Operating System :: POSIX :: Linux',
-        'Programming Language :: Python :: 2', 'Programming Language :: Python :: 2.7',
-        'Programming Language :: Python :: 2 :: Only', 'Topic :: Software Development'
+        'Framework :: Django',
+        'Intended Audience :: Developers',
+        'Intended Audience :: System Administrators',
+        'Operating System :: POSIX :: Linux',
+        'Programming Language :: Python :: 2',
+        'Programming Language :: Python :: 2.7',
+        'Programming Language :: Python :: 2 :: Only',
+        'Topic :: Software Development'
     ],
 )

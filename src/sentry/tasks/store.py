@@ -183,7 +183,8 @@ def delete_raw_event(project_id, event_id, allow_hint_clear=False):
             project_id, 'sentry:sent_failed_event_hint', False
         )
         if sent_notification:
-            if ReprocessingReport.objects.filter(project_id=project_id, event_id=event_id).exists():
+            if ReprocessingReport.objects.filter(
+                    project_id=project_id, event_id=event_id).exists():
                 project = Project.objects.get_from_cache(id=project_id)
                 ProjectOption.objects.set_value(project, 'sentry:sent_failed_event_hint', False)
 
@@ -289,4 +290,7 @@ def save_event(cache_key=None, data=None, start_time=None, event_id=None, **kwar
         if cache_key:
             default_cache.delete(cache_key)
         if start_time:
-            metrics.timing('events.time-to-process', time() - start_time, instance=data['platform'])
+            metrics.timing(
+                'events.time-to-process',
+                time() - start_time,
+                instance=data['platform'])

@@ -193,7 +193,8 @@ class IssueTrackingPlugin(Plugin):
 
     def view(self, request, group, **kwargs):
         has_auth_configured = self.has_auth_configured()
-        if not (has_auth_configured and self.is_configured(project=group.project, request=request)):
+        if not (has_auth_configured and self.is_configured(
+                project=group.project, request=request)):
             if self.auth_provider:
                 required_auth_settings = settings.AUTH_PROVIDERS[self.auth_provider]
             else:
