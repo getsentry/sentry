@@ -68,18 +68,20 @@ const CreateProject = React.createClass({
         browserHistory.push(url);
       },
       error: err => {
-        Raven.captureMessage('Onboarding project creation failed', {
-          extra: {
-            err,
-            props: this.props,
-            state: this.state
-          }
-        });
-
         this.setState({
           loading: false,
-          error: true
+          error: err.responseJSON.detail
         });
+
+        if (err.status != 403) {
+          Raven.captureMessage('Onboarding project creation failed', {
+            extra: {
+              err,
+              props: this.props,
+              state: this.state
+            }
+          });
+        }
       }
     });
   },
@@ -89,7 +91,7 @@ const CreateProject = React.createClass({
   },
 
   render() {
-    let {projectName, platform} = this.state;
+    let {projectName, platform, error} = this.state;
     let {slug, teams} = this.context.organization;
     let accessTeams = teams.filter(team => team.hasAccess);
 
@@ -108,9 +110,9 @@ const CreateProject = React.createClass({
       teams: accessTeams,
       setTeam: teamSlug => this.setState({team: teamSlug})
     };
-
     return (
       <div>
+        {error && <h2 className="alert alert-error">{error}</h2>}
         {accessTeams.length
           ? <OnboardingProject {...stepProps} />
           : <div>

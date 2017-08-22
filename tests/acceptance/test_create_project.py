@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 from sentry.testutils import AcceptanceTestCase
+from sentry.models import Project
 
 
 class CreateProjectTest(AcceptanceTestCase):
@@ -31,7 +32,15 @@ class CreateProjectTest(AcceptanceTestCase):
         )
         self.browser.get(self.path)
         self.browser.wait_until_not('.loading')
+
+        self.browser.click('.platformicon-java')
         self.browser.snapshot(name='create project')
+
+        self.browser.click('.submit-new-team')
+        self.browser.wait_until_not('.loading')
+
+        assert Project.objects.get(team__organization=self.org, name='Java')
+        self.browser.snapshot(name='docs redirect')
 
     def test_no_teams(self):
         self.create_member(

@@ -1,5 +1,4 @@
 from __future__ import absolute_import
-
 # from django.core.urlresolvers import reverse
 
 # from sentry.models import Project
@@ -9,7 +8,7 @@ from __future__ import absolute_import
 # class CreateProjectPermissionTest(PermissionTestCase):
 #     def setUp(self):
 #         super(CreateProjectPermissionTest, self).setUp()
-#         self.path = '/organizations/{}/projects/new'.format(self.organization.slug)
+#         self.path = '/organizations/{}/projects/new/'.format(self.organization.slug)
 
 #     def test_non_member_cannot_load(self):
 #         self.assert_non_member_cannot_access(self.path)
@@ -34,7 +33,6 @@ from __future__ import absolute_import
 #         self.login_as(self.user)
 #         resp = self.client.get(path)
 #         assert resp.status_code == 200
-#         self.assertTemplateUsed(resp, 'sentry/create-project.html')
 #         assert resp.context['organization'] == organization
 #         assert resp.context['form']
 
