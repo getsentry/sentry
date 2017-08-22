@@ -305,7 +305,9 @@ class Release(Model):
         prev_release = type(self).objects.filter(
             organization_id=self.organization_id,
             projects__in=self.projects.all(),
-        ).exclude(version=self.version).order_by('-date_added').first()
+        ).extra(select={
+            'sort': 'COALESCE(date_released, date_added)',
+        }).exclude(version=self.version).order_by('-sort').first()
 
         names = {r['repository'] for r in refs}
         repos = list(
