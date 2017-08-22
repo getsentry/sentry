@@ -446,11 +446,14 @@ class UnmergeTestCase(TestCase):
             ]
         )
 
+        rollup_duration = 3600
+
         time_series = tsdb.get_range(
             tsdb.models.group,
             [source.id, destination.id],
             now,
             now + shift(16),
+            rollup_duration,
         )
 
         def get_expected_series_values(rollup, events, function=None):
@@ -475,8 +478,6 @@ class UnmergeTestCase(TestCase):
             for key in set(actual.keys()) - set(expected.keys()):
                 assert actual[key] == default
 
-        rollup_duration = time_series.values()[0][1][0] - time_series.values()[0][0][0]
-
         assert_series_contains(
             get_expected_series_values(rollup_duration, events.values()[0]),
             time_series[source.id],
@@ -494,9 +495,8 @@ class UnmergeTestCase(TestCase):
             [source.id, destination.id],
             now,
             now + shift(16),
+            rollup_duration,
         )
-
-        rollup_duration = time_series.values()[0][1][0] - time_series.values()[0][0][0]
 
         def collect_by_user_tag(aggregate, event):
             aggregate = aggregate if aggregate is not None else set()
@@ -536,9 +536,8 @@ class UnmergeTestCase(TestCase):
             [source.id, destination.id],
             now,
             now + shift(16),
+            rollup_duration,
         )
-
-        rollup_duration = time_series.values()[0][1][0] - time_series.values()[0][0][0]
 
         def collect_by_release(group, aggregate, event):
             aggregate = aggregate if aggregate is not None else {}
@@ -584,9 +583,8 @@ class UnmergeTestCase(TestCase):
             [source.id, destination.id],
             now,
             now + shift(16),
+            rollup_duration,
         )
-
-        rollup_duration = time_series.values()[0][1][0] - time_series.values()[0][0][0]
 
         def collect_by_environment(aggregate, event):
             aggregate = aggregate if aggregate is not None else {}
