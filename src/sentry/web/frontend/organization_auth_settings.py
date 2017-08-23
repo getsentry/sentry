@@ -11,6 +11,7 @@ from django.utils.translation import ugettext_lazy as _
 from sentry import features, roles
 from sentry.auth import manager
 from sentry.auth.helper import AuthHelper
+from sentry.auth.providers.saml2 import SAML2Provider, HAS_SAML2
 from sentry.models import AuditLogEntryEvent, AuthProvider, OrganizationMember
 from sentry.plugins import Response
 from sentry.tasks.auth import email_missing_links
@@ -190,8 +191,18 @@ class OrganizationAuthSettingsView(OrganizationView):
             # render first time setup view
             return self.handle_provider_setup(request, organization, provider_key)
 
+        provider_list = []
+
+        for k, v in manager:
+            if issubclass(v, SAML2Provider):
+                if not HAS_SAML2:
+                    continue
+                if not features.has('organizations:saml2', organization, actor=request.user):
+                    continue
+            provider_list.append((k, v.name))
+
         context = {
-            'provider_list': [(k, v.name) for k, v in manager],
+            'provider_list': provider_list,
         }
 
         return self.respond('sentry/organization-auth-settings.html', context)
