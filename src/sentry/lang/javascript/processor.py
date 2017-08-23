@@ -604,8 +604,11 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
                 new_frame['lineno'] = token.src_line + 1
                 new_frame['colno'] = token.src_col
                 last_token = None
+
+                # we might go back to a frame that is unhandled.  In that
+                # case we might not find the token in the data.
                 if processable_frame.previous_frame:
-                    last_token = processable_frame.previous_frame.data['token']
+                    last_token = processable_frame.previous_frame.data.get('token')
 
                 # The offending function is always the previous function in the stack
                 # Honestly, no idea what the bottom most frame is, so
