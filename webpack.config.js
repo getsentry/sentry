@@ -161,7 +161,8 @@ var appConfig = {
     new webpack.IgnorePlugin(/^\.\/locale$/, /moment$/), // ignore moment.js locale files
     new webpack.DefinePlugin({
       'process.env': {
-        NODE_ENV: JSON.stringify(process.env.NODE_ENV)
+        NODE_ENV: JSON.stringify(process.env.NODE_ENV),
+        IS_PERCY: JSON.stringify(!IS_PRODUCTION && !!process.env.PERCY_TOKEN)
       }
     }),
     // restrict translation files pulled into dist/app.js to only those specified
