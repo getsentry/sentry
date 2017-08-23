@@ -203,7 +203,7 @@ class JavascriptIntegrationTest(TestCase):
                                     'abs_path': 'http://example.com/test.min.js',
                                     'filename': 'test.js',
                                     'lineno': 1,
-                                    'colno': 0,
+                                    'colno': 1,
                                 },
                             ],
                         },
