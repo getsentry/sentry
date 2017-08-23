@@ -61,13 +61,6 @@ class Buffer(Service):
         if extra:
             update_kwargs.update(extra)
 
-        # TODO(mattrobenolt): Remove in 8.18
-        if model.__name__ == 'GroupTagValue':
-            try:
-                update_kwargs['project_id'] = update_kwargs.pop('project')
-            except KeyError:
-                pass
-
         _, created = model.objects.create_or_update(values=update_kwargs, **filters)
 
         buffer_incr_complete.send_robust(
