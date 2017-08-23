@@ -341,6 +341,16 @@ const ProjectProcessingIssues = React.createClass({
     return (
       <div>
         {fixLinkBlock}
+        <h3>
+          {t('Pending issues')}
+          <a
+            className="btn btn-default btn-sm pull-right"
+            onClick={() => {
+              this.discardEvents();
+            }}>
+            {t('Discard all')}
+          </a>
+        </h3>
         <div className="panel panel-default">
           <div className="panel-heading panel-heading-bold hidden-xs">
             <div className="row">
@@ -379,18 +389,6 @@ const ProjectProcessingIssues = React.createClass({
                 </div>
               );
             })}
-            <div className="list-group-item">
-              {t(
-                `In case you want to discard all events with pending processing issues: `
-              )}
-              <a
-                className="btn btn-sm btn-danger"
-                onClick={() => {
-                  this.discardEvents();
-                }}>
-                Discard all pending Events
-              </a>
-            </div>
           </div>
         </div>
       </div>
