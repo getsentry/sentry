@@ -44,7 +44,6 @@ import OrganizationStats from './views/organizationStats';
 import OrganizationTeams from './views/organizationTeams';
 import OnboardingWizard from './views/onboarding/index';
 import CreateProject from './views/onboarding/createProject';
-// import OnboardingProject from './views/onboarding/project/index';
 
 import OnboardingConfigure from './views/onboarding/configure/index';
 
