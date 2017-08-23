@@ -400,6 +400,7 @@ class MessageBuilder(object):
                 _with_transaction=False,
             )
             extra['message_id'] = message.extra_headers['Message-Id']
+            metrics.incr('email.queued', instance=self.type)
             if fmt == LoggingFormat.HUMAN:
                 extra['message_to'] = self.format_to(message.to),
                 log_mail_queued()
