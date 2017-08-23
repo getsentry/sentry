@@ -175,6 +175,7 @@ class APIView(BaseView):
             if not project:
                 raise APIError('Client must be upgraded for CORS support')
             if not is_valid_origin(origin, project):
+                tsdb.incr(tsdb.models.project_total_received_cors, project.id or None)
                 raise APIForbidden('Invalid origin: %s' % (origin, ))
 
         # XXX: It seems that the OPTIONS call does not always include custom headers
@@ -216,6 +217,7 @@ class APIView(BaseView):
                         )
 
                     if not is_valid_origin(origin, project):
+                        tsdb.incr(tsdb.models.project_total_received_cors, project.id or None)
                         raise APIForbidden('Missing required Origin or Referer header')
 
             response = super(APIView, self).dispatch(
@@ -538,6 +540,7 @@ class CspReportView(StoreView):
             raise APIForbidden('Invalid document-uri')
 
         if not is_valid_origin(origin, project):
+            tsdb.incr(tsdb.models.project_total_received_cors, project.id or None)
             raise APIForbidden('Invalid document-uri')
 
         # Attach on collected meta data. This data obviously isn't a part

@@ -76,6 +76,8 @@ class ProjectStatsEndpoint(ProjectEndpoint, StatsMixin):
             stat_model = tsdb.models.project_total_received_web_crawlers
         elif stat == 'invalid_csp':
             stat_model = tsdb.models.project_total_received_invalid_csp
+        elif stat == 'cors':
+            stat_model = tsdb.models.project_total_received_cors
         else:
             raise ValueError('Invalid stat: %s' % stat)
 

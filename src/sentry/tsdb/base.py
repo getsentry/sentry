@@ -99,6 +99,8 @@ class TSDBModel(Enum):
     project_total_received_web_crawlers = 607
     # the number of events filtered by invalid csp
     project_total_received_invalid_csp = 608
+    # the number of events filtered by invalid origin
+    project_total_received_cors = 609
 
 
 class BaseTSDB(Service):
