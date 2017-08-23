@@ -968,6 +968,50 @@ class JavascriptIntegrationTest(TestCase):
         assert event.data['errors'] == [{'url': u'<data url>', 'type': 'js_no_source'}]
 
     @responses.activate
+    def test_failed_sourcemap_expansion_missing_location_entirely(self):
+        responses.add(
+            responses.GET,
+            'http://example.com/indexed.min.js',
+            body='//# sourceMappingURL=indexed.sourcemap.js',
+        )
+        responses.add(
+            responses.GET,
+            'http://example.com/indexed.sourcemap.js',
+            body='{}'
+        )
+        data = {
+            'message': 'hello',
+            'platform': 'javascript',
+            'sentry.interfaces.Exception': {
+                'values': [
+                    {
+                        'type': 'Error',
+                        'stacktrace': {
+                            'frames': [
+                                {
+                                    'abs_path': 'http://example.com/indexed.min.js',
+                                    'filename': 'indexed.min.js',
+                                    'lineno': 1,
+                                    'colno': 1,
+                                },
+                                {
+                                    'abs_path': 'http://example.com/indexed.min.js',
+                                    'filename': 'indexed.min.js',
+                                },
+                            ],
+                        },
+                    }
+                ],
+            }
+        }
+
+        resp = self._postWithHeader(data)
+        assert resp.status_code == 200
+
+        event = Event.objects.get()
+        assert event.data['errors'] == []
+
+    @responses.activate
     def test_html_response_for_js(self):
         responses.add(
             responses.GET,
