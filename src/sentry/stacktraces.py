@@ -44,6 +44,13 @@ class ProcessableFrame(object):
     def get(self, key, default=None):
         return self.frame.get(key, default)
 
+    def close(self):
+        # manually break circular references
+        self.closed = True
+        self.processable_frames = None
+        self.stacktrace_info = None
+        self.processor = None
+
     @property
     def previous_frame(self):
         last_idx = len(self.processable_frames) - self.idx - 1 - 1
@@ -101,6 +108,10 @@ class StacktraceProcessingTask(object):
     def __init__(self, processable_stacktraces, processors):
         self.processable_stacktraces = processable_stacktraces
         self.processors = processors
+
+    def close(self):
+        for frame in self.iter_processable_frames():
+            frame.close()
 
     def iter_processors(self):
         return iter(self.processors)
@@ -385,33 +396,35 @@ def process_stacktraces(data, make_processors=None):
 
     # Build a new processing task
     processing_task = get_stacktrace_processing_task(infos, processors)
+    try:
 
-    # Preprocess step
-    for processor in processing_task.iter_processors():
-        if processor.preprocess_step(processing_task):
-            changed = True
+        # Preprocess step
+        for processor in processing_task.iter_processors():
+            if processor.preprocess_step(processing_task):
+                changed = True
 
-    # Process all stacktraces
-    for stacktrace_info, processable_frames in processing_task.iter_processable_stacktraces():
-        new_frames, new_raw_frames, errors = process_single_stacktrace(
-            processing_task, stacktrace_info, processable_frames
-        )
-        if new_frames is not None:
-            stacktrace_info.stacktrace['frames'] = new_frames
-            changed = True
-        if new_raw_frames is not None and \
-           stacktrace_info.container is not None:
-            stacktrace_info.container['raw_stacktrace'] = dict(
-                stacktrace_info.stacktrace, frames=new_raw_frames
+        # Process all stacktraces
+        for stacktrace_info, processable_frames in processing_task.iter_processable_stacktraces():
+            new_frames, new_raw_frames, errors = process_single_stacktrace(
+                processing_task, stacktrace_info, processable_frames
             )
-            changed = True
-        if errors:
-            data.setdefault('errors', []).extend(errors)
-            changed = True
+            if new_frames is not None:
+                stacktrace_info.stacktrace['frames'] = new_frames
+                changed = True
+            if new_raw_frames is not None and \
+               stacktrace_info.container is not None:
+                stacktrace_info.container['raw_stacktrace'] = dict(
+                    stacktrace_info.stacktrace, frames=new_raw_frames
+                )
+                changed = True
+            if errors:
+                data.setdefault('errors', []).extend(errors)
+                changed = True
 
-    # Close down everything
-    for processor in processors:
-        processor.close()
+    finally:
+        for processor in processors:
+            processor.close()
+        processing_task.close()
 
     if changed:
         return data
