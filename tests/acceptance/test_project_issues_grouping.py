@@ -41,6 +41,5 @@ class ProjectIssuesGroupingTest(AcceptanceTestCase):
         self.browser.get(
             '/{}/{}/issues/{}/grouping/'.format(self.org.slug, self.project.slug, event.group.id)
         )
-        self.browser.wait_until('.grouping-similar-list-container')
         self.browser.wait_until('.grouping-merged-list-container')
         self.browser.snapshot('issue details grouping tab')
