@@ -14,7 +14,9 @@ from sentry.utils.auth import login, get_login_redirect
 
 try:
     from onelogin.saml2.auth import OneLogin_Saml2_Auth, OneLogin_Saml2_Settings
+    HAS_SAML2 = True
 except ImportError:
+    HAS_SAML2 = False
 
     def OneLogin_Saml2_Auth(*args, **kwargs):
         raise NotImplementedError('Missing SAML libraries')
