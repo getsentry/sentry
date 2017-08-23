@@ -515,8 +515,8 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
         all_errors = []
         sourcemap_applied = False
 
-        # can't fetch source if there's no filename present
-        if not frame.get('abs_path'):
+        # can't fetch source if there's no filename present or no line
+        if not frame.get('abs_path') or not frame.get('lineno'):
             return
 
         errors = cache.get_errors(frame['abs_path'])
@@ -650,14 +650,16 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
         # another mapped, minified source
         changed_frame = self.expand_frame(new_frame, source=source)
 
-        if not new_frame.get('context_line') and source:
+        # If we did not manage to match but we do have a line or column
+        # we want to report an error here.
+        if not new_frame.get('context_line') \
+           and source and \
+           new_frame.get('colno') is not None:
             all_errors.append(
                 {
                     'type': EventError.JS_INVALID_SOURCEMAP_LOCATION,
-                    # Column might be missing here
-                    'column': new_frame.get('colno'),
-                    # Line might be missing here
-                    'row': new_frame.get('lineno'),
+                    'column': new_frame['colno'],
+                    'row': new_frame['lineno'],
                     'source': new_frame['abs_path'],
                 }
             )
