@@ -342,7 +342,7 @@ const ProjectProcessingIssues = React.createClass({
       <div>
         {fixLinkBlock}
         <h3>
-          {t('Pending issues')}
+          {t('Pending Issues')}
           <a
             className="btn btn-default btn-sm pull-right"
             onClick={() => {
