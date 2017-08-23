@@ -93,7 +93,7 @@ from .endpoints.project_tags import ProjectTagsEndpoint
 from .endpoints.project_tagkey_details import ProjectTagKeyDetailsEndpoint
 from .endpoints.project_tagkey_values import ProjectTagKeyValuesEndpoint
 from .endpoints.project_processingissues import ProjectProcessingIssuesEndpoint, \
-    ProjectProcessingIssuesFixEndpoint
+    ProjectProcessingIssuesFixEndpoint, ProjectProcessingIssuesDiscardEndpoint
 from .endpoints.project_reprocessing import ProjectReprocessingEndpoint
 from .endpoints.project_user_details import ProjectUserDetailsEndpoint
 from .endpoints.project_user_reports import ProjectUserReportsEndpoint
@@ -591,6 +591,11 @@ urlpatterns = patterns(
         r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/reprocessing/$',
         ProjectReprocessingEndpoint.as_view(),
         name='sentry-api-0-project-reprocessing'
+    ),
+    url(
+        r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/processingissues/discard$',
+        ProjectProcessingIssuesDiscardEndpoint.as_view(),
+        name='sentry-api-0-project-discard-processing-issues'
     ),
 
     # Load plugin project urls

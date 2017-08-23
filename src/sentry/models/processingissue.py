@@ -49,6 +49,16 @@ class ProcessingIssueManager(BaseManager):
         )
         q.delete()
 
+    def discard_all_processing_issue(self, project):
+        """
+        Resolves all processing issues.
+        """
+        self.resolve_all_processing_issue(project)
+        from sentry.models import RawEvent, ReprocessingReport
+        RawEvent.objects.filter(project_id=project.id).delete()
+        ReprocessingReport.objects \
+            .filter(project_id=project.id).delete()
+
     def find_resolved(self, project_id, limit=100):
         """Returns a list of raw events that generally match the given
         processing issue and no longer have any issues remaining.  Returns
