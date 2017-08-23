@@ -22,7 +22,7 @@ StacktraceInfo.__ne__ = lambda a, b: a is not b
 
 
 class ProcessableFrame(object):
-    def __init__(self, frame, idx, processor, stacktrace_info):
+    def __init__(self, frame, idx, processor, stacktrace_info, processable_frames):
         self.frame = frame
         self.idx = idx
         self.processor = processor
@@ -30,6 +30,10 @@ class ProcessableFrame(object):
         self.data = None
         self.cache_key = None
         self.cache_value = None
+        self.processable_frames = processable_frames
+
+    def __repr__(self):
+        return '<ProcessableFrame %r #%r>' % (self.frame.get('function') or 'unknown', self.idx, )
 
     def __contains__(self, key):
         return key in self.frame
@@ -39,6 +43,13 @@ class ProcessableFrame(object):
 
     def get(self, key, default=None):
         return self.frame.get(key, default)
+
+    @property
+    def previous_frame(self):
+        last_idx = len(self.processable_frames) - self.idx - 1 - 1
+        if last_idx < 0:
+            return
+        return self.processable_frames[last_idx]
 
     def set_cache_value(self, value):
         if self.cache_key is not None:
@@ -282,7 +293,9 @@ def get_processable_frames(stacktrace_info, processors):
     for idx, frame in enumerate(stacktrace_info.stacktrace['frames']):
         processor = next((p for p in processors if p.handles_frame(frame, stacktrace_info)), None)
         if processor is not None:
-            rv.append(ProcessableFrame(frame, frame_count - idx - 1, processor, stacktrace_info))
+            rv.append(
+                ProcessableFrame(frame, frame_count - idx - 1, processor, stacktrace_info, rv)
+            )
     return rv
 
 

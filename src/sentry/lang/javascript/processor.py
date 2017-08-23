@@ -505,9 +505,15 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
         platform = frame.get('platform') or self.data.get('platform')
         return (settings.SENTRY_SCRAPE_JAVASCRIPT_CONTEXT and platform == 'javascript')
 
+    def preprocess_frame(self, processable_frame):
+        # Stores the resolved token.  This is used to cross refer to other
+        # frames for function name resolution by call site.
+        processable_frame.data = {
+            'token': None,
+        }
+
     def process_frame(self, processable_frame, processing_task):
         frame = processable_frame.frame
-        last_token = None
         token = None
 
         cache = self.cache
@@ -541,8 +547,6 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
                 }
             )
         elif sourcemap_view:
-            last_token = token
-
             if is_data_uri(sourcemap_url):
                 sourcemap_label = frame['abs_path']
             else:
@@ -554,7 +558,7 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
                 # Errors are 1-indexed in the frames, so we need to -1 to get
                 # zero-indexed value from tokens.
                 assert frame['lineno'] > 0, "line numbers are 1-indexed"
-                token = sourcemap_view.lookup_token(frame['lineno'] - 1, frame['colno'])
+                token = sourcemap_view.lookup_token(frame['lineno'] - 1, frame['colno'] - 1)
             except Exception:
                 token = None
                 all_errors.append(
@@ -566,6 +570,9 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
                         'sourcemap': sourcemap_label,
                     }
                 )
+
+            # persist the token so that we can find it later
+            processable_frame.data['token'] = token
 
             # Store original data in annotation
             new_frame['data'] = dict(frame.get('data') or {}, sourcemap=sourcemap_label)
@@ -596,12 +603,18 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
                 # Token's return zero-indexed lineno's
                 new_frame['lineno'] = token.src_line + 1
                 new_frame['colno'] = token.src_col
+                last_token = None
+                if processable_frame.previous_frame:
+                    last_token = processable_frame.previous_frame.data['token']
+
                 # The offending function is always the previous function in the stack
-                # Honestly, no idea what the bottom most frame is, so we're ignoring that atm
+                # Honestly, no idea what the bottom most frame is, so
+                # we're ignoring that atm.
+                #
+                # XXX: we should actually be parsing the source code here
+                # and not use the last token
                 if last_token:
                     new_frame['function'] = last_token.name or frame.get('function')
-                else:
-                    new_frame['function'] = token.name or frame.get('function')
 
                 filename = token.src
                 # special case webpack support
