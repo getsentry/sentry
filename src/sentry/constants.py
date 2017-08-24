@@ -147,9 +147,10 @@ CLIENT_RESERVED_ATTRS = (
     'tags', 'platform', 'release', 'dist', 'environment',
 )
 
+# XXX: Must be all lowercase
 DEFAULT_SCRUBBED_FIELDS = (
     'password', 'secret', 'passwd', 'api_key', 'apikey', 'access_token', 'auth', 'credentials',
-    'mysql_pwd', 'stripeToken', 'card[number]',
+    'mysql_pwd', 'stripetoken', 'card[number]',
 )
 
 NOT_SCRUBBED_VALUES = set([
