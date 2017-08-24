@@ -600,24 +600,34 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
                     )
 
             if token is not None:
-                # Token's return zero-indexed lineno's
+                # the tokens are zero indexed, so offset correctly
                 new_frame['lineno'] = token.src_line + 1
                 new_frame['colno'] = token.src_col
-                last_token = None
 
-                # we might go back to a frame that is unhandled.  In that
-                # case we might not find the token in the data.
-                if processable_frame.previous_frame:
-                    last_token = processable_frame.previous_frame.data.get('token')
+                # Find the original function name with a bit of guessing
+                original_function_name = None
 
-                # The offending function is always the previous function in the stack
-                # Honestly, no idea what the bottom most frame is, so
-                # we're ignoring that atm.
-                #
-                # XXX: we should actually be parsing the source code here
-                # and not use the last token
-                if last_token:
-                    new_frame['function'] = last_token.name or frame.get('function')
+                # In the ideal case we can use the function name from the
+                # frame and the location to resolve the original name
+                # through the heuristics in our sourcemap library.
+                if frame.get('function'):
+                    minified_source = self.get_source(frame['abs_path'], raw=True)
+                    original_function_name = sourcemap_view.get_original_function_name(
+                        token.dst_line, token.dst_col, frame['function'],
+                        minified_source)
+                if original_function_name is None:
+                    last_token = None
+
+                    # Find the previous token for function name handling as a
+                    # fallback.
+                    if processable_frame.previous_frame and \
+                       processable_frame.previous_frame.processor is self:
+                        last_token = processable_frame.previous_frame.data.get('token')
+                        if last_token:
+                            original_function_name = last_token.name
+
+                if original_function_name is not None:
+                    new_frame['function'] = original_function_name
 
                 filename = token.src
                 # special case webpack support
@@ -702,10 +712,10 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
             return True
         return False
 
-    def get_source(self, filename):
+    def get_source(self, filename, raw=False):
         if filename not in self.cache:
             self.cache_source(filename)
-        return self.cache.get(filename)
+        return self.cache.get(filename, raw=raw)
 
     def cache_source(self, filename):
         sourcemaps = self.sourcemaps

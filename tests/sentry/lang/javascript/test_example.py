@@ -67,13 +67,14 @@ class ExampleTestCase(TestCase):
 
         assert len(frame_list) == 4
 
+        import pprint
+        pprint.pprint(frame_list)
+
         assert frame_list[0].function == 'produceStack'
         assert frame_list[0].lineno == 6
         assert frame_list[0].filename == 'index.html'
 
-        # This function name is obviously wrong but the current logic we
-        # have does not permit better data here
-        assert frame_list[1].function == 'i'
+        assert frame_list[1].function == 'test'
         assert frame_list[1].lineno == 20
         assert frame_list[1].filename == 'test.js'
 
@@ -81,8 +82,6 @@ class ExampleTestCase(TestCase):
         assert frame_list[2].lineno == 15
         assert frame_list[2].filename == 'test.js'
 
-        # This function name is obviously wrong but the current logic we
-        # have does not permit better data here
-        assert frame_list[3].function == 'cb'
+        assert frame_list[3].function == 'onFailure'
         assert frame_list[3].lineno == 5
         assert frame_list[3].filename == 'test.js'
