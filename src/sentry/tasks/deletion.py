@@ -66,7 +66,7 @@ def run_deletion(deletion_id):
     if not deletion.in_progress:
         actor = deletion.get_actor()
         instance = deletion.get_instance()
-        with transaction.atomc():
+        with transaction.atomic():
             deletion.update(in_progress=True)
             pending_delete.send(
                 sender=type(instance),
