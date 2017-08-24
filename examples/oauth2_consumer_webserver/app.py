@@ -7,8 +7,7 @@ import six
 from flask import Flask, redirect, url_for, request, session
 from flask_oauth import OAuth
 
-
-BASE_URL = os.environ.get('BASE_URL', 'http://localhost:8000')
+BASE_URL = os.environ.get('BASE_URL', 'http://dev.getsentry.net:8000')
 CLIENT_ID = os.environ.get('CLIENT_ID')
 CLIENT_SECRET = os.environ.get('CLIENT_SECRET')
 REDIRECT_URI = '/authorized'
@@ -44,17 +43,14 @@ sentry = oauth.remote_app(
 def index():
     access_token = session.get('access_token')
     if access_token is None:
-        return (
-            '<h1>Who are you?</h1>'
-            '<p><a href="{}">Login with Sentry</a></p>'
-        ).format(
-            url_for('login'),
-        )
+        return ('<h1>Who are you?</h1>'
+                '<p><a href="{}">Login with Sentry</a></p>').format(
+                    url_for('login'),
+                )
 
     from urllib2 import Request, urlopen, URLError
     headers = {'Authorization': 'Bearer {}'.format(access_token)}
-    req = Request('{}/api/0/organizations/'.format(BASE_URL),
-                  None, headers)
+    req = Request('{}/api/0/organizations/'.format(BASE_URL), None, headers)
     try:
         res = urlopen(req)
     except URLError, e:
@@ -64,13 +60,11 @@ def index():
             return redirect(url_for('login'))
         return '{}\n{}'.format(six.text_type(e), e.read())
 
-    return (
-        '<h1>Hi, {}!</h1>'
-        '<pre>{}</pre>'
-    ).format(
-        json.loads(session['user'])['email'],
-        json.dumps(json.loads(res.read()), indent=2),
-    )
+    return ('<h1>Hi, {}!</h1>'
+            '<pre>{}</pre>').format(
+                json.loads(session['user'])['email'],
+                json.dumps(json.loads(res.read()), indent=2),
+            )
 
 
 @app.route('/login')
@@ -83,14 +77,12 @@ def login():
 @sentry.authorized_handler
 def authorized(resp):
     if 'error' in request.args:
-        return (
-            '<h1>Error</h1>'
-            '<p>{}</p>'
-            '<p><a href="{}">Try again</a></p>'
-        ).format(
-            request.args['error'],
-            url_for('login'),
-        )
+        return ('<h1>Error</h1>'
+                '<p>{}</p>'
+                '<p><a href="{}">Try again</a></p>').format(
+                    request.args['error'],
+                    url_for('login'),
+                )
     access_token = resp['access_token']
     session['access_token'] = access_token
     session['user'] = json.dumps(resp['user'])

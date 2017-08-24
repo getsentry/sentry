@@ -11,13 +11,11 @@ from django.utils.decorators import method_decorator
 
 from sudo.decorators import sudo_required
 
-from sentry.models import (
-    Project, ProjectStatus, Organization, OrganizationStatus
-)
+from sentry.models import (Project, ProjectStatus, Organization, OrganizationStatus)
 from sentry.plugins import plugins
 from sentry.web.forms.accounts import (
-    ProjectEmailOptionsForm, NotificationSettingsForm,
-    NotificationReportSettingsForm, NotificationDeploySettingsForm
+    ProjectEmailOptionsForm, NotificationSettingsForm, NotificationReportSettingsForm,
+    NotificationDeploySettingsForm
 )
 from sentry.web.decorators import login_required
 from sentry.web.frontend.base import BaseView
@@ -34,41 +32,43 @@ class AccountNotificationView(BaseView):
     @method_decorator(sudo_required)
     @method_decorator(transaction.atomic)
     def handle(self, request):
-        settings_form = self.notification_settings_form(
-            request.user, request.POST or None)
+        settings_form = self.notification_settings_form(request.user, request.POST or None)
         reports_form = NotificationReportSettingsForm(
-            request.user, request.POST or None,
-            prefix='reports')
+            request.user, request.POST or None, prefix='reports'
+        )
 
-        org_list = list(Organization.objects.filter(
-            status=OrganizationStatus.VISIBLE,
-            member_set__user=request.user,
-        ).distinct())
+        org_list = list(
+            Organization.objects.filter(
+                status=OrganizationStatus.VISIBLE,
+                member_set__user=request.user,
+            ).distinct()
+        )
 
         org_forms = [
-            (org, NotificationDeploySettingsForm(
-                request.user,
-                org,
-                request.POST or None,
-                prefix='deploys-org-%s' % (org.id,)
-            ))
-            for org in sorted(org_list, key=lambda o: o.name)
+            (
+                org, NotificationDeploySettingsForm(
+                    request.user, org, request.POST or None, prefix='deploys-org-%s' % (org.id, )
+                )
+            ) for org in sorted(org_list, key=lambda o: o.name)
         ]
 
-        project_list = list(Project.objects.filter(
-            team__organizationmemberteam__organizationmember__user=request.user,
-            team__organizationmemberteam__is_active=True,
-            status=ProjectStatus.VISIBLE,
-        ).distinct())
+        project_list = list(
+            Project.objects.filter(
+                team__organizationmemberteam__organizationmember__user=request.user,
+                team__organizationmemberteam__is_active=True,
+                status=ProjectStatus.VISIBLE,
+            ).distinct()
+        )
 
         project_forms = [
-            (project, ProjectEmailOptionsForm(
-                project, request.user,
-                request.POST or None,
-                prefix='project-%s' % (project.id,)
-            ))
-            for project in sorted(project_list, key=lambda x: (
-                x.organization.name, x.name))
+            (
+                project, ProjectEmailOptionsForm(
+                    project,
+                    request.user,
+                    request.POST or None,
+                    prefix='project-%s' % (project.id, )
+                )
+            ) for project in sorted(project_list, key=lambda x: (x.organization.name, x.name))
         ]
 
         ext_forms = []
@@ -80,18 +80,19 @@ class AccountNotificationView(BaseView):
                     request.user,
                     request.POST or None,
                     prefix=plugin.slug,
-                    _with_transaction=False)
+                    _with_transaction=False
+                )
                 if not form:
                     continue
                 ext_forms.append(form)
 
         if request.POST:
-            all_forms = list(itertools.chain(
-                [settings_form, reports_form],
-                ext_forms,
-                (f for _, f in project_forms),
-                (f for _, f in org_forms)
-            ))
+            all_forms = list(
+                itertools.chain(
+                    [settings_form, reports_form], ext_forms, (f for _, f in project_forms),
+                    (f for _, f in org_forms)
+                )
+            )
             if all(f.is_valid() for f in all_forms):
                 for form in all_forms:
                     form.save()
@@ -99,13 +100,15 @@ class AccountNotificationView(BaseView):
                 return HttpResponseRedirect(request.path)
 
         context = csrf(request)
-        context.update({
-            'settings_form': settings_form,
-            'project_forms': project_forms,
-            'org_forms': org_forms,
-            'reports_form': reports_form,
-            'ext_forms': ext_forms,
-            'page': 'notifications',
-            'AUTH_PROVIDERS': get_auth_providers(),
-        })
+        context.update(
+            {
+                'settings_form': settings_form,
+                'project_forms': project_forms,
+                'org_forms': org_forms,
+                'reports_form': reports_form,
+                'ext_forms': ext_forms,
+                'page': 'notifications',
+                'AUTH_PROVIDERS': get_auth_providers(),
+            }
+        )
         return render_to_response('sentry/account/notifications.html', context, request)

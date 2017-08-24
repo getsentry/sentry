@@ -33,33 +33,52 @@ class User(BaseModel, AbstractBaseUser):
     username = models.CharField(_('username'), max_length=128, unique=True)
     # this column is called first_name for legacy reasons, but it is the entire
     # display name
-    name = models.CharField(_('name'), max_length=200, blank=True,
-                            db_column='first_name')
+    name = models.CharField(_('name'), max_length=200, blank=True, db_column='first_name')
     email = models.EmailField(_('email address'), blank=True)
     is_staff = models.BooleanField(
-        _('staff status'), default=False,
+        _('staff status'),
+        default=False,
         help_text=_('Designates whether the user can log into this admin '
-                    'site.'))
+                    'site.')
+    )
     is_active = models.BooleanField(
-        _('active'), default=True,
-        help_text=_('Designates whether this user should be treated as '
-                    'active. Unselect this instead of deleting accounts.'))
+        _('active'),
+        default=True,
+        help_text=_(
+            'Designates whether this user should be treated as '
+            'active. Unselect this instead of deleting accounts.'
+        )
+    )
     is_superuser = models.BooleanField(
-        _('superuser status'), default=False,
-        help_text=_('Designates that this user has all permissions without '
-                    'explicitly assigning them.'))
+        _('superuser status'),
+        default=False,
+        help_text=_(
+            'Designates that this user has all permissions without '
+            'explicitly assigning them.'
+        )
+    )
     is_managed = models.BooleanField(
-        _('managed'), default=False,
-        help_text=_('Designates whether this user should be treated as '
-                    'managed. Select this to disallow the user from '
-                    'modifying their account (username, password, etc).'))
+        _('managed'),
+        default=False,
+        help_text=_(
+            'Designates whether this user should be treated as '
+            'managed. Select this to disallow the user from '
+            'modifying their account (username, password, etc).'
+        )
+    )
     is_password_expired = models.BooleanField(
-        _('password expired'), default=False,
-        help_text=_('If set to true then the user needs to change the '
-                    'password on next sign in.'))
+        _('password expired'),
+        default=False,
+        help_text=_(
+            'If set to true then the user needs to change the '
+            'password on next sign in.'
+        )
+    )
     last_password_change = models.DateTimeField(
-        _('date of last password change'), null=True,
-        help_text=_('The date the password was changed last.'))
+        _('date of last password change'),
+        null=True,
+        help_text=_('The date the password was changed last.')
+    )
 
     session_nonce = models.CharField(max_length=12, null=True)
 
@@ -134,16 +153,19 @@ class User(BaseModel, AbstractBaseUser):
             email.save()
 
         context = {
-            'user': self,
-            'url': absolute_uri(reverse(
-                'sentry-account-confirm-email',
-                args=[self.id, email.validation_hash]
-            )),
-            'confirm_email': email.email,
-            'is_new_user': is_new_user,
+            'user':
+            self,
+            'url':
+            absolute_uri(
+                reverse('sentry-account-confirm-email', args=[self.id, email.validation_hash])
+            ),
+            'confirm_email':
+            email.email,
+            'is_new_user':
+            is_new_user,
         }
         msg = MessageBuilder(
-            subject='%sConfirm Email' % (options.get('mail.subject-prefix'),),
+            subject='%sConfirm Email' % (options.get('mail.subject-prefix'), ),
             template='sentry/emails/confirm_email.txt',
             html_template='sentry/emails/confirm_email.html',
             type='user.confirm_email',
@@ -160,15 +182,17 @@ class User(BaseModel, AbstractBaseUser):
         # TODO: we could discover relations automatically and make this useful
         from sentry import roles
         from sentry.models import (
-            AuditLogEntry, Activity, AuthIdentity, GroupAssignee, GroupBookmark,
-            GroupSeen, OrganizationMember, OrganizationMemberTeam, UserAvatar,
-            UserEmail, UserOption
+            AuditLogEntry, Activity, AuthIdentity, GroupAssignee, GroupBookmark, GroupSeen,
+            GroupSubscription, OrganizationMember, OrganizationMemberTeam, UserAvatar, UserEmail,
+            UserOption
         )
 
-        audit_logger.info('user.merge', extra={
-            'from_user_id': from_user.id,
-            'to_user_id': to_user.id,
-        })
+        audit_logger.info(
+            'user.merge', extra={
+                'from_user_id': from_user.id,
+                'to_user_id': to_user.id,
+            }
+        )
 
         for obj in OrganizationMember.objects.filter(user=from_user):
             try:
@@ -196,11 +220,7 @@ class User(BaseModel, AbstractBaseUser):
                     pass
 
         model_list = (
-            GroupAssignee,
-            GroupBookmark,
-            GroupSeen,
-            UserAvatar,
-            UserEmail,
+            GroupAssignee, GroupBookmark, GroupSeen, GroupSubscription, UserAvatar, UserEmail,
             UserOption
         )
 
@@ -246,9 +266,7 @@ class User(BaseModel, AbstractBaseUser):
             request.session['_nonce'] = self.session_nonce
 
     def get_orgs(self):
-        from sentry.models import (
-            Organization, OrganizationMember, OrganizationStatus
-        )
+        from sentry.models import (Organization, OrganizationMember, OrganizationStatus)
         return Organization.objects.filter(
             status=OrganizationStatus.VISIBLE,
             id__in=OrganizationMember.objects.filter(

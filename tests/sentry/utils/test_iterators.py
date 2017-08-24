@@ -20,7 +20,7 @@ def test_chunked():
 def test_advance():
     i = iter(xrange(10))
 
-    advance(5, i)   # [0, 1, 2, 3, 4]
+    advance(5, i)  # [0, 1, 2, 3, 4]
     assert next(i) == 5
 
     advance(10, i)  # don't raise if slicing past end of iterator

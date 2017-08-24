@@ -7,7 +7,7 @@ sentry.interfaces.user
 """
 from __future__ import absolute_import
 
-__all__ = ('User',)
+__all__ = ('User', )
 
 import six
 
@@ -48,6 +48,7 @@ class User(Interface):
     >>>     "optional": "value"
     >>> }
     """
+
     @classmethod
     def to_python(cls, data):
         data = data.copy()

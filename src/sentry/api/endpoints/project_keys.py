@@ -13,9 +13,7 @@ from sentry.utils.apidocs import scenario, attach_scenarios
 @scenario('ListClientKeys')
 def list_keys_scenario(runner):
     runner.request(
-        method='GET',
-        path='/projects/%s/%s/keys/' % (
-            runner.org.slug, runner.default_project.slug)
+        method='GET', path='/projects/%s/%s/keys/' % (runner.org.slug, runner.default_project.slug)
     )
 
 
@@ -23,11 +21,8 @@ def list_keys_scenario(runner):
 def create_key_scenario(runner):
     runner.request(
         method='POST',
-        path='/projects/%s/%s/keys/' % (
-            runner.org.slug, runner.default_project.slug),
-        data={
-            'name': 'Fabulous Key'
-        }
+        path='/projects/%s/%s/keys/' % (runner.org.slug, runner.default_project.slug),
+        data={'name': 'Fabulous Key'}
     )
 
 

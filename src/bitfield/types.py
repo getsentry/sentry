@@ -19,7 +19,7 @@ class Bit(object):
     def __init__(self, number, is_set=True):
         self.number = number
         self.is_set = bool(is_set)
-        self.mask = 2 ** int(number)
+        self.mask = 2**int(number)
         self.children = []
         if not self.is_set:
             self.mask = ~self.mask
@@ -154,8 +154,10 @@ class BitHandler(object):
         return cmp(self._value, other)
 
     def __repr__(self):
-        return '<%s: %s>' % (self.__class__.__name__, ', '.join('%s=%s' %
-                                                                (k, self.get_bit(n).is_set) for n, k in enumerate(self._keys)),)
+        return '<%s: %s>' % (
+            self.__class__.__name__,
+            ', '.join('%s=%s' % (k, self.get_bit(n).is_set) for n, k in enumerate(self._keys)),
+        )
 
     def __str__(self):
         return six.text_type(self._value)
@@ -215,17 +217,18 @@ class BitHandler(object):
 
     def _get_mask(self):
         return self._value
+
     mask = property(_get_mask)
 
     def evaluate(self, evaluator, qn, connection):
         return self.mask, []
 
     def get_bit(self, bit_number):
-        mask = 2 ** int(bit_number)
+        mask = 2**int(bit_number)
         return Bit(bit_number, self._value & mask != 0)
 
     def set_bit(self, bit_number, true_or_false):
-        mask = 2 ** int(bit_number)
+        mask = 2**int(bit_number)
         if true_or_false:
             self._value |= mask
         else:
@@ -268,7 +271,6 @@ if django.VERSION[:2] >= (1, 8):
     try:
         from django.db.backends.postgresql_psycopg2.base import Database
         Database.extensions.register_adapter(Bit, lambda x: Database.extensions.AsIs(int(x)))
-        Database.extensions.register_adapter(
-            BitHandler, lambda x: Database.extensions.AsIs(int(x)))
+        Database.extensions.register_adapter(BitHandler, lambda x: Database.extensions.AsIs(int(x)))
     except ImproperlyConfigured:
         pass

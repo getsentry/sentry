@@ -56,10 +56,12 @@ class OrganizationTeamsCreateTest(APITestCase):
     def test_valid_params(self):
         self.login_as(user=self.user)
 
-        resp = self.client.post(self.path, data={
-            'name': 'hello world',
-            'slug': 'foobar',
-        })
+        resp = self.client.post(
+            self.path, data={
+                'name': 'hello world',
+                'slug': 'foobar',
+            }
+        )
         assert resp.status_code == 201, resp.content
         team = Team.objects.get(id=resp.data['id'])
         assert team.name == 'hello world'
@@ -80,9 +82,11 @@ class OrganizationTeamsCreateTest(APITestCase):
     def test_without_slug(self):
         self.login_as(user=self.user)
 
-        resp = self.client.post(self.path, data={
-            'name': 'hello world',
-        })
+        resp = self.client.post(
+            self.path, data={
+                'name': 'hello world',
+            }
+        )
         assert resp.status_code == 201, resp.content
         team = Team.objects.get(id=resp.data['id'])
         assert team.slug == 'hello-world'
@@ -90,16 +94,20 @@ class OrganizationTeamsCreateTest(APITestCase):
     def test_duplicate(self):
         self.login_as(user=self.user)
 
-        resp = self.client.post(self.path, data={
-            'name': 'hello world',
-            'slug': 'foobar',
-        })
+        resp = self.client.post(
+            self.path, data={
+                'name': 'hello world',
+                'slug': 'foobar',
+            }
+        )
 
         assert resp.status_code == 201, resp.content
 
-        resp = self.client.post(self.path, data={
-            'name': 'hello world',
-            'slug': 'foobar',
-        })
+        resp = self.client.post(
+            self.path, data={
+                'name': 'hello world',
+                'slug': 'foobar',
+            }
+        )
 
         assert resp.status_code == 409, resp.content

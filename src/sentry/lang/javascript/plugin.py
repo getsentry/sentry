@@ -26,8 +26,7 @@ def generate_modules(data):
             if platform != 'javascript' or frame.get('module'):
                 continue
             abs_path = frame.get('abs_path')
-            if abs_path and abs_path.startswith(('http:', 'https:',
-                                                 'webpack:', 'app:')):
+            if abs_path and abs_path.startswith(('http:', 'https:', 'webpack:', 'app:')):
                 frame['module'] = generate_module(abs_path)
 
 
@@ -60,11 +59,13 @@ def parse_user_agent(data):
 
 
 def _get_version(user_agent):
-    return '.'.join(value for value in [
-        user_agent['major'],
-        user_agent['minor'],
-        user_agent.get('patch'),
-    ] if value) or None
+    return '.'.join(
+        value for value in [
+            user_agent['major'],
+            user_agent['minor'],
+            user_agent.get('patch'),
+        ] if value
+    ) or None
 
 
 def inject_browser_context(data, user_agent):
@@ -132,7 +133,6 @@ class JavascriptPlugin(Plugin2):
             return [preprocess_event]
         return []
 
-    def get_stacktrace_processors(self, data, stacktrace_infos,
-                                  platforms, **kwargs):
+    def get_stacktrace_processors(self, data, stacktrace_infos, platforms, **kwargs):
         if 'javascript' in platforms:
             return [JavaScriptStacktraceProcessor]

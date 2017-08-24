@@ -126,12 +126,9 @@ def add_settings(mod, settings):
             continue
 
         setting_value = getattr(mod, setting)
-        if setting in (
-                'INSTALLED_APPS',
-                'TEMPLATE_DIRS') and isinstance(
-                setting_value,
-                six.string_types):
-            setting_value = (setting_value,)  # In case the user forgot the comma.
+        if setting in ('INSTALLED_APPS',
+                       'TEMPLATE_DIRS') and isinstance(setting_value, six.string_types):
+            setting_value = (setting_value, )  # In case the user forgot the comma.
 
         # Any setting that starts with EXTRA_ and matches a setting that is a list or tuple
         # will automatically append the values to the current setting.

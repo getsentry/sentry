@@ -1,6 +1,25 @@
-Version 8.19 (Unreleased)
+Version 8.20 (Unreleased)
 -------------------------
+- Add raw data toggle for Additional Data
+
+Schema Changes
+~~~~~~~~~~~~~~
+- Added index on ``ProjectPlatform(last_seen)`` column
+- Added index on ``GroupCommitResolution.commit_id``
+- Enable ``citext`` extension in Postgres.
+
+Version 8.19
+------------
+
 - Hide project filter when there are no projects to list.
+- Added lookup methods to constants to get a unique `integration_id` for a given
+  event, and to get information (documention url, human readable name) from that id.
+
+Schema Changes
+~~~~~~~~~~~~~~
+
+- Added ``Integration``, ``OrganizationIntegration``, and ``ProjectIntegration`` models
+- Added ``Repository(integration_id)`` column
 
 Version 8.18
 ------------

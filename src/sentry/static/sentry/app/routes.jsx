@@ -24,10 +24,10 @@ import GroupActivity from './views/groupActivity';
 import GroupDetails from './views/groupDetails';
 import GroupEventDetails from './views/groupEventDetails';
 import GroupEvents from './views/groupEvents';
-import GroupHashes from './views/groupHashes';
 import GroupTags from './views/groupTags';
 import GroupTagValues from './views/groupTagValues';
 import GroupUserReports from './views/groupUserReports';
+import GroupGroupingView from './views/groupGrouping/groupGroupingView';
 import MyIssuesAssignedToMe from './views/myIssues/assignedToMe';
 import MyIssuesBookmarked from './views/myIssues/bookmarked';
 import MyIssuesViewed from './views/myIssues/viewed';
@@ -35,11 +35,17 @@ import OrganizationAuditLog from './views/organizationAuditLog';
 import OrganizationCreate from './views/organizationCreate';
 import OrganizationDashboard from './views/organizationDashboard';
 import OrganizationDetails from './views/organizationDetails';
+import OrganizationContext from './views/organizationContext';
+import OrganizationIntegrations from './views/organizationIntegrations';
 import OrganizationRateLimits from './views/organizationRateLimits';
 import OrganizationRepositories from './views/organizationRepositories';
 import OrganizationSettings from './views/organizationSettings';
 import OrganizationStats from './views/organizationStats';
 import OrganizationTeams from './views/organizationTeams';
+import OnboardingWizard from './views/onboarding/index';
+import OnboardingProject from './views/onboarding/project/index';
+import OnboardingConfigure from './views/onboarding/configure/index';
+
 import AllTeamsList from './views/organizationTeams/allTeamsList';
 import ProjectAlertSettings from './views/projectAlertSettings';
 import ProjectAlertRules from './views/projectAlertRules';
@@ -107,6 +113,7 @@ function routes() {
 
   return (
     <Route path="/" component={errorHandler(App)}>
+
       <Route path="/account/" component={errorHandler(AccountLayout)}>
         <Route path="authorizations/" component={errorHandler(AccountAuthorizations)} />
       </Route>
@@ -137,9 +144,19 @@ function routes() {
       <Route path="/share/issue/:shareId/" component={errorHandler(SharedGroupDetails)} />
 
       <Route path="/organizations/new/" component={errorHandler(OrganizationCreate)} />
+
+      <Route path="/onboarding/:orgId/" component={errorHandler(OrganizationContext)}>
+        <Route path="" component={errorHandler(OnboardingWizard)}>
+          <IndexRoute component={errorHandler(OnboardingProject)} />
+          <Route
+            path=":projectId/configure/(:platform)"
+            component={errorHandler(OnboardingConfigure)}
+          />
+        </Route>
+      </Route>
+
       <Route path="/:orgId/" component={errorHandler(OrganizationDetails)}>
         <IndexRoute component={errorHandler(OrganizationDashboard)} />
-
         <Route
           path="/organizations/:orgId/audit-log/"
           component={errorHandler(OrganizationAuditLog)}
@@ -147,6 +164,10 @@ function routes() {
         <Route
           path="/organizations/:orgId/repos/"
           component={errorHandler(OrganizationRepositories)}
+        />
+        <Route
+          path="/organizations/:orgId/integrations/"
+          component={errorHandler(OrganizationIntegrations)}
         />
         <Route
           path="/organizations/:orgId/settings/"
@@ -273,10 +294,11 @@ function routes() {
             <Route path="activity/" component={errorHandler(GroupActivity)} />
             <Route path="events/:eventId/" component={errorHandler(GroupEventDetails)} />
             <Route path="events/" component={errorHandler(GroupEvents)} />
-            <Route path="hashes/" component={errorHandler(GroupHashes)} />
             <Route path="tags/" component={errorHandler(GroupTags)} />
             <Route path="tags/:tagKey/" component={errorHandler(GroupTagValues)} />
             <Route path="feedback/" component={errorHandler(GroupUserReports)} />
+            <Route path="grouping/" component={errorHandler(GroupGroupingView)} />
+
           </Route>
         </Route>
       </Route>

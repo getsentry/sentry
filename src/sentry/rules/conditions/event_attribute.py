@@ -27,16 +27,18 @@ class MatchType(object):
     NOT_SET = 'ns'
 
 
-MATCH_CHOICES = OrderedDict([
-    (MatchType.EQUAL, 'equals'),
-    (MatchType.NOT_EQUAL, 'does not equal'),
-    (MatchType.STARTS_WITH, 'starts with'),
-    (MatchType.ENDS_WITH, 'ends with'),
-    (MatchType.CONTAINS, 'contains'),
-    (MatchType.NOT_CONTAINS, 'does not contain'),
-    (MatchType.IS_SET, 'is set'),
-    (MatchType.NOT_SET, 'is not set'),
-])
+MATCH_CHOICES = OrderedDict(
+    [
+        (MatchType.EQUAL, 'equals'),
+        (MatchType.NOT_EQUAL, 'does not equal'),
+        (MatchType.STARTS_WITH, 'starts with'),
+        (MatchType.ENDS_WITH, 'ends with'),
+        (MatchType.CONTAINS, 'contains'),
+        (MatchType.NOT_CONTAINS, 'does not contain'),
+        (MatchType.IS_SET, 'is set'),
+        (MatchType.NOT_SET, 'is not set'),
+    ]
+)
 
 ATTR_CHOICES = [
     'message',
@@ -65,16 +67,26 @@ class FixedTypeaheadInput(forms.TextInput):
 
 
 class EventAttributeForm(forms.Form):
-    attribute = forms.CharField(widget=FixedTypeaheadInput(
-        attrs={'style': 'width:200px', 'placeholder': 'i.e. exception.type'},
-        choices=[{'id': a, 'text': a} for a in ATTR_CHOICES],
-    ))
-    match = forms.ChoiceField(MATCH_CHOICES.items(), widget=forms.Select(
-        attrs={'style': 'width:150px'},
-    ))
-    value = forms.CharField(widget=forms.TextInput(
-        attrs={'placeholder': 'value'},
-    ), required=False)
+    attribute = forms.CharField(
+        widget=FixedTypeaheadInput(
+            attrs={'style': 'width:200px',
+                   'placeholder': 'i.e. exception.type'},
+            choices=[{
+                'id': a,
+                'text': a
+            } for a in ATTR_CHOICES],
+        )
+    )
+    match = forms.ChoiceField(
+        MATCH_CHOICES.items(), widget=forms.Select(
+            attrs={'style': 'width:150px'},
+        )
+    )
+    value = forms.CharField(
+        widget=forms.TextInput(
+            attrs={'placeholder': 'value'},
+        ), required=False
+    )
 
 
 class EventAttributeCondition(EventCondition):
@@ -136,26 +148,19 @@ class EventAttributeCondition(EventCondition):
                 return []
 
             return [
-                getattr(e, path[1])
-                for e in event.interfaces['sentry.interfaces.Exception'].values
+                getattr(e, path[1]) for e in event.interfaces['sentry.interfaces.Exception'].values
             ]
 
         elif path[0] == 'user':
             if path[1] in ('id', 'ip_address', 'email', 'username'):
-                return [
-                    getattr(event.interfaces['sentry.interfaces.User'], path[1])
-                ]
-            return [
-                getattr(event.interfaces['sentry.interfaces.User'].data, path[1])
-            ]
+                return [getattr(event.interfaces['sentry.interfaces.User'], path[1])]
+            return [getattr(event.interfaces['sentry.interfaces.User'].data, path[1])]
 
         elif path[0] == 'http':
             if path[1] not in ('url', 'method'):
                 return []
 
-            return [
-                getattr(event.interfaces['sentry.interfaces.Http'], path[1])
-            ]
+            return [getattr(event.interfaces['sentry.interfaces.Http'], path[1])]
 
         elif path[0] == 'stacktrace':
             stacks = event.interfaces.get('sentry.interfaces.Stacktrace')
@@ -163,8 +168,7 @@ class EventAttributeCondition(EventCondition):
                 stacks = [stacks]
             else:
                 stacks = [
-                    e.stacktrace
-                    for e in event.interfaces['sentry.interfaces.Exception'].values
+                    e.stacktrace for e in event.interfaces['sentry.interfaces.Exception'].values
                     if e.stacktrace
                 ]
 

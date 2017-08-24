@@ -39,9 +39,7 @@ class Map(Attribute):
         if not isinstance(value, Mapping):
             new_value = {}
             for attr in self.attributes:
-                new_value[attr.name] = attr.extract(
-                    getattr(value, attr.name, None)
-                )
+                new_value[attr.name] = attr.extract(getattr(value, attr.name, None))
             items = new_value
         else:
             # ensure we dont mutate the original
@@ -60,9 +58,11 @@ class Map(Attribute):
             data[attr.name] = attr.extract(nv)
 
         if items:
-            raise ValueError(u'Unknown attributes: {}'.format(
-                ', '.join(map(six.text_type, six.iterkeys(items))),
-            ))
+            raise ValueError(
+                u'Unknown attributes: {}'.format(
+                    ', '.join(map(six.text_type, six.iterkeys(items))),
+                )
+            )
 
         return data
 
@@ -99,17 +99,16 @@ class Event(object):
         self.data = data
 
     def serialize(self):
-        return dict({
-            'timestamp': int(self.datetime.isoformat('%s')),
-            'type': self.type,
-        }, **self.data)
+        return dict(
+            {
+                'timestamp': int(self.datetime.isoformat('%s')),
+                'type': self.type,
+            }, **self.data
+        )
 
     @classmethod
     def from_instance(cls, instance, **kwargs):
         values = {}
         for attr in cls.attributes:
-            values[attr.name] = (
-                kwargs.get(attr.name) or
-                getattr(instance, attr.name, None)
-            )
+            values[attr.name] = (kwargs.get(attr.name) or getattr(instance, attr.name, None))
         return cls(**values)

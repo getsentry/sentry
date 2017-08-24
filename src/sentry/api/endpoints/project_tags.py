@@ -17,11 +17,13 @@ class ProjectTagsEndpoint(ProjectEndpoint):
 
         data = []
         for tag_key in tag_keys:
-            data.append({
-                'id': six.text_type(tag_key.id),
-                'key': TagKey.get_standardized_key(tag_key.key),
-                'name': tag_key.get_label(),
-                'uniqueValues': tag_key.values_seen,
-            })
+            data.append(
+                {
+                    'id': six.text_type(tag_key.id),
+                    'key': TagKey.get_standardized_key(tag_key.key),
+                    'name': tag_key.get_label(),
+                    'uniqueValues': tag_key.values_seen,
+                }
+            )
 
         return Response(data)

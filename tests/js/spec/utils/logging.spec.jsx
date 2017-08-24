@@ -23,7 +23,7 @@ describe('logging', function() {
         {foo: 'bar'} /* context */
       );
 
-      expect(Raven.captureMessage.calledOnce).toBeTruthy;
+      expect(Raven.captureMessage.calledOnce).toBeTruthy();
       expect(Raven.captureMessage.getCall(0).args[0]).toEqual(
         'HTTP 500: A bad thing happened'
       );
@@ -39,7 +39,7 @@ describe('logging', function() {
         {foo: 'bar'} /* context */
       );
 
-      expect(Raven.captureMessage.calledOnce).toBeTruthy;
+      expect(Raven.captureMessage.calledOnce).toBeTruthy();
       expect(Raven.captureMessage.getCall(0).args[0]).toEqual(
         'HTTP 401: You are not authenticated'
       );
@@ -49,7 +49,7 @@ describe('logging', function() {
     it('should handle responseJSON/responseText undefined (bad content type?)', function() {
       logAjaxError({status: 404}, {foo: 'bar'} /* context */);
 
-      expect(Raven.captureMessage.calledOnce).toBeTruthy;
+      expect(Raven.captureMessage.calledOnce).toBeTruthy();
       expect(Raven.captureMessage.getCall(0).args[0]).toEqual(
         'HTTP 404: <unknown response>'
       );

@@ -66,6 +66,7 @@ class SlackAuth(BaseOAuth2):
         response.raise_for_status()
         return response.json()
 
+
 # Backend definition
 BACKENDS = {
     'slack': SlackAuth,

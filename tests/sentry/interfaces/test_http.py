@@ -36,16 +36,18 @@ class HttpTest(TestCase):
         assert result.full_url == result.url
 
     def test_full(self):
-        result = Http.to_python(dict(
-            method='GET',
-            url='http://example.com',
-            query_string='foo=bar',
-            fragment='foobar',
-            headers={'x-foo-bar': 'baz'},
-            cookies={'foo': 'bar'},
-            env={'bing': 'bong'},
-            data='hello world',
-        ))
+        result = Http.to_python(
+            dict(
+                method='GET',
+                url='http://example.com',
+                query_string='foo=bar',
+                fragment='foobar',
+                headers={'x-foo-bar': 'baz'},
+                cookies={'foo': 'bar'},
+                env={'bing': 'bong'},
+                data='hello world',
+            )
+        )
         assert result.method == 'GET'
         assert result.query_string == 'foo=bar'
         assert result.fragment == 'foobar'
@@ -62,10 +64,12 @@ class HttpTest(TestCase):
         assert result.query_string == 'foo=bar'
 
     def test_query_string_as_dict_unicode(self):
-        result = Http.to_python(dict(
-            url='http://example.com',
-            query_string={'foo': u'\N{SNOWMAN}'},
-        ))
+        result = Http.to_python(
+            dict(
+                url='http://example.com',
+                query_string={'foo': u'\N{SNOWMAN}'},
+            )
+        )
         assert result.query_string == 'foo=%E2%98%83'
 
     def test_data_as_dict(self):
@@ -76,11 +80,13 @@ class HttpTest(TestCase):
         assert result.data == '{"foo":"bar"}'
 
     def test_form_encoded_data(self):
-        result = Http.to_python(dict(
-            url='http://example.com',
-            headers={'Content-Type': 'application/x-www-form-urlencoded'},
-            data='foo=bar',
-        ))
+        result = Http.to_python(
+            dict(
+                url='http://example.com',
+                headers={'Content-Type': 'application/x-www-form-urlencoded'},
+                data='foo=bar',
+            )
+        )
         assert result.data == 'foo=bar'
 
     def test_cookies_as_string(self):
@@ -101,19 +107,23 @@ class HttpTest(TestCase):
             headers={'Cookie': 'a=b;c=d'},
         ))
         assert result.cookies == [('a', 'b'), ('c', 'd')]
-        result = Http.to_python(dict(
-            url='http://example.com',
-            headers={'Cookie': 'a=b;c=d'},
-            cookies={'foo': 'bar'},
-        ))
+        result = Http.to_python(
+            dict(
+                url='http://example.com',
+                headers={'Cookie': 'a=b;c=d'},
+                cookies={'foo': 'bar'},
+            )
+        )
         assert result.cookies == [('foo', 'bar')]
 
     def test_query_string_and_fragment_as_params(self):
-        result = Http.to_python(dict(
-            url='http://example.com',
-            query_string='foo=bar',
-            fragment='fragment',
-        ))
+        result = Http.to_python(
+            dict(
+                url='http://example.com',
+                query_string='foo=bar',
+                fragment='fragment',
+            )
+        )
         assert result.url == 'http://example.com'
         assert result.full_url == 'http://example.com?foo=bar#fragment'
 
@@ -132,10 +142,7 @@ class HttpTest(TestCase):
         assert result.headers == [('Foo', '1, 2')]
 
     def test_header_value_str(self):
-        result = Http.to_python(dict(
-            url='http://example.com',
-            headers={'Foo': 1}
-        ))
+        result = Http.to_python(dict(url='http://example.com', headers={'Foo': 1}))
         assert result.headers == [('Foo', '1')]
 
     def test_method(self):

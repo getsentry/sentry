@@ -7,7 +7,6 @@ from django import template
 from sentry import status_checks
 from sentry.status_checks import sort_by_severity
 
-
 register = template.Library()
 
 

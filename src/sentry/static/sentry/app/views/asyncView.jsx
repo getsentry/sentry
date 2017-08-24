@@ -1,6 +1,6 @@
 import DocumentTitle from 'react-document-title';
 import React from 'react';
-import underscore from 'underscore';
+import {isEqual} from 'lodash';
 
 import LoadingIndicator from '../components/loadingIndicator';
 import RouteError from './routeError';
@@ -22,7 +22,7 @@ class AsyncView extends React.Component {
   }
 
   componentWillReceiveProps(nextProps) {
-    if (!underscore.isEqual(this.props.params, nextProps.params)) {
+    if (!isEqual(this.props.params, nextProps.params)) {
       this.remountComponent();
     }
   }

@@ -9,7 +9,7 @@ from sentry.models import Release, ReleaseCommit
 
 class ProjectReleaseCommitsEndpoint(ProjectEndpoint):
     doc_section = DocSection.RELEASES
-    permission_classes = (ProjectReleasePermission,)
+    permission_classes = (ProjectReleasePermission, )
 
     def get(self, request, project, version):
         """

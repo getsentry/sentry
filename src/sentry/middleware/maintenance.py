@@ -14,7 +14,6 @@ from django.http import HttpResponse
 
 logger = logging.getLogger('sentry.errors')
 
-
 DB_ERRORS = []
 
 try:

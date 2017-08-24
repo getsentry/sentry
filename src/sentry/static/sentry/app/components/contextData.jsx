@@ -1,7 +1,7 @@
 import React from 'react';
 import jQuery from 'jquery';
 import {isUrl} from '../utils';
-import _ from 'underscore';
+import _ from 'lodash';
 
 function looksLikeObjectRepr(value) {
   let a = value[0];

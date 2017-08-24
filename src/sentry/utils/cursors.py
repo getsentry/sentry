@@ -26,7 +26,8 @@ class Cursor(object):
 
     def __repr__(self):
         return '<%s: value=%s offset=%s is_prev=%s>' % (
-            type(self), self.value, self.offset, int(self.is_prev))
+            type(self), self.value, self.offset, int(self.is_prev)
+        )
 
     def __nonzero__(self):
         return self.has_results

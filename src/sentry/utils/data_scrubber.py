@@ -9,6 +9,7 @@ from __future__ import absolute_import
 
 import re
 import six
+from six.moves.urllib.parse import urlsplit, urlunsplit
 
 from sentry.constants import DEFAULT_SCRUBBED_FIELDS, FILTER_MASK, NOT_SCRUBBED_VALUES
 
@@ -46,25 +47,30 @@ class SensitiveDataFilter(object):
     Asterisk out things that look like passwords, credit card numbers,
     and API keys in frames, http, and basic extra data.
     """
-    VALUES_RE = re.compile(r'|'.join([
-        # http://www.richardsramblings.com/regex/credit-card-numbers/
-        r'\b(?:3[47]\d|(?:4\d|5[1-5]|65)\d{2}|6011)\d{12}\b',
-        # various private/public keys
-        r'-----BEGIN[A-Z ]+(PRIVATE|PUBLIC) KEY-----.+-----END[A-Z ]+(PRIVATE|PUBLIC) KEY-----',
-        # social security numbers (US)
-        r'^\b(?!(000|666|9))\d{3}-(?!00)\d{2}-(?!0000)\d{4}\b',
-    ]), re.DOTALL)
+    VALUES_RE = re.compile(
+        r'|'.join(
+            [
+                # http://www.richardsramblings.com/regex/credit-card-numbers/
+                r'\b(?:3[47]\d|(?:4\d|5[1-5]|65)\d{2}|6011)\d{12}\b',
+                # various private/public keys
+                r'-----BEGIN[A-Z ]+(PRIVATE|PUBLIC) KEY-----.+-----END[A-Z ]+(PRIVATE|PUBLIC) KEY-----',
+                # social security numbers (US)
+                r'^\b(?!(000|666|9))\d{3}-(?!00)\d{2}-(?!0000)\d{4}\b',
+            ]
+        ),
+        re.DOTALL
+    )
     URL_PASSWORD_RE = re.compile(r'\b((?:[a-z0-9]+:)?//[a-zA-Z0-9%_.-]+:)([a-zA-Z0-9%_.-]+)@')
 
     def __init__(self, fields=None, include_defaults=True, exclude_fields=()):
         if fields:
-            fields = tuple(fields)
+            fields = tuple(f.lower() for f in filter(None, fields))
         else:
             fields = ()
         if include_defaults:
             fields += DEFAULT_SCRUBBED_FIELDS
-        self.exclude_fields = set(exclude_fields)
-        self.fields = set(filter(None, fields))
+        self.exclude_fields = {f.lower() for f in exclude_fields}
+        self.fields = set(fields)
 
     def apply(self, data):
         # TODO(dcramer): move this into each interface
@@ -85,6 +91,9 @@ class SensitiveDataFilter(object):
 
         if 'sentry.interfaces.User' in data:
             self.filter_user(data['sentry.interfaces.User'])
+
+        if 'sentry.interfaces.Csp' in data:
+            self.filter_csp(data['sentry.interfaces.Csp'])
 
         if 'extra' in data:
             data['extra'] = varmap(self.sanitize, data['extra'])
@@ -164,3 +173,25 @@ class SensitiveDataFilter(object):
             val = data.get(key)
             if val:
                 data[key] = varmap(self.sanitize, val)
+
+    def filter_csp(self, data):
+        for key in 'blocked_uri', 'document_uri':
+            if key not in data:
+                continue
+            value = data[key]
+            if not isinstance(value, six.string_types):
+                continue
+            if '?' not in value:
+                continue
+            if '=' not in value:
+                continue
+            scheme, netloc, path, query, fragment = urlsplit(value)
+            querybits = []
+            for bit in query.split('&'):
+                chunk = bit.split('=')
+                if len(chunk) == 2:
+                    querybits.append((chunk[0], self.sanitize(*chunk)))
+                else:
+                    querybits.append(chunk)
+            query = '&'.join('='.join(k) for k in querybits)
+            data[key] = urlunsplit((scheme, netloc, path, query, fragment))

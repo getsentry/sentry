@@ -15,4 +15,5 @@ class CreateTeamTest(AcceptanceTestCase):
 
     def test_simple(self):
         self.browser.get('/organizations/{}/teams/new/'.format(self.org.slug))
+        self.browser.wait_until_not('.loading')
         self.browser.snapshot(name='create team')

@@ -8,9 +8,7 @@ from sentry.api.base import DocSection
 from sentry.api.bases.group import GroupEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
-from sentry.models import (
-    GroupTagKey, GroupTagValue, TagKey, TagKeyStatus, Group
-)
+from sentry.models import (GroupTagKey, GroupTagValue, TagKey, TagKeyStatus, Group)
 from sentry.utils.apidocs import scenario
 
 
@@ -19,8 +17,7 @@ def list_tag_details_scenario(runner):
     group = Group.objects.filter(project=runner.default_project).first()
     runner.request(
         method='GET',
-        path='/issues/%s/tags/%s/' % (
-            group.id, 'browser'),
+        path='/issues/%s/tags/%s/' % (group.id, 'browser'),
     )
 
 

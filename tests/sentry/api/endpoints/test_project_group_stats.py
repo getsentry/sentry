@@ -18,13 +18,11 @@ class ProjectGroupStatsTest(APITestCase):
             project.organization.slug,
             project.slug,
         )
-        response = self.client.get('%s?id=%s&id=%s' % (url, group1.id, group2.id),
-                                   format='json')
+        response = self.client.get('%s?id=%s&id=%s' % (url, group1.id, group2.id), format='json')
 
         tsdb.incr(tsdb.models.group, group1.id, count=3)
 
-        response = self.client.get('%s?id=%s&id=%s' % (url, group1.id, group2.id),
-                                   format='json')
+        response = self.client.get('%s?id=%s&id=%s' % (url, group1.id, group2.id), format='json')
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 2

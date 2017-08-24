@@ -29,13 +29,15 @@ class GroupTagsEndpoint(GroupEndpoint):
 
             all_top_values.extend(top_values)
 
-            data.append({
-                'id': six.text_type(tag_key.id),
-                'key': TagKey.get_standardized_key(tag_key.key),
-                'name': tag_key.get_label(),
-                'uniqueValues': tag_key.values_seen,
-                'totalValues': total_values,
-            })
+            data.append(
+                {
+                    'id': six.text_type(tag_key.id),
+                    'key': TagKey.get_standardized_key(tag_key.key),
+                    'name': tag_key.get_label(),
+                    'uniqueValues': tag_key.values_seen,
+                    'totalValues': total_values,
+                }
+            )
 
         # Serialize all of the values at once to avoid O(n) serialize/db queries
         top_values_by_key = defaultdict(list)

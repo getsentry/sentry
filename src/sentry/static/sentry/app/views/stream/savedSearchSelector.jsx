@@ -2,11 +2,12 @@ import React from 'react';
 import Modal from 'react-bootstrap/lib/Modal';
 import {Link} from 'react-router';
 
-import ApiMixin from '../../mixins/apiMixin';
-import DropdownLink from '../../components/dropdownLink';
-import IndicatorStore from '../../stores/indicatorStore';
-import MenuItem from '../../components/menuItem';
 import {t} from '../../locale';
+import ApiMixin from '../../mixins/apiMixin';
+import IndicatorStore from '../../stores/indicatorStore';
+import DropdownLink from '../../components/dropdownLink';
+import QueryCount from '../../components/queryCount';
+import MenuItem from '../../components/menuItem';
 import {BooleanField, FormState, TextField} from '../../components/forms';
 
 const SaveSearchButton = React.createClass({
@@ -186,6 +187,8 @@ const SavedSearchSelector = React.createClass({
     searchId: React.PropTypes.string,
     access: React.PropTypes.object.isRequired,
     savedSearchList: React.PropTypes.array.isRequired,
+    queryCount: React.PropTypes.number,
+    queryMaxCount: React.PropTypes.number,
     onSavedSearchCreate: React.PropTypes.func.isRequired
   },
 
@@ -201,7 +204,7 @@ const SavedSearchSelector = React.createClass({
   },
 
   render() {
-    let {access, orgId, projectId} = this.props;
+    let {access, orgId, projectId, queryCount, queryMaxCount} = this.props;
     let children = this.props.savedSearchList.map(search => {
       // TODO(dcramer): we want these to link directly to the saved
       // search ID, and pass that into the backend (probably)
@@ -214,7 +217,13 @@ const SavedSearchSelector = React.createClass({
     });
     return (
       <div className="saved-search-selector">
-        <DropdownLink title={this.getTitle()}>
+        <DropdownLink
+          title={
+            <span>
+              <span>{this.getTitle()}</span>
+              <QueryCount count={queryCount} max={queryMaxCount} />
+            </span>
+          }>
           {children.length
             ? children
             : <li className="empty">

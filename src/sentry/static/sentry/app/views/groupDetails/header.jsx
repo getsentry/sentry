@@ -8,15 +8,15 @@ import GroupSeenBy from './seenBy';
 import IndicatorStore from '../../stores/indicatorStore';
 import ListLink from '../../components/listLink';
 import ShortId from '../../components/shortId';
-import GroupTitle from '../../components/group/title';
+import EventOrGroupTitle from '../../components/eventOrGroupTitle';
 import ProjectState from '../../mixins/projectState';
 import TooltipMixin from '../../mixins/tooltip';
+import ConfigStore from '../../stores/configStore';
 import {t} from '../../locale';
 
 const GroupHeader = React.createClass({
   propTypes: {
-    group: React.PropTypes.object.isRequired,
-    memberList: React.PropTypes.array.isRequired
+    group: React.PropTypes.object.isRequired
   },
 
   contextTypes: {
@@ -118,15 +118,18 @@ const GroupHeader = React.createClass({
     let groupId = group.id,
       projectId = this.getProject().slug,
       orgId = this.getOrganization().slug;
-
     let message = this.getMessage();
+
+    let hasSimView = ConfigStore.getConfig().features.has('similarity-view');
+
+    let hasGroupingView = hasSimView || orgFeatures.has('group-unmerge');
 
     return (
       <div className={className}>
         <div className="row">
           <div className="col-sm-7">
             <h3>
-              <GroupTitle data={group} />
+              <EventOrGroupTitle data={group} />
             </h3>
             <div className="event-message">
               <span className="error-level">{group.level}</span>
@@ -224,11 +227,11 @@ const GroupHeader = React.createClass({
             {t('Tags')}
           </ListLink>
           <ListLink to={`/${orgId}/${projectId}/issues/${groupId}/events/`}>
-            {t('Related Events')}
+            {t('Events')}
           </ListLink>
-          {orgFeatures.has('group-unmerge') &&
-            <ListLink to={`/${orgId}/${projectId}/issues/${groupId}/hashes/`}>
-              {t('Hashes')}
+          {hasGroupingView &&
+            <ListLink to={`/${orgId}/${projectId}/issues/${groupId}/grouping/`}>
+              {t('Grouping')}
             </ListLink>}
         </ul>
       </div>

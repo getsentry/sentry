@@ -36,25 +36,27 @@ def test_get_stacktraces_returns_exception_interface():
         'message': 'hello',
         'platform': 'javascript',
         'sentry.interfaces.Exception': {
-            'values': [{
-                'type': 'Error',
-                'stacktrace': {
-                    'frames': [
-                        {
-                            'abs_path': 'http://example.com/foo.js',
-                            'filename': 'foo.js',
-                            'lineno': 4,
-                            'colno': 0,
-                        },
-                        {
-                            'abs_path': 'http://example.com/foo.js',
-                            'filename': 'foo.js',
-                            'lineno': 1,
-                            'colno': 0,
-                        },
-                    ],
-                },
-            }],
+            'values': [
+                {
+                    'type': 'Error',
+                    'stacktrace': {
+                        'frames': [
+                            {
+                                'abs_path': 'http://example.com/foo.js',
+                                'filename': 'foo.js',
+                                'lineno': 4,
+                                'colno': 0,
+                            },
+                            {
+                                'abs_path': 'http://example.com/foo.js',
+                                'filename': 'foo.js',
+                                'lineno': 1,
+                                'colno': 0,
+                            },
+                        ],
+                    },
+                }
+            ],
         }
     }
 

@@ -13,10 +13,7 @@ from sentry.utils.apidocs import scenario, attach_scenarios
 @scenario('ListAvailableHashes')
 def list_available_hashes_scenario(runner):
     group = Group.objects.filter(project=runner.default_project).first()
-    runner.request(
-        method='GET',
-        path='/issues/%s/hashes/' % group.id
-    )
+    runner.request(method='GET', path='/issues/%s/hashes/' % group.id)
 
 
 class GroupHashesEndpoint(GroupEndpoint):
@@ -57,7 +54,9 @@ class GroupHashesEndpoint(GroupEndpoint):
             hash__in=id_list,
         ).exclude(
             state=GroupHash.State.LOCKED_IN_MIGRATION,
-        ).values_list('hash', flat=True)
+        ).values_list(
+            'hash', flat=True
+        )
         if not hash_list:
             return Response()
 

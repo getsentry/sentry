@@ -25,7 +25,9 @@ def parse_release(project, value):
             projects=project,
         ).extra(select={
             'sort': 'COALESCE(date_released, date_added)',
-        }).order_by('-sort').values_list('version', flat=True).first()
+        }).order_by('-sort').values_list(
+            'version', flat=True
+        ).first()
         if value is None:
             return EMPTY
     return value
@@ -35,10 +37,7 @@ def get_user_tag(project, key, value):
     # TODO(dcramer): do something with case of multiple matches
     try:
         lookup = EventUser.attr_from_keyword(key)
-        euser = EventUser.objects.filter(
-            project=project,
-            **{lookup: value}
-        )[0]
+        euser = EventUser.objects.filter(project=project, **{lookup: value})[0]
     except (KeyError, IndexError):
         return u'{}:{}'.format(key, value)
     except DataError:
@@ -166,22 +165,26 @@ def get_date_params(value, from_field, to_field):
 
 
 numeric_modifiers = [
-    ('>=', lambda field, value: {
-        '{}_lower'.format(field): value,
-        '{}_lower_inclusive'.format(field): True,
-    }),
-    ('<=', lambda field, value: {
-        '{}_upper'.format(field): value,
-        '{}_upper_inclusive'.format(field): True,
-    }),
-    ('>', lambda field, value: {
-        '{}_lower'.format(field): value,
-        '{}_lower_inclusive'.format(field): False,
-    }),
-    ('<', lambda field, value: {
-        '{}_upper'.format(field): value,
-        '{}_upper_inclusive'.format(field): False,
-    }),
+    (
+        '>=', lambda field, value: {
+            '{}_lower'.format(field): value,
+            '{}_lower_inclusive'.format(field): True, }
+    ),
+    (
+        '<=', lambda field, value: {
+            '{}_upper'.format(field): value,
+            '{}_upper_inclusive'.format(field): True, }
+    ),
+    (
+        '>', lambda field, value: {
+            '{}_lower'.format(field): value,
+            '{}_lower_inclusive'.format(field): False, }
+    ),
+    (
+        '<', lambda field, value: {
+            '{}_upper'.format(field): value,
+            '{}_upper_inclusive'.format(field): False, }
+    ),
 ]
 
 
@@ -197,35 +200,38 @@ def get_numeric_field_value(field, raw_value, type=int):
             field: type(raw_value),
         }
 
-reserved_tag_names = frozenset([
-    'query',
-    'is',
-    'assigned',
-    'bookmarks',
-    'subscribed',
-    'first-release',
-    'firstRelease',
-    'release',
-    'level',
-    'user',
-    'user.id',
-    'user.ip',
-    'has',
-    'age',
-    'firstSeen',
-    'activeSince',
-    'last_seen',
-    'lastSeen',
-    'environment',
-    'browser',
-    'device',
-    'os',
-    'app',
-    'os.name',
-    'url',
-    'event.timestamp'
-    'timesSeen',
-])
+
+reserved_tag_names = frozenset(
+    [
+        'query',
+        'is',
+        'assigned',
+        'bookmarks',
+        'subscribed',
+        'first-release',
+        'firstRelease',
+        'release',
+        'level',
+        'user',
+        'user.id',
+        'user.ip',
+        'has',
+        'age',
+        'firstSeen',
+        'activeSince',
+        'last_seen',
+        'lastSeen',
+        'environment',
+        'browser',
+        'device',
+        'os',
+        'app',
+        'os.name',
+        'url',
+        'event.timestamp'
+        'timesSeen',
+    ]
+)
 
 
 def tokenize_query(query):
@@ -367,8 +373,7 @@ def parse_query(project, query, user):
                     comp, value = value.split(':', 1)
                 else:
                     comp = 'id'
-                results['tags']['sentry:user'] = get_user_tag(
-                    project, comp, value)
+                results['tags']['sentry:user'] = get_user_tag(project, comp, value)
             elif key == 'has':
                 if value == 'user':
                     value = 'sentry:user'
@@ -382,8 +387,7 @@ def parse_query(project, query, user):
             elif key == 'activeSince':
                 results.update(get_date_params(value, 'active_at_from', 'active_at_to'))
             elif key.startswith('user.'):
-                results['tags']['sentry:user'] = get_user_tag(
-                    project, key.split('.', 1)[1], value)
+                results['tags']['sentry:user'] = get_user_tag(project, key.split('.', 1)[1], value)
             elif key == 'event.timestamp':
                 results.update(get_date_params(value, 'date_from', 'date_to'))
             elif key == 'timesSeen':

@@ -98,14 +98,12 @@ def safe_join(base, *paths):
     base_path_len = len(base_path)
     if (not final_path.startswith(base_path) or
             final_path[base_path_len:base_path_len + 1] not in ('', '/')):
-        raise ValueError('the joined path is located outside of the base path'
-                         ' component')
+        raise ValueError('the joined path is located outside of the base path' ' component')
 
     return final_path.lstrip('/')
 
 
 class S3Boto3StorageFile(File):
-
     """
     The default file object used by the S3Boto3Storage backend.
 
@@ -188,8 +186,9 @@ class S3Boto3StorageFile(File):
         if self._multipart is None:
             parameters = self._storage.object_parameters.copy()
             parameters['ACL'] = self._storage.default_acl
-            parameters['ContentType'] = (mimetypes.guess_type(self.obj.key)[0] or
-                                         self._storage.default_content_type)
+            parameters['ContentType'] = (
+                mimetypes.guess_type(self.obj.key)[0] or self._storage.default_content_type
+            )
             if self._storage.reduced_redundancy:
                 parameters['StorageClass'] = 'REDUCED_REDUNDANCY'
             if self._storage.encryption:
@@ -223,10 +222,13 @@ class S3Boto3StorageFile(File):
             # TODO: Possibly cache the part ids as they're being uploaded
             # instead of requesting parts from server. For now, emulating
             # s3boto's behavior.
-            parts = [{'ETag': part.e_tag, 'PartNumber': part.part_number}
-                     for part in self._multipart.parts.all()]
-            self._multipart.complete(
-                MultipartUpload={'Parts': parts})
+            parts = [
+                {
+                    'ETag': part.e_tag,
+                    'PartNumber': part.part_number
+                } for part in self._multipart.parts.all()
+            ]
+            self._multipart.complete(MultipartUpload={'Parts': parts})
         else:
             if self._multipart is not None:
                 self._multipart.abort()
@@ -276,10 +278,7 @@ class S3Boto3Storage(Storage):
     gzip = False
     preload_metadata = False
     gzip_content_types = (
-        'text/css',
-        'text/javascript',
-        'application/javascript',
-        'application/x-javascript',
+        'text/css', 'text/javascript', 'application/javascript', 'application/x-javascript',
         'image/svg+xml',
     )
     url_protocol = 'https:'
@@ -319,8 +318,10 @@ class S3Boto3Storage(Storage):
             self.access_key, self.secret_key = self._get_access_keys()
 
         if not self.config:
-            self.config = Config(s3={'addressing_style': self.addressing_style},
-                                 signature_version=self.signature_version)
+            self.config = Config(
+                s3={'addressing_style': self.addressing_style},
+                signature_version=self.signature_version
+            )
 
     @property
     def connection(self):
@@ -356,8 +357,10 @@ class S3Boto3Storage(Storage):
         Get the locally cached files for the bucket.
         """
         if self.preload_metadata and not self._entries:
-            self._entries = dict((self._decode_name(entry.key), entry)
-                                 for entry in self.bucket.objects.filter(Prefix=self.location))
+            self._entries = dict(
+                (self._decode_name(entry.key), entry)
+                for entry in self.bucket.objects.filter(Prefix=self.location)
+            )
         return self._entries
 
     def _get_access_keys(self):
@@ -366,11 +369,13 @@ class S3Boto3Storage(Storage):
         are provided to the class in the constructor or in the
         settings then get them from the environment variables.
         """
+
         def lookup_env(names):
             for name in names:
                 value = os.environ.get(name)
                 if value:
                     return value
+
         access_key = self.access_key or lookup_env(self.access_key_names)
         secret_key = self.secret_key or lookup_env(self.secret_key_names)
         return access_key, secret_key
@@ -387,10 +392,12 @@ class S3Boto3Storage(Storage):
                 bucket.meta.client.head_bucket(Bucket=name)
             except self.connection_response_error as err:
                 if err.response['ResponseMetadata']['HTTPStatusCode'] == 301:
-                    raise ImproperlyConfigured("Bucket %s exists, but in a different "
-                                               "region than we are connecting to. Set "
-                                               "the region to connect to by setting "
-                                               "AWS_S3_REGION_NAME to the correct region." % name)
+                    raise ImproperlyConfigured(
+                        "Bucket %s exists, but in a different "
+                        "region than we are connecting to. Set "
+                        "the region to connect to by setting "
+                        "AWS_S3_REGION_NAME to the correct region." % name
+                    )
                     # Notes: When using the us-east-1 Standard endpoint, you can create
                     # buckets in other regions. The same is not true when hitting region specific
                     # endpoints. However, when you create the bucket not in the same region, the
@@ -406,13 +413,16 @@ class S3Boto3Storage(Storage):
                     region_name = self.connection.meta.client.meta.region_name
                     if region_name != 'us-east-1':
                         bucket_params['CreateBucketConfiguration'] = {
-                            'LocationConstraint': region_name}
+                            'LocationConstraint': region_name
+                        }
                     bucket.create(ACL=self.bucket_acl)
                 else:
-                    raise ImproperlyConfigured("Bucket %s does not exist. Buckets "
-                                               "can be automatically created by "
-                                               "setting AWS_AUTO_CREATE_BUCKET to "
-                                               "``True``." % name)
+                    raise ImproperlyConfigured(
+                        "Bucket %s does not exist. Buckets "
+                        "can be automatically created by "
+                        "setting AWS_AUTO_CREATE_BUCKET to "
+                        "``True``." % name
+                    )
         return bucket
 
     def _clean_name(self, name):
@@ -439,8 +449,7 @@ class S3Boto3Storage(Storage):
         try:
             return safe_join(self.location, name)
         except ValueError:
-            raise SuspiciousOperation("Attempted access to '%s' denied." %
-                                      name)
+            raise SuspiciousOperation("Attempted access to '%s' denied." % name)
 
     def _encode_name(self, name):
         return smart_str(name, encoding=self.file_name_charset)
@@ -476,8 +485,9 @@ class S3Boto3Storage(Storage):
         cleaned_name = self._clean_name(name)
         name = self._normalize_name(cleaned_name)
         parameters = self.object_parameters.copy()
-        content_type = getattr(content, 'content_type',
-                               mimetypes.guess_type(name)[0] or self.default_content_type)
+        content_type = getattr(
+            content, 'content_type', mimetypes.guess_type(name)[0] or self.default_content_type
+        )
 
         # setting the content_type in the key object is not enough.
         parameters.update({'ContentType': content_type})
@@ -589,9 +599,13 @@ class S3Boto3Storage(Storage):
         # from v2 and v4 signatures, regardless of the actual signature version used.
         split_url = urlparse.urlsplit(url)
         qs = urlparse.parse_qsl(split_url.query, keep_blank_values=True)
-        blacklist = set(['x-amz-algorithm', 'x-amz-credential', 'x-amz-date',
-                         'x-amz-expires', 'x-amz-signedheaders', 'x-amz-signature',
-                         'x-amz-security-token', 'awsaccesskeyid', 'expires', 'signature'])
+        blacklist = set(
+            [
+                'x-amz-algorithm', 'x-amz-credential', 'x-amz-date', 'x-amz-expires',
+                'x-amz-signedheaders', 'x-amz-signature', 'x-amz-security-token', 'awsaccesskeyid',
+                'expires', 'signature'
+            ]
+        )
         filtered_qs = ((key, val) for key, val in qs if key.lower() not in blacklist)
         # Note: Parameters that did not have a value in the original query string will have
         # an '=' sign appended to it, e.g ?foo&bar becomes ?foo=&bar=
@@ -604,16 +618,16 @@ class S3Boto3Storage(Storage):
         # TODO: Handle force_http=not self.secure_urls like in s3boto
         name = self._normalize_name(self._clean_name(name))
         if self.custom_domain:
-            return "%s//%s/%s" % (self.url_protocol,
-                                  self.custom_domain, filepath_to_uri(name))
+            return "%s//%s/%s" % (self.url_protocol, self.custom_domain, filepath_to_uri(name))
         if expire is None:
             expire = self.querystring_expire
 
         params = parameters.copy() if parameters else {}
         params['Bucket'] = self.bucket.name
         params['Key'] = self._encode_name(name)
-        url = self.bucket.meta.client.generate_presigned_url('get_object', Params=params,
-                                                             ExpiresIn=expire)
+        url = self.bucket.meta.client.generate_presigned_url(
+            'get_object', Params=params, ExpiresIn=expire
+        )
         if self.querystring_auth:
             return url
         return self._strip_signing_parameters(url)

@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import six
 import logging
 from uuid import uuid4
 
@@ -8,15 +9,15 @@ from django.db import IntegrityError, transaction
 from django.utils import timezone
 from rest_framework import serializers, status
 from rest_framework.response import Response
-
+from sentry import features
+from sentry.utils.data_filters import FilterTypes
 from sentry.api.base import DocSection
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.api.decorators import sudo_required
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.project import DetailedProjectSerializer
 from sentry.models import (
-    AuditLogEntryEvent, Group, GroupStatus, Project, ProjectBookmark,
-    ProjectStatus, UserOption
+    AuditLogEntryEvent, Group, GroupStatus, Project, ProjectBookmark, ProjectStatus, UserOption
 )
 from sentry.tasks.deletion import delete_project
 from sentry.utils.apidocs import scenario, attach_scenarios
@@ -27,20 +28,14 @@ delete_logger = logging.getLogger('sentry.deletions.api')
 @scenario('GetProject')
 def get_project_scenario(runner):
     runner.request(
-        method='GET',
-        path='/projects/%s/%s/' % (
-            runner.org.slug, runner.default_project.slug)
+        method='GET', path='/projects/%s/%s/' % (runner.org.slug, runner.default_project.slug)
     )
 
 
 @scenario('DeleteProject')
 def delete_project_scenario(runner):
     with runner.isolated_project('Plain Proxy') as project:
-        runner.request(
-            method='DELETE',
-            path='/projects/%s/%s/' % (
-                runner.org.slug, project.slug)
-        )
+        runner.request(method='DELETE', path='/projects/%s/%s/' % (runner.org.slug, project.slug))
 
 
 @scenario('UpdateProject')
@@ -48,8 +43,7 @@ def update_project_scenario(runner):
     with runner.isolated_project('Plain Proxy') as project:
         runner.request(
             method='PUT',
-            path='/projects/%s/%s/' % (
-                runner.org.slug, project.slug),
+            path='/projects/%s/%s/' % (runner.org.slug, project.slug),
             data={
                 'name': 'Plane Proxy',
                 'slug': 'plane-proxy',
@@ -61,10 +55,12 @@ def update_project_scenario(runner):
         )
 
 
-def clean_newline_inputs(value):
+def clean_newline_inputs(value, case_insensitive=True):
     result = []
     for v in value.split('\n'):
-        v = v.lower().strip()
+        if case_insensitive:
+            v = v.lower()
+        v = v.strip()
         if v:
             result.append(v)
     return result
@@ -90,7 +86,8 @@ class ProjectAdminSerializer(serializers.Serializer):
     def validate_digestsMaxDelay(self, attrs, source):
         if attrs[source] < attrs['digestsMinDelay']:
             raise serializers.ValidationError(
-                'The maximum delay on digests must be higher than the minimum.')
+                'The maximum delay on digests must be higher than the minimum.'
+            )
         return attrs
 
 
@@ -170,8 +167,8 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         :auth: required
         """
         has_project_write = (
-            (request.auth and request.auth.has_scope('project:write')) or
-            (request.access and request.access.has_scope('project:write'))
+            (request.auth and request.auth.has_scope('project:write'))
+            or (request.access and request.access.has_scope('project:write'))
         )
 
         if has_project_write:
@@ -184,6 +181,16 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             return Response(serializer.errors, status=400)
 
         result = serializer.object
+
+        if not has_project_write:
+            for key in six.iterkeys(ProjectAdminSerializer.base_fields):
+                if request.DATA.get(key) and not result.get(key):
+                    return Response(
+                        {
+                            'detail': ['You do not have permission to perform this action.']
+                        },
+                        status=403
+                    )
 
         changed = False
         if result.get('slug'):
@@ -227,25 +234,18 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
 
         if result.get('isSubscribed'):
             UserOption.objects.set_value(
-                user=request.user,
-                key='mail:alert',
-                value=1,
-                project=project
+                user=request.user, key='mail:alert', value=1, project=project
             )
         elif result.get('isSubscribed') is False:
             UserOption.objects.set_value(
-                user=request.user,
-                key='mail:alert',
-                value=0,
-                project=project
+                user=request.user, key='mail:alert', value=0, project=project
             )
 
         if has_project_write:
             options = request.DATA.get('options', {})
             if 'sentry:origins' in options:
                 project.update_option(
-                    'sentry:origins',
-                    clean_newline_inputs(options['sentry:origins'])
+                    'sentry:origins', clean_newline_inputs(options['sentry:origins'])
                 )
             if 'sentry:resolve_age' in options:
                 project.update_option('sentry:resolve_age', int(options['sentry:resolve_age']))
@@ -253,8 +253,8 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 project.update_option('sentry:scrub_data', bool(options['sentry:scrub_data']))
             if 'sentry:scrub_defaults' in options:
                 project.update_option(
-                    'sentry:scrub_defaults', bool(
-                        options['sentry:scrub_defaults']))
+                    'sentry:scrub_defaults', bool(options['sentry:scrub_defaults'])
+                )
             if 'sentry:safe_fields' in options:
                 project.update_option(
                     'sentry:safe_fields',
@@ -267,23 +267,54 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 )
             if 'sentry:csp_ignored_sources_defaults' in options:
                 project.update_option(
-                    'sentry:csp_ignored_sources_defaults', bool(
-                        options['sentry:csp_ignored_sources_defaults']))
+                    'sentry:csp_ignored_sources_defaults',
+                    bool(options['sentry:csp_ignored_sources_defaults'])
+                )
             if 'sentry:csp_ignored_sources' in options:
                 project.update_option(
                     'sentry:csp_ignored_sources',
-                    clean_newline_inputs(options['sentry:csp_ignored_sources']))
+                    clean_newline_inputs(options['sentry:csp_ignored_sources'])
+                )
             if 'feedback:branding' in options:
                 project.update_option(
-                    'feedback:branding',
-                    '1' if options['feedback:branding'] else '0')
+                    'feedback:branding', '1' if options['feedback:branding'] else '0'
+                )
             if 'sentry:reprocessing_active' in options:
-                project.update_option('sentry:reprocessing_active',
-                                      bool(options['sentry:reprocessing_active']))
+                project.update_option(
+                    'sentry:reprocessing_active', bool(options['sentry:reprocessing_active'])
+                )
             if 'filters:blacklisted_ips' in options:
                 project.update_option(
                     'sentry:blacklisted_ips',
-                    clean_newline_inputs(options['filters:blacklisted_ips']))
+                    clean_newline_inputs(options['filters:blacklisted_ips'])
+                )
+            if 'filters:{}'.format(FilterTypes.RELEASES) in options:
+                if features.has('projects:additional-data-filters', project, actor=request.user):
+                    project.update_option(
+                        'sentry:{}'.format(FilterTypes.RELEASES),
+                        clean_newline_inputs(options['filters:{}'.format(FilterTypes.RELEASES)])
+                    )
+                else:
+                    return Response(
+                        {
+                            'detail': ['You do not have that feature enabled']
+                        }, status=400
+                    )
+            if 'filters:{}'.format(FilterTypes.ERROR_MESSAGES) in options:
+                if features.has('projects:additional-data-filters', project, actor=request.user):
+                    project.update_option(
+                        'sentry:{}'.format(FilterTypes.ERROR_MESSAGES),
+                        clean_newline_inputs(
+                            options['filters:{}'.format(FilterTypes.ERROR_MESSAGES)],
+                            case_insensitive=False
+                        )
+                    )
+                else:
+                    return Response(
+                        {
+                            'detail': ['You do not have that feature enabled']
+                        }, status=400
+                    )
 
             self.create_audit_entry(
                 request=request,
@@ -315,8 +346,10 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         :auth: required
         """
         if project.is_internal_project():
-            return Response('{"error": "Cannot remove projects internally used by Sentry."}',
-                            status=status.HTTP_403_FORBIDDEN)
+            return Response(
+                '{"error": "Cannot remove projects internally used by Sentry."}',
+                status=status.HTTP_403_FORBIDDEN
+            )
 
         updated = Project.objects.filter(
             id=project.id,
@@ -342,10 +375,13 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 transaction_id=transaction_id,
             )
 
-            delete_logger.info('object.delete.queued', extra={
-                'object_id': project.id,
-                'transaction_id': transaction_id,
-                'model': type(project).__name__,
-            })
+            delete_logger.info(
+                'object.delete.queued',
+                extra={
+                    'object_id': project.id,
+                    'transaction_id': transaction_id,
+                    'model': type(project).__name__,
+                }
+            )
 
         return Response(status=204)

@@ -34,11 +34,11 @@ except ImportError:  # python < 2.7
     from django.utils.datastructures import SortedDict as OrderedDict  # NOQA
 
 try:
-    from django.contrib.staticfiles.testing import (
-        StaticLiveServerTestCase)
+    from django.contrib.staticfiles.testing import (StaticLiveServerTestCase)
 except ImportError:  # Django < 1.7
     from django.test import (  # NOQA
-        LiveServerTestCase as StaticLiveServerTestCase)
+        LiveServerTestCase as StaticLiveServerTestCase
+    )
 
 try:
     from django.db.backends import utils as db_backends_util
@@ -76,9 +76,7 @@ def get_template_loaders():
         else:
             loaders = engine.template_loaders
     else:  # Django < 1.8
-        loaders = [
-            find_template_loader(loader_name)
-            for loader_name in settings.TEMPLATE_LOADERS]
+        loaders = [find_template_loader(loader_name) for loader_name in settings.TEMPLATE_LOADERS]
     return loaders
 
 
@@ -94,6 +92,7 @@ def get_template_context_processors():
     else:  # Django < 1.8
         context_processors = get_standard_processors()
     return context_processors
+
 
 if django.VERSION[:2] < (1, 5):
     # If the user is using Django < 1.5, then load up the url tag

@@ -27,6 +27,12 @@ const GroupDetails = React.createClass({
 
   mixins: [ApiMixin, Reflux.listenTo(GroupStore, 'onGroupChange')],
 
+  getDefaultProps() {
+    return {
+      memberList: []
+    };
+  },
+
   getInitialState() {
     return {
       group: null,
@@ -115,13 +121,15 @@ const GroupDetails = React.createClass({
     let id = this.props.params.groupId;
     if (itemIds.has(id)) {
       let group = GroupStore.get(id);
-      if (group.stale) {
-        this.fetchData();
-        return;
+      if (group) {
+        if (group.stale) {
+          this.fetchData();
+          return;
+        }
+        this.setState({
+          group: group
+        });
       }
-      this.setState({
-        group: group
-      });
     }
   },
 

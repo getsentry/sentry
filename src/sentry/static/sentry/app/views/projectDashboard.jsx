@@ -118,7 +118,6 @@ const ProjectDashboard = React.createClass({
                   pathname: url,
                   query: {...routeQuery, statsPeriod: PERIOD_HOUR}
                 }}
-                active={statsPeriod === PERIOD_HOUR}
                 className={
                   'btn btn-sm btn-default' +
                     (statsPeriod === PERIOD_HOUR ? ' active' : '')
@@ -130,7 +129,6 @@ const ProjectDashboard = React.createClass({
                   pathname: url,
                   query: {...routeQuery, statsPeriod: PERIOD_DAY}
                 }}
-                active={statsPeriod === PERIOD_DAY}
                 className={
                   'btn btn-sm btn-default' + (statsPeriod === PERIOD_DAY ? ' active' : '')
                 }>

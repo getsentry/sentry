@@ -40,7 +40,8 @@ def test_bootstrap_options_simple(settings, config_yml):
     settings.EMAIL_SUBJECT_PREFIX = 'xxx'
     settings.SENTRY_OPTIONS = {'something.else': True}
 
-    config_yml.write("""\
+    config_yml.write(
+        """\
 foo.bar: my-foo-bar
 system.secret-key: my-system-secret-key
 mail.backend: my-mail-backend
@@ -51,7 +52,8 @@ mail.password: my-mail-password
 mail.use-tls: true
 mail.from: my-mail-from
 mail.subject-prefix: my-mail-subject-prefix
-""")
+"""
+    )
 
     bootstrap_options(settings, six.text_type(config_yml))
     assert settings.SENTRY_OPTIONS == {
@@ -185,13 +187,19 @@ def test_apply_legacy_settings(settings):
         'system.url-prefix': 'http://url-prefix',
         'system.rate-limit': 10,
         'system.secret-key': 'secret-key',
-        'redis.clusters': {'default': {'foo': 'bar'}},
+        'redis.clusters': {
+            'default': {
+                'foo': 'bar'
+            }
+        },
         'mail.from': 'mail-from',
         'mail.enable-replies': True,
         'mail.reply-hostname': 'reply-hostname',
         'mail.mailgun-api-key': 'mailgun-api-key',
         'filestore.backend': 'some-filestore',
-        'filestore.options': {'filestore-foo': 'filestore-bar'},
+        'filestore.options': {
+            'filestore-foo': 'filestore-bar'
+        },
     }
     assert settings.DEFAULT_FROM_EMAIL == 'mail-from'
     assert settings.ALLOWED_HOSTS == ['*']

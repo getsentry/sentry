@@ -7,14 +7,16 @@ from sentry.testutils import TestCase
 
 
 class FeaturesTest(TestCase):
-    TEMPLATE = Template("""
+    TEMPLATE = Template(
+        """
         {% load sentry_features %}
         {% feature auth:register %}
             <span>register</span>
         {% else %}
             <span>nope</span>
         {% endfeature %}
-    """)
+    """
+    )
 
     def test_enabled(self):
         with self.feature('auth:register'):

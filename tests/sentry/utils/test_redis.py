@@ -5,9 +5,7 @@ import pytest
 
 from sentry.exceptions import InvalidConfiguration
 from sentry.testutils.cases import TestCase
-from sentry.utils.redis import (
-    ClusterManager, _shared_pool, get_cluster_from_options
-)
+from sentry.utils.redis import (ClusterManager, _shared_pool, get_cluster_from_options)
 
 make_manager = functools.partial(
     ClusterManager,
@@ -15,13 +13,19 @@ make_manager = functools.partial(
         'redis.clusters': {
             'foo': {
                 'hosts': {
-                    0: {'db': 0},
+                    0: {
+                        'db': 0
+                    },
                 },
             },
             'bar': {
                 'hosts': {
-                    0: {'db': 0},
-                    1: {'db': 1},
+                    0: {
+                        'db': 0
+                    },
+                    1: {
+                        'db': 1
+                    },
                 }
             },
         },
@@ -60,7 +64,9 @@ def test_get_cluster_from_options():
         backend,
         {
             'hosts': {
-                0: {'db': 0},
+                0: {
+                    'db': 0
+                },
             },
             'foo': 'bar',
         },
@@ -76,7 +82,9 @@ def test_get_cluster_from_options():
             backend,
             {
                 'hosts': {
-                    0: {'db': 0},
+                    0: {
+                        'db': 0
+                    },
                 },
                 'cluster': 'foo',
                 'foo': 'bar',

@@ -12,11 +12,7 @@ class BaseRelation(object):
         self.params = params
 
     def __repr__(self):
-        return '<%s: task=%s params=%s>' % (
-            type(self),
-            self.task,
-            self.params,
-        )
+        return '<%s: task=%s params=%s>' % (type(self), self.task, self.params, )
 
 
 class ModelRelation(BaseRelation):
@@ -33,8 +29,7 @@ class BaseDeletionTask(object):
 
     DEFAULT_CHUNK_SIZE = 100
 
-    def __init__(self, manager, transaction_id=None,
-                 actor_id=None, chunk_size=DEFAULT_CHUNK_SIZE):
+    def __init__(self, manager, transaction_id=None, actor_id=None, chunk_size=DEFAULT_CHUNK_SIZE):
         self.manager = manager
         self.transaction_id = transaction_id
         self.actor_id = actor_id
@@ -42,9 +37,7 @@ class BaseDeletionTask(object):
 
     def __repr__(self):
         return '<%s: transaction_id=%s actor_id=%s>' % (
-            type(self),
-            self.transaction_id,
-            self.actor_id,
+            type(self), self.transaction_id, self.actor_id,
         )
 
     def chunk(self):
@@ -123,19 +116,11 @@ class ModelDeletionTask(BaseDeletionTask):
         super(ModelDeletionTask, self).__init__(manager, **kwargs)
         self.model = model
         self.query = query
-        self.query_limit = (
-            query_limit or
-            self.DEFAULT_QUERY_LIMIT or
-            self.chunk_size
-        )
+        self.query_limit = (query_limit or self.DEFAULT_QUERY_LIMIT or self.chunk_size)
 
     def __repr__(self):
         return '<%s: model=%s query=%s transaction_id=%s actor_id=%s>' % (
-            type(self),
-            self.model,
-            self.query,
-            self.transaction_id,
-            self.actor_id,
+            type(self), self.model, self.query, self.transaction_id, self.actor_id,
         )
 
     def chunk(self):
@@ -146,9 +131,7 @@ class ModelDeletionTask(BaseDeletionTask):
         query_limit = self.query_limit
         remaining = self.chunk_size
         while remaining > 0:
-            queryset = list(self.model.objects.filter(
-                **self.query
-            )[:query_limit])
+            queryset = list(self.model.objects.filter(**self.query)[:query_limit])
             if not queryset:
                 return False
 
@@ -166,12 +149,15 @@ class ModelDeletionTask(BaseDeletionTask):
         try:
             instance.delete()
         finally:
-            self.logger.info('object.delete.executed', extra={
-                'object_id': instance_id,
-                'transaction_id': self.transaction_id,
-                'app_label': instance._meta.app_label,
-                'model': type(instance).__name__,
-            })
+            self.logger.info(
+                'object.delete.executed',
+                extra={
+                    'object_id': instance_id,
+                    'transaction_id': self.transaction_id,
+                    'app_label': instance._meta.app_label,
+                    'model': type(instance).__name__,
+                }
+            )
 
     def get_actor(self):
         from sentry.models import User
@@ -211,8 +197,13 @@ class BulkModelDeletionTask(ModelDeletionTask):
                 **self.query
             )
         finally:
-            self.logger.info('object.delete.bulk_executed', extra=dict({
-                'transaction_id': self.transaction_id,
-                'app_label': self.model._meta.app_label,
-                'model': self.model.__name__,
-            }, **self.query))
+            self.logger.info(
+                'object.delete.bulk_executed',
+                extra=dict(
+                    {
+                        'transaction_id': self.transaction_id,
+                        'app_label': self.model._meta.app_label,
+                        'model': self.model.__name__,
+                    }, **self.query
+                )
+            )

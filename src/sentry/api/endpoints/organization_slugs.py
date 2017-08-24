@@ -11,7 +11,6 @@ from sentry.models import Project
 
 
 class SlugsUpdateEndpoint(OrganizationEndpoint):
-
     def put(self, request, organization):
         """
         Update Project Slugs
@@ -30,16 +29,13 @@ class SlugsUpdateEndpoint(OrganizationEndpoint):
             try:
                 validate_slug(slug)
             except ValidationError:
-                return Response({'detail': 'invalid slug "%s"' % slug},
-                                status=400)
+                return Response({'detail': 'invalid slug "%s"' % slug}, status=400)
             slugs[project_id] = slug
 
         if len(slugs) != len(set(slugs.values())):
             return Response({'detail': 'Duplicate slugs'}, status=400)
 
-        project_q = organization.project_set.filter(
-            pk__in=[int(x) for x in slugs]
-        )
+        project_q = organization.project_set.filter(pk__in=[int(x) for x in slugs])
 
         rv = {}
 
@@ -59,18 +55,14 @@ class SlugsUpdateEndpoint(OrganizationEndpoint):
                 if project is None:
                     continue
                 other = Project.objects.filter(
-                    slug=slug,
-                    organization=organization
+                    slug=slug, organization=organization
                 ).exclude(id=project.id).first()
                 if other is not None:
                     if len(slugs) != len(slugs.values()):
-                        return Response({'detail': 'Duplicate slug %s'
-                                         % slug}, status=400)
+                        return Response({'detail': 'Duplicate slug %s' % slug}, status=400)
                 project.slug = slug
                 project.update_option('sentry:reviewed-slug', True)
                 project.save()
                 rv[project_id] = slug
 
-        return Response({
-            'updated_slugs': rv
-        })
+        return Response({'updated_slugs': rv})

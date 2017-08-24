@@ -1,9 +1,8 @@
 from __future__ import absolute_import
 
 from sentry.models import (
-    Commit, File, OrganizationMember, OrganizationMemberTeam,
-    Project, Release, ReleaseCommit, ReleaseEnvironment,
-    ReleaseFile, Team
+    Commit, File, OrganizationMember, OrganizationMemberTeam, Project, Release, ReleaseCommit,
+    ReleaseEnvironment, ReleaseFile, Team
 )
 from sentry.testutils import TestCase
 
@@ -19,10 +18,7 @@ class OrganizationTest(TestCase):
             team=from_team_two,
             slug='bizzy',
         )
-        from_release = Release.objects.create(
-            version='abcabcabc',
-            organization=from_org
-        )
+        from_release = Release.objects.create(version='abcabcabc', organization=from_org)
         from_release_file = ReleaseFile.objects.create(
             release=from_release,
             organization=from_org,
@@ -31,9 +27,7 @@ class OrganizationTest(TestCase):
             name='foo.py'
         )
         from_commit = Commit.objects.create(
-            organization_id=from_org.id,
-            repository_id=1,
-            key='abcdefg'
+            organization_id=from_org.id, repository_id=1, key='abcdefg'
         )
         from_release_commit = ReleaseCommit.objects.create(
             release=from_release,
@@ -67,10 +61,7 @@ class OrganizationTest(TestCase):
             slug='bizzy',
         )
         to_member = self.create_member(organization=to_org, user=other_user)
-        to_release = Release.objects.create(
-            version='abcabcabc',
-            organization=to_org
-        )
+        to_release = Release.objects.create(version='abcabcabc', organization=to_org)
 
         OrganizationMemberTeam.objects.create(
             organizationmember=to_member,

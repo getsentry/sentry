@@ -8,16 +8,18 @@ from collections import OrderedDict
 from datetime import datetime, timedelta
 
 import pytz
+from django.utils import timezone
 
 from sentry.app import tsdb
 from sentry.event_manager import ScoreClause
 from sentry.models import (
-    Activity, Environment, EnvironmentProject, Event, EventMapping, Group,
-    GroupHash, GroupRelease, GroupTagKey, GroupTagValue, Release, UserReport
+    Activity, Environment, EnvironmentProject, Event, EventMapping, Group, GroupHash, GroupRelease,
+    GroupTagKey, GroupTagValue, Release, UserReport
 )
+from sentry.similarity import features
 from sentry.tasks.unmerge import (
-    get_caches, get_event_user_from_interface, get_fingerprint,
-    get_group_backfill_attributes, get_group_creation_attributes, unmerge
+    get_caches, get_event_user_from_interface, get_fingerprint, get_group_backfill_attributes,
+    get_group_creation_attributes, unmerge
 )
 from sentry.testutils import TestCase
 from sentry.utils.dates import to_timestamp
@@ -151,10 +153,10 @@ class UnmergeTestCase(TestCase):
         }
 
     def test_unmerge(self):
-        now = datetime(2017, 5, 3, 6, 6, 6, tzinfo=pytz.utc)
-
         def shift(i):
             return timedelta(seconds=1 << i)
+
+        now = timezone.now().replace(microsecond=0) - shift(16)
 
         project = self.create_project()
         source = self.create_group(project)
@@ -162,8 +164,12 @@ class UnmergeTestCase(TestCase):
         sequence = itertools.count(0)
         tag_values = itertools.cycle(['red', 'green', 'blue'])
         user_values = itertools.cycle([
-            {'id': 1},
-            {'id': 2},
+            {
+                'id': 1
+            },
+            {
+                'id': 2
+            },
         ])
 
         EnvironmentProject.objects.create(
@@ -178,25 +184,20 @@ class UnmergeTestCase(TestCase):
             i = next(sequence)
 
             event_id = uuid.UUID(
-                fields=(
-                    i,
-                    0x0,
-                    0x1000,
-                    0x80,
-                    0x80,
-                    0x808080808080,
-                ),
+                fields=(i, 0x0, 0x1000, 0x80, 0x80, 0x808080808080, ),
             ).hex
 
             event = Event.objects.create(
                 project_id=project.id,
                 group_id=source.id,
                 event_id=event_id,
-                message='%s' % (id,),
+                message='%s' % (id, ),
                 datetime=now + shift(i),
                 data={
-                    'environment': 'production',
-                    'type': 'default',
+                    'environment':
+                    'production',
+                    'type':
+                    'default',
                     'metadata': {
                         'title': template % parameters,
                     },
@@ -205,7 +206,8 @@ class UnmergeTestCase(TestCase):
                         'params': parameters,
                         'formatted': template % parameters,
                     },
-                    'sentry.interfaces.User': next(user_values),
+                    'sentry.interfaces.User':
+                    next(user_values),
                     'tags': [
                         ['color', next(tag_values)],
                         ['environment', 'production'],
@@ -236,6 +238,8 @@ class UnmergeTestCase(TestCase):
                 comments='Quack',
             )
 
+            features.record([event])
+
             return event
 
         events = OrderedDict()
@@ -258,20 +262,32 @@ class UnmergeTestCase(TestCase):
                 hash=fingerprint,
             )
 
-        assert set(GroupTagKey.objects.filter(group=source).values_list('key', 'values_seen')) == set(
-            [(u'color', 3), (u'environment', 1), (u'sentry:release', 1), ])
+        assert set(GroupTagKey.objects.filter(group=source).values_list('key', 'values_seen')
+                   ) == set([
+                       (u'color', 3),
+                       (u'environment', 1),
+                       (u'sentry:release', 1),
+                   ])
 
         assert set(
             GroupTagValue.objects.filter(
                 group_id=source.id,
             ).values_list('key', 'value', 'times_seen')
-        ) == set([
-            (u'color', u'red', 6),
-            (u'color', u'green', 6),
-            (u'color', u'blue', 5),
-            (u'environment', u'production', 17),
-            (u'sentry:release', u'version', 17),
-        ])
+        ) == set(
+            [
+                (u'color', u'red', 6),
+                (u'color', u'green', 6),
+                (u'color', u'blue', 5),
+                (u'environment', u'production', 17),
+                (u'sentry:release', u'version', 17),
+            ]
+        )
+
+        assert features.compare(source) == [
+            (source.id, {
+                'message:message:character-shingles': 1.0
+            }),
+        ]
 
         with self.tasks():
             unmerge.delay(
@@ -289,11 +305,7 @@ class UnmergeTestCase(TestCase):
                 'first_seen',
                 'last_seen',
             )
-        ) == [(
-            10,
-            now + shift(0),
-            now + shift(9),
-        )]
+        ) == [(10, now + shift(0), now + shift(9), )]
 
         source_activity = Activity.objects.get(
             group_id=source.id,
@@ -310,11 +322,7 @@ class UnmergeTestCase(TestCase):
                 'first_seen',
                 'last_seen',
             )
-        ) == [(
-            7,
-            now + shift(10),
-            now + shift(16),
-        )]
+        ) == [(7, now + shift(10), now + shift(16), )]
 
         assert source_activity.data == {
             'destination_id': destination.id,
@@ -351,70 +359,38 @@ class UnmergeTestCase(TestCase):
             ).values_list('event_id', flat=True)
         ) == set(source_event_event_ids)
 
-        assert set(
-            GroupHash.objects.filter(
-                group_id=source.id,
-            ).values_list('hash', flat=True)
-        ) == set([
-            events.keys()[0]
-        ])
+        assert set(GroupHash.objects.filter(
+            group_id=source.id,
+        ).values_list('hash', flat=True)) == set([events.keys()[0]])
 
         assert set(
             GroupRelease.objects.filter(
                 group_id=source.id,
             ).values_list('environment', 'first_seen', 'last_seen')
         ) == set([
-            (
-                u'production',
-                now + shift(0),
-                now + shift(9),
-            ),
+            (u'production', now + shift(0), now + shift(9), ),
         ])
 
-        assert set(GroupTagKey.objects.filter(group=source).values_list('key', 'values_seen')) == set(
-            [(u'color', 3), (u'environment', 1), (u'sentry:release', 1), ])
+        assert set(GroupTagKey.objects.filter(group=source).values_list('key', 'values_seen')
+                   ) == set([
+                       (u'color', 3),
+                       (u'environment', 1),
+                       (u'sentry:release', 1),
+                   ])
 
         assert set(
             GroupTagValue.objects.filter(
                 group_id=source.id,
             ).values_list('key', 'value', 'times_seen', 'first_seen', 'last_seen')
-        ) == set([
-            (
-                u'color',
-                u'red',
-                4,
-                now + shift(0),
-                now + shift(9),
-            ),
-            (
-                u'color',
-                u'green',
-                3,
-                now + shift(1),
-                now + shift(7),
-            ),
-            (
-                u'color',
-                u'blue',
-                3,
-                now + shift(2),
-                now + shift(8),
-            ),
-            (
-                u'environment',
-                u'production',
-                10,
-                now + shift(0),
-                now + shift(9),
-            ),
-            (
-                u'sentry:release',
-                u'version',
-                10,
-                now + shift(0),
-                now + shift(9),
-            ),
-        ])
+        ) == set(
+            [
+                (u'color', u'red', 4, now + shift(0), now + shift(9), ),
+                (u'color', u'green', 3, now + shift(1), now + shift(7), ),
+                (u'color', u'blue', 3, now + shift(2), now + shift(8), ),
+                (u'environment', u'production', 10, now + shift(0), now + shift(9), ),
+                (u'sentry:release', u'version', 10, now + shift(0), now + shift(9), ),
+            ]
+        )
 
         destination_event_event_ids = map(
             lambda event: event.event_id,
@@ -439,76 +415,50 @@ class UnmergeTestCase(TestCase):
             GroupHash.objects.filter(
                 group_id=destination.id,
             ).values_list('hash', flat=True)
-        ) == set([
-            events.keys()[1]
-        ])
+        ) == set([events.keys()[1]])
 
         assert set(
             GroupRelease.objects.filter(
                 group_id=destination.id,
             ).values_list('environment', 'first_seen', 'last_seen')
         ) == set([
-            (
-                u'production',
-                now + shift(10),
-                now + shift(16),
-            ),
+            (u'production', now + shift(10), now + shift(16), ),
         ])
 
-        assert set(GroupTagKey.objects.filter(group=destination).values_list('key', 'values_seen')) == set(
-            [(u'color', 3), (u'environment', 1), (u'sentry:release', 1), ])
+        assert set(GroupTagKey.objects.filter(group=destination).values_list('key', 'values_seen')
+                   ) == set([
+                       (u'color', 3),
+                       (u'environment', 1),
+                       (u'sentry:release', 1),
+                   ])
 
         assert set(
             GroupTagValue.objects.filter(
                 group_id=destination.id,
             ).values_list('key', 'value', 'times_seen', 'first_seen', 'last_seen')
-        ) == set([
-            (
-                u'color',
-                u'red',
-                2,
-                now + shift(12),
-                now + shift(15),
-            ),
-            (
-                u'color',
-                u'green',
-                3,
-                now + shift(10),
-                now + shift(16),
-            ),
-            (
-                u'color',
-                u'blue',
-                2,
-                now + shift(11),
-                now + shift(14),
-            ),
-            (
-                u'environment',
-                u'production',
-                7,
-                now + shift(10),
-                now + shift(16),
-            ),
-            (
-                u'sentry:release',
-                u'version',
-                7,
-                now + shift(10),
-                now + shift(16),
-            ),
-        ])
+        ) == set(
+            [
+                (u'color', u'red', 2, now + shift(12), now + shift(15), ),
+                (u'color', u'green', 3, now + shift(10), now + shift(16), ),
+                (u'color', u'blue', 2, now + shift(11), now + shift(14), ),
+                (u'environment', u'production', 7, now + shift(10), now + shift(16), ),
+                (u'sentry:release', u'version', 7, now + shift(10), now + shift(16), ),
+            ]
+        )
+
+        rollup_duration = 3600
 
         time_series = tsdb.get_range(
             tsdb.models.group,
             [source.id, destination.id],
-            now,
+            now - timedelta(seconds=rollup_duration),
             now + shift(16),
+            rollup_duration,
         )
 
         def get_expected_series_values(rollup, events, function=None):
             if function is None:
+
                 def function(aggregate, event):
                     return (aggregate if aggregate is not None else 0) + 1
 
@@ -523,12 +473,10 @@ class UnmergeTestCase(TestCase):
             actual = dict(actual)
 
             for key, value in expected.items():
-                assert actual[key] == value
+                assert actual.get(key, 0) == value
 
             for key in set(actual.keys()) - set(expected.keys()):
-                assert actual[key] == default
-
-        rollup_duration = time_series.values()[0][1][0] - time_series.values()[0][0][0]
+                assert actual.get(key, 0) == default
 
         assert_series_contains(
             get_expected_series_values(rollup_duration, events.values()[0]),
@@ -545,11 +493,10 @@ class UnmergeTestCase(TestCase):
         time_series = tsdb.get_distinct_counts_series(
             tsdb.models.users_affected_by_group,
             [source.id, destination.id],
-            now,
+            now - timedelta(seconds=rollup_duration),
             now + shift(16),
+            rollup_duration,
         )
-
-        rollup_duration = time_series.values()[0][1][0] - time_series.values()[0][0][0]
 
         def collect_by_user_tag(aggregate, event):
             aggregate = aggregate if aggregate is not None else set()
@@ -563,8 +510,7 @@ class UnmergeTestCase(TestCase):
         assert_series_contains(
             {
                 timestamp: len(values)
-                for timestamp, values in
-                get_expected_series_values(
+                for timestamp, values in get_expected_series_values(
                     rollup_duration,
                     events.values()[0],
                     collect_by_user_tag,
@@ -576,8 +522,7 @@ class UnmergeTestCase(TestCase):
         assert_series_contains(
             {
                 timestamp: len(values)
-                for timestamp, values in
-                get_expected_series_values(
+                for timestamp, values in get_expected_series_values(
                     rollup_duration,
                     events.values()[1],
                     collect_by_user_tag,
@@ -589,11 +534,10 @@ class UnmergeTestCase(TestCase):
         time_series = tsdb.get_most_frequent_series(
             tsdb.models.frequent_releases_by_group,
             [source.id, destination.id],
-            now,
+            now - timedelta(seconds=rollup_duration),
             now + shift(16),
+            rollup_duration,
         )
-
-        rollup_duration = time_series.values()[0][1][0] - time_series.values()[0][0][0]
 
         def collect_by_release(group, aggregate, event):
             aggregate = aggregate if aggregate is not None else {}
@@ -637,11 +581,10 @@ class UnmergeTestCase(TestCase):
         time_series = tsdb.get_most_frequent_series(
             tsdb.models.frequent_environments_by_group,
             [source.id, destination.id],
-            now,
+            now - timedelta(seconds=rollup_duration),
             now + shift(16),
+            rollup_duration,
         )
-
-        rollup_duration = time_series.values()[0][1][0] - time_series.values()[0][0][0]
 
         def collect_by_environment(aggregate, event):
             aggregate = aggregate if aggregate is not None else {}
@@ -671,3 +614,19 @@ class UnmergeTestCase(TestCase):
             time_series[destination.id],
             {},
         )
+
+        source_similar_items = features.compare(source)
+        assert source_similar_items[0] == (source.id, {'message:message:character-shingles': 1.0})
+        assert source_similar_items[1][0] == destination.id
+        assert source_similar_items[1][1].keys() == ['message:message:character-shingles']
+        assert source_similar_items[1][1]['message:message:character-shingles'] < 1.0
+
+        destination_similar_items = features.compare(destination)
+        assert destination_similar_items[0] == (
+            destination.id, {
+                'message:message:character-shingles': 1.0
+            }
+        )
+        assert destination_similar_items[1][0] == source.id
+        assert destination_similar_items[1][1].keys() == ['message:message:character-shingles']
+        assert destination_similar_items[1][1]['message:message:character-shingles'] < 1.0

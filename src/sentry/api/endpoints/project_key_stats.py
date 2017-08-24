@@ -27,25 +27,22 @@ class ProjectKeyStatsEndpoint(ProjectEndpoint, StatsMixin):
 
         stats = OrderedDict()
         for model, name in (
-            (tsdb.models.key_total_received, 'total'),
-            (tsdb.models.key_total_blacklisted, 'filtered'),
+            (tsdb.models.key_total_received,
+             'total'), (tsdb.models.key_total_blacklisted, 'filtered'),
             (tsdb.models.key_total_rejected, 'dropped'),
         ):
-            result = tsdb.get_range(
-                model=model,
-                keys=[key.id],
-                **stat_args
-            )[key.id]
+            result = tsdb.get_range(model=model, keys=[key.id], **stat_args)[key.id]
             for ts, count in result:
                 stats.setdefault(int(ts), {})[name] = count
 
-        return Response([
-            {
-                'ts': ts,
-                'total': data['total'],
-                'dropped': data['dropped'],
-                'filtered': data['filtered'],
-                'accepted': data['total'] - data['dropped'] - data['filtered'],
-            }
-            for ts, data in six.iteritems(stats)
-        ])
+        return Response(
+            [
+                {
+                    'ts': ts,
+                    'total': data['total'],
+                    'dropped': data['dropped'],
+                    'filtered': data['filtered'],
+                    'accepted': data['total'] - data['dropped'] - data['filtered'],
+                } for ts, data in six.iteritems(stats)
+            ]
+        )

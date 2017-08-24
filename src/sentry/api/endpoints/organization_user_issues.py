@@ -8,9 +8,7 @@ from six.moves import reduce
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import TagBasedStreamGroupSerializer
-from sentry.models import (
-    EventUser, Group, GroupTagValue
-)
+from sentry.models import (EventUser, Group, GroupTagValue)
 
 
 class OrganizationUserIssuesEndpoint(OrganizationEndpoint):
@@ -30,10 +28,7 @@ class OrganizationUserIssuesEndpoint(OrganizationEndpoint):
         event_users = [euser] + list(other_eusers)
 
         if event_users:
-            tag_filters = [
-                Q(value=eu.tag_value, project_id=eu.project_id)
-                for eu in event_users
-            ]
+            tag_filters = [Q(value=eu.tag_value, project_id=eu.project_id) for eu in event_users]
             tags = GroupTagValue.objects.filter(
                 reduce(or_, tag_filters),
                 key='sentry:user',

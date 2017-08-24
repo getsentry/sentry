@@ -29,4 +29,5 @@ def sudo_required(func):
             }
             return HttpResponse(json.dumps(data), status=401)
         return func(self, request, *args, **kwargs)
+
     return wrapped

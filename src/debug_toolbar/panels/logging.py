@@ -14,7 +14,6 @@ MESSAGE_IF_STRING_REPRESENTATION_INVALID = '[Could not get log message]'
 
 
 class LogCollector(ThreadCollector):
-
     def collect(self, item, thread=None):
         # Avoid logging SQL queries since they are already in the SQL panel
         # TODO: Make this check whether SQL panel is enabled
@@ -66,8 +65,9 @@ class LoggingPanel(Panel):
     def nav_subtitle(self):
         records = self._records[threading.currentThread()]
         record_count = len(records)
-        return ungettext("%(count)s message", "%(count)s messages",
-                         record_count) % {'count': record_count}
+        return ungettext("%(count)s message", "%(count)s messages", record_count) % {
+            'count': record_count
+        }
 
     title = _("Log messages")
 

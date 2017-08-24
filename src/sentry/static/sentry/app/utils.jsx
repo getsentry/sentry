@@ -1,4 +1,4 @@
-import _ from 'underscore';
+import _ from 'lodash';
 
 /*eslint no-use-before-define:0*/
 export const modelsEqual = function(obj1, obj2) {
@@ -222,7 +222,9 @@ export function formatBytes(bytes) {
 }
 
 export function getShortVersion(version) {
-  let match = version.match(/^(?:[a-zA-Z][a-zA-Z0-9-]+)(?:\.[a-zA-Z][a-zA-Z0-9-]+)+-(.*)$/);
+  let match = version.match(
+    /^(?:[a-zA-Z][a-zA-Z0-9-]+)(?:\.[a-zA-Z][a-zA-Z0-9-]+)+-(.*)$/
+  );
   if (match) {
     version = match[1];
   }
@@ -232,15 +234,14 @@ export function getShortVersion(version) {
   return version;
 }
 
-export function parseGitHubRepo(repo) {
-  if (repo) {
-    let re = /github\.com\/([^\/]+\/[^\/]+)/i;
-    let match = repo.match(re);
-    let parsedRepo;
-    match ? (parsedRepo = match[1]) : (parsedRepo = repo);
-    return parsedRepo;
-  } else {
+export function parseRepo(repo) {
+  if (!repo) {
     return repo;
+  } else {
+    let re = /(?:github\.com|bitbucket\.org)\/([^\/]+\/[^\/]+)/i;
+    let match = repo.match(re);
+    let parsedRepo = match ? match[1] : repo;
+    return parsedRepo;
   }
 }
 

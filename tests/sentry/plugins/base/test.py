@@ -39,20 +39,15 @@ def test_load_plugin_urls():
         def get_project_urls(self):
             return [('foo', 'bar')]
 
-    patterns = load_plugin_urls((
-        BadPluginA(),
-        BadPluginB(),
-        BadPluginC(),
-        GoodPluginA(),
-        GoodPluginB(),
-    ))
+    patterns = load_plugin_urls(
+        (BadPluginA(), BadPluginB(), BadPluginC(), GoodPluginA(), GoodPluginB(), )
+    )
 
     assert len(patterns) == 2
 
 
 class Plugin2TestCase(TestCase):
     def test_reset_config(self):
-
         class APlugin(Plugin2):
             def get_conf_key(self):
                 return 'a-plugin'

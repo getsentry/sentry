@@ -86,8 +86,8 @@ class TSDBModel(Enum):
 
 class BaseTSDB(Service):
     __all__ = (
-        'models', 'incr', 'incr_multi', 'get_range', 'get_rollups', 'get_sums',
-        'rollup', 'validate',
+        'models', 'incr', 'incr_multi', 'get_range', 'get_rollups', 'get_sums', 'rollup',
+        'validate',
     )
 
     models = TSDBModel
@@ -272,8 +272,7 @@ class BaseTSDB(Service):
     def get_sums(self, model, keys, start, end, rollup=None):
         range_set = self.get_range(model, keys, start, end, rollup)
         sum_set = dict(
-            (key, sum(p for _, p in points))
-            for (key, points) in six.iteritems(range_set)
+            (key, sum(p for _, p in points)) for (key, points) in six.iteritems(range_set)
         )
         return sum_set
 

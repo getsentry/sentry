@@ -116,6 +116,7 @@
     padding-top: 11px;
   }
 
+  .stream-actions-header,
   .stream-actions-count,
   .stream-actions-users,
   .stream-actions-level,
@@ -225,7 +226,7 @@
   }
 }
 
-.group-list {
+.group-list, .grouping-list {
   background: #fff;
   border: 1px solid @trim;
   border-top: 1px solid @trim;
@@ -234,7 +235,8 @@
   // position: relative;
 }
 
-.group-list, .events {
+// .grouping-list is used in a tab in an Issue
+.group-list, .events, .grouping-list {
   .list-unstyled;
 
   .group {
@@ -406,46 +408,6 @@
   .event-details {
     padding: 12px 0 8px 54px;
 
-    h3 {
-      font-size: 16px;
-      line-height: 1.1;
-      margin: 0 0 5px;
-      font-weight: 600;
-
-      .event-type,
-      .error-level {
-        position: absolute;
-        left: -6px;
-        top: 13px;
-        font-size: 10px;
-        font-weight: 600;
-        text-transform: capitalize;
-        text-align: center;
-        color: #fff;
-        padding: 2px 4px;
-        width: 50px;
-        display: block;
-        float: left;
-        border-radius: 2px;
-        margin-right: 5px;
-      }
-
-      em {
-        font-style: normal;
-        font-size: 14px;
-        color: @60;
-        font-weight: normal;
-      }
-
-      a {
-        color: @gray-darker;
-
-        &:hover {
-          color: @gray-darkest;
-        }
-      }
-    }
-
     .event-message, .event-extra {
       line-height: 1.1;
     }
@@ -597,6 +559,11 @@
   .severity {
     padding-top: 35px;
   }
+}
+
+// stop from accidentally clicking event title
+.grouping-list .event-details h3 a {
+  display: inline-block;
 }
 
 .group-list-empty {
@@ -1232,7 +1199,7 @@
 */
 
 .stream-pagination {
-  margin: 20px 0;
+  margin: 20px 0 0 0;
 
   .icon-arrow-right, .icon-arrow-left {
     font-size: 20px !important;
@@ -1280,7 +1247,7 @@
   }
 
   .stream-actions {
-    .stream-actions-count, .stream-actions-users {
+    .stream-actions-header, .stream-actions-count, .stream-actions-users {
       font-size: 13px;
       padding-top: 8px;
     }
@@ -1374,6 +1341,49 @@
     }
   }
 }
+
+.event-issue-header {
+  h3 {
+    font-size: 16px;
+    line-height: 1.1;
+    margin: 0 0 5px;
+    font-weight: 600;
+
+    .event-type,
+    .error-level {
+      position: absolute;
+      left: -6px;
+      top: 13px;
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: capitalize;
+      text-align: center;
+      color: #fff;
+      padding: 2px 4px;
+      width: 50px;
+      display: block;
+      float: left;
+      border-radius: 2px;
+      margin-right: 5px;
+    }
+
+    em {
+      font-style: normal;
+      font-size: 14px;
+      color: @60;
+      font-weight: normal;
+    }
+
+    a {
+      color: @gray-darker;
+
+      &:hover {
+        color: @gray-darkest;
+      }
+    }
+  }
+}
+
 
 
 @media(max-width:400px) {

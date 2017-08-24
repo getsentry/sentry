@@ -107,7 +107,10 @@ class OrganizationReleaseFilesEndpoint(OrganizationReleasesBaseEndpoint):
 
         if _filename_re.search(name):
             return Response(
-                {'detail': 'File name must not contain special whitespace characters'}, status=400)
+                {
+                    'detail': 'File name must not contain special whitespace characters'
+                }, status=400
+            )
 
         dist_name = request.DATA.get('dist')
         dist = None
@@ -125,7 +128,11 @@ class OrganizationReleaseFilesEndpoint(OrganizationReleasesBaseEndpoint):
             else:
                 if _filename_re.search(v):
                     return Response(
-                        {'detail': 'header value must not contain special whitespace characters'}, status=400)
+                        {
+                            'detail': 'header value must not contain special whitespace characters'
+                        },
+                        status=400
+                    )
                 headers[k] = v.strip()
 
         file = File.objects.create(

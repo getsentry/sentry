@@ -20,7 +20,6 @@ from sentry.signals import issue_assigned
 
 
 class GroupAssigneeManager(BaseManager):
-
     def assign(self, group, assigned_to, acting_user=None):
         now = timezone.now()
         assignee, created = GroupAssignee.objects.get_or_create(
@@ -38,8 +37,7 @@ class GroupAssigneeManager(BaseManager):
             ).exclude(
                 user=assigned_to,
             ).update(
-                user=assigned_to,
-                date_added=now
+                user=assigned_to, date_added=now
             )
         else:
             affected = True

@@ -12,16 +12,16 @@ from distutils.core import Command
 
 class BaseBuildCommand(Command):
     user_options = [
-        ('work-path=', 'w',
-         "The working directory for source files. Defaults to ."),
-        ('build-lib=', 'b',
-         "directory for script runtime modules"),
-        ('inplace', 'i',
-         "ignore build-lib and put compiled javascript files into the source " +
-         "directory alongside your pure Python modules"),
-        ('force', 'f',
-         "Force rebuilding of static content. Defaults to rebuilding on version "
-         "change detection."),
+        ('work-path=', 'w', "The working directory for source files. Defaults to ."),
+        ('build-lib=', 'b', "directory for script runtime modules"),
+        (
+            'inplace', 'i', "ignore build-lib and put compiled javascript files into the source " +
+            "directory alongside your pure Python modules"
+        ),
+        (
+            'force', 'f', "Force rebuilding of static content. Defaults to rebuilding on version "
+            "change detection."
+        ),
     ]
 
     boolean_options = ['force']
@@ -99,10 +99,8 @@ class BaseBuildCommand(Command):
             self.build_lib = 'src'
         # Otherwise we fetch build_lib from the build command.
         else:
-            self.set_undefined_options('build',
-                                       ('build_lib', 'build_lib'))
-            log.debug('regular js build: build path is %s' %
-                      self.build_lib)
+            self.set_undefined_options('build', ('build_lib', 'build_lib'))
+            log.debug('regular js build: build path is %s' % self.build_lib)
 
         if self.work_path is None:
             self.work_path = self.get_root_path()
@@ -125,35 +123,33 @@ class BaseBuildCommand(Command):
         node_version = []
         for app in 'node', 'npm', 'yarn':
             try:
-                node_version.append(
-                    self._run_command([app, '--version']).rstrip()
-                )
+                node_version.append(self._run_command([app, '--version']).rstrip())
             except OSError:
                 if app == 'yarn':
                     # yarn is optional
                     node_version.append(None)
                 else:
-                    log.fatal('Cannot find `{0}` executable. Please install {0}`'
-                              ' and try again.'.format(app))
+                    log.fatal(
+                        'Cannot find `{0}` executable. Please install {0}`'
+                        ' and try again.'.format(app)
+                    )
                     sys.exit(1)
 
         if node_version[2] is not None:
             log.info('using node ({0}) and yarn ({2})'.format(*node_version))
-            self._run_command(['yarn', 'install', '--production',
-                               '--pure-lockfile', '--ignore-optional'])
+            self._run_command(
+                ['yarn', 'install', '--production', '--pure-lockfile', '--ignore-optional']
+            )
         else:
             log.info('using node ({0}) and npm ({1})'.format(*node_version))
             self._run_command(['npm', 'install', '--production', '--quiet'])
 
     def _run_command(self, cmd, env=None):
-        log.debug('running [%s]' % (' '.join(cmd),))
+        log.debug('running [%s]' % (' '.join(cmd), ))
         try:
             return check_output(cmd, cwd=self.work_path, env=env)
         except Exception:
-            log.error('command failed [%s] via [%s]' % (
-                ' '.join(cmd),
-                self.work_path,
-            ))
+            log.error('command failed [%s] via [%s]' % (' '.join(cmd), self.work_path, ))
             raise
 
     def update_manifests(self):

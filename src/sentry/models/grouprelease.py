@@ -6,9 +6,7 @@ from django.utils import timezone
 
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import md5_text
-from sentry.db.models import (
-    BoundedPositiveIntegerField, Model, sane_repr
-)
+from sentry.db.models import (BoundedPositiveIntegerField, Model, sane_repr)
 
 
 class GroupRelease(Model):
@@ -24,7 +22,7 @@ class GroupRelease(Model):
     class Meta:
         app_label = 'sentry'
         db_table = 'sentry_grouprelease'
-        unique_together = (('group_id', 'release_id', 'environment'),)
+        unique_together = (('group_id', 'release_id', 'environment'), )
 
     __repr__ = sane_repr('group_id', 'release_id')
 

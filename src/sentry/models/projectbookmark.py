@@ -32,6 +32,6 @@ class ProjectBookmark(Model):
     class Meta:
         app_label = 'sentry'
         db_table = 'sentry_projectbookmark'
-        unique_together = (('project_id', 'user',))
+        unique_together = (('project_id', 'user', ))
 
     __repr__ = sane_repr('project_id', 'user_id')

@@ -74,11 +74,7 @@ class CreateUserTest(CliTestCase):
 
     def test_single_org_superuser(self):
         with self.settings(SENTRY_SINGLE_ORGANIZATION=True):
-            rv = self.invoke(
-                '--email=you@somewhereawesome.com',
-                '--no-password',
-                '--superuser'
-            )
+            rv = self.invoke('--email=you@somewhereawesome.com', '--no-password', '--superuser')
             assert rv.exit_code == 0, rv.output
             assert 'you@somewhereawesome.com' in rv.output
             assert OrganizationMember.objects.count() == 1

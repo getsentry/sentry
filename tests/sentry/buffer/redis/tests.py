@@ -57,12 +57,14 @@ class RedisBufferTest(TestCase):
     @mock.patch('sentry.buffer.base.Buffer.process')
     def test_process_does_bubble_up(self, process):
         client = self.buf.cluster.get_routing_client()
-        client.hmset('foo', {
-            'e+foo': "S'bar'\np1\n.",
-            'f': "(dp1\nS'pk'\np2\nI1\ns.",
-            'i+times_seen': '2',
-            'm': 'sentry.models.Group',
-        })
+        client.hmset(
+            'foo', {
+                'e+foo': "S'bar'\np1\n.",
+                'f': "(dp1\nS'pk'\np2\nI1\ns.",
+                'i+times_seen': '2',
+                'm': 'sentry.models.Group',
+            }
+        )
         columns = {'times_seen': 2}
         filters = {'pk': 1}
         extra = {'foo': 'bar'}

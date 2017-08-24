@@ -13,8 +13,7 @@ from django.utils import timezone
 
 from sentry.constants import MAX_TAG_KEY_LENGTH, MAX_TAG_VALUE_LENGTH
 from sentry.db.models import (
-    Model, BoundedPositiveIntegerField, FlexibleForeignKey, GzippedDictField,
-    BaseManager, sane_repr
+    Model, BoundedPositiveIntegerField, FlexibleForeignKey, GzippedDictField, BaseManager, sane_repr
 )
 from sentry.utils.http import absolute_uri
 
@@ -30,17 +29,15 @@ class TagValue(Model):
     value = models.CharField(max_length=MAX_TAG_VALUE_LENGTH)
     data = GzippedDictField(blank=True, null=True)
     times_seen = BoundedPositiveIntegerField(default=0)
-    last_seen = models.DateTimeField(
-        default=timezone.now, db_index=True, null=True)
-    first_seen = models.DateTimeField(
-        default=timezone.now, db_index=True, null=True)
+    last_seen = models.DateTimeField(default=timezone.now, db_index=True, null=True)
+    first_seen = models.DateTimeField(default=timezone.now, db_index=True, null=True)
 
     objects = BaseManager()
 
     class Meta:
         app_label = 'sentry'
         db_table = 'sentry_filtervalue'
-        unique_together = (('project', 'key', 'value'),)
+        unique_together = (('project', 'key', 'value'), )
 
     __repr__ = sane_repr('project_id', 'key', 'value')
 
@@ -70,8 +67,13 @@ class TagValue(Model):
             url_name = 'sentry-explore-code-details-by-function'
         else:
             url_name = 'sentry-explore-tag-value'
-            return absolute_uri(reverse(url_name, args=[
-                self.project.organization.slug, self.project.slug, self.key, self.id]))
+            return absolute_uri(
+                reverse(
+                    url_name,
+                    args=[self.project.organization.slug, self.project.slug, self.key, self.id]
+                )
+            )
 
-        return absolute_uri(reverse(url_name, args=[
-            self.project.organization.slug, self.project.slug, self.id]))
+        return absolute_uri(
+            reverse(url_name, args=[self.project.organization.slug, self.project.slug, self.id])
+        )

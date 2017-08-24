@@ -36,12 +36,16 @@ def test_get_numeric_field_value():
         'foo_upper_inclusive': True,
     }
 
-    assert get_numeric_field_value('foo', '>3.5', type=float) == {
+    assert get_numeric_field_value(
+        'foo', '>3.5', type=float
+    ) == {
         'foo_lower': 3.5,
         'foo_lower_inclusive': False,
     }
 
-    assert get_numeric_field_value('foo', '<=-3.5', type=float) == {
+    assert get_numeric_field_value(
+        'foo', '<=-3.5', type=float
+    ) == {
         'foo_upper': -3.5,
         'foo_upper_inclusive': True,
     }
@@ -86,12 +90,7 @@ class ParseQueryTest(TestCase):
         now.return_value = start
         expected = start - timedelta(hours=12)
         result = self.parse_query('age:-12h')
-        assert result == {
-            'tags': {},
-            'query': '',
-            'age_from': expected,
-            'age_from_inclusive': True
-        }
+        assert result == {'tags': {}, 'query': '', 'age_from': expected, 'age_from_inclusive': True}
 
     @mock.patch('django.utils.timezone.now')
     def test_age_tag_positive_value(self, now):
@@ -99,12 +98,7 @@ class ParseQueryTest(TestCase):
         now.return_value = start
         expected = start - timedelta(hours=12)
         result = self.parse_query('age:+12h')
-        assert result == {
-            'tags': {},
-            'query': '',
-            'age_to': expected,
-            'age_to_inclusive': False
-        }
+        assert result == {'tags': {}, 'query': '', 'age_to': expected, 'age_to_inclusive': False}
 
     @mock.patch('django.utils.timezone.now')
     def test_age_tag_weeks(self, now):
@@ -112,12 +106,7 @@ class ParseQueryTest(TestCase):
         now.return_value = start
         expected = start - timedelta(days=35)
         result = self.parse_query('age:+5w')
-        assert result == {
-            'tags': {},
-            'query': '',
-            'age_to': expected,
-            'age_to_inclusive': False
-        }
+        assert result == {'tags': {}, 'query': '', 'age_to': expected, 'age_to_inclusive': False}
 
     @mock.patch('django.utils.timezone.now')
     def test_age_tag_days(self, now):
@@ -125,12 +114,7 @@ class ParseQueryTest(TestCase):
         now.return_value = start
         expected = start - timedelta(days=10)
         result = self.parse_query('age:+10d')
-        assert result == {
-            'tags': {},
-            'query': '',
-            'age_to': expected,
-            'age_to_inclusive': False
-        }
+        assert result == {'tags': {}, 'query': '', 'age_to': expected, 'age_to_inclusive': False}
 
     @mock.patch('django.utils.timezone.now')
     def test_age_tag_hours(self, now):
@@ -138,12 +122,7 @@ class ParseQueryTest(TestCase):
         now.return_value = start
         expected = start - timedelta(hours=10)
         result = self.parse_query('age:+10h')
-        assert result == {
-            'tags': {},
-            'query': '',
-            'age_to': expected,
-            'age_to_inclusive': False
-        }
+        assert result == {'tags': {}, 'query': '', 'age_to': expected, 'age_to_inclusive': False}
 
     @mock.patch('django.utils.timezone.now')
     def test_age_tag_minutes(self, now):
@@ -151,12 +130,7 @@ class ParseQueryTest(TestCase):
         now.return_value = start
         expected = start - timedelta(minutes=30)
         result = self.parse_query('age:+30m')
-        assert result == {
-            'tags': {},
-            'query': '',
-            'age_to': expected,
-            'age_to_inclusive': False
-        }
+        assert result == {'tags': {}, 'query': '', 'age_to': expected, 'age_to_inclusive': False}
 
     @mock.patch('django.utils.timezone.now')
     def test_two_age_tags(self, now):
@@ -290,7 +264,7 @@ class ParseQueryTest(TestCase):
         assert result == {'assigned_to': self.user, 'tags': {}, 'query': ''}
 
     def test_assigned_email(self):
-        result = self.parse_query('assigned:%s' % (self.user.email,))
+        result = self.parse_query('assigned:%s' % (self.user.email, ))
         assert result == {'assigned_to': self.user, 'tags': {}, 'query': ''}
 
     def test_assigned_unknown_user(self):
@@ -302,7 +276,7 @@ class ParseQueryTest(TestCase):
         assert result == {'bookmarked_by': self.user, 'tags': {}, 'query': ''}
 
     def test_bookmarks_email(self):
-        result = self.parse_query('bookmarks:%s' % (self.user.email,))
+        result = self.parse_query('bookmarks:%s' % (self.user.email, ))
         assert result == {'bookmarked_by': self.user, 'tags': {}, 'query': ''}
 
     def test_bookmarks_unknown_user(self):
@@ -314,10 +288,7 @@ class ParseQueryTest(TestCase):
         assert result == {'first_release': 'bar', 'tags': {}, 'query': ''}
 
     def test_first_release_latest(self):
-        old = Release.objects.create(
-            organization_id=self.project.organization_id,
-            version='a'
-        )
+        old = Release.objects.create(organization_id=self.project.organization_id, version='a')
         old.add_project(self.project)
         new = Release.objects.create(
             version='b',
@@ -338,10 +309,7 @@ class ParseQueryTest(TestCase):
         assert result == {'tags': {'sentry:dist': '123'}, 'query': ''}
 
     def test_release_latest(self):
-        old = Release.objects.create(
-            organization_id=self.project.organization_id,
-            version='a'
-        )
+        old = Release.objects.create(organization_id=self.project.organization_id, version='a')
         old.add_project(self.project)
         new = Release.objects.create(
             version='b',

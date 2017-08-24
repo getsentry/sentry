@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-__all__ = ('ApiClient',)
+__all__ = ('ApiClient', )
 
 from django.core.urlresolvers import resolve
 from rest_framework.test import APIRequestFactory, force_authenticate
@@ -27,8 +27,18 @@ class ApiClient(object):
 
     ApiError = ApiError
 
-    def request(self, method, path, user=None, auth=None, params=None, data=None,
-                is_sudo=None, is_superuser=None, request=None):
+    def request(
+        self,
+        method,
+        path,
+        user=None,
+        auth=None,
+        params=None,
+        data=None,
+        is_sudo=None,
+        is_superuser=None,
+        request=None
+    ):
         full_path = self.prefix + path
 
         # we explicitly do not allow you to override the request *and* the user

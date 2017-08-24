@@ -12,8 +12,8 @@ from pkg_resources import parse_version as Version
 
 from sentry import buffer, options
 from sentry.models import (
-    Organization, OrganizationMember, Project, User,
-    Team, ProjectKey, TagKey, TagValue, GroupTagValue, GroupTagKey
+    Organization, OrganizationMember, Project, User, Team, ProjectKey, TagKey, TagValue,
+    GroupTagValue, GroupTagKey
 )
 from sentry.signals import buffer_incr_complete
 from sentry.utils import db
@@ -34,6 +34,7 @@ def handle_db_failure(func):
         except (ProgrammingError, OperationalError):
             logging.exception('Failed processing signal %s', func.__name__)
             return
+
     return wrapped
 
 
@@ -67,8 +68,7 @@ def create_default_project(id, name, slug, verbosity=2, **kwargs):
         user = None
 
     org, _ = Organization.objects.get_or_create(
-        slug='sentry',
-        defaults={
+        slug='sentry', defaults={
             'name': 'Sentry',
         }
     )
@@ -81,9 +81,7 @@ def create_default_project(id, name, slug, verbosity=2, **kwargs):
         )
 
     team, _ = Team.objects.get_or_create(
-        organization=org,
-        slug='sentry',
-        defaults={
+        organization=org, slug='sentry', defaults={
             'name': 'Sentry',
         }
     )
@@ -169,13 +167,15 @@ def record_group_tag_count(filters, created, extra, **kwargs):
 
     group_id = filters['group_id']
 
-    buffer.incr(GroupTagKey, {
-        'values_seen': 1,
-    }, {
-        'project_id': project_id,
-        'group_id': group_id,
-        'key': filters['key'],
-    })
+    buffer.incr(
+        GroupTagKey, {
+            'values_seen': 1,
+        }, {
+            'project_id': project_id,
+            'group_id': group_id,
+            'key': filters['key'],
+        }
+    )
 
 
 # Anything that relies on default objects that may not exist with default

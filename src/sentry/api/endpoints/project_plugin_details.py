@@ -1,11 +1,13 @@
 from __future__ import absolute_import
 
+import logging
 import six
 
 from django import forms
 from django.core.urlresolvers import reverse
 from rest_framework import serializers
 from rest_framework.response import Response
+from requests.exceptions import HTTPError
 
 from sentry.exceptions import PluginError, PluginIdentityRequired
 from sentry.plugins import plugins
@@ -34,8 +36,7 @@ class ProjectPluginDetailsEndpoint(ProjectEndpoint):
         plugin = self._get_plugin(plugin_id)
 
         try:
-            context = serialize(
-                plugin, request.user, PluginWithConfigSerializer(project))
+            context = serialize(plugin, request.user, PluginWithConfigSerializer(project))
         except PluginIdentityRequired as e:
             context = serialize(plugin, request.user, PluginSerializer(project))
             context['config_error'] = e.message
@@ -45,9 +46,25 @@ class ProjectPluginDetailsEndpoint(ProjectEndpoint):
 
     def post(self, request, project, plugin_id):
         """
-        Enable plugin
+        Enable plugin or Test plugin
         """
         plugin = self._get_plugin(plugin_id)
+
+        if request.DATA.get('test') and plugin.is_testable():
+            try:
+                test_results = plugin.test_configuration(project)
+            except Exception as exc:
+                if isinstance(exc, HTTPError):
+                    test_results = '%s\n%s' % (exc, exc.response.text[:256])
+                elif hasattr(exc, 'read') and callable(exc.read):
+                    test_results = '%s\n%s' % (exc, exc.read()[:256])
+                else:
+                    logging.exception('Plugin(%s) raised an error during test',
+                                      plugin_id)
+                    test_results = 'There was an internal error with the Plugin'
+            if not test_results:
+                test_results = 'No errors returned'
+            return Response({'detail': test_results}, status=200)
 
         if not plugin.can_disable:
             return Response({'detail': ERR_ALWAYS_ENABLED}, status=400)
@@ -113,9 +130,11 @@ class ProjectPluginDetailsEndpoint(ProjectEndpoint):
                 errors['__all__'] = e.message
 
         if errors:
-            return Response({
-                'errors': errors,
-            }, status=400)
+            return Response(
+                {
+                    'errors': errors,
+                }, status=400
+            )
 
         for key, value in six.iteritems(cleaned):
             if value is None:
@@ -130,8 +149,7 @@ class ProjectPluginDetailsEndpoint(ProjectEndpoint):
                     value=value,
                 )
 
-        context = serialize(
-            plugin, request.user, PluginWithConfigSerializer(project))
+        context = serialize(plugin, request.user, PluginWithConfigSerializer(project))
 
         plugin_enabled.send(plugin=plugin, project=project, user=request.user, sender=self)
 

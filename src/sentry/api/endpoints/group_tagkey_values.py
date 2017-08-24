@@ -15,8 +15,7 @@ def list_tag_values_scenario(runner):
     group = Group.objects.filter(project=runner.default_project).first()
     runner.request(
         method='GET',
-        path='/issues/%s/tags/%s/values/' % (
-            group.id, 'browser'),
+        path='/issues/%s/tags/%s/values/' % (group.id, 'browser'),
     )
 
 

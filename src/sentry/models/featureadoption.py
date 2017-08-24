@@ -8,12 +8,7 @@ from jsonfield import JSONField
 
 from sentry.adoption import manager
 from sentry.adoption.manager import UnknownFeature
-from sentry.db.models import (
-    BaseManager,
-    FlexibleForeignKey,
-    Model,
-    sane_repr
-)
+from sentry.db.models import (BaseManager, FlexibleForeignKey, Model, sane_repr)
 from sentry.utils import redis
 
 logger = logging.getLogger(__name__)
@@ -51,19 +46,21 @@ manager.add(27, "zope", "Zope", "integration", prerequisite=["python"])
 manager.add(40, "first_event", "First Event", "code", prerequisite=["first_project"])
 manager.add(41, "release_tracking", "Release Tracking", "code", prerequisite=["first_event"])
 manager.add(
-    42,
-    "environment_tracking",
-    "Environment Tracking",
-    "code",
-    prerequisite=["first_event"])
+    42, "environment_tracking", "Environment Tracking", "code", prerequisite=["first_event"]
+)
 manager.add(43, "user_tracking", "User Tracking", "code", prerequisite=["first_event"])
 manager.add(44, "custom_tags", "Custom Tags", "code", prerequisite=["first_event"])
 manager.add(45, "source_maps", "Source Maps", "code", prerequisite=["first_event", "javascript"])
 manager.add(46, "user_feedback", "User Feedback", "code", prerequisite=["user_tracking"])
 # manager.add(47, "api", "API", "code", prerequisite=["first_event"])  #
 # Challenging to determine what organization (i.e. api/0/organizations/)
-manager.add(48, "breadcrumbs", "Breadcrumbs", "code", prerequisite=[
-            "first_event", ("python", "javascript", "node", "php")])
+manager.add(
+    48,
+    "breadcrumbs",
+    "Breadcrumbs",
+    "code",
+    prerequisite=["first_event", ("python", "javascript", "node", "php")]
+)
 # TODO(ehfeng) manager.add("resolve_in_commit", "Resolve in Commit",
 # "code", prerequisite=["first_event", "releases"])
 
@@ -72,11 +69,8 @@ manager.add(60, "first_project", "First Project", "web")
 manager.add(61, "invite_team", "Invite Team", "web", prerequisite=["first_project"])
 manager.add(62, "assignment", "Assign Issue", "web", prerequisite=["invite_team", "first_event"])
 manager.add(
-    63,
-    "resolved_in_release",
-    "Resolve in Next Release",
-    "web",
-    prerequisite=["release_tracking"])
+    63, "resolved_in_release", "Resolve in Next Release", "web", prerequisite=["release_tracking"]
+)
 manager.add(64, "advanced_search", "Advanced Search", "web", prerequisite=["first_event"])
 manager.add(65, "saved_search", "Saved Search", "web", prerequisite=["advanced_search"])
 manager.add(66, "inbound_filters", "Inbound Filters", "web", prerequisite=["first_event"])
@@ -86,13 +80,15 @@ manager.add(
     "issue_tracker_integration",
     "Issue Tracker Integration",
     "web",
-    prerequisite=["first_project"])
+    prerequisite=["first_project"]
+)
 manager.add(
     69,
     "notification_integration",
     "Notification Integration",
     "web",
-    prerequisite=["first_project"])
+    prerequisite=["first_project"]
+)
 # TODO(ehfeng) manager.add("snooze", "Snooze Issue", "web", prerequisite=["first_event"])
 # TODO(ehfeng) manager.add("merge", "Merge Issues", "web", prerequisite=["first_event"])
 # TODO(ehfeng) manager.add("releases", "Releases", "web", prerequisite=["first_project"])
@@ -123,7 +119,7 @@ class FeatureAdoptionManager(BaseManager):
         with redis.clusters.get('default').map() as client:
             result.append(client.smembers(org_key))
 
-        return {int(x) for x in set.union(*[p.value for p in result])}
+        return {int(x) for x in set.union(* [p.value for p in result])}
 
     def bulk_set_cache(self, organization_id, *args):
         if not args:
@@ -143,9 +139,8 @@ class FeatureAdoptionManager(BaseManager):
 
         if not self.in_cache(organization_id, feature_id):
             row, created = self.create_or_update(
-                organization_id=organization_id,
-                feature_id=feature_id,
-                complete=True)
+                organization_id=organization_id, feature_id=feature_id, complete=True
+            )
             self.set_cache(organization_id, feature_id)
             return created
 
@@ -166,26 +161,30 @@ class FeatureAdoptionManager(BaseManager):
             return False
 
         for feature_id in incomplete_feature_ids:
-            features.append(FeatureAdoption(
-                organization_id=organization_id,
-                feature_id=feature_id,
-                complete=True))
+            features.append(
+                FeatureAdoption(
+                    organization_id=organization_id, feature_id=feature_id, complete=True
+                )
+            )
         try:
             with transaction.atomic():
                 self.bulk_create(features)
                 return True
 
-        except IntegrityError as e:
+        except IntegrityError:
             # This can occur if redis somehow loses the set of complete features and
             # we attempt to insert duplicate (org_id, feature_id) rows
-            logger.exception(e)
+            # This also will happen if we get parallel processes running `bulk_record` and
+            # `get_all_cache` returns in the second process before the first process
+            # can `bulk_set_cache`.
             return False
         finally:
             return self.bulk_set_cache(organization_id, *incomplete_feature_ids)
 
     def get_by_slug(self, organization, slug):
-        return self.filter(organization=organization,
-                           feature_id=manager.get_by_slug(slug).id).first()
+        return self.filter(
+            organization=organization, feature_id=manager.get_by_slug(slug).id
+        ).first()
 
 
 class FeatureAdoption(Model):
@@ -205,4 +204,4 @@ class FeatureAdoption(Model):
     class Meta:
         app_label = 'sentry'
         db_table = 'sentry_featureadoption'
-        unique_together = (('organization', 'feature_id'),)
+        unique_together = (('organization', 'feature_id'), )

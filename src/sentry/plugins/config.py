@@ -14,11 +14,7 @@ from sentry.utils.forms import form_to_config
 from .providers import ProviderMixin
 from .validators import DEFAULT_VALIDATORS
 
-VALIDATOR_ERRORS = (
-    forms.ValidationError,
-    serializers.ValidationError,
-    PluginError,
-)
+VALIDATOR_ERRORS = (forms.ValidationError, serializers.ValidationError, PluginError, )
 
 ERR_FIELD_REQUIRED = 'This field is required.'
 
@@ -31,9 +27,7 @@ class ConfigValidator(object):
         self.result = {}
         self.context = context or {}
 
-        self.config = OrderedDict((
-            (f['name'], f) for f in config
-        ))
+        self.config = OrderedDict(((f['name'], f) for f in config))
 
         self._data = data or {}
         self._initial = initial or {}

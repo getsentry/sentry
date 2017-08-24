@@ -29,10 +29,13 @@ class ReleaseFilesListTest(APITestCase):
             name='http://example.com/application.js'
         )
 
-        url = reverse('sentry-api-0-organization-release-files', kwargs={
-            'organization_slug': project.organization.slug,
-            'version': release.version,
-        })
+        url = reverse(
+            'sentry-api-0-organization-release-files',
+            kwargs={
+                'organization_slug': project.organization.slug,
+                'version': release.version,
+            }
+        )
 
         self.login_as(user=self.user)
 
@@ -53,19 +56,29 @@ class ReleaseFileCreateTest(APITestCase):
         )
         release.add_project(project)
 
-        url = reverse('sentry-api-0-organization-release-files', kwargs={
-            'organization_slug': project.organization.slug,
-            'version': release.version,
-        })
+        url = reverse(
+            'sentry-api-0-organization-release-files',
+            kwargs={
+                'organization_slug': project.organization.slug,
+                'version': release.version,
+            }
+        )
 
         self.login_as(user=self.user)
 
-        response = self.client.post(url, {
-            'name': 'http://example.com/application.js',
-            'header': 'X-SourceMap: http://example.com',
-            'file': SimpleUploadedFile('application.js', b'function() { }',
-                                       content_type='application/javascript'),
-        }, format='multipart')
+        response = self.client.post(
+            url, {
+                'name':
+                'http://example.com/application.js',
+                'header':
+                'X-SourceMap: http://example.com',
+                'file':
+                SimpleUploadedFile(
+                    'application.js', b'function() { }', content_type='application/javascript'
+                ),
+            },
+            format='multipart'
+        )
 
         assert response.status_code == 201, response.content
 
@@ -86,16 +99,21 @@ class ReleaseFileCreateTest(APITestCase):
         )
         release.add_project(project)
 
-        url = reverse('sentry-api-0-organization-release-files', kwargs={
-            'organization_slug': project.organization.slug,
-            'version': release.version,
-        })
+        url = reverse(
+            'sentry-api-0-organization-release-files',
+            kwargs={
+                'organization_slug': project.organization.slug,
+                'version': release.version,
+            }
+        )
 
         self.login_as(user=self.user)
 
-        response = self.client.post(url, {
-            'header': 'X-SourceMap: http://example.com',
-        }, format='multipart')
+        response = self.client.post(
+            url, {
+                'header': 'X-SourceMap: http://example.com',
+            }, format='multipart'
+        )
 
         assert response.status_code == 400, response.content
 
@@ -108,18 +126,25 @@ class ReleaseFileCreateTest(APITestCase):
         )
         release.add_project(project)
 
-        url = reverse('sentry-api-0-organization-release-files', kwargs={
-            'organization_slug': project.organization.slug,
-            'version': release.version,
-        })
+        url = reverse(
+            'sentry-api-0-organization-release-files',
+            kwargs={
+                'organization_slug': project.organization.slug,
+                'version': release.version,
+            }
+        )
 
         self.login_as(user=self.user)
 
-        response = self.client.post(url, {
-            'header': 'X-SourceMap: http://example.com',
-            'file': SimpleUploadedFile('', b'function() { }',
-                                       content_type='application/javascript'),
-        }, format='multipart')
+        response = self.client.post(
+            url, {
+                'header':
+                'X-SourceMap: http://example.com',
+                'file':
+                SimpleUploadedFile('', b'function() { }', content_type='application/javascript'),
+            },
+            format='multipart'
+        )
 
         assert response.status_code == 400, response.content
 
@@ -132,19 +157,29 @@ class ReleaseFileCreateTest(APITestCase):
         )
         release.add_project(project)
 
-        url = reverse('sentry-api-0-organization-release-files', kwargs={
-            'organization_slug': project.organization.slug,
-            'version': release.version,
-        })
+        url = reverse(
+            'sentry-api-0-organization-release-files',
+            kwargs={
+                'organization_slug': project.organization.slug,
+                'version': release.version,
+            }
+        )
 
         self.login_as(user=self.user)
 
-        response = self.client.post(url, {
-            'name': 'http://exa\tmple.com/applic\nati\ron.js\n',
-            'header': 'X-SourceMap: http://example.com/test.map.js',
-            'file': SimpleUploadedFile('application.js', b'function() { }',
-                                       content_type='application/javascript'),
-        }, format='multipart')
+        response = self.client.post(
+            url, {
+                'name':
+                'http://exa\tmple.com/applic\nati\ron.js\n',
+                'header':
+                'X-SourceMap: http://example.com/test.map.js',
+                'file':
+                SimpleUploadedFile(
+                    'application.js', b'function() { }', content_type='application/javascript'
+                ),
+            },
+            format='multipart'
+        )
 
         assert response.status_code == 400, response.content
 
@@ -157,28 +192,45 @@ class ReleaseFileCreateTest(APITestCase):
         )
         release.add_project(project)
 
-        url = reverse('sentry-api-0-organization-release-files', kwargs={
-            'organization_slug': project.organization.slug,
-            'version': release.version,
-        })
+        url = reverse(
+            'sentry-api-0-organization-release-files',
+            kwargs={
+                'organization_slug': project.organization.slug,
+                'version': release.version,
+            }
+        )
 
         self.login_as(user=self.user)
 
-        response = self.client.post(url, {
-            'name': 'http://example.com/application.js',
-            'header': 'lol',
-            'file': SimpleUploadedFile('application.js', b'function() { }',
-                                       content_type='application/javascript'),
-        }, format='multipart')
+        response = self.client.post(
+            url, {
+                'name':
+                'http://example.com/application.js',
+                'header':
+                'lol',
+                'file':
+                SimpleUploadedFile(
+                    'application.js', b'function() { }', content_type='application/javascript'
+                ),
+            },
+            format='multipart'
+        )
 
         assert response.status_code == 400, response.content
 
-        response = self.client.post(url, {
-            'name': 'http://example.com/application.js',
-            'header': 'X-SourceMap: http://example.com/\r\n\ntest.map.js\n',
-            'file': SimpleUploadedFile('application.js', b'function() { }',
-                                       content_type='application/javascript'),
-        }, format='multipart')
+        response = self.client.post(
+            url, {
+                'name':
+                'http://example.com/application.js',
+                'header':
+                'X-SourceMap: http://example.com/\r\n\ntest.map.js\n',
+                'file':
+                SimpleUploadedFile(
+                    'application.js', b'function() { }', content_type='application/javascript'
+                ),
+            },
+            format='multipart'
+        )
 
         assert response.status_code == 400, response.content
 
@@ -192,18 +244,25 @@ class ReleaseFileCreateTest(APITestCase):
         )
         release.add_project(project)
 
-        url = reverse('sentry-api-0-organization-release-files', kwargs={
-            'organization_slug': project.organization.slug,
-            'version': release.version,
-        })
+        url = reverse(
+            'sentry-api-0-organization-release-files',
+            kwargs={
+                'organization_slug': project.organization.slug,
+                'version': release.version,
+            }
+        )
 
         self.login_as(user=self.user)
 
         data = {
-            'name': 'http://example.com/application.js',
-            'header': 'X-SourceMap: http://example.com',
-            'file': SimpleUploadedFile('application.js', b'function() { }',
-                                       content_type='application/javascript'),
+            'name':
+            'http://example.com/application.js',
+            'header':
+            'X-SourceMap: http://example.com',
+            'file':
+            SimpleUploadedFile(
+                'application.js', b'function() { }', content_type='application/javascript'
+            ),
         }
 
         response = self.client.post(url, data, format='multipart')

@@ -3301,7 +3301,6 @@ ul.tag-list {
 * Client platform list
 * ============================================================================
 */
-
 .client-platform-list {
   .list-unstyled;
   .clearfix;
@@ -3349,13 +3348,19 @@ ul.tag-list {
     background: @gray; // Default BG
   }
 
-  // Colors
+  li.go .platformicon {
+    border: 2px solid @gray;
+  }
+}
 
-  li {
+.client-platform-list, .client-platform {
+
+  li, span {
     &.python .platformicon {
       background: darken(@blue, 6);
     }
     &.python-pylons .platformicon:before { content: "\e602"; }
+    &.python-celery .platformicon:before { content: "\e602"; }
     &.python-pyramid .platformicon:before { content: "\e602"; }
     &.python-tornado .platformicon:before { content: "\e602"; }
     &.python-rq .platformicon:before { content: "\e602"; }
@@ -3412,8 +3417,6 @@ ul.tag-list {
     &.objc .platformicon,
     &.cocoa .platformicon, {
       background: @gray;
-      line-height: 54px;
-      font-size: 38px;
     }
 
     &.app-engine .platformicon {
@@ -3425,10 +3428,8 @@ ul.tag-list {
     }
 
     &.go .platformicon {
-      border: 2px solid @gray;
       color: @gray-dark;
       background: #fff;
-      line-height: 52px;
       text-shadow: none;
     }
     &.go-http .platformicon:before { content: "\e606"; }
@@ -3445,6 +3446,15 @@ ul.tag-list {
 
     &.elixir .platformicon {
       background: @purple-dark;
+    }
+  }
+}
+
+.client-platform {
+    li, span {
+      .platformicon {
+        color:black !important;
+        background: white !important;
     }
   }
 }
@@ -3506,6 +3516,9 @@ div.qrcode {
 }
 &.level-fatal .error-level {
   background: @red;
+}
+&.level-sample .error-level {
+  background: @purple;
 }
 
 /**

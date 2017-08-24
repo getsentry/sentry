@@ -48,7 +48,7 @@ export default React.createClass({
     }
 
     return (
-      <div className="stream-pagination">
+      <div className="stream-pagination clearfix">
         <div className="btn-group pull-right">
           <a
             onClick={() => {

@@ -276,6 +276,7 @@ const NoteInput = React.createClass({
                 placeholder={t('Add details or updates to this event')}
                 onChange={this.onChange}
                 onBlur={this.onBlur}
+                onKeyDown={this.onKeyDown}
                 value={value}
                 required={true}
                 autoFocus={true}

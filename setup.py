@@ -48,7 +48,7 @@ from sentry.utils.distutils import (
 )
 
 # The version of sentry
-VERSION = '8.19.0.dev0'
+VERSION = '8.20.0.dev0'
 
 # Hack to prevent stupid "TypeError: 'NoneType' object is not callable" error
 # in multiprocessing/util.py _exit_function when running `python
@@ -84,13 +84,13 @@ tests_require = [
     'pytest-timeout>=0.5.0,<0.6.0',
     'pytest-xdist>=1.11.0,<1.12.0',
     'python-coveralls',
-    'responses',
+    'responses<0.6.2',  # 0.6.2 has a bug that causes our tests to fail.
 ]
 
 
 install_requires = [
     'botocore<1.5.71',
-    'boto3>=1.4.1,<1.5',
+    'boto3>=1.4.1,<1.4.6',
     'celery>=3.1.8,<3.1.19',
     'click>=5.0,<7.0',
     # 'cryptography>=1.3,<1.4',
@@ -109,11 +109,10 @@ install_requires = [
     'hiredis>=0.1.0,<0.2.0',
     'honcho>=0.7.0,<0.8.0',
     'kombu==3.0.35',
-    'lxml>=3.4.1',
-
     'ipaddress>=1.0.16,<1.1.0',
     'libsourcemap>=0.7.2,<0.8.0',
     'loremipsum>=1.0.5,<1.1.0',
+    'lxml>=3.4.1',
     'mock>=0.8.0,<1.1',
     'mmh3>=2.3.1,<2.4',
     'oauth2>=1.5.167',
@@ -130,7 +129,7 @@ install_requires = [
     'python-openid>=2.2',
     'PyYAML>=3.11,<3.12',
     'raven>=5.29.0,<6.0.0',
-    'redis>=2.10.3,<2.11.0',
+    'redis>=2.10.3,<2.10.6',
     'requests[security]>=2.9.1,<2.13.0',
     'selenium==3.4.3',
     'simplejson>=3.2.0,<3.9.0',
@@ -138,7 +137,6 @@ install_requires = [
     'setproctitle>=1.1.7,<1.2.0',
     'statsd>=3.1.0,<3.2.0',
     'structlog==16.1.0',
-    'South==1.0.1',
     'sqlparse>=0.1.16,<0.2.0',
     'symsynd>=3.0.0,<4.0.0',
     'toronado>=0.0.11,<0.1.0',
@@ -150,13 +148,17 @@ install_requires = [
     'python-u2flib-server>=4.0.1,<4.1.0',
 ]
 
+saml_requires = [
+    'python3-saml>=1.2.6,<1.3',
+]
+
 
 class SentrySDistCommand(SDistCommand):
     # If we are not a light build we want to also execute build_assets as
     # part of our source build pipeline.
     if not IS_LIGHT_BUILD:
         sub_commands = SDistCommand.sub_commands + \
-            [('build_assets', None), ('build_integration_docs', None)]
+            [('build_integration_docs', None), ('build_assets', None)]
 
 
 class SentryBuildCommand(BuildCommand):
@@ -164,8 +166,8 @@ class SentryBuildCommand(BuildCommand):
     def run(self):
         BuildCommand.run(self)
         if not IS_LIGHT_BUILD:
-            self.run_command('build_assets')
             self.run_command('build_integration_docs')
+            self.run_command('build_assets')
 
 
 class SentryDevelopCommand(DevelopCommand):
@@ -173,8 +175,8 @@ class SentryDevelopCommand(DevelopCommand):
     def run(self):
         DevelopCommand.run(self)
         if not IS_LIGHT_BUILD:
-            self.run_command('build_assets')
             self.run_command('build_integration_docs')
+            self.run_command('build_assets')
 
 
 cmdclass = {
@@ -201,6 +203,7 @@ setup(
     extras_require={
         'dev': dev_requires,
         'postgres': [],
+        'saml': saml_requires,
         'tests': tests_require,
     },
     cmdclass=cmdclass,

@@ -21,7 +21,7 @@ class SavedSearchSerializer(serializers.Serializer):
 
 
 class ProjectSearchDetailsEndpoint(ProjectEndpoint):
-    permission_classes = (RelaxedSearchPermission,)
+    permission_classes = (RelaxedSearchPermission, )
 
     def get(self, request, project, search_id):
         """
@@ -92,9 +92,7 @@ class ProjectSearchDetailsEndpoint(ProjectEndpoint):
 
         if result.get('isUserDefault'):
             SavedSearchUserDefault.objects.create_or_update(
-                user=request.user,
-                project=project,
-                values={
+                user=request.user, project=project, values={
                     'savedsearch': search,
                 }
             )

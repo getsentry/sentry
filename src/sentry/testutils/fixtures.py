@@ -20,24 +20,25 @@ from uuid import uuid4
 import os
 from django.utils import timezone
 
-
 from sentry.models import (
-    Activity, Event, EventError, EventMapping, Group, Organization,
-    OrganizationMember, OrganizationMemberTeam, Project, Team, User, UserEmail,
-    Release, Commit, ReleaseCommit, CommitAuthor, Repository, CommitFileChange
+    Activity, Event, EventError, EventMapping, Group, Organization, OrganizationMember,
+    OrganizationMemberTeam, Project, Team, User, UserEmail, Release, Commit, ReleaseCommit,
+    CommitAuthor, Repository, CommitFileChange
 )
 
 DEFAULT_EVENT_DATA = {
     'extra': {
         'loadavg': [0.97607421875, 0.88330078125, 0.833984375],
         'sys.argv': [
-            '/Users/dcramer/.virtualenvs/sentry/bin/raven',
-            'test',
+            '/Users/dcramer/.virtualenvs/sentry/bin/raven', 'test',
             'https://ebc35f33e151401f9deac549978bda11:f3403f81e12e4c24942d505f086b2cad@sentry.io/1'
         ],
-        'user': 'dcramer'
+        'user':
+        'dcramer'
     },
-    'modules': {'raven': '3.1.13'},
+    'modules': {
+        'raven': '3.1.13'
+    },
     'sentry.interfaces.Http': {
         'cookies': {},
         'data': {},
@@ -50,26 +51,31 @@ DEFAULT_EVENT_DATA = {
     'sentry.interfaces.Stacktrace': {
         'frames': [
             {
-                'abs_path': 'www/src/sentry/models/foo.py',
-                'context_line': '                        string_max_length=self.string_max_length)',
-                'filename': 'raven/base.py',
-                'function': 'build_msg',
-                'in_app': True,
-                'lineno': 29,
-                'module': 'raven.base',
+                'abs_path':
+                'www/src/sentry/models/foo.py',
+                'context_line':
+                '                        string_max_length=self.string_max_length)',
+                'filename':
+                'raven/base.py',
+                'function':
+                'build_msg',
+                'in_app':
+                True,
+                'lineno':
+                29,
+                'module':
+                'raven.base',
                 'post_context': [
-                    '                },',
-                    '            })',
-                    '',
+                    '                },', '            })', '',
                     "        if 'sentry.interfaces.Stacktrace' in data:",
                     '            if self.include_paths:'
                 ],
                 'pre_context': [
-                    '',
-                    '            data.update({',
+                    '', '            data.update({',
                     "                'sentry.interfaces.Stacktrace': {",
                     "                    'frames': get_stack_info(frames,",
-                    '                        list_max_length=self.list_max_length,'],
+                    '                        list_max_length=self.list_max_length,'
+                ],
                 'vars': {
                     'culprit': 'raven.scripts.runner',
                     'date': 'datetime.datetime(2013, 2, 14, 20, 6, 33, 479471)',
@@ -79,7 +85,10 @@ DEFAULT_EVENT_DATA = {
                     'handler': '<raven.events.Message object at 0x103feb710>',
                     'k': 'sentry.interfaces.Message',
                     'public_key': None,
-                    'result': {'sentry.interfaces.Message': "{'message': 'This is a test message generated using ``raven test``', 'params': []}"},
+                    'result': {
+                        'sentry.interfaces.Message':
+                        "{'message': 'This is a test message generated using ``raven test``', 'params': []}"
+                    },
                     'self': '<raven.base.Client object at 0x104397f10>',
                     'stack': True,
                     'tags': None,
@@ -87,26 +96,31 @@ DEFAULT_EVENT_DATA = {
                 },
             },
             {
-                'abs_path': '/Users/dcramer/.virtualenvs/sentry/lib/python2.7/site-packages/raven/base.py',
-                'context_line': '                        string_max_length=self.string_max_length)',
-                'filename': 'raven/base.py',
-                'function': 'build_msg',
-                'in_app': False,
-                'lineno': 290,
-                'module': 'raven.base',
+                'abs_path':
+                '/Users/dcramer/.virtualenvs/sentry/lib/python2.7/site-packages/raven/base.py',
+                'context_line':
+                '                        string_max_length=self.string_max_length)',
+                'filename':
+                'raven/base.py',
+                'function':
+                'build_msg',
+                'in_app':
+                False,
+                'lineno':
+                290,
+                'module':
+                'raven.base',
                 'post_context': [
-                    '                },',
-                    '            })',
-                    '',
+                    '                },', '            })', '',
                     "        if 'sentry.interfaces.Stacktrace' in data:",
                     '            if self.include_paths:'
                 ],
                 'pre_context': [
-                    '',
-                    '            data.update({',
+                    '', '            data.update({',
                     "                'sentry.interfaces.Stacktrace': {",
                     "                    'frames': get_stack_info(frames,",
-                    '                        list_max_length=self.list_max_length,'],
+                    '                        list_max_length=self.list_max_length,'
+                ],
                 'vars': {
                     'culprit': 'raven.scripts.runner',
                     'date': 'datetime.datetime(2013, 2, 14, 20, 6, 33, 479471)',
@@ -116,7 +130,10 @@ DEFAULT_EVENT_DATA = {
                     'handler': '<raven.events.Message object at 0x103feb710>',
                     'k': 'sentry.interfaces.Message',
                     'public_key': None,
-                    'result': {'sentry.interfaces.Message': "{'message': 'This is a test message generated using ``raven test``', 'params': []}"},
+                    'result': {
+                        'sentry.interfaces.Message':
+                        "{'message': 'This is a test message generated using ``raven test``', 'params': []}"
+                    },
                     'self': '<raven.base.Client object at 0x104397f10>',
                     'stack': True,
                     'tags': None,
@@ -177,21 +194,19 @@ class Fixtures(object):
 
     @fixture
     def group(self):
-        return self.create_group(message=u'こんにちは')
+        return self.create_group(message=u'\u3053\u3093\u306b\u3061\u306f')
 
     @fixture
     def event(self):
         return self.create_event(
             event_id='a' * 32,
-            message=u'こんにちは',
+            message=u'\u3053\u3093\u306b\u3061\u306f',
         )
 
     @fixture
     def activity(self):
         return Activity.objects.create(
-            group=self.group, project=self.project,
-            type=Activity.NOTE, user=self.user,
-            data={}
+            group=self.group, project=self.project, type=Activity.NOTE, user=self.user, data={}
         )
 
     def create_organization(self, **kwargs):
@@ -319,9 +334,7 @@ class Fixtures(object):
 
     def create_commit_author(self, project, user):
         commit_author = CommitAuthor.objects.get_or_create(
-            organization_id=project.organization_id,
-            email=user,
-            defaults={
+            organization_id=project.organization_id, email=user, defaults={
                 'name': user,
             }
         )[0]
@@ -357,6 +370,17 @@ class Fixtures(object):
 
         return user
 
+    def create_useremail(self, user, email, **kwargs):
+        if not email:
+            email = uuid4().hex + '@example.com'
+
+        kwargs.setdefault('is_verified', True)
+
+        useremail = UserEmail(user=user, email=email, **kwargs)
+        useremail.save()
+
+        return useremail
+
     def create_event(self, event_id=None, **kwargs):
         if event_id is None:
             event_id = uuid4().hex
@@ -370,10 +394,12 @@ class Fixtures(object):
                 tags = list(tags.items())
             kwargs['data']['tags'] = tags
 
-        kwargs['data'].setdefault('errors', [{
-            'type': EventError.INVALID_DATA,
-            'name': 'foobar',
-        }])
+        kwargs['data'].setdefault(
+            'errors', [{
+                'type': EventError.INVALID_DATA,
+                'name': 'foobar',
+            }]
+        )
 
         # maintain simple event fixtures by supporting the legacy message
         # parameter just like our API would
@@ -383,17 +409,16 @@ class Fixtures(object):
             }
 
         if 'type' not in kwargs['data']:
-            kwargs['data'].update({
-                'type': 'default',
-                'metadata': {
-                    'title': kwargs['data']['sentry.interfaces.Message']['message'],
-                },
-            })
+            kwargs['data'].update(
+                {
+                    'type': 'default',
+                    'metadata': {
+                        'title': kwargs['data']['sentry.interfaces.Message']['message'],
+                    },
+                }
+            )
 
-        event = Event(
-            event_id=event_id,
-            **kwargs
-        )
+        event = Event(event_id=event_id, **kwargs)
         EventMapping.objects.create(
             project_id=event.project.id,
             event_id=event_id,
@@ -492,10 +517,8 @@ class Fixtures(object):
                 }
             }"""
 
-        return self.create_event(
-            event_id=event_id,
-            platform='javascript',
-            data=json.loads(payload))
+        return self.create_event(event_id=event_id, platform='javascript',
+                                 data=json.loads(payload))
 
     def create_group(self, project=None, checksum=None, **kwargs):
         if checksum:
@@ -505,15 +528,14 @@ class Fixtures(object):
         kwargs.setdefault('message', 'Hello world')
         kwargs.setdefault('data', {})
         if 'type' not in kwargs['data']:
-            kwargs['data'].update({
-                'type': 'default',
-                'metadata': {
-                    'title': kwargs['message'],
-                },
-            })
+            kwargs['data'].update(
+                {
+                    'type': 'default',
+                    'metadata': {
+                        'title': kwargs['message'],
+                    },
+                }
+            )
         if 'short_id' not in kwargs:
             kwargs['short_id'] = project.next_short_id()
-        return Group.objects.create(
-            project=project,
-            **kwargs
-        )
+        return Group.objects.create(project=project, **kwargs)

@@ -138,11 +138,13 @@ class SetCommitsTest(TestCase):
             projects=project,
             version=version,
         )
-        commit_list = list(Commit.objects.filter(
-            releasecommit__release=release,
-        ).select_related(
-            'author',
-        ).order_by('releasecommit__order'))
+        commit_list = list(
+            Commit.objects.filter(
+                releasecommit__release=release,
+            ).select_related(
+                'author',
+            ).order_by('releasecommit__order')
+        )
 
         assert len(commit_list) == 2
         assert commit_list[0].key == 'c7155651831549cf8a5e47889fce17eb'

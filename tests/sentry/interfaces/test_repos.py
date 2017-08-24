@@ -22,13 +22,15 @@ class ReposTest(TestCase):
         }
 
     def test_full_valid(self):
-        assert Repos.to_python({
-            '/path/to/sentry': {
-                'name': 'sentry-unity',
-                'prefix': 'src',
-                'revision': 'a' * 40,
-            },
-        }).to_json() == {
+        assert Repos.to_python(
+            {
+                '/path/to/sentry': {
+                    'name': 'sentry-unity',
+                    'prefix': 'src',
+                    'revision': 'a' * 40,
+                },
+            }
+        ).to_json() == {
             '/path/to/sentry': {
                 'name': 'sentry-unity',
                 'prefix': 'src',

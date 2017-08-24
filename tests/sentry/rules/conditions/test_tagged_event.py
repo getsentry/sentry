@@ -10,10 +10,8 @@ class TaggedEventConditionTest(RuleTestCase):
     def get_event(self):
         event = self.event
         event.data['tags'] = (
-            ('logger', 'sentry.example'),
-            ('logger', 'foo.bar'),
-            ('notlogger', 'sentry.other.example'),
-            ('notlogger', 'bar.foo.baz'),
+            ('logger', 'sentry.example'), ('logger', 'foo.bar'),
+            ('notlogger', 'sentry.other.example'), ('notlogger', 'bar.foo.baz'),
         )
         return event
 
@@ -27,43 +25,53 @@ class TaggedEventConditionTest(RuleTestCase):
 
     def test_equals(self):
         event = self.get_event()
-        rule = self.get_rule({
-            'match': MatchType.EQUAL,
-            'key': 'LOGGER',
-            'value': 'sentry.example',
-        })
+        rule = self.get_rule(
+            {
+                'match': MatchType.EQUAL,
+                'key': 'LOGGER',
+                'value': 'sentry.example',
+            }
+        )
         self.assertPasses(rule, event)
 
-        rule = self.get_rule({
-            'match': MatchType.EQUAL,
-            'key': 'logger',
-            'value': 'sentry.other.example',
-        })
+        rule = self.get_rule(
+            {
+                'match': MatchType.EQUAL,
+                'key': 'logger',
+                'value': 'sentry.other.example',
+            }
+        )
         self.assertDoesNotPass(rule, event)
 
     def test_does_not_equal(self):
         event = self.get_event()
-        rule = self.get_rule({
-            'match': MatchType.NOT_EQUAL,
-            'key': 'logger',
-            'value': 'sentry.example',
-        })
+        rule = self.get_rule(
+            {
+                'match': MatchType.NOT_EQUAL,
+                'key': 'logger',
+                'value': 'sentry.example',
+            }
+        )
         self.assertDoesNotPass(rule, event)
 
-        rule = self.get_rule({
-            'match': MatchType.NOT_EQUAL,
-            'key': 'logger',
-            'value': 'sentry.other.example',
-        })
+        rule = self.get_rule(
+            {
+                'match': MatchType.NOT_EQUAL,
+                'key': 'logger',
+                'value': 'sentry.other.example',
+            }
+        )
         self.assertPasses(rule, event)
 
     def test_starts_with(self):
         event = self.get_event()
-        rule = self.get_rule({
-            'match': MatchType.STARTS_WITH,
-            'key': 'logger',
-            'value': 'sentry.',
-        })
+        rule = self.get_rule(
+            {
+                'match': MatchType.STARTS_WITH,
+                'key': 'logger',
+                'value': 'sentry.',
+            }
+        )
         self.assertPasses(rule, event)
 
         rule = self.get_rule({
@@ -75,11 +83,13 @@ class TaggedEventConditionTest(RuleTestCase):
 
     def test_ends_with(self):
         event = self.get_event()
-        rule = self.get_rule({
-            'match': MatchType.ENDS_WITH,
-            'key': 'logger',
-            'value': '.example',
-        })
+        rule = self.get_rule(
+            {
+                'match': MatchType.ENDS_WITH,
+                'key': 'logger',
+                'value': '.example',
+            }
+        )
         self.assertPasses(rule, event)
 
         rule = self.get_rule({
@@ -107,16 +117,20 @@ class TaggedEventConditionTest(RuleTestCase):
 
     def test_does_not_contain(self):
         event = self.get_event()
-        rule = self.get_rule({
-            'match': MatchType.NOT_CONTAINS,
-            'key': 'logger',
-            'value': 'sentry',
-        })
+        rule = self.get_rule(
+            {
+                'match': MatchType.NOT_CONTAINS,
+                'key': 'logger',
+                'value': 'sentry',
+            }
+        )
         self.assertDoesNotPass(rule, event)
 
-        rule = self.get_rule({
-            'match': MatchType.NOT_CONTAINS,
-            'key': 'logger',
-            'value': 'bar.foo',
-        })
+        rule = self.get_rule(
+            {
+                'match': MatchType.NOT_CONTAINS,
+                'key': 'logger',
+                'value': 'bar.foo',
+            }
+        )
         self.assertPasses(rule, event)

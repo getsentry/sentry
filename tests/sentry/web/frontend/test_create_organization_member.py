@@ -58,11 +58,13 @@ class CreateOrganizationMemberTest(TestCase):
         self.login_as(self.user)
 
         with self.settings(SENTRY_ENABLE_INVITES=True), self.tasks():
-            resp = self.client.post(path, {
-                'email': 'foo@example.com',
-                'role': 'admin',
-                'teams': [team.id, ]
-            })
+            resp = self.client.post(
+                path, {'email': 'foo@example.com',
+                       'role': 'admin',
+                       'teams': [
+                           team.id,
+                       ]}
+            )
         assert resp.status_code == 302
 
         member = OrganizationMember.objects.get(
@@ -73,9 +75,7 @@ class CreateOrganizationMemberTest(TestCase):
         assert member.user is None
         assert member.role == 'admin'
 
-        om_teams = OrganizationMemberTeam.objects.filter(
-            organizationmember=member
-        )
+        om_teams = OrganizationMemberTeam.objects.filter(organizationmember=member)
 
         assert len(om_teams) == 1
         assert om_teams[0].team_id == team.id
@@ -101,10 +101,7 @@ class CreateOrganizationMemberTest(TestCase):
         )
 
         with self.settings(SENTRY_ENABLE_INVITES=True):
-            resp = self.client.post(path, {
-                'email': 'foo@example.com',
-                'role': 'member'
-            })
+            resp = self.client.post(path, {'email': 'foo@example.com', 'role': 'member'})
 
         assert resp.status_code == 302
 
@@ -124,10 +121,7 @@ class CreateOrganizationMemberTest(TestCase):
         user = self.create_user('foo@example.com')
 
         with self.settings(SENTRY_ENABLE_INVITES=False):
-            resp = self.client.post(path, {
-                'user': 'foo@example.com',
-                'role': 'admin'
-            })
+            resp = self.client.post(path, {'user': 'foo@example.com', 'role': 'admin'})
         assert resp.status_code == 302
 
         member = OrganizationMember.objects.get(
@@ -147,10 +141,7 @@ class CreateOrganizationMemberTest(TestCase):
         self.login_as(self.user)
 
         with self.settings(SENTRY_ENABLE_INVITES=False):
-            resp = self.client.post(path, {
-                'user': 'bar@example.com',
-                'role': 'member'
-            })
+            resp = self.client.post(path, {'user': 'bar@example.com', 'role': 'member'})
 
         assert resp.status_code == 200
         assert 'user' in resp.context['form'].errors

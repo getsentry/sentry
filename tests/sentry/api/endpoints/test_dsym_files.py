@@ -9,7 +9,6 @@ from django.core.urlresolvers import reverse
 from sentry.testutils import APITestCase
 from sentry.models import VersionDSymFile
 
-
 # This is obviously a freely generated UUID and not the checksum UUID.
 # This is permissible if users want to send different UUIDs
 PROGUARD_UUID = '6dc7fdb0-d2fb-4c8e-9d6b-bb1aa98929b1'
@@ -22,14 +21,16 @@ org.slf4j.helpers.Util$ClassContextSecurityManager -> org.a.b.g$a:
 
 
 class DSymFilesUploadTest(APITestCase):
-
     def test_simple_proguard_upload(self):
         project = self.create_project(name='foo')
 
-        url = reverse('sentry-api-0-dsym-files', kwargs={
-            'organization_slug': project.organization.slug,
-            'project_slug': project.slug,
-        })
+        url = reverse(
+            'sentry-api-0-dsym-files',
+            kwargs={
+                'organization_slug': project.organization.slug,
+                'project_slug': project.slug,
+            }
+        )
 
         self.login_as(user=self.user)
 
@@ -39,16 +40,17 @@ class DSymFilesUploadTest(APITestCase):
         f.writestr('ignored-file.txt', b'This is just some stuff')
         f.close()
 
-        response = self.client.post(url, {
-            'file': SimpleUploadedFile('symbols.zip', out.getvalue(),
-                                       content_type='application/zip'),
-        }, format='multipart')
+        response = self.client.post(
+            url, {
+                'file':
+                SimpleUploadedFile('symbols.zip', out.getvalue(), content_type='application/zip'),
+            },
+            format='multipart'
+        )
 
         assert response.status_code == 201, response.content
         assert len(response.data) == 1
-        assert response.data[0]['headers'] == {
-            'Content-Type': 'text/x-proguard+plain'
-        }
+        assert response.data[0]['headers'] == {'Content-Type': 'text/x-proguard+plain'}
         assert response.data[0]['sha1'] == 'e6d3c5185dac63eddfdc1a5edfffa32d46103b44'
         assert response.data[0]['uuid'] == PROGUARD_UUID
         assert response.data[0]['objectName'] == 'proguard-mapping'
@@ -58,10 +60,13 @@ class DSymFilesUploadTest(APITestCase):
     def test_associate_proguard_dsym(self):
         project = self.create_project(name='foo')
 
-        url = reverse('sentry-api-0-dsym-files', kwargs={
-            'organization_slug': project.organization.slug,
-            'project_slug': project.slug,
-        })
+        url = reverse(
+            'sentry-api-0-dsym-files',
+            kwargs={
+                'organization_slug': project.organization.slug,
+                'project_slug': project.slug,
+            }
+        )
 
         self.login_as(user=self.user)
 
@@ -70,35 +75,42 @@ class DSymFilesUploadTest(APITestCase):
         f.writestr('proguard/%s.txt' % PROGUARD_UUID, PROGUARD_SOURCE)
         f.close()
 
-        response = self.client.post(url, {
-            'file': SimpleUploadedFile('symbols.zip', out.getvalue(),
-                                       content_type='application/zip'),
-        }, format='multipart')
+        response = self.client.post(
+            url, {
+                'file':
+                SimpleUploadedFile('symbols.zip', out.getvalue(), content_type='application/zip'),
+            },
+            format='multipart'
+        )
 
         assert response.status_code == 201, response.content
         assert len(response.data) == 1
-        assert response.data[0]['headers'] == {
-            'Content-Type': 'text/x-proguard+plain'
-        }
+        assert response.data[0]['headers'] == {'Content-Type': 'text/x-proguard+plain'}
         assert response.data[0]['sha1'] == 'e6d3c5185dac63eddfdc1a5edfffa32d46103b44'
         assert response.data[0]['uuid'] == PROGUARD_UUID
         assert response.data[0]['objectName'] == 'proguard-mapping'
         assert response.data[0]['cpuName'] == 'any'
         assert response.data[0]['symbolType'] == 'proguard'
 
-        url = reverse('sentry-api-0-associate-dsym-files', kwargs={
-            'organization_slug': project.organization.slug,
-            'project_slug': project.slug,
-        })
+        url = reverse(
+            'sentry-api-0-associate-dsym-files',
+            kwargs={
+                'organization_slug': project.organization.slug,
+                'project_slug': project.slug,
+            }
+        )
 
-        response = self.client.post(url, {
-            'checksums': ['e6d3c5185dac63eddfdc1a5edfffa32d46103b44'],
-            'platform': 'android',
-            'name': 'MyApp',
-            'appId': 'com.example.myapp',
-            'version': '1.0',
-            'build': '1',
-        }, format='json')
+        response = self.client.post(
+            url, {
+                'checksums': ['e6d3c5185dac63eddfdc1a5edfffa32d46103b44'],
+                'platform': 'android',
+                'name': 'MyApp',
+                'appId': 'com.example.myapp',
+                'version': '1.0',
+                'build': '1',
+            },
+            format='json'
+        )
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
@@ -110,13 +122,16 @@ class DSymFilesUploadTest(APITestCase):
         assert vdf.dsym_app.app_id == 'com.example.myapp'
         assert vdf.dsym_file.uuid == PROGUARD_UUID
 
-    def test_list_dsyms(self):
+    def test_associate_proguard_dsym_no_build(self):
         project = self.create_project(name='foo')
 
-        url = reverse('sentry-api-0-dsym-files', kwargs={
-            'organization_slug': project.organization.slug,
-            'project_slug': project.slug,
-        })
+        url = reverse(
+            'sentry-api-0-dsym-files',
+            kwargs={
+                'organization_slug': project.organization.slug,
+                'project_slug': project.slug,
+            }
+        )
 
         self.login_as(user=self.user)
 
@@ -125,36 +140,112 @@ class DSymFilesUploadTest(APITestCase):
         f.writestr('proguard/%s.txt' % PROGUARD_UUID, PROGUARD_SOURCE)
         f.close()
 
-        response = self.client.post(url, {
-            'file': SimpleUploadedFile('symbols.zip', out.getvalue(),
-                                       content_type='application/zip'),
-        }, format='multipart')
+        response = self.client.post(
+            url, {
+                'file':
+                SimpleUploadedFile('symbols.zip', out.getvalue(), content_type='application/zip'),
+            },
+            format='multipart'
+        )
 
         assert response.status_code == 201, response.content
         assert len(response.data) == 1
+        assert response.data[0]['headers'] == {'Content-Type': 'text/x-proguard+plain'}
+        assert response.data[0]['sha1'] == 'e6d3c5185dac63eddfdc1a5edfffa32d46103b44'
+        assert response.data[0]['uuid'] == PROGUARD_UUID
+        assert response.data[0]['objectName'] == 'proguard-mapping'
+        assert response.data[0]['cpuName'] == 'any'
+        assert response.data[0]['symbolType'] == 'proguard'
 
-        url = reverse('sentry-api-0-associate-dsym-files', kwargs={
-            'organization_slug': project.organization.slug,
-            'project_slug': project.slug,
-        })
+        url = reverse(
+            'sentry-api-0-associate-dsym-files',
+            kwargs={
+                'organization_slug': project.organization.slug,
+                'project_slug': project.slug,
+            }
+        )
 
-        response = self.client.post(url, {
-            'checksums': ['e6d3c5185dac63eddfdc1a5edfffa32d46103b44'],
-            'platform': 'android',
-            'name': 'MyApp',
-            'appId': 'com.example.myapp',
-            'version': '1.0',
-            'build': '1',
-        }, format='json')
+        response = self.client.post(
+            url, {
+                'checksums': ['e6d3c5185dac63eddfdc1a5edfffa32d46103b44'],
+                'platform': 'android',
+                'name': 'MyApp',
+                'appId': 'com.example.myapp',
+                'version': '1.0',
+            },
+            format='json'
+        )
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
         assert response.data['associatedDsymFiles'][0]['uuid'] == PROGUARD_UUID
 
-        url = reverse('sentry-api-0-dsym-files', kwargs={
-            'organization_slug': project.organization.slug,
-            'project_slug': project.slug,
-        })
+        vdf = VersionDSymFile.objects.get()
+        assert vdf.version == '1.0'
+        assert vdf.build is None
+        assert vdf.dsym_app.app_id == 'com.example.myapp'
+        assert vdf.dsym_file.uuid == PROGUARD_UUID
+
+    def test_list_dsyms(self):
+        project = self.create_project(name='foo')
+
+        url = reverse(
+            'sentry-api-0-dsym-files',
+            kwargs={
+                'organization_slug': project.organization.slug,
+                'project_slug': project.slug,
+            }
+        )
+
+        self.login_as(user=self.user)
+
+        out = BytesIO()
+        f = zipfile.ZipFile(out, 'w')
+        f.writestr('proguard/%s.txt' % PROGUARD_UUID, PROGUARD_SOURCE)
+        f.close()
+
+        response = self.client.post(
+            url, {
+                'file':
+                SimpleUploadedFile('symbols.zip', out.getvalue(), content_type='application/zip'),
+            },
+            format='multipart'
+        )
+
+        assert response.status_code == 201, response.content
+        assert len(response.data) == 1
+
+        url = reverse(
+            'sentry-api-0-associate-dsym-files',
+            kwargs={
+                'organization_slug': project.organization.slug,
+                'project_slug': project.slug,
+            }
+        )
+
+        response = self.client.post(
+            url, {
+                'checksums': ['e6d3c5185dac63eddfdc1a5edfffa32d46103b44'],
+                'platform': 'android',
+                'name': 'MyApp',
+                'appId': 'com.example.myapp',
+                'version': '1.0',
+                'build': '1',
+            },
+            format='json'
+        )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+        assert response.data['associatedDsymFiles'][0]['uuid'] == PROGUARD_UUID
+
+        url = reverse(
+            'sentry-api-0-dsym-files',
+            kwargs={
+                'organization_slug': project.organization.slug,
+                'project_slug': project.slug,
+            }
+        )
 
         response = self.client.get(url)
 

@@ -17,8 +17,7 @@ class ProjectPermission(TeamPermission):
     }
 
     def has_object_permission(self, request, view, project):
-        return super(ProjectPermission, self).has_object_permission(
-            request, view, project.team)
+        return super(ProjectPermission, self).has_object_permission(request, view, project.team)
 
 
 class StrictProjectPermission(ProjectPermission):
@@ -54,7 +53,6 @@ class ProjectSettingPermission(ProjectPermission):
         'POST': ['project:write', 'project:admin'],
         'PUT': ['project:write', 'project:admin'],
         'DELETE': ['project:write', 'project:admin'],
-
     }
 
 
@@ -69,7 +67,7 @@ class RelaxedSearchPermission(ProjectPermission):
 
 
 class ProjectEndpoint(Endpoint):
-    permission_classes = (ProjectPermission,)
+    permission_classes = (ProjectPermission, )
 
     def convert_args(self, request, organization_slug, project_slug, *args, **kwargs):
         try:

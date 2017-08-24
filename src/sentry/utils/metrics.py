@@ -17,6 +17,7 @@ def get_default_backend():
 
     return cls(**settings.SENTRY_METRICS_OPTIONS)
 
+
 backend = get_default_backend()
 
 
