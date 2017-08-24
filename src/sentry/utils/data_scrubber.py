@@ -64,13 +64,13 @@ class SensitiveDataFilter(object):
 
     def __init__(self, fields=None, include_defaults=True, exclude_fields=()):
         if fields:
-            fields = tuple(fields)
+            fields = tuple(f.lower() for f in filter(None, fields))
         else:
             fields = ()
         if include_defaults:
             fields += DEFAULT_SCRUBBED_FIELDS
-        self.exclude_fields = set(exclude_fields)
-        self.fields = set(filter(None, fields))
+        self.exclude_fields = {f.lower() for f in exclude_fields}
+        self.fields = set(fields)
 
     def apply(self, data):
         # TODO(dcramer): move this into each interface
