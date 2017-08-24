@@ -146,7 +146,15 @@ let GroupEventToolbar = React.createClass({
             {eventNavNodes}
           </div>
         </div>
-        <h4>{t('Event')} <span className="event-id">{evt.eventID}</span></h4>
+        <h4>
+          {t('Event')}
+          {' '}
+          <Link
+            to={`/${orgId}/${projectId}/issues/${groupId}/events/${evt.id}/`}
+            className="event-id">
+            {evt.eventID}
+          </Link>
+        </h4>
         <span>
           {/* use a key here to force removal of tooltip parent - fixes #3341 */}
           <span className="tip" data-title={this.getDateTooltip()} key={evt.id}>
