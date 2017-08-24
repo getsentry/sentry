@@ -18,8 +18,7 @@ from django.utils.translation import ugettext_lazy as _
 
 from sentry import eventtypes
 from sentry.db.models import (
-    BaseManager, BoundedBigIntegerField, BoundedIntegerField,
-    Model, NodeField, sane_repr
+    BaseManager, BoundedBigIntegerField, BoundedIntegerField, Model, NodeField, sane_repr
 )
 from sentry.interfaces.base import get_interface
 from sentry.utils.cache import memoize
@@ -54,8 +53,8 @@ class Event(Model):
         db_table = 'sentry_message'
         verbose_name = _('message')
         verbose_name_plural = _('messages')
-        unique_together = (('project_id', 'event_id'),)
-        index_together = (('group_id', 'datetime'),)
+        unique_together = (('project_id', 'event_id'), )
+        index_together = (('group_id', 'datetime'), )
 
     __repr__ = sane_repr('project_id', 'group_id')
 
@@ -119,20 +118,18 @@ class Event(Model):
         return et.to_string(self.get_event_metadata())
 
     def error(self):
-        warnings.warn('Event.error is deprecated, use Event.title',
-                      DeprecationWarning)
+        warnings.warn('Event.error is deprecated, use Event.title', DeprecationWarning)
         return self.title
+
     error.short_description = _('error')
 
     @property
     def message_short(self):
-        warnings.warn('Event.message_short is deprecated, use Event.title',
-                      DeprecationWarning)
+        warnings.warn('Event.message_short is deprecated, use Event.title', DeprecationWarning)
         return self.title
 
     def has_two_part_message(self):
-        warnings.warn('Event.has_two_part_message is no longer used',
-                      DeprecationWarning)
+        warnings.warn('Event.has_two_part_message is no longer used', DeprecationWarning)
         return False
 
     @property
@@ -171,16 +168,15 @@ class Event(Model):
             except ValueError:
                 continue
 
-            value = safe_execute(cls.to_python, data,
-                                 _with_transaction=False)
+            value = safe_execute(cls.to_python, data, _with_transaction=False)
             if not value:
                 continue
 
             result.append((key, value))
 
         return OrderedDict(
-            (k, v) for k, v in sorted(
-                result, key=lambda x: x[1].get_score(), reverse=True))
+            (k, v) for k, v in sorted(result, key=lambda x: x[1].get_score(), reverse=True)
+        )
 
     @memoize
     def interfaces(self):
@@ -235,26 +231,24 @@ class Event(Model):
 
     # XXX(dcramer): compatibility with plugins
     def get_level_display(self):
-        warnings.warn('Event.get_level_display is deprecated. Use Event.tags instead.',
-                      DeprecationWarning)
+        warnings.warn(
+            'Event.get_level_display is deprecated. Use Event.tags instead.', DeprecationWarning
+        )
         return self.group.get_level_display()
 
     @property
     def level(self):
-        warnings.warn('Event.level is deprecated. Use Event.tags instead.',
-                      DeprecationWarning)
+        warnings.warn('Event.level is deprecated. Use Event.tags instead.', DeprecationWarning)
         return self.group.level
 
     @property
     def logger(self):
-        warnings.warn('Event.logger is deprecated. Use Event.tags instead.',
-                      DeprecationWarning)
+        warnings.warn('Event.logger is deprecated. Use Event.tags instead.', DeprecationWarning)
         return self.get_tag('logger')
 
     @property
     def site(self):
-        warnings.warn('Event.site is deprecated. Use Event.tags instead.',
-                      DeprecationWarning)
+        warnings.warn('Event.site is deprecated. Use Event.tags instead.', DeprecationWarning)
         return self.get_tag('site')
 
     @property
@@ -298,6 +292,7 @@ class EventSubjectTemplateData(object):
     tag_aliases = {
         'release': 'sentry:release',
         'dist': 'sentry:dist',
+        'user': 'sentry:user',
     }
 
     def __init__(self, event):

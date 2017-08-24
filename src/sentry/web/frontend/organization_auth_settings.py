@@ -11,6 +11,7 @@ from django.utils.translation import ugettext_lazy as _
 from sentry import features, roles
 from sentry.auth import manager
 from sentry.auth.helper import AuthHelper
+from sentry.auth.providers.saml2 import SAML2Provider, HAS_SAML2
 from sentry.models import AuditLogEntryEvent, AuthProvider, OrganizationMember
 from sentry.plugins import Response
 from sentry.tasks.auth import email_missing_links
@@ -23,7 +24,8 @@ ERR_NO_SSO = _('The SSO feature is not enabled for this organization.')
 OK_PROVIDER_DISABLED = _('SSO authentication has been disabled.')
 
 OK_REMINDERS_SENT = _(
-    'A reminder email has been sent to members who have not yet linked their accounts.')
+    'A reminder email has been sent to members who have not yet linked their accounts.'
+)
 
 
 class AuthProviderSettingsForm(forms.Form):
@@ -35,7 +37,9 @@ class AuthProviderSettingsForm(forms.Form):
     default_role = forms.ChoiceField(
         label=_('Default Role'),
         choices=roles.get_choices(),
-        help_text=_('The default role new members will receive when logging in for the first time.'),
+        help_text=_(
+            'The default role new members will receive when logging in for the first time.'
+        ),
     )
 
 
@@ -80,23 +84,23 @@ class OrganizationAuthSettingsView(OrganizationView):
                 self._disable_provider(request, organization, auth_provider)
 
                 messages.add_message(
-                    request, messages.SUCCESS,
+                    request,
+                    messages.SUCCESS,
                     OK_PROVIDER_DISABLED,
                 )
 
-                next_uri = reverse('sentry-organization-auth-settings',
-                                   args=[organization.slug])
+                next_uri = reverse('sentry-organization-auth-settings', args=[organization.slug])
                 return self.redirect(next_uri)
             elif op == 'reinvite':
                 email_missing_links.delay(organization_id=organization.id)
 
                 messages.add_message(
-                    request, messages.SUCCESS,
+                    request,
+                    messages.SUCCESS,
                     OK_REMINDERS_SENT,
                 )
 
-                next_uri = reverse('sentry-organization-auth-settings',
-                                   args=[organization.slug])
+                next_uri = reverse('sentry-organization-auth-settings', args=[organization.slug])
                 return self.redirect(next_uri)
 
         form = AuthProviderSettingsForm(
@@ -119,11 +123,13 @@ class OrganizationAuthSettingsView(OrganizationView):
         if isinstance(response, HttpResponse):
             return response
         elif isinstance(response, Response):
-            response = response.render(request, {
-                'auth_provider': auth_provider,
-                'organization': organization,
-                'provider': provider,
-            })
+            response = response.render(
+                request, {
+                    'auth_provider': auth_provider,
+                    'organization': organization,
+                    'provider': provider,
+                }
+            )
 
         pending_links_count = OrganizationMember.objects.filter(
             organization=organization,
@@ -133,11 +139,8 @@ class OrganizationAuthSettingsView(OrganizationView):
         context = {
             'form': form,
             'pending_links_count': pending_links_count,
-            'login_url': absolute_uri(
-                reverse(
-                    'sentry-organization-home',
-                    args=[
-                        organization.slug])),
+            'login_url':
+            absolute_uri(reverse('sentry-organization-home', args=[organization.slug])),
             'auth_provider': auth_provider,
             'provider_name': provider.name,
             'content': response,
@@ -159,14 +162,13 @@ class OrganizationAuthSettingsView(OrganizationView):
     def handle(self, request, organization):
         if not features.has('organizations:sso', organization, actor=request.user):
             messages.add_message(
-                request, messages.ERROR,
+                request,
+                messages.ERROR,
                 ERR_NO_SSO,
             )
             return HttpResponseRedirect(
-                reverse(
-                    'sentry-organization-home',
-                    args=[
-                        organization.slug]))
+                reverse('sentry-organization-home', args=[organization.slug])
+            )
 
         try:
             auth_provider = AuthProvider.objects.get(
@@ -189,8 +191,18 @@ class OrganizationAuthSettingsView(OrganizationView):
             # render first time setup view
             return self.handle_provider_setup(request, organization, provider_key)
 
+        provider_list = []
+
+        for k, v in manager:
+            if issubclass(v, SAML2Provider):
+                if not HAS_SAML2:
+                    continue
+                if not features.has('organizations:saml2', organization, actor=request.user):
+                    continue
+            provider_list.append((k, v.name))
+
         context = {
-            'provider_list': [(k, v.name) for k, v in manager],
+            'provider_list': provider_list,
         }
 
         return self.respond('sentry/organization-auth-settings.html', context)

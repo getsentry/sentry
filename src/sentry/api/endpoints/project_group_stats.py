@@ -22,13 +22,6 @@ class ProjectGroupStatsEndpoint(ProjectEndpoint, StatsMixin):
         if not group_ids:
             return Response(status=204)
 
-        data = tsdb.get_range(
-            model=tsdb.models.group,
-            keys=group_ids,
-            **self._parse_args(request)
-        )
+        data = tsdb.get_range(model=tsdb.models.group, keys=group_ids, **self._parse_args(request))
 
-        return Response({
-            six.text_type(k): v
-            for k, v in data.items()
-        })
+        return Response({six.text_type(k): v for k, v in data.items()})

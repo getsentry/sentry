@@ -76,7 +76,10 @@ class ConfigurationError(ValueError):
     This error is thrown whenever a sentry configuration is wrong, or requires a third-party library
     that's not installed properly or can't be found.
     """
+
     @classmethod
     def get_error_message(cls, dependency, package):
         return """Python could not find %(package)s in your current environment (required by %(dependency)s). If you have it installed, maybe you are using the wrong python binary to run sentry?""" % {
-            "dependency": dependency, "package": package}
+            "dependency": dependency,
+            "package": package
+        }

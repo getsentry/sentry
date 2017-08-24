@@ -1,0 +1,7 @@
+brew 'libxmlsec1'
+brew 'nodejs'
+brew 'openssl'
+brew 'postgresql'
+brew 'python'
+brew 'redis'
+brew 'yarn'

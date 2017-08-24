@@ -21,9 +21,7 @@ from sentry import options
 from sentry.auth import password_validation
 from sentry.app import ratelimiter, newsletter
 from sentry.constants import LANGUAGES
-from sentry.models import (
-    Organization, OrganizationStatus, User, UserOption, UserOptionValue
-)
+from sentry.models import (Organization, OrganizationStatus, User, UserOption, UserOptionValue)
 from sentry.security import capture_security_activity
 from sentry.utils.auth import find_users, logger
 from sentry.web.forms.fields import ReadOnlyTextField
@@ -35,36 +33,48 @@ def _get_timezone_choices():
     for tz in pytz.common_timezones:
         now = datetime.now(pytz.timezone(tz))
         offset = now.strftime('%z')
-        results.append((int(offset), tz, '(GMT%s) %s' % (offset, tz)))
+        results.append((int(offset), tz, '(UTC%s) %s' % (offset, tz)))
     results.sort()
 
     for i in range(len(results)):
         results[i] = results[i][1:]
     return results
 
+
 TIMEZONE_CHOICES = _get_timezone_choices()
 
 
 class AuthenticationForm(forms.Form):
     username = forms.CharField(
-        label=_('Account'), max_length=128, widget=forms.TextInput(
-            attrs={'placeholder': _('username or email'),
-                   }),
+        label=_('Account'),
+        max_length=128,
+        widget=forms.TextInput(attrs={
+            'placeholder': _('username or email'),
+        }),
     )
     password = forms.CharField(
-        label=_('Password'), widget=forms.PasswordInput(
-            attrs={'placeholder': _('password'),
-                   }),
+        label=_('Password'),
+        widget=forms.PasswordInput(attrs={
+            'placeholder': _('password'),
+        }),
     )
 
     error_messages = {
-        'invalid_login': _("Please enter a correct %(username)s and password. "
-                           "Note that both fields may be case-sensitive."),
-        'rate_limited': _("You have made too many failed authentication "
-                          "attempts. Please try again later."),
-        'no_cookies': _("Your Web browser doesn't appear to have cookies "
-                        "enabled. Cookies are required for logging in."),
-        'inactive': _("This account is inactive."),
+        'invalid_login':
+        _(
+            "Please enter a correct %(username)s and password. "
+            "Note that both fields may be case-sensitive."
+        ),
+        'rate_limited':
+        _("You have made too many failed authentication "
+          "attempts. Please try again later."),
+        'no_cookies':
+        _(
+            "Your Web browser doesn't appear to have cookies "
+            "enabled. Cookies are required for logging in."
+        ),
+        'inactive':
+        _("This account is inactive."),
     }
 
     def __init__(self, request=None, *args, **kwargs):
@@ -126,22 +136,24 @@ class AuthenticationForm(forms.Form):
         username = self.cleaned_data.get('username')
 
         if self.is_rate_limited():
-            logger.info('user.auth.rate-limited', extra={
-                'ip_address': self.request.META['REMOTE_ADDR'],
-                'username': username,
-            })
+            logger.info(
+                'user.auth.rate-limited',
+                extra={
+                    'ip_address': self.request.META['REMOTE_ADDR'],
+                    'username': username,
+                }
+            )
             raise forms.ValidationError(self.error_messages['rate_limited'])
 
         password = self.cleaned_data.get('password')
 
         if username and password:
-            self.user_cache = authenticate(username=username,
-                                           password=password)
+            self.user_cache = authenticate(username=username, password=password)
             if self.user_cache is None:
                 raise forms.ValidationError(
-                    self.error_messages['invalid_login'] % {
-                        'username': self.username_field.verbose_name
-                    })
+                    self.error_messages['invalid_login'] %
+                    {'username': self.username_field.verbose_name}
+                )
         self.check_for_test_cookie()
         return self.cleaned_data
 
@@ -160,16 +172,20 @@ class AuthenticationForm(forms.Form):
 
 class RegistrationForm(forms.ModelForm):
     name = forms.CharField(
-        label=_('Name'), max_length=30,
+        label=_('Name'),
+        max_length=30,
         widget=forms.TextInput(attrs={'placeholder': 'Jane Doe'}),
-        required=True)
+        required=True
+    )
     username = forms.EmailField(
-        label=_('Email'), max_length=128,
+        label=_('Email'),
+        max_length=128,
         widget=forms.TextInput(attrs={'placeholder': 'you@example.com'}),
-        required=True)
+        required=True
+    )
     password = forms.CharField(
-        required=True,
-        widget=forms.PasswordInput(attrs={'placeholder': 'something super secret'}))
+        required=True, widget=forms.PasswordInput(attrs={'placeholder': 'something super secret'})
+    )
     subscribe = forms.BooleanField(
         label=_('Subscribe to product updates newsletter'),
         required=False,
@@ -191,7 +207,8 @@ class RegistrationForm(forms.ModelForm):
             return
         if User.objects.filter(username__iexact=value).exists():
             raise forms.ValidationError(
-                _('An account is already registered with that email address.'))
+                _('An account is already registered with that email address.')
+            )
         return value.lower()
 
     def clean_password(self):
@@ -206,8 +223,7 @@ class RegistrationForm(forms.ModelForm):
         if commit:
             user.save()
             if self.cleaned_data.get('subscribe'):
-                newsletter.create_or_update_subscription(
-                    user, list_id=newsletter.DEFAULT_LIST_ID)
+                newsletter.create_or_update_subscription(user, list_id=newsletter.DEFAULT_LIST_ID)
         return user
 
 
@@ -225,11 +241,15 @@ class RecoverPasswordForm(forms.Form):
         users = [u for u in users if not u.is_managed]
         if not users:
             raise forms.ValidationError(
-                _("The account you are trying to recover is managed and does not support password recovery."))
+                _(
+                    "The account you are trying to recover is managed and does not support password recovery."
+                )
+            )
 
         if len(users) > 1:
             raise forms.ValidationError(
-                _("Multiple accounts were found matching this email address."))
+                _("Multiple accounts were found matching this email address.")
+            )
         return users[0]
 
 
@@ -272,7 +292,8 @@ class EmailForm(forms.Form):
             raise forms.ValidationError(_('The password you entered is not correct.'))
         elif not value:
             raise forms.ValidationError(
-                _('You must confirm your current password to make changes.'))
+                _('You must confirm your current password to make changes.')
+            )
         return value
 
 
@@ -324,8 +345,9 @@ class AccountSettingsForm(forms.Form):
         return False
 
     def _clean_managed_field(self, field):
-        if self.user.is_managed and (field == 'username' or
-                                     field in settings.SENTRY_MANAGED_USER_FIELDS):
+        if self.user.is_managed and (
+            field == 'username' or field in settings.SENTRY_MANAGED_USER_FIELDS
+        ):
             return getattr(self.user, field)
         return self.cleaned_data[field]
 
@@ -333,11 +355,12 @@ class AccountSettingsForm(forms.Form):
         value = self._clean_managed_field('email').lower()
         if self.user.email.lower() == value:
             return value
-        if User.objects.filter(Q(email__iexact=value) | Q(
-                username__iexact=value)).exclude(id=self.user.id).exists():
+        if User.objects.filter(Q(email__iexact=value) | Q(username__iexact=value)).exclude(
+            id=self.user.id
+        ).exists():
             raise forms.ValidationError(
-                _("There was an error adding %s: that email is already in use")
-                % self.cleaned_data['email']
+                _("There was an error adding %s: that email is already in use") %
+                self.cleaned_data['email']
             )
         return value
 
@@ -355,8 +378,8 @@ class AccountSettingsForm(forms.Form):
         if value and not self.user.check_password(value):
             raise forms.ValidationError('The password you entered is not correct.')
         elif not value and (
-            self.cleaned_data.get('email', self.user.email) != self.user.email
-            or self.cleaned_data.get('new_password')
+            self.cleaned_data.get('email', self.user.email) != self.user.email or
+            self.cleaned_data.get('new_password')
         ):
             raise forms.ValidationError('You must confirm your current password to make changes.')
         return value
@@ -402,19 +425,27 @@ class AccountSettingsForm(forms.Form):
 
 class AppearanceSettingsForm(forms.Form):
     language = forms.ChoiceField(
-        label=_('Language'), choices=LANGUAGES, required=False,
-        widget=forms.Select(attrs={'class': 'input-xlarge'}))
-    stacktrace_order = forms.ChoiceField(
-        label=_('Stacktrace order'), choices=(
-            ('-1', _('Default (let Sentry decide)')),
-            ('1', _('Most recent call last')),
-            ('2', _('Most recent call first')),
-        ), help_text=_('Choose the default ordering of frames in stacktraces.'),
+        label=_('Language'),
+        choices=LANGUAGES,
         required=False,
-        widget=forms.Select(attrs={'class': 'input-xlarge'}))
+        widget=forms.Select(attrs={'class': 'input-xlarge'})
+    )
+    stacktrace_order = forms.ChoiceField(
+        label=_('Stacktrace order'),
+        choices=(
+            ('-1', _('Default (let Sentry decide)')), ('1', _('Most recent call last')),
+            ('2', _('Most recent call first')),
+        ),
+        help_text=_('Choose the default ordering of frames in stacktraces.'),
+        required=False,
+        widget=forms.Select(attrs={'class': 'input-xlarge'})
+    )
     timezone = forms.ChoiceField(
-        label=_('Time zone'), choices=TIMEZONE_CHOICES, required=False,
-        widget=forms.Select(attrs={'class': 'input-xxlarge'}))
+        label=_('Time zone'),
+        choices=TIMEZONE_CHOICES,
+        required=False,
+        widget=forms.Select(attrs={'class': 'input-xxlarge'})
+    )
     clock_24_hours = forms.BooleanField(
         label=_('Use a 24-hour clock'),
         required=False,
@@ -472,22 +503,21 @@ class NotificationReportSettingsForm(forms.Form):
             member_set__user=user,
         )
 
-        disabled_orgs = set(UserOption.objects.get_value(
-            user=user,
-            key='reports:disabled-organizations',
-            default=[],
-        ))
+        disabled_orgs = set(
+            UserOption.objects.get_value(
+                user=user,
+                key='reports:disabled-organizations',
+                default=[],
+            )
+        )
 
         self.fields['organizations'].queryset = org_queryset
         self.fields['organizations'].initial = [
-            o.id for o in org_queryset
-            if o.id not in disabled_orgs
+            o.id for o in org_queryset if o.id not in disabled_orgs
         ]
 
     def save(self):
-        enabled_orgs = set((
-            o.id for o in self.cleaned_data.get('organizations')
-        ))
+        enabled_orgs = set((o.id for o in self.cleaned_data.get('organizations')))
         all_orgs = set(self.fields['organizations'].queryset.values_list('id', flat=True))
         UserOption.objects.set_value(
             user=self.user,
@@ -499,8 +529,9 @@ class NotificationReportSettingsForm(forms.Form):
 class NotificationDeploySettingsForm(forms.Form):
     CHOICES = [
         (UserOptionValue.all_deploys, _('All deploys')),
-        (UserOptionValue.committed_deploys_only, _('Deploys with your commits')),
-        (UserOptionValue.no_deploys, _('Never'))]
+        (UserOptionValue.committed_deploys_only,
+         _('Deploys with your commits')), (UserOptionValue.no_deploys, _('Never'))
+    ]
 
     notifications = forms.ChoiceField(
         choices=CHOICES,
@@ -543,24 +574,32 @@ class NotificationSettingsForm(forms.Form):
 
     subscribe_by_default = forms.BooleanField(
         label=_('Automatically subscribe to alerts for new projects'),
-        help_text=_("When enabled, you'll automatically subscribe to alerts when you create or join a project."),
+        help_text=_(
+            "When enabled, you'll automatically subscribe to alerts when you create or join a project."
+        ),
         required=False,
     )
 
     workflow_notifications = forms.BooleanField(
         label=_('Automatically subscribe to workflow notifications for new projects'),
-        help_text=_("When enabled, you'll automatically subscribe to workflow notifications when you create or join a project."),
+        help_text=_(
+            "When enabled, you'll automatically subscribe to workflow notifications when you create or join a project."
+        ),
         required=False,
     )
     self_notifications = forms.BooleanField(
         label=_('Receive notifications about my own activity'),
-        help_text=_('Enable this if you wish to receive emails for your own actions, as well as others.'),
+        help_text=_(
+            'Enable this if you wish to receive emails for your own actions, as well as others.'
+        ),
         required=False,
     )
 
     self_assign_issue = forms.BooleanField(
         label=_('Claim unassigned issues when resolving them'),
-        help_text=_("When enabled, you'll automatically be assigned to unassigned issues when marking them as resolved."),
+        help_text=_(
+            "When enabled, you'll automatically be assigned to unassigned issues when marking them as resolved."
+        ),
         required=False,
     )
 
@@ -590,15 +629,11 @@ class NotificationSettingsForm(forms.Form):
         )
 
         self.fields['self_notifications'].initial = UserOption.objects.get_value(
-            user=self.user,
-            key='self_notifications',
-            default='0'
+            user=self.user, key='self_notifications', default='0'
         ) == '1'
 
         self.fields['self_assign_issue'].initial = UserOption.objects.get_value(
-            user=self.user,
-            key='self_assign_issue',
-            default='0'
+            user=self.user, key='self_assign_issue', default='0'
         ) == '1'
 
     def get_title(self):
@@ -646,8 +681,7 @@ class NotificationSettingsForm(forms.Form):
 class ProjectEmailOptionsForm(forms.Form):
     alert = forms.BooleanField(required=False)
     workflow = forms.BooleanField(required=False)
-    email = forms.ChoiceField(label="", choices=(), required=False,
-                              widget=forms.Select())
+    email = forms.ChoiceField(label="", choices=(), required=False, widget=forms.Select())
 
     def __init__(self, project, user, *args, **kwargs):
         self.project = project
@@ -684,7 +718,8 @@ class ProjectEmailOptionsForm(forms.Form):
         UserOption.objects.set_value(
             user=self.user,
             key='workflow:notifications',
-            value=UserOptionValue.all_conversations if self.cleaned_data['workflow'] else UserOptionValue.participating_only,
+            value=UserOptionValue.all_conversations
+            if self.cleaned_data['workflow'] else UserOptionValue.participating_only,
             project=self.project,
         )
 
@@ -696,16 +731,19 @@ class ProjectEmailOptionsForm(forms.Form):
                 project=self.project,
             )
         else:
-            UserOption.objects.unset_value(
-                self.user, self.project, 'mail:email')
+            UserOption.objects.unset_value(self.user, self.project, 'mail:email')
 
 
 class TwoFactorForm(forms.Form):
     otp = forms.CharField(
-        label=_('One-time password'), max_length=20, widget=forms.TextInput(
-            attrs={'placeholder': _('Code from authenticator'),
-                   'autofocus': True,
-                   }),
+        label=_('One-time password'),
+        max_length=20,
+        widget=forms.TextInput(
+            attrs={
+                'placeholder': _('Code from authenticator'),
+                'autofocus': True,
+            }
+        ),
     )
 
 
@@ -732,5 +770,6 @@ class ConfirmPasswordForm(forms.Form):
             raise forms.ValidationError(_('The password you entered is not correct.'))
         elif not value:
             raise forms.ValidationError(
-                _('You must confirm your current password to make changes.'))
+                _('You must confirm your current password to make changes.')
+            )
         return value

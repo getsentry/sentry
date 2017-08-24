@@ -5,10 +5,7 @@ from sentry.api.paginator import DateTimePaginator
 from sentry.api.serializers import serialize
 from sentry.models import AuditLogEntry
 
-EVENT_REVERSE_MAP = {
-    v: k
-    for k, v in AuditLogEntry._meta.get_field('event').choices
-}
+EVENT_REVERSE_MAP = {v: k for k, v in AuditLogEntry._meta.get_field('event').choices}
 
 
 class OrganizationAuditLogsEndpoint(OrganizationEndpoint):

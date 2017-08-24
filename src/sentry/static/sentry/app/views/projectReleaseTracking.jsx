@@ -1,8 +1,8 @@
 import React from 'react';
-import _ from 'underscore';
+import _ from 'lodash';
 
 import ApiMixin from '../mixins/apiMixin';
-import {t} from '../locale';
+import {t, tct} from '../locale';
 import AlertActions from '../actions/alertActions';
 import PluginList from '../components/pluginList';
 import LoadingError from '../components/loadingError';
@@ -173,9 +173,9 @@ const ProjectReleaseTracking = React.createClass({
           </div>
           <div className="box-content with-padding">
             <p>
-              {t(
-                'Start by binding the <code>release</code> attribute in your application:'
-              )}
+              {tct('Start by binding the [release] attribute in your application:', {
+                release: <code>release</code>
+              })}
             </p>
             <pre>{this.getReleaseClientConfigurationIntructions()}</pre>
             <p>

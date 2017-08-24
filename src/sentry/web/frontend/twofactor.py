@@ -13,7 +13,6 @@ from sentry.web.helpers import render_to_response
 from sentry.utils import auth, json
 from sentry.models import Authenticator
 
-
 COOKIE_NAME = 's2fai'
 COOKIE_MAX_AGE = 60 * 60 * 24 * 31
 
@@ -30,15 +29,16 @@ class TwoFactorAuthView(BaseView):
                 rv.set_cookie(
                     COOKIE_NAME,
                     six.text_type(interface.type).encode('utf-8'),
-                    max_age=COOKIE_MAX_AGE, path='/')
+                    max_age=COOKIE_MAX_AGE,
+                    path='/'
+                )
         return rv
 
     def fail_signin(self, request, user, form):
         # Ladies and gentlemen: he world's shittiest bruteforce
         # prevention.
         time.sleep(2.0)
-        form.errors['__all__'] = [
-            _('Invalid confirmation code. Try again.')]
+        form.errors['__all__'] = [_('Invalid confirmation code. Try again.')]
 
     def negotiate_interface(self, request, interfaces):
         # If there is only one interface, just pick that one.
@@ -137,26 +137,34 @@ class TwoFactorAuthView(BaseView):
                     return self.perform_signin(request, user, interface)
                 self.fail_signin(request, user, form)
 
-        return render_to_response(['sentry/twofactor_%s.html' %
-                                   interface.interface_id,
-                                   'sentry/twofactor.html'], {
-            'form': form,
-            'interface': interface,
-            'other_interfaces': self.get_other_interfaces(interface, interfaces),
-            'activation': activation,
-        }, request, status=200)
+        return render_to_response(
+            ['sentry/twofactor_%s.html' % interface.interface_id, 'sentry/twofactor.html'], {
+                'form': form,
+                'interface': interface,
+                'other_interfaces': self.get_other_interfaces(interface, interfaces),
+                'activation': activation,
+            },
+            request,
+            status=200
+        )
 
 
 def u2f_appid(request):
     facets = options.get('u2f.facets')
     if not facets:
         facets = [options.get('system.url-prefix')]
-    return HttpResponse(json.dumps({
-        'trustedFacets': [{
-            'version': {
-                'major': 1,
-                'minor': 0
-            },
-            'ids': [x.rstrip('/') for x in facets]
-        }]
-    }), content_type='application/fido.trusted-apps+json')
+    return HttpResponse(
+        json.dumps(
+            {
+                'trustedFacets':
+                [{
+                    'version': {
+                        'major': 1,
+                        'minor': 0
+                    },
+                    'ids': [x.rstrip('/') for x in facets]
+                }]
+            }
+        ),
+        content_type='application/fido.trusted-apps+json'
+    )

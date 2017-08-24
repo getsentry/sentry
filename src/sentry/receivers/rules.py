@@ -4,15 +4,18 @@ from django.db.models.signals import post_save
 
 from sentry.models import Project, Rule
 
-
 DEFAULT_RULE_LABEL = 'Send a notification for new events'
 DEFAULT_RULE_DATA = {
     'match': 'all',
     'conditions': [
-        {'id': 'sentry.rules.conditions.first_seen_event.FirstSeenEventCondition'},
+        {
+            'id': 'sentry.rules.conditions.first_seen_event.FirstSeenEventCondition'
+        },
     ],
     'actions': [
-        {'id': 'sentry.rules.actions.notify_event.NotifyEventAction'},
+        {
+            'id': 'sentry.rules.actions.notify_event.NotifyEventAction'
+        },
     ],
 }
 

@@ -22,7 +22,6 @@ from django.template.defaultfilters import slugify
 
 from sentry.db.exceptions import CannotResolveExpression
 
-
 EXPRESSION_NODE_CALLBACKS = {
     ExpressionNode.ADD: operator.add,
     ExpressionNode.SUB: operator.sub,
@@ -57,8 +56,7 @@ def resolve_expression_node(instance, node):
     return runner
 
 
-def slugify_instance(inst, label, reserved=(), max_length=30,
-                     field_name='slug', *args, **kwargs):
+def slugify_instance(inst, label, reserved=(), max_length=30, field_name='slug', *args, **kwargs):
     base_value = slugify(label)[:max_length]
 
     if base_value is not None:

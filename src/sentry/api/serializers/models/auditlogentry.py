@@ -11,8 +11,7 @@ class AuditLogEntrySerializer(Serializer):
     def get_attrs(self, item_list, user):
         # TODO(dcramer); assert on relations
         actors = {
-            d['id']: d
-            for d in serialize(set(i.actor for i in item_list if i.actor_id), user)
+            d['id']: d for d in serialize(set(i.actor for i in item_list if i.actor_id), user)
         }
 
         return {

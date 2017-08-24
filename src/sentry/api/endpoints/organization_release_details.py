@@ -9,7 +9,9 @@ from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.exceptions import InvalidRepository, ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import (
-    CommitSerializer, ListField, ReleaseHeadCommitSerializerDeprecated,
+    CommitSerializer,
+    ListField,
+    ReleaseHeadCommitSerializerDeprecated,
     ReleaseHeadCommitSerializer,
 )
 from sentry.models import Activity, Group, Release, ReleaseFile
@@ -22,19 +24,16 @@ ERR_RELEASE_REFERENCED = "This release is referenced by active issues and cannot
 def retrieve_organization_release_scenario(runner):
     runner.request(
         method='GET',
-        path='/organizations/%s/releases/%s/' % (
-            runner.org.slug, runner.default_release.version)
+        path='/organizations/%s/releases/%s/' % (runner.org.slug, runner.default_release.version)
     )
 
 
 @scenario('UpdateOrganizationRelease')
 def update_organization_release_scenario(runner):
-    release = runner.utils.create_release(runner.default_project,
-                                          runner.me, version='3000')
+    release = runner.utils.create_release(runner.default_project, runner.me, version='3000')
     runner.request(
         method='PUT',
-        path='/organization/%s/releases/%s/' % (
-            runner.org.slug, release.version),
+        path='/organization/%s/releases/%s/' % (runner.org.slug, release.version),
         data={
             'url': 'https://vcshub.invalid/user/project/refs/deadbeef1337',
             'ref': 'deadbeef1337'
@@ -48,9 +47,7 @@ class ReleaseSerializer(serializers.Serializer):
     dateReleased = serializers.DateTimeField(required=False)
     commits = ListField(child=CommitSerializer(), required=False, allow_null=False)
     headCommits = ListField(
-        child=ReleaseHeadCommitSerializerDeprecated(),
-        required=False,
-        allow_null=False
+        child=ReleaseHeadCommitSerializerDeprecated(), required=False, allow_null=False
     )
     refs = ListField(
         child=ReleaseHeadCommitSerializer(),
@@ -132,7 +129,7 @@ class OrganizationReleaseDetailsEndpoint(OrganizationReleasesBaseEndpoint):
         if not self.has_release_permission(request, organization, release):
             raise PermissionDenied
 
-        serializer = ReleaseSerializer(data=request.DATA, partial=True)
+        serializer = ReleaseSerializer(data=request.DATA)
 
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
@@ -159,23 +156,25 @@ class OrganizationReleaseDetailsEndpoint(OrganizationReleasesBaseEndpoint):
 
         refs = result.get('refs')
         if not refs:
-            refs = [{
-                'repository': r['repository'],
-                'previousCommit': r.get('previousId'),
-                'commit': r['currentId'],
-            } for r in result.get('headCommits', [])]
+            refs = [
+                {
+                    'repository': r['repository'],
+                    'previousCommit': r.get('previousId'),
+                    'commit': r['currentId'],
+                } for r in result.get('headCommits', [])
+            ]
         if refs:
             if not request.user.is_authenticated():
-                return Response({
-                    'refs': ['You must use an authenticated API token to fetch refs']
-                }, status=400)
+                return Response(
+                    {
+                        'refs': ['You must use an authenticated API token to fetch refs']
+                    }, status=400
+                )
             fetch_commits = not commit_list
             try:
                 release.set_refs(refs, request.user, fetch=fetch_commits)
             except InvalidRepository as exc:
-                return Response({
-                    'refs': [exc.message]
-                }, status=400)
+                return Response({'refs': [exc.message]}, status=400)
 
         if (not was_released and release.date_released):
             for project in release.projects.all():

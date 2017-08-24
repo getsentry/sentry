@@ -35,10 +35,9 @@ class EmailsTest(TestCase):
         self.login_as(user)
         user.set_password('something')
         user.save()
-        resp = self.client.post(self.path, data={
-            'alt_email': 'hello@gmail.com',
-            'password': 'something'},
-            follow=True
+        resp = self.client.post(
+            self.path, data={'alt_email': 'hello@gmail.com',
+                             'password': 'something'}, follow=True
         )
         assert resp.status_code == 200
         self.assertIn('hello@gmail.com', resp.content)
@@ -50,10 +49,10 @@ class EmailsTest(TestCase):
         self.login_as(user)
         user.set_password('something')
         user.save()
-        resp = self.client.post(self.path, data={
-            'alt_email': 'hello@gmail.com',
-        },
-            follow=True
+        resp = self.client.post(
+            self.path, data={
+                'alt_email': 'hello@gmail.com',
+            }, follow=True
         )
         assert resp.status_code == 200
         self.assertIn('This field is required', resp.content)
@@ -65,10 +64,10 @@ class EmailsTest(TestCase):
         self.login_as(user)
         user.set_unusable_password()
         user.save()
-        resp = self.client.post(self.path, data={
-            'alt_email': 'hello@gmail.com',
-        },
-            follow=True
+        resp = self.client.post(
+            self.path, data={
+                'alt_email': 'hello@gmail.com',
+            }, follow=True
         )
         assert resp.status_code == 200
         self.assertIn('hello@gmail.com', resp.content)
@@ -83,11 +82,9 @@ class EmailsTest(TestCase):
         resp = self.client.get(self.path)
         self.assertIn('bar@example.com', resp.content)
         resp = self.client.post(
-            self.path,
-            data={
-                'remove': '',
-                'email': 'bar@example.com'},
-            follow=True)
+            self.path, data={'remove': '',
+                             'email': 'bar@example.com'}, follow=True
+        )
         self.assertNotIn('bar@example.com', resp.content)
         assert 'bar@example.com' not in (email.email for email in user.emails.all())
 
@@ -96,11 +93,10 @@ class EmailsTest(TestCase):
         self.login_as(user)
         resp = self.client.get(self.path)
         self.assertIn('foo@example.com', resp.content)
-        resp = self.client.post(self.path,
-                                {'primary': '',
-                                 'new_primary_email': 'bar@example.com'},
-                                follow=True
-                                )
+        resp = self.client.post(
+            self.path, {'primary': '',
+                        'new_primary_email': 'bar@example.com'}, follow=True
+        )
         self.assertIn('bar@example.com', resp.content)
         user = User.objects.get(id=user.id)
         assert user.email != 'foo@example.com'
@@ -112,11 +108,9 @@ class EmailsTest(TestCase):
         email = UserEmail(user=user, email='bar@example.com')
         email.save()
         self.client.post(
-            self.path,
-            data={
-                'primary': '',
-                'new_primary_email': 'bar@example.com'},
-            follow=True)
+            self.path, data={'primary': '',
+                             'new_primary_email': 'bar@example.com'}, follow=True
+        )
         user = User.objects.get(id=user.id)
         assert user.username != 'foo@example.com'
         assert user.username == 'bar@example.com'

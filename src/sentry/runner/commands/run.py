@@ -32,6 +32,7 @@ class AddressParamType(click.ParamType):
             port = None
         return host, port
 
+
 Address = AddressParamType()
 
 
@@ -52,14 +53,16 @@ class QueueSetType(click.ParamType):
                 queues.add('events.save_event')
 
                 from sentry.runner.initializer import show_big_error
-                show_big_error([
-                    'DEPRECATED',
-                    '`events` queue no longer exists.',
-                    'Switch to using:',
-                    '- events.preprocess_event',
-                    '- events.process_event',
-                    '- events.save_event',
-                ])
+                show_big_error(
+                    [
+                        'DEPRECATED',
+                        '`events` queue no longer exists.',
+                        'Switch to using:',
+                        '- events.preprocess_event',
+                        '- events.process_event',
+                        '- events.save_event',
+                    ]
+                )
             else:
                 queues.add(queue)
         return frozenset(queues)
@@ -76,15 +79,15 @@ def run():
 @run.command()
 @click.option('--bind', '-b', default=None, help='Bind address.', type=Address)
 @click.option(
-    '--workers',
-    '-w',
-    default=0,
-    help='The number of worker processes for handling requests.')
+    '--workers', '-w', default=0, help='The number of worker processes for handling requests.'
+)
 @click.option('--upgrade', default=False, is_flag=True, help='Upgrade before starting.')
-@click.option('--with-lock', default=False, is_flag=True,
-              help='Use a lock if performing an upgrade.')
-@click.option('--noinput', default=False, is_flag=True,
-              help='Do not prompt the user for input of any kind.')
+@click.option(
+    '--with-lock', default=False, is_flag=True, help='Use a lock if performing an upgrade.'
+)
+@click.option(
+    '--noinput', default=False, is_flag=True, help='Do not prompt the user for input of any kind.'
+)
 @log_options()
 @configuration
 def web(bind, workers, upgrade, with_lock, noinput):
@@ -95,7 +98,9 @@ def web(bind, workers, upgrade, with_lock, noinput):
         try:
             call_command(
                 'sentry.runner.commands.upgrade.upgrade',
-                verbosity=0, noinput=noinput, lock=with_lock,
+                verbosity=0,
+                noinput=noinput,
+                lock=with_lock,
             )
         except click.ClickException:
             if with_lock:
@@ -116,8 +121,9 @@ def web(bind, workers, upgrade, with_lock, noinput):
 @run.command()
 @click.option('--bind', '-b', default=None, help='Bind address.', type=Address)
 @click.option('--upgrade', default=False, is_flag=True, help='Upgrade before starting.')
-@click.option('--noinput', default=False, is_flag=True,
-              help='Do not prompt the user for input of any kind.')
+@click.option(
+    '--noinput', default=False, is_flag=True, help='Do not prompt the user for input of any kind.'
+)
 @configuration
 def smtp(bind, upgrade, noinput):
     "Run inbound email service."
@@ -126,7 +132,8 @@ def smtp(bind, upgrade, noinput):
         from sentry.runner import call_command
         call_command(
             'sentry.runner.commands.upgrade.upgrade',
-            verbosity=0, noinput=noinput,
+            verbosity=0,
+            noinput=noinput,
         )
 
     from sentry.services.smtp import SentrySMTPServer
@@ -137,20 +144,38 @@ def smtp(bind, upgrade, noinput):
 
 
 @run.command()
-@click.option('--hostname', '-n', help=(
-    'Set custom hostname, e.g. \'w1.%h\'. Expands: %h'
-    '(hostname), %n (name) and %d, (domain).'))
-@click.option('--queues', '-Q', type=QueueSet, help=(
-    'List of queues to enable for this worker, separated by '
-    'comma. By default all configured queues are enabled. '
-    'Example: -Q video,image'))
+@click.option(
+    '--hostname',
+    '-n',
+    help=(
+        'Set custom hostname, e.g. \'w1.%h\'. Expands: %h'
+        '(hostname), %n (name) and %d, (domain).'
+    )
+)
+@click.option(
+    '--queues',
+    '-Q',
+    type=QueueSet,
+    help=(
+        'List of queues to enable for this worker, separated by '
+        'comma. By default all configured queues are enabled. '
+        'Example: -Q video,image'
+    )
+)
 @click.option('--exclude-queues', '-X', type=QueueSet)
-@click.option('--concurrency', '-c', default=cpu_count(), help=(
-    'Number of child processes processing the queue. The '
-    'default is the number of CPUs available on your '
-    'system.'))
-@click.option('--logfile', '-f', help=(
-    'Path to log file. If no logfile is specified, stderr is used.'))
+@click.option(
+    '--concurrency',
+    '-c',
+    default=cpu_count(),
+    help=(
+        'Number of child processes processing the queue. The '
+        'default is the number of CPUs available on your '
+        'system.'
+    )
+)
+@click.option(
+    '--logfile', '-f', help=('Path to log file. If no logfile is specified, stderr is used.')
+)
 @click.option('--quiet', '-q', is_flag=True, default=False)
 @click.option('--no-color', is_flag=True, default=False)
 @click.option('--autoreload', is_flag=True, default=False, help='Enable autoreloading.')
@@ -165,7 +190,8 @@ def worker(**options):
     from django.conf import settings
     if settings.CELERY_ALWAYS_EAGER:
         raise click.ClickException(
-            'Disable CELERY_ALWAYS_EAGER in your settings file to spawn workers.')
+            'Disable CELERY_ALWAYS_EAGER in your settings file to spawn workers.'
+        )
 
     from sentry.celery import app
     worker = app.Worker(
@@ -186,12 +212,17 @@ def worker(**options):
 
 
 @run.command()
-@click.option('--pidfile', help=(
-    'Optional file used to store the process pid. The '
-    'program will not start if this file already exists and '
-    'the pid is still alive.'))
-@click.option('--logfile', '-f', help=(
-    'Path to log file. If no logfile is specified, stderr is used.'))
+@click.option(
+    '--pidfile',
+    help=(
+        'Optional file used to store the process pid. The '
+        'program will not start if this file already exists and '
+        'the pid is still alive.'
+    )
+)
+@click.option(
+    '--logfile', '-f', help=('Path to log file. If no logfile is specified, stderr is used.')
+)
 @click.option('--quiet', '-q', is_flag=True, default=False)
 @click.option('--no-color', is_flag=True, default=False)
 @click.option('--autoreload', is_flag=True, default=False, help='Enable autoreloading.')
@@ -205,7 +236,8 @@ def cron(**options):
     from django.conf import settings
     if settings.CELERY_ALWAYS_EAGER:
         raise click.ClickException(
-            'Disable CELERY_ALWAYS_EAGER in your settings file to spawn workers.')
+            'Disable CELERY_ALWAYS_EAGER in your settings file to spawn workers.'
+        )
 
     from sentry.celery import app
     app.Beat(

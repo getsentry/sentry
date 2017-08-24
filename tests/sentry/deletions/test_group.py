@@ -3,8 +3,8 @@ from __future__ import absolute_import
 from uuid import uuid4
 
 from sentry.models import (
-    Event, EventMapping, EventTag, Group, GroupAssignee, GroupHash, GroupMeta,
-    GroupRedirect, ScheduledDeletion
+    Event, EventMapping, EventTag, Group, GroupAssignee, GroupHash, GroupMeta, GroupRedirect,
+    ScheduledDeletion
 )
 from sentry.tasks.deletion import run_deletion
 from sentry.testutils import TestCase

@@ -2,7 +2,8 @@ from __future__ import unicode_literals, absolute_import
 
 from django.conf import settings
 from django.core.exceptions import (
-    ImproperlyConfigured, ValidationError,
+    ImproperlyConfigured,
+    ValidationError,
 )
 from django.utils.functional import lazy
 from django.utils.html import format_html
@@ -10,7 +11,6 @@ from django.utils.six import text_type
 from django.utils.translation import ugettext as _, ungettext
 
 from sentry.utils.imports import import_string
-
 
 _default_password_validators = None
 
@@ -74,6 +74,8 @@ def _password_validators_help_text_html(password_validators=None):
     help_texts = password_validators_help_texts(password_validators)
     help_items = [format_html('<li>{}</li>', help_text) for help_text in help_texts]
     return '<ul>%s</ul>' % ''.join(help_items) if help_items else ''
+
+
 password_validators_help_text_html = lazy(_password_validators_help_text_html, text_type)
 
 
@@ -91,18 +93,19 @@ class MinimumLengthValidator(object):
                 ungettext(
                     "This password is too short. It must contain at least %(min_length)d character.",
                     "This password is too short. It must contain at least %(min_length)d characters.",
-                    self.min_length),
+                    self.min_length
+                ),
                 code='password_too_short',
-                params={
-                    'min_length': self.min_length},
+                params={'min_length': self.min_length},
             )
 
     def get_help_text(self):
         return ungettext(
             "Your password must contain at least %(min_length)d character.",
-            "Your password must contain at least %(min_length)d characters.",
-            self.min_length
-        ) % {'min_length': self.min_length}
+            "Your password must contain at least %(min_length)d characters.", self.min_length
+        ) % {
+            'min_length': self.min_length
+        }
 
 
 class MaximumLengthValidator(object):
@@ -119,18 +122,19 @@ class MaximumLengthValidator(object):
                 ungettext(
                     "This password is too long. It must contain no more than %(max_length)d character.",
                     "This password is too long. It must contain no more than %(max_length)d characters.",
-                    self.max_length),
+                    self.max_length
+                ),
                 code='password_too_long',
-                params={
-                    'max_length': self.max_length},
+                params={'max_length': self.max_length},
             )
 
     def get_help_text(self):
         return ungettext(
             "Your password must contain no more than %(max_length)d character.",
-            "Your password must contain no more than %(max_length)d characters.",
-            self.max_length
-        ) % {'max_length': self.max_length}
+            "Your password must contain no more than %(max_length)d characters.", self.max_length
+        ) % {
+            'max_length': self.max_length
+        }
 
 
 class NumericPasswordValidator(object):

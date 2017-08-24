@@ -15,19 +15,13 @@ class ProjectPluginConfigureView(ProjectView):
             plugin = plugins.get(slug)
         except KeyError:
             return self.redirect(
-                reverse(
-                    'sentry-manage-project',
-                    args=[
-                        project.organization.slug,
-                        project.slug]))
+                reverse('sentry-manage-project', args=[project.organization.slug, project.slug])
+            )
 
         if not plugin.can_configure_for_project(project):
             return self.redirect(
-                reverse(
-                    'sentry-manage-project',
-                    args=[
-                        project.organization.slug,
-                        project.slug]))
+                reverse('sentry-manage-project', args=[project.organization.slug, project.slug])
+            )
 
         is_enabled = plugin.is_enabled(project)
         view = plugin.configure(request=request, project=project)

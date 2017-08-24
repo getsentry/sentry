@@ -1,4 +1,5 @@
 **/dist/**/*
 **/vendor/**/*
 **/tests/sentry/lang/javascript/fixtures/**/*
+**/tests/sentry/lang/javascript/example-project/**/*
 /examples/

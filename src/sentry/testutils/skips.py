@@ -20,9 +20,7 @@ def riak_is_available():
         return True
 
 
-requires_riak = pytest.mark.skipif(
-    not riak_is_available(),
-    reason="requires riak server running")
+requires_riak = pytest.mark.skipif(not riak_is_available(), reason="requires riak server running")
 
 
 def cassandra_is_available():
@@ -35,5 +33,5 @@ def cassandra_is_available():
 
 
 requires_cassandra = pytest.mark.skipif(
-    not cassandra_is_available(),
-    reason="requires cassandra server running")
+    not cassandra_is_available(), reason="requires cassandra server running"
+)

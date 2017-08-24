@@ -8,7 +8,7 @@ sentry.plugins.base.notifier
 
 from __future__ import absolute_import, print_function
 
-__all__ = ('Notifier',)
+__all__ = ('Notifier', )
 
 from sentry import ratelimits
 

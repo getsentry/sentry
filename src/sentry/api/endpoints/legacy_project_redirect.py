@@ -10,7 +10,7 @@ from sentry.utils.http import absolute_uri
 
 
 class LegacyProjectRedirectEndpoint(Endpoint):
-    permission_classes = (ProjectPermission,)
+    permission_classes = (ProjectPermission, )
 
     def convert_args(self, request, project_id, *args, **kwargs):
         try:
@@ -35,9 +35,11 @@ class LegacyProjectRedirectEndpoint(Endpoint):
 
         """
         return HttpResponseRedirect(
-            absolute_uri('/api/0/projects/{}/{}/{}'.format(
-                project.organization.slug,
-                project.slug,
-                path or '',
-            ))
+            absolute_uri(
+                '/api/0/projects/{}/{}/{}'.format(
+                    project.organization.slug,
+                    project.slug,
+                    path or '',
+                )
+            )
         )

@@ -18,8 +18,7 @@ from sentry.utils.services import Service
 class RateLimit(object):
     __slots__ = ['is_limited', 'retry_after', 'reason', 'reason_code']
 
-    def __init__(self, is_limited, retry_after=None, reason=None,
-                 reason_code=None):
+    def __init__(self, is_limited, retry_after=None, reason=None, reason_code=None):
         self.is_limited = is_limited
         # delta of seconds in the future to retry
         self.retry_after = retry_after
@@ -46,8 +45,8 @@ class Quota(Service):
     events if they go beyond the specified quota.
     """
     __all__ = (
-        'get_maximum_quota', 'get_organization_quota', 'get_project_quota',
-        'is_rate_limited', 'translate_quota', 'validate',
+        'get_maximum_quota', 'get_organization_quota', 'get_project_quota', 'is_rate_limited',
+        'translate_quota', 'validate',
     )
 
     def __init__(self, **options):
@@ -82,8 +81,9 @@ class Quota(Service):
             org = Organization.objects.get_from_cache(id=project.organization_id)
             project._organization_cache = org
 
-        max_quota_share = int(OrganizationOption.objects.get_value(
-            org, 'sentry:project-rate-limit', 100))
+        max_quota_share = int(
+            OrganizationOption.objects.get_value(org, 'sentry:project-rate-limit', 100)
+        )
 
         org_quota, window = self.get_organization_quota(org)
 
@@ -100,11 +100,13 @@ class Quota(Service):
     def get_organization_quota(self, organization):
         from sentry.models import OrganizationOption
 
-        account_limit = int(OrganizationOption.objects.get_value(
-            organization=organization,
-            key='sentry:account-rate-limit',
-            default=0,
-        ))
+        account_limit = int(
+            OrganizationOption.objects.get_value(
+                organization=organization,
+                key='sentry:account-rate-limit',
+                default=0,
+            )
+        )
 
         system_limit = options.get('system.rate-limit')
 
@@ -120,10 +122,12 @@ class Quota(Service):
         elif account_limit:
             return (account_limit, 3600)
 
-        return (self.translate_quota(
-            settings.SENTRY_DEFAULT_MAX_EVENTS_PER_MINUTE,
-            system_limit,
-        ), 60)
+        return (
+            self.translate_quota(
+                settings.SENTRY_DEFAULT_MAX_EVENTS_PER_MINUTE,
+                system_limit,
+            ), 60
+        )
 
     def get_maximum_quota(self, organization):
         """

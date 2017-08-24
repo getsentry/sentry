@@ -31,8 +31,7 @@ class IssueGroupActionEndpoint(PluginGroupEndpoint):
     def _handle(self, request, group, *args, **kwargs):
         GroupMeta.objects.populate_cache([group])
 
-        return getattr(self.plugin, self.view_method_name)(
-            request, group, *args, **kwargs)
+        return getattr(self.plugin, self.view_method_name)(request, group, *args, **kwargs)
 
 
 class IssueTrackingPlugin2(Plugin):
@@ -81,11 +80,12 @@ class IssueTrackingPlugin2(Plugin):
         for action in self.allowed_actions:
             view_method_name = 'view_%s' % action
             _urls.append(
-                url(r'^%s/' % action,
+                url(
+                    r'^%s/' % action,
                     PluginGroupEndpoint.as_view(
                         view=getattr(self, view_method_name),
                     ),
-                    )
+                )
             )
         return _urls
 
@@ -115,23 +115,26 @@ class IssueTrackingPlugin2(Plugin):
             return True
 
         return not UserSocialAuth.objects.filter(
-            user=request.user, provider=self.auth_provider).exists()
+            user=request.user, provider=self.auth_provider
+        ).exists()
 
     def get_new_issue_fields(self, request, group, event, **kwargs):
         """
         If overriding, supported properties include 'readonly': true
         """
-        return [{
-            'name': 'title',
-            'label': 'Title',
-            'default': self.get_group_title(request, group, event),
-            'type': 'text'
-        }, {
-            'name': 'description',
-            'label': 'Description',
-            'default': self.get_group_description(request, group, event),
-            'type': 'textarea'
-        }]
+        return [
+            {
+                'name': 'title',
+                'label': 'Title',
+                'default': self.get_group_title(request, group, event),
+                'type': 'text'
+            }, {
+                'name': 'description',
+                'label': 'Description',
+                'default': self.get_group_description(request, group, event),
+                'type': 'textarea'
+            }
+        ]
 
     def get_link_existing_issue_fields(self, request, group, event, **kwargs):
         return []
@@ -204,10 +207,7 @@ class IssueTrackingPlugin2(Plugin):
 
         errors = self.validate_form(fields, request.DATA)
         if errors:
-            return Response({
-                'error_type': 'validation',
-                'errors': errors
-            }, status=400)
+            return Response({'error_type': 'validation', 'errors': errors}, status=400)
 
         try:
             issue_id = self.create_issue(
@@ -234,10 +234,8 @@ class IssueTrackingPlugin2(Plugin):
         )
 
         issue_tracker_used.send(
-            plugin=self,
-            project=group.project,
-            user=request.user,
-            sender=IssueTrackingPlugin2)
+            plugin=self, project=group.project, user=request.user, sender=IssueTrackingPlugin2
+        )
         return Response({'issue_url': self.get_issue_url(group=group, issue_id=issue_id)})
 
     def view_unlink(self, request, group, **kwargs):
@@ -264,10 +262,7 @@ class IssueTrackingPlugin2(Plugin):
             return Response(fields)
         errors = self.validate_form(fields, request.DATA)
         if errors:
-            return Response({
-                'error_type': 'validation',
-                'errors': errors
-            }, status=400)
+            return Response({'error_type': 'validation', 'errors': errors}, status=400)
 
         try:
             issue_id = int(request.DATA['issue_id'])
@@ -313,10 +308,8 @@ class IssueTrackingPlugin2(Plugin):
 
     def check_config_and_auth(self, request, group):
         has_auth_configured = self.has_auth_configured()
-        if not (
-            has_auth_configured and self.is_configured(
-                project=group.project,
-                request=request)):
+        if not (has_auth_configured and self.is_configured(
+                project=group.project, request=request)):
             if self.auth_provider:
                 required_auth_settings = settings.AUTH_PROVIDERS[self.auth_provider]
             else:
@@ -369,11 +362,15 @@ class IssueTrackingPlugin2(Plugin):
         if not issue_id:
             return tag_list
 
-        tag_list.append(format_html('<a href="{}">{}</a>',
-                                    self.get_issue_url(group=group, issue_id=issue_id),
-                                    self.get_issue_label(group=group, issue_id=issue_id),
-                                    ))
+        tag_list.append(
+            format_html(
+                '<a href="{}">{}</a>',
+                self.get_issue_url(group=group, issue_id=issue_id),
+                self.get_issue_label(group=group, issue_id=issue_id),
+            )
+        )
 
         return tag_list
+
 
 IssuePlugin2 = IssueTrackingPlugin2

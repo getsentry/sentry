@@ -11,8 +11,15 @@ from django.core.exceptions import SuspiciousOperation
 from uuid import UUID
 
 from sentry.coreapi import (
-    APIError, APIUnauthorized, Auth, ClientApiHelper, InvalidFingerprint,
-    InvalidTimestamp, get_interface, CspApiHelper, APIForbidden,
+    APIError,
+    APIUnauthorized,
+    Auth,
+    ClientApiHelper,
+    InvalidFingerprint,
+    InvalidTimestamp,
+    get_interface,
+    CspApiHelper,
+    APIForbidden,
 )
 from sentry.testutils import TestCase
 
@@ -25,7 +32,7 @@ class BaseAPITest(TestCase):
         self.team = self.create_team(name='Foo')
         self.project = self.create_project(team=self.team)
         self.pk = self.project.key_set.get_or_create()[0]
-        self.helper = self.helper_cls(agent='Awesome Browser', ip_address='69.69.69.69')
+        self.helper = self.helper_cls(agent='Awesome Browser', ip_address='198.51.100.0')
 
 
 class AuthFromRequestTest(BaseAPITest):
@@ -117,14 +124,18 @@ class ProjectIdFromAuthTest(BaseAPITest):
 
 class ProcessFingerprintTest(BaseAPITest):
     def test_invalid_as_string(self):
-        self.assertRaises(InvalidFingerprint, self.helper._process_fingerprint, {
-            'fingerprint': '2012-01-01T10:30:45',
-        })
+        self.assertRaises(
+            InvalidFingerprint, self.helper._process_fingerprint, {
+                'fingerprint': '2012-01-01T10:30:45',
+            }
+        )
 
     def test_invalid_component(self):
-        self.assertRaises(InvalidFingerprint, self.helper._process_fingerprint, {
-            'fingerprint': ['foo', ['bar']],
-        })
+        self.assertRaises(
+            InvalidFingerprint, self.helper._process_fingerprint, {
+                'fingerprint': ['foo', ['bar']],
+            }
+        )
 
     def simple(self):
         data = self.helper._process_fingerprint({
@@ -137,48 +148,58 @@ class ProcessFingerprintTest(BaseAPITest):
 class ProcessDataTimestampTest(BaseAPITest):
     def test_iso_timestamp(self):
         d = datetime(2012, 1, 1, 10, 30, 45)
-        data = self.helper._process_data_timestamp({
-            'timestamp': '2012-01-01T10:30:45'
-        }, current_datetime=d)
+        data = self.helper._process_data_timestamp(
+            {
+                'timestamp': '2012-01-01T10:30:45'
+            }, current_datetime=d
+        )
         self.assertTrue('timestamp' in data)
         self.assertEquals(data['timestamp'], 1325413845.0)
 
     def test_iso_timestamp_with_ms(self):
         d = datetime(2012, 1, 1, 10, 30, 45, 434000)
-        data = self.helper._process_data_timestamp({
-            'timestamp': '2012-01-01T10:30:45.434'
-        }, current_datetime=d)
+        data = self.helper._process_data_timestamp(
+            {
+                'timestamp': '2012-01-01T10:30:45.434'
+            }, current_datetime=d
+        )
         self.assertTrue('timestamp' in data)
         self.assertEquals(data['timestamp'], 1325413845.0)
 
     def test_timestamp_iso_timestamp_with_Z(self):
         d = datetime(2012, 1, 1, 10, 30, 45)
-        data = self.helper._process_data_timestamp({
-            'timestamp': '2012-01-01T10:30:45Z'
-        }, current_datetime=d)
+        data = self.helper._process_data_timestamp(
+            {
+                'timestamp': '2012-01-01T10:30:45Z'
+            }, current_datetime=d
+        )
         self.assertTrue('timestamp' in data)
         self.assertEquals(data['timestamp'], 1325413845.0)
 
     def test_invalid_timestamp(self):
-        self.assertRaises(InvalidTimestamp, self.helper._process_data_timestamp, {
-            'timestamp': 'foo'
-        })
+        self.assertRaises(
+            InvalidTimestamp, self.helper._process_data_timestamp, {'timestamp': 'foo'}
+        )
 
     def test_invalid_numeric_timestamp(self):
-        self.assertRaises(InvalidTimestamp, self.helper._process_data_timestamp, {
-            'timestamp': '100000000000000000000.0'
-        })
+        self.assertRaises(
+            InvalidTimestamp, self.helper._process_data_timestamp,
+            {'timestamp': '100000000000000000000.0'}
+        )
 
     def test_future_timestamp(self):
-        self.assertRaises(InvalidTimestamp, self.helper._process_data_timestamp, {
-            'timestamp': '2052-01-01T10:30:45Z'
-        })
+        self.assertRaises(
+            InvalidTimestamp, self.helper._process_data_timestamp,
+            {'timestamp': '2052-01-01T10:30:45Z'}
+        )
 
     def test_long_microseconds_value(self):
         d = datetime(2012, 1, 1, 10, 30, 45)
-        data = self.helper._process_data_timestamp({
-            'timestamp': '2012-01-01T10:30:45.341324Z'
-        }, current_datetime=d)
+        data = self.helper._process_data_timestamp(
+            {
+                'timestamp': '2012-01-01T10:30:45.341324Z'
+            }, current_datetime=d
+        )
         self.assertTrue('timestamp' in data)
         self.assertEquals(data['timestamp'], 1325413845.0)
 
@@ -223,9 +244,7 @@ class ValidateDataTest(BaseAPITest):
         assert data['errors'][0]['value'] == 'xyz'
 
     def test_invalid_event_id_raises(self):
-        self.assertRaises(APIError, self.helper.validate_data, self.project, {
-            'event_id': 1
-        })
+        self.assertRaises(APIError, self.helper.validate_data, self.project, {'event_id': 1})
 
     def test_unknown_attribute(self):
         data = self.helper.validate_data(self.project, {
@@ -248,24 +267,29 @@ class ValidateDataTest(BaseAPITest):
         assert data['errors'][0]['name'] == 'foo.baz'
 
     def test_invalid_interface_import_path(self):
-        data = self.helper.validate_data(self.project, {
-            'message': 'foo',
-            'sentry.interfaces.Exception2': 'bar',
-        })
+        data = self.helper.validate_data(
+            self.project, {
+                'message': 'foo',
+                'sentry.interfaces.Exception2': 'bar',
+            }
+        )
         assert 'sentry.interfaces.Exception2' not in data
         assert len(data['errors']) == 1
         assert data['errors'][0]['type'] == 'invalid_attribute'
         assert data['errors'][0]['name'] == 'sentry.interfaces.Exception2'
 
     def test_does_expand_list(self):
-        data = self.helper.validate_data(self.project, {
-            'message': 'foo',
-            'exception': [{
-                'type': 'ValueError',
-                'value': 'hello world',
-                'module': 'foo.bar',
-            }]
-        })
+        data = self.helper.validate_data(
+            self.project, {
+                'message': 'foo',
+                'exception':
+                [{
+                    'type': 'ValueError',
+                    'value': 'hello world',
+                    'module': 'foo.bar',
+                }]
+            }
+        )
         assert 'sentry.interfaces.Exception' in data
 
     def test_log_level_as_string(self):
@@ -294,25 +318,37 @@ class ValidateDataTest(BaseAPITest):
         assert 'tags' not in data
 
     def test_tags_with_spaces(self):
-        data = self.helper.validate_data(self.project, {
-            'message': 'foo',
-            'tags': {'foo bar': 'baz bar'},
-        })
+        data = self.helper.validate_data(
+            self.project, {
+                'message': 'foo',
+                'tags': {
+                    'foo bar': 'baz bar'
+                },
+            }
+        )
         assert data['tags'] == [('foo-bar', 'baz bar')]
 
     def test_tags_out_of_bounds(self):
-        data = self.helper.validate_data(self.project, {
-            'message': 'foo',
-            'tags': {'f' * 33: 'value', 'foo': 'v' * 201, 'bar': 'value'},
-        })
+        data = self.helper.validate_data(
+            self.project, {
+                'message': 'foo',
+                'tags': {
+                    'f' * 33: 'value',
+                    'foo': 'v' * 201,
+                    'bar': 'value'
+                },
+            }
+        )
         assert data['tags'] == [('bar', 'value')]
         assert len(data['errors']) == 2
 
     def test_tags_as_invalid_pair(self):
-        data = self.helper.validate_data(self.project, {
-            'message': 'foo',
-            'tags': [('foo', 'bar'), ('biz', 'baz', 'boz')],
-        })
+        data = self.helper.validate_data(
+            self.project, {
+                'message': 'foo',
+                'tags': [('foo', 'bar'), ('biz', 'baz', 'boz')],
+            }
+        )
         assert data['tags'] == [('foo', 'bar')]
         assert len(data['errors']) == 1
         assert data['errors'][0]['type'] == 'invalid_data'
@@ -320,10 +356,12 @@ class ValidateDataTest(BaseAPITest):
         assert data['errors'][0]['value'] == ('biz', 'baz', 'boz')
 
     def test_reserved_tags(self):
-        data = self.helper.validate_data(self.project, {
-            'message': 'foo',
-            'tags': [('foo', 'bar'), ('release', 'abc123')],
-        })
+        data = self.helper.validate_data(
+            self.project, {
+                'message': 'foo',
+                'tags': [('foo', 'bar'), ('release', 'abc123')],
+            }
+        )
         assert data['tags'] == [('foo', 'bar')]
         assert len(data['errors']) == 1
         assert data['errors'][0]['type'] == 'invalid_data'
@@ -331,10 +369,12 @@ class ValidateDataTest(BaseAPITest):
         assert data['errors'][0]['value'] == ('release', 'abc123')
 
     def test_tag_value(self):
-        data = self.helper.validate_data(self.project, {
-            'message': 'foo',
-            'tags': [('foo', 'bar\n'), ('biz', 'baz')],
-        })
+        data = self.helper.validate_data(
+            self.project, {
+                'message': 'foo',
+                'tags': [('foo', 'bar\n'), ('biz', 'baz')],
+            }
+        )
         assert data['tags'] == [('biz', 'baz')]
         assert len(data['errors']) == 1
         assert data['errors'][0]['type'] == 'invalid_data'
@@ -349,9 +389,7 @@ class ValidateDataTest(BaseAPITest):
         assert 'extra' not in data
 
     def test_invalid_culprit_raises(self):
-        self.assertRaises(APIError, self.helper.validate_data, self.project, {
-            'culprit': 1
-        })
+        self.assertRaises(APIError, self.helper.validate_data, self.project, {'culprit': 1})
 
     def test_release_too_long(self):
         data = self.helper.validate_data(self.project, {
@@ -543,8 +581,7 @@ class EnsureHasIpTest(BaseAPITest):
 
     def test_without_ip_values(self):
         out = {
-            'sentry.interfaces.User': {
-            },
+            'sentry.interfaces.User': {},
             'sentry.interfaces.Http': {
                 'env': {},
             },
@@ -589,13 +626,20 @@ class CspApiHelperTest(BaseAPITest):
 
     def test_validate_basic(self):
         report = {
-            "document-uri": "http://45.55.25.245:8123/csp",
-            "referrer": "http://example.com",
-            "violated-directive": "img-src https://45.55.25.245:8123/",
-            "effective-directive": "img-src",
-            "original-policy": "default-src  https://45.55.25.245:8123/; child-src  https://45.55.25.245:8123/; connect-src  https://45.55.25.245:8123/; font-src  https://45.55.25.245:8123/; img-src  https://45.55.25.245:8123/; media-src  https://45.55.25.245:8123/; object-src  https://45.55.25.245:8123/; script-src  https://45.55.25.245:8123/; style-src  https://45.55.25.245:8123/; form-action  https://45.55.25.245:8123/; frame-ancestors 'none'; plugin-types 'none'; report-uri http://45.55.25.245:8123/csp-report?os=OS%20X&device=&browser_version=43.0&browser=chrome&os_version=Lion",
-            "blocked-uri": "http://google.com",
-            "status-code": 200,
+            "document-uri":
+            "http://45.55.25.245:8123/csp",
+            "referrer":
+            "http://example.com",
+            "violated-directive":
+            "img-src https://45.55.25.245:8123/",
+            "effective-directive":
+            "img-src",
+            "original-policy":
+            "default-src  https://45.55.25.245:8123/; child-src  https://45.55.25.245:8123/; connect-src  https://45.55.25.245:8123/; font-src  https://45.55.25.245:8123/; img-src  https://45.55.25.245:8123/; media-src  https://45.55.25.245:8123/; object-src  https://45.55.25.245:8123/; script-src  https://45.55.25.245:8123/; style-src  https://45.55.25.245:8123/; form-action  https://45.55.25.245:8123/; frame-ancestors 'none'; plugin-types 'none'; report-uri http://45.55.25.245:8123/csp-report?os=OS%20X&device=&browser_version=43.0&browser=chrome&os_version=Lion",
+            "blocked-uri":
+            "http://google.com",
+            "status-code":
+            200,
             "_meta": {
                 "release": "abc123",
             }
@@ -611,7 +655,7 @@ class CspApiHelperTest(BaseAPITest):
             ('effective-directive', 'img-src'),
             ('blocked-uri', 'http://google.com'),
         ]
-        assert result['sentry.interfaces.User'] == {'ip_address': '69.69.69.69'}
+        assert result['sentry.interfaces.User'] == {'ip_address': '198.51.100.0'}
         assert result['sentry.interfaces.Http'] == {
             'url': 'http://45.55.25.245:8123/csp',
             'headers': {
@@ -627,17 +671,24 @@ class CspApiHelperTest(BaseAPITest):
 
     def test_tags_out_of_bounds(self):
         report = {
-            "document-uri": "http://45.55.25.245:8123/csp",
-            "referrer": "http://example.com",
-            "violated-directive": "img-src https://45.55.25.245:8123/",
-            "effective-directive": "img-src",
-            "original-policy": "default-src  https://45.55.25.245:8123/; child-src  https://45.55.25.245:8123/; connect-src  https://45.55.25.245:8123/; font-src  https://45.55.25.245:8123/; img-src  https://45.55.25.245:8123/; media-src  https://45.55.25.245:8123/; object-src  https://45.55.25.245:8123/; script-src  https://45.55.25.245:8123/; style-src  https://45.55.25.245:8123/; form-action  https://45.55.25.245:8123/; frame-ancestors 'none'; plugin-types 'none'; report-uri http://45.55.25.245:8123/csp-report?os=OS%20X&device=&browser_version=43.0&browser=chrome&os_version=Lion",
-            "blocked-uri": "v" *
-            201,
-            "status-code": 200,
+            "document-uri":
+            "http://45.55.25.245:8123/csp",
+            "referrer":
+            "http://example.com",
+            "violated-directive":
+            "img-src https://45.55.25.245:8123/",
+            "effective-directive":
+            "img-src",
+            "original-policy":
+            "default-src  https://45.55.25.245:8123/; child-src  https://45.55.25.245:8123/; connect-src  https://45.55.25.245:8123/; font-src  https://45.55.25.245:8123/; img-src  https://45.55.25.245:8123/; media-src  https://45.55.25.245:8123/; object-src  https://45.55.25.245:8123/; script-src  https://45.55.25.245:8123/; style-src  https://45.55.25.245:8123/; form-action  https://45.55.25.245:8123/; frame-ancestors 'none'; plugin-types 'none'; report-uri http://45.55.25.245:8123/csp-report?os=OS%20X&device=&browser_version=43.0&browser=chrome&os_version=Lion",
+            "blocked-uri":
+            "v" * 201,
+            "status-code":
+            200,
             "_meta": {
                 "release": "abc123",
-            }}
+            }
+        }
         result = self.helper.validate_data(self.project, report)
         assert result['tags'] == [
             ('effective-directive', 'img-src'),
@@ -646,13 +697,20 @@ class CspApiHelperTest(BaseAPITest):
 
     def test_tag_value(self):
         report = {
-            "document-uri": "http://45.55.25.245:8123/csp",
-            "referrer": "http://example.com",
-            "violated-directive": "img-src https://45.55.25.245:8123/",
-            "effective-directive": "img-src",
-            "original-policy": "default-src  https://45.55.25.245:8123/; child-src  https://45.55.25.245:8123/; connect-src  https://45.55.25.245:8123/; font-src  https://45.55.25.245:8123/; img-src  https://45.55.25.245:8123/; media-src  https://45.55.25.245:8123/; object-src  https://45.55.25.245:8123/; script-src  https://45.55.25.245:8123/; style-src  https://45.55.25.245:8123/; form-action  https://45.55.25.245:8123/; frame-ancestors 'none'; plugin-types 'none'; report-uri http://45.55.25.245:8123/csp-report?os=OS%20X&device=&browser_version=43.0&browser=chrome&os_version=Lion",
-            "blocked-uri": "http://google.com\n",
-            "status-code": 200,
+            "document-uri":
+            "http://45.55.25.245:8123/csp",
+            "referrer":
+            "http://example.com",
+            "violated-directive":
+            "img-src https://45.55.25.245:8123/",
+            "effective-directive":
+            "img-src",
+            "original-policy":
+            "default-src  https://45.55.25.245:8123/; child-src  https://45.55.25.245:8123/; connect-src  https://45.55.25.245:8123/; font-src  https://45.55.25.245:8123/; img-src  https://45.55.25.245:8123/; media-src  https://45.55.25.245:8123/; object-src  https://45.55.25.245:8123/; script-src  https://45.55.25.245:8123/; style-src  https://45.55.25.245:8123/; form-action  https://45.55.25.245:8123/; frame-ancestors 'none'; plugin-types 'none'; report-uri http://45.55.25.245:8123/csp-report?os=OS%20X&device=&browser_version=43.0&browser=chrome&os_version=Lion",
+            "blocked-uri":
+            "http://google.com\n",
+            "status-code":
+            200,
             "_meta": {
                 "release": "abc123",
             }
@@ -665,17 +723,24 @@ class CspApiHelperTest(BaseAPITest):
 
     def test_no_tags(self):
         report = {
-            "document-uri": "http://45.55.25.245:8123/csp",
-            "referrer": "http://example.com",
-            "violated-directive": "img-src https://45.55.25.245:8123/",
-            "effective-directive": "v" *
-            201,
-            "original-policy": "default-src  https://45.55.25.245:8123/; child-src  https://45.55.25.245:8123/; connect-src  https://45.55.25.245:8123/; font-src  https://45.55.25.245:8123/; img-src  https://45.55.25.245:8123/; media-src  https://45.55.25.245:8123/; object-src  https://45.55.25.245:8123/; script-src  https://45.55.25.245:8123/; style-src  https://45.55.25.245:8123/; form-action  https://45.55.25.245:8123/; frame-ancestors 'none'; plugin-types 'none'; report-uri http://45.55.25.245:8123/csp-report?os=OS%20X&device=&browser_version=43.0&browser=chrome&os_version=Lion",
-            "blocked-uri": "http://google.com\n",
-            "status-code": 200,
+            "document-uri":
+            "http://45.55.25.245:8123/csp",
+            "referrer":
+            "http://example.com",
+            "violated-directive":
+            "img-src https://45.55.25.245:8123/",
+            "effective-directive":
+            "v" * 201,
+            "original-policy":
+            "default-src  https://45.55.25.245:8123/; child-src  https://45.55.25.245:8123/; connect-src  https://45.55.25.245:8123/; font-src  https://45.55.25.245:8123/; img-src  https://45.55.25.245:8123/; media-src  https://45.55.25.245:8123/; object-src  https://45.55.25.245:8123/; script-src  https://45.55.25.245:8123/; style-src  https://45.55.25.245:8123/; form-action  https://45.55.25.245:8123/; frame-ancestors 'none'; plugin-types 'none'; report-uri http://45.55.25.245:8123/csp-report?os=OS%20X&device=&browser_version=43.0&browser=chrome&os_version=Lion",
+            "blocked-uri":
+            "http://google.com\n",
+            "status-code":
+            200,
             "_meta": {
                 "release": "abc123",
-            }}
+            }
+        }
         result = self.helper.validate_data(self.project, report)
         assert 'tags' not in result
         assert len(result['errors']) == 2

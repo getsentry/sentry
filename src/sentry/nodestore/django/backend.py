@@ -15,7 +15,6 @@ from django.utils import timezone
 from sentry.db.models import create_or_update
 from sentry.nodestore.base import NodeStorage
 
-
 from .models import Node
 
 
@@ -30,10 +29,7 @@ class DjangoNodeStorage(NodeStorage):
             return None
 
     def get_multi(self, id_list):
-        return {
-            n.id: n.data
-            for n in Node.objects.filter(id__in=id_list)
-        }
+        return {n.id: n.data for n in Node.objects.filter(id__in=id_list)}
 
     def delete_multi(self, id_list):
         Node.objects.filter(id__in=id_list).delete()

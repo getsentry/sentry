@@ -8,7 +8,7 @@ sentry.interfaces.exception
 
 from __future__ import absolute_import
 
-__all__ = ('Exception',)
+__all__ = ('Exception', )
 
 import six
 
@@ -56,9 +56,7 @@ class SingleException(Interface):
 
         if data.get('raw_stacktrace') and data['raw_stacktrace'].get('frames'):
             raw_stacktrace = Stacktrace.to_python(
-                data['raw_stacktrace'],
-                slim_frames=slim_frames,
-                raw=True
+                data['raw_stacktrace'], slim_frames=slim_frames, raw=True
             )
         else:
             raw_stacktrace = None
@@ -206,13 +204,10 @@ class Exception(Interface):
             raise InterfaceValidationError("Invalid value for 'values'")
 
         kwargs = {
-            'values': [
-                SingleException.to_python(
-                    v,
-                    slim_frames=False,
-                )
-                for v in data['values']
-            ],
+            'values': [SingleException.to_python(
+                v,
+                slim_frames=False,
+            ) for v in data['values']],
         }
 
         if data.get('exc_omitted'):
@@ -273,16 +268,11 @@ class Exception(Interface):
 
     def get_api_context(self, is_public=False):
         return {
-            'values': [
-                v.get_api_context(is_public=is_public)
-                for v in self.values
-            ],
-            'hasSystemFrames': any(
-                v.stacktrace.get_has_system_frames()
-                for v in self.values
-                if v.stacktrace
-            ),
-            'excOmitted': self.exc_omitted,
+            'values': [v.get_api_context(is_public=is_public) for v in self.values],
+            'hasSystemFrames':
+            any(v.stacktrace.get_has_system_frames() for v in self.values if v.stacktrace),
+            'excOmitted':
+            self.exc_omitted,
         }
 
     def to_string(self, event, is_public=False, **kwargs):
@@ -293,9 +283,10 @@ class Exception(Interface):
         for exc in self.values:
             output.append(u'{0}: {1}\n'.format(exc.type, exc.value))
             if exc.stacktrace:
-                output.append(exc.stacktrace.get_stacktrace(
-                    event, system_frames=False, max_frames=5,
-                    header=False) + '\n\n')
+                output.append(
+                    exc.stacktrace.
+                    get_stacktrace(event, system_frames=False, max_frames=5, header=False) + '\n\n'
+                )
         return (''.join(output)).strip()
 
     def get_stacktrace(self, *args, **kwargs):

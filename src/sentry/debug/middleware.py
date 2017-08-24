@@ -34,6 +34,7 @@ class ToolbarCache(object):
     def get(self):
         return self._toolbars.get(thread.get_ident(), None)
 
+
 toolbar_cache = ToolbarCache()
 
 

@@ -9,10 +9,9 @@ from sentry.utils.services import LazyServiceWrapper
 from .backends.base import Backend  # NOQA
 from .backends.dummy import DummyBackend  # NOQA
 
-
-backend = LazyServiceWrapper(Backend, settings.SENTRY_DIGESTS,
-                             settings.SENTRY_DIGESTS_OPTIONS,
-                             (DummyBackend,))
+backend = LazyServiceWrapper(
+    Backend, settings.SENTRY_DIGESTS, settings.SENTRY_DIGESTS_OPTIONS, (DummyBackend, )
+)
 backend.expose(locals())
 
 
@@ -24,12 +23,7 @@ class Record(namedtuple('Record', 'key value timestamp')):
 
 ScheduleEntry = namedtuple('ScheduleEntry', 'key timestamp')
 
-
-OPTIONS = frozenset((
-    'increment_delay',
-    'maximum_delay',
-    'minimum_delay',
-))
+OPTIONS = frozenset(('increment_delay', 'maximum_delay', 'minimum_delay', ))
 
 
 def get_option_key(plugin, option):

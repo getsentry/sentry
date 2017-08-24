@@ -17,8 +17,9 @@ class ProjectIssueTrackingView(ProjectView):
 
     def _iter_plugins(self):
         for plugin in plugins.all(version=1):
-            if not (isinstance(plugin, IssueTrackingPlugin)
-                    or isinstance(plugin, IssueTrackingPlugin2)):
+            if not (
+                isinstance(plugin, IssueTrackingPlugin) or isinstance(plugin, IssueTrackingPlugin2)
+            ):
                 continue
             yield plugin
 
@@ -29,7 +30,8 @@ class ProjectIssueTrackingView(ProjectView):
         plugin_enabled.send(plugin=plugin, project=project, user=request.user, sender=self)
 
         messages.add_message(
-            request, messages.SUCCESS,
+            request,
+            messages.SUCCESS,
             constants.OK_PLUGIN_ENABLED.format(name=plugin.get_title()),
         )
 
@@ -37,7 +39,8 @@ class ProjectIssueTrackingView(ProjectView):
         plugin = plugins.get(request.POST['plugin'])
         plugin.disable(project)
         messages.add_message(
-            request, messages.SUCCESS,
+            request,
+            messages.SUCCESS,
             constants.OK_PLUGIN_DISABLED.format(name=plugin.get_title()),
         )
 
@@ -73,14 +76,14 @@ class ProjectIssueTrackingView(ProjectView):
                 other_plugins.append(plugin)
 
         context = {
-            'page': 'issue-tracking',
-            'enabled_plugins': enabled_plugins,
-            'other_plugins': other_plugins,
-            'issue_v2_plugins': serialize(
-                issue_v2_plugins, request.user, PluginSerializer(
-                    project=project
-                )
-            ),
+            'page':
+            'issue-tracking',
+            'enabled_plugins':
+            enabled_plugins,
+            'other_plugins':
+            other_plugins,
+            'issue_v2_plugins':
+            serialize(issue_v2_plugins, request.user, PluginSerializer(project=project)),
         }
 
         return self.respond('sentry/project-issue-tracking.html', context)

@@ -10,9 +10,7 @@ from sentry.api.base import DocSection
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize, ProjectUserReportSerializer
 from sentry.api.paginator import DateTimePaginator
-from sentry.models import (
-    Event, EventMapping, EventUser, Group, GroupStatus, UserReport
-)
+from sentry.models import (Event, EventMapping, EventUser, Group, GroupStatus, UserReport)
 from sentry.utils.apidocs import scenario, attach_scenarios
 
 

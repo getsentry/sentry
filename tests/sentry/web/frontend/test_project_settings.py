@@ -75,14 +75,16 @@ class ProjectSettingsTest(TestCase):
 
     def test_valid_params(self):
         self.login_as(self.owner)
-        resp = self.client.post(self.path, {
-            'name': 'bar',
-            'slug': self.project.slug,
-            'team': self.team.id,
-            'scrub_data': '1',
-            'token': 'Basic Zm9vOmJhcg==',
-            'token_header': 'Authorization'
-        })
+        resp = self.client.post(
+            self.path, {
+                'name': 'bar',
+                'slug': self.project.slug,
+                'team': self.team.id,
+                'scrub_data': '1',
+                'token': 'Basic Zm9vOmJhcg==',
+                'token_header': 'Authorization'
+            }
+        )
         assert resp.status_code == 302
         self.assertEquals(resp['Location'], 'http://testserver' + self.path)
         project = Project.objects.get(id=self.project.id)

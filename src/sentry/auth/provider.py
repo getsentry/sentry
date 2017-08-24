@@ -15,7 +15,7 @@ class Provider(object):
     def __init__(self, key, **config):
         self.key = key
         self.config = config
-        self.logger = logging.getLogger('sentry.auth.%s' % (key,))
+        self.logger = logging.getLogger('sentry.auth.%s' % (key, ))
 
     def get_configure_view(self):
         """

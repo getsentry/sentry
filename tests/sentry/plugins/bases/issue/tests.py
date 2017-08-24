@@ -65,7 +65,6 @@ class GetAuthForUserTestIssue2(TestCase):
 
 
 class IssuePlugin2GroupAction(TestCase):
-
     def setUp(self):
         super(IssuePlugin2GroupAction, self).setUp()
         self.project = self.create_project()
@@ -92,10 +91,7 @@ class IssuePlugin2GroupAction(TestCase):
     def test_post_create_invalid(self, *args):
         self.login_as(user=self.user)
         url = '/api/0/issues/%s/plugins/issuetrackingplugin2/create/' % self.group.id
-        response = self.client.post(url, data={
-            'title': '',
-            'description': ''
-        }, format='json')
+        response = self.client.post(url, data={'title': '', 'description': ''}, format='json')
         content = json.loads(response.content)
         assert response.status_code == 400
         assert content['error_type'] == 'validation'
@@ -106,10 +102,10 @@ class IssuePlugin2GroupAction(TestCase):
     def test_post_create_valid(self, *args):
         self.login_as(user=self.user)
         url = '/api/0/issues/%s/plugins/issuetrackingplugin2/create/' % self.group.id
-        response = self.client.post(url, data={
-            'title': 'test',
-            'description': 'test'
-        }, format='json')
+        response = self.client.post(
+            url, data={'title': 'test',
+                       'description': 'test'}, format='json'
+        )
         content = json.loads(response.content)
         assert response.status_code == 200
         assert 'issue_url' in content

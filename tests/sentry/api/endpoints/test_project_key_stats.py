@@ -8,9 +8,7 @@ from sentry.testutils import APITestCase
 class ProjectKeyStatsTest(APITestCase):
     def setUp(self):
         self.project = self.create_project()
-        self.key = ProjectKey.objects.create(
-            project=self.project
-        )
+        self.key = ProjectKey.objects.create(project=self.project)
         self.login_as(user=self.user)
         self.path = '/api/0/projects/{}/{}/keys/{}/stats/'.format(
             self.project.organization.slug,

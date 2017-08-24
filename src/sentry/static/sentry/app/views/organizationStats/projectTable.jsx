@@ -54,6 +54,10 @@ const ProjectTable = React.createClass({
           {projectTotals.map(item => {
             let project = projectMap[item.id];
 
+            if (!project) {
+              return null;
+            }
+
             return (
               <tr key={item.id}>
                 <td>

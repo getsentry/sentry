@@ -20,11 +20,11 @@ DISALLOWED_SOURCES = (
     'mxaddon-pkg://*',
     'jar://*',
     'webviewprogressproxy://*',
+    'ms-browser-extension://*',
     'tmtbff://*',
     'mbinit://*',
     'symres://*',
     'resource://*',
-
     '*.metrext.com',
     'static.image2play.com',
     '*.tlscdn.com',
@@ -55,13 +55,24 @@ DISALLOWED_SOURCES = (
     'amiok.org',
     'connectionstrenth.com',
     'siteheart.net',
-)
+)  # yapf: disable
 
 ALLOWED_DIRECTIVES = frozenset((
-    'base-uri', 'child-src', 'connect-src', 'default-src',
-    'font-src', 'form-action', 'frame-ancestors',
-    'img-src', 'manifest-src', 'media-src', 'object-src',
-    'plugin-types', 'referrer', 'script-src', 'style-src',
+    'base-uri',
+    'child-src',
+    'connect-src',
+    'default-src',
+    'font-src',
+    'form-action',
+    'frame-ancestors',
+    'img-src',
+    'manifest-src',
+    'media-src',
+    'object-src',
+    'plugin-types',
+    'referrer',
+    'script-src',
+    'style-src',
     'upgrade-insecure-requests',
 
     # Deprecated directives
@@ -71,13 +82,13 @@ ALLOWED_DIRECTIVES = frozenset((
 
     # I don't really know what this even is.
     # 'sandbox',
-))
+))  # yapf: disable
 
 # URIs that are pure noise and will never be actionable
 DISALLOWED_BLOCKED_URIS = frozenset((
     'about',
     'ms-browser-extension',
-))
+))  # yapf: disable
 
 
 def is_valid_csp_report(report, project=None):
