@@ -602,7 +602,7 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
             if token is not None:
                 # the tokens are zero indexed, so offset correctly
                 new_frame['lineno'] = token.src_line + 1
-                new_frame['colno'] = token.src_col
+                new_frame['colno'] = token.src_col + 1
 
                 # Find the original function name with a bit of guessing
                 original_function_name = None
