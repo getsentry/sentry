@@ -348,6 +348,48 @@ class SensitiveDataFilterTest(TestCase):
         proc.apply(data)
         assert data['extra'] == {'password': '123-45-6789'}
 
+    def test_explicit_fields(self):
+        data = {
+            'extra': {
+                'mystuff': 'xxx',
+            },
+        }
+
+        proc = SensitiveDataFilter(fields=['mystuff'])
+        proc.apply(data)
+        assert data['extra']['mystuff'] == FILTER_MASK
+
+    def test_explicit_fields_case_insensitive(self):
+        data = {
+            'extra': {
+                'myStuff': 'xxx',
+            },
+        }
+
+        proc = SensitiveDataFilter(fields=['myStuff'])
+        proc.apply(data)
+        assert data['extra']['myStuff'] == FILTER_MASK
+
+        data = {
+            'extra': {
+                'MYSTUFF': 'xxx',
+            },
+        }
+
+        proc = SensitiveDataFilter(fields=['myStuff'])
+        proc.apply(data)
+        assert data['extra']['MYSTUFF'] == FILTER_MASK
+
+        data = {
+            'extra': {
+                'mystuff': 'xxx',
+            },
+        }
+
+        proc = SensitiveDataFilter(fields=['myStuff'])
+        proc.apply(data)
+        assert data['extra']['mystuff'] == FILTER_MASK
+
     def test_exclude_fields_on_field_value(self):
         data = {
             'extra': {
