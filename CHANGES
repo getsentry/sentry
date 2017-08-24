@@ -1,6 +1,7 @@
 Version 8.20 (Unreleased)
 -------------------------
 - Add raw data toggle for Additional Data
+- Improved function name resolving for JavaScript sourcemaps
 
 Schema Changes
 ~~~~~~~~~~~~~~
