@@ -9,7 +9,8 @@ import {Client} from 'app/api';
 jest.mock('app/api');
 jest.mock('app/mixins/projectState', () => {
   return {
-    getFeatures: () => new Set(['callsigns'])
+    getFeatures: () => new Set(['callsigns']),
+    getProjectFeatures: () => new Set(['similarity-view'])
   };
 });
 
