@@ -294,4 +294,4 @@ if (IS_PRODUCTION) {
   });
 }
 
-module.exports = [pwConfig, appConfig, legacyCssConfig];
+module.exports = [appConfig, legacyCssConfig, pwConfig];
