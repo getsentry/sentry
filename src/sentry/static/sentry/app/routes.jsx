@@ -27,7 +27,7 @@ import GroupEvents from './views/groupEvents';
 import GroupTags from './views/groupTags';
 import GroupTagValues from './views/groupTagValues';
 import GroupUserReports from './views/groupUserReports';
-import GroupGroupingView from './views/groupGrouping/groupGroupingView';
+import GroupSimilarView from './views/groupSimilar/groupSimilarView';
 import MyIssuesAssignedToMe from './views/myIssues/assignedToMe';
 import MyIssuesBookmarked from './views/myIssues/bookmarked';
 import MyIssuesViewed from './views/myIssues/viewed';
@@ -297,7 +297,7 @@ function routes() {
             <Route path="tags/" component={errorHandler(GroupTags)} />
             <Route path="tags/:tagKey/" component={errorHandler(GroupTagValues)} />
             <Route path="feedback/" component={errorHandler(GroupUserReports)} />
-            <Route path="grouping/" component={errorHandler(GroupGroupingView)} />
+            <Route path="similar/" component={errorHandler(GroupSimilarView)} />
 
           </Route>
         </Route>

@@ -160,7 +160,6 @@ const GroupGroupingView = React.createClass({
             busyMap={this.state.busy}
             hiddenMap={this.state.hidden}
           />}
-
       </div>
     );
   }

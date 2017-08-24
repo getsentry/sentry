@@ -4,6 +4,7 @@ import {t} from '../../locale';
 import {Group} from '../../proptypes';
 
 import Pagination from '../../components/pagination';
+import QueryCount from '../../components/queryCount';
 
 import SimilarToolbar from './similarToolbar';
 import SimilarItem from './similarItem';
@@ -49,11 +50,14 @@ const SimilarList = React.createClass({
 
     if (hasResults) {
       return (
-        <div className="grouping-list-container grouping-similar-list-container">
-          <h2>{t('Similar Issues')}</h2>
+        <div className="similar-list-container">
+          <h2>
+            <span>{t('Similar Issues')}</span>
+            <QueryCount count={items.length} />
+          </h2>
           <SimilarToolbar onMerge={onMerge} />
 
-          <div className="grouping-list">
+          <div className="similar-list">
             {items.map(item => (
               <SimilarItem
                 key={item.issue.id}
@@ -88,7 +92,7 @@ const SimilarList = React.createClass({
     }
 
     return (
-      <div className="grouping-list-container grouping-similar-list-container">
+      <div className="similar-list-container">
         {this.renderEmpty()}
       </div>
     );

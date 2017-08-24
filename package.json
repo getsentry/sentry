@@ -83,7 +83,9 @@
     "snapshot": "build-storybook && PERCY_TOKEN=$STORYBOOK_PERCY_TOKEN PERCY_PROJECT=$STORYBOOK_PERCY_PROJECT percy-storybook --widths=375,1280"
   },
   "jest": {
-    "snapshotSerializers": ["enzyme-to-json/serializer"],
+    "snapshotSerializers": [
+      "enzyme-to-json/serializer"
+    ],
     "moduleNameMapper": {
       "\\.(css|less)$": "<rootDir>/tests/js/helpers/importStyleMock.js",
       "integration-docs-platforms": "<rootDir>/tests/fixtures/_platforms.json"
@@ -103,6 +105,7 @@
     "@percy-io/react-percy-storybook": "^1.0.2",
     "@storybook/addon-actions": "3.2.0",
     "@storybook/addon-info": "3.2.0",
+    "@storybook/addon-knobs": "^3.2.0",
     "@storybook/react": "3.2.0",
     "babel-eslint": "7.1.1",
     "babel-jest": "^19.0.0",
