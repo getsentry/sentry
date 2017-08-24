@@ -2,12 +2,12 @@ import React, {PropTypes} from 'react';
 import Reflux from 'reflux';
 
 import {t} from '../../locale';
-import GroupingStore from '../../stores/groupingStore';
 import GroupingActions from '../../actions/groupingActions';
-
+import GroupingStore from '../../stores/groupingStore';
 import LoadingError from '../../components/loadingError';
 import LoadingIndicator from '../../components/loadingIndicator';
 import MergedList from './mergedList';
+import ProjectState from '../../mixins/projectState';
 import SimilarList from './similarList';
 
 const GroupGroupingView = React.createClass({
@@ -15,7 +15,7 @@ const GroupGroupingView = React.createClass({
     query: PropTypes.string
   },
 
-  mixins: [Reflux.listenTo(GroupingStore, 'onGroupingUpdate')],
+  mixins: [ProjectState, Reflux.listenTo(GroupingStore, 'onGroupingUpdate')],
 
   getInitialState() {
     return {
@@ -74,23 +74,30 @@ const GroupGroupingView = React.createClass({
   },
 
   fetchData() {
+    let projectFeatures = this.getProjectFeatures();
+
     this.setState({
       loading: true,
       error: false
     });
 
-    GroupingActions.fetch([
+    let reqs = [
       {
         endpoint: this.getEndpoint('hashes'),
         dataKey: 'merged',
         queryParams: this.props.location.query
-      },
-      {
+      }
+    ];
+
+    if (projectFeatures.has('similarity-view')) {
+      reqs.push({
         endpoint: this.getEndpoint('similar'),
         dataKey: 'similar',
         queryParams: this.props.location.query
-      }
-    ]);
+      });
+    }
+
+    GroupingActions.fetch(reqs);
   },
 
   handleMerge() {
@@ -119,8 +126,10 @@ const GroupGroupingView = React.createClass({
     let {orgId, projectId, groupId} = this.props.params;
     let isLoading = this.state.loading;
     let isError = this.state.error && !isLoading;
+    let projectFeatures = this.getProjectFeatures();
     let hasMergedItems = this.state.mergedItems.length >= 0 && !isError && !isLoading;
     let hasSimilarItems =
+      projectFeatures.has('similarity-view') &&
       (this.state.similarItems.length >= 0 ||
         this.state.filteredSimilarItems.length >= 0) &&
       !isError &&
