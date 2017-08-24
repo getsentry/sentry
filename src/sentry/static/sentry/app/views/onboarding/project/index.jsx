@@ -81,6 +81,7 @@ const Project = React.createClass({
                 name="name"
                 label="Project Name"
                 placeholder="Project name"
+                autoComplete="off"
                 value={this.props.name}
                 onChange={e => this.props.setName(e.target.value)}
               />
@@ -89,9 +90,14 @@ const Project = React.createClass({
           <this.renderTeamPicker />
           <div>
             <button className="btn btn-primary submit-new-team" onClick={this.submit}>
-              {t('Continue')}
+              {t('Create Project')}
             </button>
           </div>
+          <p>
+            {t(
+              'Projects allow you to scope events to a specific application in your organization. For example, you might have separate projects for production vs development instances, or separate projects for your web app and mobile app.'
+            )}
+          </p>
         </div>
       </div>
     );

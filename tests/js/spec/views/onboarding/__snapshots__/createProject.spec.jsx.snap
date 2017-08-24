@@ -745,6 +745,7 @@ exports[`CreateProject render() should fill in project name if its empty when pl
                 </li>
               </PlatformiconTile>
               <input
+                autoComplete="off"
                 label="Project Name"
                 name="name"
                 onChange={[Function]}
@@ -760,9 +761,12 @@ exports[`CreateProject render() should fill in project name if its empty when pl
               className="btn btn-primary submit-new-team"
               onClick={[Function]}
             >
-              Continue
+              Create Project
             </button>
           </div>
+          <p>
+            Projects allow you to scope events to a specific application in your organization. For example, you might have separate projects for production vs development instances, or separate projects for your web app and mobile app.
+          </p>
         </div>
       </div>
     </Project>

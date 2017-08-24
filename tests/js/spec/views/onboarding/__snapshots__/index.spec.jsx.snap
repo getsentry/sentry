@@ -805,6 +805,7 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
                       </li>
                     </PlatformiconTile>
                     <input
+                      autoComplete="off"
                       label="Project Name"
                       name="name"
                       onChange={[Function]}
@@ -820,9 +821,12 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
                     className="btn btn-primary submit-new-team"
                     onClick={[Function]}
                   >
-                    Continue
+                    Create Project
                   </button>
                 </div>
+                <p>
+                  Projects allow you to scope events to a specific application in your organization. For example, you might have separate projects for production vs development instances, or separate projects for your web app and mobile app.
+                </p>
               </div>
             </div>
           </Project>
@@ -1614,6 +1618,7 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                       </li>
                     </PlatformiconTile>
                     <input
+                      autoComplete="off"
                       label="Project Name"
                       name="name"
                       onChange={[Function]}
@@ -1629,9 +1634,12 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                     className="btn btn-primary submit-new-team"
                     onClick={[Function]}
                   >
-                    Continue
+                    Create Project
                   </button>
                 </div>
+                <p>
+                  Projects allow you to scope events to a specific application in your organization. For example, you might have separate projects for production vs development instances, or separate projects for your web app and mobile app.
+                </p>
               </div>
             </div>
           </Project>

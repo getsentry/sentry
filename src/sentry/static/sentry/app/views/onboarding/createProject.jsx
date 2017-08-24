@@ -40,13 +40,18 @@ const CreateProject = React.createClass({
       error: false,
       platform: '',
       projectName: '',
-      team: team
+      team: team,
+      inFlight: false
     };
   },
 
   createProject() {
     let {slug} = this.context.organization;
-    let {projectName, platform, team} = this.state;
+    let {projectName, platform, team, inFlight} = this.state;
+
+    //prevent double-trigger
+    if (inFlight) return;
+    this.setState({inFlight: true});
 
     if (!projectName) {
       Raven.captureMessage('Onboarding no project name ', {
@@ -65,11 +70,12 @@ const CreateProject = React.createClass({
 
         // navigate to new url _now_
         const url = this.props.getDocsUrl({slug, projectSlug: data.slug, platform});
+        this.setState({inFlight: false});
         browserHistory.push(url);
       },
       error: err => {
         this.setState({
-          loading: false,
+          inFlight: false,
           error: err.responseJSON.detail
         });
 

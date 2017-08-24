@@ -44,6 +44,7 @@ exports[`Project render() should render NotFound if no matching organization 1`]
           platform=""
         />
         <input
+          autoComplete="off"
           label="Project Name"
           name="name"
           onChange={[Function]}
@@ -59,9 +60,12 @@ exports[`Project render() should render NotFound if no matching organization 1`]
         className="btn btn-primary submit-new-team"
         onClick={[Function]}
       >
-        Continue
+        Create Project
       </button>
     </div>
+    <p>
+      Projects allow you to scope events to a specific application in your organization. For example, you might have separate projects for production vs development instances, or separate projects for your web app and mobile app.
+    </p>
   </div>
 </div>
 `;
@@ -782,6 +786,7 @@ exports[`Project render() should set required class on empty submit 1`] = `
             </li>
           </PlatformiconTile>
           <input
+            autoComplete="off"
             label="Project Name"
             name="name"
             onChange={[Function]}
@@ -797,9 +802,12 @@ exports[`Project render() should set required class on empty submit 1`] = `
           className="btn btn-primary submit-new-team"
           onClick={[Function]}
         >
-          Continue
+          Create Project
         </button>
       </div>
+      <p>
+        Projects allow you to scope events to a specific application in your organization. For example, you might have separate projects for production vs development instances, or separate projects for your web app and mobile app.
+      </p>
     </div>
   </div>
 </Project>
