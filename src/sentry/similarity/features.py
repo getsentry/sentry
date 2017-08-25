@@ -141,9 +141,14 @@ class FeatureSet(object):
             timestamp=int(to_timestamp(event.datetime)),
         )
 
-    def classify(self, events):
+    def classify(self, events, thresholds=None):
         if not events:
             return []
+
+        if thresholds is None:
+            thresholds = {}
+        else:
+            thresholds = thresholds.copy()
 
         scope = None
 
@@ -172,7 +177,11 @@ class FeatureSet(object):
                     )
                 else:
                     if features:
-                        items.append((self.aliases[label], features, ))
+                        items.append((self.aliases[label], thresholds.pop(label, 0), features))
+
+        if thresholds:
+            raise ValueError('Invalid thresholds provided')
+
         return zip(
             map(
                 lambda (alias, characteristics): self.aliases.get_key(alias),
@@ -185,13 +194,23 @@ class FeatureSet(object):
             ),
         )
 
-    def compare(self, group):
+    def compare(self, group, thresholds=None):
         features = list(self.features.keys())
+
+        if thresholds is None:
+            thresholds = {}
+        else:
+            thresholds = thresholds.copy()
+
+        items = [(self.aliases[label], thresholds.pop(label, 0), ) for label in features]
+
+        if thresholds:
+            raise ValueError('Invalid thresholds provided')
 
         results = self.index.compare(
             self.__get_scope(group.project),
             self.__get_key(group),
-            [self.aliases[label] for label in features],
+            items,
         )
 
         items = {}
