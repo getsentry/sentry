@@ -416,7 +416,7 @@ local function clear_frequencies(configuration, index, item)
     redis.call('DEL', key)
 end
 
-local function fetch_candidates(configuration, index, threshold, frequencies)
+local function fetch_candidates(configuration, index, threshold, frequencies, limit)
     --[[
     Fetch all possible keys that share some characteristics with the provided
     frequencies. The frequencies should be structured as an array-like table,
@@ -452,6 +452,7 @@ local function fetch_candidates(configuration, index, threshold, frequencies)
         end
     end
 
+    local count = 0
     local results = {}
     for candidate, bands in pairs(candidates) do
         local hits = 0
@@ -459,11 +460,35 @@ local function fetch_candidates(configuration, index, threshold, frequencies)
             hits = hits + 1
         end
         if hits >= threshold then
-            results[candidate] = hits
+            count = count + 1
+            results[count] = {candidate, hits}
         end
     end
 
-    return results
+    if count <= limit then
+        return results
+    end
+
+    table.sort(
+        results,
+        function (this, that)
+            -- Sort the items by which has the most hits.
+            if this[2] > that[2] then
+                return true
+            elseif this[2] < that[2] then
+                return false
+            else
+                return this[1] < that[1]  -- NOTE: reverse lex sort
+            end
+        end
+    )
+
+    local trimmed = {}
+    for i = 1, limit do
+        trimmed[i] = results[i]
+    end
+
+    return trimmed
 end
 
 local function calculate_similarity(configuration, item_frequencies, candidate_frequencies)
@@ -509,15 +534,16 @@ local function calculate_similarity(configuration, item_frequencies, candidate_f
     return results
 end
 
-local function fetch_similar(configuration, index, threshold, item_frequencies)
+local function fetch_similar(configuration, index, threshold, item_frequencies, candidate_limit)
     --[[
     Fetch the items that are similar to an item's frequencies (as returned by
     `get_frequencies`), returning a table of similar items keyed by
     the candidate key where the value is on a [0, 1] similarity scale.
     ]]--
-    local candidates = fetch_candidates(configuration, index, threshold, item_frequencies)
+    local candidates = fetch_candidates(configuration, index, threshold, item_frequencies, candidate_limit)
     local candidate_frequencies = {}
-    for candidate_key, _ in pairs(candidates) do
+    for rank, item in ipairs(candidates) do
+        local candidate_key, hits = unpack(item)
         candidate_frequencies[candidate_key] = get_frequencies(
             configuration,
             index,
@@ -586,7 +612,8 @@ local commands = {
         )
     end,
     CLASSIFY = function (configuration, cursor, arguments)
-        local cursor, signatures = multiple_argument_parser(
+        local cursor, candidate_limit, signatures = multiple_argument_parser(
+            argument_parser(validate_integer),
             variadic_argument_parser(
                 object_argument_parser({
                     {"index", argument_parser(validate_value)},
@@ -603,14 +630,16 @@ local commands = {
                     configuration,
                     signature.index,
                     signature.threshold,
-                    signature.frequencies
+                    signature.frequencies,
+                    candidate_limit
                 )
                 return as_search_response(results)
             end
         )
     end,
     COMPARE = function (configuration, cursor, arguments)
-        local cursor, item_key, indices = multiple_argument_parser(
+        local cursor, candidate_limit, item_key, indices = multiple_argument_parser(
+            argument_parser(validate_integer),
             argument_parser(validate_value),
             variadic_argument_parser(
                 object_argument_parser({
@@ -631,7 +660,8 @@ local commands = {
                         configuration,
                         index.index,
                         item_key
-                    )
+                    ),
+                    candidate_limit
                 )
                 return as_search_response(results)
             end

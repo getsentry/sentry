@@ -36,7 +36,7 @@ class MinHashIndex(object):
     def _get_connection(self, scope):
         return self.cluster.get_local_client_for_key(scope)
 
-    def classify(self, scope, items, timestamp=None):
+    def classify(self, scope, items, candidate_limit=250, timestamp=None):
         if timestamp is None:
             timestamp = int(time.time())
 
@@ -48,6 +48,7 @@ class MinHashIndex(object):
             self.interval,
             self.retention,
             scope,
+            candidate_limit,
         ]
 
         for idx, threshold, features in items:
@@ -63,7 +64,7 @@ class MinHashIndex(object):
             )
         ]
 
-    def compare(self, scope, key, items, timestamp=None):
+    def compare(self, scope, key, items, candidate_limit=250, timestamp=None):
         if timestamp is None:
             timestamp = int(time.time())
 
@@ -75,6 +76,7 @@ class MinHashIndex(object):
             self.interval,
             self.retention,
             scope,
+            candidate_limit,
             key,
         ]
 
