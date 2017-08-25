@@ -47,7 +47,7 @@ class MinHashIndex(object):
             for i, bucket in enumerate(bands):
                 data[idx][i][bucket] += 1
 
-        arguments = [len(data)]
+        arguments = []
         for idx, bands in data.items():
             arguments.append(idx)
             for buckets in bands:
