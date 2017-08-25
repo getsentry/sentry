@@ -1,14 +1,20 @@
 from __future__ import absolute_import
 
 import functools
-import pytest
+import logging
 import mock
+import pytest
+
+from rediscluster.exceptions import RedisClusterException
 
 from sentry.exceptions import InvalidConfiguration
 from sentry.testutils.cases import TestCase
 from sentry.utils.redis import (
-    ClusterManager, _shared_pool, get_cluster_from_options, _RedisCluster
+    ClusterManager, _shared_pool, get_cluster_from_options, _RedisCluster, logger
 )
+
+# Silence connection warnings
+logger.setLevel(logging.ERROR)
 
 make_manager = functools.partial(
     ClusterManager,
@@ -41,6 +47,8 @@ make_manager = functools.partial(
     },
 )
 
+redis_cluster_exception = RedisClusterException('Failed to connect')
+
 
 class ClusterManagerTestCase(TestCase):
     def test_get(self):
@@ -57,6 +65,12 @@ class ClusterManagerTestCase(TestCase):
         assert manager.get('baz') is cluster.return_value
         with pytest.raises(KeyError):
             manager.get('foo')
+
+    @mock.patch('rediscluster.StrictRedisCluster', side_effect=redis_cluster_exception)
+    def test_failed_redis_cluster(self, cluster):
+        manager = make_manager(cluster_type=_RedisCluster)
+        with pytest.raises(KeyError):
+            manager.get('baz')
 
 
 def test_get_cluster_from_options():
