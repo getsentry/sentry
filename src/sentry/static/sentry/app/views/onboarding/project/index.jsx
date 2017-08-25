@@ -51,7 +51,7 @@ const Project = React.createClass({
         <div className="project-team-wrapper">
           <SelectInput
             value={team}
-            style={{width: 120, padding: '10px'}}
+            style={{width: 180, padding: '10px'}}
             required={true}
             onChange={e => setTeam(e[0].value)}>
             {teams.map(({slug, name, id}, i) => (
