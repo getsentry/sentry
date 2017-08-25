@@ -1,14 +1,14 @@
 import React from 'react';
 
 import EventDataSection from '../eventDataSection';
-import PropTypes from '../../../proptypes';
+import CustomPropTypes from '../../../proptypes';
 import utils from '../../../utils';
 import {t} from '../../../locale';
 
 const MessageInterface = React.createClass({
   propTypes: {
-    group: PropTypes.Group.isRequired,
-    event: PropTypes.Event.isRequired,
+    group: CustomPropTypes.Group.isRequired,
+    event: CustomPropTypes.Event.isRequired,
     type: React.PropTypes.string.isRequired,
     data: React.PropTypes.object.isRequired
   },

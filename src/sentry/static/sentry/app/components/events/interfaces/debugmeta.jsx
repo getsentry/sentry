@@ -1,5 +1,5 @@
 import React from 'react';
-import PropTypes from '../../../proptypes';
+import CustomPropTypes from '../../../proptypes';
 import EventDataSection from '../eventDataSection';
 import ClippedBox from '../../clippedBox';
 import KeyValueList from './keyValueList';
@@ -7,8 +7,8 @@ import {t} from '../../../locale';
 
 const DebugMetaInterface = React.createClass({
   propTypes: {
-    group: PropTypes.Group.isRequired,
-    event: PropTypes.Event.isRequired,
+    group: CustomPropTypes.Group.isRequired,
+    event: CustomPropTypes.Event.isRequired,
     data: React.PropTypes.object.isRequired
   },
 

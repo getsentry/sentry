@@ -9,7 +9,7 @@ import LoadingError from '../../components/loadingError';
 import LoadingIndicator from '../../components/loadingIndicator';
 import MissingProjectMembership from '../../components/missingProjectMembership';
 import OrganizationState from '../../mixins/organizationState';
-import PropTypes from '../../proptypes';
+import CustomPropTypes from '../../proptypes';
 import TeamStore from '../../stores/teamStore';
 import ProjectStore from '../../stores/projectStore';
 import {t} from '../../locale';
@@ -34,8 +34,8 @@ const ProjectContext = React.createClass({
   },
 
   childContextTypes: {
-    project: PropTypes.Project,
-    team: PropTypes.Team
+    project: CustomPropTypes.Project,
+    team: CustomPropTypes.Team
   },
 
   mixins: [

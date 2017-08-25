@@ -4,11 +4,11 @@ import Count from '../../components/count';
 import EventOrGroupExtraDetails from '../../components/eventOrGroupExtraDetails';
 import EventOrGroupHeader from '../../components/eventOrGroupHeader';
 import ProjectState from '../../mixins/projectState';
-import PropTypes from '../../proptypes';
+import CustomPropTypes from '../../proptypes';
 
 const EventNode = React.createClass({
   propTypes: {
-    group: PropTypes.Group.isRequired
+    group: CustomPropTypes.Group.isRequired
   },
 
   mixins: [ProjectState],

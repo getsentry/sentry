@@ -1,15 +1,15 @@
 import React from 'react';
 
 import GroupEventDataSection from './eventDataSection';
-import PropTypes from '../../proptypes';
+import CustomPropTypes from '../../proptypes';
 import {t} from '../../locale';
 import ContextData from '../contextData';
 
 // TODO(hazat): Is this interface used somewhere? If not delete it?
 const DeviceInterface = React.createClass({
   propTypes: {
-    group: PropTypes.Group.isRequired,
-    event: PropTypes.Event.isRequired
+    group: CustomPropTypes.Group.isRequired,
+    event: CustomPropTypes.Event.isRequired
   },
 
   getInitialState() {

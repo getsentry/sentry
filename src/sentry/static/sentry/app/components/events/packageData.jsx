@@ -1,5 +1,5 @@
 import React from 'react';
-import PropTypes from '../../proptypes';
+import CustomPropTypes from '../../proptypes';
 
 import {objectToArray} from '../../utils';
 import EventDataSection from './eventDataSection';
@@ -9,8 +9,8 @@ import {t} from '../../locale';
 
 const EventPackageData = React.createClass({
   propTypes: {
-    group: PropTypes.Group.isRequired,
-    event: PropTypes.Event.isRequired
+    group: CustomPropTypes.Group.isRequired,
+    event: CustomPropTypes.Event.isRequired
   },
 
   shouldComponentUpdate(nextProps, nextState) {

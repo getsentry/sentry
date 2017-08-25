@@ -1,11 +1,11 @@
-import PropTypes from '../proptypes';
+import CustomPropTypes from '../proptypes';
 import ProjectState from './projectState';
 
 let GroupState = {
   mixins: [ProjectState],
 
   contextTypes: {
-    group: PropTypes.Group.isRequired
+    group: CustomPropTypes.Group.isRequired
   },
 
   getGroup() {

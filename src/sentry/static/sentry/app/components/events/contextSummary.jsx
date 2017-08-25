@@ -1,7 +1,7 @@
 import React from 'react';
 
 import Avatar from '../../components/avatar';
-import PropTypes from '../../proptypes';
+import CustomPropTypes from '../../proptypes';
 import {t} from '../../locale';
 import {objectIsEmpty, deviceNameMapper} from '../../utils';
 
@@ -119,8 +119,8 @@ const DeviceSummary = React.createClass({
 
 const EventContextSummary = React.createClass({
   propTypes: {
-    group: PropTypes.Group.isRequired,
-    event: PropTypes.Event.isRequired
+    group: CustomPropTypes.Group.isRequired,
+    event: CustomPropTypes.Event.isRequired
   },
 
   render() {

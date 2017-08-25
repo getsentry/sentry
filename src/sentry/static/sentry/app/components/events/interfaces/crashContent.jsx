@@ -1,5 +1,5 @@
 import React from 'react';
-import PropTypes from '../../../proptypes';
+import CustomPropTypes from '../../../proptypes';
 import rawStacktraceContent from './rawStacktraceContent';
 import StacktraceContent from './stacktraceContent';
 import ExceptionContent from './exceptionContent';
@@ -7,8 +7,8 @@ import RawExceptionContent from './rawExceptionContent';
 
 const CrashContent = React.createClass({
   propTypes: {
-    group: PropTypes.Group.isRequired,
-    event: PropTypes.Event.isRequired,
+    group: CustomPropTypes.Group.isRequired,
+    event: CustomPropTypes.Event.isRequired,
     stackView: React.PropTypes.string.isRequired,
     stackType: React.PropTypes.string,
     newestFirst: React.PropTypes.bool.isRequired,
