@@ -285,6 +285,9 @@ class UnmergeTestCase(TestCase):
 
         assert features.compare(source) == [
             (source.id, {
+                'exception:message:character-shingles': None,
+                'exception:stacktrace:application-chunks': None,
+                'exception:stacktrace:pairs': None,
                 'message:message:character-shingles': 1.0
             }),
         ]
@@ -616,17 +619,23 @@ class UnmergeTestCase(TestCase):
         )
 
         source_similar_items = features.compare(source)
-        assert source_similar_items[0] == (source.id, {'message:message:character-shingles': 1.0})
+        assert source_similar_items[0] == (source.id, {
+            'exception:message:character-shingles': None,
+            'exception:stacktrace:application-chunks': None,
+            'exception:stacktrace:pairs': None,
+            'message:message:character-shingles': 1.0,
+        })
         assert source_similar_items[1][0] == destination.id
-        assert source_similar_items[1][1].keys() == ['message:message:character-shingles']
         assert source_similar_items[1][1]['message:message:character-shingles'] < 1.0
 
         destination_similar_items = features.compare(destination)
         assert destination_similar_items[0] == (
             destination.id, {
+                'exception:message:character-shingles': None,
+                'exception:stacktrace:application-chunks': None,
+                'exception:stacktrace:pairs': None,
                 'message:message:character-shingles': 1.0
             }
         )
         assert destination_similar_items[1][0] == source.id
-        assert destination_similar_items[1][1].keys() == ['message:message:character-shingles']
         assert destination_similar_items[1][1]['message:message:character-shingles'] < 1.0
