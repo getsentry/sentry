@@ -35,23 +35,53 @@ class MinHashIndexTestCase(TestCase):
         ])
         self.index.record('example', '5', [('index', 'pizza world')])
 
-        results = self.index.compare('example', '1', ['index'])[0]
+        # comparison, without thresholding
+        results = self.index.compare('example', '1', [('index', 0)])[0]
         assert results[0] == ('1', 1.0)
         assert results[1] == ('2', 1.0)  # identical contents
         assert results[2][0] in ('3', '4')  # equidistant pairs, order doesn't really matter
         assert results[3][0] in ('3', '4')
         assert results[4][0] == '5'
 
-        results = self.index.classify('example', [('index', 'hello world')])[0]
+        # comparison, low threshold
+        results = self.index.compare('example', '1', [('index', 6)])[0]
+        assert len(results) == 4
+        assert results[0] == ('1', 1.0)
+        assert results[1] == ('2', 1.0)  # identical contents
+        assert results[2][0] in ('3', '4')  # equidistant pairs, order doesn't really matter
+        assert results[3][0] in ('3', '4')
+
+        # comparison, high threshold (exact match)
+        results = self.index.compare('example', '1', [('index', self.index.bands)])[0]
+        assert len(results) == 2
+        assert results[0] == ('1', 1.0)
+        assert results[1] == ('2', 1.0)  # identical contents
+
+        # classification, without thresholding
+        results = self.index.classify('example', [('index', 0, 'hello world')])[0]
         assert results[0:2] == [('1', 1.0), ('2', 1.0)]
         assert results[2][0] in ('3', '4')  # equidistant pairs, order doesn't really matter
         assert results[3][0] in ('3', '4')
         assert results[4][0] == '5'
 
+        # classification, low threshold
+        results = self.index.classify('example', [('index', 6, 'hello world')])[0]
+        assert len(results) == 4
+        assert results[0] == ('1', 1.0)
+        assert results[1] == ('2', 1.0)  # identical contents
+        assert results[2][0] in ('3', '4')  # equidistant pairs, order doesn't really matter
+        assert results[3][0] in ('3', '4')
+
+        # classification, high threshold (exact match)
+        results = self.index.classify('example', [('index', self.index.bands, 'hello world')])[0]
+        assert len(results) == 2
+        assert results[0] == ('1', 1.0)
+        assert results[1] == ('2', 1.0)  # identical contents
+
         self.index.delete('example', [('index', '3')])
-        assert [key for key, _ in self.index.compare('example', '1', ['index'])[0]] == [
-            '1', '2', '4', '5'
-        ]
+        assert [key
+                for key, _ in self.index.compare('example', '1', [('index',
+                                                                   0)])[0]] == ['1', '2', '4', '5']
 
         assert MinHashIndex(
             self.index.cluster,
@@ -60,23 +90,23 @@ class MinHashIndexTestCase(TestCase):
             self.index.bands,
             self.index.interval,
             self.index.retention,
-        ).compare('example', '1', ['index']) == [[]]
+        ).compare('example', '1', [('index', 0)]) == [[]]
 
     def test_merge(self):
         self.index.record('example', '1', [('index', ['foo', 'bar'])])
         self.index.record('example', '2', [('index', ['baz'])])
-        assert self.index.classify('example', [('index', ['foo', 'bar'])])[0] == [
+        assert self.index.classify('example', [('index', 0, ['foo', 'bar'])])[0] == [
             ('1', 1.0),
         ]
 
         self.index.merge('example', '1', [('index', '2')])
-        assert self.index.classify('example', [('index', ['foo', 'bar'])])[0] == [
+        assert self.index.classify('example', [('index', 0, ['foo', 'bar'])])[0] == [
             ('1', 0.5),
         ]
 
         # merge into an empty key should act as a move
         self.index.merge('example', '2', [('index', '1')])
-        assert self.index.classify('example', [('index', ['foo', 'bar'])])[0] == [
+        assert self.index.classify('example', [('index', 0, ['foo', 'bar'])])[0] == [
             ('2', 0.5),
         ]
 
@@ -122,18 +152,18 @@ class MinHashIndexTestCase(TestCase):
 
     def test_flush_scoped(self):
         self.index.record('example', '1', [('index', ['foo', 'bar'])])
-        assert self.index.classify('example', [('index', ['foo', 'bar'])])[0] == [
+        assert self.index.classify('example', [('index', 0, ['foo', 'bar'])])[0] == [
             ('1', 1.0),
         ]
 
         self.index.flush('example', ['index'])
-        assert self.index.classify('example', [('index', ['foo', 'bar'])])[0] == []
+        assert self.index.classify('example', [('index', 0, ['foo', 'bar'])])[0] == []
 
     def test_flush_unscoped(self):
         self.index.record('example', '1', [('index', ['foo', 'bar'])])
-        assert self.index.classify('example', [('index', ['foo', 'bar'])])[0] == [
+        assert self.index.classify('example', [('index', 0, ['foo', 'bar'])])[0] == [
             ('1', 1.0),
         ]
 
         self.index.flush('*', ['index'])
-        assert self.index.classify('example', [('index', ['foo', 'bar'])])[0] == []
+        assert self.index.classify('example', [('index', 0, ['foo', 'bar'])])[0] == []

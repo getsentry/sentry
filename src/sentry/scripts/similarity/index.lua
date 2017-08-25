@@ -300,7 +300,7 @@ end
 
 -- Signature Matching
 
-local function fetch_candidates(configuration, time_series, index, frequencies)
+local function fetch_candidates(configuration, time_series, index, threshold, frequencies)
     --[[
     Fetch all possible keys that share some characteristics with the provided
     frequencies. The frequencies should be structured as an array-like table,
@@ -318,7 +318,7 @@ local function fetch_candidates(configuration, time_series, index, frequencies)
 
     Results are returned as table where the keys represent candidate keys.
     ]]--
-    local candidates = {}  -- acts as a set
+    local candidates = {}
     for band, buckets in ipairs(frequencies) do
         for bucket, count in pairs(buckets) do
             for _, time in ipairs(time_series) do
@@ -336,14 +336,29 @@ local function fetch_candidates(configuration, time_series, index, frequencies)
                     )
                 )
                 for _, member in ipairs(members) do
-                    -- TODO: Count the number of bands that we've collided in
-                    -- to allow setting thresholds here.
-                    candidates[member] = true
+                    local bands = candidates[member]
+                    if bands == nil then
+                        bands = {}  -- acts as a set
+                        candidates[member] = bands
+                    end
+                    bands[band] = true
                 end
             end
         end
     end
-    return candidates
+
+    local results = {}
+    for candidate, bands in pairs(candidates) do
+        local hits = 0
+        for _ in pairs(bands) do
+            hits = hits + 1
+        end
+        if hits >= threshold then
+            results[candidate] = hits
+        end
+    end
+
+    return results
 end
 
 local function fetch_bucket_frequencies(configuration, time_series, index, key)
@@ -430,13 +445,13 @@ local function calculate_similarity(configuration, item_frequencies, candidate_f
     return results
 end
 
-local function fetch_similar(configuration, time_series, index, item_frequencies)
+local function fetch_similar(configuration, time_series, index, threshold, item_frequencies)
     --[[
     Fetch the items that are similar to an item's frequencies (as returned by
     `fetch_bucket_frequencies`), returning a table of similar items keyed by
     the candidate key where the value is on a [0, 1] similarity scale.
     ]]--
-    local candidates = fetch_candidates(configuration, time_series, index, item_frequencies)
+    local candidates = fetch_candidates(configuration, time_series, index, threshold, item_frequencies)
     local candidate_frequencies = {}
     for candidate_key, _ in pairs(candidates) do
         candidate_frequencies[candidate_key] = fetch_bucket_frequencies(
@@ -543,6 +558,7 @@ local commands = {
             variadic_argument_parser(
                 object_argument_parser({
                     {"index", argument_parser(validate_value)},
+                    {"threshold", argument_parser(validate_integer)},
                     {"frequencies", frequencies_argument_parser(configuration)},
                 })
             )
@@ -561,6 +577,7 @@ local commands = {
                     configuration,
                     time_series,
                     signature.index,
+                    signature.threshold,
                     signature.frequencies
                 )
                 return as_search_response(results)
@@ -571,7 +588,10 @@ local commands = {
         local cursor, item_key, indices = multiple_argument_parser(
             argument_parser(validate_value),
             variadic_argument_parser(
-                argument_parser(validate_value)
+                object_argument_parser({
+                    {"index", argument_parser(validate_value)},
+                    {"threshold", argument_parser(validate_integer)},
+                })
             )
         )(cursor, arguments)
 
@@ -587,11 +607,12 @@ local commands = {
                 local results = fetch_similar(
                     configuration,
                     time_series,
-                    index,
+                    index.index,
+                    index.threshold,
                     fetch_bucket_frequencies(
                         configuration,
                         time_series,
-                        index,
+                        index.index,
                         item_key
                     )
                 )

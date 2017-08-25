@@ -2,7 +2,6 @@ from __future__ import absolute_import
 
 import itertools
 import time
-from collections import Counter, defaultdict
 
 from sentry.utils.iterators import chunked
 from sentry.utils.redis import load_script
@@ -28,36 +27,10 @@ class MinHashIndex(object):
         self.interval = interval
         self.retention = retention
 
-    def __build_signatures(self, items):
-        data = defaultdict(
-            lambda: [Counter() for _ in xrange(self.bands)],
-        )
-
-        for idx, features in items:
-            bands = map(
-                ','.join, band(
-                    self.bands,
-                    map(
-                        '{}'.format,
-                        self.signature_builder(features),
-                    ),
-                )
-            )
-
-            for i, bucket in enumerate(bands):
-                data[idx][i][bucket] += 1
-
+    def _build_signature_arguments(self, features):
         arguments = []
-        for idx, bands in data.items():
-            arguments.append(idx)
-            for buckets in bands:
-                arguments.append(len(buckets))
-                for bucket, count in buckets.items():
-                    arguments.extend([
-                        bucket,
-                        count,
-                    ])
-
+        for bucket in band(self.bands, self.signature_builder(features)):
+            arguments.extend([1, ','.join(map('{}'.format, bucket)), 1])
         return arguments
 
     def _get_connection(self, scope):
@@ -77,7 +50,9 @@ class MinHashIndex(object):
             scope,
         ]
 
-        arguments.extend(self.__build_signatures(items))
+        for idx, threshold, features in items:
+            arguments.extend([idx, threshold])
+            arguments.extend(self._build_signature_arguments(features))
 
         return [
             [(item, float(score)) for item, score in result]
@@ -88,7 +63,7 @@ class MinHashIndex(object):
             )
         ]
 
-    def compare(self, scope, key, indices, timestamp=None):
+    def compare(self, scope, key, items, timestamp=None):
         if timestamp is None:
             timestamp = int(time.time())
 
@@ -103,7 +78,8 @@ class MinHashIndex(object):
             key,
         ]
 
-        arguments.extend(indices)
+        for idx, threshold in items:
+            arguments.extend([idx, threshold])
 
         return [
             [(item, float(score)) for item, score in result]
@@ -132,7 +108,9 @@ class MinHashIndex(object):
             key,
         ]
 
-        arguments.extend(self.__build_signatures(items))
+        for idx, features in items:
+            arguments.append(idx)
+            arguments.extend(self._build_signature_arguments(features))
 
         return index(
             self._get_connection(scope),
