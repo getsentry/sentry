@@ -115,8 +115,9 @@ class BasePaginator(object):
 
         offset = cursor.offset
         # this effectively gets us the before row, and the current (after) row
-        # every time
-        if cursor.is_prev:
+        # every time. Do not offset if the provided cursor value was empty since
+        # there is nothing to traverse past.
+        if cursor.is_prev and cursor.value:
             offset += 1
         stop = offset + limit + 1
         results = list(queryset[offset:stop])

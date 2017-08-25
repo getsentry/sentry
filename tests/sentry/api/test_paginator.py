@@ -52,6 +52,21 @@ class PaginatorTest(TestCase):
         result = paginator.count_hits(1)
         assert result == 1
 
+    def test_prev_emptyset(self):
+        queryset = User.objects.all()
+
+        paginator = self.cls(queryset, 'id')
+        result1 = paginator.get_result(limit=1, cursor=None)
+
+        res1 = self.create_user('foo@example.com')
+
+        result2 = paginator.get_result(limit=1, cursor=result1.prev)
+        assert len(result2) == 1, (result2, list(result2))
+        assert result2[0] == res1
+
+        result3 = paginator.get_result(limit=1, cursor=result2.prev)
+        assert len(result3) == 0, (result3, list(result3))
+
 
 class OffsetPaginatorTest(TestCase):
     # offset paginator does not support dynamic limits on is_prev
