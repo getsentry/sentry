@@ -58,7 +58,7 @@ class MinHashIndexTestCase(TestCase):
         assert results[1] == ('2', [1.0])  # identical contents
 
         # comparison, candidate limit (with lexicographical collision sort)
-        results = self.index.compare('example', '1', [('index', 0)], candidate_limit=1)
+        results = self.index.compare('example', '1', [('index', 0)], limit=1)
         assert len(results) == 1
         assert results[0] == ('1', [1.0])
 
@@ -86,7 +86,7 @@ class MinHashIndexTestCase(TestCase):
         # classification, candidate limit (with lexicographical collision sort)
         results = self.index.classify(
             'example', [
-                ('index', 0, 'hello world')], candidate_limit=1)
+                ('index', 0, 'hello world')], limit=1)
         assert len(results) == 1
         assert results[0] == ('1', [1.0])
 
@@ -143,7 +143,7 @@ class MinHashIndexTestCase(TestCase):
         results = self.index.compare('example', '1', [
             ('index:a', 0),
             ('index:b', 0),
-        ], candidate_limit=4)
+        ], limit=4)
         assert len(results) == 4
         assert results[:2] == [
             ('1', [1.0, 1.0]),
@@ -198,7 +198,7 @@ class MinHashIndexTestCase(TestCase):
         results = self.index.classify('example', [
             ('index:a', 0, 'hello world'),
             ('index:b', 0, 'hello world'),
-        ], candidate_limit=4)
+        ], limit=4)
         assert len(results) == 4
         assert results[:2] == [
             ('1', [1.0, 1.0]),
