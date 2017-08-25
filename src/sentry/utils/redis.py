@@ -89,7 +89,7 @@ class _RedisCluster(object):
         try:
             return rediscluster.StrictRedisCluster(startup_nodes=hosts, decode_responses=True)
         except rediscluster.exceptions.RedisClusterException:
-            logger.warning('Failed to connect to redis cluster', exc_info=True)
+            logger.warning('Failed to connect to Redis Cluster', exc_info=True)
             raise KeyError('Redis Cluster could not be initalized')
 
     def __str__(self):
