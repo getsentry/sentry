@@ -2524,11 +2524,7 @@ detect-indent@^4.0.0:
   dependencies:
     repeating "^2.0.0"
 
-diff@^1.2.0:
-  version "1.4.0"
-  resolved "https://registry.yarnpkg.com/diff/-/diff-1.4.0.tgz#7f28d2eb9ee7b15a97efd89ce63dcfdaa3ccbabf"
-
-diff@^3.0.0:
+diff@^3.0.0, diff@^3.3.0:
   version "3.3.0"
   resolved "https://registry.yarnpkg.com/diff/-/diff-3.3.0.tgz#056695150d7aa93237ca7e378ac3b1682b7963b9"
 
@@ -6117,12 +6113,6 @@ react-datetime@^2.8.10:
     object-assign "^3.0.0"
     prop-types "^15.5.7"
     react-onclickoutside "^5.9.0"
-
-react-diff@^0.0.7:
-  version "0.0.7"
-  resolved "https://registry.yarnpkg.com/react-diff/-/react-diff-0.0.7.tgz#4e5570d288529b6fec3ddba4e1ac18d71e5a4996"
-  dependencies:
-    diff "^1.2.0"
 
 react-docgen@^2.15.0:
   version "2.17.0"

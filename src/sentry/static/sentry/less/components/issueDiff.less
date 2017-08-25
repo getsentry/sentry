@@ -1,8 +1,15 @@
 .issue-diff {
   background-color: #F7F8F9;
-  max-height: 300px;
   overflow: auto;
   padding: 10px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+
+  &.loading {
+    background-color: white;
+    justify-content: center;
+  }
 
   pre.diff-result {
     margin: 0;
