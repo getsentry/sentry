@@ -120,12 +120,6 @@ class MinHashIndexTestCase(TestCase):
         data = msgpack.unpackb(result[0])
         assert len(data) == self.index.bands
 
-        for band in data:
-            assert len(band) == (self.index.retention + 1)
-            assert sum(
-                sum(dict(bucket_frequencies).values()) for index, bucket_frequencies in band
-            ) == 1
-
         # Copy the data from key 1 to key 2.
         self.index.import_('example', [('index', 2, result[0])], timestamp=timestamp)
 
@@ -143,12 +137,6 @@ class MinHashIndexTestCase(TestCase):
 
         data = msgpack.unpackb(result[0])
         assert len(data) == self.index.bands
-
-        for band in data:
-            assert len(band) == (self.index.retention + 1)
-            assert sum(
-                sum(dict(bucket_frequencies).values()) for index, bucket_frequencies in band
-            ) == 2
 
     def test_flush_scoped(self):
         self.index.record('example', '1', [('index', ['foo', 'bar'])])
