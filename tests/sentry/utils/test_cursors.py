@@ -22,8 +22,11 @@ def test_build_cursor():
 
     results = [event1, event2, event3]
 
+    def item_key(key, for_prev=False):
+        return math.floor(key.id)
+
     cursor_kwargs = {
-        'key': lambda x: math.floor(x.id),
+        'key': item_key,
         'limit': 1,
     }
 

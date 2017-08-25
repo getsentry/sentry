@@ -32,6 +32,9 @@ class BasePaginator(object):
         self.queryset = queryset
         self.max_limit = max_limit
 
+    def _is_asc(self, is_prev):
+        return (self.desc and is_prev) or not (self.desc or is_prev)
+
     def _build_queryset(self, value, is_prev):
         queryset = self.queryset
 
@@ -41,7 +44,7 @@ class BasePaginator(object):
         # list below (this is so we know how to get the before/after row).
         # If we're sorting ASC _AND_ we're not using a previous page cursor,
         # then we'll need to resume using ASC.
-        asc = (self.desc and is_prev) or not (self.desc or is_prev)
+        asc = self._is_asc(is_prev)
 
         # We need to reverse the ORDER BY if we're using a cursor for a
         # previous page so we know exactly where we ended last page.  The
@@ -83,7 +86,7 @@ class BasePaginator(object):
 
         return queryset
 
-    def get_item_key(self, item):
+    def get_item_key(self, item, for_prev):
         raise NotImplementedError
 
     def value_from_cursor(self, cursor):
@@ -119,6 +122,9 @@ class BasePaginator(object):
         # there is nothing to traverse past.
         if cursor.is_prev and cursor.value:
             offset += 1
+
+        # The + 1 is needed so we can decide in the ResultCursor if there is
+        # more on the next page.
         stop = offset + limit + 1
         results = list(queryset[offset:stop])
         if cursor.is_prev:
@@ -130,6 +136,7 @@ class BasePaginator(object):
             hits=hits,
             max_hits=max_hits,
             cursor=cursor,
+            is_desc=self.desc,
             key=self.get_item_key,
         )
 
@@ -153,11 +160,9 @@ class BasePaginator(object):
 
 
 class Paginator(BasePaginator):
-    def get_item_key(self, item):
+    def get_item_key(self, item, for_prev=False):
         value = getattr(item, self.key)
-        if self.desc:
-            return math.ceil(value)
-        return math.floor(value)
+        return math.floor(value) if self._is_asc(for_prev) else math.ceil(value)
 
     def value_from_cursor(self, cursor):
         return cursor.value
@@ -166,12 +171,10 @@ class Paginator(BasePaginator):
 class DateTimePaginator(BasePaginator):
     multiplier = 1000
 
-    def get_item_key(self, item):
+    def get_item_key(self, item, for_prev=False):
         value = getattr(item, self.key)
         value = float(value.strftime('%s.%f')) * self.multiplier
-        if self.desc:
-            return math.ceil(value)
-        return math.floor(value)
+        return math.floor(value) if self._is_asc(for_prev) else math.ceil(value)
 
     def value_from_cursor(self, cursor):
         return datetime.fromtimestamp(float(cursor.value) / self.multiplier).replace(
