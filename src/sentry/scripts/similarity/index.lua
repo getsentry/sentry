@@ -30,24 +30,17 @@ if not pcall(redis.replicate_commands) then
     redis.log(redis.LOG_DEBUG, 'Could not enable script effects replication.')
 end
 
-local function identity(value)
-    return value
+
+-- Utilities
+
+local function identity(...)
+    return ...
 end
 
 local function range(start, stop)
     local result = {}
     for i = start, stop do
         table.insert(result, i)
-    end
-    return result
-end
-
-function table.ifilter(t, f)
-    local result = {}
-    for i, value in ipairs(t) do
-        if f(value) then
-            table.insert(result, value)
-        end
     end
     return result
 end
@@ -92,73 +85,121 @@ function table.izip(...)
     return result
 end
 
-function table.slice(t, start, stop)
-    -- NOTE: ``stop`` is inclusive!
-    local result = {}
-    for i = start or 1, stop or #t do
-        table.insert(result, t[i])
-    end
-    return result
-end
-
 
 -- Argument Parsing and Validation
 
-local function parse_number(value)
+local function validate_value(value)
+    assert(value ~= nil, 'got nil, expected value')
+    return value
+end
+
+local function validate_number(value)
     local result = tonumber(value)
-    assert(result ~= nil, 'got nil, expected number')
+    assert(result ~= nil, string.format('got nil (%q), expected number', value))
     return result
 end
 
-local function parse_integer(value)
-    local result = parse_number(value)
-    assert(result % 1 == 0, 'got float, expected integer')
+local function validate_integer(value)
+    local result = validate_number(value)
+    assert(result % 1 == 0, string.format('got float (%q), expected integer', value))
     return result
 end
 
-local function build_argument_parser(fields)
-    return function (arguments, offset)
-        if offset == nil then
-            offset = 0
-        end
-        local results = {}
-        for i = 1, #fields do
-            local name, parser = unpack(fields[i])
-            local value = arguments[i]
-            local ok, result = pcall(parser, value)
-            if not ok then
-                error(string.format('received invalid argument for %q in position %s with value %q; %s', name, offset + i, value, result))
-            else
-                results[name] = result
-            end
-        end
-        return results, table.slice(arguments, #fields + 1)
+local function argument_parser(callback)
+    if callback == nil then
+        callback = identity
+    end
+
+    return function (cursor, arguments)
+        return cursor + 1, callback(arguments[cursor])
     end
 end
 
-local function build_variadic_argument_parser(fields, validator)
-    if validator == nil then
-        validator = identity
+local function flag_argument_parser(flags)
+    return function (cursor, arguments)
+        local result = {}
+        while flags[arguments[cursor]] do
+            result[arguments[cursor]] = true
+            cursor = cursor + 1
+        end
+        return cursor, result
     end
-    local parser = build_argument_parser(fields)
-    return function (arguments, offset)
-        if offset == nil then
-            offset = 0
+end
+
+local function repeated_argument_parser(argument_parser, quantity_parser, callback)
+    if quantity_parser == nil then
+        quantity_parser = function (cursor, arguments)
+            return cursor + 1, validate_integer(arguments[cursor])
         end
-        if #arguments % #fields ~= 0 then
-            -- TODO: make this error less crummy
-            error('invalid number of arguments')
-        end
+    end
+
+    if callback == nil then
+        callback = identity
+    end
+
+    return function (cursor, arguments)
         local results = {}
-        for i = 1, #arguments, #fields do
-            local value, _ = parser(table.slice(arguments, i, i + #fields - 1), i)
-            table.insert(
-                results,
-                validator(value)
-            )
+        local cursor, count = quantity_parser(cursor, arguments)
+        for i = 1, count do
+            cursor, results[i] = argument_parser(cursor, arguments)
         end
-        return results
+        return cursor, callback(results)
     end
+end
+
+local function object_argument_parser(schema, callback)
+    if callback == nil then
+        callback = identity
+    end
+
+    return function (cursor, arguments)
+        local result = {}
+        for i, specification in ipairs(schema) do
+            local key, parser = unpack(specification)
+            cursor, result[key] = parser(cursor, arguments)
+        end
+        return cursor, callback(result)
+    end
+end
+
+local function variadic_argument_parser(argument_parser)
+    return function (cursor, arguments)
+        local results = {}
+        local i = 1
+        while arguments[cursor] ~= nil do
+            cursor, results[i] = argument_parser(cursor, arguments)
+            i = i + 1
+        end
+        return cursor, results
+    end
+end
+
+local function multiple_argument_parser(...)
+    local parsers = {...}
+    return function (cursor, arguments)
+        local results = {}
+        for i, parser in ipairs(parsers) do
+            cursor, results[i] = parser(cursor, arguments)
+        end
+        return cursor, unpack(results)
+    end
+end
+
+local function frequencies_argument_parser(configuration)
+    return repeated_argument_parser(
+        function (cursor, arguments)
+            local buckets = {}
+            return repeated_argument_parser(
+                function (cursor, arguments)
+                    buckets[validate_value(arguments[cursor])] = validate_integer(arguments[cursor + 1])
+                    return cursor + 2
+                end
+            )(cursor, arguments), buckets
+        end,
+        function (cursor, arguments)
+            return cursor, configuration.bands
+        end
+    )
 end
 
 
@@ -192,28 +233,6 @@ local function redis_hgetall_response_to_table(response, value_type)
         result[response[i]] = value_type(response[i + 1])
     end
     return result
-end
-
-
--- Generic Configuration
-
-local configuration_parser = build_argument_parser({
-    {"timestamp", parse_integer},
-    {"namespace", identity},
-    {"bands", parse_integer},
-    {"interval", parse_integer},
-    {"retention", parse_integer},  -- how many previous intervals to store (does not include current interval)
-    {"scope", function (value)
-        assert(value ~= nil)
-        return value
-    end}
-})
-
-local function takes_configuration(command)
-    return function(arguments)
-        local configuration, arguments = configuration_parser(arguments)
-        return command(configuration, arguments)
-    end
 end
 
 
@@ -278,63 +297,8 @@ local function scale_to_total(values)
     return result
 end
 
-local function collect_index_key_pairs(arguments, validator)
-    return build_variadic_argument_parser({
-        {"index", identity},
-        {"key", identity},
-    }, validator)(arguments)
-end
-
 
 -- Signature Matching
-
-local function parse_band(configuration, arguments, cursor)
-    local result = {}
-
-    local count = tonumber(arguments[cursor])
-    cursor = cursor + 1
-
-    for i = 1, count do
-        result[arguments[cursor]] = tonumber(arguments[cursor + 1])
-        cursor = cursor + 2
-    end
-
-    return result, cursor
-end
-
-local function parse_signature(configuration, arguments, cursor)
-    local result = {}
-
-    result.index = arguments[cursor]
-    cursor = cursor + 1
-
-    for i = 1, configuration.bands do
-        result[i], cursor = parse_band(
-            configuration,
-            arguments,
-            cursor
-        )
-    end
-
-    return result, cursor
-end
-
-local function parse_signatures(configuration, arguments, cursor)
-    local result = {}
-
-    local count = tonumber(arguments[cursor])
-    cursor = cursor + 1
-
-    for i = 1, count  do
-        result[i], cursor = parse_signature(
-            configuration,
-            arguments,
-            cursor
-        )
-    end
-
-    return result, cursor
-end
 
 local function fetch_candidates(configuration, time_series, index, frequencies)
     --[[
@@ -490,295 +454,291 @@ local function fetch_similar(configuration, time_series, index, item_frequencies
     )
 end
 
+
+-- Command Utilities
+
+local function as_search_response(results)
+    -- Sort the results in descending order (most similar first.)
+    table.sort(
+        results,
+        function (left, right)
+            return left[2] > right[2]
+        end
+    )
+
+    return table.imap(
+        results,
+        function (item)
+            return {
+                item[1],
+                string.format(
+                    '%f',  -- converting floats to strings avoids truncation
+                    item[2]
+                ),
+            }
+        end
+    )
+end
+
+
 -- Command Parsing
 
 local commands = {
-    RECORD = takes_configuration(
-        function (configuration, arguments)
-            local key = arguments[1]
-            local signatures = parse_signatures(
-                configuration,
-                arguments,
-                2
+    RECORD = function (configuration, cursor, arguments)
+        local cursor, key, signatures = multiple_argument_parser(
+            argument_parser(validate_value),
+            variadic_argument_parser(
+                object_argument_parser({
+                    {"index", argument_parser(validate_value)},
+                    {"frequencies", frequencies_argument_parser(configuration)},
+                })
             )
+        )(cursor, arguments)
 
-            local time = math.floor(configuration.timestamp / configuration.interval)
-            local expiration = get_index_expiration_time(
-                configuration.interval,
-                configuration.retention,
-                time
-            )
+        local time = math.floor(configuration.timestamp / configuration.interval)
+        local expiration = get_index_expiration_time(
+            configuration.interval,
+            configuration.retention,
+            time
+        )
 
-            return table.imap(
-                signatures,
-                function (signature)
-                    local results = {}
+        return table.imap(
+            signatures,
+            function (signature)
+                local results = {}
 
-                    for band, buckets in ipairs(signature) do
-                        for bucket, count in pairs(buckets) do
-                            local bucket_membership_key = get_bucket_membership_key(
-                                configuration,
-                                signature.index,
-                                time,
-                                band,
-                                bucket
-                            )
-                            redis.call('SADD', bucket_membership_key, key)
-                            redis.call('EXPIREAT', bucket_membership_key, expiration)
+                for band, buckets in ipairs(signature.frequencies) do
+                    for bucket, count in pairs(buckets) do
+                        local bucket_membership_key = get_bucket_membership_key(
+                            configuration,
+                            signature.index,
+                            time,
+                            band,
+                            bucket
+                        )
+                        redis.call('SADD', bucket_membership_key, key)
+                        redis.call('EXPIREAT', bucket_membership_key, expiration)
 
-                            local bucket_frequency_key = get_bucket_frequency_key(
-                                configuration,
-                                signature.index,
-                                time,
-                                band,
-                                key
-                            )
-                            table.insert(
-                                results,
-                                tonumber(redis.call('HINCRBY', bucket_frequency_key, bucket, count))
-                            )
-                            redis.call('EXPIREAT', bucket_frequency_key, expiration)
-                        end
+                        local bucket_frequency_key = get_bucket_frequency_key(
+                            configuration,
+                            signature.index,
+                            time,
+                            band,
+                            key
+                        )
+                        table.insert(
+                            results,
+                            tonumber(redis.call('HINCRBY', bucket_frequency_key, bucket, count))
+                        )
+                        redis.call('EXPIREAT', bucket_frequency_key, expiration)
                     end
-
-                    return results
                 end
-            )
-        end
-    ),
-    CLASSIFY = takes_configuration(
-        function (configuration, arguments)
-            local signatures = parse_signatures(
-                configuration,
-                arguments,
-                1
-            )
-            local time_series = get_active_indices(
-                configuration.interval,
-                configuration.retention,
-                configuration.timestamp
-            )
 
-            return table.imap(
-                signatures,
-                function (signature)
-                    local results = fetch_similar(
-                        configuration,
-                        time_series,
-                        signature.index,
-                        signature
-                    )
-
-                    -- Sort the results in descending order (most similar first.)
-                    table.sort(
-                        results,
-                        function (left, right)
-                            return left[2] > right[2]
-                        end
-                    )
-
-                    return table.imap(
-                        results,
-                        function (item)
-                            return {
-                                item[1],
-                                string.format(
-                                    '%f',  -- converting floats to strings avoids truncation
-                                    item[2]
-                                ),
-                            }
-                        end
-                    )
-                end
+                return results
+            end
+        )
+    end,
+    CLASSIFY = function (configuration, cursor, arguments)
+        local cursor, signatures = multiple_argument_parser(
+            variadic_argument_parser(
+                object_argument_parser({
+                    {"index", argument_parser(validate_value)},
+                    {"frequencies", frequencies_argument_parser(configuration)},
+                })
             )
-        end
-    ),
-    COMPARE = takes_configuration(
-        function (configuration, arguments)
-            local item_key = arguments[1]
-            local indices = table.slice(arguments, 2)
+        )(cursor, arguments)
 
-            local time_series = get_active_indices(
-                configuration.interval,
-                configuration.retention,
-                configuration.timestamp
+        local time_series = get_active_indices(
+            configuration.interval,
+            configuration.retention,
+            configuration.timestamp
+        )
+
+        return table.imap(
+            signatures,
+            function (signature)
+                local results = fetch_similar(
+                    configuration,
+                    time_series,
+                    signature.index,
+                    signature.frequencies
+                )
+                return as_search_response(results)
+            end
+        )
+    end,
+    COMPARE = function (configuration, cursor, arguments)
+        local cursor, item_key, indices = multiple_argument_parser(
+            argument_parser(validate_value),
+            variadic_argument_parser(
+                argument_parser(validate_value)
             )
+        )(cursor, arguments)
 
-            return table.imap(
-                indices,
-                function (index)
-                    local results = fetch_similar(
+        local time_series = get_active_indices(
+            configuration.interval,
+            configuration.retention,
+            configuration.timestamp
+        )
+
+        return table.imap(
+            indices,
+            function (index)
+                local results = fetch_similar(
+                    configuration,
+                    time_series,
+                    index,
+                    fetch_bucket_frequencies(
                         configuration,
                         time_series,
                         index,
-                        fetch_bucket_frequencies(
+                        item_key
+                    )
+                )
+                return as_search_response(results)
+            end
+        )
+    end,
+    MERGE = function (configuration, cursor, arguments)
+        local cursor, destination_key = argument_parser(validate_value)(cursor, arguments)
+        local cursor, sources = variadic_argument_parser(
+            object_argument_parser({
+                {"index", argument_parser(validate_value)},
+                {"key", argument_parser(validate_value)},
+            }, function (entry)
+                assert(entry.key ~= destination_key, 'cannot merge destination into itself')
+                return entry
+            end)
+        )(cursor, arguments)
+
+        local time_series = get_active_indices(
+            configuration.interval,
+            configuration.retention,
+            configuration.timestamp
+        )
+
+        for _, source in ipairs(sources) do
+            for band = 1, configuration.bands do
+                for _, time in ipairs(time_series) do
+                    local source_bucket_frequency_key = get_bucket_frequency_key(
+                        configuration,
+                        source.index,
+                        time,
+                        band,
+                        source.key
+                    )
+                    local destination_bucket_frequency_key = get_bucket_frequency_key(
+                        configuration,
+                        source.index,
+                        time,
+                        band,
+                        destination_key
+                    )
+                    local expiration_time = get_index_expiration_time(
+                        configuration.interval,
+                        configuration.retention,
+                        time
+                    )
+
+                    local response = redis_hgetall_response_to_table(
+                        redis.call(
+                            'HGETALL',
+                            source_bucket_frequency_key
+                        ),
+                        tonumber
+                    )
+
+                    for bucket, count in pairs(response) do
+                        -- Remove the source from the bucket membership
+                        -- set, and add the destination to the membership
+                        -- set.
+                        local bucket_membership_key = get_bucket_membership_key(
                             configuration,
-                            time_series,
-                            index,
-                            item_key
+                            source.index,
+                            time,
+                            band,
+                            bucket
                         )
+                        redis.call('SREM', bucket_membership_key, source.key)
+                        redis.call('SADD', bucket_membership_key, destination_key)
+                        redis.call('EXPIREAT', bucket_membership_key, expiration_time)
+
+                        -- Merge the counter values into the destination frequencies.
+                        redis.call(
+                            'HINCRBY',
+                            destination_bucket_frequency_key,
+                            bucket,
+                            count
+                        )
+                    end
+
+                    -- TODO: We only need to do this if the bucket has contents.
+                    -- The destination bucket frequency key may have not
+                    -- existed previously, so we need to make sure we set
+                    -- the expiration on it in case it is new.
+                    redis.call(
+                        'EXPIREAT',
+                        destination_bucket_frequency_key,
+                        expiration_time
                     )
 
-                    -- Sort the results in descending order (most similar first.)
-                    table.sort(
-                        results,
-                        function (left, right)
-                            return left[2] > right[2]
-                        end
-                    )
-
-                    return table.imap(
-                        results,
-                        function (item)
-                            return {
-                                item[1],
-                                string.format(
-                                    '%f',  -- converting floats to strings avoids truncation
-                                    item[2]
-                                ),
-                            }
-                        end
-                    )
+                    -- We no longer need the source frequencies.
+                    redis.call('DEL', source_bucket_frequency_key)
                 end
-            )
+            end
         end
-    ),
-    MERGE = takes_configuration(
-        function (configuration, arguments)
-            local destination_key = arguments[1]
-            local sources = collect_index_key_pairs(
-                table.slice(arguments, 2),
-                function (entry)
-                    assert(entry.key ~= destination_key, 'cannot merge destination into itself')
-                    return entry
-                end
-            )
+    end,
+    DELETE = function (configuration, cursor, arguments)
+        local cursor, sources = variadic_argument_parser(
+            object_argument_parser({
+                {"index", argument_parser(validate_value)},
+                {"key", argument_parser(validate_value)},
+            })
+        )(cursor, arguments)
 
-            local time_series = get_active_indices(
-                configuration.interval,
-                configuration.retention,
-                configuration.timestamp
-            )
+        local time_series = get_active_indices(
+            configuration.interval,
+            configuration.retention,
+            configuration.timestamp
+        )
 
-            for _, source in ipairs(sources) do
-                for band = 1, configuration.bands do
-                    for _, time in ipairs(time_series) do
-                        local source_bucket_frequency_key = get_bucket_frequency_key(
-                            configuration,
-                            source.index,
-                            time,
-                            band,
-                            source.key
-                        )
-                        local destination_bucket_frequency_key = get_bucket_frequency_key(
-                            configuration,
-                            source.index,
-                            time,
-                            band,
-                            destination_key
-                        )
-                        local expiration_time = get_index_expiration_time(
-                            configuration.interval,
-                            configuration.retention,
-                            time
-                        )
+        for _, source in ipairs(sources) do
+            for band = 1, configuration.bands do
+                for _, time in ipairs(time_series) do
+                    local source_bucket_frequency_key = get_bucket_frequency_key(
+                        configuration,
+                        source.index,
+                        time,
+                        band,
+                        source.key
+                    )
 
-                        local response = redis_hgetall_response_to_table(
-                            redis.call(
-                                'HGETALL',
-                                source_bucket_frequency_key
-                            ),
-                            tonumber
-                        )
+                    local buckets = redis.call(
+                        'HKEYS',
+                        source_bucket_frequency_key
+                    )
 
-                        for bucket, count in pairs(response) do
-                            -- Remove the source from the bucket membership
-                            -- set, and add the destination to the membership
-                            -- set.
-                            local bucket_membership_key = get_bucket_membership_key(
+                    for _, bucket in ipairs(buckets) do
+                        redis.call(
+                            'SREM',
+                            get_bucket_membership_key(
                                 configuration,
                                 source.index,
                                 time,
                                 band,
                                 bucket
-                            )
-                            redis.call('SREM', bucket_membership_key, source.key)
-                            redis.call('SADD', bucket_membership_key, destination_key)
-                            redis.call('EXPIREAT', bucket_membership_key, expiration_time)
-
-                            -- Merge the counter values into the destination frequencies.
-                            redis.call(
-                                'HINCRBY',
-                                destination_bucket_frequency_key,
-                                bucket,
-                                count
-                            )
-                        end
-
-                        -- TODO: We only need to do this if the bucket has contents.
-                        -- The destination bucket frequency key may have not
-                        -- existed previously, so we need to make sure we set
-                        -- the expiration on it in case it is new.
-                        redis.call(
-                            'EXPIREAT',
-                            destination_bucket_frequency_key,
-                            expiration_time
-                        )
-
-                        -- We no longer need the source frequencies.
-                        redis.call('DEL', source_bucket_frequency_key)
-                    end
-                end
-            end
-        end
-    ),
-    DELETE = takes_configuration(
-        function (configuration, arguments)
-            local sources = collect_index_key_pairs(arguments)
-            local time_series = get_active_indices(
-                configuration.interval,
-                configuration.retention,
-                configuration.timestamp
-            )
-
-            for _, source in ipairs(sources) do
-                for band = 1, configuration.bands do
-                    for _, time in ipairs(time_series) do
-                        local source_bucket_frequency_key = get_bucket_frequency_key(
-                            configuration,
-                            source.index,
-                            time,
-                            band,
+                            ),
                             source.key
                         )
-
-                        local buckets = redis.call(
-                            'HKEYS',
-                            source_bucket_frequency_key
-                        )
-
-                        for _, bucket in ipairs(buckets) do
-                            redis.call(
-                                'SREM',
-                                get_bucket_membership_key(
-                                    configuration,
-                                    source.index,
-                                    time,
-                                    band,
-                                    bucket
-                                ),
-                                source.key
-                            )
-                        end
-
-                        -- We no longer need the source frequencies.
-                        redis.call('DEL', source_bucket_frequency_key)
                     end
+
+                    -- We no longer need the source frequencies.
+                    redis.call('DEL', source_bucket_frequency_key)
                 end
             end
         end
-    ),
-    IMPORT = takes_configuration(
+    end,
+    IMPORT = function (configuration, cursor, arguments)
         --[[
         Loads data returned by the ``EXPORT`` command into the location
         specified by the ``index`` and ``key`` arguments. Data can be loaded
@@ -789,66 +749,66 @@ local commands = {
         data already exists at the new destination, the imported data will be
         appended to the existing data.
         ]]--
-        function (configuration, arguments)
-            local entries = build_variadic_argument_parser({
-                {'index', identity},
-                {'key', identity},
-                {'data', cmsgpack.unpack},
-            })(arguments)
+        local cursor, entries = variadic_argument_parser(
+            object_argument_parser({
+                {'index', argument_parser(validate_value)},
+                {'key', argument_parser(validate_value)},
+                {'data', argument_parser(cmsgpack.unpack)}
+            })
+        )(cursor, arguments)
 
-            for _, entry in ipairs(entries) do
-                for band, data in ipairs(entry.data) do
-                    for _, item in ipairs(data) do
-                        local time, buckets = item[1], item[2]
-                        local expiration_time = get_index_expiration_time(
-                            configuration.interval,
-                            configuration.retention,
-                            time
-                        )
-                        local destination_bucket_frequency_key = get_bucket_frequency_key(
+        for _, entry in ipairs(entries) do
+            for band, data in ipairs(entry.data) do
+                for _, item in ipairs(data) do
+                    local time, buckets = item[1], item[2]
+                    local expiration_time = get_index_expiration_time(
+                        configuration.interval,
+                        configuration.retention,
+                        time
+                    )
+                    local destination_bucket_frequency_key = get_bucket_frequency_key(
+                        configuration,
+                        entry.index,
+                        time,
+                        band,
+                        entry.key
+                    )
+
+                    for bucket, count in pairs(buckets) do
+                        local bucket_membership_key = get_bucket_membership_key(
                             configuration,
                             entry.index,
                             time,
                             band,
-                            entry.key
+                            bucket
                         )
+                        redis.call('SADD', bucket_membership_key, entry.key)
+                        redis.call('EXPIREAT', bucket_membership_key, expiration_time)
 
-                        for bucket, count in pairs(buckets) do
-                            local bucket_membership_key = get_bucket_membership_key(
-                                configuration,
-                                entry.index,
-                                time,
-                                band,
-                                bucket
-                            )
-                            redis.call('SADD', bucket_membership_key, entry.key)
-                            redis.call('EXPIREAT', bucket_membership_key, expiration_time)
+                        redis.call(
+                            'HINCRBY',
+                            destination_bucket_frequency_key,
+                            bucket,
+                            count
+                        )
+                    end
 
-                            redis.call(
-                                'HINCRBY',
-                                destination_bucket_frequency_key,
-                                bucket,
-                                count
-                            )
-                        end
-
-                        -- The destination bucket frequency key may have not
-                        -- existed previously, so we need to make sure we set
-                        -- the expiration on it in case it is new. (We only
-                        -- have to do this if there we changed any bucket counts.)
-                        if next(buckets) ~= nil then
-                            redis.call(
-                                'EXPIREAT',
-                                destination_bucket_frequency_key,
-                                expiration_time
-                            )
-                        end
+                    -- The destination bucket frequency key may have not
+                    -- existed previously, so we need to make sure we set
+                    -- the expiration on it in case it is new. (We only
+                    -- have to do this if there we changed any bucket counts.)
+                    if next(buckets) ~= nil then
+                        redis.call(
+                            'EXPIREAT',
+                            destination_bucket_frequency_key,
+                            expiration_time
+                        )
                     end
                 end
             end
         end
-    ),
-    EXPORT = takes_configuration(
+    end,
+    EXPORT = function (configuration, cursor, arguments)
         --[[
         Exports data that is located at the provided ``index`` and ``key`` pairs.
 
@@ -864,86 +824,99 @@ local commands = {
         be represented as an empty list. The consumer of this data must convert
         it back to the correct type.)
         ]]--
-        function (configuration, arguments)
-            local bands = range(1, configuration.bands)
-            local time_series = get_active_indices(
-                configuration.interval,
-                configuration.retention,
-                configuration.timestamp
-            )
-            return table.imap(
-                collect_index_key_pairs(arguments),
-                function (source)
-                    return cmsgpack.pack(
-                        table.imap(
-                            bands,
-                            function (band)
-                                return table.imap(
-                                    time_series,
-                                    function (time)
-                                        return {
-                                            time,
-                                            redis_hgetall_response_to_table(
-                                                redis.call(
-                                                    'HGETALL',
-                                                    get_bucket_frequency_key(
-                                                        configuration,
-                                                        source.index,
-                                                        time,
-                                                        band,
-                                                        source.key
-                                                    )
-                                                ),
-                                                tonumber
+        local cursor, entries = variadic_argument_parser(
+            object_argument_parser({
+                {'index', argument_parser(validate_value)},
+                {'key', argument_parser(validate_value)},
+            })
+        )(cursor, arguments)
+
+        local bands = range(1, configuration.bands)
+        local time_series = get_active_indices(
+            configuration.interval,
+            configuration.retention,
+            configuration.timestamp
+        )
+        return table.imap(
+            entries,
+            function (source)
+                return cmsgpack.pack(
+                    table.imap(
+                        bands,
+                        function (band)
+                            return table.imap(
+                                time_series,
+                                function (time)
+                                    return {
+                                        time,
+                                        redis_hgetall_response_to_table(
+                                            redis.call(
+                                                'HGETALL',
+                                                get_bucket_frequency_key(
+                                                    configuration,
+                                                    source.index,
+                                                    time,
+                                                    band,
+                                                    source.key
+                                                )
                                             ),
-                                        }
-                                    end
-                                )
-                            end
-                        )
-                    )
-                end
-            )
-        end
-    ),
-    SCAN = takes_configuration(
-        function (configuration, arguments)
-            local arguments = build_variadic_argument_parser({
-                {"index", identity},
-                {"cursor", identity},
-                {"count", identity},
-            })(arguments)
-            return table.imap(
-                arguments,
-                function (argument)
-                    return redis.call(
-                        'SCAN',
-                        argument.cursor,
-                        'MATCH',
-                        string.format(
-                            '%s:*',
-                            get_key_prefix(
-                                configuration,
-                                argument.index
+                                            tonumber
+                                        ),
+                                    }
+                                end
                             )
-                        ),
-                        'COUNT',
-                        argument.count
+                        end
                     )
-                end
-            )
-        end
-    )
+                )
+            end
+        )
+    end,
+    SCAN = function (configuration, cursor, arguments)
+        local cursor, entries = variadic_argument_parser(
+            object_argument_parser({
+                {'index', argument_parser(validate_value)},
+                {'cursor', argument_parser(validate_value)},
+                {'count', argument_parser(validate_integer)}
+            })
+        )(cursor, arguments)
+        return table.imap(
+            entries,
+            function (argument)
+                return redis.call(
+                    'SCAN',
+                    argument.cursor,
+                    'MATCH',
+                    string.format(
+                        '%s:*',
+                        get_key_prefix(
+                            configuration,
+                            argument.index
+                        )
+                    ),
+                    'COUNT',
+                    argument.count
+                )
+            end
+        )
+    end,
 }
 
+local cursor, command, configuration = multiple_argument_parser(
+    argument_parser(
+        function (value)
+            local command = commands[value]
+            assert(command ~= nil)
+            return command
+        end
+    ),
+    object_argument_parser({
+        {"timestamp", argument_parser(validate_number)},
+        {"namespace", argument_parser()},
+        {"bands", argument_parser(validate_integer)},
+        {"interval", argument_parser(validate_integer)},
+        {"retention", argument_parser(validate_integer)},  -- how many previous intervals to store (does not include current interval)
+        {"scope", argument_parser(validate_value)},
+    })
+)(1, ARGV)
 
-local command_parser = build_argument_parser({
-    {"command", function (value)
-        local command = commands[value]
-        assert(command ~= nil)
-        return command
-    end},
-})
-
-local parsed, arguments = command_parser(ARGV)
-return parsed.command(arguments)
+return command(configuration, cursor, ARGV)
