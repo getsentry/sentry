@@ -152,6 +152,7 @@ class FeatureSet(object):
 
         scope = None
 
+        labels = []
         items = []
         for event in events:
             for label, features in self.extract(event).items():
@@ -178,14 +179,15 @@ class FeatureSet(object):
                 else:
                     if features:
                         items.append((self.aliases[label], thresholds.pop(label, 0), features))
+                        labels.append(label)
 
         if thresholds:
             raise ValueError('Invalid thresholds provided')
 
-        return zip(
-            map(
-                lambda (alias, characteristics): self.aliases.get_key(alias),
-                items,
+        return map(
+            lambda (key, scores): (
+                int(key),
+                dict(zip(labels, scores)),
             ),
             self.index.classify(
                 scope,
@@ -207,24 +209,16 @@ class FeatureSet(object):
         if thresholds:
             raise ValueError('Invalid thresholds provided')
 
-        results = self.index.compare(
-            self.__get_scope(group.project),
-            self.__get_key(group),
-            items,
-        )
-
-        items = {}
-        for feature, result in zip(features, results):
-            for item, score in result:
-                items.setdefault(
-                    int(item),
-                    {},
-                )[feature] = score
-
-        return sorted(
-            items.items(),
-            key=lambda (id, features): sum(features.values()),
-            reverse=True,
+        return map(
+            lambda (key, scores): (
+                int(key),
+                dict(zip(features, scores)),
+            ),
+            self.index.compare(
+                self.__get_scope(group.project),
+                self.__get_key(group),
+                items,
+            ),
         )
 
     def merge(self, destination, sources, allow_unsafe=False):
