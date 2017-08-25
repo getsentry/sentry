@@ -28,6 +28,9 @@ class MinHashIndex(object):
         self.retention = retention
 
     def _build_signature_arguments(self, features):
+        if not features:
+            return [0] * self.bands
+
         arguments = []
         for bucket in band(self.bands, self.signature_builder(features)):
             arguments.extend([1, ','.join(map('{}'.format, bucket)), 1])
@@ -35,6 +38,45 @@ class MinHashIndex(object):
 
     def _get_connection(self, scope):
         return self.cluster.get_local_client_for_key(scope)
+
+    def _as_search_result(self, indices, result):
+        replacements = {
+            -1: None,
+            -2: 0,
+        }
+
+        def get_comparison_key((key, scores)):
+            scores = filter(
+                lambda score: score is not None,
+                map(
+                    lambda score: replacements.get(score, score),
+                    scores,
+                ),
+            )
+
+            return (
+                sum(scores) / len(scores) * -1,  # average score
+                len(scores) * -1,  # number of indexes with scores, tiebreaker
+                key,  # lex sort, tiebreaker
+            )
+
+        # TODO: Clean this up, don't map so much.
+        return map(
+            lambda (key, scores): (
+                key,
+                map(lambda score: score if score >= 0 else None, scores),
+            ),
+            sorted(
+                map(
+                    lambda (key, scores): (
+                        key,
+                        map(float, scores),
+                    ),
+                    result,
+                ),
+                key=get_comparison_key,
+            ),
+        )
 
     def classify(self, scope, items, candidate_limit=250, timestamp=None):
         if timestamp is None:
@@ -55,14 +97,10 @@ class MinHashIndex(object):
             arguments.extend([idx, threshold])
             arguments.extend(self._build_signature_arguments(features))
 
-        return [
-            [(item, float(score)) for item, score in result]
-            for result in index(
-                self._get_connection(scope),
-                [],
-                arguments,
-            )
-        ]
+        return self._as_search_result(
+            [idx for idx, threshold, features in items],
+            index(self._get_connection(scope), [], arguments),
+        )
 
     def compare(self, scope, key, items, candidate_limit=250, timestamp=None):
         if timestamp is None:
@@ -83,14 +121,10 @@ class MinHashIndex(object):
         for idx, threshold in items:
             arguments.extend([idx, threshold])
 
-        return [
-            [(item, float(score)) for item, score in result]
-            for result in index(
-                self._get_connection(scope),
-                [],
-                arguments,
-            )
-        ]
+        return self._as_search_result(
+            [idx for idx, threshold in items],
+            index(self._get_connection(scope), [], arguments),
+        )
 
     def record(self, scope, key, items, timestamp=None):
         if not items:
