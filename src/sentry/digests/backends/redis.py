@@ -209,7 +209,14 @@ class RedisBackend(Backend):
         with self._get_timeline_lock(key, duration=30).acquire():
             try:
                 response = script(
-                    connection, [key], ['DIGEST_OPEN', self.namespace, self.ttl, timestamp, key]
+                    connection, [key], [
+                        'DIGEST_OPEN',
+                        self.namespace,
+                        self.ttl,
+                        timestamp,
+                        key,
+                        self.capacity if self.capacity else -1,
+                    ]
                 )
             except ResponseError as e:
                 if 'err(invalid_state):' in e.message:

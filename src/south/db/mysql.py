@@ -12,6 +12,7 @@ def delete_column_constraints(func):
     Decorates column operation functions for MySQL.
     Deletes the constraints from the database and clears local cache.
     """
+
     def _column_rm(self, table_name, column_name, *args, **opts):
         # Delete foreign key constraints
         try:
@@ -34,6 +35,7 @@ def copy_column_constraints(func):
     Decorates column operation functions for MySQL.
     Determines existing constraints and copies them to a new column
     """
+
     def _column_cp(self, table_name, column_old, column_new, *args, **opts):
         # Copy foreign key constraint
         try:
@@ -56,7 +58,7 @@ def copy_column_constraints(func):
             reverse = self._lookup_reverse_constraint(table_name, column_old)
             for cname, rtable, rcolumn in reverse:
                 fk_sql = self.foreign_key_sql(
-                        rtable, rcolumn, table_name, column_new)
+                    rtable, rcolumn, table_name, column_new)
                 self.add_deferred_sql(fk_sql)
         except DryRunError:
             pass
@@ -70,6 +72,7 @@ def invalidate_table_constraints(func):
     effective.
     It further solves the issues of invalidating referred table constraints.
     """
+
     def _cache_clear(self, table, *args, **opts):
         db_name = self._get_setting('NAME')
         if db_name in self._constraint_cache:
@@ -112,7 +115,8 @@ class DatabaseOperations(generic.DatabaseOperations):
         self._reverse_cache = {}
         super(DatabaseOperations, self).__init__(db_alias)
         if self._has_setting('STORAGE_ENGINE') and self._get_setting('STORAGE_ENGINE'):
-            self.create_table_sql = self.create_table_sql + ' ENGINE=%s' % self._get_setting('STORAGE_ENGINE')
+            self.create_table_sql = self.create_table_sql + \
+                ' ENGINE=%s' % self._get_setting('STORAGE_ENGINE')
 
     def _is_valid_cache(self, db_name, table_name):
         cache = self._constraint_cache
@@ -161,19 +165,19 @@ class DatabaseOperations(generic.DatabaseOperations):
                 self._constraint_cache[db_name][table].setdefault(column, set())
                 if kind == 'FOREIGN KEY':
                     self._constraint_cache[db_name][table][column].add((kind,
-                        constraint))
+                                                                        constraint))
                     # Create constraint lookup, see constraint_references
                     self._constraint_references[db_name][(table,
-                        constraint)] = (ref_table, ref_column)
+                                                          constraint)] = (ref_table, ref_column)
                     # Create reverse table lookup, reverse_lookup
                     self._reverse_cache[db_name].setdefault(ref_table, {})
                     self._reverse_cache[db_name][ref_table].setdefault(ref_column,
-                            set())
+                                                                       set())
                     self._reverse_cache[db_name][ref_table][ref_column].add(
-                            (constraint, table, column))
+                        (constraint, table, column))
                 else:
                     self._constraint_cache[db_name][table][column].add((kind,
-                    constraint))
+                                                                        constraint))
 
     def connection_init(self):
         """
@@ -199,7 +203,10 @@ class DatabaseOperations(generic.DatabaseOperations):
         if old == new or self.dry_run:
             return []
 
-        rows = [x for x in self.execute('DESCRIBE %s' % (self.quote_name(table_name),)) if x[0] == old]
+        rows = [
+            x for x in self.execute(
+                'DESCRIBE %s' %
+                (self.quote_name(table_name),)) if x[0] == old]
 
         if not rows:
             raise ValueError("No column '%s' in '%s'." % (old, table_name))
@@ -229,7 +236,7 @@ class DatabaseOperations(generic.DatabaseOperations):
     @invalidate_table_constraints
     def rename_table(self, old_table_name, table_name):
         super(DatabaseOperations, self).rename_table(old_table_name,
-                table_name)
+                                                     table_name)
 
     @invalidate_table_constraints
     def delete_table(self, table_name):

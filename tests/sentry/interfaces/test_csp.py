@@ -148,6 +148,18 @@ class CspTest(TestCase):
             ('effective-directive', 'style-src'), ('blocked-uri', 'http://example.com/lol.css'),
         )
 
+    def test_get_tags_stripe(self):
+        result = Csp.to_python(
+            dict(
+                blocked_uri='https://api.stripe.com/v1/tokens?card[number]=xxx',
+                effective_directive='script-src',
+            )
+        )
+        assert result.get_tags() == (
+            ('effective-directive', 'script-src'),
+            ('blocked-uri', 'https://api.stripe.com/v1/tokens'),
+        )
+
     def test_get_message(self):
         result = Csp.to_python(
             dict(

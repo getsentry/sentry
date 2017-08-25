@@ -1,6 +1,5 @@
 import React from 'react';
-import {Link} from 'react-router';
-
+import Link from '../link';
 import SidebarPanel from '../sidebarPanel';
 import LetterAvatar from '../letterAvatar';
 

@@ -40,8 +40,8 @@ class OrganizationMixin(object):
         # OrganizationBase
         active_organization = getattr(self, '_active_org', None)
         cached_active_org = (
-            active_organization and active_organization[0].slug == organization_slug and
-            active_organization[1] == request.user
+            active_organization and active_organization[0].slug == organization_slug
+            and active_organization[1] == request.user
         )
         if cached_active_org:
             return active_organization[0]

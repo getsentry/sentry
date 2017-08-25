@@ -104,7 +104,9 @@ def web(bind, workers, upgrade, with_lock, noinput):
             )
         except click.ClickException:
             if with_lock:
-                click.echo('!! Upgrade currently running from another process, skipping.', err=True)
+                click.echo(
+                    '!! Upgrade currently running from another process, skipping.',
+                    err=True)
             else:
                 raise
 

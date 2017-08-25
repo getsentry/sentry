@@ -9,6 +9,7 @@ from django.core.urlresolvers import reverse
 from sentry.models import (
     Activity, ApiKey, ApiToken, Release, ReleaseCommit, ReleaseProject, Repository
 )
+from sentry.plugins.providers.dummy.repository import DummyRepositoryProvider
 from sentry.testutils import APITestCase
 
 
@@ -195,6 +196,11 @@ class OrganizationReleaseCreateTest(APITestCase):
         org = self.create_organization()
         org.flags.allow_joinleave = False
         org.save()
+        repo = Repository.objects.create(
+            provider='dummy',
+            name='my-org/my-repository',
+            organization_id=org.id,
+        )
 
         team = self.create_team(organization=org)
         project = self.create_project(name='foo', organization=org, team=team)
@@ -210,10 +216,79 @@ class OrganizationReleaseCreateTest(APITestCase):
             }
         )
 
-        response = self.client.post(url, data={'version': '1.2.1', 'projects': [project.slug]})
+        with self.tasks():
+            response = self.client.post(
+                url,
+                data={
+                    'version':
+                    '1.2.1',
+                    'projects': [project.slug],
+                    'refs': [
+                        {
+                            'repository': 'my-org/my-repository',
+                            'commit': 'a' * 40,
+                            'previousCommit': 'c' * 40,
+                        }
+                    ]
+                }
+            )
+
+        release_commits1 = list(
+            ReleaseCommit.objects.filter(release=release).values_list('commit__key', flat=True)
+        )
+
+        # check that commits are overwritten
+        assert release_commits1 == [
+            u'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+            u'62de626b7c7cfb8e77efb4273b1a3df4123e6216',
+            u'58de626b7c7cfb8e77efb4273b1a3df4123e6345',
+        ]
 
         # should be 201 because project was added
         assert response.status_code == 201, response.content
+
+        with self.tasks():
+            with patch.object(DummyRepositoryProvider, 'compare_commits') as mock_compare_commits:
+                mock_compare_commits.return_value = [
+                    {
+                        'id': 'c' * 40,
+                        'repository': repo.name,
+                    }, {
+                        'id': 'd' * 40,
+                        'repository': repo.name,
+                    }, {
+                        'id': 'a' * 40,
+                        'repository': repo.name,
+                    }
+                ]
+                response2 = self.client.post(
+                    url,
+                    data={
+                        'version':
+                        '1.2.1',
+                        'projects': [project.slug],
+                        'refs': [
+                            {
+                                'repository': 'my-org/my-repository',
+                                'commit': 'a' * 40,
+                                'previousCommit': 'b' * 40,
+                            }
+                        ]
+                    }
+                )
+
+        release_commits2 = list(
+            ReleaseCommit.objects.filter(release=release).values_list('commit__key', flat=True)
+        )
+
+        # check that commits are overwritten
+        assert release_commits2 == [
+            u'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+            u'cccccccccccccccccccccccccccccccccccccccc',
+            u'dddddddddddddddddddddddddddddddddddddddd',
+        ]
+
+        assert response2.status_code == 208, response.content
         assert Release.objects.filter(version='1.2.1', organization=org).count() == 1
         # make sure project was added
         assert ReleaseProject.objects.filter(release=release, project=project).exists()

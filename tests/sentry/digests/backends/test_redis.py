@@ -81,6 +81,40 @@ class RedisBackendTestCase(TestCase):
         with backend.digest('timeline', 0) as records:
             assert set(records) == set([record_1, record_2])
 
+    def test_maintenance_failure_recovery_with_capacity(self):
+        backend = RedisBackend(capacity=10, truncation_chance=0.0)
+
+        t = time.time()
+
+        # Add 10 items to the timeline.
+        for i in xrange(10):
+            backend.add('timeline', Record('record:{}'.format(i), '{}'.format(i), t + i))
+
+        try:
+            with backend.digest('timeline', 0) as records:
+                raise Exception('This causes the digest to not be closed.')
+        except Exception:
+            pass
+
+        # The 10 existing items should now be in the digest set (the exception
+        # prevented the close operation from occurring, so they were never
+        # deleted from Redis or removed from the digest set.) If we add 10 more
+        # items, they should be added to the timeline set (not the digest set.)
+        for i in xrange(10, 20):
+            backend.add('timeline', Record('record:{}'.format(i), '{}'.format(i), t + i))
+
+        # Maintenance should move the timeline back to the waiting state, ...
+        backend.maintenance(time.time())
+
+        # The schedule should now contain the timeline.
+        assert set(entry.key for entry in backend.schedule(time.time())) == set(['timeline'])
+
+        # Only the new records should exist -- the older one should have been
+        # trimmed to avoid the digest growing beyond the timeline capacity.
+        with backend.digest('timeline', 0) as records:
+            expected_keys = set('record:{}'.format(i) for i in xrange(10, 20))
+            assert set(record.key for record in records) == expected_keys
+
     def test_delete(self):
         backend = RedisBackend()
         backend.add('timeline', Record('record:1', 'value', time.time()))
@@ -107,3 +141,14 @@ class RedisBackendTestCase(TestCase):
         # contents were merged back into the digest.
         with backend.digest('timeline', 0) as records:
             assert set(records) == set([record_2])
+
+    def test_large_digest(self):
+        backend = RedisBackend()
+
+        n = 8192
+        t = time.time()
+        for i in xrange(n):
+            backend.add('timeline', Record('record:{}'.format(i), '{}'.format(i), t))
+
+        with backend.digest('timeline', 0) as records:
+            assert len(set(records)) == n

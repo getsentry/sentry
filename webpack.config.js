@@ -24,18 +24,21 @@ babelConfig.cacheDirectory = true;
 
 // only extract po files if we need to
 if (process.env.SENTRY_EXTRACT_TRANSLATIONS === '1') {
-  babelConfig.plugins.push('babel-gettext-extractor', {
-    fileName: 'build/javascript.po',
-    baseDirectory: path.join(__dirname, 'src/sentry'),
-    functionNames: {
-      gettext: ['msgid'],
-      ngettext: ['msgid', 'msgid_plural', 'count'],
-      gettextComponentTemplate: ['msgid'],
-      t: ['msgid'],
-      tn: ['msgid', 'msgid_plural', 'count'],
-      tct: ['msgid']
+  babelConfig.plugins.push([
+    'babel-gettext-extractor',
+    {
+      fileName: 'build/javascript.po',
+      baseDirectory: path.join(__dirname, 'src/sentry'),
+      functionNames: {
+        gettext: ['msgid'],
+        ngettext: ['msgid', 'msgid_plural', 'count'],
+        gettextComponentTemplate: ['msgid'],
+        t: ['msgid'],
+        tn: ['msgid', 'msgid_plural', 'count'],
+        tct: ['msgid']
+      }
     }
-  });
+  ]);
 }
 
 var appEntry = {

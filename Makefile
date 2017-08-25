@@ -3,6 +3,15 @@ MAKEFLAGS += --jobs=$(CPUS)
 NPM_ROOT = ./node_modules
 STATIC_DIR = src/sentry/static/sentry
 
+ifneq "$(wildcard /usr/local/opt/libxmlsec1/lib)" ""
+	LDFLAGS += -L/usr/local/opt/libxmlsec1/lib
+endif
+ifneq "$(wildcard /usr/local/opt/openssl/lib)" ""
+	LDFLAGS += -L/usr/local/opt/openssl/lib
+endif
+
+PIP = LDFLAGS="$(LDFLAGS)" pip
+
 develop-only: update-submodules install-brew install-python install-yarn
 
 develop: setup-git develop-only
@@ -27,19 +36,19 @@ install-python:
 
 install-python-base:
 	@echo "--> Installing Python dependencies"
-	pip install "setuptools>=0.9.8" "pip>=8.0.0"
+	$(PIP) install "setuptools>=0.9.8" "pip>=8.0.0"
 	# order matters here, base package must install first
-	pip install -e .
-	pip install ujson
-	pip install "file://`pwd`#egg=sentry[dev]"
+	$(PIP) install -e .
+	$(PIP) install ujson
+	$(PIP) install "file://`pwd`#egg=sentry[dev]"
 
 install-python-tests:
-	pip install "file://`pwd`#egg=sentry[dev,tests,dsym]"
+	$(PIP) install "file://`pwd`#egg=sentry[dev,tests]"
 
 dev-postgres: install-python
 
 dev-docs:
-	pip install -r doc-requirements.txt
+	$(PIP) install -r doc-requirements.txt
 
 reset-db:
 	@echo "--> Dropping existing 'sentry' database"
@@ -180,7 +189,7 @@ extract-api-docs:
 
 # Bases for all builds
 travis-upgrade-pip:
-	python -m pip install pip==8.1.1
+	python -m pip install "pip>=9,<10"
 travis-setup-cassandra:
 	echo "create keyspace sentry with replication = {'class' : 'SimpleStrategy', 'replication_factor': 1};" | cqlsh --cqlversion=3.1.7
 	echo 'create table nodestore (key text primary key, value blob, flags int);' | cqlsh -k sentry --cqlversion=3.1.7

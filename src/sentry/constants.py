@@ -14,7 +14,7 @@ import logging
 import os.path
 import six
 
-from collections import OrderedDict
+from collections import OrderedDict, namedtuple
 from django.conf import settings
 from django.utils.translation import ugettext_lazy as _
 from operator import attrgetter
@@ -147,9 +147,10 @@ CLIENT_RESERVED_ATTRS = (
     'tags', 'platform', 'release', 'dist', 'environment',
 )
 
+# XXX: Must be all lowercase
 DEFAULT_SCRUBBED_FIELDS = (
     'password', 'secret', 'passwd', 'api_key', 'apikey', 'access_token', 'auth', 'credentials',
-    'mysql_pwd', 'stripeToken',
+    'mysql_pwd', 'stripetoken', 'card[number]',
 )
 
 NOT_SCRUBBED_VALUES = set([
@@ -330,3 +331,6 @@ class ObjectStatus(object):
                                        'hidden'), (cls.PENDING_DELETION, 'pending_deletion'),
             (cls.DELETION_IN_PROGRESS, 'deletion_in_progress'),
         )
+
+
+StatsPeriod = namedtuple('StatsPeriod', ('segments', 'interval'))

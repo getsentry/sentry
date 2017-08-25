@@ -23,12 +23,13 @@ from south.migration import Migrations
 from south.exceptions import NoMigrations
 from south.creator import freezer
 
+
 class Command(BaseCommand):
     option_list = BaseCommand.option_list + (
         make_option('--freeze', action='append', dest='freeze_list', type='string',
-            help='Freeze the specified app(s). Provide an app name with each; use the option multiple times for multiple apps'),
+                    help='Freeze the specified app(s). Provide an app name with each; use the option multiple times for multiple apps'),
         make_option('--stdout', action='store_true', dest='stdout', default=False,
-            help='Print the migration to stdout instead of writing it to a file.'),
+                    help='Print the migration to stdout instead of writing it to a file.'),
     )
     help = "Creates a new template data migration for the given app"
     usage_str = "Usage: ./manage.py datamigration appname migrationname [--stdout] [--freeze appname]"
@@ -72,7 +73,7 @@ class Command(BaseCommand):
 
         # So, what's in this file, then?
         file_contents = self.get_migration_template() % {
-            "frozen_models":  freezer.freeze_apps_to_string(apps_to_freeze),
+            "frozen_models": freezer.freeze_apps_to_string(apps_to_freeze),
             "complete_apps": apps_to_freeze and "complete_apps = [%s]" % (", ".join(map(repr, apps_to_freeze))) or ""
         }
 
@@ -94,7 +95,9 @@ class Command(BaseCommand):
         apps_to_freeze = []
         for to_freeze in freeze_list:
             if "." in to_freeze:
-                self.error("You cannot freeze %r; you must provide an app label, like 'auth' or 'books'." % to_freeze)
+                self.error(
+                    "You cannot freeze %r; you must provide an app label, like 'auth' or 'books'." %
+                    to_freeze)
             # Make sure it's a real app
             if not models.get_app(to_freeze):
                 self.error("You cannot freeze %r; it's not an installed app." % to_freeze)

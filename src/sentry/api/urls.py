@@ -9,6 +9,7 @@ from .endpoints.api_tokens import ApiTokensEndpoint
 from .endpoints.auth_index import AuthIndexEndpoint
 from .endpoints.broadcast_index import BroadcastIndexEndpoint
 from .endpoints.catchall import CatchallEndpoint
+from .endpoints.cloudflare_metadata import CloudflareMetadataEndpoint
 from .endpoints.event_details import EventDetailsEndpoint
 from .endpoints.event_apple_crash_report import EventAppleCrashReportEndpoint
 from .endpoints.group_details import GroupDetailsEndpoint
@@ -92,7 +93,7 @@ from .endpoints.project_tags import ProjectTagsEndpoint
 from .endpoints.project_tagkey_details import ProjectTagKeyDetailsEndpoint
 from .endpoints.project_tagkey_values import ProjectTagKeyValuesEndpoint
 from .endpoints.project_processingissues import ProjectProcessingIssuesEndpoint, \
-    ProjectProcessingIssuesFixEndpoint
+    ProjectProcessingIssuesFixEndpoint, ProjectProcessingIssuesDiscardEndpoint
 from .endpoints.project_reprocessing import ProjectReprocessingEndpoint
 from .endpoints.project_user_details import ProjectUserDetailsEndpoint
 from .endpoints.project_user_reports import ProjectUserReportsEndpoint
@@ -150,6 +151,9 @@ urlpatterns = patterns(
 
     # Broadcasts
     url(r'^broadcasts/$', BroadcastIndexEndpoint.as_view(), name='sentry-api-0-broadcast-index'),
+
+    # Cloudflare Integration
+    url(r'^cloudflare/metadata/$', CloudflareMetadataEndpoint.as_view()),
 
     # Users
     url(r'^users/$', UserIndexEndpoint.as_view(), name='sentry-api-0-user-index'),
@@ -222,11 +226,13 @@ urlpatterns = patterns(
         r'^organizations/(?P<organization_slug>[^\/]+)/issues/new/$',
         OrganizationIssuesNewEndpoint.as_view(),
     ),
-    url(r'^organizations/(?P<organization_slug>[^\/]+)/integrations/$',
+    url(
+        r'^organizations/(?P<organization_slug>[^\/]+)/integrations/$',
         OrganizationIntegrationsEndpoint.as_view(),
         name='sentry-api-0-organization-integrations'
     ),
-    url(r'^organizations/(?P<organization_slug>[^\/]+)/members/$',
+    url(
+        r'^organizations/(?P<organization_slug>[^\/]+)/members/$',
         OrganizationMemberIndexEndpoint.as_view(),
         name='sentry-api-0-organization-member-index'
     ),
@@ -585,6 +591,11 @@ urlpatterns = patterns(
         r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/reprocessing/$',
         ProjectReprocessingEndpoint.as_view(),
         name='sentry-api-0-project-reprocessing'
+    ),
+    url(
+        r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/processingissues/discard$',
+        ProjectProcessingIssuesDiscardEndpoint.as_view(),
+        name='sentry-api-0-project-discard-processing-issues'
     ),
 
     # Load plugin project urls

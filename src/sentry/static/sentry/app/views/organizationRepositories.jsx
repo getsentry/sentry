@@ -10,7 +10,7 @@ import MenuItem from '../components/menuItem';
 import OrganizationHomeContainer from '../components/organizations/homeContainer';
 import PluginComponentBase from '../components/bases/pluginComponentBase';
 import {t, tct} from '../locale';
-import {sortArray, parseGitHubRepo} from '../utils';
+import {sortArray, parseRepo} from '../utils';
 
 const UNKNOWN_ERROR = {
   error_type: 'unknown'
@@ -51,9 +51,8 @@ class AddRepositoryLink extends PluginComponentBase {
 
   onSubmit() {
     // TODO(dcramer): set form saving state
-    let repoName = this.props.provider.id === 'github'
-      ? {name: parseGitHubRepo(this.state.formData.name)}
-      : this.state.formData;
+    let repoName = {name: parseRepo(this.state.formData.name)};
+
     this.setState(
       {
         state: FormState.SAVING
@@ -94,7 +93,9 @@ class AddRepositoryLink extends PluginComponentBase {
       <form onSubmit={this.formSubmit}>
         {errors.__all__ &&
           <div className="alert alert-error alert-block" key="_errors">
-            <p>{errors.__all__}</p>
+            <p>
+              {errors.__all__}
+            </p>
           </div>}
         {provider.config.map(field => {
           return (
@@ -157,7 +158,9 @@ class AddRepositoryLink extends PluginComponentBase {
     return (
       <Modal show={this.state.isModalOpen} animation={false}>
         <div className="modal-header">
-          <h4>{t('Add Repository')}</h4>
+          <h4>
+            {t('Add Repository')}
+          </h4>
         </div>
         <div className="modal-body">
           {this.renderBody()}
@@ -247,6 +250,7 @@ const OrganizationRepositories = React.createClass({
   },
 
   deleteRepo(repo) {
+    // eslint-disable-next-line no-alert
     if (!confirm(t('Are you sure you want to remove this repository?'))) return;
 
     let indicator = IndicatorStore.add(t('Saving changes..'));
@@ -332,7 +336,7 @@ const OrganizationRepositories = React.createClass({
       <OrganizationHomeContainer>
         <div className="pull-right">
           <DropdownLink
-            topLevelClasses="anchor-right"
+            anchorRight
             className="btn btn-primary btn-sm"
             title={t('Add Repository')}>
             {this.state.repoConfig.providers.map(provider => {
@@ -348,7 +352,9 @@ const OrganizationRepositories = React.createClass({
             })}
           </DropdownLink>
         </div>
-        <h3 className="m-b-2">{t('Repositories')}</h3>
+        <h3 className="m-b-2">
+          {t('Repositories')}
+        </h3>
         {itemList.length > 0 &&
           <div className="m-b-2">
             <p>
@@ -371,22 +377,29 @@ const OrganizationRepositories = React.createClass({
                     return (
                       <tr key={repo.id}>
                         <td>
-                          <strong>{repo.name}</strong>
+                          <strong>
+                            {repo.name}
+                          </strong>
                           {repo.status !== 'visible' &&
-                            <small> — {this.getStatusLabel(repo)}</small>}
+                            <small>
+                              {' '}— {this.getStatusLabel(repo)}
+                            </small>}
                           {repo.status === 'pending_deletion' &&
                             <small>
-                              {' '}
-                              (
+                              {' '}(
                               <a onClick={this.cancelDelete.bind(this, repo)}>
                                 {t('Cancel')}
                               </a>
                               )
                             </small>}
                           <br />
-                          <small>{repo.provider.name}</small>
+                          <small>
+                            {repo.provider.name}
+                          </small>
                           {repo.url &&
-                            <small> — <a href={repo.url}>{repo.url}</a></small>}
+                            <small>
+                              {' '}— <a href={repo.url}>{repo.url}</a>
+                            </small>}
                         </td>
                         <td style={{width: 60}}>
                           {repo.status === 'visible'
@@ -410,7 +423,9 @@ const OrganizationRepositories = React.createClass({
             </div>
           : <div className="well blankslate align-center p-x-2 p-y-1">
               <div className="icon icon-lg icon-git-commit" />
-              <h3>{t('Sentry is better with commit data')}</h3>
+              <h3>
+                {t('Sentry is better with commit data')}
+              </h3>
               <p>
                 {t(
                   'Adding one or more repositories will enable enhanced releases and the ability to resolve Sentry Issues via git message.'

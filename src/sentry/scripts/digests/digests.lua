@@ -1,24 +1,102 @@
-function table.extend(t, items)
-    for _, item in ipairs(items) do
-        table.insert(t, item)
-    end
-end
-
-function table.slice(t, ...)
-    local start, stop = ...
-    if stop == nil then
-        stop = #t
-    end
-    local result = {}
-    for i = start, stop do
-        table.insert(result, t[i])
-    end
-    return result
-end
+-- Utilities
 
 local noop = function ()
     return
 end
+
+local function identity(...)
+    return ...
+end
+
+function table.extend(t, items, length)
+    -- The table length can be provided if you know the length of the table
+    -- beforehand to avoid a potentially expensive length operator call.
+    if length == nil then
+        length = #t
+    end
+    for i, item in ipairs(items) do
+        t[length + i] = item
+    end
+end
+
+local function chunked(size, iterator, state, ...)
+    local next = {iterator(state, ...)}
+    local chunk_count = 1
+
+    return function ()
+        local item_count = 0
+        if #next == 0 then
+            return nil
+        end
+
+        return chunk_count, function ()
+            if item_count == size or #next == 0 then
+                chunk_count = chunk_count + 1
+                return nil
+            end
+
+            local result = next
+            next = {iterator(state, result[1])}
+
+            item_count = item_count + 1
+            return item_count, unpack(result)
+        end
+    end
+end
+
+
+-- Argument Parsing
+
+local function argument_parser(callback)
+    if callback == nil then
+        callback = identity
+    end
+
+    return function (cursor, arguments)
+        return cursor + 1, callback(arguments[cursor])
+    end
+end
+
+local function object_argument_parser(schema, callback)
+    if callback == nil then
+        callback = identity
+    end
+
+    return function (cursor, arguments)
+        local result = {}
+        for i, specification in ipairs(schema) do
+            local key, parser = unpack(specification)
+            cursor, result[key] = parser(cursor, arguments)
+        end
+        return cursor, callback(result)
+    end
+end
+
+local function variadic_argument_parser(argument_parser)
+    return function (cursor, arguments)
+        local results = {}
+        local i = 1
+        while arguments[cursor] ~= nil do
+            cursor, results[i] = argument_parser(cursor, arguments)
+            i = i + 1
+        end
+        return cursor, results
+    end
+end
+
+local function multiple_argument_parser(...)
+    local parsers = {...}
+    return function (cursor, arguments)
+        local results = {}
+        for i, parser in ipairs(parsers) do
+            cursor, results[i] = parser(cursor, arguments)
+        end
+        return cursor, unpack(results)
+    end
+end
+
+
+-- Redis Helpers
 
 local function zrange_scored_iterator(result)
     local i = -1
@@ -39,19 +117,23 @@ local function zrange_move_slice(source, destination, threshold, callback)
         return
     end
 
-    local zadd_args = {}
-    local zrem_args = {}
-    for key, score in zrange_scored_iterator(keys) do
-        table.insert(zrem_args, key)
-        table.extend(zadd_args, {score, key})
-        callback(key, score)
-    end
+    -- NOTE: The actual number of arguments is the chunk size * 2, since the
+    -- ZADD command takes two arguments per item.
+    for _, chunk_iterator in chunked(500, zrange_scored_iterator(keys)) do
+        local zadd_args = {}
+        local zrem_args = {}
+        for i, key, score in chunk_iterator do
+            table.extend(zadd_args, {score, key}, (i - 1) * 2)
+            zrem_args[i] = key
+            callback(key, score)
+        end
 
-    -- TODO: This should support modifiers, and maintenance ZADD should include
-    -- the "NX" modifier to avoid resetting schedules during a race conditions
-    -- between a digest task and the maintenance task.
-    redis.call('ZADD', destination, unpack(zadd_args))
-    redis.call('ZREM', source, unpack(zrem_args))
+        -- TODO: This should support modifiers, and maintenance ZADD should
+        -- include the "NX" modifier to avoid resetting schedules during a race
+        -- conditions between a digest task and the maintenance task.
+        redis.call('ZADD', destination, unpack(zadd_args))
+        redis.call('ZREM', source, unpack(zrem_args))
+    end
 end
 
 local function zset_trim(key, capacity, callback)
@@ -79,14 +161,19 @@ local function zset_trim(key, capacity, callback)
     return n
 end
 
+
+-- Timeline and Schedule Operations
+
 local function schedule(configuration, deadline)
     local response = {}
+    local i = 0
     zrange_move_slice(
         configuration:get_schedule_waiting_key(),
         configuration:get_schedule_ready_key(),
         deadline,
         function (timeline_id, timestamp)
-            table.insert(response, {timeline_id, timestamp})
+            i = i + 1
+            response[i] = {timeline_id, timestamp}
         end
     )
     return response
@@ -172,17 +259,14 @@ local function add_record_to_timeline(configuration, timeline_id, record_id, val
 
     local ready = add_timeline_to_schedule(configuration, timeline_id, timestamp, delay_increment, delay_maximum)
 
-    -- TODO: Validating `timeline_capacity` and casting to number should happen upstream.
-    local timeline_capacity = tonumber(timeline_capacity)
-    -- TODO: Validating `truncation_chance` and casting to number should happen upstream.
-    if timeline_capacity > 0 and math.random() < tonumber(truncation_chance) then
+    if timeline_capacity > 0 and math.random() < truncation_chance then
         truncate_timeline(configuration, timeline_id, timeline_capacity)
     end
 
     return ready
 end
 
-local function digest_timeline(configuration, timeline_id)
+local function digest_timeline(configuration, timeline_id, timeline_capacity)
     -- Check to ensure that the timeline is in the correct state.
     if redis.call('ZSCORE', configuration:get_schedule_ready_key(), timeline_id) == false then
         error('err(invalid_state): timeline is not in the ready state, cannot be digested')
@@ -194,10 +278,15 @@ local function digest_timeline(configuration, timeline_id)
         if redis.call('EXISTS', digest_key) == 1 then
             -- If the digest set already exists (possibly because we already tried
             -- to send it and failed for some reason), merge any new data into it.
-            -- TODO: It might make sense to trim here to avoid returning capacity *
-            -- 2 if timeline was full when it was previously digested.
             redis.call('ZUNIONSTORE', digest_key, 2, timeline_key, digest_key, 'AGGREGATE', 'MAX')
             redis.call('DEL', timeline_key)
+
+            -- After merging, we have to do a capacity check (if we didn't,
+            -- it's possible that this digest could grow to an unbounded size
+            -- if it is never actually closed.)
+            if timeline_capacity > 0 then
+                truncate_digest(configuration, timeline_id, timeline_capacity)
+            end
         else
             -- Otherwise, we can just move the timeline contents to the digest key.
             redis.call('RENAME', timeline_key, digest_key)
@@ -207,27 +296,32 @@ local function digest_timeline(configuration, timeline_id)
 
     local results = {}
     local records = redis.call('ZREVRANGE', digest_key, 0, -1, 'WITHSCORES')
+    local i = 0
     for key, score in zrange_scored_iterator(records) do
-        table.insert(results, {
+        i = i + 1
+        results[i] = {
             key,
             redis.call('GET', configuration:get_timeline_record_key(timeline_id, key)),
             score
-        })
+        }
     end
 
     return results
 end
 
-local function close_digest(configuration, timeline_id, delay_minimum, ...)
-    local record_ids = {...}
+local function close_digest(configuration, timeline_id, delay_minimum, record_ids)
     local timeline_key = configuration:get_timeline_key(timeline_id)
     local digest_key = configuration:get_timeline_digest_key(timeline_id)
 
-    if #record_ids > 0 then
-        redis.call('ZREM', digest_key, unpack(record_ids))
-        for _, record_id in ipairs(record_ids) do
-            redis.call('DEL', configuration:get_timeline_record_key(timeline_id, record_id))
+    for _, chunk_iterator in chunked(1000, ipairs(record_ids)) do
+        local record_id_chunk = {}
+        local record_key_chunk = {}
+        for i, _, record_id in chunk_iterator do
+            record_id_chunk[i] = record_id
+            record_key_chunk[i] = configuration:get_timeline_record_key(timeline_id, record_id)
         end
+        redis.call('ZREM', digest_key, unpack(record_id_chunk))
+        redis.call('DEL', unpack(record_key_chunk))
     end
 
     -- If this digest didn't contain any data (no record IDs) and there isn't
@@ -252,14 +346,14 @@ local function delete_timeline(configuration, timeline_id)
     redis.call('ZREM', configuration:get_schedule_waiting_key(), timeline_id)
 end
 
-local function parse_arguments(arguments)
-    -- TODO: These need validation!
-    local configuration = {
-        namespace = arguments[1],
-        ttl = tonumber(arguments[2]),
-        timestamp = tonumber(arguments[3]),
-    }
 
+-- Command Execution
+
+local configuration_argument_parser = object_argument_parser({
+    {"namespace", argument_parser()},
+    {"ttl", argument_parser(tonumber)},
+    {"timestamp", argument_parser(tonumber)},
+}, function (configuration)
     math.randomseed(configuration.timestamp)
 
     function configuration:get_schedule_waiting_key()
@@ -286,34 +380,80 @@ local function parse_arguments(arguments)
         return string.format('%s:t:%s:r:%s', self.namespace, timeline_id, record_id)
     end
 
-    return configuration, table.slice(arguments, 4)
-end
+    return configuration
+end)
 
 local commands = {
-    SCHEDULE = function (arguments)
-        local configuration, arguments = parse_arguments(arguments)
-        return schedule(configuration, unpack(arguments))
+    SCHEDULE = function (cursor, arguments)
+        local cursor, configuration, deadline = multiple_argument_parser(
+            configuration_argument_parser,
+            argument_parser(tonumber)
+        )(cursor, arguments)
+        return schedule(configuration, deadline)
     end,
-    MAINTENANCE = function (arguments)
-        local configuration, arguments = parse_arguments(arguments)
-        return maintenance(configuration, unpack(arguments))
+    MAINTENANCE = function (cursor, arguments)
+        local cursor, configuration, deadline = multiple_argument_parser(
+            configuration_argument_parser,
+            argument_parser(tonumber)
+        )(cursor, arguments)
+        return maintenance(configuration, deadline)
     end,
-    ADD = function (arguments)
-        local configuration, arguments = parse_arguments(arguments)
-        return add_record_to_timeline(configuration, unpack(arguments))
+    ADD = function (cursor, arguments)
+        local cursor, configuration, arguments = multiple_argument_parser(
+            configuration_argument_parser,
+            object_argument_parser({
+                {"timeline_id", argument_parser()},
+                {"record_id", argument_parser()},
+                {"value", argument_parser()},
+                {"timestamp", argument_parser(tonumber)},
+                {"delay_increment", argument_parser(tonumber)},
+                {"delay_maximum", argument_parser(tonumber)},
+                {"timeline_capacity", argument_parser(tonumber)},
+                {"truncation_chance", argument_parser(tonumber)},
+            })
+        )(cursor, arguments)
+        return add_record_to_timeline(
+            configuration,
+            arguments.timeline_id,
+            arguments.record_id,
+            arguments.value,
+            arguments.timestamp,
+            arguments.delay_increment,
+            arguments.delay_maximum,
+            arguments.timeline_capacity,
+            arguments.truncation_chance
+        )
     end,
-    DELETE = function (arguments)
-        local configuration, arguments = parse_arguments(arguments)
-        return delete_timeline(configuration, unpack(arguments))
+    DELETE = function (cursor, arguments)
+        local cursor, configuration, timeline_id = multiple_argument_parser(
+            configuration_argument_parser,
+            argument_parser()
+        )(cursor, arguments)
+        return delete_timeline(configuration, timeline_id)
     end,
-    DIGEST_OPEN = function (arguments)
-        local configuration, arguments = parse_arguments(arguments)
-        return digest_timeline(configuration, unpack(arguments))
+    DIGEST_OPEN = function (cursor, arguments)
+        local cursor, configuration, timeline_id, timeline_capacity = multiple_argument_parser(
+            configuration_argument_parser,
+            argument_parser(),
+            argument_parser(tonumber)
+        )(cursor, arguments)
+        return digest_timeline(configuration, timeline_id, timeline_capacity)
     end,
-    DIGEST_CLOSE = function (arguments)
-        local configuration, arguments = parse_arguments(arguments)
-        return close_digest(configuration, unpack(arguments))
+    DIGEST_CLOSE = function (cursor, arguments)
+        local cursor, configuration, timeline_id, delay_minimum, record_ids = multiple_argument_parser(
+            configuration_argument_parser,
+            argument_parser(),
+            argument_parser(tonumber),
+            variadic_argument_parser(argument_parser())
+        )(cursor, arguments)
+        return close_digest(configuration, timeline_id, delay_minimum, record_ids)
     end,
 }
 
-return commands[ARGV[1]](table.slice(ARGV, 2))
+local cursor, command = argument_parser(
+    function (argument)
+        return commands[argument]
+    end
+)(1, ARGV)
+
+return command(cursor, ARGV)

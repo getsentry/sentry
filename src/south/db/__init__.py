@@ -10,7 +10,7 @@ engine_modules = {
     'django.db.backends.postgresql_psycopg2': 'postgresql_psycopg2',
     'django.db.backends.sqlite3': 'sqlite3',
     'django.db.backends.mysql': 'mysql',
-    'mysql.connector.django': 'mysql', # MySQL Connector/Python
+    'mysql.connector.django': 'mysql',  # MySQL Connector/Python
 }
 
 # First, work out if we're multi-db or not, and which databases we have
@@ -30,9 +30,9 @@ for alias, engine in db_engines.items():
         # They've used a backend we don't support
         sys.stderr.write(
             (
-                "There is no South database module for your database backend '%s'. " + \
-                "Please either choose a supported database, check for " + \
-                "SOUTH_DATABASE_ADAPTER[S] settings, " + \
+                "There is no South database module for your database backend '%s'. " +
+                "Please either choose a supported database, check for " +
+                "SOUTH_DATABASE_ADAPTER[S] settings, " +
                 "or remove South from INSTALLED_APPS.\n"
             ) % (settings.DATABASES[alias]['ENGINE'],)
         )
@@ -48,9 +48,9 @@ except ImportError:
     # This error should only be triggered on 1.1 and below.
     sys.stderr.write(
         (
-            "There is no South database module '%s' for your database. " + \
-            "Please either choose a supported database, check for " + \
-            "SOUTH_DATABASE_ADAPTER[S] settings, " + \
+            "There is no South database module '%s' for your database. " +
+            "Please either choose a supported database, check for " +
+            "SOUTH_DATABASE_ADAPTER[S] settings, " +
             "or remove South from INSTALLED_APPS.\n"
         ) % (module_name,)
     )
