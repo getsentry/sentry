@@ -82,7 +82,7 @@ class MinHashIndex(object):
             ),
         )
 
-    def classify(self, scope, items, candidate_limit=250, timestamp=None):
+    def classify(self, scope, items, limit=None, timestamp=None):
         if timestamp is None:
             timestamp = int(time.time())
 
@@ -94,7 +94,7 @@ class MinHashIndex(object):
             self.interval,
             self.retention,
             scope,
-            candidate_limit,
+            limit if limit is not None else -1,
         ]
 
         for idx, threshold, features in items:
@@ -106,7 +106,7 @@ class MinHashIndex(object):
             self.__index(scope, arguments),
         )
 
-    def compare(self, scope, key, items, candidate_limit=250, timestamp=None):
+    def compare(self, scope, key, items, limit=None, timestamp=None):
         if timestamp is None:
             timestamp = int(time.time())
 
@@ -118,7 +118,7 @@ class MinHashIndex(object):
             self.interval,
             self.retention,
             scope,
-            candidate_limit,
+            limit if limit is not None else -1,
             key,
         ]
 

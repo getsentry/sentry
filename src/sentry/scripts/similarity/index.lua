@@ -527,7 +527,7 @@ local function fetch_candidates(configuration, index, frequencies)
     return results
 end
 
-local function search(configuration, parameters, candidate_limit)
+local function search(configuration, parameters, limit)
     local possible_candidates = {}
     local create_table = function ()
         return {}
@@ -548,7 +548,7 @@ local function search(configuration, parameters, candidate_limit)
         i = i + 1
     end
 
-    if #candidates > candidate_limit then
+    if limit >= 0 and #candidates > limit then
         table.sort(
             candidates,
             function (this, that)
@@ -563,7 +563,7 @@ local function search(configuration, parameters, candidate_limit)
                 end
             end
         )
-        candidates = table.trim(candidates, candidate_limit)
+        candidates = table.trim(candidates, limit)
     end
 
     local i = 1
@@ -614,7 +614,7 @@ local commands = {
         )
     end,
     CLASSIFY = function (configuration, cursor, arguments)
-        local cursor, candidate_limit, parameters = multiple_argument_parser(
+        local cursor, limit, parameters = multiple_argument_parser(
             argument_parser(validate_integer),
             variadic_argument_parser(
                 object_argument_parser({
@@ -628,11 +628,11 @@ local commands = {
         return search(
             configuration,
             parameters,
-            candidate_limit
+            limit
         )
     end,
     COMPARE = function (configuration, cursor, arguments)
-        local cursor, candidate_limit, item_key, parameters = multiple_argument_parser(
+        local cursor, limit, item_key, parameters = multiple_argument_parser(
             argument_parser(validate_integer),
             argument_parser(validate_value),
             variadic_argument_parser(
@@ -654,7 +654,7 @@ local commands = {
         return search(
             configuration,
             parameters,
-            candidate_limit
+            limit
         )
     end,
     MERGE = function (configuration, cursor, arguments)
