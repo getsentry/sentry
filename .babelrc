@@ -34,6 +34,7 @@
       "plugins": [
         "transform-class-properties",
         "transform-object-rest-spread",
+        "dynamic-import-node",
         [
           "babel-plugin-transform-builtin-extend",
           {
