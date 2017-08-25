@@ -40,7 +40,7 @@ class MinHashIndex(object):
         # all redis operations.
         return index(self.cluster, [scope], args)
 
-    def classify(self, scope, items, timestamp=None):
+    def classify(self, scope, items, candidate_limit=250, timestamp=None):
         if timestamp is None:
             timestamp = int(time.time())
 
@@ -52,6 +52,7 @@ class MinHashIndex(object):
             self.interval,
             self.retention,
             scope,
+            candidate_limit,
         ]
 
         for idx, threshold, features in items:
@@ -63,7 +64,7 @@ class MinHashIndex(object):
             for result in self.__index(scope, arguments)
         ]
 
-    def compare(self, scope, key, items, timestamp=None):
+    def compare(self, scope, key, items, candidate_limit=250, timestamp=None):
         if timestamp is None:
             timestamp = int(time.time())
 
@@ -75,6 +76,7 @@ class MinHashIndex(object):
             self.interval,
             self.retention,
             scope,
+            candidate_limit,
             key,
         ]
 
