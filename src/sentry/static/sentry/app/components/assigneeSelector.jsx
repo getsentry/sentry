@@ -22,6 +22,7 @@ const AssigneeSelector = React.createClass({
 
   mixins: [
     Reflux.listenTo(GroupStore, 'onGroupChange'),
+    Reflux.connect(MemberListStore, 'memberList'),
     TooltipMixin({
       selector: '.tip'
     }),
@@ -72,7 +73,6 @@ const AssigneeSelector = React.createClass({
       let group = GroupStore.get(this.props.id);
       this.setState({
         assignedTo: group.assignedTo,
-        memberList: MemberListStore.getAll(),
         loading: loading
       });
     }
