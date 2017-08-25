@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import functools
+import logging
 import posixpath
 import six
 
@@ -17,6 +18,8 @@ from sentry.exceptions import InvalidConfiguration
 from sentry.utils import warnings
 from sentry.utils.warnings import DeprecatedSettingWarning
 from sentry.utils.versioning import Version, check_versions
+
+logger = logging.getLogger(__name__)
 
 _pool_cache = {}
 _pool_lock = Lock()
@@ -81,7 +84,13 @@ class _RedisCluster(object):
         hosts = config.get('hosts')
         hosts = hosts.values() if isinstance(hosts, dict) else hosts
 
-        return rediscluster.StrictRedisCluster(startup_nodes=hosts, decode_responses=True)
+        # Redis cluster does not wait to attempt to connect, we don't want the
+        # application to fail to boot because of this, raise a KeyError
+        try:
+            return rediscluster.StrictRedisCluster(startup_nodes=hosts, decode_responses=True)
+        except rediscluster.exceptions.RedisClusterException:
+            logger.warning('Failed to connect to redis cluster', exc_info=True)
+            raise KeyError('Redis Cluster could not be initalized')
 
     def __str__(self):
         return 'Redis Cluster'
