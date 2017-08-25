@@ -20,7 +20,7 @@ class SourceCache(object):
             url = self._aliases[url]
         return url
 
-    def get(self, url, raw=False):
+    def get(self, url):
         url = self._get_canonical_url(url)
         try:
             parsed, rv = self._cache[url]
@@ -30,10 +30,7 @@ class SourceCache(object):
         # We have already gotten this file and we've
         # decoded the response, so just return
         if parsed:
-            parsed, raw_body = rv
-            if raw:
-                return raw_body
-            return parsed
+            return rv
 
         # Otherwise, we have a 2-tuple that needs to be applied
         body, encoding = rv
@@ -43,11 +40,10 @@ class SourceCache(object):
         if callable(body):
             body = body()
 
-        raw_body = body
         body = body.decode(codec_lookup(encoding, 'utf-8').name, 'replace').split(u'\n')
 
         # Set back a marker to indicate we've parsed this url
-        self._cache[url] = (True, (body, raw_body))
+        self._cache[url] = (True, body)
         return body
 
     def get_errors(self, url):
