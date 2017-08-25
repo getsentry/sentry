@@ -141,7 +141,7 @@ class FeatureSet(object):
             timestamp=int(to_timestamp(event.datetime)),
         )
 
-    def classify(self, events, thresholds=None):
+    def classify(self, events, limit=None, thresholds=None):
         if not events:
             return []
 
@@ -192,11 +192,12 @@ class FeatureSet(object):
             self.index.classify(
                 scope,
                 items,
+                limit=limit,
                 timestamp=int(to_timestamp(event.datetime)),
             ),
         )
 
-    def compare(self, group, thresholds=None):
+    def compare(self, group, limit=None, thresholds=None):
         features = list(self.features.keys())
 
         if thresholds is None:
@@ -218,6 +219,7 @@ class FeatureSet(object):
                 self.__get_scope(group.project),
                 self.__get_key(group),
                 items,
+                limit=limit,
             ),
         )
 
