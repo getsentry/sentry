@@ -51,9 +51,65 @@
         &.invalid_csp {
           background: @blue-light;
         }
+
+        &.cors {
+          background: @green-dark;
+        }
       }
     }
   }
+
+.legend {
+  padding: 3px 0;
+  position: relative;
+  line-height: 10px;
+
+  dt {
+    margin: 0;
+    position: absolute;
+    left: 0;
+    width: 8px;
+    margin-right: 5px;
+
+    span {
+      &.ip_address {
+        background: @red-light;
+      }
+
+      &.release_version {
+        background: @purple-light;
+      }
+
+      &.error_message {
+        background: @purple;
+      }
+
+      &.browser_extensions {
+        background: @gray;
+      }
+
+      &.legacy_browsers {
+        background: @gray-light;
+      }
+
+      &.localhost {
+        background: @blue;
+      }
+
+      &.web_crawlers {
+        background: @red;
+      }
+
+      &.invalid_csp {
+        background: @blue-light;
+      }
+
+      &.cors {
+        background: @green-dark;
+      }
+    }
+  }
+}
 
 /**
 * Rules

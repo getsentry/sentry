@@ -1,6 +1,8 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import _ from 'lodash';
+import ReactDOMServer from 'react-dom/server';
+import moment from 'moment';
 
 import ApiMixin from '../mixins/apiMixin';
 import IndicatorStore from '../stores/indicatorStore';
@@ -12,6 +14,7 @@ import StackedBarChart from '../components/stackedBarChart';
 import Switch from '../components/switch';
 import {FormState, TextareaField} from '../components/forms';
 import {t} from '../locale';
+import {intcomma} from '../utils';
 import marked from '../utils/marked';
 
 const FilterSwitch = function(props) {
@@ -375,7 +378,7 @@ const ProjectFilters = React.createClass({
       querySince: since,
       queryUntil: until,
       rawStatsData: null,
-      formattedData: null,
+      formattedData: [],
       projectOptions: {},
       blankStats: true,
       activeSection: 'data-filters',
@@ -394,20 +397,20 @@ const ProjectFilters = React.createClass({
     }
   },
 
-  STAT_OPTS: [
-    'ip_address',
-    'release_version',
-    'error_message',
-    'browser_extensions',
-    'legacy_browsers',
-    'localhost',
-    'web_crawlers',
-    'invalid_csp',
-    'cors'
-  ],
+  STAT_OPTS: {
+    ip_address: 'IP Address',
+    release_version: 'Release',
+    error_message: 'Error Message',
+    browser_extensions: 'Browser Extension',
+    legacy_browsers: 'Legacy Browser',
+    localhost: 'Localhost',
+    web_crawlers: 'Web Crawler',
+    invalid_csp: 'Invalid CSP',
+    cors: 'CORS'
+  },
 
   formatData(rawData) {
-    return this.STAT_OPTS.map(stat => {
+    return Object.keys(this.STAT_OPTS).map(stat => {
       return {
         data: rawData[stat].map(([x, y]) => {
           if (y > 0) {
@@ -415,12 +418,14 @@ const ProjectFilters = React.createClass({
           }
           return {x, y};
         }),
-        label: stat
+        label: this.STAT_OPTS[stat],
+        statName: stat
       };
     });
   },
 
   getFilterStats() {
+    let stat_options = Object.keys(this.STAT_OPTS);
     let {orgId, projectId} = this.props.params;
     let statEndpoint = `/projects/${orgId}/${projectId}/stats/`;
     let query = {
@@ -431,7 +436,7 @@ const ProjectFilters = React.createClass({
     $.when
       .apply(
         $,
-        this.STAT_OPTS.map(stat => {
+        stat_options.map(stat => {
           let deferred = $.Deferred();
           this.api.request(statEndpoint, {
             query: Object.assign({stat: stat}, query),
@@ -445,8 +450,8 @@ const ProjectFilters = React.createClass({
         function() {
           let rawStatsData = {};
           let expected = this.state.expected - 1;
-          for (let i = 0; i < this.STAT_OPTS.length; i++) {
-            rawStatsData[this.STAT_OPTS[i]] = arguments[i][0];
+          for (let i = 0; i < stat_options.length; i++) {
+            rawStatsData[stat_options[i]] = arguments[i][0];
           }
           this.setState({
             rawStatsData: rawStatsData,
@@ -614,6 +619,42 @@ const ProjectFilters = React.createClass({
     }
   },
 
+  timeLabelAsDay(point) {
+    let timeMoment = moment(point.x * 1000);
+
+    return timeMoment.format('LL');
+  },
+
+  renderTooltip(point, pointIdx, chart) {
+    let timeLabel = this.timeLabelAsDay(point);
+    let totalY = 0;
+    for (let i = 0; i < point.y.length; i++) {
+      totalY += point.y[i];
+    }
+    let {formattedData} = this.state;
+
+    return ReactDOMServer.renderToStaticMarkup(
+      <div style={{width: '150px'}}>
+        <div className="time-label"><span>{timeLabel}</span></div>
+        <div>{intcomma(totalY)} {t('total event')}{totalY !== 1 ? 's' : ''}</div>
+        {formattedData.map((dataPoint, i) => {
+          return (
+            point.y[i] > 0 &&
+            <dl className="legend" key={dataPoint.statName}>
+              <dt><span className={`${dataPoint.statName} 'filter-color'`} /></dt>
+              <dd style={{textAlign: 'left', position: 'absolute'}}>
+                {dataPoint.label}{' '}
+              </dd>
+              <dd style={{textAlign: 'right', position: 'relative'}}>
+                {point.y[i]} {t('event')}{point.y[i] > 1 ? 's' : ''}
+              </dd>
+            </dl>
+          );
+        })}
+      </div>
+    );
+  },
+
   renderResults() {
     let navSection = this.state.activeSection;
     let features = this.getProjectFeatures();
@@ -628,8 +669,9 @@ const ProjectFilters = React.createClass({
             ? <StackedBarChart
                 series={this.state.formattedData}
                 label="events"
-                barClasses={this.STAT_OPTS}
+                barClasses={Object.keys(this.STAT_OPTS)}
                 className="standard-barchart filtered-stats-barchart"
+                tooltip={this.renderTooltip}
               />
             : <div className="box-content">
                 <div className="blankslate p-y-2">
