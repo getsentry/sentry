@@ -438,7 +438,7 @@ local function merge_frequencies(configuration, index, source, destination)
     local destination_key = get_frequency_key(configuration, index, destination)
 
     local response = redis.call('HGETALL', source_key)
-    if not #response then
+    if #response == 0 then
         return  -- nothing to do
     end
 
