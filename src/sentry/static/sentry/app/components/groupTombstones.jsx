@@ -1,8 +1,9 @@
 import React from 'react';
+import _ from 'lodash';
 
 import AlertActions from '../actions/alertActions';
 import Avatar from '../components/avatar';
-import EventOrGroupTitle from '../components/eventOrGroupTitle';
+import EventOrGroupHeader from '../components/eventOrGroupHeader';
 import LoadingError from '../components/loadingError';
 import LinkWithConfirmation from '../components/linkWithConfirmation';
 import TooltipMixin from '../mixins/tooltip';
@@ -31,17 +32,11 @@ const GroupTombstoneRow = React.createClass({
     return (
       <li className={`group row level-${data.level} type-${data.type}`}>
         <div className="col-md-10 event-details issue">
-          <div className="event-issue-header">
-            <h3 className="truncate">
-              <span className="error-level truncate" title={data.level}>
-                {data.level}
-              </span>
-              <EventOrGroupTitle data={data} />
-            </h3>
-            <div className="event-message truncate">
-              <span className="message">{data.message}</span>
-            </div>
-          </div>
+          <EventOrGroupHeader
+            includeLink={false}
+            hideIcons={true}
+            {..._.omit(this.props, 'undiscard')}
+          />
         </div>
         <div className="col-md-1 event-actor">
           {actor &&
