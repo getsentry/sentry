@@ -1,13 +1,13 @@
 import React from 'react';
 import GroupEventDataSection from '../eventDataSection';
-import CustomPropTypes from '../../../proptypes';
+import SentryTypes from '../../../proptypes';
 import Frame from './frame';
 import {t} from '../../../locale';
 
 const TemplateInterface = React.createClass({
   propTypes: {
-    group: CustomPropTypes.Group.isRequired,
-    event: CustomPropTypes.Event.isRequired,
+    group: SentryTypes.Group.isRequired,
+    event: SentryTypes.Event.isRequired,
     type: React.PropTypes.string.isRequired,
     data: React.PropTypes.object.isRequired
   },

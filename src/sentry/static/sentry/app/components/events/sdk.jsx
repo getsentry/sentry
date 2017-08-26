@@ -1,13 +1,13 @@
 import React from 'react';
-import CustomPropTypes from '../../proptypes';
+import SentryTypes from '../../proptypes';
 
 import GroupEventDataSection from './eventDataSection';
 import {t} from '../../locale';
 
 const EventSdk = React.createClass({
   propTypes: {
-    group: CustomPropTypes.Group.isRequired,
-    event: CustomPropTypes.Event.isRequired
+    group: SentryTypes.Group.isRequired,
+    event: SentryTypes.Event.isRequired
   },
 
   render() {

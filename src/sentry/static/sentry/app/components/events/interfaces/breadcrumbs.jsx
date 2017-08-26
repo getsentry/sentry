@@ -1,6 +1,6 @@
 import React from 'react';
 import GroupEventDataSection from '../eventDataSection';
-import CustomPropTypes from '../../../proptypes';
+import SentryTypes from '../../../proptypes';
 import Breadcrumb from './breadcrumbs/breadcrumb';
 import {t} from '../../../locale';
 
@@ -33,16 +33,16 @@ Collapsed.propTypes = {
 
 const BreadcrumbsInterface = React.createClass({
   propTypes: {
-    group: CustomPropTypes.Group.isRequired,
-    event: CustomPropTypes.Event.isRequired,
+    group: SentryTypes.Group.isRequired,
+    event: SentryTypes.Event.isRequired,
     type: React.PropTypes.string.isRequired,
     data: React.PropTypes.object.isRequired,
     isShare: React.PropTypes.bool
   },
 
   contextTypes: {
-    organization: CustomPropTypes.Organization,
-    project: CustomPropTypes.Project
+    organization: SentryTypes.Organization,
+    project: SentryTypes.Project
   },
 
   statics: {

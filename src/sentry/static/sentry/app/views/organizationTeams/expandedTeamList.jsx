@@ -6,7 +6,7 @@ import ApiMixin from '../../mixins/apiMixin';
 import {update as projectUpdate} from '../../actionCreators/projects';
 import BarChart from '../../components/barChart';
 import ProjectLabel from '../../components/projectLabel';
-import CustomPropTypes from '../../proptypes';
+import SentryTypes from '../../proptypes';
 import TooltipMixin from '../../mixins/tooltip';
 import {sortArray} from '../../utils';
 import {t, tct} from '../../locale';
@@ -14,8 +14,8 @@ import {t, tct} from '../../locale';
 const ExpandedTeamList = React.createClass({
   propTypes: {
     access: React.PropTypes.object.isRequired,
-    organization: CustomPropTypes.Organization.isRequired,
-    teamList: React.PropTypes.arrayOf(CustomPropTypes.Team).isRequired,
+    organization: SentryTypes.Organization.isRequired,
+    teamList: React.PropTypes.arrayOf(SentryTypes.Team).isRequired,
     projectStats: React.PropTypes.object,
     hasTeams: React.PropTypes.bool
   },

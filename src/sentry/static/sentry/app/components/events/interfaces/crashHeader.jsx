@@ -1,5 +1,5 @@
 import React from 'react';
-import CustomPropTypes from '../../../proptypes';
+import SentryTypes from '../../../proptypes';
 import TooltipMixin from '../../../mixins/tooltip';
 import {t} from '../../../locale';
 
@@ -7,7 +7,7 @@ const CrashHeader = React.createClass({
   propTypes: {
     title: React.PropTypes.string,
     beforeTitle: React.PropTypes.any,
-    group: CustomPropTypes.Group.isRequired,
+    group: SentryTypes.Group.isRequired,
     platform: React.PropTypes.string,
     thread: React.PropTypes.object,
     exception: React.PropTypes.object,

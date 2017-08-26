@@ -1,5 +1,5 @@
 import React from 'react';
-import CustomPropTypes from '../../../proptypes';
+import SentryTypes from '../../../proptypes';
 
 import GroupEventDataSection from '../eventDataSection';
 import CSPContent from './cspContent';
@@ -21,8 +21,8 @@ function getView(view, data) {
 
 const CSPInterface = React.createClass({
   propTypes: {
-    group: CustomPropTypes.Group.isRequired,
-    event: CustomPropTypes.Event.isRequired,
+    group: SentryTypes.Group.isRequired,
+    event: SentryTypes.Event.isRequired,
     type: React.PropTypes.string.isRequired,
     data: React.PropTypes.object.isRequired
   },

@@ -7,7 +7,7 @@ import GroupHeader from './groupDetails/header';
 import GroupStore from '../stores/groupStore';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
-import CustomPropTypes from '../proptypes';
+import SentryTypes from '../proptypes';
 import {t} from '../locale';
 
 let ERROR_TYPES = {
@@ -21,7 +21,7 @@ const GroupDetails = React.createClass({
   },
 
   childContextTypes: {
-    group: CustomPropTypes.Group,
+    group: SentryTypes.Group,
     location: React.PropTypes.object
   },
 

@@ -8,7 +8,7 @@ import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
 import BroadcastModal from '../components/broadcastModal';
 import moment from 'moment';
-import CustomPropTypes from '../proptypes';
+import SentryTypes from '../proptypes';
 import TeamStore from '../stores/teamStore';
 import ProjectStore from '../stores/projectStore';
 import ProjectActions from '../actions/projectActions';
@@ -28,7 +28,7 @@ function getRequiredAdminActions(org) {
 
 const OrganizationContext = React.createClass({
   childContextTypes: {
-    organization: CustomPropTypes.Organization
+    organization: SentryTypes.Organization
   },
 
   mixins: [

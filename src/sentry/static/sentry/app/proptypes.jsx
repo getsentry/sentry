@@ -81,7 +81,7 @@ const Event = React.PropTypes.shape({
   user: React.PropTypes.object
 });
 
-let CustomPropTypes = {
+let SentryTypes = {
   AnyModel: React.PropTypes.shape({
     id: React.PropTypes.string.isRequired
   }),
@@ -104,4 +104,4 @@ let CustomPropTypes = {
 
 export {Group, Event, Metadata};
 
-export default CustomPropTypes;
+export default SentryTypes;

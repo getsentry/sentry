@@ -7,13 +7,13 @@ import EventEntries from '../../components/events/eventEntries';
 import Footer from '../../components/footer';
 import LoadingError from '../../components/loadingError';
 import LoadingIndicator from '../../components/loadingIndicator';
-import CustomPropTypes from '../../proptypes';
+import SentryTypes from '../../proptypes';
 
 import SharedGroupHeader from './sharedGroupHeader';
 
 const SharedGroupDetails = React.createClass({
   childContextTypes: {
-    group: CustomPropTypes.Group
+    group: SentryTypes.Group
   },
 
   mixins: [ApiMixin],

@@ -1,11 +1,11 @@
-import CustomPropTypes from '../proptypes';
+import SentryTypes from '../proptypes';
 import OrganizationState from './organizationState';
 
 let TeamState = {
   mixins: [OrganizationState],
 
   contextTypes: {
-    team: CustomPropTypes.Team.isRequired
+    team: SentryTypes.Team.isRequired
   },
 
   getTeam() {

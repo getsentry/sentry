@@ -1,6 +1,6 @@
 import React from 'react';
 
-import CustomPropTypes from '../../proptypes';
+import SentryTypes from '../../proptypes';
 import {objectToArray} from '../../utils';
 import EventDataSection from './eventDataSection';
 import KeyValueList from './interfaces/keyValueList';
@@ -8,8 +8,8 @@ import {t} from '../../locale';
 
 const EventExtraData = React.createClass({
   propTypes: {
-    group: CustomPropTypes.Group.isRequired,
-    event: CustomPropTypes.Event.isRequired
+    group: SentryTypes.Group.isRequired,
+    event: SentryTypes.Event.isRequired
   },
 
   getInitialState() {

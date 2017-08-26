@@ -1,11 +1,11 @@
-import CustomPropTypes from '../proptypes';
+import SentryTypes from '../proptypes';
 import TeamState from './teamState';
 
 let ProjectState = {
   mixins: [TeamState],
 
   contextTypes: {
-    project: CustomPropTypes.Project
+    project: SentryTypes.Project
   },
 
   getProjectFeatures() {
