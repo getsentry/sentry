@@ -246,7 +246,7 @@ class MinHashIndex(object):
         return self.__index(scope, arguments)
 
 
-class NoopIndex(object):
+class DummyIndex(object):
     def classify(self, scope, items, timestamp=None):
         return []
 

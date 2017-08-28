@@ -7,7 +7,7 @@ from django.conf import settings
 
 from sentry.interfaces.stacktrace import Frame
 from sentry.similarity.encoder import Encoder
-from sentry.similarity.index import MinHashIndex, NoopIndex
+from sentry.similarity.index import MinHashIndex, DummyIndex
 from sentry.similarity.features import (
     ExceptionFeature,
     FeatureSet,
@@ -71,7 +71,7 @@ def _make_index(cluster=None):
             cluster = redis.redis_clusters.get(cluster_id)
         except KeyError:
             logger.info('No redis cluster provided for similarity, using NOOP index.')
-            return NoopIndex()
+            return DummyIndex()
 
     return MinHashIndex(
         cluster,
