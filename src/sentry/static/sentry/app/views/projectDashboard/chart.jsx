@@ -2,6 +2,7 @@ import React from 'react';
 import moment from 'moment';
 import ApiMixin from '../../mixins/apiMixin';
 import BarChart from '../../components/barChart';
+import DynamicWrapper from '../../components/dynamicWrapper';
 import LoadingError from '../../components/loadingError';
 import LoadingIndicator from '../../components/loadingIndicator';
 import ProjectState from '../../mixins/projectState';
@@ -107,7 +108,10 @@ const ProjectChart = React.createClass({
           className="standard-barchart"
         />
         <small className="date-legend">
-          {moment(this.props.dateSince * 1000).format('LL')}
+          <DynamicWrapper
+            fixed="Test Date 1, 2000"
+            value={moment(this.props.dateSince * 1000).format('LL')}
+          />
         </small>
       </div>
     );
