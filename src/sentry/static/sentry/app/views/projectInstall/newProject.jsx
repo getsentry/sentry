@@ -1,21 +1,20 @@
 import React from 'react';
 import DocumentTitle from 'react-document-title';
-import SentryTypes from '../../proptypes';
+
+import OrganizationState from '../../mixins/organizationState';
 
 import CreateProject from '../onboarding/createProject';
 import ProjectSelector from '../../components/projectHeader/projectSelector';
 
 const newProject = React.createClass({
-  contextTypes: {
-    organization: SentryTypes.Organization
-  },
+  mixins: [OrganizationState],
 
   render() {
     return (
       <div className="getting-started">
         <div className="sub-header flex flex-container flex-vertically-centered">
           <div className="p-t-1 p-b-1">
-            <ProjectSelector organization={this.context.organization} />
+            <ProjectSelector organization={this.getOrganization()} />
           </div>
         </div>
         <div className="container">

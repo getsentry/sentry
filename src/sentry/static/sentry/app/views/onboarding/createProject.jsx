@@ -1,14 +1,14 @@
 import React from 'react';
 import {browserHistory, Link} from 'react-router';
-import SentryTypes from '../../proptypes';
 
 import ApiMixin from '../../mixins/apiMixin';
+import OrganizationState from '../../mixins/organizationState';
 import ProjectActions from '../../actions/projectActions';
+
 import {getPlatformName} from './utils';
-
 import OnboardingProject from '../onboarding/project';
-import {t} from '../../locale';
 
+import {t} from '../../locale';
 import Raven from 'raven-js';
 
 const CreateProject = React.createClass({
@@ -17,11 +17,10 @@ const CreateProject = React.createClass({
   },
 
   contextTypes: {
-    organization: SentryTypes.Organization,
     location: React.PropTypes.object
   },
 
-  mixins: [ApiMixin],
+  mixins: [ApiMixin, OrganizationState],
 
   getDefaultProps() {
     return {
@@ -31,7 +30,7 @@ const CreateProject = React.createClass({
   },
 
   getInitialState() {
-    let {teams} = this.context.organization;
+    let {teams} = this.getOrganization();
     let accessTeams = teams.filter(team => team.hasAccess);
 
     let team =
@@ -47,7 +46,7 @@ const CreateProject = React.createClass({
   },
 
   createProject() {
-    let {slug} = this.context.organization;
+    let {slug} = this.getOrganization();
     let {projectName, platform, team, inFlight} = this.state;
 
     //prevent double-trigger
@@ -95,7 +94,7 @@ const CreateProject = React.createClass({
 
   render() {
     let {projectName, platform, error} = this.state;
-    let {slug, teams} = this.context.organization;
+    let {slug, teams} = this.getOrganization();
     let accessTeams = teams.filter(team => team.hasAccess);
 
     const stepProps = {
