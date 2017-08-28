@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-from sentry.models import OrganizationMember, UserEmail
+from sentry.models import Authenticator, OrganizationMember, UserEmail
 from sentry.testutils import TestCase
 
 
@@ -18,6 +18,10 @@ class UserMergeToTest(TestCase):
                 'is_verified': True,
             }
         )
+        auth1 = Authenticator.objects.create(user=from_user, type=1)
+        auth2 = Authenticator.objects.create(user=to_user, type=1)
+        auth3 = Authenticator.objects.create(user=to_user, type=2)
+
         from_user.merge_to(to_user)
 
         assert UserEmail.objects.filter(
@@ -30,6 +34,20 @@ class UserMergeToTest(TestCase):
             user=to_user,
             email=from_user.email,
             is_verified=True,
+        ).exists()
+
+        assert Authenticator.objects.filter(
+            user=to_user,
+            id=auth2.id,
+        ).exists()
+        assert Authenticator.objects.filter(
+            user=to_user,
+            id=auth3.id,
+        ).exists()
+        # dupe shouldn't get merged
+        assert Authenticator.objects.filter(
+            user=from_user,
+            id=auth1.id,
         ).exists()
 
     def test_duplicate_memberships(self):
