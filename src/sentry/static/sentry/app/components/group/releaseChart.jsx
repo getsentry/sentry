@@ -1,13 +1,13 @@
 import React from 'react';
 
 import StackedBarChart from '../stackedBarChart';
-import PropTypes from '../../proptypes';
+import SentryTypes from '../../proptypes';
 import {t} from '../../locale';
 import {defined, escape, intcomma} from '../../utils';
 
 const GroupReleaseChart = React.createClass({
   propTypes: {
-    group: PropTypes.Group.isRequired,
+    group: SentryTypes.Group.isRequired,
     release: React.PropTypes.shape({
       version: React.PropTypes.string.isRequired
     }),

@@ -3,7 +3,7 @@ import moment from 'moment';
 import React from 'react';
 
 import ConfigStore from '../../stores/configStore';
-import PropTypes from '../../proptypes';
+import SentryTypes from '../../proptypes';
 import DateTime from '../../components/dateTime';
 import FileSize from '../../components/fileSize';
 import TooltipMixin from '../../mixins/tooltip';
@@ -34,8 +34,8 @@ let GroupEventToolbar = React.createClass({
   propTypes: {
     orgId: React.PropTypes.string.isRequired,
     projectId: React.PropTypes.string.isRequired,
-    group: PropTypes.Group.isRequired,
-    event: PropTypes.Event.isRequired
+    group: SentryTypes.Group.isRequired,
+    event: SentryTypes.Event.isRequired
   },
 
   mixins: [

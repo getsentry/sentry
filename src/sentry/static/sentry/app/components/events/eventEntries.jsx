@@ -11,7 +11,7 @@ import EventTags from './eventTags';
 import EventSdk from './sdk';
 import EventDevice from './device';
 import EventUserReport from './userReport';
-import PropTypes from '../../proptypes';
+import SentryTypes from '../../proptypes';
 import utils from '../../utils';
 import {t} from '../../locale';
 
@@ -39,8 +39,8 @@ export const INTERFACES = {
 
 const EventEntries = React.createClass({
   propTypes: {
-    group: PropTypes.Group.isRequired,
-    event: PropTypes.Event.isRequired,
+    group: SentryTypes.Group.isRequired,
+    event: SentryTypes.Event.isRequired,
     orgId: React.PropTypes.string.isRequired,
     project: React.PropTypes.object.isRequired,
     // TODO(dcramer): ideally isShare would be replaced with simple permission
