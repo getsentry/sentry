@@ -71,8 +71,9 @@ def _make_index(cluster=None):
         try:
             cluster = redis.redis_clusters.get(cluster_id)
         except KeyError:
-            logger.info('No redis cluster provided for similarity, using NOOP index.')
-            return DummyIndex()
+            index = DummyIndex()
+            logger.info('No redis cluster provided for similarity, using {}.'.format(index))
+            return index
 
     return MinHashIndex(
         cluster,
