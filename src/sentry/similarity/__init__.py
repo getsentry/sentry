@@ -72,7 +72,7 @@ def _make_index(cluster=None):
             cluster = redis.redis_clusters.get(cluster_id)
         except KeyError:
             index = DummyIndex()
-            logger.info('No redis cluster provided for similarity, using {}.'.format(index))
+            logger.info('No redis cluster provided for similarity, using {!r}.'.format(index))
             return index
 
     return MinHashIndex(
