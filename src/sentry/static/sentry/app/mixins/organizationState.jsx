@@ -1,8 +1,8 @@
-import PropTypes from '../proptypes';
+import SentryTypes from '../proptypes';
 
 let OrganizationState = {
   contextTypes: {
-    organization: PropTypes.Organization
+    organization: SentryTypes.Organization
   },
 
   getOrganization() {

@@ -1,7 +1,7 @@
 import React from 'react';
 import {Link} from 'react-router';
 
-import PropTypes from '../../proptypes';
+import SentryTypes from '../../proptypes';
 
 import AllTeamsRow from './allTeamsRow';
 import {tct} from '../../locale';
@@ -9,8 +9,8 @@ import {tct} from '../../locale';
 const AllTeamsList = React.createClass({
   propTypes: {
     access: React.PropTypes.object,
-    organization: PropTypes.Organization,
-    teamList: React.PropTypes.arrayOf(PropTypes.Team),
+    organization: SentryTypes.Organization,
+    teamList: React.PropTypes.arrayOf(SentryTypes.Team),
     openMembership: React.PropTypes.bool
   },
 
