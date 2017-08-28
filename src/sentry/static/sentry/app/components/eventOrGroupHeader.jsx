@@ -22,8 +22,13 @@ class EventOrGroupHeader extends React.Component {
       groupID: PropTypes.string,
       culprit: PropTypes.string
     }),
+    includeLink: PropTypes.bool,
     hideIcons: PropTypes.bool,
     hideLevel: PropTypes.bool
+  };
+
+  static defaultProps = {
+    includeLink: true
   };
 
   getMessage() {
@@ -40,23 +45,39 @@ class EventOrGroupHeader extends React.Component {
     }
   }
 
-  render() {
-    let {className, hideLevel, hideIcons, orgId, projectId, data} = this.props;
-    let cx = classNames('event-issue-header', className);
+  getTitle() {
+    let {hideLevel, hideIcons, includeLink, orgId, projectId, data} = this.props;
     let {id, level, groupID} = data || {};
     let isEvent = !!data.eventID;
-    let url = `/${orgId}/${projectId}/issues/${isEvent ? groupID : id}/${isEvent ? `events/${data.id}/` : ''}`;
+
+    let props = {};
+    let Wrapper;
+    if (includeLink) {
+      props.to = `/${orgId}/${projectId}/issues/${isEvent ? groupID : id}/${isEvent ? `events/${data.id}/` : ''}`;
+      Wrapper = Link;
+    } else {
+      Wrapper = 'span';
+    }
+
+    return (
+      <Wrapper {...props}>
+        {!hideLevel && level && <span className="error-level truncate">{level}</span>}
+        {!hideIcons && <span className="icon icon-soundoff" />}
+        {!hideIcons && <span className="icon icon-star-solid" />}
+        <EventOrGroupTitle {...this.props} />
+      </Wrapper>
+    );
+  }
+
+  render() {
+    let {className} = this.props;
+    let cx = classNames('event-issue-header', className);
     let message = this.getMessage();
 
     return (
       <div className={cx}>
         <h3 className="truncate">
-          <Link to={url}>
-            {!hideLevel && level && <span className="error-level truncate">{level}</span>}
-            {!hideIcons && <span className="icon icon-soundoff" />}
-            {!hideIcons && <span className="icon icon-star-solid" />}
-            <EventOrGroupTitle {...this.props} />
-          </Link>
+          {this.getTitle()}
         </h3>
         {message &&
           <div className="event-message truncate">
