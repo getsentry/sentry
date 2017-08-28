@@ -254,7 +254,7 @@ class DummyIndex(object):
         return []
 
     def record(self, scope, key, items, timestamp=None):
-        return False
+        return {}
 
     def merge(self, scope, destination, items, timestamp=None):
         return False
@@ -263,10 +263,10 @@ class DummyIndex(object):
         return False
 
     def scan(self, scope, indices, batch=1000, timestamp=None):
-        pass
+        return []
 
     def flush(self, scope, indices, batch=1000, timestamp=None):
         pass
 
     def export(self, scope, items, timestamp=None):
-        return False
+        return {}
