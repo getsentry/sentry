@@ -1,5 +1,6 @@
 import React from 'react';
 import {browserHistory, Link} from 'react-router';
+import SentryTypes from '../../proptypes';
 
 import ApiMixin from '../../mixins/apiMixin';
 import ProjectActions from '../../actions/projectActions';
@@ -16,7 +17,7 @@ const CreateProject = React.createClass({
   },
 
   contextTypes: {
-    organization: React.PropTypes.object,
+    organization: SentryTypes.Organization,
     location: React.PropTypes.object
   },
 
@@ -92,17 +93,13 @@ const CreateProject = React.createClass({
     });
   },
 
-  next() {
-    this.createProject();
-  },
-
   render() {
     let {projectName, platform, error} = this.state;
     let {slug, teams} = this.context.organization;
     let accessTeams = teams.filter(team => team.hasAccess);
 
     const stepProps = {
-      next: this.next,
+      next: this.createProject,
       platform: platform,
       setPlatform: p => {
         if (!projectName || (platform && getPlatformName(platform) === projectName)) {

@@ -755,7 +755,6 @@ exports[`CreateProject render() should fill in project name if its empty when pl
               />
             </div>
           </div>
-          <bound renderTeamPicker />
           <div>
             <button
               className="btn btn-primary submit-new-team"

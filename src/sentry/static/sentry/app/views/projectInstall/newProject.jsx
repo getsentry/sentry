@@ -1,12 +1,13 @@
 import React from 'react';
 import DocumentTitle from 'react-document-title';
+import SentryTypes from '../../proptypes';
 
 import CreateProject from '../onboarding/createProject';
 import ProjectSelector from '../../components/projectHeader/projectSelector';
 
 const newProject = React.createClass({
   contextTypes: {
-    organization: React.PropTypes.object
+    organization: SentryTypes.Organization
   },
 
   render() {

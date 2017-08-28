@@ -54,7 +54,6 @@ exports[`Project render() should render NotFound if no matching organization 1`]
         />
       </div>
     </div>
-    <bound renderTeamPicker />
     <div>
       <button
         className="btn btn-primary submit-new-team"
@@ -796,7 +795,6 @@ exports[`Project render() should set required class on empty submit 1`] = `
           />
         </div>
       </div>
-      <bound renderTeamPicker />
       <div>
         <button
           className="btn btn-primary submit-new-team"

@@ -66,7 +66,7 @@ const Project = React.createClass({
   render() {
     return (
       <div className="onboarding-info">
-        <h4>{t('Choose a language or framework' + ':')}</h4>
+        <h4>{t('Choose a language or framework') + ':'}</h4>
         <PlatformPicker {...this.props} showOther={true} />
         <div className="create-project-form">
           <div className="new-project-name client-platform">
@@ -87,7 +87,7 @@ const Project = React.createClass({
               />
             </div>
           </div>
-          <this.renderTeamPicker />
+          {this.renderTeamPicker()}
           <div>
             <button className="btn btn-primary submit-new-team" onClick={this.submit}>
               {t('Create Project')}

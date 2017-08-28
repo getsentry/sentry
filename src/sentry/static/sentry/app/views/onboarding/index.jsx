@@ -1,18 +1,11 @@
 import React from 'react';
 import DocumentTitle from 'react-document-title';
 
-import ApiMixin from '../../mixins/apiMixin';
 import ProgressNodes from './progress';
 
 const OnboardingWizard = React.createClass({
   contextTypes: {
     organization: React.PropTypes.object
-  },
-
-  mixins: [ApiMixin],
-
-  renderStep() {
-    return React.cloneElement(this.props.children);
   },
 
   render() {
@@ -22,7 +15,7 @@ const OnboardingWizard = React.createClass({
         <div className="step-container">
           <ProgressNodes params={this.props.params} />
           <div>
-            <this.renderStep />
+            {this.props.children}
           </div>
         </div>
       </div>
