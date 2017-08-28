@@ -68,7 +68,8 @@
     "u2f-api": "0.0.8",
     "url-loader": "0.5.6",
     "webpack": "2.2.0",
-    "webpack-dev-middleware": "1.9.0"
+    "webpack-dev-middleware": "1.9.0",
+    "zxcvbn": "^4.4.2"
   },
   "private": true,
   "APIMethod": "stub",

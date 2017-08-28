@@ -194,42 +194,29 @@ var appConfig = {
   devtool: IS_PRODUCTION ? '#source-map' : '#cheap-source-map'
 };
 
-if (!IS_PRODUCTION && REFRESH) {
-  appConfig.plugins.push(
-    new (require('webpack-livereload-plugin'))({appendScriptTag: true})
-  );
-}
-
-var minificationPlugins = [
-  // This compression-webpack-plugin generates pre-compressed files
-  // ending in .gz, to be picked up and served by our internal static media
-  // server as well as nginx when paired with the gzip_static module.
-  new (require('compression-webpack-plugin'))({
-    algorithm: function(buffer, options, callback) {
-      require('zlib').gzip(buffer, callback);
-    },
-    regExp: /\.(js|map|css|svg|html|txt|ico|eot|ttf)$/
-  }),
-
-  // Disable annoying UglifyJS warnings that pollute Travis log output
-  // NOTE: This breaks -p in webpack 2. Must call webpack w/ NODE_ENV=production for minification.
-  new webpack.optimize.UglifyJsPlugin({
-    compress: {
-      warnings: false
-    },
-    // https://github.com/webpack/webpack/blob/951a7603d279c93c936e4b8b801a355dc3e26292/bin/convert-argv.js#L442
-    sourceMap: appConfig.devtool &&
-      (appConfig.devtool.indexOf('sourcemap') >= 0 ||
-        appConfig.devtool.indexOf('source-map') >= 0)
-  })
-];
-
-if (IS_PRODUCTION) {
-  // NOTE: can't do plugins.push(Array) because webpack/webpack#2217
-  minificationPlugins.forEach(function(plugin) {
-    appConfig.plugins.push(plugin);
-  });
-}
+/**
+ * Webpack entry for password strength checker
+ */
+var pwConfig = {
+  entry: {
+    pwstrength: './index'
+  },
+  context: path.resolve(path.join(__dirname, staticPrefix), 'js', 'pwstrength'),
+  module: {},
+  plugins: [],
+  resolve: {
+    modules: [path.join(__dirname, staticPrefix), 'node_modules'],
+    extensions: ['.js']
+  },
+  output: {
+    path: distPath,
+    filename: '[name].js',
+    libraryTarget: 'window',
+    library: 'sentrypw',
+    sourceMapFilename: '[name].js.map'
+  },
+  devtool: IS_PRODUCTION ? '#source-map' : '#cheap-source-map'
+};
 
 /**
  * Legacy CSS Webpack appConfig for Django-powered views.
@@ -268,11 +255,44 @@ var legacyCssConfig = {
   }
 };
 
+var minificationPlugins = [
+  // This compression-webpack-plugin generates pre-compressed files
+  // ending in .gz, to be picked up and served by our internal static media
+  // server as well as nginx when paired with the gzip_static module.
+  new (require('compression-webpack-plugin'))({
+    algorithm: function(buffer, options, callback) {
+      require('zlib').gzip(buffer, callback);
+    },
+    regExp: /\.(js|map|css|svg|html|txt|ico|eot|ttf)$/
+
+  }),
+
+  // Disable annoying UglifyJS warnings that pollute Travis log output
+  // NOTE: This breaks -p in webpack 2. Must call webpack w/ NODE_ENV=production for minification.
+  new webpack.optimize.UglifyJsPlugin({
+    compress: {
+      warnings: false
+    },
+    // https://github.com/webpack/webpack/blob/951a7603d279c93c936e4b8b801a355dc3e26292/bin/convert-argv.js#L442
+    sourceMap: appConfig.devtool &&
+      (appConfig.devtool.indexOf('sourcemap') >= 0 ||
+        appConfig.devtool.indexOf('source-map') >= 0)
+  })
+];
+
+if (!IS_PRODUCTION && REFRESH) {
+  appConfig.plugins.push(
+    new (require('webpack-livereload-plugin'))({appendScriptTag: true})
+  );
+}
+
 if (IS_PRODUCTION) {
   // NOTE: can't do plugins.push(Array) because webpack/webpack#2217
   minificationPlugins.forEach(function(plugin) {
+    appConfig.plugins.push(plugin);
+    pwConfig.plugins.push(plugin);
     legacyCssConfig.plugins.push(plugin);
   });
 }
 
-module.exports = [appConfig, legacyCssConfig];
+module.exports = [appConfig, legacyCssConfig, pwConfig];
