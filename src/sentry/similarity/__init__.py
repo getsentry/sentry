@@ -62,12 +62,13 @@ def get_frame_attributes(frame):
 
 def _make_index(cluster=None):
     if not cluster:
+        cluster_id = getattr(
+            settings,
+            'SENTRY_SIMILARITY_INDEX_REDIS_CLUSTER',
+            'similarity',
+        )
+
         try:
-            cluster_id = getattr(
-                settings,
-                'SENTRY_SIMILARITY_INDEX_REDIS_CLUSTER',
-                'similarity',
-            )
             cluster = redis.redis_clusters.get(cluster_id)
         except KeyError:
             logger.info('No redis cluster provided for similarity, using NOOP index.')
