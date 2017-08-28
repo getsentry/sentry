@@ -146,7 +146,7 @@ install_requires = [
     'rb>=1.7.0,<2.0.0',
     'qrcode>=5.2.2,<6.0.0',
     'python-u2flib-server>=4.0.1,<4.1.0',
-    'redis-py-cluster>=1.3.4',
+    'redis-py-cluster>=1.3.4,<1.4.0',
 ]
 
 saml_requires = [
