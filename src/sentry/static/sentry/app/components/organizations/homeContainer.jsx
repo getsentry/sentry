@@ -30,12 +30,12 @@ const HomeContainer = React.createClass({
             {access.has('project:write')
               ? <Button
                   href={`/organizations/${org.slug}/projects/new/`}
-                  primary
+                  priority="primary"
                   style={{marginRight: 5}}>
                   {t('New Project')}
                 </Button>
               : <Button
-                  primary
+                  priority="primary"
                   disabled
                   className="tip"
                   data-placement="bottom"
@@ -44,11 +44,11 @@ const HomeContainer = React.createClass({
                   {t('New Project')}
                 </Button>}
             {access.has('team:write')
-              ? <Button to={`/organizations/${org.slug}/teams/new/`} primary>
+              ? <Button to={`/organizations/${org.slug}/teams/new/`} priority="primary">
                   {t('New Team')}
                 </Button>
               : <Button
-                  primary
+                  priority="primary"
                   disabled
                   className="tip"
                   data-placement="bottom"

@@ -4,7 +4,7 @@ import Button from 'app/components/buttons/button';
 
 describe('Button', function() {
   it('renders', function() {
-    let component = shallow(<Button primary large>Button</Button>);
+    let component = shallow(<Button priority="primary" size="large">Button</Button>);
     expect(component).toMatchSnapshot();
   });
 
