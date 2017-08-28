@@ -6,13 +6,16 @@ import '../../../less/components/button.less';
 
 const Button = React.createClass({
   propTypes: {
-    primary: PropTypes.bool,
-    danger: PropTypes.bool,
+    priority: PropTypes.oneOf(['primary', 'danger']),
+    size: PropTypes.oneOf(['small', 'xsmall', 'large']),
     disabled: PropTypes.bool,
-    small: PropTypes.bool,
-    xsmall: PropTypes.bool,
-    large: PropTypes.bool,
+    /**
+     * Use this prop if button is a react-router link
+     */
     to: PropTypes.string,
+    /**
+     * Use this prop if button should use a normal (non-react-router) link
+     */
     href: PropTypes.string,
     onClick: PropTypes.func
   },
@@ -34,11 +37,8 @@ const Button = React.createClass({
 
   render() {
     let {
-      primary,
-      danger,
-      small,
-      xsmall,
-      large,
+      priority,
+      size,
       to,
       href,
       children,
@@ -52,13 +52,15 @@ const Button = React.createClass({
       ...buttonProps
     } = this.props;
 
+    let isPrimary = priority === 'primary';
+    let isDanger = priority === 'danger';
     let cx = classNames(className, 'button', {
-      'button-primary': primary,
-      'button-danger': danger,
-      'button-default': !primary && !danger,
-      'button-sm': small,
-      'button-xs': xsmall,
-      'button-lg': large,
+      'button-primary': isPrimary,
+      'button-danger': isDanger,
+      'button-default': !isPrimary && !isDanger,
+      'button-sm': size === 'small',
+      'button-xs': size === 'xsmall',
+      'button-lg': size === 'large',
       'button-disabled': disabled
     });
 

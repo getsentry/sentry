@@ -20,13 +20,13 @@ storiesOf('Buttons', module)
         </Item>
 
         <Item>
-          <Button primary onClick={action('click primary')}>
+          <Button priority="primary" onClick={action('click primary')}>
             Primary Button
           </Button>
         </Item>
 
         <Item>
-          <Button danger onClick={action('click danger')}>
+          <Button priority="danger" onClick={action('click danger')}>
             Danger Button
           </Button>
         </Item>
@@ -44,13 +44,13 @@ storiesOf('Buttons', module)
     withInfo('Different buttons sizes')(() => (
       <div>
         <Item>
-          <Button xsmall>
+          <Button size="xsmall">
             Extra Small
           </Button>
         </Item>
 
         <Item>
-          <Button small>
+          <Button size="small">
             Small
           </Button>
         </Item>
@@ -62,7 +62,7 @@ storiesOf('Buttons', module)
         </Item>
 
         <Item>
-          <Button large>
+          <Button size="large">
             Large
           </Button>
         </Item>
