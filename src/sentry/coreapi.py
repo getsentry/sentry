@@ -40,7 +40,7 @@ from sentry.interfaces.base import get_interface, InterfaceValidationError
 from sentry.interfaces.csp import Csp
 from sentry.event_manager import EventManager
 from sentry.models import EventError, ProjectKey, TagKey, TagValue
-from sentry.tasks.store import preprocess_event, \
+from sentry.tasks.store import matches_discarded_hash, preprocess_event, \
     preprocess_event_from_reprocessing
 from sentry.utils import json
 from sentry.utils.auth import parse_auth_header
@@ -398,6 +398,14 @@ class ClientApiHelper(object):
             filter_obj = filter_cls(project)
             if filter_obj.is_enabled() and filter_obj.test(data):
                 return (True, 'other_filter')
+
+        if matches_discarded_hash(data, project):
+            self.log.info(
+                'preprocess.discarded.hash.match', extra={
+                    'project_id': project.id,
+                }
+            )
+            return (True, 'discarded_hash')
 
         return (False, )
 
