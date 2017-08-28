@@ -52,6 +52,11 @@ module.exports = {
       Raven: 'raven-js',
       underscore: 'underscore',
       _: 'underscore'
+    }),
+    new webpack.DefinePlugin({
+      'process.env': {
+        IS_PERCY: true
+      }
     })
   ],
   resolve: {
