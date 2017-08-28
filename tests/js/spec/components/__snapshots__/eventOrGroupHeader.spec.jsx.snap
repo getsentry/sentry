@@ -37,6 +37,7 @@ exports[`EventOrGroupHeader Event hides level tag 1`] = `
           }
         }
         hideLevel={true}
+        includeLink={true}
         orgId="orgId"
         projectId="projectId"
       />
@@ -81,6 +82,7 @@ exports[`EventOrGroupHeader Event renders with \`type = csp\` 1`] = `
             "type": "csp",
           }
         }
+        includeLink={true}
         orgId="orgId"
         projectId="projectId"
       />
@@ -134,6 +136,7 @@ exports[`EventOrGroupHeader Event renders with \`type = default\` 1`] = `
             "type": "default",
           }
         }
+        includeLink={true}
         orgId="orgId"
         projectId="projectId"
       />
@@ -178,6 +181,7 @@ exports[`EventOrGroupHeader Event renders with \`type = error\` 1`] = `
             "type": "error",
           }
         }
+        includeLink={true}
         orgId="orgId"
         projectId="projectId"
       />
@@ -235,6 +239,7 @@ exports[`EventOrGroupHeader Group renders with \`type = csp\` 1`] = `
             "type": "csp",
           }
         }
+        includeLink={true}
         orgId="orgId"
         projectId="projectId"
       />
@@ -292,6 +297,7 @@ exports[`EventOrGroupHeader Group renders with \`type = default\` 1`] = `
             "type": "default",
           }
         }
+        includeLink={true}
         orgId="orgId"
         projectId="projectId"
       />
@@ -349,6 +355,7 @@ exports[`EventOrGroupHeader Group renders with \`type = error\` 1`] = `
             "type": "error",
           }
         }
+        includeLink={true}
         orgId="orgId"
         projectId="projectId"
       />

@@ -28,5 +28,6 @@ class GroupTombstoneSerializer(Serializer):
             'message': obj.message,
             'culprit': obj.culprit,
             'type': obj.get_event_type(),
+            'metadata': obj.get_event_metadata(),
             'actor': attrs.get('user'),
         }
