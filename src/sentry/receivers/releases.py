@@ -70,7 +70,8 @@ def resolved_in_commit(instance, created, **kwargs):
                             'commit': instance.id,
                         }
                     )
-                    GroupAssignee.objects.assign(group=group, assigned_to=user_list[0])
+                    GroupAssignee.objects.assign(
+                        group=group, assigned_to=user_list[0], acting_user=user_list[0])
                 else:
                     Activity.objects.create(
                         project_id=group.project_id,
