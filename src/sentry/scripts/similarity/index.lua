@@ -538,7 +538,10 @@ local function search(configuration, parameters, limit)
     local candidates = {}
     local i = 1
     for candidate, index_hits in pairs(possible_candidates) do
-        candidates[i] = {candidate, index_hits}
+        candidates[i] = {
+            key = candidate,
+            score = avg(index_hits),
+        }
         i = i + 1
     end
 
@@ -546,14 +549,12 @@ local function search(configuration, parameters, limit)
         table.sort(
             candidates,
             function (this, that)
-                local this_scores = avg(this[2])
-                local that_scores = avg(that[2])
-                if this_scores > that_scores then
+                if this.score > that.score then
                     return true
-                elseif that_scores > this_scores then
+                elseif this.score < that.score then
                     return false
                 else
-                    return this[1] < that[1]  -- NOTE: reverse lex
+                    return this.key < that.key -- NOTE: reverse lex
                 end
             end
         )
@@ -562,11 +563,10 @@ local function search(configuration, parameters, limit)
 
     local i = 1
     local results = {}
-    for _, value in ipairs(candidates) do
+    for _, candidate in ipairs(candidates) do
         local result = {}
-        local candidate = value[1]
         for j, p in ipairs(parameters) do
-            local candidate_frequencies = get_frequencies(configuration, p.index, candidate)
+            local candidate_frequencies = get_frequencies(configuration, p.index, candidate.key)
             -- TODO: differentiate when both sides are empty
             result[j] = string.format('%f', calculate_similarity(
                 configuration,
@@ -574,7 +574,7 @@ local function search(configuration, parameters, limit)
                 candidate_frequencies
             ))
         end
-        results[i] = {candidate, result}
+        results[i] = {candidate.key, result}
         i = i + 1
     end
     return results
