@@ -19,7 +19,9 @@ from django.conf import settings
 from django.utils.translation import ugettext_lazy as _
 from operator import attrgetter
 
+from sentry import tsdb
 from sentry.utils.integrationdocs import load_doc
+from sentry.utils.datastructures import BidirectionalMapping
 
 
 def get_all_languages():
@@ -39,7 +41,8 @@ DATA_ROOT = os.path.join(MODULE_ROOT, 'data')
 
 SORT_OPTIONS = OrderedDict(
     (
-        ('priority', _('Priority')), ('date', _('Last Seen')), ('new', _('First Seen')),
+        ('priority', _('Priority')), ('date', _(
+            'Last Seen')), ('new', _('First Seen')),
         ('freq', _('Frequency')),
     )
 )
@@ -109,7 +112,8 @@ DEFAULT_SORT_OPTION = 'date'
 
 # Setup languages for only available locales
 LANGUAGE_MAP = dict(settings.LANGUAGES)
-LANGUAGES = [(k, LANGUAGE_MAP[k]) for k in get_all_languages() if k in LANGUAGE_MAP]
+LANGUAGES = [(k, LANGUAGE_MAP[k])
+             for k in get_all_languages() if k in LANGUAGE_MAP]
 
 # TODO(dcramer): We eventually want to make this user-editable
 TAG_LABELS = {
@@ -139,7 +143,8 @@ SENTRY_RULES = (
 )
 
 # methods as defined by http://www.w3.org/Protocols/rfc2616/rfc2616-sec9.html + PATCH
-HTTP_METHODS = ('GET', 'POST', 'PUT', 'OPTIONS', 'HEAD', 'DELETE', 'TRACE', 'CONNECT', 'PATCH')
+HTTP_METHODS = ('GET', 'POST', 'PUT', 'OPTIONS', 'HEAD',
+                'DELETE', 'TRACE', 'CONNECT', 'PATCH')
 
 CLIENT_RESERVED_ATTRS = (
     'project', 'errors', 'event_id', 'message', 'checksum', 'culprit', 'fingerprint', 'level',
@@ -309,7 +314,8 @@ def get_integration_id_for_event(platform, sdk_name, integrations):
                 return integration_id
 
     # try sdk name, for example "sentry-java" -> "java" or "raven-java:log4j" -> "java-log4j"
-    sdk_name = sdk_name.lower().replace("sentry-", "").replace("raven-", "").replace(":", "-")
+    sdk_name = sdk_name.lower().replace(
+        "sentry-", "").replace("raven-", "").replace(":", "-")
     if sdk_name in INTEGRATION_ID_TO_PLATFORM_DATA:
         return sdk_name
 
@@ -334,3 +340,15 @@ class ObjectStatus(object):
 
 
 StatsPeriod = namedtuple('StatsPeriod', ('segments', 'interval'))
+
+FILTER_STAT_KEYS_TO_VALUES = BidirectionalMapping({
+    'ip-address': tsdb.models.project_total_received_ip_address,
+    'release-version': tsdb.models.project_total_received_release_version,
+    'error-message': tsdb.models.project_total_received_error_message,
+    'browser-extensions': tsdb.models.project_total_received_browser_extensions,
+    'legacy-browsers': tsdb.models.project_total_received_legacy_browsers,
+    'localhost': tsdb.models.project_total_received_localhost,
+    'web-crawlers': tsdb.models.project_total_received_web_crawlers,
+    'invalid-csp': tsdb.models.project_total_received_invalid_csp,
+    'cors': tsdb.models.project_total_received_cors,
+})

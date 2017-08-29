@@ -398,14 +398,14 @@ const ProjectFilters = React.createClass({
   },
 
   STAT_OPTS: {
-    ip_address: 'IP Address',
-    release_version: 'Release',
-    error_message: 'Error Message',
-    browser_extensions: 'Browser Extension',
-    legacy_browsers: 'Legacy Browser',
+    'ip-address': 'IP Address',
+    'release-version': 'Release',
+    'error-message': 'Error Message',
+    'browser-extensions': 'Browser Extension',
+    'legacy-browsers': 'Legacy Browser',
     localhost: 'Localhost',
-    web_crawlers: 'Web Crawler',
-    invalid_csp: 'Invalid CSP',
+    'web-crawlers': 'Web Crawler',
+    'invalid-csp': 'Invalid CSP',
     cors: 'CORS'
   },
 

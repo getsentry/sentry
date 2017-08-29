@@ -5,6 +5,7 @@ from rest_framework.response import Response
 from sentry import tsdb
 from sentry.api.base import DocSection, StatsMixin
 from sentry.api.bases.project import ProjectEndpoint
+from sentry.constants import FILTER_STAT_KEYS_TO_VALUES
 from sentry.utils.apidocs import scenario, attach_scenarios
 
 
@@ -12,7 +13,8 @@ from sentry.utils.apidocs import scenario, attach_scenarios
 def retrieve_event_counts_project(runner):
     runner.request(
         method='GET',
-        path='/projects/%s/%s/stats/' % (runner.org.slug, runner.default_project.slug)
+        path='/projects/%s/%s/stats/' % (runner.org.slug,
+                                         runner.default_project.slug)
     )
 
 
@@ -60,24 +62,8 @@ class ProjectStatsEndpoint(ProjectEndpoint, StatsMixin):
             stat_model = tsdb.models.project
         elif stat == 'forwarded':
             stat_model = tsdb.models.project_total_forwarded
-        elif stat == 'ip_address':
-            stat_model = tsdb.models.project_total_received_ip_address
-        elif stat == 'release_version':
-            stat_model = tsdb.models.project_total_received_release_version
-        elif stat == 'error_message':
-            stat_model = tsdb.models.project_total_received_error_message
-        elif stat == 'browser_extensions':
-            stat_model = tsdb.models.project_total_received_browser_extensions
-        elif stat == 'legacy_browsers':
-            stat_model = tsdb.models.project_total_received_legacy_browsers
-        elif stat == 'localhost':
-            stat_model = tsdb.models.project_total_received_localhost
-        elif stat == 'web_crawlers':
-            stat_model = tsdb.models.project_total_received_web_crawlers
-        elif stat == 'invalid_csp':
-            stat_model = tsdb.models.project_total_received_invalid_csp
-        elif stat == 'cors':
-            stat_model = tsdb.models.project_total_received_cors
+        elif stat in FILTER_STAT_KEYS_TO_VALUES.keys():
+            stat_model = FILTER_STAT_KEYS_TO_VALUES[stat]
         else:
             raise ValueError('Invalid stat: %s' % stat)
 

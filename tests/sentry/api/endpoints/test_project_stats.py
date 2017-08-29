@@ -37,53 +37,54 @@ class ProjectStatsTest(APITestCase):
         project1 = self.create_project(name='foo')
 
         STAT_OPTS = {
-            'ip_address': 1,
-            'release_version': 2,
-            'error_message': 3,
-            'browser_extensions': 4,
-            'legacy_browsers': 5,
+            'ip-address': 1,
+            'release-version': 2,
+            'error-message': 3,
+            'browser-extensions': 4,
+            'legacy-browsers': 5,
             'localhost': 6,
-            'web_crawlers': 7,
-            'invalid_csp': 8,
+            'web-crawlers': 7,
+            'invalid-csp': 8,
         }
 
         tsdb.incr(
             tsdb.models.project_total_received_ip_address,
             project1.id,
-            count=STAT_OPTS['ip_address']
+            count=STAT_OPTS['ip-address']
         )
         tsdb.incr(
             tsdb.models.project_total_received_release_version,
             project1.id,
-            count=STAT_OPTS['release_version']
+            count=STAT_OPTS['release-version']
         )
         tsdb.incr(
             tsdb.models.project_total_received_error_message,
             project1.id,
-            count=STAT_OPTS['error_message']
+            count=STAT_OPTS['error-message']
         )
         tsdb.incr(
             tsdb.models.project_total_received_browser_extensions,
             project1.id,
-            count=STAT_OPTS['browser_extensions']
+            count=STAT_OPTS['browser-extensions']
         )
         tsdb.incr(
             tsdb.models.project_total_received_legacy_browsers,
             project1.id,
-            count=STAT_OPTS['legacy_browsers']
+            count=STAT_OPTS['legacy-browsers']
         )
         tsdb.incr(
-            tsdb.models.project_total_received_localhost, project1.id, count=STAT_OPTS['localhost']
+            tsdb.models.project_total_received_localhost, project1.id, count=STAT_OPTS[
+                'localhost']
         )
         tsdb.incr(
             tsdb.models.project_total_received_web_crawlers,
             project1.id,
-            count=STAT_OPTS['web_crawlers']
+            count=STAT_OPTS['web-crawlers']
         )
         tsdb.incr(
             tsdb.models.project_total_received_invalid_csp,
             project1.id,
-            count=STAT_OPTS['invalid_csp']
+            count=STAT_OPTS['invalid-csp']
         )
 
         url = reverse(
