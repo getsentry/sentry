@@ -13,6 +13,8 @@ storiesOf('DynamicWrapper', module).add(
     (storybook webpack config has webpack.DefinePlugin for "process.env.IS_PERCY")
     `
   )(() => {
-    return <DynamicWrapper fixed="Fixed Content" value={new Date().toString()} />;
+    return (
+      <DynamicWrapper fixed="Fixed Content" value="Pretend this is a dynamic value" />
+    );
   })
 );
