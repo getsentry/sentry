@@ -64,7 +64,7 @@ function table.slice(t, start, stop)
     -- NOTE: ``stop`` is inclusive!
     local result = {}
     for i = start or 1, stop or #t do
-        table.insert(result, t[i])
+        result[i - start + 1] = t[i]
     end
     return result
 end
