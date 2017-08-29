@@ -16,7 +16,9 @@ from time import time
 from django.utils import timezone
 
 from sentry.cache import default_cache
+from sentry.preprocess_hashes import get_raw_cache_key
 from sentry.tasks.base import instrumented_task
+from sentry.utils.cache import hash_cache
 from sentry.utils import metrics
 from sentry.utils.safe import safe_execute
 from sentry.stacktraces import process_stacktraces, \
@@ -63,6 +65,12 @@ def _do_preprocess_event(cache_key, data, start_time, event_id, process_event):
     })
 
     if should_process(data):
+        # save another version of data for some projects to generate
+        # preprocessing hash that won't be modified by pipeline
+        if data.get('event_id') and int(project) % 5 == 0:
+            raw_cache_key = get_raw_cache_key(project, data['event_id'])
+            hash_cache.set(raw_cache_key, data)
+
         process_event.delay(cache_key=cache_key, start_time=start_time, event_id=event_id)
         return
 
