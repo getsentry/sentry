@@ -1,14 +1,15 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import jQuery from 'jquery';
 
 const SelectInput = React.createClass({
   propTypes: {
-    disabled: React.PropTypes.bool,
-    multiple: React.PropTypes.bool,
-    required: React.PropTypes.bool,
-    placeholder: React.PropTypes.string,
-    value: React.PropTypes.string,
-    onChange: React.PropTypes.func
+    disabled: PropTypes.bool,
+    multiple: PropTypes.bool,
+    required: PropTypes.bool,
+    placeholder: PropTypes.string,
+    value: PropTypes.string,
+    onChange: PropTypes.func
   },
 
   getDefaultProps() {

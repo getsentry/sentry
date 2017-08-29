@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import Avatar from '../../components/avatar';
 import TimeSince from '../../components/timeSince';
@@ -5,7 +6,7 @@ import utils from '../../utils';
 
 const EventUserReport = React.createClass({
   propTypes: {
-    event: React.PropTypes.object.isRequired
+    event: PropTypes.object.isRequired
   },
 
   render() {

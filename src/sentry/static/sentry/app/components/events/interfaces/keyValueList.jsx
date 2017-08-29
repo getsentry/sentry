@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import _ from 'lodash';
 
@@ -6,11 +7,11 @@ import {deviceNameMapper} from '../../../utils';
 
 const KeyValueList = React.createClass({
   propTypes: {
-    data: React.PropTypes.any.isRequired,
-    isContextData: React.PropTypes.bool,
-    isSorted: React.PropTypes.bool,
-    onClick: React.PropTypes.func,
-    raw: React.PropTypes.bool
+    data: PropTypes.any.isRequired,
+    isContextData: PropTypes.bool,
+    isSorted: PropTypes.bool,
+    onClick: PropTypes.func,
+    raw: PropTypes.bool
   },
 
   getDefaultProps() {

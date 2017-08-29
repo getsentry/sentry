@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import GroupEventDataSection from '../eventDataSection';
 import SentryTypes from '../../../proptypes';
@@ -8,8 +9,8 @@ const TemplateInterface = React.createClass({
   propTypes: {
     group: SentryTypes.Group.isRequired,
     event: SentryTypes.Event.isRequired,
-    type: React.PropTypes.string.isRequired,
-    data: React.PropTypes.object.isRequired
+    type: PropTypes.string.isRequired,
+    data: PropTypes.object.isRequired
   },
 
   getInitialState() {

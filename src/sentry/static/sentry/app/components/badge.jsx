@@ -1,9 +1,10 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 
 const Badge = React.createClass({
   propTypes: {
-    text: React.PropTypes.string,
-    isNew: React.PropTypes.bool
+    text: PropTypes.string,
+    isNew: PropTypes.bool
   },
 
   render() {

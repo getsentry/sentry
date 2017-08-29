@@ -1,9 +1,10 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import {t} from '../../locale';
 
 const EventErrorItem = React.createClass({
   propTypes: {
-    error: React.PropTypes.object.isRequired
+    error: PropTypes.object.isRequired
   },
 
   getInitialState() {

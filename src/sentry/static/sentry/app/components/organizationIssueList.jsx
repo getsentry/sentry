@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import {Link} from 'react-router';
 
@@ -8,9 +9,9 @@ import {t} from '../locale';
 
 const OrganizationIssueList = React.createClass({
   propTypes: {
-    title: React.PropTypes.string,
-    endpoint: React.PropTypes.string.isRequired,
-    pageSize: React.PropTypes.number
+    title: PropTypes.string,
+    endpoint: PropTypes.string.isRequired,
+    pageSize: PropTypes.number
   },
 
   getInitialState() {

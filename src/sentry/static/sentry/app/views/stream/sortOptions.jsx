@@ -1,4 +1,5 @@
 import PureRenderMixin from 'react-addons-pure-render-mixin';
+import PropTypes from 'prop-types';
 import React from 'react';
 import DropdownLink from '../../components/dropdownLink';
 import MenuItem from '../../components/menuItem';
@@ -6,8 +7,8 @@ import {t} from '../../locale';
 
 const SortOptions = React.createClass({
   propTypes: {
-    sort: React.PropTypes.string,
-    onSelect: React.PropTypes.func
+    sort: PropTypes.string,
+    onSelect: PropTypes.func
   },
 
   mixins: [PureRenderMixin],

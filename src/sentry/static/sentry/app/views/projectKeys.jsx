@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import DocumentTitle from 'react-document-title';
 import {Link} from 'react-router';
@@ -14,12 +15,12 @@ import Pagination from '../components/pagination';
 
 const KeyRow = React.createClass({
   propTypes: {
-    orgId: React.PropTypes.string.isRequired,
-    projectId: React.PropTypes.string.isRequired,
-    data: React.PropTypes.object.isRequired,
-    access: React.PropTypes.object.isRequired,
-    onToggle: React.PropTypes.func.isRequired,
-    onRemove: React.PropTypes.func.isRequired
+    orgId: PropTypes.string.isRequired,
+    projectId: PropTypes.string.isRequired,
+    data: PropTypes.object.isRequired,
+    access: PropTypes.object.isRequired,
+    onToggle: PropTypes.func.isRequired,
+    onRemove: PropTypes.func.isRequired
   },
 
   mixins: [ApiMixin],

@@ -1,4 +1,5 @@
 import marked from 'marked';
+import PropTypes from 'prop-types';
 import React from 'react';
 
 import {CommitLink} from '../../views/releases/releaseCommits';
@@ -14,10 +15,10 @@ import {t, tn, tct} from '../../locale';
 
 const ActivityItem = React.createClass({
   propTypes: {
-    clipHeight: React.PropTypes.number,
-    defaultClipped: React.PropTypes.bool,
-    item: React.PropTypes.object.isRequired,
-    orgId: React.PropTypes.string.isRequired
+    clipHeight: PropTypes.number,
+    defaultClipped: PropTypes.bool,
+    item: PropTypes.object.isRequired,
+    orgId: PropTypes.string.isRequired
   },
 
   getDefaultProps() {
@@ -55,9 +56,9 @@ const ActivityItem = React.createClass({
     let issue = item.issue;
 
     let issueLink = issue
-      ? (<IssueLink orgId={orgId} projectId={project.slug} issue={issue}>
+      ? <IssueLink orgId={orgId} projectId={project.slug} issue={issue}>
           {issue.shortId}
-        </IssueLink>)
+        </IssueLink>
       : null;
 
     switch (item.type) {

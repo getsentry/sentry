@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 
 import EventDataSection from '../eventDataSection';
@@ -9,8 +10,8 @@ const MessageInterface = React.createClass({
   propTypes: {
     group: SentryTypes.Group.isRequired,
     event: SentryTypes.Event.isRequired,
-    type: React.PropTypes.string.isRequired,
-    data: React.PropTypes.object.isRequired
+    type: PropTypes.string.isRequired,
+    data: PropTypes.object.isRequired
   },
 
   render() {

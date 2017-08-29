@@ -1,12 +1,13 @@
 import $ from 'jquery';
+import PropTypes from 'prop-types';
 import Raven from 'raven-js';
 import React from 'react';
 
 const RouteError = React.createClass({
   propTypes: {
-    error: React.PropTypes.object.isRequired,
+    error: PropTypes.object.isRequired,
     // not used yet, but future proofing
-    onRetry: React.PropTypes.func
+    onRetry: PropTypes.func
   },
 
   componentWillMount() {

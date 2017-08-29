@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import Reflux from 'reflux';
 import {browserHistory} from 'react-router';
@@ -16,13 +17,13 @@ let ERROR_TYPES = {
 
 const GroupDetails = React.createClass({
   propTypes: {
-    setProjectNavSection: React.PropTypes.func,
-    memberList: React.PropTypes.array
+    setProjectNavSection: PropTypes.func,
+    memberList: PropTypes.array
   },
 
   childContextTypes: {
     group: SentryTypes.Group,
-    location: React.PropTypes.object
+    location: PropTypes.object
   },
 
   mixins: [ApiMixin, Reflux.listenTo(GroupStore, 'onGroupChange')],
