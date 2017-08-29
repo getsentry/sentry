@@ -626,24 +626,24 @@ local commands = {
         )
     end,
     COMPARE = function (configuration, cursor, arguments)
-        local cursor, limit, item_key, parameters = multiple_argument_parser(
+        local cursor, limit, item_key = multiple_argument_parser(
             argument_parser(validate_integer),
-            argument_parser(validate_value),
-            variadic_argument_parser(
-                object_argument_parser({
-                    {"index", argument_parser(validate_value)},
-                    {"threshold", argument_parser(validate_integer)},
-                })
-            )
+            argument_parser(validate_value)
         )(cursor, arguments)
 
-        for i, parameter in ipairs(parameters) do
-            parameter.frequencies = get_frequencies(
-                configuration,
-                parameter.index,
-                item_key
-            )
-        end
+        local cursor, parameters = variadic_argument_parser(
+            object_argument_parser({
+                {"index", argument_parser(validate_value)},
+                {"threshold", argument_parser(validate_integer)},
+            }, function (parameter)
+                parameter.frequencies = get_frequencies(
+                    configuration,
+                    parameter.index,
+                    item_key
+                )
+                return parameter
+            end)
+        )(cursor, arguments)
 
         return search(
             configuration,
