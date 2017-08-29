@@ -29,7 +29,7 @@ const HomeContainer = React.createClass({
           <div className="align-right hidden-xs">
             {access.has('project:write')
               ? <Button
-                  href={`/organizations/${org.slug}/projects/new/`}
+                  to={`/organizations/${org.slug}/projects/new/`}
                   priority="primary"
                   style={{marginRight: 5}}>
                   {t('New Project')}

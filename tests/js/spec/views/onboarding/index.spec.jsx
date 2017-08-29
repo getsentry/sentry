@@ -38,7 +38,7 @@ describe('OnboardingWizard', function() {
       expect(wrapper).toMatchSnapshot();
     });
 
-    it('should fill in project name if its empty when platform is chosen', function() {
+    it('should render and respond to click events', function() {
       let props = {
         ...baseProps,
         children: (
@@ -63,21 +63,9 @@ describe('OnboardingWizard', function() {
         }
       });
 
+      expect(wrapper).toMatchSnapshot();
       let node = wrapper.find('PlatformCard').first();
       node.props().onClick();
-      expect(wrapper.state().projectName).toBe('C#');
-
-      node = wrapper.find('PlatformCard').last();
-      node.props().onClick();
-      expect(wrapper.state().projectName).toBe('Ruby');
-
-      //but not replace it when project name is something else:
-      wrapper.setState({projectName: 'another'});
-
-      node = wrapper.find('PlatformCard').first();
-      node.props().onClick();
-      expect(wrapper.state().projectName).toBe('another');
-
       expect(wrapper).toMatchSnapshot();
     });
   });

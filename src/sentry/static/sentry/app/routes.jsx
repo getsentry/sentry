@@ -43,7 +43,8 @@ import OrganizationSettings from './views/organizationSettings';
 import OrganizationStats from './views/organizationStats';
 import OrganizationTeams from './views/organizationTeams';
 import OnboardingWizard from './views/onboarding/index';
-import OnboardingProject from './views/onboarding/project/index';
+import CreateProject from './views/onboarding/createProject';
+
 import OnboardingConfigure from './views/onboarding/configure/index';
 
 import AllTeamsList from './views/organizationTeams/allTeamsList';
@@ -57,6 +58,7 @@ import ProjectDataForwarding from './views/projectDataForwarding';
 import ProjectDetails from './views/projectDetails';
 import ProjectEvents from './views/projectEvents';
 import ProjectFilters from './views/projectFilters';
+import NewProject from './views/projectInstall/newProject';
 import ProjectGettingStarted from './views/projectInstall/gettingStarted';
 import ProjectDocsContext from './views/projectInstall/docsContext';
 import ProjectInstallOverview from './views/projectInstall/overview';
@@ -147,7 +149,7 @@ function routes() {
 
       <Route path="/onboarding/:orgId/" component={errorHandler(OrganizationContext)}>
         <Route path="" component={errorHandler(OnboardingWizard)}>
-          <IndexRoute component={errorHandler(OnboardingProject)} />
+          <IndexRoute component={errorHandler(CreateProject)} />
           <Route
             path=":projectId/configure/(:platform)"
             component={errorHandler(OnboardingConfigure)}
@@ -205,6 +207,11 @@ function routes() {
         <Route
           path="/organizations/:orgId/issues/history/"
           component={errorHandler(MyIssuesViewed)}
+        />
+
+        <Route
+          path="/organizations/:orgId/projects/new/"
+          component={errorHandler(NewProject)}
         />
 
         <Route

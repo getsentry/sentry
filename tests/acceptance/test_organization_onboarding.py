@@ -11,6 +11,7 @@ class CreateOrganizationTest(AcceptanceTestCase):
             name='Rowdy Tiger',
             owner=self.user,
         )
+        self.team = self.create_team(organization=self.org, name='Rowdy Tiger')
         self.login_as(self.user)
 
     def test_simple(self):

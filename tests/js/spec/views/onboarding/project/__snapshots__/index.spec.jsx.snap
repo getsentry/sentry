@@ -4,9 +4,9 @@ exports[`Project render() should render NotFound if no matching organization 1`]
 <div
   className="onboarding-info"
 >
-  <h2>
-    Choose a language or framework
-  </h2>
+  <h4>
+    Choose a language or framework:
+  </h4>
   <PlatformPicker
     location={
       Object {
@@ -23,35 +23,48 @@ exports[`Project render() should render NotFound if no matching organization 1`]
     platform=""
     setName={[Function]}
     setPlatform={[Function]}
+    setTeam={[Function]}
     showOther={true}
+    team=""
+    teams={Array []}
   />
   <div
-    className="project-name client-platform"
+    className="create-project-form"
   >
-    <h4>
-      Give your project a name:
-    </h4>
     <div
-      className="project-name-wrapper"
+      className="new-project-name client-platform"
     >
-      <PlatformiconTile
-        platform=""
-      />
-      <input
-        label="Project Name"
-        name="name"
-        onChange={[Function]}
-        placeholder="Project name"
-        type="text"
-        value=""
-      />
+      <h4>
+        Give your project a name:
+      </h4>
+      <div
+        className="project-name-wrapper"
+      >
+        <PlatformiconTile
+          platform=""
+        />
+        <input
+          autoComplete="off"
+          label="Project Name"
+          name="name"
+          onChange={[Function]}
+          placeholder="Project name"
+          type="text"
+          value=""
+        />
+      </div>
     </div>
-    <button
-      className="btn btn-primary pull-right"
-      onClick={[Function]}
-    >
-      Continue
-    </button>
+    <div>
+      <button
+        className="btn btn-primary submit-new-team"
+        onClick={[Function]}
+      >
+        Create Project
+      </button>
+    </div>
+    <p>
+      Projects allow you to scope events to a specific application in your organization. For example, you might have separate projects your API server and frontend client.
+    </p>
   </div>
 </div>
 `;
@@ -74,13 +87,16 @@ exports[`Project render() should set required class on empty submit 1`] = `
   platform=""
   setName={[Function]}
   setPlatform={[Function]}
+  setTeam={[Function]}
+  team=""
+  teams={Array []}
 >
   <div
     className="onboarding-info"
   >
-    <h2>
-      Choose a language or framework
-    </h2>
+    <h4>
+      Choose a language or framework:
+    </h4>
     <PlatformPicker
       location={
         Object {
@@ -98,7 +114,10 @@ exports[`Project render() should set required class on empty submit 1`] = `
       platform=""
       setName={[Function]}
       setPlatform={[Function]}
+      setTeam={[Function]}
       showOther={true}
+      team=""
+      teams={Array []}
     >
       <div
         className="platform-picker"
@@ -743,40 +762,50 @@ exports[`Project render() should set required class on empty submit 1`] = `
       </div>
     </PlatformPicker>
     <div
-      className="project-name client-platform"
+      className="create-project-form"
     >
-      <h4>
-        Give your project a name:
-      </h4>
       <div
-        className="project-name-wrapper"
+        className="new-project-name client-platform"
       >
-        <PlatformiconTile
-          platform=""
+        <h4>
+          Give your project a name:
+        </h4>
+        <div
+          className="project-name-wrapper"
         >
-          <li
-            className="platform-tile list-unstyled   undefined"
+          <PlatformiconTile
+            platform=""
           >
-            <span
-              className="platformicon platformicon-"
-            />
-          </li>
-        </PlatformiconTile>
-        <input
-          label="Project Name"
-          name="name"
-          onChange={[Function]}
-          placeholder="Project name"
-          type="text"
-          value="bar"
-        />
+            <li
+              className="platform-tile list-unstyled   undefined"
+            >
+              <span
+                className="platformicon platformicon-"
+              />
+            </li>
+          </PlatformiconTile>
+          <input
+            autoComplete="off"
+            label="Project Name"
+            name="name"
+            onChange={[Function]}
+            placeholder="Project name"
+            type="text"
+            value="bar"
+          />
+        </div>
       </div>
-      <button
-        className="btn btn-primary pull-right"
-        onClick={[Function]}
-      >
-        Continue
-      </button>
+      <div>
+        <button
+          className="btn btn-primary submit-new-team"
+          onClick={[Function]}
+        >
+          Create Project
+        </button>
+      </div>
+      <p>
+        Projects allow you to scope events to a specific application in your organization. For example, you might have separate projects your API server and frontend client.
+      </p>
     </div>
   </div>
 </Project>
