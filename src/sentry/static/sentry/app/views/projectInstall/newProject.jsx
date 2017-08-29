@@ -6,7 +6,7 @@ import OrganizationState from '../../mixins/organizationState';
 import CreateProject from '../onboarding/createProject';
 import ProjectSelector from '../../components/projectHeader/projectSelector';
 
-const newProject = React.createClass({
+const NewProject = React.createClass({
   mixins: [OrganizationState],
 
   render() {
@@ -33,4 +33,4 @@ const newProject = React.createClass({
   }
 });
 
-export default newProject;
+export default NewProject;
