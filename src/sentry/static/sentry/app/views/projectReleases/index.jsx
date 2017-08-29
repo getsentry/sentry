@@ -133,11 +133,7 @@ const ProjectReleases = React.createClass({
   },
 
   renderLoading() {
-    return (
-      <div className="box">
-        <LoadingIndicator />
-      </div>
-    );
+    return <LoadingIndicator />;
   },
 
   renderNoQueryResults() {
@@ -151,7 +147,7 @@ const ProjectReleases = React.createClass({
 
   renderEmpty() {
     return (
-      <div className="box empty-stream">
+      <div className="empty-stream">
         <span className="icon icon-exclamation" />
         <p>{t("There don't seem to be any releases yet.")}</p>
         <p>
