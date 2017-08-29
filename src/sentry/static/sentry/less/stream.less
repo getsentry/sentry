@@ -247,6 +247,8 @@
     padding-right: 10px;
     background: #fff;
     .transition(all .4s ease-in-out);
+    .flex;
+    .flex.flex-vertically-centered;
 
     &.hoverable {
       cursor: pointer;
@@ -357,16 +359,6 @@
 
       .event-message {
         color: #786E43;
-      }
-    }
-
-    &.type-default {
-      .event-assignee, .group-list, .event-graph {
-        padding-top: 20px;
-      }
-
-      .event-count, .event-users {
-        padding-top: 22px;
       }
     }
 
@@ -499,7 +491,6 @@
   .event-graph,
   .event-users,
   .event-count {
-    padding-top: 28px;
     line-height: 24px;
   }
 
@@ -535,10 +526,6 @@
 
   &.group-list-small {
     margin: -1px;
-
-    .row {
-      padding: 0 10px;
-    }
 
     .event-details {
       padding-left: 20px;
@@ -1255,16 +1242,6 @@
 }
 
 @media(max-width: 767px) {
-  .event-users, .event-count {
-    padding-top: 33px !important;
-  }
-
-  .type-default {
-    .event-users, .event-count {
-      padding-top: 22px !important;
-    }
-  }
-
   .search {
     width: 100% !important;
   }

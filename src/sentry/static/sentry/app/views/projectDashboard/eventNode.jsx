@@ -23,31 +23,29 @@ const EventNode = React.createClass({
     let groupId = group.id;
 
     return (
-      <li className="group">
-        <div className="row">
-          <div className="col-xs-8 event-details">
-            <EventOrGroupHeader
-              orgId={orgId}
-              projectId={projectId}
-              data={group}
-              hideLevel
-              hideIcons
-            />
-            <EventOrGroupExtraDetails
-              orgId={orgId}
-              projectId={projectId}
-              groupId={groupId}
-              lastSeen={group.lastSeen}
-              firstSeen={group.firstSeen}
-            />
-          </div>
+      <li className="group row">
+        <div className="col-xs-8 event-details">
+          <EventOrGroupHeader
+            orgId={orgId}
+            projectId={projectId}
+            data={group}
+            hideLevel
+            hideIcons
+          />
+          <EventOrGroupExtraDetails
+            orgId={orgId}
+            projectId={projectId}
+            groupId={groupId}
+            lastSeen={group.lastSeen}
+            firstSeen={group.firstSeen}
+          />
+        </div>
 
-          <div className="col-xs-2 event-count align-right">
-            <Count value={group.count} />
-          </div>
-          <div className="col-xs-2 event-users align-right">
-            <Count value={userCount} />
-          </div>
+        <div className="col-xs-2 event-count align-right">
+          <Count value={group.count} />
+        </div>
+        <div className="col-xs-2 event-users align-right">
+          <Count value={userCount} />
         </div>
       </li>
     );
