@@ -530,7 +530,7 @@ local function search(configuration, parameters, limit)
 
     for i, p in ipairs(parameters) do
         for candidate, hits in pairs(fetch_candidates(configuration, p.index, p.frequencies)) do
-            if hits >= p.threshold then
+            if p.predicate(candidate, hits) then
                 table.get_or_set_default(possible_candidates, candidate, create_table)[i] = hits
             end
         end
@@ -615,7 +615,15 @@ local commands = {
                     {"index", argument_parser(validate_value)},
                     {"threshold", argument_parser(validate_integer)},
                     {"frequencies", frequencies_argument_parser(configuration)},
-                })
+                }, function (parameter)
+                    return {
+                        index = parameter.index,
+                        frequencies = parameter.frequencies,
+                        predicate = function (key, hits)
+                            return hits >= parameter.threshold
+                        end,
+                    }
+                end)
             )
         )(cursor, arguments)
 
@@ -636,12 +644,17 @@ local commands = {
                 {"index", argument_parser(validate_value)},
                 {"threshold", argument_parser(validate_integer)},
             }, function (parameter)
-                parameter.frequencies = get_frequencies(
-                    configuration,
-                    parameter.index,
-                    item_key
-                )
-                return parameter
+                return {
+                    index = parameter.index,
+                    frequencies = get_frequencies(configuration, parameter.index, item_key),
+                    predicate = function (key, hits)
+                        if key == item_key then
+                            return false
+                        else
+                            return hits >= parameter.threshold
+                        end
+                    end,
+                }
             end)
         )(cursor, arguments)
 
