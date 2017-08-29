@@ -162,7 +162,9 @@ var appConfig = {
     new webpack.DefinePlugin({
       'process.env': {
         NODE_ENV: JSON.stringify(process.env.NODE_ENV),
-        IS_PERCY: JSON.stringify(!IS_PRODUCTION && !!process.env.PERCY_TOKEN)
+        IS_PERCY: JSON.stringify(
+          process.env.CI && !!process.env.PERCY_TOKEN && !!process.env.TRAVIS
+        )
       }
     }),
     // restrict translation files pulled into dist/app.js to only those specified
@@ -264,7 +266,6 @@ var minificationPlugins = [
       require('zlib').gzip(buffer, callback);
     },
     regExp: /\.(js|map|css|svg|html|txt|ico|eot|ttf)$/
-
   }),
 
   // Disable annoying UglifyJS warnings that pollute Travis log output
