@@ -22,7 +22,10 @@ const GettingStartedBody = React.createClass({
         <div className="container">
           <div className="content">
             <ProjectDocsContext>
-              {this.props.children}
+              {React.cloneElement(this.props.children, {
+                linkPath: (orgId, projectId, platform) =>
+                  `/${orgId}/${projectId}/getting-started/${platform}/`
+              })}
             </ProjectDocsContext>
           </div>
         </div>

@@ -10,7 +10,7 @@ import {t, tct} from '../../locale';
 
 const ProjectInstallPlatform = React.createClass({
   propTypes: {
-    platformData: React.PropTypes.object.isRequired,
+    platformData: React.PropTypes.object,
     linkPath: React.PropTypes.func
   },
 
@@ -160,8 +160,6 @@ const ProjectInstallPlatform = React.createClass({
                 : <div dangerouslySetInnerHTML={{__html: this.state.html}} />}
 
           {this.isGettingStarted() &&
-            // Using <a /> instead of <Link /> as hashchange events are not
-            // triggered when switching views within React Router
             <p>
               <Link
                 to={`/${orgId}/${projectId}/#welcome`}
