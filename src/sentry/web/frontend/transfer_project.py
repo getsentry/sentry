@@ -56,7 +56,7 @@ class TransferProjectView(ProjectView):
                     (options.get('mail.subject-prefix'), ),
                     template='sentry/emails/transfer_project.txt',
                     html_template='sentry/emails/transfer_project.html',
-                    type='org.confirm_delete',
+                    type='org.confirm_project_transfer_request',
                     context=context,
                 ).send_async([email])
 
