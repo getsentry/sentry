@@ -144,6 +144,25 @@ def is_url(filename):
     return filename.startswith(('file:', 'http:', 'https:'))
 
 
+def is_unhashable_function(function):
+    # TODO(dcramer): lambda$ is Java specific
+    # TODO(dcramer): [Anonymous is PHP specific (used for things like SQL
+    # queries and JSON data)
+    return function.startswith(('lambda$', '[Anonymous'))
+
+
+def is_unhashable_module(module):
+    # TODO(dcramer): this is Java specific
+    return '$$Lambda$' in module
+
+
+def is_caused_by(filename):
+    # XXX(dcramer): dont compute hash using frames containing the 'Caused by'
+    # text as it contains an exception value which may may contain dynamic
+    # values (see raven-java#125)
+    return filename.startswith('Caused by: ')
+
+
 def remove_function_outliers(function):
     """
     Attempt to normalize functions by removing common platform outliers.
@@ -496,20 +515,13 @@ class Frame(Interface):
         return is_url(self.abs_path)
 
     def is_caused_by(self):
-        # XXX(dcramer): dont compute hash using frames containing the 'Caused by'
-        # text as it contains an exception value which may may contain dynamic
-        # values (see raven-java#125)
-        return self.filename.startswith('Caused by: ')
+        return is_caused_by(self.filename)
 
     def is_unhashable_module(self):
-        # TODO(dcramer): this is Java specific
-        return '$$Lambda$' in self.module
+        return is_unhashable_module(self.module)
 
     def is_unhashable_function(self):
-        # TODO(dcramer): lambda$ is Java specific
-        # TODO(dcramer): [Anonymous is PHP specific (used for things like SQL
-        # queries and JSON data)
-        return self.function.startswith(('lambda$', '[Anonymous'))
+        return is_unhashable_function(self.function)
 
     def to_string(self, event):
         if event.platform is not None:
