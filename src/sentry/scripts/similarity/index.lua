@@ -567,7 +567,6 @@ local function search(configuration, parameters, limit)
         local result = {}
         for j, p in ipairs(parameters) do
             local candidate_frequencies = get_frequencies(configuration, p.index, candidate.key)
-            -- TODO: differentiate when both sides are empty
             result[j] = string.format('%f', calculate_similarity(
                 configuration,
                 p.frequencies,
