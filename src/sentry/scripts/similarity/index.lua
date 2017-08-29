@@ -475,8 +475,8 @@ local function calculate_similarity(configuration, item_frequencies, candidate_f
         return -2
     end
 
-    return table.ireduce(  -- sum, then avg
-        table.imap(  -- calculate similarity
+    return avg(
+        table.imap(
             table.izip(
                 item_frequencies,
                 candidate_frequencies
@@ -494,12 +494,8 @@ local function calculate_similarity(configuration, item_frequencies, candidate_f
                 -- scale.
                 return 1 - (dist / 2)
             end
-        ),
-        function (total, item)
-            return total + item
-        end,
-        0
-    ) / configuration.bands
+        )
+    )
 end
 
 local function fetch_candidates(configuration, index, frequencies)
