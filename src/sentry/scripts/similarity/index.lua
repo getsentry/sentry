@@ -60,10 +60,11 @@ function table.count(t)
     return n
 end
 
-function table.trim(t, n)
+function table.slice(t, start, stop)
+    -- NOTE: ``stop`` is inclusive!
     local result = {}
-    for i = 1, n do
-        result[i] = t[i]
+    for i = start or 1, stop or #t do
+        table.insert(result, t[i])
     end
     return result
 end
@@ -558,7 +559,7 @@ local function search(configuration, parameters, limit)
                 end
             end
         )
-        candidates = table.trim(candidates, limit)
+        candidates = table.slice(candidates, 1, limit)
     end
 
     local i = 1
