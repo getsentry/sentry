@@ -41,6 +41,7 @@ import moment from 'moment';
 import Raven from 'raven-js';
 import React from 'react';
 import ReactDOM from 'react-dom';
+import PropTypes from 'prop-types';
 import {renderToStaticMarkup} from 'react-dom/server';
 import Reflux from 'reflux';
 import * as Router from 'react-router';
@@ -58,6 +59,7 @@ export default {
     findDOMNode: ReactDOM.findDOMNode,
     render: ReactDOM.render
   },
+  PropTypes: PropTypes,
   ReactDOMServer: {
     renderToStaticMarkup: renderToStaticMarkup
   },
