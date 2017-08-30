@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import ApiMixin from '../mixins/apiMixin';
 import Count from '../components/count';
@@ -13,15 +14,15 @@ import {t} from '../locale';
 
 const ReleaseDetails = React.createClass({
   propTypes: {
-    setProjectNavSection: React.PropTypes.func
+    setProjectNavSection: PropTypes.func
   },
 
   contextTypes: {
-    location: React.PropTypes.object
+    location: PropTypes.object
   },
 
   childContextTypes: {
-    release: React.PropTypes.object
+    release: PropTypes.object
   },
 
   mixins: [ApiMixin, ProjectState],

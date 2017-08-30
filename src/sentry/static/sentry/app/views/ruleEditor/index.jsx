@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import ReactDOM from 'react-dom';
 import $ from 'jquery';
@@ -10,11 +11,11 @@ import RuleNodeList from './ruleNodeList';
 
 const RuleEditor = React.createClass({
   propTypes: {
-    actions: React.PropTypes.array.isRequired,
-    conditions: React.PropTypes.array.isRequired,
-    rule: React.PropTypes.object.isRequired,
-    project: React.PropTypes.object.isRequired,
-    organization: React.PropTypes.object.isRequired
+    actions: PropTypes.array.isRequired,
+    conditions: PropTypes.array.isRequired,
+    rule: PropTypes.object.isRequired,
+    project: PropTypes.object.isRequired,
+    organization: PropTypes.object.isRequired
   },
 
   mixins: [ApiMixin],

@@ -1,4 +1,5 @@
 import jQuery from 'jquery';
+import PropTypes from 'prop-types';
 import React from 'react';
 import {Link, browserHistory} from 'react-router';
 import ApiMixin from '../../mixins/apiMixin';
@@ -12,8 +13,8 @@ import {t} from '../../locale';
 
 const ProjectEvents = React.createClass({
   propTypes: {
-    defaultQuery: React.PropTypes.string,
-    setProjectNavSection: React.PropTypes.func
+    defaultQuery: PropTypes.string,
+    setProjectNavSection: PropTypes.func
   },
 
   mixins: [ApiMixin],

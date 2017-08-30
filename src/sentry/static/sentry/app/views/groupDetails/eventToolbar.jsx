@@ -1,5 +1,6 @@
 import {Link} from 'react-router';
 import moment from 'moment';
+import PropTypes from 'prop-types';
 import React from 'react';
 
 import ConfigStore from '../../stores/configStore';
@@ -32,8 +33,8 @@ let formatDateDelta = (reference, observed) => {
 
 let GroupEventToolbar = React.createClass({
   propTypes: {
-    orgId: React.PropTypes.string.isRequired,
-    projectId: React.PropTypes.string.isRequired,
+    orgId: PropTypes.string.isRequired,
+    projectId: PropTypes.string.isRequired,
     group: SentryTypes.Group.isRequired,
     event: SentryTypes.Event.isRequired
   },

@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 
 import Avatar from '../../components/avatar';
@@ -15,7 +16,7 @@ const generateClassName = function(name) {
 
 const NoSummary = React.createClass({
   propTypes: {
-    title: React.PropTypes.string.isRequired
+    title: PropTypes.string.isRequired
   },
 
   render() {
@@ -30,8 +31,8 @@ const NoSummary = React.createClass({
 
 const GenericSummary = React.createClass({
   propTypes: {
-    data: React.PropTypes.object.isRequired,
-    unknownTitle: React.PropTypes.string.isRequired
+    data: PropTypes.object.isRequired,
+    unknownTitle: PropTypes.string.isRequired
   },
 
   render() {
@@ -55,7 +56,7 @@ const GenericSummary = React.createClass({
 
 const UserSummary = React.createClass({
   propTypes: {
-    data: React.PropTypes.object.isRequired
+    data: PropTypes.object.isRequired
   },
 
   render() {
@@ -94,7 +95,7 @@ const UserSummary = React.createClass({
 
 const DeviceSummary = React.createClass({
   propTypes: {
-    data: React.PropTypes.object.isRequired
+    data: PropTypes.object.isRequired
   },
 
   render() {

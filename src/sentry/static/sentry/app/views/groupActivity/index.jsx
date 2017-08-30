@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 
 import ApiMixin from '../../mixins/apiMixin';
@@ -21,7 +22,7 @@ import {t, tct, tn} from '../../locale';
 const GroupActivity = React.createClass({
   // TODO(dcramer): only re-render on group/activity change
   propTypes: {
-    group: React.PropTypes.object
+    group: PropTypes.object
   },
 
   mixins: [GroupState, ApiMixin],

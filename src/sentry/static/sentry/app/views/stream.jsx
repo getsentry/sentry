@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import Reflux from 'reflux';
 import {browserHistory} from 'react-router';
@@ -27,11 +28,11 @@ import {t, tn, tct} from '../locale';
 
 const Stream = React.createClass({
   propTypes: {
-    defaultSort: React.PropTypes.string,
-    defaultStatsPeriod: React.PropTypes.string,
-    defaultQuery: React.PropTypes.string,
-    maxItems: React.PropTypes.number,
-    setProjectNavSection: React.PropTypes.func
+    defaultSort: PropTypes.string,
+    defaultStatsPeriod: PropTypes.string,
+    defaultQuery: PropTypes.string,
+    maxItems: PropTypes.number,
+    setProjectNavSection: PropTypes.func
   },
 
   mixins: [

@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import jQuery from 'jquery';
 import {isUrl} from '../utils';
@@ -70,7 +71,7 @@ function analyzeStringForRepr(value) {
 
 const ContextData = React.createClass({
   propTypes: {
-    data: React.PropTypes.any
+    data: PropTypes.any
   },
 
   getDefaultProps() {

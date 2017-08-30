@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 
 function getUserDisplayName(name) {
@@ -10,7 +11,7 @@ function getUserDisplayName(name) {
 
 const UserInfo = React.createClass({
   propTypes: {
-    user: React.PropTypes.any.isRequired
+    user: PropTypes.any.isRequired
   },
 
   render() {

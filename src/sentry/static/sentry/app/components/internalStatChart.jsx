@@ -1,4 +1,6 @@
 /*eslint getsentry/jsx-needs-il8n:0*/
+import PropTypes from 'prop-types';
+
 import React from 'react';
 import _ from 'lodash';
 
@@ -9,11 +11,11 @@ import LoadingIndicator from '../components/loadingIndicator';
 
 export default React.createClass({
   propTypes: {
-    since: React.PropTypes.number.isRequired,
-    resolution: React.PropTypes.string.isRequired,
-    stat: React.PropTypes.string.isRequired,
-    label: React.PropTypes.string,
-    height: React.PropTypes.number
+    since: PropTypes.number.isRequired,
+    resolution: PropTypes.string.isRequired,
+    stat: PropTypes.string.isRequired,
+    label: PropTypes.string,
+    height: PropTypes.number
   },
 
   mixins: [ApiMixin],

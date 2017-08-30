@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import Modal from 'react-bootstrap/lib/Modal';
 
@@ -197,7 +198,7 @@ class AddRepositoryLink extends PluginComponentBase {
 }
 
 AddRepositoryLink.propTypes = {
-  provider: React.PropTypes.object.isRequired
+  provider: PropTypes.object.isRequired
 };
 
 const OrganizationRepositories = React.createClass({

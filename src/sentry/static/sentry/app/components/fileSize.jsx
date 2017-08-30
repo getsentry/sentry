@@ -1,9 +1,10 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import {formatBytes} from '../utils';
 
 const FileSize = React.createClass({
   propTypes: {
-    bytes: React.PropTypes.number.isRequired
+    bytes: PropTypes.number.isRequired
   },
 
   render: function() {

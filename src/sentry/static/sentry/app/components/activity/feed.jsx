@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 
 import ApiMixin from '../../mixins/apiMixin';
@@ -10,10 +11,10 @@ import {logException} from '../../utils/logging';
 
 const ActivityFeed = React.createClass({
   propTypes: {
-    endpoint: React.PropTypes.string,
-    query: React.PropTypes.object,
-    renderEmpty: React.PropTypes.func,
-    pagination: React.PropTypes.bool
+    endpoint: PropTypes.string,
+    query: PropTypes.object,
+    renderEmpty: PropTypes.func,
+    pagination: PropTypes.bool
   },
 
   mixins: [ApiMixin],

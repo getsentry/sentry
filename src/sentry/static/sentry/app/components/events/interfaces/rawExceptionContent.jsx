@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import rawStacktraceContent from './rawStacktraceContent';
 import ApiMixin from '../../../mixins/apiMixin';
@@ -7,10 +8,10 @@ import ClippedBox from '../../clippedBox';
 
 const RawExceptionContent = React.createClass({
   propTypes: {
-    type: React.PropTypes.oneOf(['original', 'minified']),
-    platform: React.PropTypes.string,
-    eventId: React.PropTypes.string,
-    values: React.PropTypes.array.isRequired
+    type: PropTypes.oneOf(['original', 'minified']),
+    platform: PropTypes.string,
+    eventId: PropTypes.string,
+    values: PropTypes.array.isRequired
   },
 
   mixins: [ApiMixin],

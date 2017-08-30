@@ -1,11 +1,12 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import Pills from '../../pills';
 import Pill from '../../pill';
 
 const ExceptionMechanism = React.createClass({
   propTypes: {
-    data: React.PropTypes.object.isRequired,
-    platform: React.PropTypes.string
+    data: PropTypes.object.isRequired,
+    platform: PropTypes.string
   },
 
   render() {

@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import {defined} from '../../../utils';
 
@@ -22,8 +23,8 @@ const ContextLine = function(props) {
 };
 
 ContextLine.propTypes = {
-  line: React.PropTypes.array.isRequired,
-  isActive: React.PropTypes.bool
+  line: PropTypes.array.isRequired,
+  isActive: PropTypes.bool
 };
 
 export default ContextLine;

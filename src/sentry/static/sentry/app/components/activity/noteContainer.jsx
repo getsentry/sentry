@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 
 import Note from './note';
@@ -5,12 +6,12 @@ import NoteInput from './noteInput';
 
 const NoteContainer = React.createClass({
   propTypes: {
-    group: React.PropTypes.object.isRequired,
-    item: React.PropTypes.object.isRequired,
-    author: React.PropTypes.object.isRequired,
-    onDelete: React.PropTypes.func.isRequired,
-    sessionUser: React.PropTypes.object.isRequired,
-    memberList: React.PropTypes.array.isRequired
+    group: PropTypes.object.isRequired,
+    item: PropTypes.object.isRequired,
+    author: PropTypes.object.isRequired,
+    onDelete: PropTypes.func.isRequired,
+    sessionUser: PropTypes.object.isRequired,
+    memberList: PropTypes.array.isRequired
   },
 
   getInitialState() {

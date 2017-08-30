@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import {Link} from 'react-router';
 import ApiMixin from '../../mixins/apiMixin';
@@ -9,10 +10,10 @@ import {t} from '../../locale';
 const TagDistributionMeter = React.createClass({
   propTypes: {
     group: SentryTypes.Group.isRequired,
-    tag: React.PropTypes.string.isRequired,
-    name: React.PropTypes.string,
-    orgId: React.PropTypes.string.isRequired,
-    projectId: React.PropTypes.string.isRequired
+    tag: PropTypes.string.isRequired,
+    name: PropTypes.string,
+    orgId: PropTypes.string.isRequired,
+    projectId: PropTypes.string.isRequired
   },
 
   mixins: [

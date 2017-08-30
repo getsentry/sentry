@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 
 import GroupEventDataSection from './eventDataSection';
@@ -31,11 +32,11 @@ function getSourcePlugin(pluginContexts, contextType) {
 
 const ContextChunk = React.createClass({
   propTypes: {
-    event: React.PropTypes.object.isRequired,
-    group: React.PropTypes.object.isRequired,
-    type: React.PropTypes.string.isRequired,
-    alias: React.PropTypes.string.isRequired,
-    value: React.PropTypes.object.isRequired
+    event: PropTypes.object.isRequired,
+    group: PropTypes.object.isRequired,
+    type: PropTypes.string.isRequired,
+    alias: PropTypes.string.isRequired,
+    value: PropTypes.object.isRequired
   },
 
   getInitialState() {
@@ -127,8 +128,8 @@ const ContextChunk = React.createClass({
 
 const ContextsInterface = React.createClass({
   propTypes: {
-    event: React.PropTypes.object.isRequired,
-    group: React.PropTypes.object.isRequired
+    event: PropTypes.object.isRequired,
+    group: PropTypes.object.isRequired
   },
 
   render() {

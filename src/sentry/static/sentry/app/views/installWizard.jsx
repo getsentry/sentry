@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import DocumentTitle from 'react-document-title';
 import _ from 'lodash';
@@ -11,9 +12,9 @@ import {getOption, getOptionField, getForm} from '../options';
 
 const InstallWizardSettings = React.createClass({
   propTypes: {
-    options: React.PropTypes.object.isRequired,
-    formDisabled: React.PropTypes.bool,
-    onSubmit: React.PropTypes.func.isRequired
+    options: PropTypes.object.isRequired,
+    formDisabled: PropTypes.bool,
+    onSubmit: PropTypes.func.isRequired
   },
 
   getInitialState() {
@@ -105,7 +106,7 @@ const InstallWizardSettings = React.createClass({
 
 const InstallWizard = React.createClass({
   propTypes: {
-    onConfigured: React.PropTypes.func.isRequired
+    onConfigured: PropTypes.func.isRequired
   },
 
   mixins: [ApiMixin],

@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import ApiMixin from '../../mixins/apiMixin';
 import LoadingError from '../../components/loadingError';
@@ -8,8 +9,8 @@ import EventNode from './eventNode';
 
 const EventList = React.createClass({
   propTypes: {
-    title: React.PropTypes.string.isRequired,
-    endpoint: React.PropTypes.string.isRequired
+    title: PropTypes.string.isRequired,
+    endpoint: PropTypes.string.isRequired
   },
 
   mixins: [ApiMixin],

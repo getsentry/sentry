@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import ApiMixin from '../mixins/apiMixin';
 import TooltipMixin from '../mixins/tooltip';
@@ -6,8 +7,8 @@ import {t} from '../locale';
 
 const LatestDeployOrReleaseTime = React.createClass({
   propTypes: {
-    orgId: React.PropTypes.string.isRequired,
-    release: React.PropTypes.object.isRequired
+    orgId: PropTypes.string.isRequired,
+    release: PropTypes.object.isRequired
   },
 
   mixins: [

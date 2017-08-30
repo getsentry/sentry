@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 
 import LoadingIndicator from '../../components/loadingIndicator';
@@ -16,7 +17,7 @@ import {t} from '../../locale';
 
 const ReleaseOverview = React.createClass({
   contextTypes: {
-    release: React.PropTypes.object
+    release: PropTypes.object
   },
 
   mixins: [ApiMixin],

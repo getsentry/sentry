@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 
 import ApiMixin from '../mixins/apiMixin';
@@ -14,7 +15,7 @@ import {t} from '../locale';
 
 const ReleaseArtifacts = React.createClass({
   contextTypes: {
-    release: React.PropTypes.object
+    release: PropTypes.object
   },
 
   mixins: [

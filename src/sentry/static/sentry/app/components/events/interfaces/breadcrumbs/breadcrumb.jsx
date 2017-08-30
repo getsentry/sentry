@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import moment from 'moment';
 
@@ -12,7 +13,7 @@ const CUSTOM_RENDERERS = {
 
 const Breadcrumb = React.createClass({
   propTypes: {
-    crumb: React.PropTypes.object.isRequired
+    crumb: PropTypes.object.isRequired
   },
 
   getClassName() {

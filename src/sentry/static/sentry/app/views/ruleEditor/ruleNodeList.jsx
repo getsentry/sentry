@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 
 import SelectInput from '../../components/selectInput';
@@ -5,8 +6,8 @@ import RuleNode from './ruleNode';
 
 const RuleNodeList = React.createClass({
   propTypes: {
-    initialItems: React.PropTypes.array,
-    nodes: React.PropTypes.array.isRequired
+    initialItems: PropTypes.array,
+    nodes: PropTypes.array.isRequired
   },
 
   getInitialState() {

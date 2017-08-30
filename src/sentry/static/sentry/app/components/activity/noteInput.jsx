@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import marked from 'marked';
 
@@ -20,11 +21,11 @@ function makeDefaultErrorJson() {
 
 const NoteInput = React.createClass({
   propTypes: {
-    item: React.PropTypes.object,
-    group: React.PropTypes.object.isRequired,
-    onFinish: React.PropTypes.func,
-    memberList: React.PropTypes.array.isRequired,
-    sessionUser: React.PropTypes.object.isRequired
+    item: PropTypes.object,
+    group: PropTypes.object.isRequired,
+    onFinish: PropTypes.func,
+    memberList: PropTypes.array.isRequired,
+    sessionUser: PropTypes.object.isRequired
   },
 
   mixins: [PureRenderMixin, ApiMixin],

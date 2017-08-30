@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 
 import U2fInterface from './u2finterface';
@@ -5,8 +6,8 @@ import {t} from '../locale';
 
 const U2fSign = React.createClass({
   propTypes: {
-    challengeData: React.PropTypes.object,
-    displayMode: React.PropTypes.string
+    challengeData: PropTypes.object,
+    displayMode: PropTypes.string
   },
 
   getDefaultProps() {

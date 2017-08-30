@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import {Link} from 'react-router';
 
@@ -8,9 +9,9 @@ import {t} from '../../locale';
 
 const ProjectHeader = React.createClass({
   propTypes: {
-    project: React.PropTypes.object.isRequired,
-    organization: React.PropTypes.object.isRequired,
-    activeSection: React.PropTypes.string
+    project: PropTypes.object.isRequired,
+    organization: PropTypes.object.isRequired,
+    activeSection: PropTypes.string
   },
 
   render() {

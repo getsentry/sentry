@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 
 import Avatar from '../avatar';
@@ -6,7 +7,7 @@ import {userDisplayName} from '../../utils/formatters';
 
 const GroupParticipants = React.createClass({
   propTypes: {
-    participants: React.PropTypes.array.isRequired
+    participants: PropTypes.array.isRequired
   },
 
   mixins: [

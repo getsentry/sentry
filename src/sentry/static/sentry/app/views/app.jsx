@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import $ from 'jquery';
 import Cookies from 'js-cookie';
@@ -25,7 +26,7 @@ function getAlertTypeForProblem(problem) {
 
 const App = React.createClass({
   childContextTypes: {
-    location: React.PropTypes.object
+    location: PropTypes.object
   },
 
   mixins: [ApiMixin],

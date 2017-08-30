@@ -1,24 +1,25 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import StackedBarChart from '../components/stackedBarChart';
 
 const BarChart = React.createClass({
   propTypes: {
-    points: React.PropTypes.arrayOf(
-      React.PropTypes.shape({
-        x: React.PropTypes.number.isRequired,
-        y: React.PropTypes.number.isRequired,
-        label: React.PropTypes.string
+    points: PropTypes.arrayOf(
+      PropTypes.shape({
+        x: PropTypes.number.isRequired,
+        y: PropTypes.number.isRequired,
+        label: PropTypes.string
       })
     ),
-    interval: React.PropTypes.string,
-    height: React.PropTypes.number,
-    width: React.PropTypes.number,
-    placement: React.PropTypes.string,
-    label: React.PropTypes.string,
-    markers: React.PropTypes.arrayOf(
-      React.PropTypes.shape({
-        x: React.PropTypes.number.isRequired,
-        label: React.PropTypes.string
+    interval: PropTypes.string,
+    height: PropTypes.number,
+    width: PropTypes.number,
+    placement: PropTypes.string,
+    label: PropTypes.string,
+    markers: PropTypes.arrayOf(
+      PropTypes.shape({
+        x: PropTypes.number.isRequired,
+        label: PropTypes.string
       })
     )
   },

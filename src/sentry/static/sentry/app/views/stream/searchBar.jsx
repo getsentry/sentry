@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import ReactDOM from 'react-dom';
 import Reflux from 'reflux';
@@ -16,17 +17,17 @@ import SearchDropdown from './searchDropdown';
 
 const SearchBar = React.createClass({
   propTypes: {
-    orgId: React.PropTypes.string.isRequired,
-    projectId: React.PropTypes.string.isRequired,
+    orgId: PropTypes.string.isRequired,
+    projectId: PropTypes.string.isRequired,
 
-    defaultQuery: React.PropTypes.string,
-    query: React.PropTypes.string,
-    defaultSearchItems: React.PropTypes.array.isRequired,
-    disabled: React.PropTypes.bool,
-    placeholder: React.PropTypes.string,
+    defaultQuery: PropTypes.string,
+    query: PropTypes.string,
+    defaultSearchItems: PropTypes.array.isRequired,
+    disabled: PropTypes.bool,
+    placeholder: PropTypes.string,
 
-    onQueryChange: React.PropTypes.func,
-    onSearch: React.PropTypes.func
+    onQueryChange: PropTypes.func,
+    onSearch: PropTypes.func
   },
 
   mixins: [

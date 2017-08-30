@@ -1,10 +1,11 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 
 const Truncate = React.createClass({
   propTypes: {
-    value: React.PropTypes.string.isRequired,
-    leftTrim: React.PropTypes.bool,
-    maxLength: React.PropTypes.number
+    value: PropTypes.string.isRequired,
+    leftTrim: PropTypes.bool,
+    maxLength: PropTypes.number
   },
 
   getDefaultProps() {

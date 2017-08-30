@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import {Link} from 'react-router';
 
@@ -8,10 +9,10 @@ import TimeSince from './timeSince';
 
 export default React.createClass({
   propTypes: {
-    orgId: React.PropTypes.string.isRequired,
-    projectId: React.PropTypes.string.isRequired,
-    issue: React.PropTypes.object.isRequired,
-    card: React.PropTypes.bool
+    orgId: PropTypes.string.isRequired,
+    projectId: PropTypes.string.isRequired,
+    issue: PropTypes.object.isRequired,
+    card: PropTypes.bool
   },
 
   mixins: [ApiMixin],

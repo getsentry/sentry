@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 
 import ApiMixin from '../../mixins/apiMixin';
@@ -7,8 +8,8 @@ import LoadingIndicator from '../../components/loadingIndicator';
 
 export default React.createClass({
   propTypes: {
-    since: React.PropTypes.number.isRequired,
-    resolution: React.PropTypes.string.isRequired
+    since: PropTypes.number.isRequired,
+    resolution: PropTypes.string.isRequired
   },
 
   mixins: [ApiMixin],

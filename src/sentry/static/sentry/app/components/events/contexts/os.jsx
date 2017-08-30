@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 
 import ContextBlock from './contextBlock';
@@ -5,8 +6,8 @@ import {defined} from '../../../utils';
 
 const OsContextType = React.createClass({
   propTypes: {
-    alias: React.PropTypes.string.isRequired,
-    data: React.PropTypes.object.isRequired
+    alias: PropTypes.string.isRequired,
+    data: PropTypes.object.isRequired
   },
 
   render() {

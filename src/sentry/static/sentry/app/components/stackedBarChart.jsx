@@ -1,5 +1,6 @@
 import moment from 'moment';
 import _ from 'lodash';
+import PropTypes from 'prop-types';
 import React from 'react';
 import TooltipMixin from '../mixins/tooltip';
 import Count from './count';
@@ -8,37 +9,37 @@ import ConfigStore from '../stores/configStore.jsx';
 const StackedBarChart = React.createClass({
   propTypes: {
     // TODO(dcramer): DEPRECATED, use series instead
-    points: React.PropTypes.arrayOf(
-      React.PropTypes.shape({
-        x: React.PropTypes.number.isRequired,
-        y: React.PropTypes.array.isRequired,
-        label: React.PropTypes.string
+    points: PropTypes.arrayOf(
+      PropTypes.shape({
+        x: PropTypes.number.isRequired,
+        y: PropTypes.array.isRequired,
+        label: PropTypes.string
       })
     ),
-    series: React.PropTypes.arrayOf(
-      React.PropTypes.shape({
-        data: React.PropTypes.arrayOf(
-          React.PropTypes.shape({
-            x: React.PropTypes.number.isRequired,
-            y: React.PropTypes.number
+    series: PropTypes.arrayOf(
+      PropTypes.shape({
+        data: PropTypes.arrayOf(
+          PropTypes.shape({
+            x: PropTypes.number.isRequired,
+            y: PropTypes.number
           })
         ),
-        label: React.PropTypes.string
+        label: PropTypes.string
       })
     ),
-    interval: React.PropTypes.string,
-    height: React.PropTypes.number,
-    width: React.PropTypes.number,
-    placement: React.PropTypes.string,
-    label: React.PropTypes.string,
-    markers: React.PropTypes.arrayOf(
-      React.PropTypes.shape({
-        x: React.PropTypes.number.isRequired,
-        label: React.PropTypes.string
+    interval: PropTypes.string,
+    height: PropTypes.number,
+    width: PropTypes.number,
+    placement: PropTypes.string,
+    label: PropTypes.string,
+    markers: PropTypes.arrayOf(
+      PropTypes.shape({
+        x: PropTypes.number.isRequired,
+        label: PropTypes.string
       })
     ),
-    tooltip: React.PropTypes.func,
-    barClasses: React.PropTypes.array
+    tooltip: PropTypes.func,
+    barClasses: PropTypes.array
   },
 
   mixins: [

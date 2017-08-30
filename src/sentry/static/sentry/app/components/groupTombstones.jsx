@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import _ from 'lodash';
 
@@ -14,10 +15,10 @@ import {t} from '../locale';
 
 const GroupTombstoneRow = React.createClass({
   propTypes: {
-    data: React.PropTypes.object.isRequired,
-    undiscard: React.PropTypes.func.isRequired,
-    orgId: React.PropTypes.string.isRequired,
-    projectId: React.PropTypes.string.isRequired
+    data: PropTypes.object.isRequired,
+    undiscard: PropTypes.func.isRequired,
+    orgId: PropTypes.string.isRequired,
+    projectId: PropTypes.string.isRequired
   },
 
   mixins: [
@@ -69,11 +70,11 @@ const GroupTombstoneRow = React.createClass({
 
 const GroupTombstones = React.createClass({
   propTypes: {
-    orgId: React.PropTypes.string.isRequired,
-    projectId: React.PropTypes.string.isRequired,
-    tombstones: React.PropTypes.array.isRequired,
-    tombstoneError: React.PropTypes.bool.isRequired,
-    fetchData: React.PropTypes.func.isRequired
+    orgId: PropTypes.string.isRequired,
+    projectId: PropTypes.string.isRequired,
+    tombstones: PropTypes.array.isRequired,
+    tombstoneError: PropTypes.bool.isRequired,
+    fetchData: PropTypes.func.isRequired
   },
 
   mixins: [ApiMixin],

@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import SentryTypes from '../../../proptypes';
 import rawStacktraceContent from './rawStacktraceContent';
@@ -9,11 +10,11 @@ const CrashContent = React.createClass({
   propTypes: {
     group: SentryTypes.Group.isRequired,
     event: SentryTypes.Event.isRequired,
-    stackView: React.PropTypes.string.isRequired,
-    stackType: React.PropTypes.string,
-    newestFirst: React.PropTypes.bool.isRequired,
-    exception: React.PropTypes.object,
-    stacktrace: React.PropTypes.object
+    stackView: PropTypes.string.isRequired,
+    stackType: PropTypes.string,
+    newestFirst: PropTypes.bool.isRequired,
+    exception: PropTypes.object,
+    stacktrace: PropTypes.object
   },
 
   renderException() {

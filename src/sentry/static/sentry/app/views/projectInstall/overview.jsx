@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import {browserHistory} from 'react-router';
 
@@ -8,7 +9,7 @@ import {t, tct} from '../../locale';
 
 const ProjectInstallOverview = React.createClass({
   propTypes: {
-    platformData: React.PropTypes.object
+    platformData: PropTypes.object
   },
 
   getInitialState() {

@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 
 import LoadingIndicator from '../components/loadingIndicator';
@@ -11,8 +12,8 @@ import {t} from '../locale';
 
 const CommitBar = React.createClass({
   propTypes: {
-    totalCommits: React.PropTypes.number.isRequired,
-    authorCommits: React.PropTypes.number.isRequired
+    totalCommits: PropTypes.number.isRequired,
+    authorCommits: PropTypes.number.isRequired
   },
 
   render() {
@@ -25,9 +26,9 @@ const CommitBar = React.createClass({
 
 const CommitAuthorStats = React.createClass({
   propTypes: {
-    orgId: React.PropTypes.string.isRequired,
-    projectId: React.PropTypes.string.isRequired,
-    version: React.PropTypes.string.isRequired
+    orgId: PropTypes.string.isRequired,
+    projectId: PropTypes.string.isRequired,
+    version: PropTypes.string.isRequired
   },
 
   mixins: [

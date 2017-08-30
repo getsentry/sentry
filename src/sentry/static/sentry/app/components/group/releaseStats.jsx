@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import {browserHistory} from 'react-router';
 
@@ -27,8 +28,8 @@ const PRODUCTION_ENV_NAMES = new Set([
 // changes
 const GroupReleaseStats = React.createClass({
   propTypes: {
-    defaultEnvironment: React.PropTypes.string,
-    group: React.PropTypes.object
+    defaultEnvironment: PropTypes.string,
+    group: PropTypes.object
   },
 
   mixins: [ApiMixin, GroupState],

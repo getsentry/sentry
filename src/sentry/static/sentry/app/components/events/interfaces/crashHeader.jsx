@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import SentryTypes from '../../../proptypes';
 import TooltipMixin from '../../../mixins/tooltip';
@@ -5,17 +6,17 @@ import {t} from '../../../locale';
 
 const CrashHeader = React.createClass({
   propTypes: {
-    title: React.PropTypes.string,
-    beforeTitle: React.PropTypes.any,
+    title: PropTypes.string,
+    beforeTitle: PropTypes.any,
     group: SentryTypes.Group.isRequired,
-    platform: React.PropTypes.string,
-    thread: React.PropTypes.object,
-    exception: React.PropTypes.object,
-    stacktrace: React.PropTypes.object,
-    stackView: React.PropTypes.string.isRequired,
-    newestFirst: React.PropTypes.bool.isRequired,
-    stackType: React.PropTypes.string, // 'original', 'minified', or falsy (none)
-    onChange: React.PropTypes.func
+    platform: PropTypes.string,
+    thread: PropTypes.object,
+    exception: PropTypes.object,
+    stacktrace: PropTypes.object,
+    stackView: PropTypes.string.isRequired,
+    newestFirst: PropTypes.bool.isRequired,
+    stackType: PropTypes.string, // 'original', 'minified', or falsy (none)
+    onChange: PropTypes.func
   },
 
   mixins: [

@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 
 import ContextBlock from '../components/events/contexts/contextBlock';
@@ -11,8 +12,8 @@ class BaseContext extends React.Component {
 BaseContext.displayName = 'BaseContext';
 
 BaseContext.propTypes = {
-  alias: React.PropTypes.string.isRequired,
-  data: React.PropTypes.object.isRequired
+  alias: PropTypes.string.isRequired,
+  data: PropTypes.object.isRequired
 };
 
 BaseContext.getTitle = function(value) {

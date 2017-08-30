@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 
 function isOverflowing(el) {
@@ -7,7 +8,7 @@ function isOverflowing(el) {
 
 const SummaryLine = React.createClass({
   propTypes: {
-    crumb: React.PropTypes.object.isRequired
+    crumb: PropTypes.object.isRequired
   },
 
   getInitialState() {

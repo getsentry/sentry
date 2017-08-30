@@ -1,10 +1,11 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 
 const Category = React.createClass({
   propTypes: {
-    value: React.PropTypes.string,
-    title: React.PropTypes.string,
-    hideIfEmpty: React.PropTypes.bool
+    value: PropTypes.string,
+    title: PropTypes.string,
+    hideIfEmpty: PropTypes.bool
   },
 
   render() {

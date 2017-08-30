@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 
 /**
@@ -7,8 +8,8 @@ import React from 'react';
 
 const LetterAvatar = React.createClass({
   propTypes: {
-    identifier: React.PropTypes.string.isRequired,
-    displayName: React.PropTypes.string.isRequired
+    identifier: PropTypes.string.isRequired,
+    displayName: PropTypes.string.isRequired
   },
 
   COLORS: [

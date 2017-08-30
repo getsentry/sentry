@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import classNames from 'classnames';
 
@@ -7,10 +8,10 @@ import PureRenderMixin from 'react-addons-pure-render-mixin';
 
 const SearchDropdown = React.createClass({
   propTypes: {
-    items: React.PropTypes.array.isRequired,
-    searchSubstring: React.PropTypes.string,
-    onClick: React.PropTypes.func.isRequired,
-    loading: React.PropTypes.bool
+    items: PropTypes.array.isRequired,
+    searchSubstring: PropTypes.string,
+    onClick: PropTypes.func.isRequired,
+    loading: PropTypes.bool
   },
 
   mixins: [PureRenderMixin],

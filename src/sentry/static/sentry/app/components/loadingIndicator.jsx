@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import classNames from 'classnames';
 
@@ -18,8 +19,8 @@ function LoadingIndicator(props) {
 }
 
 LoadingIndicator.propTypes = {
-  mini: React.PropTypes.bool,
-  triangle: React.PropTypes.bool
+  mini: PropTypes.bool,
+  triangle: PropTypes.bool
 };
 
 export default LoadingIndicator;

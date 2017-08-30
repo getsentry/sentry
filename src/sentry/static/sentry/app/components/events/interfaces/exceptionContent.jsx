@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import {defined} from '../../../utils';
 
@@ -6,11 +7,11 @@ import ExceptionMechanism from './exceptionMechanism';
 
 const ExceptionContent = React.createClass({
   propTypes: {
-    type: React.PropTypes.oneOf(['original', 'minified']),
-    values: React.PropTypes.array.isRequired,
-    view: React.PropTypes.string.isRequired,
-    platform: React.PropTypes.string,
-    newestFirst: React.PropTypes.bool
+    type: PropTypes.oneOf(['original', 'minified']),
+    values: PropTypes.array.isRequired,
+    view: PropTypes.string.isRequired,
+    platform: PropTypes.string,
+    newestFirst: PropTypes.bool
   },
 
   render() {

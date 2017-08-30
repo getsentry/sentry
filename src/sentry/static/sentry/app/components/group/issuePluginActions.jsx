@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import Modal from 'react-bootstrap/lib/Modal';
 import ApiMixin from '../../mixins/apiMixin';
@@ -10,7 +11,7 @@ import {toTitleCase} from '../../utils';
 
 const IssuePluginActions = React.createClass({
   propTypes: {
-    plugin: React.PropTypes.object.isRequired
+    plugin: PropTypes.object.isRequired
   },
 
   mixins: [ApiMixin, GroupState],

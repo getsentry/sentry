@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 
 import ApiMixin from '../mixins/apiMixin';
@@ -17,10 +18,10 @@ import {extractMultilineFields} from '../utils';
 
 const OrganizationSettingsForm = React.createClass({
   propTypes: {
-    orgId: React.PropTypes.string.isRequired,
-    access: React.PropTypes.object.isRequired,
-    initialData: React.PropTypes.object.isRequired,
-    onSave: React.PropTypes.func.isRequired
+    orgId: PropTypes.string.isRequired,
+    access: PropTypes.object.isRequired,
+    initialData: PropTypes.object.isRequired,
+    onSave: PropTypes.func.isRequired
   },
 
   mixins: [ApiMixin],

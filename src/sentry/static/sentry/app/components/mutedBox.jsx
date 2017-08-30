@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import PureRenderMixin from 'react-addons-pure-render-mixin';
 
@@ -7,7 +8,7 @@ import {t} from '../locale';
 
 export default React.createClass({
   propTypes: {
-    statusDetails: React.PropTypes.object.isRequired
+    statusDetails: PropTypes.object.isRequired
   },
 
   mixins: [PureRenderMixin],

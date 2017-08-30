@@ -5,12 +5,13 @@ import KeyValueList from './keyValueList';
 import ContextData from '../../contextData';
 
 import {objectIsEmpty} from '../../../utils';
+import PropTypes from 'prop-types';
 import queryString from 'query-string';
 import {t} from '../../../locale';
 
 const RichHttpContent = React.createClass({
   propTypes: {
-    data: React.PropTypes.object.isRequired
+    data: PropTypes.object.isRequired
   },
 
   /**

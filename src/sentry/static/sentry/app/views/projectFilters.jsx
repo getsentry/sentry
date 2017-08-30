@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import _ from 'lodash';
 
@@ -26,17 +27,17 @@ const FilterSwitch = function(props) {
 };
 
 FilterSwitch.propTypes = {
-  data: React.PropTypes.object.isRequired,
-  onToggle: React.PropTypes.func.isRequired,
-  size: React.PropTypes.string.isRequired
+  data: PropTypes.object.isRequired,
+  onToggle: PropTypes.func.isRequired,
+  size: PropTypes.string.isRequired
 };
 
 const FilterRow = React.createClass({
   propTypes: {
-    orgId: React.PropTypes.string.isRequired,
-    projectId: React.PropTypes.string.isRequired,
-    data: React.PropTypes.object.isRequired,
-    onToggle: React.PropTypes.func.isRequired
+    orgId: PropTypes.string.isRequired,
+    projectId: PropTypes.string.isRequired,
+    data: PropTypes.object.isRequired,
+    onToggle: PropTypes.func.isRequired
   },
 
   getInitialState() {
@@ -112,10 +113,10 @@ const LEGACY_BROWSER_KEYS = Object.keys(LEGACY_BROWSER_SUBFILTERS);
 
 const LegacyBrowserFilterRow = React.createClass({
   propTypes: {
-    orgId: React.PropTypes.string.isRequired,
-    projectId: React.PropTypes.string.isRequired,
-    data: React.PropTypes.object.isRequired,
-    onToggle: React.PropTypes.func.isRequired
+    orgId: PropTypes.string.isRequired,
+    projectId: PropTypes.string.isRequired,
+    data: PropTypes.object.isRequired,
+    onToggle: PropTypes.func.isRequired
   },
 
   getInitialState() {
@@ -218,9 +219,9 @@ const LegacyBrowserFilterRow = React.createClass({
 
 const ProjectFiltersSettingsForm = React.createClass({
   propTypes: {
-    orgId: React.PropTypes.string.isRequired,
-    projectId: React.PropTypes.string.isRequired,
-    initialData: React.PropTypes.object.isRequired
+    orgId: PropTypes.string.isRequired,
+    projectId: PropTypes.string.isRequired,
+    initialData: PropTypes.object.isRequired
   },
 
   mixins: [ApiMixin, ProjectState],

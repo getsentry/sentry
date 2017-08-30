@@ -1,14 +1,15 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import ReactDOM from 'react-dom';
 import _ from 'lodash';
 
 const StreamTagFilter = React.createClass({
   propTypes: {
-    tag: React.PropTypes.object.isRequired,
-    orgId: React.PropTypes.string.isRequired,
-    projectId: React.PropTypes.string.isRequired,
-    value: React.PropTypes.string,
-    onSelect: React.PropTypes.func
+    tag: PropTypes.object.isRequired,
+    orgId: PropTypes.string.isRequired,
+    projectId: PropTypes.string.isRequired,
+    value: PropTypes.string,
+    onSelect: PropTypes.func
   },
 
   statics: {

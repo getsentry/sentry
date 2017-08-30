@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import DocumentTitle from 'react-document-title';
 import {isEqual} from 'lodash';
@@ -126,14 +127,14 @@ const KeyStats = React.createClass({
 
 const KeySettings = React.createClass({
   propTypes: {
-    organization: React.PropTypes.object.isRequired,
-    project: React.PropTypes.object.isRequired,
-    access: React.PropTypes.object.isRequired,
-    data: React.PropTypes.object.isRequired,
-    initialData: React.PropTypes.object,
-    onRemove: React.PropTypes.func.isRequired,
-    onSave: React.PropTypes.func.isRequired,
-    rateLimitsEnabled: React.PropTypes.bool
+    organization: PropTypes.object.isRequired,
+    project: PropTypes.object.isRequired,
+    access: PropTypes.object.isRequired,
+    data: PropTypes.object.isRequired,
+    initialData: PropTypes.object,
+    onRemove: PropTypes.func.isRequired,
+    onSave: PropTypes.func.isRequired,
+    rateLimitsEnabled: PropTypes.bool
   },
 
   mixins: [ApiMixin],

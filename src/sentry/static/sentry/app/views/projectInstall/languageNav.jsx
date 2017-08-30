@@ -1,9 +1,10 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 
 const LanguageNav = React.createClass({
   propTypes: {
-    name: React.PropTypes.string.isRequired,
-    active: React.PropTypes.bool
+    name: PropTypes.string.isRequired,
+    active: PropTypes.bool
   },
 
   getInitialState() {

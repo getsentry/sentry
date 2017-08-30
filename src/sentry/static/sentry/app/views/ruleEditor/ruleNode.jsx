@@ -1,14 +1,15 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import ReactDOM from 'react-dom';
 import $ from 'jquery';
 
 const RuleNode = React.createClass({
   propTypes: {
-    data: React.PropTypes.object.isRequired,
-    node: React.PropTypes.shape({
-      html: React.PropTypes.string.isRequired
+    data: PropTypes.object.isRequired,
+    node: PropTypes.shape({
+      html: PropTypes.string.isRequired
     }).isRequired,
-    onDelete: React.PropTypes.func.isRequired
+    onDelete: PropTypes.func.isRequired
   },
 
   componentDidMount() {

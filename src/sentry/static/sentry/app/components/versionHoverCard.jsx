@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import _ from 'lodash';
 
@@ -15,9 +16,9 @@ import ApiMixin from '../mixins/apiMixin';
 
 const VersionHoverCard = React.createClass({
   propTypes: {
-    version: React.PropTypes.string.isRequired,
-    orgId: React.PropTypes.string.isRequired,
-    projectId: React.PropTypes.string.isRequired
+    version: PropTypes.string.isRequired,
+    orgId: PropTypes.string.isRequired,
+    projectId: PropTypes.string.isRequired
   },
 
   mixins: [ApiMixin],

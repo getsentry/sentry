@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 
 import {objectToArray} from '../../../utils';
@@ -5,7 +6,7 @@ import KeyValueList from './keyValueList';
 
 const FrameVariables = React.createClass({
   propTypes: {
-    data: React.PropTypes.object.isRequired
+    data: PropTypes.object.isRequired
   },
 
   // make sure that clicking on the variables does not actually do

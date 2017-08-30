@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import Reflux from 'reflux';
 import ApiMixin from '../../mixins/apiMixin';
@@ -19,11 +20,11 @@ import Checkbox from '../../components/checkbox';
 
 const IgnoreActions = React.createClass({
   propTypes: {
-    anySelected: React.PropTypes.bool.isRequired,
-    allInQuerySelected: React.PropTypes.bool.isRequired,
-    pageSelected: React.PropTypes.bool.isRequired,
-    onUpdate: React.PropTypes.func.isRequired,
-    query: React.PropTypes.string
+    anySelected: PropTypes.bool.isRequired,
+    allInQuerySelected: PropTypes.bool.isRequired,
+    pageSelected: PropTypes.bool.isRequired,
+    onUpdate: PropTypes.func.isRequired,
+    query: PropTypes.string
   },
 
   getInitialState() {
@@ -249,15 +250,15 @@ const IgnoreActions = React.createClass({
 
 const ResolveActions = React.createClass({
   propTypes: {
-    orgId: React.PropTypes.string.isRequired,
-    projectId: React.PropTypes.string.isRequired,
-    hasRelease: React.PropTypes.bool.isRequired,
-    latestRelease: React.PropTypes.object,
-    anySelected: React.PropTypes.bool.isRequired,
-    allInQuerySelected: React.PropTypes.bool.isRequired,
-    pageSelected: React.PropTypes.bool.isRequired,
-    onUpdate: React.PropTypes.func.isRequired,
-    query: React.PropTypes.string
+    orgId: PropTypes.string.isRequired,
+    projectId: PropTypes.string.isRequired,
+    hasRelease: PropTypes.bool.isRequired,
+    latestRelease: PropTypes.object,
+    anySelected: PropTypes.bool.isRequired,
+    allInQuerySelected: PropTypes.bool.isRequired,
+    pageSelected: PropTypes.bool.isRequired,
+    onUpdate: PropTypes.func.isRequired,
+    query: PropTypes.string
   },
 
   getInitialState() {
@@ -368,17 +369,17 @@ const ResolveActions = React.createClass({
 
 const StreamActions = React.createClass({
   propTypes: {
-    allResultsVisible: React.PropTypes.bool,
-    orgId: React.PropTypes.string.isRequired,
-    projectId: React.PropTypes.string.isRequired,
-    groupIds: React.PropTypes.instanceOf(Array).isRequired,
-    onRealtimeChange: React.PropTypes.func.isRequired,
-    onSelectStatsPeriod: React.PropTypes.func.isRequired,
-    realtimeActive: React.PropTypes.bool.isRequired,
-    statsPeriod: React.PropTypes.string.isRequired,
-    query: React.PropTypes.string.isRequired,
-    hasReleases: React.PropTypes.bool,
-    latestRelease: React.PropTypes.object
+    allResultsVisible: PropTypes.bool,
+    orgId: PropTypes.string.isRequired,
+    projectId: PropTypes.string.isRequired,
+    groupIds: PropTypes.instanceOf(Array).isRequired,
+    onRealtimeChange: PropTypes.func.isRequired,
+    onSelectStatsPeriod: PropTypes.func.isRequired,
+    realtimeActive: PropTypes.bool.isRequired,
+    statsPeriod: PropTypes.string.isRequired,
+    query: PropTypes.string.isRequired,
+    hasReleases: PropTypes.bool,
+    latestRelease: PropTypes.object
   },
 
   mixins: [

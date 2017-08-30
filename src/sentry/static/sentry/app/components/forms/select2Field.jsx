@@ -1,4 +1,5 @@
 import jQuery from 'jquery';
+import PropTypes from 'prop-types';
 import React from 'react';
 
 import InputField from './inputField';
@@ -62,11 +63,11 @@ class Select2Field extends InputField {
 
 Select2Field.propTypes = Object.assign(
   {
-    choices: React.PropTypes.array.isRequired,
-    allowClear: React.PropTypes.bool,
-    allowEmpty: React.PropTypes.bool,
-    multiple: React.PropTypes.bool,
-    escapeMarkup: React.PropTypes.bool
+    choices: PropTypes.array.isRequired,
+    allowClear: PropTypes.bool,
+    allowEmpty: PropTypes.bool,
+    multiple: PropTypes.bool,
+    escapeMarkup: PropTypes.bool
   },
   InputField.propTypes
 );

@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 
 import ApiMixin from '../mixins/apiMixin';
@@ -9,13 +10,13 @@ import OrganizationState from '../mixins/organizationState';
 
 const SavedSearchRow = React.createClass({
   propTypes: {
-    orgId: React.PropTypes.string.isRequired,
-    projectId: React.PropTypes.string.isRequired,
-    data: React.PropTypes.object.isRequired,
-    access: React.PropTypes.object.isRequired,
-    onDefault: React.PropTypes.func.isRequired,
-    onUserDefault: React.PropTypes.func.isRequired,
-    onRemove: React.PropTypes.func.isRequired
+    orgId: PropTypes.string.isRequired,
+    projectId: PropTypes.string.isRequired,
+    data: PropTypes.object.isRequired,
+    access: PropTypes.object.isRequired,
+    onDefault: PropTypes.func.isRequired,
+    onUserDefault: PropTypes.func.isRequired,
+    onRemove: PropTypes.func.isRequired
   },
 
   mixins: [ApiMixin],

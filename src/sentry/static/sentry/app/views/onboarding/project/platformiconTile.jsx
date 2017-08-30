@@ -1,10 +1,11 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 
 const PlatformiconTile = React.createClass({
   propTypes: {
-    platform: React.PropTypes.string,
-    onClick: React.PropTypes.func,
-    className: React.PropTypes.string
+    platform: PropTypes.string,
+    onClick: PropTypes.func,
+    className: PropTypes.string
   },
 
   render() {

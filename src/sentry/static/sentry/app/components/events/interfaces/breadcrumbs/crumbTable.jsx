@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import _ from 'lodash';
 
@@ -5,10 +6,10 @@ import Category from './category';
 
 const CrumbTable = React.createClass({
   propTypes: {
-    crumb: React.PropTypes.object,
-    title: React.PropTypes.string,
-    kvData: React.PropTypes.object,
-    summary: React.PropTypes.object
+    crumb: PropTypes.object,
+    title: PropTypes.string,
+    kvData: PropTypes.object,
+    summary: PropTypes.object
   },
 
   renderData() {

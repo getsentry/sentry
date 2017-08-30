@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 
 import ApiMixin from '../mixins/apiMixin';
@@ -8,11 +9,11 @@ import {t} from '../locale';
 
 export default React.createClass({
   propTypes: {
-    organization: React.PropTypes.object.isRequired,
-    project: React.PropTypes.object.isRequired,
-    pluginList: React.PropTypes.array.isRequired,
-    onDisablePlugin: React.PropTypes.func.isRequired,
-    onEnablePlugin: React.PropTypes.func.isRequired
+    organization: PropTypes.object.isRequired,
+    project: PropTypes.object.isRequired,
+    pluginList: PropTypes.array.isRequired,
+    onDisablePlugin: PropTypes.func.isRequired,
+    onEnablePlugin: PropTypes.func.isRequired
   },
 
   mixins: [ApiMixin],

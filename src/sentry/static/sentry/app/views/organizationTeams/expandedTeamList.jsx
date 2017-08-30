@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import {Link} from 'react-router';
 import LazyLoad from 'react-lazy-load';
@@ -13,11 +14,11 @@ import {t, tct} from '../../locale';
 
 const ExpandedTeamList = React.createClass({
   propTypes: {
-    access: React.PropTypes.object.isRequired,
+    access: PropTypes.object.isRequired,
     organization: SentryTypes.Organization.isRequired,
-    teamList: React.PropTypes.arrayOf(SentryTypes.Team).isRequired,
-    projectStats: React.PropTypes.object,
-    hasTeams: React.PropTypes.bool
+    teamList: PropTypes.arrayOf(SentryTypes.Team).isRequired,
+    projectStats: PropTypes.object,
+    hasTeams: PropTypes.bool
   },
 
   mixins: [
