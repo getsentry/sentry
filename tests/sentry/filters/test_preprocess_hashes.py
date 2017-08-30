@@ -4,7 +4,7 @@ from __future__ import absolute_import, print_function
 
 import logging
 
-from sentry.preprocess_hashes import get_preprocess_defaults, get_preprocess_hashes
+from sentry.filters.preprocess_hashes import get_preprocess_defaults, get_preprocess_hashes
 from sentry.testutils import TestCase
 
 
