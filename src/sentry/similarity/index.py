@@ -273,5 +273,5 @@ class DummyIndex(object):
     def export(self, scope, items, timestamp=None):
         return {}
 
-    def _import(self, scope, items, timestamp=None):
+    def import_(self, scope, items, timestamp=None):
         return {}
