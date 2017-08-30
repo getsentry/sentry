@@ -137,13 +137,16 @@ class BuildAssetsCommand(BaseBuildCommand):
         env['SENTRY_STATIC_DIST_PATH'] = self.sentry_static_dist_path
         env['NODE_ENV'] = 'production'
 
-        # Need to run these serially
-        self._run_command(['node_modules/.bin/webpack', '--config',
-                           'webpack.dll.vendor.js', '--bail'], env=env)
-        self._run_command(['node_modules/.bin/webpack', '--config',
-                           'webpack.dll.shared.js', '--bail'], env=env)
-        self._run_command(['node_modules/.bin/webpack', '--config',
-                           'webpack.dll.app.js', '--bail'], env=env)
+        if os.path.isfile('webpack.dll.app.js'):
+            # Need to run these serially
+            self._run_command(['node_modules/.bin/webpack', '--config',
+                               'webpack.dll.vendor.js', '--bail'], env=env)
+            self._run_command(['node_modules/.bin/webpack', '--config',
+                               'webpack.dll.shared.js', '--bail'], env=env)
+            self._run_command(['node_modules/.bin/webpack', '--config',
+                               'webpack.dll.app.js', '--bail'], env=env)
+        else:
+            self._run_command(['node_modules/.bin/webpack', '--bail'], env=env)
 
     def _write_version_file(self, version_info):
         manifest = {
