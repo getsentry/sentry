@@ -9,8 +9,8 @@ from sentry.testutils import APITestCase
 class ProjectTagKeyValuesTest(APITestCase):
     def test_simple(self):
         project = self.create_project()
-        tagkey = TagKey.objects.create(project=project, key='foo')
-        TagValue.objects.create(project=project, key='foo', value='bar')
+        tagkey = TagKey.objects.create(project_id=project.id, key='foo')
+        TagValue.objects.create(project_id=project.id, key='foo', value='bar')
 
         self.login_as(user=self.user)
 
@@ -32,8 +32,8 @@ class ProjectTagKeyValuesTest(APITestCase):
 
     def test_query(self):
         project = self.create_project()
-        tagkey = TagKey.objects.create(project=project, key='foo')
-        TagValue.objects.create(project=project, key='foo', value='bar')
+        tagkey = TagKey.objects.create(project_id=project.id, key='foo')
+        TagValue.objects.create(project_id=project.id, key='foo', value='bar')
 
         self.login_as(user=self.user)
 
