@@ -263,7 +263,9 @@ class DummyIndex(object):
         return False
 
     def scan(self, scope, indices, batch=1000, timestamp=None):
-        return []
+        # empty generator
+        return
+        yield
 
     def flush(self, scope, indices, batch=1000, timestamp=None):
         pass
