@@ -125,7 +125,7 @@ test-cli:
 
 test-js:
 	@echo "--> Building static assets"
-	@${NPM_ROOT}/.bin/webpack
+	@npm run build-sentry
 	@echo "--> Running JavaScript tests"
 	@npm run test-ci
 	@npm run snapshot
