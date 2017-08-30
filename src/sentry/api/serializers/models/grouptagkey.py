@@ -13,7 +13,7 @@ class GroupTagKeySerializer(Serializer):
             t.key: t.get_label()
             for t in
             TagKey.objects.filter(
-                project_id=item_list[0].project.id, key__in=[
+                project_id=item_list[0].project_id, key__in=[
                     i.key for i in item_list])
         }
 
