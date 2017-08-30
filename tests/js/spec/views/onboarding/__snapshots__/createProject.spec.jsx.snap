@@ -34,7 +34,7 @@ exports[`CreateProject render() should fill in project name if its empty when pl
   }
 >
   <div>
-    <Project
+    <OnboardingProject
       name="another"
       next={[Function]}
       platform="csharp"
@@ -768,7 +768,7 @@ exports[`CreateProject render() should fill in project name if its empty when pl
           </p>
         </div>
       </div>
-    </Project>
+    </OnboardingProject>
   </div>
 </CreateProject>
 `;

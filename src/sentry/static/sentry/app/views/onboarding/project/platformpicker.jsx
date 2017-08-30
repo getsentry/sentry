@@ -22,7 +22,7 @@ const PlatformPicker = React.createClass({
   getInitialState() {
     return {
       tab: categoryList[0],
-      filter: ''
+      filter: (this.props.platform || '').split('-')[0]
     };
   },
 
@@ -102,8 +102,7 @@ const PlatformPicker = React.createClass({
                   e.preventDefault();
                 }}
                 to={''}
-                isActive={() =>
-                  (filter ? categoryName === 'All' : categoryName === this.state.tab)}>
+                isActive={() => categoryName === (filter ? 'All' : this.state.tab)}>
                 {categoryName}
               </ListLink>
             );

@@ -70,7 +70,7 @@ exports[`Project render() should render NotFound if no matching organization 1`]
 `;
 
 exports[`Project render() should set required class on empty submit 1`] = `
-<Project
+<OnboardingProject
   location={
     Object {
       "query": Object {},
@@ -808,5 +808,5 @@ exports[`Project render() should set required class on empty submit 1`] = `
       </p>
     </div>
   </div>
-</Project>
+</OnboardingProject>
 `;

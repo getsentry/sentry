@@ -109,7 +109,7 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
         </div>
       </ProgressNodes>
       <div>
-        <Project
+        <OnboardingProject
           name=""
           next={[Function]}
           platform=""
@@ -825,7 +825,7 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
               </p>
             </div>
           </div>
-        </Project>
+        </OnboardingProject>
       </div>
     </div>
   </div>
@@ -919,7 +919,7 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
         </div>
       </ProgressNodes>
       <div>
-        <Project
+        <OnboardingProject
           name=""
           next={[Function]}
           platform=""
@@ -1635,7 +1635,7 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
               </p>
             </div>
           </div>
-        </Project>
+        </OnboardingProject>
       </div>
     </div>
   </div>

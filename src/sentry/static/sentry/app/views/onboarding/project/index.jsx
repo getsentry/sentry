@@ -6,7 +6,7 @@ import PlatformiconTile from './platformiconTile';
 import SelectInput from '../../../components/selectInput';
 import {t} from '../../../locale';
 
-const Project = React.createClass({
+const OnboardingProject = React.createClass({
   propTypes: {
     next: React.PropTypes.func,
     setPlatform: React.PropTypes.func,
@@ -104,4 +104,4 @@ const Project = React.createClass({
   }
 });
 
-export default Project;
+export default OnboardingProject;

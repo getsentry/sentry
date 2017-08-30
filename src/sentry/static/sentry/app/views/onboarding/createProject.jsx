@@ -32,15 +32,21 @@ const CreateProject = React.createClass({
   getInitialState() {
     let {teams} = this.getOrganization();
     let accessTeams = teams.filter(team => team.hasAccess);
+    let {team, platform} = this.context.location.query;
 
-    let team =
-      this.context.location.query.team || (accessTeams.length && accessTeams[0].slug);
+    let initialTeam = team || (accessTeams.length && accessTeams[0].slug);
+
+    let initialPlatform = '';
+    if (getPlatformName(platform) !== undefined) {
+      initialPlatform = platform;
+    }
+
     return {
       loading: true,
       error: false,
-      platform: '',
-      projectName: '',
-      team: team,
+      projectName: getPlatformName(initialPlatform) || '',
+      team: initialTeam,
+      platform: initialPlatform,
       inFlight: false
     };
   },
@@ -112,6 +118,7 @@ const CreateProject = React.createClass({
       teams: accessTeams,
       setTeam: teamSlug => this.setState({team: teamSlug})
     };
+
     return (
       <div>
         {error && <h2 className="alert alert-error">{error}</h2>}
