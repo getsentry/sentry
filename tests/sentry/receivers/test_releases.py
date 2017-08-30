@@ -15,7 +15,7 @@ from sentry.testutils import TestCase
 class EnsureReleaseExistsTest(TestCase):
     def test_simple(self):
         tv = TagValue.objects.create(
-            project=self.project,
+            project_id=self.project.id,
             key='sentry:release',
             value='1.0',
         )

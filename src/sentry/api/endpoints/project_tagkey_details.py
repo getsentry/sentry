@@ -18,7 +18,7 @@ class ProjectTagKeyDetailsEndpoint(ProjectEndpoint):
 
         try:
             tagkey = TagKey.objects.get(
-                project=project,
+                project_id=project.id,
                 key=lookup_key,
                 status=TagKeyStatus.VISIBLE,
             )
@@ -41,7 +41,7 @@ class ProjectTagKeyDetailsEndpoint(ProjectEndpoint):
 
         try:
             tagkey = TagKey.objects.get(
-                project=project,
+                project_id=project.id,
                 key=lookup_key,
             )
         except TagKey.DoesNotExist:

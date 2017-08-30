@@ -13,7 +13,8 @@ from django.db.models import Sum
 from django.utils import timezone
 
 from sentry.constants import MAX_TAG_KEY_LENGTH, MAX_TAG_VALUE_LENGTH
-from sentry.db.models import (Model, BoundedPositiveIntegerField, BaseManager, sane_repr)
+from sentry.db.models import (
+    Model, BoundedPositiveIntegerField, BaseManager, sane_repr)
 from sentry.utils import db
 
 
@@ -24,13 +25,15 @@ class GroupTagValue(Model):
     """
     __core__ = False
 
-    project_id = BoundedPositiveIntegerField(null=True)
-    group_id = BoundedPositiveIntegerField()
+    project_id = BoundedPositiveIntegerField(db_index=True, null=True)
+    group_id = BoundedPositiveIntegerField(db_index=True)
     times_seen = BoundedPositiveIntegerField(default=0)
     key = models.CharField(max_length=MAX_TAG_KEY_LENGTH)
     value = models.CharField(max_length=MAX_TAG_VALUE_LENGTH)
-    last_seen = models.DateTimeField(default=timezone.now, db_index=True, null=True)
-    first_seen = models.DateTimeField(default=timezone.now, db_index=True, null=True)
+    last_seen = models.DateTimeField(
+        default=timezone.now, db_index=True, null=True)
+    first_seen = models.DateTimeField(
+        default=timezone.now, db_index=True, null=True)
 
     objects = BaseManager()
 

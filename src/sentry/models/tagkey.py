@@ -13,7 +13,7 @@ from django.db import models
 from django.utils.translation import ugettext_lazy as _
 
 from sentry.constants import MAX_TAG_KEY_LENGTH, TAG_LABELS
-from sentry.db.models import (Model, BoundedPositiveIntegerField, FlexibleForeignKey, sane_repr)
+from sentry.db.models import (Model, BoundedPositiveIntegerField, sane_repr)
 from sentry.db.models.manager import BaseManager
 from sentry.utils.cache import cache
 
@@ -22,7 +22,8 @@ TAG_KEY_RE = re.compile(r'^[a-zA-Z0-9_\.:-]+$')
 
 # These tags are special and are used in pairing with `sentry:{}`
 # they should not be allowed to be set via data ingest due to abiguity
-INTERNAL_TAG_KEYS = frozenset(('release', 'dist', 'user', 'filename', 'function'))
+INTERNAL_TAG_KEYS = frozenset(
+    ('release', 'dist', 'user', 'filename', 'function'))
 
 
 # TODO(dcramer): pull in enum library
@@ -43,7 +44,7 @@ class TagKeyManager(BaseManager):
         if result is None:
             result = list(
                 self.filter(
-                    project=project,
+                    project_id=project.id,
                     status=TagKeyStatus.VISIBLE,
                 ).order_by('-values_seen').values_list('key', flat=True)[:20]
             )
@@ -57,7 +58,7 @@ class TagKey(Model):
     """
     __core__ = False
 
-    project = FlexibleForeignKey('sentry.Project')
+    project_id = BoundedPositiveIntegerField(db_index=True)
     key = models.CharField(max_length=MAX_TAG_KEY_LENGTH)
     values_seen = BoundedPositiveIntegerField(default=0)
     label = models.CharField(max_length=64, null=True)
@@ -75,7 +76,7 @@ class TagKey(Model):
     class Meta:
         app_label = 'sentry'
         db_table = 'sentry_filterkey'
-        unique_together = (('project', 'key'), )
+        unique_together = (('project_id', 'key'), )
 
     __repr__ = sane_repr('project_id', 'key')
 
