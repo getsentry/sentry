@@ -4,7 +4,7 @@ from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.http import (
     HttpResponse, HttpResponseRedirect, HttpResponseServerError,
-    Http404,
+    HttpResponseNotAllowed, Http404,
 )
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
@@ -57,6 +57,9 @@ class SAML2LoginView(AuthView):
 class SAML2ACSView(AuthView):
     @method_decorator(csrf_exempt)
     def dispatch(self, request, organization_slug):
+        if request.method != 'POST':
+            return HttpResponseNotAllowed(['POST'])
+
         provider = get_provider(organization_slug)
         if provider is None:
             raise Http404
