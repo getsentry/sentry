@@ -564,9 +564,8 @@ local function search(configuration, parameters, limit)
         candidates = table.slice(candidates, 1, limit)
     end
 
-    local i = 1
     local results = {}
-    for _, candidate in ipairs(candidates) do
+    for i, candidate in ipairs(candidates) do
         local result = {}
         for j, p in ipairs(parameters) do
             local candidate_frequencies = get_frequencies(configuration, p.index, candidate.key)
@@ -577,7 +576,6 @@ local function search(configuration, parameters, limit)
             ))
         end
         results[i] = {candidate.key, result}
-        i = i + 1
     end
     return results
 end
