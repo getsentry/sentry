@@ -2,7 +2,10 @@ from __future__ import absolute_import, print_function
 
 from django.conf import settings
 from django.core.urlresolvers import reverse
-from django.http import (HttpResponse, HttpResponseRedirect, HttpResponseServerError)
+from django.http import (
+    HttpResponse, HttpResponseRedirect, HttpResponseServerError,
+    Http404,
+)
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 
@@ -29,16 +32,16 @@ def get_provider(organization_slug):
     try:
         organization = Organization.objects.get(slug=organization_slug)
     except Organization.DoesNotExist:
-        return HttpResponseRedirect(reverse('sentry-login'))
+        return None
 
     if organization.status != OrganizationStatus.VISIBLE:
-        return HttpResponseRedirect(reverse('sentry-login'))
+        return None
 
     try:
         auth_provider = AuthProvider.objects.get(organization=organization)
         return auth_provider.get_provider()
     except AuthProvider.DoesNotExist:
-        return HttpResponseRedirect(reverse('sentry-login'))
+        return None
 
 
 class SAML2LoginView(AuthView):
@@ -53,6 +56,9 @@ class SAML2ACSView(AuthView):
     @method_decorator(csrf_exempt)
     def dispatch(self, request, organization_slug):
         provider = get_provider(organization_slug)
+        if provider is None:
+            raise Http404
+
         organization = Organization.objects.get(slug=organization_slug)
         saml_config = provider.build_saml_config(organization_slug)
 
@@ -146,6 +152,8 @@ class SAML2ACSView(AuthView):
 class SAML2MetadataView(AuthView):
     def dispatch(self, request, organization_slug):
         provider = get_provider(organization_slug)
+        if provider is None:
+            raise Http404
 
         saml_config = provider.build_saml_config(organization_slug)
         saml_settings = OneLogin_Saml2_Settings(settings=saml_config, sp_validation_only=True)
