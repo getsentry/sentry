@@ -13,7 +13,10 @@ const Project = React.createClass({
     setPlatform: PropTypes.func,
     platform: PropTypes.string,
     setName: PropTypes.func,
-    name: PropTypes.string
+    name: PropTypes.string,
+    team: PropTypes.string,
+    setTeam: PropTypes.func,
+    teams: PropTypes.array
   },
 
   getDefaultProps() {
@@ -22,6 +25,7 @@ const Project = React.createClass({
       setTeam: () => {},
       teams: []
     };
+  },
 
   getInitialState() {
     return {projectRequired: false};
