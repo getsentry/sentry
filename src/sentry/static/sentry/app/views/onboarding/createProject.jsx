@@ -32,21 +32,17 @@ const CreateProject = React.createClass({
   getInitialState() {
     let {teams} = this.getOrganization();
     let accessTeams = teams.filter(team => team.hasAccess);
-    let {team, platform} = this.context.location.query;
+    let {query} = this.context.location;
 
-    let initialTeam = team || (accessTeams.length && accessTeams[0].slug);
-
-    let initialPlatform = '';
-    if (getPlatformName(platform) !== undefined) {
-      initialPlatform = platform;
-    }
+    let team = query.team || (accessTeams.length && accessTeams[0].slug);
+    let platform = getPlatformName(query.platform) ? query.platform : '';
 
     return {
       loading: true,
       error: false,
-      projectName: getPlatformName(initialPlatform) || '',
-      team: initialTeam,
-      platform: initialPlatform,
+      projectName: getPlatformName(platform) || '',
+      team,
+      platform,
       inFlight: false
     };
   },
