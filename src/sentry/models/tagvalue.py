@@ -24,13 +24,15 @@ class TagValue(Model):
     """
     __core__ = False
 
-    project_id = BoundedPositiveIntegerField(null=True)
+    project_id = BoundedPositiveIntegerField(db_index=True, null=True)
     key = models.CharField(max_length=MAX_TAG_KEY_LENGTH)
     value = models.CharField(max_length=MAX_TAG_VALUE_LENGTH)
     data = GzippedDictField(blank=True, null=True)
     times_seen = BoundedPositiveIntegerField(default=0)
-    last_seen = models.DateTimeField(default=timezone.now, db_index=True, null=True)
-    first_seen = models.DateTimeField(default=timezone.now, db_index=True, null=True)
+    last_seen = models.DateTimeField(
+        default=timezone.now, db_index=True, null=True)
+    first_seen = models.DateTimeField(
+        default=timezone.now, db_index=True, null=True)
 
     objects = BaseManager()
 
@@ -70,10 +72,12 @@ class TagValue(Model):
             return absolute_uri(
                 reverse(
                     url_name,
-                    args=[self.project.organization.slug, self.project.slug, self.key, self.id]
+                    args=[self.project.organization.slug,
+                          self.project.slug, self.key, self.id]
                 )
             )
 
         return absolute_uri(
-            reverse(url_name, args=[self.project.organization.slug, self.project.slug, self.id])
+            reverse(url_name, args=[
+                    self.project.organization.slug, self.project.slug, self.id])
         )

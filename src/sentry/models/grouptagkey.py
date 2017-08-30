@@ -23,8 +23,8 @@ class GroupTagKey(Model):
     """
     __core__ = False
 
-    project_id = BoundedPositiveIntegerField(null=True)
-    group_id = BoundedPositiveIntegerField()
+    project_id = BoundedPositiveIntegerField(db_index=True, null=True)
+    group_id = BoundedPositiveIntegerField(db_index=True)
     key = models.CharField(max_length=MAX_TAG_KEY_LENGTH)
     values_seen = BoundedPositiveIntegerField(default=0)
 

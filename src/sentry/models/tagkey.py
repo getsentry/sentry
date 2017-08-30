@@ -22,7 +22,8 @@ TAG_KEY_RE = re.compile(r'^[a-zA-Z0-9_\.:-]+$')
 
 # These tags are special and are used in pairing with `sentry:{}`
 # they should not be allowed to be set via data ingest due to abiguity
-INTERNAL_TAG_KEYS = frozenset(('release', 'dist', 'user', 'filename', 'function'))
+INTERNAL_TAG_KEYS = frozenset(
+    ('release', 'dist', 'user', 'filename', 'function'))
 
 
 # TODO(dcramer): pull in enum library
@@ -57,7 +58,7 @@ class TagKey(Model):
     """
     __core__ = False
 
-    project_id = BoundedPositiveIntegerField()
+    project_id = BoundedPositiveIntegerField(db_index=True)
     key = models.CharField(max_length=MAX_TAG_KEY_LENGTH)
     values_seen = BoundedPositiveIntegerField(default=0)
     label = models.CharField(max_length=64, null=True)
