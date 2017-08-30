@@ -148,9 +148,9 @@ var appConfig = {
       currying: true, // these are enabled to support lodash/fp/ features
       flattening: true // used by a dependency of react-mentions
     }),
-    new webpack.optimize.CommonsChunkPlugin({
-      names: localeEntries.concat(['vendor']) // 'vendor' must be last entry
-    }),
+    // new webpack.optimize.CommonsChunkPlugin({
+    // names: localeEntries, // 'vendor' must be last entry
+    // }),
     new webpack.ProvidePlugin({
       $: 'jquery',
       jQuery: 'jquery',
