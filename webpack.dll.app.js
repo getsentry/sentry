@@ -1,26 +1,28 @@
 /*eslint-env node*/
-const path = require('path');
+/*eslint no-var:0*/
+var path = require('path');
 
-const webpack = require('webpack');
+var webpack = require('webpack');
 
-const [appConfig, ...otherConfig] = require('./webpack.config');
+var config = require('./webpack.config');
+var appConfig = config[0];
 
-const staticPrefix = 'src/sentry/static/sentry',
-  distPath = path.join(__dirname, staticPrefix, 'dist');
+var staticPrefix = 'src/sentry/static/sentry';
+var distPath = path.join(__dirname, staticPrefix, 'dist');
 
 // this is set by setup.py sdist
 if (process.env.SENTRY_STATIC_DIST_PATH) {
   distPath = process.env.SENTRY_STATIC_DIST_PATH;
 }
 
-const main = Object.assign({}, appConfig, {
+var main = Object.assign({}, appConfig, {
   entry: {
     app: appConfig.entry.app
   }
 });
 
 main.plugins = appConfig.plugins
-  .filter(plugin => !(plugin instanceof webpack.optimize.CommonsChunkPlugin))
+  // .filter(plugin => !(plugin instanceof webpack.optimize.CommonsChunkPlugin))
   .concat([
     new webpack.DllReferencePlugin({
       context: __dirname,
@@ -40,4 +42,4 @@ main.plugins = appConfig.plugins
     })
   ]);
 
-module.exports = [main, ...otherConfig];
+module.exports = [main].concat(config.slice(1));
