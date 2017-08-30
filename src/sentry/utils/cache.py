@@ -9,15 +9,9 @@ from __future__ import absolute_import, print_function
 
 import functools
 
-from django.core.cache import cache, get_cache, InvalidCacheBackendError
+from django.core.cache import cache
 
 default_cache = cache
-
-
-try:
-    hash_cache = get_cache('preprocess_hash')
-except InvalidCacheBackendError:
-    hash_cache = default_cache
 
 
 class memoize(object):
