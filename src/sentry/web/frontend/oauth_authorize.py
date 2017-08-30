@@ -1,5 +1,6 @@
 from __future__ import absolute_import, print_function
 
+import logging
 import six
 
 from django.conf import settings
@@ -12,6 +13,8 @@ from sentry.models import (
     ApiApplication, ApiApplicationStatus, ApiAuthorization, ApiGrant, ApiToken
 )
 from sentry.web.frontend.auth_login import AuthLoginView
+
+logger = logging.getLogger('sentry.api')
 
 
 class OAuthAuthorizeView(AuthLoginView):
@@ -37,7 +40,13 @@ class OAuthAuthorizeView(AuthLoginView):
         parts[4] = urlencode(query)
         return self.redirect(urlunparse(parts))
 
-    def error(self, response_type, redirect_uri, name, state=None):
+    def error(self, request, response_type, redirect_uri, name, state=None, client_id=None):
+        logging.error('oauth.authorize-error', extra={
+            'error_name': name,
+            'response_type': response_type,
+            'client_id': client_id,
+            'redirect_uri': redirect_uri,
+        })
         return self.redirect_response(
             response_type, redirect_uri, {
                 'error': name,
@@ -58,6 +67,12 @@ class OAuthAuthorizeView(AuthLoginView):
         force_prompt = request.GET.get('force_prompt')
 
         if not client_id:
+            logging.error('oauth.authorize-error', extra={
+                'error_name': 'unauthorized_client',
+                'response_type': response_type,
+                'client_id': client_id,
+                'redirect_uri': redirect_uri,
+            })
             return self.respond(
                 'sentry/oauth-error.html', {
                     'error': mark_safe('Missing or invalid <em>client_id</em> parameter.'),
@@ -70,6 +85,12 @@ class OAuthAuthorizeView(AuthLoginView):
                 status=ApiApplicationStatus.active,
             )
         except ApiApplication.DoesNotExist:
+            logging.error('oauth.authorize-error', extra={
+                'error_name': 'unauthorized_client',
+                'response_type': response_type,
+                'client_id': client_id,
+                'redirect_uri': redirect_uri,
+            })
             return self.respond(
                 'sentry/oauth-error.html', {
                     'error': mark_safe('Missing or invalid <em>client_id</em> parameter.'),
@@ -79,6 +100,12 @@ class OAuthAuthorizeView(AuthLoginView):
         if not redirect_uri:
             redirect_uri = application.get_default_redirect_uri()
         elif not application.is_valid_redirect_uri(redirect_uri):
+            logging.error('oauth.authorize-error', extra={
+                'error_name': 'invalid_request',
+                'response_type': response_type,
+                'client_id': client_id,
+                'redirect_uri': redirect_uri,
+            })
             return self.respond(
                 'sentry/oauth-error.html', {
                     'error': mark_safe('Missing or invalid <em>redirect_uri</em> parameter.'),
@@ -87,6 +114,8 @@ class OAuthAuthorizeView(AuthLoginView):
 
         if not application.is_allowed_response_type(response_type):
             return self.error(
+                request=request,
+                client_id=client_id,
                 response_type=response_type,
                 redirect_uri=redirect_uri,
                 name='unsupported_response_type',
@@ -98,6 +127,8 @@ class OAuthAuthorizeView(AuthLoginView):
             for scope in scopes:
                 if scope not in settings.SENTRY_SCOPES:
                     return self.error(
+                        request=request,
+                        client_id=client_id,
                         response_type=response_type,
                         redirect_uri=redirect_uri,
                         name='invalid_scope',
@@ -232,6 +263,8 @@ class OAuthAuthorizeView(AuthLoginView):
 
         elif op == 'deny':
             return self.error(
+                request=request,
+                client_id=payload['cid'],
                 response_type=response_type,
                 redirect_uri=redirect_uri,
                 name='access_denied',

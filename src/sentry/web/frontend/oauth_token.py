@@ -1,5 +1,6 @@
 from __future__ import absolute_import, print_function
 
+import logging
 import six
 
 from django.http import HttpResponse
@@ -12,6 +13,8 @@ from django.views.generic.base import View
 from sentry.models import (ApiApplication, ApiApplicationStatus, ApiGrant, ApiToken)
 from sentry.utils import json
 
+logger = logging.getLogger('sentry.api')
+
 
 class OAuthTokenView(View):
     @csrf_exempt
@@ -19,7 +22,16 @@ class OAuthTokenView(View):
     def dispatch(self, request, *args, **kwargs):
         return super(OAuthTokenView, self).dispatch(request, *args, **kwargs)
 
-    def error(self, name, status=400):
+    def error(self, request, name, status=400):
+        client_id = request.POST.get('client_id')
+        redirect_uri = request.POST.get('redirect_uri')
+
+        logging.error('oauth.token-error', extra={
+            'error_name': name,
+            'status': status,
+            'client_id': client_id,
+            'redirect_uri': redirect_uri,
+        })
         return HttpResponse(
             json.dumps({
                 'error': name,
@@ -37,10 +49,10 @@ class OAuthTokenView(View):
             code = request.POST.get('code')
 
             if not client_id:
-                return self.error('invalid_client')
+                return self.error(request, 'invalid_client')
 
             if not client_secret:
-                return self.error('invalid_client')
+                return self.error(request, 'invalid_client')
 
             try:
                 application = ApiApplication.objects.get(
@@ -48,23 +60,23 @@ class OAuthTokenView(View):
                     status=ApiApplicationStatus.active,
                 )
             except ApiApplication.DoesNotExist:
-                return self.error('invalid_client')
+                return self.error(request, 'invalid_client')
 
             if not constant_time_compare(client_secret, application.client_secret):
-                return self.error('invalid_client')
+                return self.error(request, 'invalid_client')
 
             try:
                 grant = ApiGrant.objects.get(application=application, code=code)
             except ApiGrant.DoesNotExist:
-                return self.error('invalid_grant')
+                return self.error(request, 'invalid_grant')
 
             if grant.is_expired():
-                return self.error('invalid_grant')
+                return self.error(request, 'invalid_grant')
 
             if not redirect_uri:
                 redirect_uri = application.get_default_redirect_uri()
             elif grant.redirect_uri != redirect_uri:
-                return self.error('invalid_grant')
+                return self.error(request, 'invalid_grant')
 
             token = ApiToken.from_grant(grant)
         elif grant_type == 'refresh_token':
@@ -74,17 +86,17 @@ class OAuthTokenView(View):
             client_secret = request.POST.get('client_secret')
 
             if not refresh_token:
-                return self.error('invalid_request')
+                return self.error(request, 'invalid_request')
 
             # TODO(dcramer): support scope
             if scope:
-                return self.error('invalid_request')
+                return self.error(request, 'invalid_request')
 
             if not client_id:
-                return self.error('invalid_client')
+                return self.error(request, 'invalid_client')
 
             if not client_secret:
-                return self.error('invalid_client')
+                return self.error(request, 'invalid_client')
 
             try:
                 application = ApiApplication.objects.get(
@@ -92,10 +104,10 @@ class OAuthTokenView(View):
                     status=ApiApplicationStatus.active,
                 )
             except ApiApplication.DoesNotExist:
-                return self.error('invalid_client')
+                return self.error(request, 'invalid_client')
 
             if not constant_time_compare(client_secret, application.client_secret):
-                return self.error('invalid_client')
+                return self.error(request, 'invalid_client')
 
             try:
                 token = ApiToken.objects.get(
@@ -103,11 +115,11 @@ class OAuthTokenView(View):
                     refresh_token=refresh_token,
                 )
             except ApiToken.DoesNotExist:
-                return self.error('invalid_grant')
+                return self.error(request, 'invalid_grant')
 
             token.refresh()
         else:
-            return self.error('unsupported_grant_type')
+            return self.error(request, 'unsupported_grant_type')
 
         return HttpResponse(
             json.dumps(
