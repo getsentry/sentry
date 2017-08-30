@@ -281,3 +281,7 @@ class SAML2Provider(Provider):
             if 'idp_x509cert' in data['idp']:
                 parsed_data['x509cert'] = data['idp']['idp_x509cert']
         return parsed_data
+
+    def refresh_identity(self, auth_identity):
+        # Nothing to refresh
+        return
