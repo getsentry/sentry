@@ -32,7 +32,7 @@ class ProjectTagKeyValuesEndpoint(ProjectEndpoint):
 
         try:
             tagkey = TagKey.objects.get(
-                project=project,
+                project_id=project.id,
                 key=lookup_key,
                 status=TagKeyStatus.VISIBLE,
             )
@@ -40,7 +40,7 @@ class ProjectTagKeyValuesEndpoint(ProjectEndpoint):
             raise ResourceDoesNotExist
 
         base_queryset = TagValue.objects.filter(
-            project=project,
+            project_id=project.id,
             key=tagkey.key,
         )
 
@@ -58,7 +58,7 @@ class ProjectTagKeyValuesEndpoint(ProjectEndpoint):
 
         else:
             queryset = TagValue.objects.filter(
-                project=project,
+                project_id=project.id,
                 key=tagkey.key,
             )
 

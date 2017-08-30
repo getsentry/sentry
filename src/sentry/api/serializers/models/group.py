@@ -126,9 +126,9 @@ class GroupSerializer(Serializer):
 
         user_counts = dict(
             GroupTagKey.objects.filter(
-                group__in=item_list,
+                group_id__in=[g.id for g in item_list],
                 key='sentry:user',
-            ).values_list('group', 'values_seen')
+            ).values_list('group_id', 'values_seen')
         )
 
         ignore_items = {g.group_id: g for g in GroupSnooze.objects.filter(

@@ -141,7 +141,7 @@ class GroupTransformer(Transformer):
 
         annotation_counts = defaultdict(dict)
         annotation_results = GroupTagKey.objects.filter(
-            group__in=objects,
+            group_id__in=[o.id for o in objects],
             key__in=tag_keys,
         ).values_list('key', 'group', 'values_seen')
         for key, group_id, values_seen in annotation_results:

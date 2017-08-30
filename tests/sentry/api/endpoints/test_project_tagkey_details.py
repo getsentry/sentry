@@ -13,7 +13,7 @@ class ProjectTagKeyDetailsTest(APITestCase):
     def test_simple(self):
         project = self.create_project()
         tagkey = TagKey.objects.create(
-            project=project,
+            project_id=project.id,
             key='foo',
             values_seen=16,
         )
@@ -40,7 +40,7 @@ class ProjectTagKeyDeleteTest(APITestCase):
     @mock.patch('sentry.api.endpoints.project_tagkey_details.delete_tag_key')
     def test_simple(self, mock_delete_tag_key):
         project = self.create_project()
-        tagkey = TagKey.objects.create(project=project, key='foo')
+        tagkey = TagKey.objects.create(project_id=project.id, key='foo')
 
         self.login_as(user=self.user)
 

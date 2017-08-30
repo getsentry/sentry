@@ -91,9 +91,11 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
 
     # these models should be safe to delete without cascades, in order
     BULK_DELETES = (
-        (models.GroupEmailThread, 'date', None), (models.GroupRuleStatus, 'date_added',
-                                                  None), (models.GroupTagValue, 'last_seen', None),
-        (models.TagValue, 'last_seen', None), (models.EventTag, 'date_added', '-date_added'),
+        (models.GroupEmailThread, 'date', None),
+        (models.GroupRuleStatus, 'date_added', None),
+        (models.GroupTagValue, 'last_seen', None),
+        (models.TagValue, 'last_seen', None),
+        (models.EventTag, 'date_added', '-date_added'),
     )
 
     GENERIC_DELETES = ((models.Event, 'datetime'), (models.Group, 'last_seen'), )

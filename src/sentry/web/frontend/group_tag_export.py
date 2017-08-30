@@ -75,7 +75,7 @@ class GroupTagExportView(ProjectView, CsvMixin):
         # validate existance as it may be deleted
         try:
             TagKey.objects.get(
-                project=group.project_id,
+                project_id=group.project_id,
                 key=lookup_key,
                 status=TagKeyStatus.VISIBLE,
             )

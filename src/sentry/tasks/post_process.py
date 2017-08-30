@@ -172,7 +172,7 @@ def record_affected_user(event, **kwargs):
     name='sentry.tasks.index_event_tags', default_retry_delay=60 * 5, max_retries=None
 )
 def index_event_tags(organization_id, project_id, event_id, tags, group_id=None, **kwargs):
-    from sentry.models import EventTag, Project, TagKey, TagValue
+    from sentry.models import EventTag, TagKey, TagValue
 
     Raven.tags_context({
         'project': project_id,
@@ -180,12 +180,12 @@ def index_event_tags(organization_id, project_id, event_id, tags, group_id=None,
 
     for key, value in tags:
         tagkey, _ = TagKey.objects.get_or_create(
-            project=Project(id=project_id),
+            project_id=project_id,
             key=key,
         )
 
         tagvalue, _ = TagValue.objects.get_or_create(
-            project=Project(id=project_id, organization_id=organization_id),
+            project_id=project_id,
             key=key,
             value=value,
         )

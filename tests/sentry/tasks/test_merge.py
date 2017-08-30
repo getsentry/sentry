@@ -94,8 +94,8 @@ class MergeGroupTest(TestCase):
         GroupTagKey.objects.bulk_create(
             [
                 GroupTagKey(
-                    project=project,
-                    group=group,
+                    project_id=project.id,
+                    group_id=group.id,
                     key=key,
                     values_seen=values_seen,
                 ) for ((group, key), values_seen) in input_group_tag_keys.items()
@@ -123,7 +123,7 @@ class MergeGroupTest(TestCase):
 
         for key, values_seen in output_group_tag_keys.items():
             assert GroupTagKey.objects.get(
-                project=project, group=target, key=key
+                project_id=project.id, group_id=target.id, key=key
             ).values_seen == values_seen
 
         for (key, value), times_seen in output_group_tag_values.items():

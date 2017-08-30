@@ -16,9 +16,9 @@ class GroupTagExportTest(TestCase):
 
         project = self.create_project()
         group = self.create_group(project=project)
-        TagKey.objects.create(project=project, key=key)
+        TagKey.objects.create(project_id=project.id, key=key)
         TagValue.objects.create(
-            project=project,
+            project_id=project.id,
             key=key,
             value=value,
         )

@@ -353,8 +353,8 @@ class Group(Model):
         from sentry.models import GroupTagKey, TagKey
         if not hasattr(self, '_tag_cache'):
             group_tags = GroupTagKey.objects.filter(
-                group=self,
-                project=self.project,
+                group_id=self.id,
+                project_id=self.project_id,
             )
             if not with_internal:
                 group_tags = group_tags.exclude(key__startswith='sentry:')
@@ -362,7 +362,7 @@ class Group(Model):
             group_tags = list(group_tags.values_list('key', flat=True))
 
             tag_keys = dict(
-                (t.key, t) for t in TagKey.objects.filter(project=self.project, key__in=group_tags)
+                (t.key, t) for t in TagKey.objects.filter(project_id=self.project_id, key__in=group_tags)
             )
 
             results = []
@@ -477,6 +477,6 @@ class Group(Model):
         from sentry.models import GroupTagKey
 
         return GroupTagKey.objects.filter(
-            group=self,
+            group_id=self.id,
             key='sentry:user',
         ).aggregate(t=models.Sum('values_seen'))['t'] or 0

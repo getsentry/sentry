@@ -262,7 +262,7 @@ class UnmergeTestCase(TestCase):
                 hash=fingerprint,
             )
 
-        assert set(GroupTagKey.objects.filter(group=source).values_list('key', 'values_seen')
+        assert set(GroupTagKey.objects.filter(group_id=source.id).values_list('key', 'values_seen')
                    ) == set([
                        (u'color', 3),
                        (u'environment', 1),
@@ -371,7 +371,7 @@ class UnmergeTestCase(TestCase):
             (u'production', now + shift(0), now + shift(9), ),
         ])
 
-        assert set(GroupTagKey.objects.filter(group=source).values_list('key', 'values_seen')
+        assert set(GroupTagKey.objects.filter(group_id=source.id).values_list('key', 'values_seen')
                    ) == set([
                        (u'color', 3),
                        (u'environment', 1),
@@ -425,7 +425,7 @@ class UnmergeTestCase(TestCase):
             (u'production', now + shift(10), now + shift(16), ),
         ])
 
-        assert set(GroupTagKey.objects.filter(group=destination).values_list('key', 'values_seen')
+        assert set(GroupTagKey.objects.filter(group_id=destination.id).values_list('key', 'values_seen')
                    ) == set([
                        (u'color', 3),
                        (u'environment', 1),
