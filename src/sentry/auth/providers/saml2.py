@@ -5,7 +5,9 @@ from django.core.urlresolvers import reverse
 from django.http import (HttpResponse, HttpResponseRedirect, HttpResponseServerError)
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
+from six.moves.urllib.parse import urlparse
 
+from sentry import options
 from sentry.auth import Provider, AuthView
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.models import (AuthProvider, Organization, OrganizationStatus, User, UserEmail)
@@ -207,10 +209,12 @@ class SAML2Provider(Provider):
         return saml_config
 
     def prepare_saml_request(self, request):
+        url = urlparse(options.get('system.url-prefix'))
         return {
-            'http_host': request.META['HTTP_HOST'],
+            'https': 'on' if url.scheme == 'https' else 'off',
+            'http_host': url.hostname,
             'script_name': request.META['PATH_INFO'],
-            'server_port': request.META['SERVER_PORT'],
+            'server_port': url.port,
             'get_data': request.GET.copy(),
             'post_data': request.POST.copy()
         }
