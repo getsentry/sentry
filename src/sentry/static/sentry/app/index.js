@@ -8,6 +8,8 @@ import * as Router from 'react-router';
 import Reflux from 'reflux';
 import ReactBootstrapModal from 'react-bootstrap/lib/Modal';
 
+import 'select2';
+
 import Sentry from './shared';
 
 let render = () => {

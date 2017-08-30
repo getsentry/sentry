@@ -39,13 +39,15 @@
 
 
   {% block scripts %}
+  <script src="{% asset_url "sentry" "dist/manifest.js" %}"{% crossorigin %}></script>
   <script src="{% asset_url "sentry" "dist/vendor.js" %}"{% crossorigin %}></script>
   {% locale_js_include %}
+  <script src="{% asset_url "sentry" "dist/shared.js" %}"{% crossorigin %}></script>
   <script src="{% asset_url "sentry" "dist/app.js" %}"{% crossorigin %}></script>
 
   <script>
-    for (var n in window.exports.default) {
-      window[n] = window.exports.default[n];
+    for (var n in window.app.default) {
+      window[n] = window.app.default[n];
     }
     window.$ = window.jQuery;
 

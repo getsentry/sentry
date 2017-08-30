@@ -42,7 +42,8 @@ if (process.env.SENTRY_EXTRACT_TRANSLATIONS === '1') {
 }
 
 var appEntry = {
-  app: 'app',
+  shared: ['app/shared'],
+  app: ['app'],
   vendor: [
     'babel-polyfill',
     'bootstrap/js/dropdown',
@@ -190,7 +191,7 @@ var appConfig = {
     path: distPath,
     filename: '[name].js',
     libraryTarget: 'var',
-    library: 'exports',
+    library: '[name]',
     sourceMapFilename: '[name].js.map'
   },
   devtool: IS_PRODUCTION ? '#source-map' : '#cheap-source-map'
