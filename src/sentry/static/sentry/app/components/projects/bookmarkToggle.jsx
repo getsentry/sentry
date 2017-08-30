@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 
 import ApiMixin from '../../mixins/apiMixin';
@@ -6,8 +7,8 @@ import {update as projectUpdate} from '../../actionCreators/projects';
 
 const BookmarkToggle = React.createClass({
   propTypes: {
-    orgId: React.PropTypes.string.isRequired,
-    project: React.PropTypes.object.isRequired
+    orgId: PropTypes.string.isRequired,
+    project: PropTypes.object.isRequired
   },
 
   mixins: [ApiMixin],

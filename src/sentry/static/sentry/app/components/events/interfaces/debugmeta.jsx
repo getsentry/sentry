@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import SentryTypes from '../../../proptypes';
 import EventDataSection from '../eventDataSection';
@@ -9,7 +10,7 @@ const DebugMetaInterface = React.createClass({
   propTypes: {
     group: SentryTypes.Group.isRequired,
     event: SentryTypes.Event.isRequired,
-    data: React.PropTypes.object.isRequired
+    data: PropTypes.object.isRequired
   },
 
   getImageDetail(img, evt) {

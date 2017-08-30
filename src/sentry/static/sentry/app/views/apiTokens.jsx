@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import DocumentTitle from 'react-document-title';
 import {Link} from 'react-router';
@@ -12,8 +13,8 @@ import {t, tct} from '../locale';
 
 const ApiTokenRow = React.createClass({
   propTypes: {
-    token: React.PropTypes.object.isRequired,
-    onRemove: React.PropTypes.func.isRequired
+    token: PropTypes.object.isRequired,
+    onRemove: PropTypes.func.isRequired
   },
 
   mixins: [ApiMixin],

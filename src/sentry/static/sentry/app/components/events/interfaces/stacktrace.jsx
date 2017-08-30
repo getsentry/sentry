@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import ConfigStore from '../../../stores/configStore';
 import GroupEventDataSection from '../eventDataSection';
@@ -25,9 +26,9 @@ const StacktraceInterface = React.createClass({
   propTypes: {
     group: SentryTypes.Group.isRequired,
     event: SentryTypes.Event.isRequired,
-    type: React.PropTypes.string.isRequired,
-    data: React.PropTypes.object.isRequired,
-    platform: React.PropTypes.string
+    type: PropTypes.string.isRequired,
+    data: PropTypes.object.isRequired,
+    platform: PropTypes.string
   },
 
   getInitialState() {

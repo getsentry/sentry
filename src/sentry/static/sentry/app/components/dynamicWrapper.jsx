@@ -1,6 +1,8 @@
 /* global process */
 // eslint-disable-next-line no-unused-vars
-import React, {PropTypes} from 'react';
+import PropTypes from 'prop-types';
+
+import React from 'react';
 
 const DynamicWrapper = ({fixed, value, ...otherProps}) => {
   // Wrap with span b/c react

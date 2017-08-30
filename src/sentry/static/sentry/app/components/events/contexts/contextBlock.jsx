@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import _ from 'lodash';
 
@@ -6,9 +7,9 @@ import {defined} from '../../../utils';
 
 const ContextBlock = React.createClass({
   propTypes: {
-    alias: React.PropTypes.string.isRequired,
-    data: React.PropTypes.object.isRequired,
-    knownData: React.PropTypes.array
+    alias: PropTypes.string.isRequired,
+    data: PropTypes.object.isRequired,
+    knownData: PropTypes.array
   },
 
   render() {

@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import Reflux from 'reflux';
 
@@ -12,9 +13,9 @@ import {t} from '../locale';
 
 const CompactIssueHeader = React.createClass({
   propTypes: {
-    data: React.PropTypes.object.isRequired,
-    orgId: React.PropTypes.string.isRequired,
-    projectId: React.PropTypes.string.isRequired
+    data: PropTypes.object.isRequired,
+    orgId: PropTypes.string.isRequired,
+    projectId: PropTypes.string.isRequired
   },
 
   getTitle() {
@@ -94,11 +95,11 @@ const CompactIssueHeader = React.createClass({
 
 const CompactIssue = React.createClass({
   propTypes: {
-    data: React.PropTypes.object,
-    id: React.PropTypes.string,
-    orgId: React.PropTypes.string,
-    statsPeriod: React.PropTypes.string,
-    showActions: React.PropTypes.bool
+    data: PropTypes.object,
+    id: PropTypes.string,
+    orgId: PropTypes.string,
+    statsPeriod: PropTypes.string,
+    showActions: PropTypes.bool
   },
 
   mixins: [ApiMixin, Reflux.listenTo(GroupStore, 'onGroupChange')],

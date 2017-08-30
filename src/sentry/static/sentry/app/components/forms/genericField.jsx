@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 
 import {defined} from '../../utils';
@@ -66,11 +67,11 @@ class GenericField extends React.Component {
 }
 
 GenericField.propTypes = {
-  config: React.PropTypes.object.isRequired,
-  formData: React.PropTypes.object,
-  formErrors: React.PropTypes.object,
-  formState: React.PropTypes.string.isRequired,
-  onChange: React.PropTypes.func
+  config: PropTypes.object.isRequired,
+  formData: PropTypes.object,
+  formErrors: PropTypes.object,
+  formState: PropTypes.string.isRequired,
+  onChange: PropTypes.func
 };
 
 export default GenericField;

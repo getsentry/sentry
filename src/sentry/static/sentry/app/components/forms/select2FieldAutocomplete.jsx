@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import Select2Field from './select2Field';
 
@@ -66,14 +67,14 @@ Select2FieldAutocomplete.defaultProps = Object.assign(
 );
 
 Select2FieldAutocomplete.propTypes = Object.assign({}, Select2Field.propTypes, {
-  ajaxDelay: React.PropTypes.number,
-  minimumInputLength: React.PropTypes.number,
-  formatResult: React.PropTypes.func,
-  formatSelection: React.PropTypes.func,
-  onResults: React.PropTypes.func,
-  onQuery: React.PropTypes.func,
-  url: React.PropTypes.string.isRequired,
-  id: React.PropTypes.any
+  ajaxDelay: PropTypes.number,
+  minimumInputLength: PropTypes.number,
+  formatResult: PropTypes.func,
+  formatSelection: PropTypes.func,
+  onResults: PropTypes.func,
+  onQuery: PropTypes.func,
+  url: PropTypes.string.isRequired,
+  id: PropTypes.any
 });
 
 delete Select2FieldAutocomplete.propTypes.choices;

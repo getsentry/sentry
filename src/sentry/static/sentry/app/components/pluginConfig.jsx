@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import _ from 'lodash';
 
@@ -9,10 +10,10 @@ import {t} from '../locale';
 
 const PluginConfig = React.createClass({
   propTypes: {
-    organization: React.PropTypes.object.isRequired,
-    project: React.PropTypes.object.isRequired,
-    data: React.PropTypes.object.isRequired,
-    onDisablePlugin: React.PropTypes.func
+    organization: PropTypes.object.isRequired,
+    project: PropTypes.object.isRequired,
+    data: PropTypes.object.isRequired,
+    onDisablePlugin: PropTypes.func
   },
 
   mixins: [ApiMixin],

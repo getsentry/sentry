@@ -1,10 +1,11 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 
 const Pill = React.createClass({
   propTypes: {
-    className: React.PropTypes.string,
-    name: React.PropTypes.string,
-    value: React.PropTypes.any
+    className: PropTypes.string,
+    name: PropTypes.string,
+    value: PropTypes.any
   },
 
   renderValue() {

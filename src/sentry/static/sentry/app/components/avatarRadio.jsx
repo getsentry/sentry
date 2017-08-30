@@ -1,11 +1,12 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 
 import {t} from '../locale';
 
 const AvatarRadio = React.createClass({
   propTypes: {
-    user: React.PropTypes.object.isRequired,
-    updateUser: React.PropTypes.func.isRequired
+    user: PropTypes.object.isRequired,
+    updateUser: PropTypes.func.isRequired
   },
 
   OPTIONS: {

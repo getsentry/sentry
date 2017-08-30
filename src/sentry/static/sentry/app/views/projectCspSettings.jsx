@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 
 import ApiMixin from '../mixins/apiMixin';
@@ -8,9 +9,9 @@ import {t} from '../locale';
 
 const ProjectCspSettingsForm = React.createClass({
   propTypes: {
-    orgId: React.PropTypes.string.isRequired,
-    projectId: React.PropTypes.string.isRequired,
-    initialData: React.PropTypes.object.isRequired
+    orgId: PropTypes.string.isRequired,
+    projectId: PropTypes.string.isRequired,
+    initialData: PropTypes.object.isRequired
   },
 
   mixins: [ApiMixin],
@@ -123,7 +124,7 @@ const ProjectCspSettingsForm = React.createClass({
 
 const ProjectCspSettings = React.createClass({
   propTypes: {
-    setProjectNavSection: React.PropTypes.func
+    setProjectNavSection: PropTypes.func
   },
 
   mixins: [ApiMixin],

@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import GroupEventDataSection from '../eventDataSection';
 import SentryTypes from '../../../proptypes';
@@ -125,12 +126,12 @@ const Thread = React.createClass({
   propTypes: {
     group: SentryTypes.Group.isRequired,
     event: SentryTypes.Event.isRequired,
-    data: React.PropTypes.object.isRequired,
-    stackView: React.PropTypes.string,
-    stackType: React.PropTypes.string,
-    newestFirst: React.PropTypes.bool,
-    exception: React.PropTypes.object,
-    stacktrace: React.PropTypes.object
+    data: PropTypes.object.isRequired,
+    stackView: PropTypes.string,
+    stackType: PropTypes.string,
+    newestFirst: PropTypes.bool,
+    exception: PropTypes.object,
+    stacktrace: PropTypes.object
   },
 
   renderMissingStacktrace() {
@@ -195,9 +196,9 @@ const ThreadsInterface = React.createClass({
   propTypes: {
     group: SentryTypes.Group.isRequired,
     event: SentryTypes.Event.isRequired,
-    type: React.PropTypes.string.isRequired,
-    data: React.PropTypes.object.isRequired,
-    platform: React.PropTypes.string
+    type: PropTypes.string.isRequired,
+    data: PropTypes.object.isRequired,
+    platform: PropTypes.string
   },
 
   getInitialState() {

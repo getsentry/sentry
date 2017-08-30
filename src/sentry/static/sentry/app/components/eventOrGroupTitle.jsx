@@ -1,4 +1,5 @@
-import React, {PropTypes} from 'react';
+import PropTypes from 'prop-types';
+import React from 'react';
 import {Metadata} from '../proptypes';
 
 const EventOrGroupTitle = React.createClass({

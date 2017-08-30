@@ -1,4 +1,5 @@
 import jQuery from 'jquery';
+import PropTypes from 'prop-types';
 import React from 'react';
 import classNames from 'classnames';
 
@@ -6,16 +7,16 @@ require('bootstrap/js/dropdown');
 
 const DropdownLink = React.createClass({
   propTypes: {
-    title: React.PropTypes.node,
+    title: PropTypes.node,
     /** display dropdown caret */
-    caret: React.PropTypes.bool,
-    disabled: React.PropTypes.bool,
-    onOpen: React.PropTypes.func,
-    onClose: React.PropTypes.func,
+    caret: PropTypes.bool,
+    disabled: PropTypes.bool,
+    onOpen: PropTypes.func,
+    onClose: PropTypes.func,
     /** anchors menu to the right */
-    anchorRight: React.PropTypes.bool,
-    topLevelClasses: React.PropTypes.string,
-    menuClasses: React.PropTypes.string
+    anchorRight: PropTypes.bool,
+    topLevelClasses: PropTypes.string,
+    menuClasses: PropTypes.string
   },
 
   getDefaultProps() {

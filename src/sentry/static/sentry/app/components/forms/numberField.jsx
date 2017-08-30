@@ -1,11 +1,11 @@
-import React from 'react';
+import PropTypes from 'prop-types';
 import InputField from './inputField';
 
 export default class NumberField extends InputField {
   static propTypes = {
     ...InputField.propTypes,
-    min: React.PropTypes.number,
-    max: React.PropTypes.number
+    min: PropTypes.number,
+    max: PropTypes.number
   };
 
   coerceValue(value) {

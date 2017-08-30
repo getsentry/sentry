@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import InputField from './inputField';
 import FormState from './state';
@@ -7,8 +8,8 @@ import FormState from './state';
 export default class PasswordField extends InputField {
   static propTypes = {
     ...InputField.propTypes,
-    hasSavedValue: React.PropTypes.bool,
-    prefix: React.PropTypes.string
+    hasSavedValue: PropTypes.bool,
+    prefix: PropTypes.string
   };
 
   static defaultProps = {

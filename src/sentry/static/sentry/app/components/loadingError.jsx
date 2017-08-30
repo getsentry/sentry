@@ -1,10 +1,11 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import {t} from '../locale';
 
 const LoadingError = React.createClass({
   propTypes: {
-    onRetry: React.PropTypes.func,
-    message: React.PropTypes.string
+    onRetry: PropTypes.func,
+    message: PropTypes.string
   },
 
   getDefaultProps() {
