@@ -883,7 +883,7 @@ class JavascriptIntegrationTest(TestCase):
 
         # ... but line, column numbers are still correctly mapped
         assert frame.lineno == 3
-        assert frame.colno == 8
+        assert frame.colno == 9
 
     @responses.activate
     def test_failed_sourcemap_expansion(self):
