@@ -6,6 +6,7 @@ import {Form, FormState} from '../../components/forms';
 import PluginComponentBase from '../../components/bases/pluginComponentBase';
 import LoadingIndicator from '../../components/loadingIndicator';
 import {t, tct} from '../../locale';
+import {parseRepo} from '../../utils';
 
 class PluginSettings extends PluginComponentBase {
   constructor(props, context) {
@@ -43,8 +44,11 @@ class PluginSettings extends PluginComponentBase {
   }
 
   onSubmit() {
+    let repo = this.state.formData.repo;
+    repo = repo && parseRepo(repo);
+    let parsedFormData = {...this.state.formData, repo: repo};
     this.api.request(this.getPluginEndpoint(), {
-      data: this.state.formData,
+      data: parsedFormData,
       method: 'PUT',
       success: this.onSaveSuccess.bind(this, data => {
         let formData = {};
