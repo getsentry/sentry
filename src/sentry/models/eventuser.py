@@ -109,7 +109,7 @@ class EventUser(Model):
 
         filters = []
         if self.email:
-            filters.append(models.Q(email__iexact=self.email))
+            filters.append(models.Q(email=self.email))
         if self.ip_address:
             filters.append(models.Q(ip_address=self.ip_address))
         if not filters:

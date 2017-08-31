@@ -29,7 +29,7 @@ class OrganizationUserIssuesSearchEndpoint(OrganizationEndpoint):
         )
 
         event_users = EventUser.objects.filter(
-            email__iexact=email,
+            email=email,
             project_id__in=project_ids,
         )[:1000]
 
