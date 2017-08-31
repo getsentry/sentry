@@ -168,6 +168,15 @@ const InstallWizard = React.createClass({
       _.pickBy(options, option => !option.field.disabled),
       option => option.value
     );
+
+    // keys to cast as boolean, otherwise will throw server error
+    // see https://github.com/getsentry/sentry/issues/5699
+    ['mail.use-tls'].forEach(key => {
+      if (typeof data[key] !== 'undefined') {
+        data[key] = !!data[key];
+      }
+    });
+
     this.api.request('/internal/options/', {
       method: 'PUT',
       data: data,
