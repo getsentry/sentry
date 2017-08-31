@@ -1,10 +1,11 @@
+import jQuery from 'jquery';
+import sinon from 'sinon';
+import ConfigStore from 'app/stores/configStore';
+
 jest.mock('app/translations');
 jest.mock('app/api');
 
-import jQuery from 'jquery';
 window.$ = window.jQuery = jQuery;
-
-import sinon from 'sinon';
 window.sinon = sinon;
 
 window.TestStubs = {
@@ -49,7 +50,6 @@ window.TestStubs = {
 window.MockApiClient = require.requireMock('app/api').Client;
 
 // default configuration
-import ConfigStore from 'app/stores/configStore';
 ConfigStore.loadInitialData({
   user: {
     isAuthenticated: true,

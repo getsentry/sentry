@@ -2,10 +2,11 @@ import Modal from 'react-bootstrap/lib/Modal';
 import PureRenderMixin from 'react-addons-pure-render-mixin';
 import PropTypes from 'prop-types';
 import React from 'react';
+import _ from 'lodash';
+
 import SelectedGroupStore from '../../stores/selectedGroupStore';
 import TooltipMixin from '../../mixins/tooltip';
 import {t} from '../../locale';
-import _ from 'lodash';
 
 // TODO(mitsuhiko): very unclear how to translate this
 const ActionLink = React.createClass({

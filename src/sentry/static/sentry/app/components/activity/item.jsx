@@ -1,12 +1,12 @@
-import marked from 'marked';
 import PropTypes from 'prop-types';
 import React from 'react';
+import {Link} from 'react-router';
+import marked from 'marked';
 
 import {CommitLink} from '../../views/releases/releaseCommits';
 import Duration from '../../components/duration';
 import Avatar from '../../components/avatar';
 import IssueLink from '../../components/issueLink';
-import {Link} from 'react-router';
 import MemberListStore from '../../stores/memberListStore';
 import TimeSince from '../../components/timeSince';
 import Version from '../../components/version';

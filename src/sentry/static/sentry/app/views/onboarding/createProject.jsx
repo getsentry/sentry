@@ -1,3 +1,5 @@
+import PropTypes from 'prop-types';
+import Raven from 'raven-js';
 import React from 'react';
 import {browserHistory, Link} from 'react-router';
 
@@ -9,8 +11,6 @@ import {getPlatformName} from './utils';
 import OnboardingProject from '../onboarding/project';
 
 import {t} from '../../locale';
-import PropTypes from 'prop-types';
-import Raven from 'raven-js';
 
 const CreateProject = React.createClass({
   propTypes: {

@@ -1,9 +1,10 @@
 import React from 'react';
 import TestUtils from 'react-addons-test-utils';
-import stubReactComponents from '../../../../helpers/stubReactComponent';
 
 import Frame from 'app/components/events/interfaces/frame';
 import FrameVariables from 'app/components/events/interfaces/frameVariables';
+
+import stubReactComponents from '../../../../helpers/stubReactComponent';
 
 describe('Frame', function() {
   beforeEach(function() {
