@@ -234,15 +234,15 @@ const KeySettings = React.createClass({
   getRateLimitWindows() {
     return [
       ['', ''],
-      [1, '1 minute'],
-      [5, '5 minutes'],
-      [15, '15 minutes'],
-      [60, '1 hour'],
-      [120, '2 hours'],
-      [240, '4 hours'],
-      [360, '6 hours'],
-      [720, '12 hours'],
-      [1440, '24 hours']
+      [60, '1 minute'],
+      [300, '5 minutes'],
+      [900, '15 minutes'],
+      [3600, '1 hour'],
+      [7200, '2 hours'],
+      [14400, '4 hours'],
+      [21600, '6 hours'],
+      [43200, '12 hours'],
+      [86400, '24 hours']
     ];
   },
 
