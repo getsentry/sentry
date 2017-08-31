@@ -80,10 +80,9 @@ tests_require = [
     # /cassandra
     'datadog',
     'msgpack-python<0.5.0',
-    'pytest-cov>=1.8.0,<1.9.0',
+    'pytest-cov>=2.5.1,<2.6.0',
     'pytest-timeout>=0.5.0,<0.6.0',
-    'pytest-xdist>=1.11.0,<1.12.0',
-    'python-coveralls',
+    'pytest-xdist>=1.18.0,<1.19.0',
     'responses<0.6.2',  # 0.6.2 has a bug that causes our tests to fail.
 ]
 
@@ -121,7 +120,7 @@ install_requires = [
     'Pillow>=3.2.0,<3.3.0',
     'progressbar2>=3.10,<3.11',
     'psycopg2>=2.6.0,<2.7.0',
-    'pytest>=2.8.0,<2.9.0',
+    'pytest>=3.1.2,<3.2.0',
     'pytest-django>=2.9.1,<2.10.0',
     'pytest-html>=1.9.0,<1.10.0',
     'python-dateutil>=2.0.0,<3.0.0',
