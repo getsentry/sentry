@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import {browserHistory} from 'react-router';
 import Reflux from 'reflux';
 
 import {t} from '../../locale';
@@ -7,7 +8,6 @@ import GroupingActions from '../../actions/groupingActions';
 import GroupingStore from '../../stores/groupingStore';
 import LoadingError from '../../components/loadingError';
 import LoadingIndicator from '../../components/loadingIndicator';
-import MergedList from './mergedList';
 import ProjectState from '../../mixins/projectState';
 import SimilarList from './similarList';
 
@@ -20,10 +20,8 @@ const GroupGroupingView = React.createClass({
 
   getInitialState() {
     return {
-      mergedItems: [],
       similarItems: [],
       filteredSimilarItems: [],
-      mergedLinks: [],
       similarLinks: [],
       loading: true,
       error: false
@@ -44,28 +42,28 @@ const GroupGroupingView = React.createClass({
   },
 
   onGroupingUpdate({
-    mergedItems,
-    mergedLinks,
+    mergedParent,
     similarItems,
     similarLinks,
     filteredSimilarItems,
     loading,
     error
   }) {
-    if (mergedItems && similarItems) {
+    if (similarItems) {
       this.setState({
-        mergedItems,
-        mergedLinks,
         similarItems,
         similarLinks,
         filteredSimilarItems,
         loading: typeof loading !== 'undefined' ? loading : false,
         error: typeof error !== 'undefined' ? error : false
       });
+    } else if (mergedParent && mergedParent !== this.props.params.groupId) {
+      // Merge success, since we can't specify target, we need to redirect to new parent
+      browserHistory.push(`/issues/${mergedParent}/similar/`);
     }
   },
 
-  getEndpoint(type) {
+  getEndpoint(type = 'similar') {
     let params = this.props.params;
     let queryParams = {
       ...this.props.location.query,
@@ -82,13 +80,7 @@ const GroupGroupingView = React.createClass({
       error: false
     });
 
-    let reqs = [
-      {
-        endpoint: this.getEndpoint('hashes'),
-        dataKey: 'merged',
-        queryParams: this.props.location.query
-      }
-    ];
+    let reqs = [];
 
     if (projectFeatures.has('similarity-view')) {
       reqs.push({
@@ -112,29 +104,17 @@ const GroupGroupingView = React.createClass({
     }
   },
 
-  handleUnmerge() {
-    let {params} = this.props;
-
-    GroupingActions.unmerge({
-      groupId: params.groupId,
-      loadingMessage: `${t('Unmerging events')}...`,
-      successMessage: t('Events successfully queued for unmerging.'),
-      errorMessage: t('Unable to queue events for unmerging.')
-    });
-  },
-
   render() {
     let {orgId, projectId, groupId} = this.props.params;
     let isLoading = this.state.loading;
     let isError = this.state.error && !isLoading;
+    let isLoadedSuccessfully = !isError && !isLoading;
     let projectFeatures = this.getProjectFeatures();
-    let hasMergedItems = this.state.mergedItems.length >= 0 && !isError && !isLoading;
     let hasSimilarItems =
       projectFeatures.has('similarity-view') &&
       (this.state.similarItems.length >= 0 ||
         this.state.filteredSimilarItems.length >= 0) &&
-      !isError &&
-      !isLoading;
+      isLoadedSuccessfully;
 
     return (
       <div>
@@ -142,7 +122,7 @@ const GroupGroupingView = React.createClass({
           <strong>{t('Warning')}:</strong>
           {' '}
           {t(
-            'This is an experimental feature. Data may not be immediately available while we process the unmerge.'
+            'This is an experimental feature. Data may not be immediately available while we process merges.'
           )}
         </div>
 
@@ -156,19 +136,8 @@ const GroupGroupingView = React.createClass({
             onMerge={this.handleMerge}
             orgId={orgId}
             projectId={projectId}
-            pageLinks={this.state.similarLinks}
-          />}
-
-        {hasMergedItems &&
-          <MergedList
-            items={this.state.mergedItems}
-            onUnmerge={this.handleUnmerge}
-            orgId={orgId}
-            projectId={projectId}
             groupId={groupId}
-            pageLinks={this.state.mergedLinks}
-            busyMap={this.state.busy}
-            hiddenMap={this.state.hidden}
+            pageLinks={this.state.similarLinks}
           />}
 
       </div>

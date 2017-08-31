@@ -9,15 +9,16 @@ import {getPlatformName} from './utils';
 import OnboardingProject from '../onboarding/project';
 
 import {t} from '../../locale';
+import PropTypes from 'prop-types';
 import Raven from 'raven-js';
 
 const CreateProject = React.createClass({
   propTypes: {
-    getDocsUrl: React.PropTypes.func
+    getDocsUrl: PropTypes.func
   },
 
   contextTypes: {
-    location: React.PropTypes.object
+    location: PropTypes.object
   },
 
   mixins: [ApiMixin, OrganizationState],

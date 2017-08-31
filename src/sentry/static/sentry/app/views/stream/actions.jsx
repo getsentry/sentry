@@ -17,6 +17,8 @@ import CustomIgnoreCountModal from '../../components/customIgnoreCountModal';
 import CustomIgnoreDurationModal from '../../components/customIgnoreDurationModal';
 import CustomResolutionModal from '../../components/customResolutionModal';
 import Checkbox from '../../components/checkbox';
+import Toolbar from '../../components/toolbar';
+import ToolbarHeader from '../../components/toolbarHeader';
 
 const IgnoreActions = React.createClass({
   propTypes: {
@@ -546,7 +548,7 @@ const StreamActions = React.createClass({
 
     return (
       <div>
-        <div className="stream-actions row">
+        <Toolbar className="stream-actions row">
           <div className="stream-actions-left col-md-6 col-sm-8 col-xs-8">
             <div className="checkbox">
               <Checkbox
@@ -748,10 +750,12 @@ const StreamActions = React.createClass({
               </a>
             </div>
           </div>
-          <div className="hidden-sm stream-actions-assignee col-md-1" />
+          <div className="hidden-sm steream-actions-assignee col-md-1" />
           <div className="stream-actions-level col-md-1 hidden-xs" />
           <div className="hidden-sm hidden-xs stream-actions-graph col-md-2">
-            <span className="stream-actions-graph-label">{t('Graph:')}</span>
+            <ToolbarHeader className="stream-actions-graph-label">
+              {t('Graph:')}
+            </ToolbarHeader>
             <ul className="toggle-graph">
               <li className={this.props.statsPeriod === '24h' ? 'active' : ''}>
                 <a onClick={this.selectStatsPeriod.bind(this, '24h')}>{t('24h')}</a>
@@ -761,13 +765,14 @@ const StreamActions = React.createClass({
               </li>
             </ul>
           </div>
-          <div className="stream-actions-count align-right col-md-1 col-sm-2 col-xs-2">
+          <ToolbarHeader className="stream-actions-count align-right col-md-1 col-sm-2 col-xs-2">
             {t('Events')}
-          </div>
-          <div className="stream-actions-users align-right col-md-1 col-sm-2 col-xs-2">
+          </ToolbarHeader>
+          <ToolbarHeader className="stream-actions-users align-right col-md-1 col-sm-2 col-xs-2">
             {t('Users')}
-          </div>
-        </div>
+          </ToolbarHeader>
+        </Toolbar>
+
         {!this.props.allResultsVisible &&
           this.state.pageSelected &&
           <div className="row stream-select-all-notice">

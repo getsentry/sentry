@@ -12,6 +12,8 @@ class ProjectIssuesGroupingTest(AcceptanceTestCase):
         super(ProjectIssuesGroupingTest, self).setUp()
         self.user = self.create_user('foo@example.com')
         self.org = self.create_organization(owner=self.user, name='Rowdy Tiger')
+        self.org.flags.early_adopter = True
+        self.org.save()
         self.team = self.create_team(organization=self.org, name='Mariachi Band')
         self.project = self.create_project(
             organization=self.org,
@@ -33,13 +35,14 @@ class ProjectIssuesGroupingTest(AcceptanceTestCase):
         )
         return event
 
-    def test_issues_grouping_tab(self):
-        event = self.create_sample_event(
-            platform='python',
-        )
+    # TODO(billy): skip until we enable for early adopters
+    #  def test_issues_similar_issues_tab(self):
+        #  event = self.create_sample_event(
+        #  platform='python',
+        #  )
 
-        self.browser.get(
-            '/{}/{}/issues/{}/grouping/'.format(self.org.slug, self.project.slug, event.group.id)
-        )
-        self.browser.wait_until('.grouping-merged-list-container')
-        self.browser.snapshot('issue details grouping tab')
+        #  self.browser.get(
+        #  '/{}/{}/issues/{}/similar/'.format(self.org.slug, self.project.slug, event.group.id)
+        #  )
+        #  self.browser.wait_until('.similar-list-container')
+        #  self.browser.snapshot('issue details, similar issues tab')

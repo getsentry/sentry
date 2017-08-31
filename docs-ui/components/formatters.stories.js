@@ -9,10 +9,9 @@ import DateTime from 'sentry-ui/dateTime';
 import Count from 'sentry-ui/count';
 
 storiesOf('Formatters', module)
-  .addWithInfo(
+  .add(
     'DateTime',
-    'Formats number (in ms or seconds) into a datetime string',
-    () => (
+    withInfo('Formats number (in ms or seconds) into a datetime string')(() => (
       <div>
         <div>
           <DateTime date={1500000000000} />
@@ -21,7 +20,7 @@ storiesOf('Formatters', module)
           <DateTime seconds={false} date={1500000000000} />
         </div>
       </div>
-    )
+    ))
   )
   .add(
     'FileSize',

@@ -98,6 +98,9 @@
     "setupFiles": [
       "<rootDir>/tests/js/setup.js"
     ],
+    "testPathIgnorePatterns": [
+      "<rootDir>/tests/sentry/lang/javascript/"
+    ],
     "unmockedModulePathPatterns": [
       "<rootDir>/node_modules/react",
       "<rootDir>/node_modules/reflux"
@@ -107,6 +110,7 @@
     "@percy-io/react-percy-storybook": "^1.0.2",
     "@storybook/addon-actions": "^3.2.0",
     "@storybook/addon-info": "^3.2.0",
+    "@storybook/addon-knobs": "^3.2.0",
     "@storybook/react": "^3.2.0",
     "babel-eslint": "7.1.1",
     "babel-jest": "^19.0.0",

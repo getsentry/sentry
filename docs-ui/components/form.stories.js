@@ -15,7 +15,7 @@ storiesOf('Forms/Form', module)
     ))
   );
 
-storiesOf('Forms/Fields')
+storiesOf('Forms/Fields', module)
   .add(
     'TextField',
     withInfo('Simple text input')(() => (

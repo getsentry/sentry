@@ -81,6 +81,13 @@ const Event = PropTypes.shape({
   user: PropTypes.object
 });
 
+const Tag = PropTypes.shape({
+  id: PropTypes.string.isRequired,
+  key: PropTypes.string.isRequired,
+  name: PropTypes.string.isRequired,
+  uniqueValues: PropTypes.number
+});
+
 let SentryTypes = {
   AnyModel: PropTypes.shape({
     id: PropTypes.string.isRequired
@@ -90,6 +97,7 @@ let SentryTypes = {
   Organization: PropTypes.shape({
     id: PropTypes.string.isRequired
   }),
+  Tag,
   Project: PropTypes.shape({
     id: PropTypes.string.isRequired
   }),
