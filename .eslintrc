@@ -149,6 +149,7 @@
       2,
       "never"
     ], // http://eslint.org/docs/rules/space-in-brackets.html
+    "object-shorthand": [2, "properties"], // https://eslint.org/docs/rules/object-shorthand
     "space-infix-ops": 2, // http://eslint.org/docs/rules/space-infix-ops.html
     "vars-on-top": 0, // http://eslint.org/docs/rules/vars-on-top
     "wrap-iife": [

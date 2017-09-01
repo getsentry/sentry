@@ -61,7 +61,7 @@ const OrganizationSettingsForm = React.createClass({
     };
     this.setState({
       hasChanges: true,
-      formData: formData
+      formData
     });
   },
 
@@ -331,7 +331,7 @@ const OrganizationSettings = React.createClass({
       method: 'GET',
       success: data => {
         this.setState({
-          data: data,
+          data,
           loading: false
         });
       },
@@ -346,7 +346,7 @@ const OrganizationSettings = React.createClass({
 
   onSave(data) {
     // TODO(dcramer): this should propagate
-    this.setState({data: data});
+    this.setState({data});
     OrganizationStore.add(data);
   },
 

@@ -45,7 +45,7 @@ const AvatarCropper = React.createClass({
     this.revokeObjectUrl();
     this.setState(
       {
-        file: file,
+        file,
         objectURL: window.URL.createObjectURL(file)
       },
       () => {

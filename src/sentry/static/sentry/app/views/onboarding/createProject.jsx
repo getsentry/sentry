@@ -41,7 +41,7 @@ const CreateProject = React.createClass({
       error: false,
       platform: '',
       projectName: '',
-      team: team,
+      team,
       inFlight: false
     };
   },
@@ -64,7 +64,7 @@ const CreateProject = React.createClass({
       method: 'POST',
       data: {
         name: projectName,
-        platform: platform
+        platform
       },
       success: data => {
         ProjectActions.createSuccess(data);
@@ -100,7 +100,7 @@ const CreateProject = React.createClass({
 
     const stepProps = {
       next: this.createProject,
-      platform: platform,
+      platform,
       setPlatform: p => {
         if (!projectName || (platform && getPlatformName(platform) === projectName)) {
           this.setState({projectName: getPlatformName(p)});

@@ -268,9 +268,9 @@ const ProjectSelector = React.createClass({
       });
     });
     return {
-      projectList: projectList,
-      activeTeam: activeTeam,
-      activeProject: activeProject
+      projectList,
+      activeTeam,
+      activeProject
     };
   },
 

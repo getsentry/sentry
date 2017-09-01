@@ -46,8 +46,8 @@ const ProjectInstallPlatform = React.createClass({
     return {
       loading: true,
       error: false,
-      integration: integration,
-      platform: platform,
+      integration,
+      platform,
       html: null
     };
   },

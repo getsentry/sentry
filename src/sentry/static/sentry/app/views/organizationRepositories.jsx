@@ -265,7 +265,7 @@ const OrganizationRepositories = React.createClass({
           }
         });
         this.setState({
-          itemList: itemList
+          itemList
         });
       },
       error: () => {
@@ -292,7 +292,7 @@ const OrganizationRepositories = React.createClass({
           }
         });
         this.setState({
-          itemList: itemList
+          itemList
         });
       },
       error: () => {

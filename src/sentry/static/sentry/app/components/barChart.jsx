@@ -34,7 +34,7 @@ const BarChart = React.createClass({
     let points = this.props.points.map(point => {
       return {x: point.x, y: [point.y]};
     });
-    let props = Object.assign({}, this.props, {points: points});
+    let props = Object.assign({}, this.props, {points});
     return <StackedBarChart {...props} />;
   }
 });

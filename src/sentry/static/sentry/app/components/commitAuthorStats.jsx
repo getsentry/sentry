@@ -90,7 +90,7 @@ const CommitAuthorStats = React.createClass({
       if (!_commitAuthors.hasOwnProperty(author.email)) {
         _commitAuthors[author.email] = {
           commitCount: 1,
-          author: author
+          author
         };
       } else {
         _commitAuthors[author.email].commitCount += 1;

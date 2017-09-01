@@ -61,9 +61,9 @@ const NoteInput = React.createClass({
       errorJSON: null,
       expanded: false,
       preview: false,
-      updating: updating,
+      updating,
       value: defaultText,
-      mentionsList: mentionsList,
+      mentionsList,
       mentions: []
     };
   },
@@ -126,7 +126,7 @@ const NoteInput = React.createClass({
       method: 'POST',
       data: {
         text: this.state.value,
-        mentions: mentions
+        mentions
       },
       error: error => {
         this.setState({

@@ -84,7 +84,7 @@ const StackedBarChart = React.createClass({
           if (!series[yIdx]) {
             series[yIdx] = {data: []};
           }
-          series[yIdx].data.push({x: p.x, y: y});
+          series[yIdx].data.push({x: p.x, y});
         });
       });
       return series;
@@ -131,7 +131,7 @@ const StackedBarChart = React.createClass({
     }
 
     return {
-      series: series,
+      series,
       pointIndex: StackedBarChart.pointIndex(series),
       interval: StackedBarChart.getInterval(series)
     };
@@ -149,7 +149,7 @@ const StackedBarChart = React.createClass({
       }
 
       this.setState({
-        series: series,
+        series,
         pointIndex: StackedBarChart.pointIndex(series),
         interval: StackedBarChart.getInterval(series)
       });

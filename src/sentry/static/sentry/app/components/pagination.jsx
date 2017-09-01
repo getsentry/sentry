@@ -20,7 +20,7 @@ export default React.createClass({
       onCursor: (cursor, path, query) => {
         browserHistory.pushState(null, path, {
           ...query,
-          cursor: cursor
+          cursor
         });
       }
     };

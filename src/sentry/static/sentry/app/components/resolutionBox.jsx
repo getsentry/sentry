@@ -16,21 +16,21 @@ export default React.createClass({
   renderReason() {
     let {params, statusDetails} = this.props;
     let actor = statusDetails.actor
-      ? <strong>
+      ? (<strong>
           <Avatar user={statusDetails.actor} size={20} className="avatar" />
           <span style={{marginLeft: 5}}>{statusDetails.actor.name}</span>
-        </strong>
+        </strong>)
       : null;
 
     if (statusDetails.inNextRelease && statusDetails.actor) {
       return tct('[actor] marked this issue as resolved in the upcoming release.', {
-        actor: actor
+        actor
       });
     } else if (statusDetails.inNextRelease) {
       return t('This issue has been marked as resolved in the upcoming release.');
     } else if (statusDetails.inRelease && statusDetails.actor) {
       return tct('[actor] marked this issue as resolved in version [version].', {
-        actor: actor,
+        actor,
         version: (
           <Version
             version={statusDetails.inRelease}
