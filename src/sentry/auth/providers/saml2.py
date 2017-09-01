@@ -448,6 +448,19 @@ class SAML2Provider(Provider):
         return OneLogin_Saml2_Auth(req, config)
 
     @staticmethod
+    def extract_idp_data_from_parsed_data(data):
+        idp_data = {}
+        if 'entityId' in data['idp']:
+            idp_data['idp_entityid'] = data['idp']['entityId']
+        if 'singleSignOnService' in data['idp'] and 'url' in data['idp']['singleSignOnService']:
+            idp_data['idp_sso_url'] = data['idp']['singleSignOnService']['url']
+        if 'singleLogoutService' in data['idp'] and 'url' in data['idp']['singleLogoutService']:
+            idp_data['idp_slo_url'] = data['idp']['singleLogoutService']['url']
+        if 'x509cert' in data['idp']:
+            idp_data['idp_x509cert'] = data['idp']['x509cert']
+        return idp_data
+
+    @staticmethod
     def extract_idp_data_from_form(form):
         idp_data = {
             'idp_entityid': form.cleaned_data.get('idp_entityid', None),
