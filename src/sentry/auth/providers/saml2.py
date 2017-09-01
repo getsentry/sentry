@@ -136,7 +136,7 @@ class SAML2ConfigureView(ConfigureView):
         if self.saml_form_cls is None or self.advanced_form_cls is None:
             raise NotImplementedError('Custom forms may be defined by the extended class')
 
-        if request.POST:
+        if request.method == 'POST':
             data = request.POST
             saml_form = self.saml_form_cls(data)
             options_form = OptionsForm(data)
