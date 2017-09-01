@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 
 import ApiMixin from '../../mixins/apiMixin';
@@ -10,8 +11,8 @@ import {t, tct} from '../../locale';
 
 const ProjectInstallPlatform = React.createClass({
   propTypes: {
-    platformData: React.PropTypes.object.isRequired,
-    linkPath: React.PropTypes.func
+    platformData: PropTypes.object.isRequired,
+    linkPath: PropTypes.func
   },
 
   mixins: [ApiMixin],
@@ -45,8 +46,8 @@ const ProjectInstallPlatform = React.createClass({
     return {
       loading: true,
       error: false,
-      integration: integration,
-      platform: platform,
+      integration,
+      platform,
       html: null
     };
   },
@@ -160,8 +161,6 @@ const ProjectInstallPlatform = React.createClass({
                 : <div dangerouslySetInnerHTML={{__html: this.state.html}} />}
 
           {this.isGettingStarted() &&
-            // Using <a /> instead of <Link /> as hashchange events are not
-            // triggered when switching views within React Router
             <p>
               <Link
                 to={`/${orgId}/${projectId}/#welcome`}

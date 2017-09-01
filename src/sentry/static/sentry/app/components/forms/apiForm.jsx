@@ -1,4 +1,4 @@
-import React from 'react';
+import PropTypes from 'prop-types';
 
 import {Client} from '../../api';
 import IndicatorStore from '../../stores/indicatorStore';
@@ -9,9 +9,9 @@ import {t} from '../../locale';
 export default class ApiForm extends Form {
   static propTypes = {
     ...Form.propTypes,
-    onSubmit: React.PropTypes.func,
-    apiMethod: React.PropTypes.string.isRequired,
-    apiEndpoint: React.PropTypes.string.isRequired
+    onSubmit: PropTypes.func,
+    apiMethod: PropTypes.string.isRequired,
+    apiEndpoint: PropTypes.string.isRequired
   };
 
   constructor(props, context) {
@@ -41,7 +41,7 @@ export default class ApiForm extends Form {
         let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
         this.api.request(this.props.apiEndpoint, {
           method: this.props.apiMethod,
-          data: data,
+          data,
           success: result => {
             IndicatorStore.remove(loadingIndicator);
             this.onSubmitSuccess(result);

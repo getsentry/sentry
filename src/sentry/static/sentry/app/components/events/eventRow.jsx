@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import Router from 'react-router';
 import EventStore from '../../stores/eventStore';
@@ -6,9 +7,9 @@ import TimeSince from '../timeSince';
 
 const EventRow = React.createClass({
   propTypes: {
-    id: React.PropTypes.string.isRequired,
-    orgSlug: React.PropTypes.string.isRequired,
-    projectSlug: React.PropTypes.string.isRequired
+    id: PropTypes.string.isRequired,
+    orgSlug: PropTypes.string.isRequired,
+    projectSlug: PropTypes.string.isRequired
   },
 
   getInitialState() {

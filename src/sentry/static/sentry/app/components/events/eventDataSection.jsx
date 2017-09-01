@@ -1,16 +1,17 @@
+import PropTypes from 'prop-types';
 import React from 'react';
-import PropTypes from '../../proptypes';
+import SentryTypes from '../../proptypes';
 import {t} from '../../locale';
 
 const GroupEventDataSection = React.createClass({
   propTypes: {
-    group: PropTypes.Group.isRequired,
-    event: PropTypes.Event.isRequired,
-    title: React.PropTypes.any,
-    type: React.PropTypes.string.isRequired,
-    wrapTitle: React.PropTypes.bool,
-    toggleRaw: React.PropTypes.func,
-    raw: React.PropTypes.bool
+    group: SentryTypes.Group.isRequired,
+    event: SentryTypes.Event.isRequired,
+    title: PropTypes.any,
+    type: PropTypes.string.isRequired,
+    wrapTitle: PropTypes.bool,
+    toggleRaw: PropTypes.func,
+    raw: PropTypes.bool
   },
 
   getDefaultProps() {

@@ -1,5 +1,6 @@
+import PropTypes from 'prop-types';
 import React from 'react';
-import PropTypes from '../../../proptypes';
+import SentryTypes from '../../../proptypes';
 import EventDataSection from '../eventDataSection';
 import ClippedBox from '../../clippedBox';
 import KeyValueList from './keyValueList';
@@ -7,9 +8,9 @@ import {t} from '../../../locale';
 
 const DebugMetaInterface = React.createClass({
   propTypes: {
-    group: PropTypes.Group.isRequired,
-    event: PropTypes.Event.isRequired,
-    data: React.PropTypes.object.isRequired
+    group: SentryTypes.Group.isRequired,
+    event: SentryTypes.Event.isRequired,
+    data: PropTypes.object.isRequired
   },
 
   getImageDetail(img, evt) {

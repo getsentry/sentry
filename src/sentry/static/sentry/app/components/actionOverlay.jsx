@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import OrganizationState from '../mixins/organizationState';
 import {t} from '../locale';
@@ -6,12 +7,12 @@ import LoadingIndicator from '../components/loadingIndicator';
 
 const ActionOverlay = React.createClass({
   propTypes: {
-    actionId: React.PropTypes.string.isRequired,
-    isLoading: React.PropTypes.bool
+    actionId: PropTypes.string.isRequired,
+    isLoading: PropTypes.bool
   },
 
   contextTypes: {
-    router: React.PropTypes.object.isRequired
+    router: PropTypes.object.isRequired
   },
 
   mixins: [OrganizationState],

@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 
 import ApiMixin from '../mixins/apiMixin';
@@ -17,10 +18,10 @@ import {extractMultilineFields} from '../utils';
 
 const OrganizationSettingsForm = React.createClass({
   propTypes: {
-    orgId: React.PropTypes.string.isRequired,
-    access: React.PropTypes.object.isRequired,
-    initialData: React.PropTypes.object.isRequired,
-    onSave: React.PropTypes.func.isRequired
+    orgId: PropTypes.string.isRequired,
+    access: PropTypes.object.isRequired,
+    initialData: PropTypes.object.isRequired,
+    onSave: PropTypes.func.isRequired
   },
 
   mixins: [ApiMixin],
@@ -60,7 +61,7 @@ const OrganizationSettingsForm = React.createClass({
     };
     this.setState({
       hasChanges: true,
-      formData: formData
+      formData
     });
   },
 
@@ -330,7 +331,7 @@ const OrganizationSettings = React.createClass({
       method: 'GET',
       success: data => {
         this.setState({
-          data: data,
+          data,
           loading: false
         });
       },
@@ -345,7 +346,7 @@ const OrganizationSettings = React.createClass({
 
   onSave(data) {
     // TODO(dcramer): this should propagate
-    this.setState({data: data});
+    this.setState({data});
     OrganizationStore.add(data);
   },
 

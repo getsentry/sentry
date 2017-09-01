@@ -1,60 +1,67 @@
+import PropTypes from 'prop-types';
 import React from 'react';
+import _ from 'lodash';
 
 import AlertActions from '../actions/alertActions';
-
+import Avatar from '../components/avatar';
+import EventOrGroupHeader from '../components/eventOrGroupHeader';
 import LoadingError from '../components/loadingError';
 import LinkWithConfirmation from '../components/linkWithConfirmation';
+import TooltipMixin from '../mixins/tooltip';
 
 import ApiMixin from '../mixins/apiMixin';
 
-import {t, tct} from '../locale';
+import {t} from '../locale';
 
 const GroupTombstoneRow = React.createClass({
   propTypes: {
-    data: React.PropTypes.object.isRequired,
-    undiscard: React.PropTypes.func.isRequired
+    data: PropTypes.object.isRequired,
+    undiscard: PropTypes.func.isRequired,
+    orgId: PropTypes.string.isRequired,
+    projectId: PropTypes.string.isRequired
   },
+
+  mixins: [
+    TooltipMixin({
+      selector: '.tip'
+    })
+  ],
+
   render() {
-    let {data, undiscard} = this.props;
+    let {data, undiscard} = this.props, actor = data.actor;
+
     return (
       <li className={`group row level-${data.level} type-${data.type}`}>
-        <div className="col-md-7 col-xs-8 event-details">
-          <div>
-            <h3 className="truncate">
-              <span className="error-level truncate" title={data.level}>
-                {data.level}
-              </span>
-              <span>
-                <span style={{marginRight: 10}}>{data.type}</span>
-                <em>{data.culprit}</em><br />
-              </span>
-            </h3>
-            <div className="event-message truncate">
-              <span className="message">{data.message}</span>
-            </div>
-            <div className="event-extra">
-
-              <LinkWithConfirmation
-                title={t('Undiscard')}
-                className="btn btn-warning btn-xs"
-                message={t(
-                  'Undiscarding this group means that ' +
-                    'incoming events that match this will no longer be discarded. ' +
-                    'New incoming events will count toward your event quota ' +
-                    'and will display on your issues dashboard. ' +
-                    'Are you sure you wish to continue?'
-                )}
-                onConfirm={() => {
-                  undiscard(data.id);
-                }}>
-                <span>{t('Undiscard')}</span>
-              </LinkWithConfirmation>
-              {data.actor &&
-                <span style={{marginLeft: 10}} className="event-message actor">
-                  {tct('discarded by [actor]', {actor: data.actor.name})}
-                </span>}
-            </div>
-          </div>
+        <div className="col-md-10 event-details issue">
+          <EventOrGroupHeader
+            includeLink={false}
+            hideIcons={true}
+            {..._.omit(this.props, 'undiscard')}
+          />
+        </div>
+        <div className="col-md-1 event-actor">
+          {actor &&
+            <span className="tip" title={t('Discarded by %s', actor.name || actor.email)}>
+              <Avatar user={data.actor} />
+            </span>}
+        </div>
+        <div className="col-md-1 event-undiscard">
+          <span className="tip" title={t('Undiscard')}>
+            <LinkWithConfirmation
+              className="group-remove btn btn-default btn-sm"
+              message={t(
+                'Undiscarding this group means that ' +
+                  'incoming events that match this will no longer be discarded. ' +
+                  'New incoming events will count toward your event quota ' +
+                  'and will display on your issues dashboard. ' +
+                  'Are you sure you wish to continue?'
+              )}
+              onConfirm={() => {
+                undiscard(data.id);
+              }}>
+              <span className="icon-trash undiscard" />
+            </LinkWithConfirmation>
+          </span>
         </div>
       </li>
     );
@@ -63,11 +70,11 @@ const GroupTombstoneRow = React.createClass({
 
 const GroupTombstones = React.createClass({
   propTypes: {
-    orgId: React.PropTypes.string.isRequired,
-    projectId: React.PropTypes.string.isRequired,
-    tombstones: React.PropTypes.array.isRequired,
-    tombstoneError: React.PropTypes.bool.isRequired,
-    fetchData: React.PropTypes.func.isRequired
+    orgId: PropTypes.string.isRequired,
+    projectId: PropTypes.string.isRequired,
+    tombstones: PropTypes.array.isRequired,
+    tombstoneError: PropTypes.bool.isRequired,
+    fetchData: PropTypes.func.isRequired
   },
 
   mixins: [ApiMixin],
@@ -100,11 +107,11 @@ const GroupTombstones = React.createClass({
   render() {
     if (this.props.tombstoneError) return <LoadingError />;
 
-    let {tombstones} = this.props;
+    let {tombstones, orgId, projectId} = this.props;
     return (
       <div>
         <div className="row" style={{paddingTop: 10}}>
-          <div className="col-sm-8">
+          <div className="col-md-12 discarded-groups">
             <h5>{t('Discarded Groups')}</h5>
             {tombstones.length
               ? <ul className="group-list">
@@ -113,6 +120,8 @@ const GroupTombstones = React.createClass({
                       <GroupTombstoneRow
                         key={data.id}
                         data={data}
+                        orgId={orgId}
+                        projectId={projectId}
                         undiscard={this.undiscard}
                       />
                     );

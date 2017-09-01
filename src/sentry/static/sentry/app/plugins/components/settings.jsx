@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import _ from 'lodash';
 
@@ -5,6 +6,7 @@ import {Form, FormState} from '../../components/forms';
 import PluginComponentBase from '../../components/bases/pluginComponentBase';
 import LoadingIndicator from '../../components/loadingIndicator';
 import {t, tct} from '../../locale';
+import {parseRepo} from '../../utils';
 
 class PluginSettings extends PluginComponentBase {
   constructor(props, context) {
@@ -38,12 +40,15 @@ class PluginSettings extends PluginComponentBase {
     // upon changing a field, remove errors
     let errors = this.state.errors;
     delete errors[name];
-    this.setState({formData: formData, errors: errors});
+    this.setState({formData, errors});
   }
 
   onSubmit() {
+    let repo = this.state.formData.repo;
+    repo = repo && parseRepo(repo);
+    let parsedFormData = {...this.state.formData, repo};
     this.api.request(this.getPluginEndpoint(), {
-      data: this.state.formData,
+      data: parsedFormData,
       method: 'PUT',
       success: this.onSaveSuccess.bind(this, data => {
         let formData = {};
@@ -54,8 +59,8 @@ class PluginSettings extends PluginComponentBase {
         });
         this.setState({
           fieldList: data.config,
-          formData: formData,
-          initialData: initialData,
+          formData,
+          initialData,
           errors: {}
         });
       }),
@@ -89,8 +94,8 @@ class PluginSettings extends PluginComponentBase {
         this.setState(
           {
             fieldList: data.config,
-            formData: formData,
-            initialData: initialData
+            formData,
+            initialData
             // call this here to prevent FormState.READY from being
             // set before fieldList is
           },
@@ -164,9 +169,9 @@ class PluginSettings extends PluginComponentBase {
 }
 
 PluginSettings.propTypes = {
-  organization: React.PropTypes.object.isRequired,
-  project: React.PropTypes.object.isRequired,
-  plugin: React.PropTypes.object.isRequired
+  organization: PropTypes.object.isRequired,
+  project: PropTypes.object.isRequired,
+  plugin: PropTypes.object.isRequired
 };
 
 export default PluginSettings;

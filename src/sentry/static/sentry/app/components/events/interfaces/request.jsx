@@ -1,6 +1,7 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import GroupEventDataSection from '../eventDataSection';
-import PropTypes from '../../../proptypes';
+import SentryTypes from '../../../proptypes';
 import RichHttpContent from './richHttpContent';
 import {getCurlCommand} from './utils';
 import {isUrl} from '../../../utils';
@@ -10,16 +11,16 @@ import Truncate from '../../../components/truncate';
 
 const RequestInterface = React.createClass({
   propTypes: {
-    group: PropTypes.Group.isRequired,
-    event: PropTypes.Event.isRequired,
-    type: React.PropTypes.string.isRequired,
-    data: React.PropTypes.object.isRequired,
-    isShare: React.PropTypes.bool
+    group: SentryTypes.Group.isRequired,
+    event: SentryTypes.Event.isRequired,
+    type: PropTypes.string.isRequired,
+    data: PropTypes.object.isRequired,
+    isShare: PropTypes.bool
   },
 
   contextTypes: {
-    organization: PropTypes.Organization,
-    project: PropTypes.Project
+    organization: SentryTypes.Organization,
+    project: SentryTypes.Project
   },
 
   getInitialState() {

@@ -1,16 +1,14 @@
 import React from 'react';
-import {browserHistory, Link} from 'react-router';
+import {browserHistory} from 'react-router';
 
 import ApiMixin from '../mixins/apiMixin';
-import DateTime from '../components/dateTime';
-import Avatar from '../components/avatar';
 import GroupState from '../mixins/groupState';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
 import Pagination from '../components/pagination';
-import SearchBar from '../components/searchBar.jsx';
+import SearchBar from '../components/searchBar';
+import EventsTable from '../components/eventsTable/eventsTable';
 import {t} from '../locale';
-import {deviceNameMapper} from '../utils';
 
 const GroupEvents = React.createClass({
   mixins: [ApiMixin, GroupState],
@@ -98,21 +96,6 @@ const GroupEvents = React.createClass({
     });
   },
 
-  getEventTitle(event) {
-    switch (event.type) {
-      case 'error':
-        if (event.metadata.type && event.metadata.value)
-          return `${event.metadata.type}: ${event.metadata.value}`;
-        return event.metadata.type || event.metadata.value || event.metadata.title;
-      case 'csp':
-        return event.metadata.message;
-      case 'default':
-        return event.metadata.title;
-      default:
-        return event.message.split('\n')[0];
-    }
-  },
-
   renderNoQueryResults() {
     return (
       <div className="box empty-stream">
@@ -133,84 +116,16 @@ const GroupEvents = React.createClass({
 
   renderResults() {
     let group = this.getGroup();
-    let tagList = group.tags.filter(tag => {
-      return tag.key !== 'user';
-    });
-
-    let hasUser = false;
-    for (let i = 0; i < this.state.eventList.length; i++) {
-      if (this.state.eventList[i].user) {
-        hasUser = true;
-        break;
-      }
-    }
-
-    let {orgId, projectId, groupId} = this.props.params;
-
-    let children = this.state.eventList.map(event => {
-      let tagMap = {};
-      event.tags.forEach(tag => {
-        tagMap[tag.key] = tag.value;
-      });
-
-      return (
-        <tr key={event.id}>
-          <td>
-            <h5>
-              <Link to={`/${orgId}/${projectId}/issues/${groupId}/events/${event.id}/`}>
-                <DateTime date={event.dateCreated} />
-              </Link>
-              <small>{(this.getEventTitle(event) || '').substr(0, 100)}</small>
-            </h5>
-          </td>
-          {tagList.map(tag => {
-            return (
-              <td key={tag.key}>
-                {tag.key === 'device'
-                  ? deviceNameMapper(tagMap[tag.key])
-                  : tagMap[tag.key]}
-              </td>
-            );
-          })}
-          {hasUser &&
-            <td className="event-user table-user-info">
-              {event.user
-                ? <div>
-                    <Avatar
-                      user={event.user}
-                      size={64}
-                      className="avatar"
-                      gravatar={false}
-                    />
-                    {event.user.email}
-                  </div>
-                : <span>—</span>}
-            </td>}
-        </tr>
-      );
-    });
+    let tagList = group.tags.filter(tag => tag.key !== 'user') || [];
 
     return (
       <div>
         <div className="event-list">
-          <table className="table">
-            <thead>
-              <tr>
-                <th>{t('ID')}</th>
-                {tagList.map(tag => {
-                  return (
-                    <th key={tag.key}>
-                      {tag.name}
-                    </th>
-                  );
-                })}
-                {hasUser && <th>{t('User')}</th>}
-              </tr>
-            </thead>
-            <tbody>
-              {children}
-            </tbody>
-          </table>
+          <EventsTable
+            tagList={tagList}
+            events={this.state.eventList}
+            params={this.props.params}
+          />
         </div>
         <Pagination pageLinks={this.state.pageLinks} />
       </div>

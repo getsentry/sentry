@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import _ from 'lodash';
 import StreamTagFilter from './tagFilter';
@@ -9,14 +10,14 @@ let TEXT_FILTER_DEBOUNCE_IN_MS = 300;
 
 const StreamSidebar = React.createClass({
   propTypes: {
-    orgId: React.PropTypes.string.isRequired,
-    projectId: React.PropTypes.string.isRequired,
+    orgId: PropTypes.string.isRequired,
+    projectId: PropTypes.string.isRequired,
 
-    tags: React.PropTypes.object.isRequired,
-    query: React.PropTypes.string,
-    onQueryChange: React.PropTypes.func.isRequired,
-    defaultQuery: React.PropTypes.string,
-    loading: React.PropTypes.bool
+    tags: PropTypes.object.isRequired,
+    query: PropTypes.string,
+    onQueryChange: PropTypes.func.isRequired,
+    defaultQuery: PropTypes.string,
+    loading: PropTypes.bool
   },
 
   getDefaultProps() {
@@ -30,7 +31,7 @@ const StreamSidebar = React.createClass({
   getInitialState() {
     let queryObj = queryToObj(this.props.query);
     return {
-      queryObj: queryObj,
+      queryObj,
       textFilter: queryObj.__text
     };
   },
@@ -43,7 +44,7 @@ const StreamSidebar = React.createClass({
     if (!_.isEqual(nextProps.query, query)) {
       let queryObj = queryToObj(nextProps.query);
       this.setState({
-        queryObj: queryObj,
+        queryObj,
         textFilter: queryObj.__text
       });
     }

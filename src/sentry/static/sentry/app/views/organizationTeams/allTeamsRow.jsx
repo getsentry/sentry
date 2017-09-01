@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import {Link} from 'react-router';
 
@@ -9,10 +10,10 @@ import {t} from '../../locale';
 
 const AllTeamsRow = React.createClass({
   propTypes: {
-    access: React.PropTypes.object.isRequired,
-    organization: React.PropTypes.object.isRequired,
-    team: React.PropTypes.object.isRequired,
-    openMembership: React.PropTypes.bool.isRequired
+    access: PropTypes.object.isRequired,
+    organization: PropTypes.object.isRequired,
+    team: PropTypes.object.isRequired,
+    openMembership: PropTypes.bool.isRequired
   },
 
   mixins: [ApiMixin],

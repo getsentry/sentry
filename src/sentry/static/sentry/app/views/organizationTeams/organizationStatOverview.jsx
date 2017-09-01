@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import {Link} from 'react-router';
 import classNames from 'classnames';
@@ -10,11 +11,11 @@ import {t} from '../../locale';
 
 const OrganizationStatOverview = React.createClass({
   propTypes: {
-    orgId: React.PropTypes.string
+    orgId: PropTypes.string
   },
 
   contextTypes: {
-    location: React.PropTypes.object
+    location: PropTypes.object
   },
 
   mixins: [ApiMixin, OrganizationState],
@@ -46,7 +47,7 @@ const OrganizationStatOverview = React.createClass({
         data.forEach(point => {
           totalRejected += point[1];
         });
-        this.setState({totalRejected: totalRejected});
+        this.setState({totalRejected});
       }
     });
     this.api.request(statsEndpoint, {
@@ -64,7 +65,7 @@ const OrganizationStatOverview = React.createClass({
           }
         });
         let epm = received[1] ? parseInt(received[0] / received[1] / 60, 10) : 0;
-        this.setState({epm: epm});
+        this.setState({epm});
       }
     });
   },

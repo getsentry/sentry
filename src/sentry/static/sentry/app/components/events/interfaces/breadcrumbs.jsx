@@ -1,6 +1,7 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import GroupEventDataSection from '../eventDataSection';
-import PropTypes from '../../../proptypes';
+import SentryTypes from '../../../proptypes';
 import Breadcrumb from './breadcrumbs/breadcrumb';
 import {t} from '../../../locale';
 
@@ -27,22 +28,22 @@ function moduleToCategory(module) {
 }
 
 Collapsed.propTypes = {
-  onClick: React.PropTypes.func.isRequired,
-  count: React.PropTypes.number.isRequired
+  onClick: PropTypes.func.isRequired,
+  count: PropTypes.number.isRequired
 };
 
 const BreadcrumbsInterface = React.createClass({
   propTypes: {
-    group: PropTypes.Group.isRequired,
-    event: PropTypes.Event.isRequired,
-    type: React.PropTypes.string.isRequired,
-    data: React.PropTypes.object.isRequired,
-    isShare: React.PropTypes.bool
+    group: SentryTypes.Group.isRequired,
+    event: SentryTypes.Event.isRequired,
+    type: PropTypes.string.isRequired,
+    data: PropTypes.object.isRequired,
+    isShare: PropTypes.bool
   },
 
   contextTypes: {
-    organization: PropTypes.Organization,
-    project: PropTypes.Project
+    organization: SentryTypes.Organization,
+    project: SentryTypes.Project
   },
 
   statics: {
@@ -97,8 +98,8 @@ const BreadcrumbsInterface = React.createClass({
         level: 'error',
         category: moduleToCategory(module || null) || 'exception',
         data: {
-          type: type,
-          value: value
+          type,
+          value
         }
       };
     } else if (evt.message) {
@@ -106,7 +107,7 @@ const BreadcrumbsInterface = React.createClass({
       let level = levelTag && levelTag.value;
       crumb = {
         type: 'message',
-        level: level,
+        level,
         category: 'message',
         message: evt.message
       };

@@ -1,6 +1,7 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import GroupEventDataSection from '../eventDataSection';
-import PropTypes from '../../../proptypes';
+import SentryTypes from '../../../proptypes';
 import {isStacktraceNewestFirst} from './stacktrace';
 import {defined} from '../../../utils';
 import DropdownLink from '../../dropdownLink';
@@ -123,14 +124,14 @@ function findBestThread(threads) {
 
 const Thread = React.createClass({
   propTypes: {
-    group: PropTypes.Group.isRequired,
-    event: PropTypes.Event.isRequired,
-    data: React.PropTypes.object.isRequired,
-    stackView: React.PropTypes.string,
-    stackType: React.PropTypes.string,
-    newestFirst: React.PropTypes.bool,
-    exception: React.PropTypes.object,
-    stacktrace: React.PropTypes.object
+    group: SentryTypes.Group.isRequired,
+    event: SentryTypes.Event.isRequired,
+    data: PropTypes.object.isRequired,
+    stackView: PropTypes.string,
+    stackType: PropTypes.string,
+    newestFirst: PropTypes.bool,
+    exception: PropTypes.object,
+    stacktrace: PropTypes.object
   },
 
   renderMissingStacktrace() {
@@ -193,11 +194,11 @@ const Thread = React.createClass({
 
 const ThreadsInterface = React.createClass({
   propTypes: {
-    group: PropTypes.Group.isRequired,
-    event: PropTypes.Event.isRequired,
-    type: React.PropTypes.string.isRequired,
-    data: React.PropTypes.object.isRequired,
-    platform: React.PropTypes.string
+    group: SentryTypes.Group.isRequired,
+    event: SentryTypes.Event.isRequired,
+    type: PropTypes.string.isRequired,
+    data: PropTypes.object.isRequired,
+    platform: PropTypes.string
   },
 
   getInitialState() {

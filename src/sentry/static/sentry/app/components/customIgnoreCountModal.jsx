@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import Modal from 'react-bootstrap/lib/Modal';
 import {Select2Field} from './forms';
@@ -5,14 +6,14 @@ import {t} from '../locale';
 
 export default React.createClass({
   propTypes: {
-    onSelected: React.PropTypes.func,
-    onCanceled: React.PropTypes.func,
-    show: React.PropTypes.bool,
-    label: React.PropTypes.string.isRequired,
-    countLabel: React.PropTypes.string.isRequired,
-    countName: React.PropTypes.string.isRequired,
-    windowName: React.PropTypes.string.isRequired,
-    windowChoices: React.PropTypes.array.isRequired
+    onSelected: PropTypes.func,
+    onCanceled: PropTypes.func,
+    show: PropTypes.bool,
+    label: PropTypes.string.isRequired,
+    countLabel: PropTypes.string.isRequired,
+    countName: PropTypes.string.isRequired,
+    windowName: PropTypes.string.isRequired,
+    windowChoices: PropTypes.array.isRequired
   },
 
   getInitialState() {

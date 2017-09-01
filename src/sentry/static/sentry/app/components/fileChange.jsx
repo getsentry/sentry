@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import Avatar from '../components/avatar';
 import IconFileGeneric from '../icons/icon-file-generic';
@@ -7,9 +8,9 @@ import ApiMixin from '../mixins/apiMixin';
 
 const FileChange = React.createClass({
   propTypes: {
-    filename: React.PropTypes.string.isRequired,
-    authors: React.PropTypes.array.isRequired,
-    types: React.PropTypes.object.isRequired
+    filename: PropTypes.string.isRequired,
+    authors: PropTypes.array.isRequired,
+    types: PropTypes.object.isRequired
   },
 
   mixins: [

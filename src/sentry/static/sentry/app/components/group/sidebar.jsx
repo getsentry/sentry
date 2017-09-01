@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 
 import ApiMixin from '../../mixins/apiMixin';
@@ -12,12 +13,12 @@ import {t, tct} from '../../locale';
 
 const GroupSidebar = React.createClass({
   propTypes: {
-    group: React.PropTypes.object,
-    event: React.PropTypes.object
+    group: PropTypes.object,
+    event: PropTypes.object
   },
 
   contextTypes: {
-    location: React.PropTypes.object
+    location: PropTypes.object
   },
 
   mixins: [ApiMixin, GroupState],

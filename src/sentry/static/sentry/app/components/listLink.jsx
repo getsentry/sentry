@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import _ from 'lodash';
 import {Link} from 'react-router';
@@ -7,20 +8,20 @@ const ListLink = React.createClass({
   displayName: 'ListLink',
 
   propTypes: {
-    activeClassName: React.PropTypes.string.isRequired,
-    to: React.PropTypes.string.isRequired,
-    query: React.PropTypes.object,
-    onClick: React.PropTypes.func,
-    index: React.PropTypes.bool,
+    activeClassName: PropTypes.string.isRequired,
+    to: PropTypes.string.isRequired,
+    query: PropTypes.object,
+    onClick: PropTypes.func,
+    index: PropTypes.bool,
 
     // If supplied by parent component, decides whether link element
     // is "active" or not ... overriding default behavior of strict
     // route matching
-    isActive: React.PropTypes.func
+    isActive: PropTypes.func
   },
 
   contextTypes: {
-    router: React.PropTypes.object.isRequired
+    router: PropTypes.object.isRequired
   },
 
   getDefaultProps() {

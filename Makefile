@@ -133,7 +133,7 @@ test-js:
 
 test-python: build-platform-assets
 	@echo "--> Running Python tests"
-	py.test tests/integration tests/sentry || exit 1
+	py.test tests/integration tests/sentry --cov . --cov-report="xml:coverage.xml" --junit-xml="junit.xml" || exit 1
 	@echo ""
 
 test-network:
@@ -141,14 +141,14 @@ test-network:
 	sentry init
 	@echo "from sentry.utils.integrationdocs import sync_docs; sync_docs()" | sentry exec
 	@echo "--> Running network tests"
-	py.test tests/network
+	py.test tests/network --cov . --cov-report="xml:coverage.xml" --junit-xml="junit.xml"
 	@echo ""
 
 test-acceptance: build-platform-assets
 	@echo "--> Building static assets"
 	@${NPM_ROOT}/.bin/webpack
 	@echo "--> Running acceptance tests"
-	py.test tests/acceptance
+	py.test tests/acceptance --cov . --cov-report="xml:coverage.xml" --junit-xml="junit.xml" --html="pytest.html"
 	@echo ""
 
 test-python-coverage: build-platform-assets

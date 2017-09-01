@@ -1,14 +1,16 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import Modal from 'react-bootstrap/lib/Modal';
-import {t} from '../locale';
 import {sprintf} from 'sprintf-js';
+
+import {t} from '../locale';
 
 export default React.createClass({
   propTypes: {
-    onSelected: React.PropTypes.func,
-    onCanceled: React.PropTypes.func,
-    show: React.PropTypes.bool,
-    label: React.PropTypes.string
+    onSelected: PropTypes.func,
+    onCanceled: PropTypes.func,
+    show: PropTypes.bool,
+    label: PropTypes.string
   },
 
   getDefaultProps() {

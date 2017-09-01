@@ -1,4 +1,5 @@
 import jQuery from 'jquery';
+import PropTypes from 'prop-types';
 import React from 'react';
 import {Link, browserHistory} from 'react-router';
 import ApiMixin from '../../mixins/apiMixin';
@@ -7,13 +8,13 @@ import Avatar from '../../components/avatar';
 import LoadingError from '../../components/loadingError';
 import LoadingIndicator from '../../components/loadingIndicator';
 import Pagination from '../../components/pagination';
-import SearchBar from '../../components/searchBar.jsx';
+import SearchBar from '../../components/searchBar';
 import {t} from '../../locale';
 
 const ProjectEvents = React.createClass({
   propTypes: {
-    defaultQuery: React.PropTypes.string,
-    setProjectNavSection: React.PropTypes.func
+    defaultQuery: PropTypes.string,
+    setProjectNavSection: PropTypes.func
   },
 
   mixins: [ApiMixin],

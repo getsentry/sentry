@@ -3,7 +3,7 @@ import {shallow, mount} from 'enzyme';
 
 import {Client} from 'app/api';
 import Configure from 'app/views/onboarding/configure';
-import PropTypes from '../../../../../../src/sentry/static/sentry/app/proptypes';
+import SentryTypes from '../../../../../../src/sentry/static/sentry/app/proptypes';
 
 describe('Configure should render correctly', function() {
   beforeEach(function() {
@@ -32,7 +32,7 @@ describe('Configure should render correctly', function() {
 
       let wrapper = shallow(<Configure {...props} />, {
         context: {organization: {id: '1337', slug: 'testOrg', teams: [['testProject']]}},
-        childContextTypes: {organization: PropTypes.Organization}
+        childContextTypes: {organization: SentryTypes.Organization}
       });
 
       const component = wrapper.instance();
@@ -103,7 +103,7 @@ describe('Configure should render correctly', function() {
             ]
           }
         },
-        childContextTypes: {organization: PropTypes.Organization}
+        childContextTypes: {organization: SentryTypes.Organization}
       });
       expect(wrapper).toMatchSnapshot();
       expect(this.stubbedApiRequest.callCount).toEqual(5);

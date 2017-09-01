@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import ReactDOM from 'react-dom';
 import {browserHistory} from 'react-router';
@@ -18,12 +19,12 @@ const ProjectSelector = React.createClass({
   propTypes: {
     // Accepts a project id (slug) and not a project *object* because ProjectSelector
     // is created from Django templates, and only organization is serialized
-    projectId: React.PropTypes.string,
-    organization: React.PropTypes.object.isRequired
+    projectId: PropTypes.string,
+    organization: PropTypes.object.isRequired
   },
 
   contextTypes: {
-    location: React.PropTypes.object
+    location: PropTypes.object
   },
 
   mixins: [ApiMixin],
@@ -267,9 +268,9 @@ const ProjectSelector = React.createClass({
       });
     });
     return {
-      projectList: projectList,
-      activeTeam: activeTeam,
-      activeProject: activeProject
+      projectList,
+      activeTeam,
+      activeProject
     };
   },
 

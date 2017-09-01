@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import {Link} from 'react-router';
 import GroupList from '../components/groupList';
@@ -5,7 +6,7 @@ import {t} from '../locale';
 
 const ReleaseNewEvents = React.createClass({
   contextTypes: {
-    release: React.PropTypes.object
+    release: PropTypes.object
   },
 
   render() {

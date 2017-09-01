@@ -1,7 +1,8 @@
 import $ from 'jquery';
+import _ from 'lodash';
+
 import GroupActions from './actions/groupActions';
 import TeamActions from './actions/teamActions';
-import _ from 'lodash';
 
 export class Request {
   constructor(xhr) {
@@ -93,8 +94,8 @@ export class Client {
     this.activeRequests[id] = new Request(
       $.ajax({
         url: fullUrl,
-        method: method,
-        data: data,
+        method,
+        data,
         contentType: 'application/json',
         headers: {
           Accept: 'application/json; charset=utf-8'
@@ -139,7 +140,7 @@ export class Client {
     return this._wrapRequest(
       path,
       {
-        query: query,
+        query,
         method: 'DELETE',
         success: response => {
           GroupActions.deleteSuccess(id, params.itemIds, response);
@@ -162,7 +163,7 @@ export class Client {
     return this._wrapRequest(
       path,
       {
-        query: query,
+        query,
         method: 'PUT',
         data: params.data,
         success: response => {
@@ -186,7 +187,7 @@ export class Client {
     return this._wrapRequest(
       path,
       {
-        query: query,
+        query,
         method: 'PUT',
         data: {merge: 1},
         success: response => {

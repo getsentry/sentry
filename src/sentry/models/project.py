@@ -161,8 +161,8 @@ class Project(Model):
                     if not created:
                         obj2.update(times_seen=F('times_seen') + obj.times_seen)
 
-        for fv in TagValue.objects.filter(project=self):
-            TagValue.objects.get_or_create(project=project, key=fv.key, value=fv.value)
+        for fv in TagValue.objects.filter(project_id=self.id):
+            TagValue.objects.get_or_create(project_id=project.id, key=fv.key, value=fv.value)
             fv.delete()
         self.delete()
 

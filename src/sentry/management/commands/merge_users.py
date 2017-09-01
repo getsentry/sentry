@@ -97,7 +97,12 @@ class Command(BaseCommand):
         )
 
         for user_list in unique_users:
-            user_list.sort(key=lambda x: (x.is_superuser, not x.is_managed, x.date_joined))
+            user_list.sort(
+                key=lambda x: (
+                    x.is_active,
+                    x.is_superuser,
+                    not x.is_managed,
+                    x.date_joined))
 
             primary_user = user_list[0]
             if not noinput and not self._confirm_merge(primary_user, user_list[1:]):

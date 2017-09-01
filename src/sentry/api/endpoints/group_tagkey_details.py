@@ -45,7 +45,7 @@ class GroupTagKeyDetailsEndpoint(GroupEndpoint):
 
         try:
             tag_key = TagKey.objects.get(
-                project=group.project_id,
+                project_id=group.project_id,
                 key=lookup_key,
                 status=TagKeyStatus.VISIBLE,
             )
@@ -54,7 +54,7 @@ class GroupTagKeyDetailsEndpoint(GroupEndpoint):
 
         try:
             group_tag_key = GroupTagKey.objects.get(
-                group=group,
+                group_id=group.id,
                 key=lookup_key,
             )
         except GroupTagKey.DoesNotExist:

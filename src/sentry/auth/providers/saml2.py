@@ -200,6 +200,7 @@ class SAML2ACSView(AuthView):
         provider = get_provider(organization_slug)
         if provider is None:
             raise Http404
+
         organization = Organization.objects.get(slug=organization_slug)
         saml_config = provider.build_saml_config(organization_slug)
 
@@ -390,9 +391,6 @@ class SAML2Provider(Provider):
             identity['email'] = state['contact']
         return identity
 
-    def refresh_identity(auth_identity):
-        return None
-
     def build_saml_config(self, org_slug):
         metadata_url = absolute_uri(
             reverse('sentry-auth-organization-saml-metadata', args=[org_slug])
@@ -536,3 +534,8 @@ class SAML2Provider(Provider):
             parsed_data['wantNameId'] = False
 
         return parsed_data
+
+    def refresh_identity(self, auth_identity):
+        # Nothing to refresh
+        return
+

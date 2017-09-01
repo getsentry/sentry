@@ -1,6 +1,7 @@
+import $ from 'jquery';
+
 import ConfigStore from '../stores/configStore';
 import IncidentActions from '../actions/incidentActions';
-import $ from 'jquery';
 
 function getIncidentsFromIncidentResponse(incidents) {
   if (incidents === null || incidents.length == 0) {
@@ -40,8 +41,8 @@ export function load() {
         let [incidents, indicator] = getIncidentsFromIncidentResponse(data.incidents);
         IncidentActions.updateSuccess({
           status: {
-            incidents: incidents,
-            indicator: indicator,
+            incidents,
+            indicator,
             url: data.page.url
           }
         });

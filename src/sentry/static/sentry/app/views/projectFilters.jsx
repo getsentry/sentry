@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import _ from 'lodash';
 
@@ -26,17 +27,17 @@ const FilterSwitch = function(props) {
 };
 
 FilterSwitch.propTypes = {
-  data: React.PropTypes.object.isRequired,
-  onToggle: React.PropTypes.func.isRequired,
-  size: React.PropTypes.string.isRequired
+  data: PropTypes.object.isRequired,
+  onToggle: PropTypes.func.isRequired,
+  size: PropTypes.string.isRequired
 };
 
 const FilterRow = React.createClass({
   propTypes: {
-    orgId: React.PropTypes.string.isRequired,
-    projectId: React.PropTypes.string.isRequired,
-    data: React.PropTypes.object.isRequired,
-    onToggle: React.PropTypes.func.isRequired
+    orgId: PropTypes.string.isRequired,
+    projectId: PropTypes.string.isRequired,
+    data: PropTypes.object.isRequired,
+    onToggle: PropTypes.func.isRequired
   },
 
   getInitialState() {
@@ -112,10 +113,10 @@ const LEGACY_BROWSER_KEYS = Object.keys(LEGACY_BROWSER_SUBFILTERS);
 
 const LegacyBrowserFilterRow = React.createClass({
   propTypes: {
-    orgId: React.PropTypes.string.isRequired,
-    projectId: React.PropTypes.string.isRequired,
-    data: React.PropTypes.object.isRequired,
-    onToggle: React.PropTypes.func.isRequired
+    orgId: PropTypes.string.isRequired,
+    projectId: PropTypes.string.isRequired,
+    data: PropTypes.object.isRequired,
+    onToggle: PropTypes.func.isRequired
   },
 
   getInitialState() {
@@ -218,9 +219,9 @@ const LegacyBrowserFilterRow = React.createClass({
 
 const ProjectFiltersSettingsForm = React.createClass({
   propTypes: {
-    orgId: React.PropTypes.string.isRequired,
-    projectId: React.PropTypes.string.isRequired,
-    initialData: React.PropTypes.object.isRequired
+    orgId: PropTypes.string.isRequired,
+    projectId: PropTypes.string.isRequired,
+    initialData: PropTypes.object.isRequired
   },
 
   mixins: [ApiMixin, ProjectState],
@@ -234,7 +235,7 @@ const ProjectFiltersSettingsForm = React.createClass({
     }
     return {
       hasChanged: false,
-      formData: formData,
+      formData,
       errors: {}
     };
   },
@@ -406,7 +407,7 @@ const ProjectFilters = React.createClass({
       complete: () => {
         let expected = this.state.expected - 1;
         this.setState({
-          expected: expected,
+          expected,
           loading: expected > 0
         });
       }
@@ -428,7 +429,7 @@ const ProjectFilters = React.createClass({
       complete: () => {
         let expected = this.state.expected - 1;
         this.setState({
-          expected: expected,
+          expected,
           loading: expected > 0
         });
       }
@@ -444,7 +445,7 @@ const ProjectFilters = React.createClass({
       complete: () => {
         let expected = this.state.expected - 1;
         this.setState({
-          expected: expected,
+          expected,
           loading: expected > 0
         });
       }
@@ -471,7 +472,7 @@ const ProjectFilters = React.createClass({
         blank = false;
       }
       return {
-        x: x,
+        x,
         y: [y]
       };
     });
@@ -491,13 +492,13 @@ const ProjectFilters = React.createClass({
 
     let data;
     if (typeof active === 'boolean') {
-      data = {active: active};
+      data = {active};
     } else {
       data = {subfilters: active};
     }
     this.api.request(endpoint, {
       method: 'PUT',
-      data: data,
+      data,
       success: (d, textStatus, jqXHR) => {
         let stateFilter = this.state.filterList.find(f => f.id === filter.id);
         stateFilter.active = active;
@@ -552,8 +553,8 @@ const ProjectFilters = React.createClass({
             let props = {
               key: filter.id,
               data: filter,
-              orgId: orgId,
-              projectId: projectId,
+              orgId,
+              projectId,
               onToggle: this.onToggleFilter
             };
             return filter.id === 'legacy-browsers'
