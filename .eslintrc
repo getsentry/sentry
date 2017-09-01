@@ -268,7 +268,8 @@
 
     // Ensure consistent use of file extension within the import path
     // https://github.com/benmosher/eslint-plugin-import/blob/master/docs/rules/extensions.md
-    "import/extensions": [2, "always", {
+    // TODO this fucks up getsentry
+    "import/extensions": [0, "always", {
       "js": "never",
       "jsx": "never"
     }],
