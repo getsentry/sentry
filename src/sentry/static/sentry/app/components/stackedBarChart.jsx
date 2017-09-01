@@ -1,10 +1,11 @@
+import React from 'react';
+import PropTypes from 'prop-types';
 import moment from 'moment';
 import _ from 'lodash';
-import PropTypes from 'prop-types';
-import React from 'react';
+
 import TooltipMixin from '../mixins/tooltip';
 import Count from './count';
-import ConfigStore from '../stores/configStore.jsx';
+import ConfigStore from '../stores/configStore';
 
 const StackedBarChart = React.createClass({
   propTypes: {

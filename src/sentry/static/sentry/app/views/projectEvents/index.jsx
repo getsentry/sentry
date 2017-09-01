@@ -8,7 +8,7 @@ import Avatar from '../../components/avatar';
 import LoadingError from '../../components/loadingError';
 import LoadingIndicator from '../../components/loadingIndicator';
 import Pagination from '../../components/pagination';
-import SearchBar from '../../components/searchBar.jsx';
+import SearchBar from '../../components/searchBar';
 import {t} from '../../locale';
 
 const ProjectEvents = React.createClass({

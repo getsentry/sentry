@@ -1,9 +1,9 @@
 /*eslint no-cond-assign:0*/
 import Jed from 'jed';
 import React from 'react';
-import {getTranslations} from './translations';
 import {sprintf} from 'sprintf-js';
 import _ from 'lodash';
+import {getTranslations} from './translations';
 
 let LOCALE_DEBUG = false;
 
