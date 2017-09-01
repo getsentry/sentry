@@ -25,7 +25,7 @@ const RequestInterface = React.createClass({
 
   getInitialState() {
     return {
-      view: 'rich'
+      view: 'formatted'
     };
   },
 
@@ -69,10 +69,10 @@ const RequestInterface = React.createClass({
       children.push(
         <div key="view-buttons" className="btn-group">
           <a
-            className={(view === 'rich' ? 'active' : '') + ' btn btn-default btn-sm'}
-            onClick={this.toggleView.bind(this, 'rich')}>
-            {/* Translators: this means "rich" rendering (fancy tables) */
-            t('Rich')}
+            className={(view === 'formatted' ? 'active' : '') + ' btn btn-default btn-sm'}
+            onClick={this.toggleView.bind(this, 'formatted')}>
+            {/* Translators: this means "formatted" rendering (fancy tables) */
+            t('Formatted')}
           </a>
           <a
             className={(view === 'curl' ? 'active' : '') + ' btn btn-default btn-sm'}
