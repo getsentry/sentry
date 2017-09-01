@@ -41,8 +41,8 @@ export function load() {
         let [incidents, indicator] = getIncidentsFromIncidentResponse(data.incidents);
         IncidentActions.updateSuccess({
           status: {
-            incidents: incidents,
-            indicator: indicator,
+            incidents,
+            indicator,
             url: data.page.url
           }
         });

@@ -235,7 +235,7 @@ const ProjectFiltersSettingsForm = React.createClass({
     }
     return {
       hasChanged: false,
-      formData: formData,
+      formData,
       errors: {}
     };
   },
@@ -407,7 +407,7 @@ const ProjectFilters = React.createClass({
       complete: () => {
         let expected = this.state.expected - 1;
         this.setState({
-          expected: expected,
+          expected,
           loading: expected > 0
         });
       }
@@ -429,7 +429,7 @@ const ProjectFilters = React.createClass({
       complete: () => {
         let expected = this.state.expected - 1;
         this.setState({
-          expected: expected,
+          expected,
           loading: expected > 0
         });
       }
@@ -445,7 +445,7 @@ const ProjectFilters = React.createClass({
       complete: () => {
         let expected = this.state.expected - 1;
         this.setState({
-          expected: expected,
+          expected,
           loading: expected > 0
         });
       }
@@ -472,7 +472,7 @@ const ProjectFilters = React.createClass({
         blank = false;
       }
       return {
-        x: x,
+        x,
         y: [y]
       };
     });
@@ -492,13 +492,13 @@ const ProjectFilters = React.createClass({
 
     let data;
     if (typeof active === 'boolean') {
-      data = {active: active};
+      data = {active};
     } else {
       data = {subfilters: active};
     }
     this.api.request(endpoint, {
       method: 'PUT',
-      data: data,
+      data,
       success: (d, textStatus, jqXHR) => {
         let stateFilter = this.state.filterList.find(f => f.id === filter.id);
         stateFilter.active = active;
@@ -553,8 +553,8 @@ const ProjectFilters = React.createClass({
             let props = {
               key: filter.id,
               data: filter,
-              orgId: orgId,
-              projectId: projectId,
+              orgId,
+              projectId,
               onToggle: this.onToggleFilter
             };
             return filter.id === 'legacy-browsers'

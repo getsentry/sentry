@@ -164,7 +164,7 @@ const ProjectSettings = React.createClass({
         <div className="col-md-10">
           {React.cloneElement(this.props.children, {
             setProjectNavSection: this.props.setProjectNavSection,
-            project: project,
+            project,
             organization: this.context.organization
           })}
         </div>

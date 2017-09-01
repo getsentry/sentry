@@ -34,7 +34,7 @@ const GroupCheckBox = React.createClass({
     let isSelected = SelectedGroupStore.isSelected(this.props.id);
     if (isSelected !== this.state.isSelected) {
       this.setState({
-        isSelected: isSelected
+        isSelected
       });
     }
   },

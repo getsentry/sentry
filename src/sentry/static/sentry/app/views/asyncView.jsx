@@ -71,7 +71,7 @@ class AsyncView extends React.Component {
     endpoints.forEach(([stateKey, endpoint, params]) => {
       this.api.request(endpoint, {
         method: 'GET',
-        params: params,
+        params,
         success: (data, _, jqXHR) => {
           this.setState(prevState => {
             return {

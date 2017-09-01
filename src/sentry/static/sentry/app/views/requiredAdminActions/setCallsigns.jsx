@@ -30,7 +30,7 @@ function getProjectInfoForReview(org) {
         projectName: project.name,
         isMember: team.isMember,
         requiresReview: false,
-        canReview: canReview,
+        canReview,
         teamName: team.name,
         callSign: project.callSign || null
       });
@@ -38,11 +38,11 @@ function getProjectInfoForReview(org) {
   }
 
   return {
-    memberProjects: memberProjects,
-    nonMemberProjects: nonMemberProjects,
+    memberProjects,
+    nonMemberProjects,
     projects: memberProjects.concat(nonMemberProjects),
-    requiresReview: requiresReview,
-    canReviewAnything: canReviewAnything,
+    requiresReview,
+    canReviewAnything,
     hasNonMemberProjects: nonMemberProjects.length > 0
   };
 }
@@ -104,8 +104,8 @@ const SetCallsignsAction = React.createClass({
     });
 
     this.setState({
-      info: info,
-      slugs: slugs,
+      info,
+      slugs,
       isLoading: false
     });
   },

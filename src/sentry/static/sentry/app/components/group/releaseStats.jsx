@@ -68,7 +68,7 @@ const GroupReleaseStats = React.createClass({
       loading: true,
       error: false,
       data: null,
-      envList: envList,
+      envList,
       environment: selectedEnvironment || ''
     };
   },
@@ -112,11 +112,11 @@ const GroupReleaseStats = React.createClass({
 
     this.api.request(`/issues/${group.id}/environments/${env}/`, {
       query: {
-        until: until
+        until
       },
       success: data => {
         this.setState({
-          data: data,
+          data,
           loading: false,
           error: false
         });

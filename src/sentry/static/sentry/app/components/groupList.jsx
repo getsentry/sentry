@@ -107,7 +107,7 @@ const GroupList = React.createClass({
     let groupIds = this._streamManager.getAllItems().map(item => item.id);
     if (!utils.valueIsEqual(groupIds, this.state.groupIds)) {
       this.setState({
-        groupIds: groupIds
+        groupIds
       });
     }
   },

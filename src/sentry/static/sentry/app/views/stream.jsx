@@ -61,7 +61,7 @@ const Stream = React.createClass({
     return {
       groupIds: [],
       isDefaultSearch: null,
-      searchId: searchId,
+      searchId,
       // if we have no query then we can go ahead and fetch data
       loading: searchId || !this.hasQuery() ? true : false,
       savedSearchLoading: true,
@@ -252,7 +252,7 @@ const Stream = React.createClass({
     savedSearchList.push(data);
     // TODO(dcramer): sort
     this.setState({
-      savedSearchList: savedSearchList
+      savedSearchList
     });
     browserHistory.pushState(null, `/${orgId}/${projectId}/searches/${data.id}/`);
   },
@@ -280,10 +280,10 @@ const Stream = React.createClass({
     }
 
     let newState = {
-      sort: sort,
-      statsPeriod: statsPeriod,
+      sort,
+      statsPeriod,
       query: hasQuery ? currentQuery.query : '',
-      searchId: searchId,
+      searchId,
       isDefaultSearch: false
     };
 
@@ -456,7 +456,7 @@ const Stream = React.createClass({
     let groupIds = this._streamManager.getAllItems().map(item => item.id);
     if (!utils.valueIsEqual(groupIds, this.state.groupIds)) {
       this.setState({
-        groupIds: groupIds
+        groupIds
       });
     }
   },
@@ -475,7 +475,7 @@ const Stream = React.createClass({
     } else {
       this.setState(
         {
-          query: query,
+          query,
           searchId: null
         },
         this.transitionTo
@@ -486,7 +486,7 @@ const Stream = React.createClass({
   onSortChange(sort) {
     this.setState(
       {
-        sort: sort
+        sort
       },
       this.transitionTo
     );

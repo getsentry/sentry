@@ -238,7 +238,7 @@ export default React.createClass({
           key.isActive = newData.isActive;
         }
       });
-      return {keyList: keyList};
+      return {keyList};
     });
   },
 

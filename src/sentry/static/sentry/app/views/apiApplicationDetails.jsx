@@ -75,7 +75,7 @@ const ApiApplicationDetails = React.createClass({
     let formData = this.state.formData;
     formData[name] = value;
     this.setState({
-      formData: formData
+      formData
     });
   },
 

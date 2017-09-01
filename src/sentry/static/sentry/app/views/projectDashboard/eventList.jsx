@@ -56,7 +56,7 @@ const EventList = React.createClass({
     this.api.request(this.props.endpoint, {
       query: {
         limit: 5,
-        minutes: minutes
+        minutes
       },
       success: data => {
         this.setState({

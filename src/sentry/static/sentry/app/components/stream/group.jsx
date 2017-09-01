@@ -65,7 +65,7 @@ const StreamGroup = React.createClass({
     let id = this.props.id;
     let data = GroupStore.get(id);
     this.setState({
-      data: data
+      data
     });
   },
 

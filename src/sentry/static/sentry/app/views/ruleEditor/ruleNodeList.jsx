@@ -18,7 +18,7 @@ const RuleNodeList = React.createClass({
 
     return {
       items: initialItems,
-      counter: counter
+      counter
     };
   },
 

@@ -184,7 +184,7 @@ const ReleaseDetails = React.createClass({
             </ul>
           </div>
           {React.cloneElement(this.props.children, {
-            release: release
+            release
           })}
         </div>
       </DocumentTitle>

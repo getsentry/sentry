@@ -181,7 +181,7 @@ const ProjectSavedSearches = React.createClass({
       search.isDefault = data.id === search.id;
     });
     this.setState({
-      savedSearchList: savedSearchList
+      savedSearchList
     });
   },
 
@@ -191,7 +191,7 @@ const ProjectSavedSearches = React.createClass({
       search.isUserDefault = data.id === search.id;
     });
     this.setState({
-      savedSearchList: savedSearchList
+      savedSearchList
     });
   },
 
