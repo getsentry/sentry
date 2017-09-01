@@ -34,7 +34,7 @@ const OrganizationIssueList = React.createClass({
       ? location.query.status
       : 'unresolved';
     return {
-      status: status
+      status
     };
   },
 

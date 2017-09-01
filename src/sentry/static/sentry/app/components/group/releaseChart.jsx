@@ -40,8 +40,8 @@ const GroupReleaseChart = React.createClass({
     }
 
     return {
-      releasePoints: releasePoints,
-      envPoints: envPoints
+      releasePoints,
+      envPoints
     };
   },
 

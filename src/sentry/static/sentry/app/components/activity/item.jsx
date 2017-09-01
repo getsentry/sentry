@@ -56,15 +56,15 @@ const ActivityItem = React.createClass({
     let issue = item.issue;
 
     let issueLink = issue
-      ? <IssueLink orgId={orgId} projectId={project.slug} issue={issue}>
+      ? (<IssueLink orgId={orgId} projectId={project.slug} issue={issue}>
           {issue.shortId}
-        </IssueLink>
+        </IssueLink>)
       : null;
 
     switch (item.type) {
       case 'note':
         return tct('[author] commented on [issue]', {
-          author: author,
+          author,
           issue: (
             <Link
               to={`/${orgId}/${project.slug}/issues/${issue.id}/activity/#event_${item.id}`}>
@@ -74,18 +74,18 @@ const ActivityItem = React.createClass({
         });
       case 'set_resolved':
         return tct('[author] marked [issue] as resolved', {
-          author: author,
+          author,
           issue: issueLink
         });
       case 'set_resolved_by_age':
         return tct('[author] marked [issue] as resolved due to age', {
-          author: author,
+          author,
           issue: issueLink
         });
       case 'set_resolved_in_release':
         if (data.version) {
           return tct('[author] marked [issue] as resolved in [version]', {
-            author: author,
+            author,
             version: (
               <Version version={data.version} orgId={orgId} projectId={project.slug} />
             ),
@@ -93,12 +93,12 @@ const ActivityItem = React.createClass({
           });
         }
         return tct('[author] marked [issue] as resolved in the upcoming release', {
-          author: author,
+          author,
           issue: issueLink
         });
       case 'set_resolved_in_commit':
         return tct('[author] marked [issue] as fixed in [version]', {
-          author: author,
+          author,
           version: (
             <CommitLink
               inline={true}
@@ -110,13 +110,13 @@ const ActivityItem = React.createClass({
         });
       case 'set_unresolved':
         return tct('[author] marked [issue] as unresolved', {
-          author: author,
+          author,
           issue: issueLink
         });
       case 'set_ignored':
         if (data.ignoreDuration) {
           return tct('[author] ignored [issue] for [duration]', {
-            author: author,
+            author,
             duration: <Duration seconds={data.ignoreDuration * 60} />,
             issue: issueLink
           });
@@ -124,7 +124,7 @@ const ActivityItem = React.createClass({
           return tct(
             '[author] ignored [issue] until it happens [count] time(s) in [duration]',
             {
-              author: author,
+              author,
               count: data.ignoreCount,
               duration: <Duration seconds={data.ignoreWindow * 3600} />,
               issue: issueLink
@@ -132,7 +132,7 @@ const ActivityItem = React.createClass({
           );
         } else if (data.ignoreCount) {
           return tct('[author] ignored [issue] until it happens [count] time(s)', {
-            author: author,
+            author,
             count: data.ignoreCount,
             issue: issueLink
           });
@@ -140,7 +140,7 @@ const ActivityItem = React.createClass({
           return tct(
             '[author] ignored [issue] until it affects [count] user(s) in [duration]',
             {
-              author: author,
+              author,
               count: data.ignoreUserCount,
               duration: <Duration seconds={data.ignoreUserWindow * 3600} />,
               issue: issueLink
@@ -148,29 +148,29 @@ const ActivityItem = React.createClass({
           );
         } else if (data.ignoreUserCount) {
           return tct('[author] ignored [issue] until it affects [count] user(s)', {
-            author: author,
+            author,
             count: data.ignoreUserCount,
             issue: issueLink
           });
         }
         return tct('[author] ignored [issue]', {
-          author: author,
+          author,
           issue: issueLink
         });
       case 'set_public':
         return tct('[author] made an [issue] public', {
-          author: author,
+          author,
           issue: issueLink
         });
       case 'set_private':
         return tct('[author] made an [issue] private', {
-          author: author,
+          author,
           issue: issueLink
         });
       case 'set_regression':
         if (data.version) {
           return tct('[author] marked [issue] as a regression in [version]', {
-            author: author,
+            author,
             version: (
               <Version version={data.version} orgId={orgId} projectId={project.slug} />
             ),
@@ -178,12 +178,12 @@ const ActivityItem = React.createClass({
           });
         }
         return tct('[author] marked [issue] as a regression', {
-          author: author,
+          author,
           issue: issueLink
         });
       case 'create_issue':
         return tct('[author] linked [issue] on [provider]', {
-          author: author,
+          author,
           provider: data.provider,
           issue: issueLink
         });
@@ -202,57 +202,57 @@ const ActivityItem = React.createClass({
         );
       case 'first_seen':
         return tct('[author] saw [link:issue]', {
-          author: author,
+          author,
           issue: issueLink
         });
       case 'assigned':
         let assignee;
         if (item.user && data.assignee === item.user.id) {
           return tct('[author] assigned [issue] to themselves', {
-            author: author,
+            author,
             issue: issueLink
           });
         }
         assignee = MemberListStore.getById(data.assignee);
         if (assignee && assignee.email) {
           return tct('[author] assigned [issue] to [assignee]', {
-            author: author,
+            author,
             assignee: <span title={assignee.email}>{assignee.name}</span>,
             issue: issueLink
           });
         } else if (data.assigneeEmail) {
           return tct('[author] assigned [issue] to [assignee]', {
-            author: author,
+            author,
             assignee: data.assigneeEmail,
             issue: issueLink
           });
         }
         return tct('[author] assigned [issue] to an [help:unknown user]', {
-          author: author,
+          author,
           help: <span title={data.assignee} />,
           issue: issueLink
         });
       case 'unassigned':
         return tct('[author] unassigned [issue]', {
-          author: author,
+          author,
           issue: issueLink
         });
       case 'merge':
         return tct('[author] merged [count] [link:issues]', {
-          author: author,
+          author,
           count: data.issues.length + 1,
           link: <Link to={`/${orgId}/${project.slug}/issues/${issue.id}/`} />
         });
       case 'release':
         return tct('[author] released version [version]', {
-          author: author,
+          author,
           version: (
             <Version version={data.version} orgId={orgId} projectId={project.slug} />
           )
         });
       case 'deploy':
         return tct('[author] deployed version [version] to [environment].', {
-          author: author,
+          author,
           version: (
             <Version version={data.version} orgId={orgId} projectId={project.slug} />
           ),
@@ -278,7 +278,7 @@ const ActivityItem = React.createClass({
 
     let author = {
       name: item.user ? item.user.name : 'Sentry',
-      avatar: avatar
+      avatar
     };
 
     if (item.type === 'note') {

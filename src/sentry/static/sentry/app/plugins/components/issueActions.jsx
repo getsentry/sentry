@@ -103,7 +103,7 @@ class IssueActions extends PluginComponentBase {
               createFieldList: data,
               error: null,
               loading: false,
-              createFormData: createFormData
+              createFormData
             },
             this.onLoadSuccess
           );
@@ -122,7 +122,7 @@ class IssueActions extends PluginComponentBase {
               linkFieldList: data,
               error: null,
               loading: false,
-              linkFormData: linkFormData
+              linkFormData
             },
             this.onLoadSuccess
           );

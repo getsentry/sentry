@@ -35,7 +35,7 @@ const ProjectDocsContext = React.createClass({
       success: data => {
         this.setState({
           loading: false,
-          data: data
+          data
         });
       }
     });

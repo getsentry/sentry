@@ -62,7 +62,7 @@ const TagDistributionMeter = React.createClass({
     this.api.request(url, {
       success: (data, _, jqXHR) => {
         this.setState({
-          data: data,
+          data,
           error: false,
           loading: false
         });

@@ -63,7 +63,7 @@ export default React.createClass({
       },
       success: data => {
         this.setState({
-          data: data,
+          data,
           loading: false,
           error: false
         });

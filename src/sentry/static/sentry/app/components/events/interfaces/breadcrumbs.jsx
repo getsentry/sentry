@@ -98,8 +98,8 @@ const BreadcrumbsInterface = React.createClass({
         level: 'error',
         category: moduleToCategory(module || null) || 'exception',
         data: {
-          type: type,
-          value: value
+          type,
+          value
         }
       };
     } else if (evt.message) {
@@ -107,7 +107,7 @@ const BreadcrumbsInterface = React.createClass({
       let level = levelTag && levelTag.value;
       crumb = {
         type: 'message',
-        level: level,
+        level,
         category: 'message',
         message: evt.message
       };

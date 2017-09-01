@@ -13,7 +13,7 @@ const Footer = React.createClass({
     });
 
     return {
-      hooks: hooks
+      hooks
     };
   },
 

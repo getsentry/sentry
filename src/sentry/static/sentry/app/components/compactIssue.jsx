@@ -125,7 +125,7 @@ const CompactIssue = React.createClass({
     let id = this.props.id;
     let issue = GroupStore.get(id);
     this.setState({
-      issue: issue
+      issue
     });
   },
 
@@ -148,7 +148,7 @@ const CompactIssue = React.createClass({
         orgId: this.props.orgId,
         projectId: issue.project.slug,
         itemIds: [issue.id],
-        data: data
+        data
       },
       {
         complete: () => {

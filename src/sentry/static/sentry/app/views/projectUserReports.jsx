@@ -61,8 +61,8 @@ const ProjectUserReports = React.createClass({
       ? location.query.query
       : this.props.defaultQuery;
     return {
-      query: query,
-      status: status
+      query,
+      status
     };
   },
 

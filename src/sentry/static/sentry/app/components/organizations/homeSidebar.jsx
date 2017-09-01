@@ -21,7 +21,7 @@ const HomeSidebar = React.createClass({
     });
 
     return {
-      hooks: hooks
+      hooks
     };
   },
 

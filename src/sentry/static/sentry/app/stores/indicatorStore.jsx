@@ -11,9 +11,9 @@ const IndicatorStore = Reflux.createStore({
 
     let indicator = {
       id: this.lastId++,
-      message: message,
-      type: type,
-      options: options
+      message,
+      type,
+      options
     };
 
     if (options.duration) {

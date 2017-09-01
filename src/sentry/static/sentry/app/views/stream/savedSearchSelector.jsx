@@ -54,7 +54,7 @@ const SaveSearchButton = React.createClass({
     let formData = this.state.formData;
     formData[name] = value;
     this.setState({
-      formData: formData
+      formData
     });
   },
 
@@ -95,7 +95,7 @@ const SaveSearchButton = React.createClass({
             errors = errors.detail || true;
             this.setState({
               state: FormState.ERROR,
-              errors: errors
+              errors
             });
           },
           complete: () => {

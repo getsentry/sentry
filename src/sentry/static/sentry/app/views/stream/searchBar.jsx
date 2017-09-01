@@ -198,7 +198,7 @@ const SearchBar = React.createClass({
     let {orgId, projectId} = this.props;
     this.api.request(`/projects/${orgId}/${projectId}/tags/${tag.key}/values/`, {
       data: {
-        query: query
+        query
       },
       method: 'GET',
       success: values => {
@@ -419,7 +419,7 @@ const SearchBar = React.createClass({
   onMemberListStoreChange(members) {
     this.setState(
       {
-        members: members
+        members
       },
       this.updateAutoCompleteItems
     );

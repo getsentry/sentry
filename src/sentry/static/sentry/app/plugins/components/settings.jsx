@@ -40,13 +40,13 @@ class PluginSettings extends PluginComponentBase {
     // upon changing a field, remove errors
     let errors = this.state.errors;
     delete errors[name];
-    this.setState({formData: formData, errors: errors});
+    this.setState({formData, errors});
   }
 
   onSubmit() {
     let repo = this.state.formData.repo;
     repo = repo && parseRepo(repo);
-    let parsedFormData = {...this.state.formData, repo: repo};
+    let parsedFormData = {...this.state.formData, repo};
     this.api.request(this.getPluginEndpoint(), {
       data: parsedFormData,
       method: 'PUT',
@@ -59,8 +59,8 @@ class PluginSettings extends PluginComponentBase {
         });
         this.setState({
           fieldList: data.config,
-          formData: formData,
-          initialData: initialData,
+          formData,
+          initialData,
           errors: {}
         });
       }),
@@ -94,8 +94,8 @@ class PluginSettings extends PluginComponentBase {
         this.setState(
           {
             fieldList: data.config,
-            formData: formData,
-            initialData: initialData
+            formData,
+            initialData
             // call this here to prevent FormState.READY from being
             // set before fieldList is
           },

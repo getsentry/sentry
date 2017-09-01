@@ -59,9 +59,9 @@ const InstallWizardSettings = React.createClass({
     }
 
     return {
-      options: options,
+      options,
       required: requiredOptions,
-      fields: fields
+      fields
     };
   },
 
@@ -69,7 +69,7 @@ const InstallWizardSettings = React.createClass({
     let options = {...this.state.options};
     options[name].value = value;
     this.setState({
-      options: options
+      options
     });
   },
 
@@ -179,7 +179,7 @@ const InstallWizard = React.createClass({
 
     this.api.request('/internal/options/', {
       method: 'PUT',
-      data: data,
+      data,
       success: () => {
         this.setState({
           submitInProgress: false

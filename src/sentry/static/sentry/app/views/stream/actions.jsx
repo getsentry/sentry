@@ -66,20 +66,20 @@ const IgnoreActions = React.createClass({
     let extraDescription = null;
     if (this.state.allInQuerySelected) {
       extraDescription = this.props.query
-        ? <div>
+        ? (<div>
             <p>{t('This will apply to the current search query:')}</p>
             <pre>{this.props.query}</pre>
-          </div>
-        : <p className="error">
+          </div>)
+        : (<p className="error">
             <strong>{t('This will apply to ALL issues in this project!')}</strong>
-          </p>;
+          </p>);
     }
     let linkClassName = 'group-ignore btn btn-default btn-sm';
     let actionLinkProps = {
       onlyIfBulk: true,
       disabled: !this.props.anySelected,
       selectAllActive: this.props.pageSelected,
-      extraDescription: extraDescription,
+      extraDescription,
       buttonTitle: t('Ignore'),
       confirmationQuestion: this.state.allInQuerySelected
         ? t('Are you sure you want to ignore all issues matching this search query?')
@@ -276,7 +276,7 @@ const ResolveActions = React.createClass({
     });
     this.props.onUpdate({
       status: 'resolved',
-      statusDetails: statusDetails
+      statusDetails
     });
   },
 
@@ -285,20 +285,20 @@ const ResolveActions = React.createClass({
     let extraDescription = null;
     if (this.state.allInQuerySelected) {
       extraDescription = this.props.query
-        ? <div>
+        ? (<div>
             <p>{t('This will apply to the current search query:')}</p>
             <pre>{this.props.query}</pre>
-          </div>
-        : <p className="error">
+          </div>)
+        : (<p className="error">
             <strong>{t('This will apply to ALL issues in this project!')}</strong>
-          </p>;
+          </p>);
     }
     let linkClassName = 'group-resolve btn btn-default btn-sm';
     let actionLinkProps = {
       onlyIfBulk: true,
       disabled: !this.props.anySelected,
       selectAllActive: this.props.pageSelected,
-      extraDescription: extraDescription,
+      extraDescription,
       buttonTitle: t('Resolve'),
       confirmationQuestion: this.state.allInQuerySelected
         ? t('Are you sure you want to resolve all issues matching this search query?')
@@ -462,8 +462,8 @@ const StreamActions = React.createClass({
         {
           orgId: this.props.orgId,
           projectId: this.props.projectId,
-          itemIds: itemIds,
-          data: data,
+          itemIds,
+          data,
           query: this.props.query
         },
         {
@@ -483,7 +483,7 @@ const StreamActions = React.createClass({
         {
           orgId: this.props.orgId,
           projectId: this.props.projectId,
-          itemIds: itemIds,
+          itemIds,
           query: this.props.query
         },
         {
@@ -503,7 +503,7 @@ const StreamActions = React.createClass({
         {
           orgId: this.props.orgId,
           projectId: this.props.projectId,
-          itemIds: itemIds,
+          itemIds,
           query: this.props.query
         },
         {
@@ -538,13 +538,13 @@ const StreamActions = React.createClass({
     let extraDescription = null;
     if (this.state.allInQuerySelected) {
       extraDescription = this.props.query
-        ? <div>
+        ? (<div>
             <p>{t('This will apply to the current search query:')}</p>
             <pre>{this.props.query}</pre>
-          </div>
-        : <p className="error">
+          </div>)
+        : (<p className="error">
             <strong>{t('This will apply to ALL issues in this project!')}</strong>
-          </p>;
+          </p>);
     }
 
     return (

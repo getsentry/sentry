@@ -41,7 +41,7 @@ export default class ApiForm extends Form {
         let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
         this.api.request(this.props.apiEndpoint, {
           method: this.props.apiMethod,
-          data: data,
+          data,
           success: result => {
             IndicatorStore.remove(loadingIndicator);
             this.onSubmitSuccess(result);

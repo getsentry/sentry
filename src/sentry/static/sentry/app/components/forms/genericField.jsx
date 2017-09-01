@@ -22,7 +22,7 @@ class GenericField extends React.Component {
       onChange: this.props.onChange,
       label: config.label + (required ? '*' : ''),
       placeholder: config.placeholder,
-      required: required,
+      required,
       name: config.name,
       error: (this.props.formErrors || {})[config.name],
       disabled: config.readonly,

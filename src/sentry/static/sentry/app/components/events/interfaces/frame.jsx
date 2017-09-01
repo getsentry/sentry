@@ -396,7 +396,7 @@ const Frame = React.createClass({
       'leads-to-app': this.leadsToApp(),
       [this.getPlatform()]: true
     });
-    let props = {className: className};
+    let props = {className};
 
     let context = this.renderContext();
 

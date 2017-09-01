@@ -113,7 +113,7 @@ const GroupDetails = React.createClass({
         this.setState({
           loading: false,
           error: true,
-          errorType: errorType
+          errorType
         });
       }
     });
@@ -129,7 +129,7 @@ const GroupDetails = React.createClass({
           return;
         }
         this.setState({
-          group: group
+          group
         });
       }
     }
@@ -188,7 +188,7 @@ const GroupDetails = React.createClass({
           />
           {React.cloneElement(this.props.children, {
             memberList: this.props.memberList,
-            group: group
+            group
           })}
         </div>
       </DocumentTitle>

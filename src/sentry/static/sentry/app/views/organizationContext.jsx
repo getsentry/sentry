@@ -96,7 +96,7 @@ const OrganizationContext = React.createClass({
           loading: false,
           error: false,
           errorType: null,
-          hooks: hooks,
+          hooks,
           showBroadcast: this.shouldShowBroadcast(data)
         });
 
@@ -119,7 +119,7 @@ const OrganizationContext = React.createClass({
         this.setState({
           loading: false,
           error: true,
-          errorType: errorType
+          errorType
         });
       }
     });

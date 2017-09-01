@@ -158,7 +158,7 @@ const U2fInterface = React.createClass({
                 {
                   p1: <p />,
                   p2: <p />,
-                  support: support
+                  support
                 }
               )
             }[deviceFailure]
