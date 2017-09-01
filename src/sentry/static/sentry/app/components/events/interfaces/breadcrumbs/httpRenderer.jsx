@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 
 import CrumbTable from './crumbTable';
@@ -5,7 +6,7 @@ import SummaryLine from './summaryLine';
 
 const HttpRenderer = React.createClass({
   propTypes: {
-    crumb: React.PropTypes.object.isRequired
+    crumb: PropTypes.object.isRequired
   },
 
   renderUrl(url) {

@@ -15,19 +15,19 @@ class GroupTagDetailsTest(APITestCase):
         key, value = group.data['tags'][0]
 
         tagkey = TagKey.objects.create(
-            project=group.project,
+            project_id=group.project_id,
             key=key,
             values_seen=2,
         )
         TagValue.objects.create(
-            project=group.project,
+            project_id=group.project_id,
             key=key,
             value=value,
             times_seen=4,
         )
         GroupTagKey.objects.create(
-            project=group.project,
-            group=group,
+            project_id=group.project_id,
+            group_id=group.id,
             key=key,
             values_seen=1,
         )

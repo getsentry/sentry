@@ -1,4 +1,4 @@
-import React from 'react';
+import PropTypes from 'prop-types';
 import jQuery from 'jquery';
 import ReactDOM from 'react-dom';
 
@@ -12,11 +12,11 @@ export default class RangeField extends InputField {
 
   static propTypes = {
     ...InputField.propTypes,
-    min: React.PropTypes.number,
-    max: React.PropTypes.number,
-    step: React.PropTypes.number,
-    snap: React.PropTypes.bool,
-    allowedValues: React.PropTypes.arrayOf(React.PropTypes.number)
+    min: PropTypes.number,
+    max: PropTypes.number,
+    step: PropTypes.number,
+    snap: PropTypes.bool,
+    allowedValues: PropTypes.arrayOf(PropTypes.number)
   };
 
   static defaultProps = {

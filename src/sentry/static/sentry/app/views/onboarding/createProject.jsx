@@ -1,3 +1,5 @@
+import PropTypes from 'prop-types';
+import Raven from 'raven-js';
 import React from 'react';
 import {browserHistory, Link} from 'react-router';
 
@@ -9,15 +11,14 @@ import {getPlatformName} from './utils';
 import OnboardingProject from '../onboarding/project';
 
 import {t} from '../../locale';
-import Raven from 'raven-js';
 
 const CreateProject = React.createClass({
   propTypes: {
-    getDocsUrl: React.PropTypes.func
+    getDocsUrl: PropTypes.func
   },
 
   contextTypes: {
-    location: React.PropTypes.object
+    location: PropTypes.object
   },
 
   mixins: [ApiMixin, OrganizationState],
@@ -65,7 +66,7 @@ const CreateProject = React.createClass({
       method: 'POST',
       data: {
         name: projectName,
-        platform: platform
+        platform
       },
       success: data => {
         ProjectActions.createSuccess(data);
@@ -101,7 +102,7 @@ const CreateProject = React.createClass({
 
     const stepProps = {
       next: this.createProject,
-      platform: platform,
+      platform,
       setPlatform: p => {
         if (!projectName || (platform && getPlatformName(platform) === projectName)) {
           this.setState({projectName: getPlatformName(p)});

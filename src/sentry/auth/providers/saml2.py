@@ -2,10 +2,15 @@ from __future__ import absolute_import, print_function
 
 from django.conf import settings
 from django.core.urlresolvers import reverse
-from django.http import (HttpResponse, HttpResponseRedirect, HttpResponseServerError)
+from django.http import (
+    HttpResponse, HttpResponseRedirect, HttpResponseServerError,
+    HttpResponseNotAllowed, Http404,
+)
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
+from six.moves.urllib.parse import urlparse
 
+from sentry import options
 from sentry.auth import Provider, AuthView
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.models import (AuthProvider, Organization, OrganizationStatus, User, UserEmail)
@@ -29,16 +34,16 @@ def get_provider(organization_slug):
     try:
         organization = Organization.objects.get(slug=organization_slug)
     except Organization.DoesNotExist:
-        return HttpResponseRedirect(reverse('sentry-login'))
+        return None
 
     if organization.status != OrganizationStatus.VISIBLE:
-        return HttpResponseRedirect(reverse('sentry-login'))
+        return None
 
     try:
         auth_provider = AuthProvider.objects.get(organization=organization)
         return auth_provider.get_provider()
     except AuthProvider.DoesNotExist:
-        return HttpResponseRedirect(reverse('sentry-login'))
+        return None
 
 
 class SAML2LoginView(AuthView):
@@ -52,7 +57,13 @@ class SAML2LoginView(AuthView):
 class SAML2ACSView(AuthView):
     @method_decorator(csrf_exempt)
     def dispatch(self, request, organization_slug):
+        if request.method != 'POST':
+            return HttpResponseNotAllowed(['POST'])
+
         provider = get_provider(organization_slug)
+        if provider is None:
+            raise Http404
+
         organization = Organization.objects.get(slug=organization_slug)
         saml_config = provider.build_saml_config(organization_slug)
 
@@ -146,6 +157,8 @@ class SAML2ACSView(AuthView):
 class SAML2MetadataView(AuthView):
     def dispatch(self, request, organization_slug):
         provider = get_provider(organization_slug)
+        if provider is None:
+            raise Http404
 
         saml_config = provider.build_saml_config(organization_slug)
         saml_settings = OneLogin_Saml2_Settings(settings=saml_config, sp_validation_only=True)
@@ -207,10 +220,12 @@ class SAML2Provider(Provider):
         return saml_config
 
     def prepare_saml_request(self, request):
+        url = urlparse(options.get('system.url-prefix'))
         return {
-            'http_host': request.META['HTTP_HOST'],
+            'https': 'on' if url.scheme == 'https' else 'off',
+            'http_host': url.hostname,
             'script_name': request.META['PATH_INFO'],
-            'server_port': request.META['SERVER_PORT'],
+            'server_port': url.port,
             'get_data': request.GET.copy(),
             'post_data': request.POST.copy()
         }
@@ -266,3 +281,7 @@ class SAML2Provider(Provider):
             if 'idp_x509cert' in data['idp']:
                 parsed_data['x509cert'] = data['idp']['idp_x509cert']
         return parsed_data
+
+    def refresh_identity(self, auth_identity):
+        # Nothing to refresh
+        return

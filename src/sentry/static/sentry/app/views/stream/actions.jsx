@@ -1,5 +1,8 @@
+import PropTypes from 'prop-types';
 import React from 'react';
+import PureRenderMixin from 'react-addons-pure-render-mixin';
 import Reflux from 'reflux';
+
 import ApiMixin from '../../mixins/apiMixin';
 import TooltipMixin from '../../mixins/tooltip';
 import ActionLink from './actionLink';
@@ -7,7 +10,6 @@ import DropdownLink from '../../components/dropdownLink';
 import Duration from '../../components/duration';
 import IndicatorStore from '../../stores/indicatorStore';
 import MenuItem from '../../components/menuItem';
-import PureRenderMixin from 'react-addons-pure-render-mixin';
 import SelectedGroupStore from '../../stores/selectedGroupStore';
 import {t, tn} from '../../locale';
 import {getShortVersion} from '../../utils';
@@ -16,14 +18,16 @@ import CustomIgnoreCountModal from '../../components/customIgnoreCountModal';
 import CustomIgnoreDurationModal from '../../components/customIgnoreDurationModal';
 import CustomResolutionModal from '../../components/customResolutionModal';
 import Checkbox from '../../components/checkbox';
+import Toolbar from '../../components/toolbar';
+import ToolbarHeader from '../../components/toolbarHeader';
 
 const IgnoreActions = React.createClass({
   propTypes: {
-    anySelected: React.PropTypes.bool.isRequired,
-    allInQuerySelected: React.PropTypes.bool.isRequired,
-    pageSelected: React.PropTypes.bool.isRequired,
-    onUpdate: React.PropTypes.func.isRequired,
-    query: React.PropTypes.string
+    anySelected: PropTypes.bool.isRequired,
+    allInQuerySelected: PropTypes.bool.isRequired,
+    pageSelected: PropTypes.bool.isRequired,
+    onUpdate: PropTypes.func.isRequired,
+    query: PropTypes.string
   },
 
   getInitialState() {
@@ -62,20 +66,20 @@ const IgnoreActions = React.createClass({
     let extraDescription = null;
     if (this.state.allInQuerySelected) {
       extraDescription = this.props.query
-        ? <div>
+        ? (<div>
             <p>{t('This will apply to the current search query:')}</p>
             <pre>{this.props.query}</pre>
-          </div>
-        : <p className="error">
+          </div>)
+        : (<p className="error">
             <strong>{t('This will apply to ALL issues in this project!')}</strong>
-          </p>;
+          </p>);
     }
     let linkClassName = 'group-ignore btn btn-default btn-sm';
     let actionLinkProps = {
       onlyIfBulk: true,
       disabled: !this.props.anySelected,
       selectAllActive: this.props.pageSelected,
-      extraDescription: extraDescription,
+      extraDescription,
       buttonTitle: t('Ignore'),
       confirmationQuestion: this.state.allInQuerySelected
         ? t('Are you sure you want to ignore all issues matching this search query?')
@@ -249,15 +253,15 @@ const IgnoreActions = React.createClass({
 
 const ResolveActions = React.createClass({
   propTypes: {
-    orgId: React.PropTypes.string.isRequired,
-    projectId: React.PropTypes.string.isRequired,
-    hasRelease: React.PropTypes.bool.isRequired,
-    latestRelease: React.PropTypes.object,
-    anySelected: React.PropTypes.bool.isRequired,
-    allInQuerySelected: React.PropTypes.bool.isRequired,
-    pageSelected: React.PropTypes.bool.isRequired,
-    onUpdate: React.PropTypes.func.isRequired,
-    query: React.PropTypes.string
+    orgId: PropTypes.string.isRequired,
+    projectId: PropTypes.string.isRequired,
+    hasRelease: PropTypes.bool.isRequired,
+    latestRelease: PropTypes.object,
+    anySelected: PropTypes.bool.isRequired,
+    allInQuerySelected: PropTypes.bool.isRequired,
+    pageSelected: PropTypes.bool.isRequired,
+    onUpdate: PropTypes.func.isRequired,
+    query: PropTypes.string
   },
 
   getInitialState() {
@@ -272,7 +276,7 @@ const ResolveActions = React.createClass({
     });
     this.props.onUpdate({
       status: 'resolved',
-      statusDetails: statusDetails
+      statusDetails
     });
   },
 
@@ -281,20 +285,20 @@ const ResolveActions = React.createClass({
     let extraDescription = null;
     if (this.state.allInQuerySelected) {
       extraDescription = this.props.query
-        ? <div>
+        ? (<div>
             <p>{t('This will apply to the current search query:')}</p>
             <pre>{this.props.query}</pre>
-          </div>
-        : <p className="error">
+          </div>)
+        : (<p className="error">
             <strong>{t('This will apply to ALL issues in this project!')}</strong>
-          </p>;
+          </p>);
     }
     let linkClassName = 'group-resolve btn btn-default btn-sm';
     let actionLinkProps = {
       onlyIfBulk: true,
       disabled: !this.props.anySelected,
       selectAllActive: this.props.pageSelected,
-      extraDescription: extraDescription,
+      extraDescription,
       buttonTitle: t('Resolve'),
       confirmationQuestion: this.state.allInQuerySelected
         ? t('Are you sure you want to resolve all issues matching this search query?')
@@ -368,17 +372,17 @@ const ResolveActions = React.createClass({
 
 const StreamActions = React.createClass({
   propTypes: {
-    allResultsVisible: React.PropTypes.bool,
-    orgId: React.PropTypes.string.isRequired,
-    projectId: React.PropTypes.string.isRequired,
-    groupIds: React.PropTypes.instanceOf(Array).isRequired,
-    onRealtimeChange: React.PropTypes.func.isRequired,
-    onSelectStatsPeriod: React.PropTypes.func.isRequired,
-    realtimeActive: React.PropTypes.bool.isRequired,
-    statsPeriod: React.PropTypes.string.isRequired,
-    query: React.PropTypes.string.isRequired,
-    hasReleases: React.PropTypes.bool,
-    latestRelease: React.PropTypes.object
+    allResultsVisible: PropTypes.bool,
+    orgId: PropTypes.string.isRequired,
+    projectId: PropTypes.string.isRequired,
+    groupIds: PropTypes.instanceOf(Array).isRequired,
+    onRealtimeChange: PropTypes.func.isRequired,
+    onSelectStatsPeriod: PropTypes.func.isRequired,
+    realtimeActive: PropTypes.bool.isRequired,
+    statsPeriod: PropTypes.string.isRequired,
+    query: PropTypes.string.isRequired,
+    hasReleases: PropTypes.bool,
+    latestRelease: PropTypes.object
   },
 
   mixins: [
@@ -458,8 +462,8 @@ const StreamActions = React.createClass({
         {
           orgId: this.props.orgId,
           projectId: this.props.projectId,
-          itemIds: itemIds,
-          data: data,
+          itemIds,
+          data,
           query: this.props.query
         },
         {
@@ -479,7 +483,7 @@ const StreamActions = React.createClass({
         {
           orgId: this.props.orgId,
           projectId: this.props.projectId,
-          itemIds: itemIds,
+          itemIds,
           query: this.props.query
         },
         {
@@ -499,7 +503,7 @@ const StreamActions = React.createClass({
         {
           orgId: this.props.orgId,
           projectId: this.props.projectId,
-          itemIds: itemIds,
+          itemIds,
           query: this.props.query
         },
         {
@@ -534,18 +538,18 @@ const StreamActions = React.createClass({
     let extraDescription = null;
     if (this.state.allInQuerySelected) {
       extraDescription = this.props.query
-        ? <div>
+        ? (<div>
             <p>{t('This will apply to the current search query:')}</p>
             <pre>{this.props.query}</pre>
-          </div>
-        : <p className="error">
+          </div>)
+        : (<p className="error">
             <strong>{t('This will apply to ALL issues in this project!')}</strong>
-          </p>;
+          </p>);
     }
 
     return (
       <div>
-        <div className="stream-actions row">
+        <Toolbar className="stream-actions row">
           <div className="stream-actions-left col-md-6 col-sm-8 col-xs-8">
             <div className="checkbox">
               <Checkbox
@@ -747,10 +751,12 @@ const StreamActions = React.createClass({
               </a>
             </div>
           </div>
-          <div className="hidden-sm stream-actions-assignee col-md-1" />
+          <div className="hidden-sm steream-actions-assignee col-md-1" />
           <div className="stream-actions-level col-md-1 hidden-xs" />
           <div className="hidden-sm hidden-xs stream-actions-graph col-md-2">
-            <span className="stream-actions-graph-label">{t('Graph:')}</span>
+            <ToolbarHeader className="stream-actions-graph-label">
+              {t('Graph:')}
+            </ToolbarHeader>
             <ul className="toggle-graph">
               <li className={this.props.statsPeriod === '24h' ? 'active' : ''}>
                 <a onClick={this.selectStatsPeriod.bind(this, '24h')}>{t('24h')}</a>
@@ -760,13 +766,14 @@ const StreamActions = React.createClass({
               </li>
             </ul>
           </div>
-          <div className="stream-actions-count align-right col-md-1 col-sm-2 col-xs-2">
+          <ToolbarHeader className="stream-actions-count align-right col-md-1 col-sm-2 col-xs-2">
             {t('Events')}
-          </div>
-          <div className="stream-actions-users align-right col-md-1 col-sm-2 col-xs-2">
+          </ToolbarHeader>
+          <ToolbarHeader className="stream-actions-users align-right col-md-1 col-sm-2 col-xs-2">
             {t('Users')}
-          </div>
-        </div>
+          </ToolbarHeader>
+        </Toolbar>
+
         {!this.props.allResultsVisible &&
           this.state.pageSelected &&
           <div className="row stream-select-all-notice">

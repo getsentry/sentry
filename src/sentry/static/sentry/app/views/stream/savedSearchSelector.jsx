@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import Modal from 'react-bootstrap/lib/Modal';
 import {Link} from 'react-router';
@@ -12,16 +13,16 @@ import {BooleanField, FormState, TextField} from '../../components/forms';
 
 const SaveSearchButton = React.createClass({
   propTypes: {
-    orgId: React.PropTypes.string.isRequired,
-    projectId: React.PropTypes.string.isRequired,
-    access: React.PropTypes.object.isRequired,
-    query: React.PropTypes.string.isRequired,
-    disabled: React.PropTypes.bool,
-    style: React.PropTypes.object,
-    tooltip: React.PropTypes.string,
-    buttonTitle: React.PropTypes.string,
+    orgId: PropTypes.string.isRequired,
+    projectId: PropTypes.string.isRequired,
+    access: PropTypes.object.isRequired,
+    query: PropTypes.string.isRequired,
+    disabled: PropTypes.bool,
+    style: PropTypes.object,
+    tooltip: PropTypes.string,
+    buttonTitle: PropTypes.string,
 
-    onSave: React.PropTypes.func.isRequired
+    onSave: PropTypes.func.isRequired
   },
 
   mixins: [ApiMixin],
@@ -53,7 +54,7 @@ const SaveSearchButton = React.createClass({
     let formData = this.state.formData;
     formData[name] = value;
     this.setState({
-      formData: formData
+      formData
     });
   },
 
@@ -94,7 +95,7 @@ const SaveSearchButton = React.createClass({
             errors = errors.detail || true;
             this.setState({
               state: FormState.ERROR,
-              errors: errors
+              errors
             });
           },
           complete: () => {
@@ -182,14 +183,14 @@ const SaveSearchButton = React.createClass({
 
 const SavedSearchSelector = React.createClass({
   propTypes: {
-    orgId: React.PropTypes.string.isRequired,
-    projectId: React.PropTypes.string.isRequired,
-    searchId: React.PropTypes.string,
-    access: React.PropTypes.object.isRequired,
-    savedSearchList: React.PropTypes.array.isRequired,
-    queryCount: React.PropTypes.number,
-    queryMaxCount: React.PropTypes.number,
-    onSavedSearchCreate: React.PropTypes.func.isRequired
+    orgId: PropTypes.string.isRequired,
+    projectId: PropTypes.string.isRequired,
+    searchId: PropTypes.string,
+    access: PropTypes.object.isRequired,
+    savedSearchList: PropTypes.array.isRequired,
+    queryCount: PropTypes.number,
+    queryMaxCount: PropTypes.number,
+    onSavedSearchCreate: PropTypes.func.isRequired
   },
 
   mixins: [ApiMixin],

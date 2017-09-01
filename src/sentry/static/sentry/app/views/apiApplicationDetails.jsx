@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import DocumentTitle from 'react-document-title';
 
@@ -12,7 +13,7 @@ import {t} from '../locale';
 
 const ApiApplicationDetails = React.createClass({
   contextTypes: {
-    router: React.PropTypes.object.isRequired
+    router: PropTypes.object.isRequired
   },
 
   mixins: [ApiMixin],
@@ -74,7 +75,7 @@ const ApiApplicationDetails = React.createClass({
     let formData = this.state.formData;
     formData[name] = value;
     this.setState({
-      formData: formData
+      formData
     });
   },
 

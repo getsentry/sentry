@@ -1,11 +1,12 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import SidebarPanelItem from './sidebarPanelItem';
 
 const SidebarPanel = React.createClass({
   propTypes: {
-    title: React.PropTypes.string,
-    items: React.PropTypes.array,
-    hidePanel: React.PropTypes.func
+    title: PropTypes.string,
+    items: PropTypes.array,
+    hidePanel: PropTypes.func
   },
 
   render() {

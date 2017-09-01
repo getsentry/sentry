@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 
 import ProjectContext from '../projects/projectContext';
@@ -6,8 +7,8 @@ import ProjectSelector from '../../components/projectHeader/projectSelector';
 
 const GettingStartedBody = React.createClass({
   contextTypes: {
-    project: React.PropTypes.object,
-    organization: React.PropTypes.object
+    project: PropTypes.object,
+    organization: PropTypes.object
   },
 
   render() {

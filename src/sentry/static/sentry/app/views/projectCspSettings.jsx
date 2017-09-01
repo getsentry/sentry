@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 
 import ApiMixin from '../mixins/apiMixin';
@@ -8,9 +9,9 @@ import {t} from '../locale';
 
 const ProjectCspSettingsForm = React.createClass({
   propTypes: {
-    orgId: React.PropTypes.string.isRequired,
-    projectId: React.PropTypes.string.isRequired,
-    initialData: React.PropTypes.object.isRequired
+    orgId: PropTypes.string.isRequired,
+    projectId: PropTypes.string.isRequired,
+    initialData: PropTypes.object.isRequired
   },
 
   mixins: [ApiMixin],
@@ -24,7 +25,7 @@ const ProjectCspSettingsForm = React.createClass({
       }
     }
     return {
-      formData: formData,
+      formData,
       errors: {}
     };
   },
@@ -33,7 +34,7 @@ const ProjectCspSettingsForm = React.createClass({
     let formData = this.state.formData;
     formData[name] = value;
     this.setState({
-      formData: formData
+      formData
     });
   },
 
@@ -123,7 +124,7 @@ const ProjectCspSettingsForm = React.createClass({
 
 const ProjectCspSettings = React.createClass({
   propTypes: {
-    setProjectNavSection: React.PropTypes.func
+    setProjectNavSection: PropTypes.func
   },
 
   mixins: [ApiMixin],
@@ -165,7 +166,7 @@ const ProjectCspSettings = React.createClass({
       success: (data, _, jqXHR) => {
         let expected = this.state.expected - 1;
         this.setState({
-          expected: expected,
+          expected,
           loading: expected > 0,
           keyList: data
         });
@@ -173,7 +174,7 @@ const ProjectCspSettings = React.createClass({
       error: () => {
         let expected = this.state.expected - 1;
         this.setState({
-          expected: expected,
+          expected,
           error: true,
           loading: expected > 0
         });
@@ -184,7 +185,7 @@ const ProjectCspSettings = React.createClass({
       success: (data, _, jqXHR) => {
         let expected = this.state.expected - 1;
         this.setState({
-          expected: expected,
+          expected,
           loading: expected > 0,
           projectOptions: data.options
         });
@@ -192,7 +193,7 @@ const ProjectCspSettings = React.createClass({
       error: () => {
         let expected = this.state.expected - 1;
         this.setState({
-          expected: expected,
+          expected,
           error: true,
           loading: expected > 0
         });

@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 
 import AsyncView from './asyncView';
@@ -8,10 +9,10 @@ import {t, tct} from '../locale';
 
 class DigestSettings extends React.Component {
   static propTypes = {
-    orgId: React.PropTypes.string.isRequired,
-    projectId: React.PropTypes.string.isRequired,
-    initialData: React.PropTypes.object.isRequired,
-    onSave: React.PropTypes.func.isRequired
+    orgId: PropTypes.string.isRequired,
+    projectId: PropTypes.string.isRequired,
+    initialData: PropTypes.object.isRequired,
+    onSave: PropTypes.func.isRequired
   };
 
   render() {
@@ -72,10 +73,10 @@ class DigestSettings extends React.Component {
 
 class GeneralSettings extends React.Component {
   static propTypes = {
-    orgId: React.PropTypes.string.isRequired,
-    projectId: React.PropTypes.string.isRequired,
-    initialData: React.PropTypes.object,
-    onSave: React.PropTypes.func.isRequired
+    orgId: PropTypes.string.isRequired,
+    projectId: PropTypes.string.isRequired,
+    initialData: PropTypes.object,
+    onSave: PropTypes.func.isRequired
   };
 
   render() {
@@ -114,8 +115,8 @@ export default class ProjectAlertSettings extends AsyncView {
     // these are not declared as required of issues with cloned elements
     // not initially defining them (though they are bound before) ever
     // rendered
-    organization: React.PropTypes.object,
-    project: React.PropTypes.object
+    organization: PropTypes.object,
+    project: PropTypes.object
   };
 
   getEndpoints() {

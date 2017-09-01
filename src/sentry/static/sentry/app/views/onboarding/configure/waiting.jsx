@@ -1,10 +1,11 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import {t} from '../../../locale';
 
 const Waiting = React.createClass({
   propTypes: {
-    skip: React.PropTypes.func,
-    hasEvent: React.PropTypes.bool.isRequired
+    skip: PropTypes.func,
+    hasEvent: PropTypes.bool.isRequired
   },
 
   render() {

@@ -79,7 +79,7 @@ const OrganizationTeams = React.createClass({
                 ? React.cloneElement(this.props.children, {
                     organization: org,
                     teamList: allTeams,
-                    access: access,
+                    access,
                     openMembership: features.has('open-membership') ||
                       access.has('org:write')
                   })

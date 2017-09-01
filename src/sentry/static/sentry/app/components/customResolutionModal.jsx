@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import ReactDOMServer from 'react-dom/server';
 import jQuery from 'jquery';
@@ -12,11 +13,11 @@ import {t} from '../locale';
 
 export default React.createClass({
   propTypes: {
-    onSelected: React.PropTypes.func.isRequired,
-    onCanceled: React.PropTypes.func.isRequired,
-    orgId: React.PropTypes.string.isRequired,
-    projectId: React.PropTypes.string.isRequired,
-    show: React.PropTypes.bool
+    onSelected: PropTypes.func.isRequired,
+    onCanceled: PropTypes.func.isRequired,
+    orgId: PropTypes.string.isRequired,
+    projectId: PropTypes.string.isRequired,
+    show: PropTypes.bool
   },
 
   getInitialState() {

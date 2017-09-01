@@ -58,7 +58,7 @@ def update_version(release):
         id=release.id
     ).update(version=new_version)
     TagValue.objects.filter(
-        project__in=release.projects.all(),
+        project_id__in=release.projects.values_list('id', flat=True),
         key='sentry:release',
         value=old_version
     ).update(value=new_version)

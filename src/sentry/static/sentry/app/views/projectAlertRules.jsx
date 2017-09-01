@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 
 import ApiMixin from '../mixins/apiMixin';
@@ -10,10 +11,10 @@ import {t} from '../locale';
 
 const RuleRow = React.createClass({
   propTypes: {
-    orgId: React.PropTypes.string.isRequired,
-    projectId: React.PropTypes.string.isRequired,
-    data: React.PropTypes.object.isRequired,
-    onDelete: React.PropTypes.func.isRequired
+    orgId: PropTypes.string.isRequired,
+    projectId: PropTypes.string.isRequired,
+    data: PropTypes.object.isRequired,
+    onDelete: PropTypes.func.isRequired
   },
 
   mixins: [ApiMixin],

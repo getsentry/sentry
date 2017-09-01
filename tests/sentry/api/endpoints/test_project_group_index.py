@@ -887,7 +887,7 @@ class GroupUpdateTest(APITestCase):
             status=GroupStatus.RESOLVED,
         )
         GroupTagKey.objects.create(
-            group=group,
+            group_id=group.id,
             key='sentry:user',
             values_seen=100,
         )

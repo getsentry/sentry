@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import {browserHistory} from 'react-router';
 
@@ -27,8 +28,8 @@ const PRODUCTION_ENV_NAMES = new Set([
 // changes
 const GroupReleaseStats = React.createClass({
   propTypes: {
-    defaultEnvironment: React.PropTypes.string,
-    group: React.PropTypes.object
+    defaultEnvironment: PropTypes.string,
+    group: PropTypes.object
   },
 
   mixins: [ApiMixin, GroupState],
@@ -67,7 +68,7 @@ const GroupReleaseStats = React.createClass({
       loading: true,
       error: false,
       data: null,
-      envList: envList,
+      envList,
       environment: selectedEnvironment || ''
     };
   },
@@ -111,11 +112,11 @@ const GroupReleaseStats = React.createClass({
 
     this.api.request(`/issues/${group.id}/environments/${env}/`, {
       query: {
-        until: until
+        until
       },
       success: data => {
         this.setState({
-          data: data,
+          data,
           loading: false,
           error: false
         });

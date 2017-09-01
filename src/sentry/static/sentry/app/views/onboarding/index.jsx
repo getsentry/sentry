@@ -1,11 +1,12 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 import DocumentTitle from 'react-document-title';
 
 import ProgressNodes from './progress';
 
 const OnboardingWizard = React.createClass({
   contextTypes: {
-    organization: React.PropTypes.object
+    organization: PropTypes.object
   },
 
   render() {

@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import Reflux from 'reflux';
 import DocumentTitle from 'react-document-title';
@@ -29,8 +30,8 @@ const ERROR_TYPES = {
  */
 const ProjectContext = React.createClass({
   propTypes: {
-    projectId: React.PropTypes.string,
-    orgId: React.PropTypes.string
+    projectId: PropTypes.string,
+    orgId: PropTypes.string
   },
 
   childContextTypes: {

@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 
 import AlertActions from '../actions/alertActions';
@@ -5,9 +6,9 @@ import {t} from '../locale';
 
 const AvatarCropper = React.createClass({
   propTypes: {
-    user: React.PropTypes.object.isRequired,
-    updateDataUrlState: React.PropTypes.func.isRequired,
-    savedDataUrl: React.PropTypes.string
+    user: PropTypes.object.isRequired,
+    updateDataUrlState: PropTypes.func.isRequired,
+    savedDataUrl: PropTypes.string
   },
 
   getInitialState() {
@@ -44,7 +45,7 @@ const AvatarCropper = React.createClass({
     this.revokeObjectUrl();
     this.setState(
       {
-        file: file,
+        file,
         objectURL: window.URL.createObjectURL(file)
       },
       () => {

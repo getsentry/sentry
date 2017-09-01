@@ -38,7 +38,7 @@ class ReleaseSerializerTest(TestCase):
         ReleaseProject.objects.filter(release=release, project=project).update(new_groups=1)
         ReleaseProject.objects.filter(release=release, project=project2).update(new_groups=1)
         tag1 = TagValue.objects.create(
-            project=project,
+            project_id=project.id,
             key='sentry:release',
             value=release.version,
             first_seen=timezone.now(),
@@ -46,7 +46,7 @@ class ReleaseSerializerTest(TestCase):
             times_seen=5,
         )
         tag2 = TagValue.objects.create(
-            project=project2,
+            project_id=project2.id,
             key='sentry:release',
             value=release.version,
             first_seen=timezone.now() - datetime.timedelta(days=2),

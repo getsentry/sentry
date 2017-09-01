@@ -16,6 +16,7 @@ from time import time
 from django.utils import timezone
 
 from sentry.cache import default_cache
+from sentry.filters.preprocess_hashes import get_raw_cache_key, hash_cache
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
 from sentry.utils.safe import safe_execute
@@ -57,12 +58,16 @@ def _do_preprocess_event(cache_key, data, start_time, event_id, process_event):
         error_logger.error('preprocess.failed.empty', extra={'cache_key': cache_key})
         return
 
-    project = data['project']
+    project_id = data['project']
     Raven.tags_context({
-        'project': project,
+        'project': project_id,
     })
 
     if should_process(data):
+        # save another version of data for some projects to generate
+        # preprocessing hash that won't be modified by pipeline
+        hash_cache.set(get_raw_cache_key(project_id, data['event_id']), data)
+
         process_event.delay(cache_key=cache_key, start_time=start_time, event_id=event_id)
         return
 

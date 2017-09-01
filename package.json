@@ -44,6 +44,7 @@
     "node-libs-browser": "0.5.3",
     "platformicons": "0.1.1",
     "po-catalog-loader": "^1.2.0",
+    "prop-types": "^15.5.10",
     "query-string": "2.4.2",
     "raven-js": "3.16.1",
     "react": "15.3.2",
@@ -84,7 +85,9 @@
     "snapshot": "build-storybook && PERCY_TOKEN=$STORYBOOK_PERCY_TOKEN PERCY_PROJECT=$STORYBOOK_PERCY_PROJECT percy-storybook --widths=375,1280"
   },
   "jest": {
-    "snapshotSerializers": ["enzyme-to-json/serializer"],
+    "snapshotSerializers": [
+      "enzyme-to-json/serializer"
+    ],
     "moduleNameMapper": {
       "\\.(css|less)$": "<rootDir>/tests/js/helpers/importStyleMock.js",
       "integration-docs-platforms": "<rootDir>/tests/fixtures/_platforms.json"
@@ -95,6 +98,9 @@
     "setupFiles": [
       "<rootDir>/tests/js/setup.js"
     ],
+    "testPathIgnorePatterns": [
+      "<rootDir>/tests/sentry/lang/javascript/"
+    ],
     "unmockedModulePathPatterns": [
       "<rootDir>/node_modules/react",
       "<rootDir>/node_modules/reflux"
@@ -102,15 +108,18 @@
   },
   "devDependencies": {
     "@percy-io/react-percy-storybook": "^1.0.2",
-    "@storybook/addon-actions": "3.2.0",
-    "@storybook/addon-info": "3.2.0",
-    "@storybook/react": "3.2.0",
+    "@storybook/addon-actions": "^3.2.0",
+    "@storybook/addon-info": "^3.2.0",
+    "@storybook/addon-knobs": "^3.2.0",
+    "@storybook/react": "^3.2.0",
     "babel-eslint": "7.1.1",
     "babel-jest": "^19.0.0",
     "chai": "3.4.1",
     "enzyme": "2.9.1",
     "eslint": "3.19.0",
+    "eslint-import-resolver-webpack": "^0.8.3",
     "eslint-plugin-getsentry": "1.0.0",
+    "eslint-plugin-import": "^2.7.0",
     "eslint-plugin-react": "6.10.3",
     "jest": "^19.0.2",
     "karma-sourcemap-loader": "0.3.7",

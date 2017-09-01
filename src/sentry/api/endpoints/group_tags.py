@@ -13,10 +13,10 @@ from sentry.models import GroupTagValue, GroupTagKey, TagKey, TagKeyStatus
 class GroupTagsEndpoint(GroupEndpoint):
     def get(self, request, group):
         tag_keys = TagKey.objects.filter(
-            project=group.project,
+            project_id=group.project_id,
             status=TagKeyStatus.VISIBLE,
             key__in=GroupTagKey.objects.filter(
-                group=group,
+                group_id=group.id,
             ).values('key'),
         )
 

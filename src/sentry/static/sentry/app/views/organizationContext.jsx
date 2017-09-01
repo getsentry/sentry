@@ -1,13 +1,13 @@
 import React from 'react';
 import Reflux from 'reflux';
+import DocumentTitle from 'react-document-title';
+import moment from 'moment';
 
 import ApiMixin from '../mixins/apiMixin';
-import DocumentTitle from 'react-document-title';
 import HookStore from '../stores/hookStore';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
 import BroadcastModal from '../components/broadcastModal';
-import moment from 'moment';
 import SentryTypes from '../proptypes';
 import TeamStore from '../stores/teamStore';
 import ProjectStore from '../stores/projectStore';
@@ -96,7 +96,7 @@ const OrganizationContext = React.createClass({
           loading: false,
           error: false,
           errorType: null,
-          hooks: hooks,
+          hooks,
           showBroadcast: this.shouldShowBroadcast(data)
         });
 
@@ -119,7 +119,7 @@ const OrganizationContext = React.createClass({
         this.setState({
           loading: false,
           error: true,
-          errorType: errorType
+          errorType
         });
       }
     });

@@ -1,4 +1,5 @@
 import moment from 'moment';
+import PropTypes from 'prop-types';
 import React from 'react';
 import {t, tct} from '../locale';
 
@@ -7,8 +8,8 @@ import OrganizationState from '../mixins/organizationState';
 
 const TodoItem = React.createClass({
   propTypes: {
-    task: React.PropTypes.object,
-    onSkip: React.PropTypes.func.isRequired
+    task: PropTypes.object,
+    onSkip: PropTypes.func.isRequired
   },
 
   mixins: [OrganizationState],
@@ -114,9 +115,9 @@ const TodoItem = React.createClass({
 
 const Confirmation = React.createClass({
   propTypes: {
-    task: React.PropTypes.number,
-    onSkip: React.PropTypes.func.isRequired,
-    dismiss: React.PropTypes.func.isRequired
+    task: PropTypes.number,
+    onSkip: PropTypes.func.isRequired,
+    dismiss: PropTypes.func.isRequired
   },
 
   skip: function(e) {
@@ -263,7 +264,7 @@ const TodoList = React.createClass({
       }
       return task;
     });
-    this.setState({tasks: tasks});
+    this.setState({tasks});
   },
 
   skipTask(skipped_task) {

@@ -1,23 +1,25 @@
 import Modal from 'react-bootstrap/lib/Modal';
 import PureRenderMixin from 'react-addons-pure-render-mixin';
+import PropTypes from 'prop-types';
 import React from 'react';
+import _ from 'lodash';
+
 import SelectedGroupStore from '../../stores/selectedGroupStore';
 import TooltipMixin from '../../mixins/tooltip';
 import {t} from '../../locale';
-import _ from 'lodash';
 
 // TODO(mitsuhiko): very unclear how to translate this
 const ActionLink = React.createClass({
   propTypes: {
-    confirmationQuestion: React.PropTypes.any,
-    buttonTitle: React.PropTypes.string,
-    confirmLabel: React.PropTypes.any,
-    disabled: React.PropTypes.bool,
-    onAction: React.PropTypes.func.isRequired,
-    onlyIfBulk: React.PropTypes.bool,
-    selectAllActive: React.PropTypes.bool.isRequired, // "select all" checkbox
-    tooltip: React.PropTypes.string,
-    extraDescription: React.PropTypes.string
+    confirmationQuestion: PropTypes.any,
+    buttonTitle: PropTypes.string,
+    confirmLabel: PropTypes.any,
+    disabled: PropTypes.bool,
+    onAction: PropTypes.func.isRequired,
+    onlyIfBulk: PropTypes.bool,
+    selectAllActive: PropTypes.bool.isRequired, // "select all" checkbox
+    tooltip: PropTypes.string,
+    extraDescription: PropTypes.string
   },
 
   mixins: [

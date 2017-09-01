@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import $ from 'jquery';
 import {browserHistory} from 'react-router';
@@ -9,11 +10,11 @@ import Pagination from './pagination';
 
 const Filter = React.createClass({
   propTypes: {
-    name: React.PropTypes.string.isRequired,
-    queryKey: React.PropTypes.string.isRequired,
-    options: React.PropTypes.array.isRequired,
-    path: React.PropTypes.string.isRequired,
-    value: React.PropTypes.any
+    name: PropTypes.string.isRequired,
+    queryKey: PropTypes.string.isRequired,
+    options: PropTypes.array.isRequired,
+    path: PropTypes.string.isRequired,
+    value: PropTypes.any
   },
 
   getCurrentLabel() {
@@ -77,10 +78,10 @@ const Filter = React.createClass({
 
 const SortBy = React.createClass({
   propTypes: {
-    options: React.PropTypes.array.isRequired,
-    path: React.PropTypes.string.isRequired,
-    location: React.PropTypes.string.isRequired,
-    value: React.PropTypes.any
+    options: PropTypes.array.isRequired,
+    path: PropTypes.string.isRequired,
+    location: PropTypes.string.isRequired,
+    value: PropTypes.any
   },
 
   getCurrentSortLabel() {
@@ -127,20 +128,20 @@ const SortBy = React.createClass({
 
 const ResultGrid = React.createClass({
   propTypes: {
-    columns: React.PropTypes.array,
-    columnsForRow: React.PropTypes.func,
-    defaultSort: React.PropTypes.string,
-    defaultParams: React.PropTypes.object,
-    endpoint: React.PropTypes.string,
-    filters: React.PropTypes.object,
-    hasPagination: React.PropTypes.bool,
-    hasSearch: React.PropTypes.bool,
-    keyForRow: React.PropTypes.func,
-    location: React.PropTypes.string,
-    method: React.PropTypes.string,
-    options: React.PropTypes.array,
-    path: React.PropTypes.string,
-    sortOptions: React.PropTypes.array
+    columns: PropTypes.array,
+    columnsForRow: PropTypes.func,
+    defaultSort: PropTypes.string,
+    defaultParams: PropTypes.object,
+    endpoint: PropTypes.string,
+    filters: PropTypes.object,
+    hasPagination: PropTypes.bool,
+    hasSearch: PropTypes.bool,
+    keyForRow: PropTypes.func,
+    location: PropTypes.string,
+    method: PropTypes.string,
+    options: PropTypes.array,
+    path: PropTypes.string,
+    sortOptions: PropTypes.array
   },
 
   mixins: [ApiMixin],
@@ -247,7 +248,7 @@ const ResultGrid = React.createClass({
     let location = this.props.location || {};
     let {query} = this.state;
     let targetQueryParams = jQuery.extend({}, location.query || {}, {
-      query: query,
+      query,
       cursor: ''
     });
 

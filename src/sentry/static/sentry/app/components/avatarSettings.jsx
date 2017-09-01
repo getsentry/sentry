@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 
 import AlertActions from '../actions/alertActions';
@@ -10,7 +11,7 @@ import {t} from '../locale';
 
 const AvatarSettings = React.createClass({
   propTypes: {
-    userId: React.PropTypes.number
+    userId: PropTypes.number
   },
 
   mixins: [ApiMixin],
@@ -39,7 +40,7 @@ const AvatarSettings = React.createClass({
   },
 
   updateUserState(user) {
-    this.setState({user: user});
+    this.setState({user});
   },
 
   updateDataUrlState(dataUrlState) {
@@ -54,7 +55,7 @@ const AvatarSettings = React.createClass({
   },
 
   handleSuccess(user) {
-    this.setState({user: user});
+    this.setState({user});
     AlertActions.addAlert({
       message: t('Successfully saved avatar preferences'),
       type: 'success',

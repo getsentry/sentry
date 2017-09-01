@@ -18,9 +18,9 @@ class ProjectTagsTest(TestCase):
         self.assertRequiresAuthentication(self.path)
 
     def test_simple(self):
-        TagKey.objects.create(project=self.project, key='site')
-        TagKey.objects.create(project=self.project, key='url')
-        TagKey.objects.create(project=self.project, key='os')
+        TagKey.objects.create(project_id=self.project.id, key='site')
+        TagKey.objects.create(project_id=self.project.id, key='url')
+        TagKey.objects.create(project_id=self.project.id, key='os')
 
         self.login_as(self.user)
 

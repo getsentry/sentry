@@ -27,6 +27,8 @@ env:
     - SENTRY_SKIP_BACKEND_VALIDATION=1
     - TRAVIS_NODE_VERSION=4
     - CXX=g++-4.8
+before_install:
+  - bin/update-zeus-job in_progress unknown || echo "failed to report build to Zeus; continuing"
 install:
   - nvm install $TRAVIS_NODE_VERSION
   - npm install -g yarn@0.27.5
@@ -38,8 +40,14 @@ script:
   - make travis-test-$TEST_SUITE
 after_success:
   - codecov -e TEST_SUITE
+  - bin/upload-zeus-artifact junit.xml
+  - bin/upload-zeus-artifact coverage.xml
+  - bin/update-zeus-job finished passed
 after_failure:
   - dmesg | tail -n 100
+  - bin/upload-zeus-artifact junit.xml
+  - bin/upload-zeus-artifact coverage.xml
+  - bin/update-zeus-job finished failed
 # each attribute in the matrix will override the global attribute
 matrix:
   fast_finish: true

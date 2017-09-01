@@ -1,12 +1,13 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 
 const SidebarPanelItem = React.createClass({
   propTypes: {
-    title: React.PropTypes.string,
-    image: React.PropTypes.string,
-    message: React.PropTypes.any,
-    link: React.PropTypes.string,
-    hasSeen: React.PropTypes.bool
+    title: PropTypes.string,
+    image: PropTypes.string,
+    message: PropTypes.any,
+    link: PropTypes.string,
+    hasSeen: PropTypes.bool
   },
 
   render() {

@@ -1,15 +1,17 @@
+import PropTypes from 'prop-types';
 import React from 'react';
-import AlertActions from '../actions/alertActions';
 import PureRenderMixin from 'react-addons-pure-render-mixin';
+
+import AlertActions from '../actions/alertActions';
 import {t} from '../locale';
 
 const AlertMessage = React.createClass({
   propTypes: {
-    alert: React.PropTypes.shape({
-      id: React.PropTypes.string,
-      message: React.PropTypes.string.isRequired,
-      type: React.PropTypes.oneOf(['success', 'error', 'warning']),
-      url: React.PropTypes.string
+    alert: PropTypes.shape({
+      id: PropTypes.string,
+      message: PropTypes.string.isRequired,
+      type: PropTypes.oneOf(['success', 'error', 'warning']),
+      url: PropTypes.string
     })
   },
 

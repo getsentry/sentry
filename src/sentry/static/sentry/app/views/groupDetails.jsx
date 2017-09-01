@@ -1,8 +1,10 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import Reflux from 'reflux';
 import {browserHistory} from 'react-router';
-import ApiMixin from '../mixins/apiMixin';
 import DocumentTitle from 'react-document-title';
+
+import ApiMixin from '../mixins/apiMixin';
 import GroupHeader from './groupDetails/header';
 import GroupStore from '../stores/groupStore';
 import LoadingError from '../components/loadingError';
@@ -16,13 +18,13 @@ let ERROR_TYPES = {
 
 const GroupDetails = React.createClass({
   propTypes: {
-    setProjectNavSection: React.PropTypes.func,
-    memberList: React.PropTypes.array
+    setProjectNavSection: PropTypes.func,
+    memberList: PropTypes.array
   },
 
   childContextTypes: {
     group: SentryTypes.Group,
-    location: React.PropTypes.object
+    location: PropTypes.object
   },
 
   mixins: [ApiMixin, Reflux.listenTo(GroupStore, 'onGroupChange')],
@@ -111,7 +113,7 @@ const GroupDetails = React.createClass({
         this.setState({
           loading: false,
           error: true,
-          errorType: errorType
+          errorType
         });
       }
     });
@@ -127,7 +129,7 @@ const GroupDetails = React.createClass({
           return;
         }
         this.setState({
-          group: group
+          group
         });
       }
     }
@@ -186,7 +188,7 @@ const GroupDetails = React.createClass({
           />
           {React.cloneElement(this.props.children, {
             memberList: this.props.memberList,
-            group: group
+            group
           })}
         </div>
       </DocumentTitle>
