@@ -1,13 +1,12 @@
 import React from 'react';
-import Waiting from './waiting';
 import {browserHistory} from 'react-router';
-import ApiMixin from '../../../mixins/apiMixin';
+import Raven from 'raven-js';
 
+import Waiting from './waiting';
+import ApiMixin from '../../../mixins/apiMixin';
 import ProjectContext from '../../projects/projectContext';
 import ProjectDocsContext from '../../projectInstall/docsContext';
 import ProjectInstallPlatform from '../../projectInstall/platform';
-
-import Raven from 'raven-js';
 
 const Configure = React.createClass({
   mixins: [ApiMixin],

@@ -1,7 +1,8 @@
 import $ from 'jquery';
+import _ from 'lodash';
+
 import GroupActions from './actions/groupActions';
 import TeamActions from './actions/teamActions';
-import _ from 'lodash';
 
 export class Request {
   constructor(xhr) {

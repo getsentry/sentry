@@ -1,8 +1,9 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import DocumentTitle from 'react-document-title';
+
 import ApiMixin from '../mixins/apiMixin';
 import Count from '../components/count';
-import DocumentTitle from 'react-document-title';
 import ListLink from '../components/listLink';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';

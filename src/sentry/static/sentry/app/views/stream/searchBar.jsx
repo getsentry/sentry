@@ -1,6 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import ReactDOM from 'react-dom';
+import PureRenderMixin from 'react-addons-pure-render-mixin';
 import Reflux from 'reflux';
 import _ from 'lodash';
 import classNames from 'classnames';
@@ -10,8 +11,6 @@ import MemberListStore from '../../stores/memberListStore';
 
 import ApiMixin from '../../mixins/apiMixin';
 import {t} from '../../locale';
-
-import PureRenderMixin from 'react-addons-pure-render-mixin';
 
 import SearchDropdown from './searchDropdown';
 

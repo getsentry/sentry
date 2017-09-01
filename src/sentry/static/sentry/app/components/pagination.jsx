@@ -1,7 +1,8 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import utils from '../utils';
 import {browserHistory} from 'react-router';
+
+import utils from '../utils';
 import {t} from '../locale';
 
 export default React.createClass({

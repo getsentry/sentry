@@ -1,5 +1,13 @@
 import _ from 'lodash';
 
+// import/export sub-utils
+import parseLinkHeader from './utils/parseLinkHeader';
+import deviceNameMapper from './utils/deviceNameMapper';
+import Collection from './utils/collection';
+import PendingChangeQueue from './utils/pendingChangeQueue';
+import CursorPoller from './utils/cursorPoller';
+import StreamManager from './utils/streamManager';
+
 /*eslint no-use-before-define:0*/
 export const modelsEqual = function(obj1, obj2) {
   if (!obj1 && !obj2) return true;
@@ -252,14 +260,6 @@ export function parseRepo(repo) {
 export function extractMultilineFields(value) {
   return value.split('\n').map(f => trim(f)).filter(f => f !== '');
 }
-
-// import/export sub-utils
-import parseLinkHeader from './utils/parseLinkHeader';
-import deviceNameMapper from './utils/deviceNameMapper';
-import Collection from './utils/collection';
-import PendingChangeQueue from './utils/pendingChangeQueue';
-import CursorPoller from './utils/cursorPoller';
-import StreamManager from './utils/streamManager';
 
 // re-export under utils
 export {parseLinkHeader, deviceNameMapper, Collection, PendingChangeQueue, CursorPoller};

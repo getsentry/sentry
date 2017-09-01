@@ -1,13 +1,13 @@
 import React from 'react';
 import Reflux from 'reflux';
+import DocumentTitle from 'react-document-title';
+import moment from 'moment';
 
 import ApiMixin from '../mixins/apiMixin';
-import DocumentTitle from 'react-document-title';
 import HookStore from '../stores/hookStore';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
 import BroadcastModal from '../components/broadcastModal';
-import moment from 'moment';
 import SentryTypes from '../proptypes';
 import TeamStore from '../stores/teamStore';
 import ProjectStore from '../stores/projectStore';

@@ -2,8 +2,9 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import Reflux from 'reflux';
 import {browserHistory} from 'react-router';
-import ApiMixin from '../mixins/apiMixin';
 import DocumentTitle from 'react-document-title';
+
+import ApiMixin from '../mixins/apiMixin';
 import GroupHeader from './groupDetails/header';
 import GroupStore from '../stores/groupStore';
 import LoadingError from '../components/loadingError';

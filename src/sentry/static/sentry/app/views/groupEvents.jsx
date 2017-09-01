@@ -6,7 +6,7 @@ import GroupState from '../mixins/groupState';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
 import Pagination from '../components/pagination';
-import SearchBar from '../components/searchBar.jsx';
+import SearchBar from '../components/searchBar';
 import EventsTable from '../components/eventsTable/eventsTable';
 import {t} from '../locale';
 

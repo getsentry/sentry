@@ -1,8 +1,9 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import jQuery from 'jquery';
-import {isUrl} from '../utils';
 import _ from 'lodash';
+
+import {isUrl} from '../utils';
 
 function looksLikeObjectRepr(value) {
   let a = value[0];

@@ -1,13 +1,13 @@
 import React from 'react';
 import {shallow} from 'enzyme';
-
 import {browserHistory} from 'react-router';
-import stubReactComponents from '../../helpers/stubReactComponent';
 
 import {Client} from 'app/api';
 import ProjectReleases from 'app/views/projectReleases';
 import SearchBar from 'app/views/stream/searchBar';
 import Pagination from 'app/components/pagination';
+
+import stubReactComponents from '../../helpers/stubReactComponent';
 
 describe('ProjectReleases', function() {
   beforeEach(function() {

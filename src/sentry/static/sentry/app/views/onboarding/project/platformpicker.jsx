@@ -1,8 +1,8 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import ListLink from '../../../components/listLink';
 import classnames from 'classnames';
 
+import ListLink from '../../../components/listLink';
 import {flattenedPlatforms, categoryLists} from '../utils';
 import PlatformCard from './platformCard';
 import {t} from '../../../locale';

@@ -1,10 +1,11 @@
 import React from 'react';
+import update from 'react-addons-update';
 import {browserHistory} from 'react-router';
+
 import ActionOverlay from '../../components/actionOverlay';
 import OrganizationState from '../../mixins/organizationState';
 import ApiMixin from '../../mixins/apiMixin';
 import {t} from '../../locale';
-import update from 'react-addons-update';
 
 /* given an organization find information about the projects that are
    needed for callsign review.  Splits up projects you are a member of or

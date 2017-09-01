@@ -1,6 +1,3 @@
-jest.unmock('app/api');
-jest.mock('app/stores/groupStore');
-
 import React from 'react';
 import {shallow} from 'enzyme';
 import Cookies from 'js-cookie';
@@ -10,6 +7,9 @@ import {Client} from 'app/api';
 import CursorPoller from 'app/utils/cursorPoller';
 import LoadingError from 'app/components/loadingError';
 import Stream from 'app/views/stream';
+
+jest.unmock('app/api');
+jest.mock('app/stores/groupStore');
 
 const DEFAULT_LINKS_HEADER =
   '<http://127.0.0.1:8000/api/0/projects/sentry/ludic-science/issues/?cursor=1443575731:0:1>; rel="previous"; results="false"; cursor="1443575731:0:1", ' +
