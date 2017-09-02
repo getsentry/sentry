@@ -54,10 +54,6 @@
   }
   .group-header {
     font-weight: bold;
-    .stream-actions-left {
-      padding-top: 10px;
-      padding-bottom: 0;
-    }
 
     .stream-actions-graph {
       font-size: 12px;
@@ -70,6 +66,8 @@
   padding-bottom: 0;
   padding-right: 10px;
   height: 44px;
+  .flex;
+  .flex.flex-vertically-centered;
 
   .btn-group > .btn {
     color: inherit;
@@ -78,7 +76,7 @@
   .checkbox {
     position: absolute;
     left: 40px;
-    top: 1px;
+    top: -6px;
   }
 
   .btn-group {
@@ -100,7 +98,7 @@
 
   .stream-actions-left {
     position: relative;
-    padding: 8px 0 8px 54px;
+    padding-left: 54px;
 
     .checkbox {
       position: absolute;
@@ -109,18 +107,10 @@
 
   .stream-actions-graph {
     font-size: 13px;
-    padding-top: 11px;
   }
 
   .stream-actions-graph-label {
     display: inline-block;
-  }
-
-  .stream-actions-count,
-  .stream-actions-users,
-  .stream-actions-level,
-  .stream-actions-graph {
-    padding-top: 11px;
   }
 
   .realtime-paused {
@@ -1237,7 +1227,6 @@
   .stream-actions {
     .stream-actions-count, .stream-actions-users {
       font-size: 13px;
-      padding-top: 8px;
     }
   }
 }
