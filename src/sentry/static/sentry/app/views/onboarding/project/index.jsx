@@ -43,6 +43,7 @@ const OnboardingProject = React.createClass({
     this.setWarning(this.props.name);
     if (this.props.name) this.props.next();
   },
+
   renderTeamPicker() {
     let {team, teams, setTeam} = this.props;
     if (teams.length < 2) return null;

@@ -39,13 +39,16 @@ class CreateOrganizationMemberView(OrganizationView):
         )
 
     def handle(self, request, organization):
-        can_admin, allowed_roles = self.get_allowed_roles(request, organization)
+        can_admin, allowed_roles = self.get_allowed_roles(
+            request, organization)
 
-        all_teams = Team.objects.filter(organization=organization, status=TeamStatus.VISIBLE)
+        all_teams = Team.objects.filter(
+            organization=organization, status=TeamStatus.VISIBLE)
 
         form = self.get_form(request, organization, all_teams, allowed_roles)
         if form.is_valid():
-            om, created = form.save(request.user, organization, request.META['REMOTE_ADDR'])
+            om, created = form.save(
+                request.user, organization, request.META['REMOTE_ADDR'])
 
             user_display = form.cleaned_data.get('email', None)
             if not user_display:
@@ -56,8 +59,12 @@ class CreateOrganizationMemberView(OrganizationView):
                     request, messages.SUCCESS,
                     _('The organization member %s was added.') % user_display
                 )
+                print (om.email)
+                print (created)
+                print (request.user)
 
-                member_invited.send(member=om, user=request.user, sender=self)
+                member_invited.send(
+                    member=om, user=request.user, sender=self)
 
             else:
                 messages.add_message(
@@ -65,7 +72,8 @@ class CreateOrganizationMemberView(OrganizationView):
                     _('The organization member %s already exists.') % user_display
                 )
 
-            redirect = reverse('sentry-organization-members', args=[organization.slug])
+            redirect = reverse('sentry-organization-members',
+                               args=[organization.slug])
 
             return HttpResponseRedirect(redirect)
 
