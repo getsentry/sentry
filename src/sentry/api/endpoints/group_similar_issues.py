@@ -15,7 +15,7 @@ class GroupSimilarIssuesEndpoint(GroupEndpoint):
     def get(self, request, group):
         # TODO(tkaemming): This should have a limit somewhere.
         results = filter(
-            lambda (group_id, scores): group_id != group.id,
+            lambda group_id_and_scores: group_id_and_scores[1] != group.id,
             features.compare(group)
         )
 
@@ -29,9 +29,9 @@ class GroupSimilarIssuesEndpoint(GroupEndpoint):
         # unexpected behavior, but still possible.)
         return Response(
             filter(
-                lambda (group_id, scores): group_id is not None,
+                lambda group_id_and_scores: group_id_and_scores[0] is not None,
                 map(
-                    lambda (group_id, scores): (serialized_groups.get(group_id), scores, ),
+                    lambda group_id_and_scores: (serialized_groups.get(group_id_and_scores[0]), group_id_and_scores[1], ),
                     results,
                 ),
             ),
