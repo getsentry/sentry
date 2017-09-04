@@ -491,12 +491,12 @@ def report(request):
             (
                 timestamp + (i * rollup),
                 (random.randint(0, daily_maximum), random.randint(0, daily_maximum))
-            ) for i in xrange(0, 7)
+            ) for i in range(0, 7)
         ]
 
         aggregates = [
             random.randint(0, daily_maximum * 7) if random.random() < 0.9 else None
-            for _ in xrange(0, 4)
+            for _ in range(0, 4)
         ]
 
         return reports.Report(
