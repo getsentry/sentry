@@ -71,7 +71,7 @@ class SimpleThreadedWorkerPool(object):
         """\
         Submit a task to the worker pool.
         """
-        
+
         if not self.__started:
             self.__start()
 
