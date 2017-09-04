@@ -23,6 +23,7 @@ intervals = {
     '30d': ('30 days', timedelta(days=30)),
 }
 
+
 # was: lambda (key, (label, duration)): duration
 # now: lambda key_and_label_duration: key_and_label_duration[1][1]
 class EventFrequencyForm(forms.Form):
