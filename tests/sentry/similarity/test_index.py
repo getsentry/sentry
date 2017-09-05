@@ -136,8 +136,8 @@ class MinHashIndexTestCase(TestCase):
         ]
         assert results[2][0] == '3'
         assert results[2][1][0] == 1.0
-        assert results[3] == ('4', [1.0, None])
-        assert results[4] == ('5', [None, 1.0])
+        assert results[3] == ('4', [1.0, 0.0])
+        assert results[4] == ('5', [0.0, 1.0])
 
         # comparison, candidate limit (with lexicographical collision sort)
         results = self.index.compare('example', '1', [
@@ -151,7 +151,7 @@ class MinHashIndexTestCase(TestCase):
         ]
         assert results[2][0] == '3'
         assert results[2][1][0] == 1.0
-        assert results[3] == ('4', [1.0, None])
+        assert results[3] == ('4', [1.0, 0.0])
 
         # classification, without thresholding
         results = self.index.classify('example', [
@@ -165,8 +165,8 @@ class MinHashIndexTestCase(TestCase):
         ]
         assert results[2][0] == '3'
         assert results[2][1][0] == 1.0
-        assert results[3] == ('4', [1.0, None])
-        assert results[4] == ('5', [None, 1.0])
+        assert results[3] == ('4', [1.0, 0.0])
+        assert results[4] == ('5', [0.0, 1.0])
 
         # classification, with thresholding (low)
         results = self.index.classify('example', [
@@ -192,7 +192,7 @@ class MinHashIndexTestCase(TestCase):
         assert results[1][0] == '2'
         assert results[1][1][0] > 0
         assert results[1][1][1] == 1.0
-        assert results[2] == ('5', [None, 1.0])
+        assert results[2] == ('5', [0.0, 1.0])
 
         # classification, candidate limit (with lexicographical collision sort)
         results = self.index.classify('example', [
@@ -206,7 +206,7 @@ class MinHashIndexTestCase(TestCase):
         ]
         assert results[2][0] == '3'
         assert results[2][1][0] == 1.0
-        assert results[3] == ('4', [1.0, None])
+        assert results[3] == ('4', [1.0, 0.0])
 
         # empty query
         assert self.index.classify('example', [
@@ -217,9 +217,9 @@ class MinHashIndexTestCase(TestCase):
             ('index:b', 0),
         ]) == [
             ('4', [1.0, None]),
-            ('1', [1.0, None]),
-            ('2', [1.0, None]),
-            ('3', [1.0, None]),
+            ('1', [1.0, 0.0]),
+            ('2', [1.0, 0.0]),
+            ('3', [1.0, 0.0]),
         ]
 
     def test_merge(self):

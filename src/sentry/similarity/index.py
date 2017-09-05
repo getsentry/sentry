@@ -43,19 +43,28 @@ class MinHashIndex(object):
         # all redis operations.
         return index(self.cluster, [scope], args)
 
-    def _as_search_result(self, indices, result):
-        replacements = {
-            -1: None,
-            -2: 0,
+    def _as_search_result(self, results):
+        score_replacements = {
+            -1.0: None,  # both items don't have the feature (no comparison)
+            -2.0: 0,     # one item doesn't have the feature (totally dissimilar)
         }
 
-        def get_comparison_key((key, scores)):
+        def decode_search_result(result):
+            key, scores = result
+            return (
+                key,
+                map(
+                    lambda score: score_replacements.get(score, score),
+                    map(float, scores),
+                )
+            )
+
+        def get_comparison_key(result):
+            key, scores = result
+
             scores = filter(
                 lambda score: score is not None,
-                map(
-                    lambda score: replacements.get(score, score),
-                    scores,
-                ),
+                scores,
             )
 
             return (
@@ -64,22 +73,9 @@ class MinHashIndex(object):
                 key,  # lex sort, tiebreaker
             )
 
-        # TODO: Clean this up, don't map so much.
-        return map(
-            lambda (key, scores): (
-                key,
-                map(lambda score: score if score >= 0 else None, scores),
-            ),
-            sorted(
-                map(
-                    lambda (key, scores): (
-                        key,
-                        map(float, scores),
-                    ),
-                    result,
-                ),
-                key=get_comparison_key,
-            ),
+        return sorted(
+            map(decode_search_result, results),
+            key=get_comparison_key,
         )
 
     def classify(self, scope, items, limit=None, timestamp=None):
@@ -101,10 +97,7 @@ class MinHashIndex(object):
             arguments.extend([idx, threshold])
             arguments.extend(self._build_signature_arguments(features))
 
-        return self._as_search_result(
-            [idx for idx, threshold, features in items],
-            self.__index(scope, arguments),
-        )
+        return self._as_search_result(self.__index(scope, arguments))
 
     def compare(self, scope, key, items, limit=None, timestamp=None):
         if timestamp is None:
@@ -125,10 +118,7 @@ class MinHashIndex(object):
         for idx, threshold in items:
             arguments.extend([idx, threshold])
 
-        return self._as_search_result(
-            [idx for idx, threshold in items],
-            self.__index(scope, arguments),
-        )
+        return self._as_search_result(self.__index(scope, arguments))
 
     def record(self, scope, key, items, timestamp=None):
         if not items:
