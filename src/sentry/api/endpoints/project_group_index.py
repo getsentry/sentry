@@ -471,18 +471,13 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
             groups_to_delete = []
 
             for group in group_list:
-                with transaction.atomic():
-                    try:
+                try:
+                    with transaction.atomic():
                         tombstone = GroupTombstone.objects.create(
                             previous_group_id=group.id,
                             actor_id=acting_user.id if acting_user else None,
                             **{name: getattr(group, name) for name in TOMBSTONE_FIELDS_FROM_GROUP}
                         )
-                    except IntegrityError:
-                        # in this case, a tombstone has already been created
-                        # for a group, so no hash updates are necessary
-                        pass
-                    else:
                         groups_to_delete.append(group)
 
                         GroupHash.objects.filter(
@@ -491,6 +486,10 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
                             group=None,
                             group_tombstone_id=tombstone.id,
                         )
+                except IntegrityError:
+                    # in this case, a tombstone has already been created
+                    # for a group, so no hash updates are necessary
+                    pass
 
             self._delete_groups(request, project, groups_to_delete)
 
