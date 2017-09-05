@@ -265,8 +265,8 @@ class FeatureSet(object):
             [(self.aliases[label], key) for label in self.features.keys()],
         )
 
-    def flush(self, project=None):
+    def flush(self, project):
         return self.index.flush(
-            '*' if project is None else self.__get_scope(project),
+            self.__get_scope(project),
             self.aliases.values(),
         )
