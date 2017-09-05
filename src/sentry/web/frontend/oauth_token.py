@@ -5,7 +5,6 @@ import six
 
 from django.http import HttpResponse
 from django.utils import timezone
-from django.utils.crypto import constant_time_compare
 from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic.base import View
@@ -46,15 +45,11 @@ class OAuthTokenView(View):
 
         if grant_type == 'authorization_code':
             client_id = request.POST.get('client_id')
-            client_secret = request.POST.get('client_secret')
             redirect_uri = request.POST.get('redirect_uri')
             code = request.POST.get('code')
 
             if not client_id:
                 return self.error(request, 'invalid_client', 'missing client_id')
-
-            if not client_secret:
-                return self.error(request, 'invalid_client', 'missing client_secret')
 
             try:
                 application = ApiApplication.objects.get(
@@ -63,9 +58,6 @@ class OAuthTokenView(View):
                 )
             except ApiApplication.DoesNotExist:
                 return self.error(request, 'invalid_client', 'invalid client_id')
-
-            if not constant_time_compare(client_secret, application.client_secret):
-                return self.error(request, 'invalid_client', 'invalid client_secret')
 
             try:
                 grant = ApiGrant.objects.get(application=application, code=code)
@@ -85,7 +77,6 @@ class OAuthTokenView(View):
             refresh_token = request.POST.get('refresh_token')
             scope = request.POST.get('scope')
             client_id = request.POST.get('client_id')
-            client_secret = request.POST.get('client_secret')
 
             if not refresh_token:
                 return self.error(request, 'invalid_request')
@@ -97,9 +88,6 @@ class OAuthTokenView(View):
             if not client_id:
                 return self.error(request, 'invalid_client', 'missing client_id')
 
-            if not client_secret:
-                return self.error(request, 'invalid_client', 'missing client_secret')
-
             try:
                 application = ApiApplication.objects.get(
                     client_id=client_id,
@@ -107,9 +95,6 @@ class OAuthTokenView(View):
                 )
             except ApiApplication.DoesNotExist:
                 return self.error(request, 'invalid_client', 'invalid client_id')
-
-            if not constant_time_compare(client_secret, application.client_secret):
-                return self.error(request, 'invalid_client', 'invalid client_secret')
 
             try:
                 token = ApiToken.objects.get(
