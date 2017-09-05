@@ -107,10 +107,12 @@
 
   .stream-actions-graph {
     font-size: 13px;
+    display: flex;
+    justify-content: space-between;
   }
 
   .stream-actions-graph-label {
-    display: inline-block;
+    flex: 1;
   }
 
   .realtime-paused {
@@ -127,15 +129,15 @@
 
   .toggle-graph {
     .list-unstyled();
+    display: flex;
+    justify-content: space-between;
     margin-bottom: 0;
     font-size: 11px;
-    float: right;
     text-transform: uppercase;
     font-weight: bold;
 
     li {
-      float: left;
-      margin-right: 10px;
+      margin-right: 5px;
 
       &:last-child {
         margin-right: 0;
