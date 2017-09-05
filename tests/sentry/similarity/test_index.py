@@ -17,7 +17,7 @@ class MinHashIndexTestCase(TestCase):
     @fixture
     def index(self):
         return MinHashIndex(
-            redis.clusters.get('default'),
+            redis.clusters.get('default').get_local_client(0),
             'sim',
             signature_builder,
             16,
