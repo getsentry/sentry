@@ -90,6 +90,24 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
             return False
         return model.__name__.lower() not in model_list
 
+    # Deletions that use `BulkDeleteQuery` (and don't need to worry about child relations)
+    # (model, datetime_field, order_by)
+    BULK_QUERY_DELETES = (
+        (models.TagValue, 'last_seen', None),
+        (models.GroupEmailThread, 'date', None),
+        (models.GroupRuleStatus, 'date_added', None),
+        (models.GroupTagValue, 'last_seen', None),
+        (models.TagValue, 'last_seen', None),
+        (models.EventTag, 'date_added', '-date_added'),
+    )
+
+    # Deletions that use the `deletions` code path (which handles their child relations)
+    # (model, datetime_field)
+    DELETES = (
+        (models.Event, 'datetime'),
+        (models.Group, 'last_seen'),
+    )
+
     if not silent:
         click.echo('Removing expired values for LostPasswordHash')
 
@@ -130,12 +148,26 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
                 click.echo(
                     "NodeStore backend does not support cleanup operation", err=True)
 
-    # Deletions that use the `deletions` code path which handles their child relations.
-    # (model, datetime_field)
-    DELETES = (
-        (models.Event, 'datetime'),
-        (models.Group, 'last_seen'),
-    )
+    for model, dtfield, order_by in BULK_QUERY_DELETES:
+        if not silent:
+            click.echo(
+                "Removing {model} for days={days} project={project}".format(
+                    model=model.__name__,
+                    days=days,
+                    project=project or '*',
+                )
+            )
+        if is_filtered(model):
+            if not silent:
+                click.echo('>> Skipping %s' % model.__name__)
+        else:
+            BulkDeleteQuery(
+                model=model,
+                dtfield=dtfield,
+                days=days,
+                project_id=project_id,
+                order_by=order_by,
+            ).execute()
 
     for model, dtfield in DELETES:
         if not silent:
@@ -174,38 +206,6 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
             has_more = True
             while has_more:
                 has_more = task.chunk()
-
-    # Deletions that use `BulkDeleteQuery` (and don't need to worry about child relations)
-    # (model, datetime_field, order_by)
-    BULK_QUERY_DELETES = (
-        (models.TagValue, 'last_seen', None),
-        (models.GroupEmailThread, 'date', None),
-        (models.GroupRuleStatus, 'date_added', None),
-        (models.GroupTagValue, 'last_seen', None),
-        (models.TagValue, 'last_seen', None),
-        (models.EventTag, 'date_added', '-date_added'),
-    )
-
-    for model, dtfield, order_by in BULK_QUERY_DELETES:
-        if not silent:
-            click.echo(
-                "Removing {model} for days={days} project={project}".format(
-                    model=model.__name__,
-                    days=days,
-                    project=project or '*',
-                )
-            )
-        if is_filtered(model):
-            if not silent:
-                click.echo('>> Skipping %s' % model.__name__)
-        else:
-            BulkDeleteQuery(
-                model=model,
-                dtfield=dtfield,
-                days=days,
-                project_id=project_id,
-                order_by=order_by,
-            ).execute()
 
     # EventMapping is fairly expensive and is special cased as it's likely you
     # won't need a reference to an event for nearly as long
