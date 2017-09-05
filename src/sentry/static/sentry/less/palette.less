@@ -96,22 +96,3 @@
 @30: lighten(@100, 70%);
 @20: lighten(@100, 80%);
 @10: lighten(@100, 90%);
-
-// mixins for similarity
-.similar-scores {
-  &.low {
-    background-color: @orange;
-  }
-  &.low-med {
-    background-color: mix(@orange, @yellow-orange, 50%);
-  }
-  &.med {
-    background-color: @yellow-orange;
-  }
-  &.med-high {
-    background-color: mix(@yellow-orange, @green, 40%);
-  }
-  &.high {
-    background-color: @green;
-  }
-}
