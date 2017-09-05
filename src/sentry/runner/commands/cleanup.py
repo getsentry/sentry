@@ -179,10 +179,6 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
                 )
             )
 
-        # TODO: filtering won't take into account "app-level" cascades done in deletions code...
-        #       e.g. filtering out GroupTagValue won't work when we delete a Group here, because all
-        #            child relations are handled within the deletions code.
-        # TODO: implement concurrency like BulkDeleteQuery has (?)
         if is_filtered(model):
             if not silent:
                 click.echo('>> Skipping %s' % model.__name__)
