@@ -22,7 +22,8 @@ class OAuthTokenView(View):
     def dispatch(self, request, *args, **kwargs):
         return super(OAuthTokenView, self).dispatch(request, *args, **kwargs)
 
-    def error(self, request, name, status=400):
+    # Note: the reason parameter is for internal use only
+    def error(self, request, name, reason=None, status=400):
         client_id = request.POST.get('client_id')
         redirect_uri = request.POST.get('redirect_uri')
 
@@ -31,6 +32,7 @@ class OAuthTokenView(View):
             'status': status,
             'client_id': client_id,
             'redirect_uri': redirect_uri,
+            'reason': reason,
         })
         return HttpResponse(
             json.dumps({
@@ -49,10 +51,10 @@ class OAuthTokenView(View):
             code = request.POST.get('code')
 
             if not client_id:
-                return self.error(request, 'invalid_client')
+                return self.error(request, 'invalid_client', 'missing client_id')
 
             if not client_secret:
-                return self.error(request, 'invalid_client')
+                return self.error(request, 'invalid_client', 'missing client_secret')
 
             try:
                 application = ApiApplication.objects.get(
@@ -60,23 +62,23 @@ class OAuthTokenView(View):
                     status=ApiApplicationStatus.active,
                 )
             except ApiApplication.DoesNotExist:
-                return self.error(request, 'invalid_client')
+                return self.error(request, 'invalid_client', 'invalid client_id')
 
             if not constant_time_compare(client_secret, application.client_secret):
-                return self.error(request, 'invalid_client')
+                return self.error(request, 'invalid_client', 'invalid client_secret')
 
             try:
                 grant = ApiGrant.objects.get(application=application, code=code)
             except ApiGrant.DoesNotExist:
-                return self.error(request, 'invalid_grant')
+                return self.error(request, 'invalid_grant', 'invalid grant')
 
             if grant.is_expired():
-                return self.error(request, 'invalid_grant')
+                return self.error(request, 'invalid_grant', 'grant expired')
 
             if not redirect_uri:
                 redirect_uri = application.get_default_redirect_uri()
             elif grant.redirect_uri != redirect_uri:
-                return self.error(request, 'invalid_grant')
+                return self.error(request, 'invalid_grant', 'invalid redirect_uri')
 
             token = ApiToken.from_grant(grant)
         elif grant_type == 'refresh_token':
@@ -93,10 +95,10 @@ class OAuthTokenView(View):
                 return self.error(request, 'invalid_request')
 
             if not client_id:
-                return self.error(request, 'invalid_client')
+                return self.error(request, 'invalid_client', 'missing client_id')
 
             if not client_secret:
-                return self.error(request, 'invalid_client')
+                return self.error(request, 'invalid_client', 'missing client_secret')
 
             try:
                 application = ApiApplication.objects.get(
@@ -104,10 +106,10 @@ class OAuthTokenView(View):
                     status=ApiApplicationStatus.active,
                 )
             except ApiApplication.DoesNotExist:
-                return self.error(request, 'invalid_client')
+                return self.error(request, 'invalid_client', 'invalid client_id')
 
             if not constant_time_compare(client_secret, application.client_secret):
-                return self.error(request, 'invalid_client')
+                return self.error(request, 'invalid_client', 'invalid client_secret')
 
             try:
                 token = ApiToken.objects.get(
@@ -115,7 +117,7 @@ class OAuthTokenView(View):
                     refresh_token=refresh_token,
                 )
             except ApiToken.DoesNotExist:
-                return self.error(request, 'invalid_grant')
+                return self.error(request, 'invalid_grant', 'invalid token')
 
             token.refresh()
         else:
