@@ -407,6 +407,7 @@ local function get_frequencies(configuration, index, item)
     end
 
     local key = get_frequency_key(configuration, index, item)
+    -- TODO: This needs to handle this returning no data due to TTL gracefully.
     local response = redis.call('HGETALL', key)
     for field, value in redis_hash_response_iterator(response) do
         local band, bucket = unpack_frequency_coordinate(field)
@@ -426,14 +427,7 @@ local function set_frequencies(configuration, index, item, frequencies)
         end
     end
 
-    -- TODO: This is less accurate than it could be at this point -- it should
-    -- probably just emulate the TTL behavior of the application.
-    local expiration = get_index_expiration_time(
-        configuration.interval,
-        configuration.retention,
-        math.floor(configuration.timestamp / configuration.interval)
-    )
-    redis.call('EXPIREAT', key, expiration)
+    redis.call('EXPIREAT', key, configuration.timestamp + configuration.interval * configuration.retention)
 end
 
 local function merge_frequencies(configuration, index, source, destination)
