@@ -65,6 +65,7 @@ class OAuthTokenCodeTest(TestCase):
             self.path, {
                 'grant_type': 'authorization_code',
                 'redirect_uri': self.application.get_default_redirect_uri(),
+                'client_secret': self.application.client_secret,
                 'code': self.grant.code,
             }
         )
@@ -81,6 +82,38 @@ class OAuthTokenCodeTest(TestCase):
                 'redirect_uri': self.application.get_default_redirect_uri(),
                 'code': self.grant.code,
                 'client_id': 'def',
+                'client_secret': self.application.client_secret,
+            }
+        )
+
+        assert resp.status_code == 400
+        assert json.loads(resp.content) == {'error': 'invalid_client'}
+
+    def test_missing_client_secret(self):
+        self.login_as(self.user)
+
+        resp = self.client.post(
+            self.path, {
+                'grant_type': 'authorization_code',
+                'redirect_uri': self.application.get_default_redirect_uri(),
+                'client_id': self.application.client_id,
+                'code': self.grant.code,
+            }
+        )
+
+        assert resp.status_code == 400
+        assert json.loads(resp.content) == {'error': 'invalid_client'}
+
+    def test_invalid_client_secret(self):
+        self.login_as(self.user)
+
+        resp = self.client.post(
+            self.path, {
+                'grant_type': 'authorization_code',
+                'redirect_uri': self.application.get_default_redirect_uri(),
+                'client_id': self.application.client_id,
+                'client_secret': 'abc',
+                'code': self.grant.code,
             }
         )
 
@@ -95,6 +128,7 @@ class OAuthTokenCodeTest(TestCase):
                 'grant_type': 'authorization_code',
                 'redirect_uri': self.application.get_default_redirect_uri(),
                 'client_id': self.application.client_id,
+                'client_secret': self.application.client_secret,
             }
         )
 
@@ -110,6 +144,7 @@ class OAuthTokenCodeTest(TestCase):
                 'redirect_uri': self.application.get_default_redirect_uri(),
                 'code': 'abc',
                 'client_id': self.application.client_id,
+                'client_secret': self.application.client_secret,
             }
         )
 
@@ -125,6 +160,7 @@ class OAuthTokenCodeTest(TestCase):
                 'redirect_uri': self.application.get_default_redirect_uri(),
                 'code': self.grant.code,
                 'client_id': self.application.client_id,
+                'client_secret': self.application.client_secret,
             }
         )
 
@@ -171,6 +207,7 @@ class OAuthTokenRefreshTokenTest(TestCase):
         resp = self.client.post(
             self.path, {
                 'grant_type': 'refresh_token',
+                'client_secret': self.application.client_secret,
                 'refresh_token': self.token.refresh_token,
             }
         )
@@ -185,6 +222,36 @@ class OAuthTokenRefreshTokenTest(TestCase):
             self.path, {
                 'grant_type': 'refresh_token',
                 'client_id': 'abc',
+                'client_secret': self.application.client_secret,
+                'refresh_token': self.token.refresh_token,
+            }
+        )
+
+        assert resp.status_code == 400
+        assert json.loads(resp.content) == {'error': 'invalid_client'}
+
+    def test_missing_client_secret(self):
+        self.login_as(self.user)
+
+        resp = self.client.post(
+            self.path, {
+                'grant_type': 'refresh_token',
+                'client_id': self.application.client_id,
+                'refresh_token': self.token.refresh_token,
+            }
+        )
+
+        assert resp.status_code == 400
+        assert json.loads(resp.content) == {'error': 'invalid_client'}
+
+    def test_invalid_client_secret(self):
+        self.login_as(self.user)
+
+        resp = self.client.post(
+            self.path, {
+                'grant_type': 'refresh_token',
+                'client_id': self.application.client_id,
+                'client_secret': 'abc',
                 'refresh_token': self.token.refresh_token,
             }
         )
@@ -199,6 +266,7 @@ class OAuthTokenRefreshTokenTest(TestCase):
             self.path, {
                 'grant_type': 'refresh_token',
                 'client_id': self.application.client_id,
+                'client_secret': self.application.client_secret,
             }
         )
 
@@ -212,6 +280,7 @@ class OAuthTokenRefreshTokenTest(TestCase):
             self.path, {
                 'grant_type': 'refresh_token',
                 'client_id': self.application.client_id,
+                'client_secret': self.application.client_secret,
                 'refresh_token': 'foo',
             }
         )
@@ -226,6 +295,7 @@ class OAuthTokenRefreshTokenTest(TestCase):
             self.path, {
                 'grant_type': 'refresh_token',
                 'client_id': self.application.client_id,
+                'client_secret': self.application.client_secret,
                 'refresh_token': self.token.refresh_token,
             }
         )
