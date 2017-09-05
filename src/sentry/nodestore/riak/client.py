@@ -75,7 +75,7 @@ class SimpleThreadedWorkerPool(object):
         if not self.__started:
             self.__start()
 
-        self.__tasks.put(func_arg_kwargs_cb)
+        self.__tasks.put((func, arg, kwargs, cb))
 
 
 class RiakClient(object):
