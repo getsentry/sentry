@@ -69,6 +69,7 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
         click.echo('Error: Minimum concurrency is 1', err=True)
         raise click.Abort()
 
+    from threading import Thread
     from django.db import router as db_router
     from sentry.app import nodestore
     from sentry.db.deletion import BulkDeleteQuery
@@ -202,9 +203,24 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
                 transaction_id=uuid4().hex,
             )
 
-            has_more = True
-            while has_more:
-                has_more = task.chunk()
+            if concurrency > 1:
+                threads = []
+                for shard_id in range(concurrency):
+                    t = Thread(
+                        target=(
+                            lambda shard_id=shard_id: task.chunk(
+                                num_shards=concurrency, shard_id=shard_id)
+                        )
+                    )
+                    t.start()
+                    threads.append(t)
+
+                for t in threads:
+                    t.join()
+            else:
+                has_more = True
+                while has_more:
+                    has_more = task.chunk()
 
     # EventMapping is fairly expensive and is special cased as it's likely you
     # won't need a reference to an event for nearly as long
