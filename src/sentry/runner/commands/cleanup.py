@@ -93,7 +93,6 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
     # Deletions that use `BulkDeleteQuery` (and don't need to worry about child relations)
     # (model, datetime_field, order_by)
     BULK_QUERY_DELETES = (
-        (models.TagValue, 'last_seen', None),
         (models.GroupEmailThread, 'date', None),
         (models.GroupRuleStatus, 'date_added', None),
         (models.GroupTagValue, 'last_seen', None),
