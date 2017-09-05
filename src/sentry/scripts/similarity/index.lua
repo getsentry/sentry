@@ -469,7 +469,6 @@ local function is_empty(frequencies)
 end
 
 local function calculate_similarity(configuration, item_frequencies, candidate_frequencies)
-    -- TODO: This could probably be rewritten at this point
     if is_empty(item_frequencies) and is_empty(candidate_frequencies) then
         return -1
     elseif is_empty(item_frequencies) or is_empty(candidate_frequencies) then
