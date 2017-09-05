@@ -147,8 +147,6 @@ class FeatureSet(object):
 
         if thresholds is None:
             thresholds = {}
-        else:
-            thresholds = thresholds.copy()
 
         scope = None
 
@@ -178,11 +176,8 @@ class FeatureSet(object):
                     )
                 else:
                     if features:
-                        items.append((self.aliases[label], thresholds.pop(label, 0), features))
+                        items.append((self.aliases[label], thresholds.get(label, 0), features))
                         labels.append(label)
-
-        if thresholds:
-            raise ValueError('Invalid thresholds provided')
 
         return map(
             lambda (key, scores): (
@@ -198,17 +193,12 @@ class FeatureSet(object):
         )
 
     def compare(self, group, limit=None, thresholds=None):
-        features = list(self.features.keys())
-
         if thresholds is None:
             thresholds = {}
-        else:
-            thresholds = thresholds.copy()
 
-        items = [(self.aliases[label], thresholds.pop(label, 0), ) for label in features]
+        features = list(self.features.keys())
 
-        if thresholds:
-            raise ValueError('Invalid thresholds provided')
+        items = [(self.aliases[label], thresholds.get(label, 0), ) for label in features]
 
         return map(
             lambda (key, scores): (
