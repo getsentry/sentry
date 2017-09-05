@@ -15,7 +15,7 @@ const scoreComponents = {
 };
 
 // classnames that map to colors to css
-const scoreClassNames = ['low', 'low', 'low', 'med', 'high', 'high'];
+const scoreClassNames = ['low', 'low', 'low-med', 'med', 'med-high', 'high'];
 
 const SimilarScoreCard = React.createClass({
   propTypes: {
