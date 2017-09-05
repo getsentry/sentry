@@ -31,7 +31,7 @@ const StreamSidebar = React.createClass({
   getInitialState() {
     let queryObj = queryToObj(this.props.query);
     return {
-      queryObj: queryObj,
+      queryObj,
       textFilter: queryObj.__text
     };
   },
@@ -44,7 +44,7 @@ const StreamSidebar = React.createClass({
     if (!_.isEqual(nextProps.query, query)) {
       let queryObj = queryToObj(nextProps.query);
       this.setState({
-        queryObj: queryObj,
+        queryObj,
         textFilter: queryObj.__text
       });
     }

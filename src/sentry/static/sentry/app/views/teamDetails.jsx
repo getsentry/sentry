@@ -104,7 +104,7 @@ const TeamDetails = React.createClass({
         </ul>
 
         {React.cloneElement(this.props.children, {
-          team: team,
+          team,
           onTeamChange: this.onTeamChange
         })}
       </OrganizationHomeContainer>

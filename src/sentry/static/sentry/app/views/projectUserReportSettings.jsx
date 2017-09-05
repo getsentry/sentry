@@ -25,7 +25,7 @@ const ProjectFeedbackSettingsForm = React.createClass({
       }
     }
     return {
-      formData: formData,
+      formData,
       errors: {}
     };
   },
@@ -34,7 +34,7 @@ const ProjectFeedbackSettingsForm = React.createClass({
     let formData = this.state.formData;
     formData[name] = value;
     this.setState({
-      formData: formData
+      formData
     });
   },
 
@@ -174,7 +174,7 @@ const ProjectUserReportSettings = React.createClass({
       success: (data, _, jqXHR) => {
         let expected = this.state.expected - 1;
         this.setState({
-          expected: expected,
+          expected,
           loading: expected > 0,
           keyList: data
         });
@@ -183,7 +183,7 @@ const ProjectUserReportSettings = React.createClass({
         let expected = this.state.expected - 1;
         this.setState({
           error: true,
-          expected: expected,
+          expected,
           loading: expected > 0
         });
       }
@@ -193,7 +193,7 @@ const ProjectUserReportSettings = React.createClass({
       success: (data, _, jqXHR) => {
         let expected = this.state.expected - 1;
         this.setState({
-          expected: expected,
+          expected,
           loading: expected > 0,
           projectOptions: data.options
         });
@@ -201,7 +201,7 @@ const ProjectUserReportSettings = React.createClass({
       error: () => {
         let expected = this.state.expected - 1;
         this.setState({
-          expected: expected,
+          expected,
           error: true,
           loading: expected > 0
         });

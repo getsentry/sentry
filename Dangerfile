@@ -73,12 +73,6 @@ warn("Changes to build requirements") if checkFiles(@S_BUILD_FILES).any?
 # Warn about changes to dependencies or the build process
 securityMatches = checkFilesPattern(@S_SECURITY_FILE_PATTERN, @S_SECURITY_EXCLUDE_FILES) + checkContents(@S_SECURITY_CONTENT_PATTERN, @S_SECURITY_EXCLUDE_FILES)
 if securityMatches.any?
-    unless github.pr_labels.include?("Security")
-        github.api.update_issue(github.pr_json["head"]["repo"]["full_name"], github.pr_json["number"], {
-            :labels => github.pr_labels + ["Security"],
-        })
-    end
-
     # TODO(dcramer): when GitHub API actually exposes reviewers, we should
     # make this failing
     # securityTeam = github.api.organization_teams('getsentry')[0]

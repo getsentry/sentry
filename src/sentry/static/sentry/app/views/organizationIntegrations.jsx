@@ -45,7 +45,7 @@ const OrganizationIntegrations = React.createClass({
     this.api.request(`/organizations/${this.props.params.orgId}/integrations/`, {
       method: 'POST',
       data: {
-        providerId: providerId,
+        providerId,
         defaultAuthId: auth.defaultAuthId,
         integrationId: auth.integrationId
       },
@@ -56,7 +56,7 @@ const OrganizationIntegrations = React.createClass({
         });
         ingtegrationList.push(data);
         this.setState({
-          ingtegrationList: ingtegrationList
+          ingtegrationList
         });
       },
       error: err => {

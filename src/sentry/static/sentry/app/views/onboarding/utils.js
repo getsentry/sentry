@@ -1,4 +1,5 @@
 // import {platforms} from '../../../../../integration-docs/_platforms.json';
+// eslint-disable-next-line import/extensions
 import {platforms} from 'integration-docs-platforms';
 
 const Popular = [
