@@ -68,9 +68,9 @@ class MinHashIndex(object):
             )
 
             return (
-                sum(scores) / len(scores) * -1,  # average score
-                len(scores) * -1,  # number of indexes with scores, tiebreaker
-                key,  # lex sort, tiebreaker
+                sum(scores) / len(scores) * -1,  # average score, descending
+                len(scores) * -1,  # number of indexes with scores, descending
+                key,  # lexicographical sort on key, ascending
             )
 
         return sorted(
