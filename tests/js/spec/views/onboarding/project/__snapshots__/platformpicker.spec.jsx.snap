@@ -324,13 +324,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
       "query": Object {},
     }
   }
-  params={
-    Object {
-      "isActive": "",
-      "platform": "",
-      "setPlatform": "",
-    }
-  }
+  platform=""
   setPlatform={[Function]}
   showOther={true}
 >
