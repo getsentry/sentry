@@ -18,13 +18,9 @@ describe('PlatformPicker', function() {
 
   describe('render()', function() {
     const baseProps = {
+      platform: '',
       setPlatform: () => {},
-      location: {query: {}},
-      params: {
-        setPlatform: '',
-        platform: '',
-        isActive: ''
-      }
+      location: {query: {}}
     };
 
     it('should only render Mobile platforms under Mobile tab', function() {
