@@ -176,23 +176,22 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
                 has_more = task.chunk()
 
     # Deletions that use `BulkDeleteQuery` (and don't need to worry about child relations)
-    # (model, datetime_field, max_days)
+    # (model, datetime_field, order_by)
     BULK_QUERY_DELETES = (
         (models.TagValue, 'last_seen', None),
-        (models.EventMapping, 'date_added', 7),
+        (models.GroupEmailThread, 'date', None),
+        (models.GroupRuleStatus, 'date_added', None),
+        (models.GroupTagValue, 'last_seen', None),
+        (models.TagValue, 'last_seen', None),
+        (models.EventTag, 'date_added', '-date_added'),
     )
 
-    for model, dtfield, max_days in BULK_QUERY_DELETES:
-        if max_days:
-            trim_days = min(days, max_days)
-        else:
-            trim_days = days
-
+    for model, dtfield, order_by in BULK_QUERY_DELETES:
         if not silent:
             click.echo(
-                "Removing {model} for days={trim_days} project={project}".format(
+                "Removing {model} for days={days} project={project}".format(
                     model=model.__name__,
-                    trim_days=trim_days,
+                    days=days,
                     project=project or '*',
                 )
             )
@@ -203,9 +202,26 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
             BulkDeleteQuery(
                 model=model,
                 dtfield=dtfield,
-                days=trim_days,
-                project_id=project_id
+                days=days,
+                project_id=project_id,
+                order_by=order_by,
             ).execute()
+
+    # EventMapping is fairly expensive and is special cased as it's likely you
+    # won't need a reference to an event for nearly as long
+    if not silent:
+        click.echo("Removing expired values for EventMapping")
+    if is_filtered(models.EventMapping):
+        if not silent:
+            click.echo('>> Skipping EventMapping')
+    else:
+        BulkDeleteQuery(
+            model=models.EventMapping,
+            dtfield='date_added',
+            days=min(days, 7),
+            project_id=project_id,
+            order_by='-date_added'
+        ).execute()
 
     # Clean up FileBlob instances which are no longer used and aren't super
     # recent (as there could be a race between blob creation and reference)
