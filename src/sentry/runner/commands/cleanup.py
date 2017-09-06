@@ -7,9 +7,10 @@ sentry.runner.commands.cleanup
 """
 from __future__ import absolute_import, print_function
 
-import click
-
 from datetime import timedelta
+from uuid import uuid4
+
+import click
 from django.utils import timezone
 
 from sentry.runner.decorators import configuration
@@ -72,6 +73,7 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
     from django.db import router as db_router
     from sentry.app import nodestore
     from sentry.db.deletion import BulkDeleteQuery
+    from sentry import deletions
     from sentry import models
 
     if timed:
@@ -89,8 +91,9 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
             return False
         return model.__name__.lower() not in model_list
 
-    # these models should be safe to delete without cascades, in order
-    BULK_DELETES = (
+    # Deletions that use `BulkDeleteQuery` (and don't need to worry about child relations)
+    # (model, datetime_field, order_by)
+    BULK_QUERY_DELETES = (
         (models.GroupEmailThread, 'date', None),
         (models.GroupRuleStatus, 'date_added', None),
         (models.GroupTagValue, 'last_seen', None),
@@ -98,7 +101,12 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
         (models.EventTag, 'date_added', '-date_added'),
     )
 
-    GENERIC_DELETES = ((models.Event, 'datetime'), (models.Group, 'last_seen'), )
+    # Deletions that use the `deletions` code path (which handles their child relations)
+    # (model, datetime_field)
+    DELETES = (
+        (models.Event, 'datetime'),
+        (models.Group, 'last_seen'),
+    )
 
     if not silent:
         click.echo('Removing expired values for LostPasswordHash')
@@ -123,7 +131,8 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
 
     project_id = None
     if project:
-        click.echo("Bulk NodeStore deletion not available for project selection", err=True)
+        click.echo(
+            "Bulk NodeStore deletion not available for project selection", err=True)
         project_id = get_project(project)
         if project_id is None:
             click.echo('Error: Project not found', err=True)
@@ -136,9 +145,10 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
             try:
                 nodestore.cleanup(cutoff)
             except NotImplementedError:
-                click.echo("NodeStore backend does not support cleanup operation", err=True)
+                click.echo(
+                    "NodeStore backend does not support cleanup operation", err=True)
 
-    for model, dtfield, order_by in BULK_DELETES:
+    for model, dtfield, order_by in BULK_QUERY_DELETES:
         if not silent:
             click.echo(
                 "Removing {model} for days={days} project={project}".format(
@@ -158,6 +168,59 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
                 project_id=project_id,
                 order_by=order_by,
             ).execute()
+
+    for model, dtfield in DELETES:
+        if not silent:
+            click.echo(
+                "Removing {model} for days={days} project={project}".format(
+                    model=model.__name__,
+                    days=days,
+                    project=project or '*',
+                )
+            )
+
+        if is_filtered(model):
+            if not silent:
+                click.echo('>> Skipping %s' % model.__name__)
+        else:
+            query = {
+                '{}__lte'.format(dtfield): (timezone.now() - timedelta(days=days)),
+            }
+
+            if project_id:
+                if 'project' in model._meta.get_all_field_names():
+                    query['project'] = project_id
+                else:
+                    query['project_id'] = project_id
+
+            task = deletions.get(
+                model=model,
+                query=query,
+                transaction_id=uuid4().hex,
+            )
+
+            def _chunk_until_complete(num_shards=None, shard_id=None):
+                has_more = True
+                while has_more:
+                    has_more = task.chunk(num_shards=num_shards, shard_id=shard_id)
+
+            if concurrency > 1:
+                threads = []
+                for shard_id in range(concurrency):
+                    t = Thread(
+                        target=(
+                            lambda shard_id=shard_id: _chunk_until_complete(
+                                num_shards=concurrency, shard_id=shard_id)
+                        )
+                    )
+                    t.start()
+                    threads.append(t)
+
+                for t in threads:
+                    t.join()
+            else:
+                _chunk_until_complete()
+
     # EventMapping is fairly expensive and is special cased as it's likely you
     # won't need a reference to an event for nearly as long
     if not silent:
@@ -183,41 +246,6 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
             click.echo('>> Skipping FileBlob')
     else:
         cleanup_unused_files(silent)
-
-    for model, dtfield in GENERIC_DELETES:
-        if not silent:
-            click.echo(
-                "Removing {model} for days={days} project={project}".format(
-                    model=model.__name__,
-                    days=days,
-                    project=project or '*',
-                )
-            )
-        if is_filtered(model):
-            if not silent:
-                click.echo('>> Skipping %s' % model.__name__)
-        else:
-            query = BulkDeleteQuery(
-                model=model,
-                dtfield=dtfield,
-                days=days,
-                project_id=project_id,
-            )
-            if concurrency > 1:
-                threads = []
-                for shard_id in range(concurrency):
-                    t = Thread(
-                        target=(
-                            lambda shard_id=shard_id: query.execute_sharded(concurrency, shard_id)
-                        )
-                    )
-                    t.start()
-                    threads.append(t)
-
-                for t in threads:
-                    t.join()
-            else:
-                query.execute_generic()
 
     if timed:
         duration = int(time.time() - start_time)
