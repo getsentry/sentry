@@ -46,7 +46,7 @@ class EventFileCommittersEndpoint(ProjectEndpoint):
     def _get_commits(self, releases):
         return list(Commit.objects.filter(
             releasecommit=ReleaseCommit.objects.filter(
-                release=releases,
+                release__in=releases,
             )
         ).select_related('author'))
 

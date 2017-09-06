@@ -228,7 +228,7 @@ class Release(Model):
 
         start_date = release_dates['date_released'] or release_dates['date_added']
 
-        return Release.objects.filter(
+        return list(Release.objects.filter(
             projects=project,
             organization_id=project.organization_id,
         ).extra(select={
@@ -239,7 +239,7 @@ class Release(Model):
             params=[start_date]
         ).extra(
             order_by=['date']
-        )[:limit]
+        )[:limit])
 
     @property
     def short_version(self):
