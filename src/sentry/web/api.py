@@ -18,15 +18,15 @@ from functools import wraps
 from raven.contrib.django.models import client as Raven
 
 from sentry import quotas, tsdb
-from sentry.constants import FILTER_STAT_KEYS_TO_VALUES
 from sentry.coreapi import (
-    APIError, APIForbidden, APIRateLimited, ClientApiHelper, CspApiHelper, LazyData
+    APIError, APIForbidden, APIRateLimited, ClientApiHelper, CspApiHelper, LazyData,
 )
 from sentry.models import Project, OrganizationOption, Organization
 from sentry.signals import (
     event_accepted, event_dropped, event_filtered, event_received)
 from sentry.quotas.base import RateLimit
 from sentry.utils import json, metrics
+from sentry.utils.data_filters import FILTER_STAT_KEYS_TO_VALUES
 from sentry.utils.data_scrubber import SensitiveDataFilter
 from sentry.utils.http import (
     is_valid_origin,
@@ -351,6 +351,7 @@ class StoreView(APIView):
         should_filter = helper.should_filter(
             project, data, ip_address=remote_addr)
         if should_filter[0]:
+            filter_reason = should_filter[1]
             tsdb.incr_multi(
                 [
                     (tsdb.models.project_total_received, project.id),
@@ -361,16 +362,12 @@ class StoreView(APIView):
                      project.organization_id),
                     (tsdb.models.key_total_received, key.id),
                     (tsdb.models.key_total_blacklisted, key.id),
+                    (FILTER_STAT_KEYS_TO_VALUES[filter_reason], project.id),
                 ]
             )
-            try:
-                tsdb.incr(
-                    FILTER_STAT_KEYS_TO_VALUES[should_filter[1]], project.id)
-            except KeyError:
-                pass
 
             metrics.incr('events.blacklisted', tags={
-                         'reason': should_filter[1]})
+                         'reason': filter_reason})
             event_filtered.send_robust(
                 ip=remote_addr,
                 project=project,

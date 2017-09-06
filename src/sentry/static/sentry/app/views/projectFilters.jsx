@@ -231,8 +231,13 @@ const ProjectFiltersSettingsForm = React.createClass({
 
   getInitialState() {
     let formData = {};
+    let features = this.getProjectFeatures()
     for (let key of Object.keys(this.props.initialData)) {
       if (key.lastIndexOf('filters:') === 0) {
+        // the project details endpoint can partially succeed and still return a 400
+        // if the org does not have the additional-data-filters feature enabled,
+        // so this prevents the form from sending an empty string by default
+        if(!features.has('additional-data-filters') && key === 'filters:error_messages' || key === 'filters:releases') continue;
         formData[key] = this.props.initialData[key];
       }
     }
@@ -254,7 +259,6 @@ const ProjectFiltersSettingsForm = React.createClass({
 
   onSubmit(e) {
     e.preventDefault();
-
     if (this.state.state === FormState.SAVING) {
       return;
     }

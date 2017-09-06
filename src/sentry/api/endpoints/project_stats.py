@@ -5,7 +5,7 @@ from rest_framework.response import Response
 from sentry import tsdb
 from sentry.api.base import DocSection, StatsMixin
 from sentry.api.bases.project import ProjectEndpoint
-from sentry.constants import FILTER_STAT_KEYS_TO_VALUES
+from sentry.utils.data_filters import FILTER_STAT_KEYS_TO_VALUES
 from sentry.utils.apidocs import scenario, attach_scenarios
 
 
@@ -62,10 +62,11 @@ class ProjectStatsEndpoint(ProjectEndpoint, StatsMixin):
             stat_model = tsdb.models.project
         elif stat == 'forwarded':
             stat_model = tsdb.models.project_total_forwarded
-        elif stat in FILTER_STAT_KEYS_TO_VALUES.keys():
-            stat_model = FILTER_STAT_KEYS_TO_VALUES[stat]
         else:
-            raise ValueError('Invalid stat: %s' % stat)
+            try:
+                stat_model = FILTER_STAT_KEYS_TO_VALUES[stat]
+            except KeyError:
+                raise ValueError('Invalid stat: %s' % stat)
 
         data = tsdb.get_range(
             model=stat_model, keys=[project.id], **self._parse_args(request)

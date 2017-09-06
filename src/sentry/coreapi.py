@@ -47,7 +47,7 @@ from sentry.utils.auth import parse_auth_header
 from sentry.utils.csp import is_valid_csp_report
 from sentry.utils.http import origin_from_request
 from sentry.utils.data_filters import is_valid_ip, \
-    is_valid_release, is_valid_error_message
+    is_valid_release, is_valid_error_message, FilterStatKeys
 from sentry.utils.strings import decompress
 from sentry.utils.validators import is_float, is_event_id
 
@@ -394,22 +394,22 @@ class ClientApiHelper(object):
         so that we can store it in metrics
         """
         if ip_address and not is_valid_ip(project, ip_address):
-            return (True, 'ip-address')
+            return (True, FilterStatKeys.IP_ADDRESS)
 
         release = data.get('release')
         if release and not is_valid_release(project, release):
-            return (True, 'release-version')
+            return (True, FilterStatKeys.RELEASE_VERSION)
 
         message_interface = data.get('sentry.interfaces.Message', {})
         error_message = message_interface.get('formatted', ''
                                               ) or message_interface.get('message', '')
         if error_message and not is_valid_error_message(project, error_message):
-            return (True, 'error-message')
+            return (True, FilterStatKeys.ERROR_MESSAGE)
 
         for filter_cls in filters.all():
             filter_obj = filter_cls(project)
             if filter_obj.is_enabled() and filter_obj.test(data):
-                return (True, filter_obj.id)
+                return (True, six.text_type(filter_obj.id))
 
         return (False, None)
 
@@ -870,7 +870,7 @@ class CspApiHelper(ClientApiHelper):
 
     def should_filter(self, project, data, ip_address=None):
         if not is_valid_csp_report(data['sentry.interfaces.Csp'], project):
-            return (True, 'invalid_csp')
+            return (True, FilterStatKeys.INVALID_CSP)
         return super(CspApiHelper, self).should_filter(project, data, ip_address)
 
     def validate_data(self, project, data):
