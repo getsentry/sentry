@@ -199,12 +199,17 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
                 transaction_id=uuid4().hex,
             )
 
+            def _chunk_until_complete(num_shards=None, shard_id=None):
+                has_more = True
+                while has_more:
+                    has_more = task.chunk(num_shards=num_shards, shard_id=shard_id)
+
             if concurrency > 1:
                 threads = []
                 for shard_id in range(concurrency):
                     t = Thread(
                         target=(
-                            lambda shard_id=shard_id: task.chunk(
+                            lambda shard_id=shard_id: _chunk_until_complete(
                                 num_shards=concurrency, shard_id=shard_id)
                         )
                     )
@@ -214,9 +219,7 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
                 for t in threads:
                     t.join()
             else:
-                has_more = True
-                while has_more:
-                    has_more = task.chunk()
+                _chunk_until_complete()
 
     # EventMapping is fairly expensive and is special cased as it's likely you
     # won't need a reference to an event for nearly as long
