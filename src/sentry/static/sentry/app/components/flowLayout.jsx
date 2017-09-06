@@ -7,6 +7,8 @@ import '../../less/components/flowLayout.less';
 // Takes up remaining space of a flexbox container (i.e. "flex: 1")
 const FlowLayout = React.createClass({
   propTypes: {
+    /** Centers content via `justify-content` */
+    center: PropTypes.bool,
     /** Applies "overflow: hidden" to container so that children can be truncated */
     truncate: PropTypes.bool
   },
@@ -18,8 +20,9 @@ const FlowLayout = React.createClass({
   },
 
   render() {
-    let {className, children, truncate, ...otherProps} = this.props;
+    let {className, children, truncate, center, ...otherProps} = this.props;
     let cx = classNames('flow-layout', className, {
+      'is-center': center,
       'is-truncated': truncate
     });
 
