@@ -136,7 +136,7 @@ class ModelDeletionTask(BaseDeletionTask):
             if self.order_by:
                 queryset = queryset.order_by(self.order_by)
 
-            if shard_id:
+            if num_shards:
                 assert num_shards > 1
                 assert shard_id < num_shards
                 queryset = queryset.extra(
