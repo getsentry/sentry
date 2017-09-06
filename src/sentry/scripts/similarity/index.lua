@@ -768,7 +768,7 @@ local commands = {
             function (source)
                 local frequency_key = get_frequency_key(configuration, source.index, source.key)
                 if redis.call('EXISTS', frequency_key) < 1 then
-                    return {}
+                    return cmsgpack.pack({})
                 end
 
                 local data = {}
