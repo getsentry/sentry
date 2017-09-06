@@ -247,26 +247,19 @@ class MinHashIndexTestCase(TestCase):
         result = self.index.export('example', [('index', 1)], timestamp=timestamp)
         assert len(result) == 1
 
-        data = msgpack.unpackb(result[0])
-        assert len(data) == self.index.bands
-
         # Copy the data from key 1 to key 2.
         self.index.import_('example', [('index', 2, result[0])], timestamp=timestamp)
 
-        assert self.index.export(
-            'example', [('index', 1)], timestamp=timestamp
-        ) == self.index.export(
-            'example', [('index', 2)], timestamp=timestamp
-        )
+        r1 = msgpack.unpackb(self.index.export('example', [('index', 1)], timestamp=timestamp)[0])
+        r2 = msgpack.unpackb(self.index.export('example', [('index', 2)], timestamp=timestamp)[0])
+        assert r1[0] == r2[0]
+        self.assertAlmostEqual(r1[1], r2[1], delta=10)  # cannot ensure exact TTL match
 
         # Copy the data again to key 2 (duplicating all of the data.)
         self.index.import_('example', [('index', 2, result[0])], timestamp=timestamp)
 
         result = self.index.export('example', [('index', 2)], timestamp=timestamp)
         assert len(result) == 1
-
-        data = msgpack.unpackb(result[0])
-        assert len(data) == self.index.bands
 
     def test_flush_scoped(self):
         self.index.record('example', '1', [('index', ['foo', 'bar'])])

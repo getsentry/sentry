@@ -87,7 +87,6 @@ function table.imap(t, f)
     end
     return result
 end
-
 function table.ireduce(t, f, i)
     if i == nil then
         i = {}
@@ -299,6 +298,26 @@ function TimeSeriesSet:swap(old, new)
     end
 end
 
+function TimeSeriesSet:export(member)
+    local current = math.floor(self.timestamp / self.interval)
+    local results = {}
+    for index = current - self.retention, current do
+        if redis.call('SISMEMBER', self.key_function(index), member) == 1 then
+            results[#results + 1] = index
+        end
+    end
+    return results
+end
+
+function TimeSeriesSet:import(member, data)
+    for _, index in ipairs(data) do
+        local key = self.key_function(index)
+        if redis.call('SADD', key, member) > 1 then
+            redis.call('EXPIREAT', key, (index + 1 + self.retention) * self.interval)
+        end
+    end
+end
+
 
 -- Time Series
 
@@ -417,7 +436,11 @@ local function get_frequencies(configuration, index, item)
     return frequencies
 end
 
-local function set_frequencies(configuration, index, item, frequencies)
+local function set_frequencies(configuration, index, item, frequencies, expiration)
+    if expiration == nil then
+        expiration = configuration.timestamp + configuration.interval * configuration.retention
+    end
+
     local key = get_frequency_key(configuration, index, item)
 
     for band, buckets in ipairs(frequencies) do
@@ -427,7 +450,7 @@ local function set_frequencies(configuration, index, item, frequencies)
         end
     end
 
-    redis.call('EXPIREAT', key, configuration.timestamp + configuration.interval * configuration.retention)
+    redis.call('EXPIREAT', key, expiration)
 end
 
 local function merge_frequencies(configuration, index, source, destination)
@@ -701,20 +724,27 @@ local commands = {
             object_argument_parser({
                 {'index', argument_parser(validate_value)},
                 {'key', argument_parser(validate_value)},
-                {'frequencies', argument_parser(cmsgpack.unpack)}
+                {'data', argument_parser(cmsgpack.unpack)}
             })
         )(cursor, arguments)
 
         return table.imap(
             entries,
             function (source)
-                -- TODO: Restore the TTL here?
-                set_frequencies(configuration, source.index, source.key, source.frequencies)
-                for band, buckets in ipairs(source.frequencies) do
-                    for bucket, count in pairs(buckets) do
-                        get_bucket_membership_set(configuration, source.index, band, bucket):add(source.key)
+                if #source.data == 0 then
+                    return
+                end
+
+                local data, ttl = unpack(source.data)
+                local frequencies = {}
+                for band = 1, #data do
+                    frequencies[band] = {}
+                    for bucket, value in pairs(data[band]) do
+                        frequencies[band][bucket] = value[1]
+                        get_bucket_membership_set(configuration, source.index, band, bucket):import(source.key, value[2])
                     end
                 end
+                set_frequencies(configuration, source.index, source.key, frequencies, ttl)
             end
         )
     end,
@@ -736,8 +766,31 @@ local commands = {
         return table.imap(
             entries,
             function (source)
-                -- TODO: Preserve the TTL here?
-                return cmsgpack.pack(get_frequencies(configuration, source.index, source.key))
+                local frequency_key = get_frequency_key(configuration, source.index, source.key)
+                if redis.call('EXISTS', frequency_key) < 1 then
+                    return {}
+                end
+
+                local data = {}
+                local frequencies = get_frequencies(configuration, source.index, source.key)
+                for band = 1, #frequencies do
+                    local result = {}
+                    for bucket, count in pairs(frequencies[band]) do
+                        result[bucket] = {
+                            count,
+                            get_bucket_membership_set(configuration, source.index, band, bucket):export(source.key)
+                        }
+                    end
+                    data[band] = result
+                end
+
+                return cmsgpack.pack({
+                    data,
+                    configuration.timestamp + math.max(
+                        redis.call('TTL', frequency_key),
+                        0
+                    )  -- the TTL should always exist, but this is just to be safe
+                })
             end
         )
     end,
