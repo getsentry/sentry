@@ -259,10 +259,10 @@ class MinHashIndex(object):
 
 
 class DummyIndex(object):
-    def classify(self, scope, items, timestamp=None):
+    def classify(self, scope, items, limit=None, timestamp=None):
         return []
 
-    def compare(self, scope, key, indices, timestamp=None):
+    def compare(self, scope, key, items, limit=None, timestamp=None):
         return []
 
     def record(self, scope, key, items, timestamp=None):
