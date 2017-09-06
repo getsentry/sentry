@@ -11,7 +11,7 @@ import Duration from '../../components/duration';
 import IndicatorStore from '../../stores/indicatorStore';
 import MenuItem from '../../components/menuItem';
 import SelectedGroupStore from '../../stores/selectedGroupStore';
-import {t, tn} from '../../locale';
+import {t, tct, tn} from '../../locale';
 import {getShortVersion} from '../../utils';
 
 import CustomIgnoreCountModal from '../../components/customIgnoreCountModal';
@@ -20,6 +20,47 @@ import CustomResolutionModal from '../../components/customResolutionModal';
 import Checkbox from '../../components/checkbox';
 import Toolbar from '../../components/toolbar';
 import ToolbarHeader from '../../components/toolbarHeader';
+
+const BULK_LIMIT_STR = '1,000';
+
+const getBulkConfirmMessage = action =>
+  tct(
+    'Are you sure you want to [action] the first [bulkNumber] issues that match the search?',
+    {
+      action,
+      bulkNumber: BULK_LIMIT_STR
+    }
+  );
+
+const ExtraDescription = ({all, query}) => {
+  if (!all) return null;
+
+  if (query) {
+    return (
+      <div>
+        <p>{t('This will apply to the current search query') + ':'}</p>
+        <pre>{query}</pre>
+      </div>
+    );
+  }
+  return (
+    <p className="error">
+      <strong>
+        {tct(
+          'This will apply to the first [bulkNumber] issues matched in this project!',
+          {
+            bulkNumber: BULK_LIMIT_STR
+          }
+        )}
+      </strong>
+    </p>
+  );
+};
+
+ExtraDescription.propTypes = {
+  all: PropTypes.bool,
+  query: PropTypes.string
+};
 
 const IgnoreActions = React.createClass({
   propTypes: {
@@ -63,34 +104,25 @@ const IgnoreActions = React.createClass({
   },
 
   render() {
-    let extraDescription = null;
-    if (this.state.allInQuerySelected) {
-      extraDescription = this.props.query
-        ? (<div>
-            <p>{t('This will apply to the current search query:')}</p>
-            <pre>{this.props.query}</pre>
-          </div>)
-        : (<p className="error">
-            <strong>{t('This will apply to ALL issues in this project!')}</strong>
-          </p>);
-    }
+    let {allInQuerySelected, query, anySelected, pageSelected, onUpdate} = this.props;
+    let extraDescription = <ExtraDescription all={allInQuerySelected} query={query} />;
     let linkClassName = 'group-ignore btn btn-default btn-sm';
     let actionLinkProps = {
       onlyIfBulk: true,
-      disabled: !this.props.anySelected,
-      selectAllActive: this.props.pageSelected,
+      disabled: !anySelected,
+      selectAllActive: pageSelected,
       extraDescription,
       buttonTitle: t('Ignore'),
-      confirmationQuestion: this.state.allInQuerySelected
-        ? t('Are you sure you want to ignore all issues matching this search query?')
+      confirmationQuestion: allInQuerySelected
+        ? getBulkConfirmMessage('ignore')
         : count =>
             tn(
               'Are you sure you want to ignore this %d issue?',
               'Are you sure you want to ignore these %d issues?',
               count
             ),
-      confirmLabel: this.props.allInQuerySelected
-        ? t('Ignore all issues')
+      confirmLabel: allInQuerySelected
+        ? t('Bulk ignore issues')
         : count => tn('Ignore %d selected issue', 'Ignore %d selected issues', count)
     };
     return (
@@ -123,7 +155,7 @@ const IgnoreActions = React.createClass({
         />
         <div className="btn-group">
           <ActionLink
-            onAction={() => this.props.onUpdate({status: 'ignored'})}
+            onAction={() => onUpdate({status: 'ignored'})}
             className={linkClassName}
             {...actionLinkProps}>
             <span className="icon-ban" style={{marginRight: 5}} />
@@ -133,7 +165,7 @@ const IgnoreActions = React.createClass({
             caret={true}
             className={linkClassName}
             title=""
-            disabled={!this.props.anySelected}>
+            disabled={!anySelected}>
             <MenuItem header={true}>Ignore Until</MenuItem>
             <li className="dropdown-submenu">
               <DropdownLink title="This occurs again after .." caret={false}>
@@ -281,18 +313,15 @@ const ResolveActions = React.createClass({
   },
 
   render() {
-    let {hasRelease, latestRelease, projectId, orgId} = this.props;
-    let extraDescription = null;
-    if (this.state.allInQuerySelected) {
-      extraDescription = this.props.query
-        ? (<div>
-            <p>{t('This will apply to the current search query:')}</p>
-            <pre>{this.props.query}</pre>
-          </div>)
-        : (<p className="error">
-            <strong>{t('This will apply to ALL issues in this project!')}</strong>
-          </p>);
-    }
+    let {
+      hasRelease,
+      latestRelease,
+      projectId,
+      orgId,
+      allInQuerySelected,
+      query
+    } = this.props;
+    let extraDescription = <ExtraDescription all={allInQuerySelected} query={query} />;
     let linkClassName = 'group-resolve btn btn-default btn-sm';
     let actionLinkProps = {
       onlyIfBulk: true,
@@ -300,8 +329,8 @@ const ResolveActions = React.createClass({
       selectAllActive: this.props.pageSelected,
       extraDescription,
       buttonTitle: t('Resolve'),
-      confirmationQuestion: this.state.allInQuerySelected
-        ? t('Are you sure you want to resolve all issues matching this search query?')
+      confirmationQuestion: allInQuerySelected
+        ? getBulkConfirmMessage('resolve')
         : count =>
             tn(
               'Are you sure you want to resolve this %d issue?',
@@ -309,7 +338,7 @@ const ResolveActions = React.createClass({
               count
             ),
       confirmLabel: this.props.allInQuerySelected
-        ? t('Ignore all issues')
+        ? t('Bulk resolve issues')
         : count => tn('Resolve %d selected issue', 'Resolve %d selected issues', count)
     };
     return (
@@ -535,17 +564,9 @@ const StreamActions = React.createClass({
   render() {
     // TODO(mitsuhiko): very unclear how to translate this
     let numIssues = SelectedGroupStore.getSelectedIds().size;
-    let extraDescription = null;
-    if (this.state.allInQuerySelected) {
-      extraDescription = this.props.query
-        ? (<div>
-            <p>{t('This will apply to the current search query:')}</p>
-            <pre>{this.props.query}</pre>
-          </div>)
-        : (<p className="error">
-            <strong>{t('This will apply to ALL issues in this project!')}</strong>
-          </p>);
-    }
+    let extraDescription = (
+      <ExtraDescription all={this.state.allInQuerySelected} query={this.props.query} />
+    );
 
     return (
       <div>
@@ -585,9 +606,7 @@ const StreamActions = React.createClass({
                 extraDescription={extraDescription}
                 confirmationQuestion={
                   this.state.allInQuerySelected
-                    ? t(
-                        'Are you sure you want to bookmark all issues matching this search query?'
-                      )
+                    ? getBulkConfirmMessage('bookmark')
                     : count =>
                         tn(
                           'Are you sure you want to bookmark this %d issue?',
@@ -597,7 +616,7 @@ const StreamActions = React.createClass({
                 }
                 confirmLabel={
                   this.state.allInQuerySelected
-                    ? t('Bookmark all issues')
+                    ? t('Bulk bookmark issues')
                     : count =>
                         tn(
                           'Bookmark %d selected issue',
@@ -626,9 +645,7 @@ const StreamActions = React.createClass({
                     extraDescription={extraDescription}
                     confirmationQuestion={
                       this.state.allInQuerySelected
-                        ? t(
-                            'Are you sure you want to merge all issues matching this search query?'
-                          )
+                        ? getBulkConfirmMessage('merge')
                         : count =>
                             tn(
                               'Are you sure you want to merge %d issue?',
@@ -638,7 +655,7 @@ const StreamActions = React.createClass({
                     }
                     confirmLabel={
                       this.state.allInQuerySelected
-                        ? t('Merge all issues')
+                        ? t('Bulk merge issues')
                         : count =>
                             tn(
                               'Merge %d selected issue',
@@ -658,9 +675,9 @@ const StreamActions = React.createClass({
                     extraDescription={extraDescription}
                     confirmationQuestion={
                       this.state.allInQuerySelected
-                        ? t(
-                            'Are you sure you want to remove all issues matching this search query from your bookmarks?'
-                          )
+                        ? getBulkConfirmMessage('remove', {
+                            append: ' from your bookmarks'
+                          })
                         : count =>
                             tn(
                               'Are you sure you want to remove this %d issue from your bookmarks?',
@@ -670,7 +687,7 @@ const StreamActions = React.createClass({
                     }
                     confirmLabel={
                       this.state.allInQuerySelected
-                        ? t('Remove all issues from bookmarks')
+                        ? t('Bulk remove issues from bookmarks')
                         : count =>
                             tn(
                               'Remove %d selected issue from bookmarks',
@@ -692,9 +709,7 @@ const StreamActions = React.createClass({
                     extraDescription={extraDescription}
                     confirmationQuestion={
                       this.state.allInQuerySelected
-                        ? t(
-                            'Are you sure you want to unresolve all issues matching this search query?'
-                          )
+                        ? getBulkConfirmMessage('unresolve')
                         : count =>
                             tn(
                               'Are you sure you want to unresolve this %d issue?',
@@ -704,7 +719,7 @@ const StreamActions = React.createClass({
                     }
                     confirmLabel={
                       this.state.allInQuerySelected
-                        ? t('Unresolve all issues')
+                        ? t('Bulk unresolve issues')
                         : count =>
                             tn(
                               'Unresolve %d selected issue',
@@ -751,7 +766,7 @@ const StreamActions = React.createClass({
               </a>
             </div>
           </div>
-          <div className="hidden-sm steream-actions-assignee col-md-1" />
+          <div className="hidden-sm stream-actions-assignee col-md-1" />
           <div className="stream-actions-level col-md-1 hidden-xs" />
           <div className="hidden-sm hidden-xs stream-actions-graph col-md-2">
             <ToolbarHeader className="stream-actions-graph-label">
@@ -779,7 +794,14 @@ const StreamActions = React.createClass({
           <div className="row stream-select-all-notice">
             <div className="col-md-12">
               {this.state.allInQuerySelected
-                ? <strong>{t('All issues matching this search query selected.')}</strong>
+                ? <strong>
+                    {tct(
+                      'Selected up to the first [count] issues that match this search query.',
+                      {
+                        count: BULK_LIMIT_STR
+                      }
+                    )}
+                  </strong>
                 : <span>
                     {tn(
                       '%d issue on this page selected.',
@@ -787,7 +809,12 @@ const StreamActions = React.createClass({
                       numIssues
                     )}
                     <a onClick={this.selectAll}>
-                      {t('Select all issues matching this search query.')}
+                      {tct(
+                        'Select the first [count] issues that match this search query.',
+                        {
+                          count: BULK_LIMIT_STR
+                        }
+                      )}
                     </a>
                   </span>}
             </div>
