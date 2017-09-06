@@ -13,7 +13,7 @@ from uuid import uuid4
 import click
 from django.utils import timezone
 
-from sentry.runner.decorators import configuration
+from sentry.runner.decorators import configuration, log_options
 
 
 def get_project(value):
@@ -55,6 +55,7 @@ def get_project(value):
     is_flag=True,
     help='Send the duration of this command to internal metrics.'
 )
+@log_options()
 @configuration
 def cleanup(days, project, concurrency, silent, model, router, timed):
     """Delete a portion of trailing data based on creation date.
