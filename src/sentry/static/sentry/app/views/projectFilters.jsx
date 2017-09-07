@@ -435,7 +435,7 @@ const ProjectFilters = React.createClass({
   },
 
   getFilterStats() {
-    let stat_options = Object.keys(this.getStatOpts());
+    let statOptions = Object.keys(this.getStatOpts());
     let {orgId, projectId} = this.props.params;
     let statEndpoint = `/projects/${orgId}/${projectId}/stats/`;
     let query = {
@@ -446,7 +446,8 @@ const ProjectFilters = React.createClass({
     $.when
       .apply(
         $,
-        stat_options.map(stat => {
+        // parallelize requests for each statistic
+        statOptions.map(stat => {
           let deferred = $.Deferred();
           this.api.request(statEndpoint, {
             query: Object.assign({stat: stat}, query),
@@ -457,15 +458,15 @@ const ProjectFilters = React.createClass({
         })
       )
       .done(
-        function() {
+        function(/* statOption1, statOption2, ... statOptionN */) {
           let rawStatsData = {};
           let expected = this.state.expected - 1;
           // when there is a single request made, this is inexplicably called without being wrapped in an array
-          if(stat_options.length===1){
-            rawStatsData[stat_options[0]] = arguments[0];
+          if(statOptions.length===1){
+            rawStatsData[statOptions[0]] = arguments[0];
           } else {
-            for (let i = 0; i < stat_options.length; i++) {
-              rawStatsData[stat_options[i]] = arguments[i][0];
+            for (let i = 0; i < statOptions.length; i++) {
+              rawStatsData[statOptions[i]] = arguments[i][0];
             }
           }
 
@@ -652,7 +653,7 @@ const ProjectFilters = React.createClass({
     return ReactDOMServer.renderToStaticMarkup(
       <div style={{width: '150px'}}>
         <div className="time-label"><span>{timeLabel}</span></div>
-        <div>{intcomma(totalY)} {t('total event')}{totalY !== 1 ? 's' : ''}</div>
+        <div>{intcomma(totalY)} {totalY > 1 ? t('total events') : t('total event')}</div>
         {formattedData.map((dataPoint, i) => {
           return (
             point.y[i] > 0 &&
