@@ -19,7 +19,7 @@ const ScoreBar = React.createClass({
   getDefaultProps() {
     return {
       palette: [],
-      paletteClassNames: ['red', 'red', 'orange', 'green', 'green']
+      paletteClassNames: ['low', 'low-med', 'med', 'med-high', 'high']
     };
   },
 

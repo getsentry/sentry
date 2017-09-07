@@ -283,32 +283,67 @@ exports[`Issues Similar View renders with mocked data 1`] = `
       <div
         className="similar-list-container"
       >
-        <h2>
-          <span>
-            Similar Issues
-          </span>
-          <QueryCount
-            count={4}
-            hideIfEmpty={true}
-            inline={true}
+        <SpreadLayout
+          className="similar-list-header"
+        >
+          <div
+            className="spread-layout similar-list-header"
           >
-            <div
-              className="query-count inline"
-            >
+            <h2>
               <span>
-                (
+                Similar Issues
               </span>
-              <span
-                className="query-count-value"
+              <QueryCount
+                count={4}
+                hideIfEmpty={true}
+                inline={true}
               >
-                4
-              </span>
-              <span>
-                )
-              </span>
-            </div>
-          </QueryCount>
-        </h2>
+                <div
+                  className="query-count inline"
+                >
+                  <span>
+                    (
+                  </span>
+                  <span
+                    className="query-count-value"
+                  >
+                    4
+                  </span>
+                  <span>
+                    )
+                  </span>
+                </div>
+              </QueryCount>
+            </h2>
+            <SimilarSpectrum>
+              <div
+                className="similar-spectrum"
+              >
+                <span>
+                  Similar
+                </span>
+                <span
+                  className="similar-spectrum-box high"
+                />
+                <span
+                  className="similar-spectrum-box med-high"
+                />
+                <span
+                  className="similar-spectrum-box med"
+                />
+                <span
+                  className="similar-spectrum-box low-med"
+                />
+                <span
+                  className="similar-spectrum-box low"
+                />
+                <span>
+                  Not Similar
+                </span>
+              </div>
+            </SimilarSpectrum>
+          </div>
+        </SpreadLayout>
         <SimilarToolbar
           onMerge={[Function]}
         >
@@ -750,32 +785,67 @@ exports[`Issues Similar View renders with mocked data 2`] = `
       <div
         className="similar-list-container"
       >
-        <h2>
-          <span>
-            Similar Issues
-          </span>
-          <QueryCount
-            count={4}
-            hideIfEmpty={true}
-            inline={true}
+        <SpreadLayout
+          className="similar-list-header"
+        >
+          <div
+            className="spread-layout similar-list-header"
           >
-            <div
-              className="query-count inline"
-            >
+            <h2>
               <span>
-                (
+                Similar Issues
               </span>
-              <span
-                className="query-count-value"
+              <QueryCount
+                count={4}
+                hideIfEmpty={true}
+                inline={true}
               >
-                4
-              </span>
-              <span>
-                )
-              </span>
-            </div>
-          </QueryCount>
-        </h2>
+                <div
+                  className="query-count inline"
+                >
+                  <span>
+                    (
+                  </span>
+                  <span
+                    className="query-count-value"
+                  >
+                    4
+                  </span>
+                  <span>
+                    )
+                  </span>
+                </div>
+              </QueryCount>
+            </h2>
+            <SimilarSpectrum>
+              <div
+                className="similar-spectrum"
+              >
+                <span>
+                  Similar
+                </span>
+                <span
+                  className="similar-spectrum-box high"
+                />
+                <span
+                  className="similar-spectrum-box med-high"
+                />
+                <span
+                  className="similar-spectrum-box med"
+                />
+                <span
+                  className="similar-spectrum-box low-med"
+                />
+                <span
+                  className="similar-spectrum-box low"
+                />
+                <span>
+                  Not Similar
+                </span>
+              </div>
+            </SimilarSpectrum>
+          </div>
+        </SpreadLayout>
         <SimilarToolbar
           onMerge={[Function]}
         >

@@ -1,0 +1,19 @@
+@import './palette.less';
+
+.similar-scores {
+  &.low {
+    background-color: @orange;
+  }
+  &.low-med {
+    background-color: mix(@orange, @yellow-orange, 50%);
+  }
+  &.med {
+    background-color: @yellow-orange;
+  }
+  &.med-high {
+    background-color: mix(@yellow-orange, @green, 40%);
+  }
+  &.high {
+    background-color: @green;
+  }
+}

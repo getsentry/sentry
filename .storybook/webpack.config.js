@@ -60,6 +60,7 @@ module.exports = {
     })
   ],
   resolve: {
+    extensions: appConfig.resolve.extensions,
     alias: Object.assign({}, appConfig.resolve.alias, {
       'sentry-ui': componentPath
     })
