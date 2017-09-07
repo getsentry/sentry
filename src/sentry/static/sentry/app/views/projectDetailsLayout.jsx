@@ -1,5 +1,6 @@
 import React from 'react';
 
+import DiffModal from '../components/modals/diffModal';
 import ProjectHeader from '../components/projectHeader';
 import ProjectState from '../mixins/projectState';
 
@@ -41,6 +42,8 @@ const ProjectDetailsLayout = React.createClass({
             })}
           </div>
         </div>
+
+        <DiffModal />
       </div>
     );
   }

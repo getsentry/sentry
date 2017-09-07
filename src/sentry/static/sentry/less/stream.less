@@ -222,6 +222,13 @@
   // position: relative;
 }
 
+.group-list {
+  .group {
+    .flex;
+    .flex.flex-vertically-centered;
+  }
+}
+
 // .similar-list is used in a tab in an Issue
 .group-list, .events, .similar-list {
   .list-unstyled;
@@ -234,8 +241,6 @@
     padding-right: 10px;
     background: #fff;
     .transition(all .4s ease-in-out);
-    .flex;
-    .flex.flex-vertically-centered;
 
     &.hoverable {
       cursor: pointer;

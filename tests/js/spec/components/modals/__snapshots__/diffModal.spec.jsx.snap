@@ -1,0 +1,31 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`DiffModal renders 1`] = `
+<Modal
+  animation={false}
+  autoFocus={true}
+  backdrop={true}
+  bsClass="modal"
+  className="diff-modal"
+  dialogComponentClass={[Function]}
+  enforceFocus={true}
+  keyboard={true}
+  manager={
+    ModalManager {
+      "containers": Array [],
+      "data": Array [],
+      "handleContainerOverflow": true,
+      "hideSiblingNodes": true,
+      "modals": Array [],
+    }
+  }
+  onHide={[Function]}
+  renderBackdrop={[Function]}
+  restoreFocus={true}
+  show={false}
+>
+  <div
+    className="modal-body"
+  />
+</Modal>
+`;

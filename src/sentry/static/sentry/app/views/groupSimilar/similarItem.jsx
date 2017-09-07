@@ -5,6 +5,7 @@ import classNames from 'classnames';
 
 import GroupingStore from '../../stores/groupingStore';
 import GroupingActions from '../../actions/groupingActions';
+import ProjectActions from '../../actions/projectActions';
 
 import Count from '../../components/count';
 import EventOrGroupHeader from '../../components/eventOrGroupHeader';
@@ -21,6 +22,7 @@ const similarInterfaces = ['exception', 'message'];
 const SimilarIssueItem = React.createClass({
   propTypes: {
     orgId: PropTypes.string.isRequired,
+    groupId: PropTypes.string.isRequired,
     projectId: PropTypes.string.isRequired,
     score: PropTypes.object,
     scoresByInterface: PropTypes.shape({
@@ -83,6 +85,16 @@ const SimilarIssueItem = React.createClass({
     }
   },
 
+  handleShowDiff(e) {
+    let {groupId, issue} = this.props;
+    ProjectActions.openDiffModal({
+      baseIssueId: groupId,
+      targetIssueId: issue.id
+    });
+
+    e.stopPropagation();
+  },
+
   render() {
     let {aggregate, scoresByInterface, issue, orgId, projectId} = this.props;
 
@@ -113,6 +125,12 @@ const SimilarIssueItem = React.createClass({
               />
             </div>
           </FlowLayout>
+          <button
+            style={{marginRight: 2}}
+            className="btn btn-default btn-xs"
+            onClick={this.handleShowDiff}>
+            Diff
+          </button>
         </FlowLayout>
 
         <div className="similar-score-columns">

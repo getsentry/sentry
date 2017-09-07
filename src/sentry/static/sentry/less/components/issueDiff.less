@@ -1,0 +1,21 @@
+.issue-diff {
+  background-color: #F7F8F9;
+  overflow: auto;
+  padding: 10px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+
+  &.loading {
+    background-color: white;
+    justify-content: center;
+  }
+
+  pre.diff-result {
+    margin: 0;
+    padding: 0;
+    overflow: visible;
+    white-space: nowrap;
+    border-radius: 0;
+  }
+}
