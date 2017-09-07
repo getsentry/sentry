@@ -443,6 +443,10 @@ urlpatterns += patterns(
     url(r'^crossdomain\.xml$', api.crossdomain_xml_index, name='sentry-api-crossdomain-xml-index'),
 
     # plugins
+    # XXX(dcramer): preferably we'd be able to use 'integrations' as the URL
+    # prefix here, but unfortunately sentry.io has that mapped to marketing
+    # assets for the time being
+    url(r'^extensions/cloudflare/', include('sentry.integrations.cloudflare.urls')),
     url(r'^plugins/', include('sentry.plugins.base.urls')),
 
     # Generic API
