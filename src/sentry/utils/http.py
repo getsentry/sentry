@@ -11,9 +11,11 @@ import six
 
 from collections import namedtuple
 from django.conf import settings
-from six.moves.urllib.parse import urlencode, urljoin, urlparse
+from six.moves.urllib.parse import parse_qs, urlencode, urljoin, urlparse
+from functools import partial
 
 from sentry import options
+from sentry.utils import json
 
 ParsedUriMatch = namedtuple('ParsedUriMatch', ['scheme', 'domain', 'path'])
 
@@ -222,3 +224,37 @@ def origin_from_request(request):
     if rv in ('', 'null'):
         rv = origin_from_url(request.META.get('HTTP_REFERER'))
     return rv
+
+
+def heuristic_decode(data, possible_content_Type=None):
+    """
+    Attempt to decode a HTTP body by trying JSON and Form URL decoders,
+    returning the decoded body (if decoding was successful) and the interred
+    content type.
+    """
+    inferred_content_type = possible_content_Type
+
+    form_encoded_parser = partial(
+        parse_qs,
+        strict_parsing=True,
+        keep_blank_values=True,
+    )
+
+    decoders = [
+        ('application/x-www-form-urlencoded', form_encoded_parser),
+        ('application/json', json.loads),
+    ]
+
+    # Prioritize the decoder which supports the possible content type first.
+    decoders.sort(key=lambda d: d[0] != possible_content_Type)
+
+    for decoding_type, decoder in decoders:
+        try:
+            data = decoder(data)
+            inferred_content_type = decoding_type
+            break
+        except Exception:
+            # Try another decoder
+            continue
+
+    return (data, inferred_content_type)

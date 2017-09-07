@@ -6,6 +6,7 @@ import ClippedBox from '../../clippedBox';
 import KeyValueList from './keyValueList';
 import ContextData from '../../contextData';
 
+import {objectToSortedTupleArray} from './utils';
 import {objectIsEmpty} from '../../../utils';
 import {t} from '../../../locale';
 
@@ -14,51 +15,15 @@ const RichHttpContent = React.createClass({
     data: PropTypes.object.isRequired
   },
 
-  /**
-   * Converts an object of body/querystring key/value pairs
-   * into a tuple of [key, value] pairs, and sorts them.
-   *
-   * Note that the query-string parser returns dupes like this:
-   *   { foo: ['bar', 'baz'] } // ?foo=bar&bar=baz
-   *
-   * This method accounts for this.
-   */
-  objectToSortedTupleArray(obj) {
-    return Object.keys(obj)
-      .reduce((out, k) => {
-        let val = obj[k];
-        return out.concat(
-          {}.toString.call(val) === '[object Array]'
-            ? val.map(v => [k, v]) // key has multiple values (array)
-            : [[k, val]] // key has single value
-        );
-      }, [])
-      .sort(function([keyA, valA], [keyB, valB]) {
-        // if keys are identical, sort on value
-        if (keyA === keyB) {
-          return valA < valB ? -1 : 1;
-        }
-
-        return keyA < keyB ? -1 : 1;
-      });
-  },
-
   getBodySection(data) {
-    /*eslint no-empty:0*/
-    let contentType = data.headers.find(h => h[0] === 'Content-Type');
-    contentType = contentType && contentType[1].split(';')[0].toLowerCase();
-
-    // Ignoring Content-Type, we immediately just check if the body is parseable
-    // as JSON. Why? Because many applications don't set proper Content-Type values,
-    // e.g. x-www-form-urlencoded  actually contains JSON.
-    try {
-      return <ContextData data={JSON.parse(data.data)} />;
-    } catch (e) {}
-
-    if (contentType === 'application/x-www-form-urlencoded') {
-      return this.getQueryStringOrRaw(data.data);
-    } else {
-      return <pre>{JSON.stringify(data.data, null, 2)}</pre>;
+    // The http interface provides an inferred content type for the data body.
+    switch (data.inferredContentType) {
+      case 'application/json':
+        return <ContextData data={data.data} />;
+      case 'application/x-www-form-urlencoded':
+        return this.getQueryStringOrRaw(data.data);
+      default:
+        return <pre>{JSON.stringify(data.data, null, 2)}</pre>;
     }
   },
 
@@ -66,9 +31,7 @@ const RichHttpContent = React.createClass({
     try {
       // Sentry API abbreviates long query string values, sometimes resulting in
       // an un-parsable querystring ... stay safe kids
-      return (
-        <KeyValueList data={this.objectToSortedTupleArray(queryString.parse(data))} />
-      );
+      return <KeyValueList data={objectToSortedTupleArray(data)} />;
     } catch (e) {
       return <pre>{data}</pre>;
     }
@@ -80,7 +43,7 @@ const RichHttpContent = React.createClass({
       <div>
         {data.query &&
           <ClippedBox title={t('Query String')}>
-            {this.getQueryStringOrRaw(data.query)}
+            {this.getQueryStringOrRaw(queryString.parse(data.query))}
           </ClippedBox>}
         {data.fragment &&
           <ClippedBox title={t('Fragment')}>
@@ -103,7 +66,7 @@ const RichHttpContent = React.createClass({
           </ClippedBox>}
         {!objectIsEmpty(data.env) &&
           <ClippedBox title={t('Environment')} defaultCollapsed>
-            <KeyValueList data={this.objectToSortedTupleArray(data.env)} />
+            <KeyValueList data={objectToSortedTupleArray(data.env)} />
           </ClippedBox>}
       </div>
     );
