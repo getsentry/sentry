@@ -75,6 +75,7 @@ const Button = React.createClass({
       return (
         <Link
           to={to}
+          disabled={disabled}
           {...buttonProps}
           onClick={this.handleClick}
           className={cx}
@@ -89,6 +90,7 @@ const Button = React.createClass({
       return (
         <a
           href={href}
+          disabled={disabled}
           {...buttonProps}
           onClick={this.handleClick}
           className={cx}
@@ -100,7 +102,12 @@ const Button = React.createClass({
 
     // Otherwise, fall back to basic button element
     return (
-      <button {...buttonProps} onClick={this.handleClick} className={cx} role="button">
+      <button
+        disabled={disabled}
+        {...buttonProps}
+        onClick={this.handleClick}
+        className={cx}
+        role="button">
         {children}
       </button>
     );
