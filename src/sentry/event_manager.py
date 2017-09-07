@@ -30,8 +30,8 @@ from sentry.constants import (
 from sentry.interfaces.base import get_interface
 from sentry.models import (
     Activity, Environment, Event, EventMapping, EventUser, Group, GroupHash, GroupRelease,
-    GroupResolution, GroupStatus, Project, Release, ReleaseEnvironment, ReleaseProject,
-    UserReport
+    GroupResolution, GroupStatus, PreProcessGroupHash, Project, Release, ReleaseEnvironment,
+    ReleaseProject, UserReport
 )
 from sentry.plugins import plugins
 from sentry.signals import first_event_received, regression_signal
@@ -837,6 +837,9 @@ class EventManager(object):
         )
 
     def _save_aggregate(self, event, hashes, release, **kwargs):
+        from sentry.filters.preprocess_hashes import (
+            get_preprocess_hashes, get_raw_cache_key, hash_cache
+        )
         project = event.project
 
         # attempt to find a matching hash
@@ -848,6 +851,18 @@ class EventManager(object):
                 existing_group_id = h.group_id
                 break
             if h.group_tombstone_id is not None:
+                key = get_raw_cache_key(project.id, event.event_id)
+                original_data = hash_cache.get(key)
+                if original_data:
+                    pre_process_hashes = get_preprocess_hashes(original_data)
+
+                    if pre_process_hashes is not None:
+                        for ph in pre_process_hashes:
+                            PreProcessGroupHash.objects.create(
+                                project=project,
+                                hash=ph,
+                                group_tombstone_id=h.group_tombstone_id,
+                            )
                 raise HashDiscarded('Matches group tombstone %s' % h.group_tombstone_id)
 
         # XXX(dcramer): this has the opportunity to create duplicate groups
