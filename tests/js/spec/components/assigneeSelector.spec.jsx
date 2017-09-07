@@ -21,6 +21,11 @@ describe('AssigneeSelector', function() {
     name: 'John Smith',
     email: 'johnsmith@example.com'
   };
+  const USER_3 = {
+    id: 3,
+    name: 'J J',
+    email: 'jj@example.com'
+  };
 
   beforeEach(function() {
     this.sandbox = sinon.sandbox.create();
@@ -87,8 +92,48 @@ describe('AssigneeSelector', function() {
     });
   });
 
+  describe('loading', function() {
+    let assigneeSelector;
+    beforeEach(function() {
+      // Reset sandbox because we don't want <LoadingIndicator /> stubbed
+      this.sandbox.restore();
+      this.sandbox = sinon.sandbox.create();
+      this.sandbox.stub(GroupStore, 'get').returns({
+        id: 1337,
+        assignedTo: null
+      });
+      MemberListStore.items = [];
+      MemberListStore.loaded = false;
+      assigneeSelector = mount(<AssigneeSelector id="1337" />);
+    });
+
+    it('should initially have loading state', function() {
+      expect(assigneeSelector.find('LoadingIndicator').exists()).toBe(true);
+    });
+
+    it('does not have loading state and shows member list after calling MemberListStore.loadInitialData', function() {
+      MemberListStore.loadInitialData([USER_1, USER_2]);
+
+      expect(assigneeSelector.find('Avatar').length).toBe(2);
+      expect(assigneeSelector.find('LoadingIndicator').exists()).toBe(false);
+    });
+
+    it('does NOT update member list after initial load', function() {
+      MemberListStore.loadInitialData([USER_1, USER_2]);
+
+      expect(assigneeSelector.find('Avatar').length).toBe(2);
+      expect(assigneeSelector.find('LoadingIndicator').exists()).toBe(false);
+
+      MemberListStore.loadInitialData([USER_1, USER_2, USER_3]);
+
+      expect(assigneeSelector.find('Avatar').length).toBe(2);
+      expect(assigneeSelector.find('LoadingIndicator').exists()).toBe(false);
+    });
+  });
+
   describe('onFilterKeyDown()', function() {
     beforeEach(function() {
+      MemberListStore.loaded = true;
       let assigneeSelector = (this.assigneeSelector = mount(
         <AssigneeSelector id="1337" />
       ));
@@ -96,13 +141,17 @@ describe('AssigneeSelector', function() {
       this.assignTo = this.sandbox.stub(assigneeSelector.instance(), 'assignTo');
     });
 
+    afterEach(function() {
+      MemberListStore.loaded = false;
+    });
+
     it('should assign the first filtered member when the Enter key is pressed and filter is truthy', function() {
       let assigneeSelector = this.assigneeSelector;
       assigneeSelector.setState({filter: 'Jane'});
 
-      assigneeSelector
-        .ref('filter')
-        .simulate('keyDown', {key: 'Enter', keyCode: 13, which: 13});
+      let filterEl = assigneeSelector.instance().filterRef;
+      let filter = assigneeSelector.findWhere(node => node.node === filterEl);
+      filter.simulate('keyDown', {key: 'Enter', keyCode: 13, which: 13});
 
       expect(this.assignTo.calledOnce).toBeTruthy();
       expect(this.assignTo.lastCall.args[0]).toHaveProperty('name', 'Jane Doe');
@@ -112,9 +161,9 @@ describe('AssigneeSelector', function() {
       let assigneeSelector = this.assigneeSelector;
       assigneeSelector.setState({filter: ''});
 
-      assigneeSelector
-        .ref('filter')
-        .simulate('keyDown', {key: 'Enter', keyCode: 13, which: 13});
+      let filterEl = assigneeSelector.instance().filterRef;
+      let filter = assigneeSelector.findWhere(node => node.node === filterEl);
+      filter.simulate('keyDown', {key: 'Enter', keyCode: 13, which: 13});
 
       expect(this.assignTo.notCalled).toBeTruthy();
     });
@@ -123,26 +172,30 @@ describe('AssigneeSelector', function() {
       let assigneeSelector = this.assigneeSelector;
       assigneeSelector.setState({filter: 'Jane'});
 
-      assigneeSelector
-        .ref('filter')
-        .simulate('keyDown', {key: 'h', keyCode: 72, which: 72});
+      let filterEl = assigneeSelector.instance().filterRef;
+      let filter = assigneeSelector.findWhere(node => node.node === filterEl);
+      filter.simulate('keyDown', {key: 'h', keyCode: 72, which: 72});
       expect(this.assignTo.notCalled).toBeTruthy();
     });
   });
 
   describe('onFilterKeyUp()', function() {
     beforeEach(function() {
+      MemberListStore.loaded = true;
       this.assigneeSelector = mount(<AssigneeSelector id="1337" />);
+    });
+
+    afterEach(function() {
+      MemberListStore.loaded = false;
     });
 
     it('should close the dropdown when keyup is triggered with the Escape key', function() {
       let assigneeSelector = this.assigneeSelector;
-      let closeStub = this.sandbox.stub(
-        assigneeSelector.instance().refs.dropdown,
-        'close'
-      );
+      let closeStub = this.sandbox.stub(assigneeSelector.instance().dropdownRef, 'close');
 
-      assigneeSelector.ref('filter').simulate('keyUp', {key: 'Escape'});
+      let filterEl = assigneeSelector.instance().filterRef;
+      let filter = assigneeSelector.findWhere(node => node.node === filterEl);
+      filter.simulate('keyUp', {key: 'Escape'});
 
       expect(closeStub.calledOnce).toBeTruthy();
     });
@@ -150,7 +203,9 @@ describe('AssigneeSelector', function() {
     it('should update the local filter state if any other key is pressed', function() {
       let assigneeSelector = this.assigneeSelector;
 
-      assigneeSelector.ref('filter').simulate('keyUp', {target: {value: 'foo'}});
+      let filterEl = assigneeSelector.instance().filterRef;
+      let filter = assigneeSelector.findWhere(node => node.node === filterEl);
+      filter.simulate('keyUp', {target: {value: 'foo'}});
       expect(assigneeSelector.state('filter')).toEqual('foo');
     });
   });
