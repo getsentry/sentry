@@ -55,6 +55,7 @@ Schema Changes
 - Dropped ``EventUser.project_id`` foreign key constraint
 - Added ``Email`` model
 - Change ``CommitFileChange.filename`` from varchar to text in PostgreSQL
+- Added ``PreProcessGroupHash`` model
 
 Version 8.19
 ------------
