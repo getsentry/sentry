@@ -12,6 +12,10 @@ Schema Changes
 - Added index on ``ProjectPlatform(last_seen)`` column
 - Added index on ``GroupCommitResolution.commit_id``
 - Enable ``citext`` extension in Postgres.
+- Dropped ``TagKey.project_id`` foreign key constraint
+- Dropped ``TagValue.project_id`` foreign key constraint
+- Dropped ``GroupTagKey.project_id`` foreign key constraint
+- Dropped ``GroupTagKey.group_id`` foreign key constraint
 
 Version 8.19
 ------------
