@@ -11,7 +11,7 @@ class CloudflareMetadataTest(APITestCase):
 
         self.login_as(user=user)
 
-        resp = self.client.get('/api/0/cloudflare/metadata/', format='json')
+        resp = self.client.get('/extensions/cloudflare/metadata/', format='json')
 
         assert resp.status_code == 200, resp.content
         assert resp.data['metadata'] == {
