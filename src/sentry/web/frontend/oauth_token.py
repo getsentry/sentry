@@ -113,7 +113,7 @@ class OAuthTokenView(View):
                 {
                     'access_token': token.token,
                     'refresh_token': token.refresh_token,
-                    'expires_in': (timezone.now() - token.expires_at).total_seconds(),
+                    'expires_in': int((token.expires_at - timezone.now()).total_seconds()) if token.expires_at else None,
                     'expires_at': token.expires_at,
                     'token_type': 'bearer',
                     'scope': ' '.join(token.get_scopes()),  # NOQA

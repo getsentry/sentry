@@ -138,7 +138,7 @@ class OAuthTokenCodeTest(TestCase):
 
         assert data['access_token'] == token.token
         assert data['refresh_token'] == token.refresh_token
-        assert data['expires_in']
+        assert isinstance(data['expires_in'], int)
         assert data['token_type'] == 'bearer'
         assert data['user']['id'] == six.text_type(token.user_id)
 

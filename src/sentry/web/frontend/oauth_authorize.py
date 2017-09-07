@@ -320,7 +320,7 @@ class OAuthAuthorizeView(AuthLoginView):
                 params['redirect_uri'],
                 {
                     'access_token': token.token,
-                    'expires_in': (timezone.now() - token.expires_at).total_seconds(),
+                    'expires_in': int((timezone.now() - token.expires_at).total_seconds()),
                     'expires_at': token.expires_at.strftime('%Y-%m-%dT%H:%M:%S.%fZ'),
                     'token_type': 'bearer',
                     'scope': ' '.join(token.get_scopes()),  # NOQA
