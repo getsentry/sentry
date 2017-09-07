@@ -59,9 +59,6 @@ class CreateOrganizationMemberView(OrganizationView):
                     request, messages.SUCCESS,
                     _('The organization member %s was added.') % user_display
                 )
-                print (om.email)
-                print (created)
-                print (request.user)
 
                 member_invited.send(
                     member=om, user=request.user, sender=self)

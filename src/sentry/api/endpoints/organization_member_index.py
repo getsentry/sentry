@@ -1,13 +1,19 @@
 from __future__ import absolute_import
 import six
 
+from django.db import transaction, IntegrityError
 from django.db.models import Q
+from rest_framework import serializers
+from rest_framework.response import Response
 
+from sentry import roles
 from sentry.api.bases.organization import (OrganizationEndpoint, OrganizationPermission)
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
-from sentry.models import OrganizationMember
+from sentry.api.serializers.rest_framework import ListField
+from sentry.models import AuditLogEntryEvent, OrganizationMember, OrganizationMemberTeam, Team, TeamStatus
 from sentry.search.utils import tokenize_query
+from sentry.signals import member_invited
 
 
 class MemberPermission(OrganizationPermission):
@@ -19,8 +25,24 @@ class MemberPermission(OrganizationPermission):
     }
 
 
+class OrganizationMemberSerializer(serializers.Serializer):
+    email = serializers.EmailField(max_length=75, required=False)
+    role = serializers.ChoiceField(choices=roles.get_choices(), required=True)
+    teams = ListField(required=True, allow_null=False)
+
+
 class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
     permission_classes = (MemberPermission, )
+
+    @transaction.atomic
+    def save_team_assignments(self, organization_member, teams):
+        OrganizationMemberTeam.objects.filter(organizationmember=organization_member).delete()
+        OrganizationMemberTeam.objects.bulk_create(
+            [
+                OrganizationMemberTeam(team=team, organizationmember=organization_member)
+                for team in teams
+            ]
+        )
 
     def get(self, request, organization):
         queryset = OrganizationMember.objects.filter(
@@ -43,3 +65,77 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
             on_results=lambda x: serialize(x, request.user),
             paginator_cls=OffsetPaginator,
         )
+
+    def post(self, request, organization):
+        """
+        Add a Member to Organization
+        ````````````````````````````
+
+        Invite a member to the organization.
+
+        :pparam string organization_slug: the slug of the organization the member will belong to
+        :param string email: the email address to invite
+        :param string role: the role the new member
+        :param array team_slugs: the slugs of the teams the member should belong to.
+
+        :auth: required
+        """
+        # TODO: If the member already exists, should this still update the role and team?
+        # For now, it doesn't, but simply return the existing object
+
+        serializer = OrganizationMemberSerializer(data=request.DATA)
+
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=400)
+
+        result = serializer.object
+
+        teams = Team.objects.filter(
+            organization=organization,
+            status=TeamStatus.VISIBLE,
+            slug__in=result['teams'])
+
+        # This is needed because `email` field is case sensitive, but from a user perspective,
+        # Sentry treats email as case-insensitive (Eric@sentry.io equals eric@sentry.io).
+        try:
+            existing = OrganizationMember.objects.filter(
+                organization=organization,
+                user__email__iexact=result['email'],
+                user__is_active=True,
+            )[0]
+        except IndexError:
+            pass
+        else:
+            return Response(serialize(existing), status=200)
+
+        om = OrganizationMember(
+            organization=organization,
+            email=result['email'],
+            role=result['role'])
+        om.token = om.generate_token()
+
+        sid = transaction.savepoint(using='default')
+
+        try:
+            om.save()
+
+        except IntegrityError:
+            transaction.savepoint_rollback(sid, using='default')
+
+            return Response(serialize(OrganizationMember.objects.get(
+                email__iexact=om.email,
+                organization=organization,
+            )), status=200)
+
+        self.save_team_assignments(om, teams)
+        om.send_invite_email()
+
+        self.create_audit_entry(
+            request=request,
+            organization_id=organization.id,
+            target_object=om.id,
+            event=AuditLogEntryEvent.MEMBER_INVITE,
+        )
+        member_invited.send(member=om, user=request.user, sender=self)
+
+        return Response(om, status=201)
