@@ -40,7 +40,7 @@ const AvatarSettings = React.createClass({
   },
 
   updateUserState(user) {
-    this.setState({user: user});
+    this.setState({user});
   },
 
   updateDataUrlState(dataUrlState) {
@@ -55,7 +55,7 @@ const AvatarSettings = React.createClass({
   },
 
   handleSuccess(user) {
-    this.setState({user: user});
+    this.setState({user});
     AlertActions.addAlert({
       message: t('Successfully saved avatar preferences'),
       type: 'success',

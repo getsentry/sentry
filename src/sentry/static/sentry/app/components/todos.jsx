@@ -264,7 +264,7 @@ const TodoList = React.createClass({
       }
       return task;
     });
-    this.setState({tasks: tasks});
+    this.setState({tasks});
   },
 
   skipTask(skipped_task) {

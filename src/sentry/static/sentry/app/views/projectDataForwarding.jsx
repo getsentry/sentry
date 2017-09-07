@@ -17,8 +17,8 @@ const DataForwardingStats = React.createClass({
     let since = until - 3600 * 24 * 30;
 
     return {
-      since: since,
-      until: until,
+      since,
+      until,
       loading: true,
       error: false,
       stats: null,
@@ -46,8 +46,8 @@ const DataForwardingStats = React.createClass({
           return {x: p[0], y: [p[1]]};
         });
         this.setState({
-          stats: stats,
-          emptyStats: emptyStats,
+          stats,
+          emptyStats,
           error: false,
           loading: false
         });

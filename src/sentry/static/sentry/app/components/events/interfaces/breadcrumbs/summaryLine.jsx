@@ -40,7 +40,7 @@ const SummaryLine = React.createClass({
     let hasOverflow = isOverflowing(this.domElement);
     if (hasOverflow !== this.state.hasOverflow) {
       this.setState({
-        hasOverflow: hasOverflow
+        hasOverflow
       });
     }
   },

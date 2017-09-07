@@ -58,11 +58,11 @@ const RuleEditor = React.createClass({
     let frequency = $(ReactDOM.findDOMNode(this.refs.frequency)).val();
     let name = $(ReactDOM.findDOMNode(this.refs.name)).val();
     let data = {
-      actionMatch: actionMatch,
-      actions: actions,
-      conditions: conditions,
-      frequency: frequency,
-      name: name
+      actionMatch,
+      actions,
+      conditions,
+      frequency,
+      name
     };
     let rule = this.props.rule;
     let project = this.props.project;
@@ -75,7 +75,7 @@ const RuleEditor = React.createClass({
     let loadingIndicator = IndicatorStore.add('Saving...');
     this.api.request(endpoint, {
       method: rule.id ? 'PUT' : 'POST',
-      data: data,
+      data,
       success: () => {
         window.location.href = '../';
       },

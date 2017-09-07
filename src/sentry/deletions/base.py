@@ -112,18 +112,19 @@ class BaseDeletionTask(object):
 class ModelDeletionTask(BaseDeletionTask):
     DEFAULT_QUERY_LIMIT = None
 
-    def __init__(self, manager, model, query, query_limit=None, **kwargs):
+    def __init__(self, manager, model, query, query_limit=None, order_by=None, **kwargs):
         super(ModelDeletionTask, self).__init__(manager, **kwargs)
         self.model = model
         self.query = query
         self.query_limit = (query_limit or self.DEFAULT_QUERY_LIMIT or self.chunk_size)
+        self.order_by = order_by
 
     def __repr__(self):
-        return '<%s: model=%s query=%s transaction_id=%s actor_id=%s>' % (
-            type(self), self.model, self.query, self.transaction_id, self.actor_id,
+        return '<%s: model=%s query=%s order_by=%s transaction_id=%s actor_id=%s>' % (
+            type(self), self.model, self.query, self.order_by, self.transaction_id, self.actor_id,
         )
 
-    def chunk(self):
+    def chunk(self, num_shards=None, shard_id=None):
         """
         Deletes a chunk of this instance's data. Return ``True`` if there is
         more work, or ``False`` if the entity has been removed.
@@ -131,7 +132,23 @@ class ModelDeletionTask(BaseDeletionTask):
         query_limit = self.query_limit
         remaining = self.chunk_size
         while remaining > 0:
-            queryset = list(self.model.objects.filter(**self.query)[:query_limit])
+            queryset = self.model.objects.filter(**self.query)
+            if self.order_by:
+                queryset = queryset.order_by(self.order_by)
+
+            if num_shards:
+                assert num_shards > 1
+                assert shard_id < num_shards
+                queryset = queryset.extra(
+                    where=[
+                        'id %% {num_shards} = {shard_id}'.format(
+                            num_shards=num_shards,
+                            shard_id=shard_id,
+                        )
+                    ]
+                )
+
+            queryset = list(queryset[:query_limit])
             if not queryset:
                 return False
 

@@ -220,8 +220,10 @@ end
 -- Key Generation
 
 local function get_key_prefix(configuration, index)
+    -- NB: The brackets around the scope allow redis cluster to shard keys
+    -- using the value within the brackets, this is known as a redis hash tag.
     return string.format(
-        '%s:%s:%s',
+        '%s:{%s}:%s',
         configuration.namespace,
         configuration.scope,
         index

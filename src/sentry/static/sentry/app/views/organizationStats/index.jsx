@@ -92,7 +92,7 @@ const OrganizationStats = React.createClass({
 
         this.setState({
           pageLinks: jqxhr.getResponseHeader('Link'),
-          projectMap: projectMap,
+          projectMap,
           projectsRequestsPending: this.state.projectsRequestsPending
         });
       },
@@ -235,7 +235,7 @@ const OrganizationStats = React.createClass({
       });
     });
     this.setState({
-      projectTotals: projectTotals,
+      projectTotals,
       projectsLoading: false
     });
   },

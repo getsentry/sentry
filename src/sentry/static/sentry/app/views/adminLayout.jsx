@@ -16,7 +16,7 @@ export default React.createClass({
     });
 
     return {
-      hooksManage: hooksManage
+      hooksManage
     };
   },
 

@@ -54,7 +54,7 @@ const ProjectProcessingIssues = React.createClass({
     let formData = this.state.formData;
     formData[name] = !this.state.formData['sentry:reprocessing_active'];
     this.setState({
-      formData: formData
+      formData
     });
     this.switchReporcessing();
   },
@@ -68,7 +68,7 @@ const ProjectProcessingIssues = React.createClass({
       success: (data, _, jqXHR) => {
         let expected = this.state.expected - 1;
         this.setState({
-          expected: expected,
+          expected,
           loading: expected > 0,
           formData: data.options
         });
@@ -76,7 +76,7 @@ const ProjectProcessingIssues = React.createClass({
       error: () => {
         let expected = this.state.expected - 1;
         this.setState({
-          expected: expected,
+          expected,
           error: true,
           loading: expected > 0
         });
@@ -87,7 +87,7 @@ const ProjectProcessingIssues = React.createClass({
       success: (data, _, jqXHR) => {
         let expected = this.state.expected - 1;
         this.setState({
-          expected: expected,
+          expected,
           error: false,
           loading: expected > 0,
           processingIssues: data,
@@ -97,7 +97,7 @@ const ProjectProcessingIssues = React.createClass({
       error: () => {
         let expected = this.state.expected - 1;
         this.setState({
-          expected: expected,
+          expected,
           error: true,
           loading: expected > 0
         });
@@ -140,7 +140,7 @@ const ProjectProcessingIssues = React.createClass({
       success: (data, _, jqXHR) => {
         let expected = this.state.expected - 1;
         this.setState({
-          expected: expected,
+          expected,
           error: false,
           loading: expected > 0
         });
@@ -150,7 +150,7 @@ const ProjectProcessingIssues = React.createClass({
       error: () => {
         let expected = this.state.expected - 1;
         this.setState({
-          expected: expected,
+          expected,
           error: true,
           loading: expected > 0
         });
@@ -168,7 +168,7 @@ const ProjectProcessingIssues = React.createClass({
       success: (data, _, jqXHR) => {
         let expected = this.state.expected - 1;
         this.setState({
-          expected: expected,
+          expected,
           error: false,
           loading: expected > 0
         });
@@ -178,7 +178,7 @@ const ProjectProcessingIssues = React.createClass({
       error: () => {
         let expected = this.state.expected - 1;
         this.setState({
-          expected: expected,
+          expected,
           error: true,
           loading: expected > 0
         });

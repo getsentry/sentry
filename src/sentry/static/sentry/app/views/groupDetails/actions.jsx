@@ -39,7 +39,7 @@ const ResolveActions = React.createClass({
     });
     this.props.onUpdate({
       status: 'resolved',
-      statusDetails: statusDetails
+      statusDetails
     });
   },
 
@@ -447,7 +447,7 @@ export default React.createClass({
         orgId: org.slug,
         projectId: project.slug,
         itemIds: [group.id],
-        data: data
+        data
       },
       {
         complete: () => {

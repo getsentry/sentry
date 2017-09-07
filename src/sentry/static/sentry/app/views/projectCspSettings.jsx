@@ -25,7 +25,7 @@ const ProjectCspSettingsForm = React.createClass({
       }
     }
     return {
-      formData: formData,
+      formData,
       errors: {}
     };
   },
@@ -34,7 +34,7 @@ const ProjectCspSettingsForm = React.createClass({
     let formData = this.state.formData;
     formData[name] = value;
     this.setState({
-      formData: formData
+      formData
     });
   },
 
@@ -166,7 +166,7 @@ const ProjectCspSettings = React.createClass({
       success: (data, _, jqXHR) => {
         let expected = this.state.expected - 1;
         this.setState({
-          expected: expected,
+          expected,
           loading: expected > 0,
           keyList: data
         });
@@ -174,7 +174,7 @@ const ProjectCspSettings = React.createClass({
       error: () => {
         let expected = this.state.expected - 1;
         this.setState({
-          expected: expected,
+          expected,
           error: true,
           loading: expected > 0
         });
@@ -185,7 +185,7 @@ const ProjectCspSettings = React.createClass({
       success: (data, _, jqXHR) => {
         let expected = this.state.expected - 1;
         this.setState({
-          expected: expected,
+          expected,
           loading: expected > 0,
           projectOptions: data.options
         });
@@ -193,7 +193,7 @@ const ProjectCspSettings = React.createClass({
       error: () => {
         let expected = this.state.expected - 1;
         this.setState({
-          expected: expected,
+          expected,
           error: true,
           loading: expected > 0
         });

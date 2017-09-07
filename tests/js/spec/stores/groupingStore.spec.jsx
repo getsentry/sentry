@@ -1,6 +1,6 @@
-/* eslint-env jest */
 import GroupingStore from 'app/stores/groupingStore';
 import {Client} from 'app/api';
+
 jest.mock('app/api');
 
 /*

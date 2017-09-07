@@ -35,7 +35,7 @@ const CSPInterface = React.createClass({
 
     return {
       view: 'report',
-      data: data
+      data
     };
   },
 

@@ -31,8 +31,8 @@ const KeyStats = React.createClass({
     let since = until - 3600 * 24 * 30;
 
     return {
-      since: since,
-      until: until,
+      since,
+      until,
       loading: true,
       error: false,
       stats: null,
@@ -62,8 +62,8 @@ const KeyStats = React.createClass({
           };
         });
         this.setState({
-          stats: stats,
-          emptyStats: emptyStats,
+          stats,
+          emptyStats,
           error: false,
           loading: false
         });
@@ -488,7 +488,7 @@ export default React.createClass({
         this.setState({
           error: false,
           loading: false,
-          data: data
+          data
         });
       },
       error: () => {

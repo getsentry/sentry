@@ -56,7 +56,7 @@ const Broadcasts = React.createClass({
       method: 'GET',
       success: data => {
         this.setState({
-          broadcasts: data,
+          broadcasts: data || [],
           loading: false
         });
         this.poller = window.setTimeout(this.fetchData, POLLER_DELAY);

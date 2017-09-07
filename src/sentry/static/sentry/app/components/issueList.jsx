@@ -68,7 +68,7 @@ const IssueList = React.createClass({
       },
       success: (data, _, jqXHR) => {
         this.setState({
-          data: data,
+          data,
           loading: false,
           error: false,
           issueIds: data.map(item => item.id),
