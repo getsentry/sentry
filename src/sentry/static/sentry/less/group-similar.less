@@ -1,5 +1,6 @@
 // For interface for merging/unmerging events/issues
 // Shares CSS with "stream.less" so some defs are in there
+@import './similar-scores.less';
 
 .similar-list-container, .merged-list-container {
   h2 {
@@ -21,6 +22,15 @@
 
   .event-count {
     padding: 0;
+  }
+}
+
+.similar-list-header {
+  margin-top: 20px;
+  margin-bottom: 10px;
+
+  h2 {
+    margin: 0;
   }
 }
 
@@ -88,16 +98,7 @@
   height: 16px;
   width: 48px;
   border-radius: 2px;
-
-  &.low {
-    background-color: @orange;
-  }
-  &.med {
-    background-color: @yellow-orange;
-  }
-  &.high {
-    background-color: @green;
-  }
+  .similar-scores;
 }
 
 .similar-items-footer {

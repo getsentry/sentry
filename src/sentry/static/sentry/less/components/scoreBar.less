@@ -1,5 +1,4 @@
-@import '../palette.less';
-
+@import '../similar-scores.less';
 
 @thickness: 4px;
 @size: 40px;
@@ -17,22 +16,10 @@
 .score-bar-bar {
   border-radius: 3px;
   margin: 2px;
+  .similar-scores;
 
   &.empty {
     background-color: @gray-lightest;
-  }
-
-  // Colors
-  &.red {
-    background-color: @orange;
-  }
-
-  &.orange {
-    background-color: @yellow-orange;
-  }
-
-  &.green {
-    background-color: @green;
   }
 }
 
