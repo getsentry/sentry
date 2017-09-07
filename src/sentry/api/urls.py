@@ -9,7 +9,6 @@ from .endpoints.api_tokens import ApiTokensEndpoint
 from .endpoints.auth_index import AuthIndexEndpoint
 from .endpoints.broadcast_index import BroadcastIndexEndpoint
 from .endpoints.catchall import CatchallEndpoint
-from .endpoints.cloudflare_metadata import CloudflareMetadataEndpoint
 from .endpoints.event_details import EventDetailsEndpoint
 from .endpoints.event_apple_crash_report import EventAppleCrashReportEndpoint
 from .endpoints.group_details import GroupDetailsEndpoint
@@ -151,9 +150,6 @@ urlpatterns = patterns(
 
     # Broadcasts
     url(r'^broadcasts/$', BroadcastIndexEndpoint.as_view(), name='sentry-api-0-broadcast-index'),
-
-    # Cloudflare Integration
-    url(r'^cloudflare/metadata/$', CloudflareMetadataEndpoint.as_view()),
 
     # Users
     url(r'^users/$', UserIndexEndpoint.as_view(), name='sentry-api-0-user-index'),

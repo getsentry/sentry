@@ -81,7 +81,7 @@ RESERVED_ORGANIZATION_SLUGS = frozenset(
         'remote', 'get-cli', 'blog', 'welcome', 'features', 'customers', 'integrations', 'signup',
         'pricing', 'subscribe', 'enterprise', 'about', 'jobs', 'thanks', 'guide', 'privacy',
         'security', 'terms', 'from', 'sponsorship', 'for', 'at', 'platforms', 'branding', 'vs',
-        'answers', '_admin', 'support', 'contact', 'onboarding',
+        'answers', '_admin', 'support', 'contact', 'onboarding', 'ext', 'extension', 'extensions', 'plugins',
     )
 )
 
