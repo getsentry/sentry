@@ -352,18 +352,23 @@ class StoreView(APIView):
             project, data, ip_address=remote_addr)
         if should_filter[0]:
             filter_reason = should_filter[1]
+            increment_list = [
+                (tsdb.models.project_total_received, project.id),
+                (tsdb.models.project_total_blacklisted, project.id),
+                (tsdb.models.organization_total_received,
+                 project.organization_id),
+                (tsdb.models.organization_total_blacklisted,
+                 project.organization_id),
+                (tsdb.models.key_total_received, key.id),
+                (tsdb.models.key_total_blacklisted, key.id),
+            ]
+            try:
+                increment_list.append((FILTER_STAT_KEYS_TO_VALUES[filter_reason], project.id))
+            except KeyError:
+                pass
+
             tsdb.incr_multi(
-                [
-                    (tsdb.models.project_total_received, project.id),
-                    (tsdb.models.project_total_blacklisted, project.id),
-                    (tsdb.models.organization_total_received,
-                     project.organization_id),
-                    (tsdb.models.organization_total_blacklisted,
-                     project.organization_id),
-                    (tsdb.models.key_total_received, key.id),
-                    (tsdb.models.key_total_blacklisted, key.id),
-                    (FILTER_STAT_KEYS_TO_VALUES[filter_reason], project.id),
-                ]
+                increment_list
             )
 
             metrics.incr('events.blacklisted', tags={

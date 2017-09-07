@@ -401,20 +401,26 @@ const ProjectFilters = React.createClass({
     }
   },
 
-  STAT_OPTS: {
-    'ip-address': 'IP Address',
-    'release-version': 'Release',
-    'error-message': 'Error Message',
-    'browser-extensions': 'Browser Extension',
-    'legacy-browsers': 'Legacy Browser',
-    localhost: 'Localhost',
-    'web-crawlers': 'Web Crawler',
-    'invalid-csp': 'Invalid CSP',
-    cors: 'CORS'
+  getStatOpts() {
+    return(
+      this.getProjectFeatures().has('additional-data-filters') ?
+      {
+        'ip-address': 'IP Address',
+        'release-version': 'Release',
+        'error-message': 'Error Message',
+        'browser-extensions': 'Browser Extension',
+        'legacy-browsers': 'Legacy Browser',
+        localhost: 'Localhost',
+        'web-crawlers': 'Web Crawler',
+        'invalid-csp': 'Invalid CSP',
+        cors: 'CORS'
+      } :
+      {'blacklisted':"Filtered Events"}
+    );
   },
 
   formatData(rawData) {
-    return Object.keys(this.STAT_OPTS).map(stat => {
+    return Object.keys(this.getStatOpts()).map(stat => {
       return {
         data: rawData[stat].map(([x, y]) => {
           if (y > 0) {
@@ -422,14 +428,14 @@ const ProjectFilters = React.createClass({
           }
           return {x, y};
         }),
-        label: this.STAT_OPTS[stat],
+        label: this.getStatOpts()[stat],
         statName: stat
       };
     });
   },
 
   getFilterStats() {
-    let stat_options = Object.keys(this.STAT_OPTS);
+    let stat_options = Object.keys(this.getStatOpts());
     let {orgId, projectId} = this.props.params;
     let statEndpoint = `/projects/${orgId}/${projectId}/stats/`;
     let query = {
@@ -454,9 +460,15 @@ const ProjectFilters = React.createClass({
         function() {
           let rawStatsData = {};
           let expected = this.state.expected - 1;
-          for (let i = 0; i < stat_options.length; i++) {
-            rawStatsData[stat_options[i]] = arguments[i][0];
+          // when there is a single request made, this is inexplicably called without being wrapped in an array
+          if(stat_options.length===1){
+            rawStatsData[stat_options[0]] = arguments[0];
+          } else {
+            for (let i = 0; i < stat_options.length; i++) {
+              rawStatsData[stat_options[i]] = arguments[i][0];
+            }
           }
+
           this.setState({
             rawStatsData: rawStatsData,
             formattedData: this.formatData(rawStatsData),
@@ -673,7 +685,7 @@ const ProjectFilters = React.createClass({
             ? <StackedBarChart
                 series={this.state.formattedData}
                 label="events"
-                barClasses={Object.keys(this.STAT_OPTS)}
+                barClasses={Object.keys(this.getStatOpts())}
                 className="standard-barchart filtered-stats-barchart"
                 tooltip={this.renderTooltip}
               />
