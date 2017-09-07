@@ -183,9 +183,8 @@ class APIView(BaseView):
             if not project:
                 raise APIError('Client must be upgraded for CORS support')
             if not is_valid_origin(origin, project):
-                if project:
-                    tsdb.incr(tsdb.models.project_total_received_cors,
-                              project.id)
+                tsdb.incr(tsdb.models.project_total_received_cors,
+                          project.id)
                 raise APIForbidden('Invalid origin: %s' % (origin, ))
 
         # XXX: It seems that the OPTIONS call does not always include custom headers
@@ -348,10 +347,9 @@ class StoreView(APIView):
             sender=type(self),
         )
 
-        should_filter = helper.should_filter(
+        should_filter, filter_reason = helper.should_filter(
             project, data, ip_address=remote_addr)
-        if should_filter[0]:
-            filter_reason = should_filter[1]
+        if should_filter:
             increment_list = [
                 (tsdb.models.project_total_received, project.id),
                 (tsdb.models.project_total_blacklisted, project.id),
@@ -364,6 +362,7 @@ class StoreView(APIView):
             ]
             try:
                 increment_list.append((FILTER_STAT_KEYS_TO_VALUES[filter_reason], project.id))
+            # should error when filter_reason does not match a key in FILTER_STAT_KEYS_TO_VALUES
             except KeyError:
                 pass
 
