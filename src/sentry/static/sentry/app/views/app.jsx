@@ -1,3 +1,5 @@
+/*global __webpack_public_path__ */
+/*eslint no-native-reassign:0 */
 import PropTypes from 'prop-types';
 import React from 'react';
 import $ from 'jquery';
@@ -14,6 +16,8 @@ import OrganizationsLoader from '../components/organizations/organizationsLoader
 import OrganizationStore from '../stores/organizationStore';
 
 import {t} from '../locale';
+
+if (window.globalStaticUrl) __webpack_public_path__ = window.globalStaticUrl; // defined in layout.html
 
 function getAlertTypeForProblem(problem) {
   switch (problem.severity) {
