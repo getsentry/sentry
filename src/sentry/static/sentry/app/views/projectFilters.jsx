@@ -11,7 +11,6 @@ import HookStore from '../stores/hookStore';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
 import ProjectState from '../mixins/projectState';
-import OrganizationState from '../mixins/organizationState';
 import StackedBarChart from '../components/stackedBarChart';
 import Switch from '../components/switch';
 import {FormState, TextareaField} from '../components/forms';
@@ -63,16 +62,15 @@ const FilterRow = React.createClass({
       <div style={{borderTop: '1px solid #f2f3f4', padding: '20px 0 0'}}>
         <div className="row">
           <div className="col-md-9">
-            <h5 style={{marginBottom: 10}}>
-              {data.name}
-            </h5>
-            {data.description &&
+            <h5 style={{marginBottom: 10}}>{data.name}</h5>
+            {data.description && (
               <small
                 className="help-block"
                 dangerouslySetInnerHTML={{
                   __html: marked(data.description)
                 }}
-              />}
+              />
+            )}
           </div>
           <div className="col-md-3 align-right" style={{paddingRight: '25px'}}>
             <FilterSwitch {...this.props} size="lg" />
@@ -172,12 +170,8 @@ const LegacyBrowserFilterRow = React.createClass({
         <div className="col-md-4" key={key}>
           <div className="filter-grid-item">
             <div className={'filter-grid-icon icon-' + subfilter.icon} />
-            <h5>
-              {subfilter.title}
-            </h5>
-            <p className="help-block">
-              {subfilter.helpText}
-            </p>
+            <h5>{subfilter.title}</h5>
+            <p className="help-block">{subfilter.helpText}</p>
             <Switch
               isActive={this.state.subfilters.has(key)}
               toggle={this.onToggleSubfilters.bind(this, key)}
@@ -191,11 +185,11 @@ const LegacyBrowserFilterRow = React.createClass({
     // group entries into rows of 3
     let rows = _.groupBy(entries, (entry, i) => Math.floor(i / 3));
 
-    return _.toArray(rows).map((row, i) =>
+    return _.toArray(rows).map((row, i) => (
       <div className="row m-b-1" key={i}>
         {row}
       </div>
-    );
+    ));
   },
 
   render() {
@@ -205,16 +199,15 @@ const LegacyBrowserFilterRow = React.createClass({
       <div style={{borderTop: '1px solid #f2f3f4', padding: '20px 0 0'}}>
         <div className="row">
           <div className="col-md-9">
-            <h5 style={{marginBottom: 10}}>
-              {data.name}
-            </h5>
-            {data.description &&
+            <h5 style={{marginBottom: 10}}>{data.name}</h5>
+            {data.description && (
               <small
                 className="help-block"
                 dangerouslySetInnerHTML={{
                   __html: marked(data.description)
                 }}
-              />}
+              />
+            )}
           </div>
           <div className="col-md-3 align-right">
             <div className="filter-grid-filter">
@@ -242,6 +235,7 @@ const ProjectFiltersSettingsForm = React.createClass({
   mixins: [ApiMixin, ProjectState],
 
   getInitialState() {
+    let features = this.getProjectFeatures();
     let formData = {};
     let features = this.getProjectFeatures();
     for (let key of Object.keys(this.props.initialData)) {
@@ -250,9 +244,8 @@ const ProjectFiltersSettingsForm = React.createClass({
         // if the org does not have the additional-data-filters feature enabled,
         // so this prevents the form from sending an empty string by default
         if (
-          (!features.has('additional-data-filters') &&
-            key === 'filters:error_messages') ||
-          key === 'filters:releases'
+          !features.has('additional-data-filters') &&
+          (key === 'filters:releases' || key === 'filters:error_messages')
         )
           continue;
         formData[key] = this.props.initialData[key];
@@ -323,13 +316,10 @@ const ProjectFiltersSettingsForm = React.createClass({
   },
 
   renderAdditionalFilters() {
-    let isSaving = this.state.state === FormState.SAVING;
     let errors = this.state.errors;
     return (
       <div>
-        <h5>
-          {t('Filter errors from these releases:')}
-        </h5>
+        <h5>{t('Filter errors from these releases:')}</h5>
         <TextareaField
           key="release"
           name="release"
@@ -339,9 +329,7 @@ const ProjectFiltersSettingsForm = React.createClass({
           error={errors['filters:releases']}
           onChange={this.onFieldChange.bind(this, 'filters:releases')}
         />
-        <h5>
-          {t('Filter errors by error message:')}
-        </h5>
+        <h5>{t('Filter errors by error message:')}</h5>
         <TextareaField
           key="errorMessage"
           name="errorMessage"
@@ -372,16 +360,15 @@ const ProjectFiltersSettingsForm = React.createClass({
 
     return (
       <form onSubmit={this.onSubmit} className="form-stacked p-b-1">
-        {this.state.state === FormState.ERROR &&
+        {this.state.state === FormState.ERROR && (
           <div className="alert alert-error alert-block">
             {t(
               'Unable to save your changes. Please ensure all fields are valid and try again.'
             )}
-          </div>}
+          </div>
+        )}
         <fieldset>
-          <h5>
-            {t('Filter errors from these IP addresses:')}
-          </h5>
+          <h5>{t('Filter errors from these IP addresses:')}</h5>
           <TextareaField
             key="ip"
             name="ip"
@@ -391,9 +378,11 @@ const ProjectFiltersSettingsForm = React.createClass({
             error={errors['filters:blacklisted_ips']}
             onChange={this.onFieldChange.bind(this, 'filters:blacklisted_ips')}
           />
-          {features.has('additional-data-filters')
-            ? this.renderAdditionalFilters()
-            : this.renderDisabledFeature()}
+          {features.has('additional-data-filters') ? (
+            this.renderAdditionalFilters()
+          ) : (
+            this.renderDisabledFeature()
+          )}
           <div className="pull-right">
             <button
               type="submit"
@@ -657,9 +646,11 @@ const ProjectFilters = React.createClass({
               projectId,
               onToggle: this.onToggleFilter
             };
-            return filter.id === 'legacy-browsers'
-              ? <LegacyBrowserFilterRow {...props} />
-              : <FilterRow {...props} />;
+            return filter.id === 'legacy-browsers' ? (
+              <LegacyBrowserFilterRow {...props} />
+            ) : (
+              <FilterRow {...props} />
+            );
           })}
 
           <div style={{borderTop: '1px solid #f2f3f4', padding: '20px 0 0'}}>
@@ -728,9 +719,7 @@ const ProjectFilters = React.createClass({
       <div>
         <div className="box">
           <div className="box-header">
-            <h5>
-              {t('Errors filtered in the last 30 days (by day)')}
-            </h5>
+            <h5>{t('Errors filtered in the last 30 days (by day)')}</h5>
           </div>
           {!this.state.blankStats
             ? <StackedBarChart
@@ -753,7 +742,7 @@ const ProjectFilters = React.createClass({
                 </div>
               </div>}
         </div>
-        {features.has('custom-filters') &&
+        {features.has('custom-filters') && (
           <div className="sub-header flex flex-container flex-vertically-centered">
             <div className="p-t-1">
               <ul className="nav nav-tabs">
@@ -775,7 +764,8 @@ const ProjectFilters = React.createClass({
                 </li>
               </ul>
             </div>
-          </div>}
+          </div>
+        )}
         {this.renderSection()}
       </div>
     );
@@ -785,9 +775,7 @@ const ProjectFilters = React.createClass({
     // TODO(dcramer): localize when language is final
     return (
       <div>
-        <h1>
-          {t('Inbound Data Filters')}
-        </h1>
+        <h1>{t('Inbound Data Filters')}</h1>
         <p>
           Filters allow you to prevent Sentry from storing events in certain situations.
           Filtered events are tracked separately from rate limits, and do not apply to any
