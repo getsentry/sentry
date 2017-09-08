@@ -3,7 +3,7 @@ import $ from 'jquery';
 import {t} from '../locale';
 
 import OrganizationState from '../mixins/organizationState';
-import TodoList from '../components/todos';
+import TodoList from '../components/onboardingWizard/todos';
 
 const ProjectChooser = React.createClass({
   mixins: [OrganizationState],
