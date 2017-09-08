@@ -21,7 +21,7 @@ const RichHttpContent = React.createClass({
       case 'application/json':
         return <ContextData data={data.data} />;
       case 'application/x-www-form-urlencoded':
-        return this.getQueryStringOrRaw(data.data);
+        return <KeyValueList data={objectToSortedTupleArray(data.data)} />;
       default:
         return <pre>{JSON.stringify(data.data, null, 2)}</pre>;
     }
@@ -31,7 +31,7 @@ const RichHttpContent = React.createClass({
     try {
       // Sentry API abbreviates long query string values, sometimes resulting in
       // an un-parsable querystring ... stay safe kids
-      return <KeyValueList data={objectToSortedTupleArray(data)} />;
+      return <KeyValueList data={objectToSortedTupleArray(queryString.parse(data))} />;
     } catch (e) {
       return <pre>{data}</pre>;
     }
@@ -43,7 +43,7 @@ const RichHttpContent = React.createClass({
       <div>
         {data.query &&
           <ClippedBox title={t('Query String')}>
-            {this.getQueryStringOrRaw(queryString.parse(data.query))}
+            {this.getQueryStringOrRaw(data.query)}
           </ClippedBox>}
         {data.fragment &&
           <ClippedBox title={t('Fragment')}>
