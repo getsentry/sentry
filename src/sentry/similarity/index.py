@@ -2,7 +2,6 @@ from __future__ import absolute_import
 
 import itertools
 import time
-from collections import Counter, defaultdict
 
 from sentry.utils.iterators import chunked
 from sentry.utils.redis import load_script
@@ -28,36 +27,13 @@ class MinHashIndex(object):
         self.interval = interval
         self.retention = retention
 
-    def __build_signatures(self, items):
-        data = defaultdict(
-            lambda: [Counter() for _ in xrange(self.bands)],
-        )
+    def _build_signature_arguments(self, features):
+        if not features:
+            return [0] * self.bands
 
-        for idx, features in items:
-            bands = map(
-                ','.join, band(
-                    self.bands,
-                    map(
-                        '{}'.format,
-                        self.signature_builder(features),
-                    ),
-                )
-            )
-
-            for i, bucket in enumerate(bands):
-                data[idx][i][bucket] += 1
-
-        arguments = [len(data)]
-        for idx, bands in data.items():
-            arguments.append(idx)
-            for buckets in bands:
-                arguments.append(len(buckets))
-                for bucket, count in buckets.items():
-                    arguments.extend([
-                        bucket,
-                        count,
-                    ])
-
+        arguments = []
+        for bucket in band(self.bands, self.signature_builder(features)):
+            arguments.extend([1, ','.join(map('{}'.format, bucket)), 1])
         return arguments
 
     def __index(self, scope, args):
@@ -67,7 +43,42 @@ class MinHashIndex(object):
         # all redis operations.
         return index(self.cluster, [scope], args)
 
-    def classify(self, scope, items, timestamp=None):
+    def _as_search_result(self, results):
+        score_replacements = {
+            -1.0: None,  # both items don't have the feature (no comparison)
+            -2.0: 0,     # one item doesn't have the feature (totally dissimilar)
+        }
+
+        def decode_search_result(result):
+            key, scores = result
+            return (
+                key,
+                map(
+                    lambda score: score_replacements.get(score, score),
+                    map(float, scores),
+                )
+            )
+
+        def get_comparison_key(result):
+            key, scores = result
+
+            scores = filter(
+                lambda score: score is not None,
+                scores,
+            )
+
+            return (
+                sum(scores) / len(scores) * -1,  # average score, descending
+                len(scores) * -1,  # number of indexes with scores, descending
+                key,  # lexicographical sort on key, ascending
+            )
+
+        return sorted(
+            map(decode_search_result, results),
+            key=get_comparison_key,
+        )
+
+    def classify(self, scope, items, limit=None, timestamp=None):
         if timestamp is None:
             timestamp = int(time.time())
 
@@ -79,16 +90,16 @@ class MinHashIndex(object):
             self.interval,
             self.retention,
             scope,
+            limit if limit is not None else -1,
         ]
 
-        arguments.extend(self.__build_signatures(items))
+        for idx, threshold, features in items:
+            arguments.extend([idx, threshold])
+            arguments.extend(self._build_signature_arguments(features))
 
-        return [
-            [(item, float(score)) for item, score in result]
-            for result in self.__index(scope, arguments)
-        ]
+        return self._as_search_result(self.__index(scope, arguments))
 
-    def compare(self, scope, key, indices, timestamp=None):
+    def compare(self, scope, key, items, limit=None, timestamp=None):
         if timestamp is None:
             timestamp = int(time.time())
 
@@ -100,15 +111,14 @@ class MinHashIndex(object):
             self.interval,
             self.retention,
             scope,
+            limit if limit is not None else -1,
             key,
         ]
 
-        arguments.extend(indices)
+        for idx, threshold in items:
+            arguments.extend([idx, threshold])
 
-        return [
-            [(item, float(score)) for item, score in result]
-            for result in self.__index(scope, arguments)
-        ]
+        return self._as_search_result(self.__index(scope, arguments))
 
     def record(self, scope, key, items, timestamp=None):
         if not items:
@@ -128,7 +138,9 @@ class MinHashIndex(object):
             key,
         ]
 
-        arguments.extend(self.__build_signatures(items))
+        for idx, features in items:
+            arguments.append(idx)
+            arguments.extend(self._build_signature_arguments(features))
 
         return self.__index(scope, arguments)
 
@@ -247,10 +259,10 @@ class MinHashIndex(object):
 
 
 class DummyIndex(object):
-    def classify(self, scope, items, timestamp=None):
+    def classify(self, scope, items, limit=None, timestamp=None):
         return []
 
-    def compare(self, scope, key, indices, timestamp=None):
+    def compare(self, scope, key, items, limit=None, timestamp=None):
         return []
 
     def record(self, scope, key, items, timestamp=None):

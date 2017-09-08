@@ -28,7 +28,6 @@ delete_logger = logging.getLogger('sentry.deletions.async')
     default_retry_delay=60 * 5,
     max_retries=None
 )
-@retry
 def merge_group(
     from_object_id=None, to_object_id=None, transaction_id=None, recursed=False, **kwargs
 ):
