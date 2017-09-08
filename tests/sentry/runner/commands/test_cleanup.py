@@ -2,11 +2,11 @@
 
 from __future__ import absolute_import
 
-from sentry.models import Event, Group, GroupTagValue, TagValue, TagKey
+from sentry.models import Event, Group, GroupTagKey, GroupTagValue, TagValue, TagKey
 from sentry.runner.commands.cleanup import cleanup
 from sentry.testutils import CliTestCase
 
-ALL_MODELS = (Event, Group, GroupTagValue, TagValue, TagKey)
+ALL_MODELS = (Event, Group, GroupTagKey, GroupTagValue, TagValue, TagKey)
 
 
 class SentryCleanupTest(CliTestCase):
