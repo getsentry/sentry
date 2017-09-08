@@ -1,0 +1,279 @@
+{
+  "nonce": "Ei7VZruhJqnJ",
+  "authentications": {
+    "account": {
+      "account": {
+        "account": {},
+        "managed": false,
+        "service": {
+          "description": "",
+          "title": "Sentry QA (dcramer)",
+          "created": "2017-09-07T16:47:05.777063Z",
+          "visible": true,
+          "metadata": {
+            "modalHeight": 600,
+            "modalWidth": 400,
+            "hasRegistration": true
+          },
+          "approved": true,
+          "alias": "sentry-qa-dcramer",
+          "points": 0,
+          "orgId": "f5a54c9c5b86f45095b559369b4e0f18",
+          "oAuth": {
+            "default": {
+              "scopes": [],
+              "authURL": "http://fizzbuzz-123.ngrok.io/oauth/authorize/",
+              "tokenURL": "http://fizzbuzz-123.ngrok.io/oauth/token/",
+              "clientID": "998fe23be6bf443ba63a0856b6414c5a3c01d4b10f57428d8cb8d4a9da0d8dc2",
+              "clientSecret": "5e0db3991c2048a2b84c93929a9044c5e1cc4345d12c4901b856abd3d28c6276"
+            }
+          },
+          "org": {
+            "username": "f5a54c9c5b86f45095b559369b4e0f18",
+            "personal": true,
+            "created": null,
+            "id": "f5a54c9c5b86f45095b559369b4e0f18",
+            "title": ""
+          },
+          "endpoints": {
+            "apiProvision": "",
+            "oauthProvision": "",
+            "metadata": "http://fizzbuzz-123.ngrok.io/integrations/cloudflare/metadata/"
+          },
+          "id": "ZvlDQw7LjHEJ",
+          "icon": ""
+        },
+        "title": "",
+        "createdForInstallId": "UyQXS8EkJIz9",
+        "created": "2017-09-08T18:03:42.446265116Z",
+        "lastUsed": null,
+        "visible": true,
+        "state": 1,
+        "serviceId": "ZvlDQw7LjHEJ",
+        "orgId": "",
+        "id": "sKyaRh9xkrHL",
+        "lastAuthed": "2017-09-08T18:03:41.718257286Z"
+      },
+      "token": {
+        "refreshToken": "20196e90255047e88074b4243110d15c7f8021542fff486aa1786499057aa336",
+        "token": "55838c83b3ec4e3ebc24c10c7bd071ffb1dc91161d3d49aeaedd9bd35d84bbe2",
+        "type": "bearer",
+        "expiration": "2017-10-08T18:03:40.718230972Z"
+      }
+    }
+  },
+  "timestamp": 1504893822,
+  "app": {
+    "color": "",
+    "termsOfServiceURL": "",
+    "screenshots": null,
+    "id": "",
+    "userVisible": false,
+    "title": "",
+    "tagline": "",
+    "categoryIds": null,
+    "source": "",
+    "agreements": null,
+    "products": null,
+    "instructions": "",
+    "infoVersion": "",
+    "installable": false,
+    "website": "",
+    "privacyPolicyURL": "",
+    "codeVersion": "",
+    "longDescription": "",
+    "tileImage": "",
+    "icon": "",
+    "shortDescription": "",
+    "adminVisible": false,
+    "created": null,
+    "author": "",
+    "alias": "",
+    "points": 0,
+    "orgId": "",
+    "supportEmail": ""
+  },
+  "site": {
+    "active": false,
+    "orgId": "",
+    "id": "",
+    "name": ""
+  },
+  "version": {
+    "files": [],
+    "definition": {
+      "hooks": [
+        {
+          "failure": {
+            "action": "notify",
+            "message": "There was an error communicating with Sentry."
+          },
+          "endpoint": "https://fizzbuzz-123.ngrok.io/extensions/cloudflare/webhook/",
+          "events": [
+            "option-change:account",
+            "option-change:organization",
+            "option-change:project",
+            "preview",
+            "oauth-login",
+            "account-logout",
+            "new-install",
+            "update-install",
+            "before-new-install",
+            "before-update-install",
+            "delete-install"
+          ],
+          "block": true,
+          "authenticate": [
+            "account"
+          ]
+        }
+      ],
+      "preview": {
+        "hide": true
+      },
+      "options": {
+        "properties": {
+          "dsn": {
+            "description": "Your automatically configured DSN for communicating with Sentry.",
+            "title": "DSN",
+            "placeholder": "https://public_key@sentry.io/1",
+            "readonly": true,
+            "type": "string",
+            "order": 3
+          },
+          "organization": {
+            "enum": [],
+            "type": "string",
+            "order": 1,
+            "title": "Sentry Organization"
+          },
+          "account": {
+            "services": [
+              "sentry-qa-dcramer"
+            ],
+            "title": "Sentry Account",
+            "type": "object",
+            "order": 0,
+            "format": "account"
+          },
+          "project": {
+            "enum": [],
+            "type": "string",
+            "order": 2,
+            "title": "Sentry Project"
+          }
+        }
+      },
+      "resources": {
+        "body": [
+          {
+            "src": "./source/sentry.js",
+            "type": "script"
+          },
+          {
+            "src": "./source/app.js",
+            "type": "script"
+          }
+        ]
+      }
+    },
+    "creatorUserId": "",
+    "hasCode": true,
+    "created": null,
+    "manual": true,
+    "moderationStatus": "",
+    "source": "",
+    "tag": "FBxPSIbK5-6S",
+    "appId": "local",
+    "fileHandle": "local/FBxPSIbK5-6S",
+    "installable": false
+  },
+  "user": {
+    "username": "f5a54c9c5b86f45095b559369b4e0f18",
+    "firstName": "",
+    "created": null,
+    "lastName": "",
+    "email": "david@sentry.io",
+    "personalOrgId": "",
+    "id": "f5a54c9c5b86f45095b559369b4e0f18",
+    "developer": false
+  },
+  "install": {
+    "installerUserId": "",
+    "versionTag": "FBxPSIbK5-6S",
+    "created": null,
+    "deleted": false,
+    "deactivatedAt": null,
+    "metadata": {
+      "userId": "f5a54c9c5b86f45095b559369b4e0f18"
+    },
+    "id": "UyQXS8EkJIz9",
+    "refundedAt": null,
+    "amount": 0,
+    "siteId": "preview",
+    "pastDue": false,
+    "appId": "local",
+    "active": true,
+    "subscriptionId": "",
+    "productId": "",
+    "options": {
+      "dsn": "",
+      "account": {
+        "service": "sentry-qa-dcramer",
+        "accountId": "sKyaRh9xkrHL"
+      }
+    },
+    "schema": {
+      "type": "object",
+      "properties": {
+        "dsn": {
+          "description": "Your automatically configured DSN for communicating with Sentry.",
+          "title": "DSN",
+          "_show": true,
+          "readonly": true,
+          "type": "string",
+          "placeholder": "https://public_key@sentry.io/1",
+          "order": 3
+        },
+        "organization": {
+          "_show": true,
+          "enum": [],
+          "type": "string",
+          "order": 1,
+          "title": "Sentry Organization"
+        },
+        "account": {
+          "title": "Sentry Account",
+          "_show": true,
+          "format": "account",
+          "order": 0,
+          "services": [
+            "sentry-qa-dcramer"
+          ],
+          "type": "object",
+          "properties": {}
+        },
+        "project": {
+          "_show": true,
+          "enum": [],
+          "type": "string",
+          "order": 2,
+          "title": "Sentry Project"
+        }
+      }
+    }
+  },
+  "org": {
+    "username": "",
+    "personal": false,
+    "created": null,
+    "id": "",
+    "title": ""
+  },
+  "event": "oauth-login",
+  "metadata": {
+    "serviceId": "ZvlDQw7LjHEJ",
+    "code": "62e586ce44234196a1735416d029ad43",
+    "key": "account"
+  }
+}
