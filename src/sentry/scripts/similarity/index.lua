@@ -319,16 +319,6 @@ function TimeSeriesSet:import(member, data)
 end
 
 
--- Time Series
-
-local function get_index_expiration_time(interval, retention, index)
-    return (
-        (index + 1)  -- upper bound of this interval
-        + retention
-    ) * interval
-end
-
-
 -- Redis Helpers
 
 local function redis_hash_response_iterator(response)
