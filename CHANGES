@@ -2,7 +2,6 @@ Version 8.20 (Unreleased)
 -------------------------
 - Make BitBucket repositories enabled by default
 - Add raw data toggle for Additional Data
-
 - Add initial support for Redis Cluster.
 - Support a list of hosts in the ``redis.clusters`` configuration along side
   the traditional dictionary style configuration.
@@ -16,6 +15,7 @@ Schema Changes
 - Dropped ``TagValue.project_id`` foreign key constraint
 - Dropped ``GroupTagKey.project_id`` foreign key constraint
 - Dropped ``GroupTagKey.group_id`` foreign key constraint
+- Added ``Email`` model
 
 Version 8.19
 ------------
