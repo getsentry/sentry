@@ -99,7 +99,7 @@ features = FeatureSet(
     {
         'exception:message:character-shingles': ExceptionFeature(
             lambda exception: text_shingle(
-                13,
+                5,
                 exception.value,
             ),
         ),
@@ -114,7 +114,7 @@ features = FeatureSet(
         ),
         'message:message:character-shingles': MessageFeature(
             lambda message: text_shingle(
-                13,
+                5,
                 message.message,
             ),
         ),
