@@ -7,7 +7,8 @@ from rest_framework import serializers
 from rest_framework.response import Response
 
 from sentry import roles
-from sentry.api.bases.organization import (OrganizationEndpoint, OrganizationPermission)
+from sentry.api.bases.organization import (
+    OrganizationEndpoint, OrganizationPermission)
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import ListField
@@ -36,10 +37,12 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
 
     @transaction.atomic
     def save_team_assignments(self, organization_member, teams):
-        OrganizationMemberTeam.objects.filter(organizationmember=organization_member).delete()
+        OrganizationMemberTeam.objects.filter(
+            organizationmember=organization_member).delete()
         OrganizationMemberTeam.objects.bulk_create(
             [
-                OrganizationMemberTeam(team=team, organizationmember=organization_member)
+                OrganizationMemberTeam(
+                    team=team, organizationmember=organization_member)
                 for team in teams
             ]
         )
@@ -56,7 +59,8 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
             for key, value in six.iteritems(tokens):
                 if key == 'email':
                     queryset = queryset.filter(
-                        Q(user__email__in=value) | Q(user__emails__email__in=value)
+                        Q(user__email__in=value) | Q(
+                            user__emails__email__in=value)
                     )
 
         return self.paginate(
@@ -89,7 +93,6 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
             return Response(serializer.errors, status=400)
 
         result = serializer.object
-
         teams = Team.objects.filter(
             organization=organization,
             status=TeamStatus.VISIBLE,
@@ -138,4 +141,4 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
         )
         member_invited.send(member=om, user=request.user, sender=self)
 
-        return Response(om, status=201)
+        return Response(serialize(om), status=201)

@@ -4,7 +4,9 @@ import OrganizationHomeContainer from '../../components/organizations/homeContai
 import Checkbox from '../../components/checkbox';
 import Radio from '../../components/radio';
 import SplitLayout from '../../components/splitLayout';
+import TextField from '../../components/forms/textField';
 
+import ConfigStore from '../../stores/configStore';
 import ApiMixin from '../../mixins/apiMixin';
 import OrganizationState from '../../mixins/organizationState';
 
@@ -14,12 +16,19 @@ const InviteMember = React.createClass({
   mixins: [ApiMixin, OrganizationState],
 
   getInitialState() {
-    return {selectedTeams: new Set(), roleList: [], selectedRole: 'member', email: ''};
+    return {
+      selectedTeams: new Set(),
+      roleList: [],
+      selectedRole: 'member',
+      email: 'test@test.com'
+    };
   },
 
   componentDidMount() {
     let {slug} = this.getOrganization();
-    this.api.request(`/organizations/${slug}/members/new/`, {
+    let user = ConfigStore.get('user');
+
+    this.api.request(`/organizations/${slug}/members/${user.id}/`, {
       method: 'GET',
       success: data => {
         console.log(data);
@@ -32,15 +41,17 @@ const InviteMember = React.createClass({
   submit() {
     let {slug} = this.getOrganization();
     let {selectedTeams, email, selectedRole} = this.state;
-    this.api.request(`/organizations/${slug}/members/new/`, {
-      method: 'PUT',
+    this.api.request(`/organizations/${slug}/members/`, {
+      method: 'POST',
       data: {
         email,
         teams: Array.from(selectedTeams.keys()),
         role: selectedRole
       },
       success: this.onSubmitSuccess,
-      error: err => {}
+      error: err => {
+        console.log(err);
+      }
     });
   },
 
@@ -52,7 +63,8 @@ const InviteMember = React.createClass({
         : selectedTeams.add(id)
     });
   },
-  onSubmitSuccess() {
+  onSubmitSuccess(data) {
+    console.log(data);
     let {orgId} = this.props.params;
     // redirect to member page
     window.location.href = `/organizations/${orgId}/members/`;
@@ -62,20 +74,26 @@ const InviteMember = React.createClass({
     let {roleList, selectedRole} = this.state;
 
     return (
-      <div className="new-invite-team">
-        <h4>{t('Team') + ':'}</h4>
-        <div className="grouping-controls">
-          {roleList.map(({role, allowed}, i) => {
-            let {desc, name, id} = role;
-            console;
-            return (
-              <div key={id} onClick={() => this.setState({selectedRole: id})}>
-                <Radio id={id} value={name} checked={id === selectedRole} readOnly />
-                <h4>{name}</h4>
-                <p>{desc}</p>
-              </div>
-            );
-          })}
+      <div className="new-invite-team box">
+        <div className="box-header">
+          <h4>{t('Team') + ':'}</h4>
+        </div>
+        <div className="box-content with-padding">
+          <ul className="radio-inputs">
+            {roleList.map(({role, allowed}, i) => {
+              let {desc, name, id} = role;
+              return (
+                <li
+                  className="radio"
+                  key={id}
+                  onClick={() => this.setState({selectedRole: id})}>
+                  <h4>{name}</h4>
+                  <Radio id={id} value={name} checked={id === selectedRole} readOnly />
+                  <p>{desc}</p>
+                </li>
+              );
+            })}
+          </ul>
         </div>
       </div>
     );
@@ -88,8 +106,10 @@ const InviteMember = React.createClass({
 
     if (teams.length < 2) return null;
     return (
-      <div className="new-invite-team">
-        <h4>{t('Team') + ':'}</h4>
+      <div className="new-invite-team box">
+        <div className="box-header">
+          <h4>{t('Team') + ':'}</h4>
+        </div>
         <SplitLayout className="grouping-controls">
           {teams.map(({slug, name, id}, i) => (
             <div key={id} onClick={() => this.toggleID(id)}>
@@ -116,13 +136,11 @@ const InviteMember = React.createClass({
             'Invite a member to join this organization via their email address. If they do not already have an account, they will first be asked to create one.'
           )}
         </p>
-        <h4>{t('Email') + ':'}</h4>
-        <input
-          type="text"
-          name="name"
+        <TextField
+          name="email"
           label="Email"
-          value={this.state.email}
-          onChange={e => this.setState({email: e.target.value})}
+          placeholder="e.g. teammate@example.com"
+          onChange={v => this.setState({email: v})}
         />
         {this.renderRoleSelect()}
         {this.renderTeamSelect()}
