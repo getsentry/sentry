@@ -237,25 +237,23 @@ const ProjectFiltersSettingsForm = React.createClass({
   getInitialState() {
     let features = this.getProjectFeatures();
     let formData = {};
-    let features = this.getProjectFeatures();
-    for (let key of Object.keys(this.props.initialData)) {
-      if (key.lastIndexOf('filters:') === 0) {
-        // the project details endpoint can partially succeed and still return a 400
-        // if the org does not have the additional-data-filters feature enabled,
-        // so this prevents the form from sending an empty string by default
-        if (
-          !features.has('additional-data-filters') &&
-          (key === 'filters:releases' || key === 'filters:error_messages')
-        )
-          continue;
+    Object.keys(this.props.initialData)
+      .filter(
+        key =>
+          // the project details endpoint can partially succeed and still return a 400
+          // if the org does not have the additional-data-filters feature enabled,
+          // so this prevents the form from sending an empty string by default
+          features.has('custom-inbound-filters') ||
+          (key !== 'filters:releases' && key !== 'filters:error_messages')
+      )
+      .forEach(key => {
         formData[key] = this.props.initialData[key];
-      }
-    }
+      });
     return {
       hasChanged: false,
       formData,
       errors: {},
-      hooksDisabled: HookStore.get('project:additional-data-filters:disabled')
+      hooksDisabled: HookStore.get('project:custom-inbound-filters:disabled')
     };
   },
 
@@ -346,11 +344,7 @@ const ProjectFiltersSettingsForm = React.createClass({
   renderDisabledFeature() {
     let project = this.getProject();
     let organization = this.getOrganization();
-    return this.state.hooksDisabled
-      .map(hook => {
-        return hook(organization, project);
-      })
-      .shift();
+    return this.state.hooksDisabled[0](organization, project);
   },
 
   render() {
@@ -378,7 +372,7 @@ const ProjectFiltersSettingsForm = React.createClass({
             error={errors['filters:blacklisted_ips']}
             onChange={this.onFieldChange.bind(this, 'filters:blacklisted_ips')}
           />
-          {features.has('additional-data-filters') ? (
+          {features.has('custom-inbound-filters') ? (
             this.renderAdditionalFilters()
           ) : (
             this.renderDisabledFeature()
@@ -777,9 +771,9 @@ const ProjectFilters = React.createClass({
       <div>
         <h1>{t('Inbound Data Filters')}</h1>
         <p>
-          Filters allow you to prevent Sentry from storing events in certain situations.
-          Filtered events are tracked separately from rate limits, and do not apply to any
-          project quotas.
+          {t(
+            'Filters allow you to prevent Sentry from storing events in certain situations. Filtered events are tracked separately from rate limits, and do not apply to any project quotas.'
+          )}
         </p>
         {this.renderBody()}
       </div>
