@@ -8,6 +8,7 @@ sentry.tasks.store
 
 from __future__ import absolute_import
 
+import six
 import logging
 from datetime import datetime
 
@@ -66,7 +67,13 @@ def _do_preprocess_event(cache_key, data, start_time, event_id, process_event):
     if should_process(data):
         # save another version of data for some projects to generate
         # preprocessing hash that won't be modified by pipeline
-        hash_cache.set(get_raw_cache_key(project_id, data['event_id']), data)
+        try:
+            hash_cache.set(get_raw_cache_key(project_id, data['event_id']), data)
+        except Exception as e:
+            error_logger.exception(
+                'Could not save raw event for preprocess hash '
+                'generation due to error: %s' % six.text_type(e)
+            )
 
         process_event.delay(cache_key=cache_key, start_time=start_time, event_id=event_id)
         return
