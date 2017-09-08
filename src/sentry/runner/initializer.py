@@ -198,6 +198,7 @@ def configure_structlog():
             structlog.stdlib.PositionalArgumentsFormatter(),
             structlog.processors.format_exc_info,
             structlog.processors.StackInfoRenderer(),
+            structlog.processors.UnicodeDecoder(),
         ]
     }
 
