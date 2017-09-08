@@ -141,12 +141,16 @@ class FeatureSet(object):
             timestamp=int(to_timestamp(event.datetime)),
         )
 
-    def classify(self, events):
+    def classify(self, events, limit=None, thresholds=None):
         if not events:
             return []
 
+        if thresholds is None:
+            thresholds = {}
+
         scope = None
 
+        labels = []
         items = []
         for event in events:
             for label, features in self.extract(event).items():
@@ -172,40 +176,41 @@ class FeatureSet(object):
                     )
                 else:
                     if features:
-                        items.append((self.aliases[label], features, ))
-        return zip(
-            map(
-                lambda (alias, characteristics): self.aliases.get_key(alias),
-                items,
+                        items.append((self.aliases[label], thresholds.get(label, 0), features))
+                        labels.append(label)
+
+        return map(
+            lambda (key, scores): (
+                int(key),
+                dict(zip(labels, scores)),
             ),
             self.index.classify(
                 scope,
                 items,
+                limit=limit,
                 timestamp=int(to_timestamp(event.datetime)),
             ),
         )
 
-    def compare(self, group):
+    def compare(self, group, limit=None, thresholds=None):
+        if thresholds is None:
+            thresholds = {}
+
         features = list(self.features.keys())
 
-        results = self.index.compare(
-            self.__get_scope(group.project),
-            self.__get_key(group),
-            [self.aliases[label] for label in features],
-        )
+        items = [(self.aliases[label], thresholds.get(label, 0), ) for label in features]
 
-        items = {}
-        for feature, result in zip(features, results):
-            for item, score in result:
-                items.setdefault(
-                    int(item),
-                    {},
-                )[feature] = score
-
-        return sorted(
-            items.items(),
-            key=lambda (id, features): sum(features.values()),
-            reverse=True,
+        return map(
+            lambda (key, scores): (
+                int(key),
+                dict(zip(features, scores)),
+            ),
+            self.index.compare(
+                self.__get_scope(group.project),
+                self.__get_key(group),
+                items,
+                limit=limit,
+            ),
         )
 
     def merge(self, destination, sources, allow_unsafe=False):
