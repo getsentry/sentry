@@ -2,11 +2,11 @@
 
 from __future__ import absolute_import
 
-from sentry.models import Event, Group, GroupTagValue, TagValue, TagKey
+from sentry.models import Event, Group, GroupTagKey, GroupTagValue, TagValue
 from sentry.runner.commands.cleanup import cleanup
 from sentry.testutils import CliTestCase
 
-ALL_MODELS = (Event, Group, GroupTagValue, TagValue, TagKey)
+ALL_MODELS = (Event, Group, GroupTagKey, GroupTagValue, TagValue)
 
 
 class SentryCleanupTest(CliTestCase):
@@ -23,7 +23,9 @@ class SentryCleanupTest(CliTestCase):
     def test_project(self):
         orig_counts = {}
         for model in ALL_MODELS:
-            orig_counts[model] = model.objects.count()
+            count = model.objects.count()
+            assert count > 0
+            orig_counts[model] = count
 
         rv = self.invoke('--days=1', '--project=2')
         assert rv.exit_code == 0, rv.output
