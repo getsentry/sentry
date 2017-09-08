@@ -67,14 +67,14 @@ class SimpleThreadedWorkerPool(object):
 
         self.__started = True
 
-    def submit(self, (func, arg, kwargs, cb)):
+    def submit(self, func_arg_kwargs_cb):
         """\
         Submit a task to the worker pool.
         """
         if not self.__started:
             self.__start()
 
-        self.__tasks.put((func, arg, kwargs, cb))
+        self.__tasks.put(func_arg_kwargs_cb)
 
 
 class RiakClient(object):

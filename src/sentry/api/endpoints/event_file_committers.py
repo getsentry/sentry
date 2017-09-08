@@ -1,9 +1,10 @@
-from __future__ import absolute_import
+from __future__ import absolute_import 
 
 from rest_framework.response import Response
 
 import operator
 import six
+from six.moves import reduce
 
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize

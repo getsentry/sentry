@@ -9,6 +9,7 @@ from django.utils import timezone
 from sentry.testutils import TestCase
 from sentry.models import GroupSnooze, GroupTagKey
 from sentry.tsdb import backend as tsdb
+from six.moves import xrange
 
 
 class GroupSnoozeTest(TestCase):

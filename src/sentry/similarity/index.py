@@ -7,6 +7,9 @@ from collections import Counter, defaultdict
 from sentry.utils.iterators import chunked
 from sentry.utils.redis import load_script
 
+from six.moves import xrange
+
+
 index = load_script('similarity/index.lua')
 
 
