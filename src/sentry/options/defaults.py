@@ -104,3 +104,5 @@ register(
 # Analytics
 register('analytics.backend', default='noop', flags=FLAG_NOSTORE)
 register('analytics.options', default={}, flags=FLAG_NOSTORE)
+
+register('cloudflare.secret-key', default='')
