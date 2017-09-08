@@ -15,13 +15,14 @@ class OrganizationUserIssuesEndpoint(OrganizationEndpoint):
     def get(self, request, organization, user_id):
         limit = request.GET.get('limit', 100)
 
-        euser = EventUser.objects.select_related('project__team').get(
-            project__organization=organization,
+        projects = dict((p.id, p) for p in organization.project_set.select_related('team').all())
+        euser = EventUser.objects.get(
+            project_id__in=projects.keys(),
             id=user_id,
         )
         # they have organization access but not to this project, thus
         # they shouldn't be able to see this user
-        if not request.access.has_team_access(euser.project.team):
+        if not request.access.has_team_access(projects[euser.project_id].team):
             return Response([])
 
         other_eusers = euser.find_similar_users(request.user)

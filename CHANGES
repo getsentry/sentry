@@ -16,6 +16,7 @@ Schema Changes
 - Dropped ``TagValue.project_id`` foreign key constraint
 - Dropped ``GroupTagKey.project_id`` foreign key constraint
 - Dropped ``GroupTagKey.group_id`` foreign key constraint
+- Dropped ``EventUser.project_id`` foreign key constraint
 
 Version 8.19
 ------------
