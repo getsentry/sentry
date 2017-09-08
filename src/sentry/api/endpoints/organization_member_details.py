@@ -1,14 +1,20 @@
 from __future__ import absolute_import
 
+from django.conf import settings
+
 from django.db import transaction
 from django.db.models import Q
 from rest_framework import serializers
 from rest_framework.response import Response
 
 from sentry import roles
-from sentry.api.bases.organization import (OrganizationEndpoint, OrganizationPermission)
+from sentry.api.bases.organization import (
+    OrganizationEndpoint, OrganizationPermission)
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.models import (AuditLogEntryEvent, AuthIdentity, AuthProvider, OrganizationMember)
+from sentry.api.serializers import serialize, RoleSerializer
+
+from sentry.models import (
+    AuditLogEntryEvent, AuthIdentity, AuthProvider, OrganizationMember)
 from sentry.signals import sso_enabled
 
 ERR_NO_AUTH = 'You cannot remove this member with an unauthenticated API request.'
@@ -71,13 +77,47 @@ class OrganizationMemberDetailsEndpoint(OrganizationEndpoint):
 
         return True
 
+    def get_allowed_roles(self, request, organization, member=None):
+        can_admin = request.access.has_scope('member:admin')
+
+        allowed_roles = []
+        if can_admin and not request.is_superuser():
+            acting_member = OrganizationMember.objects.get(
+                user=request.user,
+                organization=organization,
+            )
+            if member and roles.get(acting_member.role).priority < roles.get(member.role).priority:
+                can_admin = False
+            else:
+                allowed_roles = [
+                    r for r in roles.get_all()
+                    if r.priority <= roles.get(acting_member.role).priority
+                ]
+                can_admin = bool(allowed_roles)
+        elif request.is_superuser():
+            allowed_roles = roles.get_all()
+        return (can_admin, allowed_roles, )
+
+    def get(self, request, organization, member_id):
+        """this only returns allowed invite roles right now"""
+
+        can_admin, allowed_roles = self.get_allowed_roles(
+            request, organization)
+
+        context = {
+            'is_invite': settings.SENTRY_ENABLE_INVITES,
+            'role_list': [{'role': serialize(r, serializer=RoleSerializer()), 'allowed': r in allowed_roles} for r in roles.get_all()],
+        }
+        return Response(context, status=200)
+
     def put(self, request, organization, member_id):
         try:
             om = self._get_member(request, organization, member_id)
         except OrganizationMember.DoesNotExist:
             raise ResourceDoesNotExist
 
-        serializer = OrganizationMemberSerializer(data=request.DATA, partial=True)
+        serializer = OrganizationMemberSerializer(
+            data=request.DATA, partial=True)
         if not serializer.is_valid():
             return Response(status=400)
 
