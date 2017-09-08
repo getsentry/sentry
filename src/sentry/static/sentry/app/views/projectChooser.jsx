@@ -33,11 +33,11 @@ const ProjectChooser = React.createClass({
         return (
           <tr key={project.id}>
             <td>
-              <h5>
+              <h4>
                 <a href={`/${org.slug}/${project.slug}/${task.location}`}>
                   {project.name}
                 </a>
-              </h5>
+              </h4>
             </td>
           </tr>
         );
@@ -47,7 +47,7 @@ const ProjectChooser = React.createClass({
         <div className="box" key={i}>
           <div key={team.id}>
             <div className="box-header" key={team.id}>
-              <h3>{team.name}</h3>
+              <h2>{team.name}</h2>
             </div>
             <div className="box-content">
               <table className="table">
