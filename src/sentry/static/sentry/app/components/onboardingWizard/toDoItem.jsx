@@ -30,7 +30,7 @@ const TodoItem = React.createClass({
 
   formatDescription: function() {
     if (this.state.isExpanded) {
-      return <p>{this.props.task.description} {this.props.task.detailedDescription}</p>;
+      return <p>{this.props.task.description}. {this.props.task.detailedDescription}</p>;
     } else {
       return <p>{this.props.task.description}</p>;
     }

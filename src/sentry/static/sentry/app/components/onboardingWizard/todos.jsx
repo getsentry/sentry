@@ -94,7 +94,7 @@ const TodoList = React.createClass({
         prereq: [1, 2], // Is one of the platforms javascript?
         featureLocation: 'absolute',
         location: 'https://docs.sentry.io/hosted/clients/javascript/sourcemaps/'
-      },
+      }
       // {
       //   'task': 8,
       //   'title': 'User crash reports',
@@ -104,15 +104,15 @@ const TodoList = React.createClass({
       //   'featureLocation': 'project',
       //   'location': 'settings/user-reports/'
       // },
-      {
-        task: 9,
-        title: t('Set up issue tracking'),
-        description: t('Link to Sentry issues within your issue tracker'),
-        skippable: true,
-        prereq: [1, 2],
-        featureLocation: 'project',
-        location: 'settings/issue-tracking/'
-      }
+      // {
+      //   task: 9,
+      //   title: t('Set up issue tracking'),
+      //   description: t('Link to Sentry issues within your issue tracker'),
+      //   skippable: true,
+      //   prereq: [1, 2],
+      //   featureLocation: 'project',
+      //   location: 'settings/issue-tracking/'
+      // }
       // {
       //   task: 10,
       //   title: t('Set up an alerts service'),
