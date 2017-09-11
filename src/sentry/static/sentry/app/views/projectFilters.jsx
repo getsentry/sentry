@@ -1,6 +1,8 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import _ from 'lodash';
+import ReactDOMServer from 'react-dom/server';
+import moment from 'moment';
 
 import ApiMixin from '../mixins/apiMixin';
 import IndicatorStore from '../stores/indicatorStore';
@@ -12,6 +14,7 @@ import StackedBarChart from '../components/stackedBarChart';
 import Switch from '../components/switch';
 import {FormState, TextareaField} from '../components/forms';
 import {t} from '../locale';
+import {intcomma} from '../utils';
 import marked from '../utils/marked';
 
 const FilterSwitch = function(props) {
@@ -228,8 +231,13 @@ const ProjectFiltersSettingsForm = React.createClass({
 
   getInitialState() {
     let formData = {};
+    let features = this.getProjectFeatures()
     for (let key of Object.keys(this.props.initialData)) {
       if (key.lastIndexOf('filters:') === 0) {
+        // the project details endpoint can partially succeed and still return a 400
+        // if the org does not have the additional-data-filters feature enabled,
+        // so this prevents the form from sending an empty string by default
+        if(!features.has('additional-data-filters') && key === 'filters:error_messages' || key === 'filters:releases') continue;
         formData[key] = this.props.initialData[key];
       }
     }
@@ -251,7 +259,6 @@ const ProjectFiltersSettingsForm = React.createClass({
 
   onSubmit(e) {
     e.preventDefault();
-
     if (this.state.state === FormState.SAVING) {
       return;
     }
@@ -374,11 +381,10 @@ const ProjectFilters = React.createClass({
       filterList: [],
       querySince: since,
       queryUntil: until,
-      stats: null,
       rawStatsData: null,
-      processedStats: false,
+      formattedData: [],
       projectOptions: {},
-      blankStats: false,
+      blankStats: true,
       activeSection: 'data-filters',
       tombstones: [],
       tombstoneError: false
@@ -390,9 +396,93 @@ const ProjectFilters = React.createClass({
   },
 
   componentDidUpdate(prevProps) {
-    if (!this.state.loading && !this.state.stats) {
-      this.processStatsData();
+    if (!this.state.loading && !this.state.formattedData) {
+      this.render();
     }
+  },
+
+  getStatOpts() {
+    return(
+      this.getProjectFeatures().has('additional-data-filters') ?
+      {
+        'ip-address': 'IP Address',
+        'release-version': 'Release',
+        'error-message': 'Error Message',
+        'browser-extensions': 'Browser Extension',
+        'legacy-browsers': 'Legacy Browser',
+        localhost: 'Localhost',
+        'web-crawlers': 'Web Crawler',
+        'invalid-csp': 'Invalid CSP',
+        cors: 'CORS'
+      } :
+      {'blacklisted':"Filtered Events"}
+    );
+  },
+
+  formatData(rawData) {
+    return Object.keys(this.getStatOpts()).map(stat => {
+      return {
+        data: rawData[stat].map(([x, y]) => {
+          if (y > 0) {
+            this.setState({blankStats: false});
+          }
+          return {x, y};
+        }),
+        label: this.getStatOpts()[stat],
+        statName: stat
+      };
+    });
+  },
+
+  getFilterStats() {
+    let statOptions = Object.keys(this.getStatOpts());
+    let {orgId, projectId} = this.props.params;
+    let statEndpoint = `/projects/${orgId}/${projectId}/stats/`;
+    let query = {
+      since: this.state.querySince,
+      until: this.state.queryUntil,
+      resolution: '1d'
+    };
+    $.when
+      .apply(
+        $,
+        // parallelize requests for each statistic
+        statOptions.map(stat => {
+          let deferred = $.Deferred();
+          this.api.request(statEndpoint, {
+            query: Object.assign({stat: stat}, query),
+            success: deferred.resolve.bind(deferred),
+            error: deferred.reject.bind(deferred)
+          });
+          return deferred;
+        })
+      )
+      .done(
+        function(/* statOption1, statOption2, ... statOptionN */) {
+          let rawStatsData = {};
+          let expected = this.state.expected - 1;
+          // when there is a single request made, this is inexplicably called without being wrapped in an array
+          if(statOptions.length===1){
+            rawStatsData[statOptions[0]] = arguments[0];
+          } else {
+            for (let i = 0; i < statOptions.length; i++) {
+              rawStatsData[statOptions[i]] = arguments[i][0];
+            }
+          }
+
+          this.setState({
+            rawStatsData: rawStatsData,
+            formattedData: this.formatData(rawStatsData),
+            expected: expected,
+            loading: expected > 0
+          });
+        }.bind(this)
+      )
+      .fail(
+        function() {
+          this.setState({error: true});
+        }.bind(this)
+      );
   },
 
   fetchData() {
@@ -413,27 +503,7 @@ const ProjectFilters = React.createClass({
       }
     });
 
-    this.api.request(`/projects/${orgId}/${projectId}/stats/`, {
-      query: {
-        since: this.state.querySince,
-        until: this.state.queryUntil,
-        resolution: '1d',
-        stat: 'blacklisted'
-      },
-      success: data => {
-        this.setState({rawStatsData: data});
-      },
-      error: () => {
-        this.setState({error: true});
-      },
-      complete: () => {
-        let expected = this.state.expected - 1;
-        this.setState({
-          expected,
-          loading: expected > 0
-        });
-      }
-    });
+    this.getFilterStats();
 
     this.api.request(`/projects/${orgId}/${projectId}/`, {
       success: (data, textStatus, jqXHR) => {
@@ -461,24 +531,6 @@ const ProjectFilters = React.createClass({
           tombstoneError: true
         });
       }
-    });
-  },
-
-  processStatsData() {
-    let blank = true; // Keep track if the entire graph is blank or not.
-    let points = this.state.rawStatsData.map(point => {
-      let [x, y] = point;
-      if (y > 0) {
-        blank = false;
-      }
-      return {
-        x,
-        y: [y]
-      };
-    });
-    this.setState({
-      stats: points,
-      blankStats: blank
     });
   },
 
@@ -528,7 +580,7 @@ const ProjectFilters = React.createClass({
   renderBody() {
     let body;
 
-    if (this.state.loading || !this.state.stats) body = this.renderLoading();
+    if (this.state.loading || !this.state.formattedData) body = this.renderLoading();
     else if (this.state.error) body = <LoadingError onRetry={this.fetchData} />;
     else body = this.renderResults();
 
@@ -584,6 +636,42 @@ const ProjectFilters = React.createClass({
     }
   },
 
+  timeLabelAsDay(point) {
+    let timeMoment = moment(point.x * 1000);
+
+    return timeMoment.format('LL');
+  },
+
+  renderTooltip(point, pointIdx, chart) {
+    let timeLabel = this.timeLabelAsDay(point);
+    let totalY = 0;
+    for (let i = 0; i < point.y.length; i++) {
+      totalY += point.y[i];
+    }
+    let {formattedData} = this.state;
+
+    return ReactDOMServer.renderToStaticMarkup(
+      <div style={{width: '150px'}}>
+        <div className="time-label"><span>{timeLabel}</span></div>
+        <div>{intcomma(totalY)} {totalY > 1 ? t('total events') : t('total event')}</div>
+        {formattedData.map((dataPoint, i) => {
+          return (
+            point.y[i] > 0 &&
+            <dl className="legend" key={dataPoint.statName}>
+              <dt><span className={`${dataPoint.statName} 'filter-color'`} /></dt>
+              <dd style={{textAlign: 'left', position: 'absolute'}}>
+                {dataPoint.label}{' '}
+              </dd>
+              <dd style={{textAlign: 'right', position: 'relative'}}>
+                {point.y[i]} {t('event')}{point.y[i] > 1 ? 's' : ''}
+              </dd>
+            </dl>
+          );
+        })}
+      </div>
+    );
+  },
+
   renderResults() {
     let navSection = this.state.activeSection;
     let features = this.getProjectFeatures();
@@ -596,11 +684,11 @@ const ProjectFilters = React.createClass({
           </div>
           {!this.state.blankStats
             ? <StackedBarChart
-                points={this.state.stats}
-                height={50}
+                series={this.state.formattedData}
                 label="events"
-                barClasses={['filtered']}
-                className="standard-barchart"
+                barClasses={Object.keys(this.getStatOpts())}
+                className="standard-barchart filtered-stats-barchart"
+                tooltip={this.renderTooltip}
               />
             : <div className="box-content">
                 <div className="blankslate p-y-2">

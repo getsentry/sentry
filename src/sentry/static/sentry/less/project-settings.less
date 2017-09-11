@@ -7,6 +7,109 @@
   padding-top: 20px;
 }
 
+/**
+* Inbound Data Filters
+* ============================================================================
+*/
+
+.filtered-stats-barchart {
+    height: 100px;
+
+    a {
+      > span {
+        left: 2px;
+        right: 2px;
+
+        &.ip-address {
+          background: @red-light;
+        }
+
+        &.release-version {
+          background: @purple-light;
+        }
+
+        &.error-message {
+          background: @purple;
+        }
+
+        &.browser-extensions {
+          background: @gray;
+        }
+
+        &.legacy-browsers {
+          background: @gray-light;
+        }
+
+        &.localhost {
+          background: @blue;
+        }
+
+        &.web-crawlers {
+          background: @red;
+        }
+
+        &.invalid-csp {
+          background: @blue-light;
+        }
+
+        &.cors {
+          background: @orange;
+        }
+      }
+    }
+  }
+
+.legend {
+  padding: 3px 0;
+  position: relative;
+  line-height: 10px;
+
+  dt {
+    margin: 0;
+    position: absolute;
+    left: 0;
+    width: 8px;
+    margin-right: 5px;
+
+    span {
+      &.ip-address {
+        background: @red-light;
+      }
+
+      &.release-version {
+        background: @purple-light;
+      }
+
+      &.error-message {
+        background: @purple;
+      }
+
+      &.browser-extensions {
+        background: @gray;
+      }
+
+      &.legacy-browsers {
+        background: @gray-light;
+      }
+
+      &.localhost {
+        background: @blue;
+      }
+
+      &.web-crawlers {
+        background: @red;
+      }
+
+      &.invalid-csp {
+        background: @blue-light;
+      }
+
+      &.cors {
+        background: @orange;
+      }
+    }
+  }
+}
 
 /**
 * Rules

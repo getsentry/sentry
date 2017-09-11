@@ -533,7 +533,7 @@ class StoreViewTest(TestCase):
     @mock.patch('sentry.coreapi.ClientApiHelper.insert_data_to_database', Mock())
     @mock.patch('sentry.coreapi.ClientApiHelper.should_filter')
     def test_filtered_signal(self, mock_should_filter):
-        mock_should_filter.return_value = 'ip_address'
+        mock_should_filter.return_value = (True, 'ip-address')
 
         mock_event_filtered = Mock()
 

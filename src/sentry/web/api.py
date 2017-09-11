@@ -19,12 +19,14 @@ from raven.contrib.django.models import client as Raven
 
 from sentry import quotas, tsdb
 from sentry.coreapi import (
-    APIError, APIForbidden, APIRateLimited, ClientApiHelper, CspApiHelper, LazyData
+    APIError, APIForbidden, APIRateLimited, ClientApiHelper, CspApiHelper, LazyData,
 )
 from sentry.models import Project, OrganizationOption, Organization
-from sentry.signals import (event_accepted, event_dropped, event_filtered, event_received)
+from sentry.signals import (
+    event_accepted, event_dropped, event_filtered, event_received)
 from sentry.quotas.base import RateLimit
 from sentry.utils import json, metrics
+from sentry.utils.data_filters import FILTER_STAT_KEYS_TO_VALUES
 from sentry.utils.data_scrubber import SensitiveDataFilter
 from sentry.utils.http import (
     is_valid_origin,
@@ -127,24 +129,30 @@ class APIView(BaseView):
             else:
                 content = ''
             logger.exception(e)
-            response = HttpResponse(content, content_type='text/plain', status=500)
+            response = HttpResponse(
+                content, content_type='text/plain', status=500)
 
         # TODO(dcramer): it'd be nice if we had an incr_multi method so
         # tsdb could optimize this
         metrics.incr('client-api.all-versions.requests')
-        metrics.incr('client-api.all-versions.responses.%s' % (response.status_code, ))
+        metrics.incr('client-api.all-versions.responses.%s' %
+                     (response.status_code, ))
         metrics.incr(
-            'client-api.all-versions.responses.%sxx' % (six.text_type(response.status_code)[0], )
+            'client-api.all-versions.responses.%sxx' % (
+                six.text_type(response.status_code)[0], )
         )
 
         if helper.context.version:
-            metrics.incr('client-api.v%s.requests' % (helper.context.version, ))
+            metrics.incr('client-api.v%s.requests' %
+                         (helper.context.version, ))
             metrics.incr(
-                'client-api.v%s.responses.%s' % (helper.context.version, response.status_code)
+                'client-api.v%s.responses.%s' % (
+                    helper.context.version, response.status_code)
             )
             metrics.incr(
                 'client-api.v%s.responses.%sxx' %
-                (helper.context.version, six.text_type(response.status_code)[0])
+                (helper.context.version, six.text_type(
+                    response.status_code)[0])
             )
 
         if response.status_code != 200 and origin:
@@ -175,6 +183,8 @@ class APIView(BaseView):
             if not project:
                 raise APIError('Client must be upgraded for CORS support')
             if not is_valid_origin(origin, project):
+                tsdb.incr(tsdb.models.project_total_received_cors,
+                          project.id)
                 raise APIForbidden('Invalid origin: %s' % (origin, ))
 
         # XXX: It seems that the OPTIONS call does not always include custom headers
@@ -199,7 +209,8 @@ class APIView(BaseView):
             # this just allows us to comfortably assure that `project.organization` is safe.
             # This also allows us to pull the object from cache, instead of being
             # implicitly fetched from database.
-            project.organization = Organization.objects.get_from_cache(id=project.organization_id)
+            project.organization = Organization.objects.get_from_cache(
+                id=project.organization_id)
 
             if auth.version != '2.0':
                 if not auth.secret_key:
@@ -216,7 +227,11 @@ class APIView(BaseView):
                         )
 
                     if not is_valid_origin(origin, project):
-                        raise APIForbidden('Missing required Origin or Referer header')
+                        if project:
+                            tsdb.incr(
+                                tsdb.models.project_total_received_cors, project.id)
+                        raise APIForbidden(
+                            'Missing required Origin or Referer header')
 
             response = super(APIView, self).dispatch(
                 request=request, project=project, auth=auth, helper=helper, key=key, **kwargs
@@ -332,19 +347,31 @@ class StoreView(APIView):
             sender=type(self),
         )
 
-        should_filter = helper.should_filter(project, data, ip_address=remote_addr)
-        if should_filter[0]:
+        should_filter, filter_reason = helper.should_filter(
+            project, data, ip_address=remote_addr)
+        if should_filter:
+            increment_list = [
+                (tsdb.models.project_total_received, project.id),
+                (tsdb.models.project_total_blacklisted, project.id),
+                (tsdb.models.organization_total_received,
+                 project.organization_id),
+                (tsdb.models.organization_total_blacklisted,
+                 project.organization_id),
+                (tsdb.models.key_total_received, key.id),
+                (tsdb.models.key_total_blacklisted, key.id),
+            ]
+            try:
+                increment_list.append((FILTER_STAT_KEYS_TO_VALUES[filter_reason], project.id))
+            # should error when filter_reason does not match a key in FILTER_STAT_KEYS_TO_VALUES
+            except KeyError:
+                pass
+
             tsdb.incr_multi(
-                [
-                    (tsdb.models.project_total_received, project.id),
-                    (tsdb.models.project_total_blacklisted, project.id),
-                    (tsdb.models.organization_total_received, project.organization_id),
-                    (tsdb.models.organization_total_blacklisted, project.organization_id),
-                    (tsdb.models.key_total_received, key.id),
-                    (tsdb.models.key_total_blacklisted, key.id),
-                ]
+                increment_list
             )
-            metrics.incr('events.blacklisted', tags={'reason': should_filter[1]})
+
+            metrics.incr('events.blacklisted', tags={
+                         'reason': filter_reason})
             event_filtered.send_robust(
                 ip=remote_addr,
                 project=project,
@@ -363,13 +390,16 @@ class StoreView(APIView):
         # it cannot cascade
         if rate_limit is None or rate_limit.is_limited:
             if rate_limit is None:
-                helper.log.debug('Dropped event due to error with rate limiter')
+                helper.log.debug(
+                    'Dropped event due to error with rate limiter')
             tsdb.incr_multi(
                 [
                     (tsdb.models.project_total_received, project.id),
                     (tsdb.models.project_total_rejected, project.id),
-                    (tsdb.models.organization_total_received, project.organization_id),
-                    (tsdb.models.organization_total_rejected, project.organization_id),
+                    (tsdb.models.organization_total_received,
+                     project.organization_id),
+                    (tsdb.models.organization_total_rejected,
+                     project.organization_id),
                     (tsdb.models.key_total_received, key.id),
                     (tsdb.models.key_total_rejected, key.id),
                 ]
@@ -392,17 +422,20 @@ class StoreView(APIView):
             tsdb.incr_multi(
                 [
                     (tsdb.models.project_total_received, project.id),
-                    (tsdb.models.organization_total_received, project.organization_id),
+                    (tsdb.models.organization_total_received,
+                     project.organization_id),
                     (tsdb.models.key_total_received, key.id),
                 ]
             )
 
-        org_options = OrganizationOption.objects.get_all_values(project.organization_id)
+        org_options = OrganizationOption.objects.get_all_values(
+            project.organization_id)
 
         if org_options.get('sentry:require_scrub_ip_address', False):
             scrub_ip_address = True
         else:
-            scrub_ip_address = project.get_option('sentry:scrub_ip_address', False)
+            scrub_ip_address = project.get_option(
+                'sentry:scrub_ip_address', False)
 
         event_id = data['event_id']
 
@@ -411,7 +444,8 @@ class StoreView(APIView):
         cache_key = 'ev:%s:%s' % (project.id, event_id, )
 
         if cache.get(cache_key) is not None:
-            raise APIForbidden('An event with the same ID already exists (%s)' % (event_id, ))
+            raise APIForbidden(
+                'An event with the same ID already exists (%s)' % (event_id, ))
 
         if org_options.get('sentry:require_scrub_data', False):
             scrub_data = True
@@ -435,7 +469,8 @@ class StoreView(APIView):
             if org_options.get('sentry:require_scrub_defaults', False):
                 scrub_defaults = True
             else:
-                scrub_defaults = project.get_option('sentry:scrub_defaults', True)
+                scrub_defaults = project.get_option(
+                    'sentry:scrub_defaults', True)
 
             inst = SensitiveDataFilter(
                 fields=sensitive_fields,
@@ -521,6 +556,9 @@ class CspReportView(StoreView):
             raise APIForbidden('Invalid document-uri')
 
         if not is_valid_origin(origin, project):
+            if project:
+                tsdb.incr(tsdb.models.project_total_received_cors,
+                          project.id)
             raise APIForbidden('Invalid document-uri')
 
         # Attach on collected meta data. This data obviously isn't a part
@@ -560,7 +598,8 @@ def crossdomain_xml(request, project_id):
         return HttpResponse(status=404)
 
     origin_list = get_origins(project)
-    response = render_to_response('sentry/crossdomain.xml', {'origin_list': origin_list})
+    response = render_to_response(
+        'sentry/crossdomain.xml', {'origin_list': origin_list})
     response['Content-Type'] = 'application/xml'
 
     return response

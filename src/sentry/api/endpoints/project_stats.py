@@ -5,6 +5,7 @@ from rest_framework.response import Response
 from sentry import tsdb
 from sentry.api.base import DocSection, StatsMixin
 from sentry.api.bases.project import ProjectEndpoint
+from sentry.utils.data_filters import FILTER_STAT_KEYS_TO_VALUES
 from sentry.utils.apidocs import scenario, attach_scenarios
 
 
@@ -12,7 +13,8 @@ from sentry.utils.apidocs import scenario, attach_scenarios
 def retrieve_event_counts_project(runner):
     runner.request(
         method='GET',
-        path='/projects/%s/%s/stats/' % (runner.org.slug, runner.default_project.slug)
+        path='/projects/%s/%s/stats/' % (runner.org.slug,
+                                         runner.default_project.slug)
     )
 
 
@@ -61,7 +63,10 @@ class ProjectStatsEndpoint(ProjectEndpoint, StatsMixin):
         elif stat == 'forwarded':
             stat_model = tsdb.models.project_total_forwarded
         else:
-            raise ValueError('Invalid stat: %s' % stat)
+            try:
+                stat_model = FILTER_STAT_KEYS_TO_VALUES[stat]
+            except KeyError:
+                raise ValueError('Invalid stat: %s' % stat)
 
         data = tsdb.get_range(
             model=stat_model, keys=[project.id], **self._parse_args(request)

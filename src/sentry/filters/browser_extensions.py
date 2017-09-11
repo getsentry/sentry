@@ -4,6 +4,8 @@ from .base import Filter
 
 import re
 
+from sentry.utils.data_filters import FilterStatKeys
+
 EXTENSION_EXC_VALUES = re.compile(
     '|'.join(
         (
@@ -71,7 +73,7 @@ EXTENSION_EXC_SOURCES = re.compile(
 
 
 class BrowserExtensionsFilter(Filter):
-    id = 'browser-extensions'
+    id = FilterStatKeys.BROWSER_EXTENSION
     name = 'Filter out errors known to be caused by browser extensions'
     description = 'Certain browser extensions will inject inline scripts and are known to cause errors.'
 
