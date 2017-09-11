@@ -1,6 +1,7 @@
 import React from 'react';
 import $ from 'jquery';
 
+import Avatar from '../avatar';
 import ApiMixin from '../../mixins/apiMixin';
 import DropdownLink from '../dropdownLink';
 import MenuItem from '../menuItem';
@@ -304,45 +305,138 @@ const SidebarSection = React.createClass({
   }
 });
 
-const UserDropdown = React.createClass({
+const UserSummary = React.createClass({
+  render() {
+    let user = ConfigStore.get('user');
+
+    return (
+      <div className="sidebar-user-summary">
+        <div className="sidebar-user-summary-avatar">
+          <Avatar user={user} className="avatar" />
+        </div>
+        <div className="sidebar-org-summary-user-name">{this.props.user.name}</div>
+      </div>
+    );
+  }
+});
+
+const OrgSummary = React.createClass({
+  render() {
+    return (
+      <div className="sidebar-org-summary">
+        <div className="sidebar-org-summary-avatar">
+          <div className="org-avatar" />
+        </div>
+        <div className="sidebar-org-summary-details">
+          <div className="sidebar-org-summary-org-name">{this.props.org.name}</div>
+          <div className="sidebar-org-summary-org-details">13 projects, 24 members</div>
+        </div>
+      </div>
+    );
+  }
+});
+
+const SidebarMenuDivider = React.createClass({
+  render() {
+    return <div className="sidebar-dropdown-menu-divider" />;
+  }
+});
+
+const SidebarMenuItem = React.createClass({
+  render() {
+    return (
+      <a href={this.props.href} className="sidebar-dropdown-menu-item">
+        <span className="sidebar-dropdown-menu-item-label">{this.props.children}</span>
+        {this.props.caret &&
+          <span className="sidebar-dropdown-menu-item-caret">
+            <i className="icon-arrow-right" />
+          </span>}
+      </a>
+    );
+  }
+});
+
+const SidebarDropdown = React.createClass({
   contextTypes: {
     location: React.PropTypes.object
   },
+
+  getInitialState: function() {
+    return {
+      isOpen: false
+    };
+  },
+
+  renderMenu() {
+    const org = this.props.org;
+    let user = ConfigStore.get('user');
+    let to = url => (this.context.location ? {to: url} : {href: url});
+
+    return (
+      <div className="sidebar-dropdown-menu">
+        <OrgSummary org={org} />
+        <SidebarMenuItem href={`/organizations/${org.slug}/settings/`}>
+          {t('Organization settings')}
+        </SidebarMenuItem>
+        <SidebarMenuItem href={`/organizations/${org.slug}/teams/`}>
+          {t('Projects')}
+        </SidebarMenuItem>
+        <SidebarMenuItem href={`/organizations/${org.slug}/members/`}>
+          {t('Members')}
+        </SidebarMenuItem>
+        <SidebarMenuItem href={`/organizations/${org.slug}/billing/`}>
+          {t('Usage & Billing')}
+        </SidebarMenuItem>
+        <SidebarMenuItem caret={true}>
+          {t('Switch organization')}
+          <div className="sidebar-dropdown-menu sidebar-dropdown-org-list">
+            <SidebarMenuItem {...to('/${org.slug}/')}>
+              <OrgSummary org={org} />
+            </SidebarMenuItem>
+            <SidebarMenuItem><OrgSummary org={org} /></SidebarMenuItem>
+            <SidebarMenuItem><OrgSummary org={org} /></SidebarMenuItem>
+            <SidebarMenuDivider />
+            <SidebarMenuItem href={'/organizations/new/'}>
+              {t('Create a new organization...')}
+            </SidebarMenuItem>
+          </div>
+        </SidebarMenuItem>
+        <SidebarMenuDivider />
+        <UserSummary user={user} />
+        <div className="sidebar-dropdown-user-items">
+          <SidebarMenuItem href="/account/settings/">
+            {t('User settings')}
+          </SidebarMenuItem>
+          <SidebarMenuItem {...to('/api/')}>{t('API keys')}</SidebarMenuItem>
+          {user.isSuperuser &&
+            <SidebarMenuItem {...to('/manage/')}>{t('Admin')}</SidebarMenuItem>}
+          <SidebarMenuItem href="/auth/logout/">{t('Sign out')}</SidebarMenuItem>
+        </div>
+      </div>
+    );
+  },
+
+  toggleDropdown() {
+    this.setState({isOpen: !this.state.isOpen});
+  },
+
   render() {
     const org = this.props.org;
     let user = ConfigStore.get('user');
 
-    let to = url => (this.context.location ? {to: url} : {href: url});
-
     return (
-      <div className="user-dropdown">
-        {this.props.collapsed && <div className="user-dropdown-org-icon" />}
-        {!this.props.collapsed &&
-          <div>
-            <div className="user-dropdown-org-name">
-              <DropdownLink caret={true} title={org.name}>
-                <MenuItem header>{org.name}</MenuItem>
-                <MenuItem href={`/organizations/${org.slug}/settings/`}>
-                  {t('Organization settings')}
-                </MenuItem>
-                <MenuItem href={`/organizations/${org.slug}/teams/`}>
-                  {t('Projects')}
-                </MenuItem>
-                <MenuItem href={`/organizations/${org.slug}/members/`}>
-                  {t('Members')}
-                </MenuItem>
-                <MenuItem>Switch organizations...</MenuItem>
-                <MenuItem divider />
-                <MenuItem header>{user.name}</MenuItem>
-                <MenuItem href="/account/settings/">{t('Account settings')}</MenuItem>
-                <MenuItem {...to('/api/')}>{t('API keys')}</MenuItem>
-                {user.isSuperuser &&
-                  <MenuItem {...to('/manage/')}>{t('Admin')}</MenuItem>}
-                <MenuItem href="/auth/logout/">{t('Sign out')}</MenuItem>
-              </DropdownLink>
-            </div>
-            <div className="user-dropdown-user-name">{user.name}</div>
-          </div>}
+      <div className="sidebar-dropdown">
+        <div className="sidebar-dropdown-toggle" onClick={() => this.toggleDropdown()}>
+          {this.props.collapsed && <div className="org-avatar" />}
+          {!this.props.collapsed &&
+            <div>
+              <div className="sidebar-dropdown-org-name">
+                {org.name} <i className="icon-arrow-down" />
+              </div>
+              <div className="sidebar-dropdown-user-name">{user.name}</div>
+            </div>}
+        </div>
+        {this.state.isOpen && <div>{this.renderMenu()}</div>}
       </div>
     );
   }
@@ -440,7 +534,7 @@ const Sidebar = React.createClass({
       <div className={classNames} ref="sidebar">
         <div className="sidebar-top">
           <SidebarSection>
-            <UserDropdown collapsed={this.state.collapsed} org={org} />
+            <SidebarDropdown collapsed={this.state.collapsed} org={org} />
           </SidebarSection>
           <hr />
           <SidebarSection>
