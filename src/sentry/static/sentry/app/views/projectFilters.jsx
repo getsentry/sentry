@@ -344,7 +344,7 @@ const ProjectFiltersSettingsForm = React.createClass({
   renderDisabledFeature() {
     let project = this.getProject();
     let organization = this.getOrganization();
-    return this.state.hooksDisabled[0](organization, project);
+    return this.state.hooksDisabled.map(hook => hook(organization, project));
   },
 
   render() {
