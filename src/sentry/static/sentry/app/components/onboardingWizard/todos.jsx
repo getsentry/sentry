@@ -128,13 +128,14 @@ const TodoList = React.createClass({
   getInitialState() {
     return {
       tasks: [],
+      org: this.getOrganization(),
       seeAll: false // Show all tasks, included those completed
     };
   },
 
   componentWillMount() {
     // Map server task state (who finished what) to TodoList.TASK objects
-    let org = this.getOrganization();
+    let {org} = this.state;
     let tasks = TodoList.TASKS.map(task => {
       for (let server_task of org.onboardingTasks) {
         if (server_task.task == task.task) {
@@ -148,7 +149,7 @@ const TodoList = React.createClass({
   },
 
   skipTask(skipped_task) {
-    let org = this.getOrganization();
+    let {org} = this.state;
     this.api.request('/organizations/' + org.slug + '/onboarding-tasks/', {
       method: 'POST',
       data: {task: skipped_task, status: 'skipped'},
@@ -166,22 +167,21 @@ const TodoList = React.createClass({
   },
 
   click(e) {
-    // e.preventDefault();
     e.stopPropagation();
   },
 
   render() {
     let nextTasks = this.state.tasks;
 
-    let todo_list = nextTasks.map(task => {
+    let todoListTasks = nextTasks.map(task => {
       return <TodoItem key={task.task} task={task} onSkip={this.skipTask} />;
-    }, this);
+    });
 
     return (
       <div>
         <div onClick={this.click} className="onboarding-wrapper">
           <ul className="list-unstyled">
-            {todo_list}
+            {todoListTasks}
           </ul>
         </div>
       </div>

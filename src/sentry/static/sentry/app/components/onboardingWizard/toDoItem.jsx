@@ -1,6 +1,7 @@
 import moment from 'moment';
 import PropTypes from 'prop-types';
 import React from 'react';
+import classNames from 'classnames';
 import {t, tct} from '../../locale';
 
 import OrganizationState from '../../mixins/organizationState';
@@ -8,7 +9,7 @@ import Confirmation from './confirmation';
 
 const TodoItem = React.createClass({
   propTypes: {
-    task: PropTypes.object,
+    task: PropTypes.object.isRequired,
     onSkip: PropTypes.func.isRequired
   },
 
@@ -20,7 +21,7 @@ const TodoItem = React.createClass({
       isExpanded: false
     };
   },
-  toggleDescription(e) {
+  toggleDescription() {
     this.setState({isExpanded: !this.state.isExpanded});
   },
 
@@ -29,25 +30,28 @@ const TodoItem = React.createClass({
   },
 
   formatDescription: function() {
-    if (this.state.isExpanded) {
-      return <p>{this.props.task.description}. {this.props.task.detailedDescription}</p>;
-    } else {
-      return <p>{this.props.task.description}</p>;
-    }
+    return (
+      <p>
+        {this.props.task.description}
+        {' '}
+        {this.state.isExpanded && '. ' + this.props.task.detailedDescription}
+      </p>
+    );
   },
 
-  learnMoreUrlCreator: function(org) {
+  learnMoreUrlCreator: function() {
+    let org = this.getOrganization();
     let learnMoreUrl;
     if (this.props.task.featureLocation === 'project') {
-      learnMoreUrl =
-        '/organizations/' +
-        org.slug +
-        '/projects/choose/?onboarding=1&task=' +
-        this.props.task.task;
+      learnMoreUrl = `/organizations/${org.slug}/projects/choose/?onboarding=1&task=${this.props.task.task}`;
     } else if (this.props.task.featureLocation === 'organization') {
-      learnMoreUrl = '/organizations/' + org.slug + '/' + this.props.task.location;
+      learnMoreUrl = `/organizations/${org.slug}/${this.props.task.location}`;
     } else if (this.props.task.featureLocation === 'absolute') {
       learnMoreUrl = this.props.task.location;
+    } else {
+      Raven.captureMessage('No learnMoreUrl created for this featureLocation ', {
+        extra: {props: this.props, state: this.state}
+      });
     }
     return learnMoreUrl;
   },
@@ -60,26 +64,22 @@ const TodoItem = React.createClass({
   render: function() {
     let org = this.getOrganization();
     let learnMoreUrl = this.learnMoreUrlCreator(org);
-    let classNames = '';
     let description;
 
     switch (this.props.task.status) {
       case 'complete':
-        classNames += ' checked';
         description = tct('[user] completed [dateCompleted]', {
           user: this.props.task.user,
           dateCompleted: moment(this.props.task.dateCompleted).fromNow()
         });
         break;
       case 'pending':
-        classNames += ' pending';
         description = tct('[user] kicked off [dateCompleted]', {
           user: this.props.task.user,
           dateCompleted: moment(this.props.task.dateCompleted).fromNow()
         });
         break;
       case 'skipped':
-        classNames += ' skipped';
         description = tct('[user] skipped [dateCompleted]', {
           user: this.props.task.user,
           dateCompleted: moment(this.props.task.dateCompleted).fromNow()
@@ -89,9 +89,9 @@ const TodoItem = React.createClass({
         description = this.formatDescription();
     }
 
-    if (this.state.showConfirmation) {
-      classNames += ' blur';
-    }
+    let classes = classNames(this.props.className, this.props.task.status, {
+      blur: this.state.showConfirmation
+    });
 
     let showSkipButton =
       this.props.task.skippable &&
@@ -101,7 +101,7 @@ const TodoItem = React.createClass({
 
     return (
       <li
-        className={classNames}
+        className={classes}
         onMouseOver={this.toggleDescription}
         onMouseOut={this.toggleDescription}>
         {this.props.task.status == 'pending' && <div className="pending-bar" />}

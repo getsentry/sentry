@@ -14,13 +14,9 @@ const Confirmation = React.createClass({
     this.props.onSkip(this.props.task);
   },
 
-  dismiss: function() {
-    this.props.dismiss();
-  },
-
   render: function() {
     return (
-      <div className="ob-confirmation" onClick={this.dismiss}>
+      <div className="ob-confirmation" onClick={this.props.dismiss}>
         <h3>{t('Need help?')}</h3>
         <p>
           <a href="mailto:support@sentry.io?subject=Help with onboarding">
