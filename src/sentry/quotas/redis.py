@@ -14,9 +14,9 @@ from time import time
 
 from sentry.exceptions import InvalidConfiguration
 from sentry.quotas.base import NotRateLimited, Quota, RateLimited
-from sentry.utils.redis import get_cluster_from_options, load_script
+from sentry.utils.redis import get_cluster_from_options, ScriptManager
 
-is_rate_limited = load_script('quotas/is_rate_limited.lua')
+is_rate_limited = ScriptManager('quotas/is_rate_limited.lua')
 
 
 class BasicRedisQuota(object):

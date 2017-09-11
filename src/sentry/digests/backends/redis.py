@@ -11,12 +11,12 @@ from sentry.digests import Record, ScheduleEntry
 from sentry.digests.backends.base import Backend, InvalidState
 from sentry.utils.locking.backends.redis import RedisLockBackend
 from sentry.utils.locking.manager import LockManager
-from sentry.utils.redis import (check_cluster_versions, get_cluster_from_options, load_script)
+from sentry.utils.redis import ScriptManager, check_cluster_versions, get_cluster_from_options
 from sentry.utils.versioning import Version
 
 logger = logging.getLogger('sentry.digests')
 
-script = load_script('digests/digests.lua')
+script = ScriptManager('digests/digests.lua')
 
 
 class RedisBackend(Backend):

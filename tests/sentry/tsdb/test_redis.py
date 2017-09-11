@@ -9,7 +9,7 @@ from datetime import (
 
 from sentry.testutils import TestCase
 from sentry.tsdb.base import TSDBModel, ONE_MINUTE, ONE_HOUR, ONE_DAY
-from sentry.tsdb.redis import RedisTSDB, CountMinScript
+from sentry.tsdb.redis import RedisTSDB
 from sentry.utils.dates import to_timestamp
 
 
@@ -432,7 +432,7 @@ class RedisTSDBTest(TestCase):
 
         parameters = [64, 5, 10]
 
-        CountMinScript(
+        self.db.countmin_script(
             ['1:i', '1:e'],
             ['INCR'] + parameters + [
                 1,
@@ -445,7 +445,7 @@ class RedisTSDBTest(TestCase):
             client=client,
         )
 
-        CountMinScript(
+        self.db.countmin_script(
             ['2:i', '2:e'],
             ['INCR'] + parameters + [
                 1,
@@ -475,7 +475,7 @@ class RedisTSDBTest(TestCase):
         assert client.exists('2:i')
         assert not client.exists('2:e')
 
-        exports = CountMinScript(
+        exports = self.db.countmin_script(
             ['2:i', '2:e'],
             ['EXPORT'] + parameters,
             client=client,
@@ -483,7 +483,7 @@ class RedisTSDBTest(TestCase):
 
         assert len(exports) == 1
 
-        CountMinScript(
+        self.db.countmin_script(
             ['1:i', '1:e'],
             ['IMPORT'] + parameters + [exports[0]],
             client=client,
@@ -497,7 +497,7 @@ class RedisTSDBTest(TestCase):
 
         parameters = [64, 5, 5]
 
-        CountMinScript(
+        self.db.countmin_script(
             ['1:i', '1:e'],
             ['INCR'] + parameters + [
                 1,
@@ -516,7 +516,7 @@ class RedisTSDBTest(TestCase):
             client=client,
         )
 
-        CountMinScript(
+        self.db.countmin_script(
             ['2:i', '2:e'],
             ['INCR'] + parameters + [
                 1,
@@ -546,7 +546,7 @@ class RedisTSDBTest(TestCase):
         assert client.exists('2:i')
         assert client.exists('2:e')
 
-        exports = CountMinScript(
+        exports = self.db.countmin_script(
             ['2:i', '2:e'],
             ['EXPORT'] + parameters,
             client=client,
@@ -554,7 +554,7 @@ class RedisTSDBTest(TestCase):
 
         assert len(exports) == 1
 
-        CountMinScript(
+        self.db.countmin_script(
             ['1:i', '1:e'],
             ['IMPORT'] + parameters + [exports[0]],
             client=client,
@@ -563,7 +563,7 @@ class RedisTSDBTest(TestCase):
         assert client.exists('1:i')
         assert client.exists('1:e')
 
-        assert CountMinScript(
+        assert self.db.countmin_script(
             ['1:i', '1:e'],
             ['RANKED'] + parameters,
             client=client,
@@ -580,7 +580,7 @@ class RedisTSDBTest(TestCase):
 
         parameters = [64, 5, 5]
 
-        CountMinScript(
+        self.db.countmin_script(
             ['1:i', '1:e'],
             ['INCR'] + parameters + [
                 5,
@@ -593,7 +593,7 @@ class RedisTSDBTest(TestCase):
             client=client,
         )
 
-        CountMinScript(
+        self.db.countmin_script(
             ['2:i', '2:e'],
             ['INCR'] + parameters + [
                 1,
@@ -623,7 +623,7 @@ class RedisTSDBTest(TestCase):
         assert client.exists('2:i')
         assert client.exists('2:e')
 
-        exports = CountMinScript(
+        exports = self.db.countmin_script(
             ['2:i', '2:e'],
             ['EXPORT'] + parameters,
             client=client,
@@ -631,7 +631,7 @@ class RedisTSDBTest(TestCase):
 
         assert len(exports) == 1
 
-        CountMinScript(
+        self.db.countmin_script(
             ['1:i', '1:e'],
             ['IMPORT'] + parameters + [exports[0]],
             client=client,
@@ -640,7 +640,7 @@ class RedisTSDBTest(TestCase):
         assert client.exists('1:i')
         assert client.exists('1:e')
 
-        assert CountMinScript(
+        assert self.db.countmin_script(
             ['1:i', '1:e'],
             ['RANKED'] + parameters,
             client=client,
@@ -657,7 +657,7 @@ class RedisTSDBTest(TestCase):
 
         parameters = [64, 5, 5]
 
-        CountMinScript(
+        self.db.countmin_script(
             ['1:i', '1:e'],
             ['INCR'] + parameters + [
                 1,
@@ -682,7 +682,7 @@ class RedisTSDBTest(TestCase):
             client=client,
         )
 
-        CountMinScript(
+        self.db.countmin_script(
             ['2:i', '2:e'],
             ['INCR'] + parameters + [
                 5,
@@ -700,7 +700,7 @@ class RedisTSDBTest(TestCase):
         assert client.exists('2:i')
         assert not client.exists('2:e')
 
-        exports = CountMinScript(
+        exports = self.db.countmin_script(
             ['2:i', '2:e'],
             ['EXPORT'] + parameters,
             client=client,
@@ -708,7 +708,7 @@ class RedisTSDBTest(TestCase):
 
         assert len(exports) == 1
 
-        CountMinScript(
+        self.db.countmin_script(
             ['1:i', '1:e'],
             ['IMPORT'] + parameters + [exports[0]],
             client=client,
@@ -717,7 +717,7 @@ class RedisTSDBTest(TestCase):
         assert client.exists('1:i')
         assert client.exists('1:e')
 
-        assert CountMinScript(
+        assert self.db.countmin_script(
             ['1:i', '1:e'],
             ['RANKED'] + parameters,
             client=client,

@@ -4,9 +4,9 @@ import itertools
 import time
 
 from sentry.utils.iterators import chunked
-from sentry.utils.redis import load_script
+from sentry.utils.redis import ScriptManager
 
-index = load_script('similarity/index.lua')
+index = ScriptManager('similarity/index.lua')
 
 
 def band(n, value):
