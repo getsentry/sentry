@@ -341,12 +341,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
         except ValidationError as exc:
             return Response({'detail': six.text_type(exc)}, status=400)
 
-        count_hits = features.has(
-            'projects:stream-hit-counts',
-            project=project,
-            actor=request.user)
-
-        cursor_result = search.query(count_hits=count_hits, **query_kwargs)
+        cursor_result = search.query(count_hits=True, **query_kwargs)
 
         results = list(cursor_result)
 
