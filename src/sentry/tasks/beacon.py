@@ -56,11 +56,12 @@ def send_beacon():
         end=end,
     )['events.total']
 
+    anonymous = options.get('beacon.anonymous')
+
     payload = {
         'install_id': install_id,
         'version': sentry.get_version(),
         'docker': sentry.is_docker(),
-        'admin_email': options.get('system.admin-email'),
         'data': {
             # TODO(dcramer): we'd also like to get an idea about the throughput
             # of the system (i.e. events in 24h)
@@ -71,7 +72,11 @@ def send_beacon():
             'events.24h': events_24h,
         },
         'packages': get_all_package_versions(),
+        'anonymous': anonymous,
     }
+
+    if not anonymous:
+        payload['admin_email'] = options.get('system.admin-email')
 
     # TODO(dcramer): relay the response 'notices' as admin broadcasts
     try:

@@ -89,6 +89,10 @@ register(
 
 register('api.rate-limit.org-create', default=5, flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
 
+# Beacon
+
+register('beacon.anonymous', default=True, flags=FLAG_REQUIRED)
+
 # Filestore
 register('filestore.backend', default='filesystem', flags=FLAG_NOSTORE)
 register('filestore.options', default={'location': '/tmp/sentry-files'}, flags=FLAG_NOSTORE)

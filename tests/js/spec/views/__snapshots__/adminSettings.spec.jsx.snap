@@ -20,6 +20,7 @@ exports[`AdminSettings render() renders 1`] = `
           "auth.allow-registration": true,
           "auth.ip-rate-limit": 25,
           "auth.user-rate-limit": 25,
+          "beacon.anonymous": true,
           "system.admin-email": "foo@example.com",
           "system.rate-limit": 25,
           "system.security-email": "foo@example.com",
@@ -121,6 +122,33 @@ exports[`AdminSettings render() renders 1`] = `
         name="api.rate-limit.org-create"
         placeholder="e.g. 5"
         required={true}
+      />
+      <h4>
+        Beacon
+      </h4>
+      <BooleanField
+        defaultValue={true}
+        disabled={false}
+        help={
+          <span>
+            <span>
+              If enabled, any stats reported to sentry.io will exclude identifying information (such as your administrative email address). By anonymizing your installation the Sentry team will be unable to contact you about security updates. For more information on what data is sent to Sentry, see the 
+            </span>
+            <a
+              href="https://docs.sentry.io/server/beacon/"
+            >
+              <span>
+                documentation
+              </span>
+            </a>
+            <span>
+              .
+            </span>
+          </span>
+        }
+        label="Anonymize Beacon"
+        name="beacon.anonymous"
+        required={false}
       />
     </ApiForm>
   </div>
