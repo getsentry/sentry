@@ -55,6 +55,7 @@ DISALLOWED_SOURCES = (
     'amiok.org',
     'connectionstrenth.com',
     'siteheart.net',
+    'netanalitics.space',
 )  # yapf: disable
 
 ALLOWED_DIRECTIVES = frozenset((
