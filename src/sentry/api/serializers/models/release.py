@@ -167,7 +167,7 @@ class ReleaseSerializer(Serializer):
         else:
             project_ids = list(ReleaseProject.objects.filter(release__in=item_list).values_list(
                 'project_id', flat=True
-            ))
+            ).distinct())
 
         tags = {}
         tks = TagValue.objects.filter(
