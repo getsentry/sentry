@@ -1,5 +1,5 @@
-Version 8.20 (Unreleased)
--------------------------
+Version 8.20
+------------
 - Make BitBucket repositories enabled by default
 - Add raw data toggle for Additional Data
 - Add initial support for Redis Cluster.
