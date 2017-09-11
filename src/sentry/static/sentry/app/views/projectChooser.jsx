@@ -1,4 +1,5 @@
 import React from 'react';
+import {browserHistory} from 'react-router';
 import $ from 'jquery';
 import {t} from '../locale';
 
@@ -18,16 +19,27 @@ const ProjectChooser = React.createClass({
 
   render() {
     let org = this.getOrganization();
+    let teams = org.teams.filter(team => team.projects.length > 0);
+    let projects = [].concat.apply([], teams.map(team => team.projects));
 
-    // Expect onboarding=1 and task=<task id> parameters and task.featureLocation == 'project'
-    // TODO throw up report dialog if not true
     let task = TodoList.TASKS.filter(
       task_inst => task_inst.task == this.props.location.query.task
     )[0];
+    if (projects.length === 0) {
+      let url = `/organizations/${org.slug}/projects/new/`;
+      browserHistory.push(url);
+    } else if (projects.length === 1) {
+      let project = projects[0];
+      let url = `/${org.slug}/${project.slug}/${task.location}`;
+      browserHistory.push(url);
+    }
+
+    // Expect onboarding=1 and task=<task id> parameters and task.featureLocation == 'project'
+    // TODO throw up report dialog if not true
     if (task.featureLocation != 'project') {
       throw new Error('User arrived on project chooser without a valid task id.');
     }
-    let teamProjectList = org.teams.map((team, i) => {
+    let teamProjectList = teams.map((team, i) => {
       // Get list of projects per team
       let projectList = team.projects.map(project => {
         return (
