@@ -183,6 +183,10 @@ class ProjectDSymFile(Model):
         ct = self.file.headers.get('Content-Type').lower()
         return KNOWN_DSYM_TYPES.get(ct, 'unknown')
 
+    def delete(self, *args, **kwargs):
+        super(ProjectDSymFile, self).delete(*args, **kwargs)
+        self.file.delete()
+
 
 def _create_dsym_from_uuid(project, dsym_type, cpu_name, uuid, fileobj, basename):
     """This creates a mach dsym file or proguard mapping from the given

@@ -1,12 +1,14 @@
 from __future__ import absolute_import
 
 import functools
+import logging
 import posixpath
 import six
 
 from threading import Lock
 
 import rb
+import rediscluster
 from pkg_resources import resource_string
 from redis.client import Script
 from redis.connection import ConnectionPool
@@ -16,6 +18,8 @@ from sentry.exceptions import InvalidConfiguration
 from sentry.utils import warnings
 from sentry.utils.warnings import DeprecatedSettingWarning
 from sentry.utils.versioning import Version, check_versions
+
+logger = logging.getLogger(__name__)
 
 _pool_cache = {}
 _pool_lock = Lock()
@@ -53,27 +57,76 @@ def make_rb_cluster(*args, **kwargs):
     return _make_rb_cluster(*args, **kwargs)
 
 
+class _RBCluster(object):
+    def supports(self, config):
+        return not config.get('is_redis_cluster', False)
+
+    def factory(self, **config):
+        # rb expects a dict of { host, port } dicts where the key is the host
+        # ID. Coerce the configuration into the correct format if necessary.
+        hosts = config['hosts']
+        hosts = {k: v for k, v in enumerate(hosts)} if isinstance(hosts, list) else hosts
+        config['hosts'] = hosts
+
+        return _make_rb_cluster(**config)
+
+    def __str__(self):
+        return 'Redis Blaster Cluster'
+
+
+class _RedisCluster(object):
+    def supports(self, config):
+        return config.get('is_redis_cluster', False)
+
+    def factory(self, **config):
+        # StrictRedisCluster expects a list of { host, port } dicts. Coerce the
+        # configuration into the correct format if necessary.
+        hosts = config.get('hosts')
+        hosts = hosts.values() if isinstance(hosts, dict) else hosts
+
+        # Redis cluster does not wait to attempt to connect, we don't want the
+        # application to fail to boot because of this, raise a KeyError
+        try:
+            return rediscluster.StrictRedisCluster(startup_nodes=hosts, decode_responses=True)
+        except rediscluster.exceptions.RedisClusterException:
+            logger.warning('Failed to connect to Redis Cluster', exc_info=True)
+            raise KeyError('Redis Cluster could not be initalized')
+
+    def __str__(self):
+        return 'Redis Cluster'
+
+
 class ClusterManager(object):
-    def __init__(self, options_manager):
+    def __init__(self, options_manager, cluster_type=_RBCluster):
         self.__clusters = {}
         self.__options_manager = options_manager
+        self.__cluster_type = cluster_type()
 
     def get(self, key):
         cluster = self.__clusters.get(key)
 
-        if cluster is None:
-            # TODO: This would probably be safer with a lock, but I'm not sure
-            # that it's necessary.
-            configuration = self.__options_manager.get('redis.clusters').get(key)
-            if configuration is None:
-                raise KeyError('Invalid cluster name: {}'.format(key))
+        if cluster:
+            return cluster
 
-            cluster = self.__clusters[key] = _make_rb_cluster(**configuration)
+        # TODO: This would probably be safer with a lock, but I'm not sure
+        # that it's necessary.
+        configuration = self.__options_manager.get('redis.clusters').get(key)
+        if configuration is None:
+            raise KeyError('Invalid cluster name: {}'.format(key))
+
+        if not self.__cluster_type.supports(configuration):
+            raise KeyError('Invalid cluster type, expected: {}'.format(self.__cluster_type))
+
+        cluster = self.__clusters[key] = self.__cluster_type.factory(**configuration)
 
         return cluster
 
 
+# TODO(epurkhiser): When migration of all rb cluster to true redis clusters has
+# completed, remove the rb ``clusters`` module variable and rename
+# redis_clusters to clusters.
 clusters = ClusterManager(options.default_manager)
+redis_clusters = ClusterManager(options.default_manager, _RedisCluster)
 
 
 def get_cluster_from_options(setting, options, cluster_manager=clusters):

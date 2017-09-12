@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 
 import TimeSince from '../../components/timeSince';
@@ -8,10 +9,10 @@ import marked from '../../utils/marked';
 
 const Note = React.createClass({
   propTypes: {
-    author: React.PropTypes.object.isRequired,
-    item: React.PropTypes.object.isRequired,
-    onEdit: React.PropTypes.func.isRequired,
-    onDelete: React.PropTypes.func.isRequired
+    author: PropTypes.object.isRequired,
+    item: PropTypes.object.isRequired,
+    onEdit: PropTypes.func.isRequired,
+    onDelete: PropTypes.func.isRequired
   },
 
   canEdit() {

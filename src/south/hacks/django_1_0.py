@@ -12,41 +12,42 @@ from django.utils.datastructures import SortedDict
 
 from south.utils.py3 import string_types
 
+
 class SkipFlushCommand(FlushCommand):
     def handle_noargs(self, **options):
         # no-op to avoid calling flush
         return
 
+
 class Hacks:
-    
+
     def set_installed_apps(self, apps):
         """
         Sets Django's INSTALLED_APPS setting to be effectively the list passed in.
         """
-        
+
         # Make sure it's a list.
         apps = list(apps)
-        
+
         # Make sure it contains strings
         if apps:
-            assert isinstance(apps[0], string_types), "The argument to set_installed_apps must be a list of strings."
-        
+            assert isinstance(
+                apps[0], string_types), "The argument to set_installed_apps must be a list of strings."
+
         # Monkeypatch in!
         settings.INSTALLED_APPS, settings.OLD_INSTALLED_APPS = (
             apps,
             settings.INSTALLED_APPS,
         )
         self._redo_app_cache()
-    
-    
+
     def reset_installed_apps(self):
         """
         Undoes the effect of set_installed_apps.
         """
         settings.INSTALLED_APPS = settings.OLD_INSTALLED_APPS
         self._redo_app_cache()
-    
-    
+
     def _redo_app_cache(self):
         """
         Used to repopulate AppCache after fiddling with INSTALLED_APPS.
@@ -58,24 +59,21 @@ class Hacks:
         cache.app_models = SortedDict()
         cache.app_errors = {}
         cache._populate()
-    
-    
+
     def clear_app_cache(self):
         """
         Clears the contents of AppCache to a blank state, so new models
         from the ORM can be added.
         """
         self.old_app_models, cache.app_models = cache.app_models, {}
-    
-    
+
     def unclear_app_cache(self):
         """
         Reversed the effects of clear_app_cache.
         """
         cache.app_models = self.old_app_models
         cache._get_models_cache = {}
-    
-    
+
     def repopulate_app_cache(self):
         """
         Rebuilds AppCache with the real model definitions.
@@ -105,6 +103,5 @@ class Hacks:
                     # unpatch flush back to the original
                     management._commands['flush'] = original_flush_command
             return wrapper
-            
-        BaseDatabaseCreation.create_test_db = patch(BaseDatabaseCreation.create_test_db)
 
+        BaseDatabaseCreation.create_test_db = patch(BaseDatabaseCreation.create_test_db)

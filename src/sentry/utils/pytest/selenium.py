@@ -292,7 +292,8 @@ def format_log(log):
     timestamp_format = '%Y-%m-%d %H:%M:%S.%f'
     entries = [
         u'{0} {1[level]} - {1[message]}'.format(
-            datetime.utcfromtimestamp(entry['timestamp'] / 1000.0).strftime(timestamp_format), entry
+            datetime.utcfromtimestamp(
+                entry['timestamp'] / 1000.0).strftime(timestamp_format), entry
         ).rstrip() for entry in log
     ]
     log = '\n'.join(entries)

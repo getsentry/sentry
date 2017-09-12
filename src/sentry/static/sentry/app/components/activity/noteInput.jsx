@@ -1,5 +1,8 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import marked from 'marked';
+import {MentionsInput, Mention} from 'react-mentions';
+import PureRenderMixin from 'react-addons-pure-render-mixin';
 
 import ApiMixin from '../../mixins/apiMixin';
 import GroupStore from '../../stores/groupStore';
@@ -9,9 +12,6 @@ import localStorage from '../../utils/localStorage';
 import {t} from '../../locale';
 import mentionsStyle from '../../../styles/mentions-styles';
 
-import {MentionsInput, Mention} from 'react-mentions';
-
-import PureRenderMixin from 'react-addons-pure-render-mixin';
 const localStorageKey = 'noteinput:latest';
 
 function makeDefaultErrorJson() {
@@ -20,11 +20,11 @@ function makeDefaultErrorJson() {
 
 const NoteInput = React.createClass({
   propTypes: {
-    item: React.PropTypes.object,
-    group: React.PropTypes.object.isRequired,
-    onFinish: React.PropTypes.func,
-    memberList: React.PropTypes.array.isRequired,
-    sessionUser: React.PropTypes.object.isRequired
+    item: PropTypes.object,
+    group: PropTypes.object.isRequired,
+    onFinish: PropTypes.func,
+    memberList: PropTypes.array.isRequired,
+    sessionUser: PropTypes.object.isRequired
   },
 
   mixins: [PureRenderMixin, ApiMixin],
@@ -60,9 +60,9 @@ const NoteInput = React.createClass({
       errorJSON: null,
       expanded: false,
       preview: false,
-      updating: updating,
+      updating,
       value: defaultText,
-      mentionsList: mentionsList,
+      mentionsList,
       mentions: []
     };
   },
@@ -125,7 +125,7 @@ const NoteInput = React.createClass({
       method: 'POST',
       data: {
         text: this.state.value,
-        mentions: mentions
+        mentions
       },
       error: error => {
         this.setState({

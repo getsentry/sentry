@@ -133,23 +133,23 @@ class IndexEventTagsTest(TestCase):
 
         tagkey = TagKey.objects.get(
             key='foo',
-            project=self.project,
+            project_id=self.project.id,
         )
         tagvalue = TagValue.objects.get(
             key='foo',
             value='bar',
-            project=self.project,
+            project_id=self.project.id,
         )
         assert (tagkey.id, tagvalue.id) in tags
 
         tagkey = TagKey.objects.get(
             key='biz',
-            project=self.project,
+            project_id=self.project.id,
         )
         tagvalue = TagValue.objects.get(
             key='biz',
             value='baz',
-            project=self.project,
+            project_id=self.project.id,
         )
         assert (tagkey.id, tagvalue.id) in tags
 

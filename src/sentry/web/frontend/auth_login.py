@@ -52,8 +52,17 @@ class AuthLoginView(BaseView):
             initial=initial,
         )
 
-    def handle_basic_auth(self, request):
-        can_register = auth.has_user_registration() or request.session.get('can_register')
+    def can_register(self, request, *args, **kwargs):
+        return auth.has_user_registration() or request.session.get('can_register')
+
+    def get_next_uri(self, request, *args, **kwargs):
+        return request.GET.get(REDIRECT_FIELD_NAME, None)
+
+    def respond_login(self, request, context, *args, **kwargs):
+        return self.respond('sentry/login.html', context)
+
+    def handle_basic_auth(self, request, *args, **kwargs):
+        can_register = self.can_register(request, *args, **kwargs)
 
         op = request.POST.get('op')
 
@@ -118,9 +127,9 @@ class AuthLoginView(BaseView):
             'register_form': register_form,
             'CAN_REGISTER': can_register,
         }
-        return self.respond('sentry/login.html', context)
+        return self.respond_login(request, context, *args, **kwargs)
 
-    def handle_sso(self, request):
+    def handle_sso(self, request, *args, **kwargs):
         org = request.POST.get('organization')
         if not org:
             return HttpResponseRedirect(request.path)
@@ -134,19 +143,27 @@ class AuthLoginView(BaseView):
 
         return HttpResponseRedirect(next_uri)
 
+    def handle_authenticated(self, request, *args, **kwargs):
+        next_uri = self.get_next_uri(request, *args, **kwargs)
+        if auth.is_valid_redirect(next_uri, host=request.get_host()):
+            return self.redirect(next_uri)
+        return self.redirect_to_org(request)
+
     @never_cache
     @transaction.atomic
-    def handle(self, request):
-        next_uri = request.GET.get(REDIRECT_FIELD_NAME, None)
+    def handle(self, request, *args, **kwargs):
+        return super(AuthLoginView, self).handle(request, *args, **kwargs)
+
+    # XXX(dcramer): OAuth provider hooks this view
+    def get(self, request, *args, **kwargs):
+        next_uri = self.get_next_uri(request, *args, **kwargs)
         if request.user.is_authenticated():
-            if auth.is_valid_redirect(next_uri, host=request.get_host()):
-                return self.redirect(next_uri)
-            return self.redirect_to_org(request)
+            return self.handle_authenticated(request, *args, **kwargs)
 
         request.session.set_test_cookie()
 
-        if next_uri:
-            auth.initiate_login(request, next_uri)
+        # we always reset the state on GET so you dont end up at an odd location
+        auth.initiate_login(request, next_uri)
 
         # Single org mode -- send them to the org-specific handler
         if settings.SENTRY_SINGLE_ORGANIZATION:
@@ -154,24 +171,28 @@ class AuthLoginView(BaseView):
             next_uri = reverse('sentry-auth-organization', args=[org.slug])
             return HttpResponseRedirect(next_uri)
 
+        session_expired = 'session_expired' in request.COOKIES
+        if session_expired:
+            messages.add_message(request, messages.WARNING, WARN_SESSION_EXPIRED)
+
+        response = self.handle_basic_auth(request, *args, **kwargs)
+
+        if session_expired:
+            response.delete_cookie('session_expired')
+
+        return response
+
+    # XXX(dcramer): OAuth provider hooks this view
+    def post(self, request, *args, **kwargs):
         op = request.POST.get('op')
         if op == 'sso' and request.POST.get('organization'):
             auth_provider = self.get_auth_provider(request.POST['organization'])
             if auth_provider:
                 next_uri = reverse('sentry-auth-organization', args=[request.POST['organization']])
             else:
-                next_uri = request.path
+                next_uri = request.get_full_path()
                 messages.add_message(request, messages.ERROR, ERR_NO_SSO)
 
             return HttpResponseRedirect(next_uri)
 
-        session_expired = 'session_expired' in request.COOKIES
-        if session_expired:
-            messages.add_message(request, messages.WARNING, WARN_SESSION_EXPIRED)
-
-        response = self.handle_basic_auth(request)
-
-        if session_expired:
-            response.delete_cookie('session_expired')
-
-        return response
+        return self.handle_basic_auth(request, *args, **kwargs)

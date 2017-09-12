@@ -1,8 +1,9 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 
 export default React.createClass({
   propTypes: {
-    value: React.PropTypes.any.isRequired
+    value: PropTypes.any.isRequired
   },
 
   shouldComponentUpdate(nextProps, nextState) {

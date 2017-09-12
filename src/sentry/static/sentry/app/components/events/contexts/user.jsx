@@ -1,4 +1,6 @@
 /*eslint react/jsx-key:0*/
+import PropTypes from 'prop-types';
+
 import React from 'react';
 import _ from 'lodash';
 
@@ -7,7 +9,7 @@ import KeyValueList from '../interfaces/keyValueList';
 
 const UserContextType = React.createClass({
   propTypes: {
-    data: React.PropTypes.object.isRequired
+    data: PropTypes.object.isRequired
   },
 
   render() {

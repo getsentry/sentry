@@ -10,9 +10,9 @@ class GroupTagKeyValuesTest(APITestCase):
 
         project = self.create_project()
         group = self.create_group(project=project)
-        TagKey.objects.create(project=project, key=key)
+        TagKey.objects.create(project_id=project.id, key=key)
         TagValue.objects.create(
-            project=project,
+            project_id=project.id,
             key=key,
             value=value,
         )
@@ -45,11 +45,11 @@ class GroupTagKeyValuesTest(APITestCase):
             ip_address='127.0.0.1',
         )
         TagKey.objects.create(
-            project=project,
+            project_id=project.id,
             key='sentry:user',
         )
         TagValue.objects.create(
-            project=project,
+            project_id=project.id,
             key='sentry:user',
             value=euser.tag_value,
         )

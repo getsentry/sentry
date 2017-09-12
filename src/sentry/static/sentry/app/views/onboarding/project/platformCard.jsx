@@ -1,13 +1,14 @@
+import PropTypes from 'prop-types';
 import React from 'react';
+import classnames from 'classnames';
 
 import {flattenedPlatforms} from '../utils';
 import PlatformiconTile from './platformiconTile';
-import classnames from 'classnames';
 
 const PlatformCard = React.createClass({
   propTypes: {
-    platform: React.PropTypes.string,
-    onClick: React.PropTypes.func
+    platform: PropTypes.string,
+    onClick: PropTypes.func
   },
 
   render() {

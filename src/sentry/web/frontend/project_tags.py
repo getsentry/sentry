@@ -7,7 +7,7 @@ from sentry.web.frontend.base import ProjectView
 class ProjectTagsView(ProjectView):
     def get(self, request, organization, team, project):
         tag_list = TagKey.objects.filter(
-            project=project,
+            project_id=project.id,
             status=TagKeyStatus.VISIBLE,
         )
 

@@ -52,9 +52,15 @@ module.exports = {
       Raven: 'raven-js',
       underscore: 'underscore',
       _: 'underscore'
+    }),
+    new webpack.DefinePlugin({
+      'process.env': {
+        IS_PERCY: true
+      }
     })
   ],
   resolve: {
+    extensions: appConfig.resolve.extensions,
     alias: Object.assign({}, appConfig.resolve.alias, {
       'sentry-ui': componentPath
     })

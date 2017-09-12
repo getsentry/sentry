@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 
 import ApiMixin from '../../mixins/apiMixin';
@@ -9,8 +10,8 @@ import {t} from '../../locale';
 
 const AccountLimit = React.createClass({
   propTypes: {
-    value: React.PropTypes.number,
-    onChange: React.PropTypes.func.isRequired
+    value: PropTypes.number,
+    onChange: PropTypes.func.isRequired
   },
 
   getRateLimitValues() {
@@ -51,7 +52,7 @@ const AccountLimit = React.createClass({
 
 const RateLimitEditor = React.createClass({
   propTypes: {
-    organization: React.PropTypes.object.isRequired
+    organization: PropTypes.object.isRequired
   },
 
   mixins: [ApiMixin],

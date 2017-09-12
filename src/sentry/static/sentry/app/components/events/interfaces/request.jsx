@@ -1,6 +1,7 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import GroupEventDataSection from '../eventDataSection';
-import PropTypes from '../../../proptypes';
+import SentryTypes from '../../../proptypes';
 import RichHttpContent from './richHttpContent';
 import {getCurlCommand} from './utils';
 import {isUrl} from '../../../utils';
@@ -10,21 +11,21 @@ import Truncate from '../../../components/truncate';
 
 const RequestInterface = React.createClass({
   propTypes: {
-    group: PropTypes.Group.isRequired,
-    event: PropTypes.Event.isRequired,
-    type: React.PropTypes.string.isRequired,
-    data: React.PropTypes.object.isRequired,
-    isShare: React.PropTypes.bool
+    group: SentryTypes.Group.isRequired,
+    event: SentryTypes.Event.isRequired,
+    type: PropTypes.string.isRequired,
+    data: PropTypes.object.isRequired,
+    isShare: PropTypes.bool
   },
 
   contextTypes: {
-    organization: PropTypes.Organization,
-    project: PropTypes.Project
+    organization: SentryTypes.Organization,
+    project: SentryTypes.Project
   },
 
   getInitialState() {
     return {
-      view: 'rich'
+      view: 'formatted'
     };
   },
 
@@ -68,10 +69,10 @@ const RequestInterface = React.createClass({
       children.push(
         <div key="view-buttons" className="btn-group">
           <a
-            className={(view === 'rich' ? 'active' : '') + ' btn btn-default btn-sm'}
-            onClick={this.toggleView.bind(this, 'rich')}>
-            {/* Translators: this means "rich" rendering (fancy tables) */
-            t('Rich')}
+            className={(view === 'formatted' ? 'active' : '') + ' btn btn-default btn-sm'}
+            onClick={this.toggleView.bind(this, 'formatted')}>
+            {/* Translators: this means "formatted" rendering (fancy tables) */
+            t('Formatted')}
           </a>
           <a
             className={(view === 'curl' ? 'active' : '') + ' btn btn-default btn-sm'}

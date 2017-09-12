@@ -15,7 +15,8 @@ const optionsAvailable = [
   'auth.allow-registration',
   'auth.ip-rate-limit',
   'auth.user-rate-limit',
-  'api.rate-limit.org-create'
+  'api.rate-limit.org-create',
+  'beacon.anonymous'
 ];
 
 export default class AdminSettings extends AsyncView {
@@ -62,6 +63,9 @@ export default class AdminSettings extends AsyncView {
           {fields['auth.ip-rate-limit']}
           {fields['auth.user-rate-limit']}
           {fields['api.rate-limit.org-create']}
+
+          <h4>Beacon</h4>
+          {fields['beacon.anonymous']}
         </ApiForm>
       </div>
     );

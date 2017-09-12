@@ -67,7 +67,7 @@ class GroupSnoozeTest(TestCase):
             state={'users_seen': 0},
         )
         GroupTagKey.objects.create(
-            group=self.group,
+            group_id=self.group.id,
             key='sentry:user',
             values_seen=100,
         )

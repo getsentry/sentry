@@ -12,6 +12,15 @@ from sentry.models import ApiToken
 from sentry.utils.http import absolute_uri
 
 
+class ProjectProcessingIssuesDiscardEndpoint(ProjectEndpoint):
+    def delete(self, request, project):
+        """
+        This dicards all open processing issues
+        """
+        ProcessingIssue.objects.discard_all_processing_issue(project=project)
+        return Response(status=200)
+
+
 class ProjectProcessingIssuesFixEndpoint(ProjectEndpoint):
     def get(self, request, project):
         token = None

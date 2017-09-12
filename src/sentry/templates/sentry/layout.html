@@ -35,8 +35,8 @@
 
   <script>
   window.csrfCookieName = '{{ CSRF_COOKIE_NAME }}';
+  window.globalStaticUrl = '{% asset_url "sentry" "dist/" %}';
   </script>
-
 
   {% block scripts %}
   <script src="{% asset_url "sentry" "dist/vendor.js" %}"{% crossorigin %}></script>

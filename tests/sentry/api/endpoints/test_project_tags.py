@@ -12,7 +12,7 @@ class ProjectTagsTest(APITestCase):
 
         for key in ('foo', 'bar'):
             TagKey.objects.create(
-                project=project,
+                project_id=project.id,
                 key=key,
             )
 

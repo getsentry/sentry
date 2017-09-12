@@ -1,17 +1,19 @@
+import PropTypes from 'prop-types';
 import React from 'react';
-import utils from '../utils';
 import {browserHistory} from 'react-router';
+
+import utils from '../utils';
 import {t} from '../locale';
 
 export default React.createClass({
   propTypes: {
-    pageLinks: React.PropTypes.string,
-    to: React.PropTypes.string,
-    onCursor: React.PropTypes.func
+    pageLinks: PropTypes.string,
+    to: PropTypes.string,
+    onCursor: PropTypes.func
   },
 
   contextTypes: {
-    location: React.PropTypes.object
+    location: PropTypes.object
   },
 
   getDefaultProps() {
@@ -19,7 +21,7 @@ export default React.createClass({
       onCursor: (cursor, path, query) => {
         browserHistory.pushState(null, path, {
           ...query,
-          cursor: cursor
+          cursor
         });
       }
     };

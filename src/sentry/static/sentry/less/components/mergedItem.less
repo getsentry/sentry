@@ -1,0 +1,79 @@
+@import '../palette.less';
+
+.merged-list {
+  border: 1px solid @trim;
+  border-bottom: none;
+}
+
+.merged-group {
+  &.busy {
+    opacity: 0.2;
+  }
+  &:first-child {
+    .merged-controls {
+      border-top: none;
+    }
+  }
+
+  &:last-child {
+    .merged-controls {
+      border-bottom: 1px solid @trim;
+    }
+  }
+}
+
+.expanded {
+  .merged-controls {
+    border-bottom: 1px solid @trim;
+  }
+}
+
+.merged-controls {
+  border-top: 1px solid @trim;
+  background-color: #f3f1f6;
+  padding: 5px 0;
+
+  .action-column {
+    padding: 0 10px;
+    display: flex;
+    align-items: center;
+
+    input {
+      margin: 0;
+    }
+  }
+
+  label {
+    margin: 0;
+    font-weight: normal;
+  }
+}
+
+
+.merged-collapse {
+  cursor: pointer;
+  padding: 0 10px;
+}
+
+.merged-list .table {
+  table-layout: fixed;
+
+  & > thead > tr > th,
+  & > tbody > tr > td {
+    width: 300px;
+  }
+}
+
+.merged-events-list {
+  &.event-list {
+    border: none;
+  }
+}
+
+.fingerprint {
+  font-family: Monaco, monospace;
+}
+
+.merged-toolbar {
+  padding: 5px 10px;
+}

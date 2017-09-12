@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import DateTime from '../../components/dateTime';
 import TimeSince from '../../components/timeSince';
@@ -10,19 +11,19 @@ import {t} from '../../locale';
 
 const SeenInfo = React.createClass({
   propTypes: {
-    orgId: React.PropTypes.string.isRequired,
-    projectId: React.PropTypes.string.isRequired,
-    date: React.PropTypes.any,
-    dateGlobal: React.PropTypes.any,
-    release: React.PropTypes.shape({
-      version: React.PropTypes.string.isRequired
+    orgId: PropTypes.string.isRequired,
+    projectId: PropTypes.string.isRequired,
+    date: PropTypes.any,
+    dateGlobal: PropTypes.any,
+    release: PropTypes.shape({
+      version: PropTypes.string.isRequired
     }),
-    environment: React.PropTypes.string,
-    hasRelease: React.PropTypes.bool.isRequired
+    environment: PropTypes.string,
+    hasRelease: PropTypes.bool.isRequired
   },
 
   contextTypes: {
-    organization: React.PropTypes.object
+    organization: PropTypes.object
   },
 
   mixins: [

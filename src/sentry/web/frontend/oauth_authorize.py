@@ -1,25 +1,27 @@
 from __future__ import absolute_import, print_function
 
+import logging
 import six
 
 from django.conf import settings
 from django.db import IntegrityError, transaction
 from django.utils import timezone
 from django.utils.safestring import mark_safe
-from django.views.decorators.cache import never_cache
 from six.moves.urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 
 from sentry.models import (
     ApiApplication, ApiApplicationStatus, ApiAuthorization, ApiGrant, ApiToken
 )
-from sentry.web.frontend.base import BaseView
+from sentry.web.frontend.auth_login import AuthLoginView
+
+logger = logging.getLogger('sentry.api')
 
 
-class OAuthAuthorizeView(BaseView):
-    @never_cache
-    def dispatch(self, request, *args, **kwargs):
-        with transaction.atomic():
-            return super(OAuthAuthorizeView, self).dispatch(request, *args, **kwargs)
+class OAuthAuthorizeView(AuthLoginView):
+    auth_required = False
+
+    def get_next_uri(self, request, *args, **kwargs):
+        return request.get_full_path()
 
     def redirect_response(self, response_type, redirect_uri, params):
         if response_type == 'token':
@@ -38,13 +40,23 @@ class OAuthAuthorizeView(BaseView):
         parts[4] = urlencode(query)
         return self.redirect(urlunparse(parts))
 
-    def error(self, response_type, redirect_uri, name, state=None):
+    def error(self, request, response_type, redirect_uri, name, state=None, client_id=None):
+        logging.error('oauth.authorize-error', extra={
+            'error_name': name,
+            'response_type': response_type,
+            'client_id': client_id,
+            'redirect_uri': redirect_uri,
+        })
         return self.redirect_response(
             response_type, redirect_uri, {
                 'error': name,
                 'state': state,
             }
         )
+
+    def respond_login(self, request, context, application):
+        context['banner'] = 'Connect Sentry to {}'.format(application.name)
+        return self.respond('sentry/login.html', context)
 
     def get(self, request):
         response_type = request.GET.get('response_type')
@@ -55,6 +67,12 @@ class OAuthAuthorizeView(BaseView):
         force_prompt = request.GET.get('force_prompt')
 
         if not client_id:
+            logging.error('oauth.authorize-error', extra={
+                'error_name': 'unauthorized_client',
+                'response_type': response_type,
+                'client_id': client_id,
+                'redirect_uri': redirect_uri,
+            })
             return self.respond(
                 'sentry/oauth-error.html', {
                     'error': mark_safe('Missing or invalid <em>client_id</em> parameter.'),
@@ -67,6 +85,12 @@ class OAuthAuthorizeView(BaseView):
                 status=ApiApplicationStatus.active,
             )
         except ApiApplication.DoesNotExist:
+            logging.error('oauth.authorize-error', extra={
+                'error_name': 'unauthorized_client',
+                'response_type': response_type,
+                'client_id': client_id,
+                'redirect_uri': redirect_uri,
+            })
             return self.respond(
                 'sentry/oauth-error.html', {
                     'error': mark_safe('Missing or invalid <em>client_id</em> parameter.'),
@@ -76,6 +100,12 @@ class OAuthAuthorizeView(BaseView):
         if not redirect_uri:
             redirect_uri = application.get_default_redirect_uri()
         elif not application.is_valid_redirect_uri(redirect_uri):
+            logging.error('oauth.authorize-error', extra={
+                'error_name': 'invalid_request',
+                'response_type': response_type,
+                'client_id': client_id,
+                'redirect_uri': redirect_uri,
+            })
             return self.respond(
                 'sentry/oauth-error.html', {
                     'error': mark_safe('Missing or invalid <em>redirect_uri</em> parameter.'),
@@ -84,6 +114,8 @@ class OAuthAuthorizeView(BaseView):
 
         if not application.is_allowed_response_type(response_type):
             return self.error(
+                request=request,
+                client_id=client_id,
                 response_type=response_type,
                 redirect_uri=redirect_uri,
                 name='unsupported_response_type',
@@ -95,6 +127,8 @@ class OAuthAuthorizeView(BaseView):
             for scope in scopes:
                 if scope not in settings.SENTRY_SCOPES:
                     return self.error(
+                        request=request,
+                        client_id=client_id,
                         response_type=response_type,
                         redirect_uri=redirect_uri,
                         name='invalid_scope',
@@ -102,6 +136,19 @@ class OAuthAuthorizeView(BaseView):
                     )
         else:
             scopes = []
+
+        payload = {
+            'rt': response_type,
+            'cid': client_id,
+            'ru': redirect_uri,
+            'sc': scopes,
+            'st': state,
+            'uid': request.user.id if request.user.is_authenticated() else '',
+        }
+        request.session['oa2'] = payload
+
+        if not request.user.is_authenticated():
+            return super(OAuthAuthorizeView, self).get(request, application)
 
         if not force_prompt:
             try:
@@ -171,14 +218,6 @@ class OAuthAuthorizeView(BaseView):
                 }
             )
 
-        if payload['uid'] != request.user.id:
-            return self.respond(
-                'sentry/oauth-error.html', {
-                    'error':
-                    'We were unable to complete your request. Please re-initiate the authorization flow.',
-                }
-            )
-
         try:
             application = ApiApplication.objects.get(
                 client_id=payload['cid'],
@@ -188,6 +227,22 @@ class OAuthAuthorizeView(BaseView):
             return self.respond(
                 'sentry/oauth-error.html', {
                     'error': mark_safe('Missing or invalid <em>client_id</em> parameter.'),
+                }
+            )
+
+        if not request.user.is_authenticated():
+            response = super(OAuthAuthorizeView, self).post(request, application)
+            # once they login, bind their user ID
+            if request.user.is_authenticated():
+                request.session['oa2']['uid'] = request.user.id
+                request.session.modified = True
+            return response
+
+        if payload['uid'] != request.user.id:
+            return self.respond(
+                'sentry/oauth-error.html', {
+                    'error':
+                    'We were unable to complete your request. Please re-initiate the authorization flow.',
                 }
             )
 
@@ -208,6 +263,8 @@ class OAuthAuthorizeView(BaseView):
 
         elif op == 'deny':
             return self.error(
+                request=request,
+                client_id=payload['cid'],
                 response_type=response_type,
                 redirect_uri=redirect_uri,
                 name='access_denied',
@@ -263,7 +320,7 @@ class OAuthAuthorizeView(BaseView):
                 params['redirect_uri'],
                 {
                     'access_token': token.token,
-                    'expires_in': (timezone.now() - token.expires_at).total_seconds(),
+                    'expires_in': int((timezone.now() - token.expires_at).total_seconds()),
                     'expires_at': token.expires_at.strftime('%Y-%m-%dT%H:%M:%S.%fZ'),
                     'token_type': 'bearer',
                     'scope': ' '.join(token.get_scopes()),  # NOQA

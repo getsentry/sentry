@@ -131,7 +131,9 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint):
         if serializer.is_valid():
             result = serializer.object
 
-            allowed_projects = {p.slug: p for p in self.get_allowed_projects(request, organization)}
+            allowed_projects = {
+                p.slug: p for p in self.get_allowed_projects(
+                    request, organization)}
 
             projects = []
             for slug in result['projects']:

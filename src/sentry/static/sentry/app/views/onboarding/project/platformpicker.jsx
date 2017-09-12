@@ -1,7 +1,8 @@
+import PropTypes from 'prop-types';
 import React from 'react';
-import ListLink from '../../../components/listLink';
 import classnames from 'classnames';
 
+import ListLink from '../../../components/listLink';
 import {flattenedPlatforms, categoryLists} from '../utils';
 import PlatformCard from './platformCard';
 import {t} from '../../../locale';
@@ -10,9 +11,9 @@ const categoryList = Object.keys(categoryLists).concat('All');
 
 const PlatformPicker = React.createClass({
   propTypes: {
-    setPlatform: React.PropTypes.func.isRequired,
-    platform: React.PropTypes.string,
-    showOther: React.PropTypes.bool
+    setPlatform: PropTypes.func.isRequired,
+    platform: PropTypes.string,
+    showOther: PropTypes.bool
   },
 
   getDefaultProps() {
@@ -22,7 +23,7 @@ const PlatformPicker = React.createClass({
   getInitialState() {
     return {
       tab: categoryList[0],
-      filter: ''
+      filter: (this.props.platform || '').split('-')[0]
     };
   },
 
@@ -102,8 +103,7 @@ const PlatformPicker = React.createClass({
                   e.preventDefault();
                 }}
                 to={''}
-                isActive={() =>
-                  (filter ? categoryName === 'All' : categoryName === this.state.tab)}>
+                isActive={() => categoryName === (filter ? 'All' : this.state.tab)}>
                 {categoryName}
               </ListLink>
             );

@@ -165,7 +165,11 @@ class Group(Model):
     __core__ = False
 
     project = FlexibleForeignKey('sentry.Project', null=True)
-    logger = models.CharField(max_length=64, blank=True, default=DEFAULT_LOGGER_NAME, db_index=True)
+    logger = models.CharField(
+        max_length=64,
+        blank=True,
+        default=DEFAULT_LOGGER_NAME,
+        db_index=True)
     level = BoundedPositiveIntegerField(
         choices=LOG_LEVELS.items(), default=logging.ERROR, blank=True, db_index=True
     )
@@ -292,7 +296,8 @@ class Group(Model):
         return cls.objects.get(project=project_id, id=group_id)
 
     def get_score(self):
-        return int(math.log(self.times_seen) * 600 + float(time.mktime(self.last_seen.timetuple())))
+        return int(math.log(self.times_seen) * 600 +
+                   float(time.mktime(self.last_seen.timetuple())))
 
     def get_latest_event(self):
         from sentry.models import Event
@@ -348,8 +353,8 @@ class Group(Model):
         from sentry.models import GroupTagKey, TagKey
         if not hasattr(self, '_tag_cache'):
             group_tags = GroupTagKey.objects.filter(
-                group=self,
-                project=self.project,
+                group_id=self.id,
+                project_id=self.project_id,
             )
             if not with_internal:
                 group_tags = group_tags.exclude(key__startswith='sentry:')
@@ -357,7 +362,7 @@ class Group(Model):
             group_tags = list(group_tags.values_list('key', flat=True))
 
             tag_keys = dict(
-                (t.key, t) for t in TagKey.objects.filter(project=self.project, key__in=group_tags)
+                (t.key, t) for t in TagKey.objects.filter(project_id=self.project_id, key__in=group_tags)
             )
 
             results = []
@@ -472,6 +477,6 @@ class Group(Model):
         from sentry.models import GroupTagKey
 
         return GroupTagKey.objects.filter(
-            group=self,
+            group_id=self.id,
             key='sentry:user',
         ).aggregate(t=models.Sum('values_seen'))['t'] or 0

@@ -18,7 +18,7 @@ class TagValueSerializerTest(TestCase):
             email='foo@example.com',
         )
         tagvalue = TagValue.objects.create(
-            project=project,
+            project_id=project.id,
             key='sentry:user',
             value=euser.tag_value,
         )
@@ -33,7 +33,7 @@ class TagValueSerializerTest(TestCase):
         user = self.create_user()
         project = self.create_project()
         tagvalue = TagValue.objects.create(
-            project=project,
+            project_id=project.id,
             key='sentry:user',
             value='email:foo@example.com',
         )

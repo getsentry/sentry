@@ -1,4 +1,5 @@
 import classNames from 'classnames';
+import PropTypes from 'prop-types';
 import React from 'react';
 
 function ToastIndicator({type, children}) {
@@ -11,7 +12,7 @@ function ToastIndicator({type, children}) {
 }
 
 ToastIndicator.propTypes = {
-  type: React.PropTypes.string.isRequired
+  type: PropTypes.string.isRequired
 };
 
 export default ToastIndicator;

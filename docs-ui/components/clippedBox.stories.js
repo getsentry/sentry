@@ -1,16 +1,13 @@
 import React from 'react';
 import {storiesOf} from '@storybook/react';
+import {withInfo} from '@storybook/addon-info';
 // import {action} from '@storybook/addon-actions';
 
 import ClippedBox from 'sentry-ui/clippedBox';
 
-storiesOf(
-  'ClippedBox',
-  module
-).addWithInfo(
+storiesOf('ClippedBox', module).add(
   'default',
-  'Component that clips content and allows expansion of container',
-  () => (
+  withInfo('Component that clips content and allows expansion of container')(() => (
     <div>
       <div>
         <ClippedBox
@@ -24,5 +21,5 @@ storiesOf(
         </ClippedBox>
       </div>
     </div>
-  )
+  ))
 );

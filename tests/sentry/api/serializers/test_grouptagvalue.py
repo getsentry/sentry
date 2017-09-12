@@ -18,7 +18,7 @@ class GroupTagValueSerializerTest(TestCase):
             email='foo@example.com',
         )
         tagvalue = TagValue.objects.create(
-            project=project,
+            project_id=project.id,
             key='sentry:user',
             value=euser.tag_value,
         )

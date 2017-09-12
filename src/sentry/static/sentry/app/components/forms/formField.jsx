@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import idx from 'idx';
 
@@ -5,19 +6,19 @@ import {defined} from '../../utils';
 
 export default class FormField extends React.Component {
   static propTypes = {
-    name: React.PropTypes.string.isRequired,
+    name: PropTypes.string.isRequired,
 
-    label: React.PropTypes.string,
-    defaultValue: React.PropTypes.any,
-    disabled: React.PropTypes.bool,
-    disabledReason: React.PropTypes.string,
-    help: React.PropTypes.oneOfType([React.PropTypes.string, React.PropTypes.element]),
-    required: React.PropTypes.bool,
+    label: PropTypes.string,
+    defaultValue: PropTypes.any,
+    disabled: PropTypes.bool,
+    disabledReason: PropTypes.string,
+    help: PropTypes.oneOfType([PropTypes.string, PropTypes.element]),
+    required: PropTypes.bool,
 
     // the following should only be used without form context
-    onChange: React.PropTypes.func,
-    error: React.PropTypes.string,
-    value: React.PropTypes.any
+    onChange: PropTypes.func,
+    error: PropTypes.string,
+    value: PropTypes.any
   };
 
   static defaultProps = {
@@ -26,7 +27,7 @@ export default class FormField extends React.Component {
   };
 
   static contextTypes = {
-    form: React.PropTypes.object
+    form: PropTypes.object
   };
 
   constructor(props, context) {
@@ -84,7 +85,7 @@ export default class FormField extends React.Component {
     let form = (this.context || {}).form;
     this.setState(
       {
-        value: value
+        value
       },
       () => {
         this.props.onChange && this.props.onChange(this.coerceValue(this.state.value));

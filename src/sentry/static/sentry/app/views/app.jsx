@@ -1,3 +1,6 @@
+/*global __webpack_public_path__ */
+/*eslint no-native-reassign:0 */
+import PropTypes from 'prop-types';
 import React from 'react';
 import $ from 'jquery';
 import Cookies from 'js-cookie';
@@ -14,6 +17,8 @@ import OrganizationStore from '../stores/organizationStore';
 
 import {t} from '../locale';
 
+if (window.globalStaticUrl) __webpack_public_path__ = window.globalStaticUrl; // defined in layout.html
+
 function getAlertTypeForProblem(problem) {
   switch (problem.severity) {
     case 'critical':
@@ -25,7 +30,7 @@ function getAlertTypeForProblem(problem) {
 
 const App = React.createClass({
   childContextTypes: {
-    location: React.PropTypes.object
+    location: PropTypes.object
   },
 
   mixins: [ApiMixin],

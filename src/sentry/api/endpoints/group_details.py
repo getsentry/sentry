@@ -212,7 +212,7 @@ class GroupDetailsEndpoint(GroupEndpoint):
             last_release = self._get_release_info(request, group, last_release)
 
         tags = list(GroupTagKey.objects.filter(
-            group=group,
+            group_id=group.id,
         )[:100])
 
         participants = list(

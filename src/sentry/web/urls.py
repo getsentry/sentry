@@ -27,7 +27,6 @@ from sentry.web.frontend.auth_provider_login import AuthProviderLoginView
 from sentry.web.frontend.auth_close import AuthCloseView
 from sentry.web.frontend.create_organization_member import \
     CreateOrganizationMemberView
-from sentry.web.frontend.create_project import CreateProjectView
 from sentry.web.frontend.error_page_embed import ErrorPageEmbedView
 from sentry.web.frontend.group_event_json import GroupEventJsonView
 from sentry.web.frontend.group_plugin_action import GroupPluginActionView
@@ -37,6 +36,7 @@ from sentry.web.frontend.mailgun_inbound_webhook import \
     MailgunInboundWebhookView
 from sentry.web.frontend.oauth_authorize import OAuthAuthorizeView
 from sentry.web.frontend.oauth_token import OAuthTokenView
+from sentry.auth.providers.saml2 import SAML2ACSView, SAML2MetadataView
 from sentry.web.frontend.organization_api_key_settings import \
     OrganizationApiKeySettingsView
 from sentry.web.frontend.organization_api_keys import OrganizationApiKeysView
@@ -137,6 +137,12 @@ urlpatterns += patterns(
     # OAuth
     url(r'^oauth/authorize/$', OAuthAuthorizeView.as_view()),
     url(r'^oauth/token/$', OAuthTokenView.as_view()),
+
+    # SAML
+    url(r'^saml/acs/(?P<organization_slug>[^/]+)/$', SAML2ACSView.as_view(),
+        name='sentry-auth-organization-saml-acs'),
+    url(r'^saml/metadata/(?P<organization_slug>[^/]+)/$', SAML2MetadataView.as_view(),
+        name='sentry-auth-organization-saml-metadata'),
 
     # Auth
     url(
@@ -341,11 +347,6 @@ urlpatterns += patterns(
     ),
     url(r'^organizations/(?P<organization_slug>[\w_-]+)/teams/new/$', react_page_view),
     url(
-        r'^organizations/(?P<organization_slug>[\w_-]+)/projects/new/$',
-        CreateProjectView.as_view(),
-        name='sentry-create-project'
-    ),
-    url(
         r'^organizations/(?P<organization_slug>[\w_-]+)/remove/$',
         RemoveOrganizationView.as_view(),
         name='sentry-remove-organization'
@@ -442,6 +443,10 @@ urlpatterns += patterns(
     url(r'^crossdomain\.xml$', api.crossdomain_xml_index, name='sentry-api-crossdomain-xml-index'),
 
     # plugins
+    # XXX(dcramer): preferably we'd be able to use 'integrations' as the URL
+    # prefix here, but unfortunately sentry.io has that mapped to marketing
+    # assets for the time being
+    url(r'^extensions/cloudflare/', include('sentry.integrations.cloudflare.urls')),
     url(r'^plugins/', include('sentry.plugins.base.urls')),
 
     # Generic API

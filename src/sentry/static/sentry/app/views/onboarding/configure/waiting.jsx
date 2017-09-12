@@ -1,9 +1,11 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import {t} from '../../../locale';
 
 const Waiting = React.createClass({
   propTypes: {
-    skip: React.PropTypes.func
+    skip: PropTypes.func,
+    hasEvent: PropTypes.bool.isRequired
   },
 
   render() {
@@ -15,7 +17,9 @@ const Waiting = React.createClass({
           </div>
         </div>
         <div className="wrap waiting-text">
-          <h3 className="animated-ellipsis">{t('Waiting to receive an error')}</h3>
+          {!this.props.hasEvent
+            ? <h3 className="animated-ellipsis">{t('Waiting to receive an error')}</h3>
+            : <h3>{t("You've successfully sent an error")}</h3>}
           <div className="robot">
             <span className="eye" />
           </div>

@@ -513,7 +513,8 @@ def prepare_reports(dry_run=False, *args, **kwargs):
         prepare_organization_report.delay(timestamp, duration, organization_id, dry_run=dry_run)
 
 
-@instrumented_task(name='sentry.tasks.reports.prepare_organization_report', queue='reports.prepare')
+@instrumented_task(name='sentry.tasks.reports.prepare_organization_report',
+                   queue='reports.prepare')
 def prepare_organization_report(timestamp, duration, organization_id, dry_run=False):
     try:
         organization = _get_organization_queryset().get(id=organization_id)
@@ -847,7 +848,9 @@ def to_context(organization, interval, reports):
             list(
                 zip(
                     (
-                        DistributionType('New', '#8477e0'), DistributionType('Reopened', '#6C5FC7'),
+                        DistributionType(
+                            'New', '#8477e0'), DistributionType(
+                            'Reopened', '#6C5FC7'),
                         DistributionType('Existing', '#534a92'),
                     ),
                     report.issue_summaries,

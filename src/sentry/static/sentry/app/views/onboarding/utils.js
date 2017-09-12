@@ -1,4 +1,5 @@
 // import {platforms} from '../../../../../integration-docs/_platforms.json';
+// eslint-disable-next-line import/extensions
 import {platforms} from 'integration-docs-platforms';
 
 const Popular = [
@@ -13,7 +14,12 @@ const Popular = [
   'php-symfony2',
   'java',
   'csharp',
-  'exilir'
+  'exilir',
+  'php',
+  'ruby',
+  'node',
+  'cocoa',
+  'javascript-angular'
 ];
 
 const Frontend = [

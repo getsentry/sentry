@@ -174,17 +174,17 @@ class SentryRemoteTest(TestCase):
 
         assert TagKey.objects.filter(
             key='foo',
-            project=self.project,
+            project_id=self.project.id,
         ).exists()
         assert TagValue.objects.filter(
             key='foo',
             value='bar',
-            project=self.project,
+            project_id=self.project.id,
         ).exists()
         assert GroupTagKey.objects.filter(
             key='foo',
-            group=instance.group_id,
-            project=self.project,
+            group_id=instance.group_id,
+            project_id=self.project.id,
         ).exists()
         assert GroupTagValue.objects.filter(
             key='foo',

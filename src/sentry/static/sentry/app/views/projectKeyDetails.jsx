@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import DocumentTitle from 'react-document-title';
 import {isEqual} from 'lodash';
@@ -30,8 +31,8 @@ const KeyStats = React.createClass({
     let since = until - 3600 * 24 * 30;
 
     return {
-      since: since,
-      until: until,
+      since,
+      until,
       loading: true,
       error: false,
       stats: null,
@@ -61,8 +62,8 @@ const KeyStats = React.createClass({
           };
         });
         this.setState({
-          stats: stats,
-          emptyStats: emptyStats,
+          stats,
+          emptyStats,
           error: false,
           loading: false
         });
@@ -126,14 +127,14 @@ const KeyStats = React.createClass({
 
 const KeySettings = React.createClass({
   propTypes: {
-    organization: React.PropTypes.object.isRequired,
-    project: React.PropTypes.object.isRequired,
-    access: React.PropTypes.object.isRequired,
-    data: React.PropTypes.object.isRequired,
-    initialData: React.PropTypes.object,
-    onRemove: React.PropTypes.func.isRequired,
-    onSave: React.PropTypes.func.isRequired,
-    rateLimitsEnabled: React.PropTypes.bool
+    organization: PropTypes.object.isRequired,
+    project: PropTypes.object.isRequired,
+    access: PropTypes.object.isRequired,
+    data: PropTypes.object.isRequired,
+    initialData: PropTypes.object,
+    onRemove: PropTypes.func.isRequired,
+    onSave: PropTypes.func.isRequired,
+    rateLimitsEnabled: PropTypes.bool
   },
 
   mixins: [ApiMixin],
@@ -233,15 +234,15 @@ const KeySettings = React.createClass({
   getRateLimitWindows() {
     return [
       ['', ''],
-      [1, '1 minute'],
-      [5, '5 minutes'],
-      [15, '15 minutes'],
-      [60, '1 hour'],
-      [120, '2 hours'],
-      [240, '4 hours'],
-      [360, '6 hours'],
-      [720, '12 hours'],
-      [1440, '24 hours']
+      [60, '1 minute'],
+      [300, '5 minutes'],
+      [900, '15 minutes'],
+      [3600, '1 hour'],
+      [7200, '2 hours'],
+      [14400, '4 hours'],
+      [21600, '6 hours'],
+      [43200, '12 hours'],
+      [86400, '24 hours']
     ];
   },
 
@@ -487,7 +488,7 @@ export default React.createClass({
         this.setState({
           error: false,
           loading: false,
-          data: data
+          data
         });
       },
       error: () => {

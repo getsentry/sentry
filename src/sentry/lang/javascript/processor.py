@@ -505,9 +505,15 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
         platform = frame.get('platform') or self.data.get('platform')
         return (settings.SENTRY_SCRAPE_JAVASCRIPT_CONTEXT and platform == 'javascript')
 
+    def preprocess_frame(self, processable_frame):
+        # Stores the resolved token.  This is used to cross refer to other
+        # frames for function name resolution by call site.
+        processable_frame.data = {
+            'token': None,
+        }
+
     def process_frame(self, processable_frame, processing_task):
         frame = processable_frame.frame
-        last_token = None
         token = None
 
         cache = self.cache
@@ -515,8 +521,8 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
         all_errors = []
         sourcemap_applied = False
 
-        # can't fetch source if there's no filename present
-        if not frame.get('abs_path'):
+        # can't fetch source if there's no filename present or no line
+        if not frame.get('abs_path') or not frame.get('lineno'):
             return
 
         errors = cache.get_errors(frame['abs_path'])
@@ -541,8 +547,6 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
                 }
             )
         elif sourcemap_view:
-            last_token = token
-
             if is_data_uri(sourcemap_url):
                 sourcemap_label = frame['abs_path']
             else:
@@ -554,7 +558,7 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
                 # Errors are 1-indexed in the frames, so we need to -1 to get
                 # zero-indexed value from tokens.
                 assert frame['lineno'] > 0, "line numbers are 1-indexed"
-                token = sourcemap_view.lookup_token(frame['lineno'] - 1, frame['colno'])
+                token = sourcemap_view.lookup_token(frame['lineno'] - 1, frame['colno'] - 1)
             except Exception:
                 token = None
                 all_errors.append(
@@ -566,6 +570,9 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
                         'sourcemap': sourcemap_label,
                     }
                 )
+
+            # persist the token so that we can find it later
+            processable_frame.data['token'] = token
 
             # Store original data in annotation
             new_frame['data'] = dict(frame.get('data') or {}, sourcemap=sourcemap_label)
@@ -596,12 +603,21 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
                 # Token's return zero-indexed lineno's
                 new_frame['lineno'] = token.src_line + 1
                 new_frame['colno'] = token.src_col
+                last_token = None
+
+                # we might go back to a frame that is unhandled.  In that
+                # case we might not find the token in the data.
+                if processable_frame.previous_frame:
+                    last_token = processable_frame.previous_frame.data.get('token')
+
                 # The offending function is always the previous function in the stack
-                # Honestly, no idea what the bottom most frame is, so we're ignoring that atm
+                # Honestly, no idea what the bottom most frame is, so
+                # we're ignoring that atm.
+                #
+                # XXX: we should actually be parsing the source code here
+                # and not use the last token
                 if last_token:
                     new_frame['function'] = last_token.name or frame.get('function')
-                else:
-                    new_frame['function'] = token.name or frame.get('function')
 
                 filename = token.src
                 # special case webpack support
@@ -650,14 +666,16 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
         # another mapped, minified source
         changed_frame = self.expand_frame(new_frame, source=source)
 
-        if not new_frame.get('context_line') and source:
+        # If we did not manage to match but we do have a line or column
+        # we want to report an error here.
+        if not new_frame.get('context_line') \
+           and source and \
+           new_frame.get('colno') is not None:
             all_errors.append(
                 {
                     'type': EventError.JS_INVALID_SOURCEMAP_LOCATION,
-                    # Column might be missing here
-                    'column': new_frame.get('colno'),
-                    # Line might be missing here
-                    'row': new_frame.get('lineno'),
+                    'column': new_frame['colno'],
+                    'row': new_frame['lineno'],
                     'source': new_frame['abs_path'],
                 }
             )

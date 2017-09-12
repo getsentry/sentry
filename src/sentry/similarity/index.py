@@ -2,7 +2,6 @@ from __future__ import absolute_import
 
 import itertools
 import time
-from collections import Counter, defaultdict
 
 from sentry.utils.iterators import chunked
 from sentry.utils.redis import load_script
@@ -28,42 +27,58 @@ class MinHashIndex(object):
         self.interval = interval
         self.retention = retention
 
-    def __build_signatures(self, items):
-        data = defaultdict(
-            lambda: [Counter() for _ in xrange(self.bands)],
-        )
+    def _build_signature_arguments(self, features):
+        if not features:
+            return [0] * self.bands
 
-        for idx, features in items:
-            bands = map(
-                ','.join, band(
-                    self.bands,
-                    map(
-                        '{}'.format,
-                        self.signature_builder(features),
-                    ),
+        arguments = []
+        for bucket in band(self.bands, self.signature_builder(features)):
+            arguments.extend([1, ','.join(map('{}'.format, bucket)), 1])
+        return arguments
+
+    def __index(self, scope, args):
+        # scope must be passed into the script call as a key to allow the
+        # cluster client to determine what cluster the script should be
+        # executed on. The script itself will use the scope as the hashtag for
+        # all redis operations.
+        return index(self.cluster, [scope], args)
+
+    def _as_search_result(self, results):
+        score_replacements = {
+            -1.0: None,  # both items don't have the feature (no comparison)
+            -2.0: 0,     # one item doesn't have the feature (totally dissimilar)
+        }
+
+        def decode_search_result(result):
+            key, scores = result
+            return (
+                key,
+                map(
+                    lambda score: score_replacements.get(score, score),
+                    map(float, scores),
                 )
             )
 
-            for i, bucket in enumerate(bands):
-                data[idx][i][bucket] += 1
+        def get_comparison_key(result):
+            key, scores = result
 
-        arguments = [len(data)]
-        for idx, bands in data.items():
-            arguments.append(idx)
-            for buckets in bands:
-                arguments.append(len(buckets))
-                for bucket, count in buckets.items():
-                    arguments.extend([
-                        bucket,
-                        count,
-                    ])
+            scores = filter(
+                lambda score: score is not None,
+                scores,
+            )
 
-        return arguments
+            return (
+                sum(scores) / len(scores) * -1,  # average score, descending
+                len(scores) * -1,  # number of indexes with scores, descending
+                key,  # lexicographical sort on key, ascending
+            )
 
-    def _get_connection(self, scope):
-        return self.cluster.get_local_client_for_key(scope)
+        return sorted(
+            map(decode_search_result, results),
+            key=get_comparison_key,
+        )
 
-    def classify(self, scope, items, timestamp=None):
+    def classify(self, scope, items, limit=None, timestamp=None):
         if timestamp is None:
             timestamp = int(time.time())
 
@@ -75,20 +90,16 @@ class MinHashIndex(object):
             self.interval,
             self.retention,
             scope,
+            limit if limit is not None else -1,
         ]
 
-        arguments.extend(self.__build_signatures(items))
+        for idx, threshold, features in items:
+            arguments.extend([idx, threshold])
+            arguments.extend(self._build_signature_arguments(features))
 
-        return [
-            [(item, float(score)) for item, score in result]
-            for result in index(
-                self._get_connection(scope),
-                [],
-                arguments,
-            )
-        ]
+        return self._as_search_result(self.__index(scope, arguments))
 
-    def compare(self, scope, key, indices, timestamp=None):
+    def compare(self, scope, key, items, limit=None, timestamp=None):
         if timestamp is None:
             timestamp = int(time.time())
 
@@ -100,19 +111,14 @@ class MinHashIndex(object):
             self.interval,
             self.retention,
             scope,
+            limit if limit is not None else -1,
             key,
         ]
 
-        arguments.extend(indices)
+        for idx, threshold in items:
+            arguments.extend([idx, threshold])
 
-        return [
-            [(item, float(score)) for item, score in result]
-            for result in index(
-                self._get_connection(scope),
-                [],
-                arguments,
-            )
-        ]
+        return self._as_search_result(self.__index(scope, arguments))
 
     def record(self, scope, key, items, timestamp=None):
         if not items:
@@ -132,13 +138,11 @@ class MinHashIndex(object):
             key,
         ]
 
-        arguments.extend(self.__build_signatures(items))
+        for idx, features in items:
+            arguments.append(idx)
+            arguments.extend(self._build_signature_arguments(features))
 
-        return index(
-            self._get_connection(scope),
-            [],
-            arguments,
-        )
+        return self.__index(scope, arguments)
 
     def merge(self, scope, destination, items, timestamp=None):
         if timestamp is None:
@@ -158,11 +162,7 @@ class MinHashIndex(object):
         for idx, source in items:
             arguments.extend([idx, source])
 
-        return index(
-            self._get_connection(scope),
-            [],
-            arguments,
-        )
+        return self.__index(scope, arguments)
 
     def delete(self, scope, items, timestamp=None):
         if timestamp is None:
@@ -181,11 +181,7 @@ class MinHashIndex(object):
         for idx, key in items:
             arguments.extend([idx, key])
 
-        return index(
-            self._get_connection(scope),
-            [],
-            arguments,
-        )
+        return self.__index(scope, arguments)
 
     def scan(self, scope, indices, batch=1000, timestamp=None):
         if timestamp is None:
@@ -201,37 +197,27 @@ class MinHashIndex(object):
             scope,
         ]
 
-        clients = map(
-            self.cluster.get_local_client,
-            self.cluster.hosts,
-        )
+        cursors = {idx: 0 for idx in indices}
+        while cursors:
+            requests = []
+            for idx, cursor in cursors.items():
+                requests.append([idx, cursor, batch])
 
-        for client in clients:
-            cursors = {idx: 0 for idx in indices}
-            while cursors:
-                requests = []
-                for idx, cursor in cursors.items():
-                    requests.append([idx, cursor, batch])
+            responses = self.__index(scope, arguments + flatten(requests))
 
-                responses = index(
-                    client,
-                    [],
-                    arguments + flatten(requests),
-                )
+            for (idx, _, _), (cursor, chunk) in zip(requests, responses):
+                cursor = int(cursor)
+                if cursor == 0:
+                    del cursors[idx]
+                else:
+                    cursors[idx] = cursor
 
-                for (idx, _, _), (cursor, chunk) in zip(requests, responses):
-                    cursor = int(cursor)
-                    if cursor == 0:
-                        del cursors[idx]
-                    else:
-                        cursors[idx] = cursor
-
-                    yield client, idx, chunk
+                yield idx, chunk
 
     def flush(self, scope, indices, batch=1000, timestamp=None):
-        for client, index, chunk in self.scan(scope, indices, batch, timestamp):
+        for index, chunk in self.scan(scope, indices, batch, timestamp):
             if chunk:
-                client.delete(*chunk)
+                self.cluster.delete(*chunk)
 
     def export(self, scope, items, timestamp=None):
         if timestamp is None:
@@ -250,11 +236,7 @@ class MinHashIndex(object):
         for idx, key in items:
             arguments.extend([idx, key])
 
-        return index(
-            self._get_connection(scope),
-            [],
-            arguments,
-        )
+        return self.__index(scope, arguments)
 
     def import_(self, scope, items, timestamp=None):
         if timestamp is None:
@@ -273,8 +255,35 @@ class MinHashIndex(object):
         for idx, key, data in items:
             arguments.extend([idx, key, data])
 
-        return index(
-            self._get_connection(scope),
-            [],
-            arguments,
-        )
+        return self.__index(scope, arguments)
+
+
+class DummyIndex(object):
+    def classify(self, scope, items, limit=None, timestamp=None):
+        return []
+
+    def compare(self, scope, key, items, limit=None, timestamp=None):
+        return []
+
+    def record(self, scope, key, items, timestamp=None):
+        return {}
+
+    def merge(self, scope, destination, items, timestamp=None):
+        return False
+
+    def delete(self, scope, items, timestamp=None):
+        return False
+
+    def scan(self, scope, indices, batch=1000, timestamp=None):
+        # empty generator
+        return
+        yield
+
+    def flush(self, scope, indices, batch=1000, timestamp=None):
+        pass
+
+    def export(self, scope, items, timestamp=None):
+        return {}
+
+    def import_(self, scope, items, timestamp=None):
+        return {}

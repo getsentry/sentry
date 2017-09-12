@@ -12,7 +12,7 @@ export default React.createClass({
 
   getInitialState() {
     return {
-      timeWindow: '1h',
+      timeWindow: '1w',
       since: new Date().getTime() / 1000 - 3600 * 24 * 7,
       resolution: '1h',
       loading: true,

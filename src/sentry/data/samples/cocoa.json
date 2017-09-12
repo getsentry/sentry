@@ -218,7 +218,6 @@
       }
     ]
   },
-  "timestamp": "2017-08-04T07:57:12Z",
   "release": "io.sentry.sentry-ios-cocoapods-1.0",
   "dist": "1",
   "tags": {"a": "b"},

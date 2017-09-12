@@ -1,6 +1,2 @@
-brew 'nodejs'
+brew 'libxmlsec1'
 brew 'openssl'
-brew 'postgresql'
-brew 'python'
-brew 'redis'
-brew 'yarn'

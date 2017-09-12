@@ -1,12 +1,13 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 
 const Switch = React.createClass({
   propTypes: {
-    size: React.PropTypes.string,
-    isActive: React.PropTypes.bool,
-    isLoading: React.PropTypes.bool,
-    isDisabled: React.PropTypes.bool,
-    toggle: React.PropTypes.func.isRequired
+    size: PropTypes.string,
+    isActive: PropTypes.bool,
+    isLoading: PropTypes.bool,
+    isDisabled: PropTypes.bool,
+    toggle: PropTypes.func.isRequired
   },
 
   render() {

@@ -1,9 +1,10 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import LetterAvatar from './letterAvatar';
 
 const UserLetterAvatar = React.createClass({
   propTypes: {
-    user: React.PropTypes.object.isRequired
+    user: PropTypes.object.isRequired
   },
 
   getIdentifier() {

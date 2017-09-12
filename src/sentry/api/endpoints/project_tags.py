@@ -11,7 +11,7 @@ from sentry.models import TagKey, TagKeyStatus
 class ProjectTagsEndpoint(ProjectEndpoint):
     def get(self, request, project):
         tag_keys = TagKey.objects.filter(
-            project=project,
+            project_id=project.id,
             status=TagKeyStatus.VISIBLE,
         )
 

@@ -4,6 +4,8 @@ from .base import Filter
 
 import re
 
+from sentry.utils.data_filters import FilterStatKeys
+
 EXTENSION_EXC_VALUES = re.compile(
     '|'.join(
         (
@@ -28,7 +30,8 @@ EXTENSION_EXC_VALUES = re.compile(
                 # See http://stackoverflow.com/questions/4113268
                 'bmi_SafeAddOnload',
                 'EBCallBackMessageReceived',
-                # See https://groups.google.com/a/chromium.org/forum/#!topic/chromium-discuss/7VU0_VvC7mE
+                # See
+                # https://groups.google.com/a/chromium.org/forum/#!topic/chromium-discuss/7VU0_VvC7mE
                 '_gCrWeb',
                 # See http://toolbar.conduit.com/Debveloper/HtmlAndGadget/Methods/JSInjection.aspx
                 'conduitPage',
@@ -70,7 +73,7 @@ EXTENSION_EXC_SOURCES = re.compile(
 
 
 class BrowserExtensionsFilter(Filter):
-    id = 'browser-extensions'
+    id = FilterStatKeys.BROWSER_EXTENSION
     name = 'Filter out errors known to be caused by browser extensions'
     description = 'Certain browser extensions will inject inline scripts and are known to cause errors.'
 

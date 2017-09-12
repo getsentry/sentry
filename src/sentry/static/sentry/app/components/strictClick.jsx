@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import PureRenderMixin from 'react-addons-pure-render-mixin';
 
@@ -9,7 +10,7 @@ import PureRenderMixin from 'react-addons-pure-render-mixin';
  */
 const StrictClick = React.createClass({
   propTypes: {
-    onClick: React.PropTypes.func
+    onClick: PropTypes.func
   },
 
   mixins: [PureRenderMixin],

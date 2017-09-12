@@ -4,9 +4,9 @@ exports[`Project render() should render NotFound if no matching organization 1`]
 <div
   className="onboarding-info"
 >
-  <h2>
-    Choose a language or framework
-  </h2>
+  <h4>
+    Choose a language or framework:
+  </h4>
   <PlatformPicker
     location={
       Object {
@@ -23,41 +23,54 @@ exports[`Project render() should render NotFound if no matching organization 1`]
     platform=""
     setName={[Function]}
     setPlatform={[Function]}
+    setTeam={[Function]}
     showOther={true}
+    team=""
+    teams={Array []}
   />
   <div
-    className="project-name client-platform"
+    className="create-project-form"
   >
-    <h4>
-      Give your project a name:
-    </h4>
     <div
-      className="project-name-wrapper"
+      className="new-project-name client-platform"
     >
-      <PlatformiconTile
-        platform=""
-      />
-      <input
-        label="Project Name"
-        name="name"
-        onChange={[Function]}
-        placeholder="Project name"
-        type="text"
-        value=""
-      />
+      <h4>
+        Give your project a name:
+      </h4>
+      <div
+        className="project-name-wrapper"
+      >
+        <PlatformiconTile
+          platform=""
+        />
+        <input
+          autoComplete="off"
+          label="Project Name"
+          name="name"
+          onChange={[Function]}
+          placeholder="Project name"
+          type="text"
+          value=""
+        />
+      </div>
     </div>
-    <button
-      className="btn btn-primary pull-right"
-      onClick={[Function]}
-    >
-      Continue
-    </button>
+    <div>
+      <button
+        className="btn btn-primary submit-new-team"
+        onClick={[Function]}
+      >
+        Create Project
+      </button>
+    </div>
+    <p>
+      Projects allow you to scope events to a specific application in your organization. For example, you might have separate projects your API server and frontend client.
+    </p>
   </div>
 </div>
 `;
 
 exports[`Project render() should set required class on empty submit 1`] = `
-<Project
+<OnboardingProject
   location={
     Object {
       "query": Object {},
@@ -74,13 +87,16 @@ exports[`Project render() should set required class on empty submit 1`] = `
   platform=""
   setName={[Function]}
   setPlatform={[Function]}
+  setTeam={[Function]}
+  team=""
+  teams={Array []}
 >
   <div
     className="onboarding-info"
   >
-    <h2>
-      Choose a language or framework
-    </h2>
+    <h4>
+      Choose a language or framework:
+    </h4>
     <PlatformPicker
       location={
         Object {
@@ -98,7 +114,10 @@ exports[`Project render() should set required class on empty submit 1`] = `
       platform=""
       setName={[Function]}
       setPlatform={[Function]}
+      setTeam={[Function]}
       showOther={true}
+      team=""
+      teams={Array []}
     >
       <div
         className="platform-picker"
@@ -322,6 +341,36 @@ exports[`Project render() should set required class on empty submit 1`] = `
           <PlatformCard
             className=""
             onClick={[Function]}
+            platform="javascript-angular"
+          >
+            <span
+              className="platform-card"
+              onClick={[Function]}
+            >
+              <PlatformiconTile
+                className=""
+                onClick={[Function]}
+                platform="javascript-angular"
+              >
+                <li
+                  className="platform-tile list-unstyled javascript-angular javascript "
+                  onClick={[Function]}
+                >
+                  <span
+                    className="platformicon platformicon-javascript-angular"
+                  />
+                </li>
+              </PlatformiconTile>
+              <h5>
+                 
+                Angular
+                 
+              </h5>
+            </span>
+          </PlatformCard>
+          <PlatformCard
+            className=""
+            onClick={[Function]}
             platform="javascript"
           >
             <span
@@ -412,6 +461,36 @@ exports[`Project render() should set required class on empty submit 1`] = `
           <PlatformCard
             className=""
             onClick={[Function]}
+            platform="node"
+          >
+            <span
+              className="platform-card"
+              onClick={[Function]}
+            >
+              <PlatformiconTile
+                className=""
+                onClick={[Function]}
+                platform="node"
+              >
+                <li
+                  className="platform-tile list-unstyled node node "
+                  onClick={[Function]}
+                >
+                  <span
+                    className="platformicon platformicon-node"
+                  />
+                </li>
+              </PlatformiconTile>
+              <h5>
+                 
+                Node.js
+                 
+              </h5>
+            </span>
+          </PlatformCard>
+          <PlatformCard
+            className=""
+            onClick={[Function]}
             platform="php-laravel"
           >
             <span
@@ -435,6 +514,36 @@ exports[`Project render() should set required class on empty submit 1`] = `
               <h5>
                  
                 Laravel
+                 
+              </h5>
+            </span>
+          </PlatformCard>
+          <PlatformCard
+            className=""
+            onClick={[Function]}
+            platform="php"
+          >
+            <span
+              className="platform-card"
+              onClick={[Function]}
+            >
+              <PlatformiconTile
+                className=""
+                onClick={[Function]}
+                platform="php"
+              >
+                <li
+                  className="platform-tile list-unstyled php php "
+                  onClick={[Function]}
+                >
+                  <span
+                    className="platformicon platformicon-php"
+                  />
+                </li>
+              </PlatformiconTile>
+              <h5>
+                 
+                PHP
                  
               </h5>
             </span>
@@ -562,6 +671,36 @@ exports[`Project render() should set required class on empty submit 1`] = `
           <PlatformCard
             className=""
             onClick={[Function]}
+            platform="cocoa"
+          >
+            <span
+              className="platform-card"
+              onClick={[Function]}
+            >
+              <PlatformiconTile
+                className=""
+                onClick={[Function]}
+                platform="cocoa"
+              >
+                <li
+                  className="platform-tile list-unstyled cocoa cocoa "
+                  onClick={[Function]}
+                >
+                  <span
+                    className="platformicon platformicon-cocoa"
+                  />
+                </li>
+              </PlatformiconTile>
+              <h5>
+                 
+                React-Native
+                 
+              </h5>
+            </span>
+          </PlatformCard>
+          <PlatformCard
+            className=""
+            onClick={[Function]}
             platform="ruby-rails"
           >
             <span
@@ -589,45 +728,85 @@ exports[`Project render() should set required class on empty submit 1`] = `
               </h5>
             </span>
           </PlatformCard>
+          <PlatformCard
+            className=""
+            onClick={[Function]}
+            platform="ruby"
+          >
+            <span
+              className="platform-card"
+              onClick={[Function]}
+            >
+              <PlatformiconTile
+                className=""
+                onClick={[Function]}
+                platform="ruby"
+              >
+                <li
+                  className="platform-tile list-unstyled ruby ruby "
+                  onClick={[Function]}
+                >
+                  <span
+                    className="platformicon platformicon-ruby"
+                  />
+                </li>
+              </PlatformiconTile>
+              <h5>
+                 
+                Ruby
+                 
+              </h5>
+            </span>
+          </PlatformCard>
         </ul>
       </div>
     </PlatformPicker>
     <div
-      className="project-name client-platform"
+      className="create-project-form"
     >
-      <h4>
-        Give your project a name:
-      </h4>
       <div
-        className="project-name-wrapper"
+        className="new-project-name client-platform"
       >
-        <PlatformiconTile
-          platform=""
+        <h4>
+          Give your project a name:
+        </h4>
+        <div
+          className="project-name-wrapper"
         >
-          <li
-            className="platform-tile list-unstyled   undefined"
+          <PlatformiconTile
+            platform=""
           >
-            <span
-              className="platformicon platformicon-"
-            />
-          </li>
-        </PlatformiconTile>
-        <input
-          label="Project Name"
-          name="name"
-          onChange={[Function]}
-          placeholder="Project name"
-          type="text"
-          value="bar"
-        />
+            <li
+              className="platform-tile list-unstyled   undefined"
+            >
+              <span
+                className="platformicon platformicon-"
+              />
+            </li>
+          </PlatformiconTile>
+          <input
+            autoComplete="off"
+            label="Project Name"
+            name="name"
+            onChange={[Function]}
+            placeholder="Project name"
+            type="text"
+            value="bar"
+          />
+        </div>
       </div>
-      <button
-        className="btn btn-primary pull-right"
-        onClick={[Function]}
-      >
-        Continue
-      </button>
+      <div>
+        <button
+          className="btn btn-primary submit-new-team"
+          onClick={[Function]}
+        >
+          Create Project
+        </button>
+      </div>
+      <p>
+        Projects allow you to scope events to a specific application in your organization. For example, you might have separate projects your API server and frontend client.
+      </p>
     </div>
   </div>
-</Project>
+</OnboardingProject>
 `;

@@ -1,11 +1,16 @@
-import React, {PropTypes} from 'react';
+import PropTypes from 'prop-types';
+import React from 'react';
 import classNames from 'classnames';
 
 // Flexbox container whose children will have `justify-content: space-between`
 //
 // Intended for children.length == 2
-const SpreadLayout = ({children, className, ...props}) => {
-  const cx = classNames(className, 'spread-layout', {});
+// "responsive" will change flex-direction to be column on small widths
+const SpreadLayout = ({children, className, responsive, ...props}) => {
+  const cx = classNames('spread-layout', className, {
+    'allow-responsive': responsive
+  });
+
   return (
     <div {...props} className={cx}>
       {children}
@@ -16,7 +21,7 @@ const SpreadLayout = ({children, className, ...props}) => {
 SpreadLayout.propTypes = {
   children: PropTypes.node,
   style: PropTypes.object,
-  className: PropTypes.string
+  responsive: PropTypes.bool
 };
 
 export default SpreadLayout;

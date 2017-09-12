@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import ReactCodeInput from 'react-code-input';
 import Modal from 'react-bootstrap/lib/Modal';
@@ -5,9 +6,9 @@ import {t} from '../../locale';
 
 const NumberConfirm = React.createClass({
   propTypes: {
-    digits: React.PropTypes.number.isRequired,
-    show: React.PropTypes.bool,
-    onFinished: React.PropTypes.func
+    digits: PropTypes.number.isRequired,
+    show: PropTypes.bool,
+    onFinished: PropTypes.func
   },
 
   getInitialState() {

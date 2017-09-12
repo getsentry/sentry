@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import Reflux from 'reflux';
 import {Link} from 'react-router';
@@ -20,8 +21,8 @@ import {sortArray} from '../utils';
 
 const AssignedIssues = React.createClass({
   propTypes: {
-    statsPeriod: React.PropTypes.string,
-    pageSize: React.PropTypes.number
+    statsPeriod: PropTypes.string,
+    pageSize: PropTypes.number
   },
 
   getEndpoint() {
@@ -74,8 +75,8 @@ const AssignedIssues = React.createClass({
 
 const NewIssues = React.createClass({
   propTypes: {
-    statsPeriod: React.PropTypes.string,
-    pageSize: React.PropTypes.number
+    statsPeriod: PropTypes.string,
+    pageSize: PropTypes.number
   },
 
   getEndpoint() {
@@ -136,13 +137,13 @@ function ProjectSparkline(props) {
   );
 }
 ProjectSparkline.propTypes = {
-  data: React.PropTypes.array.isRequired
+  data: PropTypes.array.isRequired
 };
 
 const ProjectList = React.createClass({
   propTypes: {
-    teams: React.PropTypes.array,
-    maxProjects: React.PropTypes.number
+    teams: PropTypes.array,
+    maxProjects: PropTypes.number
   },
 
   mixins: [OrganizationState],

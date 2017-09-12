@@ -194,7 +194,9 @@ class RedisTSDB(BaseTSDB):
                         self.normalize_to_rollup(timestamp, rollup),
                         model_key,
                     )
-                    results.append((to_timestamp(timestamp), key, client.hget(hash_key, model_key)))
+                    results.append(
+                        (to_timestamp(timestamp), key, client.hget(
+                            hash_key, model_key)))
 
         results_by_key = defaultdict(dict)
         for epoch, key, count in results:
@@ -697,7 +699,8 @@ class RedisTSDB(BaseTSDB):
                                 to_timestamp(timestamp),
                                 destination,
                             ),
-                            ['IMPORT'] + list(self.DEFAULT_SKETCH_PARAMETERS) + next(results).value,
+                            ['IMPORT'] + list(self.DEFAULT_SKETCH_PARAMETERS) +
+                            next(results).value,
                         )
                     )
                     next(results)  # pop off the result of DEL

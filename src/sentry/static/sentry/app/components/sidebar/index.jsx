@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import $ from 'jquery';
 
@@ -33,11 +34,11 @@ import IconSidebarCollapse from '../../icons/icon-sidebar-collapse';
 
 const OnboardingStatus = React.createClass({
   propTypes: {
-    org: React.PropTypes.object.isRequired,
-    currentPanel: React.PropTypes.string,
-    onShowPanel: React.PropTypes.func,
-    showPanel: React.PropTypes.bool,
-    hidePanel: React.PropTypes.func
+    org: PropTypes.object.isRequired,
+    currentPanel: PropTypes.string,
+    onShowPanel: PropTypes.func,
+    showPanel: PropTypes.bool,
+    hidePanel: PropTypes.func
   },
 
   render() {
@@ -86,7 +87,7 @@ function getFirstRequiredAdminAction(org) {
 
 const OldSidebar = React.createClass({
   contextTypes: {
-    location: React.PropTypes.object
+    location: PropTypes.object
   },
 
   mixins: [ApiMixin, OrganizationState],

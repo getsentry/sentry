@@ -1,4 +1,5 @@
 import jQuery from 'jquery';
+import PropTypes from 'prop-types';
 import React from 'react';
 import Reflux from 'reflux';
 
@@ -16,11 +17,11 @@ import {valueIsEqual} from '../../utils';
 
 const StreamGroup = React.createClass({
   propTypes: {
-    id: React.PropTypes.string.isRequired,
-    orgId: React.PropTypes.string.isRequired,
-    projectId: React.PropTypes.string.isRequired,
-    statsPeriod: React.PropTypes.string.isRequired,
-    canSelect: React.PropTypes.bool
+    id: PropTypes.string.isRequired,
+    orgId: PropTypes.string.isRequired,
+    projectId: PropTypes.string.isRequired,
+    statsPeriod: PropTypes.string.isRequired,
+    canSelect: PropTypes.bool
   },
 
   mixins: [Reflux.listenTo(GroupStore, 'onGroupChange'), ProjectState],
@@ -64,7 +65,7 @@ const StreamGroup = React.createClass({
     let id = this.props.id;
     let data = GroupStore.get(id);
     this.setState({
-      data: data
+      data
     });
   },
 

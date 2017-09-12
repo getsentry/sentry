@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 
 import SavedSearchSelector from './savedSearchSelector';
@@ -7,30 +8,30 @@ import {t} from '../../locale';
 
 const StreamFilters = React.createClass({
   propTypes: {
-    orgId: React.PropTypes.string.isRequired,
-    projectId: React.PropTypes.string.isRequired,
-    access: React.PropTypes.object.isRequired,
-    tags: React.PropTypes.object.isRequired,
+    orgId: PropTypes.string.isRequired,
+    projectId: PropTypes.string.isRequired,
+    access: PropTypes.object.isRequired,
+    tags: PropTypes.object.isRequired,
 
-    searchId: React.PropTypes.string,
-    savedSearchList: React.PropTypes.array.isRequired,
+    searchId: PropTypes.string,
+    savedSearchList: PropTypes.array.isRequired,
 
-    defaultQuery: React.PropTypes.string,
-    sort: React.PropTypes.string,
-    filter: React.PropTypes.string,
-    query: React.PropTypes.string,
-    isSearchDisabled: React.PropTypes.bool,
-    queryCount: React.PropTypes.number,
-    queryMaxCount: React.PropTypes.number,
+    defaultQuery: PropTypes.string,
+    sort: PropTypes.string,
+    filter: PropTypes.string,
+    query: PropTypes.string,
+    isSearchDisabled: PropTypes.bool,
+    queryCount: PropTypes.number,
+    queryMaxCount: PropTypes.number,
 
-    onSortChange: React.PropTypes.func,
-    onSearch: React.PropTypes.func,
-    onSidebarToggle: React.PropTypes.func,
-    onSavedSearchCreate: React.PropTypes.func.isRequired
+    onSortChange: PropTypes.func,
+    onSearch: PropTypes.func,
+    onSidebarToggle: PropTypes.func,
+    onSavedSearchCreate: PropTypes.func.isRequired
   },
 
   contextTypes: {
-    location: React.PropTypes.object
+    location: PropTypes.object
   },
 
   getDefaultProps() {

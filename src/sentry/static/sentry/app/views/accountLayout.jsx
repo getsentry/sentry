@@ -22,7 +22,7 @@ const AccountLayout = React.createClass({
     return (
       <NarrowLayout header={header}>
         <h3>{t('My Settings')}</h3>
-        <DropdownLink topLevelClasses="anchor-right pull-right" title={t('More')}>
+        <DropdownLink anchorRight title={t('More')}>
           <MenuItem to="/account/authorizations/">
             {t('Authorized Applications')}
           </MenuItem>

@@ -28,7 +28,6 @@ delete_logger = logging.getLogger('sentry.deletions.async')
     default_retry_delay=60 * 5,
     max_retries=None
 )
-@retry
 def merge_group(
     from_object_id=None, to_object_id=None, transaction_id=None, recursed=False, **kwargs
 ):
@@ -274,7 +273,7 @@ def merge_objects(models, group, new_group, limit=1000, logger=None, transaction
                     if model == GroupTagKey:
                         with transaction.atomic(using=router.db_for_write(model)):
                             model.objects.filter(
-                                group=new_group,
+                                group_id=new_group.id,
                                 key=obj.key,
                             ).update(
                                 values_seen=GroupTagValue.objects.filter(

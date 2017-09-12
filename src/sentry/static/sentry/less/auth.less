@@ -12,6 +12,10 @@
   .form-actions {
     margin-top: 20px;
   }
+
+ .form-actions-samlidp {
+    margin: 10px 0;
+  }
 }
 
 section.org-login {
@@ -51,6 +55,11 @@ section.org-login {
 
   &.okta {
     background: url(../images/auth-providers/okta.png);
+    background-size: cover;
+  }
+
+  &.saml2 {
+    background: url(../images/auth-providers/saml2.png);
     background-size: cover;
   }
 }
@@ -314,4 +323,28 @@ div.u2f-box {
     100% {
       opacity: .1;
     }
+}
+
+.password-strength-heading {
+  font-weight: bold;
+}
+
+.password-warnings {
+  opacity: 0.8;
+  font-size: 0.9em;
+  font-style: italic;
+}
+
+.password-strength {
+  display: none;
+  &.visible {
+    display: block;
+  }
+  .progress {
+    margin: 5px 0;
+  }
+  .progress-bar {
+    border-radius: 2px;
+    height: 14px;
+  }
 }

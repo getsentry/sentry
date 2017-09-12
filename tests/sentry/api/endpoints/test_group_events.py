@@ -33,11 +33,11 @@ class GroupEventsTest(APITestCase):
         event_1 = self.create_event('a' * 32, group=group)
         event_2 = self.create_event('b' * 32, group=group)
 
-        tagkey_1 = TagKey.objects.create(project=group.project, key='foo')
-        tagkey_2 = TagKey.objects.create(project=group.project, key='bar')
-        tagvalue_1 = TagValue.objects.create(project=group.project, key='foo', value='baz')
-        tagvalue_2 = TagValue.objects.create(project=group.project, key='bar', value='biz')
-        tagvalue_3 = TagValue.objects.create(project=group.project, key='bar', value='buz')
+        tagkey_1 = TagKey.objects.create(project_id=group.project_id, key='foo')
+        tagkey_2 = TagKey.objects.create(project_id=group.project_id, key='bar')
+        tagvalue_1 = TagValue.objects.create(project_id=group.project_id, key='foo', value='baz')
+        tagvalue_2 = TagValue.objects.create(project_id=group.project_id, key='bar', value='biz')
+        tagvalue_3 = TagValue.objects.create(project_id=group.project_id, key='bar', value='buz')
 
         EventTag.objects.create(
             project_id=group.project_id,

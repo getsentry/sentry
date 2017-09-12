@@ -27,10 +27,10 @@ class GroupEventsEndpoint(GroupEndpoint):
     doc_section = DocSection.EVENTS
 
     def _tags_to_filter(self, group, tags):
-        project = group.project
+        project_id = group.project_id
         tagkeys = dict(
             TagKey.objects.filter(
-                project=project,
+                project_id=project_id,
                 key__in=tags.keys(),
             ).values_list('key', 'id')
         )
@@ -39,7 +39,7 @@ class GroupEventsEndpoint(GroupEndpoint):
             (t[1], t[2]): t[0]
             for t in TagValue.objects.filter(
                 reduce(or_, (Q(key=k, value=v) for k, v in six.iteritems(tags))),
-                project=project,
+                project_id=project_id,
             ).values_list('id', 'key', 'value')
         }
 

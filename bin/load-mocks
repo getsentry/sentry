@@ -72,8 +72,9 @@ def create_sample_event(*args, **kwargs):
     except HashDiscarded as e:
         print "> Skipping Event: {}".format(e.message)
     else:
-        features.record([event])
-        return event
+        if event is not None:
+            features.record([event])
+            return event
 
 def generate_commits(user):
     commits = []

@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import PureRenderMixin from 'react-addons-pure-render-mixin';
 import ProjectState from '../mixins/projectState';
@@ -6,8 +7,8 @@ import AutoSelectText from './autoSelectText';
 
 const ShortId = React.createClass({
   propTypes: {
-    shortId: React.PropTypes.string,
-    project: React.PropTypes.object
+    shortId: PropTypes.string,
+    project: PropTypes.object
   },
 
   mixins: [PureRenderMixin, ProjectState],

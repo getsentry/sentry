@@ -64,7 +64,9 @@ def flatten(*stack):
         else:
             yield x
 
+
 dependency_cache = {}
+
 
 def _dfs(start, get_children, path):
     if (start, get_children) in dependency_cache:
@@ -76,7 +78,7 @@ def _dfs(start, get_children, path):
     path.append(start)
     results.append(start)
     children = sorted(get_children(start), key=lambda x: str(x))
-    
+
     # We need to apply all the migrations this one depends on
     for n in children:
         results = _dfs(n, get_children, path) + results
@@ -87,8 +89,10 @@ def _dfs(start, get_children, path):
     dependency_cache[(start, get_children)] = results
     return results
 
+
 def dfs(start, get_children):
     return _dfs(start, get_children, [])
+
 
 def depends(start, get_children):
     return dfs(start, get_children)

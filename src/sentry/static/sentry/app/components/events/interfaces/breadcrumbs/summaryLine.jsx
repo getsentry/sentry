@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 
 function isOverflowing(el) {
@@ -7,7 +8,7 @@ function isOverflowing(el) {
 
 const SummaryLine = React.createClass({
   propTypes: {
-    crumb: React.PropTypes.object.isRequired
+    crumb: PropTypes.object.isRequired
   },
 
   getInitialState() {
@@ -39,7 +40,7 @@ const SummaryLine = React.createClass({
     let hasOverflow = isOverflowing(this.domElement);
     if (hasOverflow !== this.state.hasOverflow) {
       this.setState({
-        hasOverflow: hasOverflow
+        hasOverflow
       });
     }
   },

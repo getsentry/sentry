@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 
 import {Form, FormState} from '../../components/forms';
@@ -102,7 +103,7 @@ class IssueActions extends PluginComponentBase {
               createFieldList: data,
               error: null,
               loading: false,
-              createFormData: createFormData
+              createFormData
             },
             this.onLoadSuccess
           );
@@ -121,7 +122,7 @@ class IssueActions extends PluginComponentBase {
               linkFieldList: data,
               error: null,
               loading: false,
-              linkFormData: linkFormData
+              linkFormData
             },
             this.onLoadSuccess
           );
@@ -354,9 +355,9 @@ class IssueActions extends PluginComponentBase {
 }
 
 IssueActions.propTypes = {
-  plugin: React.PropTypes.object.isRequired,
-  actionType: React.PropTypes.oneOf(['unlink', 'link', 'create']).isRequired,
-  onSuccess: React.PropTypes.func
+  plugin: PropTypes.object.isRequired,
+  actionType: PropTypes.oneOf(['unlink', 'link', 'create']).isRequired,
+  onSuccess: PropTypes.func
 };
 
 export default IssueActions;

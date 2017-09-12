@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 
 import AsyncView from './asyncView';
@@ -7,8 +8,8 @@ import {t} from '../locale';
 
 const AuthorizationRow = React.createClass({
   propTypes: {
-    authorization: React.PropTypes.object.isRequired,
-    onRevoke: React.PropTypes.func.isRequired
+    authorization: PropTypes.object.isRequired,
+    onRevoke: PropTypes.func.isRequired
   },
 
   mixins: [ApiMixin],

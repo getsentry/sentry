@@ -70,7 +70,8 @@ def get_sql_date_trunc(col, db='default', grouper='hour'):
     engine = get_db_engine(db)
     # TODO: does extract work for sqlite?
     if engine.startswith('oracle'):
-        method = DATE_TRUNC_GROUPERS['oracle'].get(grouper, DATE_TRUNC_GROUPERS['default'][grouper])
+        method = DATE_TRUNC_GROUPERS['oracle'].get(
+            grouper, DATE_TRUNC_GROUPERS['default'][grouper])
         if '"' not in col:
             col = '"%s"' % col.upper()
     else:

@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import _ from 'lodash';
 import classNames from 'classnames';
@@ -21,14 +22,14 @@ export function trimPackage(pkg) {
 
 const Frame = React.createClass({
   propTypes: {
-    data: React.PropTypes.object.isRequired,
-    nextFrame: React.PropTypes.object,
-    prevFrame: React.PropTypes.object,
-    platform: React.PropTypes.string,
-    isExpanded: React.PropTypes.bool,
-    emptySourceNotation: React.PropTypes.bool,
-    isOnlyFrame: React.PropTypes.bool,
-    timesRepeated: React.PropTypes.number
+    data: PropTypes.object.isRequired,
+    nextFrame: PropTypes.object,
+    prevFrame: PropTypes.object,
+    platform: PropTypes.string,
+    isExpanded: PropTypes.bool,
+    emptySourceNotation: PropTypes.bool,
+    isOnlyFrame: PropTypes.bool,
+    timesRepeated: PropTypes.number
   },
 
   mixins: [
@@ -395,7 +396,7 @@ const Frame = React.createClass({
       'leads-to-app': this.leadsToApp(),
       [this.getPlatform()]: true
     });
-    let props = {className: className};
+    let props = {className};
 
     let context = this.renderContext();
 

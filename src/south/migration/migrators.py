@@ -87,7 +87,7 @@ class Migrator(object):
                 # record us as having done this in the same transaction,
                 # since we're not in a dry run
                 self.record(migration, database)
-        except:
+        except BaseException:
             south.db.db.rollback_transaction()
             if not south.db.db.has_ddl_transactions:
                 print(self.run_migration_error(migration))
@@ -96,10 +96,9 @@ class Migrator(object):
         else:
             try:
                 south.db.db.commit_transaction()
-            except:
+            except BaseException:
                 print("Error during commit in migration: %s" % migration)
                 raise
-
 
     def run(self, migration, database):
         # Get the correct ORM.
@@ -112,7 +111,6 @@ class Migrator(object):
                 dry_run = DryRunMigrator(migrator=self, ignore_fail=False)
                 dry_run.run_migration(migration, database)
         return self.run_migration(migration, database)
-
 
     def send_ran_migration(self, migration, database):
         ran_migration.send(None,
@@ -174,7 +172,7 @@ class DryRunMigrator(MigratorWrapper):
             try:
                 migration_function()
                 south.db.db.execute_deferred_sql()
-            except:
+            except BaseException:
                 raise exceptions.FailedDryRun(migration, sys.exc_info())
         finally:
             south.db.db.rollback_transactions_dry_run()
@@ -227,7 +225,8 @@ class LoadInitialDataMigrator(MigratorWrapper):
         # Override Django's get_apps call temporarily to only load from the
         # current app
         old_get_apps = models.get_apps
-        new_get_apps = lambda: [models.get_app(target.app_label())]
+
+        def new_get_apps(): return [models.get_app(target.app_label())]
         models.get_apps = new_get_apps
         loaddata.get_apps = new_get_apps
         try:
@@ -238,17 +237,17 @@ class LoadInitialDataMigrator(MigratorWrapper):
 
     def post_1_6(self, target, db):
         import django.db.models.loading
-        ## build a new 'AppCache' object with just the app we care about.
+        # build a new 'AppCache' object with just the app we care about.
         old_cache = django.db.models.loading.cache
         new_cache = django.db.models.loading.AppCache()
         new_cache.get_apps = lambda: [new_cache.get_app(target.app_label())]
 
-        ## monkeypatch
+        # monkeypatch
         django.db.models.loading.cache = new_cache
         try:
             call_command('loaddata', 'initial_data', verbosity=self.verbosity, database=db)
         finally:
-            ## unmonkeypatch
+            # unmonkeypatch
             django.db.models.loading.cache = old_cache
 
     def migrate_many(self, target, migrations, database):
@@ -311,7 +310,7 @@ class Forwards(Migrator):
             try:
                 self.backwards(migration)()
                 return sys.stdout.getvalue()
-            except:
+            except BaseException:
                 raise
         finally:
             south.db.db.debug, south.db.db.dry_run = old_debug, old_dry_run
@@ -329,7 +328,7 @@ class Forwards(Migrator):
         try:
             for migration in migrations:
                 result = self.migrate(migration, database)
-                if result is False: # The migrations errored, but nicely.
+                if result is False:  # The migrations errored, but nicely.
                     return False
         finally:
             # Call any pending post_syncdb signals
@@ -376,6 +375,3 @@ class Backwards(Migrator):
         for migration in migrations:
             self.migrate(migration, database)
         return True
-
-
-

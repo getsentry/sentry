@@ -1,8 +1,9 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import {Link} from 'react-router';
 import _ from 'lodash';
 
-import PropTypes from '../../proptypes';
+import SentryTypes from '../../proptypes';
 
 import EventDataSection from './eventDataSection';
 import {isUrl, deviceNameMapper} from '../../utils';
@@ -12,10 +13,10 @@ import Pill from '../pill';
 
 const EventTags = React.createClass({
   propTypes: {
-    group: PropTypes.Group.isRequired,
-    event: PropTypes.Event.isRequired,
-    orgId: React.PropTypes.string.isRequired,
-    projectId: React.PropTypes.string.isRequired
+    group: SentryTypes.Group.isRequired,
+    event: SentryTypes.Event.isRequired,
+    orgId: PropTypes.string.isRequired,
+    projectId: PropTypes.string.isRequired
   },
 
   render() {

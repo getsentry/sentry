@@ -1,14 +1,16 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import moment from 'moment';
-import PureRenderMixin from 'react-addons-pure-render-mixin';
-import ConfigStore from '../stores/configStore.jsx';
-import {t} from '../locale';
 import _ from 'lodash';
+import PureRenderMixin from 'react-addons-pure-render-mixin';
+
+import ConfigStore from '../stores/configStore';
+import {t} from '../locale';
 
 const TimeSince = React.createClass({
   propTypes: {
-    date: React.PropTypes.any.isRequired,
-    suffix: React.PropTypes.string
+    date: PropTypes.any.isRequired,
+    suffix: PropTypes.string
   },
 
   mixins: [PureRenderMixin],

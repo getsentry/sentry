@@ -27,7 +27,7 @@ class RedisTSDBTest(TestCase):
             enable_frequency_sketches=True,
             hosts={i - 6: {
                 'db': i
-            } for i in xrange(6, 9)},
+            } for i in range(6, 9)},
         )
 
     def tearDown(self):

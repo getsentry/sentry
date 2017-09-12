@@ -1,23 +1,24 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 
 import StackedBarChart from '../stackedBarChart';
-import PropTypes from '../../proptypes';
+import SentryTypes from '../../proptypes';
 import {t} from '../../locale';
 import {defined, escape, intcomma} from '../../utils';
 
 const GroupReleaseChart = React.createClass({
   propTypes: {
-    group: PropTypes.Group.isRequired,
-    release: React.PropTypes.shape({
-      version: React.PropTypes.string.isRequired
+    group: SentryTypes.Group.isRequired,
+    release: PropTypes.shape({
+      version: PropTypes.string.isRequired
     }),
-    releaseStats: React.PropTypes.object,
-    statsPeriod: React.PropTypes.string.isRequired,
-    environment: React.PropTypes.string,
-    environmentStats: React.PropTypes.object,
-    firstSeen: React.PropTypes.string,
-    lastSeen: React.PropTypes.string,
-    title: React.PropTypes.string
+    releaseStats: PropTypes.object,
+    statsPeriod: PropTypes.string.isRequired,
+    environment: PropTypes.string,
+    environmentStats: PropTypes.object,
+    firstSeen: PropTypes.string,
+    lastSeen: PropTypes.string,
+    title: PropTypes.string
   },
 
   getInitialState(props) {
@@ -39,8 +40,8 @@ const GroupReleaseChart = React.createClass({
     }
 
     return {
-      releasePoints: releasePoints,
-      envPoints: envPoints
+      releasePoints,
+      envPoints
     };
   },
 

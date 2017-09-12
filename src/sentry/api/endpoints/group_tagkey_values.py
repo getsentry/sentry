@@ -42,7 +42,7 @@ class GroupTagKeyValuesEndpoint(GroupEndpoint):
             lookup_key = key
 
         tagkey = TagKey.objects.filter(
-            project=group.project_id,
+            project_id=group.project_id,
             key=lookup_key,
             status=TagKeyStatus.VISIBLE,
         )

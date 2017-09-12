@@ -1,11 +1,12 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 
 import ContextBlock from './contextBlock';
 
 const AppContextType = React.createClass({
   propTypes: {
-    alias: React.PropTypes.string.isRequired,
-    data: React.PropTypes.object.isRequired
+    alias: PropTypes.string.isRequired,
+    data: PropTypes.object.isRequired
   },
 
   render() {

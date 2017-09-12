@@ -73,7 +73,8 @@ class ProjectSearchesEndpoint(ProjectEndpoint):
                     save_search_created.send(project=project, sender=self)
 
                 except IntegrityError:
-                    return Response({'detail': 'Search with same name already exists.'}, status=400)
+                    return Response(
+                        {'detail': 'Search with same name already exists.'}, status=400)
 
                 if search.is_default:
                     if request.access.has_scope('project:write'):

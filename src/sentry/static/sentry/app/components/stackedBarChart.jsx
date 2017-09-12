@@ -1,44 +1,46 @@
+import React from 'react';
+import PropTypes from 'prop-types';
 import moment from 'moment';
 import _ from 'lodash';
-import React from 'react';
+
 import TooltipMixin from '../mixins/tooltip';
 import Count from './count';
-import ConfigStore from '../stores/configStore.jsx';
+import ConfigStore from '../stores/configStore';
 
 const StackedBarChart = React.createClass({
   propTypes: {
     // TODO(dcramer): DEPRECATED, use series instead
-    points: React.PropTypes.arrayOf(
-      React.PropTypes.shape({
-        x: React.PropTypes.number.isRequired,
-        y: React.PropTypes.array.isRequired,
-        label: React.PropTypes.string
+    points: PropTypes.arrayOf(
+      PropTypes.shape({
+        x: PropTypes.number.isRequired,
+        y: PropTypes.array.isRequired,
+        label: PropTypes.string
       })
     ),
-    series: React.PropTypes.arrayOf(
-      React.PropTypes.shape({
-        data: React.PropTypes.arrayOf(
-          React.PropTypes.shape({
-            x: React.PropTypes.number.isRequired,
-            y: React.PropTypes.number
+    series: PropTypes.arrayOf(
+      PropTypes.shape({
+        data: PropTypes.arrayOf(
+          PropTypes.shape({
+            x: PropTypes.number.isRequired,
+            y: PropTypes.number
           })
         ),
-        label: React.PropTypes.string
+        label: PropTypes.string
       })
     ),
-    interval: React.PropTypes.string,
-    height: React.PropTypes.number,
-    width: React.PropTypes.number,
-    placement: React.PropTypes.string,
-    label: React.PropTypes.string,
-    markers: React.PropTypes.arrayOf(
-      React.PropTypes.shape({
-        x: React.PropTypes.number.isRequired,
-        label: React.PropTypes.string
+    interval: PropTypes.string,
+    height: PropTypes.number,
+    width: PropTypes.number,
+    placement: PropTypes.string,
+    label: PropTypes.string,
+    markers: PropTypes.arrayOf(
+      PropTypes.shape({
+        x: PropTypes.number.isRequired,
+        label: PropTypes.string
       })
     ),
-    tooltip: React.PropTypes.func,
-    barClasses: React.PropTypes.array
+    tooltip: PropTypes.func,
+    barClasses: PropTypes.array
   },
 
   mixins: [
@@ -83,7 +85,7 @@ const StackedBarChart = React.createClass({
           if (!series[yIdx]) {
             series[yIdx] = {data: []};
           }
-          series[yIdx].data.push({x: p.x, y: y});
+          series[yIdx].data.push({x: p.x, y});
         });
       });
       return series;
@@ -130,7 +132,7 @@ const StackedBarChart = React.createClass({
     }
 
     return {
-      series: series,
+      series,
       pointIndex: StackedBarChart.pointIndex(series),
       interval: StackedBarChart.getInterval(series)
     };
@@ -148,7 +150,7 @@ const StackedBarChart = React.createClass({
       }
 
       this.setState({
-        series: series,
+        series,
         pointIndex: StackedBarChart.pointIndex(series),
         interval: StackedBarChart.getInterval(series)
       });

@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import {t} from '../../../locale';
 
@@ -128,7 +129,7 @@ function getLink(key) {
 
 const CSPHelp = React.createClass({
   propTypes: {
-    data: React.PropTypes.object.isRequired
+    data: PropTypes.object.isRequired
   },
 
   render() {

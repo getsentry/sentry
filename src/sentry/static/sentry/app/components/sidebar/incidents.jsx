@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import Reflux from 'reflux';
 
@@ -11,10 +12,10 @@ import IconSidebarStatus from '../../icons/icon-sidebar-status';
 
 const Incidents = React.createClass({
   propTypes: {
-    showPanel: React.PropTypes.bool,
-    currentPanel: React.PropTypes.string,
-    hidePanel: React.PropTypes.func,
-    onShowPanel: React.PropTypes.func.isRequired
+    showPanel: PropTypes.bool,
+    currentPanel: PropTypes.string,
+    hidePanel: PropTypes.func,
+    onShowPanel: PropTypes.func.isRequired
   },
 
   mixins: [Reflux.listenTo(IncidentStore, 'onIncidentChange')],
