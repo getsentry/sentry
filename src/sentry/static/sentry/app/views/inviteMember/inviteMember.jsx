@@ -20,7 +20,8 @@ const InviteMember = React.createClass({
       selectedTeams: new Set(),
       roleList: [],
       selectedRole: 'member',
-      email: ''
+      email: '',
+      error: undefined
     };
   },
 
@@ -31,10 +32,11 @@ const InviteMember = React.createClass({
     this.api.request(`/organizations/${slug}/members/${user.id}/`, {
       method: 'GET',
       success: data => {
-        console.log(data);
         this.setState({roleList: data.role_list});
       },
-      error: err => {}
+      error: err => {
+        Raven.captureMessage(err);
+      }
     });
   },
 
@@ -65,14 +67,18 @@ const InviteMember = React.createClass({
     let {email} = this.state;
     let emails = this.splitEmails(email);
     if (!emails.length) return;
-    let invites = emails.map(this.inviteUser);
-    Promise.all(invites)
+
+    emails //These are done in series and not parallel becuase django messages don't work on parallel requests
+      .reduce((prev, cur_email) => {
+        return prev.then(() => this.inviteUser(cur_email));
+      }, Promise.resolve())
       .then(values => {
         console.log(values);
         this.onSubmitSuccess();
       })
-      .catch(e => {
-        console.log(e);
+      .catch(error => {
+        console.log(error);
+        this.setState({error: error});
       });
   },
 
@@ -155,10 +161,11 @@ const InviteMember = React.createClass({
 
   render() {
     let {orgId} = this.props.params;
+    let {error} = this.state;
     return (
       <OrganizationHomeContainer>
-        <a href={`/organizations/${orgId}/members/`}>
-          {t('< Back to Members List')}&nbsp;
+        <a className="pull-right" href={`/organizations/${orgId}/members/`}>
+          {t('Members List')}&nbsp;
         </a>
         <h3>{t('Add Member to Organization')}</h3>
         <p>
@@ -166,6 +173,7 @@ const InviteMember = React.createClass({
             'Invite a member to join this organization via their email address. If they do not already have an account, they will first be asked to create one.'
           )}
         </p>
+        {error && <p className="error">{error.toString()}</p>}
         <TextField
           name="email"
           label="Email"
