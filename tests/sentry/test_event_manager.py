@@ -629,7 +629,7 @@ class EventManagerTest(TransactionTestCase):
         }
 
         euser = EventUser.objects.get(
-            project=self.project,
+            project_id=self.project.id,
             ident='1',
         )
         assert event.get_tag('sentry:user') == euser.tag_value
@@ -656,7 +656,7 @@ class EventManagerTest(TransactionTestCase):
         with self.tasks():
             manager.save(self.project.id)
         euser = EventUser.objects.get(
-            project=self.project,
+            project_id=self.project.id,
         )
         assert euser.username == u'foô'
 
