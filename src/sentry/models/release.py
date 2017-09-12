@@ -213,6 +213,34 @@ class Release(Model):
 
             release.delete()
 
+    @classmethod
+    def get_closest_releases(cls, project, start_version, limit=5):
+        # given a release version + project, return next
+        # `limit` releases (includes the release specified by `version`)
+        try:
+            release_dates = cls.objects.filter(
+                organization_id=project.organization_id,
+                version=start_version,
+                projects=project,
+            ).values('date_released', 'date_added').get()
+        except cls.DoesNotExist:
+            return []
+
+        start_date = release_dates['date_released'] or release_dates['date_added']
+
+        return list(Release.objects.filter(
+            projects=project,
+            organization_id=project.organization_id,
+        ).extra(select={
+                'date': 'COALESCE(date_released, date_added)',
+                }
+                ).extra(
+            where=["COALESCE(date_released, date_added) >= %s"],
+            params=[start_date]
+        ).extra(
+            order_by=['date']
+        )[:limit])
+
     @property
     def short_version(self):
         version = self.version

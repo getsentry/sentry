@@ -43,20 +43,12 @@ class EventFileCommittersEndpoint(ProjectEndpoint):
 
         return frames
 
-    def _get_commits(self, project, version):
-        try:
-            commits = Commit.objects.filter(
-                releasecommit=ReleaseCommit.objects.filter(
-                    release=Release.objects.get(
-                        projects=project,
-                        version=version,
-                    ),
-                )
-            ).select_related('author')
-        except Release.DoesNotExist:
-            return None
-
-        return list(commits)
+    def _get_commits(self, releases):
+        return list(Commit.objects.filter(
+            releasecommit=ReleaseCommit.objects.filter(
+                release__in=releases,
+            )
+        ).select_related('author'))
 
     def _get_commit_file_changes(self, commits, path_name_set):
         # build a single query to get all of the commit file that might match the first n frames
@@ -157,7 +149,17 @@ class EventFileCommittersEndpoint(ProjectEndpoint):
 
         group = Group.objects.get(id=event.group_id)
 
-        commits = self._get_commits(event.project, group.get_first_release())
+        first_release_version = group.get_first_release()
+
+        if not first_release_version:
+            return Response({'detail': 'Release not found'}, status=404)
+
+        releases = Release.get_closest_releases(project, first_release_version)
+
+        if not releases:
+            return Response({'detail': 'Release not found'}, status=404)
+
+        commits = self._get_commits(releases)
 
         if not commits:
             return Response({'detail': 'No Commits found for Release'}, status=404)
