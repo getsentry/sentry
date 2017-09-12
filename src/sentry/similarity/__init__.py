@@ -61,7 +61,7 @@ def get_frame_attributes(frame):
     return attributes
 
 
-def _make_index(cluster=None):
+def _make_index_backend(cluster=None):
     if not cluster:
         cluster_id = getattr(
             settings,
@@ -87,7 +87,7 @@ def _make_index(cluster=None):
 
 
 features = FeatureSet(
-    _make_index(),
+    _make_index_backend(),
     Encoder({
         Frame: get_frame_attributes,
     }),
