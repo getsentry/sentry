@@ -49,26 +49,26 @@ jQuery.ajaxSetup({
 // way we can call into scoped objects
 
 export default {
-  jQuery: jQuery,
-  moment: moment,
-  Raven: Raven,
-  React: React,
+  jQuery,
+  moment,
+  Raven,
+  React,
   ReactDOM: {
     findDOMNode: ReactDOM.findDOMNode,
     render: ReactDOM.render
   },
-  PropTypes: PropTypes,
+  PropTypes,
   ReactDOMServer: {
-    renderToStaticMarkup: renderToStaticMarkup
+    renderToStaticMarkup
   },
   ReactBootstrap: {
     Modal: ReactBootstrapModal
   },
-  Reflux: Reflux,
-  Router: Router,
+  Reflux,
+  Router,
 
   Sentry: {
-    api: api,
+    api,
     routes: require('./routes').default,
     forms: {
       // we dont yet export all form field classes as they're not
@@ -121,7 +121,7 @@ export default {
     Sidebar: require('./components/sidebar').default,
     StackedBarChart: require('./components/stackedBarChart').default,
     TimeSince: require('./components/timeSince').default,
-    TodoList: require('./components/todos').default,
+    TodoList: require('./components/onboardingWizard/todos').default,
     U2fEnrollment: require('./components/u2fenrollment').default,
     U2fSign: require('./components/u2fsign').default,
     Badge: require('./components/badge').default,
