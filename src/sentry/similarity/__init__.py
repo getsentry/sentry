@@ -6,8 +6,9 @@ import logging
 from django.conf import settings
 
 from sentry.interfaces.stacktrace import Frame
+from sentry.similarity.backends.dummy import DummyIndexBackend
+from sentry.similarity.backends.redis import RedisMinHashIndexBackend
 from sentry.similarity.encoder import Encoder
-from sentry.similarity.index import MinHashIndex, DummyIndex
 from sentry.similarity.features import (
     ExceptionFeature,
     FeatureSet,
@@ -60,7 +61,7 @@ def get_frame_attributes(frame):
     return attributes
 
 
-def _make_index(cluster=None):
+def _make_index_backend(cluster=None):
     if not cluster:
         cluster_id = getattr(
             settings,
@@ -71,11 +72,11 @@ def _make_index(cluster=None):
         try:
             cluster = redis.redis_clusters.get(cluster_id)
         except KeyError:
-            index = DummyIndex()
+            index = DummyIndexBackend()
             logger.info('No redis cluster provided for similarity, using {!r}.'.format(index))
             return index
 
-    return MinHashIndex(
+    return RedisMinHashIndexBackend(
         cluster,
         'sim:1',
         MinHashSignatureBuilder(16, 0xFFFF),
@@ -86,7 +87,7 @@ def _make_index(cluster=None):
 
 
 features = FeatureSet(
-    _make_index(),
+    _make_index_backend(),
     Encoder({
         Frame: get_frame_attributes,
     }),
