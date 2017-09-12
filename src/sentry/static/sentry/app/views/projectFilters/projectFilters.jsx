@@ -325,7 +325,7 @@ const ProjectFilters = React.createClass({
                 {dataPoint.label}{' '}
               </dd>
               <dd style={{textAlign: 'right', position: 'relative'}}>
-                {point.y[i]} {t('event')}{point.y[i] != 1 ? 's' : ''}
+                {point.y[i]} {point.y[i] != 1 ? t('events') : t('event')}
               </dd>
             </dl>
           );
