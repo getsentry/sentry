@@ -3,8 +3,10 @@ from __future__ import absolute_import
 import itertools
 import time
 
+from sentry.similarity.backends.abstract import AbstractIndexBackend
 from sentry.utils.iterators import chunked
 from sentry.utils.redis import load_script
+
 
 index = load_script('similarity/index.lua')
 
@@ -18,7 +20,7 @@ def flatten(value):
     return list(itertools.chain.from_iterable(value))
 
 
-class MinHashIndex(object):
+class RedisMinHashIndexBackend(AbstractIndexBackend):
     def __init__(self, cluster, namespace, signature_builder, bands, interval, retention):
         self.cluster = cluster
         self.namespace = namespace
@@ -256,34 +258,3 @@ class MinHashIndex(object):
             arguments.extend([idx, key, data])
 
         return self.__index(scope, arguments)
-
-
-class DummyIndex(object):
-    def classify(self, scope, items, limit=None, timestamp=None):
-        return []
-
-    def compare(self, scope, key, items, limit=None, timestamp=None):
-        return []
-
-    def record(self, scope, key, items, timestamp=None):
-        return {}
-
-    def merge(self, scope, destination, items, timestamp=None):
-        return False
-
-    def delete(self, scope, items, timestamp=None):
-        return False
-
-    def scan(self, scope, indices, batch=1000, timestamp=None):
-        # empty generator
-        return
-        yield
-
-    def flush(self, scope, indices, batch=1000, timestamp=None):
-        pass
-
-    def export(self, scope, items, timestamp=None):
-        return {}
-
-    def import_(self, scope, items, timestamp=None):
-        return {}

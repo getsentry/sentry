@@ -17,7 +17,7 @@ from sentry.models import (
     Activity, Environment, EnvironmentProject, Event, EventMapping, Group, GroupHash, GroupRelease,
     GroupTagKey, GroupTagValue, Release, UserReport
 )
-from sentry.similarity import features, _make_index
+from sentry.similarity import features, _make_index_backend
 from sentry.tasks.unmerge import (
     get_caches, get_event_user_from_interface, get_fingerprint, get_group_backfill_attributes,
     get_group_creation_attributes, unmerge
@@ -27,7 +27,7 @@ from sentry.utils.dates import to_timestamp
 from sentry.utils import redis
 
 # Use the default redis client as a cluster client in the similarity index
-index = _make_index(redis.clusters.get('default').get_local_client(0))
+index = _make_index_backend(redis.clusters.get('default').get_local_client(0))
 
 
 @patch('sentry.similarity.features.index', new=index)

@@ -5,12 +5,12 @@ from mock import patch
 
 from sentry.tasks.merge import merge_group, rehash_group_events
 from sentry.models import Event, Group, GroupMeta, GroupRedirect, GroupTagKey, GroupTagValue
-from sentry.similarity import _make_index
+from sentry.similarity import _make_index_backend
 from sentry.testutils import TestCase
 from sentry.utils import redis
 
 # Use the default redis client as a cluster client in the similarity index
-index = _make_index(redis.clusters.get('default').get_local_client(0))
+index = _make_index_backend(redis.clusters.get('default').get_local_client(0))
 
 
 @patch('sentry.similarity.features.index', new=index)
