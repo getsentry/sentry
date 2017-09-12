@@ -63,8 +63,7 @@ const TodoItem = React.createClass({
   },
 
   render: function() {
-    let org = this.getOrganization();
-    let learnMoreUrl = this.learnMoreUrlCreator(org);
+    let learnMoreUrl = this.learnMoreUrlCreator();
     let description;
 
     switch (this.props.task.status) {
