@@ -52,20 +52,18 @@ const ProjectFilters = React.createClass({
   },
 
   getStatOpts() {
-    return this.getProjectFeatures().has('additional-data-filters')
-      ? {
-          'ip-address': 'IP Address',
-          'release-version': 'Release',
-          'error-message': 'Error Message',
-          'browser-extensions': 'Browser Extension',
-          'legacy-browsers': 'Legacy Browser',
-          localhost: 'Localhost',
-          'web-crawlers': 'Web Crawler',
-          'invalid-csp': 'Invalid CSP',
-          cors: 'CORS',
-          blacklisted: 'Filtered Events' //TODO(maxbittker) this is only needed until October 10th, 2017
-        }
-      : {blacklisted: 'Filtered Events'};
+    return {
+      'ip-address': 'IP Address',
+      'release-version': 'Release',
+      'error-message': 'Error Message',
+      'browser-extensions': 'Browser Extension',
+      'legacy-browsers': 'Legacy Browser',
+      localhost: 'Localhost',
+      'web-crawlers': 'Web Crawler',
+      'invalid-csp': 'Invalid CSP',
+      cors: 'CORS',
+      blacklisted: 'Filtered Events' //TODO(maxbittker) this is only needed until October 10th, 2017
+    };
   },
 
   formatData(rawData) {
@@ -79,16 +77,14 @@ const ProjectFilters = React.createClass({
           }
 
           //TODO(maxbittker) this is only needed until October 10th, 2017 :
-          if (this.getProjectFeatures().has('additional-data-filters')) {
-            let statDate = moment(x * 1000);
-            let timeSince = cutOverDate.diff(statDate, 'days');
-            // this means detailed stats are available
-            if (
-              (timeSince < 0 && stat === 'blacklisted') ||
-              (timeSince >= 0 && stat !== 'blacklisted')
-            ) {
-              return {x, y: 0};
-            }
+          let statDate = moment(x * 1000);
+          let timeSince = cutOverDate.diff(statDate, 'days');
+          // this means detailed stats are available
+          if (
+            (timeSince < 0 && stat === 'blacklisted') ||
+            (timeSince >= 0 && stat !== 'blacklisted')
+          ) {
+            return {x, y: 0};
           }
           //END
 
