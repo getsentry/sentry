@@ -6,6 +6,8 @@ from django.db.models import Q
 from rest_framework import serializers
 from rest_framework.response import Response
 
+from django.contrib import messages
+
 from sentry import roles
 from sentry.api.bases.organization import (
     OrganizationEndpoint, OrganizationPermission)
@@ -118,7 +120,11 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
         om.token = om.generate_token()
 
         sid = transaction.savepoint(using='default')
-
+        messages.add_message(
+            request,
+            messages.ERROR,
+            "TEST!!!!",
+        )
         try:
             om.save()
 
