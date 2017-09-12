@@ -147,7 +147,7 @@ def record_affected_user(event, **kwargs):
         return
 
     euser = EventUser(
-        project=event.project,
+        project_id=event.project_id,
         ident=user_data.get('id'),
         email=user_data.get('email'),
         username=user_data.get('username'),

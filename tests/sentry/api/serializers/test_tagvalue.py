@@ -14,7 +14,7 @@ class TagValueSerializerTest(TestCase):
         user = self.create_user()
         project = self.create_project()
         euser = EventUser.objects.create(
-            project=project,
+            project_id=project.id,
             email='foo@example.com',
         )
         tagvalue = TagValue.objects.create(

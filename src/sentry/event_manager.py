@@ -750,7 +750,7 @@ class EventManager(object):
             return
 
         euser = EventUser(
-            project=project,
+            project_id=project.id,
             ident=user_data.get('id'),
             email=user_data.get('email'),
             username=user_data.get('username'),
@@ -773,7 +773,7 @@ class EventManager(object):
             except IntegrityError:
                 try:
                     euser = EventUser.objects.get(
-                        project=project,
+                        project_id=project.id,
                         hash=euser.hash,
                     )
                 except EventUser.DoesNotExist:

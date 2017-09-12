@@ -335,7 +335,7 @@ class ParseQueryTest(TestCase):
 
     def test_user_lookup_with_dot_query(self):
         euser = EventUser.objects.create(
-            project=self.project,
+            project_id=self.project.id,
             ident='1',
             username='foobar',
         )
@@ -348,7 +348,7 @@ class ParseQueryTest(TestCase):
 
     def test_user_lookup_legacy_syntax(self):
         euser = EventUser.objects.create(
-            project=self.project,
+            project_id=self.project.id,
             ident='1',
             username='foobar',
         )

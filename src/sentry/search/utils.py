@@ -37,7 +37,8 @@ def get_user_tag(project, key, value):
     # TODO(dcramer): do something with case of multiple matches
     try:
         lookup = EventUser.attr_from_keyword(key)
-        euser = EventUser.objects.filter(project=project, **{lookup: value})[0]
+        euser = EventUser.objects.filter(
+            project_id=project.id, **{lookup: value})[0]
     except (KeyError, IndexError):
         return u'{}:{}'.format(key, value)
     except DataError:

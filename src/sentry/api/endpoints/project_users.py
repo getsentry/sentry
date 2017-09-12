@@ -29,7 +29,7 @@ class ProjectUsersEndpoint(ProjectEndpoint):
                               For example, ``query=email:foo@example.com``
         """
         queryset = EventUser.objects.filter(
-            project=project,
+            project_id=project.id,
         )
         if request.GET.get('query'):
             pieces = request.GET['query'].strip().split(':', 1)

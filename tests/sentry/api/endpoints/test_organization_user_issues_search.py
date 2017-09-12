@@ -25,9 +25,9 @@ class OrganizationUserIssuesSearchTest(APITestCase):
         )
         group2 = self.create_group(project=self.project2)
 
-        EventUser.objects.create(email='foo@example.com', project=self.project1)
-        EventUser.objects.create(email='bar@example.com', project=self.project1)
-        EventUser.objects.create(email='foo@example.com', project=self.project2)
+        EventUser.objects.create(email='foo@example.com', project_id=self.project1.id)
+        EventUser.objects.create(email='bar@example.com', project_id=self.project1.id)
+        EventUser.objects.create(email='foo@example.com', project_id=self.project2.id)
 
         GroupTagValue.objects.create(
             key='sentry:user',
