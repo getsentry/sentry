@@ -56,17 +56,26 @@ def get(option, silent):
 
 
 @config.command()
-@click.argument('option')
-@click.argument('value')
+@click.option('--secret', default=False, is_flag=True,
+              help='Hide prompt input when inputing secret data.')
+@click.argument('key')
+@click.argument('value', required=False)
 @configuration
-def set(option, value):
+def set(key, value, secret):
     "Set a configuration option to a new value."
     from sentry import options
     from sentry.options.manager import UnknownOption
+
+    if value is None:
+        if secret:
+            value = click.prompt('(hidden) Value', hide_input=True)
+        else:
+            value = click.prompt('Value')
+
     try:
-        options.set(option, value)
+        options.set(key, value)
     except UnknownOption:
-        raise click.ClickException('unknown option: %s' % option)
+        raise click.ClickException('unknown option: %s' % key)
     except TypeError as e:
         raise click.ClickException(six.text_type(e))
 
