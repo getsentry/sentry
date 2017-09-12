@@ -4,14 +4,13 @@ import {t} from '../../locale';
 
 const Confirmation = React.createClass({
   propTypes: {
-    task: PropTypes.number,
     onSkip: PropTypes.func.isRequired,
     dismiss: PropTypes.func.isRequired
   },
 
   skip: function(e) {
     e.preventDefault();
-    this.props.onSkip(this.props.task);
+    this.props.onSkip();
   },
 
   render: function() {

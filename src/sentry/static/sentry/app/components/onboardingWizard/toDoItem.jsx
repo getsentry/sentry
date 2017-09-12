@@ -21,6 +21,7 @@ const TodoItem = React.createClass({
       isExpanded: false
     };
   },
+
   toggleDescription() {
     this.setState({isExpanded: !this.state.isExpanded});
   },
@@ -124,7 +125,7 @@ const TodoItem = React.createClass({
         {this.state.showConfirmation &&
           <Confirmation
             task={this.props.task.task}
-            onSkip={this.skip}
+            onSkip={() => this.skip(this.props.task.task)}
             dismiss={this.toggleConfirmation}
           />}
       </li>
