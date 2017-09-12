@@ -224,9 +224,10 @@ def _environment(request):
     config._environment.append(('Driver', config.option.selenium_driver))
 
 
-@pytest.mark.tryfirst
-def pytest_runtest_makereport(item, call, __multicall__):
-    report = __multicall__.execute()
+@pytest.hookimpl(tryfirst=True, hookwrapper=True)
+def pytest_runtest_makereport(item, call):
+    outcome = yield
+    report = outcome.get_result()
     summary = []
     extra = getattr(report, 'extra', [])
     driver = getattr(item, '_driver', None)
@@ -238,7 +239,6 @@ def pytest_runtest_makereport(item, call, __multicall__):
     if summary:
         report.sections.append(('selenium', '\n'.join(summary)))
     report.extra = extra
-    return report
 
 
 def _gather_url(item, report, driver, summary, extra):
