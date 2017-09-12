@@ -67,6 +67,7 @@
 .sidebar .sidebar-dropdown {
   .sidebar-dropdown-org-name {
     font-size: 16px;
+    line-height: 20px;
     font-weight: bold;
     color: #fff;
     text-shadow: 0 0 6px rgba(255,255,255, 0);
@@ -98,8 +99,8 @@
   cursor: pointer;
 
   .org-avatar {
-    // Todo(ckj): implement a less fragile way to handle this
-    margin-top: 26px;
+    position: relative;
+    top: 2px;
   }
 
   &:hover {
@@ -117,7 +118,7 @@
   background: #fff;
   color: @gray-dark;
   border-radius: 4px;
-  box-shadow: 0 0 0 1px rgba(0,0,0,0.08), 0 4px 20px 0 rgba(0,0,0,0.30);
+  box-shadow: @dropshadow;
   padding: 5px 0;
   width: 250px;
   top: 48px;
@@ -125,6 +126,7 @@
 
   .sidebar-dropdown-menu {
     left: 256px;
+    top: -5px;
   }
 }
 

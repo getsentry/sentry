@@ -53,6 +53,12 @@ const ProjectHeader = React.createClass({
                 {t('Releases')}
               </Link>
             </li>
+            {access.has('project:write') &&
+              <li className={navSection == 'settings' ? 'active' : ''}>
+                <a href={`/${org.slug}/${project.slug}/settings/`}>
+                  {t('Settings')}
+                </a>
+              </li>}
           </ul>
         </div>
 
@@ -71,16 +77,6 @@ const ProjectHeader = React.createClass({
                 : <span>{t('Star Project')}</span>}
             </a>
           </BookmarkToggle>
-          {access.has('project:write') &&
-            <a
-              className={
-                navSection == 'settings'
-                  ? 'btn btn-sm btn-default active'
-                  : 'btn btn-sm btn-default'
-              }
-              href={`/${org.slug}/${project.slug}/settings/`}>
-              <span className="icon icon-settings" /> {t('Project Settings')}
-            </a>}
         </div>
       </div>
     );

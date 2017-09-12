@@ -299,7 +299,7 @@ const OldSidebar = React.createClass({
 const SidebarSection = React.createClass({
   render() {
     return (
-      <div className="sidebar-section">
+      <div className="sidebar-section" {...this.props}>
         {this.props.children}
       </div>
     );
@@ -598,7 +598,7 @@ const Sidebar = React.createClass({
     return (
       <div className={classNames} ref="sidebar">
         <div className="sidebar-top">
-          <SidebarSection>
+          <SidebarSection style={{height: 36}}>
             <SidebarDropdown collapsed={this.state.collapsed} org={org} />
           </SidebarSection>
           <hr />

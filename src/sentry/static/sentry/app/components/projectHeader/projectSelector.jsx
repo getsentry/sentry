@@ -335,9 +335,6 @@ const ProjectSelector = React.createClass({
     return (
       <div className="project-select" ref="container">
         <h3>
-          <Link to={`/${org.slug}/`} className="home-crumb">
-            <span className="icon-home" />
-          </Link>
           {this.state.activeProject
             ? this.getLinkNode(this.state.activeTeam, this.state.activeProject)
             : t('Select a project')}

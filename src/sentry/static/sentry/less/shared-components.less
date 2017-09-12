@@ -1065,10 +1065,6 @@ table.integrations {
     font-size: 14px;
     background: #fff;
     .transition(none);
-
-    &:focus {
-      border-radius: 3px 3px 0 0;
-    }
   }
 
   .search-toggle {
@@ -1117,13 +1113,12 @@ table.integrations {
 }
 
 .search-dropdown {
-  box-shadow: 0 1px 1px rgba(0, 0, 0, .08);
-  border: 1px solid darken(@trim, 6) !important;
-  border-radius: 0 0 4px 4px;
+  box-shadow: @dropshadow;
+  border-radius: 4px;
   position: absolute;
-  top: 37px;
-  right: 0;
-  left: 0;
+  top: 44px;
+  right: 1px;
+  left: 1px;
   background: #fff;
   z-index: 100;
   overflow: hidden;
@@ -1243,15 +1238,8 @@ table.integrations {
     color: @gray-darker;
   }
 
-  .home-crumb {
-    color: @gray-lighter !important;
-    border-right: 1px solid @trim;
-    padding-right: 10px;
-    margin-right: 10px;
-
-    &:hover {
-      color: @gray-light !important;
-    }
+  h3 {
+    font-weight: 400;
   }
 }
 
@@ -1259,40 +1247,40 @@ table.integrations {
   position: static;
 
   .dropdown-toggle {
-    border: 1px solid @gray-lighter;
+    border: 1px solid @30;
     box-shadow: 0 1px 1px rgba(0, 0, 0, .08);
     border-radius: 50%;
-    height: 21px;
-    width: 21px;
-    line-height: 21px;
-    // text-align: center;
+    height: 20px;
+    width: 20px;
+    line-height: 20px;
     position: relative;
     top: -1px;
-
-    margin-left: 10px;
+    margin-left: 8px;
     display: inline-block;
     vertical-align: middle;
+    color: @gray-light;
 
     &:hover {
       background: @white-darker;
-      border-color: @gray-light;
+      border-color: @gray-lighter;
+      color: @gray;
     }
 
     .icon-arrow-down {
       position: relative;
-      top: -1px;
+      top: 0;
       left: 2px;
       font-size: 15px !important;
-      color: @gray;
     }
   }
 
   .dropdown-menu {
-    min-width: 250px;
+    min-width: 350px;
     max-width: 500px;
     width: auto;
     padding-bottom: 0;
-    left: 30px;
+    left: 0;
+    top: 30px;
     .clearfix;
     overflow: auto;
     max-height: 500px;
@@ -1318,7 +1306,7 @@ table.integrations {
         border: 0;
         border-bottom: 1px solid lighten(@gray-lighter, 5);
         margin-top: -5px;
-        box-shadow: none;
+        box-shadow: none !important;
         padding-left: 15px;
 
         &:focus {
@@ -2434,8 +2422,8 @@ ul.faces {
 .dropdown-menu {
   top: 32px;
   border: none;
-  border-radius: 2px;
-  box-shadow: 0 0 0 1px rgba(52, 60, 69, .2), 0 1px 3px rgba(70, 82, 98, .25);
+  border-radius: 4px;
+  box-shadow: @dropshadow;
   -webkit-background-clip: padding-box;
   -moz-background-clip: padding;
   background-clip: padding-box;
@@ -2641,6 +2629,7 @@ ul.faces {
 .nav-tabs {
   border-bottom: 0;
   margin: 0 0 20px;
+  font-size: 15px;
 
   > li {
     margin-right: 20px;
@@ -2655,7 +2644,7 @@ ul.faces {
       margin: 0;
       border: 0;
       background: none;
-      color: @gray;
+      color: @50;
       min-width: 30px;
       text-align: center;
 
@@ -3009,7 +2998,7 @@ ul.radio-inputs {
   }
   .modal-content {
     padding: 30px;
-    box-shadow: 0 15px 40px 0 rgba(67,62,75,0.30), 0 1px 15px 0 rgba(67,61,74,0.15);
+    box-shadow: @dropshadow;
     border-radius: 7px;
     border: 0;
     overflow: hidden;
