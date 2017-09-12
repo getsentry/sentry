@@ -102,20 +102,37 @@ class CloudflareWebhookEndpoint(Endpoint):
             key=lambda x: x.slug
         )
 
+        enum_choices = [six.text_type(o.id) for o in organizations]
+
         data['install']['schema']['properties']['organization'] = {
             'type': 'string',
             'title': 'Sentry Organization',
             'order': 1,
-            'enum': [six.text_type(o.id) for o in organizations],
+            'enum': enum_choices,
             'enumNames': {
                 six.text_type(o.id): o.slug for o in organizations
             },
             'required': True,
         }
-        if organizations:
-            data['install']['options']['organization'] = data['install']['schema']['properties']['organization']['enum'][0]
+        if not enum_choices:
+            return self.on_organization_clear(request, data, is_test)
+        else:
+            if data['install']['options'].get('organization') not in enum_choices:
+                data['install']['options']['organization'] = enum_choices[0]
             return self.on_organization_change(request, data, is_test)
 
+        return Response({
+            'install': data['install'],
+            'proceed': True
+        })
+
+    @requires_auth
+    def on_organization_clear(self, request, data, is_test):
+        data['install']['schema']['properties'].pop('project', None)
+        data['install']['schema']['properties'].pop('dsn', None)
+        data['install']['options'].pop('organization', None)
+        data['install']['options'].pop('project', None)
+        data['install']['options'].pop('dsn', None)
         return Response({
             'install': data['install'],
             'proceed': True
@@ -130,20 +147,35 @@ class CloudflareWebhookEndpoint(Endpoint):
             team__in=Team.objects.get_for_user(org, request.user, scope='project:write'),
         ), key=lambda x: x.slug)
 
+        enum_choices = [six.text_type(o.id) for o in projects]
+
         data['install']['schema']['properties']['project'] = {
             'type': 'string',
             'title': 'Sentry Project',
             'order': 2,
-            'enum': [six.text_type(o.id) for o in projects],
+            'enum': enum_choices,
             'enumNames': {
                 six.text_type(o.id): o.slug for o in projects
             },
             'required': True,
         }
-        if projects:
-            data['install']['options']['project'] = data['install']['schema']['properties']['project']['enum'][0]
+        if not enum_choices:
+            return self.on_project_clear(request, data, is_test)
+        else:
+            if data['install']['options'].get('project') not in enum_choices:
+                data['install']['options']['project'] = enum_choices[0]
             return self.on_project_change(request, data, is_test)
 
+        return Response({
+            'install': data['install'],
+            'proceed': True
+        })
+
+    @requires_auth
+    def on_project_clear(self, request, data, is_test):
+        data['install']['schema']['properties'].pop('dsn', None)
+        data['install']['options'].pop('project', None)
+        data['install']['options'].pop('dsn', None)
         return Response({
             'install': data['install'],
             'proceed': True
@@ -157,18 +189,30 @@ class CloudflareWebhookEndpoint(Endpoint):
             project=project,
         ), key=lambda x: x.public_key)
 
+        enum_choices = [o.get_dsn(public=True) for o in keys]
+
         data['install']['schema']['properties']['dsn'] = {
             'type': 'string',
             'title': 'DSN',
             'description': 'Your automatically configured DSN for communicating with Sentry.',
             'placeholder': 'https://public_key@sentry.io/1',
             'order': 3,
-            'enum': [o.get_dsn(public=True) for o in keys],
+            'enum': enum_choices,
             'required': True,
         }
-        if keys:
-            data['install']['options']['dsn'] = data['install']['schema']['properties']['dsn']['enum'][0]
+        if not enum_choices:
+            return self.on_dsn_clear(request, data, is_test)
+        elif data['install']['options'].get('dsn') not in enum_choices:
+            data['install']['options']['dsn'] = enum_choices[0]
 
+        return Response({
+            'install': data['install'],
+            'proceed': True
+        })
+
+    @requires_auth
+    def on_dsn_clear(self, request, data, is_test):
+        data['install']['options'].pop('dsn', None)
         return Response({
             'install': data['install'],
             'proceed': True
