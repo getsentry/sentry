@@ -315,7 +315,7 @@ const ProjectFilters = React.createClass({
     return ReactDOMServer.renderToStaticMarkup(
       <div style={{width: '175px'}}>
         <div className="time-label"><span>{timeLabel}</span></div>
-        <div>{intcomma(totalY)} {totalY > 1 ? t('total events') : t('total event')}</div>
+        <div>{intcomma(totalY)} {totalY != 1 ? t('total events') : t('total event')}</div>
         {formattedData.map((dataPoint, i) => {
           return (
             point.y[i] > 0 &&
@@ -325,7 +325,7 @@ const ProjectFilters = React.createClass({
                 {dataPoint.label}{' '}
               </dd>
               <dd style={{textAlign: 'right', position: 'relative'}}>
-                {point.y[i]} {t('event')}{point.y[i] > 1 ? 's' : ''}
+                {point.y[i]} {t('event')}{point.y[i] != 1 ? 's' : ''}
               </dd>
             </dl>
           );
