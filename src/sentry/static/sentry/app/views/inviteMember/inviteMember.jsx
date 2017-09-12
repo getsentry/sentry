@@ -3,7 +3,7 @@ import React from 'react';
 import OrganizationHomeContainer from '../../components/organizations/homeContainer';
 import Checkbox from '../../components/checkbox';
 import Radio from '../../components/radio';
-import SplitLayout from '../../components/splitLayout';
+
 import TextField from '../../components/forms/textField';
 
 import ConfigStore from '../../stores/configStore';
@@ -20,7 +20,7 @@ const InviteMember = React.createClass({
       selectedTeams: new Set(),
       roleList: [],
       selectedRole: 'member',
-      email: 'test@test.com'
+      email: ''
     };
   },
 
@@ -38,21 +38,42 @@ const InviteMember = React.createClass({
     });
   },
 
-  submit() {
+  splitEmails(text) {
+    return text.split(',').filter(i => i);
+  },
+
+  inviteUser(email) {
     let {slug} = this.getOrganization();
-    let {selectedTeams, email, selectedRole} = this.state;
-    this.api.request(`/organizations/${slug}/members/`, {
-      method: 'POST',
-      data: {
-        email,
-        teams: Array.from(selectedTeams.keys()),
-        role: selectedRole
-      },
-      success: this.onSubmitSuccess,
-      error: err => {
-        console.log(err);
-      }
+    let {selectedTeams, selectedRole} = this.state;
+    return new Promise((resolve, reject) => {
+      this.api.request(`/organizations/${slug}/members/`, {
+        method: 'POST',
+        data: {
+          email,
+          teams: Array.from(selectedTeams.keys()),
+          role: selectedRole
+        },
+        success: resolve,
+        error: err => {
+          reject(err.responseJSON);
+        }
+      });
     });
+  },
+
+  submit() {
+    let {email} = this.state;
+    let emails = this.splitEmails(email);
+    if (!emails.length) return;
+    let invites = emails.map(this.inviteUser);
+    Promise.all(invites)
+      .then(values => {
+        console.log(values);
+        this.onSubmitSuccess();
+      })
+      .catch(e => {
+        console.log(e);
+      });
   },
 
   toggleID(id) {
@@ -63,8 +84,7 @@ const InviteMember = React.createClass({
         : selectedTeams.add(id)
     });
   },
-  onSubmitSuccess(data) {
-    console.log(data);
+  onSubmitSuccess() {
     let {orgId} = this.props.params;
     // redirect to member page
     window.location.href = `/organizations/${orgId}/members/`;
@@ -87,9 +107,11 @@ const InviteMember = React.createClass({
                   className="radio"
                   key={id}
                   onClick={() => this.setState({selectedRole: id})}>
-                  <h4>{name}</h4>
-                  <Radio id={id} value={name} checked={id === selectedRole} readOnly />
-                  <p>{desc}</p>
+                  <label>
+                    <Radio id={id} value={name} checked={id === selectedRole} readOnly />
+                    {name}
+                    <div className="help-block">{desc}</div>
+                  </label>
                 </li>
               );
             })}
@@ -110,15 +132,23 @@ const InviteMember = React.createClass({
         <div className="box-header">
           <h4>{t('Team') + ':'}</h4>
         </div>
-        <SplitLayout className="grouping-controls">
+        <div className="grouping-controls team-choices row box-content with-padding">
           {teams.map(({slug, name, id}, i) => (
-            <div key={id} onClick={() => this.toggleID(id)}>
-              <Checkbox id={id} value={name} checked={selectedTeams.has(id)} />
-              <h4>{name}</h4>
-              <p>{slug}</p>
+            <div
+              key={id}
+              onClick={e => {
+                e.preventDefault();
+                this.toggleID(id);
+              }}
+              className="col-md-3">
+              <label className="checkbox">
+                <Checkbox id={id} value={name} checked={selectedTeams.has(id)} />
+                {name}
+                <span className="team-slug">{slug}</span>
+              </label>
             </div>
           ))}
-        </SplitLayout>
+        </div>
       </div>
     );
   },
