@@ -5,7 +5,7 @@ from django.db import transaction, IntegrityError
 from django.db.models import Q
 from rest_framework import serializers
 from rest_framework.response import Response
-
+from django.utils.translation import ugettext_lazy as _
 from django.contrib import messages
 
 from sentry import roles
@@ -108,10 +108,19 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
                 user__email__iexact=result['email'],
                 user__is_active=True,
             )[0]
+            messages.add_message(
+                request, messages.INFO,
+                _('The organization member %s already exists.') % result['email']
+            )
         except IndexError:
             pass
         else:
             return Response(serialize(existing), status=200)
+
+        messages.add_message(
+            request, messages.SUCCESS,
+            _('The organization member %s was added.') % result['email']
+        )
 
         om = OrganizationMember(
             organization=organization,
@@ -120,11 +129,6 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
         om.token = om.generate_token()
 
         sid = transaction.savepoint(using='default')
-        messages.add_message(
-            request,
-            messages.ERROR,
-            "TEST!!!!",
-        )
         try:
             om.save()
 
