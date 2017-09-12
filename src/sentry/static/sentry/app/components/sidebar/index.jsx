@@ -344,37 +344,78 @@ const SidebarMenuDivider = React.createClass({
 });
 
 const SidebarMenuItem = React.createClass({
+  getInitialState() {
+    return {
+      hover: false
+    };
+  },
+
+  handleMouseOver() {
+    if (this.mouseOutTimer) {
+      window.clearTimeout(this.mouseOutTimer);
+    }
+
+    this.setState({hover: true});
+  },
+
+  handleMouseOut() {
+    // Need some time for mouse to move to subMenu
+    this.mouseOutTimer = window.setTimeout(() => this.setState({hover: false}), 350);
+  },
+
   render() {
+    let {href, subMenu, children} = this.props;
+    let caret = !!subMenu;
+    let shouldShowSubMenu = this.state.hover;
+    let cx = 'sidebar-dropdown-menu-item';
+    // let Container = !!href ? <a href={href} className={cx} /> : <span className={cx} />;
+    let Container = !!href ? 'a' : 'span';
+
     return (
-      <a href={this.props.href} className="sidebar-dropdown-menu-item">
-        <span className="sidebar-dropdown-menu-item-label">{this.props.children}</span>
-        {this.props.caret &&
+      <Container
+        href={href}
+        className={cx}
+        onMouseOver={this.handleMouseOver}
+        onMouseOut={this.handleMouseOut}>
+        <span className="sidebar-dropdown-menu-item-label">{children}</span>
+        {caret &&
           <span className="sidebar-dropdown-menu-item-caret">
             <i className="icon-arrow-right" />
           </span>}
-      </a>
+        {!!subMenu && shouldShowSubMenu && subMenu}
+      </Container>
     );
   }
 });
 
-const SidebarDropdown = React.createClass({
+const SidebarDropdownPopup = React.createClass({
   contextTypes: {
     location: React.PropTypes.object
   },
 
-  getInitialState: function() {
-    return {
-      isOpen: false
-    };
+  componentDidMount() {
+    document.addEventListener('click', this.handleGlobalClick);
   },
 
-  renderMenu() {
+  componentWillUnmount() {
+    document.removeEventListener('click', this.handleGlobalClick);
+  },
+
+  handleGlobalClick(e) {
+    // Check if click is inside of side bar menu, otherwise we want to hide
+    if (!this.menu) return;
+    if (this.menu.contains(e.target)) return;
+    if (typeof this.props.onHide !== 'function') return;
+    this.props.onHide();
+  },
+
+  render() {
     const org = this.props.org;
     let user = ConfigStore.get('user');
     let to = url => (this.context.location ? {to: url} : {href: url});
 
     return (
-      <div className="sidebar-dropdown-menu">
+      <div ref={ref => (this.menu = ref)} className="sidebar-dropdown-menu">
         <OrgSummary org={org} />
         <SidebarMenuItem href={`/organizations/${org.slug}/settings/`}>
           {t('Organization settings')}
@@ -388,19 +429,21 @@ const SidebarDropdown = React.createClass({
         <SidebarMenuItem href={`/organizations/${org.slug}/billing/`}>
           {t('Usage & Billing')}
         </SidebarMenuItem>
-        <SidebarMenuItem caret={true}>
+        <SidebarMenuItem
+          subMenu={
+            <div className="sidebar-dropdown-menu sidebar-dropdown-org-list">
+              <SidebarMenuItem {...to('/${org.slug}/')}>
+                <OrgSummary org={org} />
+              </SidebarMenuItem>
+              <SidebarMenuItem><OrgSummary org={org} /></SidebarMenuItem>
+              <SidebarMenuItem><OrgSummary org={org} /></SidebarMenuItem>
+              <SidebarMenuDivider />
+              <SidebarMenuItem href={'/organizations/new/'}>
+                {t('Create a new organization...')}
+              </SidebarMenuItem>
+            </div>
+          }>
           {t('Switch organization')}
-          <div className="sidebar-dropdown-menu sidebar-dropdown-org-list">
-            <SidebarMenuItem {...to('/${org.slug}/')}>
-              <OrgSummary org={org} />
-            </SidebarMenuItem>
-            <SidebarMenuItem><OrgSummary org={org} /></SidebarMenuItem>
-            <SidebarMenuItem><OrgSummary org={org} /></SidebarMenuItem>
-            <SidebarMenuDivider />
-            <SidebarMenuItem href={'/organizations/new/'}>
-              {t('Create a new organization...')}
-            </SidebarMenuItem>
-          </div>
         </SidebarMenuItem>
         <SidebarMenuDivider />
         <UserSummary user={user} />
@@ -415,6 +458,26 @@ const SidebarDropdown = React.createClass({
         </div>
       </div>
     );
+  }
+});
+
+const SidebarDropdown = React.createClass({
+  getInitialState: function() {
+    return {
+      isOpen: false
+    };
+  },
+
+  componentDidMount() {
+    document.addEventListener('click', this.handleGlobalClick);
+  },
+
+  componentWillUnmount() {
+    document.removeEventListener('click', this.handleGlobalClick);
+  },
+
+  handleHidePopup(e) {
+    this.setState({isOpen: false});
   },
 
   toggleDropdown() {
@@ -437,7 +500,8 @@ const SidebarDropdown = React.createClass({
               <div className="sidebar-dropdown-user-name">{user.name}</div>
             </div>}
         </div>
-        {this.state.isOpen && <div>{this.renderMenu()}</div>}
+        {this.state.isOpen &&
+          <SidebarDropdownPopup onHide={this.handleHidePopup} org={org} />}
       </div>
     );
   }
