@@ -38,6 +38,8 @@ const IssueDiff = React.createClass({
 
   componentDidMount() {
     let {baseIssueId, targetIssueId, baseEventId, targetEventId} = this.props;
+
+    // Fetch component and event data
     Promise.all([
       import('./splitDiff'),
       this.fetchData(baseIssueId, baseEventId),
