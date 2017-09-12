@@ -125,7 +125,7 @@ test-cli:
 
 test-js:
 	@echo "--> Building static assets"
-	@${NPM_ROOT}/.bin/webpack
+	@npm run build-sentry
 	@echo "--> Running JavaScript tests"
 	@npm run test-ci
 	@npm run snapshot
@@ -146,7 +146,7 @@ test-network:
 
 test-acceptance: build-platform-assets
 	@echo "--> Building static assets"
-	@${NPM_ROOT}/.bin/webpack
+	@npm run build-sentry
 	@echo "--> Running acceptance tests"
 	py.test tests/acceptance --cov . --cov-report="xml:coverage.xml" --junit-xml="junit.xml" --html="pytest.html"
 	@echo ""

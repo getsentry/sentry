@@ -78,6 +78,12 @@
   "APIMethod": "stub",
   "proxyURL": "http://localhost:8000",
   "scripts": {
+    "clean-webpack": "rm -rf static/dist/*",
+    "build-vendor": "webpack -p --config webpack.dll.vendor.js",
+    "build-shared": "webpack -p --config webpack.dll.shared.js",
+    "build-dlls": "npm run clean-webpack && npm run build-vendor && npm run build-shared",
+    "build-sentry": "npm run build-dlls && webpack -p --config webpack.dll.app.js",
+    "webpack-dev-server": "webpack-dev-server",
     "test": "npm run jest -- tests/js/spec",
     "test-ci": "npm run test -- --runInBand",
     "test-watch": "npm run test -- --watch",

@@ -42,7 +42,8 @@ if (process.env.SENTRY_EXTRACT_TRANSLATIONS === '1') {
 }
 
 var appEntry = {
-  app: 'app',
+  shared: ['app/shared'],
+  app: ['app'],
   vendor: [
     'babel-polyfill',
     'bootstrap/js/dropdown',
@@ -147,9 +148,9 @@ var appConfig = {
       currying: true, // these are enabled to support lodash/fp/ features
       flattening: true // used by a dependency of react-mentions
     }),
-    new webpack.optimize.CommonsChunkPlugin({
-      names: localeEntries.concat(['vendor']) // 'vendor' must be last entry
-    }),
+    // new webpack.optimize.CommonsChunkPlugin({
+    // names: localeEntries, // 'vendor' must be last entry
+    // }),
     new webpack.ProvidePlugin({
       $: 'jquery',
       jQuery: 'jquery',
@@ -190,7 +191,7 @@ var appConfig = {
     path: distPath,
     filename: '[name].js',
     libraryTarget: 'var',
-    library: 'exports',
+    library: '[name]',
     sourceMapFilename: '[name].js.map'
   },
   devtool: IS_PRODUCTION ? '#source-map' : '#cheap-source-map'
