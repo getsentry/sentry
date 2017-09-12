@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import datetime
 import six
 
 from sentry.models import (
@@ -426,3 +427,43 @@ class SetCommitsTestCase(TestCase):
         assert resolution.actor_id is None
 
         assert Group.objects.get(id=group.id).status == GroupStatus.RESOLVED
+
+
+class GetClosestReleasesTestCase(TestCase):
+    def test_simple(self):
+
+        date = datetime.datetime.utcnow()
+
+        org = self.create_organization()
+        project = self.create_project(organization=org, name='foo')
+
+        # this shouldn't be included
+        release1 = Release.objects.create(
+            organization=org,
+            version='a' * 40,
+            date_released=date - datetime.timedelta(days=2),
+        )
+
+        release1.add_project(project)
+
+        release2 = Release.objects.create(
+            organization=org,
+            version='b' * 40,
+            date_released=date - datetime.timedelta(days=1),
+        )
+
+        release2.add_project(project)
+
+        release3 = Release.objects.create(
+            organization=org,
+            version='c' * 40,
+            date_released=date,
+        )
+
+        release3.add_project(project)
+
+        releases = list(Release.get_closest_releases(project, release2.version))
+
+        assert len(releases) == 2
+        assert releases[0] == release2
+        assert releases[1] == release3
