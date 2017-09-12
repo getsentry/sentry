@@ -19,7 +19,15 @@ class GroupSimilarIssuesEndpoint(GroupEndpoint):
 
         results = filter(
             lambda (group_id, scores): group_id != group.id,
-            features.compare(group, limit=limit)
+            features.compare(
+                group,
+                limit=limit,
+                thresholds={
+                    label: int(features.index.bands * 0.5)
+                    for label in
+                    features.features.keys()
+                },
+            )
         )
 
         serialized_groups = apply_values(
