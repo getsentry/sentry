@@ -78,7 +78,7 @@ const InviteMember = React.createClass({
       })
       .catch(error => {
         console.log(error);
-        this.setState({error: error});
+        this.setState({error});
       });
   },
 
