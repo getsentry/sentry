@@ -11,28 +11,35 @@ const ProjectChooser = React.createClass({
 
   componentWillMount() {
     $(document.body).addClass('narrow');
+    this.redirectNoMultipleProjects();
   },
 
   componentWillUnmount() {
     $(document.body).removeClass('narrow');
   },
 
-  render() {
+  redirectNoMultipleProjects() {
     let org = this.getOrganization();
     let teams = org.teams.filter(team => team.projects.length > 0);
     let projects = [].concat.apply([], teams.map(team => team.projects));
-
     let task = TodoList.TASKS.filter(
       task_inst => task_inst.task == this.props.location.query.task
     )[0];
+
     if (projects.length === 0) {
-      let url = `/organizations/${org.slug}/projects/new/`;
-      browserHistory.push(url);
+      browserHistory.push(`/organizations/${org.slug}/projects/new/`);
     } else if (projects.length === 1) {
       let project = projects[0];
-      let url = `/${org.slug}/${project.slug}/${task.location}`;
-      browserHistory.push(url);
+      browserHistory.push(`/${org.slug}/${project.slug}/${task.location}`);
     }
+  },
+
+  render() {
+    let org = this.getOrganization();
+    let teams = org.teams.filter(team => team.projects.length > 0);
+    let task = TodoList.TASKS.filter(
+      task_inst => task_inst.task == this.props.location.query.task
+    )[0];
 
     // Expect onboarding=1 and task=<task id> parameters and task.featureLocation == 'project'
     // TODO throw up report dialog if not true
