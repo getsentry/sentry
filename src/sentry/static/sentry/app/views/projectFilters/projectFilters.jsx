@@ -78,19 +78,19 @@ const ProjectFilters = React.createClass({
             this.setState({blankStats: false});
           }
 
-          //TODO(maxbittker) this is only needed until October 10th, 2017
-          let statDate = moment(x * 1000);
-          let timeSince = cutOverDate.diff(statDate, 'days');
-          // this means detailed stats are available
-          if (timeSince < 0) {
-            if (stat === 'blacklisted') {
-              return {x, y: 0};
-            }
-          } else {
-            if (stat !== 'blacklisted') {
+          //TODO(maxbittker) this is only needed until October 10th, 2017 :
+          if (this.getProjectFeatures().has('additional-data-filters')) {
+            let statDate = moment(x * 1000);
+            let timeSince = cutOverDate.diff(statDate, 'days');
+            // this means detailed stats are available
+            if (
+              (timeSince < 0 && stat === 'blacklisted') ||
+              (timeSince >= 0 && stat !== 'blacklisted')
+            ) {
               return {x, y: 0};
             }
           }
+          //END
 
           return {x, y};
         }),
