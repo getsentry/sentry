@@ -201,6 +201,25 @@ class OptionChangeAccountWebhookTest(BaseWebhookTest):
         resp = self.post_webhook(webhook_data)
 
         assert resp.status_code == 200, resp.content
+        assert resp.data['proceed']
+        assert resp.data['install']['schema']['properties']['organization']['enum'] == [
+            six.text_type(self.org.id)]
+        assert resp.data['install']['options']['organization'] == six.text_type(self.org.id)
+        assert resp.data['install']['schema']['properties']['project']['enum'] == [
+            six.text_type(self.project.id)]
+        assert resp.data['install']['options']['project'] == six.text_type(self.project.id)
+        assert resp.data['install']['schema']['properties']['dsn']['enum'] == [
+            self.key.get_dsn(public=True)]
+        assert resp.data['install']['options']['dsn'] == six.text_type(
+            self.key.get_dsn(public=True))
+
+    def test_with_invalid_organization_selected(self):
+        webhook_data = json.loads(self.load_fixture(
+            'cloudflare/option-change-account-webhook.json'))
+        webhook_data['install']['options']['organization'] = -1
+
+        resp = self.post_webhook(webhook_data)
+
         assert resp.status_code == 200, resp.content
         assert resp.data['proceed']
         assert resp.data['install']['schema']['properties']['organization']['enum'] == [
@@ -213,3 +232,26 @@ class OptionChangeAccountWebhookTest(BaseWebhookTest):
             self.key.get_dsn(public=True)]
         assert resp.data['install']['options']['dsn'] == six.text_type(
             self.key.get_dsn(public=True))
+
+    def test_with_existing_project_selected_and_no_keys(self):
+        project2 = self.create_project(name='b', team=self.team)
+        # kill the automatically generated keys
+        ProjectKey.objects.filter(project=project2).delete()
+
+        webhook_data = json.loads(self.load_fixture(
+            'cloudflare/option-change-account-webhook.json'))
+        webhook_data['install']['options']['organization'] = six.text_type(self.org.id)
+        webhook_data['install']['options']['project'] = six.text_type(project2.id)
+
+        resp = self.post_webhook(webhook_data)
+
+        assert resp.status_code == 200, resp.content
+        assert resp.data['proceed']
+        assert resp.data['install']['schema']['properties']['organization']['enum'] == [
+            six.text_type(self.org.id)]
+        assert resp.data['install']['options']['organization'] == six.text_type(self.org.id)
+        assert resp.data['install']['schema']['properties']['project']['enum'] == [
+            six.text_type(self.project.id), six.text_type(project2.id)]
+        assert resp.data['install']['options']['project'] == six.text_type(project2.id)
+        assert resp.data['install']['schema']['properties']['dsn']['enum'] == []
+        assert 'dsn' not in resp.data['install']['options']
