@@ -124,8 +124,6 @@
     "eslint-plugin-import": "^2.7.0",
     "eslint-plugin-react": "6.10.3",
     "jest": "^19.0.2",
-    "karma-sourcemap-loader": "0.3.7",
-    "karma-webpack": "2.0.1",
     "phantomjs-prebuilt": "2.1.14",
     "prettier": "1.2.2",
     "sinon": "1.17.2",
