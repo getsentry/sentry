@@ -2,6 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 
 import ApiMixin from '../../mixins/apiMixin';
+import {t} from '../../locale';
 
 import {update as projectUpdate} from '../../actionCreators/projects';
 
@@ -52,7 +53,7 @@ const BookmarkToggle = React.createClass({
       );
     }
 
-    return <span className={classNames}>Project starred!</span>;
+    return <span className={classNames}>{t('Project starred')}</span>;
   },
 
   render() {
