@@ -34,8 +34,10 @@ const InviteMember = React.createClass({
       success: data => {
         this.setState({roleList: data.role_list});
       },
-      error: err => {
-        Raven.captureMessage(err);
+      error: error => {
+        Raven.captureMessage('data fetch error ', {
+          extra: {error, state: this.state}
+        });
       }
     });
   },
@@ -73,11 +75,13 @@ const InviteMember = React.createClass({
         return prev.then(() => this.inviteUser(cur_email));
       }, Promise.resolve())
       .then(values => {
-        console.log(values);
         this.onSubmitSuccess();
       })
       .catch(error => {
-        console.log(error);
+        if (!error.email && !error.teams && !error.role)
+          Raven.captureMessage('unkown error ', {
+            extra: {error, state: this.state}
+          });
         this.setState({error});
       });
   },
@@ -173,14 +177,16 @@ const InviteMember = React.createClass({
             'Invite a member to join this organization via their email address. If they do not already have an account, they will first be asked to create one.'
           )}
         </p>
-        {error && <p className="error">{error.toString()}</p>}
+        {error && error.email && <p className="error alert-error">{error.email}</p>}
         <TextField
           name="email"
           label="Email"
           placeholder="e.g. teammate@example.com"
           onChange={v => this.setState({email: v})}
         />
+        {error && error.role && <p className="error alert-error">{error.role}</p>}
         {this.renderRoleSelect()}
+        {error && error.teams && <p className="error alert-error">{error.teams}</p>}
         {this.renderTeamSelect()}
         <button className="btn btn-primary submit-new-team" onClick={this.submit}>
           {t('Add Member')}
