@@ -8,10 +8,12 @@ import six
 from threading import Lock
 
 import rb
-import rediscluster
 from pkg_resources import resource_string
 from redis.client import Script
 from redis.connection import ConnectionPool
+from redis.exceptions import ConnectionError, BusyLoadingError
+from rediscluster.exceptions import RedisClusterException
+from rediscluster import StrictRedisCluster
 
 from sentry import options
 from sentry.exceptions import InvalidConfiguration
@@ -74,6 +76,23 @@ class _RBCluster(object):
         return 'Redis Blaster Cluster'
 
 
+class RetryingStrictRedisCluster(StrictRedisCluster):
+    """
+    Execute a command with cluster reinitialization retry logic.
+
+    Should a cluster respond with a ConnectionError or BusyLoadingError the
+    cluster nodes list will be reinitialized and the command will be executed
+    again with the most up to date view of the world.
+    """
+
+    def execute_command(self, *args, **kwargs):
+        try:
+            return super(self.__class__, self).execute_command(*args, **kwargs)
+        except (ConnectionError, BusyLoadingError):
+            self.connection_pool.nodes.reset()
+            return super(self.__class__, self).execute_command(*args, **kwargs)
+
+
 class _RedisCluster(object):
     def supports(self, config):
         return config.get('is_redis_cluster', False)
@@ -87,8 +106,8 @@ class _RedisCluster(object):
         # Redis cluster does not wait to attempt to connect, we don't want the
         # application to fail to boot because of this, raise a KeyError
         try:
-            return rediscluster.StrictRedisCluster(startup_nodes=hosts, decode_responses=True)
-        except rediscluster.exceptions.RedisClusterException:
+            return RetryingStrictRedisCluster(startup_nodes=hosts, decode_responses=True)
+        except RedisClusterException:
             logger.warning('Failed to connect to Redis Cluster', exc_info=True)
             raise KeyError('Redis Cluster could not be initalized')
 
