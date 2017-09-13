@@ -18,6 +18,7 @@ from rediscluster import StrictRedisCluster
 from sentry import options
 from sentry.exceptions import InvalidConfiguration
 from sentry.utils import warnings
+from sentry.utils.retries import timed_retry
 from sentry.utils.warnings import DeprecatedSettingWarning
 from sentry.utils.versioning import Version, check_versions
 
@@ -77,20 +78,21 @@ class _RBCluster(object):
 
 
 class RetryingStrictRedisCluster(StrictRedisCluster):
-    def execute_command(self, *args, **kwargs):
-        """
-        Execute a command with cluster reinitialization retry logic. Should a
-        cluster respond with a ConnectionError or BusyLoadingError the cluster
-        nodes list will be reinitialized.
-        """
-        for i in range(3):
-            try:
-                return super(self.__class__, self).execute_command(*args, **kwargs)
-            except (ConnectionError, BusyLoadingError) as e:
-                self.connection_pool.nodes.reset()
+    """
+    Execute a command with cluster reinitialization retry logic.
 
-        # Error occurred too many times
-        raise e
+    Should a cluster respond with a ConnectionError or BusyLoadingError the
+    cluster nodes list will be reinitialized.
+    """
+    retry_exceptions = (ConnectionError, BusyLoadingError)
+
+    @timed_retry(timeout=4, exceptions=retry_exceptions)
+    def execute_command(self, *args, **kwargs):
+        try:
+            return super(self.__class__, self).execute_command(*args, **kwargs)
+        except self.retry_exceptions:
+            self.connection_pool.nodes.reset()
+            raise
 
 
 class _RedisCluster(object):
