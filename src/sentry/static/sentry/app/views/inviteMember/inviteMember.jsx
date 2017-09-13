@@ -3,7 +3,7 @@ import React from 'react';
 import OrganizationHomeContainer from '../../components/organizations/homeContainer';
 import Checkbox from '../../components/checkbox';
 import Radio from '../../components/radio';
-
+import LoadingIndicator from '../../components/loadingIndicator';
 import TextField from '../../components/forms/textField';
 
 import ConfigStore from '../../stores/configStore';
@@ -21,6 +21,7 @@ const InviteMember = React.createClass({
       roleList: [],
       selectedRole: 'member',
       email: '',
+      loading: true,
       error: undefined
     };
   },
@@ -32,7 +33,7 @@ const InviteMember = React.createClass({
     this.api.request(`/organizations/${slug}/members/${user.id}/`, {
       method: 'GET',
       success: data => {
-        this.setState({roleList: data.role_list});
+        this.setState({roleList: data.role_list, loading: false});
       },
       error: error => {
         Raven.captureMessage('data fetch error ', {
@@ -69,7 +70,7 @@ const InviteMember = React.createClass({
     let {email} = this.state;
     let emails = this.splitEmails(email);
     if (!emails.length) return;
-
+    this.setState({loading: true});
     emails //These are done in series and not parallel becuase django messages don't work on parallel requests
       .reduce((prev, cur_email) => {
         return prev.then(() => this.inviteUser(cur_email));
@@ -82,7 +83,7 @@ const InviteMember = React.createClass({
           Raven.captureMessage('unkown error ', {
             extra: {error, state: this.state}
           });
-        this.setState({error});
+        this.setState({error, loading: false});
       });
   },
 
@@ -165,7 +166,7 @@ const InviteMember = React.createClass({
 
   render() {
     let {orgId} = this.props.params;
-    let {error} = this.state;
+    let {error, loading} = this.state;
     return (
       <OrganizationHomeContainer>
         <a className="pull-right" href={`/organizations/${orgId}/members/`}>
@@ -177,6 +178,7 @@ const InviteMember = React.createClass({
             'Invite a member to join this organization via their email address. If they do not already have an account, they will first be asked to create one.'
           )}
         </p>
+        {loading && <LoadingIndicator mini />}
         {error && error.email && <p className="error alert-error">{error.email}</p>}
         <TextField
           name="email"
