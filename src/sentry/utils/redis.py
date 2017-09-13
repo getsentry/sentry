@@ -86,7 +86,7 @@ class RetryingStrictRedisCluster(StrictRedisCluster):
     """
     retry_exceptions = (ConnectionError, BusyLoadingError)
 
-    @timed_retry(timeout=4, exceptions=retry_exceptions)
+    @timed_retry(timeout=1, exceptions=retry_exceptions)
     def execute_command(self, *args, **kwargs):
         try:
             return super(self.__class__, self).execute_command(*args, **kwargs)
