@@ -62,7 +62,8 @@ class ProjectSerializer(Serializer):
                     Q(user=user, key='subscribe_by_default', project__isnull=True)
                 )
             }
-            default_subscribe = (user_options.get('subscribe_by_default', '1') == '1')
+            default_subscribe = (user_options.get(
+                'subscribe_by_default', '1') == '1')
         else:
             bookmarks = set()
             user_options = {}
@@ -104,7 +105,7 @@ class ProjectSerializer(Serializer):
         feature_list = []
         for feature in (
             'global-events', 'data-forwarding', 'rate-limits', 'custom-filters', 'similarity-view',
-            'additional-data-filters',
+            'custom-inbound-filters',
         ):
             if features.has('projects:' + feature, obj, actor=user):
                 feature_list.append(feature)
@@ -135,30 +136,37 @@ class ProjectSerializer(Serializer):
 
 class ProjectWithOrganizationSerializer(ProjectSerializer):
     def get_attrs(self, item_list, user):
-        attrs = super(ProjectWithOrganizationSerializer, self).get_attrs(item_list, user)
+        attrs = super(ProjectWithOrganizationSerializer,
+                      self).get_attrs(item_list, user)
 
-        orgs = {d['id']: d for d in serialize(list(set(i.organization for i in item_list)), user)}
+        orgs = {d['id']: d for d in serialize(
+            list(set(i.organization for i in item_list)), user)}
         for item in item_list:
-            attrs[item]['organization'] = orgs[six.text_type(item.organization_id)]
+            attrs[item]['organization'] = orgs[six.text_type(
+                item.organization_id)]
         return attrs
 
     def serialize(self, obj, attrs, user):
-        data = super(ProjectWithOrganizationSerializer, self).serialize(obj, attrs, user)
+        data = super(ProjectWithOrganizationSerializer,
+                     self).serialize(obj, attrs, user)
         data['organization'] = attrs['organization']
         return data
 
 
 class ProjectWithTeamSerializer(ProjectSerializer):
     def get_attrs(self, item_list, user):
-        attrs = super(ProjectWithTeamSerializer, self).get_attrs(item_list, user)
+        attrs = super(ProjectWithTeamSerializer,
+                      self).get_attrs(item_list, user)
 
-        teams = {d['id']: d for d in serialize(list(set(i.team for i in item_list)), user)}
+        teams = {d['id']: d for d in serialize(
+            list(set(i.team for i in item_list)), user)}
         for item in item_list:
             attrs[item]['team'] = teams[six.text_type(item.team_id)]
         return attrs
 
     def serialize(self, obj, attrs, user):
-        data = super(ProjectWithTeamSerializer, self).serialize(obj, attrs, user)
+        data = super(ProjectWithTeamSerializer,
+                     self).serialize(obj, attrs, user)
         data['team'] = attrs['team']
         return data
 
@@ -188,7 +196,8 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
     )
 
     def get_attrs(self, item_list, user):
-        attrs = super(DetailedProjectSerializer, self).get_attrs(item_list, user)
+        attrs = super(DetailedProjectSerializer,
+                      self).get_attrs(item_list, user)
 
         project_ids = [i.id for i in item_list]
 
@@ -241,7 +250,8 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
         for option in queryset.iterator():
             options_by_project[option.project_id][option.key] = option.value
 
-        orgs = {d['id']: d for d in serialize(list(set(i.organization for i in item_list)), user)}
+        orgs = {d['id']: d for d in serialize(
+            list(set(i.organization for i in item_list)), user)}
 
         latest_releases = {
             r.actual_project_id: d
@@ -263,14 +273,16 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
     def serialize(self, obj, attrs, user):
         from sentry.plugins import plugins
 
-        data = super(DetailedProjectSerializer, self).serialize(obj, attrs, user)
+        data = super(DetailedProjectSerializer,
+                     self).serialize(obj, attrs, user)
         data.update(
             {
                 'latestRelease':
                 attrs['latest_release'],
                 'options': {
                     'sentry:origins':
-                    '\n'.join(attrs['options'].get('sentry:origins', ['*']) or []),
+                    '\n'.join(attrs['options'].get(
+                        'sentry:origins', ['*']) or []),
                     'sentry:resolve_age':
                     int(attrs['options'].get('sentry:resolve_age', 0)),
                     'sentry:scrub_data':
@@ -282,18 +294,24 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                     'sentry:sensitive_fields':
                     attrs['options'].get('sentry:sensitive_fields', []),
                     'sentry:csp_ignored_sources_defaults':
-                    bool(attrs['options'].get('sentry:csp_ignored_sources_defaults', True)),
+                    bool(attrs['options'].get(
+                        'sentry:csp_ignored_sources_defaults', True)),
                     'sentry:csp_ignored_sources':
-                    '\n'.join(attrs['options'].get('sentry:csp_ignored_sources', []) or []),
+                    '\n'.join(attrs['options'].get(
+                        'sentry:csp_ignored_sources', []) or []),
                     'sentry:reprocessing_active':
-                    bool(attrs['options'].get('sentry:reprocessing_active', False)),
+                    bool(attrs['options'].get(
+                        'sentry:reprocessing_active', False)),
                     'filters:blacklisted_ips':
-                    '\n'.join(attrs['options'].get('sentry:blacklisted_ips', [])),
+                    '\n'.join(attrs['options'].get(
+                        'sentry:blacklisted_ips', [])),
                     'filters:{}'.format(FilterTypes.RELEASES):
-                    '\n'.join(attrs['options'].get('sentry:{}'.format(FilterTypes.RELEASES), [])),
+                    '\n'.join(attrs['options'].get(
+                        'sentry:{}'.format(FilterTypes.RELEASES), [])),
                     'filters:{}'.format(FilterTypes.ERROR_MESSAGES):
                     '\n'.
-                    join(attrs['options'].get('sentry:{}'.format(FilterTypes.ERROR_MESSAGES), [])),
+                    join(attrs['options'].get('sentry:{}'.format(
+                        FilterTypes.ERROR_MESSAGES), [])),
                     'feedback:branding':
                     attrs['options'].get('feedback:branding', '1') == '1',
                 },
@@ -310,7 +328,8 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                 'subjectPrefix':
                 attrs['options'].get('mail:subject_prefix'),
                 'subjectTemplate':
-                attrs['options'].get('mail:subject_template') or DEFAULT_SUBJECT_TEMPLATE.template,
+                attrs['options'].get(
+                    'mail:subject_template') or DEFAULT_SUBJECT_TEMPLATE.template,
                 'organization':
                 attrs['org'],
                 'plugins':
