@@ -1,5 +1,6 @@
 Request for Project Transfer
 A project transfer request has been made:
+From Organization: {{ from_org }}
 Project: {{ project_name }}
 Requested by: {{ requester }}
 Requested at: {{ request_time }}>

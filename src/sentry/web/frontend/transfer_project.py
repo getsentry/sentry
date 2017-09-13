@@ -45,6 +45,7 @@ class TransferProjectView(ProjectView):
             ).exists():
                 context = {
                     'email': email,
+                    'from_org': organization.name,
                     'project_name': project.name,
                     'request_time': timezone.now(),
                     'url':
