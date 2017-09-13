@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
 import six
-import json
 
 from datetime import datetime
 from django.utils import timezone
@@ -77,7 +76,6 @@ class EventSerializer(Serializer):
 
     def serialize(self, obj, attrs, user):
         errors = []
-        error_set = set()
         for error in obj.data.get('errors', []):
             message = EventError.get_message(error)
             error_result = {
@@ -85,10 +83,6 @@ class EventSerializer(Serializer):
                 'message': message,
                 'data': {k: v for k, v in six.iteritems(error) if k != 'type'},
             }
-            json_dump = json.dumps(error_result, sort_keys=True)
-            if json_dump in error_set:
-                continue
-            error_set.add(json_dump)
             errors.append(error_result)
 
         tags = sorted(
