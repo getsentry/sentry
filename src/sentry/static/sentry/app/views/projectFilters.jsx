@@ -461,7 +461,7 @@ const ProjectFilters = React.createClass({
         statOptions.map(stat => {
           let deferred = $.Deferred();
           this.api.request(statEndpoint, {
-            query: Object.assign({stat: stat}, query),
+            query: Object.assign({stat}, query),
             success: deferred.resolve.bind(deferred),
             error: deferred.reject.bind(deferred)
           });
@@ -482,9 +482,9 @@ const ProjectFilters = React.createClass({
           }
 
           this.setState({
-            rawStatsData: rawStatsData,
+            rawStatsData,
             formattedData: this.formatData(rawStatsData),
-            expected: expected,
+            expected,
             loading: expected > 0
           });
         }.bind(this)
