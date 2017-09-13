@@ -86,6 +86,9 @@ class RetryingStrictRedisCluster(StrictRedisCluster):
     """
     retry_exceptions = (ConnectionError, BusyLoadingError)
 
+    # We should really only need to retry once to correct the clients view of
+    # the cluster, give it a low retry timeout in the case of being hard down
+    # to avoid connection thrashing.
     @timed_retry(timeout=1, exceptions=retry_exceptions)
     def execute_command(self, *args, **kwargs):
         try:
