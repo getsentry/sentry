@@ -78,7 +78,8 @@ class TimedRetryPolicy(RetryPolicy):
 
 def timed_retry(*args, **kwargs):
     """
-    TimedRetryPolicy decorator function.
+    A decorator that may be used to wrap a function to be retried using the
+    TimedRetryPolicy.
     """
     retrier = TimedRetryPolicy(*args, **kwargs)
 
