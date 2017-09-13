@@ -4,6 +4,7 @@ import itertools
 import logging
 import random
 import time
+import functools
 
 from django.utils.encoding import force_bytes
 
@@ -73,3 +74,18 @@ class TimedRetryPolicy(RetryPolicy):
                         delay,
                     )
                     self.clock.sleep(delay)
+
+
+def timed_retry(*args, **kwargs):
+    """
+    TimedRetryPolicy decorator function.
+    """
+    retrier = TimedRetryPolicy(*args, **kwargs)
+
+    def decorator(fn):
+        @functools.wraps(fn)
+        def execute_with_retry(*args, **kwargs):
+            return retrier(functools.partial(fn, *args, **kwargs))
+
+        return execute_with_retry
+    return decorator
