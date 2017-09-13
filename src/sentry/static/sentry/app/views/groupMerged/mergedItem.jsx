@@ -4,9 +4,8 @@ import Reflux from 'reflux';
 import classNames from 'classnames';
 
 import Checkbox from '../../components/checkbox';
-import EventsTable from '../../components/eventsTable/eventsTable';
+import EventOrGroupHeader from '../../components/eventOrGroupHeader';
 import FlowLayout from '../../components/flowLayout';
-import GroupState from '../../mixins/groupState';
 import GroupingActions from '../../actions/groupingActions';
 import GroupingStore from '../../stores/groupingStore';
 import SpreadLayout from '../../components/spreadLayout';
@@ -28,7 +27,7 @@ const MergedItem = React.createClass({
     })
   },
 
-  mixins: [GroupState, Reflux.listenTo(GroupingStore, 'onGroupingChange')],
+  mixins: [Reflux.listenTo(GroupingStore, 'onGroupingChange')],
 
   getInitialState() {
     return {
@@ -74,15 +73,12 @@ const MergedItem = React.createClass({
   },
 
   render() {
-    let {disabled, event, orgId, fingerprint, projectId, groupId} = this.props;
+    let {disabled, event, orgId, fingerprint, projectId} = this.props;
     let checkboxDisabled = disabled || this.state.disabled;
     let cx = classNames('fingerprint-group', {
       expanded: !this.state.collapsed,
       busy: this.state.busy
     });
-    let group = this.getGroup();
-
-    let tagList = (group && group.tags.filter(tag => tag.key !== 'user')) || [];
 
     // `event` can be null if last event w/ fingerprint is not within retention period
     return (
@@ -118,17 +114,34 @@ const MergedItem = React.createClass({
 
         {!this.state.collapsed &&
           <div className="merged-events-list event-list">
+
             {event &&
-              <EventsTable
-                fixedDimensions
-                tagList={tagList}
-                events={[event]}
-                params={{
-                  orgId,
-                  projectId,
-                  groupId
-                }}
-              />}
+              <SpreadLayout className="event-details" responsive>
+                <FlowLayout>
+                  <EventOrGroupHeader
+                    orgId={orgId}
+                    projectId={projectId}
+                    data={event}
+                    hideIcons
+                    hideLevel
+                  />
+                </FlowLayout>
+
+                <FlowLayout vertical style={{alignItems: 'flex-end'}}>
+                  <span className="fingerprint-header">
+                    Other Fingerprints
+                  </span>
+
+                  <FlowLayout>
+                    {event.fingerprints.filter(fp => fp !== fingerprint).map(fp => (
+                      <span key={fp} className="fingerprint">
+                        {fp}
+                      </span>
+                    ))}
+                  </FlowLayout>
+                </FlowLayout>
+
+              </SpreadLayout>}
           </div>}
       </div>
     );
