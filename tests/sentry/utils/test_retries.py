@@ -3,7 +3,7 @@ from __future__ import absolute_import
 import mock
 
 from sentry.testutils import TestCase
-from sentry.utils.retries import TimedRetryPolicy, RetryException
+from sentry.utils.retries import TimedRetryPolicy, RetryException, timed_retry
 
 
 class TimedRetryPolicyTestCase(TestCase):
@@ -35,4 +35,19 @@ class TimedRetryPolicyTestCase(TestCase):
         else:
             self.fail('Expected {!r}!'.format(RetryException))
 
+        assert callable.call_count == 2
+
+    def test_decorator(self):
+        bomb = Exception('Boom!')
+        callable = mock.MagicMock(side_effect=[bomb, mock.sentinel.OK])
+
+        @timed_retry(30, delay=lambda i: 10)
+        def retrying_func():
+            return callable()
+
+        retrying_func.clock = mock.Mock()
+        retrying_func.clock.sleep = mock.MagicMock()
+        retrying_func.clock.time = mock.MagicMock(side_effect=[0, 15, 25])
+
+        assert retrying_func() is mock.sentinel.OK
         assert callable.call_count == 2
