@@ -231,13 +231,18 @@ const ProjectFiltersSettingsForm = React.createClass({
 
   getInitialState() {
     let formData = {};
-    let features = this.getProjectFeatures()
+    let features = this.getProjectFeatures();
     for (let key of Object.keys(this.props.initialData)) {
       if (key.lastIndexOf('filters:') === 0) {
         // the project details endpoint can partially succeed and still return a 400
         // if the org does not have the additional-data-filters feature enabled,
         // so this prevents the form from sending an empty string by default
-        if(!features.has('additional-data-filters') && key === 'filters:error_messages' || key === 'filters:releases') continue;
+        if (
+          (!features.has('additional-data-filters') &&
+            key === 'filters:error_messages') ||
+          key === 'filters:releases'
+        )
+          continue;
         formData[key] = this.props.initialData[key];
       }
     }
@@ -395,37 +400,43 @@ const ProjectFilters = React.createClass({
     this.fetchData();
   },
 
-  componentDidUpdate(prevProps) {
-    if (!this.state.loading && !this.state.formattedData) {
-      this.render();
-    }
-  },
-
   getStatOpts() {
-    return(
-      this.getProjectFeatures().has('additional-data-filters') ?
-      {
-        'ip-address': 'IP Address',
-        'release-version': 'Release',
-        'error-message': 'Error Message',
-        'browser-extensions': 'Browser Extension',
-        'legacy-browsers': 'Legacy Browser',
-        localhost: 'Localhost',
-        'web-crawlers': 'Web Crawler',
-        'invalid-csp': 'Invalid CSP',
-        cors: 'CORS'
-      } :
-      {'blacklisted':"Filtered Events"}
-    );
+    return {
+      'ip-address': 'IP Address',
+      'release-version': 'Release',
+      'error-message': 'Error Message',
+      'browser-extensions': 'Browser Extension',
+      'legacy-browsers': 'Legacy Browser',
+      localhost: 'Localhost',
+      'web-crawlers': 'Web Crawler',
+      'invalid-csp': 'Invalid CSP',
+      cors: 'CORS',
+      blacklisted: 'Filtered Events' //TODO(maxbittker) this is only needed until October 10th, 2017
+    };
   },
 
   formatData(rawData) {
+    let cutOverDate = moment([2017, 8, 11]); // date when detailed stats started being recorded
+
     return Object.keys(this.getStatOpts()).map(stat => {
       return {
         data: rawData[stat].map(([x, y]) => {
           if (y > 0) {
             this.setState({blankStats: false});
           }
+
+          //TODO(maxbittker) this is only needed until October 10th, 2017 :
+          let statDate = moment(x * 1000);
+          let timeSince = cutOverDate.diff(statDate, 'days');
+          // this means detailed stats are available
+          if (
+            (timeSince < 0 && stat === 'blacklisted') ||
+            (timeSince >= 0 && stat !== 'blacklisted')
+          ) {
+            return {x, y: 0};
+          }
+          //END
+
           return {x, y};
         }),
         label: this.getStatOpts()[stat],
@@ -462,7 +473,7 @@ const ProjectFilters = React.createClass({
           let rawStatsData = {};
           let expected = this.state.expected - 1;
           // when there is a single request made, this is inexplicably called without being wrapped in an array
-          if(statOptions.length===1){
+          if (statOptions.length === 1) {
             rawStatsData[statOptions[0]] = arguments[0];
           } else {
             for (let i = 0; i < statOptions.length; i++) {
@@ -651,9 +662,9 @@ const ProjectFilters = React.createClass({
     let {formattedData} = this.state;
 
     return ReactDOMServer.renderToStaticMarkup(
-      <div style={{width: '150px'}}>
+      <div style={{width: '175px'}}>
         <div className="time-label"><span>{timeLabel}</span></div>
-        <div>{intcomma(totalY)} {totalY > 1 ? t('total events') : t('total event')}</div>
+        <div>{intcomma(totalY)} {totalY != 1 ? t('total events') : t('total event')}</div>
         {formattedData.map((dataPoint, i) => {
           return (
             point.y[i] > 0 &&
@@ -663,7 +674,7 @@ const ProjectFilters = React.createClass({
                 {dataPoint.label}{' '}
               </dd>
               <dd style={{textAlign: 'right', position: 'relative'}}>
-                {point.y[i]} {t('event')}{point.y[i] > 1 ? 's' : ''}
+                {point.y[i]} {point.y[i] != 1 ? t('events') : t('event')}
               </dd>
             </dl>
           );
