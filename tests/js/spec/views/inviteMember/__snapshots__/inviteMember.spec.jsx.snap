@@ -1,0 +1,54 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`CreateProject render() should render 1`] = `
+<HomeContainer>
+  <a
+    className="pull-right"
+    href="/organizations/testOrg/members/"
+  >
+    Members List
+     
+  </a>
+  <h3>
+    Add Member to Organization
+  </h3>
+  <p>
+    Invite a member to join this organization via their email address. If they do not already have an account, they will first be asked to create one.
+  </p>
+  <LoadingIndicator
+    mini={true}
+  />
+  <TextField
+    disabled={false}
+    label="Email"
+    name="email"
+    onChange={[Function]}
+    placeholder="e.g. teammate@example.com"
+    required={false}
+  />
+  <div
+    className="new-invite-team box"
+  >
+    <div
+      className="box-header"
+    >
+      <h4>
+        Role:
+      </h4>
+    </div>
+    <div
+      className="box-content with-padding"
+    >
+      <ul
+        className="radio-inputs"
+      />
+    </div>
+  </div>
+  <button
+    className="btn btn-primary submit-new-team"
+    onClick={[Function]}
+  >
+    Add Member
+  </button>
+</HomeContainer>
+`;
