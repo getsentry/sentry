@@ -1,9 +1,11 @@
 from __future__ import absolute_import
+import logging
 import posixpath
 
 from rest_framework.response import Response
 from rest_framework import serializers
 
+from sentry import ratelimits
 from sentry.api.base import DocSection
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.content_negotiation import ConditionalContentNegotiation
@@ -13,11 +15,12 @@ from sentry.models import ProjectDSymFile, create_files_from_dsym_zip, \
     VersionDSymFile, DSymApp, DSYM_PLATFORMS
 try:
     from django.http import (
-        CompatibleStreamingHttpResponse as StreamingHttpResponse, Http404)
+        CompatibleStreamingHttpResponse as StreamingHttpResponse, HttpResponse, Http404)
 except ImportError:
-    from django.http import StreamingHttpResponse, Http404
+    from django.http import StreamingHttpResponse, HttpResponse, Http404
 
 
+logger = logging.getLogger('sentry.api')
 ERR_FILE_EXISTS = 'A file matching this uuid already exists'
 
 
@@ -47,7 +50,23 @@ class DSymFilesEndpoint(ProjectEndpoint):
 
     content_negotiation_class = ConditionalContentNegotiation
 
-    def download(self, version_dsym_id):
+    def download(self, version_dsym_id, project):
+        rate_limited = ratelimits.is_limited(
+            project=project,
+            key='rl:DSymFilesEndpoint:download:%s:%s' % (
+                version_dsym_id, project.id),
+            limit=10,
+        )
+        if rate_limited:
+            logger.info('notification.rate_limited',
+                        extra={'project_id': project.id,
+                               'version_dsym_id': version_dsym_id})
+            return HttpResponse(
+                {
+                    'Too many download requests',
+                }, status=403
+            )
+
         versioned_dsym = VersionDSymFile.objects.filter(
             id=version_dsym_id
         ).select_related('projectdsymfile').first()
@@ -97,7 +116,7 @@ class DSymFilesEndpoint(ProjectEndpoint):
 
         download_requested = request.GET.get('download_id') is not None
         if download_requested and (request.access.has_scope('project:write')):
-            return self.download(request.GET.get('download_id'))
+            return self.download(request.GET.get('download_id'), project)
 
         return Response(
             {
