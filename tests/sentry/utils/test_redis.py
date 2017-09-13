@@ -47,7 +47,7 @@ make_manager = functools.partial(
     },
 )
 
-redis_cluster_exception = RedisClusterException('Failed to connect')
+rc_exception = RedisClusterException('Failed to connect')
 
 
 class ClusterManagerTestCase(TestCase):
@@ -59,14 +59,14 @@ class ClusterManagerTestCase(TestCase):
         with pytest.raises(KeyError):
             manager.get('invalid')
 
-    @mock.patch('rediscluster.StrictRedisCluster')
+    @mock.patch('sentry.utils.redis.RetryingStrictRedisCluster')
     def test_specific_cluster(self, cluster):
         manager = make_manager(cluster_type=_RedisCluster)
         assert manager.get('baz') is cluster.return_value
         with pytest.raises(KeyError):
             manager.get('foo')
 
-    @mock.patch('rediscluster.StrictRedisCluster', side_effect=redis_cluster_exception)
+    @mock.patch('sentry.utils.redis.RetryingStrictRedisCluster', side_effect=rc_exception)
     def test_failed_redis_cluster(self, cluster):
         manager = make_manager(cluster_type=_RedisCluster)
         with pytest.raises(KeyError):
