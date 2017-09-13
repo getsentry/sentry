@@ -13,7 +13,6 @@ from sentry.tasks.post_process import index_event_tags, post_process_group
 
 
 class PostProcessGroupTest(TestCase):
-    @patch('sentry.tasks.post_process.record_affected_user', Mock())
     @patch('sentry.rules.processor.RuleProcessor')
     def test_rule_processor(self, mock_processor):
         group = self.create_group(project=self.project)
@@ -38,7 +37,6 @@ class PostProcessGroupTest(TestCase):
 
         mock_callback.assert_called_once_with(event, mock_futures)
 
-    @patch('sentry.tasks.post_process.record_affected_user', Mock())
     @patch('sentry.rules.processor.RuleProcessor')
     def test_group_refresh(self, mock_processor):
         group1 = self.create_group(project=self.project)
@@ -68,9 +66,9 @@ class PostProcessGroupTest(TestCase):
         assert event.group == group2
         assert event.group_id == group2.id
 
-    @patch('sentry.tasks.post_process.record_affected_user', Mock())
     def test_invalidates_snooze(self):
-        group = self.create_group(project=self.project, status=GroupStatus.IGNORED)
+        group = self.create_group(
+            project=self.project, status=GroupStatus.IGNORED)
         event = self.create_event(group=group)
         snooze = GroupSnooze.objects.create(
             group=group,
@@ -91,7 +89,6 @@ class PostProcessGroupTest(TestCase):
         group = Group.objects.get(id=group.id)
         assert group.status == GroupStatus.UNRESOLVED
 
-    @patch('sentry.tasks.post_process.record_affected_user', Mock())
     def test_maintains_valid_snooze(self):
         group = self.create_group(project=self.project)
         event = self.create_event(group=group)

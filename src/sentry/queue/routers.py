@@ -16,8 +16,6 @@ TRIGGER_TASKS = set(
     [
         'sentry.tasks.post_process.post_process_group',
         'sentry.tasks.post_process.plugin_post_process_group',
-        'sentry.tasks.post_process.record_affected_user',
-        'sentry.tasks.post_process.record_affected_code',
         'sentry.tasks.index_event_tags',
     ]
 )
