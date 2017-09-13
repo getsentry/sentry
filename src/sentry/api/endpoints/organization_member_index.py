@@ -31,7 +31,7 @@ class MemberPermission(OrganizationPermission):
 class OrganizationMemberSerializer(serializers.Serializer):
     email = serializers.EmailField(max_length=75, required=False)
     role = serializers.ChoiceField(choices=roles.get_choices(), required=True)
-    teams = ListField(required=True, allow_null=False)
+    teams = ListField(required=False, allow_null=False)
 
 
 class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
