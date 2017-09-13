@@ -97,9 +97,6 @@ const Stream = React.createClass({
     this.fetchSavedSearches();
     this.fetchProcessingIssues();
     this.fetchTags();
-    if (!this.state.loading) {
-      this.fetchData();
-    }
   },
 
   componentWillReceiveProps(nextProps) {
@@ -108,6 +105,8 @@ const Stream = React.createClass({
     if (this.state.loading) {
       return;
     }
+
+    this.fetchData();
 
     let searchIdChanged = this.state.isDefaultSearch
       ? nextProps.params.searchId
