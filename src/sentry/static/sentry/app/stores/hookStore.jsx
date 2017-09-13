@@ -9,7 +9,8 @@ let validHookNames = new Set([
   'routes:admin',
   'routes:organization',
   'project:data-forwarding:disabled',
-  'project:rate-limits:disabled'
+  'project:rate-limits:disabled',
+  'project:custom-inbound-filters:disabled'
 ]);
 
 const HookStore = Reflux.createStore({

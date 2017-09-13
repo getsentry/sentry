@@ -35,7 +35,8 @@ def get_project_scenario(runner):
 @scenario('DeleteProject')
 def delete_project_scenario(runner):
     with runner.isolated_project('Plain Proxy') as project:
-        runner.request(method='DELETE', path='/projects/%s/%s/' % (runner.org.slug, project.slug))
+        runner.request(method='DELETE', path='/projects/%s/%s/' %
+                       (runner.org.slug, project.slug))
 
 
 @scenario('UpdateProject')
@@ -224,13 +225,17 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             ).delete()
 
         if result.get('digestsMinDelay'):
-            project.update_option('digests:mail:minimum_delay', result['digestsMinDelay'])
+            project.update_option(
+                'digests:mail:minimum_delay', result['digestsMinDelay'])
         if result.get('digestsMaxDelay'):
-            project.update_option('digests:mail:maximum_delay', result['digestsMaxDelay'])
+            project.update_option(
+                'digests:mail:maximum_delay', result['digestsMaxDelay'])
         if result.get('subjectPrefix'):
-            project.update_option('mail:subject_prefix', result['subjectPrefix'])
+            project.update_option('mail:subject_prefix',
+                                  result['subjectPrefix'])
         if result.get('subjectTemplate'):
-            project.update_option('mail:subject_template', result['subjectTemplate'])
+            project.update_option('mail:subject_template',
+                                  result['subjectTemplate'])
 
         if result.get('isSubscribed'):
             UserOption.objects.set_value(
@@ -245,15 +250,19 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             options = request.DATA.get('options', {})
             if 'sentry:origins' in options:
                 project.update_option(
-                    'sentry:origins', clean_newline_inputs(options['sentry:origins'])
+                    'sentry:origins', clean_newline_inputs(
+                        options['sentry:origins'])
                 )
             if 'sentry:resolve_age' in options:
-                project.update_option('sentry:resolve_age', int(options['sentry:resolve_age']))
+                project.update_option('sentry:resolve_age', int(
+                    options['sentry:resolve_age']))
             if 'sentry:scrub_data' in options:
-                project.update_option('sentry:scrub_data', bool(options['sentry:scrub_data']))
+                project.update_option('sentry:scrub_data', bool(
+                    options['sentry:scrub_data']))
             if 'sentry:scrub_defaults' in options:
                 project.update_option(
-                    'sentry:scrub_defaults', bool(options['sentry:scrub_defaults'])
+                    'sentry:scrub_defaults', bool(
+                        options['sentry:scrub_defaults'])
                 )
             if 'sentry:safe_fields' in options:
                 project.update_option(
@@ -263,7 +272,8 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             if 'sentry:sensitive_fields' in options:
                 project.update_option(
                     'sentry:sensitive_fields',
-                    [s.strip().lower() for s in options['sentry:sensitive_fields']]
+                    [s.strip().lower()
+                     for s in options['sentry:sensitive_fields']]
                 )
             if 'sentry:csp_ignored_sources_defaults' in options:
                 project.update_option(
@@ -281,7 +291,8 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 )
             if 'sentry:reprocessing_active' in options:
                 project.update_option(
-                    'sentry:reprocessing_active', bool(options['sentry:reprocessing_active'])
+                    'sentry:reprocessing_active', bool(
+                        options['sentry:reprocessing_active'])
                 )
             if 'filters:blacklisted_ips' in options:
                 project.update_option(
@@ -289,10 +300,11 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                     clean_newline_inputs(options['filters:blacklisted_ips'])
                 )
             if 'filters:{}'.format(FilterTypes.RELEASES) in options:
-                if features.has('projects:additional-data-filters', project, actor=request.user):
+                if features.has('projects:custom-inbound-filters', project, actor=request.user):
                     project.update_option(
                         'sentry:{}'.format(FilterTypes.RELEASES),
-                        clean_newline_inputs(options['filters:{}'.format(FilterTypes.RELEASES)])
+                        clean_newline_inputs(
+                            options['filters:{}'.format(FilterTypes.RELEASES)])
                     )
                 else:
                     return Response(
@@ -301,11 +313,12 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                         }, status=400
                     )
             if 'filters:{}'.format(FilterTypes.ERROR_MESSAGES) in options:
-                if features.has('projects:additional-data-filters', project, actor=request.user):
+                if features.has('projects:custom-inbound-filters', project, actor=request.user):
                     project.update_option(
                         'sentry:{}'.format(FilterTypes.ERROR_MESSAGES),
                         clean_newline_inputs(
-                            options['filters:{}'.format(FilterTypes.ERROR_MESSAGES)],
+                            options['filters:{}'.format(
+                                FilterTypes.ERROR_MESSAGES)],
                             case_insensitive=False
                         )
                     )

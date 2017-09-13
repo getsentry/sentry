@@ -172,7 +172,7 @@ class ProjectUpdateTest(APITestCase):
             'filters:releases': '1.*\n2.1.*',
             'filters:error_messages': 'TypeError*\n*: integer division by modulo or zero',
         }
-        with self.feature('projects:additional-data-filters', True):
+        with self.feature('projects:custom-inbound-filters', True):
             resp = self.client.put(url, data={'options': options})
         assert resp.status_code == 200, resp.content
         project = Project.objects.get(id=project.id)
