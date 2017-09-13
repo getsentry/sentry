@@ -1,6 +1,8 @@
 Version 8.21 (Unreleased)
 -------------------------
 
+- Add Visual Studio authentication provider for plugins.
+
 Version 8.20
 ------------
 - Make BitBucket repositories enabled by default
