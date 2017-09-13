@@ -58,7 +58,7 @@ import ProjectDashboard from './views/projectDashboard';
 import ProjectDataForwarding from './views/projectDataForwarding';
 import ProjectDetails from './views/projectDetails';
 import ProjectEvents from './views/projectEvents';
-import ProjectFilters from './views/projectFilters';
+import ProjectFilters from './views/projectFilters/projectFilters';
 import NewProject from './views/projectInstall/newProject';
 import ProjectGettingStarted from './views/projectInstall/gettingStarted';
 import ProjectDocsContext from './views/projectInstall/docsContext';
