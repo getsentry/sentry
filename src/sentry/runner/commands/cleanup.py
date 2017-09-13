@@ -99,14 +99,14 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
         (models.GroupRuleStatus, 'date_added', None),
         (models.GroupTagValue, 'last_seen', None),
         (models.TagValue, 'last_seen', None),
-        (models.EventTag, 'date_added', '-date_added'),
+        (models.EventTag, 'date_added', 'date_added'),
     )
 
     # Deletions that use the `deletions` code path (which handles their child relations)
     # (model, datetime_field, order_by)
     DELETES = (
         (models.Event, 'datetime', None),
-        (models.Group, 'last_seen', '-last_seen'),
+        (models.Group, 'last_seen', 'last_seen'),
     )
 
     if not silent:
