@@ -184,6 +184,7 @@ const InviteMember = React.createClass({
           name="email"
           label="Email"
           placeholder="e.g. teammate@example.com"
+          spellCheck="false"
           onChange={v => this.setState({email: v})}
         />
         {error && error.role && <p className="error alert-error">{error.role}</p>}
