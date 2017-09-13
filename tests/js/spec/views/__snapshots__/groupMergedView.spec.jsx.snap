@@ -292,14 +292,18 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
               className="toolbar merged-toolbar"
             >
               <SpreadLayout
+                center={true}
                 responsive={true}
               >
                 <div
-                  className="spread-layout allow-responsive"
+                  className="spread-layout center allow-responsive"
                 >
-                  <SpreadLayout>
+                  <SpreadLayout
+                    center={true}
+                    responsive={false}
+                  >
                     <div
-                      className="spread-layout"
+                      className="spread-layout center"
                     >
                       <div
                         className="merged-toolbar-actions"
@@ -375,9 +379,12 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
                       </div>
                     </div>
                   </SpreadLayout>
-                  <SpreadLayout>
+                  <SpreadLayout
+                    center={true}
+                    responsive={false}
+                  >
                     <div
-                      className="spread-layout"
+                      className="spread-layout center"
                     >
                       <div>
                         <button
@@ -507,11 +514,12 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
               className="fingerprint-group expanded"
             >
               <SpreadLayout
+                center={true}
                 className="merged-controls"
                 responsive={true}
               >
                 <div
-                  className="spread-layout merged-controls allow-responsive"
+                  className="spread-layout merged-controls center allow-responsive"
                 >
                   <FlowLayout
                     onClick={[Function]}
@@ -1007,11 +1015,12 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
               className="fingerprint-group expanded"
             >
               <SpreadLayout
+                center={true}
                 className="merged-controls"
                 responsive={true}
               >
                 <div
-                  className="spread-layout merged-controls allow-responsive"
+                  className="spread-layout merged-controls center allow-responsive"
                 >
                   <FlowLayout
                     onClick={[Function]}
@@ -1683,14 +1692,18 @@ exports[`Issues -> Merged View renders with mocked data 2`] = `
               className="toolbar merged-toolbar"
             >
               <SpreadLayout
+                center={true}
                 responsive={true}
               >
                 <div
-                  className="spread-layout allow-responsive"
+                  className="spread-layout center allow-responsive"
                 >
-                  <SpreadLayout>
+                  <SpreadLayout
+                    center={true}
+                    responsive={false}
+                  >
                     <div
-                      className="spread-layout"
+                      className="spread-layout center"
                     >
                       <div
                         className="merged-toolbar-actions"
@@ -1766,9 +1779,12 @@ exports[`Issues -> Merged View renders with mocked data 2`] = `
                       </div>
                     </div>
                   </SpreadLayout>
-                  <SpreadLayout>
+                  <SpreadLayout
+                    center={true}
+                    responsive={false}
+                  >
                     <div
-                      className="spread-layout"
+                      className="spread-layout center"
                     >
                       <div>
                         <button
@@ -1898,11 +1914,12 @@ exports[`Issues -> Merged View renders with mocked data 2`] = `
               className="fingerprint-group expanded"
             >
               <SpreadLayout
+                center={true}
                 className="merged-controls"
                 responsive={true}
               >
                 <div
-                  className="spread-layout merged-controls allow-responsive"
+                  className="spread-layout merged-controls center allow-responsive"
                 >
                   <FlowLayout
                     onClick={[Function]}
@@ -2398,11 +2415,12 @@ exports[`Issues -> Merged View renders with mocked data 2`] = `
               className="fingerprint-group expanded"
             >
               <SpreadLayout
+                center={true}
                 className="merged-controls"
                 responsive={true}
               >
                 <div
-                  className="spread-layout merged-controls allow-responsive"
+                  className="spread-layout merged-controls center allow-responsive"
                 >
                   <FlowLayout
                     onClick={[Function]}
