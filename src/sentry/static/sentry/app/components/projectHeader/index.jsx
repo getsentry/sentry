@@ -24,8 +24,24 @@ const ProjectHeader = React.createClass({
     return (
       <div className="sub-header flex flex-container flex-vertically-centered">
         <div className="p-t-1">
-          <ProjectSelector organization={org} projectId={project.slug} />
-
+          <div className="project-options">
+            <div>
+              <ProjectSelector organization={org} projectId={project.slug} />
+            </div>
+            <div>
+              <BookmarkToggle orgId={org.slug} project={project}>
+                <a className="bookmark-toggle">
+                  <span
+                    className={
+                      project.isBookmarked
+                        ? 'icon icon-star-solid active'
+                        : 'icon icon-star-outline'
+                    }
+                  />
+                </a>
+              </BookmarkToggle>
+            </div>
+          </div>
           <ul className="nav nav-tabs">
             <li className={navSection == 'stream' ? 'active' : ''}>
               <Link to={`/${org.slug}/${project.slug}/`}>
@@ -62,22 +78,7 @@ const ProjectHeader = React.createClass({
           </ul>
         </div>
 
-        <div className="align-right project-actions">
-          <BookmarkToggle orgId={org.slug} project={project}>
-            <a className="btn btn-sm btn-default">
-              <span
-                className={
-                  project.isBookmarked
-                    ? 'icon icon-star-solid active'
-                    : 'icon icon-star-solid'
-                }
-              />
-              {project.isBookmarked
-                ? <span>{t('Unstar Project')}</span>
-                : <span>{t('Star Project')}</span>}
-            </a>
-          </BookmarkToggle>
-        </div>
+        <div className="align-right project-actions" />
       </div>
     );
   }

@@ -128,6 +128,53 @@ body.auth {
     .clearfix;
   }
 
+  .project-options {
+    display: flex;
+    margin-bottom: 6px;
+    align-items: center;
+    > div {
+      position: relative;
+      display: flex;
+      align-items: center;
+      border-right: 1px solid @trim;
+      margin-right: 12px;
+      padding-right: 12px;
+
+      &:last-child {
+        border: none;
+      }
+
+      .alert-inline {
+        position: absolute;
+        top: 1px;
+        left: -20px;
+        margin-left: 5px;
+        white-space: nowrap;
+        opacity: 0;
+        visibility: hidden;
+        .transition(.3s ease all);
+        transition-delay: .5s;
+
+        &.show-message {
+          opacity: 1;
+          left: 20px;
+          visibility: visible;
+        }
+      }
+
+      .bookmark-toggle {
+        cursor: pointer;
+
+        .icon {
+          color: @30;
+          &.active {
+            color: @yellow-orange;
+          }
+        }
+      }
+    }
+  }
+
   .project-select {
     position: relative;
 
