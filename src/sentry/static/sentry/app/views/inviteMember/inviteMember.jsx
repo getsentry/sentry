@@ -35,7 +35,9 @@ const InviteMember = React.createClass({
       method: 'GET',
       success: data => {
         this.setState({roleList: data.role_list, loading: false});
+
         if (data.role_list.filter(({_, allowed}) => allowed).length == 0) {
+          //no invites allowed, redirect
           window.location.href = `/organizations/${slug}/members/`;
         }
       },
@@ -121,8 +123,9 @@ const InviteMember = React.createClass({
                 <li
                   className="radio"
                   key={id}
-                  onClick={() => this.setState({selectedRole: id})}>
-                  <label>
+                  onClick={() => allowed && this.setState({selectedRole: id})}
+                  style={allowed ? {} : {color: 'grey', cursor: 'default'}}>
+                  <label style={allowed ? {} : {cursor: 'default'}}>
                     <Radio id={id} value={name} checked={id === selectedRole} readOnly />
                     {name}
                     <div className="help-block">{desc}</div>
@@ -175,7 +178,7 @@ const InviteMember = React.createClass({
         <h3>{t('Add Member to Organization')}</h3>
         <p>
           {t(
-            'Invite a member to join this organization via their email address. If they do not already have an account, they will first be asked to create one. (accepts multiple emails delimited by commas'
+            'Invite a member to join this organization via their email address. If they do not already have an account, they will first be asked to create one. Accepts multiple emails delimited by commas.'
           )}
         </p>
         {loading && <LoadingIndicator mini />}
