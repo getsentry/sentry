@@ -6,13 +6,15 @@ import OnboardingWizard from 'app/views/onboarding/';
 import Project from 'app/views/onboarding/project';
 
 describe('OnboardingWizard', function() {
+  let sandbox;
+
   beforeEach(function() {
-    this.sandbox = sinon.sandbox.create();
-    this.stubbedApiRequest = this.sandbox.stub(Client.prototype, 'request');
+    sandbox = sinon.sandbox.create();
+    this.stubbedApiRequest = sandbox.stub(Client.prototype, 'request');
   });
 
   afterEach(function() {
-    this.sandbox.restore();
+    sandbox.restore();
   });
 
   describe('render()', function() {

@@ -7,13 +7,15 @@ import {categoryLists} from 'app/views/onboarding/utils';
 import sinon from 'sinon';
 
 describe('PlatformPicker', function() {
+  let sandbox;
+
   beforeEach(function() {
-    this.sandbox = sinon.sandbox.create();
-    this.stubbedApiRequest = this.sandbox.stub(Client.prototype, 'request');
+    sandbox = sinon.sandbox.create();
+    this.stubbedApiRequest = sandbox.stub(Client.prototype, 'request');
   });
 
   afterEach(function() {
-    this.sandbox.restore();
+    sandbox.restore();
   });
 
   describe('render()', function() {

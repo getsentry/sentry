@@ -5,12 +5,17 @@ import {Client} from 'app/api';
 import ReleaseArtifacts from 'app/views/releaseArtifacts';
 
 describe('ReleaseArtifacts', function() {
+  let sandbox;
+  let stubbedApiRequest;
+  let wrapper;
+  let wrapperWithPermission;
+
   beforeEach(function() {
-    this.sandbox = sinon.sandbox.create();
+    sandbox = sinon.sandbox.create();
 
-    this.stubbedApiRequest = this.sandbox.stub(Client.prototype, 'request');
+    stubbedApiRequest = sandbox.stub(Client.prototype, 'request');
 
-    this.wrapper = shallow(
+    wrapper = shallow(
       <ReleaseArtifacts
         location={{query: {cursor: '0:0:100'}}}
         params={{orgId: '123', projectId: '456', version: 'abcdef'}}
@@ -25,7 +30,7 @@ describe('ReleaseArtifacts', function() {
       }
     );
 
-    this.wrapperWithPermission = shallow(
+    wrapperWithPermission = shallow(
       <ReleaseArtifacts
         location={{query: {cursor: '0:0:100'}}}
         params={{orgId: '123', projectId: '456', version: 'abcdef'}}
@@ -42,12 +47,11 @@ describe('ReleaseArtifacts', function() {
   });
 
   afterEach(function() {
-    this.sandbox.restore();
+    sandbox.restore();
   });
 
   describe('render()', function() {
     it('should render a row for each file', function() {
-      let wrapper = this.wrapper;
       wrapper.setState({
         loading: false,
         fileList: [
@@ -68,7 +72,6 @@ describe('ReleaseArtifacts', function() {
     });
 
     it('should have no permission to download', function() {
-      let wrapper = this.wrapper;
       wrapper.setState({
         loading: false,
         fileList: [
@@ -89,7 +92,7 @@ describe('ReleaseArtifacts', function() {
     });
 
     it('should have permission to download', function() {
-      let wrapper = this.wrapperWithPermission;
+      wrapper = wrapperWithPermission;
       wrapper.setState({
         loading: false,
         fileList: [
@@ -112,7 +115,6 @@ describe('ReleaseArtifacts', function() {
 
   describe('handleRemove()', function() {
     it('should remove the file from the file list', function() {
-      let wrapper = this.wrapper;
       wrapper.setState({
         loading: false,
         fileList: [
@@ -130,8 +132,8 @@ describe('ReleaseArtifacts', function() {
       });
 
       let instance = wrapper.instance();
-      this.stubbedApiRequest.restore();
-      this.sandbox.stub(instance.api, 'request', function(url, options) {
+      stubbedApiRequest.restore();
+      sandbox.stub(instance.api, 'request', function(url, options) {
         // emulate successful api completion
         options.success();
         options.complete();
@@ -146,10 +148,9 @@ describe('ReleaseArtifacts', function() {
 
   describe('fetchData()', function() {
     it('should append the location query string to the request URL', function() {
-      let wrapper = this.wrapper;
       wrapper.instance().fetchData();
 
-      let apiArgs = this.stubbedApiRequest.lastCall.args;
+      let apiArgs = stubbedApiRequest.lastCall.args;
       expect(apiArgs[0]).toEqual('/projects/123/456/releases/abcdef/files/');
       expect(apiArgs[1].data).toHaveProperty('cursor', '0:0:100');
     });

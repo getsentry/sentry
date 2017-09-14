@@ -2,15 +2,17 @@ import {logAjaxError} from 'app/utils/logging';
 import Raven from 'raven-js';
 
 describe('logging', function() {
-  beforeEach(function() {
-    this.sandbox = sinon.sandbox.create();
+  let sandbox;
 
-    this.sandbox.stub(Raven, 'captureMessage');
-    this.sandbox.stub(window.console, 'error');
+  beforeEach(function() {
+    sandbox = sinon.sandbox.create();
+
+    sandbox.stub(Raven, 'captureMessage');
+    sandbox.stub(window.console, 'error');
   });
 
   afterEach(function() {
-    this.sandbox.restore();
+    sandbox.restore();
   });
 
   describe('logAjaxError()', function() {
