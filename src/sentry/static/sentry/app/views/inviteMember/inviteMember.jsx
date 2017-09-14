@@ -35,6 +35,9 @@ const InviteMember = React.createClass({
       method: 'GET',
       success: data => {
         this.setState({roleList: data.role_list, loading: false});
+        if (data.role_list.filter(({_, allowed}) => allowed).length == 0) {
+          window.location.href = `/organizations/${slug}/members/`;
+        }
       },
       error: error => {
         Raven.captureMessage('data fetch error ', {

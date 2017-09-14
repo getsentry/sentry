@@ -17,6 +17,7 @@ from sentry.api.serializers.rest_framework import ListField
 from sentry.models import AuditLogEntryEvent, OrganizationMember, OrganizationMemberTeam, Team, TeamStatus
 from sentry.search.utils import tokenize_query
 from sentry.signals import member_invited
+from .organization_member_details import get_allowed_roles
 
 
 class MemberPermission(OrganizationPermission):
@@ -100,6 +101,14 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
             status=TeamStatus.VISIBLE,
             slug__in=result['teams'])
 
+        can_admin, allowed_roles = get_allowed_roles(request, organization)
+
+        if not result['role'] in {r.id for r in allowed_roles}:
+            return Response(
+                '{"error": "You do not have permission to invite that role."}',
+                status=403
+            )
+
         # This is needed because `email` field is case sensitive, but from a user perspective,
         # Sentry treats email as case-insensitive (Eric@sentry.io equals eric@sentry.io).
         try:
@@ -108,13 +117,14 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
                 user__email__iexact=result['email'],
                 user__is_active=True,
             )[0]
+
+        except IndexError:
+            pass
+        else:
             messages.add_message(
                 request, messages.INFO,
                 _('The organization member %s already exists.') % result['email']
             )
-        except IndexError:
-            pass
-        else:
             return Response(serialize(existing), status=200)
 
         messages.add_message(
