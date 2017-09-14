@@ -44,3 +44,31 @@ class OrganizationMemberListTest(APITestCase):
         assert response.status_code == 200
         assert len(response.data) == 1
         assert response.data[0]['email'] == self.user_1.email
+
+    def test_owner_invites(self):
+        response = self.client.post(
+            self.url, {
+                'email': 'eric@localhost', 'role': 'owner', 'teams': [
+                    self.team.slug]})
+
+        assert response.status_code == 201
+        assert response.data['email'] == 'eric@localhost'
+
+    def test_manager_invites(self):
+        manager_user = self.create_user('manager@localhost')
+        self.manager = self.create_member(user=manager_user, organization=self.org, role='manager')
+        response = self.client.post(
+            self.url, {
+                'email': 'eric@localhost', 'role': 'owner', 'teams': [
+                    self.team.slug]})
+
+        assert response.status_code == 400
+
+    def test_member_invites(self):
+        pass
+
+    def test_duplicate_email_invites(self):
+        pass
+
+    def test_no_team_invites(self):
+        pass
