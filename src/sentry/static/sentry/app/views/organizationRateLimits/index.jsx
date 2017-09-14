@@ -177,7 +177,7 @@ const RateLimitEditor = React.createClass({
 
         <div className="help-block">
           {t(
-            'The maximum percentage of your hourly account limit an individual project can consume.'
+            'The maximum percentage of your account limit an individual project can consume.'
           )}
         </div>
 
