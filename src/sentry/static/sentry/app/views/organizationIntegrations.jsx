@@ -45,7 +45,7 @@ const OrganizationIntegrations = React.createClass({
     this.api.request(`/organizations/${this.props.params.orgId}/integrations/`, {
       method: 'POST',
       data: {
-        providerId,
+        provider: providerId,
         defaultAuthId: auth.defaultAuthId,
         integrationId: auth.integrationId
       },
