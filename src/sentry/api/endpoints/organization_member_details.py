@@ -28,6 +28,28 @@ ERR_ONLY_OWNER = 'You cannot remove the only remaining owner of the organization
 ERR_UNINVITABLE = 'You cannot send an invitation to a user who is already a full member.'
 
 
+def get_allowed_roles(request, organization, member=None):
+    can_admin = request.access.has_scope('member:admin')
+
+    allowed_roles = []
+    if can_admin and not request.is_superuser():
+        acting_member = OrganizationMember.objects.get(
+            user=request.user,
+            organization=organization,
+        )
+        if member and roles.get(acting_member.role).priority < roles.get(member.role).priority:
+            can_admin = False
+        else:
+            allowed_roles = [
+                r for r in roles.get_all()
+                if r.priority <= roles.get(acting_member.role).priority
+            ]
+            can_admin = bool(allowed_roles)
+    elif request.is_superuser():
+        allowed_roles = roles.get_all()
+    return (can_admin, allowed_roles, )
+
+
 class OrganizationMemberSerializer(serializers.Serializer):
     reinvite = serializers.BooleanField()
 
@@ -77,32 +99,10 @@ class OrganizationMemberDetailsEndpoint(OrganizationEndpoint):
 
         return True
 
-    def get_allowed_roles(self, request, organization, member=None):
-        can_admin = request.access.has_scope('member:admin')
-
-        allowed_roles = []
-        if can_admin and not request.is_superuser():
-            acting_member = OrganizationMember.objects.get(
-                user=request.user,
-                organization=organization,
-            )
-            if member and roles.get(acting_member.role).priority < roles.get(member.role).priority:
-                can_admin = False
-            else:
-                allowed_roles = [
-                    r for r in roles.get_all()
-                    if r.priority <= roles.get(acting_member.role).priority
-                ]
-                can_admin = bool(allowed_roles)
-        elif request.is_superuser():
-            allowed_roles = roles.get_all()
-        return (can_admin, allowed_roles, )
-
     def get(self, request, organization, member_id):
         """this only returns allowed invite roles right now"""
 
-        can_admin, allowed_roles = self.get_allowed_roles(
-            request, organization)
+        can_admin, allowed_roles = get_allowed_roles(request, organization)
 
         context = {
             'is_invite': settings.SENTRY_ENABLE_INVITES,
