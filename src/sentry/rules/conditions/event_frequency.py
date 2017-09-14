@@ -29,7 +29,7 @@ class EventFrequencyForm(forms.Form):
         choices=[
             (key, label)
             for key, (label, duration
-                      ) in sorted(intervals.items(), key=lambda (key, (label, duration)): duration)
+                      ) in sorted(intervals.items(), key=lambda key_label_duration: key_label_duration[1][1])
         ]
     )
     value = forms.IntegerField(

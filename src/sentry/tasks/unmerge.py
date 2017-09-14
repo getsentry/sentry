@@ -18,6 +18,8 @@ from sentry.models import (
 from sentry.similarity import features
 from sentry.tasks.base import instrumented_task
 
+from six.moves import reduce
+
 
 def cache(function):
     results = {}

@@ -5,6 +5,7 @@ from __future__ import absolute_import
 import mock
 import six
 import time
+from six.moves import xrange
 
 from exam import fixture, patcher
 

@@ -112,7 +112,7 @@ def get_dependencies(target, migrations):
         # When migrating backwards we want to remove up to and
         # including the next migration up in this app (not the next
         # one, that includes other apps)
-        migration_before_here = target.next()
+        migration_before_here = next(target)
         if migration_before_here:
             backwards = migration_before_here.backwards_plan
     return forwards, backwards
@@ -206,7 +206,7 @@ def migrate_app(migrations, target_name=None, merge=False, fake=False, db_dry_ru
             target_name = 'zero'
     elif target_name == 'current+1':
         try:
-            first_unapplied_migration = get_unapplied_migrations(migrations, applied).next()
+            first_unapplied_migration = next(get_unapplied_migrations(migrations, applied))
             target_name = first_unapplied_migration.name()
         except StopIteration:
             target_name = None

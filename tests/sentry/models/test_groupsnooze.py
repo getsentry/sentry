@@ -10,6 +10,8 @@ from sentry.testutils import TestCase
 from sentry.models import GroupSnooze, GroupTagKey
 from sentry.tsdb import backend as tsdb
 
+from six.moves import xrange
+
 
 class GroupSnoozeTest(TestCase):
     sequence = itertools.count()  # generates unique values, class scope doesn't matter

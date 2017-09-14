@@ -18,6 +18,7 @@ from sentry.digests.notifications import (
 )
 from sentry.models import Rule
 from sentry.testutils import TestCase
+from functools import reduce
 
 
 class RewriteRecordTestCase(TestCase):

@@ -4,6 +4,8 @@ import pytest
 
 from sentry.utils.iterators import advance, chunked, shingle
 
+from six.moves import xrange
+
 
 def test_chunked():
     assert list(chunked(range(5), 5)) == [

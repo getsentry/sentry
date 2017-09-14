@@ -39,8 +39,8 @@ class ManageProjectPluginsTest(TestCase):
                 key__in=[
                     'auto_tag:_operating_systems:enabled', 'auto_tag:_urls:enabled',
                     'mail:enabled',
-                ],
-            ),
+                ]
+            )
         )
         assert opts.get('auto_tag:_operating_systems:enabled') is True
         assert opts.get('auto_tag:_urls:enabled') is True

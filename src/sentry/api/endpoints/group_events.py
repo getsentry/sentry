@@ -15,6 +15,7 @@ from sentry.search.utils import parse_query
 from sentry.utils.apidocs import scenario, attach_scenarios
 from rest_framework.response import Response
 from sentry.search.utils import InvalidQuery
+from functools import reduce
 
 
 @scenario('ListAvailableSamples')

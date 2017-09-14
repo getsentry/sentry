@@ -8,6 +8,7 @@ from six.moves import reduce
 
 from sentry.api.serializers import Serializer, register
 from sentry.models import EventUser, GroupTagValue, TagKey, TagValue
+from functools import reduce
 
 
 def parse_user_tag(value):

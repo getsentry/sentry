@@ -8,6 +8,8 @@ from sentry.digests.backends.base import InvalidState
 from sentry.digests.backends.redis import RedisBackend
 from sentry.testutils import TestCase
 
+from six.moves import xrange
+
 
 class RedisBackendTestCase(TestCase):
     def test_basic(self):

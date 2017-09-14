@@ -16,9 +16,9 @@ def get_application_chunks(exception):
     application code "chunks": blocks of contiguously called application code.
     """
     return map(
-        lambda (in_app, frames): list(frames),
+        lambda in_app_frames2: list(in_app_frames2[1]),
         itertools.ifilter(
-            lambda (in_app, frames): in_app,
+            lambda in_app_frames: in_app_frames[0],
             itertools.groupby(
                 exception.stacktrace.frames,
                 key=lambda frame: frame.in_app,
@@ -180,9 +180,9 @@ class FeatureSet(object):
                         labels.append(label)
 
         return map(
-            lambda (key, scores): (
-                int(key),
-                dict(zip(labels, scores)),
+            lambda key_scores: (
+                int(key_scores[0]),
+                dict(zip(labels, key_scores[1])),
             ),
             self.index.classify(
                 scope,
@@ -201,9 +201,9 @@ class FeatureSet(object):
         items = [(self.aliases[label], thresholds.get(label, 0), ) for label in features]
 
         return map(
-            lambda (key, scores): (
-                int(key),
-                dict(zip(features, scores)),
+            lambda key_scores1: (
+                int(key_scores1[0]),
+                dict(zip(features, key_scores1[1])),
             ),
             self.index.compare(
                 self.__get_scope(group.project),
