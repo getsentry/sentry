@@ -241,23 +241,34 @@ end
 
 local TimeSeriesSet = {}
 
-function TimeSeriesSet:new(interval, retention, timestamp, key_function)
+function TimeSeriesSet:new(interval, retention, timestamp, key_function, limit)
     return setmetatable({
         interval = interval,
         retention = retention,
         timestamp = timestamp,
         key_function = key_function,
+        limit = limit,
     }, {__index = self})
 end
 
 function TimeSeriesSet:members()
     local results = {}
     local current = math.floor(self.timestamp / self.interval)
+    local n = 0
     for index = current - self.retention, current do
-        local members = redis.call('SMEMBERS', self.key_function(index))
-        for i = 1, #members do
-            local k = members[i]
-            results[k] = (results[k] or 0) + 1
+        local sample = redis.call('SRANDMEMBER', self.key_function(index), self.limit)
+        for i = 1, #sample do
+            local member = sample[i]
+            local count = results[member]
+            if count ~= nil then
+                results[member] = count + 1
+            else
+                n = n + 1
+                results[member] = 1
+                if n >= self.limit then
+                    return results
+                end
+            end
         end
     end
     return results
@@ -405,7 +416,8 @@ local function get_bucket_membership_set(configuration, index, band, bucket)
                 get_key_prefix(configuration, index),
                 i
             ) .. pack_frequency_coordinate(band, bucket)
-        end
+        end,
+        configuration.candidate_set_limit
     )
 end
 
@@ -828,6 +840,7 @@ local cursor, command, configuration = multiple_argument_parser(
         {"bands", argument_parser(validate_integer)},
         {"interval", argument_parser(validate_integer)},
         {"retention", argument_parser(validate_integer)},  -- how many previous intervals to store (does not include current interval)
+        {"candidate_set_limit", argument_parser(validate_integer)},
         {"scope", argument_parser(validate_value)},
     })
 )(1, ARGV)

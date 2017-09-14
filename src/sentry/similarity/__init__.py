@@ -83,6 +83,7 @@ def _make_index_backend(cluster=None):
         8,
         60 * 60 * 24 * 30,
         3,
+        5000,
     )
 
 

@@ -23,6 +23,7 @@ class RedisMinHashIndexBackendTestCase(TestCase):
             16,
             60 * 60,
             12,
+            10,
         )
 
     def test_basic(self):
@@ -102,6 +103,7 @@ class RedisMinHashIndexBackendTestCase(TestCase):
             self.index.bands,
             self.index.interval,
             self.index.retention,
+            self.index.candidate_set_limit,
         ).compare('example', '1', [('index', 0)]) == []
 
     def test_multiple_index(self):
