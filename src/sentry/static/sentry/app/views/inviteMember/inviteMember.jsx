@@ -1,4 +1,5 @@
 import React from 'react';
+import classnames from 'classnames';
 
 import OrganizationHomeContainer from '../../components/organizations/homeContainer';
 import Checkbox from '../../components/checkbox';
@@ -79,7 +80,7 @@ const InviteMember = React.createClass({
         this.onSubmitSuccess();
       })
       .catch(error => {
-        if (!error.email && !error.teams && !error.role)
+        if (!error.email && !error.role)
           Raven.captureMessage('unkown error ', {
             extra: {error, state: this.state}
           });
@@ -165,31 +166,28 @@ const InviteMember = React.createClass({
   },
 
   render() {
-    let {orgId} = this.props.params;
     let {error, loading} = this.state;
     return (
       <OrganizationHomeContainer>
-        <a className="pull-right" href={`/organizations/${orgId}/members/`}>
-          {t('Members List')}&nbsp;
-        </a>
         <h3>{t('Add Member to Organization')}</h3>
         <p>
           {t(
-            'Invite a member to join this organization via their email address. If they do not already have an account, they will first be asked to create one.'
+            'Invite a member to join this organization via their email address. If they do not already have an account, they will first be asked to create one. (accepts multiple emails delimited by commas'
           )}
         </p>
         {loading && <LoadingIndicator mini />}
-        {error && error.email && <p className="error alert-error">{error.email}</p>}
-        <TextField
-          name="email"
-          label="Email"
-          placeholder="e.g. teammate@example.com"
-          spellCheck="false"
-          onChange={v => this.setState({email: v})}
-        />
+        <div className={classnames({'has-error': error && error.email})}>
+          <TextField
+            name="email"
+            label="Email"
+            placeholder="e.g. teammate@example.com"
+            spellCheck="false"
+            onChange={v => this.setState({email: v})}
+          />
+          {error && error.email && <p className="error">{error.email}</p>}
+        </div>
         {error && error.role && <p className="error alert-error">{error.role}</p>}
         {this.renderRoleSelect()}
-        {error && error.teams && <p className="error alert-error">{error.teams}</p>}
         {this.renderTeamSelect()}
         <button className="btn btn-primary submit-new-team" onClick={this.submit}>
           {t('Add Member')}
