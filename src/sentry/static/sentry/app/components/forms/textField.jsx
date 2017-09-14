@@ -8,7 +8,7 @@ export default class TextField extends InputField {
 
   getAttributes() {
     return {
-      spellCheck: this.props.spellCheck || ''
+      spellCheck: this.props.spellCheck
     };
   }
 

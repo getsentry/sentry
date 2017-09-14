@@ -2,30 +2,28 @@
 
 exports[`CreateProject render() should render 1`] = `
 <HomeContainer>
-  <a
-    className="pull-right"
-    href="/organizations/testOrg/members/"
-  >
-    Members List
-     
-  </a>
   <h3>
     Add Member to Organization
   </h3>
   <p>
-    Invite a member to join this organization via their email address. If they do not already have an account, they will first be asked to create one.
+    Invite a member to join this organization via their email address. If they do not already have an account, they will first be asked to create one. (accepts multiple emails delimited by commas
   </p>
   <LoadingIndicator
     mini={true}
   />
-  <TextField
-    disabled={false}
-    label="Email"
-    name="email"
-    onChange={[Function]}
-    placeholder="e.g. teammate@example.com"
-    required={false}
-  />
+  <div
+    className=""
+  >
+    <TextField
+      disabled={false}
+      label="Email"
+      name="email"
+      onChange={[Function]}
+      placeholder="e.g. teammate@example.com"
+      required={false}
+      spellCheck="false"
+    />
+  </div>
   <div
     className="new-invite-team box"
   >
