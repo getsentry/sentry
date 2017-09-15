@@ -62,6 +62,7 @@ class RemoveOrganizationView(OrganizationView):
                     kwargs={
                         'object_id': organization.id,
                         'transaction_id': transaction_id,
+                        'actor_id': request.user.id,
                     },
                     countdown=countdown,
                 )
