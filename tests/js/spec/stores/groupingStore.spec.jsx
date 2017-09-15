@@ -84,6 +84,17 @@ describe('Grouping Store', function() {
             'exception:stacktrace:application-chunks': 0.000235,
             'exception:stacktrace:pairs': 0.001488
           }
+        ],
+        [
+          {
+            id: '217'
+          },
+          {
+            'exception:message:character-shingles': null,
+            'exception:stacktrace:application-chunks': 0.25,
+            'exception:stacktrace:pairs': 0.25,
+            'message:message:character-shingles': 0.7
+          }
         ]
       ]
     });
@@ -124,7 +135,7 @@ describe('Grouping Store', function() {
       let arg = calls[calls.length - 1][0];
 
       expect(arg.filteredSimilarItems.length).toBe(1);
-      expect(arg.similarItems.length).toBe(2);
+      expect(arg.similarItems.length).toBe(3);
       expect(arg).toMatchObject({
         loading: false,
         error: false,
@@ -141,6 +152,12 @@ describe('Grouping Store', function() {
             isBelowThreshold: false,
             issue: {
               id: '275'
+            }
+          },
+          {
+            isBelowThreshold: false,
+            issue: {
+              id: '217'
             }
           }
         ],
@@ -182,6 +199,20 @@ describe('Grouping Store', function() {
           unmergeState: new Map()
         });
       });
+    });
+
+    it('ignores null scores in aggregate', async function() {
+      await GroupingStore.onFetch([
+        {dataKey: 'similar', endpoint: '/issues/groupId/similar/'}
+      ]);
+
+      expect(trigger).toBeCalled();
+      let calls = trigger.mock.calls;
+      let arg = calls[calls.length - 1][0];
+
+      let item = arg.similarItems.find(({issue}) => issue.id === '217');
+      expect(item.aggregate.exception).toBe(0.25);
+      expect(item.aggregate.message).toBe(0.7);
     });
 
     it('fetches list of hashes', function() {

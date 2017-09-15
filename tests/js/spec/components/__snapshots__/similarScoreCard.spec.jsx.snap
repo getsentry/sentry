@@ -11,7 +11,7 @@ exports[`SimilarScoreCard renders with score list 1`] = `
   >
     <div />
     <div
-      className="similar-score-quantity low"
+      className="similar-score-quantity empty"
     />
   </SpreadLayout>
   <SpreadLayout

@@ -150,7 +150,10 @@ const GroupingStore = Reflux.createStore({
         // Aggregate score by interface
         let aggregate = Object.keys(scoresByInterface)
           .map(interfaceName => [interfaceName, scoresByInterface[interfaceName]])
-          .reduce((acc, [interfaceName, scores]) => {
+          .reduce((acc, [interfaceName, allScores]) => {
+            // `null` scores means feature was not present in both issues, do not
+            // include in aggregate
+            let scores = allScores.filter(([, score]) => score !== null);
             let avg = scores.reduce((sum, [, score]) => sum + score, 0) / scores.length;
             acc[interfaceName] = avg;
             return acc;
