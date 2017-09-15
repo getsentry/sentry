@@ -259,7 +259,9 @@ class Fixtures(object):
         if not kwargs.get('organization'):
             kwargs['organization'] = kwargs['team'].organization
 
-        return Project.objects.create(**kwargs)
+        project = Project.objects.create(**kwargs)
+        project.add_team(kwargs['team'])
+        return project
 
     def create_project_key(self, project):
         return project.key_set.get_or_create()[0]

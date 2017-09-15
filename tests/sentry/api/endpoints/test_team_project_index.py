@@ -55,6 +55,7 @@ class TeamProjectCreateTest(APITestCase):
         assert project.name == 'hello world'
         assert project.slug == 'foobar'
         assert project.team == team
+        assert project.teams.first() == team
 
         resp = self.client.post(
             url, data={
