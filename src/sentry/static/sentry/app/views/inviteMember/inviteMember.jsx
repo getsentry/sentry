@@ -178,14 +178,14 @@ const InviteMember = React.createClass({
         <h3>{t('Add Member to Organization')}</h3>
         <p>
           {t(
-            'Invite a member to join this organization via their email address. If they do not already have an account, they will first be asked to create one. Accepts multiple emails delimited by commas.'
+            'Invite a member to join this organization via their email address. If they do not already have an account, they will first be asked to create one. Multiple emails delimited by commas.'
           )}
         </p>
-        {loading && <LoadingIndicator mini />}
         <div className={classnames({'has-error': error && error.email})}>
+          {loading && <LoadingIndicator mini className="pull-right" />}
           <TextField
             name="email"
-            label="Email"
+            label="Email(s)"
             placeholder="e.g. teammate@example.com"
             spellCheck="false"
             onChange={v => this.setState({email: v})}

@@ -79,7 +79,7 @@ const HomeSidebar = React.createClass({
               {access.has('org:read') &&
                 <li
                   className={classnames({
-                    active: /^\/organizations\/[^\/]+\/members\/newnew\/$/.test(
+                    active: /^\/organizations\/[^\/]+\/members\/new\/$/.test(
                       this.context.location.pathname
                     )
                   })}>
