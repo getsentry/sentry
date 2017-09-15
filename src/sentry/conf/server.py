@@ -344,6 +344,11 @@ TRELLO_API_SECRET = ''
 BITBUCKET_CONSUMER_KEY = ''
 BITBUCKET_CONSUMER_SECRET = ''
 
+VISUALSTUDIO_APP_ID = ''
+VISUALSTUDIO_APP_SECRET = ''
+VISUALSTUDIO_CLIENT_SECRET = ''
+VISUALSTUDIO_SCOPES = ['vso.work_write', 'vso.project', 'vso.code', 'vso.release']
+
 SOCIAL_AUTH_PIPELINE = (
     'social_auth.backends.pipeline.user.get_username',
     'social_auth.backends.pipeline.social.social_auth_user',
