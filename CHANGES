@@ -1,6 +1,7 @@
 Version 8.21 (Unreleased)
 -------------------------
 
+- Ignore querystrings when looking up release artifacts
 - Add Visual Studio authentication provider for plugins.
 
 Version 8.20
@@ -20,6 +21,7 @@ Schema Changes
 - Dropped ``TagValue.project_id`` foreign key constraint
 - Dropped ``GroupTagKey.project_id`` foreign key constraint
 - Dropped ``GroupTagKey.group_id`` foreign key constraint
+- Dropped ``EventUser.project_id`` foreign key constraint
 - Added ``Email`` model
 
 Version 8.19

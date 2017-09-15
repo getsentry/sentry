@@ -21,13 +21,15 @@ def flatten(value):
 
 
 class RedisMinHashIndexBackend(AbstractIndexBackend):
-    def __init__(self, cluster, namespace, signature_builder, bands, interval, retention):
+    def __init__(self, cluster, namespace, signature_builder,
+                 bands, interval, retention, candidate_set_limit):
         self.cluster = cluster
         self.namespace = namespace
         self.signature_builder = signature_builder
         self.bands = bands
         self.interval = interval
         self.retention = retention
+        self.candidate_set_limit = candidate_set_limit
 
     def _build_signature_arguments(self, features):
         if not features:
@@ -91,6 +93,7 @@ class RedisMinHashIndexBackend(AbstractIndexBackend):
             self.bands,
             self.interval,
             self.retention,
+            self.candidate_set_limit,
             scope,
             limit if limit is not None else -1,
         ]
@@ -112,6 +115,7 @@ class RedisMinHashIndexBackend(AbstractIndexBackend):
             self.bands,
             self.interval,
             self.retention,
+            self.candidate_set_limit,
             scope,
             limit if limit is not None else -1,
             key,
@@ -136,6 +140,7 @@ class RedisMinHashIndexBackend(AbstractIndexBackend):
             self.bands,
             self.interval,
             self.retention,
+            self.candidate_set_limit,
             scope,
             key,
         ]
@@ -157,6 +162,7 @@ class RedisMinHashIndexBackend(AbstractIndexBackend):
             self.bands,
             self.interval,
             self.retention,
+            self.candidate_set_limit,
             scope,
             destination,
         ]
@@ -177,6 +183,7 @@ class RedisMinHashIndexBackend(AbstractIndexBackend):
             self.bands,
             self.interval,
             self.retention,
+            self.candidate_set_limit,
             scope,
         ]
 
@@ -196,6 +203,7 @@ class RedisMinHashIndexBackend(AbstractIndexBackend):
             self.bands,
             self.interval,
             self.retention,
+            self.candidate_set_limit,
             scope,
         ]
 
@@ -232,6 +240,7 @@ class RedisMinHashIndexBackend(AbstractIndexBackend):
             self.bands,
             self.interval,
             self.retention,
+            self.candidate_set_limit,
             scope,
         ]
 
@@ -251,6 +260,7 @@ class RedisMinHashIndexBackend(AbstractIndexBackend):
             self.bands,
             self.interval,
             self.retention,
+            self.candidate_set_limit,
             scope,
         ]
 

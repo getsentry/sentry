@@ -3781,7 +3781,7 @@ msgstr ""
 
 #: static/sentry/app/views/organizationRateLimits/index.jsx:85
 msgid ""
-"The maximum percentage of your quota an individual project can consume."
+"The maximum percentage of your account limit an individual project can consume."
 msgstr ""
 
 #: static/sentry/app/views/organizationRateLimits/index.jsx:91
