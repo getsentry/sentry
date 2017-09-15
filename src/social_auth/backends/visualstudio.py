@@ -45,7 +45,7 @@ class VisualStudioAuth(BaseOAuth2):
     SETTINGS_SECRET_NAME = 'VISUALSTUDIO_APP_SECRET'
     SETTINGS_CLIENT_SECRET_NAME = 'VISUALSTUDIO_CLIENT_SECRET'
     REDIRECT_STATE = False
-    DEFAULT_SCOPE = ['vso.work_write', 'vso.project']
+    DEFAULT_SCOPE = ['vso.work_write', 'vso.project', 'vso.code', 'vso.release']
     RESPONSE_TYPE = 'Assertion'
 
     def user_data(self, access_token, *args, **kwargs):
