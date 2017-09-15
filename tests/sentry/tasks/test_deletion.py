@@ -33,6 +33,7 @@ class DeleteOrganizationTest(TestCase):
         repo = Repository.objects.create(
             organization_id=org.id,
             name=org.name,
+            provider='dummy',
         )
         commit_author = CommitAuthor.objects.create(
             organization_id=org.id,
