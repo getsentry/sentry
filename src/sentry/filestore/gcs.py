@@ -13,6 +13,7 @@ from django.utils.encoding import force_bytes, smart_str, force_text
 
 from google.cloud.storage.client import Client
 from google.cloud.storage.blob import Blob
+from google.cloud.storage.bucket import Bucket
 from google.cloud.exceptions import NotFound
 
 
@@ -76,9 +77,11 @@ class GoogleCloudFile(File):
         self.mime_type = mimetypes.guess_type(name)[0]
         self._mode = mode
         self._storage = storage
-        self.blob = storage.bucket.get_blob(name)
-        if not self.blob and 'w' in mode:
-            self.blob = Blob(self.name, storage.bucket)
+        # NOTE(mattrobenolt): This is the same change in behavior as in
+        # the s3 backend. We're opting now to load the file
+        # or metadata at this step. This means we won't actually
+        # know a file doesn't exist until we try to read it.
+        self.blob = Blob(self.name, storage.bucket)
         self._file = None
         self._is_dirty = False
 
@@ -132,8 +135,6 @@ class GoogleCloudStorage(Storage):
     project_id = None
     credentials = None
     bucket_name = None
-    auto_create_bucket = False
-    auto_create_acl = 'projectPrivate'
     file_name_charset = 'utf-8'
     file_overwrite = True
     # The max amount of memory a returned file can take up before being
@@ -162,24 +163,8 @@ class GoogleCloudStorage(Storage):
     @property
     def bucket(self):
         if self._bucket is None:
-            self._bucket = self._get_or_create_bucket(self.bucket_name)
+            self._bucket = Bucket(self.client, name=self.bucket_name)
         return self._bucket
-
-    def _get_or_create_bucket(self, name):
-        """
-        Retrieves a bucket if it exists, otherwise creates it.
-        """
-        try:
-            return self.client.get_bucket(name)
-        except NotFound:
-            if self.auto_create_bucket:
-                bucket = self.client.create_bucket(name)
-                bucket.acl.save_predefined(self.auto_create_acl)
-                return bucket
-            raise ImproperlyConfigured("Bucket %s does not exist. Buckets "
-                                       "can be automatically created by "
-                                       "setting ``auto_create_bucket`` to "
-                                       "``True``." % name)
 
     def _normalize_name(self, name):
         """
@@ -205,7 +190,7 @@ class GoogleCloudStorage(Storage):
 
         content.name = cleaned_name
         encoded_name = self._encode_name(name)
-        file = GoogleCloudFile(encoded_name, 'rw', self)
+        file = GoogleCloudFile(encoded_name, 'w', self)
         file.blob.upload_from_file(content, size=content.size,
                                    content_type=file.mime_type)
         return cleaned_name
