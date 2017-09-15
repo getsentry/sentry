@@ -11,6 +11,8 @@ from django.core.files.storage import Storage
 from django.utils import timezone
 from django.utils.encoding import force_bytes, smart_str, force_text
 
+import google.auth
+from google.auth.transport.requests import AuthorizedSession
 from google.cloud.storage.client import Client
 from google.cloud.storage.blob import Blob
 from google.cloud.storage.bucket import Bucket
@@ -69,6 +71,15 @@ def safe_join(base, *paths):
                          ' component')
 
     return final_path.lstrip('/')
+
+
+class SentryAuthorizedSession(AuthorizedSession):
+    pass
+    # def request(self, *args, **kwargs):
+    #     print(args, kwargs)
+    #     return super(SentryAuthorizedSession, self).request(*args, **kwargs)
+    #     print(r.status_code, r.text)
+    #     return r
 
 
 class GoogleCloudFile(File):
@@ -151,12 +162,15 @@ class GoogleCloudStorage(Storage):
         self._bucket = None
         self._client = None
 
+        if self.credentials is None:
+            self.credentials = google.auth.default()[0]
+
     @property
     def client(self):
         if self._client is None:
             self._client = Client(
                 project=self.project_id,
-                credentials=self.credentials,
+                _http=SentryAuthorizedSession(self.credentials),
             )
         return self._client
 
