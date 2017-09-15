@@ -6,17 +6,18 @@ exports[`CreateProject render() should render 1`] = `
     Add Member to Organization
   </h3>
   <p>
-    Invite a member to join this organization via their email address. If they do not already have an account, they will first be asked to create one. (accepts multiple emails delimited by commas
+    Invite a member to join this organization via their email address. If they do not already have an account, they will first be asked to create one. Multiple emails delimited by commas.
   </p>
-  <LoadingIndicator
-    mini={true}
-  />
   <div
     className=""
   >
+    <LoadingIndicator
+      className="pull-right"
+      mini={true}
+    />
     <TextField
       disabled={false}
-      label="Email"
+      label="Email(s)"
       name="email"
       onChange={[Function]}
       placeholder="e.g. teammate@example.com"
