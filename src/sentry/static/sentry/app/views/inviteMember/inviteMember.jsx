@@ -17,8 +17,12 @@ const InviteMember = React.createClass({
   mixins: [ApiMixin, OrganizationState],
 
   getInitialState() {
+    let {teams} = this.getOrganization();
+    //select team if there's only one
+    let initialTeamSelection = teams.length == 1 ? [teams[0].id] : [];
+
     return {
-      selectedTeams: new Set(),
+      selectedTeams: new Set(initialTeamSelection),
       roleList: [],
       selectedRole: 'member',
       email: '',
