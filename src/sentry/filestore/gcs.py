@@ -198,10 +198,7 @@ class GoogleCloudStorage(Storage):
 
     def _open(self, name, mode='rb'):
         name = self._normalize_name(clean_name(name))
-        file_object = GoogleCloudFile(name, mode, self)
-        if not file_object.blob:
-            raise IOError(u'File does not exist: %s' % name)
-        return file_object
+        return GoogleCloudFile(name, mode, self)
 
     def _save(self, name, content):
         cleaned_name = clean_name(name)
