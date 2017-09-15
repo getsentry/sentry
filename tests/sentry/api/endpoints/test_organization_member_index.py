@@ -1,8 +1,10 @@
 from __future__ import absolute_import
 
 from django.core.urlresolvers import reverse
+from django.core import mail
 
 from sentry.testutils import APITestCase
+from sentry.models import OrganizationMember, OrganizationMemberTeam
 
 
 class OrganizationMemberListTest(APITestCase):
@@ -54,6 +56,41 @@ class OrganizationMemberListTest(APITestCase):
 
         assert response.status_code == 201
         assert response.data['email'] == 'eric@localhost'
+
+    def test_valid_for_invites(self):
+        team = self.create_team(name='foo', organization=self.org)
+
+        with self.settings(SENTRY_ENABLE_INVITES=True), self.tasks():
+            resp = self.client.post(
+                self.url, {'email': 'foo@example.com',
+                           'role': 'admin',
+                           'teams': [
+                               team.id,
+                           ]}
+            )
+        assert resp.status_code == 302
+
+        member = OrganizationMember.objects.get(
+            organization=self.org,
+            email='foo@example.com',
+        )
+
+        assert member.user is None
+        assert member.role == 'admin'
+
+        om_teams = OrganizationMemberTeam.objects.filter(
+            organizationmember=member)
+
+        assert len(om_teams) == 1
+        assert om_teams[0].team_id == team.id
+
+        redirect_uri = reverse(
+            'sentry-organization-members', args=[self.org.slug])
+        assert resp['Location'] == 'http://testserver' + redirect_uri
+
+        assert len(mail.outbox) == 1
+        assert mail.outbox[0].to == ['foo@example.com']
+        assert mail.outbox[0].subject == 'Join Default in using Sentry'
 
     def test_manager_invites(self):
         manager_user = self.create_user('manager@localhost')
