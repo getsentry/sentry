@@ -1,11 +1,13 @@
 from __future__ import absolute_import
 
-from uuid import uuid4
-
 from django import forms
+from sentry import roles
 from sentry.web.frontend.base import BaseView
 from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect, Http404
+from django.utils.encoding import force_str
+from django.core.signing import BadSignature
+from sentry.utils.signing import unsign
 from sentry.models import AuditLogEntryEvent, OrganizationMember, Organization, Team, Project
 
 
@@ -36,9 +38,31 @@ class AcceptProjectTransferView(BaseView):
 
     def handle(self, request, *args, **kwargs):
         try:
-            project_id = request.GET['project_id']
+            d = request.GET['data']
         except KeyError:
             raise Http404
+
+        try:
+            data = unsign(force_str(d))
+        except BadSignature:
+            return HttpResponseRedirect(
+                reverse('sentry')
+            )
+
+        # from_organization_id = data['from_organization_id']
+        project_id = data['project_id']
+        user_id = data['user_id']
+        transaction_id = data['transaction_id']
+
+        # check if user is still an owner
+        if not OrganizationMember.objects.filter(
+            role=roles.get_top_dog().id,
+            user__is_active=True,
+            user_id=user_id,
+        ).exists():
+            return HttpResponseRedirect(
+                reverse('sentry')
+            )
 
         form = self.get_form(request)
         if form.is_valid():
@@ -50,12 +74,10 @@ class AcceptProjectTransferView(BaseView):
             project.organization = new_team.organization
             project.save()
 
-            transaction_id = uuid4().hex
-
             self.create_audit_entry(
                 request=request,
                 organization=project.organization,
-                target_object=project.id,
+                target_object=project_id,
                 event=AuditLogEntryEvent.PROJECT_ACCEPT_TRANSFER,
                 data=project.get_audit_log_data(),
                 transaction_id=transaction_id,

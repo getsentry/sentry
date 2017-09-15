@@ -12,7 +12,8 @@ from django.utils.translation import ugettext_lazy as _
 from sentry import roles, options
 from sentry.web.frontend.base import ProjectView
 from sentry.utils.email import MessageBuilder
-from sentry.models import AuditLogEntryEvent, OrganizationMember
+from sentry.utils.signing import sign
+from sentry.models import AuditLogEntryEvent, OrganizationMember, User
 
 
 class TransferProjectForm(forms.Form):
@@ -43,13 +44,21 @@ class TransferProjectView(ProjectView):
                 user__is_active=True,
                 user__email=email,
             ).exists():
+                owner_id = User.objects.get(email=email).id
+                transaction_id = uuid4().hex
+                url_data = sign(
+                    actor_id=request.user.id,
+                    from_organization_id=organization.id,
+                    project_id=project.id,
+                    user_id=owner_id,
+                    transaction_id=transaction_id)
                 context = {
                     'email': email,
                     'from_org': organization.name,
                     'project_name': project.name,
                     'request_time': timezone.now(),
                     'url':
-                    'dev.getsentry.net:8000/accept-transfer/?project_id=' + '%s' % (project.id),
+                    'dev.getsentry.net:8000/accept-transfer/?data=' + '%s' % (url_data),
                     'requester': request.user
                 }
                 MessageBuilder(
@@ -60,8 +69,6 @@ class TransferProjectView(ProjectView):
                     type='org.confirm_project_transfer_request',
                     context=context,
                 ).send_async([email])
-
-                transaction_id = uuid4().hex
 
                 self.create_audit_entry(
                     request=request,
