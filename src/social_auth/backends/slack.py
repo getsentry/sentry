@@ -58,14 +58,6 @@ class SlackAuth(BaseOAuth2):
         except ValueError:
             return None
 
-    @classmethod
-    def refresh_token(cls, token):
-        params = cls.refresh_token_params(token)
-        response = requests.post(cls.ACCESS_TOKEN_URL, data=params,
-                                 headers=cls.auth_headers())
-        response.raise_for_status()
-        return response.json()
-
 
 # Backend definition
 BACKENDS = {

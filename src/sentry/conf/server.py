@@ -298,6 +298,7 @@ AUTHENTICATION_BACKENDS = (
     'social_auth.backends.trello.TrelloBackend',
     'social_auth.backends.asana.AsanaBackend',
     'social_auth.backends.slack.SlackBackend',
+    'social_auth.backends.visualstudio.VisualStudioBackend',
 )
 
 AUTH_PASSWORD_VALIDATORS = [
@@ -321,6 +322,7 @@ SOCIAL_AUTH_AUTHENTICATION_BACKENDS = (
     'social_auth.backends.github.GithubBackend', 'social_auth.backends.bitbucket.BitbucketBackend',
     'social_auth.backends.trello.TrelloBackend', 'social_auth.backends.asana.AsanaBackend',
     'social_auth.backends.slack.SlackBackend', 'social_auth.backends.github_apps.GithubAppsBackend',
+    'social_auth.backends.visualstudio.VisualStudioBackend',
 )
 
 SESSION_ENGINE = "django.contrib.sessions.backends.signed_cookies"
@@ -366,6 +368,7 @@ AUTH_PROVIDERS = {
     'bitbucket': ('BITBUCKET_CONSUMER_KEY', 'BITBUCKET_CONSUMER_SECRET'),
     'asana': ('ASANA_CLIENT_ID', 'ASANA_CLIENT_SECRET'),
     'slack': ('SLACK_CLIENT_ID', 'SLACK_CLIENT_SECRET'),
+    'visualstudio': ('VISUALSTUDIO_APP_ID', 'VISUALSTUDIO_APP_SECRET', 'VISUALSTUDIO_CLIENT_SECRET'),
 }
 
 AUTH_PROVIDER_LABELS = {
@@ -374,7 +377,8 @@ AUTH_PROVIDER_LABELS = {
     'trello': 'Trello',
     'bitbucket': 'Bitbucket',
     'asana': 'Asana',
-    'slack': 'Slack'
+    'slack': 'Slack',
+    'visualstudio': 'Visual Studio',
 }
 
 import random
