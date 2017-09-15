@@ -2,11 +2,10 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import Modal from 'react-bootstrap/lib/Modal';
 
-import ApiMixin from '../mixins/apiMixin';
+import AsyncView from './asyncView';
 import {FormState} from '../components/forms';
 import DropdownLink from '../components/dropdownLink';
 import IndicatorStore from '../stores/indicatorStore';
-import LoadingIndicator from '../components/loadingIndicator';
 import MenuItem from '../components/menuItem';
 import OrganizationHomeContainer from '../components/organizations/homeContainer';
 import PluginComponentBase from '../components/bases/pluginComponentBase';
@@ -18,16 +17,18 @@ const UNKNOWN_ERROR = {
 };
 
 class AddRepositoryLink extends PluginComponentBase {
+  static propTypes = {
+    provider: PropTypes.object.isRequired
+  };
+
   constructor(props, context) {
     super(props, context);
 
     Object.assign(this.state, {
-      isModalOpen: false,
+      ...this.getDefaultState(),
       fieldList: null,
       loading: true,
-      state: FormState.LOADING,
-      error: {},
-      formData: {}
+      state: FormState.LOADING
     });
 
     ['onOpen', 'onCancel', 'formSubmit', 'changeField'].map(
@@ -35,12 +36,20 @@ class AddRepositoryLink extends PluginComponentBase {
     );
   }
 
+  getDefaultState() {
+    return {
+      isModalOpen: false,
+      error: {},
+      formData: {}
+    };
+  }
+
   onOpen() {
     this.setState({isModalOpen: true});
   }
 
   onCancel() {
-    this.setState({isModalOpen: false});
+    this.setState(this.getDefaultState());
   }
 
   formSubmit(ev) {
@@ -52,7 +61,13 @@ class AddRepositoryLink extends PluginComponentBase {
 
   onSubmit() {
     // TODO(dcramer): set form saving state
-    let repoName = {name: parseRepo(this.state.formData.name)};
+    let formData = {
+      ...this.state.formData,
+      provider: this.props.provider.id
+    };
+    if (formData.name) {
+      formData.name = parseRepo(formData.name);
+    }
 
     this.setState(
       {
@@ -60,13 +75,10 @@ class AddRepositoryLink extends PluginComponentBase {
       },
       () => {
         this.api.request(`/organizations/${this.props.orgId}/repos/`, {
-          data: {
-            provider: this.props.provider.id,
-            ...repoName
-          },
+          data: formData,
           method: 'POST',
           success: this.onSaveSuccess.bind(this, data => {
-            this.setState({isModalOpen: false});
+            this.setState({isModalOpen: false, formData: {}, error: {}});
             this.props.onSuccess(data);
           }),
           error: this.onSaveError.bind(this, error => {
@@ -82,9 +94,12 @@ class AddRepositoryLink extends PluginComponentBase {
   }
 
   changeField(name, value) {
-    let formData = this.state.formData;
-    formData[name] = value;
-    this.setState({[name]: formData});
+    this.setState(state => {
+      state.formData = {
+        ...state.formData,
+        [name]: value
+      };
+    });
   }
 
   renderForm() {
@@ -155,7 +170,7 @@ class AddRepositoryLink extends PluginComponentBase {
   }
 
   renderModal() {
-    let state = this.state.state;
+    let {error, state} = this.state;
     return (
       <Modal show={this.state.isModalOpen} animation={false}>
         <div className="modal-header">
@@ -166,22 +181,24 @@ class AddRepositoryLink extends PluginComponentBase {
         <div className="modal-body">
           {this.renderBody()}
         </div>
-        <div className="modal-footer">
-          <button
-            type="button"
-            className="btn btn-default"
-            onClick={this.onCancel}
-            disabled={state === FormState.SAVING}>
-            {t('Cancel')}
-          </button>
-          <button
-            type="button"
-            className="btn btn-primary"
-            onClick={this.onSubmit}
-            disabled={state === FormState.SAVING}>
-            {t('Save Changes')}
-          </button>
-        </div>
+        {!error || error.error_type !== 'unknown' || error.message
+          ? <div className="modal-footer">
+              <button
+                type="button"
+                className="btn btn-default"
+                onClick={this.onCancel}
+                disabled={state === FormState.SAVING}>
+                {t('Cancel')}
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={this.onSubmit}
+                disabled={state === FormState.SAVING}>
+                {t('Save Changes')}
+              </button>
+            </div>
+          : null}
       </Modal>
     );
   }
@@ -197,60 +214,16 @@ class AddRepositoryLink extends PluginComponentBase {
   }
 }
 
-AddRepositoryLink.propTypes = {
-  provider: PropTypes.object.isRequired
-};
+class OrganizationRepositories extends AsyncView {
+  getEndpoints() {
+    let {orgId} = this.props.params;
+    return [
+      ['itemList', `/organizations/${orgId}/repos/`, {query: {status: ''}}],
+      ['repoConfig', `/organizations/${orgId}/config/repos/`]
+    ];
+  }
 
-const OrganizationRepositories = React.createClass({
-  mixins: [ApiMixin],
-
-  getInitialState() {
-    return {
-      loading: true,
-      error: false,
-      itemList: null,
-      repoConfig: null
-    };
-  },
-
-  componentWillMount() {
-    this.fetchData();
-  },
-
-  fetchData() {
-    this.api.request(`/organizations/${this.props.params.orgId}/repos/?status=`, {
-      method: 'GET',
-      success: data => {
-        this.setState({
-          itemList: data,
-          loading: !this.state.repoConfig
-        });
-      },
-      error: () => {
-        this.setState({
-          loading: !this.state.repoConfig,
-          error: true
-        });
-      }
-    });
-    this.api.request(`/organizations/${this.props.params.orgId}/config/repos/`, {
-      method: 'GET',
-      success: data => {
-        this.setState({
-          repoConfig: data,
-          loading: !this.state.itemList
-        });
-      },
-      error: () => {
-        this.setState({
-          loading: !this.state.itemList,
-          error: true
-        });
-      }
-    });
-  },
-
-  deleteRepo(repo) {
+  deleteRepo = repo => {
     // eslint-disable-next-line no-alert
     if (!confirm(t('Are you sure you want to remove this repository?'))) return;
 
@@ -277,9 +250,9 @@ const OrganizationRepositories = React.createClass({
         IndicatorStore.remove(indicator);
       }
     });
-  },
+  };
 
-  cancelDelete(repo) {
+  cancelDelete = repo => {
     let indicator = IndicatorStore.add(t('Saving changes..'));
     this.api.request(`/organizations/${this.props.params.orgId}/repos/${repo.id}/`, {
       method: 'PUT',
@@ -304,15 +277,15 @@ const OrganizationRepositories = React.createClass({
         IndicatorStore.remove(indicator);
       }
     });
-  },
+  };
 
-  onAddRepo(repo) {
+  onAddRepo = repo => {
     let itemList = this.state.itemList;
     itemList.push(repo);
     this.setState({
       itemList: sortArray(itemList, item => item.name)
     });
-  },
+  };
 
   getStatusLabel(repo) {
     switch (repo.status) {
@@ -325,11 +298,13 @@ const OrganizationRepositories = React.createClass({
       default:
         return null;
     }
-  },
+  }
 
-  render() {
-    if (this.state.loading) return <LoadingIndicator />;
+  getTitle() {
+    return 'Repositories';
+  }
 
+  renderBody() {
     let orgId = this.props.params.orgId;
     let itemList = this.state.itemList;
 
@@ -443,6 +418,6 @@ const OrganizationRepositories = React.createClass({
       </OrganizationHomeContainer>
     );
   }
-});
+}
 
 export default OrganizationRepositories;

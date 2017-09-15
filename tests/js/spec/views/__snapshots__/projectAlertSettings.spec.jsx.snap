@@ -85,8 +85,23 @@ exports[`ProjectAlertSettings render() renders 1`] = `
       onEnablePlugin={[Function]}
       organization={
         Object {
+          "access": Array [
+            "org:read",
+            "org:write",
+            "org:admin",
+            "project:read",
+            "project:write",
+            "project:admin",
+            "team:read",
+            "team:write",
+            "team:admin",
+          ],
+          "features": Array [],
+          "id": "3",
           "name": "Organization Name",
+          "onboardingTasks": Array [],
           "slug": "org-slug",
+          "teams": Array [],
         }
       }
       pluginList={Array []}
@@ -94,6 +109,7 @@ exports[`ProjectAlertSettings render() renders 1`] = `
         Object {
           "digestsMaxDelay": 60,
           "digestsMinDelay": 5,
+          "id": "2",
           "name": "Project Name",
           "slug": "project-slug",
           "subjectTemplate": "[$project] \${tag:level}: $title",
