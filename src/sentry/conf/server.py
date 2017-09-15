@@ -875,6 +875,7 @@ SENTRY_EMAIL_BACKEND_ALIASES = {
 SENTRY_FILESTORE_ALIASES = {
     'filesystem': 'django.core.files.storage.FileSystemStorage',
     's3': 'sentry.filestore.s3.S3Boto3Storage',
+    'gcs': 'sentry.filestore.gcs.GoogleCloudStorage',
 }
 
 SENTRY_ANALYTICS_ALIASES = {
