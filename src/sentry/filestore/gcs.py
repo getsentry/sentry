@@ -11,8 +11,6 @@ from django.core.files.storage import Storage
 from django.utils import timezone
 from django.utils.encoding import force_bytes, smart_str, force_text
 
-import google.auth
-from google.auth.transport.requests import AuthorizedSession
 from google.cloud.storage.client import Client
 from google.cloud.storage.blob import Blob
 from google.cloud.storage.bucket import Bucket
@@ -73,13 +71,22 @@ def safe_join(base, *paths):
     return final_path.lstrip('/')
 
 
-class SentryAuthorizedSession(AuthorizedSession):
-    pass
-    # def request(self, *args, **kwargs):
-    #     print(args, kwargs)
-    #     return super(SentryAuthorizedSession, self).request(*args, **kwargs)
-    #     print(r.status_code, r.text)
-    #     return r
+class FancyBlob(Blob):
+    def __init__(self, download_url, *args, **kwargs):
+        self.download_url = download_url
+        super(FancyBlob, self).__init__(*args, **kwargs)
+
+    def _get_download_url(self):
+        if self.media_link is None:
+            download_url = u'{download_url}/download/storage/v1{path}?alt=media'.format(
+                download_url=self.download_url,
+                path=self.path,
+            )
+            if self.generation is not None:
+                download_url += u'&generation={:d}'.format(self.generation)
+            return download_url
+        else:
+            return self.media_link
 
 
 class GoogleCloudFile(File):
@@ -92,7 +99,7 @@ class GoogleCloudFile(File):
         # the s3 backend. We're opting now to load the file
         # or metadata at this step. This means we won't actually
         # know a file doesn't exist until we try to read it.
-        self.blob = Blob(self.name, storage.bucket)
+        self.blob = FancyBlob(storage.download_url, self.name, storage.bucket)
         self._file = None
         self._is_dirty = False
 
@@ -148,6 +155,7 @@ class GoogleCloudStorage(Storage):
     bucket_name = None
     file_name_charset = 'utf-8'
     file_overwrite = True
+    download_url = 'https://www.googleapis.com'
     # The max amount of memory a returned file can take up before being
     # rolled over into a temporary file on disk. Default is 0: Do not roll over.
     max_memory_size = 0
@@ -162,15 +170,12 @@ class GoogleCloudStorage(Storage):
         self._bucket = None
         self._client = None
 
-        if self.credentials is None:
-            self.credentials = google.auth.default()[0]
-
     @property
     def client(self):
         if self._client is None:
             self._client = Client(
                 project=self.project_id,
-                _http=SentryAuthorizedSession(self.credentials),
+                credentials=self.credentials,
             )
         return self._client
 
