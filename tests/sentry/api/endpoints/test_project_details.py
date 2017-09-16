@@ -88,6 +88,46 @@ class ProjectUpdateTest(APITestCase):
         assert project.slug == 'foobar'
         assert project.platform == 'cocoa'
 
+    def test_team_changes(self):
+        project = self.create_project()
+        team = self.create_team()
+        self.login_as(user=self.user)
+        url = reverse(
+            'sentry-api-0-project-details',
+            kwargs={
+                'organization_slug': project.organization.slug,
+                'project_slug': project.slug,
+            }
+        )
+        resp = self.client.put(
+            url, data={
+                'team': team.slug,
+            }
+        )
+        assert resp.status_code == 200, resp.content
+        project = Project.objects.get(id=project.id)
+        assert project.team == team
+
+    def test_team_changes_not_found(self):
+        project = self.create_project()
+        self.login_as(user=self.user)
+        url = reverse(
+            'sentry-api-0-project-details',
+            kwargs={
+                'organization_slug': project.organization.slug,
+                'project_slug': project.slug,
+            }
+        )
+        resp = self.client.put(
+            url, data={
+                'team': 'the-team-that-does-not-exist',
+            }
+        )
+        assert resp.status_code == 400, resp.content
+        assert resp.data['detail'][0] == 'The new team is not found.'
+        project = Project.objects.get(id=project.id)
+        assert project.team == self.team
+
     def test_member_changes(self):
         project = self.create_project()
         user = self.create_user('bar@example.com')
