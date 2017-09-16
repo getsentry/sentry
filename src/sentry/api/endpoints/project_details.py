@@ -17,7 +17,8 @@ from sentry.api.decorators import sudo_required
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.project import DetailedProjectSerializer
 from sentry.models import (
-    AuditLogEntryEvent, Group, GroupStatus, Project, ProjectBookmark, ProjectStatus, UserOption
+    AuditLogEntryEvent, Group, GroupStatus, Project, ProjectBookmark, ProjectStatus,
+    UserOption, Team,
 )
 from sentry.tasks.deletion import delete_project
 from sentry.utils.apidocs import scenario, attach_scenarios
@@ -78,6 +79,7 @@ class ProjectAdminSerializer(serializers.Serializer):
     isSubscribed = serializers.BooleanField()
     name = serializers.CharField(max_length=200)
     slug = serializers.RegexField(r'^[a-z0-9_\-]+$', max_length=50)
+    team = serializers.RegexField(r'^[a-z0-9_\-]+$', max_length=50)
     digestsMinDelay = serializers.IntegerField(min_value=60, max_value=3600)
     digestsMaxDelay = serializers.IntegerField(min_value=60, max_value=3600)
     subjectPrefix = serializers.CharField(max_length=200)
@@ -157,6 +159,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         :pparam string project_slug: the slug of the project to delete.
         :param string name: the new name for the project.
         :param string slug: the new slug for the project.
+        :param string team: the slug of new team for the project.
         :param string platform: the new platform for the project.
         :param boolean isBookmarked: in case this API call is invoked with a
                                      user context this allows changing of
@@ -200,6 +203,24 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
 
         if result.get('name'):
             project.name = result['name']
+            changed = True
+
+        if result.get('team'):
+            team_list = [
+                t for t in Team.objects.get_for_user(
+                    organization=project.organization,
+                    user=request.user,
+                )
+                if request.access.has_team_scope(t, 'project:write')
+                if t.slug == result['team']
+            ]
+            if not team_list:
+                return Response(
+                    {
+                        'detail': ['The new team is not found.']
+                    }, status=400
+                )
+            project.team = team_list[0]
             changed = True
 
         if result.get('platform'):
