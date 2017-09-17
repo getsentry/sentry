@@ -105,7 +105,7 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
     # Deletions that use the `deletions` code path (which handles their child relations)
     # (model, datetime_field, order_by)
     DELETES = (
-        (models.Event, 'datetime', None),
+        (models.Event, 'datetime', 'datetime'),
         (models.Group, 'last_seen', 'last_seen'),
     )
 
