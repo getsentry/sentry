@@ -9,7 +9,7 @@ from rest_framework import serializers
 from rest_framework.response import Response
 from requests.exceptions import HTTPError
 
-from sentry.exceptions import PluginError, PluginIdentityRequired
+from sentry.exceptions import InvalidIdentity, PluginError, PluginIdentityRequired
 from sentry.plugins import plugins
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
@@ -113,7 +113,7 @@ class ProjectPluginDetailsEndpoint(ProjectEndpoint):
                     value=value,
                     actor=request.user,
                 )
-            except (forms.ValidationError, serializers.ValidationError, PluginError) as e:
+            except (forms.ValidationError, serializers.ValidationError, InvalidIdentity, PluginError) as e:
                 errors[key] = e.message
 
             if not errors.get(key):
@@ -126,7 +126,7 @@ class ProjectPluginDetailsEndpoint(ProjectEndpoint):
                     config=cleaned,
                     actor=request.user,
                 )
-            except PluginError as e:
+            except (InvalidIdentity, PluginError) as e:
                 errors['__all__'] = e.message
 
         if errors:
