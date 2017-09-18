@@ -198,6 +198,13 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
                 model=model,
                 query=query,
                 order_by=order_by,
+                skip_models=[
+                    models.Event,
+                    models.EventTag,
+                    models.GroupEmailThread,
+                    models.GroupRuleStatus,
+                    models.GroupTagValue,
+                ],
                 transaction_id=uuid4().hex,
             )
 
