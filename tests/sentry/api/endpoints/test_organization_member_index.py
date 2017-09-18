@@ -51,38 +51,41 @@ class OrganizationMemberListTest(APITestCase):
         self.login_as(user=self.owner_user)
         response = self.client.post(
             self.url, {
-                'email': 'eric@localhost', 'role': 'owner', 'teams': [self.team.slug]
+                'email': 'eric@localhost', 'role': 'owner', 'teams': [self.team.id]
             })
 
         assert response.status_code == 201
         assert response.data['email'] == 'eric@localhost'
 
     def test_valid_for_invites(self):
-        team = self.create_team(name='foo', organization=self.org)
+        self.login_as(user=self.owner_user)
 
         with self.settings(SENTRY_ENABLE_INVITES=True), self.tasks():
             resp = self.client.post(
-                self.url, {'email': 'foo@example.com',
-                           'role': 'admin',
-                           'teams': [
-                               team.id,
-                           ]}
+                self.url,
+                {'email': 'foo@example.com',
+                 'role': 'admin',
+                 'teams': [
+                     self.team.id,
+                 ]}
             )
-        assert resp.status_code == 302
+        assert resp.status_code == 201
 
         member = OrganizationMember.objects.get(
             organization=self.org,
             email='foo@example.com',
         )
+        import ipdb
+        ipdb.set_trace()
 
         assert member.user is None
         assert member.role == 'admin'
-
+        # this isn't working:
         om_teams = OrganizationMemberTeam.objects.filter(
-            organizationmember=member)
+            organizationmember=member.id)
 
         assert len(om_teams) == 1
-        assert om_teams[0].team_id == team.id
+        assert om_teams[0].team_id == self.team.id
 
         redirect_uri = reverse(
             'sentry-organization-members', args=[self.org.slug])
@@ -100,20 +103,20 @@ class OrganizationMemberListTest(APITestCase):
 
         response = self.client.post(
             self.url, {
-                'email': 'eric@localhost', 'role': 'owner', 'teams': [self.team.slug]
+                'email': 'eric@localhost', 'role': 'owner', 'teams': [self.team.id]
             })
 
         assert response.status_code == 403
 
         response = self.client.post(
             self.url, {
-                'email': 'eric@localhost', 'role': 'manager', 'teams': [self.team.slug]
+                'email': 'eric@localhost', 'role': 'manager', 'teams': [self.team.id]
             })
         assert response.status_code == 201
 
         response = self.client.post(
             self.url, {
-                'email': 'eric@localhost', 'role': 'member', 'teams': [self.team.slug]
+                'email': 'eric@localhost', 'role': 'member', 'teams': [self.team.id]
             })
 
         assert response.status_code == 200
@@ -127,21 +130,21 @@ class OrganizationMemberListTest(APITestCase):
 
         response = self.client.post(
             self.url, {
-                'email': 'eric@localhost', 'role': 'owner', 'teams': [self.team.slug]
+                'email': 'eric@localhost', 'role': 'owner', 'teams': [self.team.id]
             })
 
         assert response.status_code == 403
 
         response = self.client.post(
             self.url, {
-                'email': 'eric@localhost', 'role': 'manager', 'teams': [self.team.slug]
+                'email': 'eric@localhost', 'role': 'manager', 'teams': [self.team.id]
             })
 
         assert response.status_code == 403
 
         response = self.client.post(
             self.url, {
-                'email': 'eric@localhost', 'role': 'member', 'teams': [self.team.slug]
+                'email': 'eric@localhost', 'role': 'member', 'teams': [self.team.id]
             })
 
         assert response.status_code == 403
@@ -155,21 +158,21 @@ class OrganizationMemberListTest(APITestCase):
 
         response = self.client.post(
             self.url, {
-                'email': 'eric@localhost', 'role': 'owner', 'teams': [self.team.slug]
+                'email': 'eric@localhost', 'role': 'owner', 'teams': [self.team.id]
             })
 
         assert response.status_code == 403
 
         response = self.client.post(
             self.url, {
-                'email': 'eric@localhost', 'role': 'manager', 'teams': [self.team.slug]
+                'email': 'eric@localhost', 'role': 'manager', 'teams': [self.team.id]
             })
 
         assert response.status_code == 403
 
         response = self.client.post(
             self.url, {
-                'email': 'eric@localhost', 'role': 'member', 'teams': [self.team.slug]
+                'email': 'eric@localhost', 'role': 'member', 'teams': [self.team.id]
             })
 
         assert response.status_code == 403
