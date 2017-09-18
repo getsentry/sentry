@@ -64,7 +64,7 @@ class BaseDeletionTask(object):
         if not self.skip_models or not child_relations:
             return child_relations
 
-        return list(filter(lambda rel: rel.params['model']
+        return list(filter(lambda rel: rel.params.get('model')
                            not in self.skip_models, child_relations))
 
     def delete_bulk(self, instance_list):
