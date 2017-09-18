@@ -883,7 +883,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
         else:
             # missing any kind of filter
             return Response(
-                '{"detail": "You must specify a list of IDs for this operation"}', status=400
+                {"detail": "You must specify a list of IDs for this operation"}, status=400
             )
 
         if not group_list:
