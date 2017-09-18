@@ -198,6 +198,7 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
                 model=model,
                 query=query,
                 order_by=order_by,
+                cleanup=True,
                 transaction_id=uuid4().hex,
             )
 

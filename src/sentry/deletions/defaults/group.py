@@ -12,7 +12,6 @@ class GroupDeletionTask(ModelDeletionTask):
         model_list = (
             # prioritize GroupHash
             models.GroupHash,
-            models.EventTag,
             models.EventMapping,
             models.GroupAssignee,
             models.GroupCommitResolution,
@@ -21,24 +20,31 @@ class GroupDeletionTask(ModelDeletionTask):
             models.GroupRelease,
             models.GroupRedirect,
             models.GroupResolution,
-            models.GroupRuleStatus,
             models.GroupSnooze,
-            models.GroupTagValue,
             models.GroupTagKey,
-            models.GroupEmailThread,
             models.GroupSubscription,
             models.UserReport,
-            # Event is last as its the most time consuming
-            models.Event,
         )
+
+        # these are manually handled by the cleanup script
+        if not self.cleanup:
+            model_list += [
+                models.GroupEmailThread,
+                models.GroupRuleStatus,
+                models.GroupTagValue,
+                models.EventTag,
+                # Event is last as its the most time consuming
+                models.Event,
+            ]
+
         relations.extend([ModelRelation(m, {'group_id': instance.id}) for m in model_list])
 
         return relations
 
     def delete_instance(self, instance):
-        from sentry.similarity import features
-
-        features.delete(instance)
+        if not self.cleanup:
+            from sentry.similarity import features
+            features.delete(instance)
 
         return super(GroupDeletionTask, self).delete_instance(instance)
 
