@@ -36,7 +36,7 @@ from sentry.web.frontend.mailgun_inbound_webhook import \
     MailgunInboundWebhookView
 from sentry.web.frontend.oauth_authorize import OAuthAuthorizeView
 from sentry.web.frontend.oauth_token import OAuthTokenView
-from sentry.auth.providers.saml2 import SAML2ACSView, SAML2MetadataView
+from sentry.auth.providers.saml2 import SAML2ACSView, SAML2SLSView, SAML2MetadataView
 from sentry.web.frontend.organization_api_key_settings import \
     OrganizationApiKeySettingsView
 from sentry.web.frontend.organization_api_keys import OrganizationApiKeysView
@@ -141,6 +141,8 @@ urlpatterns += patterns(
     # SAML
     url(r'^saml/acs/(?P<organization_slug>[^/]+)/$', SAML2ACSView.as_view(),
         name='sentry-auth-organization-saml-acs'),
+    url(r'^saml/sls/(?P<organization_slug>[^/]+)/$', SAML2SLSView.as_view(),
+        name='sentry-auth-organization-saml-sls'),
     url(r'^saml/metadata/(?P<organization_slug>[^/]+)/$', SAML2MetadataView.as_view(),
         name='sentry-auth-organization-saml-metadata'),
 
