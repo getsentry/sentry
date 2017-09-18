@@ -200,6 +200,7 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
                 order_by=order_by,
                 skip_models=[
                     models.Event,
+                    models.EventMapping,
                     models.EventTag,
                     models.GroupEmailThread,
                     models.GroupRuleStatus,
