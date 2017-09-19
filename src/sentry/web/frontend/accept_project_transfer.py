@@ -66,7 +66,6 @@ class AcceptProjectTransferView(BaseView):
                 reverse('sentry')
             )
 
-        # from_organization_id = data['from_organization_id']
         project_id = data['project_id']
         user_id = data['user_id']
         transaction_id = data['transaction_id']
