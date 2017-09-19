@@ -300,36 +300,27 @@ class SAML2ACSView(AuthView):
         return HttpResponseRedirect(get_login_redirect(request))
 
     def retrieve_email(self, attributes, nameid, config):
-        possible_mail = None
+        possible_email = None
         if nameid and '@' in nameid:
-            possible_mail = nameid
+            possible_email = nameid
 
-        if attributes and 'attribute_mapping' in config and 'attribute_mapping_email' in config[
-            'attribute_mapping'
-        ]:
-            email_mapping = config['attribute_mapping']['attribute_mapping_email']
-            if email_mapping and email_mapping in attributes:
-                return attributes[email_mapping][0]
-            elif possible_mail:
-                return possible_mail
-            else:
-                raise Exception(
-                    "Email was not provided by the IdP and is required in order to execute the SAML process"
-                )
-        elif possible_mail:
-            return possible_mail
-        else:
-            raise Exception("Email mapping is required in order to execute the SAML process")
+        email_key = config.get('attribute_mapping', {}).get('attribute_mapping_email', None)
+
+        if attributes and email_key in attributes:
+            return attributes[email_key][0]
+
+        if possible_email:
+            return possible_email
+
+        raise Exception('Cannot retrieve email from attributes')
 
     def retrieve_displayname(self, attributes, config):
-        displayname = None
-        if attributes and 'attribute_mapping' in config and 'attribute_mapping_displayname' in config[
-            'attribute_mapping'
-        ]:
-            displayname_mapping = config['attribute_mapping']['attribute_mapping_displayname']
-            if displayname_mapping and displayname_mapping in attributes:
-                displayname = attributes[displayname_mapping][0]
-        return displayname
+        name_key = config.get('attribute_mapping', {}).get('attribute_mapping_displayname', None)
+
+        if attributes and name_key in attributes:
+            return attributes[name_key][0]
+
+        return None
 
 
 class SAML2SLSView(AuthView):
