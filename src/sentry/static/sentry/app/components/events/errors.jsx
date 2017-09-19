@@ -1,4 +1,5 @@
 import React from 'react';
+import _ from 'lodash';
 
 import EventDataSection from './eventDataSection';
 import EventErrorItem from './errorItem';
@@ -28,8 +29,12 @@ const EventErrors = React.createClass({
     this.setState({isOpen: !this.state.isOpen});
   },
 
+  uniqueErrors(errors) {
+    return _.uniqBy(errors, _.isEqual);
+  },
+
   render() {
-    let errors = this.props.event.errors;
+    let errors = this.uniqueErrors(this.props.event.errors);
     let numErrors = errors.length;
     let isOpen = this.state.isOpen;
     return (
