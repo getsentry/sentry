@@ -164,7 +164,7 @@ class ProcessDataTimestampTest(BaseAPITest):
             }, current_datetime=d
         )
         self.assertTrue('timestamp' in data)
-        self.assertEquals(data['timestamp'], 1325413845.0)
+        self.assertEquals(data['timestamp'], 1325413845.434)
 
     def test_timestamp_iso_timestamp_with_Z(self):
         d = datetime(2012, 1, 1, 10, 30, 45)
@@ -201,7 +201,17 @@ class ProcessDataTimestampTest(BaseAPITest):
             }, current_datetime=d
         )
         self.assertTrue('timestamp' in data)
-        self.assertEquals(data['timestamp'], 1325413845.0)
+        self.assertEquals(data['timestamp'], 1325413845.341324)
+
+    def test_too_long_microseconds_value(self):
+        d = datetime(2012, 1, 1, 10, 30, 45)
+        data = self.helper._process_data_timestamp(
+            {
+                'timestamp': '2012-01-01T10:30:45.341324999999999Z'
+            }, current_datetime=d
+        )
+        self.assertTrue('timestamp' in data)
+        self.assertEquals(data['timestamp'], 1325413845.341324)
 
 
 class ValidateDataTest(BaseAPITest):

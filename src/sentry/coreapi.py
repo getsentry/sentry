@@ -356,7 +356,7 @@ class ClientApiHelper(object):
             raise InvalidTimestamp(
                 'Invalid value for timestamp (too old): %r' % value)
 
-        data['timestamp'] = float(value.strftime('%s'))
+        data['timestamp'] = float(value.strftime('%s.%f'))
 
         return data
 
