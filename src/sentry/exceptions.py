@@ -53,3 +53,7 @@ class InvalidIdentity(Exception):
 
 class HookValidationError(Exception):
     pass
+
+
+class NotRegistered(Exception):
+    pass

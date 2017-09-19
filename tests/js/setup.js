@@ -91,6 +91,26 @@ window.TestStubs = {
       ],
       ...params
     };
+  },
+  Integration: (...params) => {
+    return {
+      id: '4',
+      name: 'repo-name',
+      provider: {
+        id: 'github',
+        name: 'GitHub'
+      },
+      ...params
+    };
+  },
+  GitHubIntegrationProvider: (...params) => {
+    return {
+      id: 'github',
+      name: 'GitHub',
+      config: [],
+      setupUri: '/github-integration-setup-uri/',
+      ...params
+    };
   }
 };
 

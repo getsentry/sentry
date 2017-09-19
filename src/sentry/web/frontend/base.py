@@ -6,9 +6,9 @@ import six
 from django.core.context_processors import csrf
 from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect
-from django.utils.decorators import method_decorator
-from django.views.decorators.csrf import csrf_protect
+from django.middleware.csrf import CsrfViewMiddleware
 from django.views.generic import View
+from django.views.decorators.csrf import csrf_exempt
 from sudo.views import redirect_to_sudo
 
 from sentry import roles
@@ -155,15 +155,26 @@ class BaseView(View, OrganizationMixin):
     # TODO(dcramer): change sudo so it can be required only on POST
     sudo_required = False
 
-    def __init__(self, auth_required=None, sudo_required=None, *args, **kwargs):
+    csrf_protect = True
+
+    def __init__(self, auth_required=None, sudo_required=None, csrf_protect=None,
+                 *args, **kwargs):
         if auth_required is not None:
             self.auth_required = auth_required
         if sudo_required is not None:
             self.sudo_required = sudo_required
+        if csrf_protect is not None:
+            self.csrf_protect = csrf_protect
         super(BaseView, self).__init__(*args, **kwargs)
 
-    @method_decorator(csrf_protect)
+    # we manage csrf verification ourselves
+    @csrf_exempt
     def dispatch(self, request, *args, **kwargs):
+        if self.csrf_protect:
+            response = self.test_csrf(request)
+            if response:
+                return response
+
         if self.is_auth_required(request, *args, **kwargs):
             return self.handle_auth_required(request, *args, **kwargs)
 
@@ -181,6 +192,10 @@ class BaseView(View, OrganizationMixin):
         self.default_context = self.get_context_data(request, *args, **kwargs)
 
         return self.handle(request, *args, **kwargs)
+
+    def test_csrf(self, request):
+        middleware = CsrfViewMiddleware()
+        return middleware.process_view(request, self.dispatch, [request], {})
 
     def get_access(self, request, *args, **kwargs):
         return access.DEFAULT

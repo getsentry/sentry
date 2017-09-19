@@ -54,7 +54,9 @@ from .endpoints.organization_release_files import OrganizationReleaseFilesEndpoi
 from .endpoints.organization_release_file_details import OrganizationReleaseFileDetailsEndpoint
 from .endpoints.organization_release_commits import OrganizationReleaseCommitsEndpoint
 from .endpoints.organization_repositories import OrganizationRepositoriesEndpoint
+from .endpoints.organization_integration_details import OrganizationIntegrationDetailsEndpoint
 from .endpoints.organization_integrations import OrganizationIntegrationsEndpoint
+from .endpoints.organization_config_integrations import OrganizationConfigIntegrationsEndpoint
 from .endpoints.organization_config_repositories import OrganizationConfigRepositoriesEndpoint
 from .endpoints.organization_repository_commits import OrganizationRepositoryCommitsEndpoint
 from .endpoints.organization_repository_details import OrganizationRepositoryDetailsEndpoint
@@ -214,6 +216,11 @@ urlpatterns = patterns(
         name='sentry-api-0-organization-audit-logs'
     ),
     url(
+        r'^organizations/(?P<organization_slug>[^\/]+)/config/integrations/$',
+        OrganizationConfigIntegrationsEndpoint.as_view(),
+        name='sentry-api-0-organization-config-integrations'
+    ),
+    url(
         r'^organizations/(?P<organization_slug>[^\/]+)/config/repos/$',
         OrganizationConfigRepositoriesEndpoint.as_view(),
         name='sentry-api-0-organization-config-repositories'
@@ -226,6 +233,10 @@ urlpatterns = patterns(
         r'^organizations/(?P<organization_slug>[^\/]+)/integrations/$',
         OrganizationIntegrationsEndpoint.as_view(),
         name='sentry-api-0-organization-integrations'
+    ),
+    url(
+        r'^organizations/(?P<organization_slug>[^\/]+)/integrations/(?P<integration_id>[^\/]+)/$',
+        OrganizationIntegrationDetailsEndpoint.as_view(),
     ),
     url(
         r'^organizations/(?P<organization_slug>[^\/]+)/members/$',
