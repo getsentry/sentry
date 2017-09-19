@@ -311,15 +311,15 @@ class SAML2ACSView(AuthView):
         else:
             raise Exception("Email mapping is required in order to execute the SAML process")
 
-    def retrieve_firstname(self, attributes, config):
-        firstname = None
-        if attributes and 'attribute_mapping' in config and 'attribute_mapping_firstname' in config[
+    def retrieve_displayname(self, attributes, config):
+        displayname = None
+        if attributes and 'attribute_mapping' in config and 'attribute_mapping_displayname' in config[
             'attribute_mapping'
         ]:
-            firstname_mapping = config['attribute_mapping']['attribute_mapping_firstname']
-            if firstname_mapping and firstname_mapping in attributes:
-                firstname = attributes[firstname_mapping][0]
-        return firstname
+            displayname_mapping = config['attribute_mapping']['attribute_mapping_displayname']
+            if displayname_mapping and displayname_mapping in attributes:
+                displayname = attributes[displayname_mapping][0]
+        return displayname
 
 
 class SAML2SLSView(AuthView):
