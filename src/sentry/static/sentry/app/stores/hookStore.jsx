@@ -5,12 +5,14 @@ let validHookNames = new Set([
   'footer',
   'organization:header',
   'organization:sidebar',
+  'organization:dashboard:secondary-column',
   'routes',
   'routes:admin',
   'routes:organization',
   'project:data-forwarding:disabled',
   'project:rate-limits:disabled',
-  'project:custom-inbound-filters:disabled'
+  'project:custom-inbound-filters:disabled',
+  'issue:secondary-column'
 ]);
 
 const HookStore = Reflux.createStore({
