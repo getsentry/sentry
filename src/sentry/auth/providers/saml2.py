@@ -3,6 +3,7 @@ from __future__ import absolute_import, print_function
 from django import forms
 from django.conf import settings
 from django.core.urlresolvers import reverse
+from django.contrib.auth import logout
 from django.http import (
     HttpResponse, HttpResponseRedirect, HttpResponseServerError,
     HttpResponseNotAllowed, Http404,
@@ -19,7 +20,7 @@ from sentry.auth.view import ConfigureView
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.models import (AuthProvider, Organization, OrganizationStatus, User, UserEmail)
 from sentry.utils.http import absolute_uri
-from sentry.utils.auth import login, get_login_redirect
+from sentry.utils.auth import login, get_login_redirect, get_login_url
 
 try:
     from onelogin.saml2.auth import OneLogin_Saml2_Auth, OneLogin_Saml2_Settings
@@ -319,6 +320,36 @@ class SAML2ACSView(AuthView):
         return firstname
 
 
+class SAML2SLSView(AuthView):
+    def dispatch(self, request, organization_slug):
+        provider = get_provider(organization_slug)
+        if provider is None:
+            raise Http404
+
+        saml_config = provider.build_saml_config(organization_slug)
+        auth = provider.build_auth(request, saml_config)
+
+        def force_logout():
+            request.user.refresh_session_nonce()
+            request.user.save()
+            logout(request)
+
+        # If SLS is disabled do not log them out, but continue the SLS logout flow
+        # We do not sync the SLS enabled status to providers, so a user may
+        # enter the SLS flow without it being enabled on our side.
+        should_logout = provider.config.get('options', {}).get('options_slo', False)
+
+        redirect_to = auth.process_slo(
+            keep_local_session=should_logout,
+            delete_session_cb=force_logout,
+        )
+
+        if not redirect_to:
+            redirect_to = get_login_url()
+
+        return self.redirect(redirect_to)
+
+
 class SAML2MetadataView(AuthView):
     def dispatch(self, request, organization_slug):
         provider = get_provider(organization_slug)
@@ -371,6 +402,7 @@ class SAML2Provider(Provider):
             reverse('sentry-auth-organization-saml-metadata', args=[org_slug])
         )
         acs_url = absolute_uri(reverse('sentry-auth-organization-saml-acs', args=[org_slug]))
+        sls_url = absolute_uri(reverse('sentry-auth-organization-saml-sls', args=[org_slug]))
 
         saml_config = {}
         saml_config['strict'] = True
@@ -379,7 +411,11 @@ class SAML2Provider(Provider):
             "entityId": metadata_url,
             "assertionConsumerService": {
                 "url": acs_url,
-                "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST"
+                "binding": OneLogin_Saml2_Constants.BINDING_HTTP_POST
+            },
+            "singleLogoutService": {
+                "url": sls_url,
+                "binding": OneLogin_Saml2_Constants.BINDING_HTTP_REDIRECT
             }
         }
 
