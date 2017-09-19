@@ -258,7 +258,13 @@ class SAML2ACSView(AuthView):
             users = list(users[0:2])
 
         if not users:
-            return HttpResponseServerError("The user with a verified email %s does not exist" % email)
+            options_jit = provider.config.get('options', {}).get('options_jit', False)
+
+            if not options_jit:
+                message = "The user with a verified email %s does not exist" % email
+                return HttpResponseServerError(message)
+            else:
+                return HttpResponseServerError("Just-in-Time provisioning not implemented yet")
 
         if len(users) > 1:
             return HttpResponseServerError(
