@@ -15,6 +15,8 @@ email-reply-parser>=0.2.0,<0.3.0
 enum34>=0.9.18,<1.2.0
 exam>=0.5.1
 google-cloud-pubsub>=0.28.3,<0.29
+# See https://github.com/GoogleCloudPlatform/google-cloud-python/issues/4001
+grpcio==1.4.0
 # broken on python3
 hiredis>=0.1.0,<0.2.0
 honcho>=0.7.0,<0.8.0
