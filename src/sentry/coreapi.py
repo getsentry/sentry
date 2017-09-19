@@ -335,7 +335,7 @@ class ClientApiHelper(object):
                 # Python doesn't support long microsecond values
                 # https://github.com/getsentry/sentry/issues/1610
                 ts_bits = value.split('.', 1)
-                value = '%s.%s' % (ts_bits[0], ts_bits[1][:2])
+                value = '%s.%s' % (ts_bits[0], ts_bits[1][:6])
                 fmt = '%Y-%m-%dT%H:%M:%S.%f'
             else:
                 fmt = '%Y-%m-%dT%H:%M:%S'
@@ -356,7 +356,7 @@ class ClientApiHelper(object):
             raise InvalidTimestamp(
                 'Invalid value for timestamp (too old): %r' % value)
 
-        data['timestamp'] = float(value.strftime('%s'))
+        data['timestamp'] = float(value.strftime('%s.%f'))
 
         return data
 
