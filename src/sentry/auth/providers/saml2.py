@@ -383,11 +383,6 @@ class SAML2Provider(Provider):
         if 'contact' in state.keys():
             data['contact'] = state['contact']
 
-        if data:
-            data['attribute_mapping'] = {
-                'attribute_mapping_email': 'email',
-                'attribute_mapping_firstname': ''
-            }
         return data
 
     def build_identity(self, state):
