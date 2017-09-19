@@ -76,6 +76,7 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
     from sentry.db.deletion import BulkDeleteQuery
     from sentry import deletions
     from sentry import models
+    from sentry import similarity
 
     if timed:
         import time
@@ -199,12 +200,15 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
                 query=query,
                 order_by=order_by,
                 skip_models=[
+                    # Handled by other parts of cleanup
                     models.Event,
                     models.EventMapping,
                     models.EventTag,
                     models.GroupEmailThread,
                     models.GroupRuleStatus,
                     models.GroupTagValue,
+                    # Handled by TTL
+                    similarity.features,
                 ],
                 transaction_id=uuid4().hex,
             )
