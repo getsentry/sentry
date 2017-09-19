@@ -3,10 +3,10 @@ from __future__ import absolute_import, print_function
 from django import forms
 from django.conf import settings
 from django.core.urlresolvers import reverse
+from django.contrib import messages
 from django.contrib.auth import logout
 from django.http import (
-    HttpResponse, HttpResponseRedirect, HttpResponseServerError,
-    HttpResponseNotAllowed, Http404,
+    HttpResponse, HttpResponseRedirect, HttpResponseServerError, HttpResponseNotAllowed,
 )
 from django.utils.decorators import method_decorator
 from django.utils.translation import ugettext_lazy as _
@@ -80,6 +80,8 @@ DIGEST_ALGORITHM_CHOICES = (
     (OneLogin_Saml2_Constants.SHA1, 'SHA1')
 )
 
+ERR_NO_SAML_SSO = _('The organization does not exist or does not have SAML SSO enabled.')
+
 
 def get_provider(organization_slug):
     try:
@@ -91,11 +93,14 @@ def get_provider(organization_slug):
         return None
 
     try:
-        auth_provider = AuthProvider.objects.get(organization=organization)
-        return auth_provider.get_provider()
+        provider = AuthProvider.objects.get(organization=organization).get_provider()
     except AuthProvider.DoesNotExist:
         return None
 
+    if not isinstance(provider, SAML2Provider):
+        return None
+
+    return provider
 
 
 class OptionsForm(forms.Form):
@@ -215,6 +220,10 @@ class SAML2ConfigureView(ConfigureView):
 class SAML2LoginView(AuthView):
     def dispatch(self, request, helper):
         provider = helper.provider
+        if provider is None:
+            messages.add_message(request, messages.ERROR, ERR_NO_SAML_SSO)
+            return HttpResponseRedirect(request.path)
+
         saml_config = provider.build_saml_config(helper.organization.slug)
         auth = provider.build_auth(request, saml_config)
         return self.redirect(auth.login())
@@ -228,7 +237,8 @@ class SAML2ACSView(AuthView):
 
         provider = get_provider(organization_slug)
         if provider is None:
-            raise Http404
+            messages.add_message(request, messages.ERROR, ERR_NO_SAML_SSO)
+            return HttpResponseRedirect('/')
 
         organization = Organization.objects.get(slug=organization_slug)
         saml_config = provider.build_saml_config(organization_slug)
@@ -326,7 +336,8 @@ class SAML2SLSView(AuthView):
     def dispatch(self, request, organization_slug):
         provider = get_provider(organization_slug)
         if provider is None:
-            raise Http404
+            messages.add_message(request, messages.ERROR, ERR_NO_SAML_SSO)
+            return HttpResponseRedirect('/')
 
         saml_config = provider.build_saml_config(organization_slug)
         auth = provider.build_auth(request, saml_config)
@@ -356,7 +367,8 @@ class SAML2MetadataView(AuthView):
     def dispatch(self, request, organization_slug):
         provider = get_provider(organization_slug)
         if provider is None:
-            raise Http404
+            messages.add_message(request, messages.ERROR, ERR_NO_SAML_SSO)
+            return HttpResponseRedirect('/')
 
         saml_config = provider.build_saml_config(organization_slug)
         saml_settings = OneLogin_Saml2_Settings(settings=saml_config, sp_validation_only=True)
