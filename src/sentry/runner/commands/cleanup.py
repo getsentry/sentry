@@ -14,6 +14,7 @@ import click
 from django.utils import timezone
 
 from sentry.runner.decorators import configuration, log_options
+from sentry import similarity
 
 
 def get_project(value):
@@ -199,12 +200,15 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
                 query=query,
                 order_by=order_by,
                 skip_models=[
+                    # Handled by other parts of cleanup
                     models.Event,
                     models.EventMapping,
                     models.EventTag,
                     models.GroupEmailThread,
                     models.GroupRuleStatus,
                     models.GroupTagValue,
+                    # Handled by TTL
+                    similarity.features,
                 ],
                 transaction_id=uuid4().hex,
             )
