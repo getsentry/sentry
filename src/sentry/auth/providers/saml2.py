@@ -520,18 +520,20 @@ class SAML2Provider(Provider):
 
     @staticmethod
     def extract_parsed_data_from_idp_data(data):
+        if 'idp' not in data:
+            return {}
+
         parsed_data = {}
-        if 'idp' in data:
-            if 'idp_entityid' in data['idp']:
-                parsed_data['entityId'] = data['idp']['idp_entityid']
-            if 'idp_sso_url' in data['idp']:
-                parsed_data['singleSignOnService'] = {}
-                parsed_data['singleSignOnService']['url'] = data['idp']['idp_sso_url']
-            if 'idp_slo_url' in data['idp']:
-                parsed_data['singleLogoutService'] = {}
-                parsed_data['singleLogoutService']['url'] = data['idp']['idp_slo_url']
-            if 'idp_x509cert' in data['idp']:
-                parsed_data['x509cert'] = data['idp']['idp_x509cert']
+
+        if 'idp_entityid' in data['idp']:
+            parsed_data['entityId'] = data['idp']['idp_entityid']
+        if 'idp_sso_url' in data['idp']:
+            parsed_data['singleSignOnService'] = {'url': data['idp']['idp_sso_url']}
+        if 'idp_slo_url' in data['idp']:
+            parsed_data['singleLogoutService'] = {'url': data['idp']['idp_slo_url']}
+        if 'idp_x509cert' in data['idp']:
+            parsed_data['x509cert'] = data['idp']['idp_x509cert']
+
         return parsed_data
 
     @staticmethod
