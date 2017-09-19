@@ -984,6 +984,7 @@ SENTRY_SCOPES = set(
         'org:read',
         'org:write',
         'org:admin',
+        'org:integrations',
         'member:read',
         'member:write',
         'member:admin',
@@ -1006,6 +1007,8 @@ SENTRY_SCOPE_SETS = (
         ('org:write', 'Read and write access to organization details.'),
         ('org:read', 'Read access to organization details.'),
     ), (
+        ('org:integrations', 'Read, write, and admin access to organization integrations.'),
+    ), (
         ('member:admin', 'Read, write, and admin access to organization members.'),
         ('member:write', 'Read and write access to organization members.'),
         ('member:read', 'Read access to organization members.'),
@@ -1016,7 +1019,9 @@ SENTRY_SCOPE_SETS = (
         ('project:admin', 'Read, write, and admin access to projects.'),
         ('project:write',
          'Read and write access to projects.'), ('project:read', 'Read access to projects.'),
-    ), (('project:releases', 'Read, write, and admin access to project releases.'), ), (
+    ), (
+        ('project:releases', 'Read, write, and admin access to project releases.'),
+    ), (
         ('event:admin', 'Read, write, and admin access to events.'),
         ('event:write',
          'Read and write access to events.'), ('event:read', 'Read access to events.'),
@@ -1031,14 +1036,10 @@ SENTRY_DEFAULT_ROLE = 'member'
 # in the chain (they still require the appropriate scope).
 SENTRY_ROLES = (
     {
-        'id':
-        'member',
-        'name':
-        'Member',
-        'desc':
-        'Members can view and act on events, as well as view most other data within the organization.',
-        'scopes':
-        set(
+        'id': 'member',
+        'name': 'Member',
+        'desc': 'Members can view and act on events, as well as view most other data within the organization.',
+        'scopes': set(
             [
                 'event:read',
                 'event:write',
@@ -1051,14 +1052,10 @@ SENTRY_ROLES = (
             ]
         ),
     }, {
-        'id':
-        'admin',
-        'name':
-        'Admin',
-        'desc':
-        'Admin privileges on any teams of which they\'re a member. They can create new teams and projects, as well as remove teams and projects which they already hold membership on.',
-        'scopes':
-        set(
+        'id': 'admin',
+        'name': 'Admin',
+        'desc': 'Admin privileges on any teams of which they\'re a member. They can create new teams and projects, as well as remove teams and projects which they already hold membership on.',
+        'scopes': set(
             [
                 'event:read',
                 'event:write',
@@ -1075,16 +1072,11 @@ SENTRY_ROLES = (
             ]
         ),
     }, {
-        'id':
-        'manager',
-        'name':
-        'Manager',
-        'desc':
-        'Gains admin access on all teams as well as the ability to add and remove members.',
-        'is_global':
-        True,
-        'scopes':
-        set(
+        'id': 'manager',
+        'name': 'Manager',
+        'desc': 'Gains admin access on all teams as well as the ability to add and remove members.',
+        'is_global': True,
+        'scopes': set(
             [
                 'event:read',
                 'event:write',
@@ -1101,23 +1093,20 @@ SENTRY_ROLES = (
                 'team:admin',
                 'org:read',
                 'org:write',
+                'org:integrations',
             ]
         ),
     }, {
-        'id':
-        'owner',
-        'name':
-        'Owner',
-        'desc':
-        'Gains full permission across the organization. Can manage members as well as perform catastrophic operations such as removing the organization.',
-        'is_global':
-        True,
-        'scopes':
-        set(
+        'id': 'owner',
+        'name': 'Owner',
+        'desc': 'Gains full permission across the organization. Can manage members as well as perform catastrophic operations such as removing the organization.',
+        'is_global': True,
+        'scopes': set(
             [
                 'org:read',
                 'org:write',
                 'org:admin',
+                'org:integrations',
                 'member:read',
                 'member:write',
                 'member:admin',
@@ -1186,6 +1175,8 @@ SENTRY_ONPREMISE = True
 # Whether we should look at X-Forwarded-For header or not
 # when checking REMOTE_ADDR ip addresses
 SENTRY_USE_X_FORWARDED_FOR = True
+
+SENTRY_DEFAULT_INTEGRATIONS = ()
 
 
 def get_raven_config():

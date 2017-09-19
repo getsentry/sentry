@@ -144,6 +144,10 @@ def pytest_configure(config):
 
     plugins.register(TestIssuePlugin2)
 
+    from sentry import integrations
+    from sentry.integrations.example import ExampleIntegration
+    integrations.register(ExampleIntegration)
+
     from sentry.plugins import bindings
     from sentry.plugins.providers.dummy import DummyRepositoryProvider
 
