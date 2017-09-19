@@ -244,48 +244,44 @@ class SAML2ACSView(AuthView):
         nameid = auth.get_nameid()
 
         email = self.retrieve_email(attributes, nameid, provider.config)
-
-        # Filter users based on the emails provided in the commits
         user_emails = list(
             UserEmail.objects.filter(email__iexact=email, is_verified=True).order_by('id')
         )
 
+        users = []
         if user_emails:
-            users = list(
-                User.objects.filter(
-                    id__in=set((ue.user_id for ue in user_emails)),
-                    is_active=True,
-                    sentry_orgmember_set__organization_id=organization.id
-                )[0:2]
+            users = User.objects.filter(
+                id__in=set((ue.user_id for ue in user_emails)),
+                is_active=True,
+                sentry_orgmember_set__organization_id=organization.id
             )
-            if users:
-                if len(users) == 1:
-                    user = users[0]
-                    user.backend = settings.AUTHENTICATION_BACKENDS[0]
-                    if login(
-                        request,
-                        user,
-                        after_2fa=request.build_absolute_uri(),
-                        organization_id=organization.id
-                    ):
-                        request.session['saml'] = {
-                            'nameid': nameid,
-                            'nameid_format': auth.get_nameid_format(),
-                            'session_index': auth.get_session_index()
-                        }
-                    return HttpResponseRedirect(get_login_redirect(request))
-                else:
-                    return HttpResponseServerError(
-                        "Found several accounts related with %s on this organization" % email
-                    )
-            else:
-                return HttpResponseServerError(
-                    "The user %s is not related with this organization" % email
-                )
-        else:
+            users = list(users[0:2])
+
+        if not users:
+            return HttpResponseServerError("The user with a verified email %s does not exist" % email)
+
+        if len(users) > 1:
             return HttpResponseServerError(
-                "An user with a verified mail: %s does not exist" % email
-            )
+                "Found several accounts related with %s on this organization" % email)
+
+        user = users[0]
+        user.backend = settings.AUTHENTICATION_BACKENDS[0]
+
+        login_resp = login(
+            request,
+            user,
+            after_2fa=request.build_absolute_uri(),
+            organization_id=organization.id
+        )
+
+        if login_resp:
+            request.session['saml'] = {
+                'nameid': nameid,
+                'nameid_format': auth.get_nameid_format(),
+                'session_index': auth.get_session_index()
+            }
+
+        return HttpResponseRedirect(get_login_redirect(request))
 
     def retrieve_email(self, attributes, nameid, config):
         possible_mail = None
