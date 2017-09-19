@@ -101,7 +101,7 @@ class Event(object):
     def serialize(self):
         return dict(
             {
-                'timestamp': int(self.datetime.isoformat('%s')),
+                'timestamp': int(self.datetime.strftime('%s')),
                 'type': self.type,
             }, **self.data
         )

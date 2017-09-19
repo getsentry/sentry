@@ -1,6 +1,8 @@
 from __future__ import absolute_import
 
+from datetime import datetime
 import pytest
+import pytz
 
 from sentry.analytics import Attribute, Event, Map
 from sentry.testutils import TestCase
@@ -21,13 +23,27 @@ class DummyType(object):
 
 class EventTest(TestCase):
     def test_simple(self):
-        result = ExampleEvent(id='1', map={'key': 'value'}, optional=False)
+        result = ExampleEvent(
+            id='1',
+            map={'key': 'value'},
+            optional=False,
+            datetime=datetime(2001, 4, 18, tzinfo=pytz.utc)
+        )
         assert result.data == {
             'id': 1,
             'map': {
                 'key': 'value',
             },
             'optional': False,
+        }
+        assert result.serialize() == {
+            'id': 1,
+            'map': {
+                'key': 'value',
+            },
+            'optional': False,
+            'type': 'example',
+            'timestamp': 987552000,
         }
 
     def test_optional_is_optional(self):
