@@ -833,6 +833,7 @@ SENTRY_FILESTORE_ALIASES = {
 
 SENTRY_ANALYTICS_ALIASES = {
     'noop': 'sentry.analytics.Analytics',
+    'pubsub': 'sentry.analytics.PubSubAnalytics',
 }
 
 # set of backends that do not support needing SMTP mail.* settings
