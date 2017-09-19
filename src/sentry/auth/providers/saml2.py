@@ -450,6 +450,10 @@ class SAML2Provider(Provider):
         req = self.prepare_saml_request(request)
         return OneLogin_Saml2_Auth(req, config)
 
+    def refresh_identity(self, auth_identity):
+        # Nothing to refresh
+        return
+
     @staticmethod
     def extract_idp_data_from_parsed_data(data):
         idp_data = {}
@@ -560,7 +564,3 @@ class SAML2Provider(Provider):
             parsed_data['spPrivateKey'] = d['advanced_sp_privatekey']
 
         return parsed_data
-
-    def refresh_identity(self, auth_identity):
-        # Nothing to refresh
-        return
