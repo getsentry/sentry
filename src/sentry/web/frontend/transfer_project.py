@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 from uuid import uuid4
+from six.moves.urllib.parse import urlencode
 
 from django import forms
 from django.contrib import messages
@@ -58,7 +59,7 @@ class TransferProjectView(ProjectView):
                     'project_name': project.name,
                     'request_time': timezone.now(),
                     'url':
-                    'dev.getsentry.net:8000/accept-transfer/?data=' + '%s' % (url_data),
+                    'dev.getsentry.net:8000/accept-transfer/?' + urlencode({'data': url_data}),
                     'requester': request.user
                 }
                 MessageBuilder(
