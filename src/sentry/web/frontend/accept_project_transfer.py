@@ -1,12 +1,14 @@
 from __future__ import absolute_import
 
 from django import forms
+from django.contrib import messages
+from django.utils.translation import ugettext_lazy as _
 from sentry import roles
 from sentry.web.frontend.base import BaseView
 from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect, Http404
 from django.utils.encoding import force_str
-from django.core.signing import BadSignature
+from django.core.signing import BadSignature, SignatureExpired
 from sentry.utils.signing import unsign
 from sentry.models import AuditLogEntryEvent, OrganizationMember, Organization, Team, Project
 
@@ -45,6 +47,21 @@ class AcceptProjectTransferView(BaseView):
         try:
             data = unsign(force_str(d))
         except BadSignature:
+            messages.add_message(
+                request, messages.ERROR,
+                _(u'Could not approve transfer, please make sure link is valid.')
+            )
+            return HttpResponseRedirect(
+                reverse('sentry')
+            )
+
+        try:
+            data = unsign(force_str(d))
+        except SignatureExpired:
+            messages.add_message(
+                request, messages.ERROR,
+                _(u'Project transfer link has expired!')
+            )
             return HttpResponseRedirect(
                 reverse('sentry')
             )
