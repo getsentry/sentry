@@ -3,6 +3,7 @@ from __future__ import absolute_import, print_function
 __all__ = ('Attribute', 'Event', 'Map')
 
 import six
+from uuid import uuid1
 
 from collections import Mapping
 from django.utils import timezone
@@ -68,13 +69,15 @@ class Map(Attribute):
 
 
 class Event(object):
-    __slots__ = ['attributes', 'data', 'datetime', 'type']
+    __slots__ = ['guid', 'attributes', 'data', 'datetime', 'type']
 
     type = None
 
     attributes = ()
 
     def __init__(self, type=None, datetime=None, **items):
+        self.guid = uuid1().hex
+
         self.datetime = datetime or timezone.now()
         if type is not None:
             self.type = type
@@ -101,6 +104,7 @@ class Event(object):
     def serialize(self):
         return dict(
             {
+                'guid': self.guid,
                 'timestamp': int(self.datetime.strftime('%s')),
                 'type': self.type,
             }, **self.data

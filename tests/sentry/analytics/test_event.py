@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 from datetime import datetime
+from mock import patch
 import pytest
 import pytz
 
@@ -22,7 +23,13 @@ class DummyType(object):
 
 
 class EventTest(TestCase):
-    def test_simple(self):
+    @patch('sentry.analytics.event.uuid1')
+    def test_simple(self, mock_uuid1):
+        class uuid(object):
+            hex = 'abc123'
+
+        mock_uuid1.return_value = uuid
+
         result = ExampleEvent(
             id='1',
             map={'key': 'value'},
@@ -44,6 +51,7 @@ class EventTest(TestCase):
             'optional': False,
             'type': 'example',
             'timestamp': 987552000,
+            'guid': 'abc123',
         }
 
     def test_optional_is_optional(self):
