@@ -1,8 +1,10 @@
 import React from 'react';
-import {shallow} from 'enzyme';
+import {shallow, mount} from 'enzyme';
 
-import {Client} from 'app/api';
 import InviteMember from 'app/views/inviteMember/inviteMember';
+import {Client} from 'app/api';
+
+jest.mock('app/api');
 
 describe('CreateProject', function() {
   beforeEach(function() {
@@ -38,6 +40,37 @@ describe('CreateProject', function() {
         childContextTypes: {
           organization: React.PropTypes.object,
           location: React.PropTypes.object
+        }
+      });
+      expect(wrapper).toMatchSnapshot();
+    });
+
+    it('should redirect on zero teams', function() {
+      Client.addMockResponse({
+        url: '/organizations/test/members/',
+        body: {
+          entries: 'test'
+        }
+      });
+
+      let props = {
+        ...baseProps
+      };
+
+      let wrapper = mount(<InviteMember {...props} />, {
+        context: {
+          organization: {
+            id: '1',
+            slug: 'testOrg',
+            teams: [{slug: 'test', id: '1', name: 'test', hasAccess: false}]
+          },
+          router: TestStubs.router(),
+          location: {query: {}}
+        },
+        childContextTypes: {
+          organization: React.PropTypes.object,
+          location: React.PropTypes.object,
+          router: React.PropTypes.object
         }
       });
       expect(wrapper).toMatchSnapshot();

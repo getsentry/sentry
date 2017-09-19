@@ -39,7 +39,6 @@ const InviteMember = React.createClass({
       method: 'GET',
       success: data => {
         this.setState({roleList: data.role_list, loading: false});
-
         if (data.role_list.filter(({_, allowed}) => allowed).length == 0) {
           //no invites allowed, redirect
           window.location.href = `/organizations/${slug}/members/`;

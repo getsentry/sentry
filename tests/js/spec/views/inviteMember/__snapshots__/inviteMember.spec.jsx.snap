@@ -1,5 +1,403 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
+exports[`CreateProject render() should redirect on zero teams 1`] = `
+<InviteMember
+  params={
+    Object {
+      "orgId": "testOrg",
+    }
+  }
+>
+  <HomeContainer>
+    <div
+      className="organization-home"
+    >
+      <div
+        className="sub-header flex flex-container flex-vertically-centered"
+      >
+        <div>
+          <ProjectSelector
+            organization={
+              Object {
+                "id": "1",
+                "slug": "testOrg",
+                "teams": Array [
+                  Object {
+                    "hasAccess": false,
+                    "id": "1",
+                    "name": "test",
+                    "slug": "test",
+                  },
+                ],
+              }
+            }
+            projectId={null}
+          >
+            <div
+              className="project-select"
+            >
+              <h3>
+                <Link
+                  className="home-crumb"
+                  to="/testOrg/"
+                >
+                  <Link
+                    className="home-crumb"
+                    onlyActiveOnIndex={false}
+                    style={Object {}}
+                    to="/testOrg/"
+                  >
+                    <a
+                      className="home-crumb"
+                      onClick={[Function]}
+                      style={Object {}}
+                    >
+                      <span
+                        className="icon-home"
+                      />
+                    </a>
+                  </Link>
+                </Link>
+                Select a project
+                <DropdownLink
+                  anchorRight={false}
+                  caret={true}
+                  disabled={false}
+                  onClose={[Function]}
+                  onOpen={[Function]}
+                  title=""
+                  topLevelClasses="project-dropdown is-empty"
+                >
+                  <span
+                    className="project-dropdown is-empty dropdown"
+                  >
+                    <a
+                      className="dropdown-toggle"
+                      data-toggle="dropdown"
+                    >
+                      <i
+                        className="icon-arrow-down"
+                      />
+                    </a>
+                    <ul
+                      className="dropdown-menu"
+                    >
+                      <MenuItem
+                        className="empty-projects-item"
+                        noAnchor={true}
+                      >
+                        <li
+                          className="empty-projects-item"
+                          href={null}
+                          role="presentation"
+                          title={null}
+                        >
+                          <div
+                            className="empty-message"
+                          >
+                            You have no projects.
+                          </div>
+                        </li>
+                      </MenuItem>
+                    </ul>
+                  </span>
+                </DropdownLink>
+              </h3>
+            </div>
+          </ProjectSelector>
+        </div>
+        <div
+          className="align-right hidden-xs"
+        >
+          <Button
+            className="tip"
+            data-placement="bottom"
+            disabled={true}
+            priority="primary"
+            style={
+              Object {
+                "marginRight": 5,
+              }
+            }
+            title="You do not have enough permission to create new projects"
+          >
+            <button
+              className="tip button button-primary button-disabled"
+              data-placement="bottom"
+              disabled={true}
+              onClick={[Function]}
+              role="button"
+              style={
+                Object {
+                  "marginRight": 5,
+                }
+              }
+              title="You do not have enough permission to create new projects"
+            >
+              New Project
+            </button>
+          </Button>
+          <Button
+            className="tip"
+            data-placement="bottom"
+            disabled={true}
+            priority="primary"
+            title="You do not have enough permission to create new teams"
+          >
+            <button
+              className="tip button button-primary button-disabled"
+              data-placement="bottom"
+              disabled={true}
+              onClick={[Function]}
+              role="button"
+              title="You do not have enough permission to create new teams"
+            >
+              New Team
+            </button>
+          </Button>
+        </div>
+      </div>
+      <div
+        className="container"
+      >
+        <div
+          className="content row"
+        >
+          <div
+            className="col-md-2 org-sidebar"
+          >
+            <HomeSidebar>
+              <div>
+                <h6
+                  className="nav-header"
+                >
+                  Organization
+                </h6>
+                <ul
+                  className="nav nav-stacked"
+                >
+                  <ListLink
+                    activeClassName="active"
+                    index={false}
+                    isActive={[Function]}
+                    to="/testOrg/"
+                  >
+                    <li
+                      className=""
+                    >
+                      <Link
+                        onlyActiveOnIndex={false}
+                        style={Object {}}
+                        to="/testOrg/"
+                      >
+                        <a
+                          onClick={[Function]}
+                          style={Object {}}
+                        >
+                          Dashboard
+                        </a>
+                      </Link>
+                    </li>
+                  </ListLink>
+                  <ListLink
+                    activeClassName="active"
+                    index={false}
+                    isActive={[Function]}
+                    to="/organizations/testOrg/teams/"
+                  >
+                    <li
+                      className=""
+                    >
+                      <Link
+                        onlyActiveOnIndex={false}
+                        style={Object {}}
+                        to="/organizations/testOrg/teams/"
+                      >
+                        <a
+                          onClick={[Function]}
+                          style={Object {}}
+                        >
+                          Projects & Teams
+                        </a>
+                      </Link>
+                    </li>
+                  </ListLink>
+                </ul>
+                <div>
+                  <h6
+                    className="nav-header with-divider"
+                  >
+                    Issues
+                  </h6>
+                  <ul
+                    className="nav nav-stacked"
+                  >
+                    <ListLink
+                      activeClassName="active"
+                      index={false}
+                      to="/organizations/testOrg/issues/assigned/"
+                    >
+                      <li
+                        className=""
+                      >
+                        <Link
+                          onlyActiveOnIndex={false}
+                          style={Object {}}
+                          to="/organizations/testOrg/issues/assigned/"
+                        >
+                          <a
+                            onClick={[Function]}
+                            style={Object {}}
+                          >
+                            Assigned to Me
+                          </a>
+                        </Link>
+                      </li>
+                    </ListLink>
+                    <ListLink
+                      activeClassName="active"
+                      index={false}
+                      to="/organizations/testOrg/issues/bookmarks/"
+                    >
+                      <li
+                        className=""
+                      >
+                        <Link
+                          onlyActiveOnIndex={false}
+                          style={Object {}}
+                          to="/organizations/testOrg/issues/bookmarks/"
+                        >
+                          <a
+                            onClick={[Function]}
+                            style={Object {}}
+                          >
+                            Bookmarks
+                          </a>
+                        </Link>
+                      </li>
+                    </ListLink>
+                    <ListLink
+                      activeClassName="active"
+                      index={false}
+                      to="/organizations/testOrg/issues/history/"
+                    >
+                      <li
+                        className=""
+                      >
+                        <Link
+                          onlyActiveOnIndex={false}
+                          style={Object {}}
+                          to="/organizations/testOrg/issues/history/"
+                        >
+                          <a
+                            onClick={[Function]}
+                            style={Object {}}
+                          >
+                            History
+                          </a>
+                        </Link>
+                      </li>
+                    </ListLink>
+                  </ul>
+                </div>
+              </div>
+            </HomeSidebar>
+          </div>
+          <div
+            className="col-md-10"
+          >
+            <h3>
+              Add Member to Organization
+            </h3>
+            <p>
+              Invite a member to join this organization via their email address. If they do not already have an account, they will first be asked to create one. Multiple emails delimited by commas.
+            </p>
+            <div
+              className=""
+            >
+              <LoadingIndicator
+                className="pull-right"
+                mini={true}
+              >
+                <div
+                  className="pull-right loading mini"
+                >
+                  <div
+                    className="loading-indicator"
+                  />
+                  <div
+                    className="loading-message"
+                  />
+                </div>
+              </LoadingIndicator>
+              <TextField
+                disabled={false}
+                label="Email(s)"
+                name="email"
+                onChange={[Function]}
+                placeholder="e.g. teammate@example.com"
+                required={false}
+                spellCheck="false"
+              >
+                <div
+                  className="control-group"
+                >
+                  <div
+                    className="controls"
+                  >
+                    <label
+                      className="control-label"
+                      htmlFor="id-email"
+                    >
+                      Email(s)
+                    </label>
+                    <input
+                      className="form-control"
+                      disabled={false}
+                      id="id-email"
+                      onChange={[Function]}
+                      placeholder="e.g. teammate@example.com"
+                      required={false}
+                      spellCheck="false"
+                      type="text"
+                      value=""
+                    />
+                  </div>
+                </div>
+              </TextField>
+            </div>
+            <div
+              className="new-invite-team box"
+            >
+              <div
+                className="box-header"
+              >
+                <h4>
+                  Role:
+                </h4>
+              </div>
+              <div
+                className="box-content with-padding"
+              >
+                <ul
+                  className="radio-inputs"
+                />
+              </div>
+            </div>
+            <button
+              className="btn btn-primary submit-new-team"
+              onClick={[Function]}
+            >
+              Add Member
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </HomeContainer>
+</InviteMember>
+`;
+
 exports[`CreateProject render() should render 1`] = `
 <HomeContainer>
   <h3>
