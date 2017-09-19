@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import six
 from uuid import uuid4
 from six.moves.urllib.parse import urlencode
 
@@ -39,19 +40,24 @@ class TransferProjectView(ProjectView):
 
         if form.is_valid():
             email = form.cleaned_data.get('email')
+            try:
+                owner = User.objects.get(email__iexact=email, is_active=True)
+            except User.DoesNotExist:
+                messages.add_message(
+                    request, messages.ERROR, six.text_type(
+                        _('Could not find user')))
+                return self.respond('sentry/projects/transfer.html', context={'form': form})
 
             if OrganizationMember.objects.filter(
                 role=roles.get_top_dog().id,
-                user__is_active=True,
-                user__email=email,
+                user=owner,
             ).exists():
-                owner_id = User.objects.get(email=email).id
                 transaction_id = uuid4().hex
                 url_data = sign(
                     actor_id=request.user.id,
                     from_organization_id=organization.id,
                     project_id=project.id,
-                    user_id=owner_id,
+                    user_id=owner.id,
                     transaction_id=transaction_id)
                 context = {
                     'email': email,
