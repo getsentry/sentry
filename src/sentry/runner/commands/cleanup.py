@@ -14,7 +14,6 @@ import click
 from django.utils import timezone
 
 from sentry.runner.decorators import configuration, log_options
-from sentry import similarity
 
 
 def get_project(value):
@@ -77,6 +76,7 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
     from sentry.db.deletion import BulkDeleteQuery
     from sentry import deletions
     from sentry import models
+    from sentry import similarity
 
     if timed:
         import time
