@@ -274,9 +274,13 @@ class Organization(Model):
         for model in (
             Commit, ReleaseCommit, ReleaseEnvironment, ReleaseHeadCommit, Repository, Environment
         ):
-            model.objects.filter(
-                organization_id=from_org.id,
-            ).update(organization_id=to_org.id)
+            try:
+                with transaction.atomic():
+                    model.objects.filter(
+                        organization_id=from_org.id,
+                    ).update(organization_id=to_org.id)
+            except IntegrityError:
+                pass
 
     # TODO: Make these a mixin
     def update_option(self, *args, **kwargs):
