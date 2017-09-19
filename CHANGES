@@ -24,6 +24,7 @@ Schema Changes
 - Dropped ``GroupTagKey.group_id`` foreign key constraint
 - Dropped ``EventUser.project_id`` foreign key constraint
 - Added ``Email`` model
+- Change ``CommitFileChange.filename`` from varchar to text in PostgreSQL
 
 Version 8.19
 ------------
