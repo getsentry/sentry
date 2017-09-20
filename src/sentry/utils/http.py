@@ -250,9 +250,7 @@ def heuristic_decode(data, possible_content_type=None):
 
     for decoding_type, decoder in decoders:
         try:
-            data = decoder(data)
-            inferred_content_type = decoding_type
-            break
+            return (decoder(data), decoding_type)
         except Exception:
             # Try another decoder
             continue
