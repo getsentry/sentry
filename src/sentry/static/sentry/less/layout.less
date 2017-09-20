@@ -115,6 +115,7 @@ body.auth {
   border-bottom: 1px solid darken(@trim, 5);
   position: relative;
   margin: -30px 0 20px; // Offset body padding-top
+  padding: 18px 0 16px;
   line-height: 1;
   font-size: 16px;
   min-height: 62px;
@@ -130,12 +131,13 @@ body.auth {
 
   .project-options {
     display: flex;
-    margin-bottom: 6px;
+    margin-bottom: 4px;
     align-items: center;
+
     > div {
       position: relative;
       display: flex;
-      align-items: center;
+      align-items: flex-start;
       border-right: 1px solid @trim;
       margin-right: 12px;
       padding-right: 12px;
@@ -198,7 +200,7 @@ body.auth {
 
   .project-filters {
     display: flex;
-    align-content: center;
+    font-size: 14px;
 
     .project-filter {
       border-left: 1px solid @trim;
@@ -214,7 +216,7 @@ body.auth {
       .project-filter-label {
         font-size: 12px;
         color: @gray-light;
-        margin-bottom: 6px;
+        margin: 4px 0 6px;
       }
 
       a {
@@ -246,14 +248,14 @@ body.auth {
   .nav-tabs {
     position: relative;
     z-index: 2;
-    margin-bottom: 0;
+    margin-bottom: -16px;
 
     li {
       position: relative;
       z-index: 2;
 
       a {
-        padding-bottom: 12px;
+        padding-bottom: 10px;
       }
     }
   }

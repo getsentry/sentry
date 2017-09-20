@@ -24,8 +24,8 @@ const ProjectHeader = React.createClass({
     let access = new Set(org.access);
 
     return (
-      <div className="sub-header flex flex-container flex-vertically-centered">
-        <div className="p-t-1">
+      <div className="sub-header flex flex-container">
+        <div>
           <div className="project-options">
             <div>
               <ProjectSelector organization={org} projectId={project.slug} />
