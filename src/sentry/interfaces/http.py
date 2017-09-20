@@ -178,11 +178,12 @@ class Http(Interface):
         if content_type is not None:
             content_type = content_type.partition(';')[0].rstrip()
 
-        # This may be the second time we're processing our request data. The
-        # inferred_content_type may have already been set.
+        # We process request data once during ingestion and again when
+        # requesting the http interface over the API. Avoid overwriting
+        # decoding the body again.
         inferred_content_type = data.get('inferred_content_type', content_type)
 
-        if not isinstance(body, dict):
+        if 'inferred_content_type' not in data and not isinstance(body, dict):
             body, inferred_content_type = heuristic_decode(body, content_type)
 
         if body:
