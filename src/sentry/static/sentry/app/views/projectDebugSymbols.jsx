@@ -2,6 +2,7 @@ import React from 'react';
 import Modal from 'react-bootstrap/lib/Modal';
 
 import ApiMixin from '../mixins/apiMixin';
+import OrganizationState from '../mixins/organizationState';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
 import DateTime from '../components/dateTime';
@@ -10,7 +11,7 @@ import TimeSince from '../components/timeSince';
 import {t} from '../locale';
 
 const ProjectDebugSymbols = React.createClass({
-  mixins: [ApiMixin],
+  mixins: [ApiMixin, OrganizationState],
 
   getInitialState() {
     return {
@@ -175,7 +176,7 @@ const ProjectDebugSymbols = React.createClass({
                     <li
                       className="group hoverable"
                       onClick={() => this.setActive(app.id, version, builds)}>
-                      <div className="row">
+                      <div>
                         <div className="col-xs-8 event-details">
                           <h3 className="truncate">{version}</h3>
                           <div className="event-message">
@@ -190,7 +191,7 @@ const ProjectDebugSymbols = React.createClass({
                             </ul>
                           </div>
                         </div>
-                        <div className="col-xs-4 event-count align-right">
+                        <div className="col-xs-4 event-details align-right">
                           {t('Debug Information Files')}: {symbolsInVersion}
                         </div>
                       </div>
@@ -243,11 +244,9 @@ const ProjectDebugSymbols = React.createClass({
           className="group hoverable"
           key={build}
           onClick={() => this.openModal(build, dsyms)}>
-          <div className="row">
+          <div>
             <div className="col-xs-8 event-details">
-              <div className="event-message">
-                {build}
-              </div>
+              <div className="event-message">{build}</div>
               <div className="event-extra">
                 <ul>
                   <li>
@@ -280,19 +279,25 @@ const ProjectDebugSymbols = React.createClass({
     if (raw && dsyms.length >= 100) {
       moreSymbolsHidden = (
         <tr className="text-center" key="empty-row">
-          <td colSpan="5">{t('There are more symbols than are shown here.')}</td>
+          <td colSpan="6">{t('There are more symbols than are shown here.')}</td>
         </tr>
       );
     }
+
+    let {orgId, projectId} = this.props.params;
+    let access = this.getAccess();
 
     const rows = dsyms.map((dsymFile, key) => {
       let dsym = raw ? dsymFile : dsymFile.dsym;
       if (dsym === undefined || dsym === null) {
         return null;
       }
+      const url = `${this.api.baseUrl}/projects/${orgId}/${projectId}/files/dsyms/?download_id=${dsymFile.id}`;
       return (
         <tr key={key}>
-          <td><code className="small">{dsym.uuid}</code></td>
+          <td>
+            <code className="small">{dsym.uuid}</code>
+          </td>
           <td>
             {dsym.symbolType === 'proguard' && dsym.objectName === 'proguard-mapping'
               ? '-'
@@ -303,8 +308,19 @@ const ProjectDebugSymbols = React.createClass({
               ? 'proguard'
               : `${dsym.cpuName} (${dsym.symbolType})`}
           </td>
-          <td><DateTime date={dsym.dateCreated} /></td>
-          <td><FileSize bytes={dsym.size} /></td>
+          <td>
+            <DateTime date={dsym.dateCreated} />
+          </td>
+          <td>
+            <FileSize bytes={dsym.size} />
+          </td>
+          <td>
+            {access.has('project:write')
+              ? <a href={url} className="btn btn-sm btn-default">
+                  <span className="icon icon-open" />
+                </a>
+              : null}
+          </td>
         </tr>
       );
     });
@@ -339,11 +355,10 @@ const ProjectDebugSymbols = React.createClass({
               <th>{t('Type')}</th>
               <th>{t('Uploaded')}</th>
               <th>{t('Size')}</th>
+              <th />
             </tr>
           </thead>
-          <tbody>
-            {this.renderDsyms(this.state.unreferencedDebugSymbols, true)}
-          </tbody>
+          <tbody>{this.renderDsyms(this.state.unreferencedDebugSymbols, true)}</tbody>
         </table>
       </div>
     );
@@ -389,9 +404,7 @@ const ProjectDebugSymbols = React.createClass({
                   <th>{t('Size')}</th>
                 </tr>
               </thead>
-              <tbody>
-                {this.renderDsyms(this.state.activeDsyms)}
-              </tbody>
+              <tbody>{this.renderDsyms(this.state.activeDsyms)}</tbody>
             </table>
           </Modal.Body>
         </Modal>
