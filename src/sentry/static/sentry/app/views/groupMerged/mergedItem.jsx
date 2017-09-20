@@ -65,18 +65,18 @@ const MergedItem = React.createClass({
   },
 
   handleToggle(e) {
-    let {disabled, fingerprint} = this.props;
+    let {disabled, fingerprint, event} = this.props;
 
     if (disabled || this.state.busy) return;
 
     // clicking anywhere in the row will toggle the checkbox
-    GroupingActions.toggleUnmerge(fingerprint);
+    GroupingActions.toggleUnmerge([fingerprint, event.id]);
   },
 
   render() {
     let {disabled, event, orgId, fingerprint, projectId, groupId} = this.props;
     let checkboxDisabled = disabled || this.state.disabled;
-    let cx = classNames('fingerprint-group', {
+    let cx = classNames('merged-group', {
       expanded: !this.state.collapsed,
       busy: this.state.busy
     });

@@ -11,7 +11,7 @@ import QueryCount from '../../components/queryCount';
 const MergedList = React.createClass({
   propTypes: {
     onUnmerge: PropTypes.func.isRequired,
-    onCollapse: PropTypes.func.isRequired,
+    onToggleCollapse: PropTypes.func.isRequired,
     items: PropTypes.arrayOf(Event),
     pageLinks: PropTypes.string
   },
@@ -26,7 +26,7 @@ const MergedList = React.createClass({
   },
 
   render() {
-    let {items, pageLinks, onCollapse, onUnmerge, ...otherProps} = this.props;
+    let {items, pageLinks, onToggleCollapse, onUnmerge, ...otherProps} = this.props;
     let itemsWithLatestEvent = items.filter(({latestEvent}) => !!latestEvent);
     let hasResults = itemsWithLatestEvent.length > 0;
 
@@ -45,7 +45,11 @@ const MergedList = React.createClass({
           <QueryCount count={itemsWithLatestEvent.length} />
         </h2>
 
-        <MergedToolbar onCollapse={onCollapse} onUnmerge={onUnmerge} />
+        <MergedToolbar
+          {...otherProps}
+          onToggleCollapse={onToggleCollapse}
+          onUnmerge={onUnmerge}
+        />
 
         <div className="merged-list">
           {itemsWithLatestEvent.map(({id, latestEvent}) => (
