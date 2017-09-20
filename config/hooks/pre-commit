@@ -24,7 +24,7 @@ def main():
         if os.path.exists(f)
     ]
 
-    return run(files_modified)
+    return run(files_modified, test=True)
 
 
 if __name__ == '__main__':
