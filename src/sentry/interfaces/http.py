@@ -173,7 +173,7 @@ class Http(Interface):
         body = data.get('data')
 
         try:
-            content_type = [h[1] for h in headers if h[0] == 'Content-Type'][0]
+            content_type = next((v for k, v in headers if k == 'Content-Type'), None)
         except IndexError:
             content_type = None
 
