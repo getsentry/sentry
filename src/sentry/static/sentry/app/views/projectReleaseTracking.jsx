@@ -207,6 +207,8 @@ const ProjectReleaseTracking = React.createClass({
                 <code style={{display: 'inlineBlock'}} className="auto-select">
                   {this.state.token}
                 </code>
+              </p>
+              <p>
                 <button
                   type="submit"
                   className="btn btn-sm btn-danger"
