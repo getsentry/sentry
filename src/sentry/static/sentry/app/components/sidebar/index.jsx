@@ -1,11 +1,10 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import $ from 'jquery';
+import Cookies from 'js-cookie';
 
 import Avatar from '../avatar';
 import ApiMixin from '../../mixins/apiMixin';
-import DropdownLink from '../dropdownLink';
-import MenuItem from '../menuItem';
 import OrganizationState from '../../mixins/organizationState';
 import {load as loadIncidents} from '../../actionCreators/incidents';
 import {t} from '../../locale';
@@ -23,9 +22,6 @@ import ConfigStore from '../../stores/configStore';
 
 import IconSidebarOverview from '../../icons/icon-sidebar-overview';
 import IconSidebarIssues from '../../icons/icon-sidebar-issues';
-import IconSidebarUserFeedback from '../../icons/icon-sidebar-user-feedback';
-import IconSidebarReleases from '../../icons/icon-sidebar-releases';
-import IconSidebarSettings from '../../icons/icon-sidebar-settings';
 import IconSidebarUser from '../../icons/icon-sidebar-user';
 import IconSidebarBookmarks from '../../icons/icon-sidebar-bookmarks';
 import IconSidebarHistory from '../../icons/icon-sidebar-history';
@@ -522,6 +518,15 @@ const Sidebar = React.createClass({
 
   componentWillMount() {
     jQuery(document.body).addClass('body-sidebar');
+
+    let initialSidebarState = Cookies.get('sidebar_collapsed');
+
+    if (initialSidebarState == true) {
+      this.setState({
+        collapsed: true
+      });
+      jQuery(document.body).addClass('collapsed');
+    }
   },
 
   componentDidMount() {
@@ -552,9 +557,11 @@ const Sidebar = React.createClass({
       collapsed: !this.state.collapsed
     });
     if (!this.state.collapsed) {
+      Cookies.set('sidebar_collapsed', 1);
       jQuery(document.body).addClass('collapsed');
     } else {
       jQuery(document.body).removeClass('collapsed');
+      Cookies.set('sidebar_collapsed', 0);
     }
   },
 
