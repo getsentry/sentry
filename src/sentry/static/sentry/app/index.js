@@ -8,6 +8,7 @@ import {renderToStaticMarkup} from 'react-dom/server';
 import Reflux from 'reflux';
 import * as Router from 'react-router';
 import ReactBootstrapModal from 'react-bootstrap/lib/Modal';
+import JsCookie from 'js-cookie';
 
 import * as api from './api';
 import * as il8n from './locale';
@@ -66,6 +67,7 @@ export default {
   },
   Reflux,
   Router,
+  JsCookie,
 
   Sentry: {
     api,
