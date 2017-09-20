@@ -246,7 +246,7 @@ def heuristic_decode(data, possible_content_type=None):
     ]
 
     # Prioritize the decoder which supports the possible content type first.
-    decoders.sort(key=lambda d: d[0] != possible_content_type)
+    decoders.sort(key=lambda d: d[0] == possible_content_type, reverse=True)
 
     for decoding_type, decoder in decoders:
         try:
