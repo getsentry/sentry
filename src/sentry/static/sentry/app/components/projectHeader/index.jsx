@@ -2,6 +2,8 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import {Link} from 'react-router';
 
+import DropdownLink from '../dropdownLink';
+import MenuItem from '../menuItem';
 import ProjectSelector from './projectSelector';
 import BookmarkToggle from '../projects/bookmarkToggle';
 
@@ -78,7 +80,55 @@ const ProjectHeader = React.createClass({
           </ul>
         </div>
 
-        <div className="align-right project-actions" />
+        <div className="align-right project-filters">
+          <div className="project-filter">
+            <div className="project-filter-label">{t('Notifications')}</div>
+            <DropdownLink caret={true} title={t('Unsubscribed')} anchorRight={true}>
+              <MenuItem header={true}>Issues that have occurred in...</MenuItem>
+              <MenuItem>
+                The past 24 hours
+              </MenuItem>
+              <MenuItem>
+                The past 7 days
+              </MenuItem>
+              <MenuItem>
+                The past two weeks
+              </MenuItem>
+              <MenuItem>
+                The past month
+              </MenuItem>
+            </DropdownLink>
+          </div>
+          <div className="project-filter">
+            <div className="project-filter-label">{t('Date range')}</div>
+            <DropdownLink caret={true} title={t('The past 48 hours')} anchorRight={true}>
+              <MenuItem header={true}>Issues that have occurred in...</MenuItem>
+              <MenuItem>
+                The past 24 hours
+              </MenuItem>
+              <MenuItem>
+                The past 7 days
+              </MenuItem>
+              <MenuItem>
+                The past two weeks
+              </MenuItem>
+              <MenuItem>
+                The past month
+              </MenuItem>
+            </DropdownLink>
+          </div>
+          <div className="project-filter">
+            <div className="project-filter-label">{t('Environment')}</div>
+            <DropdownLink caret={true} title={t('Production')} anchorRight={true}>
+              <MenuItem>
+                Production
+              </MenuItem>
+              <MenuItem>
+                Staging
+              </MenuItem>
+            </DropdownLink>
+          </div>
+        </div>
       </div>
     );
   }

@@ -196,6 +196,37 @@ body.auth {
     }
   }
 
+  .project-filters {
+    display: flex;
+    align-content: center;
+
+    .project-filter {
+      border-left: 1px solid @trim;
+      padding-left: 25px;
+      margin-left: 25px;
+
+      &:first-child {
+        margin: 0;
+        padding: 0;
+        border: 0;
+      }
+
+      .project-filter-label {
+        font-size: 12px;
+        color: @gray-light;
+        margin-bottom: 6px;
+      }
+
+      a {
+        color: @gray-dark;
+
+        &:hover, &:active {
+          color: @gray-darkest;
+        }
+      }
+    }
+  }
+
   .logo-logged-in {
     position: relative;
     padding-left: 38px;
