@@ -167,9 +167,9 @@ class Http(Interface):
         else:
             headers = ()
 
-        # We prefer the body to be a string, since we can attempt to parse it
-        # as JSON or decode it as a URL encoded query string without relying on
-        # the correct content type being passed.
+        # We prefer the body to be a string, since we can then attempt to parse it
+        # as JSON OR decode it as a URL encoded query string, without relying on
+        # the correct content type header being passed.
         body = data.get('data')
 
         content_type = next((v for k, v in headers if k == 'Content-Type'), None)
