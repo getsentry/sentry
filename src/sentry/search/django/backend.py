@@ -276,7 +276,10 @@ class DjangoSearchBackend(SearchBackend):
         )
         return queryset
 
-    def query(self, project, count_hits=False, paginator_options={}, **kwargs):
+    def query(self, project, count_hits=False, paginator_options=None, **kwargs):
+        if paginator_options is None:
+            paginator_options = {}
+
         queryset = self._build_queryset(project=project, **kwargs)
 
         sort_by = kwargs.get('sort_by', 'date')

@@ -459,11 +459,12 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
             # bulk mutations are limited to 1000 items
             # TODO(dcramer): it'd be nice to support more than this, but its
             # a bit too complicated right now
-            query_kwargs['limit'] = 1000
+            limit = 1000
+            query_kwargs['limit'] = limit
 
             # the paginator has a default max_limit of 100, which must be overwritten.
             cursor_result = search.query(
-                paginator_options={'max_limit': 1000}, **query_kwargs)
+                paginator_options={'max_limit': limit}, **query_kwargs)
 
             group_list = list(cursor_result)
             group_ids = [g.id for g in group_list]
