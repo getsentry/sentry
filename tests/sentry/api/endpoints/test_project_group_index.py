@@ -362,6 +362,39 @@ class GroupUpdateTest(APITestCase):
             group=new_group4,
         )
 
+    def test_bulk_resolve(self):
+        self.login_as(user=self.user)
+
+        for i in range(200):
+            self.create_group(status=GroupStatus.UNRESOLVED)
+
+        response = self.client.get(
+            '{}?sort_by=date&query=is:unresolved'.format(self.path),
+            format='json',
+        )
+
+        assert len(response.data) == 100
+
+        response = self.client.put(
+            '{}?status=unresolved'.format(self.path),
+            data={
+                'status': 'resolved',
+            },
+            format='json',
+        )
+        assert response.status_code == 200, response.data
+
+        assert response.data == {
+            'status': 'resolved',
+            'statusDetails': {},
+        }
+        response = self.client.get(
+            '{}?sort_by=date&query=is:unresolved'.format(self.path),
+            format='json',
+        )
+
+        assert len(response.data) == 0
+
     def test_self_assign_issue(self):
         group = self.create_group(checksum='b' * 32, status=GroupStatus.UNRESOLVED)
         user = self.user
