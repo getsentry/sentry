@@ -66,9 +66,9 @@
 
         <input type="hidden" name="op" value="sso" />
 
-        <div class="control-group">
+        <div class="control-group required">
           <div class="controls">
-            <label style="display: block">{% trans "Organization ID" %}*</label>
+            <label class="control-label">{% trans "Organization ID" %}</label>
             <input type="text" class="form-control" name="organization" placeholder="acme" required>
             <p class="help-block">Enter your organization's ID and we'll get things started.</p>
             <p class="help-block">Your ID is the reference used when Sentry generates URLs.<br />e.g. <code>{{ server_hostname }}/<strong>acme</strong>/</code></p>
