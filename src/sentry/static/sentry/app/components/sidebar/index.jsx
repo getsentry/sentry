@@ -552,6 +552,12 @@ const Sidebar = React.createClass({
     jQuery(document.body).removeClass('body-sidebar');
   },
 
+  handleDoubleClick(e) {
+    if ($(e.target).is('.sidebar')) {
+      this.toggleSidebar();
+    }
+  },
+
   toggleSidebar() {
     this.setState({
       collapsed: !this.state.collapsed
@@ -603,7 +609,10 @@ const Sidebar = React.createClass({
     }
 
     return (
-      <div className={classNames} ref="sidebar">
+      <div
+        className={classNames}
+        ref="sidebar"
+        onDoubleClick={e => this.handleDoubleClick(e)}>
         <div className="sidebar-top">
           <SidebarSection style={{height: 36}}>
             <SidebarDropdown collapsed={this.state.collapsed} org={org} />
