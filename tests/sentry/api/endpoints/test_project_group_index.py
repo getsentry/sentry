@@ -366,7 +366,7 @@ class GroupUpdateTest(APITestCase):
         self.login_as(user=self.user)
 
         for i in range(200):
-            self.create_group(checksum=six.binary_type(i) * 2, status=GroupStatus.UNRESOLVED)
+            self.create_group(status=GroupStatus.UNRESOLVED)
 
         response = self.client.get(
             '{}?sort_by=date&query=is:unresolved'.format(self.path),
