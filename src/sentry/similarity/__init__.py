@@ -7,6 +7,7 @@ from django.conf import settings
 
 from sentry.interfaces.stacktrace import Frame
 from sentry.similarity.backends.dummy import DummyIndexBackend
+from sentry.similarity.backends.metrics import MetricsWrapper
 from sentry.similarity.backends.redis import RedisMinHashIndexBackend
 from sentry.similarity.encoder import Encoder
 from sentry.similarity.features import (
@@ -76,14 +77,17 @@ def _make_index_backend(cluster=None):
             logger.info('No redis cluster provided for similarity, using {!r}.'.format(index))
             return index
 
-    return RedisMinHashIndexBackend(
-        cluster,
-        'sim:1',
-        MinHashSignatureBuilder(16, 0xFFFF),
-        8,
-        60 * 60 * 24 * 30,
-        3,
-        5000,
+    return MetricsWrapper(
+        RedisMinHashIndexBackend(
+            cluster,
+            'sim:1',
+            MinHashSignatureBuilder(16, 0xFFFF),
+            8,
+            60 * 60 * 24 * 30,
+            3,
+            5000,
+        ),
+        scope_tag_name='project_id',
     )
 
 
