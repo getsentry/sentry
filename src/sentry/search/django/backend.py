@@ -111,7 +111,8 @@ class DjangoSearchBackend(SearchBackend):
             # we should at least optimize this in Postgres so that it does
             # the query filter **after** the index filters, and restricts the
             # result set
-            queryset = queryset.filter(Q(message__icontains=query) | Q(culprit__icontains=query))
+            queryset = queryset.filter(
+                Q(message__icontains=query) | Q(culprit__icontains=query))
 
         if status is None:
             status_in = (
@@ -240,10 +241,12 @@ class DjangoSearchBackend(SearchBackend):
             event_queryset = Event.objects.filter(**params)
 
             if query:
-                event_queryset = event_queryset.filter(message__icontains=query)
+                event_queryset = event_queryset.filter(
+                    message__icontains=query)
 
             # limit to the first 1000 results
-            group_ids = event_queryset.distinct().values_list('group_id', flat=True)[:1000]
+            group_ids = event_queryset.distinct().values_list(
+                'group_id', flat=True)[:1000]
 
             # if Event is not on the primary database remove Django's
             # implicit subquery by coercing to a list
