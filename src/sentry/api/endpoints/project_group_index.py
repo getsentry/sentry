@@ -450,7 +450,9 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
             # a bit too complicated right now
             query_kwargs['limit'] = 1000
 
-            cursor_result = search.query(**query_kwargs)
+            # the paginator has a default max_limit of 100, which must be overwritten.
+            cursor_result = search.query(
+                paginator_options={'max_limit': 1000}, **query_kwargs)
 
             group_list = list(cursor_result)
             group_ids = [g.id for g in group_list]
