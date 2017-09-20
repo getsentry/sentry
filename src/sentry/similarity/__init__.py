@@ -87,7 +87,7 @@ def _make_index_backend(cluster=None):
             3,
             5000,
         ),
-        scope_tag_name='project',
+        scope_tag_name='project_id',
     )
 
 
