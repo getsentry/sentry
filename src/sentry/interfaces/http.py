@@ -174,6 +174,10 @@ class Http(Interface):
 
         content_type = next((v for k, v in headers if k == 'Content-Type'), None)
 
+        # Remove content type parameters
+        if content_type is not None:
+            content_type = content_type.partition(';')[0].rstrip()
+
         # This may be the second time we're processing our request data. The
         # inferred_content_type may have already been set.
         inferred_content_type = data.get('inferred_content_type', content_type)
