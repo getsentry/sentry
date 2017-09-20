@@ -226,13 +226,13 @@ def origin_from_request(request):
     return rv
 
 
-def heuristic_decode(data, possible_content_Type=None):
+def heuristic_decode(data, possible_content_type=None):
     """
     Attempt to decode a HTTP body by trying JSON and Form URL decoders,
     returning the decoded body (if decoding was successful) and the inferred
     content type.
     """
-    inferred_content_type = possible_content_Type
+    inferred_content_type = possible_content_type
 
     form_encoded_parser = partial(
         parse_qs,
@@ -246,7 +246,7 @@ def heuristic_decode(data, possible_content_Type=None):
     ]
 
     # Prioritize the decoder which supports the possible content type first.
-    decoders.sort(key=lambda d: d[0] != possible_content_Type)
+    decoders.sort(key=lambda d: d[0] != possible_content_type)
 
     for decoding_type, decoder in decoders:
         try:
