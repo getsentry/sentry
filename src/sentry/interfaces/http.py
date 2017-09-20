@@ -172,10 +172,7 @@ class Http(Interface):
         # the correct content type being passed.
         body = data.get('data')
 
-        try:
-            content_type = next((v for k, v in headers if k == 'Content-Type'), None)
-        except IndexError:
-            content_type = None
+        content_type = next((v for k, v in headers if k == 'Content-Type'), None)
 
         inferred_content_type = data.get('inferred_content_type', content_type)
 
