@@ -16,7 +16,7 @@ class ProjectUserDetailsTest(APITestCase):
         self.team = self.create_team(organization=self.org)
         self.project = self.create_project(organization=self.org, team=self.team)
         self.create_member(user=self.user, organization=self.org, teams=[self.project.team])
-        self.euser = EventUser.objects.create(email='foo@example.com', project=self.project)
+        self.euser = EventUser.objects.create(email='foo@example.com', project_id=self.project.id)
 
         self.login_as(user=self.user)
 

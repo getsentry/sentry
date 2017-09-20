@@ -88,6 +88,44 @@ Object {
         ],
       },
     },
+    Object {
+      "aggregate": Object {
+        "exception": 0.25,
+        "message": 0.7,
+      },
+      "isBelowThreshold": false,
+      "issue": Object {
+        "id": "217",
+      },
+      "score": Object {
+        "exception:message:character-shingles": null,
+        "exception:stacktrace:application-chunks": 0.25,
+        "exception:stacktrace:pairs": 0.25,
+        "message:message:character-shingles": 0.7,
+      },
+      "scoresByInterface": Object {
+        "exception": Array [
+          Array [
+            "exception:message:character-shingles",
+            null,
+          ],
+          Array [
+            "exception:stacktrace:application-chunks",
+            0.25,
+          ],
+          Array [
+            "exception:stacktrace:pairs",
+            0.25,
+          ],
+        ],
+        "message": Array [
+          Array [
+            "message:message:character-shingles",
+            0.7,
+          ],
+        ],
+      },
+    },
   ],
   "similarLinks": undefined,
   "unmergeState": Array [],

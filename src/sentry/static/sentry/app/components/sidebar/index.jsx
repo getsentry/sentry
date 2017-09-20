@@ -16,7 +16,7 @@ import requiredAdminActions from '../requiredAdminActions';
 import OrganizationSelector from './organizationSelector';
 import SidebarPanel from './sidebarPanel';
 import SidebarItem from './sidebarItem';
-import TodoList from '../todos';
+import TodoList from '../onboardingWizard/todos';
 import IssueList from '../issueList';
 import ConfigStore from '../../stores/configStore';
 

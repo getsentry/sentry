@@ -127,7 +127,11 @@ const GroupGroupingView = React.createClass({
         </div>
 
         {isLoading && <LoadingIndicator />}
-        {isError && <LoadingError message={this.state.error} onRetry={this.fetchData} />}
+        {isError &&
+          <LoadingError
+            message="Unable to load similar issues, please try again later"
+            onRetry={this.fetchData}
+          />}
 
         {hasSimilarItems &&
           <SimilarList

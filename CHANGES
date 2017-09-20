@@ -1,6 +1,10 @@
 Version 8.21 (Unreleased)
 -------------------------
 
+- Ignore querystrings when looking up release artifacts
+- Add Visual Studio authentication provider for plugins.
+- Add "team" parameter to the project details API.
+
 Version 8.20
 ------------
 - Make BitBucket repositories enabled by default
@@ -18,6 +22,7 @@ Schema Changes
 - Dropped ``TagValue.project_id`` foreign key constraint
 - Dropped ``GroupTagKey.project_id`` foreign key constraint
 - Dropped ``GroupTagKey.group_id`` foreign key constraint
+- Dropped ``EventUser.project_id`` foreign key constraint
 - Added ``Email`` model
 
 Version 8.19

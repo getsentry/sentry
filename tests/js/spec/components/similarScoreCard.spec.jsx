@@ -20,7 +20,7 @@ describe('SimilarScoreCard', function() {
     let wrapper = shallow(
       <SimilarScoreCard
         scoreList={[
-          ['exception,message,character-shingles', 0.2],
+          ['exception,message,character-shingles', null],
           ['exception,stacktrace,application-chunks', 0.8],
           ['exception,stacktrace,pairs', 1],
           ['message,message,character-shingles', 0.5]

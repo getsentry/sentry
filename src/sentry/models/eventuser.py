@@ -5,7 +5,7 @@ from django.utils import timezone
 from operator import or_
 from six.moves import reduce
 
-from sentry.db.models import FlexibleForeignKey, Model, sane_repr
+from sentry.db.models import BoundedPositiveIntegerField, Model, sane_repr
 from sentry.utils.hashlib import md5_text
 from sentry.constants import MAX_EMAIL_FIELD_LENGTH
 
@@ -20,7 +20,7 @@ KEYWORD_MAP = {
 class EventUser(Model):
     __core__ = False
 
-    project = FlexibleForeignKey('sentry.Project')
+    project_id = BoundedPositiveIntegerField(db_index=True)
     hash = models.CharField(max_length=32)
     ident = models.CharField(max_length=128, null=True)
     email = models.EmailField(null=True, max_length=MAX_EMAIL_FIELD_LENGTH)
@@ -32,12 +32,15 @@ class EventUser(Model):
     class Meta:
         app_label = 'sentry'
         db_table = 'sentry_eventuser'
-        unique_together = (('project', 'ident'), ('project', 'hash'))
+        unique_together = (('project_id', 'ident'), ('project_id', 'hash'))
         index_together = (
-            ('project', 'email'), ('project', 'username'), ('project', 'ip_address'),
+            ('project_id', 'email'),
+            ('project_id', 'username'),
+            ('project_id', 'ip_address'),
         )
 
-    __repr__ = sane_repr('project_id', 'ident', 'email', 'username', 'ip_address')
+    __repr__ = sane_repr('project_id', 'ident', 'email',
+                         'username', 'ip_address')
 
     @classmethod
     def attr_from_keyword(cls, keyword):
@@ -52,7 +55,7 @@ class EventUser(Model):
         """
         hashes = [md5_text(v.split(':', 1)[-1]).hexdigest() for v in values]
         return {e.tag_value: e for e in cls.objects.filter(
-            project=project_id,
+            project_id=project_id,
             hash__in=hashes,
         )}
 
@@ -99,7 +102,7 @@ class EventUser(Model):
             Project.objects.filter(
                 team__in=OrganizationMemberTeam.objects.filter(
                     organizationmember__user=user,
-                    organizationmember__organization=self.project.organization,
+                    organizationmember__organization__project=self.project_id,
                     is_active=True,
                 ).values('team'),
             ).values_list('id', flat=True)[:1000]
@@ -116,5 +119,5 @@ class EventUser(Model):
             return type(self).objects.none()
         return type(self).objects.exclude(id=self.id).filter(
             reduce(or_, filters),
-            project__in=project_ids,
+            project_id__in=project_ids,
         )

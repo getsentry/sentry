@@ -750,7 +750,7 @@ class EventManager(object):
             return
 
         euser = EventUser(
-            project=project,
+            project_id=project.id,
             ident=user_data.get('id'),
             email=user_data.get('email'),
             username=user_data.get('username'),
@@ -773,7 +773,7 @@ class EventManager(object):
             except IntegrityError:
                 try:
                     euser = EventUser.objects.get(
-                        project=project,
+                        project_id=project.id,
                         hash=euser.hash,
                     )
                 except EventUser.DoesNotExist:
@@ -844,11 +844,22 @@ class EventManager(object):
         # should be better tested/reviewed
         if existing_group_id is None:
             kwargs['score'] = ScoreClause.calculate(1, kwargs['last_seen'])
+            # it's possible the release was deleted between
+            # when we queried for the release and now, so
+            # make sure it still exists
+            first_release = kwargs.pop('first_release', None)
+
             with transaction.atomic():
                 short_id = project.next_short_id()
                 group, group_is_new = Group.objects.create(
-                    project=project, short_id=short_id, **kwargs
+                    project=project,
+                    short_id=short_id,
+                    first_release_id=Release.objects.filter(
+                        id=first_release.id,
+                    ).values_list('id', flat=True).first() if first_release else None,
+                    **kwargs
                 ), True
+
         else:
             group = Group.objects.get(id=existing_group_id)
 

@@ -47,7 +47,7 @@ const SimilarScoreCard = React.createClass({
             <div
               className={classNames(
                 'similar-score-quantity',
-                scoreClassNames[Math.round(score * 5)]
+                score === null ? 'empty' : scoreClassNames[Math.round(score * 5)]
               )}
             />
           </SpreadLayout>

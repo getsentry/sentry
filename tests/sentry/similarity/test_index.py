@@ -5,7 +5,7 @@ import time
 import msgpack
 from exam import fixture
 
-from sentry.similarity.index import MinHashIndex
+from sentry.similarity.backends.redis import RedisMinHashIndexBackend
 from sentry.similarity.signatures import MinHashSignatureBuilder
 from sentry.testutils import TestCase
 from sentry.utils import redis
@@ -13,16 +13,17 @@ from sentry.utils import redis
 signature_builder = MinHashSignatureBuilder(32, 0xFFFF)
 
 
-class MinHashIndexTestCase(TestCase):
+class RedisMinHashIndexBackendTestCase(TestCase):
     @fixture
     def index(self):
-        return MinHashIndex(
+        return RedisMinHashIndexBackend(
             redis.clusters.get('default').get_local_client(0),
             'sim',
             signature_builder,
             16,
             60 * 60,
             12,
+            10,
         )
 
     def test_basic(self):
@@ -95,13 +96,14 @@ class MinHashIndexTestCase(TestCase):
                 for key, _ in self.index.compare('example', '1', [('index',
                                                                    0)])] == ['1', '2', '4', '5']
 
-        assert MinHashIndex(
+        assert RedisMinHashIndexBackend(
             self.index.cluster,
             self.index.namespace + '2',
             self.index.signature_builder,
             self.index.bands,
             self.index.interval,
             self.index.retention,
+            self.index.candidate_set_limit,
         ).compare('example', '1', [('index', 0)]) == []
 
     def test_multiple_index(self):

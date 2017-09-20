@@ -133,7 +133,7 @@ def revoke_api_tokens(object_id, transaction_id=None, timestamp=None, **kwargs):
     max_retries=MAX_RETRIES
 )
 @retry(exclude=(DeleteAborted, ))
-def delete_organization(object_id, transaction_id=None, **kwargs):
+def delete_organization(object_id, transaction_id=None, actor_id=None, **kwargs):
     from sentry import deletions
     from sentry.models import Organization, OrganizationStatus
 
@@ -158,12 +158,14 @@ def delete_organization(object_id, transaction_id=None, **kwargs):
             'id': object_id,
         },
         transaction_id=transaction_id or uuid4().hex,
+        actor_id=actor_id,
     )
     has_more = task.chunk()
     if has_more:
         delete_organization.apply_async(
             kwargs={'object_id': object_id,
-                    'transaction_id': transaction_id},
+                    'transaction_id': transaction_id,
+                    'actor_id': actor_id},
             countdown=15,
         )
 

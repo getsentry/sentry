@@ -54,16 +54,19 @@
 }
 
 .button-disabled {
-  color: @50;
+  // old values: color: @50, border: @trim
+  // changed to match `.btn.disabled`
+  color: #CED3D6;
   background: #fff;
-  border: 1px solid @trim;
+  border: 1px solid #E3E5E6;
   cursor: not-allowed;
   box-shadow: none;
+  opacity: 0.65;
 
   &:hover, &:focus, &:active {
-    color: @50;
+    color: #CED3D6;
     background: #fff;
-    border-color: @trim;
+    border: 1px solid #E3E5E6;
   }
 }
 

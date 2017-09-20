@@ -321,6 +321,7 @@ class OrganizationDeleteTest(APITestCase):
             kwargs={
                 'object_id': org.id,
                 'transaction_id': 'abc123',
+                'actor_id': user.id,
             },
             countdown=86400,
         )

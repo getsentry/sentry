@@ -25,7 +25,7 @@ default_manager.add('workflow:release-emails', ProjectFeature)  # NOQA
 default_manager.add('projects:sample-events', ProjectFeature)  # NOQA
 default_manager.add('projects:similarity-indexing', ProjectFeature)  # NOQA
 default_manager.add('projects:custom-filters', ProjectFeature)  # NOQA
-default_manager.add('projects:additional-data-filters', ProjectFeature)  # NOQA
+default_manager.add('projects:custom-inbound-filters', ProjectFeature)  # NOQA
 default_manager.add('projects:stream-hit-counts', ProjectFeature)  # NOQA
 
 # expose public api

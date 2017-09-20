@@ -38,6 +38,8 @@ const IssueDiff = React.createClass({
 
   componentDidMount() {
     let {baseIssueId, targetIssueId, baseEventId, targetEventId} = this.props;
+
+    // Fetch component and event data
     Promise.all([
       import('./splitDiff'),
       this.fetchData(baseIssueId, baseEventId),
@@ -53,7 +55,7 @@ const IssueDiff = React.createClass({
   },
 
   getException(event) {
-    if (!event || !event.entries) return '';
+    if (!event || !event.entries) return [];
 
     // TODO(billyvg): This only accounts for the first exception, will need navigation to be able to
     // diff multiple exceptions
@@ -61,7 +63,7 @@ const IssueDiff = React.createClass({
     // See: https://github.com/getsentry/sentry/issues/6055
     const exc = event.entries.find(({type}) => type === 'exception');
 
-    if (!exc || !exc.data) return '';
+    if (!exc || !exc.data) return [];
 
     return exc.data.values
       .map(value => rawStacktraceContent(value.stacktrace, event.platform, value))

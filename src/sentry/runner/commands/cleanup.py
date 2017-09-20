@@ -76,6 +76,7 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
     from sentry.db.deletion import BulkDeleteQuery
     from sentry import deletions
     from sentry import models
+    from sentry import similarity
 
     if timed:
         import time
@@ -99,14 +100,14 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
         (models.GroupRuleStatus, 'date_added', None),
         (models.GroupTagValue, 'last_seen', None),
         (models.TagValue, 'last_seen', None),
-        (models.EventTag, 'date_added', '-date_added'),
+        (models.EventTag, 'date_added', 'date_added'),
     )
 
     # Deletions that use the `deletions` code path (which handles their child relations)
-    # (model, datetime_field)
+    # (model, datetime_field, order_by)
     DELETES = (
-        (models.Event, 'datetime'),
-        (models.Group, 'last_seen'),
+        (models.Event, 'datetime', 'datetime'),
+        (models.Group, 'last_seen', 'last_seen'),
     )
 
     if not silent:
@@ -170,7 +171,7 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
                 order_by=order_by,
             ).execute()
 
-    for model, dtfield in DELETES:
+    for model, dtfield, order_by in DELETES:
         if not silent:
             click.echo(
                 "Removing {model} for days={days} project={project}".format(
@@ -197,13 +198,26 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
             task = deletions.get(
                 model=model,
                 query=query,
+                order_by=order_by,
+                skip_models=[
+                    # Handled by other parts of cleanup
+                    models.Event,
+                    models.EventMapping,
+                    models.EventTag,
+                    models.GroupEmailThread,
+                    models.GroupRuleStatus,
+                    models.GroupTagValue,
+                    # Handled by TTL
+                    similarity.features,
+                ],
                 transaction_id=uuid4().hex,
             )
 
             def _chunk_until_complete(num_shards=None, shard_id=None):
                 has_more = True
                 while has_more:
-                    has_more = task.chunk(num_shards=num_shards, shard_id=shard_id)
+                    has_more = task.chunk(
+                        num_shards=num_shards, shard_id=shard_id)
 
             if concurrency > 1:
                 threads = []
