@@ -229,7 +229,7 @@ def origin_from_request(request):
 def heuristic_decode(data, possible_content_Type=None):
     """
     Attempt to decode a HTTP body by trying JSON and Form URL decoders,
-    returning the decoded body (if decoding was successful) and the interred
+    returning the decoded body (if decoding was successful) and the inferred
     content type.
     """
     inferred_content_type = possible_content_Type
