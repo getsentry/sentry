@@ -119,8 +119,7 @@ const GroupMergedView = React.createClass({
             busyMap={this.state.busy}
             hiddenMap={this.state.hidden}
             onUnmerge={this.handleUnmerge}
-            onCollapse={GroupingActions.collapseFingerprints}
-            onExpand={GroupingActions.expandFingerprints}
+            onToggleCollapse={GroupingActions.toggleCollapseFingerprints}
           />}
       </div>
     );

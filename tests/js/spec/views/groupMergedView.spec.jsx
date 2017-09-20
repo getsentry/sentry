@@ -1,7 +1,6 @@
 /* eslint-env jest */
 import React, {PropTypes} from 'react';
 import {mount, shallow} from 'enzyme';
-import toJson from 'enzyme-to-json';
 
 import GroupMergedView from 'app/views/groupMerged/groupMergedView';
 import {Client} from 'app/api';
@@ -51,7 +50,7 @@ describe('Issues -> Merged View', function() {
       />
     );
 
-    expect(toJson(component)).toMatchSnapshot();
+    expect(component).toMatchSnapshot();
   });
 
   it('renders with mocked data', function(done) {
@@ -70,7 +69,7 @@ describe('Issues -> Merged View', function() {
 
     wrapper.instance().componentDidUpdate = jest.fn(() => {
       if (!wrapper.state('loading')) {
-        expect(toJson(wrapper)).toMatchSnapshot();
+        expect(wrapper).toMatchSnapshot();
         done();
       }
     });

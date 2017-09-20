@@ -246,8 +246,7 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
           },
         ]
       }
-      onCollapse={[Function]}
-      onExpand={[Function]}
+      onToggleCollapse={[Function]}
       onUnmerge={[Function]}
       orgId="orgId"
       projectId="projectId"
@@ -282,8 +281,11 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
           </QueryCount>
         </h2>
         <MergedToolbar
-          onCollapse={[Function]}
+          groupId="groupId"
+          onToggleCollapse={[Function]}
           onUnmerge={[Function]}
+          orgId="orgId"
+          projectId="projectId"
         >
           <Toolbar
             className="merged-toolbar"
@@ -372,6 +374,30 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
                             </Modal>
                           </a>
                         </LinkWithConfirmation>
+                        <Button
+                          disabled={true}
+                          onClick={[Function]}
+                          size="small"
+                          style={
+                            Object {
+                              "marginLeft": 10,
+                            }
+                          }
+                        >
+                          <button
+                            className="button button-default button-sm button-disabled"
+                            disabled={true}
+                            onClick={[Function]}
+                            role="button"
+                            style={
+                              Object {
+                                "marginLeft": 10,
+                              }
+                            }
+                          >
+                            Compare
+                          </button>
+                        </Button>
                       </div>
                     </div>
                   </SpreadLayout>
@@ -380,12 +406,21 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
                       className="spread-layout"
                     >
                       <div>
-                        <button
-                          className="btn btn-sm btn-default"
+                        <Button
+                          className="toggle-collapse-all"
+                          disabled={false}
                           onClick={[Function]}
+                          size="small"
                         >
-                          Collapse All
-                        </button>
+                          <button
+                            className="toggle-collapse-all button button-default button-sm"
+                            disabled={false}
+                            onClick={[Function]}
+                            role="button"
+                          >
+                            Collapse All
+                          </button>
+                        </Button>
                       </div>
                     </div>
                   </SpreadLayout>
@@ -499,12 +534,11 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
             fingerprint="2c4887696f708c476a81ce4e834c4b02"
             groupId="groupId"
             itemCount={2}
-            onExpand={[Function]}
             orgId="orgId"
             projectId="projectId"
           >
             <div
-              className="fingerprint-group expanded"
+              className="merged-group expanded"
             >
               <SpreadLayout
                 className="merged-controls"
@@ -999,12 +1033,11 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
             fingerprint="e05da55328a860b21f62e371f0a7507d"
             groupId="groupId"
             itemCount={2}
-            onExpand={[Function]}
             orgId="orgId"
             projectId="projectId"
           >
             <div
-              className="fingerprint-group expanded"
+              className="merged-group expanded"
             >
               <SpreadLayout
                 className="merged-controls"
@@ -1637,8 +1670,7 @@ exports[`Issues -> Merged View renders with mocked data 2`] = `
           },
         ]
       }
-      onCollapse={[Function]}
-      onExpand={[Function]}
+      onToggleCollapse={[Function]}
       onUnmerge={[Function]}
       orgId="orgId"
       projectId="projectId"
@@ -1673,8 +1705,11 @@ exports[`Issues -> Merged View renders with mocked data 2`] = `
           </QueryCount>
         </h2>
         <MergedToolbar
-          onCollapse={[Function]}
+          groupId="groupId"
+          onToggleCollapse={[Function]}
           onUnmerge={[Function]}
+          orgId="orgId"
+          projectId="projectId"
         >
           <Toolbar
             className="merged-toolbar"
@@ -1763,6 +1798,30 @@ exports[`Issues -> Merged View renders with mocked data 2`] = `
                             </Modal>
                           </a>
                         </LinkWithConfirmation>
+                        <Button
+                          disabled={true}
+                          onClick={[Function]}
+                          size="small"
+                          style={
+                            Object {
+                              "marginLeft": 10,
+                            }
+                          }
+                        >
+                          <button
+                            className="button button-default button-sm button-disabled"
+                            disabled={true}
+                            onClick={[Function]}
+                            role="button"
+                            style={
+                              Object {
+                                "marginLeft": 10,
+                              }
+                            }
+                          >
+                            Compare
+                          </button>
+                        </Button>
                       </div>
                     </div>
                   </SpreadLayout>
@@ -1771,12 +1830,21 @@ exports[`Issues -> Merged View renders with mocked data 2`] = `
                       className="spread-layout"
                     >
                       <div>
-                        <button
-                          className="btn btn-sm btn-default"
+                        <Button
+                          className="toggle-collapse-all"
+                          disabled={false}
                           onClick={[Function]}
+                          size="small"
                         >
-                          Collapse All
-                        </button>
+                          <button
+                            className="toggle-collapse-all button button-default button-sm"
+                            disabled={false}
+                            onClick={[Function]}
+                            role="button"
+                          >
+                            Collapse All
+                          </button>
+                        </Button>
                       </div>
                     </div>
                   </SpreadLayout>
@@ -1890,12 +1958,11 @@ exports[`Issues -> Merged View renders with mocked data 2`] = `
             fingerprint="2c4887696f708c476a81ce4e834c4b02"
             groupId="groupId"
             itemCount={2}
-            onExpand={[Function]}
             orgId="orgId"
             projectId="projectId"
           >
             <div
-              className="fingerprint-group expanded"
+              className="merged-group expanded"
             >
               <SpreadLayout
                 className="merged-controls"
@@ -2390,12 +2457,11 @@ exports[`Issues -> Merged View renders with mocked data 2`] = `
             fingerprint="e05da55328a860b21f62e371f0a7507d"
             groupId="groupId"
             itemCount={2}
-            onExpand={[Function]}
             orgId="orgId"
             projectId="projectId"
           >
             <div
-              className="fingerprint-group expanded"
+              className="merged-group expanded"
             >
               <SpreadLayout
                 className="merged-controls"
