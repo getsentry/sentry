@@ -116,6 +116,7 @@ export default class Form extends React.Component {
           </button>
           {this.props.onCancel &&
             <button
+              type="button"
               className="btn btn-default"
               disabled={isSaving}
               onClick={this.props.onCancel}
