@@ -23,12 +23,6 @@ class Migration(SchemaMigration):
                           null=True, db_index=True),
                       keep_default=False)
 
-        # Changing field 'CommitFileChange.filename'
-        db.alter_column(
-            'sentry_commitfilechange',
-            'filename',
-            self.gf('django.db.models.fields.CharField')(
-                max_length=255))
         # Deleting field 'Integration.default_auth_id'
         db.delete_column(u'sentry_integration', 'default_auth_id')
 
@@ -51,12 +45,6 @@ class Migration(SchemaMigration):
         # Deleting field 'OrganizationIntegration.default_auth_id'
         db.delete_column('sentry_organizationintegration', 'default_auth_id')
 
-        # Changing field 'CommitFileChange.filename'
-        db.alter_column(
-            'sentry_commitfilechange',
-            'filename',
-            self.gf('django.db.models.fields.CharField')(
-                max_length=767))
         # Adding field 'Integration.default_auth_id'
         db.add_column(u'sentry_integration', 'default_auth_id',
                       self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')(
