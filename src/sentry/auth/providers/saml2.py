@@ -111,12 +111,6 @@ class OptionsForm(forms.Form):
                     'Sentry will create a new user account with the data '
                     'provided by the IdP when they first login.')
     )
-    options_slo = forms.BooleanField(
-        label="Single Logout Service",
-        required=False,
-        help_text=_('Enable/disable Single Log Out. When a user logs out of '
-                    'their IdP they will also be logged out from Sentry.')
-    )
 
     def clean(self):
         super(OptionsForm, self).clean()
@@ -128,20 +122,11 @@ class OptionsForm(forms.Form):
                 self.data.get('attribute_mapping_displayname', None)
             )
         )
-        invalid_slo = (
-            self.data.get('options_slo', None)
-            and not self.data.get('idp_slo_url', None)
-        )
 
         if invalid_jit:
             del self.cleaned_data["options_jit"]
             self._errors["options_jit"] = [
                 _("JIT enabled but required attribute mapping not provided")
-            ]
-        if invalid_slo:
-            del self.cleaned_data["options_slo"]
-            self._errors["options_slo"] = [
-                _("SLO enabled but Single Logout Service URL not provided")
             ]
 
         return self.cleaned_data
@@ -338,16 +323,7 @@ class SAML2SLSView(AuthView):
             request.user.save()
             logout(request)
 
-        # If SLS is disabled do not log them out, but continue the SLS logout flow
-        # We do not sync the SLS enabled status to providers, so a user may
-        # enter the SLS flow without it being enabled on our side.
-        should_logout = provider.config.get('options', {}).get('options_slo', False)
-
-        redirect_to = auth.process_slo(
-            keep_local_session=should_logout,
-            delete_session_cb=force_logout,
-        )
-
+        redirect_to = auth.process_slo(delete_session_cb=force_logout)
         if not redirect_to:
             redirect_to = get_login_url()
 
@@ -487,7 +463,6 @@ class SAML2Provider(Provider):
 
         return {
             'options_jit': d.get('options_jit', False),
-            'options_slo': d.get('options_slo', False)
         }
 
     @staticmethod
