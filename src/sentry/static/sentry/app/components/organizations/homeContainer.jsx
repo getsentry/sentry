@@ -21,7 +21,7 @@ const HomeContainer = React.createClass({
     let access = this.getAccess();
 
     return (
-      <div className="organization-home">
+      <div className={`${this.props.className || ''} organization-home`}>
         <div className="sub-header flex flex-container flex-vertically-centered">
           <div>
             <ProjectSelector organization={org} />

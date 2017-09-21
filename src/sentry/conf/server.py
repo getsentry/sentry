@@ -1174,7 +1174,9 @@ SENTRY_ONPREMISE = True
 # when checking REMOTE_ADDR ip addresses
 SENTRY_USE_X_FORWARDED_FOR = True
 
-SENTRY_DEFAULT_INTEGRATIONS = ()
+SENTRY_DEFAULT_INTEGRATIONS = (
+    'sentry.integrations.slack.SlackIntegration',
+)
 
 
 def get_raven_config():

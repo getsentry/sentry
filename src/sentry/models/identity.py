@@ -36,6 +36,14 @@ class IdentityProvider(Model):
         db_table = 'sentry_identityprovider'
         unique_together = (('type', 'instance'),)
 
+    @classmethod
+    def get(cls, type, instance):
+        # TODO(dcramer): add caching
+        return cls.objects.get_or_create(
+            type=type,
+            instance=instance,
+        )[0]
+
 
 class Identity(Model):
     """

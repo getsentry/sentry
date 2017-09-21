@@ -45,6 +45,8 @@ from sentry.web.frontend.organization_auth_settings import \
     OrganizationAuthSettingsView
 from sentry.web.frontend.organization_member_settings import \
     OrganizationMemberSettingsView
+from sentry.web.frontend.organization_integration_setup import \
+    OrganizationIntegrationSetupView
 from sentry.web.frontend.out import OutView
 from sentry.web.frontend.organization_members import OrganizationMembersView
 from sentry.web.frontend.project_issue_tracking import ProjectIssueTrackingView
@@ -325,7 +327,7 @@ urlpatterns += patterns(
     ),
     url(
         r'^organizations/(?P<organization_slug>[\w_-]+)/integrations/(?P<provider_id>[\w_-]+)/setup/$',
-        IntegrationSetupView.as_view()
+        OrganizationIntegrationSetupView.as_view()
     ),
     url(
         r'^organizations/(?P<organization_slug>[\w_-]+)/members/$',
@@ -454,6 +456,8 @@ urlpatterns += patterns(
     # prefix here, but unfortunately sentry.io has that mapped to marketing
     # assets for the time being
     url(r'^extensions/cloudflare/', include('sentry.integrations.cloudflare.urls')),
+    url(r'^extensions/(?P<provider_id>[\w_-]+)/setup/$', IntegrationSetupView.as_view()),
+
     url(r'^plugins/', include('sentry.plugins.base.urls')),
 
     # Generic API

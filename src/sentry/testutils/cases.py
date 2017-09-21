@@ -11,6 +11,7 @@ from __future__ import absolute_import
 __all__ = (
     'TestCase', 'TransactionTestCase', 'APITestCase', 'AuthProviderTestCase', 'RuleTestCase',
     'PermissionTestCase', 'PluginTestCase', 'CliTestCase', 'AcceptanceTestCase',
+    'IntegrationTestCase',
 )
 
 import base64
@@ -25,6 +26,7 @@ from contextlib import contextmanager
 from datetime import datetime
 from django.conf import settings
 from django.contrib.auth import login
+from django.contrib.auth.models import AnonymousUser
 from django.core.cache import cache
 from django.core.urlresolvers import reverse
 from django.http import HttpRequest
@@ -106,12 +108,16 @@ class BaseTestCase(Fixtures, Exam):
         self.client.cookies[session_cookie] = self.session.session_key
         self.client.cookies[session_cookie].update(cookie_data)
 
+    def make_request(self, user=None):
+        request = HttpRequest()
+        request.session = self.session
+        request.user = user or AnonymousUser()
+        return request
+
     def login_as(self, user, organization_id=None):
         user.backend = settings.AUTHENTICATION_BACKENDS[0]
 
-        request = HttpRequest()
-        request.session = self.session
-
+        request = self.make_request()
         login(request, user)
         request.user = user
         if organization_id:
@@ -488,3 +494,32 @@ class AcceptanceTestCase(TransactionTestCase):
             name=settings.SESSION_COOKIE_NAME,
             value=self.session.session_key,
         )
+
+
+class IntegrationTestCase(TestCase):
+    provider = None
+
+    def setUp(self):
+        from sentry.integrations.helper import PipelineHelper
+
+        super(IntegrationTestCase, self).setUp()
+
+        self.organization = self.create_organization(name='foo', owner=self.user)
+        self.login_as(self.user)
+        self.path = '/extensions/{}/setup/'.format(self.provider.id)
+        self.request = self.make_request(self.user)
+        # XXX(dcramer): this is a bit of a hack, but it helps contain this test
+        self.helper = PipelineHelper.initialize(
+            request=self.request,
+            organization=self.organization,
+            provider_id=self.provider.id,
+            dialog=True,
+        )
+        self.save_session()
+
+        feature = Feature('organizations:integrations-v3')
+        feature.__enter__()
+        self.addCleanup(feature.__exit__, None, None, None)
+
+    def assertDialogSuccess(self, resp):
+        assert 'window.opener.postMessage(' in resp.content

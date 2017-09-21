@@ -14,10 +14,13 @@ class IntegrationManager(object):
         self.__values = {}
 
     def __iter__(self):
-        return (self.get(k) for k in six.iterkeys(self.__values))
+        return iter(self.all())
 
     def all(self):
-        return iter(self)
+        for key in six.iterkeys(self.__values):
+            provider = self.get(key)
+            if provider.is_configured():
+                yield provider
 
     def get(self, key, **kwargs):
         try:

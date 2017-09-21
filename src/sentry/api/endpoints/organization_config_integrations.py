@@ -15,9 +15,12 @@ class OrganizationConfigIntegrationsEndpoint(OrganizationEndpoint):
                     'id': provider.id,
                     'name': provider.name,
                     'config': provider.get_config(),
-                    'setupUri': '/organizations/{}/integrations/{}/setup/'.format(
-                        organization.slug,
-                        provider.id,
+                    'setupDialog': dict(
+                        url='/organizations/{}/integrations/{}/setup/'.format(
+                            organization.slug,
+                            provider.id,
+                        ),
+                        **provider.setup_dialog_config
                     )
                 }
             )

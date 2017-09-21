@@ -117,6 +117,9 @@ def pytest_configure(config):
             },
             'mail.backend': 'django.core.mail.backends.locmem.EmailBackend',
             'system.url-prefix': 'http://testserver',
+            'slack.client-id': 'slack-client-id',
+            'slack.client-secret': 'slack-client-secret',
+            'slack.verification-token': 'slack-verification-token',
         }
     )
 
@@ -138,20 +141,7 @@ def pytest_configure(config):
 
     initialize_receivers()
     setup_services()
-
-    from sentry.plugins import plugins
-    from sentry.plugins.utils import TestIssuePlugin2
-
-    plugins.register(TestIssuePlugin2)
-
-    from sentry import integrations
-    from sentry.integrations.example import ExampleIntegration
-    integrations.register(ExampleIntegration)
-
-    from sentry.plugins import bindings
-    from sentry.plugins.providers.dummy import DummyRepositoryProvider
-
-    bindings.add('repository.provider', DummyRepositoryProvider, id='dummy')
+    register_extensions()
 
     from sentry.utils.redis import clusters
 
@@ -164,6 +154,24 @@ def pytest_configure(config):
     # disable DISALLOWED_IPS
     from sentry import http
     http.DISALLOWED_IPS = set()
+
+
+def register_extensions():
+    from sentry.plugins import plugins
+    from sentry.plugins.utils import TestIssuePlugin2
+
+    plugins.register(TestIssuePlugin2)
+
+    from sentry import integrations
+    from sentry.integrations.example import ExampleIntegration
+    from sentry.integrations.slack import SlackIntegration
+    integrations.register(ExampleIntegration)
+    integrations.register(SlackIntegration)
+
+    from sentry.plugins import bindings
+    from sentry.plugins.providers.dummy import DummyRepositoryProvider
+
+    bindings.add('repository.provider', DummyRepositoryProvider, id='dummy')
 
 
 def pytest_runtest_teardown(item):
