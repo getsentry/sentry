@@ -8,6 +8,8 @@ import {defined} from '../../utils';
 export default class FormField extends React.Component {
   static propTypes = {
     name: PropTypes.string.isRequired,
+    /** Inline style */
+    style: PropTypes.object,
 
     label: PropTypes.string,
     defaultValue: PropTypes.any,
@@ -100,7 +102,7 @@ export default class FormField extends React.Component {
   }
 
   render() {
-    let {className, required} = this.props;
+    let {className, required, label, disabled, disabledReason, help, style} = this.props;
     let error = this.getError();
     let cx = classNames(className, this.getClassName(), {
       'has-error': !!error,
@@ -108,19 +110,19 @@ export default class FormField extends React.Component {
     });
 
     return (
-      <div className={cx}>
+      <div style={style} className={cx}>
         <div className="controls">
-          {this.props.label &&
+          {label &&
             <label htmlFor={this.getId()} className="control-label">
-              {this.props.label}
+              {label}
             </label>}
           {this.getField()}
-          {this.props.disabled &&
-            this.props.disabledReason &&
-            <span className="disabled-indicator tip" title={this.props.disabledReason}>
+          {disabled &&
+            disabledReason &&
+            <span className="disabled-indicator tip" title={disabledReason}>
               <span className="icon-question" />
             </span>}
-          {defined(this.props.help) && <p className="help-block">{this.props.help}</p>}
+          {defined(help) && <p className="help-block">{help}</p>}
           {error && <p className="error">{error}</p>}
         </div>
       </div>
