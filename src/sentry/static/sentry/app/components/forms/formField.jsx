@@ -1,3 +1,4 @@
+import classNames from 'classnames';
 import PropTypes from 'prop-types';
 import React from 'react';
 import idx from 'idx';
@@ -99,16 +100,15 @@ export default class FormField extends React.Component {
   }
 
   render() {
-    let className = this.getClassName();
+    let {className, required} = this.props;
     let error = this.getError();
-    if (error) {
-      className += ' has-error';
-    }
-    if (this.props.required) {
-      className += ' required';
-    }
+    let cx = classNames(className, this.getClassName(), {
+      'has-error': !!error,
+      required
+    });
+
     return (
-      <div className={className}>
+      <div className={cx}>
         <div className="controls">
           {this.props.label &&
             <label htmlFor={this.getId()} className="control-label">
