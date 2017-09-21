@@ -37,4 +37,16 @@ describe('SplitLayout', function() {
 
     expect(toJson(component)).toMatchSnapshot();
   });
+
+  it('renders with a separation width', function() {
+    let component = shallow(
+      <SplitLayout responsive splitWidth={5}>
+        <div>child #1</div>
+        <div>child #2</div>
+        <div>child #3</div>
+      </SplitLayout>
+    );
+
+    expect(toJson(component)).toMatchSnapshot();
+  });
 });
