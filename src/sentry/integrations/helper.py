@@ -5,10 +5,14 @@ __all__ = ['PipelineHelper']
 import json
 import logging
 
+from django.db import IntegrityError, transaction
 from django.http import HttpResponse
 
 from sentry.api.serializers import serialize
-from sentry.models import Integration
+from sentry.models import (
+    Identity, IdentityProvider, IdentityStatus, Integration, Organization,
+    UserIdentity
+)
 from sentry.utils.hashlib import md5_text
 from sentry.utils.http import absolute_uri
 from sentry.web.helpers import render_to_response
@@ -34,12 +38,19 @@ logger = logging.getLogger('sentry.integrations')
 
 
 class PipelineHelper(object):
+    logger = logger
+
     @classmethod
-    def get_for_request(cls, request, organization, provider_id):
+    def get_for_request(cls, request, provider_id):
         session = request.session.get(SESSION_KEY, {})
         if not session:
             logger.error('integrations.setup.missing-session-data')
             return None
+
+        # TODO(dcramer): enforce access check
+        organization = Organization.objects.get(
+            id=session['org'],
+        )
 
         if session.get('int'):
             integration = Integration.objects.get(
@@ -49,6 +60,14 @@ class PipelineHelper(object):
         else:
             integration = None
 
+        if provider_id != session['pro']:
+            logger.error('integrations.setup.invalid-provider')
+            return None
+
+        if session['uid'] != request.user.id:
+            logger.error('integrations.setup.invalid-uid')
+            return None
+
         instance = cls(
             request=request,
             organization=organization,
@@ -56,6 +75,7 @@ class PipelineHelper(object):
             provider_id=provider_id,
             step=session['step'],
             dialog=bool(session['dlg']),
+            state=session['state'],
         )
         if instance.signature != session['sig']:
             logger.error('integrations.setup.invalid-signature')
@@ -98,14 +118,13 @@ class PipelineHelper(object):
             'int': self.integration.id if self.integration else '',
             'sig': self.signature,
             'step': self.step,
-            'state': {},
+            'state': self.state,
             'dlg': int(self.dialog),
         }
         self.request.session.modified = True
 
     def get_redirect_url(self):
-        return absolute_uri('/organizations/{}/integrations/{}/setup/'.format(
-            self.organization.slug,
+        return absolute_uri('/extensions/{}/setup/'.format(
             self.provider.id,
         ))
 
@@ -152,7 +171,7 @@ class PipelineHelper(object):
     def error(self, message):
         # TODO(dcramer): this needs to handle the dialog
         self.clear_session()
-        return self._jsonp_response({'detail': message}, False)
+        return self._dialog_response({'detail': message}, False)
 
     def bind_state(self, key, value):
         self.state[key] = value
@@ -169,13 +188,39 @@ class PipelineHelper(object):
                 name=data.get('name', self.provider.name),
             )
         else:
-            self.integration = Integration.objects.create(
+            self.integration, _ = Integration.objects.get_or_create(
                 provider=self.provider.id,
-                metadata=data.get('metadata', {}),
-                name=data.get('name', data['external_id']),
                 external_id=data['external_id'],
+                defaults={
+                    'metadata': data.get('metadata', {}),
+                    'name': data.get('name', data['external_id']),
+                }
             )
             self.integration.add_organization(self.organization.id)
+
+        id_config = data.get('identity')
+        if id_config:
+            idp = IdentityProvider.get(id_config['type'], id_config['instance'])
+            identity, created = Identity.objects.get_or_create(
+                idp=idp,
+                external_id=id_config['external_id'],
+                defaults={
+                    'status': IdentityStatus.VALID,
+                    'scopes': id_config['scopes'],
+                    'data': id_config['data'],
+                },
+            )
+            if not created:
+                if identity.status != IdentityStatus.VALID:
+                    identity.update(status=IdentityStatus.VALID)
+            try:
+                with transaction.atomic():
+                    UserIdentity.objects.create(
+                        user=self.request.user,
+                        identity=identity,
+                    )
+            except IntegrityError:
+                pass
 
         return self._dialog_response(serialize(self.integration, self.request.user), True)
 

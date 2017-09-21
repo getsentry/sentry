@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 from .base import *  # NOQA
 from .manager import IntegrationManager  # NOQA
+from .oauth import *  # NOQA
 from .view import *  # NOQA
 
 

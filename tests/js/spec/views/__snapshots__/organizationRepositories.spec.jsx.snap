@@ -19,7 +19,7 @@ exports[`OrganizationRepositories render() with a provider renders 1`] = `
       }
     >
       <div
-        className="organization-home"
+        className=" organization-home"
       >
         <div
           className="sub-header flex flex-container flex-vertically-centered"
@@ -668,7 +668,7 @@ exports[`OrganizationRepositories render() with a provider renders with a reposi
       }
     >
       <div
-        className="organization-home"
+        className=" organization-home"
       >
         <div
           className="sub-header flex flex-container flex-vertically-centered"
@@ -1417,7 +1417,7 @@ exports[`OrganizationRepositories render() without any providers renders 1`] = `
       }
     >
       <div
-        className="organization-home"
+        className=" organization-home"
       >
         <div
           className="sub-header flex flex-container flex-vertically-centered"
