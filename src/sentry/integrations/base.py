@@ -24,6 +24,12 @@ class Integration(object):
     # a human readable name (e.g. 'Slack')
     name = None
 
+    # configuration for the setup dialog
+    setup_dialog_config = {
+        'width': 600,
+        'height': 600,
+    }
+
     def get_logger(self):
         return logging.getLogger('sentry.integration.%s' % (self.get_id(), ))
 
@@ -53,7 +59,14 @@ class Integration(object):
         >>>         'required': True,
         >>>     }]
         """
-        raise NotImplementedError
+        return []
+
+    def is_configured(self):
+        """
+        Return a boolean describing whether this integration should be made
+        available (e.g. per system-configuration).
+        """
+        return True
 
     def build_integration(self, state):
         """

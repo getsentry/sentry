@@ -11,9 +11,11 @@ exports[`OrganizationIntegrations render() with a provider renders 1`] = `
   <DocumentTitle
     title="Integrations"
   >
-    <HomeContainer>
+    <HomeContainer
+      className="ref-organization-integrations"
+    >
       <div
-        className="organization-home"
+        className="ref-organization-integrations organization-home"
       >
         <div
           className="sub-header flex flex-container flex-vertically-centered"
@@ -583,9 +585,11 @@ exports[`OrganizationIntegrations render() with a provider renders with a reposi
   <DocumentTitle
     title="Integrations"
   >
-    <HomeContainer>
+    <HomeContainer
+      className="ref-organization-integrations"
+    >
       <div
-        className="organization-home"
+        className="ref-organization-integrations organization-home"
       >
         <div
           className="sub-header flex flex-container flex-vertically-centered"
@@ -1120,6 +1124,25 @@ exports[`OrganizationIntegrations render() with a provider renders with a reposi
                 >
                   <tbody>
                     <tr>
+                      <td
+                        style={
+                          Object {
+                            "paddingRight": 0,
+                            "width": 24,
+                          }
+                        }
+                      >
+                        <span
+                          className="icon icon-integration icon-github"
+                          style={
+                            Object {
+                              "display": "inline-block",
+                              "height": 24,
+                              "width": 24,
+                            }
+                          }
+                        />
+                      </td>
                       <td>
                         <strong>
                           repo-name
@@ -1162,7 +1185,9 @@ exports[`OrganizationIntegrations render() without any providers is loading when
 <DocumentTitle
   title="Integrations"
 >
-  <HomeContainer>
+  <HomeContainer
+    className="ref-organization-integrations"
+  >
     <div
       className="pull-right"
     >
@@ -1217,9 +1242,11 @@ exports[`OrganizationIntegrations render() without any providers renders 1`] = `
   <DocumentTitle
     title="Integrations"
   >
-    <HomeContainer>
+    <HomeContainer
+      className="ref-organization-integrations"
+    >
       <div
-        className="organization-home"
+        className="ref-organization-integrations organization-home"
       >
         <div
           className="sub-header flex flex-container flex-vertically-centered"

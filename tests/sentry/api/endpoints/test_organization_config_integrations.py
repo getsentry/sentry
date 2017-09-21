@@ -15,9 +15,10 @@ class OrganizationConfigIntegrationsTest(APITestCase):
         response = self.client.get(url)
 
         assert response.status_code == 200, response.content
-        assert len(response.data['providers']) == 1
-        provider = response.data['providers'][0]
-        assert provider['id'] == 'example'
+        assert len(response.data['providers']) > 0
+        provider = [r for r in response.data['providers'] if r['id'] == 'example']
+        assert len(provider) == 1
+        provider = provider[0]
         assert provider['name'] == 'Example'
         assert provider['config']
-        assert provider['setupUri']
+        assert provider['setupDialog']['url']
