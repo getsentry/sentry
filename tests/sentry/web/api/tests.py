@@ -361,7 +361,12 @@ class StoreViewTest(TestCase):
         assert resp.status_code == 200, (resp.status_code, resp.content)
 
         call_data = mock_insert_data_to_database.call_args[0][0]
-        assert call_data['sentry.interfaces.Http']['data'] == 'password=lol&foo=1&bar=2&baz=3'
+        assert call_data['sentry.interfaces.Http']['data'] == {
+            'password': ['lol'],
+            'foo': ['1'],
+            'bar': ['2'],
+            'baz': ['3']
+        }
 
     @mock.patch('sentry.coreapi.ClientApiHelper.insert_data_to_database')
     def test_scrub_data_on(self, mock_insert_data_to_database):
@@ -382,7 +387,12 @@ class StoreViewTest(TestCase):
         assert resp.status_code == 200, (resp.status_code, resp.content)
 
         call_data = mock_insert_data_to_database.call_args[0][0]
-        assert call_data['sentry.interfaces.Http']['data'] == 'password=lol&foo=1&bar=2&baz=3'
+        assert call_data['sentry.interfaces.Http']['data'] == {
+            'password': ['lol'],
+            'foo': ['1'],
+            'bar': ['2'],
+            'baz': ['3']
+        }
 
     @mock.patch('sentry.coreapi.ClientApiHelper.insert_data_to_database')
     def test_scrub_data_defaults(self, mock_insert_data_to_database):
@@ -403,8 +413,12 @@ class StoreViewTest(TestCase):
         assert resp.status_code == 200, (resp.status_code, resp.content)
 
         call_data = mock_insert_data_to_database.call_args[0][0]
-        assert call_data['sentry.interfaces.Http']['data'
-                                                   ] == 'password=[Filtered]&foo=1&bar=2&baz=3'
+        assert call_data['sentry.interfaces.Http']['data'] == {
+            'password': ['[Filtered]'],
+            'foo': ['1'],
+            'bar': ['2'],
+            'baz': ['3']
+        }
 
     @mock.patch('sentry.coreapi.ClientApiHelper.insert_data_to_database')
     def test_scrub_data_sensitive_fields(self, mock_insert_data_to_database):
@@ -426,8 +440,12 @@ class StoreViewTest(TestCase):
         assert resp.status_code == 200, (resp.status_code, resp.content)
 
         call_data = mock_insert_data_to_database.call_args[0][0]
-        assert call_data['sentry.interfaces.Http'
-                         ]['data'] == 'password=[Filtered]&foo=[Filtered]&bar=[Filtered]&baz=3'
+        assert call_data['sentry.interfaces.Http']['data'] == {
+            'password': ['[Filtered]'],
+            'foo': ['[Filtered]'],
+            'bar': ['[Filtered]'],
+            'baz': ['3']
+        }
 
     @mock.patch('sentry.coreapi.ClientApiHelper.insert_data_to_database')
     def test_scrub_data_org_override(self, mock_insert_data_to_database):
@@ -450,8 +468,12 @@ class StoreViewTest(TestCase):
         assert resp.status_code == 200, (resp.status_code, resp.content)
 
         call_data = mock_insert_data_to_database.call_args[0][0]
-        assert call_data['sentry.interfaces.Http']['data'
-                                                   ] == 'password=[Filtered]&foo=1&bar=2&baz=3'
+        assert call_data['sentry.interfaces.Http']['data'] == {
+            'password': ['[Filtered]'],
+            'foo': ['1'],
+            'bar': ['2'],
+            'baz': ['3']
+        }
 
     @mock.patch('sentry.coreapi.ClientApiHelper.insert_data_to_database')
     def test_scrub_data_org_override_sensitive_fields(self, mock_insert_data_to_database):
@@ -474,9 +496,12 @@ class StoreViewTest(TestCase):
         assert resp.status_code == 200, (resp.status_code, resp.content)
 
         call_data = mock_insert_data_to_database.call_args[0][0]
-        assert call_data['sentry.interfaces.Http'][
-            'data'
-        ] == 'password=[Filtered]&foo=[Filtered]&bar=[Filtered]&baz=[Filtered]'
+        assert call_data['sentry.interfaces.Http']['data'] == {
+            'password': ['[Filtered]'],
+            'foo': ['[Filtered]'],
+            'bar': ['[Filtered]'],
+            'baz': ['[Filtered]']
+        }
 
     @mock.patch('sentry.coreapi.ClientApiHelper.insert_data_to_database')
     def test_uses_client_as_sdk(self, mock_insert_data_to_database):

@@ -16,6 +16,7 @@ from sentry.utils.http import (
     get_origins,
     absolute_uri,
     origin_from_request,
+    heuristic_decode,
 )
 from sentry.utils.data_filters import (
     is_valid_ip,
@@ -335,3 +336,37 @@ class OriginFromRequestTestCase(TestCase):
 
         request.META['HTTP_REFERER'] = 'http://example.com'
         assert origin_from_request(request) == 'http://example.com'
+
+
+class HeuristicDecodeTestCase(TestCase):
+    json_body = '{"key": "value", "key2": "value2"}'
+    url_body = 'key=value&key2=value2'
+
+    def test_json(self):
+        data, content_type = heuristic_decode(self.json_body, 'application/json')
+        assert data == {'key': 'value', 'key2': 'value2'}
+        assert content_type == 'application/json'
+
+    def test_url_encoded(self):
+        data, content_type = heuristic_decode(self.url_body, 'application/x-www-form-urlencoded')
+        assert data == {'key': ['value'], 'key2': ['value2']}
+        assert content_type == 'application/x-www-form-urlencoded'
+
+    def test_possible_type_mismatch(self):
+        data, content_type = heuristic_decode(self.json_body, 'application/x-www-form-urlencoded')
+        assert data == {'key': 'value', 'key2': 'value2'}
+        assert content_type == 'application/json'
+
+        data, content_type = heuristic_decode(self.url_body, 'application/json')
+        assert data == {'key': ['value'], 'key2': ['value2']}
+        assert content_type == 'application/x-www-form-urlencoded'
+
+    def test_no_possible_type(self):
+        data, content_type = heuristic_decode(self.json_body)
+        assert data == {'key': 'value', 'key2': 'value2'}
+        assert content_type == 'application/json'
+
+    def test_unable_to_decode(self):
+        data, content_type = heuristic_decode('string body', 'text/plain')
+        assert data == 'string body'
+        assert content_type == 'text/plain'

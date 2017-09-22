@@ -161,6 +161,8 @@ class SensitiveDataFilter(object):
 
                 data[n] = '&'.join('='.join(k) for k in querybits)
             else:
+                # Encoded structured data (HTTP bodies, headers) would have
+                # already been decoded by the request interface.
                 data[n] = varmap(self.sanitize, data[n])
 
     def filter_user(self, data):
