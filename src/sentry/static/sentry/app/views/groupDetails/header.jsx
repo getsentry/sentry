@@ -158,7 +158,6 @@ const GroupHeader = React.createClass({
           <div className="col-sm-5 stats">
             <div className="flex flex-justify-right">
               {group.shortId &&
-                this.getFeatures().has('callsigns') &&
                 <div className="short-id-box count align-right">
                   <h6 className="nav-header">
                     <a

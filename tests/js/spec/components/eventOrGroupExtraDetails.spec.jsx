@@ -3,11 +3,7 @@ import {shallow} from 'enzyme';
 import toJson from 'enzyme-to-json';
 import EventOrGroupExtraDetails from 'app/components/eventOrGroupExtraDetails';
 
-jest.mock('app/mixins/projectState', () => {
-  return {
-    getFeatures: () => new Set(['callsigns'])
-  };
-});
+jest.mock('app/mixins/projectState');
 
 describe('EventOrGroupExtraDetails', function() {
   it('renders last and first seen', function() {
