@@ -1,7 +1,10 @@
+import {Link} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
-import {Link} from 'react-router';
 import classNames from 'classnames';
+
+import FlowLayout from '../flowLayout';
+import LoadingIndicator from '../loadingIndicator';
 
 import '../../../less/components/button.less';
 
@@ -10,6 +13,7 @@ const Button = React.createClass({
     priority: PropTypes.oneOf(['primary', 'danger']),
     size: PropTypes.oneOf(['small', 'xsmall', 'large']),
     disabled: PropTypes.bool,
+    busy: PropTypes.bool,
     /**
      * Use this prop if button is a react-router link
      */
@@ -35,7 +39,6 @@ const Button = React.createClass({
 
     onClick(...args);
   },
-
   render() {
     let {
       priority,
@@ -45,6 +48,7 @@ const Button = React.createClass({
       children,
       className,
       disabled,
+      busy,
 
       // destructure from `buttonProps`
       // not necessary, but just in case someone re-orders props
@@ -65,6 +69,15 @@ const Button = React.createClass({
       'button-disabled': disabled
     });
 
+    let childWithBusy = (
+      <FlowLayout truncate={false}>
+        {busy && <LoadingIndicator mini />}
+        <span className="button-label">
+          {children}
+        </span>
+      </FlowLayout>
+    );
+
     // Buttons come in 3 flavors: Link, anchor, and regular buttons. Let's
     // use props to determine which to serve up, so we don't have to think
     // about it. As a bonus, let's ensure all buttons appear as a button
@@ -80,7 +93,7 @@ const Button = React.createClass({
           onClick={this.handleClick}
           className={cx}
           role="button">
-          {children}
+          {childWithBusy}
         </Link>
       );
     }
@@ -95,7 +108,7 @@ const Button = React.createClass({
           onClick={this.handleClick}
           className={cx}
           role="button">
-          {children}
+          {childWithBusy}
         </a>
       );
     }
@@ -108,7 +121,7 @@ const Button = React.createClass({
         onClick={this.handleClick}
         className={cx}
         role="button">
-        {children}
+        {childWithBusy}
       </button>
     );
   }
