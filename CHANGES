@@ -19,6 +19,9 @@ Version 8.20
 - Add initial support for Redis Cluster.
 - Support a list of hosts in the ``redis.clusters`` configuration along side
   the traditional dictionary style configuration.
+- Better support for rendering rich JSON and URL encoded HTTP bodies by
+  guessing the content type based on format heuristics.
+- Better support for sanitizing of string HTTP bodies.
 
 Schema Changes
 ~~~~~~~~~~~~~~

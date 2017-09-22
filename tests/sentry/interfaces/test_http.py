@@ -77,7 +77,7 @@ class HttpTest(TestCase):
             url='http://example.com',
             data={'foo': 'bar'},
         ))
-        assert result.data == '{"foo":"bar"}'
+        assert result.data == {'foo': 'bar'}
 
     def test_form_encoded_data(self):
         result = Http.to_python(
@@ -87,7 +87,7 @@ class HttpTest(TestCase):
                 data='foo=bar',
             )
         )
-        assert result.data == 'foo=bar'
+        assert result.data == {'foo': ['bar']}
 
     def test_cookies_as_string(self):
         result = Http.to_python(dict(
