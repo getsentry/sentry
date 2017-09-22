@@ -36,3 +36,18 @@ class TimedRetryPolicyTestCase(TestCase):
             self.fail('Expected {!r}!'.format(RetryException))
 
         assert callable.call_count == 2
+
+    def test_decorator(self):
+        bomb = Exception('Boom!')
+        callable = mock.MagicMock(side_effect=[bomb, mock.sentinel.OK])
+
+        @TimedRetryPolicy.wrap(30, delay=lambda i: 10)
+        def retrying_func():
+            return callable()
+
+        retrying_func.clock = mock.Mock()
+        retrying_func.clock.sleep = mock.MagicMock()
+        retrying_func.clock.time = mock.MagicMock(side_effect=[0, 15, 25])
+
+        assert retrying_func() is mock.sentinel.OK
+        assert callable.call_count == 2
