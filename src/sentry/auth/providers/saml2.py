@@ -17,7 +17,6 @@ from six import add_metaclass
 from sentry import options
 from sentry.auth import Provider, AuthView
 from sentry.auth.view import ConfigureView
-from sentry.auth.exceptions import IdentityNotValid
 from sentry.models import (AuthProvider, Organization, OrganizationStatus, User, UserEmail)
 from sentry.utils.http import absolute_uri
 from sentry.utils.auth import login, get_login_redirect, get_login_url
@@ -230,10 +229,14 @@ class SAML2ACSView(AuthView):
 
         auth = provider.build_auth(request, saml_config)
         auth.process_response()
+
+        # SSO response verification failed
         errors = auth.get_errors()
         if errors:
-            error_reason = auth.get_last_error_reason()
-            raise IdentityNotValid(error_reason)
+            message = _('SAML SSO failed: %(reason)') % {'reason': auth.get_last_error_reason()}
+            messages.add_message(request, messages.ERROR, message)
+
+            return HttpResponseRedirect(get_login_url())
 
         attributes = auth.get_attributes()
         nameid = auth.get_nameid()
