@@ -342,11 +342,11 @@ class SAML2MetadataView(AuthView):
         metadata = saml_settings.get_sp_metadata()
         errors = saml_settings.validate_metadata(metadata)
 
-        if len(errors) == 0:
-            resp = HttpResponse(content=metadata, content_type='text/xml')
-        else:
-            resp = HttpResponseServerError(content=', '.join(errors))
-        return resp
+        if len(errors) > 0:
+            message = '\n'.join(errors)
+            return HttpResponseServerError(content=message, content_type='plain/text')
+
+        return HttpResponse(content=metadata, content_type='text/xml')
 
 
 class SAML2Provider(Provider):
