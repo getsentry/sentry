@@ -46,6 +46,7 @@ exports[`CustomResolutionModal render() renders correctly 1`] = `
         </h6>
         <Select2FieldAutocomplete
           ajaxDelay={250}
+          allowClear={false}
           allowEmpty={false}
           className="form-control"
           disabled={false}
