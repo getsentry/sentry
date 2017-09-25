@@ -85,7 +85,7 @@ export default class FormField extends React.Component {
     let form = (this.context || {}).form;
     this.setState(
       {
-        value: value
+        value
       },
       () => {
         this.props.onChange && this.props.onChange(this.coerceValue(this.state.value));

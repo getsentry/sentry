@@ -21,7 +21,7 @@ const HomeSidebar = React.createClass({
     });
 
     return {
-      hooks: hooks
+      hooks
     };
   },
 
@@ -100,6 +100,11 @@ const HomeSidebar = React.createClass({
               {access.has('org:write') &&
                 <ListLink to={`/organizations/${orgId}/rate-limits/`}>
                   {t('Rate Limits')}
+                </ListLink>}
+              {features.has('integrations-v3') &&
+                access.has('org:integrations') &&
+                <ListLink to={`/organizations/${orgId}/integrations/`}>
+                  {t('Integrations')}
                 </ListLink>}
               {access.has('org:write') &&
                 <ListLink to={`/organizations/${orgId}/repos/`}>

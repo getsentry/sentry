@@ -12,12 +12,14 @@ from sentry.models import GroupTagValue, GroupTagKey, TagKey, TagKeyStatus
 
 class GroupTagsEndpoint(GroupEndpoint):
     def get(self, request, group):
+        grouptagkeys = list(GroupTagKey.objects.filter(
+            group_id=group.id
+        ).values_list('key', flat=True))
+
         tag_keys = TagKey.objects.filter(
             project_id=group.project_id,
             status=TagKeyStatus.VISIBLE,
-            key__in=GroupTagKey.objects.filter(
-                group_id=group.id,
-            ).values('key'),
+            key__in=grouptagkeys,
         )
 
         # O(N) db access

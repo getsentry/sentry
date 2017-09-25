@@ -197,6 +197,11 @@ class IssueTrackingPlugin2(Plugin):
             return Response(auth_errors, status=400)
 
         event = group.get_latest_event()
+        if event is None:
+            return Response({
+                'message': 'Unable to create issues: there are '
+                           'no events associated with this group',
+            }, status=400)
         Event.objects.bind_nodes([event], 'data')
         try:
             fields = self.get_new_issue_fields(request, group, event, **kwargs)

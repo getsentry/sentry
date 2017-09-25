@@ -248,7 +248,7 @@ const ResultGrid = React.createClass({
     let location = this.props.location || {};
     let {query} = this.state;
     let targetQueryParams = jQuery.extend({}, location.query || {}, {
-      query: query,
+      query,
       cursor: ''
     });
 

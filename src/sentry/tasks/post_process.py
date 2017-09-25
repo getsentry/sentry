@@ -11,7 +11,7 @@ from __future__ import absolute_import, print_function
 import logging
 import six
 
-from django.db import IntegrityError, router, transaction
+from django.db import IntegrityError, transaction
 from raven.contrib.django.models import client as Raven
 
 from sentry.plugins import plugins
@@ -98,7 +98,8 @@ def record_additional_tags(event):
 
     added_tags = []
     for plugin in plugins.for_project(event.project, version=2):
-        added_tags.extend(safe_execute(plugin.get_tags, event, _with_transaction=False) or ())
+        added_tags.extend(safe_execute(
+            plugin.get_tags, event, _with_transaction=False) or ())
     if added_tags:
         Group.objects.add_tags(event.group, added_tags)
 
@@ -131,41 +132,6 @@ def plugin_post_process_group(plugin_slug, event, **kwargs):
     })
     plugin = plugins.get(plugin_slug)
     safe_execute(plugin.post_process, event=event, group=event.group, **kwargs)
-
-
-@instrumented_task(name='sentry.tasks.post_process.record_affected_user')
-def record_affected_user(event, **kwargs):
-    from sentry.models import EventUser, Group
-
-    Raven.tags_context({
-        'project': event.project_id,
-    })
-
-    user_data = event.data.get('sentry.interfaces.User', event.data.get('user'))
-    if not user_data:
-        logger.info('No user data found for event_id=%s', event.event_id)
-        return
-
-    euser = EventUser(
-        project=event.project,
-        ident=user_data.get('id'),
-        email=user_data.get('email'),
-        username=user_data.get('username'),
-        ip_address=user_data.get('ip_address'),
-    )
-
-    if not euser.tag_value:
-        # no ident, bail
-        logger.info('No identifying value found for user on event_id=%s', event.event_id)
-        return
-
-    try:
-        with transaction.atomic(using=router.db_for_write(EventUser)):
-            euser.save()
-    except IntegrityError:
-        pass
-
-    Group.objects.add_tags(event.group, [('sentry:user', euser.tag_value)])
 
 
 @instrumented_task(

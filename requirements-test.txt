@@ -1,0 +1,14 @@
+# cassandra
+blist
+# TODO(dcramer): figure out why Travis needs this
+cassandra-driver<=3.5.0
+casscache
+cqlsh
+# /cassandra
+datadog
+msgpack-python<0.5.0
+pytest-cov>=2.5.1,<2.6.0
+pytest-timeout>=0.5.0,<0.6.0
+pytest-xdist>=1.18.0,<1.19.0
+# responses 0.6.2 has a bug that causes our tests to fail.
+responses<0.6.2

@@ -28,9 +28,9 @@ class OrganizationUserIssuesTest(APITestCase):
             project=self.project2,
         )
 
-        self.euser1 = EventUser.objects.create(email='foo@example.com', project=self.project1)
-        self.euser2 = EventUser.objects.create(email='bar@example.com', project=self.project1)
-        self.euser3 = EventUser.objects.create(email='foo@example.com', project=self.project2)
+        self.euser1 = EventUser.objects.create(email='foo@example.com', project_id=self.project1.id)
+        self.euser2 = EventUser.objects.create(email='bar@example.com', project_id=self.project1.id)
+        self.euser3 = EventUser.objects.create(email='foo@example.com', project_id=self.project2.id)
 
         GroupTagValue.objects.create(
             key='sentry:user',

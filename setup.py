@@ -48,7 +48,7 @@ from sentry.utils.distutils import (
 )
 
 # The version of sentry
-VERSION = '8.20.0.dev0'
+VERSION = '8.21.0.dev0'
 
 # Hack to prevent stupid "TypeError: 'NoneType' object is not callable" error
 # in multiprocessing/util.py _exit_function when running `python
@@ -153,6 +153,17 @@ saml_requires = [
     'python3-saml>=1.2.6,<1.3',
 ]
 
+# we use pip requirements files to improve Docker layer caching
+def get_requirements(env):
+    with open('requirements-{}.txt'.format(env)) as fp:
+        return [x.strip() for x in fp.read().split('\n') if not x.startswith('#')]
+
+
+install_requires = get_requirements('base')
+dev_requires = get_requirements('dev')
+saml_requires = get_requirements('saml')
+tests_require = get_requirements('test')
+
 
 class SentrySDistCommand(SDistCommand):
     # If we are not a light build we want to also execute build_assets as
@@ -163,7 +174,6 @@ class SentrySDistCommand(SDistCommand):
 
 
 class SentryBuildCommand(BuildCommand):
-
     def run(self):
         BuildCommand.run(self)
         if not IS_LIGHT_BUILD:
@@ -172,7 +182,6 @@ class SentryBuildCommand(BuildCommand):
 
 
 class SentryDevelopCommand(DevelopCommand):
-
     def run(self):
         DevelopCommand.run(self)
         if not IS_LIGHT_BUILD:

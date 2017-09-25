@@ -1,5 +1,19 @@
-Version 8.20 (Unreleased)
+Version 8.21 (Unreleased)
 -------------------------
+
+- Ignore querystrings when looking up release artifacts
+- Add Visual Studio authentication provider for plugins.
+- Add "team" parameter to the project details API.
+
+Schema Changes
+~~~~~~~~~~~~~~
+
+- Added ``IdentityProvider`` model.
+- Added ``Identity`` model.
+- Added ``UserIdentity`` model.
+
+Version 8.20
+------------
 - Make BitBucket repositories enabled by default
 - Add raw data toggle for Additional Data
 - Improved function name resolving for JavaScript sourcemaps
@@ -7,12 +21,23 @@ Version 8.20 (Unreleased)
 - Add initial support for Redis Cluster.
 - Support a list of hosts in the ``redis.clusters`` configuration along side
   the traditional dictionary style configuration.
+- Better support for rendering rich JSON and URL encoded HTTP bodies by
+  guessing the content type based on format heuristics.
+- Better support for sanitizing of string HTTP bodies.
 
 Schema Changes
 ~~~~~~~~~~~~~~
+
 - Added index on ``ProjectPlatform(last_seen)`` column
 - Added index on ``GroupCommitResolution.commit_id``
 - Enable ``citext`` extension in Postgres.
+- Dropped ``TagKey.project_id`` foreign key constraint
+- Dropped ``TagValue.project_id`` foreign key constraint
+- Dropped ``GroupTagKey.project_id`` foreign key constraint
+- Dropped ``GroupTagKey.group_id`` foreign key constraint
+- Dropped ``EventUser.project_id`` foreign key constraint
+- Added ``Email`` model
+- Change ``CommitFileChange.filename`` from varchar to text in PostgreSQL
 
 Version 8.19
 ------------

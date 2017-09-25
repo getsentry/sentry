@@ -47,7 +47,7 @@ class EventCommittersTest(APITestCase):
                                                                            ] == 'admin@localhost'
         # TODO(maxbittker) test more edge cases here
 
-    def test_no_commits(self):
+    def test_no_release(self):
         self.login_as(user=self.user)
 
         group = self.create_group()
@@ -69,7 +69,7 @@ class EventCommittersTest(APITestCase):
 
         response = self.client.get(url, format='json')
         assert response.status_code == 404, response.content
-        assert response.data['detail'] == "No Commits found for Release"
+        assert response.data['detail'] == "Release not found"
 
     def test_null_stacktrace(self):
         self.login_as(user=self.user)

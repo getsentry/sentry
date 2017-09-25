@@ -164,7 +164,7 @@ const ReleaseOverview = React.createClass({
               )}
               ref="issueList"
               showActions={false}
-              params={{orgId: orgId}}
+              params={{orgId}}
               className="m-b-2"
             />
             <h5>{t('New Issues in this Release')}</h5>
@@ -181,7 +181,7 @@ const ReleaseOverview = React.createClass({
               )}
               ref="issueList"
               showActions={false}
-              params={{orgId: orgId}}
+              params={{orgId}}
               className="m-b-2"
             />
             {hasRepos &&

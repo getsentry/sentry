@@ -1,0 +1,5 @@
+autopep8
+Babel
+flake8>=2.6,<2.7
+pycodestyle>=2.0,<2.1
+isort>=4.2.2,<4.3.0

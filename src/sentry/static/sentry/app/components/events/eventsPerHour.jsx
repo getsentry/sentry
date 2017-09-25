@@ -47,7 +47,7 @@ const EventsPerHour = React.createClass({
         this.STAT_OPTS.map(stat => {
           let deferred = $.Deferred();
           this.api.request(statEndpoint, {
-            query: Object.assign({stat: stat}, query),
+            query: Object.assign({stat}, query),
             success: deferred.resolve.bind(deferred),
             error: deferred.reject.bind(deferred)
           });
@@ -61,7 +61,7 @@ const EventsPerHour = React.createClass({
             rawOrgData[this.STAT_OPTS[i]] = arguments[i][0];
           }
           this.setState({
-            rawOrgData: rawOrgData,
+            rawOrgData,
             formattedData: this.formatData(rawOrgData)
           });
         }.bind(this)

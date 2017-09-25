@@ -202,6 +202,9 @@ class Endpoint(APIView):
             ]
         )
 
+    def respond(self, context=None, **kwargs):
+        return Response(context, **kwargs)
+
     def paginate(
         self, request, on_results=None, paginator_cls=Paginator, default_per_page=100, **kwargs
     ):

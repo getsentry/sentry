@@ -1,6 +1,6 @@
-/* eslint-env jest */
 import GroupingStore from 'app/stores/groupingStore';
 import {Client} from 'app/api';
+
 jest.mock('app/api');
 
 /*
@@ -84,6 +84,17 @@ describe('Grouping Store', function() {
             'exception:stacktrace:application-chunks': 0.000235,
             'exception:stacktrace:pairs': 0.001488
           }
+        ],
+        [
+          {
+            id: '217'
+          },
+          {
+            'exception:message:character-shingles': null,
+            'exception:stacktrace:application-chunks': 0.25,
+            'exception:stacktrace:pairs': 0.25,
+            'message:message:character-shingles': 0.7
+          }
         ]
       ]
     });
@@ -124,7 +135,7 @@ describe('Grouping Store', function() {
       let arg = calls[calls.length - 1][0];
 
       expect(arg.filteredSimilarItems.length).toBe(1);
-      expect(arg.similarItems.length).toBe(2);
+      expect(arg.similarItems.length).toBe(3);
       expect(arg).toMatchObject({
         loading: false,
         error: false,
@@ -142,6 +153,12 @@ describe('Grouping Store', function() {
             issue: {
               id: '275'
             }
+          },
+          {
+            isBelowThreshold: false,
+            issue: {
+              id: '217'
+            }
           }
         ],
         filteredSimilarItems: [
@@ -154,6 +171,8 @@ describe('Grouping Store', function() {
         ],
         unmergeState: new Map()
       });
+
+      expect(arg).toMatchSnapshot();
     });
 
     it('unsuccessfully fetches list of similar items', function() {
@@ -180,6 +199,20 @@ describe('Grouping Store', function() {
           unmergeState: new Map()
         });
       });
+    });
+
+    it('ignores null scores in aggregate', async function() {
+      await GroupingStore.onFetch([
+        {dataKey: 'similar', endpoint: '/issues/groupId/similar/'}
+      ]);
+
+      expect(trigger).toBeCalled();
+      let calls = trigger.mock.calls;
+      let arg = calls[calls.length - 1][0];
+
+      let item = arg.similarItems.find(({issue}) => issue.id === '217');
+      expect(item.aggregate.exception).toBe(0.25);
+      expect(item.aggregate.message).toBe(0.7);
     });
 
     it('fetches list of hashes', function() {
@@ -410,7 +443,7 @@ describe('Grouping Store', function() {
     let unmergeState;
 
     beforeEach(async function() {
-      unmergeList = new Set();
+      unmergeList = new Map();
       unmergeState = new Map();
       await GroupingStore.onFetch([
         {dataKey: 'merged', endpoint: '/issues/groupId/hashes/'}
@@ -432,15 +465,15 @@ describe('Grouping Store', function() {
 
       it('can check and uncheck unlocked items', function() {
         // Check
-        GroupingStore.onToggleUnmerge('2');
-        unmergeList.add('2');
+        GroupingStore.onToggleUnmerge(['2', 'event-2']);
+        unmergeList.set('2', 'event-2');
         unmergeState.set('2', {busy: false, checked: true});
 
         expect(GroupingStore.unmergeList).toEqual(unmergeList);
         expect(GroupingStore.unmergeState).toEqual(unmergeState);
 
         // Uncheck
-        GroupingStore.onToggleUnmerge('2');
+        GroupingStore.onToggleUnmerge(['2', 'event-2']);
         unmergeList.delete('2');
         unmergeState.set('2', {busy: false, checked: false});
 
@@ -448,46 +481,60 @@ describe('Grouping Store', function() {
         expect(GroupingStore.unmergeState).toEqual(unmergeState);
 
         // Check
-        GroupingStore.onToggleUnmerge('2');
-        unmergeList.add('2');
+        GroupingStore.onToggleUnmerge(['2', 'event-2']);
+        unmergeList.set('2', 'event-2');
         unmergeState.set('2', {busy: false, checked: true});
 
         expect(GroupingStore.unmergeList).toEqual(unmergeList);
         expect(GroupingStore.unmergeState).toEqual(unmergeState);
 
         expect(trigger).toHaveBeenLastCalledWith({
+          enableFingerprintCompare: false,
+          unmergeLastCollapsed: false,
           unmergeDisabled: false,
           unmergeList,
           unmergeState
         });
       });
 
-      it('selecting the second to last available checkbox should disable the remaining checkbox and re-enable when unchecking', function() {
-        GroupingStore.onToggleUnmerge('3');
-        GroupingStore.onToggleUnmerge('4');
-        unmergeList.add('3');
-        unmergeList.add('4');
+      it('should have Compare button enabled only when two fingerprints are checked', function() {
+        expect(GroupingStore.enableFingerprintCompare).toBe(false);
+
+        GroupingStore.onToggleUnmerge(['2', 'event-2']);
+        GroupingStore.onToggleUnmerge(['3', 'event-3']);
+        expect(GroupingStore.enableFingerprintCompare).toBe(true);
+
+        GroupingStore.onToggleUnmerge(['2', 'event-2']);
+        expect(GroupingStore.enableFingerprintCompare).toBe(false);
+      });
+
+      it('selecting all available checkboxes should disable the unmerge button and re-enable when unchecking', function() {
+        GroupingStore.onToggleUnmerge(['2', 'event-2']);
+        GroupingStore.onToggleUnmerge(['3', 'event-3']);
+        GroupingStore.onToggleUnmerge(['4', 'event-4']);
+        unmergeList.set('2', 'event-2');
+        unmergeList.set('3', 'event-3');
+        unmergeList.set('4', 'event-4');
+        unmergeState.set('2', {busy: false, checked: true});
         unmergeState.set('3', {busy: false, checked: true});
         unmergeState.set('4', {busy: false, checked: true});
-        unmergeState.set('2', {busy: false, disabled: true});
 
-        expect(GroupingStore.remainingItem).toMatchObject({
-          id: '2'
-        });
         expect(GroupingStore.unmergeList).toEqual(unmergeList);
         expect(GroupingStore.unmergeState).toEqual(unmergeState);
+        expect(GroupingStore.unmergeDisabled).toBe(true);
 
         // Unchecking
-        GroupingStore.onToggleUnmerge('4');
+        GroupingStore.onToggleUnmerge(['4', 'event-4']);
         unmergeList.delete('4');
         unmergeState.set('4', {busy: false, checked: false});
-        unmergeState.set('2', {busy: false, disabled: false});
 
-        expect(GroupingStore.remainingItem).toBe(null);
         expect(GroupingStore.unmergeList).toEqual(unmergeList);
         expect(GroupingStore.unmergeState).toEqual(unmergeState);
+        expect(GroupingStore.unmergeDisabled).toBe(false);
 
         expect(trigger).toHaveBeenLastCalledWith({
+          enableFingerprintCompare: true,
+          unmergeLastCollapsed: false,
           unmergeDisabled: false,
           unmergeList,
           unmergeState
@@ -506,8 +553,8 @@ describe('Grouping Store', function() {
       afterEach(function() {});
 
       it('disables rows to be merged', function() {
-        GroupingStore.onToggleUnmerge('1');
-        unmergeList.add('1');
+        GroupingStore.onToggleUnmerge(['1', 'event-1']);
+        unmergeList.set('1', 'event-1');
         unmergeState.set('1', {checked: true, busy: false});
 
         trigger.mockClear();
@@ -516,15 +563,17 @@ describe('Grouping Store', function() {
         });
 
         expect(trigger).toHaveBeenCalledWith({
+          enableFingerprintCompare: false,
+          unmergeLastCollapsed: false,
           unmergeDisabled: true,
           unmergeList,
           unmergeState
         });
       });
 
-      it('keeps rows in "busy" state and unchecks after successfully adding to merge queue', async function() {
-        GroupingStore.onToggleUnmerge('1');
-        unmergeList.add('1');
+      it('keeps rows in "busy" state and unchecks after successfully adding to unmerge queue', async function() {
+        GroupingStore.onToggleUnmerge(['1', 'event-1']);
+        unmergeList.set('1', 'event-1');
         unmergeState.set('1', {checked: true, busy: false});
 
         let promise = GroupingStore.onUnmerge({
@@ -532,6 +581,8 @@ describe('Grouping Store', function() {
         });
 
         expect(trigger).toHaveBeenCalledWith({
+          enableFingerprintCompare: false,
+          unmergeLastCollapsed: false,
           unmergeDisabled: true,
           unmergeList,
           unmergeState
@@ -540,8 +591,10 @@ describe('Grouping Store', function() {
         await promise;
 
         expect(trigger).toHaveBeenLastCalledWith({
+          enableFingerprintCompare: false,
+          unmergeLastCollapsed: false,
           unmergeDisabled: false,
-          unmergeList: new Set(),
+          unmergeList: new Map(),
           unmergeState
         });
       });
@@ -555,8 +608,8 @@ describe('Grouping Store', function() {
           body: {}
         });
 
-        GroupingStore.onToggleUnmerge('2');
-        unmergeList.add('1');
+        GroupingStore.onToggleUnmerge(['2', 'event-2']);
+        unmergeList.set('1', 'event-1');
         unmergeState.set('1', {checked: true, busy: false});
 
         let promise = GroupingStore.onUnmerge({
@@ -564,6 +617,8 @@ describe('Grouping Store', function() {
         });
 
         expect(trigger).toHaveBeenCalledWith({
+          enableFingerprintCompare: false,
+          unmergeLastCollapsed: false,
           unmergeDisabled: true,
           unmergeList,
           unmergeState
@@ -572,6 +627,8 @@ describe('Grouping Store', function() {
         await promise;
 
         expect(trigger).toHaveBeenLastCalledWith({
+          enableFingerprintCompare: false,
+          unmergeLastCollapsed: false,
           unmergeDisabled: false,
           unmergeList,
           unmergeState

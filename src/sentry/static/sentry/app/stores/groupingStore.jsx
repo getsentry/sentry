@@ -19,19 +19,27 @@ const checkBelowThreshold = scores => {
 const GroupingStore = Reflux.createStore({
   listenables: [GroupingActions],
   init() {
-    let state = this.getDefaultState();
+    let state = this.getInitialState();
 
     Object.entries(state).forEach(([key, value]) => {
       this[key] = value;
     });
   },
 
-  getDefaultState() {
+  getInitialState() {
     return {
+      // List of fingerprints that belong to issue
       mergedItems: [],
-      unmergeList: new Set(),
+      // Map of {[fingerprint]: Array<fingerprint, event id>} that is selected to be unmerged
+      unmergeList: new Map(),
+      // Map of state for each fingerprint (i.e. "collapsed")
       unmergeState: new Map(),
-      unmergeDisabled: false,
+      // Disabled state of "Unmerge" button in "Merged" tab (for Issues)
+      unmergeDisabled: true,
+      // If "Collapse All" was just used, this will be true
+      unmergeLastCollapsed: false,
+      // "Compare" button state
+      enableFingerprintCompare: false,
 
       similarItems: [],
       filteredSimilarItems: [],
@@ -57,39 +65,14 @@ const GroupingStore = Reflux.createStore({
     });
   },
 
-  // Resets status of a remaining item (to be unmerged) if it exists
-  resetRemainingUnmergeItem() {
-    if (!this.remainingItem) return;
-
-    // If there was a single unchecked item before, make sure we reset its disabled state
-    this.setStateForId(this.unmergeState, this.remainingItem.id, {
-      disabled: false
-    });
-    this.remainingItem = null;
-  },
-
-  checkForRemainingUnmergeItem() {
+  isAllUnmergedSelected() {
     let lockedItems = Array.from(this.unmergeState.values()).filter(({busy}) => busy) || [
     ];
-    let hasRemainingItem =
-      this.unmergeList.size + 1 === this.mergedItems.length - lockedItems.length;
-
-    if (!hasRemainingItem) return;
-
-    // Check if there's only one remaining item, and make sure to disable it from being
-    // selected to unmerge
-    let remainingItem = this.mergedItems.find(item => {
-      let notSelected = !this.unmergeList.has(item.id);
-      let itemState = this.unmergeState.has(item.id) && this.unmergeState.get(item.id);
-      return notSelected && (!itemState || !itemState.busy);
-    });
-
-    if (!remainingItem) return;
-
-    this.remainingItem = remainingItem;
-    this.setStateForId(this.unmergeState, remainingItem.id, {
-      disabled: true
-    });
+    return (
+      this.unmergeList.size ===
+      this.mergedItems.filter(({latestEvent}) => !!latestEvent).length -
+        lockedItems.length
+    );
   },
 
   // Fetches data
@@ -128,13 +111,41 @@ const GroupingStore = Reflux.createStore({
         });
         return item;
       },
-      similar: ([issue, score]) => {
+      similar: ([issue, scoreMap]) => {
         // Hide items with a low scores
-        let isBelowThreshold = checkBelowThreshold(score);
+        let isBelowThreshold = checkBelowThreshold(scoreMap);
+
+        // List of scores indexed by interface (i.e., exception and message)
+        let scoresByInterface = Object.keys(scoreMap)
+          .map(scoreKey => [scoreKey, scoreMap[scoreKey]])
+          .reduce((acc, [scoreKey, score]) => {
+            // tokenize scorekey, first token is the interface name
+            let [interfaceName] = scoreKey.split(':');
+            if (!acc[interfaceName]) {
+              acc[interfaceName] = [];
+            }
+            acc[interfaceName].push([scoreKey, score]);
+
+            return acc;
+          }, {});
+
+        // Aggregate score by interface
+        let aggregate = Object.keys(scoresByInterface)
+          .map(interfaceName => [interfaceName, scoresByInterface[interfaceName]])
+          .reduce((acc, [interfaceName, allScores]) => {
+            // `null` scores means feature was not present in both issues, do not
+            // include in aggregate
+            let scores = allScores.filter(([, score]) => score !== null);
+            let avg = scores.reduce((sum, [, score]) => sum + score, 0) / scores.length;
+            acc[interfaceName] = avg;
+            return acc;
+          }, {});
 
         return {
           issue,
-          score,
+          score: scoreMap,
+          scoresByInterface,
+          aggregate,
           isBelowThreshold
         };
       }
@@ -188,60 +199,54 @@ const GroupingStore = Reflux.createStore({
   },
 
   // Toggle unmerge check box
-  onToggleUnmerge(id) {
+  onToggleUnmerge([fingerprint, eventId]) {
     let checked;
 
     // Uncheck an item to unmerge
-    let state = this.unmergeState.has(id) && this.unmergeState.get(id);
+    let state = this.unmergeState.get(fingerprint);
 
     if (state && state.busy === true) return;
 
-    if (this.unmergeList.has(id)) {
-      this.unmergeList.delete(id);
+    if (this.unmergeList.has(fingerprint)) {
+      this.unmergeList.delete(fingerprint);
       checked = false;
-
-      this.resetRemainingUnmergeItem();
     } else {
-      // at least 1 item must be unchecked for unmerge
-      // make sure that not all events have been selected
-
-      // Account for items in unmerge queue, or "locked" items
-      let lockedItems = Array.from(this.unmergeState.values()).filter(
-        ({busy}) => busy
-      ) || [];
-
-      let canUnmerge =
-        this.unmergeList.size + 1 < this.mergedItems.length - lockedItems.length;
-      if (!canUnmerge) return;
-      this.unmergeList.add(id);
+      this.unmergeList.set(fingerprint, eventId);
       checked = true;
-
-      this.checkForRemainingUnmergeItem();
     }
 
     // Update "checked" state for row
-    this.setStateForId(this.unmergeState, id, {
+    this.setStateForId(this.unmergeState, fingerprint, {
       checked
     });
+
+    // Unmerge should be disabled if 0 or all items are selected
+    this.unmergeDisabled = this.unmergeList.size === 0 || this.isAllUnmergedSelected();
+    this.enableFingerprintCompare = this.unmergeList.size === 2;
 
     this.triggerUnmergeState();
   },
 
   onUnmerge({groupId, loadingMessage, successMessage, errorMessage}) {
-    let ids = Array.from(this.unmergeList.values());
+    let ids = Array.from(this.unmergeList.keys());
 
-    // Disable unmerge button
-    this.unmergeDisabled = true;
+    return new Promise((resolve, reject) => {
+      if (this.isAllUnmergedSelected()) {
+        reject(new Error('Not allowed to unmerge ALL events'));
+        return;
+      }
 
-    // Disable rows
-    this.setStateForId(this.unmergeState, ids, {
-      checked: false,
-      busy: true
-    });
-    this.triggerUnmergeState();
-    let loadingIndicator = IndicatorStore.add(loadingMessage);
+      // Disable unmerge button
+      this.unmergeDisabled = true;
 
-    let promise = new Promise((resolve, reject) => {
+      // Disable rows
+      this.setStateForId(this.unmergeState, ids, {
+        checked: false,
+        busy: true
+      });
+      this.triggerUnmergeState();
+      let loadingIndicator = IndicatorStore.add(loadingMessage);
+
       api.request(`/issues/${groupId}/hashes/`, {
         method: 'DELETE',
         query: {
@@ -273,8 +278,6 @@ const GroupingStore = Reflux.createStore({
         }
       });
     });
-
-    return promise;
   },
 
   onMerge({params, query}) {
@@ -295,7 +298,6 @@ const GroupingStore = Reflux.createStore({
           {
             orgId,
             projectId,
-            // parent = last element in array
             itemIds: [...ids, groupId],
             query
           },
@@ -328,6 +330,37 @@ const GroupingStore = Reflux.createStore({
     return promise;
   },
 
+  onMergeSuccess(id, ids, response) {
+    if (!response || !response.merge || !response.merge.parent) return;
+
+    this.trigger({
+      mergedParent: response.merge.parent
+    });
+  },
+
+  // Toggle collapsed state of all fingerprints
+  onToggleCollapseFingerprints() {
+    this.setStateForId(this.unmergeState, this.mergedItems.map(({id}) => id), {
+      collapsed: !this.unmergeLastCollapsed
+    });
+
+    this.unmergeLastCollapsed = !this.unmergeLastCollapsed;
+
+    this.trigger({
+      unmergeLastCollapsed: this.unmergeLastCollapsed,
+      unmergeState: this.unmergeState
+    });
+  },
+
+  onToggleCollapseFingerprint(fingerprint) {
+    let collapsed =
+      this.unmergeState.has(fingerprint) && this.unmergeState.get(fingerprint).collapsed;
+    this.setStateForId(this.unmergeState, fingerprint, {collapsed: !collapsed});
+    this.trigger({
+      unmergeState: this.unmergeState
+    });
+  },
+
   triggerFetchState() {
     let state = {
       similarItems: this.similarItems.filter(({isBelowThreshold}) => !isBelowThreshold),
@@ -349,7 +382,13 @@ const GroupingStore = Reflux.createStore({
   },
 
   triggerUnmergeState() {
-    let state = pick(this, ['unmergeDisabled', 'unmergeState', 'unmergeList']);
+    let state = pick(this, [
+      'unmergeDisabled',
+      'unmergeState',
+      'unmergeList',
+      'enableFingerprintCompare',
+      'unmergeLastCollapsed'
+    ]);
     this.trigger(state);
     return state;
   },

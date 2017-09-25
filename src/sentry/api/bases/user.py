@@ -7,7 +7,9 @@ from sentry.models import User
 
 
 class UserPermission(ScopedPermission):
-    def has_object_permission(self, request, view, user):
+    def has_object_permission(self, request, view, user=None):
+        if user is None:
+            user = request.user
         if request.user == user:
             return True
         if request.auth:

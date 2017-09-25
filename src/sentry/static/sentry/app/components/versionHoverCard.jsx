@@ -8,6 +8,7 @@ import LastCommit from './lastCommit';
 import LoadingIndicator from './loadingIndicator';
 import LoadingError from './loadingError';
 import TimeSince from './timeSince';
+import Hovercard from './hovercard';
 
 import {getShortVersion} from '../utils';
 import {t} from '../locale';
@@ -102,22 +103,24 @@ const VersionHoverCard = React.createClass({
     });
   },
 
-  renderRepoLink() {
+  getRepoLink() {
     let {orgId} = this.props;
-    return (
-      <div className="version-hovercard blankslate m-a-0 p-x-1 p-y-1 align-center">
-        <h5>Releases are better with commit data!</h5>
-        <p>
-          Connect a repository to see commit info, files changed, and authors involved in future releases.
-        </p>
-        <a className="btn btn-primary" href={`/organizations/${orgId}/repos/`}>
-          Connect a repository
-        </a>
-      </div>
-    );
+    return {
+      body: (
+        <div className="version-hovercard blankslate m-a-0 p-x-1 p-y-1 align-center">
+          <h5>Releases are better with commit data!</h5>
+          <p>
+            Connect a repository to see commit info, files changed, and authors involved in future releases.
+          </p>
+          <a className="btn btn-primary" href={`/organizations/${orgId}/repos/`}>
+            Connect a repository
+          </a>
+        </div>
+      )
+    };
   },
 
-  renderBody() {
+  getBody() {
     let {release, deploys} = this.state;
     let {version} = this.props;
     let lastCommit = release.lastCommit;
@@ -135,12 +138,10 @@ const VersionHoverCard = React.createClass({
     if (Object.keys(recentDeploysByEnviroment).length > 3) {
       mostRecentDeploySlice = Object.keys(recentDeploysByEnviroment).slice(0, 3);
     }
-    return (
-      <div>
-        <div className="hovercard-header">
-          <span className="truncate">Release {shortVersion}</span>
-        </div>
-        <div className="hovercard-body">
+    return {
+      header: <span className="truncate">Release {shortVersion}</span>,
+      body: (
+        <div>
           <div className="row row-flex">
             <div className="col-xs-4">
               <h6>New Issues</h6>
@@ -213,25 +214,27 @@ const VersionHoverCard = React.createClass({
               })}
             </div>}
         </div>
-      </div>
-    );
+      )
+    };
   },
 
   render() {
-    let {visible} = this.state;
+    let {loading, error, hasRepos} = this.state;
+    let header = null;
+    let body = loading
+      ? <LoadingIndicator mini={true} />
+      : error ? <LoadingError /> : null;
+
+    if (!loading && !error) {
+      let renderObj = hasRepos ? this.getBody() : this.getRepoLink();
+      header = renderObj.header;
+      body = renderObj.body;
+    }
+
     return (
-      <span onMouseEnter={this.toggleHovercard} onMouseLeave={this.toggleHovercard}>
+      <Hovercard header={header} body={body}>
         {this.props.children}
-        {visible &&
-          <div className="hovercard">
-            <div className="hovercard-hoverlap" />
-            {this.state.loading
-              ? <div className="hovercard-body"><LoadingIndicator mini={true} /></div>
-              : this.state.error
-                  ? <div className="hovercard-body"><LoadingError /></div>
-                  : this.state.hasRepos ? this.renderBody() : this.renderRepoLink()}
-          </div>}
-      </span>
+      </Hovercard>
     );
   }
 });

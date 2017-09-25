@@ -9,6 +9,7 @@ from datetime import datetime, timedelta
 
 import pytz
 from django.utils import timezone
+from mock import patch
 
 from sentry.app import tsdb
 from sentry.event_manager import ScoreClause
@@ -16,15 +17,20 @@ from sentry.models import (
     Activity, Environment, EnvironmentProject, Event, EventMapping, Group, GroupHash, GroupRelease,
     GroupTagKey, GroupTagValue, Release, UserReport
 )
-from sentry.similarity import features
+from sentry.similarity import features, _make_index_backend
 from sentry.tasks.unmerge import (
     get_caches, get_event_user_from_interface, get_fingerprint, get_group_backfill_attributes,
     get_group_creation_attributes, unmerge
 )
 from sentry.testutils import TestCase
 from sentry.utils.dates import to_timestamp
+from sentry.utils import redis
+
+# Use the default redis client as a cluster client in the similarity index
+index = _make_index_backend(redis.clusters.get('default').get_local_client(0))
 
 
+@patch('sentry.similarity.features.index', new=index)
 class UnmergeTestCase(TestCase):
     def test_get_group_creation_attributes(self):
         now = datetime(2017, 5, 3, 6, 6, 6, tzinfo=pytz.utc)
@@ -285,6 +291,9 @@ class UnmergeTestCase(TestCase):
 
         assert features.compare(source) == [
             (source.id, {
+                'exception:message:character-shingles': None,
+                'exception:stacktrace:application-chunks': None,
+                'exception:stacktrace:pairs': None,
                 'message:message:character-shingles': 1.0
             }),
         ]
@@ -616,17 +625,23 @@ class UnmergeTestCase(TestCase):
         )
 
         source_similar_items = features.compare(source)
-        assert source_similar_items[0] == (source.id, {'message:message:character-shingles': 1.0})
+        assert source_similar_items[0] == (source.id, {
+            'exception:message:character-shingles': None,
+            'exception:stacktrace:application-chunks': None,
+            'exception:stacktrace:pairs': None,
+            'message:message:character-shingles': 1.0,
+        })
         assert source_similar_items[1][0] == destination.id
-        assert source_similar_items[1][1].keys() == ['message:message:character-shingles']
         assert source_similar_items[1][1]['message:message:character-shingles'] < 1.0
 
         destination_similar_items = features.compare(destination)
         assert destination_similar_items[0] == (
             destination.id, {
+                'exception:message:character-shingles': None,
+                'exception:stacktrace:application-chunks': None,
+                'exception:stacktrace:pairs': None,
                 'message:message:character-shingles': 1.0
             }
         )
         assert destination_similar_items[1][0] == source.id
-        assert destination_similar_items[1][1].keys() == ['message:message:character-shingles']
         assert destination_similar_items[1][1]['message:message:character-shingles'] < 1.0

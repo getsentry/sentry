@@ -72,6 +72,15 @@ class OrganizationReleasePermission(OrganizationPermission):
     }
 
 
+class OrganizationIntegrationsPermission(OrganizationPermission):
+    scope_map = {
+        'GET': ['org:read', 'org:write', 'org:admin', 'org:integrations'],
+        'POST': ['org:write', 'org:admin', 'org:integrations'],
+        'PUT': ['org:write', 'org:admin', 'org:integrations'],
+        'DELETE': ['org:admin', 'org:integrations'],
+    }
+
+
 class OrganizationEndpoint(Endpoint):
     permission_classes = (OrganizationPermission, )
 

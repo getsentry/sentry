@@ -149,8 +149,8 @@ class ProjectUserReportsEndpoint(ProjectEndpoint):
                 return None
             try:
                 return EventUser.objects.filter(
-                    project=report.project_id,
-                    email__iexact=report.email,
+                    project_id=report.project_id,
+                    email=report.email,
                 )[0]
             except IndexError:
                 return None

@@ -6,6 +6,7 @@ import SuggestedOwners from './suggestedOwners';
 import GroupParticipants from './participants';
 import GroupReleaseStats from './releaseStats';
 import GroupState from '../../mixins/groupState';
+import HookStore from '../../stores/hookStore';
 import IndicatorStore from '../../stores/indicatorStore';
 import TagDistributionMeter from './tagDistributionMeter';
 import LoadingError from '../../components/loadingError';
@@ -24,8 +25,16 @@ const GroupSidebar = React.createClass({
   mixins: [ApiMixin, GroupState],
 
   getInitialState() {
+    // Allow injection via getsentry et all
+    let hooks = HookStore.get('issue:secondary-column').map(cb => {
+      return cb({
+        params: this.props.params
+      });
+    });
+
     return {
-      participants: []
+      participants: [],
+      hooks
     };
   },
 
@@ -180,6 +189,8 @@ const GroupSidebar = React.createClass({
         />
 
         {this.renderPluginIssue()}
+
+        {this.state.hooks}
 
         <h6><span>{t('Tags')}</span></h6>
         {group.tags.map(data => {

@@ -14,6 +14,7 @@
     "transform-class-properties",
     "transform-object-rest-spread",
     "lodash",
+    "syntax-dynamic-import",
     [
       "babel-plugin-transform-builtin-extend",
       {
@@ -33,6 +34,7 @@
       "plugins": [
         "transform-class-properties",
         "transform-object-rest-spread",
+        "dynamic-import-node",
         [
           "babel-plugin-transform-builtin-extend",
           {

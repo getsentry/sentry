@@ -1,12 +1,19 @@
 from __future__ import absolute_import
 
 from collections import defaultdict
+from mock import patch
 
 from sentry.tasks.merge import merge_group, rehash_group_events
 from sentry.models import Event, Group, GroupMeta, GroupRedirect, GroupTagKey, GroupTagValue
+from sentry.similarity import _make_index_backend
 from sentry.testutils import TestCase
+from sentry.utils import redis
+
+# Use the default redis client as a cluster client in the similarity index
+index = _make_index_backend(redis.clusters.get('default').get_local_client(0))
 
 
+@patch('sentry.similarity.features.index', new=index)
 class MergeGroupTest(TestCase):
     def test_merge_with_event_integrity(self):
         project1 = self.create_project()

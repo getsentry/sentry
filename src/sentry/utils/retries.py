@@ -4,6 +4,7 @@ import itertools
 import logging
 import random
 import time
+import functools
 
 from django.utils.encoding import force_bytes
 
@@ -28,6 +29,22 @@ class RetryException(Exception):
 class RetryPolicy(object):
     def __call__(self, function):
         raise NotImplementedError
+
+    @classmethod
+    def wrap(cls, *args, **kwargs):
+        """
+        A decorator that may be used to wrap a function to be retried using
+        this policy.
+        """
+        retrier = cls(*args, **kwargs)
+
+        def decorator(fn):
+            @functools.wraps(fn)
+            def execute_with_retry(*args, **kwargs):
+                return retrier(functools.partial(fn, *args, **kwargs))
+
+            return execute_with_retry
+        return decorator
 
 
 class TimedRetryPolicy(RetryPolicy):

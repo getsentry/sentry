@@ -61,7 +61,7 @@ const OrganizationSettingsForm = React.createClass({
     };
     this.setState({
       hasChanges: true,
-      formData: formData
+      formData
     });
   },
 
@@ -331,7 +331,7 @@ const OrganizationSettings = React.createClass({
       method: 'GET',
       success: data => {
         this.setState({
-          data: data,
+          data,
           loading: false
         });
       },
@@ -346,50 +346,55 @@ const OrganizationSettings = React.createClass({
 
   onSave(data) {
     // TODO(dcramer): this should propagate
-    this.setState({data: data});
+    this.setState({data});
     OrganizationStore.add(data);
   },
 
   render() {
-    if (this.state.loading) return <LoadingIndicator />;
-
     let data = this.state.data;
     let orgId = this.props.params.orgId;
-    let access = new Set(data.access);
+    let access = data && new Set(data.access);
 
     return (
       <OrganizationHomeContainer>
-        <h3>{t('Organization Settings')}</h3>
-        <div className="box">
-          <div className="box-content with-padding">
-            <OrganizationSettingsForm
-              initialData={data}
-              orgId={orgId}
-              access={access}
-              onSave={this.onSave}
-            />
-          </div>
-        </div>
+        {this.state.loading && <LoadingIndicator />}
 
-        {access.has('org:admin') &&
-          !data.isDefault &&
-          <div className="box">
-            <div className="box-header">
-              <h3>{t('Remove Organization')}</h3>
+        {!this.state.loading &&
+          <div>
+            <h3>{t('Organization Settings')}</h3>
+            <div className="box">
+              <div className="box-content with-padding">
+                <OrganizationSettingsForm
+                  initialData={data}
+                  orgId={orgId}
+                  access={access}
+                  onSave={this.onSave}
+                />
+              </div>
             </div>
-            <div className="box-content with-padding">
-              <p>
-                {t(
-                  'Removing this organization will delete all data including projects and their associated events.'
-                )}
-              </p>
 
-              <fieldset className="form-actions">
-                <a href={`/organizations/${orgId}/remove/`} className="btn btn-danger">
-                  {t('Remove Organization')}
-                </a>
-              </fieldset>
-            </div>
+            {access.has('org:admin') &&
+              !data.isDefault &&
+              <div className="box">
+                <div className="box-header">
+                  <h3>{t('Remove Organization')}</h3>
+                </div>
+                <div className="box-content with-padding">
+                  <p>
+                    {t(
+                      'Removing this organization will delete all data including projects and their associated events.'
+                    )}
+                  </p>
+
+                  <fieldset className="form-actions">
+                    <a
+                      href={`/organizations/${orgId}/remove/`}
+                      className="btn btn-danger">
+                      {t('Remove Organization')}
+                    </a>
+                  </fieldset>
+                </div>
+              </div>}
           </div>}
       </OrganizationHomeContainer>
     );

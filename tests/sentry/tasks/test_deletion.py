@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 from datetime import datetime, timedelta
+from mock import patch
 from uuid import uuid4
 
 import pytest
@@ -14,6 +15,7 @@ from sentry.models import (
     OrganizationStatus, Project, ProjectStatus, Release, ReleaseCommit, ReleaseEnvironment,
     Repository, TagKey, TagValue, Team, TeamStatus
 )
+from sentry.plugins.providers.dummy.repository import DummyRepositoryProvider
 from sentry.tasks.deletion import (
     delete_api_application, delete_group, delete_organization, delete_project, delete_repository,
     delete_tag_key, delete_team, generic_delete, revoke_api_tokens
@@ -27,12 +29,14 @@ class DeleteOrganizationTest(TestCase):
             name='test',
             status=OrganizationStatus.PENDING_DELETION,
         )
+        user = self.create_user()
         self.create_team(organization=org, name='test1')
         self.create_team(organization=org, name='test2')
         release = Release.objects.create(version='a' * 32, organization_id=org.id)
         repo = Repository.objects.create(
             organization_id=org.id,
             name=org.name,
+            provider='dummy',
         )
         commit_author = CommitAuthor.objects.create(
             organization_id=org.id,
@@ -58,7 +62,9 @@ class DeleteOrganizationTest(TestCase):
         )
 
         with self.tasks():
-            delete_organization(object_id=org.id)
+            with patch.object(DummyRepositoryProvider, 'delete_repository') as mock_delete_repo:
+                delete_organization(object_id=org.id, actor_id=user.id)
+                mock_delete_repo.assert_called_once()  # NOQA
 
         assert not Organization.objects.filter(id=org.id).exists()
         assert not Environment.objects.filter(id=env.id).exists()

@@ -52,7 +52,7 @@ const ProjectDashboard = React.createClass({
     }
 
     return {
-      statsPeriod: statsPeriod
+      statsPeriod
     };
   },
 

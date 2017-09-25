@@ -1,0 +1,159 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`SplitDiff renders 1`] = `
+<table
+  className="split-diff"
+>
+  <tbody>
+    <tr>
+      <td
+        className="split-view-cell removed-row"
+      >
+        <div
+          className="split-diff-row"
+        >
+          <span
+            className="split-view-word removed"
+          >
+            restaurant
+          </span>
+        </div>
+      </td>
+      <td
+        style={
+          Object {
+            "width": 20,
+          }
+        }
+      />
+      <td
+        className="split-view-cell added-row"
+      >
+        <div
+          className="split-diff-row"
+        >
+          <span
+            className="split-view-word added"
+          >
+            aura
+          </span>
+        </div>
+      </td>
+    </tr>
+  </tbody>
+</table>
+`;
+
+exports[`SplitDiff renders with newlines 1`] = `
+<table
+  className="split-diff"
+>
+  <tbody>
+    <tr>
+      <td
+        className="split-view-cell removed-row"
+      >
+        <div
+          className="split-diff-row"
+        >
+          <span
+            className="split-view-word removed"
+          >
+            this is my restaurant
+          </span>
+        </div>
+      </td>
+      <td
+        style={
+          Object {
+            "width": 20,
+          }
+        }
+      />
+      <td
+        className="split-view-cell added-row"
+      >
+        <div
+          className="split-diff-row"
+        >
+          <span
+            className="split-view-word added"
+          >
+            aura
+          </span>
+        </div>
+      </td>
+    </tr>
+    <tr>
+      <td
+        className="split-view-cell removed-row"
+      >
+        <div
+          className="split-diff-row"
+        >
+          <span
+            className="split-view-word removed"
+          >
+                and restaurant
+          </span>
+        </div>
+      </td>
+      <td
+        style={
+          Object {
+            "width": 20,
+          }
+        }
+      />
+      <td
+        className="split-view-cell added-row"
+      >
+        <div
+          className="split-diff-row"
+        >
+          <span
+            className="split-view-word added"
+          >
+                and your aura
+          </span>
+        </div>
+      </td>
+    </tr>
+    <tr>
+      <td
+        className="split-view-cell"
+      >
+        <div
+          className="split-diff-row"
+        >
+          <span
+            className="split-view-word"
+          >
+                common
+          </span>
+        </div>
+      </td>
+      <td
+        style={
+          Object {
+            "width": 20,
+          }
+        }
+      />
+      <td
+        className="split-view-cell"
+      >
+        <div
+          className="split-diff-row"
+        >
+          <span
+            className="split-view-word"
+          >
+                common
+          </span>
+        </div>
+      </td>
+    </tr>
+  </tbody>
+</table>
+`;

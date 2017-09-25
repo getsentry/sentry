@@ -89,7 +89,7 @@ const ReleaseArtifacts = React.createClass({
         });
 
         this.setState({
-          fileList: fileList
+          fileList
         });
 
         IndicatorStore.add(t('Artifact removed.'), 'success', {

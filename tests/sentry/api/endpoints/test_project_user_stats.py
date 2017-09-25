@@ -31,8 +31,8 @@ class ProjectUserDetailsTest(APITestCase):
         )
 
     def test_simple(self):
-        euser1 = EventUser.objects.create(email='foo@example.com', project=self.project)
-        euser2 = EventUser.objects.create(email='bar@example.com', project=self.project)
+        euser1 = EventUser.objects.create(email='foo@example.com', project_id=self.project.id)
+        euser2 = EventUser.objects.create(email='bar@example.com', project_id=self.project.id)
         tsdb.record_multi(
             (
                 (tsdb.models.users_affected_by_project, self.project.id, (euser2.tag_value, )),
