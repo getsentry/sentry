@@ -21,8 +21,9 @@ const HookStore = Reflux.createStore({
   },
 
   add(hookName, callback) {
+    // Gracefully error on invalid hooks, but maintain registration
     if (!validHookNames.has(hookName)) {
-      throw new Error('Invalid hook name: ' + hookName);
+      console.error('Invalid hook name: ' + hookName);
     }
     if (_.isUndefined(this.hooks[hookName])) {
       this.hooks[hookName] = [];
