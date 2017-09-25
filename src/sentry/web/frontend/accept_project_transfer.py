@@ -54,9 +54,6 @@ class AcceptProjectTransferView(BaseView):
             return HttpResponseRedirect(
                 reverse('sentry')
             )
-
-        try:
-            data = unsign(force_str(d))
         except SignatureExpired:
             messages.add_message(
                 request, messages.ERROR,
