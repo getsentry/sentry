@@ -62,8 +62,9 @@ for m in ('multiprocessing', 'billiard'):
 
 IS_LIGHT_BUILD = os.environ.get('SENTRY_LIGHT_BUILD') == '1'
 
-
 # we use pip requirements files to improve Docker layer caching
+
+
 def get_requirements(env):
     with open('requirements-{}.txt'.format(env)) as fp:
         return [x.strip() for x in fp.read().split('\n') if not x.startswith('#')]
