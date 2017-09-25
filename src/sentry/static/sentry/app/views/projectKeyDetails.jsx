@@ -8,6 +8,7 @@ import idx from 'idx';
 import ApiMixin from '../mixins/apiMixin';
 import AutoSelectText from '../components/autoSelectText';
 import DateTime from '../components/dateTime';
+import FlowLayout from '../components/flowLayout';
 import HookStore from '../stores/hookStore';
 import IndicatorStore from '../stores/indicatorStore';
 import LoadingError from '../components/loadingError';
@@ -321,10 +322,10 @@ const KeySettings = React.createClass({
                     'Rate limits provide a flexible way to manage your event volume. If you have a noisy project or environment you can configure a rate limit for this key to reduce the number of events processed.'
                   }
                 </p>
-                <div className="form-group">
+                <div className="form-group rate-limit-group">
                   <label>{t('Rate Limit')}</label>
-                  <div>
-                    <div style={{width: 80, display: 'inline-block'}}>
+                  <FlowLayout>
+                    <div style={{width: 80}}>
                       <NumberField
                         key="rateLimit.count"
                         name="rateLimit.count"
@@ -337,10 +338,10 @@ const KeySettings = React.createClass({
                         className=""
                       />
                     </div>
-                    <div style={{display: 'inline-block', margin: '0 10px'}}>
+                    <div style={{margin: '0 10px'}}>
                       <small>event(s) in</small>
                     </div>
-                    <div style={{width: 150, display: 'inline-block'}}>
+                    <div style={{width: 150}}>
                       <Select2Field
                         width="100%"
                         key="rateLimit.window"
@@ -355,11 +356,12 @@ const KeySettings = React.createClass({
                         className=""
                       />
                     </div>
-                    <div className="help-block">
-                      {t(
-                        'Apply a rate limit to this credential to cap the amount of events accepted during a time window.'
-                      )}
-                    </div>
+                  </FlowLayout>
+
+                  <div className="help-block">
+                    {t(
+                      'Apply a rate limit to this credential to cap the amount of events accepted during a time window.'
+                    )}
                   </div>
                 </div>
                 <fieldset className="form-actions">
