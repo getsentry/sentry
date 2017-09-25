@@ -233,7 +233,7 @@ class SAML2ACSView(AuthView):
         # SSO response verification failed
         errors = auth.get_errors()
         if errors:
-            message = _('SAML SSO failed: %(reason)') % {'reason': auth.get_last_error_reason()}
+            message = _('SAML SSO failed: {reason}').format(reason=auth.get_last_error_reason())
             messages.add_message(request, messages.ERROR, message)
 
             return HttpResponseRedirect(get_login_url())
