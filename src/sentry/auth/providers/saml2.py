@@ -20,6 +20,7 @@ from sentry.auth.view import ConfigureView
 from sentry.models import (AuthProvider, Organization, OrganizationStatus, User, UserEmail)
 from sentry.utils.http import absolute_uri
 from sentry.utils.auth import login, get_login_redirect, get_login_url
+from sentry.web.frontend.base import BaseView
 
 try:
     from onelogin.saml2.auth import OneLogin_Saml2_Auth, OneLogin_Saml2_Settings
@@ -311,7 +312,7 @@ class SAML2ACSView(AuthView):
         return None
 
 
-class SAML2SLSView(AuthView):
+class SAML2SLSView(BaseView):
     def dispatch(self, request, organization_slug):
         provider = get_provider(organization_slug)
         if provider is None:
@@ -333,7 +334,7 @@ class SAML2SLSView(AuthView):
         return self.redirect(redirect_to)
 
 
-class SAML2MetadataView(AuthView):
+class SAML2MetadataView(BaseView):
     def dispatch(self, request, organization_slug):
         provider = get_provider(organization_slug)
         if provider is None:
