@@ -5,9 +5,7 @@ from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.contrib import messages
 from django.contrib.auth import logout
-from django.http import (
-    HttpResponse, HttpResponseRedirect, HttpResponseServerError, HttpResponseNotAllowed,
-)
+from django.http import HttpResponse, HttpResponseServerError
 from django.utils.decorators import method_decorator
 from django.utils.translation import ugettext_lazy as _
 from django.views.decorators.csrf import csrf_exempt
@@ -322,12 +320,19 @@ class SAML2SLSView(BaseView):
         saml_config = provider.build_saml_config(organization_slug)
         auth = provider.build_auth(request, saml_config)
 
+        # No need to logout an anonymous user.
+        should_logout = request.user.is_authenticated()
+
         def force_logout():
             request.user.refresh_session_nonce()
             request.user.save()
             logout(request)
 
-        redirect_to = auth.process_slo(delete_session_cb=force_logout)
+        redirect_to = auth.process_slo(
+            delete_session_cb=force_logout,
+            keep_local_session=should_logout,
+        )
+
         if not redirect_to:
             redirect_to = get_login_url()
 
