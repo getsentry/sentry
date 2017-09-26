@@ -7,6 +7,6 @@ import ExternalLink from 'sentry-ui/externalLink';
 storiesOf('Links/ExternalLink', module).add(
   'default',
   withInfo(
-    `A normal anchor that opens URL in a new tab accounting for 'target="_blank"' vulns`
+    'A normal anchor that opens URL in a new tab accounting for \'target="_blank"\' vulns'
   )(() => <ExternalLink href="https://www.sentry.io">Sentry</ExternalLink>)
 );
