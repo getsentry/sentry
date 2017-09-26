@@ -29,7 +29,7 @@ export function getCurlCommand(data) {
     result += ' \\\n -H "' + header[0] + ': ' + escapeQuotes(header[1] + '') + '"';
   }
 
-  if (data.data !== null && data.data !== undefined) {
+  if (defined(data.data)) {
     switch (data.inferredContentType) {
       case 'application/json':
         result += ' \\\n --data "' + escapeQuotes(JSON.stringify(data.data)) + '"';
