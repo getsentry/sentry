@@ -14,6 +14,7 @@ from django.utils.translation import ugettext_lazy as _
 from sentry import roles, options
 from sentry.web.frontend.base import ProjectView
 from sentry.utils.email import MessageBuilder
+from sentry.utils.http import absolute_uri
 from sentry.utils.signing import sign
 from sentry.models import AuditLogEntryEvent, OrganizationMember, User
 
@@ -65,7 +66,7 @@ class TransferProjectView(ProjectView):
                     'project_name': project.name,
                     'request_time': timezone.now(),
                     'url':
-                    'dev.getsentry.net:8000/accept-transfer/?' + urlencode({'data': url_data}),
+                    absolute_uri('/accept-transfer/') + '?' + urlencode({'data': url_data}),
                     'requester': request.user
                 }
                 MessageBuilder(
