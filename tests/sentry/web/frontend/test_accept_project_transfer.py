@@ -24,15 +24,15 @@ class AcceptTransferProjectTest(TestCase):
         self.owner = self.create_user(email='example@example.com', is_superuser=False)
         self.from_organization = self.create_organization(owner=self.owner)
         self.to_organization = self.create_organization(owner=self.owner)
-        self.team = self.create_team(name='bar', organization=self.to_organization)
+        self.from_team = self.create_team(name='bar', organization=self.from_organization)
         user = self.create_user('admin@example.com')
         self.member = self.create_member(
             organization=self.from_organization,
             user=user,
             role='admin',
-            teams=[self.team],
+            teams=[self.from_team],
         )
-        self.project = self.create_project(name='bar', team=self.team)
+        self.project = self.create_project(name='bar', team=self.from_team)
         self.path = reverse('sentry-accept-project-transfer')
 
     def test_requires_authentication(self):
