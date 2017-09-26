@@ -10,7 +10,7 @@ from datetime import (
 from sentry.testutils import TestCase
 from sentry.tsdb.base import TSDBModel, ONE_MINUTE, ONE_HOUR, ONE_DAY
 from sentry.tsdb.redis import RedisTSDB, CountMinScript
-from sentry.utils.dates import to_timestamp
+from sentry.utils.dates import to_datetime, to_timestamp
 
 
 class RedisTSDBTest(TestCase):
@@ -35,11 +35,11 @@ class RedisTSDBTest(TestCase):
             client.flushdb()
 
     def test_make_counter_key(self):
-        result = self.db.make_counter_key(TSDBModel.project, 1368889980, 1)
-        assert result == 'ts:1:1368889980:1'
+        result = self.db.make_counter_key(TSDBModel.project, 1, to_datetime(1368889980), 1)
+        assert result == ('ts:1:1368889980:1', 1)
 
-        result = self.db.make_counter_key(TSDBModel.project, 1368889980, 'foo')
-        assert result == 'ts:1:1368889980:33'
+        result = self.db.make_counter_key(TSDBModel.project, 1, to_datetime(1368889980), 'foo')
+        assert result == ('ts:1:1368889980:46', self.db.get_model_key('foo'))
 
     def test_get_model_key(self):
         result = self.db.get_model_key(1)

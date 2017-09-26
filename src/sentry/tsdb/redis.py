@@ -122,10 +122,14 @@ class RedisTSDB(BaseTSDB):
             key=self.get_model_key(key),
         )
 
-    def make_counter_key(self, model, epoch, model_key):
+    def make_counter_key(self, model, rollup, timestamp, key):
         """
         Make a key that is used for counter values.
+
+        Returns a 2-tuple that contains the hash key and the hash field.
         """
+        model_key = self.get_model_key(key)
+
         if isinstance(model_key, six.integer_types):
             vnode = model_key % self.vnodes
         else:
@@ -133,7 +137,12 @@ class RedisTSDB(BaseTSDB):
                 model_key = model_key.encode('utf-8')
             vnode = crc32(model_key) % self.vnodes
 
-        return '{0}{1}:{2}:{3}'.format(self.prefix, model.value, epoch, vnode)
+        return '{prefix}{model}:{epoch}:{vnode}'.format(
+            prefix=self.prefix,
+            model=model.value,
+            epoch=self.normalize_to_rollup(timestamp, rollup),
+            vnode=vnode,
+        ), model_key
 
     def get_model_key(self, key):
         # We specialize integers so that a pure int-map can be optimized by
@@ -155,18 +164,14 @@ class RedisTSDB(BaseTSDB):
 
         >>> incr_multi([(TimeSeriesModel.project, 1), (TimeSeriesModel.group, 5)])
         """
-        make_key = self.make_counter_key
-        normalize_to_rollup = self.normalize_to_rollup
         if timestamp is None:
             timestamp = timezone.now()
 
         with self.cluster.map() as client:
             for rollup, max_values in six.iteritems(self.rollups):
-                norm_rollup = normalize_to_rollup(timestamp, rollup)
                 for model, key in items:
-                    model_key = self.get_model_key(key)
-                    hash_key = make_key(model, norm_rollup, model_key)
-                    client.hincrby(hash_key, model_key, count)
+                    hash_key, hash_field = self.make_counter_key(model, rollup, timestamp, key)
+                    client.hincrby(hash_key, hash_field, count)
                     client.expireat(
                         hash_key,
                         self.calculate_expiry(rollup, max_values, timestamp),
@@ -187,16 +192,11 @@ class RedisTSDB(BaseTSDB):
         results = []
         with self.cluster.map() as client:
             for key in keys:
-                model_key = self.get_model_key(key)
                 for timestamp in series:
-                    hash_key = self.make_counter_key(
-                        model,
-                        self.normalize_to_rollup(timestamp, rollup),
-                        model_key,
-                    )
+                    hash_key, hash_field = self.make_counter_key(model, rollup, timestamp, key)
                     results.append(
                         (to_timestamp(timestamp), key, client.hget(
-                            hash_key, model_key)))
+                            hash_key, hash_field)))
 
         results_by_key = defaultdict(dict)
         for epoch, key, count in results:
@@ -216,34 +216,33 @@ class RedisTSDB(BaseTSDB):
                 for timestamp in series:
                     results = data[rollup][timestamp] = []
                     for source in sources:
-                        source_model_key = self.get_model_key(source)
-                        key = self.make_counter_key(
+                        source_hash_key, source_hash_field = self.make_counter_key(
                             model,
-                            self.normalize_to_rollup(timestamp, rollup),
-                            source_model_key,
+                            rollup,
+                            timestamp,
+                            source,
                         )
-                        results.append(client.hget(key, source_model_key))
-                        client.hdel(key, source_model_key)
+                        results.append(client.hget(source_hash_key, source_hash_field))
+                        client.hdel(source_hash_key, source_hash_field)
 
         with self.cluster.map() as client:
-            destination_model_key = self.get_model_key(destination)
-
             for rollup, series in data.items():
                 for timestamp, results in series.items():
                     total = sum(int(result.value or 0) for result in results)
                     if total:
-                        destination_counter_key = self.make_counter_key(
+                        destination_hash_key, destination_hash_field = self.make_counter_key(
                             model,
-                            self.normalize_to_rollup(timestamp, rollup),
-                            destination_model_key,
+                            rollup,
+                            timestamp,
+                            destination,
                         )
                         client.hincrby(
-                            destination_counter_key,
-                            destination_model_key,
+                            destination_hash_key,
+                            destination_hash_field,
                             total,
                         )
                         client.expireat(
-                            destination_counter_key,
+                            destination_hash_key,
                             self.calculate_expiry(
                                 rollup,
                                 self.rollups[rollup],
@@ -259,14 +258,16 @@ class RedisTSDB(BaseTSDB):
                 for timestamp in series:
                     for model in models:
                         for key in keys:
-                            model_key = self.get_model_key(key)
+                            hash_key, hash_field = self.make_counter_key(
+                                model,
+                                rollup,
+                                timestamp,
+                                key,
+                            )
+
                             client.hdel(
-                                self.make_counter_key(
-                                    model,
-                                    self.normalize_to_rollup(timestamp, rollup),
-                                    model_key,
-                                ),
-                                model_key,
+                                hash_key,
+                                hash_field,
                             )
 
     def record(self, model, key, values, timestamp=None):
