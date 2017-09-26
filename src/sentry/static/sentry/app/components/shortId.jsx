@@ -1,5 +1,8 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import styled from 'react-emotion';
+import {withTheme} from 'theming';
+
 import PureRenderMixin from 'react-addons-pure-render-mixin';
 import ProjectState from '../mixins/projectState';
 
@@ -25,11 +28,24 @@ const ShortId = React.createClass({
       return null;
     }
     return (
-      <span className="short-id" onClick={this.preventPropagation}>
+      <ShortIdWrapper onClick={this.preventPropagation} className={this.props.className}>
         <AutoSelectText>{shortId}</AutoSelectText>
-      </span>
+      </ShortIdWrapper>
     );
   }
 });
+
+const ShortIdWrapper = withTheme(
+  styled.span`
+    white-space: nowrap;
+    font-family: ${p => p.theme.fontFamilyMono};
+
+    > span:before {
+      content: "#";
+      color: ${p => p.theme.gray2};
+      padding-right: 2px;
+    }
+  `
+);
 
 export default ShortId;

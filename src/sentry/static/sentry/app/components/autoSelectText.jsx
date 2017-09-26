@@ -30,9 +30,9 @@ const AutoSelectText = React.createClass({
 
   render() {
     return (
-      <div ref="element" className={this.props.className}>
+      <span ref="element" className={this.props.className}>
         {this.props.children}
-      </div>
+      </span>
     );
   }
 });

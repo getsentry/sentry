@@ -1,6 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import classNames from 'classnames';
+import styled, {css} from 'react-emotion';
+import {withTheme} from 'theming';
 import {Link} from 'react-router';
 
 import {Metadata} from '../proptypes';
@@ -24,8 +25,7 @@ class EventOrGroupHeader extends React.Component {
       culprit: PropTypes.string
     }),
     includeLink: PropTypes.bool,
-    hideIcons: PropTypes.bool,
-    hideLevel: PropTypes.bool
+    hideIcons: PropTypes.bool
   };
 
   static defaultProps = {
@@ -48,7 +48,7 @@ class EventOrGroupHeader extends React.Component {
 
   getTitle() {
     let {hideLevel, hideIcons, includeLink, orgId, projectId, data} = this.props;
-    let {id, level, groupID} = data || {};
+    let {id, groupID} = data || {};
     let isEvent = !!data.eventID;
 
     let props = {};
@@ -62,9 +62,8 @@ class EventOrGroupHeader extends React.Component {
 
     return (
       <Wrapper {...props}>
-        {!hideLevel && level && <span className="error-level truncate">{level}</span>}
-        {!hideIcons && <span className="icon icon-soundoff" />}
-        {!hideIcons && <span className="icon icon-star-solid" />}
+        {!hideIcons && data.status === 'ignored' && <Muted className="icon-soundoff" />}
+        {!hideIcons && data.isBookmarked && <Starred className="icon-star-solid" />}
         <EventOrGroupTitle {...this.props} />
       </Wrapper>
     );
@@ -72,21 +71,66 @@ class EventOrGroupHeader extends React.Component {
 
   render() {
     let {className} = this.props;
-    let cx = classNames('event-issue-header', className);
     let message = this.getMessage();
 
     return (
-      <div className={cx}>
-        <h3 className="truncate">
+      <div className={className}>
+        <Title>
           {this.getTitle()}
-        </h3>
+        </Title>
         {message &&
-          <div className="event-message truncate">
-            <span className="message">{message}</span>
-          </div>}
+          <Message>
+            <span>{message}</span>
+          </Message>}
       </div>
     );
   }
 }
+
+const Truncate = css`
+  overflow: hidden;
+  max-width: 100%;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+`;
+
+const Title = withTheme(
+  styled.div`
+    ${Truncate};
+    margin: 0 0 5px;
+
+    & em {
+      font-size: 14px;
+      font-style: normal;
+      font-weight: 300;
+      color: ${p => p.theme.gray3};
+    }
+  `
+);
+
+const Message = styled.div`
+  ${Truncate};
+  font-size: 14px;
+  margin: 0 0 5px;
+`;
+
+const Icon = css`
+  font-size: 14px;
+  margin-right: 5px;
+`;
+
+const Muted = withTheme(
+  styled.span`
+    ${Icon};
+    color: ${p => p.theme.red};
+  `
+);
+
+const Starred = withTheme(
+  styled.span`
+    ${Icon};
+    color: ${p => p.theme.yellowOrange};
+  `
+);
 
 export default EventOrGroupHeader;

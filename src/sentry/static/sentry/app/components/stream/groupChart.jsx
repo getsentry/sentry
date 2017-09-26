@@ -29,7 +29,7 @@ const GroupChart = React.createClass({
 
     return (
       <LazyLoad>
-        <BarChart points={chartData} label="events" />
+        <BarChart points={chartData} label="events" height="40px" />
       </LazyLoad>
     );
   }
