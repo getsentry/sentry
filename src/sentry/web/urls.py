@@ -455,8 +455,9 @@ urlpatterns += patterns(
     # XXX(dcramer): preferably we'd be able to use 'integrations' as the URL
     # prefix here, but unfortunately sentry.io has that mapped to marketing
     # assets for the time being
-    url(r'^extensions/cloudflare/', include('sentry.integrations.cloudflare.urls')),
     url(r'^extensions/(?P<provider_id>[\w_-]+)/setup/$', IntegrationSetupView.as_view()),
+    url(r'^extensions/cloudflare/', include('sentry.integrations.cloudflare.urls')),
+    url(r'^extensions/slack/', include('sentry.integrations.slack.urls')),
 
     url(r'^plugins/', include('sentry.plugins.base.urls')),
 

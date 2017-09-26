@@ -188,14 +188,17 @@ class PipelineHelper(object):
                 name=data.get('name', self.provider.name),
             )
         else:
-            self.integration, _ = Integration.objects.get_or_create(
+            defaults = {
+                'metadata': data.get('metadata', {}),
+                'name': data.get('name', data['external_id']),
+            }
+            self.integration, created = Integration.objects.get_or_create(
                 provider=self.provider.id,
                 external_id=data['external_id'],
-                defaults={
-                    'metadata': data.get('metadata', {}),
-                    'name': data.get('name', data['external_id']),
-                }
+                defaults=defaults
             )
+            if not created:
+                self.integration.update(**defaults)
             self.integration.add_organization(self.organization.id)
 
         id_config = data.get('identity')
