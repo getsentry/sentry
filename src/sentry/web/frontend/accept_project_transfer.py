@@ -66,6 +66,7 @@ class AcceptProjectTransferView(BaseView):
         project_id = data['project_id']
         user_id = data['user_id']
         transaction_id = data['transaction_id']
+        from_organization_id = data['from_organization_id']
 
         # check if user is still an owner
         if not OrganizationMember.objects.filter(
@@ -77,12 +78,22 @@ class AcceptProjectTransferView(BaseView):
                 reverse('sentry')
             )
 
+        try:
+            project = Project.objects.get(id=project_id, organization_id=from_organization_id)
+        except Project.DoesNotExist:
+            messages.add_message(
+                request, messages.ERROR,
+                _(u'Project no longer exists')
+            )
+            return HttpResponseRedirect(
+                reverse('sentry')
+            )
+
         form = self.get_form(request)
         if form.is_valid():
             # transfer the project
             team_id = form.cleaned_data.get('team')
             new_team = Team.objects.get(id=team_id)
-            project = Project.objects.get(id=project_id)
             project.team = new_team
             project.organization = new_team.organization
             project.save()
@@ -101,7 +112,7 @@ class AcceptProjectTransferView(BaseView):
             )
 
         context = {
-            'project': Project.objects.get(id=project_id),
+            'project': project,
             'form': form,
         }
         return self.respond('sentry/projects/accept_project_transfer.html', context)
