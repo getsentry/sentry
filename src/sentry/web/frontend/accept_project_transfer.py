@@ -19,10 +19,9 @@ class AcceptProjectTransferForm(forms.Form):
     def __init__(self, request, *args, **kwargs):
         super(AcceptProjectTransferForm, self).__init__(*args, **kwargs)
         teams = []
-        for o in OrganizationMember.objects.filter(user__email=request.user):
-            org_name = Organization.objects.get(id=o.organization_id).name
-            for t in o.get_teams():
-                option = " %s - %s" % (t.name, org_name)
+        for o in Organization.objects.get_for_user(request.user):
+            for t in Team.objects.get_for_user(o, request.user, with_projects=False):
+                option = " %s - %s" % (t.name, o.name)
                 teams.append([t.id, option])
 
         self.fields['team'].choices = teams

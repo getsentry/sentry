@@ -16,7 +16,7 @@ from sentry.web.frontend.base import ProjectView
 from sentry.utils.email import MessageBuilder
 from sentry.utils.http import absolute_uri
 from sentry.utils.signing import sign
-from sentry.models import AuditLogEntryEvent, OrganizationMember, User
+from sentry.models import AuditLogEntryEvent, OrganizationMember
 
 
 class TransferProjectForm(forms.Form):
@@ -42,50 +42,50 @@ class TransferProjectView(ProjectView):
         if form.is_valid():
             email = form.cleaned_data.get('email')
             try:
-                owner = User.objects.get(email__iexact=email, is_active=True)
-            except User.DoesNotExist:
+                owner = OrganizationMember.objects.filter(
+                    user__email__iexact=email,
+                    role=roles.get_top_dog().id,
+                    user__is_active=True,
+                )[0]
+            except IndexError:
                 messages.add_message(
                     request, messages.ERROR, six.text_type(
-                        _('Could not find user')))
+                        _('Could not find owner with that email')))
                 return self.respond('sentry/projects/transfer.html', context={'form': form})
 
-            if OrganizationMember.objects.filter(
-                role=roles.get_top_dog().id,
-                user=owner,
-            ).exists():
-                transaction_id = uuid4().hex
-                url_data = sign(
-                    actor_id=request.user.id,
-                    from_organization_id=organization.id,
-                    project_id=project.id,
-                    user_id=owner.id,
-                    transaction_id=transaction_id)
-                context = {
-                    'email': email,
-                    'from_org': organization.name,
-                    'project_name': project.name,
-                    'request_time': timezone.now(),
-                    'url':
-                    absolute_uri('/accept-transfer/') + '?' + urlencode({'data': url_data}),
-                    'requester': request.user
-                }
-                MessageBuilder(
-                    subject='%sRequest for Project Transfer' %
-                    (options.get('mail.subject-prefix'), ),
-                    template='sentry/emails/transfer_project.txt',
-                    html_template='sentry/emails/transfer_project.html',
-                    type='org.confirm_project_transfer_request',
-                    context=context,
-                ).send_async([email])
+            transaction_id = uuid4().hex
+            url_data = sign(
+                actor_id=request.user.id,
+                from_organization_id=organization.id,
+                project_id=project.id,
+                user_id=owner.user_id,
+                transaction_id=transaction_id)
+            context = {
+                'email': email,
+                'from_org': organization.name,
+                'project_name': project.name,
+                'request_time': timezone.now(),
+                'url':
+                absolute_uri('/accept-transfer/') + '?' + urlencode({'data': url_data}),
+                'requester': request.user
+            }
+            MessageBuilder(
+                subject='%sRequest for Project Transfer' %
+                (options.get('mail.subject-prefix'), ),
+                template='sentry/emails/transfer_project.txt',
+                html_template='sentry/emails/transfer_project.html',
+                type='org.confirm_project_transfer_request',
+                context=context,
+            ).send_async([email])
 
-                self.create_audit_entry(
-                    request=request,
-                    organization=project.organization,
-                    target_object=project.id,
-                    event=AuditLogEntryEvent.PROJECT_REQUEST_TRANSFER,
-                    data=project.get_audit_log_data(),
-                    transaction_id=transaction_id,
-                )
+            self.create_audit_entry(
+                request=request,
+                organization=project.organization,
+                target_object=project.id,
+                event=AuditLogEntryEvent.PROJECT_REQUEST_TRANSFER,
+                data=project.get_audit_log_data(),
+                transaction_id=transaction_id,
+            )
 
             messages.add_message(
                 request, messages.SUCCESS,
