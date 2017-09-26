@@ -14,6 +14,7 @@ from sentry.constants import MAX_TAG_KEY_LENGTH, MAX_TAG_VALUE_LENGTH
 from sentry.db.models import (
     Model, BoundedPositiveIntegerField, GzippedDictField, BaseManager, sane_repr
 )
+from sentry.models import Release
 
 
 class TagValue(Model):
@@ -47,6 +48,6 @@ class TagValue(Model):
 
     def get_label(self):
         # HACK(dcramer): quick and dirty way to hack in better display states
-        if self.key == 'sentry:release' and len(self.value) == 40:
-            return self.value[:12]
+        if self.key == 'sentry:release':
+            return Release.get_display_version(self.version)
         return self.value
