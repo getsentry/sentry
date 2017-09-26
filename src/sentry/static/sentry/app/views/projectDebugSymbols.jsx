@@ -292,7 +292,7 @@ const ProjectDebugSymbols = React.createClass({
       if (dsym === undefined || dsym === null) {
         return null;
       }
-      const url = `${this.api.baseUrl}/projects/${orgId}/${projectId}/files/dsyms/?download_id=${dsymFile.id}`;
+      const url = `${this.api.baseUrl}/projects/${orgId}/${projectId}/files/dsyms/?download_id=${dsym.id}`;
       return (
         <tr key={key}>
           <td>
