@@ -50,27 +50,29 @@ class DSymFilesEndpoint(ProjectEndpoint):
 
     content_negotiation_class = ConditionalContentNegotiation
 
-    def download(self, version_dsym_id, project):
+    def download(self, project_dsym_id, project):
         rate_limited = ratelimits.is_limited(
             project=project,
             key='rl:DSymFilesEndpoint:download:%s:%s' % (
-                version_dsym_id, project.id),
+                project_dsym_id, project.id),
             limit=10,
         )
         if rate_limited:
             logger.info('notification.rate_limited',
                         extra={'project_id': project.id,
-                               'version_dsym_id': version_dsym_id})
+                               'project_dsym_id': project_dsym_id})
             return HttpResponse(
                 {
                     'Too many download requests',
                 }, status=403
             )
 
-        versioned_dsym = VersionDSymFile.objects.filter(
-            id=version_dsym_id
-        ).select_related('projectdsymfile').first()
-        dsym = versioned_dsym.dsym_file
+        dsym = ProjectDSymFile.objects.filter(
+            id=project_dsym_id
+        ).first()
+
+        if dsym is None:
+            raise Http404
 
         suffix = ".dSYM"
         if dsym.dsym_type == 'proguard' and dsym.object_name == 'proguard-mapping':
