@@ -25,7 +25,7 @@ class SlackIntegrationTest(IntegrationTestCase):
         assert redirect.netloc == 'slack.com'
         assert redirect.path == '/oauth/authorize'
         params = parse_qs(redirect.query)
-        assert params['scope'] == ['bot chat:write:bot commands team:read']
+        assert params['scope'] == [' '.join(self.provider.oauth_scopes)]
         assert params['state']
         assert params['redirect_uri'] == ['http://testserver/extensions/slack/setup/']
         assert params['response_type'] == ['code']
@@ -38,13 +38,13 @@ class SlackIntegrationTest(IntegrationTestCase):
             responses.POST, 'https://slack.com/api/oauth.access',
             json={
                 'ok': True,
-                'user_id': 'UXXXXXXX0',
+                'user_id': 'UXXXXXXX1',
                 'access_token': 'xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx',
-                'team_id': 'TXXXXXXX0',
+                'team_id': 'TXXXXXXX1',
                 'team_name': 'Example',
                 'bot': {
                     'bot_access_token': 'xoxb-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx',
-                    'bot_user_id': 'UXXXXXXX1',
+                    'bot_user_id': 'UXXXXXXX2',
                 },
                 'scope': ','.join(authorize_params['scope'].split(' ')),
             })
@@ -69,12 +69,13 @@ class SlackIntegrationTest(IntegrationTestCase):
         self.assertDialogSuccess(resp)
 
         integration = Integration.objects.get(provider=self.provider.id)
-        assert integration.external_id == 'TXXXXXXX0'
+        assert integration.external_id == 'TXXXXXXX1'
         assert integration.name == 'Example'
         assert integration.metadata == {
+            'access_token': 'xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx',
             'bot_access_token': 'xoxb-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx',
-            'bot_user_id': 'UXXXXXXX1',
-            'scopes': ['bot', 'chat:write:bot', 'commands', 'team:read'],
+            'bot_user_id': 'UXXXXXXX2',
+            'scopes': list(self.provider.oauth_scopes),
         }
         oi = OrganizationIntegration.objects.get(
             integration=integration,
@@ -88,10 +89,10 @@ class SlackIntegrationTest(IntegrationTestCase):
         )
         identity = Identity.objects.get(
             idp=idp,
-            external_id='UXXXXXXX0',
+            external_id='UXXXXXXX1',
         )
         assert identity.status == IdentityStatus.VALID
-        assert identity.scopes == ['bot', 'chat:write:bot', 'commands', 'team:read']
+        assert identity.scopes == list(self.provider.oauth_scopes)
         assert identity.data == {
             'access_token': 'xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx',
         }
