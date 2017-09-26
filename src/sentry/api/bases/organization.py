@@ -45,8 +45,19 @@ class OrganizationPermission(ScopedPermission):
 
         else:
             request.access = access.from_request(request, organization)
-            # session auth needs to confirm various permissions
-            if request.user.is_authenticated() and self.needs_sso(request, organization):
+
+            if auth.is_user_signed_request(request):
+                # if the user comes from a signed request
+                # we let him pass if sso is enabled
+                logger.info(
+                    'access.signed-sso-passthrough',
+                    extra={
+                        'organization_id': organization.id,
+                        'user_id': request.user.id,
+                    }
+                )
+            elif request.user.is_authenticated() and self.needs_sso(request, organization):
+                # session auth needs to confirm various permissions
                 logger.info(
                     'access.must-sso',
                     extra={
