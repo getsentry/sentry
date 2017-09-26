@@ -21,6 +21,7 @@ from sentry.models import (
     Rule,
 )
 from sentry.utils.dates import to_timestamp
+from functools import reduce
 
 logger = logging.getLogger('sentry.digests')
 

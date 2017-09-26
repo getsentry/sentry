@@ -11,6 +11,7 @@
 # All configuration values have a default; values that are commented out
 # serve to show the default.
 
+from __future__ import print_function
 import sys
 import os
 
@@ -242,4 +243,4 @@ if os.environ.get('SENTRY_FEDERATED_DOCS') != '1':
         import sentryext
         sentryext.activate()
     except ImportError:
-        print 'ERROR: could not import sentryext.  You need to check out the _sentryext submodule.'
+        print('ERROR: could not import sentryext.  You need to check out the _sentryext submodule.')

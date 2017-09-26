@@ -9,6 +9,7 @@ from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import TagBasedStreamGroupSerializer
 from sentry.models import (EventUser, Group, GroupTagValue, Project)
+from functools import reduce
 
 
 class OrganizationUserIssuesEndpoint(OrganizationEndpoint):

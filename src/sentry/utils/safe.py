@@ -29,7 +29,7 @@ def safe_execute(func, *args, **kwargs):
             result = func(*args, **kwargs)
     except Exception as e:
         if hasattr(func, 'im_class'):
-            cls = func.im_class
+            cls = func.__self__.__class__
         else:
             cls = func.__class__
 

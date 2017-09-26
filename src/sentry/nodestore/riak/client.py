@@ -67,10 +67,11 @@ class SimpleThreadedWorkerPool(object):
 
         self.__started = True
 
-    def submit(self, (func, arg, kwargs, cb)):
+    def submit(self, xxx_todo_changeme):
         """\
         Submit a task to the worker pool.
         """
+        (func, arg, kwargs, cb) = xxx_todo_changeme
         if not self.__started:
             self.__start()
 

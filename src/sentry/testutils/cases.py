@@ -431,7 +431,7 @@ class PluginTestCase(TestCase):
 
         # Old plugins, plugin is a class, new plugins, it's an instance
         # New plugins don't need to be registered
-        if isinstance(self.plugin, (type, types.ClassType)):
+        if isinstance(self.plugin, type):
             plugins.register(self.plugin)
             self.addCleanup(plugins.unregister, self.plugin)
 

@@ -228,10 +228,10 @@ class RedisBackend(Backend):
                     raise
 
             records = map(
-                lambda (key, value, timestamp): Record(
-                    key,
-                    self.codec.decode(value) if value is not None else None,
-                    float(timestamp),
+                lambda key_value_timestamp: Record(
+                    key_value_timestamp[0],
+                    self.codec.decode(key_value_timestamp[1]) if key_value_timestamp[1] is not None else None,
+                    float(key_value_timestamp[2]),
                 ),
                 response,
             )

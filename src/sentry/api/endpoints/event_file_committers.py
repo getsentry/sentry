@@ -14,6 +14,7 @@ from django.db.models import Q
 
 from itertools import izip
 from collections import defaultdict
+from functools import reduce
 
 
 def tokenize_path(path):

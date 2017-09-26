@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 
 import mock
 import six
+from six.moves import xrange
 
 from sentry.tsdb import backend as tsdb
 from sentry.rules.conditions.event_frequency import (

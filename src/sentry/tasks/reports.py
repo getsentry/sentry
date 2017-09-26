@@ -24,6 +24,7 @@ from sentry.utils.dates import floor_to_utc_day, to_datetime, to_timestamp
 from sentry.utils.email import MessageBuilder
 from sentry.utils.math import mean
 from six.moves import reduce
+from functools import reduce
 
 date_format = functools.partial(
     dateformat.format,
@@ -154,7 +155,8 @@ def merge_series(target, other, function=operator.add):
     return results
 
 
-def prepare_project_series((start, stop), project, rollup=60 * 60 * 24):
+def prepare_project_series(xxx_todo_changeme, project, rollup=60 * 60 * 24):
+    (start, stop) = xxx_todo_changeme
     resolution, series = tsdb.get_optimal_rollup_series(start, stop, rollup)
     assert resolution == rollup, 'resolution does not match requested value'
     clean = functools.partial(clean_series, start, stop, rollup)
@@ -193,10 +195,11 @@ def prepare_project_series((start, stop), project, rollup=60 * 60 * 24):
     )
 
 
-def prepare_project_aggregates((_, stop), project):
+def prepare_project_aggregates(xxx_todo_changeme1, project):
     # TODO: This needs to return ``None`` for periods that don't have any data
     # (because the project is not old enough) and possibly extrapolate for
     # periods that only have partial periods.
+    (_, stop) = xxx_todo_changeme1
     segments = 4
     period = timedelta(days=7)
     start = stop - (period * segments)
@@ -281,7 +284,8 @@ def prepare_project_issue_summaries(interval, project):
     ]
 
 
-def prepare_project_usage_summary((start, stop), project):
+def prepare_project_usage_summary(xxx_todo_changeme2, project):
+    (start, stop) = xxx_todo_changeme2
     return (
         tsdb.get_sums(
             tsdb.models.project_total_blacklisted,
@@ -299,7 +303,8 @@ def prepare_project_usage_summary((start, stop), project):
     )
 
 
-def get_calendar_range((_, stop_time), months):
+def get_calendar_range(xxx_todo_changeme3, months):
+    (_, stop_time) = xxx_todo_changeme3
     assert (
         stop_time.hour, stop_time.minute, stop_time.second, stop_time.microsecond, stop_time.tzinfo,
     ) == (0, 0, 0, 0, pytz.utc)
@@ -548,7 +553,8 @@ def prepare_organization_report(timestamp, duration, organization_id, dry_run=Fa
         )
 
 
-def fetch_personal_statistics((start, stop), organization, user):
+def fetch_personal_statistics(xxx_todo_changeme4, organization, user):
+    (start, stop) = xxx_todo_changeme4
     resolved_issue_ids = Activity.objects.filter(
         project__organization_id=organization.id,
         user_id=user.id,
@@ -644,7 +650,8 @@ class Skipped(object):
     NoReports = object()
 
 
-def has_valid_aggregates(interval, (project, report)):
+def has_valid_aggregates(interval, xxx_todo_changeme5):
+    (project, report) = xxx_todo_changeme5
     return any(bool(value) for value in report.aggregates)
 
 
@@ -691,7 +698,7 @@ def deliver_organization_user_report(timestamp, duration, organization_id, user_
     projects = list(projects)
 
     inclusion_predicates = [
-        lambda interval, (project, report): report is not None,
+        lambda interval, project_and_report: project_and_report[1] is not None,
         has_valid_aggregates,
     ]
 
@@ -764,7 +771,7 @@ def build_project_breakdown_series(reports):
         operator.itemgetter(0),
         sorted(
             reports.items(),
-            key=lambda (instance, report): sum(sum(values) for timestamp, values in report[0]),
+            key=lambda instance_report: sum(sum(values) for timestamp, values in instance_report[1][0]),
             reverse=True,
         ),
     )[:len(colors)]
@@ -775,14 +782,14 @@ def build_project_breakdown_series(reports):
     # largest color blocks are at the bottom and it feels appropriately
     # weighted.)
     selections = map(
-        lambda (instance, color): (
+        lambda instance_color: (
             Key(
-                instance.slug,
-                instance.get_absolute_url(),
-                color,
-                get_legend_data(reports[instance]),
+                instance_color[0].slug,
+                instance_color[0].get_absolute_url(),
+                instance_color[1],
+                get_legend_data(reports[instance_color[0]]),
             ),
-            reports[instance],
+            reports[instance_color[0]],
         ),
         zip(
             instances,

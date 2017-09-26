@@ -8,6 +8,7 @@ from six.moves import reduce
 from sentry.db.models import BoundedPositiveIntegerField, Model, sane_repr
 from sentry.utils.hashlib import md5_text
 from sentry.constants import MAX_EMAIL_FIELD_LENGTH
+from functools import reduce
 
 KEYWORD_MAP = {
     'id': 'ident',
