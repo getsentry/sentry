@@ -740,6 +740,7 @@ SENTRY_FEATURES = {
     'auth:register': True,
     'organizations:api-keys': False,
     'organizations:create': True,
+    'organizations:repos': True,
     'organizations:sso': True,
     'organizations:sso-saml2': False,
     'organizations:sso-rippling': False,
