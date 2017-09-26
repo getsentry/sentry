@@ -719,5 +719,8 @@ class AuthHelper(object):
         self.request.session['auth']['state'][key] = value
         self.request.session.modified = True
 
-    def fetch_state(self, key):
+    def fetch_state(self, key=None):
+        if key is None:
+            return self.request.session['auth']['state']
+
         return self.request.session['auth']['state'].get(key)
