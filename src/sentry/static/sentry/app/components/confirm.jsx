@@ -22,26 +22,38 @@ class Confirm extends React.PureComponent {
 
   constructor(...args) {
     super(...args);
+
     this.state = {
-      isModalOpen: false
+      isModalOpen: false,
+      disableConfirmButton: false
     };
+    this.confirming = false;
   }
 
   handleConfirm = () => {
-    this.setState({
-      isModalOpen: false
-    });
+    // `confirming` is used to make sure `onConfirm` is only called once
+    if (!this.confirming) {
+      this.props.onConfirm();
+    }
 
-    this.props.onConfirm();
+    // Close modal
+    this.setState({
+      isModalOpen: false,
+      disableConfirmButton: true
+    });
+    this.confirming = true;
   };
 
   handleToggle = () => {
-    if (this.props.disabled) {
-      return;
-    }
-    this.setState({
-      isModalOpen: !this.state.isModalOpen
-    });
+    if (this.props.disabled) return;
+
+    // Toggle modal display state
+    // Also always reset `confirming` when modal visibility changes
+    this.setState(state => ({
+      isModalOpen: !state.isModalOpen,
+      disableConfirmButton: false
+    }));
+    this.confirming = false;
   };
 
   render() {
@@ -56,7 +68,10 @@ class Confirm extends React.PureComponent {
           <Button style={{marginRight: 10}} onClick={this.handleToggle}>
             {cancelText}
           </Button>
-          <Button priority={priority} onClick={this.handleConfirm}>
+          <Button
+            disabled={this.state.disableConfirmButton}
+            priority={priority}
+            onClick={this.handleConfirm}>
             {confirmText}
           </Button>
         </div>
