@@ -561,7 +561,8 @@ local function search(configuration, parameters, limit)
     for candidate, index_hits in pairs(possible_candidates) do
         candidates[i] = {
             key = candidate,
-            score = avg(index_hits),
+            num_hits = #index_hits,
+            avg_hits = avg(index_hits),
         }
         i = i + 1
     end
@@ -570,9 +571,13 @@ local function search(configuration, parameters, limit)
         table.sort(
             candidates,
             function (this, that)
-                if this.score > that.score then
+                if this.avg_hits > that.avg_hits then
                     return true
-                elseif this.score < that.score then
+                elseif this.avg_hits < that.avg_hits then
+                    return false
+                elseif this.num_hits > that.num_hits then
+                    return true
+                elseif this.num_hits < that.num_hits then
                     return false
                 else
                     return this.key < that.key -- NOTE: reverse lex
