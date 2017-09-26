@@ -3,6 +3,7 @@ from __future__ import absolute_import
 # TODO(dcramer): this heavily inspired by pytest-selenium, and it's possible
 # we could simply inherit from the plugin at this point
 
+import logging
 import os
 import pytest
 import signal
@@ -21,6 +22,8 @@ from six.moves.urllib.parse import quote, urlparse
 if os.environ.get('TRAVIS_PULL_REQUEST', 'false'
                   ) == 'false' and os.environ.get('TRAVIS_BRANCH', 'master') != 'master':
     os.environ.setdefault('PERCY_ENABLE', '0')
+
+logger = logging.getLogger('sentry.testutils')
 
 
 class Browser(object):
@@ -109,6 +112,7 @@ class Browser(object):
     def save_cookie(self, name, value, path='/', expires='Tue, 20 Jun 2025 19:07:44 GMT'):
         # XXX(dcramer): "hit a url before trying to set cookies"
         if not self._has_initialized_cookie_store:
+            logger.info('selenium.initialize-cookies')
             self.get('/')
             self._has_initialized_cookie_store = True
 
@@ -116,6 +120,10 @@ class Browser(object):
         # selenium API because....
         # http://stackoverflow.com/questions/37103621/adding-cookies-working-with-firefox-webdriver-but-not-in-phantomjs
         # TODO(dcramer): this should be escaped, but idgaf
+        logger.info('selenium.set-cookies.{}'.format(name), extra={
+            'value': value,
+        })
+
         self.driver.execute_script(
             "document.cookie = '{name}={value}; path={path}; domain={domain}; expires={expires}';\n".
             format(
