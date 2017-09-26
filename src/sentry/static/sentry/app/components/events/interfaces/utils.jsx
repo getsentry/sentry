@@ -29,15 +29,17 @@ export function getCurlCommand(data) {
     result += ' \\\n -H "' + header[0] + ': ' + escapeQuotes(header[1] + '') + '"';
   }
 
-  switch (data.inferredContentType) {
-    case 'application/json':
-      result += ' \\\n --data "' + escapeQuotes(JSON.stringify(data.data)) + '"';
-      break;
-    case 'application/x-www-form-urlencoded':
-      result += ' \\\n --data "' + escapeQuotes(jQuery.param(data.data)) + '"';
-      break;
-    default:
-      result += ' \\\n --data "' + escapeQuotes(data.data) + '"';
+  if (data.data !== null && data.data !== undefined) {
+    switch (data.inferredContentType) {
+      case 'application/json':
+        result += ' \\\n --data "' + escapeQuotes(JSON.stringify(data.data)) + '"';
+        break;
+      case 'application/x-www-form-urlencoded':
+        result += ' \\\n --data "' + escapeQuotes(jQuery.param(data.data)) + '"';
+        break;
+      default:
+        result += ' \\\n --data "' + escapeQuotes(data.data) + '"';
+    }
   }
 
   result += ' \\\n "' + data.url;
