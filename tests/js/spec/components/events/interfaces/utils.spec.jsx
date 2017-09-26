@@ -61,6 +61,20 @@ describe('components/interfaces/utils', function() {
           ' --data "{\\"hello\\": \\"world\\"}" \\\n' +
           ' "http://example.com/foo?foo=bar"'
       );
+
+      // Do not add data if data is empty
+      expect(
+        getCurlCommand({
+          url: 'http://example.com/foo',
+          headers: [],
+          env: {
+            ENV: 'prod'
+          },
+          fragment: '',
+          query: 'foo=bar',
+          method: 'GET'
+        })
+      ).toEqual('curl \\\n "http://example.com/foo?foo=bar"');
     });
   });
 
