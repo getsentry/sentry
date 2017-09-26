@@ -7,7 +7,6 @@ sentry.models.tagvalue
 """
 from __future__ import absolute_import, print_function
 
-from django.core.urlresolvers import reverse
 from django.db import models
 from django.utils import timezone
 
@@ -15,7 +14,7 @@ from sentry.constants import MAX_TAG_KEY_LENGTH, MAX_TAG_VALUE_LENGTH
 from sentry.db.models import (
     Model, BoundedPositiveIntegerField, GzippedDictField, BaseManager, sane_repr
 )
-from sentry.utils.http import absolute_uri
+from sentry.models import Release
 
 
 class TagValue(Model):
@@ -49,35 +48,6 @@ class TagValue(Model):
 
     def get_label(self):
         # HACK(dcramer): quick and dirty way to hack in better display states
-        if self.key == 'sentry:user':
-            return self.data.get('email') or self.value
-        elif self.key == 'sentry:function':
-            return '%s in %s' % (self.data['function'], self.data['filename'])
-        elif self.key == 'sentry:filename':
-            return self.data['filename']
-        elif self.key == 'sentry:release' and len(self.value) == 40:
-            return self.value[:12]
+        if self.key == 'sentry:release':
+            return Release.get_display_version(self.version)
         return self.value
-
-    def get_absolute_url(self):
-        # HACK(dcramer): quick and dirty way to support code/users
-        if self.key == 'sentry:user':
-            url_name = 'sentry-user-details'
-        elif self.key == 'sentry:filename':
-            url_name = 'sentry-explore-code-details'
-        elif self.key == 'sentry:function':
-            url_name = 'sentry-explore-code-details-by-function'
-        else:
-            url_name = 'sentry-explore-tag-value'
-            return absolute_uri(
-                reverse(
-                    url_name,
-                    args=[self.project.organization.slug,
-                          self.project.slug, self.key, self.id]
-                )
-            )
-
-        return absolute_uri(
-            reverse(url_name, args=[
-                    self.project.organization.slug, self.project.slug, self.id])
-        )
