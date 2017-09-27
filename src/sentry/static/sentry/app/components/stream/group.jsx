@@ -1,7 +1,7 @@
 import jQuery from 'jquery';
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled, {css} from 'react-emotion';
+import styled from 'react-emotion';
 import {withTheme} from 'theming';
 import {Flex, Box} from 'grid-emotion';
 import Reflux from 'reflux';
@@ -88,25 +88,19 @@ const StreamGroup = React.createClass({
 
     // TODO(ckj): Implement resolved and hasSeen state
 
-    if (data.hasSeen) {
-      className += ' hasSeen';
-    }
-    if (data.status === 'resolved') {
-      className += ' isResolved';
-    }
-
     let {id, orgId, projectId} = this.props;
 
     return (
-      <StreamGroupRow onClick={this.toggleSelect} py={2}>
+      <StreamGroupRow onClick={this.toggleSelect} py={1}>
         <LevelIndicator level={data.level} />
         {this.props.canSelect &&
-          <Checkbox w={40}>
+          <Checkbox>
             <GroupCheckBox id={data.id} />
           </Checkbox>}
         <Box
           w={[8 / 12, 8 / 12, 6 / 12]}
-          px={[1, 2, 2, 2]}
+          pl={[1, 1, 1, 1]}
+          pr={[1, 2, 2, 2]}
           flex="1"
           style={{overflow: 'hidden'}}>
           <EventOrGroupHeader data={data} orgId={orgId} projectId={projectId} />
@@ -149,8 +143,10 @@ const StreamGroupRow = withTheme(
     line-height: 1.1;
     font-size: 16px;
     position: relative;
-    alignItems: center;
-    border: 1px solid ${p => p.theme.borderDark};
+    align-items: center;
+    border-left: 1px solid ${p => p.theme.borderDark};
+    border-right: 1px solid ${p => p.theme.borderDark};
+    border-top: 1px solid ${p => p.theme.borderLight};
     border-bottom: 1px solid ${p => p.theme.borderLight};
 
     & + & {
@@ -160,56 +156,54 @@ const StreamGroupRow = withTheme(
     &:first-child {
       border-top-left-radius: 3px;
       border-top-right-radius: 3px;
+      border-top: 1px solid ${p => p.theme.borderDark};
     }
 
     &:last-child {
       border-bottom-left-radius: 3px;
       border-bottom-right-radius: 3px;
       border-bottom: 1px solid ${p => p.theme.borderDark};
-      box-shadow: 0 1px 0 rgba(0, 0, 0, 0.03);
+      box-shadow: 0 1px 0 rgba(0, 0, 0, 0.04);
     }
   `
 );
 
 const Checkbox = styled(Box)`
-  padding-left: 24px;
+  width: 36px;
+  padding-left: 20px;
   align-self: flex-start;
+
+  & input[type="checkbox"] {
+    margin: 0;
+  }
 `;
 
 const LevelIndicator = withTheme(
   styled.div`
     position: absolute;
-    top: 18px;
+    top: 8px;
     left: -1px;
     width: 9px;
     height: 18px;
     border-radius: 0 3px 3px 0;
 
-    ${p => {
+    background-color: ${p => {
     switch (p.level) {
       case 'sample':
-        return css`
-          background-color: ${p.theme.purple};
-        `;
+        return p.theme.purple;
       case 'info':
-        return css`
-          background-color: ${p.theme.blue};
-        `;
+        return p.theme.blue;
       case 'warning':
-        return css`
-          background-color: ${p.theme.yellowOrange};
-        `;
+        return p.theme.yellowOrange;
       case 'error':
-        return css`
-          background-color: ${p.theme.orange};
-        `;
+        return p.theme.orange;
       case 'fatal':
-        return css`
-          background-color: ${p.theme.red};
-        `;
+        return p.theme.red;
+      default:
+        return p.theme.gray1;
     }
   }}
-`
+  `
 );
 
 const GroupTimeSinceWrapper = withTheme(

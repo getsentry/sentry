@@ -631,7 +631,7 @@ const Stream = React.createClass({
         />
       );
     });
-    return <div className="group-list" ref="groupList">{groupNodes}</div>;
+    return <div ref="groupList">{groupNodes}</div>;
   },
   renderAwaitingEvents() {
     let org = this.getOrganization();

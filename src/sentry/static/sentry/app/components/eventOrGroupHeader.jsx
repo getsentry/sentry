@@ -47,7 +47,7 @@ class EventOrGroupHeader extends React.Component {
   }
 
   getTitle() {
-    let {hideLevel, hideIcons, includeLink, orgId, projectId, data} = this.props;
+    let {hideIcons, includeLink, orgId, projectId, data} = this.props;
     let {id, groupID} = data || {};
     let isEvent = !!data.eventID;
 
@@ -87,7 +87,7 @@ class EventOrGroupHeader extends React.Component {
   }
 }
 
-const Truncate = css`
+const truncateStyles = css`
   overflow: hidden;
   max-width: 100%;
   text-overflow: ellipsis;
@@ -96,7 +96,7 @@ const Truncate = css`
 
 const Title = withTheme(
   styled.div`
-    ${Truncate};
+    ${truncateStyles};
     margin: 0 0 5px;
 
     & em {
@@ -109,26 +109,26 @@ const Title = withTheme(
 );
 
 const Message = styled.div`
-  ${Truncate};
+  ${truncateStyles};
   font-size: 14px;
   margin: 0 0 5px;
 `;
 
-const Icon = css`
+const iconStyles = css`
   font-size: 14px;
   margin-right: 5px;
 `;
 
 const Muted = withTheme(
   styled.span`
-    ${Icon};
+    ${iconStyles};
     color: ${p => p.theme.red};
   `
 );
 
 const Starred = withTheme(
   styled.span`
-    ${Icon};
+    ${iconStyles};
     color: ${p => p.theme.yellowOrange};
   `
 );
