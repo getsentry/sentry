@@ -104,3 +104,19 @@ class AcceptTransferProjectTest(TestCase):
         assert resp.status_code == 302
         p = Project.objects.get(id=self.project.id)
         assert p.organization_id == self.from_organization.id
+
+    def test_cannot_transfer_project_twice_from_same_org(self):
+        self.login_as(self.owner)
+        url_data = sign(
+            actor_id=self.member.user_id,
+            from_organization_id=self.from_organization.id,
+            project_id=self.project.id,
+            user_id=self.owner.id,
+            transaction_id=self.transaction_id)
+
+        url = self.path + '?' + urlencode({'data': url_data})
+        resp = self.client.post(url, data={'team': self.to_team.id})
+        assert resp['location'] == 'http://testserver' + \
+            reverse('sentry-organization-home', args=[self.to_team.organization.slug])
+        resp = self.client.get(url)
+        assert resp.status_code == 302
