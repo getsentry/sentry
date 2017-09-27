@@ -11,7 +11,7 @@ from sentry import http, options
 from sentry.api.base import Endpoint
 from sentry.models import Group, Integration, Project
 
-logger = logging.getLogger('sentry.integrations.cloudflare')
+logger = logging.getLogger('sentry.integrations.slack')
 
 _link_regexp = re.compile(r'^https?\://[^/]+/[^/]+/[^/]+/issues/(\d+)/')
 
