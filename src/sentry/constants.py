@@ -115,8 +115,6 @@ LANGUAGES = [(k, LANGUAGE_MAP[k]) for k in get_all_languages() if k in LANGUAGE_
 TAG_LABELS = {
     'exc_type': 'Exception Type',
     'sentry:user': 'User',
-    'sentry:filename': 'File',
-    'sentry:function': 'Function',
     'sentry:release': 'Release',
     'sentry:dist': 'Distribution',
     'os': 'OS',
