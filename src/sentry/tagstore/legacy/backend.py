@@ -45,7 +45,7 @@ class LegacyTagStorage(TagStorage):
     def get_tag_keys(self, project_id, keys=None, status=TagKeyStatus.VISIBLE):
         if not keys:
             # TODO: cache invalidation via post_save/post_delete signals much like BaseManager
-            key = self._get_tag_keys_cache_key(project_id)
+            key = self._get_tag_keys_cache_key(project_id, status)
             result = cache.get(key)
             if result is None:
                 qs = TagKey.objects.filter(project_id=project_id)
