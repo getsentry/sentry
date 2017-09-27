@@ -32,7 +32,7 @@ class TagStorage(Service):
     __all__ = (
         'is_valid_key', 'is_reserved_key', 'prefix_reserved_key', 'get_standardized_key',
         'create_tag_key', 'get_or_create_tag_key', 'get_tag_key', 'get_tag_keys',
-        'delete_tag_key', 'get_group_event_ids'
+        'delete_tag_key', 'incr_values_seen', 'get_group_event_ids'
     )
 
     def is_valid_key(cls, key):
@@ -80,6 +80,12 @@ class TagStorage(Service):
     def delete_tag_key(self, project_id, key):
         """
         >>> delete_tag_key(1, "key1")
+        """
+        raise NotImplementedError
+
+    def incr_values_seen(self, project_id, key):
+        """
+        >>> incr_values_seen(1, "key1")
         """
         raise NotImplementedError
 

@@ -80,6 +80,14 @@ class LegacyTagStorage(TagStorage):
 
         return (updated, tagkey)
 
+    def incr_values_seen(self, project_id, key):
+        buffer.incr(TagKey, {
+            'values_seen': 1,
+        }, {
+            'project_id': project_id,
+            'key': key,
+        })
+
     def get_group_event_ids(self, group, tags):
         project_id = group.project_id
         tagkeys = dict(
