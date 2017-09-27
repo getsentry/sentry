@@ -471,7 +471,7 @@ async-each@^1.0.0:
   version "1.0.1"
   resolved "https://registry.yarnpkg.com/async-each/-/async-each-1.0.1.tgz#19d386a1d9edc6e7c1c85d388aedbcc56d33602d"
 
-async@2.4.1:
+async@2.4.1, async@^2.1.2, async@^2.1.4:
   version "2.4.1"
   resolved "https://registry.yarnpkg.com/async/-/async-2.4.1.tgz#62a56b279c98a11d0987096a01cc3eeb8eb7bbd7"
   dependencies:
@@ -480,12 +480,6 @@ async@2.4.1:
 async@^1.4.0:
   version "1.5.2"
   resolved "https://registry.yarnpkg.com/async/-/async-1.5.2.tgz#ec6a61ae56480c0c3cb241c95618e20892f9672a"
-
-async@^2.1.2, async@^2.1.4:
-  version "2.5.0"
-  resolved "https://registry.yarnpkg.com/async/-/async-2.5.0.tgz#843190fd6b7357a0b9e1c956edddd5ec8462b54d"
-  dependencies:
-    lodash "^4.14.0"
 
 asynckit@^0.4.0:
   version "0.4.0"
@@ -7233,9 +7227,9 @@ typedarray@^0.0.6, typedarray@~0.0.5:
   version "0.0.6"
   resolved "https://registry.yarnpkg.com/typedarray/-/typedarray-0.0.6.tgz#867ac74e3864187b1d3d47d996a78ec5c8830777"
 
-u2f-api@0.0.8:
-  version "0.0.8"
-  resolved "https://registry.yarnpkg.com/u2f-api/-/u2f-api-0.0.8.tgz#33bce2a7538c0023629c6b679f6bc2ba5d0f5898"
+u2f-api@0.2.2:
+  version "0.2.2"
+  resolved "https://registry.yarnpkg.com/u2f-api/-/u2f-api-0.2.2.tgz#7ab290e3d96b8db6416614c742436a5e96d532ff"
 
 ua-parser-js@^0.7.9:
   version "0.7.14"
