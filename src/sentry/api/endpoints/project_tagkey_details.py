@@ -1,28 +1,22 @@
 from __future__ import absolute_import
 
+from django.core.exceptions import ObjectDoesNotExist
 from rest_framework.response import Response
 
+from sentry import tagstore
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
-from sentry.models import AuditLogEntryEvent, TagKey, TagKeyStatus
-from sentry.tasks.deletion import delete_tag_key
+from sentry.models import AuditLogEntryEvent
 
 
 class ProjectTagKeyDetailsEndpoint(ProjectEndpoint):
     def get(self, request, project, key):
-        if TagKey.is_reserved_key(key):
-            lookup_key = 'sentry:{0}'.format(key)
-        else:
-            lookup_key = key
+        lookup_key = tagstore.prefix_reserved_key(key)
 
         try:
-            tagkey = TagKey.objects.get(
-                project_id=project.id,
-                key=lookup_key,
-                status=TagKeyStatus.VISIBLE,
-            )
-        except TagKey.DoesNotExist:
+            tagkey = tagstore.get_tag_key(project.id, lookup_key)
+        except ObjectDoesNotExist:
             raise ResourceDoesNotExist
 
         return Response(serialize(tagkey, request.user))
@@ -34,26 +28,14 @@ class ProjectTagKeyDetailsEndpoint(ProjectEndpoint):
             {method} {path}
 
         """
-        if TagKey.is_reserved_key(key):
-            lookup_key = 'sentry:{0}'.format(key)
-        else:
-            lookup_key = key
+        lookup_key = tagstore.prefix_reserved_key(key)
 
         try:
-            tagkey = TagKey.objects.get(
-                project_id=project.id,
-                key=lookup_key,
-            )
-        except TagKey.DoesNotExist:
+            updated, tagkey = tagstore.delete_tag_key(project.id, lookup_key)
+        except ObjectDoesNotExist:
             raise ResourceDoesNotExist
 
-        updated = TagKey.objects.filter(
-            id=tagkey.id,
-            status=TagKeyStatus.VISIBLE,
-        ).update(status=TagKeyStatus.PENDING_DELETION)
         if updated:
-            delete_tag_key.delay(object_id=tagkey.id)
-
             self.create_audit_entry(
                 request=request,
                 organization=project.organization,

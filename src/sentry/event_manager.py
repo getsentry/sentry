@@ -20,7 +20,7 @@ from django.utils.encoding import force_bytes, force_text
 from hashlib import md5
 from uuid import uuid4
 
-from sentry import eventtypes, features, buffer
+from sentry import eventtypes, features, buffer, tagstore
 # we need a bunch of unexposed functions from tsdb
 from sentry.tsdb import backend as tsdb
 from sentry.constants import (
@@ -29,7 +29,7 @@ from sentry.constants import (
 from sentry.interfaces.base import get_interface
 from sentry.models import (
     Activity, Environment, Event, EventMapping, EventUser, Group, GroupHash, GroupRelease,
-    GroupResolution, GroupStatus, Project, Release, ReleaseEnvironment, ReleaseProject, TagKey,
+    GroupResolution, GroupStatus, Project, Release, ReleaseEnvironment, ReleaseProject,
     UserReport
 )
 from sentry.plugins import plugins
@@ -249,7 +249,7 @@ class EventManager(object):
             data['logger'] = DEFAULT_LOGGER_NAME
         else:
             logger = trim(data['logger'].strip(), 64)
-            if TagKey.is_valid_key(logger):
+            if tagstore.is_valid_key(logger):
                 data['logger'] = logger
             else:
                 data['logger'] = DEFAULT_LOGGER_NAME

@@ -2,15 +2,12 @@ from __future__ import absolute_import
 
 import six
 
-from django.db.models import Q
-from operator import or_
-from six.moves import reduce
-
+from sentry import tagstore
 from sentry.api.base import DocSection
 from sentry.api.bases import GroupEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.paginator import DateTimePaginator
-from sentry.models import Event, EventTag, Group, TagKey, TagValue
+from sentry.models import Event, Group
 from sentry.search.utils import parse_query
 from sentry.utils.apidocs import scenario, attach_scenarios
 from rest_framework.response import Response
@@ -25,58 +22,6 @@ def list_available_samples_scenario(runner):
 
 class GroupEventsEndpoint(GroupEndpoint):
     doc_section = DocSection.EVENTS
-
-    def _tags_to_filter(self, group, tags):
-        project_id = group.project_id
-        tagkeys = dict(
-            TagKey.objects.filter(
-                project_id=project_id,
-                key__in=tags.keys(),
-            ).values_list('key', 'id')
-        )
-
-        tagvalues = {
-            (t[1], t[2]): t[0]
-            for t in TagValue.objects.filter(
-                reduce(or_, (Q(key=k, value=v) for k, v in six.iteritems(tags))),
-                project_id=project_id,
-            ).values_list('id', 'key', 'value')
-        }
-
-        try:
-            tag_lookups = [(tagkeys[k], tagvalues[(k, v)]) for k, v in six.iteritems(tags)]
-        except KeyError:
-            # one or more tags were invalid, thus the result should be an empty
-            # set
-            return []
-
-        # Django doesnt support union, so we limit results and try to find
-        # reasonable matches
-
-        # get initial matches to start the filter
-        k, v = tag_lookups.pop()
-        matches = list(
-            EventTag.objects.filter(
-                key_id=k,
-                value_id=v,
-                group_id=group.id,
-            ).values_list('event_id', flat=True)[:1000]
-        )
-
-        # for each remaining tag, find matches contained in our
-        # existing set, pruning it down each iteration
-        for k, v in tag_lookups:
-            matches = list(
-                EventTag.objects.filter(
-                    key_id=k,
-                    value_id=v,
-                    event_id__in=matches,
-                    group_id=group.id,
-                ).values_list('event_id', flat=True)[:1000]
-            )
-            if not matches:
-                return []
-        return matches
 
     @attach_scenarios([list_available_samples_scenario])
     def get(self, request, group):
@@ -107,10 +52,10 @@ class GroupEventsEndpoint(GroupEndpoint):
                 )
 
             if query_kwargs['tags']:
-                matches = self._tags_to_filter(group, query_kwargs['tags'])
-                if matches:
+                event_ids = tagstore.get_group_event_ids(group, query_kwargs['tags'])
+                if event_ids:
                     events = events.filter(
-                        id__in=matches,
+                        id__in=event_ids,
                     )
                 else:
                     events = events.none()

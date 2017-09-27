@@ -6,8 +6,9 @@ import six
 from django.db.models import Q
 from six.moves import reduce
 
+from sentry import tagstore
 from sentry.api.serializers import Serializer, register
-from sentry.models import GroupTagValue, TagKey, TagValue
+from sentry.models import GroupTagValue, TagValue
 
 
 def parse_user_tag(value):
@@ -77,7 +78,7 @@ class GroupTagValueSerializer(Serializer):
         return {
             'id': six.text_type(obj.id),
             'name': attrs['name'],
-            'key': TagKey.get_standardized_key(obj.key),
+            'key': tagstore.get_standardized_key(obj.key),
             'value': obj.value,
             'count': obj.times_seen,
             'lastSeen': obj.last_seen,

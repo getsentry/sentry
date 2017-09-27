@@ -1,9 +1,11 @@
 from __future__ import absolute_import
 
+from django.core.exceptions import ObjectDoesNotExist
 from django.http import Http404
 
+from sentry import tagstore
 from sentry.models import (
-    EventUser, GroupTagValue, TagKey, TagKeyStatus, Group, get_group_with_redirect
+    EventUser, GroupTagValue, Group, get_group_with_redirect
 )
 from sentry.web.frontend.base import ProjectView
 from sentry.web.frontend.mixins.csv import CsvMixin
@@ -67,19 +69,15 @@ class GroupTagExportView(ProjectView, CsvMixin):
         except Group.DoesNotExist:
             raise Http404
 
-        if TagKey.is_reserved_key(key):
+        if tagstore.is_reserved_key(key):
             lookup_key = 'sentry:{0}'.format(key)
         else:
             lookup_key = key
 
         # validate existance as it may be deleted
         try:
-            TagKey.objects.get(
-                project_id=group.project_id,
-                key=lookup_key,
-                status=TagKeyStatus.VISIBLE,
-            )
-        except TagKey.DoesNotExist:
+            tagstore.get_tag_key(group.project_id, lookup_key)
+        except ObjectDoesNotExist:
             raise Http404
 
         if key == 'user':
