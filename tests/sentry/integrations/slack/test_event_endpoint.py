@@ -84,18 +84,25 @@ class UrlVerificationEventTest(BaseEventTest):
     challenge = '3eZbrw1aBm2rZgRNFdxV2595E9CY3gmdALWMmHkvFXO7tYXAYM8P'
 
     def test_valid_token(self):
-        resp = self.post_webhook(
-            type='url_verification',
-            data={'challenge': self.challenge},
+        resp = self.client.post(
+            '/extensions/slack/event/',
+            {
+                'type': 'url_verification',
+                'challenge': self.challenge,
+                'token': options.get('slack.verification-token'),
+            }
         )
         assert resp.status_code == 200, resp.content
         assert resp.data['challenge'] == self.challenge
 
     def test_invalid_token(self):
-        resp = self.post_webhook(
-            type='url_verification',
-            data={'challenge': self.challenge},
-            token='fizzbuzz',
+        resp = self.client.post(
+            '/extensions/slack/event/',
+            {
+                'type': 'url_verification',
+                'challenge': self.challenge,
+                'token': 'fizzbuzz',
+            }
         )
         assert resp.status_code == 400, resp.content
 

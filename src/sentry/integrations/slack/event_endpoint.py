@@ -55,7 +55,7 @@ class SlackEventEndpoint(Endpoint):
         url_list[4] = urlencode(query, doseq=True)
         return urlunparse(url_list)
 
-    def on_url_verification(self, request, integration, data):
+    def on_url_verification(self, request, data):
         return self.respond({
             'challenge': data['challenge'],
         })
@@ -133,6 +133,10 @@ class SlackEventEndpoint(Endpoint):
         if token != options.get('slack.verification-token'):
             logger.error('slack.event.invalid-token', extra=logging_data)
             return self.respond(status=400)
+        payload_type = data.get('type')
+        logger.info('slack.event.{}'.format(payload_type), extra=logging_data)
+        if payload_type == 'url_verification':
+            return self.on_url_verification(request, data)
 
         try:
             integration = Integration.objects.get(
@@ -144,11 +148,6 @@ class SlackEventEndpoint(Endpoint):
             return self.respond(status=400)
 
         logging_data['integration_id'] = integration.id
-
-        payload_type = data.get('type')
-        logger.info('slack.event.{}'.format(payload_type), extra=logging_data)
-        if payload_type == 'url_verification':
-            return self.on_url_verification(request, integration, data)
 
         event_data = data.get('event')
         if not event_data:
