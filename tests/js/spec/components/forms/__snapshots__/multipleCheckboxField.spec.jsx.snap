@@ -4,11 +4,19 @@ exports[`MultipleCheckboxField render() renders with form context 1`] = `
 <div
   className="control-group"
 >
-  <label
-    className="control-label"
-  />
   <div
-    className="controls control-list"
+    className=""
+  >
+    <div
+      className="controls"
+    >
+      <label
+        className="control-label"
+      />
+    </div>
+  </div>
+  <div
+    className="control-list"
   >
     <label
       className="checkbox"
@@ -42,11 +50,19 @@ exports[`MultipleCheckboxField render() renders without form context 1`] = `
 <div
   className="control-group"
 >
-  <label
-    className="control-label"
-  />
   <div
-    className="controls control-list"
+    className=""
+  >
+    <div
+      className="controls"
+    >
+      <label
+        className="control-label"
+      />
+    </div>
+  </div>
+  <div
+    className="control-list"
   >
     <label
       className="checkbox"
