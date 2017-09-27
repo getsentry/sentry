@@ -10,7 +10,7 @@ from django.http import HttpResponseRedirect, Http404
 from django.utils.encoding import force_str
 from django.core.signing import BadSignature, SignatureExpired
 from sentry.utils.signing import unsign
-from sentry.models import AuditLogEntryEvent, OrganizationMember, Organization, Team, Project
+from sentry.models import AuditLogEntryEvent, OrganizationMember, Organization, Team, TeamStatus, Project
 
 
 class AcceptProjectTransferForm(forms.Form):
@@ -20,7 +20,8 @@ class AcceptProjectTransferForm(forms.Form):
         super(AcceptProjectTransferForm, self).__init__(*args, **kwargs)
         teams = []
         for o in Organization.objects.get_for_user(request.user):
-            for t in Team.objects.get_for_user(o, request.user, with_projects=False):
+            # getting ALL the teams for the organization - not scoped to organizationmember
+            for t in Team.objects.filter(organization=o, status=TeamStatus.VISIBLE):
                 option = " %s - %s" % (t.name, o.name)
                 teams.append([t.id, option])
 
