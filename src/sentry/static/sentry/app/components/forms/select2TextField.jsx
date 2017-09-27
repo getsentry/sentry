@@ -21,6 +21,12 @@ export default class Select2TextField extends Select2Field {
   getSelect2Options() {
     return {
       ...super.getSelect2Options(),
+      data: (this.props.choices || []).map(choice => {
+        if (Array.isArray(choice)) {
+          return {id: choice[0], text: choice[1]};
+        }
+        return {id: choice, text: choice};
+      }),
       createSearchChoice: (term, data) => {
         if (!data.find(i => i.id !== term)) {
           return {id: term, text: term};
