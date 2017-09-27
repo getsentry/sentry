@@ -23,16 +23,17 @@
         <pre><a href="{{ login_url }}">{{ login_url }}</a></pre>
 
         {% if pending_links_count %}
-          <hr>
-          <h4>Unlinked Members</h4>
-
-          <button class="btn btn-primary pull-right" name="op"
-                  value="reinvite" style="margin-left: 20px">Send Reminders</button>
+          <legend>Unlinked Members</legend>
 
           <p>
             There are currently {{ pending_links_count }} member(s) who have
             not yet linked their account with {{ provider_name }}. Until this
             is done they will be unable to access the organization.
+
+          </p>
+
+          <p>
+            <button class="btn btn-primary" name="op" value="reinvite">Send Reminders</button>
           </p>
         {% endif %}
 
