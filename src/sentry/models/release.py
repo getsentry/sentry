@@ -243,7 +243,10 @@ class Release(Model):
 
     @property
     def short_version(self):
-        version = self.version
+        return Release.get_display_version(self.version)
+
+    @staticmethod
+    def get_display_version(version):
         match = _dotted_path_prefix_re.match(version)
         if match is not None:
             version = version[match.end():]
