@@ -8,7 +8,7 @@ import SplitLayout from 'sentry-ui/splitLayout';
 storiesOf('ComponentLayouts/SplitLayout', module).add(
   'default',
   withInfo('Children elements have equal size')(() => (
-    <SplitLayout style={{backgroundColor: '#fff'}}>
+    <SplitLayout splitWidth={15} style={{backgroundColor: '#fff'}}>
       <div style={{padding: 6, backgroundColor: 'rgba(0, 0, 0, 0.2)'}}>
         Split
       </div>
