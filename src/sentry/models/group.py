@@ -349,15 +349,13 @@ class Group(Model):
             'last_seen',
         ).order_by(order_by)
 
-    def get_tags(self, with_internal=True):
+    def get_tags(self):
         from sentry.models import GroupTagKey
         if not hasattr(self, '_tag_cache'):
             group_tags = GroupTagKey.objects.filter(
                 group_id=self.id,
                 project_id=self.project_id,
             )
-            if not with_internal:
-                group_tags = group_tags.exclude(key__startswith='sentry:')
 
             group_tags = list(group_tags.values_list('key', flat=True))
 

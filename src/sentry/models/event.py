@@ -182,12 +182,9 @@ class Event(Model):
     def interfaces(self):
         return self.get_interfaces()
 
-    def get_tags(self, with_internal=True):
+    def get_tags(self):
         try:
-            return sorted(
-                (t, v) for t, v in self.data.get('tags') or ()
-                if with_internal or not t.startswith('sentry:')
-            )
+            return sorted((t, v) for t, v in self.data.get('tags'))
         except ValueError:
             # at one point Sentry allowed invalid tag sets such as (foo, bar)
             # vs ((tag, foo), (tag, bar))
