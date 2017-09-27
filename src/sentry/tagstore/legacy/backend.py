@@ -18,6 +18,7 @@ from sentry.tagstore import TagKeyStatus
 from sentry.models import TagKey, TagValue, EventTag
 from sentry.tagstore.base import TagStorage
 from sentry.utils.cache import cache
+from sentry.tasks.deletion import delete_tag_key
 
 
 class LegacyTagStorage(TagStorage):
@@ -27,15 +28,19 @@ class LegacyTagStorage(TagStorage):
     def get_or_create_tag_key(self, project_id, key):
         return TagKey.objects.get_or_create(project_id=project_id, key=key)
 
-    def _get_tag_keys_cache_key(self, project_id):
-        return 'filterkey:all:%s' % project_id
-
     def get_tag_key(self, project_id, key, status=TagKeyStatus.VISIBLE):
-        return TagKey.objects.get(
+        qs = TagKey.objects.filter(
             project_id=project_id,
             key=key,
-            status=status,
         )
+
+        if status:
+            qs = qs.filter(status=status)
+
+        return qs.get()
+
+    def _get_tag_keys_cache_key(self, project_id, status):
+        return 'filterkey:all:%s:%s' % (project_id, status)
 
     def get_tag_keys(self, project_id, keys=None, status=TagKeyStatus.VISIBLE):
         if not keys:
@@ -43,12 +48,12 @@ class LegacyTagStorage(TagStorage):
             key = self._get_tag_keys_cache_key(project_id)
             result = cache.get(key)
             if result is None:
-                result = list(
-                    TagKey.objects.filter(
-                        project_id=project_id,
-                        status=status,
-                    ).order_by('-values_seen')[:20]
-                )
+                qs = TagKey.objects.filter(project_id=project_id)
+
+                if status:
+                    qs = qs.filter(status=status)
+
+                result = list(qs.order_by('-values_seen')[:20])
                 cache.set(key, result, 60)
             return result
 
@@ -63,8 +68,6 @@ class LegacyTagStorage(TagStorage):
         return list(qs)
 
     def delete_tag_key(self, project_id, key):
-        from sentry.tasks.deletion import delete_tag_key
-
         tagkey = self.get_tag_key(project_id, key, status=None)
 
         updated = TagKey.objects.filter(

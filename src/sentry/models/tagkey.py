@@ -10,15 +10,9 @@ from __future__ import absolute_import, print_function
 from django.db import models
 from django.utils.translation import ugettext_lazy as _
 
+from sentry.tagstore import TagKeyStatus
 from sentry.constants import MAX_TAG_KEY_LENGTH, TAG_LABELS
 from sentry.db.models import (Model, BoundedPositiveIntegerField, sane_repr)
-
-
-# TODO: remove in favor of tagstore.TagKeyStatus
-class TagKeyStatus(object):
-    VISIBLE = 0
-    PENDING_DELETION = 1
-    DELETION_IN_PROGRESS = 2
 
 
 class TagKey(Model):

@@ -5,7 +5,8 @@ import six
 
 from django.core.urlresolvers import reverse
 
-from sentry.models import TagKey, TagKeyStatus
+from sentry.tagstore import TagKeyStatus
+from sentry.models import TagKey
 from sentry.testutils import APITestCase
 
 
@@ -37,7 +38,7 @@ class ProjectTagKeyDetailsTest(APITestCase):
 
 
 class ProjectTagKeyDeleteTest(APITestCase):
-    @mock.patch('sentry.api.endpoints.project_tagkey_details.delete_tag_key')
+    @mock.patch('sentry.tagstore.legacy.backend.delete_tag_key')
     def test_simple(self, mock_delete_tag_key):
         project = self.create_project()
         tagkey = TagKey.objects.create(project_id=project.id, key='foo')
