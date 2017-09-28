@@ -54,7 +54,7 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
         self.login_as(self.user)
 
         with self.feature('organizations:sso'):
-            resp = self.client.post(path, {'provider': 'dummy'})
+            resp = self.client.post(path, {'provider': 'dummy', 'init': True})
 
         assert resp.status_code == 200
         assert resp.content.decode('utf-8') == self.provider.TEMPLATE
@@ -68,7 +68,7 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
         self.login_as(user)
 
         with self.feature('organizations:sso'):
-            resp = self.client.post(base_path, {'provider': 'dummy'})
+            resp = self.client.post(base_path, {'provider': 'dummy', 'init': True})
 
             assert resp.status_code == 200
             assert self.provider.TEMPLATE in resp.content.decode('utf-8')

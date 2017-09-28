@@ -45,7 +45,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
 
         path = reverse('sentry-auth-organization', args=[organization.slug])
 
-        resp = self.client.post(path)
+        resp = self.client.post(path, {'init': True})
 
         assert resp.status_code == 200
         assert self.provider.TEMPLATE in resp.content.decode('utf-8')
@@ -91,7 +91,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
 
         self.login_as(user)
 
-        resp = self.client.post(path)
+        resp = self.client.post(path, {'init': True})
 
         assert resp.status_code == 200
         assert self.provider.TEMPLATE in resp.content.decode('utf-8')
@@ -137,7 +137,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
 
         path = reverse('sentry-auth-organization', args=[organization.slug])
 
-        resp = self.client.post(path)
+        resp = self.client.post(path, {'init': True})
 
         assert resp.status_code == 200
         assert self.provider.TEMPLATE in resp.content.decode('utf-8')
@@ -159,7 +159,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
 
         path = reverse('sentry-auth-organization', args=[organization.slug])
 
-        resp = self.client.post(path)
+        resp = self.client.post(path, {'init': True})
 
         assert resp.status_code == 200
         assert self.provider.TEMPLATE in resp.content.decode('utf-8')
@@ -204,7 +204,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
 
         path = reverse('sentry-auth-organization', args=[organization.slug])
 
-        resp = self.client.post(path)
+        resp = self.client.post(path, {'init': True})
 
         assert resp.status_code == 200
         assert self.provider.TEMPLATE in resp.content.decode('utf-8')
@@ -260,7 +260,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
 
         path = reverse('sentry-auth-organization', args=[organization.slug])
 
-        resp = self.client.post(path)
+        resp = self.client.post(path, {'init': True})
 
         assert resp.status_code == 200
         assert self.provider.TEMPLATE in resp.content.decode('utf-8')
@@ -315,7 +315,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
 
         path = reverse('sentry-auth-organization', args=[organization.slug])
 
-        resp = self.client.post(path)
+        resp = self.client.post(path, {'init': True})
 
         assert resp.status_code == 200
         assert self.provider.TEMPLATE in resp.content.decode('utf-8')
@@ -374,7 +374,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
 
         path = reverse('sentry-auth-organization', args=[organization.slug])
 
-        resp = self.client.post(path)
+        resp = self.client.post(path, {'init': True})
 
         assert resp.status_code == 200
         assert self.provider.TEMPLATE in resp.content.decode('utf-8')
@@ -440,7 +440,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
 
         path = reverse('sentry-auth-organization', args=[organization.slug])
 
-        resp = self.client.post(path)
+        resp = self.client.post(path, {'init': True})
 
         assert resp.status_code == 200
         assert self.provider.TEMPLATE in resp.content.decode('utf-8')
@@ -509,7 +509,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
 
         path = reverse('sentry-auth-organization', args=[organization.slug])
 
-        resp = self.client.post(path)
+        resp = self.client.post(path, {'init': True})
 
         assert resp.status_code == 200
         assert self.provider.TEMPLATE in resp.content.decode('utf-8')
@@ -563,7 +563,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
 
         path = reverse('sentry-auth-organization', args=[organization.slug])
 
-        resp = self.client.post(path)
+        resp = self.client.post(path, {'init': True})
 
         assert resp.status_code == 200
         assert self.provider.TEMPLATE in resp.content.decode('utf-8')
@@ -614,7 +614,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
 
         path = reverse('sentry-auth-organization', args=[organization.slug])
 
-        resp = self.client.post(path)
+        resp = self.client.post(path, {'init': True})
 
         assert resp.status_code == 200
         assert self.provider.TEMPLATE in resp.content.decode('utf-8')

@@ -19,6 +19,7 @@
       {% if provider_list %}
         <form method="POST">
           {% csrf_token %}
+          <input type="hidden" name="init" value="1" />
           <ul class="simple-list list-unstyled">
             {% for provider_key, provider_name in provider_list %}
               <li>

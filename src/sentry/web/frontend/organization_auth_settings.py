@@ -148,16 +148,6 @@ class OrganizationAuthSettingsView(OrganizationView):
 
         return self.respond('sentry/organization-auth-provider-settings.html', context)
 
-    def handle_provider_setup(self, request, organization, provider_key):
-        helper = AuthHelper(
-            request=request,
-            organization=organization,
-            provider_key=provider_key,
-            flow=AuthHelper.FLOW_SETUP_PROVIDER,
-        )
-        helper.init_pipeline()
-        return helper.next_step()
-
     @transaction.atomic
     def handle(self, request, organization):
         if not features.has('organizations:sso', organization, actor=request.user):
@@ -188,8 +178,18 @@ class OrganizationAuthSettingsView(OrganizationView):
             if not manager.exists(provider_key):
                 raise ValueError('Provider not found: {}'.format(provider_key))
 
+            helper = AuthHelper(
+                request=request,
+                organization=organization,
+                provider_key=provider_key,
+                flow=AuthHelper.FLOW_SETUP_PROVIDER,
+            )
+
+            if request.POST.get('init'):
+                helper.init_pipeline()
+
             # render first time setup view
-            return self.handle_provider_setup(request, organization, provider_key)
+            return helper.current_step()
 
         provider_list = []
 
