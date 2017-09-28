@@ -133,7 +133,7 @@ class AuthHelper(object):
             'ap': self.auth_provider.id if self.auth_provider else None,
             'p': self.provider.key,
             'org': self.organization.id,
-            'idx': -1,
+            'idx': 0,
             'sig': self.signature,
             'flow': self.flow,
             'state': {},

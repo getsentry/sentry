@@ -84,8 +84,11 @@ class AuthOrganizationLoginView(BaseView):
                 auth_provider=auth_provider,
                 flow=AuthHelper.FLOW_LOGIN,
             )
-            helper.init_pipeline()
-            return helper.next_step()
+
+            if request.POST.get('init_login'):
+                helper.init_pipeline()
+
+            return helper.current_step()
 
         provider = auth_provider.get_provider()
 
