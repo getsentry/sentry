@@ -185,7 +185,7 @@ class OrganizationAuthSettingsView(OrganizationView):
                 flow=AuthHelper.FLOW_SETUP_PROVIDER,
             )
 
-            if request.POST.get('init_setup'):
+            if request.POST.get('init'):
                 helper.init_pipeline()
 
             # render first time setup view

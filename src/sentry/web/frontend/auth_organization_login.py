@@ -85,7 +85,7 @@ class AuthOrganizationLoginView(BaseView):
                 flow=AuthHelper.FLOW_LOGIN,
             )
 
-            if request.POST.get('init_login'):
+            if request.POST.get('init'):
                 helper.init_pipeline()
 
             return helper.current_step()
