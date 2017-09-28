@@ -7,8 +7,9 @@ from sentry.models import User
 
 
 def capture_signal(type):
-    def wrapped(instance, **kwargs):
-        analytics.record(type, instance)
+    def wrapped(instance, created, **kwargs):
+        if created:
+            analytics.record(type, instance)
 
     return wrapped
 
