@@ -65,7 +65,7 @@
     {% if ACCESS.org_admin %}
       {% feature organizations:api-keys organization %}
         <li class="{% block org_apikeys_nav %}{% endblock %}">
-          <a href="{% url 'sentry-organization-api-keys' organization.slug %}">
+          <a href="{% absolute_uri '/organizations/{}/api-keys/' organization.slug %}">
             {% trans "API Keys" %}
           </a>
         </li>
