@@ -12,6 +12,7 @@ from six.moves.urllib.parse import urlparse
 
 from sentry import options
 from sentry.auth import Provider, AuthView
+from sentry.auth.exceptions import IdentityNotValid
 from sentry.models import (AuthProvider, Organization, OrganizationStatus)
 from sentry.utils.auth import get_login_url
 from sentry.utils.http import absolute_uri
@@ -237,7 +238,11 @@ class SAML2Provider(Provider):
 
         # map configured provider attributes
         for key, provider_key in iteritems(self.config['attribute_mapping']):
-            attributes[key] = raw_attributes[provider_key][0]
+            attributes[key] = raw_attributes.get(provider_key, [''])[0]
+
+        # Email and identifier MUST be correctly mapped
+        if not attributes[Attributes.IDENTIFIER] or not attributes[Attributes.USER_EMAIL]:
+            raise IdentityNotValid
 
         name = (attributes[k] for k in (Attributes.FIRST_NAME, Attributes.LAST_NAME))
         name = ' '.join(filter(None, name))
