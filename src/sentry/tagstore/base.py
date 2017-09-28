@@ -89,8 +89,8 @@ class TagStorage(Service):
         """
         raise NotImplementedError
 
-    def get_group_event_ids(self, group, tags):
+    def get_group_event_ids(self, project_id, group_id, tags):
         """
-        >>> get_group_event_ids(Group(), {'key1': 'value1', 'key2': 'value2'})
+        >>> get_group_event_ids(1, 2, {'key1': 'value1', 'key2': 'value2'})
         """
         raise NotImplementedError
