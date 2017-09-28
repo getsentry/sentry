@@ -6,7 +6,7 @@ import {withInfo} from '@storybook/addon-info';
 import DropdownLink from 'sentry-ui/dropdownLink';
 import MenuItem from 'sentry-ui/menuItem';
 
-storiesOf('DropdownLink', module)
+storiesOf('Links/DropdownLink', module)
   .add(
     'anchor left (default)',
     withInfo('Anchors to left side')(() => (
