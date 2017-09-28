@@ -83,7 +83,7 @@ class TagStorage(Service):
         """
         raise NotImplementedError
 
-    def incr_values_seen(self, project_id, key):
+    def incr_values_seen(self, project_id, key, count=1):
         """
         >>> incr_values_seen(1, "key1")
         """

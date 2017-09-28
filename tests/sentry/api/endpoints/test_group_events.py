@@ -2,7 +2,8 @@ from __future__ import absolute_import
 
 import six
 
-from sentry.models import EventTag, TagKey, TagValue
+from sentry import tagstore
+from sentry.models import EventTag, TagValue
 from sentry.testutils import APITestCase
 
 
@@ -33,8 +34,8 @@ class GroupEventsTest(APITestCase):
         event_1 = self.create_event('a' * 32, group=group)
         event_2 = self.create_event('b' * 32, group=group)
 
-        tagkey_1 = TagKey.objects.create(project_id=group.project_id, key='foo')
-        tagkey_2 = TagKey.objects.create(project_id=group.project_id, key='bar')
+        tagkey_1 = tagstore.create_tag_key(project_id=group.project_id, key='foo')
+        tagkey_2 = tagstore.create_tag_key(project_id=group.project_id, key='bar')
         tagvalue_1 = TagValue.objects.create(project_id=group.project_id, key='foo', value='baz')
         tagvalue_2 = TagValue.objects.create(project_id=group.project_id, key='bar', value='biz')
         tagvalue_3 = TagValue.objects.create(project_id=group.project_id, key='bar', value='buz')

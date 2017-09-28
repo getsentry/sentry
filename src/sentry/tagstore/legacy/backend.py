@@ -14,6 +14,7 @@ from django.db.models import Q
 from operator import or_
 from six.moves import reduce
 
+from sentry import buffer
 from sentry.tagstore import TagKeyStatus
 from sentry.models import TagKey, TagValue, EventTag
 from sentry.tagstore.base import TagStorage
@@ -80,9 +81,9 @@ class LegacyTagStorage(TagStorage):
 
         return (updated, tagkey)
 
-    def incr_values_seen(self, project_id, key):
+    def incr_values_seen(self, project_id, key, count=1):
         buffer.incr(TagKey, {
-            'values_seen': 1,
+            'values_seen': count,
         }, {
             'project_id': project_id,
             'key': key,

@@ -2,8 +2,9 @@ from __future__ import absolute_import
 
 import six
 
+from sentry import tagstore
 from sentry.api.serializers import serialize
-from sentry.models import GroupTagKey, TagKey
+from sentry.models import GroupTagKey
 from sentry.testutils import TestCase
 
 
@@ -11,7 +12,7 @@ class GroupTagKeySerializerTest(TestCase):
     def test(self):
         user = self.create_user()
         project = self.create_project()
-        tagkey = TagKey.objects.create(
+        tagkey = tagstore.create_tag_key(
             project_id=project.id,
             key='key'
         )
