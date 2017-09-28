@@ -88,8 +88,7 @@ class LegacyTagStorage(TagStorage):
             'key': key,
         })
 
-    def get_group_event_ids(self, group, tags):
-        project_id = group.project_id
+    def get_group_event_ids(self, project_id, group_id, tags):
         tagkeys = dict(
             TagKey.objects.filter(
                 project_id=project_id,
@@ -123,7 +122,7 @@ class LegacyTagStorage(TagStorage):
             EventTag.objects.filter(
                 key_id=k,
                 value_id=v,
-                group_id=group.id,
+                group_id=group_id,
             ).values_list('event_id', flat=True)[:1000]
         )
 
@@ -135,7 +134,7 @@ class LegacyTagStorage(TagStorage):
                     key_id=k,
                     value_id=v,
                     event_id__in=matches,
-                    group_id=group.id,
+                    group_id=group_id,
                 ).values_list('event_id', flat=True)[:1000]
             )
             if not matches:

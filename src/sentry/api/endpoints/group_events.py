@@ -52,7 +52,8 @@ class GroupEventsEndpoint(GroupEndpoint):
                 )
 
             if query_kwargs['tags']:
-                event_ids = tagstore.get_group_event_ids(group, query_kwargs['tags'])
+                event_ids = tagstore.get_group_event_ids(
+                    group.project_id, group.id, query_kwargs['tags'])
                 if event_ids:
                     events = events.filter(
                         id__in=event_ids,
