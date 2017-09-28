@@ -5,6 +5,8 @@ import React from 'react';
 import {FormState} from '../components/forms';
 import {sortArray, parseRepo} from '../utils';
 import {t, tct} from '../locale';
+import Button from '../components/buttons/button';
+import Confirm from '../components/confirm';
 import DropdownLink from '../components/dropdownLink';
 import IndicatorStore from '../stores/indicatorStore';
 import MenuItem from '../components/menuItem';
@@ -223,9 +225,6 @@ class OrganizationRepositories extends OrganizationSettingsView {
   }
 
   deleteRepo = repo => {
-    // eslint-disable-next-line no-alert
-    if (!confirm(t('Are you sure you want to remove this repository?'))) return;
-
     let indicator = IndicatorStore.add(t('Saving changes..'));
     this.api.request(`/organizations/${this.props.params.orgId}/repos/${repo.id}/`, {
       method: 'DELETE',
@@ -349,20 +348,22 @@ class OrganizationRepositories extends OrganizationSettingsView {
               <table className="table">
                 <tbody>
                   {itemList.map(repo => {
+                    let repoIsVisible = repo.status === 'visible';
+
                     return (
                       <tr key={repo.id}>
                         <td>
                           <strong>
                             {repo.name}
                           </strong>
-                          {repo.status !== 'visible' &&
+                          {!repoIsVisible &&
                             <small>
                               {' '}— {this.getStatusLabel(repo)}
                             </small>}
                           {repo.status === 'pending_deletion' &&
                             <small>
                               {' '}(
-                              <a onClick={this.cancelDelete.bind(this, repo)}>
+                              <a onClick={() => this.cancelDelete(repo)}>
                                 {t('Cancel')}
                               </a>
                               )
@@ -377,18 +378,16 @@ class OrganizationRepositories extends OrganizationSettingsView {
                             </small>}
                         </td>
                         <td style={{width: 60}}>
-                          {repo.status === 'visible'
-                            ? <button
-                                onClick={this.deleteRepo.bind(this, repo)}
-                                className="btn btn-default btn-xs">
-                                <span className="icon icon-trash" />
-                              </button>
-                            : <button
-                                onClick={this.deleteRepo.bind(this, repo)}
-                                disabled={true}
-                                className="btn btn-default btn-xs btn-disabled">
-                                <span className="icon icon-trash" />
-                              </button>}
+                          <Confirm
+                            disabled={!repoIsVisible}
+                            onConfirm={() => this.deleteRepo(repo)}
+                            message={t(
+                              'Are you sure you want to remove this repository?'
+                            )}>
+                            <Button size="xsmall">
+                              <span className="icon icon-trash" />
+                            </Button>
+                          </Confirm>
                         </td>
                       </tr>
                     );

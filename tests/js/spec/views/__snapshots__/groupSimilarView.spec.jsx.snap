@@ -391,46 +391,32 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                               onConfirm={[Function]}
                               title="Merging 0 issues"
                             >
-                              <a
-                                className="btn btn-sm btn-default disabled"
+                              <Confirm
+                                cancelText="Cancel"
+                                confirmText="Confirm"
                                 disabled={true}
-                                onClick={[Function]}
-                                title="Merging 0 issues"
+                                message="Are you sure you want to merge these issues?"
+                                onConfirm={[Function]}
+                                priority="primary"
                               >
-                                Merge
-                                 (
-                                0
-                                )
-                                <Modal
-                                  animation={false}
-                                  autoFocus={true}
-                                  backdrop={true}
-                                  bsClass="modal"
-                                  dialogComponentClass={[Function]}
-                                  enforceFocus={true}
-                                  keyboard={true}
-                                  manager={
-                                    ModalManager {
-                                      "containers": Array [],
-                                      "data": Array [],
-                                      "handleContainerOverflow": true,
-                                      "hideSiblingNodes": true,
-                                      "modals": Array [],
-                                    }
-                                  }
-                                  onHide={[Function]}
-                                  renderBackdrop={[Function]}
-                                  restoreFocus={true}
-                                  show={false}
-                                  title="Please confirm"
-                                >
+                                <span>
+                                  <a
+                                    className="btn btn-sm btn-default disabled"
+                                    disabled={true}
+                                    onClick={[Function]}
+                                    title="Merging 0 issues"
+                                  >
+                                    Merge
+                                     (
+                                    0
+                                    )
+                                  </a>
                                   <Modal
+                                    animation={false}
                                     autoFocus={true}
                                     backdrop={true}
-                                    backdropClassName="modal-backdrop"
-                                    backdropTransitionTimeout={150}
-                                    containerClassName="modal-open"
-                                    dialogTransitionTimeout={300}
+                                    bsClass="modal"
+                                    dialogComponentClass={[Function]}
                                     enforceFocus={true}
                                     keyboard={true}
                                     manager={
@@ -442,15 +428,39 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                         "modals": Array [],
                                       }
                                     }
-                                    onEntering={[Function]}
-                                    onExited={[Function]}
                                     onHide={[Function]}
                                     renderBackdrop={[Function]}
                                     restoreFocus={true}
                                     show={false}
-                                  />
-                                </Modal>
-                              </a>
+                                  >
+                                    <Modal
+                                      autoFocus={true}
+                                      backdrop={true}
+                                      backdropClassName="modal-backdrop"
+                                      backdropTransitionTimeout={150}
+                                      containerClassName="modal-open"
+                                      dialogTransitionTimeout={300}
+                                      enforceFocus={true}
+                                      keyboard={true}
+                                      manager={
+                                        ModalManager {
+                                          "containers": Array [],
+                                          "data": Array [],
+                                          "handleContainerOverflow": true,
+                                          "hideSiblingNodes": true,
+                                          "modals": Array [],
+                                        }
+                                      }
+                                      onEntering={[Function]}
+                                      onExited={[Function]}
+                                      onHide={[Function]}
+                                      renderBackdrop={[Function]}
+                                      restoreFocus={true}
+                                      show={false}
+                                    />
+                                  </Modal>
+                                </span>
+                              </Confirm>
                             </LinkWithConfirmation>
                           </div>
                         </div>
@@ -893,46 +903,32 @@ exports[`Issues Similar View renders with mocked data 2`] = `
                               onConfirm={[Function]}
                               title="Merging 0 issues"
                             >
-                              <a
-                                className="btn btn-sm btn-default disabled"
+                              <Confirm
+                                cancelText="Cancel"
+                                confirmText="Confirm"
                                 disabled={true}
-                                onClick={[Function]}
-                                title="Merging 0 issues"
+                                message="Are you sure you want to merge these issues?"
+                                onConfirm={[Function]}
+                                priority="primary"
                               >
-                                Merge
-                                 (
-                                0
-                                )
-                                <Modal
-                                  animation={false}
-                                  autoFocus={true}
-                                  backdrop={true}
-                                  bsClass="modal"
-                                  dialogComponentClass={[Function]}
-                                  enforceFocus={true}
-                                  keyboard={true}
-                                  manager={
-                                    ModalManager {
-                                      "containers": Array [],
-                                      "data": Array [],
-                                      "handleContainerOverflow": true,
-                                      "hideSiblingNodes": true,
-                                      "modals": Array [],
-                                    }
-                                  }
-                                  onHide={[Function]}
-                                  renderBackdrop={[Function]}
-                                  restoreFocus={true}
-                                  show={false}
-                                  title="Please confirm"
-                                >
+                                <span>
+                                  <a
+                                    className="btn btn-sm btn-default disabled"
+                                    disabled={true}
+                                    onClick={[Function]}
+                                    title="Merging 0 issues"
+                                  >
+                                    Merge
+                                     (
+                                    0
+                                    )
+                                  </a>
                                   <Modal
+                                    animation={false}
                                     autoFocus={true}
                                     backdrop={true}
-                                    backdropClassName="modal-backdrop"
-                                    backdropTransitionTimeout={150}
-                                    containerClassName="modal-open"
-                                    dialogTransitionTimeout={300}
+                                    bsClass="modal"
+                                    dialogComponentClass={[Function]}
                                     enforceFocus={true}
                                     keyboard={true}
                                     manager={
@@ -944,15 +940,39 @@ exports[`Issues Similar View renders with mocked data 2`] = `
                                         "modals": Array [],
                                       }
                                     }
-                                    onEntering={[Function]}
-                                    onExited={[Function]}
                                     onHide={[Function]}
                                     renderBackdrop={[Function]}
                                     restoreFocus={true}
                                     show={false}
-                                  />
-                                </Modal>
-                              </a>
+                                  >
+                                    <Modal
+                                      autoFocus={true}
+                                      backdrop={true}
+                                      backdropClassName="modal-backdrop"
+                                      backdropTransitionTimeout={150}
+                                      containerClassName="modal-open"
+                                      dialogTransitionTimeout={300}
+                                      enforceFocus={true}
+                                      keyboard={true}
+                                      manager={
+                                        ModalManager {
+                                          "containers": Array [],
+                                          "data": Array [],
+                                          "handleContainerOverflow": true,
+                                          "hideSiblingNodes": true,
+                                          "modals": Array [],
+                                        }
+                                      }
+                                      onEntering={[Function]}
+                                      onExited={[Function]}
+                                      onHide={[Function]}
+                                      renderBackdrop={[Function]}
+                                      restoreFocus={true}
+                                      show={false}
+                                    />
+                                  </Modal>
+                                </span>
+                              </Confirm>
                             </LinkWithConfirmation>
                           </div>
                         </div>

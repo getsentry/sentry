@@ -6,6 +6,7 @@ import {Link} from 'react-router';
 import ApiMixin from '../mixins/apiMixin';
 import AutoSelectText from '../components/autoSelectText';
 import ClippedBox from '../components/clippedBox';
+import Confirm from '../components/confirm';
 import IndicatorStore from '../stores/indicatorStore';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
@@ -32,17 +33,8 @@ const KeyRow = React.createClass({
     };
   },
 
-  handleRemove(e) {
-    e.preventDefault();
+  handleRemove() {
     if (this.state.loading) return;
-
-    /* eslint no-alert:0*/
-    if (
-      !window.confirm(
-        'Are you sure you want to remove this key? This action is irreversible.'
-      )
-    )
-      return;
 
     let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
     let {orgId, projectId, data} = this.props;
@@ -120,13 +112,19 @@ const KeyRow = React.createClass({
         </a>
       );
       controls.push(
-        <a
+        <Confirm
           key="remove"
-          className="btn btn-sm btn-default"
-          onClick={this.handleRemove}
-          disabled={this.state.loading}>
-          <span className="icon icon-trash" />
-        </a>
+          priority="danger"
+          disabled={this.state.loading}
+          onConfirm={this.handleRemove}
+          confirmText={t('Remove Key')}
+          message={t(
+            'Are you sure you want to remove this key? This action is irreversible.'
+          )}>
+          <a className="btn btn-sm btn-default" disabled={this.state.loading}>
+            <span className="icon icon-trash" />
+          </a>
+        </Confirm>
       );
     }
 

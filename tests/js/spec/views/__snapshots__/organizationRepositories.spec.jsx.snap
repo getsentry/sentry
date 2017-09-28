@@ -1319,14 +1319,81 @@ exports[`OrganizationRepositories render() with a provider renders with a reposi
                             }
                           }
                         >
-                          <button
-                            className="btn btn-default btn-xs"
-                            onClick={[Function]}
+                          <Confirm
+                            cancelText="Cancel"
+                            confirmText="Confirm"
+                            disabled={false}
+                            message="Are you sure you want to remove this repository?"
+                            onConfirm={[Function]}
+                            priority="primary"
                           >
-                            <span
-                              className="icon icon-trash"
-                            />
-                          </button>
+                            <span>
+                              <Button
+                                disabled={false}
+                                onClick={[Function]}
+                                size="xsmall"
+                              >
+                                <button
+                                  className="button button-default button-xs"
+                                  disabled={false}
+                                  onClick={[Function]}
+                                  role="button"
+                                >
+                                  <span
+                                    className="icon icon-trash"
+                                  />
+                                </button>
+                              </Button>
+                              <Modal
+                                animation={false}
+                                autoFocus={true}
+                                backdrop={true}
+                                bsClass="modal"
+                                dialogComponentClass={[Function]}
+                                enforceFocus={true}
+                                keyboard={true}
+                                manager={
+                                  ModalManager {
+                                    "containers": Array [],
+                                    "data": Array [],
+                                    "handleContainerOverflow": true,
+                                    "hideSiblingNodes": true,
+                                    "modals": Array [],
+                                  }
+                                }
+                                onHide={[Function]}
+                                renderBackdrop={[Function]}
+                                restoreFocus={true}
+                                show={false}
+                              >
+                                <Modal
+                                  autoFocus={true}
+                                  backdrop={true}
+                                  backdropClassName="modal-backdrop"
+                                  backdropTransitionTimeout={150}
+                                  containerClassName="modal-open"
+                                  dialogTransitionTimeout={300}
+                                  enforceFocus={true}
+                                  keyboard={true}
+                                  manager={
+                                    ModalManager {
+                                      "containers": Array [],
+                                      "data": Array [],
+                                      "handleContainerOverflow": true,
+                                      "hideSiblingNodes": true,
+                                      "modals": Array [],
+                                    }
+                                  }
+                                  onEntering={[Function]}
+                                  onExited={[Function]}
+                                  onHide={[Function]}
+                                  renderBackdrop={[Function]}
+                                  restoreFocus={true}
+                                  show={false}
+                                />
+                              </Modal>
+                            </span>
+                          </Confirm>
                         </td>
                       </tr>
                     </tbody>
