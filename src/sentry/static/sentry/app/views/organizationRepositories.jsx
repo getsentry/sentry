@@ -349,7 +349,6 @@ class OrganizationRepositories extends OrganizationSettingsView {
                 <tbody>
                   {itemList.map(repo => {
                     let repoIsVisible = repo.status === 'visible';
-
                     return (
                       <tr key={repo.id}>
                         <td>
