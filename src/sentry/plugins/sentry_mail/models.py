@@ -249,6 +249,7 @@ class MailPlugin(NotificationPlugin):
                 template='sentry/emails/digests/body.txt',
                 html_template='sentry/emails/digests/body.html',
                 project=project,
+                reference=project,
                 type='notify.digest',
                 context=context,
                 send_to=[user_id],
