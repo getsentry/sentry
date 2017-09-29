@@ -32,8 +32,8 @@ class TagStorage(Service):
     __all__ = (
         'is_valid_key', 'is_valid_value', 'is_reserved_key', 'prefix_reserved_key',
         'get_standardized_key', 'create_tag_key', 'get_or_create_tag_key',
-        'create_tag_value', 'get_or_create_tag_value', 'get_tag_key', 'get_tag_keys',
-        'delete_tag_key', 'incr_values_seen', 'get_group_event_ids'
+        'create_tag_value', 'get_or_create_tag_value', 'get_tag_key', 'get_tag_keys', 'get_tag_value',
+        'delete_tag_key', 'incr_values_seen', 'incr_times_seen', 'get_group_event_ids', 'get_tag_value_qs'
     )
 
     def is_valid_key(self, key):

@@ -6,6 +6,7 @@ import sys
 from django.db import models
 from sentry.models import Release, ReleaseFile, TagValue
 
+
 def is_full_sha(version):
     # sha1 or md5
     return bool(re.match(r'[a-f0-9]{40}$', version) or re.match(r'[a-f0-9]{32}$', version))
@@ -63,6 +64,7 @@ def update_version(release):
         value=old_version
     ).update(value=new_version)
     return 'updated_version'
+
 
 def main(is_dry_run):
     fieldnames = ['org_id', 'release_id', 'version', 'date_added', 'action']
