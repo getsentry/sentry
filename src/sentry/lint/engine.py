@@ -190,6 +190,29 @@ def js_format(file_list=None):
                          js_file_list)
 
 
+def js_test(file_list=None):
+    """
+    Run JavaScript unit tests on relevant files ONLY as part of pre-commit hook
+    """
+    project_root = os.path.join(os.path.dirname(__file__), os.pardir, os.pardir,
+                                os.pardir)
+    jest_path = os.path.join(project_root, 'node_modules', '.bin', 'jest')
+
+    if not os.path.exists(jest_path):
+        from click import echo
+        echo('[sentry.test] Skipping JavaScript testing because jest is not installed.')
+        return False
+
+    js_file_list = get_js_files(file_list)
+
+    has_errors = False
+    if js_file_list:
+        status = Popen([jest_path, '--bail', '--findRelatedTests'] + js_file_list).wait()
+        has_errors = status != 0
+
+    return has_errors
+
+
 def py_format(file_list=None):
     try:
         __import__('autopep8')
@@ -237,7 +260,7 @@ def run_formatter(cmd, file_list, prompt_on_changes=True):
     return has_errors
 
 
-def run(file_list=None, format=True, lint=True, js=True, py=True, yarn=True):
+def run(file_list=None, format=True, lint=True, js=True, py=True, yarn=True, test=False):
     # pep8.py uses sys.argv to find setup.cfg
     old_sysargv = sys.argv
 
@@ -271,6 +294,10 @@ def run(file_list=None, format=True, lint=True, js=True, py=True, yarn=True):
                 results.append(py_lint(file_list))
             if js:
                 results.append(js_lint(file_list))
+
+        if test:
+            if js:
+                results.append(js_test(file_list))
 
         if any(results):
             return 1

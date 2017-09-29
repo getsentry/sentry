@@ -203,11 +203,7 @@ const SetCallsignsAction = React.createClass({
 
 SetCallsignsAction.requiresAction = function(org) {
   let info = getProjectInfoForReview(org);
-  return (
-    info.requiresReview > 0 &&
-    info.canReviewAnything &&
-    new Set(org.access).has('callsigns')
-  );
+  return info.requiresReview > 0 && info.canReviewAnything;
 };
 
 SetCallsignsAction.getActionLinkTitle = function() {

@@ -134,3 +134,15 @@ class IssuePlugin2GroupAction(TestCase):
         assert response.status_code == 200
         GroupMeta.objects.populate_cache([self.group])
         assert GroupMeta.objects.get_value(self.group, id_, None) is None
+
+    @mock.patch('sentry.plugins.IssueTrackingPlugin2.is_configured', return_value=True)
+    def test_no_group_events(self, *args):
+        self.login_as(user=self.user)
+        group = self.create_group(project=self.project)
+        url = '/api/0/issues/%s/plugins/issuetrackingplugin2/create/' % group.id
+        response = self.client.get(url, format='json')
+        assert response.status_code == 400
+        assert response.data == {
+            'message': 'Unable to create issues: there are '
+                       'no events associated with this group',
+        }

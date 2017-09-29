@@ -72,7 +72,7 @@
     "sprintf-js": "1.0.3",
     "style-loader": "0.12.4",
     "theming": "^1.1.0",
-    "u2f-api": "0.0.8",
+    "u2f-api": "0.2.2",
     "url-loader": "0.5.6",
     "webpack": "2.2.0",
     "webpack-dev-middleware": "1.9.0",

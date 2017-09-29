@@ -73,6 +73,10 @@ const IssueDiff = React.createClass({
   },
 
   getEndpoint(issueId, eventId) {
+    if (eventId !== 'latest') {
+      return `/events/${eventId}/`;
+    }
+
     return `/issues/${issueId}/events/${eventId}/`;
   },
 

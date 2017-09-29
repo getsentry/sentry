@@ -126,6 +126,10 @@ from django.db import models
 
 class Migration(DataMigration):
 
+    # Flag to indicate if this migration is too risky
+    # to run online and needs to be coordinated for offline
+    is_dangerous = False
+
     def forwards(self, orm):
         db.commit_transaction()
         try:

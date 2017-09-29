@@ -10,5 +10,6 @@ export {default as PasswordField} from './passwordField';
 export {default as RangeField} from './rangeField';
 export {default as Select2FieldAutocomplete} from './select2FieldAutocomplete';
 export {default as Select2Field} from './select2Field';
+export {default as Select2TextField} from './select2TextField';
 export {default as TextField} from './textField';
 export {default as TextareaField} from './textareaField';

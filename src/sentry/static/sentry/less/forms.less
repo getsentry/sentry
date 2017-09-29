@@ -33,18 +33,31 @@
   }
 }
 
+.control-label.requiredField,
 .form-stacked .required .controls label {
   &:after {
     margin-left: 10px;
+    vertical-align: bottom;
     content: '[required]';
     font-size: 12px;
     color: #999;
     text-transform: uppercase;
   }
+
+  // Hide the crispy-forms required asterisk
+  .asteriskField {
+    display: none;
+  }
 }
 
 .form-group, .control-group {
   margin-bottom: 15px;
+}
+
+.rate-limit-group {
+  .control-group {
+    margin-bottom: 0;
+  }
 }
 
 .form-actions {

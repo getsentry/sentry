@@ -1,8 +1,11 @@
 from __future__ import absolute_import
+import logging
+import posixpath
 
 from rest_framework.response import Response
 from rest_framework import serializers
 
+from sentry import ratelimits
 from sentry.api.base import DocSection
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.content_negotiation import ConditionalContentNegotiation
@@ -10,7 +13,14 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import ListField
 from sentry.models import ProjectDSymFile, create_files_from_dsym_zip, \
     VersionDSymFile, DSymApp, DSYM_PLATFORMS
+try:
+    from django.http import (
+        CompatibleStreamingHttpResponse as StreamingHttpResponse, HttpResponse, Http404)
+except ImportError:
+    from django.http import StreamingHttpResponse, HttpResponse, Http404
 
+
+logger = logging.getLogger('sentry.api')
 ERR_FILE_EXISTS = 'A file matching this uuid already exists'
 
 
@@ -40,6 +50,48 @@ class DSymFilesEndpoint(ProjectEndpoint):
 
     content_negotiation_class = ConditionalContentNegotiation
 
+    def download(self, project_dsym_id, project):
+        rate_limited = ratelimits.is_limited(
+            project=project,
+            key='rl:DSymFilesEndpoint:download:%s:%s' % (
+                project_dsym_id, project.id),
+            limit=10,
+        )
+        if rate_limited:
+            logger.info('notification.rate_limited',
+                        extra={'project_id': project.id,
+                               'project_dsym_id': project_dsym_id})
+            return HttpResponse(
+                {
+                    'Too many download requests',
+                }, status=403
+            )
+
+        dsym = ProjectDSymFile.objects.filter(
+            id=project_dsym_id
+        ).first()
+
+        if dsym is None:
+            raise Http404
+
+        suffix = ".dSYM"
+        if dsym.dsym_type == 'proguard' and dsym.object_name == 'proguard-mapping':
+            suffix = ".txt"
+
+        try:
+            fp = dsym.file.getfile()
+            response = StreamingHttpResponse(
+                iter(lambda: fp.read(4096), b''),
+                content_type='application/octet-stream'
+            )
+            response['Content-Length'] = dsym.file.size
+            response['Content-Disposition'] = 'attachment; filename="%s%s"' % (posixpath.basename(
+                dsym.uuid
+            ), suffix)
+            return response
+        except IOError:
+            raise Http404
+
     def get(self, request, project):
         """
         List a Project's DSym Files
@@ -63,6 +115,10 @@ class DSymFilesEndpoint(ProjectEndpoint):
             project=project,
             versiondsymfile__isnull=True,
         ).select_related('file')[:100]
+
+        download_requested = request.GET.get('download_id') is not None
+        if download_requested and (request.access.has_scope('project:write')):
+            return self.download(request.GET.get('download_id'), project)
 
         return Response(
             {
@@ -102,7 +158,8 @@ class UnknownDSymFilesEndpoint(ProjectEndpoint):
 
     def get(self, request, project):
         checksums = request.GET.getlist('checksums')
-        missing = ProjectDSymFile.objects.find_missing(checksums, project=project)
+        missing = ProjectDSymFile.objects.find_missing(
+            checksums, project=project)
         return Response({'missing': missing})
 
 
@@ -125,7 +182,8 @@ class AssociateDSymFilesEndpoint(ProjectEndpoint):
             data={'name': data['name']},
             platform=DSYM_PLATFORMS[data['platform']],
         )
-        dsym_files = ProjectDSymFile.objects.find_by_checksums(data['checksums'], project)
+        dsym_files = ProjectDSymFile.objects.find_by_checksums(
+            data['checksums'], project)
 
         for dsym_file in dsym_files:
             version_dsym_file, created = VersionDSymFile.objects.get_or_create(

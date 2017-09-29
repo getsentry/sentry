@@ -11,9 +11,15 @@ exports[`OrganizationRepositories render() with a provider renders 1`] = `
   <DocumentTitle
     title="Repositories"
   >
-    <HomeContainer>
+    <HomeContainer
+      params={
+        Object {
+          "orgId": "org-slug",
+        }
+      }
+    >
       <div
-        className="organization-home"
+        className=" organization-home"
       >
         <div
           className="sub-header flex flex-container flex-vertically-centered"
@@ -490,93 +496,71 @@ exports[`OrganizationRepositories render() with a provider renders 1`] = `
             <div
               className="col-md-10"
             >
-              <div
-                className="pull-right"
-              >
-                <DropdownLink
-                  anchorRight={true}
-                  caret={true}
-                  className="btn btn-primary btn-sm"
-                  disabled={false}
-                  title="Add Repository"
+              <div>
+                <div
+                  className="pull-right"
                 >
-                  <span
-                    className="pull-right anchor-right dropdown"
+                  <DropdownLink
+                    anchorRight={true}
+                    caret={true}
+                    className="btn btn-primary btn-sm"
+                    disabled={false}
+                    title="Add Repository"
                   >
-                    <a
-                      className="btn btn-primary btn-sm dropdown-menu-right dropdown-toggle"
-                      data-toggle="dropdown"
+                    <span
+                      className="pull-right anchor-right dropdown"
                     >
-                      Add Repository
-                      <i
-                        className="icon-arrow-down"
-                      />
-                    </a>
-                    <ul
-                      className="dropdown-menu"
-                    >
-                      <MenuItem
-                        noAnchor={true}
+                      <a
+                        className="btn btn-primary btn-sm dropdown-menu-right dropdown-toggle"
+                        data-toggle="dropdown"
                       >
-                        <li
-                          className=""
-                          href={null}
-                          role="presentation"
-                          title={null}
+                        Add Repository
+                        <i
+                          className="icon-arrow-down"
+                        />
+                      </a>
+                      <ul
+                        className="dropdown-menu"
+                      >
+                        <MenuItem
+                          noAnchor={true}
                         >
-                          <AddRepositoryLink
-                            onSuccess={[Function]}
-                            orgId="org-slug"
-                            provider={
-                              Object {
-                                "config": Array [
-                                  Object {
-                                    "help": "Enter your repository name, including the owner.",
-                                    "label": "Repository Name",
-                                    "name": "name",
-                                    "placeholder": "e.g. getsentry/sentry",
-                                    "required": true,
-                                    "type": "text",
-                                  },
-                                ],
-                                "id": "github",
-                                "name": "GitHub",
-                              }
-                            }
+                          <li
+                            className=""
+                            href={null}
+                            role="presentation"
+                            title={null}
                           >
-                            <a
-                              onClick={[Function]}
-                            >
-                              GitHub
-                              <Modal
-                                animation={false}
-                                autoFocus={true}
-                                backdrop={true}
-                                bsClass="modal"
-                                dialogComponentClass={[Function]}
-                                enforceFocus={true}
-                                keyboard={true}
-                                manager={
-                                  ModalManager {
-                                    "containers": Array [],
-                                    "data": Array [],
-                                    "handleContainerOverflow": true,
-                                    "hideSiblingNodes": true,
-                                    "modals": Array [],
-                                  }
+                            <AddRepositoryLink
+                              onSuccess={[Function]}
+                              orgId="org-slug"
+                              provider={
+                                Object {
+                                  "config": Array [
+                                    Object {
+                                      "help": "Enter your repository name, including the owner.",
+                                      "label": "Repository Name",
+                                      "name": "name",
+                                      "placeholder": "e.g. getsentry/sentry",
+                                      "required": true,
+                                      "type": "text",
+                                    },
+                                  ],
+                                  "id": "github",
+                                  "name": "GitHub",
                                 }
-                                onHide={[Function]}
-                                renderBackdrop={[Function]}
-                                restoreFocus={true}
-                                show={false}
+                              }
+                            >
+                              <a
+                                onClick={[Function]}
                               >
+                                GitHub
                                 <Modal
+                                  animation={false}
                                   autoFocus={true}
                                   backdrop={true}
-                                  backdropClassName="modal-backdrop"
-                                  backdropTransitionTimeout={150}
-                                  containerClassName="modal-open"
-                                  dialogTransitionTimeout={300}
+                                  bsClass="modal"
+                                  dialogComponentClass={[Function]}
                                   enforceFocus={true}
                                   keyboard={true}
                                   manager={
@@ -588,49 +572,73 @@ exports[`OrganizationRepositories render() with a provider renders 1`] = `
                                       "modals": Array [],
                                     }
                                   }
-                                  onEntering={[Function]}
-                                  onExited={[Function]}
                                   onHide={[Function]}
                                   renderBackdrop={[Function]}
                                   restoreFocus={true}
                                   show={false}
-                                />
-                              </Modal>
-                            </a>
-                          </AddRepositoryLink>
-                        </li>
-                      </MenuItem>
-                    </ul>
-                  </span>
-                </DropdownLink>
-              </div>
-              <h3
-                className="m-b-2"
-              >
-                Repositories
-              </h3>
-              <div
-                className="well blankslate align-center p-x-2 p-y-1"
-              >
-                <div
-                  className="icon icon-lg icon-git-commit"
-                />
-                <h3>
-                  Sentry is better with commit data
-                </h3>
-                <p>
-                  Adding one or more repositories will enable enhanced releases and the ability to resolve Sentry Issues via git message.
-                </p>
-                <p
-                  className="m-b-1"
+                                >
+                                  <Modal
+                                    autoFocus={true}
+                                    backdrop={true}
+                                    backdropClassName="modal-backdrop"
+                                    backdropTransitionTimeout={150}
+                                    containerClassName="modal-open"
+                                    dialogTransitionTimeout={300}
+                                    enforceFocus={true}
+                                    keyboard={true}
+                                    manager={
+                                      ModalManager {
+                                        "containers": Array [],
+                                        "data": Array [],
+                                        "handleContainerOverflow": true,
+                                        "hideSiblingNodes": true,
+                                        "modals": Array [],
+                                      }
+                                    }
+                                    onEntering={[Function]}
+                                    onExited={[Function]}
+                                    onHide={[Function]}
+                                    renderBackdrop={[Function]}
+                                    restoreFocus={true}
+                                    show={false}
+                                  />
+                                </Modal>
+                              </a>
+                            </AddRepositoryLink>
+                          </li>
+                        </MenuItem>
+                      </ul>
+                    </span>
+                  </DropdownLink>
+                </div>
+                <h3
+                  className="m-b-2"
                 >
-                  <a
-                    className="btn btn-default"
-                    href="https://docs.sentry.io/learn/releases/"
+                  Repositories
+                </h3>
+                <div
+                  className="well blankslate align-center p-x-2 p-y-1"
+                >
+                  <div
+                    className="icon icon-lg icon-git-commit"
+                  />
+                  <h3>
+                    Sentry is better with commit data
+                  </h3>
+                  <p>
+                    Adding one or more repositories will enable enhanced releases and the ability to resolve Sentry Issues via git message.
+                  </p>
+                  <p
+                    className="m-b-1"
                   >
-                    Learn more
-                  </a>
-                </p>
+                    <a
+                      className="btn btn-default"
+                      href="https://docs.sentry.io/learn/releases/"
+                    >
+                      Learn more
+                    </a>
+                  </p>
+                </div>
               </div>
             </div>
           </div>
@@ -652,9 +660,15 @@ exports[`OrganizationRepositories render() with a provider renders with a reposi
   <DocumentTitle
     title="Repositories"
   >
-    <HomeContainer>
+    <HomeContainer
+      params={
+        Object {
+          "orgId": "org-slug",
+        }
+      }
+    >
       <div
-        className="organization-home"
+        className=" organization-home"
       >
         <div
           className="sub-header flex flex-container flex-vertically-centered"
@@ -1131,93 +1145,71 @@ exports[`OrganizationRepositories render() with a provider renders with a reposi
             <div
               className="col-md-10"
             >
-              <div
-                className="pull-right"
-              >
-                <DropdownLink
-                  anchorRight={true}
-                  caret={true}
-                  className="btn btn-primary btn-sm"
-                  disabled={false}
-                  title="Add Repository"
+              <div>
+                <div
+                  className="pull-right"
                 >
-                  <span
-                    className="pull-right anchor-right dropdown"
+                  <DropdownLink
+                    anchorRight={true}
+                    caret={true}
+                    className="btn btn-primary btn-sm"
+                    disabled={false}
+                    title="Add Repository"
                   >
-                    <a
-                      className="btn btn-primary btn-sm dropdown-menu-right dropdown-toggle"
-                      data-toggle="dropdown"
+                    <span
+                      className="pull-right anchor-right dropdown"
                     >
-                      Add Repository
-                      <i
-                        className="icon-arrow-down"
-                      />
-                    </a>
-                    <ul
-                      className="dropdown-menu"
-                    >
-                      <MenuItem
-                        noAnchor={true}
+                      <a
+                        className="btn btn-primary btn-sm dropdown-menu-right dropdown-toggle"
+                        data-toggle="dropdown"
                       >
-                        <li
-                          className=""
-                          href={null}
-                          role="presentation"
-                          title={null}
+                        Add Repository
+                        <i
+                          className="icon-arrow-down"
+                        />
+                      </a>
+                      <ul
+                        className="dropdown-menu"
+                      >
+                        <MenuItem
+                          noAnchor={true}
                         >
-                          <AddRepositoryLink
-                            onSuccess={[Function]}
-                            orgId="org-slug"
-                            provider={
-                              Object {
-                                "config": Array [
-                                  Object {
-                                    "help": "Enter your repository name, including the owner.",
-                                    "label": "Repository Name",
-                                    "name": "name",
-                                    "placeholder": "e.g. getsentry/sentry",
-                                    "required": true,
-                                    "type": "text",
-                                  },
-                                ],
-                                "id": "github",
-                                "name": "GitHub",
-                              }
-                            }
+                          <li
+                            className=""
+                            href={null}
+                            role="presentation"
+                            title={null}
                           >
-                            <a
-                              onClick={[Function]}
-                            >
-                              GitHub
-                              <Modal
-                                animation={false}
-                                autoFocus={true}
-                                backdrop={true}
-                                bsClass="modal"
-                                dialogComponentClass={[Function]}
-                                enforceFocus={true}
-                                keyboard={true}
-                                manager={
-                                  ModalManager {
-                                    "containers": Array [],
-                                    "data": Array [],
-                                    "handleContainerOverflow": true,
-                                    "hideSiblingNodes": true,
-                                    "modals": Array [],
-                                  }
+                            <AddRepositoryLink
+                              onSuccess={[Function]}
+                              orgId="org-slug"
+                              provider={
+                                Object {
+                                  "config": Array [
+                                    Object {
+                                      "help": "Enter your repository name, including the owner.",
+                                      "label": "Repository Name",
+                                      "name": "name",
+                                      "placeholder": "e.g. getsentry/sentry",
+                                      "required": true,
+                                      "type": "text",
+                                    },
+                                  ],
+                                  "id": "github",
+                                  "name": "GitHub",
                                 }
-                                onHide={[Function]}
-                                renderBackdrop={[Function]}
-                                restoreFocus={true}
-                                show={false}
+                              }
+                            >
+                              <a
+                                onClick={[Function]}
                               >
+                                GitHub
                                 <Modal
+                                  animation={false}
                                   autoFocus={true}
                                   backdrop={true}
-                                  backdropClassName="modal-backdrop"
-                                  backdropTransitionTimeout={150}
-                                  containerClassName="modal-open"
-                                  dialogTransitionTimeout={300}
+                                  bsClass="modal"
+                                  dialogComponentClass={[Function]}
                                   enforceFocus={true}
                                   keyboard={true}
                                   manager={
@@ -1229,93 +1221,117 @@ exports[`OrganizationRepositories render() with a provider renders with a reposi
                                       "modals": Array [],
                                     }
                                   }
-                                  onEntering={[Function]}
-                                  onExited={[Function]}
                                   onHide={[Function]}
                                   renderBackdrop={[Function]}
                                   restoreFocus={true}
                                   show={false}
-                                />
-                              </Modal>
-                            </a>
-                          </AddRepositoryLink>
-                        </li>
-                      </MenuItem>
-                    </ul>
-                  </span>
-                </DropdownLink>
-              </div>
-              <h3
-                className="m-b-2"
-              >
-                Repositories
-              </h3>
-              <div
-                className="m-b-2"
-              >
-                <p>
-                  Connecting a repository allows Sentry to capture commit data via webhooks. This enables features like suggested assignees and resolving issues via commit message. Once you've connected a repository, you can associate commits with releases via the API.
-                   
-                  <span>
-                    <span>
-                      See our 
+                                >
+                                  <Modal
+                                    autoFocus={true}
+                                    backdrop={true}
+                                    backdropClassName="modal-backdrop"
+                                    backdropTransitionTimeout={150}
+                                    containerClassName="modal-open"
+                                    dialogTransitionTimeout={300}
+                                    enforceFocus={true}
+                                    keyboard={true}
+                                    manager={
+                                      ModalManager {
+                                        "containers": Array [],
+                                        "data": Array [],
+                                        "handleContainerOverflow": true,
+                                        "hideSiblingNodes": true,
+                                        "modals": Array [],
+                                      }
+                                    }
+                                    onEntering={[Function]}
+                                    onExited={[Function]}
+                                    onHide={[Function]}
+                                    renderBackdrop={[Function]}
+                                    restoreFocus={true}
+                                    show={false}
+                                  />
+                                </Modal>
+                              </a>
+                            </AddRepositoryLink>
+                          </li>
+                        </MenuItem>
+                      </ul>
                     </span>
-                    <a
-                      href="https://docs.sentry.io/learn/releases/"
-                    >
-                      <span>
-                        documentation
-                      </span>
-                    </a>
-                    <span>
-                       for more details.
-                    </span>
-                  </span>
-                </p>
-              </div>
-              <div
-                className="panel panel-default"
-              >
-                <table
-                  className="table"
+                  </DropdownLink>
+                </div>
+                <h3
+                  className="m-b-2"
                 >
-                  <tbody>
-                    <tr>
-                      <td>
-                        <strong>
-                          repo-name
-                        </strong>
-                        <br />
-                        <small />
-                        <small>
-                           
-                          — 
-                          <a
-                            href="https://github.com/example/repo-name"
-                          >
-                            https://github.com/example/repo-name
-                          </a>
-                        </small>
-                      </td>
-                      <td
-                        style={
-                          Object {
-                            "width": 60,
-                          }
-                        }
+                  Repositories
+                </h3>
+                <div
+                  className="m-b-2"
+                >
+                  <p>
+                    Connecting a repository allows Sentry to capture commit data via webhooks. This enables features like suggested assignees and resolving issues via commit message. Once you've connected a repository, you can associate commits with releases via the API.
+                     
+                    <span>
+                      <span>
+                        See our 
+                      </span>
+                      <a
+                        href="https://docs.sentry.io/learn/releases/"
                       >
-                        <button
-                          className="btn btn-default btn-xs"
-                          onClick={[Function]}
+                        <span>
+                          documentation
+                        </span>
+                      </a>
+                      <span>
+                         for more details.
+                      </span>
+                    </span>
+                  </p>
+                </div>
+                <div
+                  className="panel panel-default"
+                >
+                  <table
+                    className="table"
+                  >
+                    <tbody>
+                      <tr>
+                        <td>
+                          <strong>
+                            repo-name
+                          </strong>
+                          <br />
+                          <small />
+                          <small>
+                             
+                            — 
+                            <a
+                              href="https://github.com/example/repo-name"
+                            >
+                              https://github.com/example/repo-name
+                            </a>
+                          </small>
+                        </td>
+                        <td
+                          style={
+                            Object {
+                              "width": 60,
+                            }
+                          }
                         >
-                          <span
-                            className="icon icon-trash"
-                          />
-                        </button>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
+                          <button
+                            className="btn btn-default btn-xs"
+                            onClick={[Function]}
+                          >
+                            <span
+                              className="icon icon-trash"
+                            />
+                          </button>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
           </div>
@@ -1330,45 +1346,53 @@ exports[`OrganizationRepositories render() without any providers is loading when
 <DocumentTitle
   title="Repositories"
 >
-  <HomeContainer>
-    <div
-      className="pull-right"
-    >
-      <DropdownLink
-        anchorRight={true}
-        caret={true}
-        className="btn btn-primary btn-sm"
-        disabled={false}
-        title="Add Repository"
-      />
-    </div>
-    <h3
-      className="m-b-2"
-    >
-      Repositories
-    </h3>
-    <div
-      className="well blankslate align-center p-x-2 p-y-1"
-    >
+  <HomeContainer
+    params={
+      Object {
+        "orgId": "org-slug",
+      }
+    }
+  >
+    <div>
       <div
-        className="icon icon-lg icon-git-commit"
-      />
-      <h3>
-        Sentry is better with commit data
-      </h3>
-      <p>
-        Adding one or more repositories will enable enhanced releases and the ability to resolve Sentry Issues via git message.
-      </p>
-      <p
-        className="m-b-1"
+        className="pull-right"
       >
-        <a
-          className="btn btn-default"
-          href="https://docs.sentry.io/learn/releases/"
+        <DropdownLink
+          anchorRight={true}
+          caret={true}
+          className="btn btn-primary btn-sm"
+          disabled={false}
+          title="Add Repository"
+        />
+      </div>
+      <h3
+        className="m-b-2"
+      >
+        Repositories
+      </h3>
+      <div
+        className="well blankslate align-center p-x-2 p-y-1"
+      >
+        <div
+          className="icon icon-lg icon-git-commit"
+        />
+        <h3>
+          Sentry is better with commit data
+        </h3>
+        <p>
+          Adding one or more repositories will enable enhanced releases and the ability to resolve Sentry Issues via git message.
+        </p>
+        <p
+          className="m-b-1"
         >
-          Learn more
-        </a>
-      </p>
+          <a
+            className="btn btn-default"
+            href="https://docs.sentry.io/learn/releases/"
+          >
+            Learn more
+          </a>
+        </p>
+      </div>
     </div>
   </HomeContainer>
 </DocumentTitle>
@@ -1385,9 +1409,15 @@ exports[`OrganizationRepositories render() without any providers renders 1`] = `
   <DocumentTitle
     title="Repositories"
   >
-    <HomeContainer>
+    <HomeContainer
+      params={
+        Object {
+          "orgId": "org-slug",
+        }
+      }
+    >
       <div
-        className="organization-home"
+        className=" organization-home"
       >
         <div
           className="sub-header flex flex-container flex-vertically-centered"
@@ -1864,61 +1894,63 @@ exports[`OrganizationRepositories render() without any providers renders 1`] = `
             <div
               className="col-md-10"
             >
-              <div
-                className="pull-right"
-              >
-                <DropdownLink
-                  anchorRight={true}
-                  caret={true}
-                  className="btn btn-primary btn-sm"
-                  disabled={false}
-                  title="Add Repository"
+              <div>
+                <div
+                  className="pull-right"
                 >
-                  <span
-                    className="pull-right anchor-right dropdown"
+                  <DropdownLink
+                    anchorRight={true}
+                    caret={true}
+                    className="btn btn-primary btn-sm"
+                    disabled={false}
+                    title="Add Repository"
+                  >
+                    <span
+                      className="pull-right anchor-right dropdown"
+                    >
+                      <a
+                        className="btn btn-primary btn-sm dropdown-menu-right dropdown-toggle"
+                        data-toggle="dropdown"
+                      >
+                        Add Repository
+                        <i
+                          className="icon-arrow-down"
+                        />
+                      </a>
+                      <ul
+                        className="dropdown-menu"
+                      />
+                    </span>
+                  </DropdownLink>
+                </div>
+                <h3
+                  className="m-b-2"
+                >
+                  Repositories
+                </h3>
+                <div
+                  className="well blankslate align-center p-x-2 p-y-1"
+                >
+                  <div
+                    className="icon icon-lg icon-git-commit"
+                  />
+                  <h3>
+                    Sentry is better with commit data
+                  </h3>
+                  <p>
+                    Adding one or more repositories will enable enhanced releases and the ability to resolve Sentry Issues via git message.
+                  </p>
+                  <p
+                    className="m-b-1"
                   >
                     <a
-                      className="btn btn-primary btn-sm dropdown-menu-right dropdown-toggle"
-                      data-toggle="dropdown"
+                      className="btn btn-default"
+                      href="https://docs.sentry.io/learn/releases/"
                     >
-                      Add Repository
-                      <i
-                        className="icon-arrow-down"
-                      />
+                      Learn more
                     </a>
-                    <ul
-                      className="dropdown-menu"
-                    />
-                  </span>
-                </DropdownLink>
-              </div>
-              <h3
-                className="m-b-2"
-              >
-                Repositories
-              </h3>
-              <div
-                className="well blankslate align-center p-x-2 p-y-1"
-              >
-                <div
-                  className="icon icon-lg icon-git-commit"
-                />
-                <h3>
-                  Sentry is better with commit data
-                </h3>
-                <p>
-                  Adding one or more repositories will enable enhanced releases and the ability to resolve Sentry Issues via git message.
-                </p>
-                <p
-                  className="m-b-1"
-                >
-                  <a
-                    className="btn btn-default"
-                    href="https://docs.sentry.io/learn/releases/"
-                  >
-                    Learn more
-                  </a>
-                </p>
+                  </p>
+                </div>
               </div>
             </div>
           </div>

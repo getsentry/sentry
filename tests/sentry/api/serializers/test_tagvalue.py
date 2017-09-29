@@ -43,3 +43,18 @@ class TagValueSerializerTest(TestCase):
         assert result['key'] == 'user'
         assert result['value'] == tagvalue.value
         assert result['name'] == tagvalue.get_label()
+
+    def test_release(self):
+        user = self.create_user()
+        project = self.create_project()
+        tagvalue = TagValue.objects.create(
+            project_id=project.id,
+            key='sentry:release',
+            value='df84bccbb23ca15f2868be1f2a5f7c7a6464fadd',
+        )
+
+        result = serialize(tagvalue, user)
+        assert result['id'] == six.text_type(tagvalue.id)
+        assert result['key'] == 'release'
+        assert result['value'] == tagvalue.value
+        assert result['name'] == tagvalue.get_label()

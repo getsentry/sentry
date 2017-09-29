@@ -7,7 +7,7 @@ from django.db.models import Q
 from six.moves import reduce
 
 from sentry.api.serializers import Serializer, register
-from sentry.models import EventUser, GroupTagValue, TagKey, TagValue
+from sentry.models import GroupTagValue, TagKey, TagValue
 
 
 def parse_user_tag(value):
@@ -38,17 +38,6 @@ class GroupTagValueSerializer(Serializer):
                 continue
 
         tag_labels = {}
-        if user_lookups:
-            tag_labels.update(
-                {
-                    ('sentry:user', euser.tag_value): euser.get_label()
-                    for euser in EventUser.objects.filter(
-                        reduce(operator.or_, user_lookups),
-                        project_id=project_id,
-                    )
-                }
-            )
-
         other_lookups = [Q(key=i.key, value=i.value) for i in item_list if i.key != 'sentry:user']
         if other_lookups:
             tag_labels.update(
@@ -63,10 +52,22 @@ class GroupTagValueSerializer(Serializer):
 
         result = {}
         for item in item_list:
-            try:
-                label = tag_labels[(item.key, item.value)]
-            except KeyError:
-                label = item.value
+            if item.key == 'sentry:user':
+                if item.value.startswith('id:'):
+                    label = item.value[len('id:'):]
+                elif item.value.startswith('email:'):
+                    label = item.value[len('email:'):]
+                elif item.value.startswith('username:'):
+                    label = item.value[len('username:'):]
+                elif item.value.startswith('ip:'):
+                    label = item.value[len('ip:'):]
+                else:
+                    label = item.value
+            else:
+                try:
+                    label = tag_labels[(item.key, item.value)]
+                except KeyError:
+                    label = item.value
             result[item] = {
                 'name': label,
             }

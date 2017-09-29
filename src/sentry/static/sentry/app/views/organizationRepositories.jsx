@@ -1,16 +1,15 @@
+import Modal from 'react-bootstrap/lib/Modal';
 import PropTypes from 'prop-types';
 import React from 'react';
-import Modal from 'react-bootstrap/lib/Modal';
 
-import AsyncView from './asyncView';
 import {FormState} from '../components/forms';
+import {sortArray, parseRepo} from '../utils';
+import {t, tct} from '../locale';
 import DropdownLink from '../components/dropdownLink';
 import IndicatorStore from '../stores/indicatorStore';
 import MenuItem from '../components/menuItem';
-import OrganizationHomeContainer from '../components/organizations/homeContainer';
+import OrganizationSettingsView from './organizationSettingsView';
 import PluginComponentBase from '../components/bases/pluginComponentBase';
-import {t, tct} from '../locale';
-import {sortArray, parseRepo} from '../utils';
 
 const UNKNOWN_ERROR = {
   error_type: 'unknown'
@@ -214,7 +213,7 @@ class AddRepositoryLink extends PluginComponentBase {
   }
 }
 
-class OrganizationRepositories extends AsyncView {
+class OrganizationRepositories extends OrganizationSettingsView {
   getEndpoints() {
     let {orgId} = this.props.params;
     return [
@@ -309,7 +308,7 @@ class OrganizationRepositories extends AsyncView {
     let itemList = this.state.itemList;
 
     return (
-      <OrganizationHomeContainer>
+      <div>
         <div className="pull-right">
           <DropdownLink
             anchorRight
@@ -415,7 +414,7 @@ class OrganizationRepositories extends AsyncView {
                 </a>
               </p>
             </div>}
-      </OrganizationHomeContainer>
+      </div>
     );
   }
 }

@@ -34,19 +34,3 @@ class GroupTagValueSerializerTest(TestCase):
         assert result['key'] == 'user'
         assert result['value'] == grouptagvalue.value
         assert result['name'] == euser.get_label()
-
-    def test_with_no_tagvalue(self):
-        user = self.create_user()
-        project = self.create_project()
-        grouptagvalue = GroupTagValue.objects.create(
-            project_id=project.id,
-            group_id=self.create_group(project=project).id,
-            key='sentry:user',
-            value='email:foo@example.com',
-        )
-
-        result = serialize(grouptagvalue, user)
-        assert result['id'] == six.text_type(grouptagvalue.id)
-        assert result['key'] == 'user'
-        assert result['value'] == grouptagvalue.value
-        assert result['name'] == grouptagvalue.value

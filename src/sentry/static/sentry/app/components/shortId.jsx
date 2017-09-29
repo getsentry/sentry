@@ -24,7 +24,7 @@ const ShortId = React.createClass({
 
   render() {
     let shortId = this.props.shortId;
-    if (!this.getFeatures().has('callsigns') || !shortId) {
+    if (!shortId) {
       return null;
     }
     return (

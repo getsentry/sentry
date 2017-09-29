@@ -40,6 +40,12 @@ def register_plugins(settings):
     for plugin in plugins.all(version=None):
         init_plugin(plugin)
 
+    from sentry import integrations
+    from sentry.utils.imports import import_string
+    for integration_path in settings.SENTRY_DEFAULT_INTEGRATIONS:
+        integration_cls = import_string(integration_path)
+        integrations.register(integration_cls)
+
 
 def init_plugin(plugin):
     from sentry.plugins import bindings
