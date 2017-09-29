@@ -12,13 +12,13 @@ REPORT_VERSION = '104'
 @implements_to_string
 class AppleCrashReport(object):
     def __init__(
-        self, threads=None, context=None, debug_images=None, symbolicated=False, exception=None
+        self, threads=None, context=None, debug_images=None, symbolicated=False, exceptions=None
     ):
         self.threads = threads
         self.context = context
         self.debug_images = debug_images
         self.symbolicated = symbolicated
-        self.exception = exception
+        self.exceptions = exceptions
 
     def __str__(self):
         rv = []
@@ -37,9 +37,9 @@ class AppleCrashReport(object):
 
     def _get_exception_info(self):
         rv = []
-        if self.exception and self.exception[0]:
+        if self.exceptions and self.exceptions[0]:
             # We only have one exception at a time
-            exception = self.exception[0] or {}
+            exception = self.exceptions[0] or {}
             mechanism = exception.get('mechanism') or {}
 
             signal = (mechanism.get('posix_signal') or {}).get('name')
@@ -72,7 +72,7 @@ class AppleCrashReport(object):
 
     def get_threads_apple_string(self):
         rv = []
-        exception = self.exception or []
+        exception = self.exceptions or []
         threads = self.threads or []
         for thread_info in (exception + threads):
             thread_string = self.get_thread_apple_string(thread_info)
