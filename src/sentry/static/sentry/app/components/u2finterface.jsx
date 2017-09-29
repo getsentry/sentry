@@ -1,8 +1,8 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import u2f from 'u2f-api';
-import ConfigStore from '../stores/configStore';
 import Raven from 'raven-js';
+import ConfigStore from '../stores/configStore';
 
 import {t, tct} from '../locale';
 
