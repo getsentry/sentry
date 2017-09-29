@@ -7313,9 +7313,9 @@ typedarray@^0.0.6, typedarray@~0.0.5:
   version "0.0.6"
   resolved "https://registry.yarnpkg.com/typedarray/-/typedarray-0.0.6.tgz#867ac74e3864187b1d3d47d996a78ec5c8830777"
 
-"u2f-api@git+https://github.com/mitsuhiko/u2f-api.git#70424bc120e7c7905efbb7cf1c60a93b5936e880":
-  version "0.2.2"
-  resolved "git+https://github.com/mitsuhiko/u2f-api.git#70424bc120e7c7905efbb7cf1c60a93b5936e880"
+u2f-api@0.2.3:
+  version "0.2.3"
+  resolved "https://registry.yarnpkg.com/u2f-api/-/u2f-api-0.2.3.tgz#e489d9aa5ee929a4e5c47a173c72e227c09e7485"
 
 ua-parser-js@^0.7.9:
   version "0.7.14"
