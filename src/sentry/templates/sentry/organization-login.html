@@ -49,6 +49,7 @@
   {% if provider_name %}
     <form class="form-stacked" action="" method="post" autocomplete="off">
       {% csrf_token %}
+      <input type="hidden" name="init" value="1" />
 
       <div class="align-center">
         <p>Sign in with your {{ provider_name }} account to continue.</p>

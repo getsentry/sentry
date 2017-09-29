@@ -46,7 +46,8 @@ class EventAppleCrashReportEndpoint(Endpoint):
             )
 
         threads = (event.data.get('threads') or {}).get('values')
-        exception = (event.data.get('sentry.interfaces.Exception') or {}).get('values')
+        exceptions = (event.data.get(
+            'sentry.interfaces.Exception') or {}).get('values')
 
         symbolicated = (request.GET.get('minified') not in ('1', 'true'))
         debug_images = None
@@ -59,14 +60,16 @@ class EventAppleCrashReportEndpoint(Endpoint):
                 context=event.data.get('contexts'),
                 debug_images=debug_images,
                 symbolicated=symbolicated,
-                exception=exception
+                exceptions=exceptions
             )
         )
 
-        response = HttpResponse(apple_crash_report_string, content_type='text/plain')
+        response = HttpResponse(apple_crash_report_string,
+                                content_type='text/plain')
 
         if request.GET.get('download') is not None:
-            filename = "{}{}.crash".format(event.event_id, symbolicated and '-symbolicated' or '')
+            filename = "{}{}.crash".format(
+                event.event_id, symbolicated and '-symbolicated' or '')
             response = StreamingHttpResponse(
                 apple_crash_report_string,
                 content_type='text/plain',

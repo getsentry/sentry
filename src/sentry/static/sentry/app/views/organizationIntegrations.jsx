@@ -1,12 +1,13 @@
 import React from 'react';
 
+import {sortArray} from '../utils';
+import {t} from '../locale';
 import AsyncView from './asyncView';
+import Confirm from '../components/confirm';
 import DropdownLink from '../components/dropdownLink';
 import IndicatorStore from '../stores/indicatorStore';
 import MenuItem from '../components/menuItem';
 import OrganizationHomeContainer from '../components/organizations/homeContainer';
-import {t} from '../locale';
-import {sortArray} from '../utils';
 
 export default class OrganizationIntegrations extends AsyncView {
   componentDidMount() {
@@ -54,9 +55,6 @@ export default class OrganizationIntegrations extends AsyncView {
   }
 
   deleteIntegration = integration => {
-    // eslint-disable-next-line no-alert
-    if (!confirm(t('Are you sure you want to remove this integration?'))) return;
-
     let indicator = IndicatorStore.add(t('Saving changes..'));
     this.api.request(
       `/organizations/${this.props.params.orgId}/integrations/${integration.id}/`,
@@ -144,7 +142,7 @@ export default class OrganizationIntegrations extends AsyncView {
             {this.state.config.providers.map(provider => {
               return (
                 <MenuItem noAnchor={true} key={provider.id}>
-                  <a onClick={this.launchAddIntegration.bind(this, provider)}>
+                  <a onClick={() => this.launchAddIntegration(provider)}>
                     {provider.name}
                   </a>
                 </MenuItem>
@@ -176,11 +174,15 @@ export default class OrganizationIntegrations extends AsyncView {
                           </small>
                         </td>
                         <td style={{width: 60}}>
-                          <button
-                            onClick={this.deleteIntegration.bind(this, integration)}
-                            className="btn btn-default btn-xs">
-                            <span className="icon icon-trash" />
-                          </button>
+                          <Confirm
+                            message={t(
+                              'Are you sure you want to remove this integration?'
+                            )}
+                            onConfirm={() => this.deleteIntegration(integration)}>
+                            <button className="btn btn-default btn-xs">
+                              <span className="icon icon-trash" />
+                            </button>
+                          </Confirm>
                         </td>
                       </tr>
                     );

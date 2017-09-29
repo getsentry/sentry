@@ -6,9 +6,9 @@ from sentry import tagstore
 from sentry.api.base import DocSection
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.api.paginator import DateTimePaginator
 from sentry.api.serializers import serialize
 from sentry.models import TagValue
-from sentry.utils.db import is_postgres
 
 
 class ProjectTagKeyValuesEndpoint(ProjectEndpoint):
@@ -20,7 +20,7 @@ class ProjectTagKeyValuesEndpoint(ProjectEndpoint):
         ```````````````````
 
         Return a list of values associated with this key.  The `query`
-        parameter can be used to to perform a "starts with" match on
+        parameter can be used to to perform a "contains" match on
         values.
 
         :pparam string organization_slug: the slug of the organization.
@@ -35,32 +35,19 @@ class ProjectTagKeyValuesEndpoint(ProjectEndpoint):
         except ObjectDoesNotExist:
             raise ResourceDoesNotExist
 
-        base_queryset = TagValue.objects.filter(
+        queryset = TagValue.objects.filter(
             project_id=project.id,
             key=tagkey.key,
         )
 
         query = request.GET.get('query')
         if query:
-            if is_postgres():
-                # not quite optimal, but best we can do with ORM
-                queryset = TagValue.objects.filter(
-                    id__in=base_queryset.order_by('-times_seen')[:10000]
-                )
-            else:
-                # MySQL can't handle an `IN` with a `LIMIT` clause
-                queryset = base_queryset
             queryset = queryset.filter(value__contains=query)
-
-        else:
-            queryset = TagValue.objects.filter(
-                project_id=project.id,
-                key=tagkey.key,
-            )
 
         return self.paginate(
             request=request,
             queryset=queryset,
-            order_by='-times_seen',
+            order_by='-last_seen',
+            paginator_cls=DateTimePaginator,
             on_results=lambda x: serialize(x, request.user),
         )
