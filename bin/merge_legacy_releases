@@ -65,7 +65,6 @@ def update_version(release):
     return 'updated_version'
 
 def main(is_dry_run):
-
     fieldnames = ['org_id', 'release_id', 'version', 'date_added', 'action']
     writer = csv.DictWriter(sys.stdout, fieldnames=fieldnames)
     writer.writeheader()

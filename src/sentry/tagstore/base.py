@@ -111,6 +111,12 @@ class TagStorage(Service):
         """
         raise NotImplementedError
 
+    def incr_times_seen(self, project_id, key, value, extra=None, count=1):
+        """
+        >>> incr_times_seen(1, "key1", "value1")
+        """
+        raise NotImplementedError
+
     def get_group_event_ids(self, project_id, group_id, tags):
         """
         >>> get_group_event_ids(1, 2, {'key1': 'value1', 'key2': 'value2'})

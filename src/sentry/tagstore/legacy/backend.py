@@ -95,6 +95,15 @@ class LegacyTagStorage(TagStorage):
             'key': key,
         })
 
+    def incr_times_seen(self, project_id, key, value, extra=None, count=1):
+        buffer.incr(TagValue, {
+            'times_seen': count,
+        }, {
+            'project_id': project_id,
+            'key': key,
+            'value': value,
+        }, extra)
+
     def get_group_event_ids(self, project_id, group_id, tags):
         tagkeys = dict(
             TagKey.objects.filter(
