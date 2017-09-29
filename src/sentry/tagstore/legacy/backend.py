@@ -74,6 +74,13 @@ class LegacyTagStorage(TagStorage):
 
         return list(qs)
 
+    def get_tag_value(self, project_id, key, value):
+        return TagValue.objects.get(
+            project_id=project_id,
+            key=key,
+            value=value
+        )
+
     def delete_tag_key(self, project_id, key):
         tagkey = self.get_tag_key(project_id, key, status=None)
 
