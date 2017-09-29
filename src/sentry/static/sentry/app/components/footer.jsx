@@ -34,10 +34,11 @@ const Footer = React.createClass({
             {config.isOnPremise &&
               <a className="hidden-xs" href="/out/">{t('Migrate to SaaS')}</a>}
           </div>
-          <div className="version pull-left">
-            {'Sentry '}
-            <DynamicWrapper fixed="Acceptance Test" value={config.version.current} />
-          </div>
+          {config.isOnPremise &&
+            <div className="version pull-left">
+              {'Sentry '}
+              <DynamicWrapper fixed="Acceptance Test" value={config.version.current} />
+            </div>}
           <a href="/" className="icon-sentry-logo" />
           {this.state.hooks}
         </div>
