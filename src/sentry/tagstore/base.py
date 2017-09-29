@@ -35,7 +35,7 @@ class TagStorage(Service):
         'delete_tag_key', 'incr_values_seen', 'get_group_event_ids'
     )
 
-    def is_valid_key(cls, key):
+    def is_valid_key(self, key):
         return bool(TAG_KEY_RE.match(key))
 
     def is_reserved_key(self, key):
