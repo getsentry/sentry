@@ -247,8 +247,7 @@ class MailPluginTest(TestCase):
         ) == '[Rick & Morty] 1 new alert since Sept. 19, 2016, 1:02 a.m. UTC'
 
     @mock.patch.object(MailPlugin, 'notify', side_effect=MailPlugin.notify, autospec=True)
-    @mock.patch.object(MessageBuilder, 'send_async', autospec=True)
-    def test_notify_digest(self, send_async, notify):
+    def test_notify_digest(self, notify):
         project = self.event.project
         rule = project.rule_set.all()[0]
         digest = build_digest(
@@ -258,9 +257,15 @@ class MailPluginTest(TestCase):
                 event_to_record(self.event, (rule, )),
             ),
         )
-        self.plugin.notify_digest(project, digest)
-        assert send_async.call_count is 1
+
+        with self.tasks():
+            self.plugin.notify_digest(project, digest)
+
         assert notify.call_count is 0
+        assert len(mail.outbox) == 1
+
+        message = mail.outbox[0]
+        assert 'List-ID' in message.message()
 
     @mock.patch.object(MailPlugin, 'notify', side_effect=MailPlugin.notify, autospec=True)
     @mock.patch.object(MessageBuilder, 'send_async', autospec=True)
