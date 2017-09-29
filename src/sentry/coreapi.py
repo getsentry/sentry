@@ -39,7 +39,7 @@ from sentry.db.models import BoundedIntegerField
 from sentry.interfaces.base import get_interface, InterfaceValidationError
 from sentry.interfaces.csp import Csp
 from sentry.event_manager import EventManager
-from sentry.models import EventError, ProjectKey, TagValue
+from sentry.models import EventError, ProjectKey
 from sentry.tasks.store import preprocess_event, \
     preprocess_event_from_reprocessing
 from sentry.utils import json
@@ -613,7 +613,7 @@ class ClientApiHelper(object):
                     )
                     continue
 
-                if not TagValue.is_valid_value(v):
+                if not tagstore.is_valid_value(v):
                     self.log.debug('Discard invalid tag value: %s', v)
                     data['errors'].append(
                         {
@@ -940,7 +940,7 @@ class CspApiHelper(ClientApiHelper):
                     }
                 )
                 continue
-            if not TagValue.is_valid_value(v):
+            if not tagstore.is_valid_value(v):
                 self.log.debug('Discard invalid tag value: %s', v)
                 data['errors'].append(
                     {

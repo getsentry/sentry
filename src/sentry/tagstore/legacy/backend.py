@@ -29,6 +29,12 @@ class LegacyTagStorage(TagStorage):
     def get_or_create_tag_key(self, project_id, key):
         return TagKey.objects.get_or_create(project_id=project_id, key=key)
 
+    def create_tag_value(self, project_id, key, value):
+        return TagValue.objects.create(project_id=project_id, key=key, value=value)
+
+    def get_or_create_tag_value(self, project_id, key, value):
+        return TagValue.objects.get_or_create(project_id=project_id, key=key, value=value)
+
     def get_tag_key(self, project_id, key, status=TagKeyStatus.VISIBLE):
         qs = TagKey.objects.filter(
             project_id=project_id,
@@ -142,3 +148,14 @@ class LegacyTagStorage(TagStorage):
                 return []
 
         return matches
+
+    def get_tag_value_qs(self, project_id, key, query=None):
+        queryset = TagValue.objects.filter(
+            project_id=project_id,
+            key=key,
+        )
+
+        if query:
+            queryset = queryset.filter(value__contains=query)
+
+        return queryset

@@ -190,7 +190,7 @@ class DeleteTagKeyTest(TestCase):
         project = self.create_project(team=team, name='test1', slug='test1')
         group = self.create_group(project=project)
         tk = tagstore.create_tag_key(key='foo', project_id=project.id)
-        TagValue.objects.create(key='foo', value='bar', project_id=project.id)
+        tagstore.create_tag_value(key='foo', value='bar', project_id=project.id)
         GroupTagKey.objects.create(key='foo', group_id=group.id, project_id=project.id)
         GroupTagValue.objects.create(
             key='foo', value='bar', group_id=group.id, project_id=project.id

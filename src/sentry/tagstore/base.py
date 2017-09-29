@@ -30,13 +30,17 @@ class TagKeyStatus(object):
 
 class TagStorage(Service):
     __all__ = (
-        'is_valid_key', 'is_reserved_key', 'prefix_reserved_key', 'get_standardized_key',
-        'create_tag_key', 'get_or_create_tag_key', 'get_tag_key', 'get_tag_keys',
+        'is_valid_key', 'is_valid_value', 'is_reserved_key', 'prefix_reserved_key',
+        'get_standardized_key', 'create_tag_key', 'get_or_create_tag_key',
+        'create_tag_value', 'get_or_create_tag_value', 'get_tag_key', 'get_tag_keys',
         'delete_tag_key', 'incr_values_seen', 'get_group_event_ids'
     )
 
     def is_valid_key(self, key):
         return bool(TAG_KEY_RE.match(key))
+
+    def is_valid_value(self, value):
+        return '\n' not in value
 
     def is_reserved_key(self, key):
         return key in INTERNAL_TAG_KEYS
@@ -65,6 +69,18 @@ class TagStorage(Service):
         """
         raise NotImplementedError
 
+    def create_tag_value(self, project_id, key, value):
+        """
+        >>> create_tag_key(1, "key1", "value1")
+        """
+        raise NotImplementedError
+
+    def get_or_create_tag_value(self, project_id, key, value):
+        """
+        >>> get_or_create_tag_key(1, "key1", "value1")
+        """
+        raise NotImplementedError
+
     def get_tag_key(self, project_id, key, status=TagKeyStatus.VISIBLE):
         """
         >>> get_tag_key(1, "key1")
@@ -74,6 +90,12 @@ class TagStorage(Service):
     def get_tag_keys(self, project_id, keys=None, status=TagKeyStatus.VISIBLE):
         """
         >>> get_tag_key(1, ["key1", "key2"])
+        """
+        raise NotImplementedError
+
+    def get_tag_value(self, project_id, key, value):
+        """
+        >>> get_tag_value(1, "key1", "value1")
         """
         raise NotImplementedError
 
@@ -92,5 +114,11 @@ class TagStorage(Service):
     def get_group_event_ids(self, project_id, group_id, tags):
         """
         >>> get_group_event_ids(1, 2, {'key1': 'value1', 'key2': 'value2'})
+        """
+        raise NotImplementedError
+
+    def get_tag_value_qs(self, project_id, key, query=None):
+        """
+        >>> get_tag_value_qs(1, 'environment', query='prod')
         """
         raise NotImplementedError

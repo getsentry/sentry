@@ -5,22 +5,23 @@ from hashlib import sha1
 from mock import patch
 from uuid import uuid4
 
+from sentry import tagstore
 from sentry.models import (
     Activity, Commit, CommitAuthor, GroupAssignee, GroupCommitResolution, OrganizationMember,
-    Release, Repository, TagValue, UserEmail
+    Release, Repository, UserEmail
 )
 from sentry.testutils import TestCase
 
 
 class EnsureReleaseExistsTest(TestCase):
     def test_simple(self):
-        tv = TagValue.objects.create(
+        tv = tagstore.create_tag_value(
             project_id=self.project.id,
             key='sentry:release',
             value='1.0',
         )
 
-        tv = TagValue.objects.get(id=tv.id)
+        tv = tagstore.get_tag_value(self.project_id, 'sentry:release', '1.0')
         assert tv.data['release_id']
 
         release = Release.objects.get(id=tv.data['release_id'])

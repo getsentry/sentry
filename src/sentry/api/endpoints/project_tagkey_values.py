@@ -8,7 +8,6 @@ from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import DateTimePaginator
 from sentry.api.serializers import serialize
-from sentry.models import TagValue
 
 
 class ProjectTagKeyValuesEndpoint(ProjectEndpoint):
@@ -35,14 +34,7 @@ class ProjectTagKeyValuesEndpoint(ProjectEndpoint):
         except ObjectDoesNotExist:
             raise ResourceDoesNotExist
 
-        queryset = TagValue.objects.filter(
-            project_id=project.id,
-            key=tagkey.key,
-        )
-
-        query = request.GET.get('query')
-        if query:
-            queryset = queryset.filter(value__contains=query)
+        queryset = tagstore.get_tag_value_qs(project.id, tagkey.key, query=request.GET.get('query'))
 
         return self.paginate(
             request=request,
