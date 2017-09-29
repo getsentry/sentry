@@ -72,15 +72,17 @@ class AppleCrashReport(object):
 
     def get_threads_apple_string(self):
         rv = []
-        for thread in (self.exception + self.threads) or []:
-            thread_string = self.get_thread_apple_string(thread)
+        exception = self.exception or []
+        threads = self.threads or []
+        for thread_info in (exception + threads):
+            thread_string = self.get_thread_apple_string(thread_info)
             if thread_string is not None:
                 rv.append(thread_string)
         return '\n\n'.join(rv)
 
-    def get_thread_apple_string(self, thread):
+    def get_thread_apple_string(self, thread_info):
         rv = []
-        stacktrace = thread.get('stacktrace')
+        stacktrace = thread_info.get('stacktrace')
         if stacktrace is None:
             return None
         if stacktrace:
@@ -99,12 +101,12 @@ class AppleCrashReport(object):
         if len(rv) == 0:
             return None  # No frames in thread, so we remove thread
 
-        is_exception = thread.get('mechanism', False)
-        thread_id = thread.get('id', False) or thread.get(
+        is_exception = thread_info.get('mechanism', False)
+        thread_id = thread_info.get('id', False) or thread_info.get(
             'thread_id', False) or '0'
-        thread_name = thread.get('name', False)
+        thread_name = thread_info.get('name', False)
         thread_name_string = ' name: %s' % (thread_name) if thread_name else ''
-        thread_crashed = thread.get('crashed') or is_exception
+        thread_crashed = thread_info.get('crashed') or is_exception
         thread_crashed_thread = ' Crashed:' if thread_crashed else ''
         thread_string = 'Thread %s%s%s\n' % (
             thread_id, thread_name_string, thread_crashed_thread
