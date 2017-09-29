@@ -30,7 +30,8 @@ class AppleCrashReport(object):
 
     def _get_meta_header(self):
         return 'OS Version: %s %s (%s)\nReport Version: %s' % (
-            self.context.get('os').get('name'), self.context.get('os').get('version'),
+            self.context.get('os').get(
+                'name'), self.context.get('os').get('version'),
             self.context.get('os').get('build'), REPORT_VERSION
         )
 
@@ -42,7 +43,8 @@ class AppleCrashReport(object):
             mechanism = exception.get('mechanism') or {}
 
             signal = (mechanism.get('posix_signal') or {}).get('name')
-            name = (mechanism.get('mach_exception') or {}).get('exception_name')
+            name = (mechanism.get('mach_exception')
+                    or {}).get('exception_name')
 
             if name or signal:
                 rv.append(
@@ -55,20 +57,22 @@ class AppleCrashReport(object):
             if exc_name:
                 rv.append(
                     'Exception Codes: %s%s' %
-                    (exc_name, exc_addr is not None and (' at %s' % exc_addr) or '', )
+                    (exc_name, exc_addr is not None and (
+                        ' at %s' % exc_addr) or '', )
                 )
 
             if exception.get('thread_id') is not None:
                 rv.append('Crashed Thread: %s' % exception['thread_id'])
 
             if exception.get('value'):
-                rv.append('\nApplication Specific Information:\n%s' % exception['value'])
+                rv.append('\nApplication Specific Information:\n%s' %
+                          exception['value'])
 
         return '\n'.join(rv)
 
     def get_threads_apple_string(self):
         rv = []
-        for thread in self.threads or []:
+        for thread in (self.exception + self.threads) or []:
             thread_string = self.get_thread_apple_string(thread)
             if thread_string is not None:
                 rv.append(thread_string)
@@ -85,7 +89,8 @@ class AppleCrashReport(object):
                 for i, frame in enumerate(reversed(frames)):
                     frame_string = self._convert_frame_to_apple_string(
                         frame=frame,
-                        next=frames[len(frames) - i - 2] if i < len(frames) - 1 else None,
+                        next=frames[len(frames) - i -
+                                    2] if i < len(frames) - 1 else None,
                         number=i
                     )
                     if frame_string is not None:
@@ -93,41 +98,52 @@ class AppleCrashReport(object):
 
         if len(rv) == 0:
             return None  # No frames in thread, so we remove thread
-        thread_string = 'Thread %s name: %s\n' % (
-            thread['id'], thread.get('name') and thread['name'] or ''
+
+        is_exception = thread.get('mechanism', False)
+        thread_id = thread.get('id', False) or thread.get(
+            'thread_id', False) or '0'
+        thread_name = thread.get('name', False)
+        thread_name_string = ' name: %s' % (thread_name) if thread_name else ''
+        thread_crashed = thread.get('crashed') or is_exception
+        thread_crashed_thread = ' Crashed:' if thread_crashed else ''
+        thread_string = 'Thread %s%s%s\n' % (
+            thread_id, thread_name_string, thread_crashed_thread
         )
-        if thread.get('crashed'):
-            thread_string += 'Thread %s Crashed:\n' % thread['id']
         return thread_string + '\n'.join(rv)
 
     def _convert_frame_to_apple_string(self, frame, next=None, number=0):
         if frame.get('instruction_addr') is None:
             return None
         slide_value = self._get_slide_value(frame.get('image_addr'))
-        instruction_addr = slide_value + parse_addr(frame.get('instruction_addr'))
+        instruction_addr = slide_value + \
+            parse_addr(frame.get('instruction_addr'))
         image_addr = slide_value + parse_addr(frame.get('image_addr'))
         offset = ''
         if frame.get('image_addr') is not None and \
            (not self.symbolicated or (
                 frame.get('function') or NATIVE_UNKNOWN_STRING) == NATIVE_UNKNOWN_STRING):
             offset = ' + %s' % (
-                instruction_addr - slide_value - parse_addr(frame.get('symbol_addr'))
+                instruction_addr - slide_value -
+                parse_addr(frame.get('symbol_addr'))
             )
         symbol = hex(image_addr)
         if self.symbolicated:
             file = ''
             if frame.get('filename') and frame.get('lineno'):
                 file = ' (%s:%s)' % (
-                    posixpath.basename(frame.get('filename') or NATIVE_UNKNOWN_STRING),
+                    posixpath.basename(frame.get('filename')
+                                       or NATIVE_UNKNOWN_STRING),
                     frame['lineno']
                 )
-            symbol = '%s%s' % (frame.get('function') or NATIVE_UNKNOWN_STRING, file)
+            symbol = '%s%s' % (frame.get('function')
+                               or NATIVE_UNKNOWN_STRING, file)
             if next and parse_addr(frame['instruction_addr']) == \
                parse_addr(next['instruction_addr']):
                 symbol = '[inlined] ' + symbol
         return '%s%s%s%s%s' % (
             str(number).ljust(4, ' '),
-            (frame.get('package') or NATIVE_UNKNOWN_STRING).rsplit('/', 1)[-1].ljust(32, ' '),
+            (frame.get('package') or NATIVE_UNKNOWN_STRING).rsplit(
+                '/', 1)[-1].ljust(32, ' '),
             hex(instruction_addr).ljust(20, ' '), symbol, offset
         )
 
@@ -143,8 +159,10 @@ class AppleCrashReport(object):
         if self.symbolicated or self.debug_images is None:
             return ''
         binary_images = map(
-            lambda i: self._convert_debug_meta_to_binary_image_row(debug_image=i),
-            sorted(self.debug_images, key=lambda i: parse_addr(i['image_addr']))
+            lambda i: self._convert_debug_meta_to_binary_image_row(
+                debug_image=i),
+            sorted(self.debug_images,
+                   key=lambda i: parse_addr(i['image_addr']))
         )
         return 'Binary Images:\n' + '\n'.join(binary_images)
 
@@ -153,6 +171,7 @@ class AppleCrashReport(object):
         image_addr = parse_addr(debug_image['image_addr']) + slide_value
         return '%s - %s %s %s  <%s> %s' % (
             hex(image_addr), hex(image_addr + debug_image['image_size'] - 1),
-            debug_image['name'].rsplit('/', 1)[-1], self.context['device']['arch'],
+            debug_image['name'].rsplit(
+                '/', 1)[-1], self.context['device']['arch'],
             debug_image['uuid'].replace('-', '').lower(), debug_image['name']
         )
