@@ -156,9 +156,6 @@ class RedisTSDB(BaseTSDB):
         return key
 
     def incr(self, model, key, timestamp=None, count=1, environment=None):
-        if environment is not None:
-            raise NotImplementedError
-
         self.incr_multi([(model, key)], timestamp, count, environment)
 
     def incr_multi(self, items, timestamp=None, count=1, environment=None):
@@ -286,9 +283,6 @@ class RedisTSDB(BaseTSDB):
                             )
 
     def record(self, model, key, values, timestamp=None, environment=None):
-        if environment is not None:
-            raise NotImplementedError
-
         self.record_multi(((model, key, values), ), timestamp, environment)
 
     def record_multi(self, items, timestamp=None, environment=None):
