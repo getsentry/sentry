@@ -1,7 +1,5 @@
 from __future__ import absolute_import
 
-from django.core.exceptions import ObjectDoesNotExist
-
 from sentry import tagstore
 from sentry.api.base import DocSection
 from sentry.api.bases.group import GroupEndpoint
@@ -42,7 +40,7 @@ class GroupTagKeyValuesEndpoint(GroupEndpoint):
 
         try:
             tagstore.get_tag_key(group.project_id, lookup_key)
-        except ObjectDoesNotExist:
+        except tagstore.TagKeyNotFound:
             raise ResourceDoesNotExist
 
         queryset = GroupTagValue.objects.filter(

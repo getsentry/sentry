@@ -1,7 +1,5 @@
 from __future__ import absolute_import
 
-from django.core.exceptions import ObjectDoesNotExist
-
 from sentry import tagstore
 from sentry.api.base import DocSection
 from sentry.api.bases.project import ProjectEndpoint
@@ -31,7 +29,7 @@ class ProjectTagKeyValuesEndpoint(ProjectEndpoint):
 
         try:
             tagkey = tagstore.get_tag_key(project.id, lookup_key)
-        except ObjectDoesNotExist:
+        except tagstore.TagKeyNotFound:
             raise ResourceDoesNotExist
 
         queryset = tagstore.get_tag_value_qs(project.id, tagkey.key, query=request.GET.get('query'))

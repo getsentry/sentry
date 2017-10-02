@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-from django.core.exceptions import ObjectDoesNotExist
 from rest_framework.response import Response
 
 from sentry import tagstore
@@ -16,7 +15,7 @@ class ProjectTagKeyDetailsEndpoint(ProjectEndpoint):
 
         try:
             tagkey = tagstore.get_tag_key(project.id, lookup_key)
-        except ObjectDoesNotExist:
+        except tagstore.TagKeyNotFound:
             raise ResourceDoesNotExist
 
         return Response(serialize(tagkey, request.user))
@@ -32,7 +31,7 @@ class ProjectTagKeyDetailsEndpoint(ProjectEndpoint):
 
         try:
             updated, tagkey = tagstore.delete_tag_key(project.id, lookup_key)
-        except ObjectDoesNotExist:
+        except tagstore.TagKeyNotFound:
             raise ResourceDoesNotExist
 
         if updated:

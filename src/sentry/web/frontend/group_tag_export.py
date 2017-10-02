@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-from django.core.exceptions import ObjectDoesNotExist
 from django.http import Http404
 
 from sentry import tagstore
@@ -77,7 +76,7 @@ class GroupTagExportView(ProjectView, CsvMixin):
         # validate existance as it may be deleted
         try:
             tagstore.get_tag_key(group.project_id, lookup_key)
-        except ObjectDoesNotExist:
+        except tagstore.TagKeyNotFound:
             raise Http404
 
         if key == 'user':

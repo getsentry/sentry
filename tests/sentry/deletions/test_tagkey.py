@@ -1,7 +1,5 @@
 from __future__ import absolute_import
 
-from django.core.exceptions import ObjectDoesNotExist
-
 from sentry import tagstore
 from sentry.models import (
     EventTag, GroupTagKey, GroupTagValue, ScheduledDeletion
@@ -62,7 +60,7 @@ class DeleteTagKeyTest(TestCase):
         try:
             tagstore.get_tag_key(project.id, key)
             assert False  # verify exception thrown
-        except ObjectDoesNotExist:
+        except tagstore.TagKeyNotFound:
             pass
         assert not EventTag.objects.filter(key_id=tk.id).exists()
 

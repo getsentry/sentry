@@ -2,7 +2,6 @@ from __future__ import absolute_import
 
 import six
 
-from django.core.exceptions import ObjectDoesNotExist
 from rest_framework.response import Response
 
 from sentry import tagstore
@@ -43,7 +42,7 @@ class GroupTagKeyDetailsEndpoint(GroupEndpoint):
 
         try:
             tag_key = tagstore.get_tag_key(group.project_id, lookup_key)
-        except ObjectDoesNotExist:
+        except tagstore.TagKeyNotFound:
             raise ResourceDoesNotExist
 
         try:

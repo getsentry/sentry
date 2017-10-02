@@ -36,6 +36,8 @@ class LegacyTagStorage(TagStorage):
         return TagValue.objects.get_or_create(project_id=project_id, key=key, value=value)
 
     def get_tag_key(self, project_id, key, status=TagKeyStatus.VISIBLE):
+        from sentry.tagstore.exceptions import TagKeyNotFound
+
         qs = TagKey.objects.filter(
             project_id=project_id,
             key=key,
@@ -44,7 +46,10 @@ class LegacyTagStorage(TagStorage):
         if status:
             qs = qs.filter(status=status)
 
-        return qs.get()
+        try:
+            return qs.get()
+        except TagKey.DoesNotExist:
+            raise TagKeyNotFound
 
     def _get_tag_keys_cache_key(self, project_id, status):
         return 'filterkey:all:%s:%s' % (project_id, status)
@@ -123,13 +128,15 @@ class LegacyTagStorage(TagStorage):
         tagvalues = {
             (t[1], t[2]): t[0]
             for t in TagValue.objects.filter(
-                reduce(or_, (Q(key=k, value=v) for k, v in six.iteritems(tags))),
+                reduce(or_, (Q(key=k, value=v)
+                             for k, v in six.iteritems(tags))),
                 project_id=project_id,
             ).values_list('id', 'key', 'value')
         }
 
         try:
-            tag_lookups = [(tagkeys[k], tagvalues[(k, v)]) for k, v in six.iteritems(tags)]
+            tag_lookups = [(tagkeys[k], tagvalues[(k, v)])
+                           for k, v in six.iteritems(tags)]
             # [(1, 10), ...]
         except KeyError:
             # one or more tags were invalid, thus the result should be an empty
