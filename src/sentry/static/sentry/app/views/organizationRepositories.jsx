@@ -32,9 +32,9 @@ class AddRepositoryLink extends PluginComponentBase {
       state: FormState.LOADING
     });
 
-    ['onOpen', 'onCancel', 'formSubmit', 'changeField'].map(
-      method => (this[method] = this[method].bind(this))
-    );
+    ['onOpen', 'onCancel', 'formSubmit', 'changeField'].forEach(method => {
+      this[method] = this[method].bind(this);
+    });
   }
 
   getDefaultState() {
@@ -143,7 +143,7 @@ class AddRepositoryLink extends PluginComponentBase {
         <div>
           <div className="alert alert-warning m-b-1">
             {'You need to associate an identity with ' +
-              error.title +
+              this.props.provider.name +
               ' before you can create issues with this service.'}
           </div>
           <a className="btn btn-primary" href={authUrl}>
