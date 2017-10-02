@@ -12,7 +12,7 @@
   left: 0;
   bottom: 0;
   width: @sidebar-width;
-  z-index: 1001;
+  z-index: @zindex-navbar-fixed;
   padding: 0 14px;
   .clearfix();
   display: flex;
@@ -409,7 +409,7 @@
   left: @sidebar-width;
   bottom: 0;
   background: @white-darker;
-  z-index: 100;
+  z-index: @zindex-sidebar-panel;
   color: @gray-darker;
   border-right: 1px solid @trim;
   box-shadow: 1px 0 2px rgba(0,0,0, .06);
