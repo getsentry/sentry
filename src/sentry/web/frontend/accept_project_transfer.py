@@ -68,6 +68,10 @@ class AcceptProjectTransferView(BaseView):
         transaction_id = data['transaction_id']
         from_organization_id = data['from_organization_id']
         if user_id != request.user.id:
+            messages.add_message(
+                request, messages.ERROR,
+                _(u'Invalid permissions!')
+            )
             return HttpResponseRedirect(
                 reverse('sentry')
             )
