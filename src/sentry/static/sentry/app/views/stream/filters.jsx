@@ -69,7 +69,7 @@ const StreamFilters = React.createClass({
 
     return (
       <div className="stream-header">
-        <div className="row">
+        <div className="row row-flex row-center-vertically">
           <div className="col-sm-5">
             <SavedSearchSelector
               access={access}

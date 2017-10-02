@@ -13,7 +13,7 @@ const EventOrGroupExtraDetails = React.createClass({
     orgId: PropTypes.string.isRequired,
     projectId: PropTypes.string.isRequired,
     groupId: PropTypes.string.isRequired,
-    firstSeen: PropTypes.string,
+    lastSeen: PropTypes.string,
     shortId: PropTypes.string,
     subscriptionDetails: PropTypes.shape({
       reason: PropTypes.string
@@ -30,7 +30,7 @@ const EventOrGroupExtraDetails = React.createClass({
       orgId,
       projectId,
       groupId,
-      firstSeen,
+      lastSeen,
       subscriptionDetails,
       numComments,
       logger,
@@ -43,10 +43,10 @@ const EventOrGroupExtraDetails = React.createClass({
 
     return (
       <GroupExtra>
-        {firstSeen &&
+        {lastSeen &&
           <Box>
             <GroupExtraIcon className="icon icon-clock" />
-            <TimeSince date={firstSeen} suffix="old" />
+            <TimeSince date={lastSeen} suffix="ago" />
           </Box>}
         {numComments > 0 &&
           <Box>

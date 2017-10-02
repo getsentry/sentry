@@ -2,6 +2,9 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import PureRenderMixin from 'react-addons-pure-render-mixin';
 import Reflux from 'reflux';
+import styled from 'react-emotion';
+import {Flex, Box} from 'grid-emotion';
+import {withTheme} from 'theming';
 
 import ApiMixin from '../../mixins/apiMixin';
 import TooltipMixin from '../../mixins/tooltip';
@@ -570,15 +573,21 @@ const StreamActions = React.createClass({
 
     return (
       <div>
-        <Toolbar className="stream-actions row">
-          <div className="stream-actions-left col-md-6 col-sm-8 col-xs-8">
-            <div className="checkbox">
-              <Checkbox
-                className="chk-select-all"
-                onChange={this.onSelectAll}
-                checked={this.state.pageSelected}
-              />
-            </div>
+        <StreamActionsToolbar className="stream-actions">
+          <CheckboxWrapper>
+            <Checkbox
+              className="chk-select-all"
+              onChange={this.onSelectAll}
+              checked={this.state.pageSelected}
+            />
+          </CheckboxWrapper>
+          <Box
+            w={[8 / 12, 8 / 12, 6 / 12]}
+            pl={[1, 1, 1, 1]}
+            pr={[1, 2, 2, 2]}
+            flex="1"
+            style={{overflow: 'hidden'}}
+            className="truncate">
             <ResolveActions
               hasRelease={this.props.hasReleases}
               latestRelease={this.props.latestRelease}
@@ -755,7 +764,7 @@ const StreamActions = React.createClass({
               </DropdownLink>
             </div>
 
-            <div className="btn-group">
+            {/* <div className="btn-group">
               <a
                 className="btn btn-default btn-sm hidden-xs realtime-control tip"
                 title={`${this.props.realtimeActive ? 'Pause' : 'Enable'} real-time updates`}
@@ -764,30 +773,52 @@ const StreamActions = React.createClass({
                   ? <span className="icon icon-pause" />
                   : <span className="icon icon-play" />}
               </a>
-            </div>
-          </div>
-          <div className="hidden-sm stream-actions-assignee col-md-1" />
-          <div className="stream-actions-level col-md-1 hidden-xs" />
-          <div className="hidden-sm hidden-xs stream-actions-graph col-md-2">
-            <ToolbarHeader className="stream-actions-graph-label">
-              {t('Graph:')}
+                </div> */}
+          </Box>
+          <Box w={[100, 120, 160, 200]} px={(1, 2, 2, 3)}>
+            <ToolbarHeader>
+              {t('Issue ID')}
             </ToolbarHeader>
-            <ul className="toggle-graph">
-              <li className={this.props.statsPeriod === '24h' ? 'active' : ''}>
-                <a onClick={this.selectStatsPeriod.bind(this, '24h')}>{t('24h')}</a>
-              </li>
-              <li className={this.props.statsPeriod === '14d' ? 'active' : ''}>
-                <a onClick={this.selectStatsPeriod.bind(this, '14d')}>{t('14d')}</a>
-              </li>
-            </ul>
-          </div>
-          <ToolbarHeader className="stream-actions-count align-right col-md-1 col-sm-2 col-xs-2">
-            {t('Events')}
-          </ToolbarHeader>
-          <ToolbarHeader className="stream-actions-users align-right col-md-1 col-sm-2 col-xs-2">
-            {t('Users')}
-          </ToolbarHeader>
-        </Toolbar>
+          </Box>
+          <Box w={[100, 120, 160, 200]} px={(1, 2, 2, 3)}>
+            <Flex>
+              <Box flex="1">
+                <ToolbarHeader>
+                  {t('History:')}
+                </ToolbarHeader>
+              </Box>
+              <Box>
+                <HistoryToggle
+                  active={this.props.statsPeriod === '24h'}
+                  onClick={this.selectStatsPeriod.bind(this, '24h')}>
+                  {t('24h')}
+                </HistoryToggle>
+              </Box>
+              <Box>
+                <HistoryToggle
+                  active={this.props.statsPeriod === '14d'}
+                  onClick={this.selectStatsPeriod.bind(this, '14d')}>
+                  {t('14d')}
+                </HistoryToggle>
+              </Box>
+            </Flex>
+          </Box>
+          <Box w={(40, 40, 60, 70)} px={(1, 1, 2, 2)}>
+            <ToolbarHeader>
+              {t('Events')}
+            </ToolbarHeader>
+          </Box>
+          <Box w={(40, 40, 60, 70)} px={(1, 1, 2, 2)}>
+            <ToolbarHeader>
+              {t('Users')}
+            </ToolbarHeader>
+          </Box>
+          <Box w={(40, 60, 80, 80)} px={(1, 1, 2, 2)}>
+            <ToolbarHeader>
+              {t('Owner')}
+            </ToolbarHeader>
+          </Box>
+        </StreamActionsToolbar>
 
         {!this.props.allResultsVisible &&
           this.state.pageSelected &&
@@ -823,5 +854,34 @@ const StreamActions = React.createClass({
     );
   }
 });
+
+const StreamActionsToolbar = styled(Toolbar)`
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  height: 40px;
+`;
+
+const CheckboxWrapper = styled(Box)`
+  width: 36px;
+  padding-left: 20px;
+
+  & input[type="checkbox"] {
+    margin: 0;
+  }
+`;
+
+const HistoryToggle = withTheme(
+  styled.a`
+    color: ${p => (p.active ? p.theme.gray3 : p.theme.gray2)};
+    opacity: ${p => (p.active ? '1' : '.6')};
+    margin-left: 6px;
+
+    &:hover {
+      color: ${p => p.theme.gray2};
+      opacity: 1;
+    }
+  `
+);
 
 export default StreamActions;

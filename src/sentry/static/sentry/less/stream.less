@@ -45,7 +45,7 @@
 .group-header {
   // needs fixed height so that stream doesn't "pop" up
   // when stream actions turn "sticky"
-  min-height: 44px;
+  min-height: 40px;
 }
 
 .stream-no-bulk-actions {
@@ -62,21 +62,8 @@
 }
 
 .stream-actions, .stream-actions.toolbar {
-  padding-top: 0;
-  padding-bottom: 0;
-  padding-right: 10px;
-  height: 44px;
-  .flex;
-  .flex.flex-vertically-centered;
-
   .btn-group > .btn {
     color: inherit;
-  }
-
-  .checkbox {
-    position: absolute;
-    left: 40px;
-    top: -6px;
   }
 
   .btn-group {
@@ -119,37 +106,6 @@
     background: rgba(255,255,255, .85);
     &.dropdown-toggle {
       background: none;
-    }
-  }
-
-  .toggle-graph {
-    .list-unstyled();
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 0;
-    font-size: 11px;
-    text-transform: uppercase;
-    font-weight: bold;
-
-    li {
-      margin-right: 5px;
-
-      &:last-child {
-        margin-right: 0;
-      }
-
-      a {
-        color: lighten(@gray, 10);
-        padding: 3px 4px 2px;
-        border-radius: 3px;
-        .transition(background .2s linear);
-      }
-      &.active a {
-        background: lighten(@gray, 15);
-        opacity: 1;
-        font-weight: 600;
-        color: #fff;
-      }
     }
   }
 }
@@ -624,7 +580,7 @@
 .saved-search-selector {
   .dropdown-toggle {
     display: inline-block;
-    font-size: 24px;
+    font-size: 22px;
     line-height: 36px;
     margin-right: 10px;
     color: @gray-darker;
@@ -689,7 +645,7 @@
 }
 
 .stream-sort {
-  width: 165px;
+  width: 170px;
   position: absolute;
   display: block;
   left: 0;
@@ -701,7 +657,7 @@
 
     font-size: 14px;
     border: 1px solid lighten(@gray-lighter, 7);
-    padding: 6px 12px;
+    padding: 4px 10px;
     border-radius: 3px;
 
     text-overflow: ellipsis;
@@ -747,8 +703,8 @@
   .clearfix();
 
   .search-container {
-    padding-right: 55px;
-    padding-left: 170px;
+    padding-right: 41px;
+    padding-left: 175px;
     position: relative;
   }
 
@@ -760,11 +716,11 @@
     position: absolute;
     top: 0;
     right: 0;
-    width: 50px;
+    width: 36px;
     margin-left: 5px;
-    height: 38px;
+    height: 34px;
     text-align: center;
-    padding: 8px;
+    padding: 6px;
 
     &:focus, &:active {
       box-shadow: 0;

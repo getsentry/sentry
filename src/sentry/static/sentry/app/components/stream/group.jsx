@@ -113,9 +113,7 @@ const StreamGroup = React.createClass({
           />
         </Box>
         <Box w={[100, 120, 160, 200]} px={(1, 2, 2, 3)}>
-          {this.getFeatures().has('callsigns') &&
-            data.shortId &&
-            <GroupShortId shortId={data.shortId} />}
+          {data.shortId && <GroupShortId shortId={data.shortId} />}
           {data.firstSeen &&
             <GroupTimeSinceWrapper>
               first seen <TimeSince date={data.firstSeen} suffix="ago" />
@@ -200,7 +198,7 @@ const LevelIndicator = withTheme(
       case 'fatal':
         return p.theme.red;
       default:
-        return p.theme.gray1;
+        return p.theme.gray2;
     }
   }}
   `
