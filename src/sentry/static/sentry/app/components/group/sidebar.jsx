@@ -108,10 +108,11 @@ const GroupSidebar = React.createClass({
     let issues = [];
     (this.props.group.pluginIssues || []).forEach(plugin => {
       let issue = plugin.issue;
+      // # TODO(dcramer): remove plugin.title check in Sentry 8.22+
       if (issue) {
         issues.push(
           <dl key={plugin.slug}>
-            <dt>{plugin.title + ': '}</dt>
+            <dt>{`${plugin.shortName || plugin.name || plugin.title}: `}</dt>
             <dd><a href={issue.url}>{issue.label}</a></dd>
           </dl>
         );

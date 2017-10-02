@@ -344,7 +344,10 @@ class IssueTrackingPlugin2(Plugin):
         item = {
             'slug': self.slug,
             'allowed_actions': self.allowed_actions,
-            'title': self.get_title()
+            # TODO(dcramer): remove in Sentry 8.22+
+            'title': self.get_title(),
+            'name': self.get_title(),
+            'shortName': self.get_short_title(),
         }
         if issue_id:
             item['issue'] = {
