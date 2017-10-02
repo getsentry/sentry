@@ -8,6 +8,8 @@ from uuid import uuid1
 from collections import Mapping
 from django.utils import timezone
 
+from sentry.utils.dates import to_timestamp
+
 
 class Attribute(object):
     def __init__(self, name, type=six.text_type, required=True):
@@ -105,7 +107,7 @@ class Event(object):
         return dict(
             {
                 'guid': self.guid,
-                'timestamp': int(self.datetime.strftime('%s')),
+                'timestamp': int(to_timestamp(self.datetime) * 1000000),
                 'type': self.type,
             }, **self.data
         )
