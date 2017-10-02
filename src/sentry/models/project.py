@@ -348,6 +348,7 @@ class Project(Model):
         except IntegrityError:
             slugify_instance(self, self.name, organization=organization)
             self.update(
+                slug=self.slug,
                 organization=organization,
                 team=team,
             )
