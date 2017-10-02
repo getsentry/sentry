@@ -13,6 +13,7 @@ from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
 from sentry.app import locks
+from sentry.auth.exceptions import IdentityNotValid
 from sentry.models import (
     AuditLogEntry, AuditLogEntryEvent, AuthIdentity, AuthProvider, Organization, OrganizationMember,
     OrganizationMemberTeam, User, UserEmail
@@ -36,6 +37,8 @@ OK_SETUP_SSO = _(
 ERR_UID_MISMATCH = _('There was an error encountered during authentication.')
 
 ERR_NOT_AUTHED = _('You must be authenticated to link accounts.')
+
+ERR_INVALID_IDENTITY = _('The provider did not return a valid user identity.')
 
 
 class AuthHelper(object):
@@ -130,7 +133,7 @@ class AuthHelper(object):
             'ap': self.auth_provider.id if self.auth_provider else None,
             'p': self.provider.key,
             'org': self.organization.id,
-            'idx': -1,
+            'idx': 0,
             'sig': self.signature,
             'flow': self.flow,
             'state': {},
@@ -170,7 +173,11 @@ class AuthHelper(object):
     def finish_pipeline(self):
         session = self.request.session['auth']
         state = session['state']
-        identity = self.provider.build_identity(state)
+
+        try:
+            identity = self.provider.build_identity(state)
+        except IdentityNotValid:
+            return self.error(ERR_INVALID_IDENTITY)
 
         if session['flow'] == self.FLOW_LOGIN:
             # create identity and authenticate the user
@@ -712,5 +719,8 @@ class AuthHelper(object):
         self.request.session['auth']['state'][key] = value
         self.request.session.modified = True
 
-    def fetch_state(self, key):
+    def fetch_state(self, key=None):
+        if key is None:
+            return self.request.session['auth']['state']
+
         return self.request.session['auth']['state'].get(key)

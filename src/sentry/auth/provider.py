@@ -60,6 +60,9 @@ class Provider(object):
         >>> }
 
         The ``email`` and ``id`` keys are required, ``name`` is optional.
+
+        If the identity can not be constructed an ``IdentityNotValid`` error
+        should be raised.
         """
         raise NotImplementedError
 

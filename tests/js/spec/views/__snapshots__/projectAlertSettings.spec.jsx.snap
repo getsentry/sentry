@@ -5,18 +5,35 @@ exports[`ProjectAlertSettings render() renders 1`] = `
   title="Project Alert Settings"
 >
   <div>
-    <a
-      className="btn pull-right btn-primary btn-sm"
-      href="/org-slug/project-slug/settings/alerts/rules/new/"
+    <SpreadLayout
+      style={
+        Object {
+          "marginBottom": 20,
+        }
+      }
     >
-      <span
-        className="icon-plus"
-      />
-      New Alert Rule
-    </a>
-    <h2>
-      Alerts
-    </h2>
+      <h2
+        style={
+          Object {
+            "margin": 0,
+          }
+        }
+      >
+        Alerts
+      </h2>
+      <Button
+        className="pull-right"
+        disabled={false}
+        href="/org-slug/project-slug/settings/alerts/rules/new/"
+        priority="primary"
+        size="small"
+      >
+        <span
+          className="icon-plus"
+        />
+        New Alert Rule
+      </Button>
+    </SpreadLayout>
     <ul
       className="nav nav-tabs"
       style={

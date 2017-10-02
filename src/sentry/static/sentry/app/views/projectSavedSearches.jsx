@@ -5,6 +5,7 @@ import ApiMixin from '../mixins/apiMixin';
 import IndicatorStore from '../stores/indicatorStore';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
+import Confirm from '../components/confirm';
 import {t} from '../locale';
 import OrganizationState from '../mixins/organizationState';
 
@@ -28,12 +29,8 @@ const SavedSearchRow = React.createClass({
     };
   },
 
-  handleRemove(e) {
-    e.preventDefault();
+  handleRemove() {
     if (this.state.loading) return;
-
-    /* eslint no-alert:0*/
-    if (!window.confirm('Are you sure you want to remove this?')) return;
 
     let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
     let {orgId, projectId, data} = this.props;
@@ -119,12 +116,15 @@ const SavedSearchRow = React.createClass({
           </td>}
         {this.props.access.has('project:write') &&
           <td style={{textAlign: 'right'}}>
-            <a
-              className="btn btn-sm btn-default"
-              onClick={this.handleRemove}
+
+            <Confirm
+              message={t('Are you sure you want to remove this?')}
+              onConfirm={this.handleRemove}
               disabled={this.state.loading}>
-              <span className="icon icon-trash" /> &nbsp;{t('Remove')}
-            </a>
+              <a className="btn btn-sm btn-default">
+                <span className="icon icon-trash" /> &nbsp;{t('Remove')}
+              </a>
+            </Confirm>
           </td>}
       </tr>
     );

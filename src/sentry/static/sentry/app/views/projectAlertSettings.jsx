@@ -2,10 +2,12 @@ import PropTypes from 'prop-types';
 import React from 'react';
 
 import AsyncView from './asyncView';
+import Button from '../components/buttons/button';
 import ListLink from '../components/listLink';
 import PluginList from '../components/pluginList';
 import {ApiForm, RangeField, TextField} from '../components/forms';
 import {t, tct} from '../locale';
+import SpreadLayout from '../components/spreadLayout';
 
 class DigestSettings extends React.Component {
   static propTypes = {
@@ -180,13 +182,17 @@ export default class ProjectAlertSettings extends AsyncView {
     let {organization} = this.props;
     return (
       <div>
-        <a
-          href={`/${orgId}/${projectId}/settings/alerts/rules/new/`}
-          className="btn pull-right btn-primary btn-sm">
-          <span className="icon-plus" />
-          {t('New Alert Rule')}
-        </a>
-        <h2>{t('Alerts')}</h2>
+        <SpreadLayout style={{marginBottom: 20}}>
+          <h2 style={{margin: 0}}>{t('Alerts')}</h2>
+          <Button
+            href={`/${orgId}/${projectId}/settings/alerts/rules/new/`}
+            priority="primary"
+            size="small"
+            className="pull-right">
+            <span className="icon-plus" />
+            {t('New Alert Rule')}
+          </Button>
+        </SpreadLayout>
 
         <ul className="nav nav-tabs" style={{borderBottom: '1px solid #ddd'}}>
           <ListLink to={`/${orgId}/${projectId}/settings/alerts/`} index={true}>
