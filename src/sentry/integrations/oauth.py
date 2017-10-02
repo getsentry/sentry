@@ -25,23 +25,41 @@ class OAuth2Integration(Integration):
 
     def is_configured(self):
         return (
-            self.oauth_client_id and
-            self.oauth_client_secret and
-            self.oauth_access_token_url and
-            self.oauth_authorize_url
+            self.get_oauth_client_id() and
+            self.get_oauth_client_secret() and
+            self.get_oauth_access_token_url() and
+            self.get_oauth_authorize_url()
         )
+
+    def get_oauth_client_id(self):
+        return self.oauth_client_id
+
+    def get_oauth_client_secret(self):
+        return self.oauth_client_secret
+
+    def get_oauth_access_token_url(self):
+        return self.oauth_access_token_url
+
+    def get_oauth_authorize_url(self):
+        return self.oauth_authorize_url
+
+    def get_oauth_refresh_token_url(self):
+        return self.oauth_refresh_token_url
+
+    def get_oauth_scopes(self):
+        return self.oauth_scopes
 
     def get_pipeline(self):
         return [
             OAuth2LoginView(
-                authorize_url=self.oauth_authorize_url,
-                client_id=self.oauth_client_id,
-                scope=' '.join(self.oauth_scopes),
+                authorize_url=self.get_oauth_authorize_url(),
+                client_id=self.get_oauth_client_id(),
+                scope=' '.join(self.get_oauth_scopes()),
             ),
             OAuth2CallbackView(
-                access_token_url=self.oauth_access_token_url,
-                client_id=self.oauth_client_id,
-                client_secret=self.oauth_client_secret,
+                access_token_url=self.get_oauth_access_token_url(),
+                client_id=self.get_oauth_client_id(),
+                client_secret=self.get_oauth_client_secret(),
             ),
         ]
 

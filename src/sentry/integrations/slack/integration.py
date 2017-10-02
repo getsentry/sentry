@@ -14,8 +14,6 @@ class SlackIntegration(OAuth2Integration):
 
     oauth_access_token_url = 'https://slack.com/api/oauth.access'
     oauth_authorize_url = 'https://slack.com/oauth/authorize'
-    oauth_client_id = options.get('slack.client-id')
-    oauth_client_secret = options.get('slack.client-secret')
     oauth_scopes = tuple(sorted((
         'bot',
         'chat:write:bot',
@@ -24,6 +22,12 @@ class SlackIntegration(OAuth2Integration):
         'links:write',
         'team:read',
     )))
+
+    def get_oauth_client_id(self):
+        return options.get('slack.client-id')
+
+    def get_oauth_client_secret(self):
+        return options.get('slack.client-secret')
 
     def get_config(self):
         return [{
