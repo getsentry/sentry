@@ -27,7 +27,10 @@ class InMemoryTSDB(BaseTSDB):
         super(InMemoryTSDB, self).__init__(*args, **kwargs)
         self.flush()
 
-    def incr(self, model, key, timestamp=None, count=1):
+    def incr(self, model, key, timestamp=None, count=1, environment=None):
+        if environment is not None:
+            raise NotImplementedError
+
         if timestamp is None:
             timestamp = timezone.now()
 
@@ -35,13 +38,19 @@ class InMemoryTSDB(BaseTSDB):
             norm_epoch = self.normalize_to_rollup(timestamp, rollup)
             self.data[model][key][norm_epoch] += count
 
-    def merge(self, model, destination, sources, timestamp=None):
+    def merge(self, model, destination, sources, timestamp=None, environments=None):
+        if environments is not None:
+            raise NotImplementedError
+
         destination = self.data[model][destination]
         for source in sources:
             for bucket, count in self.data[model].pop(source, {}).items():
                 destination[bucket] += count
 
-    def delete(self, models, keys, start=None, end=None, timestamp=None):
+    def delete(self, models, keys, start=None, end=None, timestamp=None, environments=None):
+        if environments is not None:
+            raise NotImplementedError
+
         rollups = self.get_active_series(start, end, timestamp)
 
         for rollup, series in rollups.items():
@@ -54,7 +63,10 @@ class InMemoryTSDB(BaseTSDB):
                             0,
                         )
 
-    def get_range(self, model, keys, start, end, rollup=None):
+    def get_range(self, model, keys, start, end, rollup=None, environment=None):
+        if environment is not None:
+            raise NotImplementedError
+
         rollup, series = self.get_optimal_rollup_series(start, end, rollup)
 
         results = []
@@ -73,7 +85,10 @@ class InMemoryTSDB(BaseTSDB):
             results_by_key[key] = sorted(points.items())
         return dict(results_by_key)
 
-    def record(self, model, key, values, timestamp=None):
+    def record(self, model, key, values, timestamp=None, environment=None):
+        if environment is not None:
+            raise NotImplementedError
+
         if timestamp is None:
             timestamp = timezone.now()
 
@@ -81,7 +96,11 @@ class InMemoryTSDB(BaseTSDB):
             r = self.normalize_to_rollup(timestamp, rollup)
             self.sets[model][key][r].update(values)
 
-    def get_distinct_counts_series(self, model, keys, start, end=None, rollup=None):
+    def get_distinct_counts_series(self, model, keys, start, end=None,
+                                   rollup=None, environment=None):
+        if environment is not None:
+            raise NotImplementedError
+
         rollup, series = self.get_optimal_rollup_series(start, end, rollup)
 
         results = {}
@@ -94,7 +113,11 @@ class InMemoryTSDB(BaseTSDB):
 
         return results
 
-    def get_distinct_counts_totals(self, model, keys, start, end=None, rollup=None):
+    def get_distinct_counts_totals(self, model, keys, start, end=None,
+                                   rollup=None, environment=None):
+        if environment is not None:
+            raise NotImplementedError
+
         rollup, series = self.get_optimal_rollup_series(start, end, rollup)
 
         results = {}
@@ -108,7 +131,11 @@ class InMemoryTSDB(BaseTSDB):
 
         return results
 
-    def get_distinct_counts_union(self, model, keys, start, end=None, rollup=None):
+    def get_distinct_counts_union(self, model, keys, start, end=None,
+                                  rollup=None, environment=None):
+        if environment is not None:
+            raise NotImplementedError
+
         rollup, series = self.get_optimal_rollup_series(start, end, rollup)
 
         values = set()
@@ -120,13 +147,20 @@ class InMemoryTSDB(BaseTSDB):
 
         return len(values)
 
-    def merge_distinct_counts(self, model, destination, sources, timestamp=None):
+    def merge_distinct_counts(self, model, destination, sources, timestamp=None, environments=None):
+        if environments is not None:
+            raise NotImplementedError
+
         destination = self.sets[model][destination]
         for source in sources:
             for bucket, values in self.sets[model].pop(source, {}).items():
                 destination[bucket].update(values)
 
-    def delete_distinct_counts(self, models, keys, start=None, end=None, timestamp=None):
+    def delete_distinct_counts(self, models, keys, start=None, end=None,
+                               timestamp=None, environments=None):
+        if environments is not None:
+            raise NotImplementedError
+
         rollups = self.get_active_series(start, end, timestamp)
 
         for rollup, series in rollups.items():
@@ -167,7 +201,10 @@ class InMemoryTSDB(BaseTSDB):
             ),
         )
 
-    def record_frequency_multi(self, requests, timestamp=None):
+    def record_frequency_multi(self, requests, timestamp=None, environment=None):
+        if environment is not None:
+            raise NotImplementedError
+
         if timestamp is None:
             timestamp = timezone.now()
 
@@ -178,7 +215,11 @@ class InMemoryTSDB(BaseTSDB):
                 for rollup in self.rollups:
                     source[self.normalize_to_rollup(timestamp, rollup)].update(items)
 
-    def get_most_frequent(self, model, keys, start, end=None, rollup=None, limit=None):
+    def get_most_frequent(self, model, keys, start, end=None,
+                          rollup=None, limit=None, environment=None):
+        if environment is not None:
+            raise NotImplementedError
+
         rollup, series = self.get_optimal_rollup_series(start, end, rollup)
 
         results = {}
@@ -193,7 +234,11 @@ class InMemoryTSDB(BaseTSDB):
 
         return results
 
-    def get_most_frequent_series(self, model, keys, start, end=None, rollup=None, limit=None):
+    def get_most_frequent_series(self, model, keys, start, end=None,
+                                 rollup=None, limit=None, environment=None):
+        if environment is not None:
+            raise NotImplementedError
+
         rollup, series = self.get_optimal_rollup_series(start, end, rollup)
 
         results = {}
@@ -206,7 +251,10 @@ class InMemoryTSDB(BaseTSDB):
 
         return results
 
-    def get_frequency_series(self, model, items, start, end=None, rollup=None):
+    def get_frequency_series(self, model, items, start, end=None, rollup=None, environment=None):
+        if environment is not None:
+            raise NotImplementedError
+
         rollup, series = self.get_optimal_rollup_series(start, end, rollup)
 
         results = {}
@@ -219,7 +267,10 @@ class InMemoryTSDB(BaseTSDB):
 
         return results
 
-    def get_frequency_totals(self, model, items, start, end=None, rollup=None):
+    def get_frequency_totals(self, model, items, start, end=None, rollup=None, environment=None):
+        if environment is not None:
+            raise NotImplementedError
+
         results = {}
 
         for key, series in six.iteritems(
@@ -232,13 +283,20 @@ class InMemoryTSDB(BaseTSDB):
 
         return results
 
-    def merge_frequencies(self, model, destination, sources, timestamp=None):
+    def merge_frequencies(self, model, destination, sources, timestamp=None, environments=None):
+        if environments is not None:
+            raise NotImplementedError
+
         destination = self.frequencies[model][destination]
         for source in sources:
             for bucket, counter in self.data[model].pop(source, {}).items():
                 destination[bucket].update(counter)
 
-    def delete_frequencies(self, models, keys, start=None, end=None, timestamp=None):
+    def delete_frequencies(self, models, keys, start=None, end=None,
+                           timestamp=None, environments=None):
+        if environments is not None:
+            raise NotImplementedError
+
         rollups = self.get_active_series(start, end, timestamp)
 
         for rollup, series in rollups.items():
