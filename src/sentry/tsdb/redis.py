@@ -155,15 +155,21 @@ class RedisTSDB(BaseTSDB):
             return md5(repr(key)).hexdigest()
         return key
 
-    def incr(self, model, key, timestamp=None, count=1):
-        self.incr_multi([(model, key)], timestamp, count)
+    def incr(self, model, key, timestamp=None, count=1, environment=None):
+        if environment is not None:
+            raise NotImplementedError
 
-    def incr_multi(self, items, timestamp=None, count=1):
+        self.incr_multi([(model, key)], timestamp, count, environment)
+
+    def incr_multi(self, items, timestamp=None, count=1, environment=None):
         """
         Increment project ID=1 and group ID=5:
 
         >>> incr_multi([(TimeSeriesModel.project, 1), (TimeSeriesModel.group, 5)])
         """
+        if environment is not None:
+            raise NotImplementedError
+
         if timestamp is None:
             timestamp = timezone.now()
 
@@ -177,7 +183,7 @@ class RedisTSDB(BaseTSDB):
                         self.calculate_expiry(rollup, max_values, timestamp),
                     )
 
-    def get_range(self, model, keys, start, end, rollup=None):
+    def get_range(self, model, keys, start, end, rollup=None, environment=None):
         """
         To get a range of data for group ID=[1, 2, 3]:
 
@@ -186,6 +192,9 @@ class RedisTSDB(BaseTSDB):
         >>>          start=now - timedelta(days=1),
         >>>          end=now)
         """
+        if environment is not None:
+            raise NotImplementedError
+
         rollup, series = self.get_optimal_rollup_series(start, end, rollup)
         series = map(to_datetime, series)
 
@@ -206,7 +215,10 @@ class RedisTSDB(BaseTSDB):
             results_by_key[key] = sorted(points.items())
         return dict(results_by_key)
 
-    def merge(self, model, destination, sources, timestamp=None):
+    def merge(self, model, destination, sources, timestamp=None, environments=None):
+        if environments is not None:
+            raise NotImplementedError
+
         rollups = self.get_active_series(timestamp=timestamp)
 
         with self.cluster.map() as client:
@@ -250,7 +262,10 @@ class RedisTSDB(BaseTSDB):
                             ),
                         )
 
-    def delete(self, models, keys, start=None, end=None, timestamp=None):
+    def delete(self, models, keys, start=None, end=None, timestamp=None, environments=None):
+        if environments is not None:
+            raise NotImplementedError
+
         rollups = self.get_active_series(start, end, timestamp)
 
         with self.cluster.map() as client:
@@ -270,13 +285,19 @@ class RedisTSDB(BaseTSDB):
                                 hash_field,
                             )
 
-    def record(self, model, key, values, timestamp=None):
-        self.record_multi(((model, key, values), ), timestamp)
+    def record(self, model, key, values, timestamp=None, environment=None):
+        if environment is not None:
+            raise NotImplementedError
 
-    def record_multi(self, items, timestamp=None):
+        self.record_multi(((model, key, values), ), timestamp, environment)
+
+    def record_multi(self, items, timestamp=None, environment=None):
         """
         Record an occurence of an item in a distinct counter.
         """
+        if environment is not None:
+            raise NotImplementedError
+
         if timestamp is None:
             timestamp = timezone.now()
 
@@ -302,10 +323,14 @@ class RedisTSDB(BaseTSDB):
                         ),
                     )
 
-    def get_distinct_counts_series(self, model, keys, start, end=None, rollup=None):
+    def get_distinct_counts_series(self, model, keys, start, end=None,
+                                   rollup=None, environment=None):
         """
         Fetch counts of distinct items for each rollup interval within the range.
         """
+        if environment is not None:
+            raise NotImplementedError
+
         rollup, series = self.get_optimal_rollup_series(start, end, rollup)
 
         responses = {}
@@ -330,10 +355,14 @@ class RedisTSDB(BaseTSDB):
             for key, value in six.iteritems(responses)
         }
 
-    def get_distinct_counts_totals(self, model, keys, start, end=None, rollup=None):
+    def get_distinct_counts_totals(self, model, keys, start, end=None,
+                                   rollup=None, environment=None):
         """
         Count distinct items during a time range.
         """
+        if environment is not None:
+            raise NotImplementedError
+
         rollup, series = self.get_optimal_rollup_series(start, end, rollup)
 
         responses = {}
@@ -353,7 +382,11 @@ class RedisTSDB(BaseTSDB):
 
         return {key: value.value for key, value in six.iteritems(responses)}
 
-    def get_distinct_counts_union(self, model, keys, start, end=None, rollup=None):
+    def get_distinct_counts_union(self, model, keys, start, end=None,
+                                  rollup=None, environment=None):
+        if environment is not None:
+            raise NotImplementedError
+
         if not keys:
             return 0
 
@@ -431,7 +464,10 @@ class RedisTSDB(BaseTSDB):
             ]
         )
 
-    def merge_distinct_counts(self, model, destination, sources, timestamp=None):
+    def merge_distinct_counts(self, model, destination, sources, timestamp=None, environments=None):
+        if environments is not None:
+            raise NotImplementedError
+
         rollups = self.get_active_series(timestamp=timestamp)
 
         temporary_id = uuid.uuid1().hex
@@ -490,7 +526,11 @@ class RedisTSDB(BaseTSDB):
                             ),
                         )
 
-    def delete_distinct_counts(self, models, keys, start=None, end=None, timestamp=None):
+    def delete_distinct_counts(self, models, keys, start=None, end=None,
+                               timestamp=None, environments=None):
+        if environments is not None:
+            raise NotImplementedError
+
         rollups = self.get_active_series(start, end, timestamp)
 
         with self.cluster.fanout() as client:
@@ -514,7 +554,10 @@ class RedisTSDB(BaseTSDB):
             ('{}:i', '{}:e'),
         )
 
-    def record_frequency_multi(self, requests, timestamp=None):
+    def record_frequency_multi(self, requests, timestamp=None, environment=None):
+        if environment is not None:
+            raise NotImplementedError
+
         if not self.enable_frequency_sketches:
             return
 
@@ -553,7 +596,11 @@ class RedisTSDB(BaseTSDB):
 
         self.cluster.execute_commands(commands)
 
-    def get_most_frequent(self, model, keys, start, end=None, rollup=None, limit=None):
+    def get_most_frequent(self, model, keys, start, end=None,
+                          rollup=None, limit=None, environment=None):
+        if environment is not None:
+            raise NotImplementedError
+
         if not self.enable_frequency_sketches:
             raise NotImplementedError("Frequency sketches are disabled.")
 
@@ -576,7 +623,11 @@ class RedisTSDB(BaseTSDB):
 
         return results
 
-    def get_most_frequent_series(self, model, keys, start, end=None, rollup=None, limit=None):
+    def get_most_frequent_series(self, model, keys, start, end=None,
+                                 rollup=None, limit=None, environment=None):
+        if environment is not None:
+            raise NotImplementedError
+
         if not self.enable_frequency_sketches:
             raise NotImplementedError("Frequency sketches are disabled.")
 
@@ -604,7 +655,10 @@ class RedisTSDB(BaseTSDB):
 
         return results
 
-    def get_frequency_series(self, model, items, start, end=None, rollup=None):
+    def get_frequency_series(self, model, items, start, end=None, rollup=None, environment=None):
+        if environment is not None:
+            raise NotImplementedError
+
         if not self.enable_frequency_sketches:
             raise NotImplementedError("Frequency sketches are disabled.")
 
@@ -638,7 +692,10 @@ class RedisTSDB(BaseTSDB):
 
         return results
 
-    def get_frequency_totals(self, model, items, start, end=None, rollup=None):
+    def get_frequency_totals(self, model, items, start, end=None, rollup=None, environment=None):
+        if environment is not None:
+            raise NotImplementedError
+
         if not self.enable_frequency_sketches:
             raise NotImplementedError("Frequency sketches are disabled.")
 
@@ -654,7 +711,10 @@ class RedisTSDB(BaseTSDB):
 
         return responses
 
-    def merge_frequencies(self, model, destination, sources, timestamp=None):
+    def merge_frequencies(self, model, destination, sources, timestamp=None, environments=None):
+        if environments is not None:
+            raise NotImplementedError
+
         if not self.enable_frequency_sketches:
             return
 
@@ -710,7 +770,11 @@ class RedisTSDB(BaseTSDB):
             destination: imports,
         })
 
-    def delete_frequencies(self, models, keys, start=None, end=None, timestamp=None):
+    def delete_frequencies(self, models, keys, start=None, end=None,
+                           timestamp=None, environments=None):
+        if environments is not None:
+            raise NotImplementedError
+
         rollups = self.get_active_series(start, end, timestamp)
 
         with self.cluster.fanout() as client:
