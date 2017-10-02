@@ -2,7 +2,7 @@
 
 from __future__ import absolute_import
 
-from sentry.models import OrganizationMember, OrganizationMemberTeam
+from sentry.models import OrganizationMember, OrganizationMemberTeam, Project
 from sentry.testutils import TestCase
 
 
@@ -34,3 +34,38 @@ class ProjectTest(TestCase):
         )
 
         assert list(project.member_set.all()) == []
+
+    def test_transfer_to(self):
+        from_org = self.create_organization()
+        from_team = self.create_team(organization=from_org)
+        project = self.create_project(team=from_team)
+        to_org = self.create_organization()
+        to_team = self.create_team(organization=to_org)
+
+        project.transfer_to(to_team)
+
+        project = Project.objects.get(id=project.id)
+
+        assert project.team_id == to_team.id
+        assert project.organization_id == to_org.id
+
+    def test_transfer_to_slug_collision(self):
+        from_org = self.create_organization()
+        from_team = self.create_team(organization=from_org)
+        project = self.create_project(team=from_team, slug='matt')
+        to_org = self.create_organization()
+        to_team = self.create_team(organization=to_org)
+        # conflicting project slug
+        self.create_project(team=to_team, slug='matt')
+
+        assert Project.objects.filter(organization=to_org).count() == 1
+
+        project.transfer_to(to_team)
+
+        project = Project.objects.get(id=project.id)
+
+        assert project.team_id == to_team.id
+        assert project.organization_id == to_org.id
+        assert project.slug != 'matt'
+        assert Project.objects.filter(organization=to_org).count() == 2
+        assert Project.objects.filter(organization=from_org).count() == 0
