@@ -67,6 +67,10 @@ class AcceptProjectTransferView(BaseView):
         user_id = data['user_id']
         transaction_id = data['transaction_id']
         from_organization_id = data['from_organization_id']
+        if user_id != request.user.id:
+            return HttpResponseRedirect(
+                reverse('sentry')
+            )
 
         # check if user is still an owner
         if not OrganizationMember.objects.filter(
