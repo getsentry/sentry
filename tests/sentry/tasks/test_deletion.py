@@ -4,7 +4,6 @@ from datetime import datetime, timedelta
 from mock import patch
 from uuid import uuid4
 
-from django.core.exceptions import ObjectDoesNotExist
 import pytest
 
 from sentry import tagstore
@@ -228,7 +227,7 @@ class DeleteTagKeyTest(TestCase):
             try:
                 tagstore.get_tag_key(key='foo', project_id=project.id)
                 assert False  # verify exception thrown
-            except ObjectDoesNotExist:
+            except tagstore.TagKeyNotFound:
                 pass
 
         assert tagstore.get_tag_key(key='foo', project_id=project2.id) is not None

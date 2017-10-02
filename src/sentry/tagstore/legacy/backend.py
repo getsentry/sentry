@@ -21,6 +21,8 @@ from sentry.tagstore.base import TagStorage
 from sentry.utils.cache import cache
 from sentry.tasks.deletion import delete_tag_key
 
+from .exceptions import TagKeyNotFound
+
 
 class LegacyTagStorage(TagStorage):
     def create_tag_key(self, project_id, key):
@@ -38,7 +40,10 @@ class LegacyTagStorage(TagStorage):
         if status:
             qs = qs.filter(status=status)
 
-        return qs.get()
+        try:
+            return qs.get()
+        except TagKey.DoesNotExist:
+            raise TagKeyNotFound
 
     def _get_tag_keys_cache_key(self, project_id, status):
         return 'filterkey:all:%s:%s' % (project_id, status)
