@@ -94,7 +94,9 @@ class OptionsStore(object):
             value = self.cache.get(cache_key)
         except Exception:
             if not silent:
-                logger.warn(CACHE_FETCH_ERR, key.name, exc_info=True)
+                logger.warn(CACHE_FETCH_ERR, key.name, extra={
+                    'key': key.name,
+                }, exc_info=True)
             value = None
 
         if value is not None and key.ttl > 0:
@@ -163,9 +165,11 @@ class OptionsStore(object):
             value = self.model.objects.get(key=key.name).value
         except self.model.DoesNotExist:
             value = None
-        except Exception as e:
+        except Exception:
             if not silent:
-                logger.exception(six.text_type(e))
+                logger.exception('option.failed-lookup', extra={
+                    'key': key.name,
+                })
             value = None
         else:
             # we only attempt to populate the cache if we were previously
@@ -176,7 +180,9 @@ class OptionsStore(object):
                 self.set_cache(key, value)
             except Exception:
                 if not silent:
-                    logger.warn(CACHE_UPDATE_ERR, key.name, exc_info=True)
+                    logger.warn(CACHE_UPDATE_ERR, key.name, extra={
+                        'key': key.name,
+                    }, exc_info=True)
         return value
 
     def set(self, key, value):
@@ -214,7 +220,9 @@ class OptionsStore(object):
             self.cache.set(cache_key, value, self.ttl)
             return True
         except Exception:
-            logger.warn(CACHE_UPDATE_ERR, key.name, exc_info=True)
+            logger.warn(CACHE_UPDATE_ERR, key.name, extra={
+                'key': key.name,
+            }, exc_info=True)
             return False
 
     def delete(self, key):
@@ -243,7 +251,9 @@ class OptionsStore(object):
             self.cache.delete(cache_key)
             return True
         except Exception:
-            logger.warn(CACHE_UPDATE_ERR, key.name, exc_info=True)
+            logger.warn(CACHE_UPDATE_ERR, key.name, extra={
+                'key': key.name,
+            }, exc_info=True)
             return False
 
     def clean_local_cache(self):
