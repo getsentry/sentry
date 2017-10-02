@@ -108,6 +108,25 @@
       </div>
     </div>
 
+    <div class="box">
+      <div class="box-header">
+        <h3>{% trans "Transfer Project" %}</h3>
+      </div>
+      <div class="box-content with-padding">
+        {% if not ACCESS.project_admin %}
+        <p>{% trans "You do not have the required permission to remove this project." %}</p>
+        {% elif project.is_internal_project %}
+        <p>{% trans "This project cannot be removed. It is used internally by the Sentry server." %}</p>
+        {% else %}
+        <p class="clearfix">
+          <a href="{% url 'sentry-transfer-project' project.organization.slug project.slug %}" class="btn btn-danger pull-right">{% trans "Transfer Project" %}</a>
+          Transfer the <strong>{{ project.slug }}</strong> project and all related data. </br>
+          Careful, this action cannot be undone.
+        </p>
+        {% endif %}
+      </div>
+    </div>
+
     <div class="form-actions">
       <button type="submit" class="btn btn-primary btn-lg">{% trans "Save Changes" %}</button>
     </div>
@@ -211,11 +230,14 @@
         </a>
         {% if processing_issues > 0 %}
         <script>
-          ReactDOM.render(React.createElement(Sentry.Badge, {
-            text: '{{ processing_issues|safe }}',
-            isNew: true,
-          }), document.getElementById('processing-badge'));
-        </script>
+        ReactDOM.render(
+  React.createElement(Sentry.Badge, {
+    text: '{{ processing_issues|safe }}',
+    isNew: true
+  }),
+  document.getElementById('processing-badge')
+);
+</script>
         {% endif %}
     </li>
   </ul>

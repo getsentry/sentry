@@ -38,6 +38,8 @@ class AuditLogEntryEvent(object):
     PROJECT_REMOVE = 32
     PROJECT_SET_PUBLIC = 33
     PROJECT_SET_PRIVATE = 34
+    PROJECT_REQUEST_TRANSFER = 35
+    PROJECT_ACCEPT_TRANSFER = 36
 
     TAGKEY_REMOVE = 40
 
@@ -93,6 +95,8 @@ class AuditLogEntry(Model):
             (AuditLogEntryEvent.PROJECT_REMOVE, 'project.remove'),
             (AuditLogEntryEvent.PROJECT_SET_PUBLIC, 'project.set-public'),
             (AuditLogEntryEvent.PROJECT_SET_PRIVATE, 'project.set-private'),
+            (AuditLogEntryEvent.PROJECT_REQUEST_TRANSFER, 'project.request-transfer'),
+            (AuditLogEntryEvent.PROJECT_ACCEPT_TRANSFER, 'project.accept-transfer'),
             (AuditLogEntryEvent.ORG_ADD, 'org.create'),
             (AuditLogEntryEvent.ORG_EDIT, 'org.edit'),
             (AuditLogEntryEvent.ORG_REMOVE, 'org.remove'),
@@ -197,6 +201,10 @@ class AuditLogEntry(Model):
             return 'edited project %s' % (self.data['slug'], )
         elif self.event == AuditLogEntryEvent.PROJECT_REMOVE:
             return 'removed project %s' % (self.data['slug'], )
+        elif self.event == AuditLogEntryEvent.PROJECT_REQUEST_TRANSFER:
+            return 'requested to transfer project %s' % (self.data['slug'], )
+        elif self.event == AuditLogEntryEvent.PROJECT_ACCEPT_TRANSFER:
+            return 'accepted transfer of project %s' % (self.data['slug'], )
 
         elif self.event == AuditLogEntryEvent.TAGKEY_REMOVE:
             return 'removed tags matching %s = *' % (self.data['key'], )
