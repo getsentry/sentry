@@ -66,6 +66,8 @@ from sentry.web.frontend.remove_account import RemoveAccountView
 from sentry.web.frontend.remove_organization import RemoveOrganizationView
 from sentry.web.frontend.restore_organization import RestoreOrganizationView
 from sentry.web.frontend.remove_project import RemoveProjectView
+from sentry.web.frontend.transfer_project import TransferProjectView
+from sentry.web.frontend.accept_project_transfer import AcceptProjectTransferView
 from sentry.web.frontend.remove_team import RemoveTeamView
 from sentry.web.frontend.sudo import SudoView
 from sentry.web.frontend.unsubscribe_issue_notifications import \
@@ -305,6 +307,9 @@ urlpatterns += patterns(
     url(r'^api/[^0]+/', generic_react_page_view),
     url(r'^out/$', OutView.as_view()),
 
+    url(r'^accept-transfer/$', AcceptProjectTransferView.as_view(),
+        name='sentry-accept-project-transfer'),
+
     # Organizations
     url(r'^(?P<organization_slug>[\w_-]+)/$', react_page_view, name='sentry-organization-home'),
     url(r'^organizations/new/$', generic_react_page_view),
@@ -414,6 +419,11 @@ urlpatterns += patterns(
         name='sentry-remove-project'
     ),
     url(
+        r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/settings/transfer/$',
+        TransferProjectView.as_view(),
+        name='sentry-transfer-project'
+    ),
+    url(
         r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/settings/tags/$',
         ProjectTagsView.as_view(),
         name='sentry-manage-project-tags'
@@ -437,6 +447,8 @@ urlpatterns += patterns(
     # Generic
     url(r'^$', HomeView.as_view(), name='sentry'),
     url(r'^robots\.txt$', api.robots_txt, name='sentry-api-robots-txt'),
+
+
 
     # Force a 404 of favicon.ico.
     # This url is commonly requested by browsers, and without
