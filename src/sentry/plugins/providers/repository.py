@@ -23,7 +23,6 @@ class RepositoryProvider(ProviderMixin):
             return Response(
                 {
                     'error_type': 'auth',
-                    'title': self.name,
                     'auth_url': reverse('socialauth_associate', args=[self.auth_provider]),
                 },
                 status=400
