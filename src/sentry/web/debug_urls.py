@@ -10,6 +10,7 @@ from sentry.web.frontend.debug.debug_assigned_email import (
 )
 from sentry.web.frontend.debug.debug_trigger_error import (DebugTriggerErrorView)
 from sentry.web.frontend.debug.debug_error_embed import (DebugErrorPageEmbedView)
+from sentry.web.frontend.debug.debug_invalid_identity_email import DebugInvalidIdentityEmailView
 from sentry.web.frontend.debug.debug_mfa_added_email import (DebugMfaAddedEmailView)
 from sentry.web.frontend.debug.debug_mfa_removed_email import (DebugMfaRemovedEmailView)
 from sentry.web.frontend.debug.debug_new_release_email import (DebugNewReleaseEmailView)
@@ -53,6 +54,7 @@ urlpatterns = patterns(
     url(r'^debug/mail/request-access/$', sentry.web.frontend.debug.mail.request_access),
     url(r'^debug/mail/access-approved/$', sentry.web.frontend.debug.mail.access_approved),
     url(r'^debug/mail/invitation/$', sentry.web.frontend.debug.mail.invitation),
+    url(r'^debug/mail/invalid-identity/$', DebugInvalidIdentityEmailView.as_view()),
     url(r'^debug/mail/confirm-email/$', sentry.web.frontend.debug.mail.confirm_email),
     url(r'^debug/mail/recover-account/$', sentry.web.frontend.debug.mail.recover_account),
     url(r'^debug/mail/unassigned/$', DebugUnassignedEmailView.as_view()),
