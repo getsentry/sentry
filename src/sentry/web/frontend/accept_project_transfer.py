@@ -94,9 +94,7 @@ class AcceptProjectTransferView(BaseView):
             # transfer the project
             team_id = form.cleaned_data.get('team')
             new_team = Team.objects.get(id=team_id)
-            project.team = new_team
-            project.organization = new_team.organization
-            project.save()
+            project.transfer_to(new_team)
 
             self.create_audit_entry(
                 request=request,
