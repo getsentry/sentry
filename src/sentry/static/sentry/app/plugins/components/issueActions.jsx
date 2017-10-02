@@ -285,7 +285,7 @@ class IssueActions extends PluginComponentBase {
         <div>
           <div className="alert alert-warning m-b-1">
             {'You need to associate an identity with ' +
-              error.title +
+              this.props.plugin.name +
               ' before you can create issues with this service.'}
           </div>
           <a className="btn btn-primary" href={authUrl}>
@@ -302,8 +302,8 @@ class IssueActions extends PluginComponentBase {
                   {
                     'Your server administrator will need to configure authentication with '
                   }
-                  <strong>{error.auth_provider}</strong>
-                  {' before you can use this plugin.'}
+                  <strong>{this.props.plugin.name}</strong>
+                  {' before you can use this integration.'}
                 </p>
                 <p>The following settings must be configured:</p>
                 <ul>
