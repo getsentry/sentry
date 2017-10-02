@@ -106,7 +106,8 @@ urlpatterns += patterns(
     '',
     # Store endpoints first since they are the most active
     url(r'^api/store/$', api.StoreView.as_view(), name='sentry-api-store'),
-    url(r'^api/(?P<project_id>[\w_-]+)/store/$', api.StoreView.as_view(), name='sentry-api-store'),
+    url(r'^api/(?P<project_id>[\w_-]+)/store/$',
+        api.StoreView.as_view(), name='sentry-api-store'),
     url(
         r'^api/(?P<project_id>\d+)/csp-report/$',
         api.CspReportView.as_view(),
@@ -137,7 +138,8 @@ urlpatterns += patterns(
         ReleaseWebhookView.as_view(),
         name='sentry-release-hook'
     ),
-    url(r'^api/embed/error-page/$', ErrorPageEmbedView.as_view(), name='sentry-error-page-embed'),
+    url(r'^api/embed/error-page/$', ErrorPageEmbedView.as_view(),
+        name='sentry-error-page-embed'),
 
     # OAuth
     url(r'^oauth/authorize/$', OAuthAuthorizeView.as_view()),
@@ -165,12 +167,14 @@ urlpatterns += patterns(
     url(r'^auth/2fa/u2fappid\.json$', u2f_appid, name='sentry-u2f-app-id'),
     url(r'^auth/sso/$', AuthProviderLoginView.as_view(), name='sentry-auth-sso'),
     url(r'^auth/logout/$', AuthLogoutView.as_view(), name='sentry-logout'),
-    url(r'^auth/reactivate/$', ReactivateAccountView.as_view(), name='sentry-reactivate-account'),
+    url(r'^auth/reactivate/$', ReactivateAccountView.as_view(),
+        name='sentry-reactivate-account'),
     url(r'^auth/register/$', AuthLoginView.as_view(), name='sentry-register'),
     url(r'^auth/close/$', AuthCloseView.as_view(), name='sentry-auth-close'),
 
     # Account
-    url(r'^login-redirect/$', accounts.login_redirect, name='sentry-login-redirect'),
+    url(r'^login-redirect/$', accounts.login_redirect,
+        name='sentry-login-redirect'),
     url(r'^account/sudo/$', SudoView.as_view(), name='sentry-sudo'),
     url(
         r'^account/confirm-email/$',
@@ -188,7 +192,8 @@ urlpatterns += patterns(
         accounts.recover_confirm,
         name='sentry-account-recover-confirm'
     ),
-    url(r'^account/settings/$', accounts.account_settings, name='sentry-account-settings'),
+    url(r'^account/settings/$', accounts.account_settings,
+        name='sentry-account-settings'),
     url(
         r'^account/settings/2fa/$', accounts.twofactor_settings, name='sentry-account-settings-2fa'
     ),
@@ -247,7 +252,8 @@ urlpatterns += patterns(
         AccountSecurityView.as_view(),
         name='sentry-account-security'
     ),
-    url(r'^account/settings/emails/$', accounts.show_emails, name='sentry-account-settings-emails'),
+    url(r'^account/settings/emails/$', accounts.show_emails,
+        name='sentry-account-settings-emails'),
 
     # compatibility
     url(
@@ -264,20 +270,27 @@ urlpatterns += patterns(
         UnsubscribeIssueNotificationsView.as_view(),
         name='sentry-account-email-unsubscribe-issue'
     ),
-    url(r'^account/remove/$', RemoveAccountView.as_view(), name='sentry-remove-account'),
+    url(r'^account/remove/$', RemoveAccountView.as_view(),
+        name='sentry-remove-account'),
     url(r'^account/settings/social/', include('social_auth.urls')),
     url(r'^account/', generic_react_page_view),
     url(r'^onboarding/', generic_react_page_view),
 
     # Admin
-    url(r'^manage/status/environment/$', admin.status_env, name='sentry-admin-status'),
-    url(r'^manage/status/packages/$', admin.status_packages, name='sentry-admin-packages-status'),
-    url(r'^manage/status/mail/$', admin.status_mail, name='sentry-admin-mail-status'),
-    url(r'^manage/status/warnings/$', admin.status_warnings, name='sentry-admin-warnings-status'),
+    url(r'^manage/status/environment/$',
+        admin.status_env, name='sentry-admin-status'),
+    url(r'^manage/status/packages/$', admin.status_packages,
+        name='sentry-admin-packages-status'),
+    url(r'^manage/status/mail/$', admin.status_mail,
+        name='sentry-admin-mail-status'),
+    url(r'^manage/status/warnings/$', admin.status_warnings,
+        name='sentry-admin-warnings-status'),
 
     # Admin - Users
-    url(r'^manage/users/new/$', admin.create_new_user, name='sentry-admin-new-user'),
-    url(r'^manage/users/(?P<user_id>\d+)/$', admin.edit_user, name='sentry-admin-edit-user'),
+    url(r'^manage/users/new/$', admin.create_new_user,
+        name='sentry-admin-new-user'),
+    url(r'^manage/users/(?P<user_id>\d+)/$',
+        admin.edit_user, name='sentry-admin-edit-user'),
     url(
         r'^manage/users/(?P<user_id>\d+)/remove/$',
         admin.remove_user,
@@ -295,12 +308,14 @@ urlpatterns += patterns(
     # Legacy Redirects
     url(
         r'^docs/?$',
-        RedirectView.as_view(url='https://docs.sentry.io/hosted/', permanent=False),
+        RedirectView.as_view(
+            url='https://docs.sentry.io/hosted/', permanent=False),
         name='sentry-docs-redirect'
     ),
     url(
         r'^docs/api/?$',
-        RedirectView.as_view(url='https://docs.sentry.io/hosted/api/', permanent=False),
+        RedirectView.as_view(
+            url='https://docs.sentry.io/hosted/api/', permanent=False),
         name='sentry-api-docs-redirect'
     ),
     url(r'^api/$', generic_react_page_view, name='sentry-api'),
@@ -310,8 +325,11 @@ urlpatterns += patterns(
     url(r'^accept-transfer/$', AcceptProjectTransferView.as_view(),
         name='sentry-accept-project-transfer'),
 
+    url(r'^settings/$', react_page_view),
+
     # Organizations
-    url(r'^(?P<organization_slug>[\w_-]+)/$', react_page_view, name='sentry-organization-home'),
+    url(r'^(?P<organization_slug>[\w_-]+)/$',
+        react_page_view, name='sentry-organization-home'),
     url(r'^organizations/new/$', generic_react_page_view),
     url(
         r'^organizations/(?P<organization_slug>[\w_-]+)/api-keys/$',
@@ -357,7 +375,8 @@ urlpatterns += patterns(
         RemoveTeamView.as_view(),
         name='sentry-remove-team'
     ),
-    url(r'^organizations/(?P<organization_slug>[\w_-]+)/teams/new/$', react_page_view),
+    url(
+        r'^organizations/(?P<organization_slug>[\w_-]+)/teams/new/$', react_page_view),
     url(
         r'^organizations/(?P<organization_slug>[\w_-]+)/remove/$',
         RemoveOrganizationView.as_view(),
@@ -375,7 +394,8 @@ urlpatterns += patterns(
     ),
 
     # need to catch settings and force it to react
-    url(r'^organizations/(?P<organization_slug>[\w_-]+)/settings/', react_page_view),
+    url(
+        r'^organizations/(?P<organization_slug>[\w_-]+)/settings/', react_page_view),
 
     # Settings - Projects
     url(
@@ -459,13 +479,15 @@ urlpatterns += patterns(
     url(r'favicon\.ico$', lambda r: HttpResponse(status=404)),
 
     # crossdomain.xml
-    url(r'^crossdomain\.xml$', api.crossdomain_xml_index, name='sentry-api-crossdomain-xml-index'),
+    url(r'^crossdomain\.xml$', api.crossdomain_xml_index,
+        name='sentry-api-crossdomain-xml-index'),
 
     # plugins
     # XXX(dcramer): preferably we'd be able to use 'integrations' as the URL
     # prefix here, but unfortunately sentry.io has that mapped to marketing
     # assets for the time being
-    url(r'^extensions/(?P<provider_id>[\w_-]+)/setup/$', IntegrationSetupView.as_view()),
+    url(r'^extensions/(?P<provider_id>[\w_-]+)/setup/$',
+        IntegrationSetupView.as_view()),
     url(r'^extensions/cloudflare/', include('sentry.integrations.cloudflare.urls')),
     url(r'^extensions/slack/', include('sentry.integrations.slack.urls')),
 

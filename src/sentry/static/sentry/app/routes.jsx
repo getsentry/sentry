@@ -80,6 +80,7 @@ import ReleaseDetails from './views/releaseDetails';
 import ReleaseNewEvents from './views/releaseNewEvents';
 import ReleaseOverview from './views/releases/releaseOverview';
 import RouteNotFound from './views/routeNotFound';
+import Settings from './views/settings';
 import SharedGroupDetails from './views/sharedGroupDetails';
 import Stream from './views/stream';
 import TeamCreate from './views/teamCreate';
@@ -130,6 +131,7 @@ function routes() {
         />
       </Route>
 
+      <Route path="/settings/" component={errorHandler(Settings)} />
       <Route path="/api/new-token/" component={errorHandler(ApiNewToken)} />
 
       <Route path="/manage/" component={errorHandler(AdminLayout)}>
