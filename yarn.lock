@@ -602,19 +602,6 @@ babel-generator@^6.21.0:
     source-map "^0.5.0"
     trim-right "^1.0.1"
 
-babel-generator@^6.26.0:
-  version "6.26.0"
-  resolved "https://registry.yarnpkg.com/babel-generator/-/babel-generator-6.26.0.tgz#ac1ae20070b79f6e3ca1d3269613053774f20dc5"
-  dependencies:
-    babel-messages "^6.23.0"
-    babel-runtime "^6.26.0"
-    babel-types "^6.26.0"
-    detect-indent "^4.0.0"
-    jsesc "^1.3.0"
-    lodash "^4.17.4"
-    source-map "^0.5.6"
-    trim-right "^1.0.1"
-
 babel-gettext-extractor@^3.0.0:
   version "3.0.0"
   resolved "https://registry.yarnpkg.com/babel-gettext-extractor/-/babel-gettext-extractor-3.0.0.tgz#6ce4a501feaf7e52777d8c373e29e3ee271793b5"
@@ -834,8 +821,8 @@ babel-plugin-emotion@^7.3.2:
     touch "^1.0.0"
 
 babel-plugin-emotion@^8.0.2-7:
-  version "8.0.2-7"
-  resolved "https://registry.yarnpkg.com/babel-plugin-emotion/-/babel-plugin-emotion-8.0.2-7.tgz#5b7fce1fe665b5d8aad1fae778be847a926a815c"
+  version "8.0.2-11"
+  resolved "https://registry.yarnpkg.com/babel-plugin-emotion/-/babel-plugin-emotion-8.0.2-11.tgz#aa8821bbc6f4eefdea00bd9c76810676ec60f4cc"
   dependencies:
     babel-generator "^6.26.0"
     babel-macros "^1.0.2"
@@ -2036,14 +2023,6 @@ chalk@1.1.3, chalk@^1.0.0, chalk@^1.1.0, chalk@^1.1.1, chalk@^1.1.3:
     has-ansi "^2.0.0"
     strip-ansi "^3.0.0"
     supports-color "^2.0.0"
-
-chalk@^2.0.1, chalk@^2.1.0:
-  version "2.1.0"
-  resolved "https://registry.yarnpkg.com/chalk/-/chalk-2.1.0.tgz#ac5becf14fa21b99c6c92ca7a7d7cfd5b17e743e"
-  dependencies:
-    ansi-styles "^3.1.0"
-    escape-string-regexp "^1.0.5"
-    supports-color "^4.0.0"
 
 chalk@^2.1.0:
   version "2.1.0"
@@ -6175,9 +6154,9 @@ range-parser@^1.0.3, range-parser@~1.2.0:
   version "1.2.0"
   resolved "https://registry.yarnpkg.com/range-parser/-/range-parser-1.2.0.tgz#f49be6b487894ddc40dcc94a322f611092e00d5e"
 
-raven-js@3.16.1:
-  version "3.16.1"
-  resolved "https://registry.yarnpkg.com/raven-js/-/raven-js-3.16.1.tgz#4aab8ba7c57bc261604db970c41c49137340c450"
+raven-js@3.18.1:
+  version "3.18.1"
+  resolved "https://registry.yarnpkg.com/raven-js/-/raven-js-3.18.1.tgz#746339c08fca75c3f402d7e6b633687c3ffc6ee8"
 
 raw-body@~2.1.5:
   version "2.1.7"

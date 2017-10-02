@@ -30,7 +30,6 @@ const EventOrGroupExtraDetails = React.createClass({
       orgId,
       projectId,
       groupId,
-      lastSeen,
       firstSeen,
       subscriptionDetails,
       numComments,
@@ -43,7 +42,6 @@ const EventOrGroupExtraDetails = React.createClass({
     }
 
     return (
-<<<<<<< HEAD
       <GroupExtra>
         {firstSeen &&
           <Box>
@@ -84,57 +82,6 @@ const EventOrGroupExtraDetails = React.createClass({
             );
           })}
       </GroupExtra>
-=======
-      <div className="event-extra">
-        <ul>
-          {shortId &&
-            <li>
-              <ShortId shortId={shortId} />
-            </li>}
-          <li>
-            <span className="icon icon-clock" />
-            {lastSeen && <TimeSince date={lastSeen} />}
-            {firstSeen && lastSeen && <span>&nbsp;—&nbsp;</span>}
-            {firstSeen && <TimeSince date={firstSeen} suffix="old" />}
-          </li>
-          {numComments > 0 &&
-            <li>
-              <Link
-                to={`/${orgId}/${projectId}/issues/${groupId}/activity/`}
-                className="comments">
-                <span className="icon icon-comments" style={styles} />
-                <span className="tag-count">
-                  {numComments}
-                </span>
-              </Link>
-            </li>}
-          {logger &&
-            <li className="event-annotation">
-              <Link
-                to={{
-                  pathname: `/${orgId}/${projectId}/`,
-                  query: {
-                    query: 'logger:' + logger
-                  }
-                }}>
-                {logger}
-              </Link>
-            </li>}
-          {annotations &&
-            annotations.map((annotation, key) => {
-              return (
-                <li
-                  className="event-annotation"
-                  dangerouslySetInnerHTML={{
-                    __html: annotation
-                  }}
-                  key={key}
-                />
-              );
-            })}
-        </ul>
-      </div>
->>>>>>> master
     );
   }
 });
