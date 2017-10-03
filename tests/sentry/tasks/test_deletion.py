@@ -227,7 +227,7 @@ class DeleteTagKeyTest(TestCase):
             try:
                 tagstore.get_tag_value(project.id, key, value)
                 assert False  # verify exception thrown
-            except ObjectDoesNotExist:
+            except tagstore.TagValueNotFound:
                 pass
             assert not EventTag.objects.filter(key_id=tk.id).exists()
             try:
