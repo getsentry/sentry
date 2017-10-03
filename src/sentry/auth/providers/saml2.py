@@ -297,14 +297,14 @@ def build_saml_config(provider_config, org):
             'singleLogoutService': {'url': idp['slo_url']},
         },
         'sp': {
-            "entityId": metadata_url,
-            "assertionConsumerService": {
-                "url": acs_url,
-                "binding": OneLogin_Saml2_Constants.BINDING_HTTP_POST,
+            'entityId': metadata_url,
+            'assertionConsumerService': {
+                'url': acs_url,
+                'binding': OneLogin_Saml2_Constants.BINDING_HTTP_POST,
             },
-            "singleLogoutService": {
-                "url": sls_url,
-                "binding": OneLogin_Saml2_Constants.BINDING_HTTP_REDIRECT,
+            'singleLogoutService': {
+                'url': sls_url,
+                'binding': OneLogin_Saml2_Constants.BINDING_HTTP_REDIRECT,
             },
         },
         'security': security_config,
