@@ -110,19 +110,28 @@ class RedisTSDB(BaseTSDB):
             label='TSDB',
         )
 
-    def make_key(self, model, rollup, timestamp, key):
+    def add_environment_parameter(self, key, environment):
+        if environment is not None:
+            return '{}?e={}'.format(key, environment)
+        else:
+            return key
+
+    def make_key(self, model, rollup, timestamp, key, environment):
         """
         Make a key that is used for distinct counter and frequency table
         values.
         """
-        return '{prefix}{model}:{epoch}:{key}'.format(
-            prefix=self.prefix,
-            model=model.value,
-            epoch=self.normalize_ts_to_rollup(timestamp, rollup),
-            key=self.get_model_key(key),
+        return self.add_environment_parameter(
+            '{prefix}{model}:{epoch}:{key}'.format(
+                prefix=self.prefix,
+                model=model.value,
+                epoch=self.normalize_ts_to_rollup(timestamp, rollup),
+                key=self.get_model_key(key),
+            ),
+            environment,
         )
 
-    def make_counter_key(self, model, rollup, timestamp, key):
+    def make_counter_key(self, model, rollup, timestamp, key, environment):
         """
         Make a key that is used for counter values.
 
@@ -142,7 +151,7 @@ class RedisTSDB(BaseTSDB):
             model=model.value,
             epoch=self.normalize_to_rollup(timestamp, rollup),
             vnode=vnode,
-        ), model_key
+        ), self.add_environment_parameter(model_key, environment)
 
     def get_model_key(self, key):
         # We specialize integers so that a pure int-map can be optimized by
@@ -164,16 +173,14 @@ class RedisTSDB(BaseTSDB):
 
         >>> incr_multi([(TimeSeriesModel.project, 1), (TimeSeriesModel.group, 5)])
         """
-        if environment is not None:
-            raise NotImplementedError
-
         if timestamp is None:
             timestamp = timezone.now()
 
         with self.cluster.map() as client:
             for rollup, max_values in six.iteritems(self.rollups):
                 for model, key in items:
-                    hash_key, hash_field = self.make_counter_key(model, rollup, timestamp, key)
+                    hash_key, hash_field = self.make_counter_key(
+                        model, rollup, timestamp, key, environment)
                     client.hincrby(hash_key, hash_field, count)
                     client.expireat(
                         hash_key,
@@ -189,9 +196,6 @@ class RedisTSDB(BaseTSDB):
         >>>          start=now - timedelta(days=1),
         >>>          end=now)
         """
-        if environment is not None:
-            raise NotImplementedError
-
         rollup, series = self.get_optimal_rollup_series(start, end, rollup)
         series = map(to_datetime, series)
 
@@ -199,7 +203,8 @@ class RedisTSDB(BaseTSDB):
         with self.cluster.map() as client:
             for key in keys:
                 for timestamp in series:
-                    hash_key, hash_field = self.make_counter_key(model, rollup, timestamp, key)
+                    hash_key, hash_field = self.make_counter_key(
+                        model, rollup, timestamp, key, environment)
                     results.append(
                         (to_timestamp(timestamp), key, client.hget(
                             hash_key, hash_field)))
@@ -289,9 +294,6 @@ class RedisTSDB(BaseTSDB):
         """
         Record an occurence of an item in a distinct counter.
         """
-        if environment is not None:
-            raise NotImplementedError
-
         if timestamp is None:
             timestamp = timezone.now()
 
@@ -306,6 +308,7 @@ class RedisTSDB(BaseTSDB):
                         rollup,
                         ts,
                         key,
+                        environment,
                     )
                     c.pfadd(k, *values)
                     c.expireat(
@@ -322,9 +325,6 @@ class RedisTSDB(BaseTSDB):
         """
         Fetch counts of distinct items for each rollup interval within the range.
         """
-        if environment is not None:
-            raise NotImplementedError
-
         rollup, series = self.get_optimal_rollup_series(start, end, rollup)
 
         responses = {}
@@ -340,6 +340,7 @@ class RedisTSDB(BaseTSDB):
                                 rollup,
                                 timestamp,
                                 key,
+                                environment,
                             ),
                         ), )
                     )
@@ -354,9 +355,6 @@ class RedisTSDB(BaseTSDB):
         """
         Count distinct items during a time range.
         """
-        if environment is not None:
-            raise NotImplementedError
-
         rollup, series = self.get_optimal_rollup_series(start, end, rollup)
 
         responses = {}
@@ -370,7 +368,7 @@ class RedisTSDB(BaseTSDB):
                 # directly here instead.
                 ks = []
                 for timestamp in series:
-                    ks.append(self.make_key(model, rollup, timestamp, key))
+                    ks.append(self.make_key(model, rollup, timestamp, key, environment))
 
                 responses[key] = client.target_key(key).execute_command('PFCOUNT', *ks)
 
@@ -378,9 +376,6 @@ class RedisTSDB(BaseTSDB):
 
     def get_distinct_counts_union(self, model, keys, start, end=None,
                                   rollup=None, environment=None):
-        if environment is not None:
-            raise NotImplementedError
-
         if not keys:
             return 0
 
@@ -395,7 +390,8 @@ class RedisTSDB(BaseTSDB):
             """
             Return a list containing all keys for each interval in the series for a key.
             """
-            return [self.make_key(model, rollup, timestamp, key) for timestamp in series]
+            return [self.make_key(model, rollup, timestamp, key, environment)
+                    for timestamp in series]
 
         router = self.cluster.get_router()
 
@@ -541,17 +537,14 @@ class RedisTSDB(BaseTSDB):
                                 )
                             )
 
-    def make_frequency_table_keys(self, model, rollup, timestamp, key):
-        prefix = self.make_key(model, rollup, timestamp, key)
+    def make_frequency_table_keys(self, model, rollup, timestamp, key, environment):
+        prefix = self.make_key(model, rollup, timestamp, key, environment)
         return map(
             operator.methodcaller('format', prefix),
             ('{}:i', '{}:e'),
         )
 
     def record_frequency_multi(self, requests, timestamp=None, environment=None):
-        if environment is not None:
-            raise NotImplementedError
-
         if not self.enable_frequency_sketches:
             return
 
@@ -570,7 +563,7 @@ class RedisTSDB(BaseTSDB):
                 # Figure out all of the keys we need to be incrementing, as
                 # well as their expiration policies.
                 for rollup, max_values in six.iteritems(self.rollups):
-                    chunk = self.make_frequency_table_keys(model, rollup, ts, key)
+                    chunk = self.make_frequency_table_keys(model, rollup, ts, key, environment)
                     keys.extend(chunk)
 
                     expiry = self.calculate_expiry(rollup, max_values, timestamp)
@@ -592,9 +585,6 @@ class RedisTSDB(BaseTSDB):
 
     def get_most_frequent(self, model, keys, start, end=None,
                           rollup=None, limit=None, environment=None):
-        if environment is not None:
-            raise NotImplementedError
-
         if not self.enable_frequency_sketches:
             raise NotImplementedError("Frequency sketches are disabled.")
 
@@ -608,7 +598,13 @@ class RedisTSDB(BaseTSDB):
         for key in keys:
             ks = []
             for timestamp in series:
-                ks.extend(self.make_frequency_table_keys(model, rollup, timestamp, key))
+                ks.extend(
+                    self.make_frequency_table_keys(
+                        model,
+                        rollup,
+                        timestamp,
+                        key,
+                        environment))
             commands[key] = [(CountMinScript, ks, arguments)]
 
         results = {}
@@ -619,9 +615,6 @@ class RedisTSDB(BaseTSDB):
 
     def get_most_frequent_series(self, model, keys, start, end=None,
                                  rollup=None, limit=None, environment=None):
-        if environment is not None:
-            raise NotImplementedError
-
         if not self.enable_frequency_sketches:
             raise NotImplementedError("Frequency sketches are disabled.")
 
@@ -635,7 +628,8 @@ class RedisTSDB(BaseTSDB):
         for key in keys:
             commands[key] = [
                 (
-                    CountMinScript, self.make_frequency_table_keys(model, rollup, timestamp, key),
+                    CountMinScript, self.make_frequency_table_keys(
+                        model, rollup, timestamp, key, environment),
                     arguments,
                 ) for timestamp in series
             ]
@@ -650,9 +644,6 @@ class RedisTSDB(BaseTSDB):
         return results
 
     def get_frequency_series(self, model, items, start, end=None, rollup=None, environment=None):
-        if environment is not None:
-            raise NotImplementedError
-
         if not self.enable_frequency_sketches:
             raise NotImplementedError("Frequency sketches are disabled.")
 
@@ -671,7 +662,13 @@ class RedisTSDB(BaseTSDB):
         for key, members in items.items():
             ks = []
             for timestamp in series:
-                ks.extend(self.make_frequency_table_keys(model, rollup, timestamp, key))
+                ks.extend(
+                    self.make_frequency_table_keys(
+                        model,
+                        rollup,
+                        timestamp,
+                        key,
+                        environment))
 
             commands[key] = [(CountMinScript, ks, arguments + members)]
 
@@ -687,16 +684,13 @@ class RedisTSDB(BaseTSDB):
         return results
 
     def get_frequency_totals(self, model, items, start, end=None, rollup=None, environment=None):
-        if environment is not None:
-            raise NotImplementedError
-
         if not self.enable_frequency_sketches:
             raise NotImplementedError("Frequency sketches are disabled.")
 
         responses = {}
 
         for key, series in six.iteritems(
-            self.get_frequency_series(model, items, start, end, rollup)
+            self.get_frequency_series(model, items, start, end, rollup, environment)
         ):
             response = responses[key] = {}
             for timestamp, results in series:

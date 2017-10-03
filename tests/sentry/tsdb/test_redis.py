@@ -35,11 +35,18 @@ class RedisTSDBTest(TestCase):
             client.flushdb()
 
     def test_make_counter_key(self):
-        result = self.db.make_counter_key(TSDBModel.project, 1, to_datetime(1368889980), 1)
+        result = self.db.make_counter_key(TSDBModel.project, 1, to_datetime(1368889980), 1, None)
         assert result == ('ts:1:1368889980:1', 1)
 
-        result = self.db.make_counter_key(TSDBModel.project, 1, to_datetime(1368889980), 'foo')
+        result = self.db.make_counter_key(
+            TSDBModel.project, 1, to_datetime(1368889980), 'foo', None)
         assert result == ('ts:1:1368889980:46', self.db.get_model_key('foo'))
+
+        result = self.db.make_counter_key(TSDBModel.project, 1, to_datetime(1368889980), 1, 1)
+        assert result == ('ts:1:1368889980:1', '1?e=1')
+
+        result = self.db.make_counter_key(TSDBModel.project, 1, to_datetime(1368889980), 'foo', 1)
+        assert result == ('ts:1:1368889980:46', self.db.get_model_key('foo') + '?e=1')
 
     def test_get_model_key(self):
         result = self.db.get_model_key(1)
