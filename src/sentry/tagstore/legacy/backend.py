@@ -23,17 +23,18 @@ from sentry.tasks.deletion import delete_tag_key
 
 
 class LegacyTagStorage(TagStorage):
-    def create_tag_key(self, project_id, key):
-        return TagKey.objects.create(project_id=project_id, key=key)
+    def create_tag_key(self, project_id, key, **kwargs):
+        return TagKey.objects.create(project_id=project_id, key=key, **kwargs)
 
-    def get_or_create_tag_key(self, project_id, key):
-        return TagKey.objects.get_or_create(project_id=project_id, key=key)
+    def get_or_create_tag_key(self, project_id, key, **kwargs):
+        return TagKey.objects.get_or_create(project_id=project_id, key=key, defaults=kwargs)
 
-    def create_tag_value(self, project_id, key, value):
-        return TagValue.objects.create(project_id=project_id, key=key, value=value)
+    def create_tag_value(self, project_id, key, value, **kwargs):
+        return TagValue.objects.create(project_id=project_id, key=key, value=value, **kwargs)
 
-    def get_or_create_tag_value(self, project_id, key, value):
-        return TagValue.objects.get_or_create(project_id=project_id, key=key, value=value)
+    def get_or_create_tag_value(self, project_id, key, value, **kwargs):
+        return TagValue.objects.get_or_create(
+            project_id=project_id, key=key, value=value, defaults=kwargs)
 
     def get_tag_key(self, project_id, key, status=TagKeyStatus.VISIBLE):
         from sentry.tagstore.exceptions import TagKeyNotFound

@@ -57,25 +57,25 @@ class TagStorage(Service):
             return key.split('sentry:', 1)[-1]
         return key
 
-    def create_tag_key(self, project_id, key):
+    def create_tag_key(self, project_id, key, **kwargs):
         """
         >>> create_tag_key(1, "key1")
         """
         raise NotImplementedError
 
-    def get_or_create_tag_key(self, project_id, key):
+    def get_or_create_tag_key(self, project_id, key, **kwargs):
         """
         >>> get_or_create_tag_key(1, "key1")
         """
         raise NotImplementedError
 
-    def create_tag_value(self, project_id, key, value):
+    def create_tag_value(self, project_id, key, value, **kwargs):
         """
         >>> create_tag_key(1, "key1", "value1")
         """
         raise NotImplementedError
 
-    def get_or_create_tag_value(self, project_id, key, value):
+    def get_or_create_tag_value(self, project_id, key, value, **kwargs):
         """
         >>> get_or_create_tag_key(1, "key1", "value1")
         """
@@ -96,6 +96,12 @@ class TagStorage(Service):
     def get_tag_value(self, project_id, key, value):
         """
         >>> get_tag_value(1, "key1", "value1")
+        """
+        raise NotImplementedError
+
+    def get_tag_values(self, project_ids, key, values):
+        """
+        >>> get_tag_values([1, 2], "key1", ["value1, "value2"])
         """
         raise NotImplementedError
 

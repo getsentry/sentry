@@ -14,18 +14,18 @@ class GroupTagDetailsTest(APITestCase):
         group.save()
 
         key, value = group.data['tags'][0]
-
         tagkey = tagstore.create_tag_key(
             project_id=group.project_id,
             key=key,
+            values_seen=2
         )
-        tagstore.incr_values_seen(group.project_id, key, count=2)
         tagstore.create_tag_value(
             project_id=group.project_id,
             key=key,
             value=value,
+            times_seen=4
         )
-        tagstore.incr_times_seen(group.project_id, key, value, count=4)
+
         GroupTagKey.objects.create(
             project_id=group.project_id,
             group_id=group.id,
