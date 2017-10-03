@@ -40,12 +40,12 @@ class InMemoryTSDB(BaseTSDB):
 
     def merge(self, model, destination, sources, timestamp=None, environments=None):
         environments = (set(environments) if environments is not None else set()).union([None])
-        raise NotImplementedError
 
-        destination = self.data[model][destination]
-        for source in sources:
-            for bucket, count in self.data[model].pop(source, {}).items():
-                destination[bucket] += count
+        for environment in environments:
+            destination = self.data[model][(destination, environment)]
+            for source in sources:
+                for bucket, count in self.data[model].pop((source, environment), {}).items():
+                    destination[bucket] += count
 
     def delete(self, models, keys, start=None, end=None, timestamp=None, environments=None):
         environments = (set(environments) if environments is not None else set()).union([None])
@@ -137,12 +137,12 @@ class InMemoryTSDB(BaseTSDB):
 
     def merge_distinct_counts(self, model, destination, sources, timestamp=None, environments=None):
         environments = (set(environments) if environments is not None else set()).union([None])
-        raise NotImplementedError
 
-        destination = self.sets[model][destination]
-        for source in sources:
-            for bucket, values in self.sets[model].pop(source, {}).items():
-                destination[bucket].update(values)
+        for environment in environments:
+            destination = self.sets[model][(destination, environment)]
+            for source in sources:
+                for bucket, values in self.sets[model].pop((source, environment), {}).items():
+                    destination[bucket].update(values)
 
     def delete_distinct_counts(self, models, keys, start=None, end=None,
                                timestamp=None, environments=None):
@@ -261,12 +261,12 @@ class InMemoryTSDB(BaseTSDB):
 
     def merge_frequencies(self, model, destination, sources, timestamp=None, environments=None):
         environments = (set(environments) if environments is not None else set()).union([None])
-        raise NotImplementedError
 
-        destination = self.frequencies[model][destination]
-        for source in sources:
-            for bucket, counter in self.data[model].pop(source, {}).items():
-                destination[bucket].update(counter)
+        for environment in environments:
+            destination = self.frequencies[model][(destination, environment)]
+            for source in sources:
+                for bucket, counter in self.data[model].pop((source, environment), {}).items():
+                    destination[bucket].update(counter)
 
     def delete_frequencies(self, models, keys, start=None, end=None,
                            timestamp=None, environments=None):
