@@ -62,8 +62,7 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
             for key, value in six.iteritems(tokens):
                 if key == 'email':
                     queryset = queryset.filter(
-                        Q(user__email__in=value) | Q(
-                            user__emails__email__in=value)
+                        Q(user__email__in=value) | Q(user__emails__email__in=value)
                     )
 
         return self.paginate(
@@ -88,7 +87,7 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
         :auth: required
         """
         # TODO: If the member already exists, should this still update the role and team?
-        # For now, it doesn't, but simply return the existing object
+        # For now, it doesn't, but simply returns the existing object
 
         serializer = OrganizationMemberSerializer(data=request.DATA)
 
@@ -136,6 +135,7 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
             organization=organization,
             email=result['email'],
             role=result['role'])
+
         om.token = om.generate_token()
 
         sid = transaction.savepoint(using='default')

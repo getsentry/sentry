@@ -10,7 +10,7 @@ exports[`CreateProject render() should redirect on zero teams 1`] = `
 >
   <HomeContainer>
     <div
-      className="organization-home"
+      className=" organization-home"
     >
       <div
         className="sub-header flex flex-container flex-vertically-centered"
@@ -122,7 +122,7 @@ exports[`CreateProject render() should redirect on zero teams 1`] = `
             title="You do not have enough permission to create new projects"
           >
             <button
-              className="tip button button-primary button-disabled"
+              className="tip button tip button-default button-disabled"
               data-placement="bottom"
               disabled={true}
               onClick={[Function]}
@@ -132,9 +132,20 @@ exports[`CreateProject render() should redirect on zero teams 1`] = `
                   "marginRight": 5,
                 }
               }
-              title="You do not have enough permission to create new projects"
             >
-              New Project
+              <FlowLayout
+                truncate={false}
+              >
+                <div
+                  className="flow-layout"
+                >
+                  <span
+                    className="button-label"
+                  >
+                    New Project
+                  </span>
+                </div>
+              </FlowLayout>
             </button>
           </Button>
           <Button
@@ -145,14 +156,25 @@ exports[`CreateProject render() should redirect on zero teams 1`] = `
             title="You do not have enough permission to create new teams"
           >
             <button
-              className="tip button button-primary button-disabled"
+              className="tip button tip button-default button-disabled"
               data-placement="bottom"
               disabled={true}
               onClick={[Function]}
               role="button"
-              title="You do not have enough permission to create new teams"
             >
-              New Team
+              <FlowLayout
+                truncate={false}
+              >
+                <div
+                  className="flow-layout"
+                >
+                  <span
+                    className="button-label"
+                  >
+                    New Team
+                  </span>
+                </div>
+              </FlowLayout>
             </button>
           </Button>
         </div>
@@ -332,6 +354,7 @@ exports[`CreateProject render() should redirect on zero teams 1`] = `
               </LoadingIndicator>
               <TextField
                 disabled={false}
+                hideErrorMessage={false}
                 label="Email(s)"
                 name="email"
                 onChange={[Function]}
@@ -415,6 +438,7 @@ exports[`CreateProject render() should render 1`] = `
     />
     <TextField
       disabled={false}
+      hideErrorMessage={false}
       label="Email(s)"
       name="email"
       onChange={[Function]}
