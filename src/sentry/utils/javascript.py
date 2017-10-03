@@ -16,7 +16,6 @@ from django.utils.html import escape
 
 from sentry import tsdb
 from sentry.app import env
-from sentry.constants import TAG_LABELS
 from sentry.models import (
     Group, GroupBookmark, GroupMeta, GroupTagKey, GroupSeen, GroupStatus
 )
@@ -128,11 +127,9 @@ class GroupTransformer(Transformer):
         else:
             historical_data = {}
 
-        user_key = 'sentry:user'
-        user_label = TAG_LABELS.get(user_key).lower() + 's'
         user_tagkeys = GroupTagKey.objects.filter(
             group_id__in=[o.id for o in objects],
-            key=user_key,
+            key='sentry:user',
         )
         user_counts = {}
         for user_tagkey in user_tagkeys:
@@ -144,7 +141,7 @@ class GroupTransformer(Transformer):
             active_date = g.active_at or g.first_seen
             g.has_seen = seen_groups.get(g.id, active_date) > active_date
             g.annotations = [{
-                'label': user_label,
+                'label': 'users',
                 'count': user_counts.get(g.id, 0),
             }]
 
