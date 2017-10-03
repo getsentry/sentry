@@ -3,6 +3,10 @@
 {% url 'sentry-group' group.organization.slug group.project.slug group.id as group_link %}
 
 {% with type=group.get_event_type metadata=group.get_event_metadata transaction=group.culprit %}
+<div class="issue-container">
+  <span class="issue-heading">Issue #:</span>
+  <span class="issue-id">{{ group.qualified_short_id }}</span>
+</div>
 <div class="issue {% if group.is_resolved %}resolved{% endif %}">
   {% if type == "error" %}
     <div class="event-type error">
