@@ -2,14 +2,17 @@ from __future__ import absolute_import
 
 from django.core.urlresolvers import reverse
 
-from sentry.models import AuthIdentity, AuthProvider, OrganizationMember
-from sentry.testutils import AuthProviderTestCase, PermissionTestCase
+from sentry.models import AuthIdentity, AuthProvider, OrganizationMember, Organization
+from sentry.testutils import AuthProviderTestCase, APITestCase, PermissionTestCase
 
 
-class OrganizationAuthSettingsPermissionTest(PermissionTestCase):
+class OrganizationAuthProviderPermissionTest(PermissionTestCase):
     def setUp(self):
-        super(OrganizationAuthSettingsPermissionTest, self).setUp()
-        self.path = reverse('sentry-organization-auth-settings', args=[self.organization.slug])
+        super(OrganizationAuthProviderPermissionTest, self).setUp()
+        self.path = reverse(
+            'sentry-api-0-organization-auth-provider',
+            args=[self.organization.slug]
+        )
 
     def test_teamless_admin_cannot_load(self):
         with self.feature('organizations:sso'):
@@ -28,28 +31,12 @@ class OrganizationAuthSettingsPermissionTest(PermissionTestCase):
             self.assert_owner_can_access(self.path)
 
 
-class OrganizationAuthSettingsTest(AuthProviderTestCase):
-    def test_renders_with_context(self):
-        organization = self.create_organization(name='foo', owner=self.user)
-
-        path = reverse('sentry-organization-auth-settings', args=[organization.slug])
-
-        self.login_as(self.user)
-
-        with self.feature('organizations:sso'):
-            resp = self.client.get(path)
-
-        assert resp.status_code == 200
-
-        self.assertTemplateUsed(resp, 'sentry/organization-auth-settings.html')
-
-        assert resp.context['organization'] == organization
-        assert 'dummy' in [k for k, v in resp.context['provider_list']]
-
+class OrganizationAuthProvider(AuthProviderTestCase):
     def test_can_start_auth_flow(self):
         organization = self.create_organization(name='foo', owner=self.user)
 
-        path = reverse('sentry-organization-auth-settings', args=[organization.slug])
+        path = reverse('sentry-api-0-organization-auth-provider',
+                       args=[organization.slug])
 
         self.login_as(self.user)
 
@@ -57,28 +44,32 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
             resp = self.client.post(path, {'provider': 'dummy', 'init': True})
 
         assert resp.status_code == 200
-        assert resp.content.decode('utf-8') == self.provider.TEMPLATE
+        assert resp.data.get('template') == self.provider.TEMPLATE
 
     def test_basic_flow(self):
         user = self.create_user('bar@example.com')
         organization = self.create_organization(name='foo', owner=user)
 
-        base_path = reverse('sentry-organization-auth-settings', args=[organization.slug])
+        base_path = reverse(
+            'sentry-api-0-organization-auth-provider', args=[organization.slug])
+        frontend_path = reverse(
+            'sentry-organization-auth-settings', args=[organization.slug])
 
         self.login_as(user)
 
         with self.feature('organizations:sso'):
-            resp = self.client.post(base_path, {'provider': 'dummy', 'init': True})
+            resp = self.client.post(
+                base_path, {'provider': 'dummy', 'init': True})
 
             assert resp.status_code == 200
-            assert self.provider.TEMPLATE in resp.content.decode('utf-8')
+            assert resp.data.get('template') == self.provider.TEMPLATE
 
             path = reverse('sentry-auth-sso')
 
             resp = self.client.post(path, {'email': user.email})
 
         assert resp.status_code == 302
-        assert resp['Location'] == 'http://testserver{}'.format(base_path)
+        assert resp['Location'] == 'http://testserver{}'.format(frontend_path)
 
         auth_provider = AuthProvider.objects.get(
             organization=organization,
@@ -98,6 +89,36 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
 
         assert getattr(member.flags, 'sso:linked')
         assert not getattr(member.flags, 'sso:invalid')
+
+
+# `self.client.post` to web/frontend don't work when we extend APITestCase??
+class OrganizationAuthProviderApiEndpoint(APITestCase):
+    def test_update_provider_settings(self):
+        organization = self.create_organization(name='foo', owner=self.user)
+
+        auth_provider = AuthProvider.objects.create(
+            organization=organization,
+            provider='dummy',
+        )
+
+        assert not getattr(auth_provider.flags, 'allow_unlinked')
+
+        path = reverse('sentry-api-0-organization-auth-provider',
+                       args=[organization.slug])
+
+        self.login_as(self.user)
+
+        with self.feature('organizations:sso'):
+            resp = self.client.put(
+                path, {'require_link': False, 'default_role': 'admin'})
+
+        assert resp.status_code == 200
+
+        auth_provider = AuthProvider.objects.get(id=auth_provider.id)
+        organization = Organization.objects.get(id=organization.id)
+
+        assert organization.default_role == 'admin'
+        assert getattr(auth_provider.flags, 'allow_unlinked')
 
     def test_disable_provider(self):
         organization = self.create_organization(name='foo', owner=self.user)
@@ -120,16 +141,18 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
         setattr(om.flags, 'sso:linked', True)
         om.save()
 
-        path = reverse('sentry-organization-auth-settings', args=[organization.slug])
+        path = reverse('sentry-api-0-organization-auth-provider',
+                       args=[organization.slug])
 
         self.login_as(self.user, organization_id=organization.id)
 
         with self.feature('organizations:sso'):
-            resp = self.client.post(path, {'op': 'disable'})
+            resp = self.client.delete(path)
 
-        assert resp.status_code == 302
+        assert resp.status_code == 200
 
-        assert not AuthProvider.objects.filter(organization=organization).exists()
+        assert not AuthProvider.objects.filter(
+            organization=organization).exists()
         assert not AuthProvider.objects.filter(id=auth_provider.id).exists()
 
         om = OrganizationMember.objects.get(id=om.id)
