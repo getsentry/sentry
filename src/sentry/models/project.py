@@ -13,7 +13,7 @@ import warnings
 
 from bitfield import BitField
 from django.conf import settings
-from django.db import models
+from django.db import IntegrityError, models, transaction
 from django.db.models import F
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
@@ -321,3 +321,33 @@ class Project(Model):
                 user, 'workflow:notifications', UserOptionValue.all_conversations
             )
         return opt_value == UserOptionValue.all_conversations
+
+    def transfer_to(self, team):
+        from sentry.models import ReleaseProject
+
+        organization = team.organization
+
+        # We only need to delete ReleaseProjects when moving to a different
+        # Organization. Releases are bound to Organization, so it's not realistic
+        # to keep this link unless we say, copied all Releases as well.
+        if self.organization_id != organization.id:
+            ReleaseProject.objects.filter(
+                project_id=self.id,
+            ).delete()
+
+        self.organization = organization
+        self.team = team
+
+        try:
+            with transaction.atomic():
+                self.update(
+                    organization=organization,
+                    team=team,
+                )
+        except IntegrityError:
+            slugify_instance(self, self.name, organization=organization)
+            self.update(
+                slug=self.slug,
+                organization=organization,
+                team=team,
+            )
