@@ -3,7 +3,7 @@ from __future__ import absolute_import
 import six
 
 from sentry import tagstore
-from sentry.models import EventTag, TagValue
+from sentry.models import EventTag
 from sentry.testutils import APITestCase
 
 
@@ -36,9 +36,9 @@ class GroupEventsTest(APITestCase):
 
         tagkey_1 = tagstore.create_tag_key(project_id=group.project_id, key='foo')
         tagkey_2 = tagstore.create_tag_key(project_id=group.project_id, key='bar')
-        tagvalue_1 = TagValue.objects.create(project_id=group.project_id, key='foo', value='baz')
-        tagvalue_2 = TagValue.objects.create(project_id=group.project_id, key='bar', value='biz')
-        tagvalue_3 = TagValue.objects.create(project_id=group.project_id, key='bar', value='buz')
+        tagvalue_1 = tagstore.create_tag_value(project_id=group.project_id, key='foo', value='baz')
+        tagvalue_2 = tagstore.create_tag_value(project_id=group.project_id, key='bar', value='biz')
+        tagvalue_3 = tagstore.create_tag_value(project_id=group.project_id, key='bar', value='buz')
 
         EventTag.objects.create(
             project_id=group.project_id,
