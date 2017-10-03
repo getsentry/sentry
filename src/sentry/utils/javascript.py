@@ -9,7 +9,6 @@ from __future__ import absolute_import
 
 import six
 
-from collections import defaultdict
 from datetime import timedelta
 from django.core.urlresolvers import reverse
 from django.utils import timezone
@@ -129,13 +128,13 @@ class GroupTransformer(Transformer):
         else:
             historical_data = {}
 
-        user_counts = defaultdict(dict)
         user_key = 'sentry:user'
         user_label = TAG_LABELS.get(user_key).lower() + 's'
         user_tagkeys = GroupTagKey.objects.filter(
             group_id__in=[o.id for o in objects],
             key=user_key,
         )
+        user_counts = {}
         for user_tagkey in user_tagkeys:
             user_counts[user_tagkey.group_id] = user_tagkey.values_seen
 
@@ -144,17 +143,10 @@ class GroupTransformer(Transformer):
             g.historical_data = [x[1] for x in historical_data.get(g.id, [])]
             active_date = g.active_at or g.first_seen
             g.has_seen = seen_groups.get(g.id, active_date) > active_date
-            g.annotations = []
-
-            try:
-                value = user_counts.get(g.id, 0)
-            except KeyError:
-                value = 0
-
-            g.annotations.append({
+            g.annotations = [{
                 'label': user_label,
-                'count': value,
-            })
+                'count': user_counts.get(g.id, 0),
+            }]
 
     def localize_datetime(self, dt, request=None):
         if not request:
