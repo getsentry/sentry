@@ -6,6 +6,7 @@ from uuid import uuid4
 
 import pytest
 
+from sentry import tagstore
 from sentry.constants import ObjectStatus
 from sentry.exceptions import DeleteAborted
 from sentry.models import (
@@ -13,7 +14,7 @@ from sentry.models import (
     EnvironmentProject, Event, EventMapping, EventTag, Group, GroupAssignee, GroupHash, GroupMeta,
     GroupRedirect, GroupResolution, GroupStatus, GroupTagKey, GroupTagValue, Organization,
     OrganizationStatus, Project, ProjectStatus, Release, ReleaseCommit, ReleaseEnvironment,
-    Repository, TagKey, TagValue, Team, TeamStatus
+    Repository, TagValue, Team, TeamStatus
 )
 from sentry.plugins.providers.dummy.repository import DummyRepositoryProvider
 from sentry.tasks.deletion import (
@@ -187,7 +188,7 @@ class DeleteTagKeyTest(TestCase):
         team = self.create_team(name='test', slug='test')
         project = self.create_project(team=team, name='test1', slug='test1')
         group = self.create_group(project=project)
-        tk = TagKey.objects.create(key='foo', project_id=project.id)
+        tk = tagstore.create_tag_key(key='foo', project_id=project.id)
         TagValue.objects.create(key='foo', value='bar', project_id=project.id)
         GroupTagKey.objects.create(key='foo', group_id=group.id, project_id=project.id)
         GroupTagValue.objects.create(
@@ -203,7 +204,7 @@ class DeleteTagKeyTest(TestCase):
 
         project2 = self.create_project(team=team, name='test2')
         group2 = self.create_group(project=project2)
-        tk2 = TagKey.objects.create(key='foo', project_id=project2.id)
+        tk2 = tagstore.create_tag_key(key='foo', project_id=project2.id)
         gtk2 = GroupTagKey.objects.create(key='foo', group_id=group2.id, project_id=project2.id)
         gtv2 = GroupTagValue.objects.create(
             key='foo', value='bar', group_id=group2.id, project_id=project2.id
@@ -223,9 +224,13 @@ class DeleteTagKeyTest(TestCase):
             assert not GroupTagKey.objects.filter(key=tk.key, project_id=project.id).exists()
             assert not TagValue.objects.filter(key=tk.key, project_id=project.id).exists()
             assert not EventTag.objects.filter(key_id=tk.id).exists()
-            assert not TagKey.objects.filter(id=tk.id).exists()
+            try:
+                tagstore.get_tag_key(key='foo', project_id=project.id)
+                assert False  # verify exception thrown
+            except tagstore.TagKeyNotFound:
+                pass
 
-        assert TagKey.objects.filter(id=tk2.id).exists()
+        assert tagstore.get_tag_key(key='foo', project_id=project2.id) is not None
         assert GroupTagKey.objects.filter(id=gtk2.id).exists()
         assert GroupTagValue.objects.filter(id=gtv2.id).exists()
         assert EventTag.objects.filter(key_id=tk2.id).exists()

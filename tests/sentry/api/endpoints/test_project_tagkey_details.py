@@ -5,18 +5,19 @@ import six
 
 from django.core.urlresolvers import reverse
 
-from sentry.models import TagKey, TagKeyStatus
+from sentry import tagstore
+from sentry.tagstore import TagKeyStatus
 from sentry.testutils import APITestCase
 
 
 class ProjectTagKeyDetailsTest(APITestCase):
     def test_simple(self):
         project = self.create_project()
-        tagkey = TagKey.objects.create(
+        tagkey = tagstore.create_tag_key(
             project_id=project.id,
             key='foo',
-            values_seen=16,
         )
+        tagstore.incr_values_seen(project.id, 'foo', count=16)
 
         self.login_as(user=self.user)
 
@@ -37,10 +38,10 @@ class ProjectTagKeyDetailsTest(APITestCase):
 
 
 class ProjectTagKeyDeleteTest(APITestCase):
-    @mock.patch('sentry.api.endpoints.project_tagkey_details.delete_tag_key')
+    @mock.patch('sentry.tagstore.legacy.backend.delete_tag_key')
     def test_simple(self, mock_delete_tag_key):
         project = self.create_project()
-        tagkey = TagKey.objects.create(project_id=project.id, key='foo')
+        tagkey = tagstore.create_tag_key(project_id=project.id, key='foo')
 
         self.login_as(user=self.user)
 
@@ -59,4 +60,4 @@ class ProjectTagKeyDeleteTest(APITestCase):
 
         mock_delete_tag_key.delay.assert_called_once_with(object_id=tagkey.id)
 
-        assert TagKey.objects.get(id=tagkey.id).status == TagKeyStatus.PENDING_DELETION
+        assert tagstore.get_tag_key(project.id, tagkey.key).status == TagKeyStatus.PENDING_DELETION

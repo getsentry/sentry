@@ -25,7 +25,7 @@ from gzip import GzipFile
 from six import BytesIO
 from time import time
 
-from sentry import filters
+from sentry import filters, tagstore
 from sentry.cache import default_cache
 from sentry.constants import (
     CLIENT_RESERVED_ATTRS,
@@ -39,7 +39,7 @@ from sentry.db.models import BoundedIntegerField
 from sentry.interfaces.base import get_interface, InterfaceValidationError
 from sentry.interfaces.csp import Csp
 from sentry.event_manager import EventManager
-from sentry.models import EventError, ProjectKey, TagKey, TagValue
+from sentry.models import EventError, ProjectKey, TagValue
 from sentry.tasks.store import preprocess_event, \
     preprocess_event_from_reprocessing
 from sentry.utils import json
@@ -591,7 +591,7 @@ class ClientApiHelper(object):
                 # support tags with spaces by converting them
                 k = k.replace(' ', '-')
 
-                if TagKey.is_reserved_key(k):
+                if tagstore.is_reserved_key(k):
                     self.log.debug('Discarding reserved tag key: %s', k)
                     data['errors'].append(
                         {
@@ -602,7 +602,7 @@ class ClientApiHelper(object):
                     )
                     continue
 
-                if not TagKey.is_valid_key(k):
+                if not tagstore.is_valid_key(k):
                     self.log.debug('Discarded invalid tag key: %s', k)
                     data['errors'].append(
                         {

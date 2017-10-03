@@ -10,6 +10,7 @@ import mock
 import six
 import zlib
 
+from sentry import tagstore
 from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.test.utils import override_settings
@@ -19,7 +20,7 @@ from gzip import GzipFile
 from raven import Client
 from six import StringIO
 
-from sentry.models import (Group, GroupTagKey, GroupTagValue, Event, TagKey, TagValue)
+from sentry.models import (Group, GroupTagKey, GroupTagValue, Event, TagValue)
 from sentry.testutils import TestCase, TransactionTestCase
 from sentry.testutils.helpers import get_auth_header
 from sentry.utils.settings import (validate_settings, ConfigurationError, import_string)
@@ -172,10 +173,10 @@ class SentryRemoteTest(TestCase):
 
         assert instance.message == 'hello'
 
-        assert TagKey.objects.filter(
+        assert tagstore.get_tag_key(
             key='foo',
             project_id=self.project.id,
-        ).exists()
+        ) is not None
         assert TagValue.objects.filter(
             key='foo',
             value='bar',

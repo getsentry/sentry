@@ -24,7 +24,7 @@ class TagKeyDeletionTask(ModelDeletionTask):
         return relations
 
     def mark_deletion_in_progress(self, instance_list):
-        from sentry.models import TagKeyStatus
+        from sentry.tagstore import TagKeyStatus
 
         for instance in instance_list:
             if instance.status != TagKeyStatus.DELETION_IN_PROGRESS:

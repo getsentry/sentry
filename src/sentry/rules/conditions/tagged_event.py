@@ -11,7 +11,7 @@ from __future__ import absolute_import
 from collections import OrderedDict
 from django import forms
 
-from sentry.models import TagKey
+from sentry import tagstore
 from sentry.rules.conditions.base import EventCondition
 
 
@@ -63,7 +63,7 @@ class TaggedEventCondition(EventCondition):
 
         tags = (
             v.lower() for k, v in event.get_tags()
-            if k.lower() == key or TagKey.get_standardized_key(k) == key
+            if k.lower() == key or tagstore.get_standardized_key(k) == key
         )
 
         if match == MatchType.EQUAL:

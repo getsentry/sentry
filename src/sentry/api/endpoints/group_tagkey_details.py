@@ -4,11 +4,12 @@ import six
 
 from rest_framework.response import Response
 
+from sentry import tagstore
 from sentry.api.base import DocSection
 from sentry.api.bases.group import GroupEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
-from sentry.models import (GroupTagKey, GroupTagValue, TagKey, TagKeyStatus, Group)
+from sentry.models import (GroupTagKey, GroupTagValue, Group)
 from sentry.utils.apidocs import scenario
 
 
@@ -37,19 +38,11 @@ class GroupTagKeyDetailsEndpoint(GroupEndpoint):
         :pparam string key: the tag key to look the values up for.
         :auth: required
         """
-        # XXX(dcramer): kill sentry prefix for internal reserved tags
-        if TagKey.is_reserved_key(key):
-            lookup_key = 'sentry:{0}'.format(key)
-        else:
-            lookup_key = key
+        lookup_key = tagstore.prefix_reserved_key(key)
 
         try:
-            tag_key = TagKey.objects.get(
-                project_id=group.project_id,
-                key=lookup_key,
-                status=TagKeyStatus.VISIBLE,
-            )
-        except TagKey.DoesNotExist:
+            tag_key = tagstore.get_tag_key(group.project_id, lookup_key)
+        except tagstore.TagKeyNotFound:
             raise ResourceDoesNotExist
 
         try:
