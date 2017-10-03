@@ -130,7 +130,7 @@ class Project(Model):
         return absolute_uri('/{}/{}/'.format(self.organization.slug, self.slug))
 
     def merge_to(self, project):
-        from sentry.models import (Group, GroupTagValue, Event, TagValue)
+        from sentry.models import (Group, GroupTagValue, Event)
 
         if not isinstance(project, Project):
             project = Project.objects.get_from_cache(pk=project)
@@ -162,7 +162,7 @@ class Project(Model):
                     if not created:
                         obj2.update(times_seen=F('times_seen') + obj.times_seen)
 
-        for fv in TagValue.objects.filter(project_id=self.id):
+        for fv in tagstore.get_tag_values(self.id):
             tagstore.get_or_create_tag_value(project_id=project.id, key=fv.key, value=fv.value)
             fv.delete()
         self.delete()

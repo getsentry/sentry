@@ -11,3 +11,7 @@ from __future__ import absolute_import
 
 class TagKeyNotFound(Exception):
     pass
+
+
+class TagValueNotFound(Exception):
+    pass

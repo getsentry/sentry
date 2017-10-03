@@ -81,11 +81,34 @@ class LegacyTagStorage(TagStorage):
         return list(qs)
 
     def get_tag_value(self, project_id, key, value):
-        return TagValue.objects.get(
-            project_id=project_id,
-            key=key,
-            value=value
+        from sentry.tagstore.exceptions import TagValueNotFound
+
+        try:
+            return TagValue.objects.get(
+                project_id=project_id,
+                key=key,
+                value=value
+            )
+        except TagValue.DoesNotExist:
+            raise TagValueNotFound
+
+    def get_tag_values(self, project_ids, key, values=None):
+        qs = TagValue.objects.filter(key=key)
+
+        if isinstance(project_ids, list):
+            qs = qs.filter(project_id__in=project_ids)
+        else:
+            qs = qs.filter(project_id=project_ids)
+
+        qs = TagValue.objects.filter(
+            project_id__in=project_ids,
+            key=key
         )
+
+        if values is not None:
+            qs = qs.filter(value__in=values)
+
+        return list(qs)
 
     def delete_tag_key(self, project_id, key):
         tagkey = self.get_tag_key(project_id, key, status=None)
