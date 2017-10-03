@@ -78,7 +78,7 @@ class ActivityEmail(object):
             'data': activity.data,
             'author': activity.user,
             'project': self.project,
-            'project_link': self.get_project_link(),
+            'project_link': self.get_project_link()
         }
         if activity.group:
             context.update(self.get_group_context())
@@ -102,9 +102,9 @@ class ActivityEmail(object):
     def get_subject(self):
         group = self.group
 
-        return u'[%s] - [%s] %s: %s' % (
-            group.qualified_short_id, self.project.get_full_name(),
-            group.get_level_display(), group.title
+        return u'[%s] %s: %s - [%s]' % (
+            self.project.get_full_name(), group.get_level_display(),
+            group.title, group.qualified_short_id
         )
 
     def get_subject_with_prefix(self):
