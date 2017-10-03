@@ -5,8 +5,6 @@ import logging
 import mock
 import pytest
 
-from rediscluster.exceptions import RedisClusterException
-
 from sentry.exceptions import InvalidConfiguration
 from sentry.testutils.cases import TestCase
 from sentry.utils.redis import (
@@ -47,8 +45,6 @@ make_manager = functools.partial(
     },
 )
 
-rc_exception = RedisClusterException('Failed to connect')
-
 
 class ClusterManagerTestCase(TestCase):
     def test_get(self):
@@ -62,15 +58,14 @@ class ClusterManagerTestCase(TestCase):
     @mock.patch('sentry.utils.redis.RetryingStrictRedisCluster')
     def test_specific_cluster(self, cluster):
         manager = make_manager(cluster_type=_RedisCluster)
-        assert manager.get('baz') is cluster.return_value
+        slo = manager.get('baz')
+
+        # We wrap the cluster in a Simple Lazy Object, force creation of the
+        # object to verify it's correct.
+        assert slo._setupfunc() is cluster.return_value
+
         with pytest.raises(KeyError):
             manager.get('foo')
-
-    @mock.patch('sentry.utils.redis.RetryingStrictRedisCluster', side_effect=rc_exception)
-    def test_failed_redis_cluster(self, cluster):
-        manager = make_manager(cluster_type=_RedisCluster)
-        with pytest.raises(KeyError):
-            manager.get('baz')
 
 
 def test_get_cluster_from_options():
