@@ -6,10 +6,11 @@ from collections import defaultdict
 from django.db.models import Sum
 from itertools import izip
 
+from sentry import tagstore
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.db.models.query import in_iexact
 from sentry.models import (
-    Commit, CommitAuthor, Deploy, Release, ReleaseProject, TagValue, User, UserEmail
+    Commit, CommitAuthor, Deploy, Release, ReleaseProject, User, UserEmail
 )
 
 
@@ -170,16 +171,13 @@ class ReleaseSerializer(Serializer):
             ).distinct())
 
         tags = {}
-        tks = TagValue.objects.filter(
-            project_id__in=project_ids,
-            key='sentry:release',
-            value__in=[o.version for o in item_list],
-        )
-        for tk in tks:
-            val = tags.get(tk.value)
-            tags[tk.value] = {
-                'first_seen': min(tk.first_seen, val['first_seen']) if val else tk.first_seen,
-                'last_seen': max(tk.last_seen, val['last_seen']) if val else tk.last_seen
+        tvs = tagstore.get_tag_values(project_ids, 'sentry:release',
+                                      [o.version for o in item_list])
+        for tv in tvs:
+            val = tags.get(tv.value)
+            tags[tv.value] = {
+                'first_seen': min(tv.first_seen, val['first_seen']) if val else tv.first_seen,
+                'last_seen': max(tv.last_seen, val['last_seen']) if val else tv.last_seen
             }
         owners = {
             d['id']: d for d in serialize(set(i.owner for i in item_list if i.owner_id), user)

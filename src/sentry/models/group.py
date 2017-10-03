@@ -120,7 +120,7 @@ class GroupManager(BaseManager):
             )
 
     def add_tags(self, group, tags):
-        from sentry.models import TagValue, GroupTagValue
+        from sentry.models import GroupTagValue
 
         project_id = group.project_id
         date = group.last_seen
@@ -131,18 +131,10 @@ class GroupManager(BaseManager):
             else:
                 key, value, data = tag_item
 
-            buffer.incr(
-                TagValue, {
-                    'times_seen': 1,
-                }, {
-                    'project_id': project_id,
-                    'key': key,
-                    'value': value,
-                }, {
-                    'last_seen': date,
-                    'data': data,
-                }
-            )
+            tagstore.incr_times_seen(project_id, key, value, {
+                'last_seen': date,
+                'data': data,
+            })
 
             buffer.incr(
                 GroupTagValue, {

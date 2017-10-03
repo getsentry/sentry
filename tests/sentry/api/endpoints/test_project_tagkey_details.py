@@ -16,8 +16,8 @@ class ProjectTagKeyDetailsTest(APITestCase):
         tagkey = tagstore.create_tag_key(
             project_id=project.id,
             key='foo',
+            values_seen=16
         )
-        tagstore.incr_values_seen(project.id, 'foo', count=16)
 
         self.login_as(user=self.user)
 

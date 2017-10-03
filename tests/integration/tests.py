@@ -20,7 +20,7 @@ from gzip import GzipFile
 from raven import Client
 from six import StringIO
 
-from sentry.models import (Group, GroupTagKey, GroupTagValue, Event, TagValue)
+from sentry.models import (Group, GroupTagKey, GroupTagValue, Event)
 from sentry.testutils import TestCase, TransactionTestCase
 from sentry.testutils.helpers import get_auth_header
 from sentry.utils.settings import (validate_settings, ConfigurationError, import_string)
@@ -177,11 +177,11 @@ class SentryRemoteTest(TestCase):
             key='foo',
             project_id=self.project.id,
         ) is not None
-        assert TagValue.objects.filter(
+        assert tagstore.get_tag_value(
             key='foo',
             value='bar',
             project_id=self.project.id,
-        ).exists()
+        ) is not None
         assert GroupTagKey.objects.filter(
             key='foo',
             group_id=instance.group_id,

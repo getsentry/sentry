@@ -18,6 +18,7 @@ from django.db.models import F
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
+from sentry import tagstore
 from sentry.app import locks
 from sentry.constants import ObjectStatus
 from sentry.db.models import (
@@ -129,7 +130,7 @@ class Project(Model):
         return absolute_uri('/{}/{}/'.format(self.organization.slug, self.slug))
 
     def merge_to(self, project):
-        from sentry.models import (Group, GroupTagValue, Event, TagValue)
+        from sentry.models import (Group, GroupTagValue, Event)
 
         if not isinstance(project, Project):
             project = Project.objects.get_from_cache(pk=project)
@@ -161,8 +162,8 @@ class Project(Model):
                     if not created:
                         obj2.update(times_seen=F('times_seen') + obj.times_seen)
 
-        for fv in TagValue.objects.filter(project_id=self.id):
-            TagValue.objects.get_or_create(project_id=project.id, key=fv.key, value=fv.value)
+        for fv in tagstore.get_tag_values(self.id):
+            tagstore.get_or_create_tag_value(project_id=project.id, key=fv.key, value=fv.value)
             fv.delete()
         self.delete()
 

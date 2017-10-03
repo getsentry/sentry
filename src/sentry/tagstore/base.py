@@ -30,13 +30,18 @@ class TagKeyStatus(object):
 
 class TagStorage(Service):
     __all__ = (
-        'is_valid_key', 'is_reserved_key', 'prefix_reserved_key', 'get_standardized_key',
-        'create_tag_key', 'get_or_create_tag_key', 'get_tag_key', 'get_tag_keys',
-        'delete_tag_key', 'incr_values_seen', 'get_group_event_ids'
+        'is_valid_key', 'is_valid_value', 'is_reserved_key', 'prefix_reserved_key',
+        'get_standardized_key', 'create_tag_key', 'get_or_create_tag_key',
+        'create_tag_value', 'get_or_create_tag_value', 'get_tag_key', 'get_tag_keys',
+        'get_tag_value', 'get_tag_values', 'delete_tag_key', 'incr_values_seen',
+        'incr_times_seen', 'get_group_event_ids', 'get_tag_value_qs'
     )
 
     def is_valid_key(self, key):
         return bool(TAG_KEY_RE.match(key))
+
+    def is_valid_value(self, value):
+        return '\n' not in value
 
     def is_reserved_key(self, key):
         return key in INTERNAL_TAG_KEYS
@@ -53,15 +58,27 @@ class TagStorage(Service):
             return key.split('sentry:', 1)[-1]
         return key
 
-    def create_tag_key(self, project_id, key):
+    def create_tag_key(self, project_id, key, **kwargs):
         """
         >>> create_tag_key(1, "key1")
         """
         raise NotImplementedError
 
-    def get_or_create_tag_key(self, project_id, key):
+    def get_or_create_tag_key(self, project_id, key, **kwargs):
         """
         >>> get_or_create_tag_key(1, "key1")
+        """
+        raise NotImplementedError
+
+    def create_tag_value(self, project_id, key, value, **kwargs):
+        """
+        >>> create_tag_key(1, "key1", "value1")
+        """
+        raise NotImplementedError
+
+    def get_or_create_tag_value(self, project_id, key, value, **kwargs):
+        """
+        >>> get_or_create_tag_key(1, "key1", "value1")
         """
         raise NotImplementedError
 
@@ -77,6 +94,18 @@ class TagStorage(Service):
         """
         raise NotImplementedError
 
+    def get_tag_value(self, project_id, key, value):
+        """
+        >>> get_tag_value(1, "key1", "value1")
+        """
+        raise NotImplementedError
+
+    def get_tag_values(self, project_ids, key, values=None):
+        """
+        >>> get_tag_values([1, 2], "key1", ["value1, "value2"])
+        """
+        raise NotImplementedError
+
     def delete_tag_key(self, project_id, key):
         """
         >>> delete_tag_key(1, "key1")
@@ -89,8 +118,20 @@ class TagStorage(Service):
         """
         raise NotImplementedError
 
+    def incr_times_seen(self, project_id, key, value, extra=None, count=1):
+        """
+        >>> incr_times_seen(1, "key1", "value1")
+        """
+        raise NotImplementedError
+
     def get_group_event_ids(self, project_id, group_id, tags):
         """
         >>> get_group_event_ids(1, 2, {'key1': 'value1', 'key2': 'value2'})
+        """
+        raise NotImplementedError
+
+    def get_tag_value_qs(self, project_id, key, query=None):
+        """
+        >>> get_tag_value_qs(1, 'environment', query='prod')
         """
         raise NotImplementedError

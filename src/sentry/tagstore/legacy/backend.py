@@ -23,11 +23,18 @@ from sentry.tasks.deletion import delete_tag_key
 
 
 class LegacyTagStorage(TagStorage):
-    def create_tag_key(self, project_id, key):
-        return TagKey.objects.create(project_id=project_id, key=key)
+    def create_tag_key(self, project_id, key, **kwargs):
+        return TagKey.objects.create(project_id=project_id, key=key, **kwargs)
 
-    def get_or_create_tag_key(self, project_id, key):
-        return TagKey.objects.get_or_create(project_id=project_id, key=key)
+    def get_or_create_tag_key(self, project_id, key, **kwargs):
+        return TagKey.objects.get_or_create(project_id=project_id, key=key, defaults=kwargs)
+
+    def create_tag_value(self, project_id, key, value, **kwargs):
+        return TagValue.objects.create(project_id=project_id, key=key, value=value, **kwargs)
+
+    def get_or_create_tag_value(self, project_id, key, value, **kwargs):
+        return TagValue.objects.get_or_create(
+            project_id=project_id, key=key, value=value, defaults=kwargs)
 
     def get_tag_key(self, project_id, key, status=TagKeyStatus.VISIBLE):
         from sentry.tagstore.exceptions import TagKeyNotFound
@@ -73,6 +80,36 @@ class LegacyTagStorage(TagStorage):
 
         return list(qs)
 
+    def get_tag_value(self, project_id, key, value):
+        from sentry.tagstore.exceptions import TagValueNotFound
+
+        try:
+            return TagValue.objects.get(
+                project_id=project_id,
+                key=key,
+                value=value
+            )
+        except TagValue.DoesNotExist:
+            raise TagValueNotFound
+
+    def get_tag_values(self, project_ids, key, values=None):
+        qs = TagValue.objects.filter(key=key)
+
+        if isinstance(project_ids, list):
+            qs = qs.filter(project_id__in=project_ids)
+        else:
+            qs = qs.filter(project_id=project_ids)
+
+        qs = TagValue.objects.filter(
+            project_id__in=project_ids,
+            key=key
+        )
+
+        if values is not None:
+            qs = qs.filter(value__in=values)
+
+        return list(qs)
+
     def delete_tag_key(self, project_id, key):
         tagkey = self.get_tag_key(project_id, key, status=None)
 
@@ -93,6 +130,15 @@ class LegacyTagStorage(TagStorage):
             'project_id': project_id,
             'key': key,
         })
+
+    def incr_times_seen(self, project_id, key, value, extra=None, count=1):
+        buffer.incr(TagValue, {
+            'times_seen': count,
+        }, {
+            'project_id': project_id,
+            'key': key,
+            'value': value,
+        }, extra)
 
     def get_group_event_ids(self, project_id, group_id, tags):
         tagkeys = dict(
@@ -149,3 +195,14 @@ class LegacyTagStorage(TagStorage):
                 return []
 
         return matches
+
+    def get_tag_value_qs(self, project_id, key, query=None):
+        queryset = TagValue.objects.filter(
+            project_id=project_id,
+            key=key,
+        )
+
+        if query:
+            queryset = queryset.filter(value__contains=query)
+
+        return queryset
