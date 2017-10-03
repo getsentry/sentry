@@ -188,6 +188,9 @@ class OrganizationAuthSettingsView(OrganizationView):
             if request.POST.get('init'):
                 helper.init_pipeline()
 
+            if not helper.pipeline_is_valid():
+                return helper.error('Something unexpected happened during authentication.')
+
             # render first time setup view
             return helper.current_step()
 
