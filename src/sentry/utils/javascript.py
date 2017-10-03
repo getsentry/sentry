@@ -19,7 +19,7 @@ from sentry import tsdb
 from sentry.app import env
 from sentry.constants import TAG_LABELS
 from sentry.models import (
-    Group, GroupBookmark, GroupMeta, GroupTagKey, GroupSeen, GroupStatus, ProjectOption
+    Group, GroupBookmark, GroupMeta, GroupTagKey, GroupSeen, GroupStatus
 )
 from sentry.templatetags.sentry_plugins import get_legacy_annotations
 from sentry.utils import json
@@ -129,23 +129,15 @@ class GroupTransformer(Transformer):
         else:
             historical_data = {}
 
-        project_list = set(o.project for o in objects)
-        tag_keys = set(['sentry:user'])
-        project_annotations = {}
-        for project in project_list:
-            enabled_annotations = ProjectOption.objects.get_value(
-                project, 'annotations', ['sentry:user']
-            )
-            project_annotations[project] = enabled_annotations
-            tag_keys.update(enabled_annotations)
-
-        annotation_counts = defaultdict(dict)
-        annotation_results = GroupTagKey.objects.filter(
+        user_counts = defaultdict(dict)
+        user_key = 'sentry:user'
+        user_label = TAG_LABELS.get(user_key).lower() + 's'
+        user_tagkeys = GroupTagKey.objects.filter(
             group_id__in=[o.id for o in objects],
-            key__in=tag_keys,
-        ).values_list('key', 'group', 'values_seen')
-        for key, group_id, values_seen in annotation_results:
-            annotation_counts[key][group_id] = values_seen
+            key=user_key,
+        )
+        for user_tagkey in user_tagkeys:
+            user_counts[user_tagkey.group_id] = user_tagkey.values_seen
 
         for g in objects:
             g.is_bookmarked = g.pk in bookmarks
@@ -153,17 +145,16 @@ class GroupTransformer(Transformer):
             active_date = g.active_at or g.first_seen
             g.has_seen = seen_groups.get(g.id, active_date) > active_date
             g.annotations = []
-            for key in sorted(tag_keys):
-                if key in project_annotations[project]:
-                    label = TAG_LABELS.get(key, key.replace('_', ' ')).lower() + 's'
-                    try:
-                        value = annotation_counts[key].get(g.id, 0)
-                    except KeyError:
-                        value = 0
-                    g.annotations.append({
-                        'label': label,
-                        'count': value,
-                    })
+
+            try:
+                value = user_counts.get(g.id, 0)
+            except KeyError:
+                value = 0
+
+            g.annotations.append({
+                'label': user_label,
+                'count': value,
+            })
 
     def localize_datetime(self, dt, request=None):
         if not request:
