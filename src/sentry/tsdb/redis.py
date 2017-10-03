@@ -176,16 +176,19 @@ class RedisTSDB(BaseTSDB):
         if timestamp is None:
             timestamp = timezone.now()
 
+        environments = set([None, environment])
+
         with self.cluster.map() as client:
             for rollup, max_values in six.iteritems(self.rollups):
                 for model, key in items:
-                    hash_key, hash_field = self.make_counter_key(
-                        model, rollup, timestamp, key, environment)
-                    client.hincrby(hash_key, hash_field, count)
-                    client.expireat(
-                        hash_key,
-                        self.calculate_expiry(rollup, max_values, timestamp),
-                    )
+                    for environment in environments:
+                        hash_key, hash_field = self.make_counter_key(
+                            model, rollup, timestamp, key, environment)
+                        client.hincrby(hash_key, hash_field, count)
+                        client.expireat(
+                            hash_key,
+                            self.calculate_expiry(rollup, max_values, timestamp),
+                        )
 
     def get_range(self, model, keys, start, end, rollup=None, environment=None):
         """
@@ -299,26 +302,29 @@ class RedisTSDB(BaseTSDB):
 
         ts = int(to_timestamp(timestamp))  # ``timestamp`` is not actually a timestamp :(
 
+        environments = set([None, environment])
+
         with self.cluster.fanout() as client:
             for model, key, values in items:
                 c = client.target_key(key)
                 for rollup, max_values in six.iteritems(self.rollups):
-                    k = self.make_key(
-                        model,
-                        rollup,
-                        ts,
-                        key,
-                        environment,
-                    )
-                    c.pfadd(k, *values)
-                    c.expireat(
-                        k,
-                        self.calculate_expiry(
+                    for environment in environments:
+                        k = self.make_key(
+                            model,
                             rollup,
-                            max_values,
-                            timestamp,
-                        ),
-                    )
+                            ts,
+                            key,
+                            environment,
+                        )
+                        c.pfadd(k, *values)
+                        c.expireat(
+                            k,
+                            self.calculate_expiry(
+                                rollup,
+                                max_values,
+                                timestamp,
+                            ),
+                        )
 
     def get_distinct_counts_series(self, model, keys, start, end=None,
                                    rollup=None, environment=None):
@@ -551,6 +557,8 @@ class RedisTSDB(BaseTSDB):
         if timestamp is None:
             timestamp = timezone.now()
 
+        environments = set([None, environment])
+
         ts = int(to_timestamp(timestamp))  # ``timestamp`` is not actually a timestamp :(
 
         commands = {}
@@ -563,12 +571,13 @@ class RedisTSDB(BaseTSDB):
                 # Figure out all of the keys we need to be incrementing, as
                 # well as their expiration policies.
                 for rollup, max_values in six.iteritems(self.rollups):
-                    chunk = self.make_frequency_table_keys(model, rollup, ts, key, environment)
-                    keys.extend(chunk)
+                    for environment in environments:
+                        chunk = self.make_frequency_table_keys(model, rollup, ts, key, environment)
+                        keys.extend(chunk)
 
-                    expiry = self.calculate_expiry(rollup, max_values, timestamp)
-                    for k in chunk:
-                        expirations[k] = expiry
+                        expiry = self.calculate_expiry(rollup, max_values, timestamp)
+                        for k in chunk:
+                            expirations[k] = expiry
 
                 arguments = ['INCR'] + list(self.DEFAULT_SKETCH_PARAMETERS)
                 for member, score in items.items():
