@@ -1,6 +1,8 @@
 from __future__ import absolute_import, print_function
 
 import logging
+import json
+import six
 
 from uuid import uuid4
 
@@ -20,6 +22,7 @@ from sentry.models import (
 )
 from sentry.tasks.auth import email_missing_links
 from sentry.utils import auth
+from sentry.utils.redis import clusters
 from sentry.utils.hashlib import md5_text
 from sentry.utils.http import absolute_uri
 from sentry.utils.retries import TimedRetryPolicy
@@ -39,6 +42,10 @@ ERR_UID_MISMATCH = _('There was an error encountered during authentication.')
 ERR_NOT_AUTHED = _('You must be authenticated to link accounts.')
 
 ERR_INVALID_IDENTITY = _('The provider did not return a valid user identity.')
+
+# We store the pipeline state in redis. We expire this after 10 minutes of
+# being in the authentication pipeline.
+STATE_EXPIRATION_TTL = 10 * 60
 
 
 class AuthHelper(object):
@@ -136,7 +143,7 @@ class AuthHelper(object):
             'idx': 0,
             'sig': self.signature,
             'flow': self.flow,
-            'state': {},
+            'state_key': 'auth:state:{}'.format(uuid4().hex),
         }
         self.request.session['auth'] = session
         self.request.session.modified = True
@@ -172,7 +179,7 @@ class AuthHelper(object):
 
     def finish_pipeline(self):
         session = self.request.session['auth']
-        state = session['state']
+        state = self.fetch_state()
 
         try:
             identity = self.provider.build_identity(state)
@@ -638,7 +645,7 @@ class AuthHelper(object):
         if request.user.id != request.session['auth']['uid']:
             return self.error(ERR_UID_MISMATCH)
 
-        state = request.session['auth']['state']
+        state = self.fetch_state()
         config = self.provider.build_config(state)
 
         try:
@@ -716,11 +723,17 @@ class AuthHelper(object):
         return HttpResponseRedirect(redirect_uri)
 
     def bind_state(self, key, value):
-        self.request.session['auth']['state'][key] = value
-        self.request.session.modified = True
+        state_key = self.request.session['auth']['state_key']
+        redis = clusters.get('default').get_local_client_for_key(state_key)
+
+        redis.hset(state_key, key, json.dumps(value))
+        redis.expire(state_key, STATE_EXPIRATION_TTL)
 
     def fetch_state(self, key=None):
-        if key is None:
-            return self.request.session['auth']['state']
+        state_key = self.request.session['auth']['state_key']
+        redis = clusters.get('default').get_local_client_for_key(state_key)
 
-        return self.request.session['auth']['state'].get(key)
+        data = redis.hgetall(state_key)
+        data = {k: json.loads(v) for k, v in six.iteritems(data)}
+
+        return data if key is None else data.get(key)
