@@ -1,11 +1,12 @@
 from __future__ import absolute_import
 
+from sentry import tagstore
 from sentry.api.base import DocSection
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import DateTimePaginator
 from sentry.api.serializers import serialize
-from sentry.models import TagKey, TagKeyStatus, TagValue
+from sentry.models import TagValue
 
 
 class ProjectTagKeyValuesEndpoint(ProjectEndpoint):
@@ -25,18 +26,11 @@ class ProjectTagKeyValuesEndpoint(ProjectEndpoint):
         :pparam string key: the tag key to look up.
         :auth: required
         """
-        if TagKey.is_reserved_key(key):
-            lookup_key = 'sentry:{0}'.format(key)
-        else:
-            lookup_key = key
+        lookup_key = tagstore.prefix_reserved_key(key)
 
         try:
-            tagkey = TagKey.objects.get(
-                project_id=project.id,
-                key=lookup_key,
-                status=TagKeyStatus.VISIBLE,
-            )
-        except TagKey.DoesNotExist:
+            tagkey = tagstore.get_tag_key(project.id, lookup_key)
+        except tagstore.TagKeyNotFound:
             raise ResourceDoesNotExist
 
         queryset = TagValue.objects.filter(

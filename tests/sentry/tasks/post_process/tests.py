@@ -6,7 +6,8 @@ from datetime import timedelta
 from django.utils import timezone
 from mock import Mock, patch
 
-from sentry.models import EventTag, Group, GroupSnooze, GroupStatus, TagKey, TagValue
+from sentry import tagstore
+from sentry.models import EventTag, Group, GroupSnooze, GroupStatus, TagValue
 from sentry.testutils import TestCase
 from sentry.tasks.merge import merge_group
 from sentry.tasks.post_process import index_event_tags, post_process_group
@@ -128,7 +129,7 @@ class IndexEventTagsTest(TestCase):
         ).values_list('key_id', 'value_id'))
         assert len(tags) == 2
 
-        tagkey = TagKey.objects.get(
+        tagkey = tagstore.get_tag_key(
             key='foo',
             project_id=self.project.id,
         )
@@ -139,7 +140,7 @@ class IndexEventTagsTest(TestCase):
         )
         assert (tagkey.id, tagvalue.id) in tags
 
-        tagkey = TagKey.objects.get(
+        tagkey = tagstore.get_tag_key(
             key='biz',
             project_id=self.project.id,
         )

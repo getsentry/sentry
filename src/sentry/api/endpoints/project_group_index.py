@@ -10,7 +10,7 @@ from django.utils import timezone
 from rest_framework import serializers
 from rest_framework.response import Response
 
-from sentry import features, search
+from sentry import features, search, tagstore
 from sentry.api.base import DocSection
 from sentry.api.bases.project import ProjectEndpoint, ProjectEventPermission
 from sentry.api.fields import UserField
@@ -22,7 +22,7 @@ from sentry.db.models.query import create_or_update
 from sentry.models import (
     Activity, EventMapping, Group, GroupAssignee, GroupBookmark, GroupHash, GroupResolution,
     GroupSeen, GroupSnooze, GroupStatus, GroupSubscription, GroupSubscriptionReason, GroupTombstone,
-    Release, TagKey, TOMBSTONE_FIELDS_FROM_GROUP, UserOption
+    Release, TOMBSTONE_FIELDS_FROM_GROUP, UserOption
 )
 from sentry.models.event import Event
 from sentry.models.group import looks_like_short_id
@@ -205,7 +205,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
         query_kwargs['sort_by'] = sort_by
 
         tags = {}
-        for tag_key in TagKey.objects.all_keys(project):
+        for tag_key in (tk.key for tk in tagstore.get_tag_keys(project.id)):
             if request.GET.get(tag_key):
                 tags[tag_key] = request.GET[tag_key]
         if tags:
