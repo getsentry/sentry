@@ -100,13 +100,16 @@ class OrganizationMemberDetailsEndpoint(OrganizationEndpoint):
         return True
 
     def get(self, request, organization, member_id):
-        """this only returns allowed invite roles right now"""
+        """Currently only returns allowed invite roles for member invite"""
 
         can_admin, allowed_roles = get_allowed_roles(request, organization)
 
+        role_list = [{'role': serialize(r, serializer=RoleSerializer()),
+                      'allowed': r in allowed_roles} for r in roles.get_all()]
+
         context = {
             'is_invite': settings.SENTRY_ENABLE_INVITES,
-            'role_list': [{'role': serialize(r, serializer=RoleSerializer()), 'allowed': r in allowed_roles} for r in roles.get_all()],
+            'role_list': role_list,
         }
         return Response(context, status=200)
 
@@ -116,8 +119,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationEndpoint):
         except OrganizationMember.DoesNotExist:
             raise ResourceDoesNotExist
 
-        serializer = OrganizationMemberSerializer(
-            data=request.DATA, partial=True)
+        serializer = OrganizationMemberSerializer(data=request.DATA, partial=True)
         if not serializer.is_valid():
             return Response(status=400)
 

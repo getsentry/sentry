@@ -18,8 +18,9 @@ const InviteMember = React.createClass({
 
   getInitialState() {
     let {teams} = this.getOrganization();
+
     //select team if there's only one
-    let initialTeamSelection = teams.length == 1 ? [teams[0].id] : [];
+    let initialTeamSelection = teams.length === 1 ? [teams[0].id] : [];
 
     return {
       selectedTeams: new Set(initialTeamSelection),
@@ -39,8 +40,8 @@ const InviteMember = React.createClass({
       method: 'GET',
       success: data => {
         this.setState({roleList: data.role_list, loading: false});
-        if (data.role_list.filter(({_, allowed}) => allowed).length == 0) {
-          //no invites allowed, redirect
+        if (data.role_list.filter(({_, allowed}) => allowed).length === 0) {
+          //not allowed to invite, redirect
           window.location.href = `/organizations/${slug}/members/`;
         }
       },
@@ -59,6 +60,7 @@ const InviteMember = React.createClass({
   inviteUser(email) {
     let {slug} = this.getOrganization();
     let {selectedTeams, selectedRole} = this.state;
+
     return new Promise((resolve, reject) => {
       this.api.request(`/organizations/${slug}/members/`, {
         method: 'POST',
@@ -80,30 +82,34 @@ const InviteMember = React.createClass({
     let emails = this.splitEmails(email);
     if (!emails.length) return;
     this.setState({loading: true});
-    emails //These are done in series and not parallel becuase django messages don't work on parallel requests
+
+    //These are requested in series and not parallel becuase django messages don't work on parallel requests
+    emails
       .reduce((prev, cur_email) => {
         return prev.then(() => this.inviteUser(cur_email));
       }, Promise.resolve())
-      .then(values => {
-        this.onSubmitSuccess();
-      })
+      .then(() => this.onSubmitSuccess())
       .catch(error => {
-        if (!error.email && !error.role)
+        if (!error.email && !error.role) {
           Raven.captureMessage('unkown error ', {
             extra: {error, state: this.state}
           });
+        }
+
         this.setState({error, loading: false});
       });
   },
 
   toggleID(id) {
     let {selectedTeams} = this.state;
-    this.setState({
-      selectedTeams: selectedTeams.has(id)
-        ? (selectedTeams.delete(id), selectedTeams)
-        : selectedTeams.add(id)
-    });
+    if (selectedTeams.has(id)) {
+      selectedTeams.delete(id);
+    } else {
+      selectedTeams.add(id);
+    }
+    this.setState({selectedTeams});
   },
+
   onSubmitSuccess() {
     let {orgId} = this.props.params;
     // redirect to member page
