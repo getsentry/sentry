@@ -221,8 +221,8 @@ class RedisTSDB(BaseTSDB):
         return dict(results_by_key)
 
     def merge(self, model, destination, sources, timestamp=None, environments=None):
-        if environments is not None:
-            raise NotImplementedError
+        environments = (set(environments) if environments is not None else set()).union([None])
+        raise NotImplementedError
 
         rollups = self.get_active_series(timestamp=timestamp)
 
@@ -268,8 +268,7 @@ class RedisTSDB(BaseTSDB):
                         )
 
     def delete(self, models, keys, start=None, end=None, timestamp=None, environments=None):
-        if environments is not None:
-            raise NotImplementedError
+        environments = (set(environments) if environments is not None else set()).union([None])
 
         rollups = self.get_active_series(start, end, timestamp)
 
@@ -278,17 +277,19 @@ class RedisTSDB(BaseTSDB):
                 for timestamp in series:
                     for model in models:
                         for key in keys:
-                            hash_key, hash_field = self.make_counter_key(
-                                model,
-                                rollup,
-                                timestamp,
-                                key,
-                            )
+                            for environment in environments:
+                                hash_key, hash_field = self.make_counter_key(
+                                    model,
+                                    rollup,
+                                    timestamp,
+                                    key,
+                                    environment,
+                                )
 
-                            client.hdel(
-                                hash_key,
-                                hash_field,
-                            )
+                                client.hdel(
+                                    hash_key,
+                                    hash_field,
+                                )
 
     def record(self, model, key, values, timestamp=None, environment=None):
         self.record_multi(((model, key, values), ), timestamp, environment)
@@ -461,8 +462,8 @@ class RedisTSDB(BaseTSDB):
         )
 
     def merge_distinct_counts(self, model, destination, sources, timestamp=None, environments=None):
-        if environments is not None:
-            raise NotImplementedError
+        environments = (set(environments) if environments is not None else set()).union([None])
+        raise NotImplementedError
 
         rollups = self.get_active_series(timestamp=timestamp)
 
@@ -524,8 +525,7 @@ class RedisTSDB(BaseTSDB):
 
     def delete_distinct_counts(self, models, keys, start=None, end=None,
                                timestamp=None, environments=None):
-        if environments is not None:
-            raise NotImplementedError
+        environments = (set(environments) if environments is not None else set()).union([None])
 
         rollups = self.get_active_series(start, end, timestamp)
 
@@ -534,14 +534,17 @@ class RedisTSDB(BaseTSDB):
                 for timestamp in series:
                     for model in models:
                         for key in keys:
-                            client.target_key(key).delete(
-                                self.make_key(
-                                    model,
-                                    rollup,
-                                    to_timestamp(timestamp),
-                                    key,
+                            c = client.target_key(key)
+                            for environment in environments:
+                                c.delete(
+                                    self.make_key(
+                                        model,
+                                        rollup,
+                                        to_timestamp(timestamp),
+                                        key,
+                                        environment,
+                                    )
                                 )
-                            )
 
     def make_frequency_table_keys(self, model, rollup, timestamp, key, environment):
         prefix = self.make_key(model, rollup, timestamp, key, environment)
@@ -709,8 +712,8 @@ class RedisTSDB(BaseTSDB):
         return responses
 
     def merge_frequencies(self, model, destination, sources, timestamp=None, environments=None):
-        if environments is not None:
-            raise NotImplementedError
+        environments = (set(environments) if environments is not None else set()).union([None])
+        raise NotImplementedError
 
         if not self.enable_frequency_sketches:
             return
@@ -769,8 +772,7 @@ class RedisTSDB(BaseTSDB):
 
     def delete_frequencies(self, models, keys, start=None, end=None,
                            timestamp=None, environments=None):
-        if environments is not None:
-            raise NotImplementedError
+        environments = (set(environments) if environments is not None else set()).union([None])
 
         rollups = self.get_active_series(start, end, timestamp)
 
@@ -780,7 +782,8 @@ class RedisTSDB(BaseTSDB):
                     for model in models:
                         for key in keys:
                             c = client.target_key(key)
-                            for k in self.make_frequency_table_keys(
-                                model, rollup, to_timestamp(timestamp), key
-                            ):
-                                c.delete(k)
+                            for environment in environments:
+                                for k in self.make_frequency_table_keys(
+                                    model, rollup, to_timestamp(timestamp), key, environment
+                                ):
+                                    c.delete(k)
