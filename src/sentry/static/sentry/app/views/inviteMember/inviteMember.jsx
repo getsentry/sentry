@@ -42,7 +42,7 @@ const InviteMember = React.createClass({
         this.setState({roleList: data.role_list, loading: false});
         if (data.role_list.filter(({_, allowed}) => allowed).length === 0) {
           //not allowed to invite, redirect
-          window.location.href = `/organizations/${slug}/members/`;
+          this.redirectToMemberPage();
         }
       },
       error: error => {
@@ -51,6 +51,11 @@ const InviteMember = React.createClass({
         });
       }
     });
+  },
+
+  redirectToMemberPage() {
+    let {slug} = this.getOrganization();
+    window.location.href = `/organizations/${slug}/members/`;
   },
 
   splitEmails(text) {

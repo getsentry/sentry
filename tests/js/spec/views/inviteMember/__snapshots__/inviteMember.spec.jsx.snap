@@ -1,6 +1,59 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`CreateProject render() should redirect on zero teams 1`] = `
+exports[`CreateProject render() should render 1`] = `
+<HomeContainer>
+  <h3>
+    Add Member to Organization
+  </h3>
+  <p>
+    Invite a member to join this organization via their email address. If they do not already have an account, they will first be asked to create one. Multiple emails delimited by commas.
+  </p>
+  <div
+    className=""
+  >
+    <LoadingIndicator
+      className="pull-right"
+      mini={true}
+    />
+    <TextField
+      disabled={false}
+      hideErrorMessage={false}
+      label="Email(s)"
+      name="email"
+      onChange={[Function]}
+      placeholder="e.g. teammate@example.com"
+      required={false}
+      spellCheck="false"
+    />
+  </div>
+  <div
+    className="new-invite-team box"
+  >
+    <div
+      className="box-header"
+    >
+      <h4>
+        Role:
+      </h4>
+    </div>
+    <div
+      className="box-content with-padding"
+    >
+      <ul
+        className="radio-inputs"
+      />
+    </div>
+  </div>
+  <button
+    className="btn btn-primary submit-new-team"
+    onClick={[Function]}
+  >
+    Add Member
+  </button>
+</HomeContainer>
+`;
+
+exports[`CreateProject render() should render roles when available and allowed 1`] = `
 <InviteMember
   params={
     Object {
@@ -337,21 +390,6 @@ exports[`CreateProject render() should redirect on zero teams 1`] = `
             <div
               className=""
             >
-              <LoadingIndicator
-                className="pull-right"
-                mini={true}
-              >
-                <div
-                  className="pull-right loading mini"
-                >
-                  <div
-                    className="loading-indicator"
-                  />
-                  <div
-                    className="loading-message"
-                  />
-                </div>
-              </LoadingIndicator>
               <TextField
                 disabled={false}
                 hideErrorMessage={false}
@@ -404,7 +442,39 @@ exports[`CreateProject render() should redirect on zero teams 1`] = `
               >
                 <ul
                   className="radio-inputs"
-                />
+                >
+                  <li
+                    className="radio"
+                    onClick={[Function]}
+                    style={Object {}}
+                  >
+                    <label
+                      style={Object {}}
+                    >
+                      <Radio
+                        checked={false}
+                        id={1}
+                        readOnly={true}
+                        value="member"
+                      >
+                        <input
+                          checked={false}
+                          className="radio-select"
+                          id={1}
+                          readOnly={true}
+                          type="radio"
+                          value="member"
+                        />
+                      </Radio>
+                      member
+                      <div
+                        className="help-block"
+                      >
+                        a normal member
+                      </div>
+                    </label>
+                  </li>
+                </ul>
               </div>
             </div>
             <button
@@ -419,57 +489,4 @@ exports[`CreateProject render() should redirect on zero teams 1`] = `
     </div>
   </HomeContainer>
 </InviteMember>
-`;
-
-exports[`CreateProject render() should render 1`] = `
-<HomeContainer>
-  <h3>
-    Add Member to Organization
-  </h3>
-  <p>
-    Invite a member to join this organization via their email address. If they do not already have an account, they will first be asked to create one. Multiple emails delimited by commas.
-  </p>
-  <div
-    className=""
-  >
-    <LoadingIndicator
-      className="pull-right"
-      mini={true}
-    />
-    <TextField
-      disabled={false}
-      hideErrorMessage={false}
-      label="Email(s)"
-      name="email"
-      onChange={[Function]}
-      placeholder="e.g. teammate@example.com"
-      required={false}
-      spellCheck="false"
-    />
-  </div>
-  <div
-    className="new-invite-team box"
-  >
-    <div
-      className="box-header"
-    >
-      <h4>
-        Role:
-      </h4>
-    </div>
-    <div
-      className="box-content with-padding"
-    >
-      <ul
-        className="radio-inputs"
-      />
-    </div>
-  </div>
-  <button
-    className="btn btn-primary submit-new-team"
-    onClick={[Function]}
-  >
-    Add Member
-  </button>
-</HomeContainer>
 `;
