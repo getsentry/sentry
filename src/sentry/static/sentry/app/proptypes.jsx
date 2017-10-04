@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types';
 
-const Metadata = PropTypes.shape({
+export const Metadata = PropTypes.shape({
   value: PropTypes.string,
   message: PropTypes.string,
   directive: PropTypes.string,
@@ -9,11 +9,28 @@ const Metadata = PropTypes.shape({
   uri: PropTypes.string
 });
 
-const User = PropTypes.shape({
+/**
+ * A User is someone that has registered on Sentry
+ *
+ */
+export const User = PropTypes.shape({
   id: PropTypes.string.isRequired
 });
 
-const Group = PropTypes.shape({
+/**
+ * A Member is someone that was invited to Sentry but may
+ * not have registered for an account yet
+ */
+export const Member = PropTypes.shape({
+  id: PropTypes.string.isRequired,
+  email: PropTypes.string.isRequired,
+  name: PropTypes.string.isRequired,
+  roleName: PropTypes.string.isRequired,
+  pending: PropTypes.bool,
+  user: User
+});
+
+export const Group = PropTypes.shape({
   id: PropTypes.string.isRequired,
   annotations: PropTypes.array,
   assignedTo: User,
@@ -43,7 +60,7 @@ const Group = PropTypes.shape({
   userCount: PropTypes.number
 });
 
-const Event = PropTypes.shape({
+export const Event = PropTypes.shape({
   id: PropTypes.string.isRequired,
   context: PropTypes.object,
   contexts: PropTypes.object,
@@ -81,7 +98,7 @@ const Event = PropTypes.shape({
   user: PropTypes.object
 });
 
-const Tag = PropTypes.shape({
+export const Tag = PropTypes.shape({
   id: PropTypes.string.isRequired,
   key: PropTypes.string.isRequired,
   name: PropTypes.string.isRequired,
@@ -107,9 +124,8 @@ let SentryTypes = {
   Team: PropTypes.shape({
     id: PropTypes.string.isRequired
   }),
+  Member,
   User
 };
-
-export {Group, Event, Metadata};
 
 export default SentryTypes;
