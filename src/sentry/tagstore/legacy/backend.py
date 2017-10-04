@@ -10,6 +10,7 @@ from __future__ import absolute_import
 
 import six
 
+from collections import defaultdict
 from django.db.models import Q
 from operator import or_
 from six.moves import reduce
@@ -75,6 +76,8 @@ class LegacyTagStorage(TagStorage):
             if status:
                 qs = qs.filter(status=status)
 
+            return qs
+
         if not keys:
             # TODO: cache invalidation via post_save/post_delete signals much like BaseManager
             key = self._get_tag_keys_cache_key(project_ids, status)
@@ -130,7 +133,7 @@ class LegacyTagStorage(TagStorage):
                 group_id=group_id,
                 key=key,
             )
-        except TagKey.DoesNotExist:
+        except GroupTagKey.DoesNotExist:
             raise GroupTagKeyNotFound
 
     def get_group_tag_keys(self, group_ids, keys=None):
@@ -158,8 +161,15 @@ class LegacyTagStorage(TagStorage):
         return (updated, tagkey)
 
     def delete_group_tag_key(self, group_id, key):
-        # TODO
-        pass
+        GroupTagKey.objects.filter(
+            group_id=group_id,
+            key=key
+        ).delete()
+
+    def delete_group_tag_keys(self, group_id):
+        GroupTagKey.objects.filter(
+            group_id=group_id,
+        ).delete()
 
     def incr_values_seen(self, project_id, key, count=1):
         buffer.incr(TagKey, {
@@ -246,5 +256,11 @@ class LegacyTagStorage(TagStorage):
         return queryset
 
     def get_values_seen(self, group_ids, key):
-        # TODO
-        pass
+        if isinstance(group_ids, list):
+            qs = GroupTagKey.objects.filter(group_id__in=group_ids)
+        else:
+            qs = GroupTagKey.objects.filter(group_id=group_ids)
+
+        return defaultdict(int, qs.filter(
+            key=key,
+        ).values_list('group_id', 'values_seen'))

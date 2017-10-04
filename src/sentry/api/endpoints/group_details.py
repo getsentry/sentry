@@ -7,7 +7,7 @@ from uuid import uuid4
 from django.utils import timezone
 from rest_framework.response import Response
 
-from sentry import tsdb
+from sentry import tsdb, tagstore
 from sentry.api import client
 from sentry.api.base import DocSection
 from sentry.api.bases import GroupEndpoint
@@ -19,7 +19,6 @@ from sentry.models import (
     GroupHash,
     GroupSeen,
     GroupStatus,
-    GroupTagKey,
     Release,
     User,
     UserReport,
@@ -211,9 +210,7 @@ class GroupDetailsEndpoint(GroupEndpoint):
         if last_release:
             last_release = self._get_release_info(request, group, last_release)
 
-        tags = list(GroupTagKey.objects.filter(
-            group_id=group.id,
-        )[:100])
+        tags = tagstore.get_group_tag_keys(group.id)[:100]
 
         participants = list(
             User.objects.filter(

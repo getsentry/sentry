@@ -3,7 +3,7 @@ from __future__ import absolute_import
 import six
 
 from sentry import tagstore
-from sentry.models import GroupTagKey, GroupTagValue
+from sentry.models import GroupTagValue
 from sentry.testutils import APITestCase
 
 
@@ -26,7 +26,7 @@ class GroupTagDetailsTest(APITestCase):
             times_seen=4
         )
 
-        GroupTagKey.objects.create(
+        tagstore.create_group_tag_key(
             project_id=group.project_id,
             group_id=group.id,
             key=key,

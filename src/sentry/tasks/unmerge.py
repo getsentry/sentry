@@ -6,6 +6,7 @@ from collections import defaultdict
 from django.db import transaction
 from django.db.models import F
 
+from sentry import tagstore
 from sentry.app import tsdb
 from sentry.constants import DEFAULT_LOGGER_NAME, LOG_LEVELS_MAP
 from sentry.event_manager import (
@@ -13,7 +14,7 @@ from sentry.event_manager import (
 )
 from sentry.models import (
     Activity, Environment, Event, EventMapping, EventTag, EventUser, Group, GroupHash, GroupRelease,
-    GroupTagKey, GroupTagValue, Project, Release, UserReport
+    GroupTagValue, Project, Release, UserReport
 )
 from sentry.similarity import features
 from sentry.tasks.base import instrumented_task
@@ -237,9 +238,7 @@ def migrate_events(caches, project, source_id, destination_id, fingerprints, eve
 
 
 def truncate_denormalizations(group):
-    GroupTagKey.objects.filter(
-        group_id=group.id,
-    ).delete()
+    tagstore.delete_group_tag_keys(group.id)
 
     GroupTagValue.objects.filter(
         group_id=group.id,
@@ -288,7 +287,7 @@ def collect_tag_data(events):
 def repair_tag_data(caches, project, events):
     for group_id, keys in collect_tag_data(events).items():
         for key, values in keys.items():
-            GroupTagKey.objects.get_or_create(
+            tagstore.get_or_create_group_tag_key(
                 project_id=project.id,
                 group_id=group_id,
                 key=key,
@@ -465,7 +464,7 @@ def repair_denormalizations(caches, project, events):
 
 
 def update_tag_value_counts(id_list):
-    instances = GroupTagKey.objects.filter(group_id__in=id_list)
+    instances = tagstore.get_group_tag_keys(id_list)
     for instance in instances:
         instance.update(
             values_seen=GroupTagValue.objects.filter(

@@ -9,9 +9,10 @@ from django.utils import timezone
 from exam import fixture
 from mock import patch
 
+from sentry import tagstore
 from sentry.models import (
     Activity, EventMapping, Group, GroupAssignee, GroupBookmark, GroupHash, GroupResolution,
-    GroupSeen, GroupSnooze, GroupStatus, GroupSubscription, GroupTagKey, GroupTagValue,
+    GroupSeen, GroupSnooze, GroupStatus, GroupSubscription, GroupTagValue,
     GroupTombstone, Release, UserOption
 )
 from sentry.models.event import Event
@@ -919,9 +920,10 @@ class GroupUpdateTest(APITestCase):
             checksum='a' * 32,
             status=GroupStatus.RESOLVED,
         )
-        GroupTagKey.objects.create(
-            group_id=group.id,
-            key='sentry:user',
+        tagstore.create_group_tag_key(
+            group.project_id,
+            group.id,
+            'sentry:user',
             values_seen=100,
         )
 
