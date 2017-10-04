@@ -166,10 +166,10 @@ class SAML2Provider(Provider):
 
       >>> state.get('idp')
       {
-        'entityId': # Identity Provider entity ID. Usually a URL
-        'x509cert': # Identity Provider x509 public certificate
-        'sso_url:   # Identity Provider Single Sign-On URL
-        'slo_url':  # identity Provider Single Sign-Out URL
+        'entity_id': # Identity Provider entity ID. Usually a URL
+        'x509cert':  # Identity Provider x509 public certificate
+        'sso_url':   # Identity Provider Single Sign-On URL
+        'slo_url':   # identity Provider Single Sign-Out URL
       }
 
       The provider may also bind the `advanced` configuration. This dict
