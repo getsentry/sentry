@@ -222,7 +222,6 @@ class RedisTSDB(BaseTSDB):
 
     def merge(self, model, destination, sources, timestamp=None, environments=None):
         environments = (set(environments) if environments is not None else set()).union([None])
-        raise NotImplementedError
 
         rollups = self.get_active_series(timestamp=timestamp)
 
@@ -231,41 +230,56 @@ class RedisTSDB(BaseTSDB):
             for rollup, series in rollups.items():
                 data[rollup] = {}
                 for timestamp in series:
-                    results = data[rollup][timestamp] = []
+                    results = data[rollup][timestamp] = defaultdict(list)
                     for source in sources:
-                        source_hash_key, source_hash_field = self.make_counter_key(
-                            model,
-                            rollup,
-                            timestamp,
-                            source,
-                        )
-                        results.append(client.hget(source_hash_key, source_hash_field))
-                        client.hdel(source_hash_key, source_hash_field)
+                        for environment in environments:
+                            # TODO: If we are able to enforce that all
+                            # environments share the same hash key as an
+                            # invariant, we can optimize the HGET and HDEL to
+                            # act on multiple fields instead of having to
+                            # implement them independent operations.
+                            source_hash_key, source_hash_field = self.make_counter_key(
+                                model,
+                                rollup,
+                                timestamp,
+                                source,
+                                environment,
+                            )
+                            results[environment].append(client.hget(
+                                source_hash_key, source_hash_field))
+                            client.hdel(source_hash_key, source_hash_field)
 
         with self.cluster.map() as client:
             for rollup, series in data.items():
                 for timestamp, results in series.items():
-                    total = sum(int(result.value or 0) for result in results)
-                    if total:
-                        destination_hash_key, destination_hash_field = self.make_counter_key(
-                            model,
-                            rollup,
-                            timestamp,
-                            destination,
-                        )
-                        client.hincrby(
-                            destination_hash_key,
-                            destination_hash_field,
-                            total,
-                        )
-                        client.expireat(
-                            destination_hash_key,
-                            self.calculate_expiry(
+                    for environment, promises in results.items():
+                        # TODO: Similarly to the above comment, if we're able
+                        # to enforce that all environments share the same hash
+                        # key, we can optimize this EXPIREAT to only be
+                        # performed once. (Unfortunately, we can't do that for
+                        # HINCRBY since it's not variadic.)
+                        total = sum([int(p.value) for p in promises if p.value])
+                        if total:
+                            destination_hash_key, destination_hash_field = self.make_counter_key(
+                                model,
                                 rollup,
-                                self.rollups[rollup],
                                 timestamp,
-                            ),
-                        )
+                                destination,
+                                environment,
+                            )
+                            client.hincrby(
+                                destination_hash_key,
+                                destination_hash_field,
+                                total,
+                            )
+                            client.expireat(
+                                destination_hash_key,
+                                self.calculate_expiry(
+                                    rollup,
+                                    self.rollups[rollup],
+                                    timestamp,
+                                ),
+                            )
 
     def delete(self, models, keys, start=None, end=None, timestamp=None, environments=None):
         environments = (set(environments) if environments is not None else set()).union([None])
