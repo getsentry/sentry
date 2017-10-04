@@ -21,6 +21,10 @@ const Button = React.createClass({
      * Use this prop if button should use a normal (non-react-router) link
      */
     href: PropTypes.string,
+    /**
+     * Tooltip text
+     */
+    title: PropTypes.string,
     onClick: PropTypes.func
   },
 
@@ -52,6 +56,7 @@ const Button = React.createClass({
       className,
       disabled,
       busy,
+      title,
 
       // destructure from `buttonProps`
       // not necessary, but just in case someone re-orders props
@@ -64,6 +69,7 @@ const Button = React.createClass({
     let isDanger = priority === 'danger' && !disabled;
 
     let cx = classNames(className, 'button', {
+      tip: !!title,
       'button-primary': isPrimary,
       'button-danger': isDanger,
       'button-default': !isPrimary && !isDanger,
