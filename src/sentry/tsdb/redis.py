@@ -729,8 +729,9 @@ class RedisTSDB(BaseTSDB):
         return responses
 
     def merge_frequencies(self, model, destination, sources, timestamp=None, environments=None):
-        environments = (set(environments) if environments is not None else set()).union([None])
-        raise NotImplementedError
+        environments = list(
+            (set(environments) if environments is not None else set()).union(
+                [None]))
 
         if not self.enable_frequency_sketches:
             return
@@ -749,17 +750,22 @@ class RedisTSDB(BaseTSDB):
         for source in sources:
             for rollup, series in rollups:
                 for timestamp in series:
-                    keys = self.make_frequency_table_keys(
-                        model,
-                        rollup,
-                        to_timestamp(timestamp),
-                        source,
-                    )
+                    keys = []
+                    for environment in environments:
+                        keys.extend(
+                            self.make_frequency_table_keys(
+                                model,
+                                rollup,
+                                to_timestamp(timestamp),
+                                source,
+                                environment,
+                            )
+                        )
                     arguments = ['EXPORT'] + list(self.DEFAULT_SKETCH_PARAMETERS)
                     exports[source].extend(
                         [
                             (CountMinScript, keys, arguments),
-                            ('DEL', ) + tuple(keys),
+                            ['DEL'] + keys,
                         ]
                     )
 
@@ -769,18 +775,20 @@ class RedisTSDB(BaseTSDB):
             results = iter(results)
             for rollup, series in rollups:
                 for timestamp in series:
-                    imports.append(
-                        (
-                            CountMinScript, self.make_frequency_table_keys(
-                                model,
-                                rollup,
-                                to_timestamp(timestamp),
-                                destination,
+                    for environment, payload in zip(environments, next(results).value):
+                        imports.append(
+                            (
+                                CountMinScript,
+                                self.make_frequency_table_keys(
+                                    model,
+                                    rollup,
+                                    to_timestamp(timestamp),
+                                    destination,
+                                    environment,
+                                ),
+                                ['IMPORT'] + list(self.DEFAULT_SKETCH_PARAMETERS) + [payload],
                             ),
-                            ['IMPORT'] + list(self.DEFAULT_SKETCH_PARAMETERS) +
-                            next(results).value,
                         )
-                    )
                     next(results)  # pop off the result of DEL
 
         self.cluster.execute_commands({
