@@ -1,6 +1,9 @@
 from __future__ import absolute_import
 
-from sentry.models import Project, ProjectKey
+import mock
+from uuid import UUID
+
+from sentry.models import Project
 from sentry.testutils import AcceptanceTestCase
 
 
@@ -22,7 +25,8 @@ class OrganizationOnboardingTest(AcceptanceTestCase):
         )
         self.login_as(self.user)
 
-    def test_onboarding(self, ):
+    @mock.patch('uuid.uuid4', return_value=UUID('031667ea1758441f92c7995a428d2d14'))
+    def test_onboarding(self, uuid4):
         self.browser.get('/onboarding/%s/' % self.org.slug)
         self.browser.wait_until('.onboarding-container')
         self.browser.wait_until_not('.loading-indicator')
@@ -38,25 +42,9 @@ class OrganizationOnboardingTest(AcceptanceTestCase):
         assert project.name == 'Angular'
         assert project.platform == 'javascript-angular'
 
-    def test_onboarding_configure(self):
-        self.project = self.create_project(
-            name='Angular',
-            slug='angular',
-            platform='javascript-angular',
-            organization=self.org,
-            team=self.team,
-        )
-        ProjectKey.objects.filter(project=self.project).update(
-            label='Default',
-            public_key='5cc0482a13d248ff99f9717101dd6356',
-            secret_key='410fd998318844b8894775f36184ec28',
-        )
-
-        self.browser.get(
-            '/onboarding/%s/%s/configure/%s' %
-            (self.org.slug, self.project.slug, self.project.platform))
         self.browser.snapshot(name='onboarding-configure-project')
         self.browser.click('.btn-primary')
         self.browser.wait_until_not('.loading')
+
         assert self.browser.element_exists('.robot')
         assert self.browser.element_exists('.btn-primary')
