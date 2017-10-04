@@ -3,7 +3,8 @@ from __future__ import absolute_import
 import logging
 import posixpath
 
-from symsynd import find_best_instruction, parse_addr, ImageLookup
+from symsynd import find_best_instruction, ImageLookup
+from symbolic import parse_addr
 
 from sentry import options
 from django.db import transaction, IntegrityError

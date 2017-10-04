@@ -6,7 +6,8 @@ import uuid
 __all__ = ('DebugMeta', )
 
 from sentry.interfaces.base import Interface, InterfaceValidationError
-from sentry.utils.native import parse_addr
+
+from symbolic import parse_addr
 
 image_types = {}
 
