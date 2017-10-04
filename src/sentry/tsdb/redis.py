@@ -477,7 +477,6 @@ class RedisTSDB(BaseTSDB):
 
     def merge_distinct_counts(self, model, destination, sources, timestamp=None, environments=None):
         environments = (set(environments) if environments is not None else set()).union([None])
-        raise NotImplementedError
 
         rollups = self.get_active_series(timestamp=timestamp)
 
@@ -488,21 +487,23 @@ class RedisTSDB(BaseTSDB):
 
         data = {}
         for rollup, series in rollups.items():
-            data[rollup] = {timestamp: [] for timestamp in series}
+            data[rollup] = {timestamp: {e: [] for e in environments} for timestamp in series}
 
         with self.cluster.fanout() as client:
             for source in sources:
                 c = client.target_key(source)
                 for rollup, series in data.items():
                     for timestamp, results in series.items():
-                        key = self.make_key(
-                            model,
-                            rollup,
-                            to_timestamp(timestamp),
-                            source,
-                        )
-                        results.append(c.get(key))
-                        c.delete(key)
+                        for environment in environments:
+                            key = self.make_key(
+                                model,
+                                rollup,
+                                to_timestamp(timestamp),
+                                source,
+                                environment,
+                            )
+                            results[environment].append(c.get(key))
+                            c.delete(key)
 
         with self.cluster.fanout() as client:
             c = client.target_key(destination)
@@ -511,31 +512,33 @@ class RedisTSDB(BaseTSDB):
 
             for rollup, series in data.items():
                 for timestamp, results in series.items():
-                    values = {}
-                    for result in results:
-                        if result.value is None:
-                            continue
-                        k = make_temporary_key(next(temporary_key_sequence))
-                        values[k] = result.value
+                    for environment, promises in results.items():
+                        values = {}
+                        for promise in promises:
+                            if promise.value is None:
+                                continue
+                            k = make_temporary_key(next(temporary_key_sequence))
+                            values[k] = promise.value
 
-                    if values:
-                        key = self.make_key(
-                            model,
-                            rollup,
-                            to_timestamp(timestamp),
-                            destination,
-                        )
-                        c.mset(values)
-                        c.pfmerge(key, key, *values.keys())
-                        c.delete(*values.keys())
-                        c.expireat(
-                            key,
-                            self.calculate_expiry(
+                        if values:
+                            key = self.make_key(
+                                model,
                                 rollup,
-                                self.rollups[rollup],
-                                timestamp,
-                            ),
-                        )
+                                to_timestamp(timestamp),
+                                destination,
+                                environment,
+                            )
+                            c.mset(values)
+                            c.pfmerge(key, key, *values.keys())
+                            c.delete(*values.keys())
+                            c.expireat(
+                                key,
+                                self.calculate_expiry(
+                                    rollup,
+                                    self.rollups[rollup],
+                                    timestamp,
+                                ),
+                            )
 
     def delete_distinct_counts(self, models, keys, start=None, end=None,
                                timestamp=None, environments=None):
