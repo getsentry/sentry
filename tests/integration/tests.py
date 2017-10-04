@@ -175,7 +175,7 @@ class SentryRemoteTest(TestCase):
 
         assert tagstore.get_tag_key(self.project.id, 'foo') is not None
         assert tagstore.get_tag_value(self.project.id, 'foo', 'bar') is not None
-        assert tagstore.get_tag_key(instance.group_id, 'foo') is not None
+        assert tagstore.get_group_tag_key(instance.group_id, 'foo') is not None
         assert GroupTagValue.objects.filter(
             key='foo',
             value='bar',
