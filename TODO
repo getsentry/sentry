@@ -1,8 +1,0 @@
-- API needs to work with key authentication globally (not just the store view)
-- Record errors with client information in API
-- Record client information with each event
-- Pause/Play, Sort By, and Notification settings should be saved in a cookie
-- Potentially add graphs per server/url/etc ?
-- Make uninteresting frames in stacktraces opaque
-- Create tailer for apache-style error logs
-- Add hooks for controlling the queue/routing key (via plugins) that messages are sent to.
