@@ -118,7 +118,7 @@ class SAML2SLSView(BaseView):
 
         redirect_to = auth.process_slo(
             delete_session_cb=force_logout,
-            keep_local_session=should_logout,
+            keep_local_session=not should_logout,
         )
 
         if not redirect_to:
