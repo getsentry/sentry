@@ -4,7 +4,6 @@ import React from 'react';
 import classNames from 'classnames';
 
 import FlowLayout from '../flowLayout';
-import LoadingIndicator from '../loadingIndicator';
 
 import '../../../less/components/button.less';
 
@@ -33,12 +32,16 @@ const Button = React.createClass({
 
   // Intercept onClick and propagate
   handleClick(...args) {
-    let {disabled, onClick} = this.props;
-    if (disabled) return;
+    let {disabled, busy, onClick} = this.props;
+
+    // Don't allow clicks when disabled or busy
+    if (disabled || busy) return;
+
     if (typeof onClick !== 'function') return;
 
     onClick(...args);
   },
+
   render() {
     let {
       priority,
@@ -57,8 +60,9 @@ const Button = React.createClass({
       ...buttonProps
     } = this.props;
 
-    let isPrimary = priority === 'primary';
-    let isDanger = priority === 'danger';
+    let isPrimary = priority === 'primary' && !disabled;
+    let isDanger = priority === 'danger' && !disabled;
+
     let cx = classNames(className, 'button', {
       'button-primary': isPrimary,
       'button-danger': isDanger,
@@ -66,12 +70,14 @@ const Button = React.createClass({
       'button-sm': size === 'small',
       'button-xs': size === 'xsmall',
       'button-lg': size === 'large',
+      'button-busy': busy,
       'button-disabled': disabled
     });
 
-    let childWithBusy = (
+    // This container is useless now, but leaves room for when we need to add
+    // components (i.e. icons, busy indicator, etc)
+    let childContainer = (
       <FlowLayout truncate={false}>
-        {busy && <LoadingIndicator mini />}
         <span className="button-label">
           {children}
         </span>
@@ -83,47 +89,28 @@ const Button = React.createClass({
     // about it. As a bonus, let's ensure all buttons appear as a button
     // control to screen readers. Note: you must still handle tabindex manually.
 
+    // Props common to all elements
+    let componentProps = {
+      disabled,
+      ...buttonProps,
+      onClick: this.handleClick,
+      className: cx,
+      role: 'button',
+      children: childContainer
+    };
+
     // Handle react-router Links
     if (to) {
-      return (
-        <Link
-          to={to}
-          disabled={disabled}
-          {...buttonProps}
-          onClick={this.handleClick}
-          className={cx}
-          role="button">
-          {childWithBusy}
-        </Link>
-      );
+      return <Link to={to} {...componentProps} />;
     }
 
     // Handle traditional links
     if (href) {
-      return (
-        <a
-          href={href}
-          disabled={disabled}
-          {...buttonProps}
-          onClick={this.handleClick}
-          className={cx}
-          role="button">
-          {childWithBusy}
-        </a>
-      );
+      return <a href={href} {...componentProps} />;
     }
 
     // Otherwise, fall back to basic button element
-    return (
-      <button
-        disabled={disabled}
-        {...buttonProps}
-        onClick={this.handleClick}
-        className={cx}
-        role="button">
-        {childWithBusy}
-      </button>
-    );
+    return <button {...componentProps} />;
   }
 });
 

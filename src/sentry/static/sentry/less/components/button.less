@@ -20,21 +20,6 @@
   &:focus {
     outline: none;
   }
-
-  .loading {
-    margin: 0;
-    margin-left: 12px;
-
-    .loading-indicator {
-      position: relative;
-      width: 16px;
-      height: 16px;
-    }
-    .loading-message {
-      display: none;
-    }
-  }
-
 }
 
 // Priority concerns
@@ -72,6 +57,10 @@
   }
 }
 
+.button-busy {
+  opacity: 0.65;
+}
+
 .button-disabled {
   // old values: color: @50, border: @trim
   // changed to match `.btn.disabled`
@@ -98,12 +87,6 @@
   .button-label {
     padding: 6px 10px;
   }
-  .loading {
-    .loading-indicator {
-      height: 11px;
-      width: 11px;
-    }
-  }
 }
 
 .button-sm {
@@ -111,12 +94,6 @@
 
   .button-label {
     padding: 8px 12px;
-  }
-  .loading {
-    .loading-indicator {
-      height: 12px;
-      width: 12px;
-    }
   }
 }
 
