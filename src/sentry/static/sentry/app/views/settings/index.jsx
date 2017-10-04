@@ -142,6 +142,7 @@ const Settings = React.createClass({
 
 const SettingsWrapper = withTheme(
   styled.div`
+    font-family: "Rubik", sans-serif;
     font-size: 16px;
     color: ${p => p.theme.gray5};
   `
