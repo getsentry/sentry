@@ -10,9 +10,9 @@ from django.db.models.signals import post_syncdb, post_save
 from functools import wraps
 from pkg_resources import parse_version as Version
 
-from sentry import buffer, options
+from sentry import buffer, options, tagstore
 from sentry.models import (
-    Organization, OrganizationMember, Project, User, Team, ProjectKey, TagKey, TagValue,
+    Organization, OrganizationMember, Project, User, Team, ProjectKey, TagValue,
     GroupTagValue, GroupTagKey
 )
 from sentry.signals import buffer_incr_complete
@@ -148,12 +148,7 @@ def record_project_tag_count(filters, created, **kwargs):
     if not project_id:
         project_id = filters['project'].id
 
-    buffer.incr(TagKey, {
-        'values_seen': 1,
-    }, {
-        'project_id': project_id,
-        'key': filters['key'],
-    })
+    tagstore.incr_values_seen(project_id, filters['key'])
 
 
 @buffer_incr_complete.connect(sender=GroupTagValue, weak=False)

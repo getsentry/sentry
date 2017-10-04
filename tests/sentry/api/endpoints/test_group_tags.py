@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
-from sentry.models import GroupTagKey, GroupTagValue, TagKey, TagValue
+from sentry import tagstore
+from sentry.models import GroupTagKey, GroupTagValue
 from sentry.testutils import APITestCase
 
 
@@ -11,11 +12,11 @@ class GroupTagsTest(APITestCase):
         group.save()
 
         for key, value in group.data['tags']:
-            TagKey.objects.create(
+            tagstore.create_tag_key(
                 project_id=group.project_id,
                 key=key,
             )
-            TagValue.objects.create(
+            tagstore.create_tag_value(
                 project_id=group.project_id,
                 key=key,
                 value=value,

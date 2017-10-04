@@ -5,9 +5,10 @@ import six
 from rest_framework.response import Response
 
 from collections import defaultdict
+from sentry import tagstore
 from sentry.api.bases.group import GroupEndpoint
 from sentry.api.serializers import serialize
-from sentry.models import GroupTagValue, GroupTagKey, TagKey, TagKeyStatus
+from sentry.models import GroupTagValue, GroupTagKey
 
 
 class GroupTagsEndpoint(GroupEndpoint):
@@ -16,11 +17,7 @@ class GroupTagsEndpoint(GroupEndpoint):
             group_id=group.id
         ).values_list('key', flat=True))
 
-        tag_keys = TagKey.objects.filter(
-            project_id=group.project_id,
-            status=TagKeyStatus.VISIBLE,
-            key__in=grouptagkeys,
-        )
+        tag_keys = tagstore.get_tag_keys(group.project_id, grouptagkeys)
 
         # O(N) db access
         data = []
@@ -34,7 +31,7 @@ class GroupTagsEndpoint(GroupEndpoint):
             data.append(
                 {
                     'id': six.text_type(tag_key.id),
-                    'key': TagKey.get_standardized_key(tag_key.key),
+                    'key': tagstore.get_standardized_key(tag_key.key),
                     'name': tag_key.get_label(),
                     'uniqueValues': tag_key.values_seen,
                     'totalValues': total_values,

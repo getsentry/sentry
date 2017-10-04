@@ -140,6 +140,26 @@ class EmailTestCase(AcceptanceTestCase):
         self.browser.wait_until('#preview')
         self.browser.snapshot('digest email txt')
 
+    def test_invalid_identity_text(self):
+        self.browser.get(self.build_url('/debug/mail/invalid-identity/', 'txt'))
+        self.browser.wait_until('#preview')
+        self.browser.snapshot('invalid identity email txt')
+
+    def test_invalid_identity_html(self):
+        self.browser.get(self.build_url('/debug/mail/invalid-identity/', 'html'))
+        self.browser.wait_until('#preview')
+        self.browser.snapshot('invalid identity email html')
+
+    def test_invitation_text(self):
+        self.browser.get(self.build_url('/debug/mail/invitation/', 'txt'))
+        self.browser.wait_until('#preview')
+        self.browser.snapshot('invitation email txt')
+
+    def test_invitation_html(self):
+        self.browser.get(self.build_url('/debug/mail/invitation/', 'html'))
+        self.browser.wait_until('#preview')
+        self.browser.snapshot('invitation email html')
+
     def test_report_html(self):
         self.browser.get(self.build_url('/debug/mail/report/'))
         self.browser.wait_until('#preview')

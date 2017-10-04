@@ -8,6 +8,7 @@ import six
 from django.utils import timezone
 from uuid import uuid4
 
+from sentry import tagstore
 from sentry.api.endpoints.organization_releases import ReleaseSerializerWithProjects
 from sentry.api.serializers import serialize
 from sentry.models import (
@@ -18,7 +19,6 @@ from sentry.models import (
     Release,
     ReleaseCommit,
     ReleaseProject,
-    TagValue,
     User,
     UserEmail,
 )
@@ -37,18 +37,20 @@ class ReleaseSerializerTest(TestCase):
         release.add_project(project2)
         ReleaseProject.objects.filter(release=release, project=project).update(new_groups=1)
         ReleaseProject.objects.filter(release=release, project=project2).update(new_groups=1)
-        tag1 = TagValue.objects.create(
+        key = 'sentry:release'
+        value = release.version
+        tagstore.create_tag_value(
             project_id=project.id,
-            key='sentry:release',
-            value=release.version,
+            key=key,
+            value=value,
             first_seen=timezone.now(),
             last_seen=timezone.now(),
             times_seen=5,
         )
-        tag2 = TagValue.objects.create(
+        tagstore.create_tag_value(
             project_id=project2.id,
-            key='sentry:release',
-            value=release.version,
+            key=key,
+            value=value,
             first_seen=timezone.now() - datetime.timedelta(days=2),
             last_seen=timezone.now() - datetime.timedelta(days=1),
             times_seen=5,
@@ -84,8 +86,10 @@ class ReleaseSerializerTest(TestCase):
         # should be sum of all projects
         assert result['newGroups'] == 2
         # should be tags from all projects
-        assert result['firstEvent'] == TagValue.objects.get(id=tag2.id).first_seen
-        assert result['lastEvent'] == TagValue.objects.get(id=tag1.id).last_seen
+        tagvalue1 = tagstore.get_tag_value(project.id, key, value)
+        tagvalue2 = tagstore.get_tag_value(project2.id, key, value)
+        assert result['firstEvent'] == tagvalue2.first_seen
+        assert result['lastEvent'] == tagvalue1.last_seen
         assert result['commitCount'] == 1
         assert result['authors'] == [{'name': 'stebe', 'email': 'stebe@sentry.io'}]
 
@@ -93,8 +97,8 @@ class ReleaseSerializerTest(TestCase):
         # should be groups from one project
         assert result['newGroups'] == 1
         # should be tags from one project
-        assert result['firstEvent'] == TagValue.objects.get(id=tag1.id).first_seen
-        assert result['lastEvent'] == TagValue.objects.get(id=tag1.id).last_seen
+        assert result['firstEvent'] == tagvalue1.first_seen
+        assert result['lastEvent'] == tagvalue1.last_seen
 
         # Make sure a sha1 value gets truncated
         release.version = '0' * 40

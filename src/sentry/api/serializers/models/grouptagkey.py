@@ -2,8 +2,9 @@ from __future__ import absolute_import
 
 import six
 
+from sentry import tagstore
 from sentry.api.serializers import Serializer, register
-from sentry.models import GroupTagKey, TagKey
+from sentry.models import GroupTagKey
 
 
 @register(GroupTagKey)
@@ -12,14 +13,12 @@ class GroupTagKeySerializer(Serializer):
         tag_labels = {
             t.key: t.get_label()
             for t in
-            TagKey.objects.filter(
-                project_id=item_list[0].project_id, key__in=[
-                    i.key for i in item_list])
+            tagstore.get_tag_keys(item_list[0].project_id, [i.key for i in item_list])
         }
 
         result = {}
         for item in item_list:
-            key = TagKey.get_standardized_key(item.key)
+            key = tagstore.get_standardized_key(item.key)
             try:
                 label = tag_labels[item.key]
             except KeyError:
@@ -28,6 +27,7 @@ class GroupTagKeySerializer(Serializer):
                 'name': label,
                 'key': key,
             }
+
         return result
 
     def serialize(self, obj, attrs, user):

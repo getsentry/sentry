@@ -21,7 +21,7 @@ from django.db import models
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
-from sentry import buffer, eventtypes
+from sentry import buffer, eventtypes, tagstore
 from sentry.constants import (
     DEFAULT_LOGGER_NAME, EVENT_ORDERING_KEY, LOG_LEVELS, MAX_CULPRIT_LENGTH
 )
@@ -120,7 +120,7 @@ class GroupManager(BaseManager):
             )
 
     def add_tags(self, group, tags):
-        from sentry.models import TagValue, GroupTagValue
+        from sentry.models import GroupTagValue
 
         project_id = group.project_id
         date = group.last_seen
@@ -131,18 +131,10 @@ class GroupManager(BaseManager):
             else:
                 key, value, data = tag_item
 
-            buffer.incr(
-                TagValue, {
-                    'times_seen': 1,
-                }, {
-                    'project_id': project_id,
-                    'key': key,
-                    'value': value,
-                }, {
-                    'last_seen': date,
-                    'data': data,
-                }
-            )
+            tagstore.incr_times_seen(project_id, key, value, {
+                'last_seen': date,
+                'data': data,
+            })
 
             buffer.incr(
                 GroupTagValue, {
@@ -349,20 +341,18 @@ class Group(Model):
             'last_seen',
         ).order_by(order_by)
 
-    def get_tags(self, with_internal=True):
-        from sentry.models import GroupTagKey, TagKey
+    def get_tags(self):
+        from sentry.models import GroupTagKey
         if not hasattr(self, '_tag_cache'):
             group_tags = GroupTagKey.objects.filter(
                 group_id=self.id,
                 project_id=self.project_id,
             )
-            if not with_internal:
-                group_tags = group_tags.exclude(key__startswith='sentry:')
 
             group_tags = list(group_tags.values_list('key', flat=True))
 
             tag_keys = dict(
-                (t.key, t) for t in TagKey.objects.filter(project_id=self.project_id, key__in=group_tags)
+                (t.key, t) for t in tagstore.get_tag_keys(self.project_id, group_tags)
             )
 
             results = []

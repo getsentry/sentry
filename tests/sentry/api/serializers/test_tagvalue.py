@@ -4,8 +4,9 @@ from __future__ import absolute_import
 
 import six
 
+from sentry import tagstore
 from sentry.api.serializers import serialize
-from sentry.models import EventUser, TagValue
+from sentry.models import EventUser
 from sentry.testutils import TestCase
 
 
@@ -17,7 +18,7 @@ class TagValueSerializerTest(TestCase):
             project_id=project.id,
             email='foo@example.com',
         )
-        tagvalue = TagValue.objects.create(
+        tagvalue = tagstore.create_tag_value(
             project_id=project.id,
             key='sentry:user',
             value=euser.tag_value,
@@ -32,7 +33,7 @@ class TagValueSerializerTest(TestCase):
     def test_basic(self):
         user = self.create_user()
         project = self.create_project()
-        tagvalue = TagValue.objects.create(
+        tagvalue = tagstore.create_tag_value(
             project_id=project.id,
             key='sentry:user',
             value='email:foo@example.com',
@@ -47,7 +48,7 @@ class TagValueSerializerTest(TestCase):
     def test_release(self):
         user = self.create_user()
         project = self.create_project()
-        tagvalue = TagValue.objects.create(
+        tagvalue = tagstore.create_tag_value(
             project_id=project.id,
             key='sentry:release',
             value='df84bccbb23ca15f2868be1f2a5f7c7a6464fadd',

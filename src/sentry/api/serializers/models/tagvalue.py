@@ -2,8 +2,9 @@ from __future__ import absolute_import
 
 import six
 
+from sentry import tagstore
 from sentry.api.serializers import Serializer, register, serialize
-from sentry.models import EventUser, TagKey, TagValue
+from sentry.models import EventUser, TagValue
 
 
 @register(TagValue)
@@ -39,7 +40,7 @@ class TagValueSerializer(Serializer):
     def serialize(self, obj, attrs, user):
         return {
             'id': six.text_type(obj.id),
-            'key': TagKey.get_standardized_key(obj.key),
+            'key': tagstore.get_standardized_key(obj.key),
             'name': attrs['name'],
             'value': obj.value,
             'count': obj.times_seen,

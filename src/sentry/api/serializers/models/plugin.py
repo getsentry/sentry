@@ -30,29 +30,21 @@ class PluginSerializer(Serializer):
         if hasattr(obj, 'get_custom_contexts'):
             contexts.extend(x.type for x in obj.get_custom_contexts() or ())
         d = {
-            'id':
-            obj.slug,
-            'name':
-            six.text_type(obj.get_title()),
-            'type':
-            obj.get_plugin_type(),
-            'canDisable':
-            obj.can_disable,
-            'isTestable':
-            hasattr(obj, 'is_testable') and obj.is_testable(),
-            'metadata':
-            obj.get_metadata(),
-            'contexts':
-            contexts,
-            'status':
-            obj.get_status(),
+            'id': obj.slug,
+            'name': six.text_type(obj.get_title()),
+            'shortName': six.text_type(obj.get_short_title()),
+            'type': obj.get_plugin_type(),
+            'canDisable': obj.can_disable,
+            'isTestable': hasattr(obj, 'is_testable') and obj.is_testable(),
+            'metadata': obj.get_metadata(),
+            'contexts': contexts,
+            'status': obj.get_status(),
             'assets': [
                 {
                     'url': absolute_uri(get_asset_url(obj.asset_key or obj.slug, asset)),
                 } for asset in obj.get_assets()
             ],
-            'doc':
-            doc,
+            'doc': doc,
         }
         if self.project:
             d['enabled'] = obj.is_enabled(self.project)
