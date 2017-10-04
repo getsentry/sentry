@@ -56,9 +56,7 @@ export default React.createClass({
               <h6 className="nav-header">Version</h6>
               <Select2FieldAutocomplete
                 name="version"
-                className="form-control"
                 onChange={v => this.onChange(v)}
-                style={{padding: '3px 10px'}}
                 placeholder={t('e.g. 1.0.4')}
                 url={`/api/0/projects/${orgId}/${projectId}/releases/`}
                 value={version}

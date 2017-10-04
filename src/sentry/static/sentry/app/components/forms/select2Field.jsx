@@ -70,6 +70,10 @@ export default class Select2Field extends InputField {
     };
   }
 
+  getClassName() {
+    return '';
+  }
+
   componentDidMount() {
     jQuery(this.refs.input).select2(this.getSelect2Options()).on('change', this.onChange);
   }
