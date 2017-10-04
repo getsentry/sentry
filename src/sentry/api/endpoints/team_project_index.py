@@ -117,6 +117,8 @@ class TeamProjectIndexEndpoint(TeamEndpoint):
                     },
                     status=409,
                 )
+            else:
+                project.add_team(team)
 
             # XXX: create sample event?
 

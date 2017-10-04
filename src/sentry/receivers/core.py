@@ -95,6 +95,7 @@ def create_default_project(id, name, slug, verbosity=2, **kwargs):
         organization=team.organization,
         **kwargs
     )
+    project.add_team(team)
 
     # HACK: manually update the ID after insert due to Postgres
     # sequence issues. Seriously, fuck everything about this.

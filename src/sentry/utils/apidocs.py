@@ -286,11 +286,13 @@ class MockUtils(object):
 
     def create_project(self, name, team, org):
         from sentry.models import Project
-        return Project.objects.get_or_create(
+        project = Project.objects.get_or_create(
             team=team, name=name, defaults={
                 'organization': org,
             }
         )[0]
+        project.add_team(team)
+        return project
 
     def create_release(self, project, user, version=None):
         from sentry.models import Release, Activity
