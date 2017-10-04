@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import pytest
 import base64
 import mock
 from exam import fixture
@@ -8,7 +9,7 @@ from six.moves.urllib.parse import urlencode, urlparse, parse_qs
 from django.conf import settings
 from django.core.urlresolvers import reverse
 
-from sentry.auth.providers.saml2 import SAML2Provider, Attributes
+from sentry.auth.providers.saml2 import SAML2Provider, Attributes, HAS_SAML2
 from sentry.models import AuthProvider
 from sentry.testutils import AuthProviderTestCase
 
@@ -36,6 +37,7 @@ class DummySAML2Provider(SAML2Provider):
         return []
 
 
+@pytest.mark.skipif(not HAS_SAML2, reason='SAML2 library is not installed')
 class AuthSAML2Test(AuthProviderTestCase):
     provider = DummySAML2Provider
     provider_name = 'saml2_dummy'
