@@ -16,6 +16,7 @@ import time
 import errno
 import shutil
 import hashlib
+import logging
 import tempfile
 from requests.exceptions import RequestException
 
@@ -24,7 +25,7 @@ from django.db import models, transaction, IntegrityError
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
-from symsynd import DebugInfo, DebugInfoError
+from symbolic import FatObject, SymbolicError
 
 from sentry import options
 from sentry.db.models import FlexibleForeignKey, Model, \
@@ -33,6 +34,10 @@ from sentry.models.file import File
 from sentry.utils.zip import safe_extract_zip
 from sentry.constants import KNOWN_DSYM_TYPES
 from sentry.reprocessing import resolve_processing_issue
+
+
+logger = logging.getLogger(__name__)
+
 
 ONE_DAY = 60 * 60 * 24
 ONE_DAY_AND_A_HALF = int(ONE_DAY * 1.5)
@@ -283,16 +288,16 @@ def create_files_from_dsym_zip(fileobj, project=None):
 
                 # macho style debug symbols
                 try:
-                    di = DebugInfo.open_path(fn)
-                except DebugInfoError:
+                    fo = FatObject.from_path(fn)
+                except SymbolicError:
                     # Whatever was contained there, was probably not a
                     # macho file.
-                    pass
+                    # XXX: log?
+                    logger.warning('dsymfile.bad-fat-object', exc_info=True)
                 else:
-                    for variant in di.get_variants():
-                        to_create.append(
-                            ('macho', variant.cpu_name, six.text_type(variant.uuid), fn, )
-                        )
+                    for obj in fo.iter_objects():
+                        to_create.append((obj.kind, obj.arch,
+                                          six.text_type(obj.uuid), fn))
                     continue
 
         rv = []
