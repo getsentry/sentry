@@ -7,6 +7,8 @@ from rest_framework import serializers
 from rest_framework.response import Response
 from django.utils.translation import ugettext_lazy as _
 from django.contrib import messages
+from django.conf import settings
+
 
 from sentry import roles
 from sentry.api.bases.organization import (
@@ -62,7 +64,8 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
             for key, value in six.iteritems(tokens):
                 if key == 'email':
                     queryset = queryset.filter(
-                        Q(user__email__in=value) | Q(user__emails__email__in=value)
+                        Q(user__email__in=value) | Q(
+                            user__emails__email__in=value)
                     )
 
         return self.paginate(
@@ -151,14 +154,23 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
             )), status=200)
 
         self.save_team_assignments(om, teams)
-        om.send_invite_email()
 
-        self.create_audit_entry(
-            request=request,
-            organization_id=organization.id,
-            target_object=om.id,
-            event=AuditLogEntryEvent.MEMBER_INVITE,
-        )
-        member_invited.send(member=om, user=request.user, sender=self)
+        if settings.SENTRY_ENABLE_INVITES:
+            om.send_invite_email()
+            self.create_audit_entry(
+                request=request,
+                organization_id=organization.id,
+                target_object=om.id,
+                event=AuditLogEntryEvent.MEMBER_INVITE,
+            )
+            member_invited.send(member=om, user=request.user, sender=self)
+
+        else:
+            self.create_audit_entry(
+                request=request,
+                organization_id=organization.id,
+                target_object=om.id,
+                event=AuditLogEntryEvent.MEMBER_ADD,
+            )
 
         return Response(serialize(om), status=201)

@@ -160,6 +160,7 @@ exports[`CreateProject render() should render no team select when there is only 
 </HomeContainer>
 `;
 
+<<<<<<< HEAD
 exports[`CreateProject render() should render roles when available and allowed 1`] = `
 <InviteMember
   params={
@@ -706,6 +707,8 @@ exports[`CreateProject render() should render roles when available and allowed 1
 </InviteMember>
 `;
 
+=======
+>>>>>>> janky ENABLE_INVITES
 exports[`CreateProject render() should render roles when available and allowed, and handle submitting 1`] = `
 <InviteMember
   params={

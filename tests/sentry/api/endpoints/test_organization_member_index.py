@@ -120,7 +120,7 @@ class OrganizationMemberListTest(APITestCase):
 
         user = self.create_user('baz@example.com')
 
-        with self.settings(SENTRY_ENABLE_INVITES=False):
+        with self.settings(SENTRY_ENABLE_INVITES=True):
             resp = self.client.post(
                 self.url, {'email': user.email, 'role': 'member', 'teams': [
                     self.team.slug,
@@ -133,17 +133,14 @@ class OrganizationMemberListTest(APITestCase):
             email=user.email,
         )
         assert len(mail.outbox) == 0
-
         assert member.role == 'member'
 
     def test_invalid_user_for_direct_add(self):
         self.login_as(user=self.owner_user)
 
-        # user = self.create_user('baz@example.com')
-
         with self.settings(SENTRY_ENABLE_INVITES=False):
             resp = self.client.post(
-                self.url, {'email': 'notreal@example.com', 'role': 'member', 'teams': [
+                self.url, {'email': 'notexisting@example.com', 'role': 'admin', 'teams': [
                     self.team.slug,
                 ]})
 
@@ -151,12 +148,11 @@ class OrganizationMemberListTest(APITestCase):
 
         member = OrganizationMember.objects.get(
             organization=self.org,
-            email='notreal@example.com',
+            email='notexisting@example.com',
         )
         assert len(mail.outbox) == 0
-        # todo(maxbittker) this test is a false positive, need to figure out the
-        # correct SENTRY_ENABLE_INVITES semantics.
-        assert member.role == 'member'
+        # todo(maxbittker) this test is a false positive, need to figure out why
+        assert member.role == 'admin'
 
     # permission role stuff:
     def test_manager_invites(self):
