@@ -1,9 +1,11 @@
 import React from 'react';
 import {Link} from 'react-router';
 import $ from 'jquery';
-import styled from 'react-emotion';
+import styled, {css} from 'react-emotion';
 import {Flex, Box} from 'grid-emotion';
 import {withTheme} from 'emotion-theming';
+
+import Switch from '../../components/switch';
 
 const Settings = React.createClass({
   componentWillMount() {
@@ -55,33 +57,41 @@ const Settings = React.createClass({
                 </SettingsPanelHeader>
                 <SettingsPanelBody>
                   <SettingsPanelItem>
-                    <SettingsPanelItemDesc w={1 / 2}>
+                    <SettingsPanelItemDesc>
                       <SettingsPanelItemLabel>Project name</SettingsPanelItemLabel>
                     </SettingsPanelItemDesc>
-                    <SettingsPanelItemCtrl>Freight</SettingsPanelItemCtrl>
+                    <SettingsPanelItemCtrl>
+                      <SettingsInput type="text" defaultValue="Freight" />
+                    </SettingsPanelItemCtrl>
                   </SettingsPanelItem>
 
                   <SettingsPanelItem>
-                    <SettingsPanelItemDesc w={1 / 2}>
+                    <SettingsPanelItemDesc>
                       <SettingsPanelItemLabel>Short name</SettingsPanelItemLabel>
                     </SettingsPanelItemDesc>
-                    <SettingsPanelItemCtrl>freight</SettingsPanelItemCtrl>
+                    <SettingsPanelItemCtrl>
+                      <SettingsInput type="text" defaultValue="freight" />
+                    </SettingsPanelItemCtrl>
                   </SettingsPanelItem>
 
                   <SettingsPanelItem>
-                    <SettingsPanelItemDesc w={1 / 2}>
+                    <SettingsPanelItemDesc>
                       <SettingsPanelItemLabel>Team</SettingsPanelItemLabel>
                     </SettingsPanelItemDesc>
-                    <SettingsPanelItemCtrl>Freight</SettingsPanelItemCtrl>
+                    <SettingsPanelItemCtrl>
+                      <SettingsInput type="text" defaultValue="Freight" />
+                    </SettingsPanelItemCtrl>
                   </SettingsPanelItem>
 
                   <SettingsPanelItem>
-                    <SettingsPanelItemDesc w={1 / 2}>
+                    <SettingsPanelItemDesc>
                       <SettingsPanelItemLabel>
                         Email subject prefix
                       </SettingsPanelItemLabel>
                     </SettingsPanelItemDesc>
-                    <SettingsPanelItemCtrl>[FRGHT]</SettingsPanelItemCtrl>
+                    <SettingsPanelItemCtrl>
+                      <SettingsInput type="text" placeholder="[ACME]" />
+                    </SettingsPanelItemCtrl>
                   </SettingsPanelItem>
 
                 </SettingsPanelBody>
@@ -93,27 +103,31 @@ const Settings = React.createClass({
                 </SettingsPanelHeader>
                 <SettingsPanelBody>
                   <SettingsPanelItem>
-                    <SettingsPanelItemDesc w={1 / 2}>
+                    <SettingsPanelItemDesc>
                       <SettingsPanelItemLabel>Allow shared issues</SettingsPanelItemLabel>
                       <SettingsPanelItemHelp>
                         Enable sharing of limited details on issues to anonymous users.
                       </SettingsPanelItemHelp>
                     </SettingsPanelItemDesc>
-                    <SettingsPanelItemCtrl>Yeah okay</SettingsPanelItemCtrl>
+                    <SettingsPanelItemCtrl>
+                      <Switch size="lg" />
+                    </SettingsPanelItemCtrl>
                   </SettingsPanelItem>
 
                   <SettingsPanelItem>
-                    <SettingsPanelItemDesc w={1 / 2}>
+                    <SettingsPanelItemDesc>
                       <SettingsPanelItemLabel>Enhanced security</SettingsPanelItemLabel>
                       <SettingsPanelItemHelp>
                         Limits personally identifiable information (PII) and removes source code from alerts.
                       </SettingsPanelItemHelp>
                     </SettingsPanelItemDesc>
-                    <SettingsPanelItemCtrl>Sure</SettingsPanelItemCtrl>
+                    <SettingsPanelItemCtrl>
+                      <Switch size="lg" />
+                    </SettingsPanelItemCtrl>
                   </SettingsPanelItem>
 
                   <SettingsPanelItem>
-                    <SettingsPanelItemDesc w={1 / 2}>
+                    <SettingsPanelItemDesc>
                       <SettingsPanelItemLabel>
                         Global sensitive fields
                       </SettingsPanelItemLabel>
@@ -122,7 +136,7 @@ const Settings = React.createClass({
                   </SettingsPanelItem>
 
                   <SettingsPanelItem>
-                    <SettingsPanelItemDesc w={1 / 2}>
+                    <SettingsPanelItemDesc>
                       <SettingsPanelItemLabel>
                         Global safe fields
                       </SettingsPanelItemLabel>
@@ -206,6 +220,7 @@ const SettingsNavItem = withTheme(
 );
 
 const SettingsPanel = styled.div`
+  background: #fff;
   border-radius: ${p => p.theme.radius};
   border: 1px solid ${p => p.theme.borderDark};
   box-shadow: ${p => p.theme.dropShadowLight};
@@ -229,7 +244,7 @@ const SettingsPanelBody = styled.div`
 `;
 
 const SettingsPanelItem = styled(Flex)`
-  padding 20px;
+  padding 15px 20px;
   border-bottom: 1px solid ${p => p.theme.borderLight};
   align-items: center;
 
@@ -239,7 +254,9 @@ const SettingsPanelItem = styled(Flex)`
 `;
 
 const SettingsPanelItemDesc = styled(Box)`
-
+  width: 50%;
+  overflow: hidden;
+  padding-right: 10px;
 `;
 
 const SettingsPanelItemLabel = styled.div`
@@ -255,6 +272,40 @@ const SettingsPanelItemHelp = styled.div`
 
 const SettingsPanelItemCtrl = styled(Box)`
   color: ${p => p.theme.gray3};
+  overflow: hidden;
+  width: 50%;
+  padding-left: 10px;
 `;
+
+const inputStyles = props => css`
+  color: ${props.theme.gray5};
+  display: block;
+  width: 100%;
+  border: 0;
+  background: #fbfbfc;
+  padding: 7px 12px;
+  transition: border .2s ease;
+  border-top: 2px solid #fafafb;
+  border-bottom: 2px solid #fbfbfc;
+
+  &:focus {
+    outline: none;
+  }
+
+  &::placeholder {
+    color: ${props.theme.gray2};
+  }
+`;
+
+const SettingsInput = withTheme(
+  styled.input`
+  ${inputStyles};
+
+  &:focus {
+    outline: none;
+    border-bottom-color: ${p => p.theme.blue};
+  }
+`
+);
 
 export default Settings;

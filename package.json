@@ -27,6 +27,7 @@
     "css-loader": "^0.28.2",
     "diff": "^3.3.0",
     "emotion": "^8.0.2-12",
+    "emotion-theming": "^8.0.2-10",
     "enzyme-to-json": "^1.5.1",
     "extract-text-webpack-plugin": "2.0.0-beta.5",
     "file-loader": "0.8.4",
