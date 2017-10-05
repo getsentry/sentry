@@ -412,14 +412,37 @@ exports[`OrganizationIntegrations render() with a provider renders 1`] = `
                     <ul
                       className="nav nav-stacked"
                     >
-                      <li>
-                        <a
-                          href="/organizations/org-slug/members/"
+                      <ListLink
+                        activeClassName="active"
+                        index={false}
+                        to="/organizations/org-slug/members/"
+                      >
+                        <li
+                          className=""
                         >
-                          Members
-                           
-                        </a>
-                      </li>
+                          <Link
+                            onlyActiveOnIndex={false}
+                            style={Object {}}
+                            to="/organizations/org-slug/members/"
+                          >
+                            <a
+                              onClick={[Function]}
+                              style={Object {}}
+                            >
+                              Members
+                               
+                              <span
+                                className="badge"
+                                style={
+                                  Object {
+                                    "marginLeft": 5,
+                                  }
+                                }
+                              />
+                            </a>
+                          </Link>
+                        </li>
+                      </ListLink>
                       <ListLink
                         activeClassName="active"
                         index={false}
@@ -1010,14 +1033,37 @@ exports[`OrganizationIntegrations render() with a provider renders with a reposi
                     <ul
                       className="nav nav-stacked"
                     >
-                      <li>
-                        <a
-                          href="/organizations/org-slug/members/"
+                      <ListLink
+                        activeClassName="active"
+                        index={false}
+                        to="/organizations/org-slug/members/"
+                      >
+                        <li
+                          className=""
                         >
-                          Members
-                           
-                        </a>
-                      </li>
+                          <Link
+                            onlyActiveOnIndex={false}
+                            style={Object {}}
+                            to="/organizations/org-slug/members/"
+                          >
+                            <a
+                              onClick={[Function]}
+                              style={Object {}}
+                            >
+                              Members
+                               
+                              <span
+                                className="badge"
+                                style={
+                                  Object {
+                                    "marginLeft": 5,
+                                  }
+                                }
+                              />
+                            </a>
+                          </Link>
+                        </li>
+                      </ListLink>
                       <ListLink
                         activeClassName="active"
                         index={false}
@@ -1749,14 +1795,37 @@ exports[`OrganizationIntegrations render() without any providers renders 1`] = `
                     <ul
                       className="nav nav-stacked"
                     >
-                      <li>
-                        <a
-                          href="/organizations/org-slug/members/"
+                      <ListLink
+                        activeClassName="active"
+                        index={false}
+                        to="/organizations/org-slug/members/"
+                      >
+                        <li
+                          className=""
                         >
-                          Members
-                           
-                        </a>
-                      </li>
+                          <Link
+                            onlyActiveOnIndex={false}
+                            style={Object {}}
+                            to="/organizations/org-slug/members/"
+                          >
+                            <a
+                              onClick={[Function]}
+                              style={Object {}}
+                            >
+                              Members
+                               
+                              <span
+                                className="badge"
+                                style={
+                                  Object {
+                                    "marginLeft": 5,
+                                  }
+                                }
+                              />
+                            </a>
+                          </Link>
+                        </li>
+                      </ListLink>
                       <ListLink
                         activeClassName="active"
                         index={false}

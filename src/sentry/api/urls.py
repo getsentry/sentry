@@ -206,6 +206,11 @@ urlpatterns = patterns(
         name='sentry-api-0-short-ids-update'
     ),
     url(
+        r'^organizations/(?P<organization_slug>[^\/]+)/access-requests/$',
+        OrganizationAccessRequestDetailsEndpoint.as_view(),
+        name='sentry-api-0-organization-access-requests'
+    ),
+    url(
         r'^organizations/(?P<organization_slug>[^\/]+)/access-requests/(?P<request_id>\d+)/$',
         OrganizationAccessRequestDetailsEndpoint.as_view(),
         name='sentry-api-0-organization-access-request-details'

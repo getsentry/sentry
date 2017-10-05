@@ -75,16 +75,12 @@ const HomeSidebar = React.createClass({
             <h6 className="nav-header with-divider">{t('Manage')}</h6>
             <ul className="nav nav-stacked">
               {access.has('org:read') &&
-                <li>
-                  <a href={`/organizations/${orgId}/members/`}>
-                    {t('Members')}&nbsp;
-                    {access.has('org:write') &&
-                      org.pendingAccessRequests > 0 &&
-                      <span className="badge" style={{marginLeft: 5}}>
-                        {org.pendingAccessRequests}
-                      </span>}
-                  </a>
-                </li>}
+                <ListLink to={`/organizations/${orgId}/members/`}>
+                  {t('Members')}&nbsp;
+                  <span className="badge" style={{marginLeft: 5}}>
+                    {org.pendingAccessRequests}
+                  </span>
+                </ListLink>}
 
               {features.has('sso') &&
                 access.has('org:admin') &&

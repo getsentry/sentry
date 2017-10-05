@@ -42,6 +42,8 @@ import OrganizationDashboard from './views/organizationDashboard';
 import OrganizationDetails from './views/organizationDetails';
 import OrganizationContext from './views/organizationContext';
 import OrganizationIntegrations from './views/organizationIntegrations';
+import OrganizationMembersView
+  from './views/settings/organization/members/organizationMembersView';
 import OrganizationAuthView
   from './views/settings/organization/auth/organizationAuthView';
 import OrganizationRateLimits from './views/organizationRateLimits';
@@ -181,6 +183,10 @@ function routes() {
         <Route
           path="/organizations/:orgId/auth/"
           component={errorHandler(OrganizationAuthView)}
+        />
+        <Route
+          path="/organizations/:orgId/members/"
+          component={errorHandler(OrganizationMembersView)}
         />
         <Route
           path="/organizations/:orgId/repos/"
