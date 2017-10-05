@@ -7,7 +7,15 @@ exports[`Button renders 1`] = `
   onClick={[Function]}
   role="button"
 >
-  Button
+  <FlowLayout
+    truncate={false}
+  >
+    <span
+      className="button-label"
+    >
+      Button
+    </span>
+  </FlowLayout>
 </button>
 `;
 
@@ -19,7 +27,15 @@ exports[`Button renders normal link 1`] = `
   onClick={[Function]}
   role="button"
 >
-  Normal Link
+  <FlowLayout
+    truncate={false}
+  >
+    <span
+      className="button-label"
+    >
+      Normal Link
+    </span>
+  </FlowLayout>
 </a>
 `;
 
@@ -33,6 +49,14 @@ exports[`Button renders react-router link 1`] = `
   style={Object {}}
   to="/some/route"
 >
-  Router Link
+  <FlowLayout
+    truncate={false}
+  >
+    <span
+      className="button-label"
+    >
+      Router Link
+    </span>
+  </FlowLayout>
 </Link>
 `;

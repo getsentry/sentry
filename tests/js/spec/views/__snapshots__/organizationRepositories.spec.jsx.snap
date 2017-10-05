@@ -187,7 +187,19 @@ exports[`OrganizationRepositories render() with a provider renders 1`] = `
                     }
                   }
                 >
-                  New Project
+                  <FlowLayout
+                    truncate={false}
+                  >
+                    <div
+                      className="flow-layout"
+                    >
+                      <span
+                        className="button-label"
+                      >
+                        New Project
+                      </span>
+                    </div>
+                  </FlowLayout>
                 </a>
               </Link>
             </Button>
@@ -212,7 +224,19 @@ exports[`OrganizationRepositories render() with a provider renders 1`] = `
                   role="button"
                   style={Object {}}
                 >
-                  New Team
+                  <FlowLayout
+                    truncate={false}
+                  >
+                    <div
+                      className="flow-layout"
+                    >
+                      <span
+                        className="button-label"
+                      >
+                        New Team
+                      </span>
+                    </div>
+                  </FlowLayout>
                 </a>
               </Link>
             </Button>
@@ -836,7 +860,19 @@ exports[`OrganizationRepositories render() with a provider renders with a reposi
                     }
                   }
                 >
-                  New Project
+                  <FlowLayout
+                    truncate={false}
+                  >
+                    <div
+                      className="flow-layout"
+                    >
+                      <span
+                        className="button-label"
+                      >
+                        New Project
+                      </span>
+                    </div>
+                  </FlowLayout>
                 </a>
               </Link>
             </Button>
@@ -861,7 +897,19 @@ exports[`OrganizationRepositories render() with a provider renders with a reposi
                   role="button"
                   style={Object {}}
                 >
-                  New Team
+                  <FlowLayout
+                    truncate={false}
+                  >
+                    <div
+                      className="flow-layout"
+                    >
+                      <span
+                        className="button-label"
+                      >
+                        New Team
+                      </span>
+                    </div>
+                  </FlowLayout>
                 </a>
               </Link>
             </Button>
@@ -1339,9 +1387,21 @@ exports[`OrganizationRepositories render() with a provider renders with a reposi
                                   onClick={[Function]}
                                   role="button"
                                 >
-                                  <span
-                                    className="icon icon-trash"
-                                  />
+                                  <FlowLayout
+                                    truncate={false}
+                                  >
+                                    <div
+                                      className="flow-layout"
+                                    >
+                                      <span
+                                        className="button-label"
+                                      >
+                                        <span
+                                          className="icon icon-trash"
+                                        />
+                                      </span>
+                                    </div>
+                                  </FlowLayout>
                                 </button>
                               </Button>
                               <Modal
@@ -1652,7 +1712,19 @@ exports[`OrganizationRepositories render() without any providers renders 1`] = `
                     }
                   }
                 >
-                  New Project
+                  <FlowLayout
+                    truncate={false}
+                  >
+                    <div
+                      className="flow-layout"
+                    >
+                      <span
+                        className="button-label"
+                      >
+                        New Project
+                      </span>
+                    </div>
+                  </FlowLayout>
                 </a>
               </Link>
             </Button>
@@ -1677,7 +1749,19 @@ exports[`OrganizationRepositories render() without any providers renders 1`] = `
                   role="button"
                   style={Object {}}
                 >
-                  New Team
+                  <FlowLayout
+                    truncate={false}
+                  >
+                    <div
+                      className="flow-layout"
+                    >
+                      <span
+                        className="button-label"
+                      >
+                        New Team
+                      </span>
+                    </div>
+                  </FlowLayout>
                 </a>
               </Link>
             </Button>

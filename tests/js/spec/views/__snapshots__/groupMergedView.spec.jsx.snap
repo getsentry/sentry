@@ -405,7 +405,19 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
                               }
                             }
                           >
-                            Compare
+                            <FlowLayout
+                              truncate={false}
+                            >
+                              <div
+                                className="flow-layout"
+                              >
+                                <span
+                                  className="button-label"
+                                >
+                                  Compare
+                                </span>
+                              </div>
+                            </FlowLayout>
                           </button>
                         </Button>
                       </div>
@@ -428,7 +440,19 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
                             onClick={[Function]}
                             role="button"
                           >
-                            Collapse All
+                            <FlowLayout
+                              truncate={false}
+                            >
+                              <div
+                                className="flow-layout"
+                              >
+                                <span
+                                  className="button-label"
+                                >
+                                  Collapse All
+                                </span>
+                              </div>
+                            </FlowLayout>
                           </button>
                         </Button>
                       </div>
@@ -1769,7 +1793,19 @@ exports[`Issues -> Merged View renders with mocked data 2`] = `
                               }
                             }
                           >
-                            Compare
+                            <FlowLayout
+                              truncate={false}
+                            >
+                              <div
+                                className="flow-layout"
+                              >
+                                <span
+                                  className="button-label"
+                                >
+                                  Compare
+                                </span>
+                              </div>
+                            </FlowLayout>
                           </button>
                         </Button>
                       </div>
@@ -1792,7 +1828,19 @@ exports[`Issues -> Merged View renders with mocked data 2`] = `
                             onClick={[Function]}
                             role="button"
                           >
-                            Collapse All
+                            <FlowLayout
+                              truncate={false}
+                            >
+                              <div
+                                className="flow-layout"
+                              >
+                                <span
+                                  className="button-label"
+                                >
+                                  Collapse All
+                                </span>
+                              </div>
+                            </FlowLayout>
                           </button>
                         </Button>
                       </div>
