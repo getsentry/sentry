@@ -199,7 +199,7 @@ travis-setup-cassandra:
 travis-install-python:
 	$(MAKE) travis-upgrade-pip
 	$(MAKE) install-python-base
-	$(MAKE) install-python-test
+	$(MAKE) install-python-tests
 	python -m pip install codecov
 travis-noop:
 	@echo "nothing to do here."
