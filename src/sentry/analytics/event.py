@@ -4,6 +4,7 @@ __all__ = ('Attribute', 'Event', 'Map')
 
 import six
 from uuid import uuid1
+from base64 import b64encode
 
 from collections import Mapping
 from django.utils import timezone
@@ -78,7 +79,7 @@ class Event(object):
     attributes = ()
 
     def __init__(self, type=None, datetime=None, **items):
-        self.guid = uuid1().hex
+        self.guid = uuid1()
 
         self.datetime = datetime or timezone.now()
         if type is not None:
@@ -104,13 +105,12 @@ class Event(object):
         self.data = data
 
     def serialize(self):
-        return dict(
-            {
-                'guid': self.guid,
-                'timestamp': int(to_timestamp(self.datetime) * 1000000),
-                'type': self.type,
-            }, **self.data
-        )
+        return {
+            'guid': b64encode(self.guid.bytes),
+            'timestamp': to_timestamp(self.datetime),
+            'type': self.type,
+            'data': self.data,
+        }
 
     @classmethod
     def from_instance(cls, instance, **kwargs):
