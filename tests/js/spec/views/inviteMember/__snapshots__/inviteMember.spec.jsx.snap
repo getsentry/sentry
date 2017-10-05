@@ -6,7 +6,7 @@ exports[`CreateProject render() should render 1`] = `
     Add Member to Organization
   </h3>
   <p>
-    Invite a member to join this organization via their email address. If they do not already have an account, they will first be asked to create one. Multiple emails delimited by commas.
+    You may add a user by their username if they already have an account. Multiple inputs delimited by commas.
   </p>
   <div
     className=""
@@ -17,10 +17,10 @@ exports[`CreateProject render() should render 1`] = `
     />
     <TextField
       disabled={false}
-      label="Email(s)"
+      label="Username(s)"
       name="email"
       onChange={[Function]}
-      placeholder="e.g. teammate@example.com"
+      placeholderlabel="Usernames"
       required={false}
       spellCheck="false"
     />
@@ -113,7 +113,7 @@ exports[`CreateProject render() should render no team select when there is only 
     Add Member to Organization
   </h3>
   <p>
-    Invite a member to join this organization via their email address. If they do not already have an account, they will first be asked to create one. Multiple emails delimited by commas.
+    You may add a user by their username if they already have an account. Multiple inputs delimited by commas.
   </p>
   <div
     className=""
@@ -124,11 +124,15 @@ exports[`CreateProject render() should render no team select when there is only 
     />
     <TextField
       disabled={false}
+<<<<<<< HEAD
       hideErrorMessage={false}
       label="Email(s)"
+=======
+      label="Username(s)"
+>>>>>>> snapshots
       name="email"
       onChange={[Function]}
-      placeholder="e.g. teammate@example.com"
+      placeholderlabel="Usernames"
       required={false}
       spellCheck="false"
     />
@@ -837,7 +841,7 @@ exports[`CreateProject render() should render roles when available and allowed, 
             title="You do not have enough permission to create new projects"
           >
             <button
-              className="tip button button-primary button-disabled"
+              className="tip button tip button-default button-disabled"
               data-placement="bottom"
               disabled={true}
               onClick={[Function]}
@@ -847,9 +851,20 @@ exports[`CreateProject render() should render roles when available and allowed, 
                   "marginRight": 5,
                 }
               }
-              title="You do not have enough permission to create new projects"
             >
-              New Project
+              <FlowLayout
+                truncate={false}
+              >
+                <div
+                  className="flow-layout"
+                >
+                  <span
+                    className="button-label"
+                  >
+                    New Project
+                  </span>
+                </div>
+              </FlowLayout>
             </button>
           </Button>
           <Button
@@ -860,14 +875,25 @@ exports[`CreateProject render() should render roles when available and allowed, 
             title="You do not have enough permission to create new teams"
           >
             <button
-              className="tip button button-primary button-disabled"
+              className="tip button tip button-default button-disabled"
               data-placement="bottom"
               disabled={true}
               onClick={[Function]}
               role="button"
-              title="You do not have enough permission to create new teams"
             >
-              New Team
+              <FlowLayout
+                truncate={false}
+              >
+                <div
+                  className="flow-layout"
+                >
+                  <span
+                    className="button-label"
+                  >
+                    New Team
+                  </span>
+                </div>
+              </FlowLayout>
             </button>
           </Button>
         </div>
@@ -1035,7 +1061,7 @@ exports[`CreateProject render() should render roles when available and allowed, 
                 label="Email(s)"
                 name="email"
                 onChange={[Function]}
-                placeholder="e.g. teammate@example.com"
+                placeholderlabel="e.g. teammate@example.com"
                 required={false}
                 spellCheck="false"
               >
@@ -1056,7 +1082,6 @@ exports[`CreateProject render() should render roles when available and allowed, 
                       disabled={false}
                       id="id-email"
                       onChange={[Function]}
-                      placeholder="e.g. teammate@example.com"
                       required={false}
                       spellCheck="false"
                       type="text"

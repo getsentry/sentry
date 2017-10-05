@@ -40,4 +40,4 @@ class CreateOrganizationMemberTest(AcceptanceTestCase):
 
         self.browser.wait_until_not('.loading')
         assert self.browser.element_exists('.member-list')
-        assert self.browser.element_exists('.aler-success')
+        assert self.browser.element_exists('.alert-success')

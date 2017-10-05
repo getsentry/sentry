@@ -73,7 +73,8 @@ describe('CreateProject', function() {
               },
               allowed: false
             }
-          ]
+          ],
+          is_invite: true
         }
       });
 
@@ -107,7 +108,8 @@ describe('CreateProject', function() {
               role: {id: 2, name: 'bar', desc: 'another role'},
               allowed: true
             }
-          ]
+          ],
+          is_invite: true
         }
       });
 
