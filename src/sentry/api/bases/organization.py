@@ -48,7 +48,7 @@ class OrganizationPermission(ScopedPermission):
 
             if auth.is_user_signed_request(request):
                 # if the user comes from a signed request
-                # we let him pass if sso is enabled
+                # we let them pass if sso is enabled
                 logger.info(
                     'access.signed-sso-passthrough',
                     extra={
