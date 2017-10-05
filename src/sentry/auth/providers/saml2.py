@@ -118,7 +118,7 @@ class SAML2SLSView(BaseView):
 
         redirect_to = auth.process_slo(
             delete_session_cb=force_logout,
-            keep_local_session=should_logout,
+            keep_local_session=not should_logout,
         )
 
         if not redirect_to:
@@ -166,10 +166,10 @@ class SAML2Provider(Provider):
 
       >>> state.get('idp')
       {
-        'entityId': # Identity Provider entity ID. Usually a URL
-        'x509cert': # Identity Provider x509 public certificate
-        'sso_url:   # Identity Provider Single Sign-On URL
-        'slo_url':  # identity Provider Single Sign-Out URL
+        'entity_id': # Identity Provider entity ID. Usually a URL
+        'x509cert':  # Identity Provider x509 public certificate
+        'sso_url':   # Identity Provider Single Sign-On URL
+        'slo_url':   # identity Provider Single Sign-Out URL
       }
 
       The provider may also bind the `advanced` configuration. This dict
@@ -297,14 +297,14 @@ def build_saml_config(provider_config, org):
             'singleLogoutService': {'url': idp['slo_url']},
         },
         'sp': {
-            "entityId": metadata_url,
-            "assertionConsumerService": {
-                "url": acs_url,
-                "binding": OneLogin_Saml2_Constants.BINDING_HTTP_POST,
+            'entityId': metadata_url,
+            'assertionConsumerService': {
+                'url': acs_url,
+                'binding': OneLogin_Saml2_Constants.BINDING_HTTP_POST,
             },
-            "singleLogoutService": {
-                "url": sls_url,
-                "binding": OneLogin_Saml2_Constants.BINDING_HTTP_REDIRECT,
+            'singleLogoutService': {
+                'url': sls_url,
+                'binding': OneLogin_Saml2_Constants.BINDING_HTTP_REDIRECT,
             },
         },
         'security': security_config,
