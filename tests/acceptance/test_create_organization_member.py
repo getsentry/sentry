@@ -26,7 +26,7 @@ class CreateOrganizationMemberTest(AcceptanceTestCase):
 
     def test_invite(self):
         """
-        Add by username (on-premises / by configuration only)
+        Add by email
         """
         self.browser.get(
             '/organizations/{}/members/new/'.format(self.org.slug))
@@ -39,5 +39,5 @@ class CreateOrganizationMemberTest(AcceptanceTestCase):
         self.browser.click('.submit-new-team')
 
         self.browser.wait_until_not('.loading')
-
-        self.browser.snapshot(name='after submit member')
+        assert self.browser.element_exists('.member-list')
+        assert self.browser.element_exists('.aler-success')

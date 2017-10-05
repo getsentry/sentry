@@ -120,7 +120,7 @@ class OrganizationMemberListTest(APITestCase):
 
         user = self.create_user('baz@example.com')
 
-        with self.settings(SENTRY_ENABLE_INVITES=True):
+        with self.settings(SENTRY_ENABLE_INVITES=False):
             resp = self.client.post(
                 self.url, {'email': user.email, 'role': 'member', 'teams': [
                     self.team.slug,
