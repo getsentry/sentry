@@ -1,8 +1,10 @@
+/* global module */
 import jQuery from 'jquery';
 import moment from 'moment';
 import Raven from 'raven-js';
 import React from 'react';
 import ReactDOM from 'react-dom';
+import {AppContainer} from 'react-hot-loader';
 import PropTypes from 'prop-types';
 import {renderToStaticMarkup} from 'react-dom/server';
 import Reflux from 'reflux';
@@ -13,6 +15,7 @@ import JsCookie from 'js-cookie';
 import * as api from './api';
 import * as il8n from './locale';
 import plugins from './plugins';
+import Main from './main';
 
 const csrfCookieName = window.csrfCookieName || 'sc';
 
@@ -49,6 +52,18 @@ jQuery.ajaxSetup({
 // these get exported to a global variable, which is important as its the only
 // way we can call into scoped objects
 
+let render = Component => {
+  let rootEl = document.getElementById('blk_router');
+  ReactDOM.render(<AppContainer><Component /></AppContainer>, rootEl);
+};
+
+if (module.hot) {
+  // webpack 2 has built in support for es2015 modules, so don't have to re-require
+  module.hot.accept('./main', () => {
+    render(Main);
+  });
+}
+
 export default {
   jQuery,
   moment,
@@ -68,10 +83,10 @@ export default {
   Reflux,
   Router,
   JsCookie,
+  SentryRenderApp: () => render(Main),
 
   Sentry: {
     api,
-    routes: require('./routes').default,
     forms: {
       // we dont yet export all form field classes as they're not
       // all needed by sentry.io
