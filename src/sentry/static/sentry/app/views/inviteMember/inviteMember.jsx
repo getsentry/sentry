@@ -93,7 +93,7 @@ const InviteMember = React.createClass({
       .reduce((prev, cur_email) => {
         return prev.then(() => this.inviteUser(cur_email));
       }, Promise.resolve())
-      .then(() => this.onSubmitSuccess())
+      .then(() => this.redirectToMemberPage())
       .catch(error => {
         if (!error.email && !error.role) {
           Raven.captureMessage('unkown error ', {
@@ -113,12 +113,6 @@ const InviteMember = React.createClass({
       selectedTeams.add(id);
     }
     this.setState({selectedTeams});
-  },
-
-  onSubmitSuccess() {
-    let {orgId} = this.props.params;
-    // redirect to member page
-    window.location.href = `/organizations/${orgId}/members/`;
   },
 
   renderRoleSelect() {
@@ -157,7 +151,7 @@ const InviteMember = React.createClass({
     let org = this.getOrganization();
     let {teams} = org;
     let {selectedTeams} = this.state;
-
+    //no need to select a team when there's only one option
     if (teams.length < 2) return null;
     return (
       <div className="new-invite-team box">
