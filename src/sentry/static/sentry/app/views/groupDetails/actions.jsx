@@ -374,7 +374,7 @@ const DeleteActions = React.createClass({
           className="group-remove btn btn-default btn-sm"
           title={t('Delete')}
           message={t(
-            'Deleting this event is permanent. Are you sure you wish to continue?'
+            'Deleting this issue is permanent. Are you sure you wish to continue?'
           )}
           onConfirm={this.props.onDelete}>
           <span className="icon-trash" />
