@@ -119,8 +119,8 @@ def version_build_from_data(data):
     return None
 
 
-def rebase_addr(instr_addr, img):
-    return parse_addr(instr_addr) - parse_addr(img['image_addr'])
+def rebase_addr(instr_addr, obj):
+    return parse_addr(instr_addr) - parse_addr(obj.addr)
 
 
 def sdk_info_to_sdk_id(sdk_info):
