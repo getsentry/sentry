@@ -15,6 +15,7 @@
     "transform-object-rest-spread",
     "lodash",
     "syntax-dynamic-import",
+    "react-hot-loader/babel",
     [
       "babel-plugin-transform-builtin-extend",
       {
