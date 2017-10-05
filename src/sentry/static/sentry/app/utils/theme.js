@@ -50,7 +50,28 @@ const theme = {
   radius: '4px',
 
   dropShadowLight: '0 2px 0 rgba(37, 11, 54, 0.04)',
-  dropShadowHeavy: '0 0 0 1px rgba(37, 11, 54, 0.2), 0 4px 20px 0 rgba(37, 11, 54, 0.36);'
+  dropShadowHeavy: '0 0 0 1px rgba(37, 11, 54, 0.2), 0 4px 20px 0 rgba(37, 11, 54, 0.36)',
+
+  alert: {
+    info: {
+      background: '#F5FAFE',
+      border: '#B5D6ED'
+    },
+    warning: {
+      background: '#FFFDF7',
+      border: '#E1D697'
+    },
+    success: {
+      background: '#F8FCF7',
+      border: '#BBD6B3'
+    },
+    error: {
+      background: '#FDF6F5',
+      border: '#E7C0BC',
+      textLight: '#795451',
+      textDark: '#462724'
+    }
+  }
 };
 
 export default theme;

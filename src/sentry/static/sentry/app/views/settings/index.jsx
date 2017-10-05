@@ -53,33 +53,49 @@ const Settings = React.createClass({
             <Box flex="1">
               <SettingsPanel>
                 <SettingsPanelHeader>
-                  <SettingsPanelHeaderHeading>Project Details</SettingsPanelHeaderHeading>
+                  <SettingsPanelHeaderHeading>
+                    Project Details
+                  </SettingsPanelHeaderHeading>
                 </SettingsPanelHeader>
                 <SettingsPanelBody>
                   <SettingsPanelItem>
                     <SettingsPanelItemDesc>
-                      <SettingsPanelItemLabel>Project name</SettingsPanelItemLabel>
+                      <SettingsPanelItemLabel>
+                        Project name <SettingsRequiredBadge />
+                      </SettingsPanelItemLabel>
                     </SettingsPanelItemDesc>
                     <SettingsPanelItemCtrl>
-                      <SettingsInput type="text" defaultValue="Freight" />
+                      <SettingsInput
+                        type="text"
+                        placeholder="Enter a project name..."
+                        defaultValue="Freight"
+                      />
                     </SettingsPanelItemCtrl>
                   </SettingsPanelItem>
 
-                  <SettingsPanelItem>
+                  <SettingsPanelItem error={false}>
                     <SettingsPanelItemDesc>
-                      <SettingsPanelItemLabel>Short name</SettingsPanelItemLabel>
+                      <SettingsPanelItemLabel>
+                        Short name <SettingsRequiredBadge />
+                      </SettingsPanelItemLabel>
                       <SettingsPanelItemHelp>
                         A unique ID used to identify this project.
                       </SettingsPanelItemHelp>
                     </SettingsPanelItemDesc>
                     <SettingsPanelItemCtrl>
-                      <SettingsInput type="text" defaultValue="freight" />
+                      <SettingsInput
+                        type="text"
+                        placeholder="Enter a short name..."
+                        defaultValue="freight"
+                      />
                     </SettingsPanelItemCtrl>
                   </SettingsPanelItem>
 
                   <SettingsPanelItem>
                     <SettingsPanelItemDesc>
-                      <SettingsPanelItemLabel>Team</SettingsPanelItemLabel>
+                      <SettingsPanelItemLabel>
+                        Team <SettingsRequiredBadge />
+                      </SettingsPanelItemLabel>
                     </SettingsPanelItemDesc>
                     <SettingsPanelItemCtrl>
                       <SettingsInput type="text" defaultValue="Freight" />
@@ -246,21 +262,64 @@ const SettingsPanelBody = styled.div`
 
 `;
 
-const SettingsPanelItem = styled(Flex)`
-  padding 15px 20px;
-  border-bottom: 1px solid ${p => p.theme.borderLight};
-  align-items: center;
+const SettingsPanelItem = withTheme(
+  styled(Flex)`
+    padding: 15px 20px;
+    border-bottom: 1px solid ${p => p.theme.borderLight};
+    align-items: center;
+    transition: background .15s;
 
-  &:last-child {
-    border-bottom: none;
-  }
-`;
+    ${p => {
+    if (p.error) {
+      return css`
+        background: ${p.theme.alert.error.background};
+        border: 1px solid ${p.theme.alert.error.border};
+        margin: -1px -1px 0;
+
+        input[type="text"] {
+          box-shadow: 0 0 0 2px ${p.theme.alert.error.border};
+          &:focus, &:hover:focus {
+            background: #fff;
+          }
+        }
+
+        div {
+          color: ${p.theme.alert.error.textDark} !important;
+        }
+      `;
+    }
+  }}
+
+    &:last-child {
+      border-bottom: none;
+    }
+
+    &:hover input[type="text"] {
+      background: #fbfbfc;
+
+      &:focus {
+        background: #f7f7f9;
+      }
+    }
+  `
+);
 
 const SettingsPanelItemDesc = styled(Box)`
   width: 50%;
-  overflow: hidden;
   padding-right: 10px;
 `;
+
+const SettingsRequiredBadge = withTheme(
+  styled.div`
+    display: inline-block;
+    background: ${p => p.theme.gray2};
+    width: 5px;
+    height: 5px;
+    border-radius: 5px;
+    text-indent: -9999em;
+    vertical-align: super;
+  `
+);
 
 const SettingsPanelItemLabel = styled.div`
   color: ${p => p.theme.gray5};
@@ -285,13 +344,12 @@ const inputStyles = props => css`
   display: block;
   width: 100%;
   border: 0;
-  padding: 10px 0;
+  padding: 10px;
   transition: border .2s ease;
-  border-top: 2px solid transparent;
-  border-bottom: 2px solid #f1f2f3;
 
   &:focus {
     outline: none;
+    background: #f7f7f9;
   }
 
   &::placeholder {
