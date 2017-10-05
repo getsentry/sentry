@@ -239,7 +239,7 @@ class Symbolizer(object):
                 type=EventError.NATIVE_INTERNAL_FAILURE, message='Found multiple architectures.'
             )
 
-        obj = self.object_lookup.find_image(instruction_addr)
+        obj = self.object_lookup.find_object(instruction_addr)
         if obj is None:
             raise SymbolicationFailed(type=EventError.NATIVE_UNKNOWN_IMAGE)
 
@@ -252,7 +252,7 @@ class Symbolizer(object):
         return self._symbolize_app_frame(instruction_addr, obj, sdk_info=sdk_info)
 
     def is_in_app(self, instruction_addr, sdk_info=None):
-        obj = self.object_lookup.find_image(instruction_addr)
+        obj = self.object_lookup.find_object(instruction_addr)
         return obj is not None and self._is_app_frame(instruction_addr, obj, sdk_info=sdk_info)
 
     def is_internal_function(self, function):
