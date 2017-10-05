@@ -55,7 +55,7 @@ class TagStorage(Service):
 
         'delete_tag_key',
         'delete_group_tag_key',
-        'delete_group_tag_keys',
+        'delete_all_group_tag_keys',
 
         'get_values_seen',
         'incr_values_seen',
@@ -170,9 +170,9 @@ class TagStorage(Service):
         """
         raise NotImplementedError
 
-    def delete_group_tag_keys(self, group_id):
+    def delete_all_group_tag_keys(self, group_id):
         """
-        >>> delete_group_tag_keys(1)
+        >>> delete_all_group_tag_keys(1)
         """
         raise NotImplementedError
 

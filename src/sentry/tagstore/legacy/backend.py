@@ -143,7 +143,10 @@ class LegacyTagStorage(TagStorage):
             qs = GroupTagKey.objects.filter(group_id=group_ids)
 
         if keys is not None:
-            qs = qs.filter(keys__in=keys)
+            if isinstance(keys, list):
+                qs = qs.filter(key__in=keys)
+            else:
+                qs = qs.filter(key=keys)
 
         return list(qs)
 
@@ -166,7 +169,7 @@ class LegacyTagStorage(TagStorage):
             key=key
         ).delete()
 
-    def delete_group_tag_keys(self, group_id):
+    def delete_all_group_tag_keys(self, group_id):
         GroupTagKey.objects.filter(
             group_id=group_id,
         ).delete()
