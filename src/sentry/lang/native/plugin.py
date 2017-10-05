@@ -128,9 +128,9 @@ class NativeStacktraceProcessor(StacktraceProcessor):
             if pf.cache_value is None and pf.data['image_uuid'] is not None
         )
 
-        def on_referenced(dsym_file):
-            app_info = version_build_from_data(self.data)
-            if app_info is not None:
+        app_info = version_build_from_data(self.data)
+        if app_info is not None:
+            def on_referenced(dsym_file):
                 dsym_app = DSymApp.objects.create_or_update_app(
                     sync_id=None,
                     app_id=app_info.id,
@@ -151,6 +151,8 @@ class NativeStacktraceProcessor(StacktraceProcessor):
                     # support one app per dsym file.  Since this can
                     # happen in some cases anyways we ignore it.
                     pass
+        else:
+            on_referenced = None
 
         self.sym = Symbolizer(
             self.project,

@@ -95,16 +95,14 @@ class Symbolizer(object):
     def __init__(
         self,
         project,
-        binary_images,
+        image_lookup,
         referenced_images=None,
         cpu_name=None,
         on_dsym_file_referenced=None
     ):
-        if isinstance(binary_images, ImageLookup):
-            self.image_lookup = binary_images
-        else:
-            self.image_lookup = ImageLookup(binary_images)
-
+        if not isinstance(image_lookup, ImageLookup):
+            image_lookup = ImageLookup(image_lookup)
+        self.image_lookup = image_lookup
         self._symbolizer = SymsyndSymbolizer()
 
         to_load = referenced_images

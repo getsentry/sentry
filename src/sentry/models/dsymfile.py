@@ -25,7 +25,7 @@ from django.db import models, transaction, IntegrityError
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
-from symbolic import FatObject, SymbolicError
+from symbolic import FatObject, SymbolicError, SymCache, SYMCACHE_LATEST_VERSION
 
 from sentry import options
 from sentry.db.models import FlexibleForeignKey, Model, \
@@ -193,6 +193,27 @@ class ProjectDSymFile(Model):
         self.file.delete()
 
 
+class ProjectSymCacheFile(Model):
+    __core__ = False
+
+    project = FlexibleForeignKey('sentry.Project', null=True)
+    cache_file = FlexibleForeignKey('sentry.File')
+    dsym_file = FlexibleForeignKey('sentry.ProjectDSymFile')
+    checksum = models.CharField(max_length=40)
+    version = BoundedPositiveIntegerField()
+
+    class Meta:
+        unique_together = (('project', 'dsym_file'),)
+        db_table = 'sentry_projectsymcachefile'
+        app_label = 'sentry'
+
+    __repr__ = sane_repr('uuid')
+
+    def delete(self, *args, **kwargs):
+        super(ProjectSymCacheFile, self).delete(*args, **kwargs)
+        self.cache_file.delete()
+
+
 def _create_dsym_from_uuid(project, dsym_type, cpu_name, uuid, fileobj, basename):
     """This creates a mach dsym file or proguard mapping from the given
     uuid and open file object to a dsym file.  This will not verify the
@@ -332,63 +353,129 @@ class DSymCache(object):
     def get_project_path(self, project):
         return os.path.join(self.dsym_cache_path, six.text_type(project.id))
 
-    def fetch_dsyms(self, project, uuids, on_dsym_file_referenced=None):
-        rv = {}
-        for image_uuid in uuids:
-            path = self.fetch_dsym(
-                project, image_uuid, on_dsym_file_referenced=on_dsym_file_referenced
+    def fetch_symcaches(self, project, uuids, on_dsym_file_referenced=None):
+        # Fetch dsym files first and invoke the callback if we need
+        uuid_strings = list(map(six.text_type, uuids))
+        q = list(ProjectDSymFile.objects.filter(
+            project=project,
+            uuid__in=uuid_strings,
+        ).select_related('file'))
+        dsym_files = {}
+        for dsym_file in dsym_files:
+            if on_dsym_file_referenced is not None:
+                on_dsym_file_referenced(dsym_file)
+            dsym_files[dsym_file.id] = dsym_file
+
+        # Now find all the cache files we already have.
+        cachefiles_to_update = dict.fromkeys(uuid_strings)
+        q = ProjectSymCacheFile.objects.filter(
+            project=project,
+            dsym_file_id__in=list(dsym_files),
+        ).select_related('cache_file')
+
+        cachefiles = []
+        cachefiles_to_update = dict.fromkeys(
+            x.uuid for x in six.itervalues(dsym_files))
+        for cache_file in q:
+            dsym_file = dsym_files[cache_file.dsym_file_id]
+            if cache_file.version == SYMCACHE_LATEST_VERSION and \
+               cache_file.checksum == dsym_file.file.checksum:
+                cachefiles_to_update.pop(cache_file.uuid, None)
+                cachefiles.append(cache_file)
+            else:
+                cachefiles_to_update[cache_file.uuid] = (cache_file, dsym_file)
+
+        # if any cache files need to be updated, do that now.
+        if cachefiles_to_update:
+            to_update = []
+            for cache_file, dsym_file in six.itervalues(cachefiles_to_update):
+                if cache_file is not None:
+                    cache_file.delete()
+                to_update.append(dsym_file)
+            cachefiles.extend(self._update_cachefiles(project, to_update))
+
+        return self._load_cachefiles_via_fs(project, cachefiles)
+
+    def _update_cachefiles(self, project, dsym_files):
+        rv = []
+
+        for dsym_file in dsym_files:
+            tf = tempfile.NamedTemporaryFile()
+            with dsym_file.file.getfile() as sf:
+                shutil.copyfileobj(sf, tf)
+            tf.flush()
+            tf.seek(0)
+
+            fo = FatObject.from_path(tf.name)
+            o = fo.get_object(uuid=dsym_file.uuid)
+            if o is None:
+                continue
+
+            cache = o.make_symcache()
+            file = File.objects.create(
+                name=dsym_file.uuid,
+                type='project.symcache',
             )
-            if path is not None:
-                rv[image_uuid] = path
+            file.putfile(cache.open_stream())
+            try:
+                with transaction.atomic():
+                    rv.append(ProjectSymCacheFile.objects.get_or_create(
+                        file=file,
+                        project=project,
+                        dsym_file=dsym_file,
+                        defaults=dict(
+                            checksum=dsym_file.file.checksum,
+                            version=cache.file_format_version,
+                        )
+                    ))
+            except IntegrityError:
+                file.delete()
+                rv.append(ProjectSymCacheFile.objects.get(
+                    project=project,
+                    dsym_file=dsym_file,
+                ))
+
+        return rv
+
+    def _load_cachefiles_via_fs(self, project, cachefiles):
+        rv = {}
+        base = self.get_project_path(project)
+        for symcache_file in cachefiles:
+            dsym_path = os.path.join(base, symcache_file.uuid + '.symcache')
+            try:
+                stat = os.stat(dsym_path)
+            except OSError as e:
+                if e.errno != errno.ENOENT:
+                    raise
+                try:
+                    os.makedirs(base)
+                except OSError:
+                    pass
+                with symcache_file.cache_file.getfile() as sf:
+                    suffix = '_%s' % uuid.uuid4()
+                    done = False
+                    try:
+                        with open(dsym_path + suffix, 'w') as df:
+                            shutil.copyfileobj(sf, df)
+                        os.rename(dsym_path + suffix, dsym_path)
+                        done = True
+                    finally:
+                        # Use finally here because it does not lie about
+                        # the error on exit
+                        if not done:
+                            try:
+                                os.remove(dsym_path + suffix)
+                            except Exception:
+                                pass
+            else:
+                self.try_bump_timestamp(dsym_path, stat)
+            rv[uuid.UUID(symcache_file.uuid)] = SymCache.from_path(dsym_path)
         return rv
 
     def try_bump_timestamp(self, path, old_stat):
         now = int(time.time())
         if old_stat.st_ctime < now - ONE_DAY:
             os.utime(path, (now, now))
-        return path
-
-    def fetch_dsym(self, project, image_uuid, on_dsym_file_referenced=None):
-        image_uuid = image_uuid.lower()
-        dsym_path = os.path.join(self.get_project_path(project), image_uuid)
-        try:
-            os.stat(dsym_path)
-        except OSError as e:
-            if e.errno != errno.ENOENT:
-                raise
-        else:
-            return dsym_path
-
-        dsf = find_dsym_file(project, image_uuid)
-        if dsf is None:
-            return None
-
-        if on_dsym_file_referenced is not None:
-            on_dsym_file_referenced(dsf)
-
-        try:
-            os.makedirs(os.path.dirname(dsym_path))
-        except OSError:
-            pass
-
-        with dsf.file.getfile() as sf:
-            suffix = '_%s' % uuid.uuid4()
-            done = False
-            try:
-                with open(dsym_path + suffix, 'w') as df:
-                    shutil.copyfileobj(sf, df)
-                os.rename(dsym_path + suffix, dsym_path)
-                done = True
-            finally:
-                # Use finally here because it does not lie about the
-                # error on exit
-                if not done:
-                    try:
-                        os.remove(dsym_path + suffix)
-                    except Exception:
-                        pass
-
-        return dsym_path
 
     def clear_old_entries(self):
         try:
