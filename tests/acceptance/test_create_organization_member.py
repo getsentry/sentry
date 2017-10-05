@@ -13,6 +13,9 @@ class CreateOrganizationMemberTest(AcceptanceTestCase):
         )
         self.team = self.create_team(
             organization=self.org, name='Mariachi Band')
+        self.team = self.create_team(
+            organization=self.org, name='Other Team')
+
         self.create_member(
             user=self.user,
             organization=self.org,
@@ -28,4 +31,13 @@ class CreateOrganizationMemberTest(AcceptanceTestCase):
         self.browser.get(
             '/organizations/{}/members/new/'.format(self.org.slug))
         self.browser.wait_until_not('.loading')
+        self.browser.element('.checkbox').click()
+
+        self.browser.element('input#id-email').send_keys('test@gmail.com')
+
         self.browser.snapshot(name='invite organization member')
+        self.browser.click('.submit-new-team')
+
+        self.browser.wait_until_not('.loading')
+
+        self.browser.snapshot(name='after submit member')

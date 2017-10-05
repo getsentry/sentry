@@ -113,26 +113,22 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
 
         # This is needed because `email` field is case sensitive, but from a user perspective,
         # Sentry treats email as case-insensitive (Eric@sentry.io equals eric@sentry.io).
-        try:
-            existing = OrganizationMember.objects.filter(
-                organization=organization,
-                user__email__iexact=result['email'],
-                user__is_active=True,
-            )[0]
+        if settings.SENTRY_ENABLE_INVITES:
+            try:
+                existing = OrganizationMember.objects.filter(
+                    organization=organization,
+                    user__email__iexact=result['email'],
+                    user__is_active=True,
+                )[0]
 
-        except IndexError:
-            pass
-        else:
-            messages.add_message(
-                request, messages.INFO,
-                _('The organization member %s already exists.') % result['email']
-            )
-            return Response(serialize(existing), status=200)
-
-        messages.add_message(
-            request, messages.SUCCESS,
-            _('The organization member %s was added.') % result['email']
-        )
+            except IndexError:
+                pass
+            else:
+                messages.add_message(
+                    request, messages.INFO,
+                    _('The organization member %s already exists.') % result['email']
+                )
+                return Response(serialize(existing), status=200)
 
         om = OrganizationMember(
             organization=organization,
@@ -153,24 +149,22 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
                 organization=organization,
             )), status=200)
 
+        messages.add_message(
+            request, messages.SUCCESS,
+            _('The organization member %s was added.') % result['email']
+        )
+
         self.save_team_assignments(om, teams)
 
         if settings.SENTRY_ENABLE_INVITES:
             om.send_invite_email()
-            self.create_audit_entry(
-                request=request,
-                organization_id=organization.id,
-                target_object=om.id,
-                event=AuditLogEntryEvent.MEMBER_INVITE,
-            )
             member_invited.send(member=om, user=request.user, sender=self)
 
-        else:
-            self.create_audit_entry(
-                request=request,
-                organization_id=organization.id,
-                target_object=om.id,
-                event=AuditLogEntryEvent.MEMBER_ADD,
-            )
+        self.create_audit_entry(
+            request=request,
+            organization_id=organization.id,
+            target_object=om.id,
+            event=AuditLogEntryEvent.MEMBER_INVITE if settings.SENTRY_ENABLE_INVITES else AuditLogEntryEvent.MEMBER_ADD,
+        )
 
         return Response(serialize(om), status=201)
