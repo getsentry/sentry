@@ -24,6 +24,7 @@ const InviteMember = React.createClass({
 
     return {
       selectedTeams: new Set(initialTeamSelection),
+      isInvite: undefined,
       roleList: [],
       selectedRole: 'member',
       email: '',
@@ -38,9 +39,9 @@ const InviteMember = React.createClass({
 
     this.api.request(`/organizations/${slug}/members/${user.id}/`, {
       method: 'GET',
-      success: data => {
-        this.setState({roleList: data.role_list, loading: false});
-        if (data.role_list.filter(({_, allowed}) => allowed).length === 0) {
+      success: ({role_list, is_invite}) => {
+        this.setState({roleList: role_list, isInvite: is_invite, loading: false});
+        if (role_list.filter(({_, allowed}) => allowed).length === 0) {
           //not allowed to invite, redirect
           this.redirectToMemberPage();
         }
@@ -180,21 +181,25 @@ const InviteMember = React.createClass({
   },
 
   render() {
-    let {error, loading} = this.state;
+    let {error, loading, isInvite} = this.state;
     return (
       <OrganizationHomeContainer>
         <h3>{t('Add Member to Organization')}</h3>
         <p>
-          {t(
-            'Invite a member to join this organization via their email address. If they do not already have an account, they will first be asked to create one. Multiple emails delimited by commas.'
-          )}
+          {isInvite
+            ? t(
+                'Invite a member to join this organization via their email address. If they do not already have an account, they will first be asked to create one. Multiple emails delimited by commas.'
+              )
+            : t(
+                'You may add a user by their username if they already have an account. Multiple inputs delimited by commas.'
+              )}
         </p>
         <div className={classnames({'has-error': error && error.email})}>
           {loading && <LoadingIndicator mini className="pull-right" />}
           <TextField
             name="email"
-            label="Email(s)"
-            placeholder="e.g. teammate@example.com"
+            label={isInvite ? 'Email(s)' : 'Username(s)'}
+            placeholderlabel={isInvite ? 'e.g. teammate@example.com' : 'Usernames'}
             spellCheck="false"
             onChange={v => this.setState({email: v})}
           />
