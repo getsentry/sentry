@@ -6,7 +6,7 @@ from sentry.models import Event
 from sentry.testutils import TestCase
 from sentry.lang.native.symbolizer import Symbolizer
 
-from symsynd import parse_addr
+from symbolic import parse_addr
 
 
 class BasicResolvingIntegrationTest(TestCase):

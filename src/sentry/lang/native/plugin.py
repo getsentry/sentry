@@ -3,8 +3,8 @@ from __future__ import absolute_import
 import logging
 import posixpath
 
-from symsynd import find_best_instruction, ImageLookup
-from symbolic import parse_addr
+from symsynd import ImageLookup
+from symbolic import parse_addr, find_best_instruction, arch_get_ip_reg_name
 
 from sentry import options
 from django.db import transaction, IntegrityError
@@ -57,7 +57,10 @@ class NativeStacktraceProcessor(StacktraceProcessor):
         """
         if self.cpu_name is None:
             return parse_addr(processable_frame['instruction_addr'])
-        meta = None
+
+        crashing_frame = False
+        signal = None
+        ip_reg = None
 
         # We only need to provide meta information for frame zero
         if processable_frame.idx == 0:
@@ -71,14 +74,19 @@ class NativeStacktraceProcessor(StacktraceProcessor):
                 if mechanism and 'posix_signal' in mechanism and \
                    'signal' in mechanism['posix_signal']:
                     signal = mechanism['posix_signal']['signal']
-            meta = {
-                'frame_number': 0,
-                'registers': processable_frame.stacktrace_info.stacktrace.get('registers'),
-                'signal': signal,
-            }
+            registers = processable_frame.stacktrace_info.stacktrace.get('registers')
+            if registers:
+                ip_reg_name = arch_get_ip_reg_name(self.cpu_name)
+                if ip_reg_name:
+                    ip_reg = registers.get(ip_reg_name)
+            crashing_frame = True
 
         return find_best_instruction(
-            processable_frame['instruction_addr'], self.cpu_name, meta=meta
+            processable_frame['instruction_addr'],
+            arch=self.cpu_name,
+            crashing_frame=crashing_frame,
+            signal=signal,
+            ip_reg=ip_reg
         )
 
     def handles_frame(self, frame, stacktrace_info):
