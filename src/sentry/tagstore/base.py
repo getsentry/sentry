@@ -153,8 +153,8 @@ class TagStorage(Service):
 
     def get_group_tag_keys(self, group_ids, keys=None):
         """
-        >>> get_group_tag_key([1, 2], ["key1", "key2"])
-        >>> get_group_tag_key(1, ["key1", "key2"])
+        >>> get_group_tag_keys([1, 2], ["key1", "key2"])
+        >>> get_group_tag_keys(1, ["key1", "key2"])
         """
         raise NotImplementedError
 
