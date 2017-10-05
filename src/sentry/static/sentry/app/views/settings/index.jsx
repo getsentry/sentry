@@ -23,7 +23,7 @@ const Settings = React.createClass({
             <SettingsActivity>Saving dem changes...</SettingsActivity>
           </SettingsHeader>
           <Flex>
-            <Box w={210}>
+            <Box w={240}>
               <SettingsNavSection>
                 <SettingsHeading>Configuration</SettingsHeading>
                 <SettingsNavItem active={true}>General</SettingsNavItem>
@@ -68,6 +68,9 @@ const Settings = React.createClass({
                   <SettingsPanelItem>
                     <SettingsPanelItemDesc>
                       <SettingsPanelItemLabel>Short name</SettingsPanelItemLabel>
+                      <SettingsPanelItemHelp>
+                        A unique ID used to identify this project.
+                      </SettingsPanelItemHelp>
                     </SettingsPanelItemDesc>
                     <SettingsPanelItemCtrl>
                       <SettingsInput type="text" defaultValue="freight" />
@@ -282,11 +285,10 @@ const inputStyles = props => css`
   display: block;
   width: 100%;
   border: 0;
-  background: #fbfbfc;
-  padding: 7px 12px;
+  padding: 10px 0;
   transition: border .2s ease;
-  border-top: 2px solid #fafafb;
-  border-bottom: 2px solid #fbfbfc;
+  border-top: 2px solid transparent;
+  border-bottom: 2px solid #f1f2f3;
 
   &:focus {
     outline: none;

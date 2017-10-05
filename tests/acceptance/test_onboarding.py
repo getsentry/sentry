@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import mock
+
 from sentry.models import Project
 from sentry.testutils import AcceptanceTestCase
 
@@ -21,10 +23,11 @@ class OrganizationOnboardingTest(AcceptanceTestCase):
             teams=[self.team],
         )
         self.login_as(self.user)
-        self.path = '/onboarding/%s/' % self.org.slug
 
-    def test_onboarding(self):
-        self.browser.get(self.path)
+    @mock.patch('sentry.models.ProjectKey.generate_api_key',
+                return_value='031667ea1758441f92c7995a428d2d14')
+    def test_onboarding(self, generate_api_key):
+        self.browser.get('/onboarding/%s/' % self.org.slug)
         self.browser.wait_until('.onboarding-container')
         self.browser.wait_until_not('.loading-indicator')
         self.browser.snapshot(name='onboarding-choose-platform')
@@ -34,13 +37,14 @@ class OrganizationOnboardingTest(AcceptanceTestCase):
 
         self.browser.wait_until('.onboarding-Configure')
         self.browser.wait_until_not('.loading-indicator')
-        self.browser.snapshot(name='onboarding-configure-project')
 
         project = Project.objects.get(organization=self.org)
         assert project.name == 'Angular'
         assert project.platform == 'javascript-angular'
 
+        self.browser.snapshot(name='onboarding-configure-project')
         self.browser.click('.btn-primary')
         self.browser.wait_until_not('.loading')
+
         assert self.browser.element_exists('.robot')
         assert self.browser.element_exists('.btn-primary')

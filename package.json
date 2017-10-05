@@ -63,6 +63,7 @@
     "react-document-title": "1.0.4",
     "react-dom": "15.3.2",
     "react-emotion": "^8.0.2-12 ",
+    "react-hot-loader": "^3.0.0-beta.7",
     "react-icon-base": "^2.0.4",
     "react-lazy-load": "3.0.10",
     "react-mentions": "^1.0.0",
@@ -88,6 +89,8 @@
     "test-watch": "npm run test -- --watch",
     "jest": "NODE_ENV=test node_modules/.bin/jest",
     "lint": "node_modules/.bin/eslint tests/js src/sentry/static/sentry/app --ext .jsx",
+    "dev-proxy": "node scripts/devproxy.js",
+    "dev-server": "webpack-dev-server",
     "storybook": "start-storybook -p 9001 -c .storybook",
     "snapshot": "build-storybook && PERCY_TOKEN=$STORYBOOK_PERCY_TOKEN PERCY_PROJECT=$STORYBOOK_PERCY_PROJECT percy-storybook --widths=375,1280"
   },
@@ -133,7 +136,7 @@
     "prettier": "1.2.2",
     "sinon": "1.17.2",
     "sinon-chai": "2.8.0",
-    "webpack-livereload-plugin": "^0.11.0"
+    "webpack-dev-server": "^2.7.1"
   },
   "optionalDependencies": {
     "fsevents": "^1.1.2"
