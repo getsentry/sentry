@@ -449,6 +449,7 @@ class EventManager(object):
             datetime=date,
             **kwargs
         )
+        event._project_cache = project
 
         # convert this to a dict to ensure we're only storing one value per key
         # as most parts of Sentry dont currently play well with multiple values
