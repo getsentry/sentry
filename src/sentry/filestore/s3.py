@@ -41,7 +41,6 @@ import posixpath
 import mimetypes
 import threading
 from gzip import GzipFile
-from tempfile import SpooledTemporaryFile
 
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured, SuspiciousOperation
@@ -156,11 +155,7 @@ class S3Boto3StorageFile(File):
 
     def _get_file(self):
         if self._file is None:
-            self._file = SpooledTemporaryFile(
-                max_size=self._storage.max_memory_size,
-                suffix=".S3Boto3StorageFile",
-                dir=None,
-            )
+            self._file = BytesIO()
             if 'r' in self._mode:
                 self._is_dirty = False
                 self._file.write(self.obj.get()['Body'].read())
@@ -245,6 +240,10 @@ class S3Boto3Storage(Storage):
     mode and supports streaming(buffering) data in chunks to S3
     when writing.
     """
+    # XXX: note that this file reads entirely into memory before the first
+    # read happens.  This means that it should only be used for small
+    # files (eg: see how sentry.models.file works with it through the
+    # ChunkedFileBlobIndexWrapper.
     connection_class = staticmethod(resource)
     connection_service_name = 's3'
     default_content_type = 'application/octet-stream'
@@ -285,10 +284,6 @@ class S3Boto3Storage(Storage):
     endpoint_url = None
     region_name = None
     use_ssl = True
-
-    # The max amount of memory a returned file can take up before being
-    # rolled over into a temporary file on disk. Default is 0: Do not roll over.
-    max_memory_size = 0
 
     def __init__(self, acl=None, bucket=None, **settings):
         # check if some of the settings we've provided as class attributes
