@@ -136,7 +136,7 @@ class LegacyTagStorage(TagStorage):
         except GroupTagKey.DoesNotExist:
             raise GroupTagKeyNotFound
 
-    def get_group_tag_keys(self, group_ids, keys=None):
+    def get_group_tag_keys(self, group_ids, keys=None, limit=None):
         if isinstance(group_ids, list):
             qs = GroupTagKey.objects.filter(group_id__in=group_ids)
         else:
@@ -147,6 +147,9 @@ class LegacyTagStorage(TagStorage):
                 qs = qs.filter(key__in=keys)
             else:
                 qs = qs.filter(key=keys)
+
+        if limit is not None:
+            qs = qs[:limit]
 
         return list(qs)
 

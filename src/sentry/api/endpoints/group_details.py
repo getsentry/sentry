@@ -210,7 +210,7 @@ class GroupDetailsEndpoint(GroupEndpoint):
         if last_release:
             last_release = self._get_release_info(request, group, last_release)
 
-        tags = tagstore.get_group_tag_keys(group.id)[:100]
+        tags = tagstore.get_group_tag_keys(group.id, limit=100)
 
         participants = list(
             User.objects.filter(
