@@ -26,28 +26,28 @@ const Settings = React.createClass({
             <Box w={240}>
               <SettingsNavSection>
                 <SettingsHeading>Configuration</SettingsHeading>
-                <SettingsNavItem active={true}>General</SettingsNavItem>
-                <SettingsNavItem>Alerts</SettingsNavItem>
-                <SettingsNavItem>Tags</SettingsNavItem>
-                <SettingsNavItem>Issue Tracking</SettingsNavItem>
-                <SettingsNavItem>Release Tracking</SettingsNavItem>
-                <SettingsNavItem>Data Forwarding</SettingsNavItem>
-                <SettingsNavItem>Saved Searches</SettingsNavItem>
-                <SettingsNavItem>Debug information files</SettingsNavItem>
-                <SettingsNavItem>Processing issues</SettingsNavItem>
+                <SettingsNavItem active={true} label="General" />
+                <SettingsNavItem label="Alerts" />
+                <SettingsNavItem label="Tags" />
+                <SettingsNavItem label="Issue Tracking" />
+                <SettingsNavItem label="Release Tracking" />
+                <SettingsNavItem label="Data Forwarding" />
+                <SettingsNavItem label="Saved Searches" />
+                <SettingsNavItem label="Debug information files" />
+                <SettingsNavItem label="Processing issues" />
               </SettingsNavSection>
 
               <SettingsNavSection>
                 <SettingsHeading>Data</SettingsHeading>
-                <SettingsNavItem>Basic configuration</SettingsNavItem>
-                <SettingsNavItem>CSP Reports</SettingsNavItem>
-                <SettingsNavItem>User feedback</SettingsNavItem>
-                <SettingsNavItem>Client Keys (DSN)</SettingsNavItem>
+                <SettingsNavItem label="Basic configuration" />
+                <SettingsNavItem label="CSP Reports" />
+                <SettingsNavItem label="User feedback" />
+                <SettingsNavItem label="Client Keys (DSN)" />
               </SettingsNavSection>
 
               <SettingsNavSection>
                 <SettingsHeading>Integrations</SettingsHeading>
-                <SettingsNavItem>Add a new integration</SettingsNavItem>
+                <SettingsNavItem label="Add a new integration" />
               </SettingsNavSection>
             </Box>
             <Box flex="1">
@@ -58,61 +58,37 @@ const Settings = React.createClass({
                   </SettingsPanelHeaderHeading>
                 </SettingsPanelHeader>
                 <SettingsPanelBody>
-                  <SettingsPanelItem>
-                    <SettingsPanelItemDesc>
-                      <SettingsPanelItemLabel>
-                        Project name <SettingsRequiredBadge />
-                      </SettingsPanelItemLabel>
-                    </SettingsPanelItemDesc>
-                    <SettingsPanelItemCtrl>
-                      <SettingsInput
-                        type="text"
-                        placeholder="Enter a project name..."
-                        defaultValue="Freight"
-                      />
-                    </SettingsPanelItemCtrl>
-                  </SettingsPanelItem>
-
-                  <SettingsPanelItem error={false}>
-                    <SettingsPanelItemDesc>
-                      <SettingsPanelItemLabel>
-                        Short name <SettingsRequiredBadge />
-                      </SettingsPanelItemLabel>
-                      <SettingsPanelItemHelp>
-                        A unique ID used to identify this project.
-                      </SettingsPanelItemHelp>
-                    </SettingsPanelItemDesc>
-                    <SettingsPanelItemCtrl>
-                      <SettingsInput
-                        type="text"
-                        placeholder="Enter a short name..."
-                        defaultValue="freight"
-                      />
-                    </SettingsPanelItemCtrl>
-                  </SettingsPanelItem>
-
-                  <SettingsPanelItem>
-                    <SettingsPanelItemDesc>
-                      <SettingsPanelItemLabel>
-                        Team <SettingsRequiredBadge />
-                      </SettingsPanelItemLabel>
-                    </SettingsPanelItemDesc>
-                    <SettingsPanelItemCtrl>
-                      <SettingsInput type="text" defaultValue="Freight" />
-                    </SettingsPanelItemCtrl>
-                  </SettingsPanelItem>
-
-                  <SettingsPanelItem>
-                    <SettingsPanelItemDesc>
-                      <SettingsPanelItemLabel>
-                        Email subject prefix
-                      </SettingsPanelItemLabel>
-                    </SettingsPanelItemDesc>
-                    <SettingsPanelItemCtrl>
-                      <SettingsInput type="text" placeholder="[ACME]" />
-                    </SettingsPanelItemCtrl>
-                  </SettingsPanelItem>
-
+                  <SettingsPanelItem
+                    label="Project name"
+                    required={true}
+                    type="text"
+                    placeholder="Enter a project name..."
+                    defaultValue="Freight"
+                    help=""
+                  />
+                  <SettingsPanelItem
+                    error={true}
+                    label="Short name"
+                    required={true}
+                    type="text"
+                    placeholder="Enter a short name..."
+                    defaultValue="freight"
+                    help="A unique ID used to identify this project."
+                  />
+                  <SettingsPanelItem
+                    label="Team"
+                    required={true}
+                    type="dropdown"
+                    placeholder="Choose a team..."
+                    defaultValue="freight"
+                  />
+                  <SettingsPanelItem
+                    label="Email subject prefix"
+                    required={true}
+                    type="text"
+                    placeholder="Enter a subject prefix..."
+                    defaultValue="[FRGHT]"
+                  />
                 </SettingsPanelBody>
               </SettingsPanel>
 
@@ -121,54 +97,106 @@ const Settings = React.createClass({
                   <SettingsPanelHeaderHeading>Event Settings</SettingsPanelHeaderHeading>
                 </SettingsPanelHeader>
                 <SettingsPanelBody>
-                  <SettingsPanelItem>
-                    <SettingsPanelItemDesc>
-                      <SettingsPanelItemLabel>Allow shared issues</SettingsPanelItemLabel>
-                      <SettingsPanelItemHelp>
-                        Enable sharing of limited details on issues to anonymous users.
-                      </SettingsPanelItemHelp>
-                    </SettingsPanelItemDesc>
-                    <SettingsPanelItemCtrl>
-                      <Switch size="lg" />
-                    </SettingsPanelItemCtrl>
-                  </SettingsPanelItem>
-
-                  <SettingsPanelItem>
-                    <SettingsPanelItemDesc>
-                      <SettingsPanelItemLabel>Enhanced security</SettingsPanelItemLabel>
-                      <SettingsPanelItemHelp>
-                        Limits personally identifiable information (PII) and removes source code from alerts.
-                      </SettingsPanelItemHelp>
-                    </SettingsPanelItemDesc>
-                    <SettingsPanelItemCtrl>
-                      <Switch size="lg" />
-                    </SettingsPanelItemCtrl>
-                  </SettingsPanelItem>
-
-                  <SettingsPanelItem>
-                    <SettingsPanelItemDesc>
-                      <SettingsPanelItemLabel>
-                        Global sensitive fields
-                      </SettingsPanelItemLabel>
-                    </SettingsPanelItemDesc>
-                    <SettingsPanelItemCtrl>...</SettingsPanelItemCtrl>
-                  </SettingsPanelItem>
-
-                  <SettingsPanelItem>
-                    <SettingsPanelItemDesc>
-                      <SettingsPanelItemLabel>
-                        Global safe fields
-                      </SettingsPanelItemLabel>
-                    </SettingsPanelItemDesc>
-                    <SettingsPanelItemCtrl>...</SettingsPanelItemCtrl>
-                  </SettingsPanelItem>
-
+                  <SettingsPanelItem
+                    label="Allow shared issues"
+                    required={true}
+                    type="switch"
+                    help="Enable sharing of limited details on issues to anonymous users."
+                  />
+                  <SettingsPanelItem
+                    label="Enhanced security"
+                    required={true}
+                    type="switch"
+                    help="Limits personally identifiable information (PII) and removes source code from alerts."
+                  />
+                  <SettingsPanelItem
+                    label="Global sensitive fields"
+                    placeholder="Add a field..."
+                    type="textarea"
+                    help="What does this do?"
+                  />
+                  <SettingsPanelItem
+                    label="Global safe fields"
+                    placeholder="Add a field..."
+                    type="textarea"
+                    help="What does this do?"
+                  />
                 </SettingsPanelBody>
               </SettingsPanel>
             </Box>
           </Flex>
         </SettingsContainer>
       </SettingsWrapper>
+    );
+  }
+});
+
+const SettingsPanelItem = React.createClass({
+  getInitialState() {
+    return {
+      hover: false
+    };
+  },
+  toggleHover: function() {
+    this.setState({hover: !this.state.hover});
+  },
+  render() {
+    let {
+      label,
+      required,
+      type,
+      help,
+      placeholder,
+      defaultValue,
+      error,
+      ...props
+    } = this.props;
+    return (
+      <SettingsPanelItemWrapper
+        onMouseEnter={this.toggleHover}
+        onMouseLeave={this.toggleHover}
+        error={error}>
+        <SettingsPanelItemDesc>
+          <SettingsPanelItemLabel error={error}>
+            {label} {required && <SettingsRequiredBadge error={error} />}
+          </SettingsPanelItemLabel>
+          {help && <SettingsPanelItemHelp error={error}>{help}</SettingsPanelItemHelp>}
+        </SettingsPanelItemDesc>
+        <SettingsPanelItemCtrl>
+          {(type == 'text' || type == 'email' || type == 'password') &&
+            <SettingsInput
+              hover={this.state.hover}
+              type={type}
+              placeholder={placeholder}
+              defaultValue={defaultValue}
+              error={error}
+            />}
+          {type == 'switch' && <Switch size="lg" error={error} />}
+          {type == 'textarea' &&
+            <SettingsTextarea
+              placeholder={placeholder}
+              hover={this.state.hover}
+              error={error}
+            />}
+        </SettingsPanelItemCtrl>
+      </SettingsPanelItemWrapper>
+    );
+  }
+});
+
+const SettingsInput = React.createClass({
+  render() {
+    let {type, placeholder, defaultValue, hover, error, ...props} = this.props;
+    return (
+      <div>
+        <SettingsInputField
+          type={type}
+          placeholder={placeholder}
+          defaultValue={defaultValue}
+          hover={hover}
+          error={error}
+        />
+      </div>
     );
   }
 });
@@ -213,7 +241,7 @@ const SettingsNavSection = styled.div`
 `;
 
 const SettingsNavItem = withTheme(
-  styled(Link)`
+  styled(({label, ...props}) => <Link {...props} children={label} />)`
     display: block;
     color: ${p => (p.active === true ? p.theme.gray5 : p.theme.gray2)};
     font-size: 14px;
@@ -262,7 +290,7 @@ const SettingsPanelBody = styled.div`
 
 `;
 
-const SettingsPanelItem = withTheme(
+const SettingsPanelItemWrapper = withTheme(
   styled(Flex)`
     padding: 15px 20px;
     border-bottom: 1px solid ${p => p.theme.borderLight};
@@ -275,31 +303,12 @@ const SettingsPanelItem = withTheme(
         background: ${p.theme.alert.error.background};
         border: 1px solid ${p.theme.alert.error.border};
         margin: -1px -1px 0;
-
-        input[type="text"] {
-          box-shadow: 0 0 0 2px ${p.theme.alert.error.border};
-          &:focus, &:hover:focus {
-            background: #fff;
-          }
-        }
-
-        div {
-          color: ${p.theme.alert.error.textDark} !important;
-        }
       `;
     }
   }}
 
     &:last-child {
       border-bottom: none;
-    }
-
-    &:hover input[type="text"] {
-      background: #fbfbfc;
-
-      &:focus {
-        background: #f7f7f9;
-      }
     }
   `
 );
@@ -312,7 +321,7 @@ const SettingsPanelItemDesc = styled(Box)`
 const SettingsRequiredBadge = withTheme(
   styled.div`
     display: inline-block;
-    background: ${p => p.theme.gray2};
+    background: ${p => (p.error ? p.theme.alert.error.textLight : p.theme.gray2)};
     width: 5px;
     height: 5px;
     border-radius: 5px;
@@ -322,11 +331,11 @@ const SettingsRequiredBadge = withTheme(
 );
 
 const SettingsPanelItemLabel = styled.div`
-  color: ${p => p.theme.gray5};
+  color: ${p => (p.error ? p.theme.alert.error.textDark : p.theme.gray5)};
 `;
 
 const SettingsPanelItemHelp = styled.div`
-  color: ${p => p.theme.gray2};
+  color: ${p => (p.error ? p.theme.alert.error.textLight : p.theme.gray2)};
   font-size: 14px;
   margin-top: 8px;
   line-height: 1.4;
@@ -349,23 +358,42 @@ const inputStyles = props => css`
 
   &:focus {
     outline: none;
-    background: #f7f7f9;
+    background: ${p => (props.error ? '#fff' : '#f7f7f9')};
+    border-bottom-color: ${p => props.theme.blue};
   }
+
+  ${p => {
+  if (props.hover) {
+    return css`
+      background: ${p => (props.error ? '#fff' : props.theme.offWhite)};
+      `;
+  }
+}}
+
+ ${p => {
+  if (props.error) {
+    return css`
+    box-shadow: 0 0 0 2px ${props.theme.alert.error.border};
+    &:hover:focus {
+      background: #fff !important;
+    }
+    `;
+  }
+}}
 
   &::placeholder {
     color: ${props.theme.gray2};
   }
 `;
 
-const SettingsInput = withTheme(
-  styled.input`
+const SettingsInputField = styled.input`
   ${inputStyles};
 
-  &:focus {
-    outline: none;
-    border-bottom-color: ${p => p.theme.blue};
-  }
-`
-);
+`;
+
+const SettingsTextarea = styled.textarea`
+  ${inputStyles};
+
+`;
 
 export default Settings;

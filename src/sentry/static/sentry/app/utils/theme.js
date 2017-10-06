@@ -68,8 +68,8 @@ const theme = {
     error: {
       background: '#FDF6F5',
       border: '#E7C0BC',
-      textLight: '#795451',
-      textDark: '#462724'
+      textLight: '#92635f',
+      textDark: '#5d3e3b'
     }
   }
 };
