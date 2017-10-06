@@ -114,9 +114,9 @@ class RedisTSDB(BaseTSDB):
         return self.cluster
 
     def get_cluster_groups(self, environment_ids):
-        results = defaultdict(set)
+        results = defaultdict(list)
         for environment_id in environment_ids:
-            results[self.get_cluster(environment_id)].add(environment_id)
+            results[self.get_cluster(environment_id)].append(environment_id)
         return results.items()
 
     def add_environment_parameter(self, key, environment_id):
@@ -740,8 +740,6 @@ class RedisTSDB(BaseTSDB):
         return responses
 
     def merge_frequencies(self, model, destination, sources, timestamp=None, environment_ids=None):
-        raise NotImplementedError
-
         environment_ids = list(
             (set(environment_ids) if environment_ids is not None else set()).union(
                 [None]))
@@ -758,21 +756,20 @@ class RedisTSDB(BaseTSDB):
             )
             rollups.append((rollup, map(to_datetime, series), ))
 
-        for environment_id in environment_ids:
-            cluster = self.get_cluster(environment_id)
-
+        for cluster, environment_ids in self.get_cluster_groups(environment_ids):
             exports = defaultdict(list)
 
             for source in sources:
                 for rollup, series in rollups:
                     for timestamp in series:
-                        keys = self.make_frequency_table_keys(
-                            model,
-                            rollup,
-                            to_timestamp(timestamp),
-                            source,
-                            environment_id,
-                        )
+                        for environment_id in environment_ids:
+                            keys = self.make_frequency_table_keys(
+                                model,
+                                rollup,
+                                to_timestamp(timestamp),
+                                source,
+                                environment_id,
+                            )
                         arguments = ['EXPORT'] + list(self.DEFAULT_SKETCH_PARAMETERS)
                         exports[source].extend(
                             [
@@ -787,20 +784,20 @@ class RedisTSDB(BaseTSDB):
                 results = iter(results)
                 for rollup, series in rollups:
                     for timestamp in series:
-                        imports.append(
-                            (
-                                CountMinScript,
-                                self.make_frequency_table_keys(
-                                    model,
-                                    rollup,
-                                    to_timestamp(timestamp),
-                                    destination,
-                                    environment_id,
+                        for environment_id, payload in zip(environment_ids, next(results).value):
+                            imports.append(
+                                (
+                                    CountMinScript,
+                                    self.make_frequency_table_keys(
+                                        model,
+                                        rollup,
+                                        to_timestamp(timestamp),
+                                        destination,
+                                        environment_id,
+                                    ),
+                                    ['IMPORT'] + list(self.DEFAULT_SKETCH_PARAMETERS) + [payload],
                                 ),
-                                ['IMPORT'] + list(self.DEFAULT_SKETCH_PARAMETERS) +
-                                next(results.value),
-                            ),
-                        )
+                            )
                         next(results)  # pop off the result of DEL
 
             cluster.execute_commands({
