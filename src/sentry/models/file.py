@@ -242,8 +242,7 @@ class ChunkedFileBlobIndexWrapper(object):
         self.close()
 
     def _nextidx(self):
-        if self.prefetched:
-            self._
+        assert not self.prefetched, 'this makes no sense'
         old_file = self._curfile
         try:
             try:
