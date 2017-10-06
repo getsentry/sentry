@@ -5,6 +5,9 @@ import ConfigStore from 'app/stores/configStore';
 jest.mock('app/translations');
 jest.mock('app/api');
 
+// We generally use actual jQuery, and jest mocks takes precedence over node_modules
+jest.unmock('jquery');
+
 window.$ = window.jQuery = jQuery;
 window.sinon = sinon;
 
