@@ -110,6 +110,9 @@ class RedisTSDB(BaseTSDB):
             label='TSDB',
         )
 
+    def get_cluster(self, environment_id):
+        return self.cluster
+
     def add_environment_parameter(self, key, environment_id):
         if environment_id is not None:
             return '{}?e={}'.format(key, environment_id)
@@ -178,10 +181,10 @@ class RedisTSDB(BaseTSDB):
 
         environment_ids = set([None, environment_id])
 
-        with self.cluster.map() as client:
-            for rollup, max_values in six.iteritems(self.rollups):
-                for model, key in items:
-                    for environment_id in environment_ids:
+        for environment_id in environment_ids:
+            with self.get_cluster(environment_id).map() as client:
+                for rollup, max_values in six.iteritems(self.rollups):
+                    for model, key in items:
                         hash_key, hash_field = self.make_counter_key(
                             model, rollup, timestamp, key, environment_id)
                         client.hincrby(hash_key, hash_field, count)
@@ -203,7 +206,7 @@ class RedisTSDB(BaseTSDB):
         series = map(to_datetime, series)
 
         results = []
-        with self.cluster.map() as client:
+        with self.get_cluster(environment_id).map() as client:
             for key in keys:
                 for timestamp in series:
                     hash_key, hash_field = self.make_counter_key(
@@ -227,19 +230,16 @@ class RedisTSDB(BaseTSDB):
 
         rollups = self.get_active_series(timestamp=timestamp)
 
-        with self.cluster.map() as client:
-            data = {}
-            for rollup, series in rollups.items():
-                data[rollup] = {}
-                for timestamp in series:
-                    results = data[rollup][timestamp] = defaultdict(list)
-                    for source in sources:
-                        for environment_id in environment_ids:
-                            # TODO: If we are able to enforce that all
-                            # environments share the same hash key as an
-                            # invariant, we can optimize the HGET and HDEL to
-                            # act on multiple fields instead of having to
-                            # implement them independent operations.
+        for environment_id in environment_ids:
+            cluster = self.get_cluster(environment_id)
+
+            with cluster.map() as client:
+                data = {}
+                for rollup, series in rollups.items():
+                    data[rollup] = {}
+                    for timestamp in series:
+                        results = data[rollup][timestamp] = []
+                        for source in sources:
                             source_hash_key, source_hash_field = self.make_counter_key(
                                 model,
                                 rollup,
@@ -247,19 +247,12 @@ class RedisTSDB(BaseTSDB):
                                 source,
                                 environment_id,
                             )
-                            results[environment_id].append(client.hget(
-                                source_hash_key, source_hash_field))
+                            results.append(client.hget(source_hash_key, source_hash_field))
                             client.hdel(source_hash_key, source_hash_field)
 
-        with self.cluster.map() as client:
-            for rollup, series in data.items():
-                for timestamp, results in series.items():
-                    for environment_id, promises in results.items():
-                        # TODO: Similarly to the above comment, if we're able
-                        # to enforce that all environments share the same hash
-                        # key, we can optimize this EXPIREAT to only be
-                        # performed once. (Unfortunately, we can't do that for
-                        # HINCRBY since it's not variadic.)
+            with cluster.map() as client:
+                for rollup, series in data.items():
+                    for timestamp, promises in series.items():
                         total = sum([int(p.value) for p in promises if p.value])
                         if total:
                             destination_hash_key, destination_hash_field = self.make_counter_key(
@@ -290,12 +283,12 @@ class RedisTSDB(BaseTSDB):
 
         rollups = self.get_active_series(start, end, timestamp)
 
-        with self.cluster.map() as client:
-            for rollup, series in rollups.items():
-                for timestamp in series:
-                    for model in models:
-                        for key in keys:
-                            for environment_id in environment_ids:
+        for environment_id in environment_ids:
+            with self.get_cluster(environment_id).map() as client:
+                for rollup, series in rollups.items():
+                    for timestamp in series:
+                        for model in models:
+                            for key in keys:
                                 hash_key, hash_field = self.make_counter_key(
                                     model,
                                     rollup,
@@ -323,11 +316,11 @@ class RedisTSDB(BaseTSDB):
 
         environment_ids = set([None, environment_id])
 
-        with self.cluster.fanout() as client:
-            for model, key, values in items:
-                c = client.target_key(key)
-                for rollup, max_values in six.iteritems(self.rollups):
-                    for environment_id in environment_ids:
+        for environment_id in environment_ids:
+            with self.get_cluster(environment_id).fanout() as client:
+                for model, key, values in items:
+                    c = client.target_key(key)
+                    for rollup, max_values in six.iteritems(self.rollups):
                         k = self.make_key(
                             model,
                             rollup,
@@ -353,7 +346,7 @@ class RedisTSDB(BaseTSDB):
         rollup, series = self.get_optimal_rollup_series(start, end, rollup)
 
         responses = {}
-        with self.cluster.fanout() as client:
+        with self.get_cluster(environment_id).fanout() as client:
             for key in keys:
                 c = client.target_key(key)
                 r = responses[key] = []
@@ -383,7 +376,7 @@ class RedisTSDB(BaseTSDB):
         rollup, series = self.get_optimal_rollup_series(start, end, rollup)
 
         responses = {}
-        with self.cluster.fanout() as client:
+        with self.get_cluster(environment_id).fanout() as client:
             for key in keys:
                 # XXX: The current versions of the Redis driver don't implement
                 # ``PFCOUNT`` correctly (although this is fixed in the Git
@@ -418,7 +411,8 @@ class RedisTSDB(BaseTSDB):
             return [self.make_key(model, rollup, timestamp, key, environment_id)
                     for timestamp in series]
 
-        router = self.cluster.get_router()
+        cluster = self.get_cluster(environment_id)
+        router = cluster.get_router()
 
         def map_key_to_host(hosts, key):
             """
@@ -434,7 +428,7 @@ class RedisTSDB(BaseTSDB):
             """
             (host, keys) = value
             destination = make_temporary_key('p:{}'.format(host))
-            client = self.cluster.get_local_client(host)
+            client = cluster.get_local_client(host)
             with client.pipeline(transaction=False) as pipeline:
                 pipeline.execute_command(
                     'PFMERGE', destination, *itertools.chain.from_iterable(map(expand_key, keys))
@@ -454,7 +448,7 @@ class RedisTSDB(BaseTSDB):
             # here that we've already accessed as part of this process -- this
             # way, we constrain the choices to only hosts that we know are
             # running.)
-            client = self.cluster.get_local_client(random.choice(values)[0])
+            client = cluster.get_local_client(random.choice(values)[0])
             with client.pipeline(transaction=False) as pipeline:
                 pipeline.mset(aggregates)
                 pipeline.execute_command('PFMERGE', destination, *aggregates.keys())
@@ -487,21 +481,23 @@ class RedisTSDB(BaseTSDB):
 
         rollups = self.get_active_series(timestamp=timestamp)
 
-        temporary_id = uuid.uuid1().hex
+        for environment_id in environment_ids:
+            cluster = self.get_cluster(environment_id)
 
-        def make_temporary_key(key):
-            return '{}{}:{}'.format(self.prefix, temporary_id, key)
+            temporary_id = uuid.uuid1().hex
 
-        data = {}
-        for rollup, series in rollups.items():
-            data[rollup] = {timestamp: {e: [] for e in environment_ids} for timestamp in series}
+            def make_temporary_key(key):
+                return '{}{}:{}'.format(self.prefix, temporary_id, key)
 
-        with self.cluster.fanout() as client:
-            for source in sources:
-                c = client.target_key(source)
-                for rollup, series in data.items():
-                    for timestamp, results in series.items():
-                        for environment_id in environment_ids:
+            data = {}
+            for rollup, series in rollups.items():
+                data[rollup] = {timestamp: [] for timestamp in series}
+
+            with cluster.fanout() as client:
+                for source in sources:
+                    c = client.target_key(source)
+                    for rollup, series in data.items():
+                        for timestamp, results in series.items():
                             key = self.make_key(
                                 model,
                                 rollup,
@@ -509,17 +505,16 @@ class RedisTSDB(BaseTSDB):
                                 source,
                                 environment_id,
                             )
-                            results[environment_id].append(c.get(key))
+                            results.append(c.get(key))
                             c.delete(key)
 
-        with self.cluster.fanout() as client:
-            c = client.target_key(destination)
+            with cluster.fanout() as client:
+                c = client.target_key(destination)
 
-            temporary_key_sequence = itertools.count()
+                temporary_key_sequence = itertools.count()
 
-            for rollup, series in data.items():
-                for timestamp, results in series.items():
-                    for environment_id, promises in results.items():
+                for rollup, series in data.items():
+                    for timestamp, promises in series.items():
                         values = {}
                         for promise in promises:
                             if promise.value is None:
@@ -555,13 +550,13 @@ class RedisTSDB(BaseTSDB):
 
         rollups = self.get_active_series(start, end, timestamp)
 
-        with self.cluster.fanout() as client:
-            for rollup, series in rollups.items():
-                for timestamp in series:
-                    for model in models:
-                        for key in keys:
-                            c = client.target_key(key)
-                            for environment_id in environment_ids:
+        for environment_id in environment_ids:
+            with self.get_cluster(environment_id).fanout() as client:
+                for rollup, series in rollups.items():
+                    for timestamp in series:
+                        for model in models:
+                            for key in keys:
+                                c = client.target_key(key)
                                 c.delete(
                                     self.make_key(
                                         model,
@@ -590,17 +585,17 @@ class RedisTSDB(BaseTSDB):
 
         ts = int(to_timestamp(timestamp))  # ``timestamp`` is not actually a timestamp :(
 
-        commands = {}
+        for environment_id in environment_ids:
+            commands = {}
 
-        for model, request in requests:
-            for key, items in six.iteritems(request):
-                keys = []
-                expirations = {}
+            for model, request in requests:
+                for key, items in six.iteritems(request):
+                    keys = []
+                    expirations = {}
 
-                # Figure out all of the keys we need to be incrementing, as
-                # well as their expiration policies.
-                for rollup, max_values in six.iteritems(self.rollups):
-                    for environment_id in environment_ids:
+                    # Figure out all of the keys we need to be incrementing, as
+                    # well as their expiration policies.
+                    for rollup, max_values in six.iteritems(self.rollups):
                         chunk = self.make_frequency_table_keys(
                             model, rollup, ts, key, environment_id)
                         keys.extend(chunk)
@@ -609,18 +604,18 @@ class RedisTSDB(BaseTSDB):
                         for k in chunk:
                             expirations[k] = expiry
 
-                arguments = ['INCR'] + list(self.DEFAULT_SKETCH_PARAMETERS)
-                for member, score in items.items():
-                    arguments.extend((score, member))
+                    arguments = ['INCR'] + list(self.DEFAULT_SKETCH_PARAMETERS)
+                    for member, score in items.items():
+                        arguments.extend((score, member))
 
-                # Since we're essentially merging dictionaries, we need to
-                # append this to any value that already exists at the key.
-                cmds = commands.setdefault(key, [])
-                cmds.append((CountMinScript, keys, arguments))
-                for k, t in expirations.items():
-                    cmds.append(('EXPIREAT', k, t))
+                    # Since we're essentially merging dictionaries, we need to
+                    # append this to any value that already exists at the key.
+                    cmds = commands.setdefault(key, [])
+                    cmds.append((CountMinScript, keys, arguments))
+                    for k, t in expirations.items():
+                        cmds.append(('EXPIREAT', k, t))
 
-        self.cluster.execute_commands(commands)
+            self.get_cluster(environment_id).execute_commands(commands)
 
     def get_most_frequent(self, model, keys, start, end=None,
                           rollup=None, limit=None, environment_id=None):
@@ -647,7 +642,7 @@ class RedisTSDB(BaseTSDB):
             commands[key] = [(CountMinScript, ks, arguments)]
 
         results = {}
-        for key, responses in self.cluster.execute_commands(commands).items():
+        for key, responses in self.get_cluster(environment_id).execute_commands(commands).items():
             results[key] = [(member, float(score)) for member, score in responses[0].value]
 
         return results
@@ -677,7 +672,7 @@ class RedisTSDB(BaseTSDB):
             return {item: float(score) for item, score in response.value}
 
         results = {}
-        for key, responses in self.cluster.execute_commands(commands).items():
+        for key, responses in self.get_cluster(environment_id).execute_commands(commands).items():
             results[key] = zip(series, map(unpack_response, responses))
 
         return results
@@ -713,7 +708,7 @@ class RedisTSDB(BaseTSDB):
 
         results = {}
 
-        for key, responses in self.cluster.execute_commands(commands).items():
+        for key, responses in self.get_cluster(environment_id).execute_commands(commands).items():
             members = items[key]
 
             chunk = results[key] = []
@@ -755,37 +750,35 @@ class RedisTSDB(BaseTSDB):
             )
             rollups.append((rollup, map(to_datetime, series), ))
 
-        exports = defaultdict(list)
+        for environment_id in environment_ids:
+            cluster = self.get_cluster(environment_id)
 
-        for source in sources:
-            for rollup, series in rollups:
-                for timestamp in series:
-                    keys = []
-                    for environment_id in environment_ids:
-                        keys.extend(
-                            self.make_frequency_table_keys(
-                                model,
-                                rollup,
-                                to_timestamp(timestamp),
-                                source,
-                                environment_id,
-                            )
+            exports = defaultdict(list)
+
+            for source in sources:
+                for rollup, series in rollups:
+                    for timestamp in series:
+                        keys = self.make_frequency_table_keys(
+                            model,
+                            rollup,
+                            to_timestamp(timestamp),
+                            source,
+                            environment_id,
                         )
-                    arguments = ['EXPORT'] + list(self.DEFAULT_SKETCH_PARAMETERS)
-                    exports[source].extend(
-                        [
-                            (CountMinScript, keys, arguments),
-                            ['DEL'] + keys,
-                        ]
-                    )
+                        arguments = ['EXPORT'] + list(self.DEFAULT_SKETCH_PARAMETERS)
+                        exports[source].extend(
+                            [
+                                (CountMinScript, keys, arguments),
+                                ['DEL'] + keys,
+                            ]
+                        )
 
-        imports = []
+            imports = []
 
-        for source, results in self.cluster.execute_commands(exports).items():
-            results = iter(results)
-            for rollup, series in rollups:
-                for timestamp in series:
-                    for environment_id, payload in zip(environment_ids, next(results).value):
+            for source, results in cluster.execute_commands(exports).items():
+                results = iter(results)
+                for rollup, series in rollups:
+                    for timestamp in series:
                         imports.append(
                             (
                                 CountMinScript,
@@ -796,14 +789,15 @@ class RedisTSDB(BaseTSDB):
                                     destination,
                                     environment_id,
                                 ),
-                                ['IMPORT'] + list(self.DEFAULT_SKETCH_PARAMETERS) + [payload],
+                                ['IMPORT'] + list(self.DEFAULT_SKETCH_PARAMETERS) +
+                                next(results.value),
                             ),
                         )
-                    next(results)  # pop off the result of DEL
+                        next(results)  # pop off the result of DEL
 
-        self.cluster.execute_commands({
-            destination: imports,
-        })
+            cluster.execute_commands({
+                destination: imports,
+            })
 
     def delete_frequencies(self, models, keys, start=None, end=None,
                            timestamp=None, environment_ids=None):
@@ -813,14 +807,15 @@ class RedisTSDB(BaseTSDB):
 
         rollups = self.get_active_series(start, end, timestamp)
 
-        with self.cluster.fanout() as client:
-            for rollup, series in rollups.items():
-                for timestamp in series:
-                    for model in models:
-                        for key in keys:
-                            c = client.target_key(key)
-                            for environment_id in environment_ids:
-                                for k in self.make_frequency_table_keys(
-                                    model, rollup, to_timestamp(timestamp), key, environment_id
-                                ):
-                                    c.delete(k)
+        for environment_id in environment_ids:
+            with self.get_cluster(environment_id).fanout() as client:
+                for rollup, series in rollups.items():
+                    for timestamp in series:
+                        for model in models:
+                            for key in keys:
+                                c = client.target_key(key)
+                                for environment_id in environment_ids:
+                                    for k in self.make_frequency_table_keys(
+                                        model, rollup, to_timestamp(timestamp), key, environment_id
+                                    ):
+                                        c.delete(k)
