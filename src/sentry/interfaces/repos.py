@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-__all__ = ('Repos',)
+__all__ = ('Repos', )
 
 import six
 
@@ -22,6 +22,7 @@ class Repos(Interface):
     >>>     }
     >>> }
     """
+
     @classmethod
     def to_python(cls, data):
         result = {}

@@ -75,7 +75,7 @@ class UserSocialAuth(models.Model):
         if refresh_token:
             backend = self.get_backend()
             if hasattr(backend, 'refresh_token'):
-                response = backend.refresh_token(refresh_token)
+                response = backend.refresh_token(refresh_token, self.provider)
                 new_access_token = response.get('access_token')
                 # We have not got a new access token, so don't lose the
                 # existing one.

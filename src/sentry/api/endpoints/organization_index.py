@@ -15,8 +15,8 @@ from sentry.api.paginator import DateTimePaginator, OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.db.models.query import in_iexact
 from sentry.models import (
-    AuditLogEntryEvent, Organization, OrganizationMember,
-    OrganizationMemberTeam, OrganizationStatus, ProjectPlatform
+    AuditLogEntryEvent, Organization, OrganizationMember, OrganizationMemberTeam,
+    OrganizationStatus, ProjectPlatform
 )
 from sentry.search.utils import tokenize_query
 from sentry.utils.apidocs import scenario, attach_scenarios
@@ -24,22 +24,18 @@ from sentry.utils.apidocs import scenario, attach_scenarios
 
 @scenario('ListYourOrganizations')
 def list_your_organizations_scenario(runner):
-    runner.request(
-        method='GET',
-        path='/organizations/'
-    )
+    runner.request(method='GET', path='/organizations/')
 
 
 class OrganizationSerializer(serializers.Serializer):
     name = serializers.CharField(max_length=64, required=True)
-    slug = serializers.RegexField(r'^[a-z0-9_\-]+$', max_length=50,
-                                  required=False)
+    slug = serializers.RegexField(r'^[a-z0-9_\-]+$', max_length=50, required=False)
     defaultTeam = serializers.BooleanField(required=False)
 
 
 class OrganizationIndexEndpoint(Endpoint):
     doc_section = DocSection.ORGANIZATIONS
-    permission_classes = (OrganizationPermission,)
+    permission_classes = (OrganizationPermission, )
 
     @attach_scenarios([list_your_organizations_scenario])
     def get(self, request):
@@ -65,13 +61,9 @@ class OrganizationIndexEndpoint(Endpoint):
 
         if request.auth and not request.user.is_authenticated():
             if hasattr(request.auth, 'project'):
-                queryset = queryset.filter(
-                    id=request.auth.project.organization_id
-                )
+                queryset = queryset.filter(id=request.auth.project.organization_id)
             elif request.auth.organization is not None:
-                queryset = queryset.filter(
-                    id=request.auth.organization.id
-                )
+                queryset = queryset.filter(id=request.auth.organization.id)
         elif member_only or not request.is_superuser():
             queryset = queryset.filter(
                 id__in=OrganizationMember.objects.filter(
@@ -86,18 +78,13 @@ class OrganizationIndexEndpoint(Endpoint):
                 if key == 'query':
                     value = ' '.join(value)
                     queryset = queryset.filter(
-                        Q(name__icontains=value) |
-                        Q(slug__icontains=value) |
+                        Q(name__icontains=value) | Q(slug__icontains=value) |
                         Q(members__email__iexact=value)
                     )
                 elif key == 'slug':
-                    queryset = queryset.filter(
-                        in_iexact('slug', value)
-                    )
+                    queryset = queryset.filter(in_iexact('slug', value))
                 elif key == 'email':
-                    queryset = queryset.filter(
-                        in_iexact('members__email', value)
-                    )
+                    queryset = queryset.filter(in_iexact('members__email', value))
                 elif key == 'platform':
                     queryset = queryset.filter(
                         project__in=ProjectPlatform.objects.filter(
@@ -156,22 +143,27 @@ class OrganizationIndexEndpoint(Endpoint):
         :auth: required, user-context-needed
         """
         if not request.user.is_authenticated():
-            return Response({'detail': 'This endpoint requires user info'},
-                            status=401)
+            return Response({'detail': 'This endpoint requires user info'}, status=401)
 
         if not features.has('organizations:create', actor=request.user):
-            return Response({
-                'detail': 'Organizations are not allowed to be created by this user.'
-            }, status=401)
+            return Response(
+                {
+                    'detail': 'Organizations are not allowed to be created by this user.'
+                }, status=401
+            )
 
         limit = options.get('api.rate-limit.org-create')
         if limit and ratelimiter.is_limited(
             u'org-create:{}'.format(request.user.id),
-            limit=limit, window=3600,
+            limit=limit,
+            window=3600,
         ):
-            return Response({
-                'detail': 'You are attempting to create too many organizations too quickly.'
-            }, status=429)
+            return Response(
+                {
+                    'detail': 'You are attempting to create too many organizations too quickly.'
+                },
+                status=429
+            )
 
         serializer = OrganizationSerializer(data=request.DATA)
 
@@ -186,7 +178,9 @@ class OrganizationIndexEndpoint(Endpoint):
                     )
             except IntegrityError:
                 return Response(
-                    {'detail': 'An organization with this slug already exists.'},
+                    {
+                        'detail': 'An organization with this slug already exists.'
+                    },
                     status=409,
                 )
 
@@ -202,9 +196,7 @@ class OrganizationIndexEndpoint(Endpoint):
                 )
 
                 OrganizationMemberTeam.objects.create(
-                    team=team,
-                    organizationmember=om,
-                    is_active=True
+                    team=team, organizationmember=om, is_active=True
                 )
 
             self.create_audit_entry(
@@ -215,8 +207,11 @@ class OrganizationIndexEndpoint(Endpoint):
                 data=org.get_audit_log_data(),
             )
 
-            analytics.record('organization.created', org,
-                             actor_id=request.user.id if request.user.is_authenticated() else None)
+            analytics.record(
+                'organization.created',
+                org,
+                actor_id=request.user.id if request.user.is_authenticated() else None
+            )
 
             return Response(serialize(org, request.user), status=201)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

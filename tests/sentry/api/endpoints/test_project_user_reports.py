@@ -50,9 +50,11 @@ class ProjectUserReportListTest(APITestCase):
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
-        assert sorted(map(lambda x: x['id'], response.data)) == sorted([
-            six.text_type(report_1.id),
-        ])
+        assert sorted(map(lambda x: x['id'], response.data)) == sorted(
+            [
+                six.text_type(report_1.id),
+            ]
+        )
 
     def test_all_reports(self):
         self.login_as(user=self.user)
@@ -77,9 +79,11 @@ class ProjectUserReportListTest(APITestCase):
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
-        assert sorted(map(lambda x: x['id'], response.data)) == sorted([
-            six.text_type(report_1.id),
-        ])
+        assert sorted(map(lambda x: x['id'], response.data)) == sorted(
+            [
+                six.text_type(report_1.id),
+            ]
+        )
 
 
 class CreateProjectUserReportTest(APITestCase):
@@ -95,12 +99,15 @@ class CreateProjectUserReportTest(APITestCase):
             project.slug,
         )
 
-        response = self.client.post(url, data={
-            'event_id': event.event_id,
-            'email': 'foo@example.com',
-            'name': 'Foo Bar',
-            'comments': 'It broke!',
-        })
+        response = self.client.post(
+            url,
+            data={
+                'event_id': event.event_id,
+                'email': 'foo@example.com',
+                'name': 'Foo Bar',
+                'comments': 'It broke!',
+            }
+        )
 
         assert response.status_code == 200, response.content
 
@@ -133,12 +140,15 @@ class CreateProjectUserReportTest(APITestCase):
             project.slug,
         )
 
-        response = self.client.post(url, data={
-            'event_id': event.event_id,
-            'email': 'foo@example.com',
-            'name': 'Foo Bar',
-            'comments': 'It broke!',
-        })
+        response = self.client.post(
+            url,
+            data={
+                'event_id': event.event_id,
+                'email': 'foo@example.com',
+                'name': 'Foo Bar',
+                'comments': 'It broke!',
+            }
+        )
 
         assert response.status_code == 200, response.content
 
@@ -156,9 +166,11 @@ class CreateProjectUserReportTest(APITestCase):
 
         project = self.create_project()
         group = self.create_group(project=project)
-        event = self.create_event(group=group, tags={
-            'sentry:user': 'email:foo@example.com',
-        })
+        event = self.create_event(
+            group=group, tags={
+                'sentry:user': 'email:foo@example.com',
+            }
+        )
         euser = EventUser.objects.create(
             project_id=project.id,
             name='',
@@ -178,12 +190,15 @@ class CreateProjectUserReportTest(APITestCase):
             project.slug,
         )
 
-        response = self.client.post(url, data={
-            'event_id': event.event_id,
-            'email': 'foo@example.com',
-            'name': 'Foo Bar',
-            'comments': 'It broke!',
-        })
+        response = self.client.post(
+            url,
+            data={
+                'event_id': event.event_id,
+                'email': 'foo@example.com',
+                'name': 'Foo Bar',
+                'comments': 'It broke!',
+            }
+        )
 
         assert response.status_code == 200, response.content
 

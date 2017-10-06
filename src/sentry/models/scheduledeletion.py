@@ -13,22 +13,19 @@ from sentry.db.models import BoundedBigIntegerField, Model
 class ScheduledDeletion(Model):
     __core__ = False
 
-    guid = models.CharField(max_length=32, unique=True,
-                            default=lambda: uuid4().hex)
+    guid = models.CharField(max_length=32, unique=True, default=lambda: uuid4().hex)
     app_label = models.CharField(max_length=64)
     model_name = models.CharField(max_length=64)
     object_id = BoundedBigIntegerField()
     date_added = models.DateTimeField(default=timezone.now)
-    date_scheduled = models.DateTimeField(default=lambda: (
-        timezone.now() + timedelta(days=30)
-    ))
+    date_scheduled = models.DateTimeField(default=lambda: (timezone.now() + timedelta(days=30)))
     actor_id = BoundedBigIntegerField(null=True)
     data = JSONField(default={})
     in_progress = models.BooleanField(default=False)
     aborted = models.BooleanField(default=False)
 
     class Meta:
-        unique_together = (('app_label', 'model_name', 'object_id'),)
+        unique_together = (('app_label', 'model_name', 'object_id'), )
         app_label = 'sentry'
         db_table = 'sentry_scheduleddeletion'
 

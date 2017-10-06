@@ -13,11 +13,16 @@ from sentry.models import ProjectOption
 
 def _get_webhook_url(project, plugin_id, token):
 
-    return absolute_uri(reverse('sentry-release-hook', kwargs={
-        'plugin_id': plugin_id,
-        'project_id': project.id,
-        'signature': _get_signature(project.id, plugin_id, token),
-    }))
+    return absolute_uri(
+        reverse(
+            'sentry-release-hook',
+            kwargs={
+                'plugin_id': plugin_id,
+                'project_id': project.id,
+                'signature': _get_signature(project.id, plugin_id, token),
+            }
+        )
+    )
 
 
 def _get_signature(project_id, plugin_id, token):
@@ -29,7 +34,7 @@ def _get_signature(project_id, plugin_id, token):
 
 
 class ProjectReleasesTokenEndpoint(ProjectEndpoint):
-    permission_classes = (StrictProjectPermission,)
+    permission_classes = (StrictProjectPermission, )
 
     def _regenerate_token(self, project):
         token = uuid1().hex
@@ -42,15 +47,11 @@ class ProjectReleasesTokenEndpoint(ProjectEndpoint):
         if token is None:
             token = self._regenerate_token(project)
 
-        return Response({
-            'token': token,
-            'webhookUrl': _get_webhook_url(project, 'builtin', token)
-        })
+        return Response(
+            {'token': token, 'webhookUrl': _get_webhook_url(project, 'builtin', token)})
 
     def post(self, request, project):
         token = self._regenerate_token(project)
 
-        return Response({
-            'token': token,
-            'webhookUrl': _get_webhook_url(project, 'builtin', token)
-        })
+        return Response(
+            {'token': token, 'webhookUrl': _get_webhook_url(project, 'builtin', token)})

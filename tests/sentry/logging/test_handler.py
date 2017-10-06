@@ -31,12 +31,29 @@ def make_logrecord(**extra):
     return logging.LogRecord(**kwargs)
 
 
-@pytest.mark.parametrize('record,out', (
-    ({}, {}),
-    ({'msg': '%s', 'args': (1,)}, {'event': '%s', 'positional_args': (1,)}),
-    ({'args': ({'a': 1},)}, {'positional_args': ({'a': 1},)}),
-    ({'exc_info': True}, {'exc_info': True}),
-))
+@pytest.mark.parametrize(
+    'record,out', (
+        ({}, {}), ({
+            'msg': '%s',
+            'args': (1, )
+        }, {
+            'event': '%s',
+            'positional_args': (1, )
+        }), ({
+            'args': ({
+                'a': 1
+            }, )
+        }, {
+            'positional_args': ({
+                'a': 1
+            }, )
+        }), ({
+            'exc_info': True
+        }, {
+            'exc_info': True
+        }),
+    )
+)
 def test_emit(record, out, handler, logger):
     record = make_logrecord(**record)
     handler.emit(record, logger=logger)

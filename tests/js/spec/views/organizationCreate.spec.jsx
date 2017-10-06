@@ -1,6 +1,5 @@
 import React from 'react';
 import {shallow} from 'enzyme';
-import toJson from 'enzyme-to-json';
 
 import OrganizationCreate from 'app/views/organizationCreate';
 
@@ -10,7 +9,7 @@ describe('OrganizationCreate', function() {
       let wrapper = shallow(<OrganizationCreate />, {
         context: {router: TestStubs.router()}
       });
-      expect(toJson(wrapper)).toMatchSnapshot();
+      expect(wrapper).toMatchSnapshot();
     });
   });
 });

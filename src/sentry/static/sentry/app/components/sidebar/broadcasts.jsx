@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 
 import ApiMixin from '../../mixins/apiMixin';
@@ -12,10 +13,10 @@ const POLLER_DELAY = 60000;
 
 const Broadcasts = React.createClass({
   propTypes: {
-    showPanel: React.PropTypes.bool,
-    currentPanel: React.PropTypes.string,
-    hidePanel: React.PropTypes.func,
-    onShowPanel: React.PropTypes.func.isRequired
+    showPanel: PropTypes.bool,
+    currentPanel: PropTypes.string,
+    hidePanel: PropTypes.func,
+    onShowPanel: PropTypes.func.isRequired
   },
 
   mixins: [ApiMixin],
@@ -55,7 +56,7 @@ const Broadcasts = React.createClass({
       method: 'GET',
       success: data => {
         this.setState({
-          broadcasts: data,
+          broadcasts: data || [],
           loading: false
         });
         this.poller = window.setTimeout(this.fetchData, POLLER_DELAY);

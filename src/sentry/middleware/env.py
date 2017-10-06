@@ -17,5 +17,6 @@ def clear_request(**kwargs):
     env.request = None
     env.tenant = None
 
+
 request_finished.connect(clear_request)
 task_postrun.connect(clear_request)

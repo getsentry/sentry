@@ -54,7 +54,7 @@ describe('StreamTagStore', function() {
         values: []
       });
 
-      expect(StreamTagStore.trigger.calledOnce).toBeTruthy;
+      expect(StreamTagStore.trigger.calledOnce).toBeTruthy();
     });
 
     it('should not overwrite predefined filters', () => {

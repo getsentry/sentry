@@ -31,9 +31,12 @@ def validate_urls(value, **kwargs):
 class WebHooksOptionsForm(notify.NotificationConfigurationForm):
     urls = forms.CharField(
         label=_('Callback URLs'),
-        widget=forms.Textarea(attrs={
-            'class': 'span6', 'placeholder': 'https://sentry.io/callback/url'}),
-        help_text=_('Enter callback URLs to POST new events to (one per line).'))
+        widget=forms.Textarea(
+            attrs={'class': 'span6',
+                   'placeholder': 'https://sentry.io/callback/url'}
+        ),
+        help_text=_('Enter callback URLs to POST new events to (one per line).')
+    )
 
     def clean_url(self):
         value = self.cleaned_data.get('url')
@@ -64,15 +67,17 @@ class WebHooksPlugin(notify.NotificationPlugin):
         return bool(self.get_option('urls', project))
 
     def get_config(self, project, **kwargs):
-        return [{
-            'name': 'urls',
-            'label': 'Callback URLs',
-            'type': 'textarea',
-            'help': 'Enter callback URLs to POST new events to (one per line).',
-            'placeholder': 'https://sentry.io/callback/url',
-            'validators': [validate_urls],
-            'required': False
-        }]
+        return [
+            {
+                'name': 'urls',
+                'label': 'Callback URLs',
+                'type': 'textarea',
+                'help': 'Enter callback URLs to POST new events to (one per line).',
+                'placeholder': 'https://sentry.io/callback/url',
+                'validators': [validate_urls],
+                'required': False
+            }
+        ]
 
     def get_group_data(self, group, event):
         data = {

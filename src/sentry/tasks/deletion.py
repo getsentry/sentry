@@ -42,9 +42,13 @@ def run_scheduled_deletions():
             run_deletion.delay(deletion_id=item.id)
 
 
-@instrumented_task(name='sentry.tasks.deletion.run_deletion', queue='cleanup',
-                   default_retry_delay=60 * 5, max_retries=MAX_RETRIES)
-@retry(exclude=(DeleteAborted,))
+@instrumented_task(
+    name='sentry.tasks.deletion.run_deletion',
+    queue='cleanup',
+    default_retry_delay=60 * 5,
+    max_retries=MAX_RETRIES
+)
+@retry(exclude=(DeleteAborted, ))
 def run_deletion(deletion_id):
     from sentry import deletions
     from sentry.models import ScheduledDeletion
@@ -62,7 +66,7 @@ def run_deletion(deletion_id):
     if not deletion.in_progress:
         actor = deletion.get_actor()
         instance = deletion.get_instance()
-        with transaction.atomc():
+        with transaction.atomic():
             deletion.update(in_progress=True)
             pending_delete.send(
                 sender=type(instance),
@@ -87,9 +91,13 @@ def run_deletion(deletion_id):
     deletion.delete()
 
 
-@instrumented_task(name='sentry.tasks.deletion.revoke_api_tokens', queue='cleanup',
-                   default_retry_delay=60 * 5, max_retries=MAX_RETRIES)
-@retry(exclude=(DeleteAborted,))
+@instrumented_task(
+    name='sentry.tasks.deletion.revoke_api_tokens',
+    queue='cleanup',
+    default_retry_delay=60 * 5,
+    max_retries=MAX_RETRIES
+)
+@retry(exclude=(DeleteAborted, ))
 def revoke_api_tokens(object_id, transaction_id=None, timestamp=None, **kwargs):
     from sentry.models import ApiToken
 
@@ -118,10 +126,14 @@ def revoke_api_tokens(object_id, transaction_id=None, timestamp=None, **kwargs):
     return has_more
 
 
-@instrumented_task(name='sentry.tasks.deletion.delete_organization', queue='cleanup',
-                   default_retry_delay=60 * 5, max_retries=MAX_RETRIES)
-@retry(exclude=(DeleteAborted,))
-def delete_organization(object_id, transaction_id=None, **kwargs):
+@instrumented_task(
+    name='sentry.tasks.deletion.delete_organization',
+    queue='cleanup',
+    default_retry_delay=60 * 5,
+    max_retries=MAX_RETRIES
+)
+@retry(exclude=(DeleteAborted, ))
+def delete_organization(object_id, transaction_id=None, actor_id=None, **kwargs):
     from sentry import deletions
     from sentry.models import Organization, OrganizationStatus
 
@@ -146,18 +158,25 @@ def delete_organization(object_id, transaction_id=None, **kwargs):
             'id': object_id,
         },
         transaction_id=transaction_id or uuid4().hex,
+        actor_id=actor_id,
     )
     has_more = task.chunk()
     if has_more:
         delete_organization.apply_async(
-            kwargs={'object_id': object_id, 'transaction_id': transaction_id},
+            kwargs={'object_id': object_id,
+                    'transaction_id': transaction_id,
+                    'actor_id': actor_id},
             countdown=15,
         )
 
 
-@instrumented_task(name='sentry.tasks.deletion.delete_team', queue='cleanup',
-                   default_retry_delay=60 * 5, max_retries=MAX_RETRIES)
-@retry(exclude=(DeleteAborted,))
+@instrumented_task(
+    name='sentry.tasks.deletion.delete_team',
+    queue='cleanup',
+    default_retry_delay=60 * 5,
+    max_retries=MAX_RETRIES
+)
+@retry(exclude=(DeleteAborted, ))
 def delete_team(object_id, transaction_id=None, **kwargs):
     from sentry import deletions
     from sentry.models import Team, TeamStatus
@@ -180,14 +199,19 @@ def delete_team(object_id, transaction_id=None, **kwargs):
     has_more = task.chunk()
     if has_more:
         delete_team.apply_async(
-            kwargs={'object_id': object_id, 'transaction_id': transaction_id},
+            kwargs={'object_id': object_id,
+                    'transaction_id': transaction_id},
             countdown=15,
         )
 
 
-@instrumented_task(name='sentry.tasks.deletion.delete_project', queue='cleanup',
-                   default_retry_delay=60 * 5, max_retries=MAX_RETRIES)
-@retry(exclude=(DeleteAborted,))
+@instrumented_task(
+    name='sentry.tasks.deletion.delete_project',
+    queue='cleanup',
+    default_retry_delay=60 * 5,
+    max_retries=MAX_RETRIES
+)
+@retry(exclude=(DeleteAborted, ))
 def delete_project(object_id, transaction_id=None, **kwargs):
     from sentry import deletions
     from sentry.models import Project, ProjectStatus
@@ -210,14 +234,19 @@ def delete_project(object_id, transaction_id=None, **kwargs):
     has_more = task.chunk()
     if has_more:
         delete_project.apply_async(
-            kwargs={'object_id': object_id, 'transaction_id': transaction_id},
+            kwargs={'object_id': object_id,
+                    'transaction_id': transaction_id},
             countdown=15,
         )
 
 
-@instrumented_task(name='sentry.tasks.deletion.delete_group', queue='cleanup',
-                   default_retry_delay=60 * 5, max_retries=MAX_RETRIES)
-@retry(exclude=(DeleteAborted,))
+@instrumented_task(
+    name='sentry.tasks.deletion.delete_group',
+    queue='cleanup',
+    default_retry_delay=60 * 5,
+    max_retries=MAX_RETRIES
+)
+@retry(exclude=(DeleteAborted, ))
 def delete_group(object_id, transaction_id=None, **kwargs):
     from sentry import deletions
     from sentry.models import Group
@@ -232,14 +261,19 @@ def delete_group(object_id, transaction_id=None, **kwargs):
     has_more = task.chunk()
     if has_more:
         delete_group.apply_async(
-            kwargs={'object_id': object_id, 'transaction_id': transaction_id},
+            kwargs={'object_id': object_id,
+                    'transaction_id': transaction_id},
             countdown=15,
         )
 
 
-@instrumented_task(name='sentry.tasks.deletion.delete_tag_key', queue='cleanup',
-                   default_retry_delay=60 * 5, max_retries=MAX_RETRIES)
-@retry(exclude=(DeleteAborted,))
+@instrumented_task(
+    name='sentry.tasks.deletion.delete_tag_key',
+    queue='cleanup',
+    default_retry_delay=60 * 5,
+    max_retries=MAX_RETRIES
+)
+@retry(exclude=(DeleteAborted, ))
 def delete_tag_key(object_id, transaction_id=None, **kwargs):
     from sentry import deletions
     from sentry.models import TagKey
@@ -254,14 +288,19 @@ def delete_tag_key(object_id, transaction_id=None, **kwargs):
     has_more = task.chunk()
     if has_more:
         delete_tag_key.apply_async(
-            kwargs={'object_id': object_id, 'transaction_id': transaction_id},
+            kwargs={'object_id': object_id,
+                    'transaction_id': transaction_id},
             countdown=15,
         )
 
 
-@instrumented_task(name='sentry.tasks.deletion.delete_api_application', queue='cleanup',
-                   default_retry_delay=60 * 5, max_retries=MAX_RETRIES)
-@retry(exclude=(DeleteAborted,))
+@instrumented_task(
+    name='sentry.tasks.deletion.delete_api_application',
+    queue='cleanup',
+    default_retry_delay=60 * 5,
+    max_retries=MAX_RETRIES
+)
+@retry(exclude=(DeleteAborted, ))
 def delete_api_application(object_id, transaction_id=None, **kwargs):
     from sentry import deletions
     from sentry.models import ApiApplication, ApiApplicationStatus
@@ -284,16 +323,20 @@ def delete_api_application(object_id, transaction_id=None, **kwargs):
     has_more = task.chunk()
     if has_more:
         delete_api_application.apply_async(
-            kwargs={'object_id': object_id, 'transaction_id': transaction_id},
+            kwargs={'object_id': object_id,
+                    'transaction_id': transaction_id},
             countdown=15,
         )
 
 
-@instrumented_task(name='sentry.tasks.deletion.generic_delete', queue='cleanup',
-                   default_retry_delay=60 * 5, max_retries=MAX_RETRIES)
-@retry(exclude=(DeleteAborted,))
-def generic_delete(app_label, model_name, object_id, transaction_id=None,
-                   actor_id=None, **kwargs):
+@instrumented_task(
+    name='sentry.tasks.deletion.generic_delete',
+    queue='cleanup',
+    default_retry_delay=60 * 5,
+    max_retries=MAX_RETRIES
+)
+@retry(exclude=(DeleteAborted, ))
+def generic_delete(app_label, model_name, object_id, transaction_id=None, actor_id=None, **kwargs):
     from sentry import deletions
 
     model = get_model(app_label, model_name)
@@ -328,9 +371,13 @@ def generic_delete(app_label, model_name, object_id, transaction_id=None,
         )
 
 
-@instrumented_task(name='sentry.tasks.deletion.delete_repository', queue='cleanup',
-                   default_retry_delay=60 * 5, max_retries=MAX_RETRIES)
-@retry(exclude=(DeleteAborted,))
+@instrumented_task(
+    name='sentry.tasks.deletion.delete_repository',
+    queue='cleanup',
+    default_retry_delay=60 * 5,
+    max_retries=MAX_RETRIES
+)
+@retry(exclude=(DeleteAborted, ))
 def delete_repository(object_id, transaction_id=None, actor_id=None, **kwargs):
     from sentry import deletions
     from sentry.models import Repository, User

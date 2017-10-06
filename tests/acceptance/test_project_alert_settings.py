@@ -12,10 +12,7 @@ class ProjectAlertSettingsTest(AcceptanceTestCase):
             name='Rowdy Tiger',
             owner=None,
         )
-        self.team = self.create_team(
-            organization=self.org,
-            name='Mariachi Band'
-        )
+        self.team = self.create_team(organization=self.org, name='Mariachi Band')
         self.project = self.create_project(
             organization=self.org,
             team=self.team,
@@ -38,8 +35,7 @@ class ProjectAlertSettingsTest(AcceptanceTestCase):
         Rule.objects.filter(project=self.project).delete()
 
         Rule.objects.create(
-            project=self.project,
-            data={
+            project=self.project, data={
                 'conditions': [condition_data],
                 'actions': [action_data],
             }

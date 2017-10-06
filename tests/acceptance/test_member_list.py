@@ -12,10 +12,7 @@ class ListOrganizationMembersTest(AcceptanceTestCase):
             name='Rowdy Tiger',
             owner=None,
         )
-        self.team = self.create_team(
-            organization=self.org,
-            name='Mariachi Band'
-        )
+        self.team = self.create_team(organization=self.org, name='Mariachi Band')
         self.create_member(
             user=self.user,
             organization=self.org,
@@ -23,9 +20,7 @@ class ListOrganizationMembersTest(AcceptanceTestCase):
             teams=[self.team],
         )
         OrganizationMember.objects.create(
-            email='bar@example.com',
-            organization=self.org,
-            role='member'
+            email='bar@example.com', organization=self.org, role='member'
         )
         self.create_member(
             user=self.create_user('baz@example.com'),

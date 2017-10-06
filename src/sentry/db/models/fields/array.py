@@ -65,10 +65,12 @@ class ArrayField(models.Field):
         return value
 
     def get_prep_lookup(self, lookup_type, value):
-        raise NotImplementedError('{!r} lookup type for {!r} is not supported'.format(
-            lookup_type,
-            self,
-        ))
+        raise NotImplementedError(
+            '{!r} lookup type for {!r} is not supported'.format(
+                lookup_type,
+                self,
+            )
+        )
 
     def south_field_triple(self):
         # It's safe to import South at this point; this method
@@ -95,12 +97,11 @@ class ArrayField(models.Field):
                     '{module}.{class_name}'.format(
                         module=self.of.__class__.__module__,
                         class_name=self.of.__class__.__name__,
-                    ),
-                    double[0],
-                    double[1],
+                    ), double[0], double[1],
                 ),
             },
         )
+
 
 if hasattr(models, 'SubfieldBase'):
     ArrayField = six.add_metaclass(models.SubfieldBase)(ArrayField)

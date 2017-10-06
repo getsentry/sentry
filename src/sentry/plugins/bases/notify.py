@@ -8,6 +8,12 @@ sentry.plugins.bases.notify
 from __future__ import absolute_import, print_function
 
 import logging
+from six.moves.urllib.parse import (
+    urlparse,
+    urlencode,
+    urlunparse,
+    parse_qs,
+)
 
 from django import forms
 
@@ -44,9 +50,11 @@ class BaseNotificationUserOptionsForm(forms.Form):
 
 
 class NotificationPlugin(Plugin):
+    slug = ''
     description = (
         'Notify project members when a new event is seen for the first time, or when an '
-        'already resolved event has changed back to unresolved.')
+        'already resolved event has changed back to unresolved.'
+    )
     # site_conf_form = NotificationConfigurationForm
     project_conf_form = NotificationConfigurationForm
 
@@ -74,16 +82,19 @@ class NotificationPlugin(Plugin):
             if not future.kwargs:
                 continue
             raise NotImplementedError(
-                'The default behavior for notification de-duplication does not support args')
+                'The default behavior for notification de-duplication does not support args'
+            )
 
         project = event.group.project
         extra['project_id'] = project.id
         if hasattr(self, 'notify_digest') and digests.enabled(project):
+
             def get_digest_option(key):
                 return ProjectOption.objects.get_value(
                     project,
                     get_digest_option_key(self.get_conf_key(), key),
                 )
+
             digest_key = unsplit_key(self, event.group.project)
             extra['digest_key'] = digest_key
             immediate_delivery = digests.add(
@@ -141,12 +152,8 @@ class NotificationPlugin(Plugin):
         # If the plugin doesn't support digests or they are not enabled,
         # perform rate limit checks to support backwards compatibility with
         # older plugins.
-        if not (
-                hasattr(
-                    self,
-                    'notify_digest') and digests.enabled(project)) and self.__is_rate_limited(
-                group,
-                event):
+        if not (hasattr(self, 'notify_digest') and
+                digests.enabled(project)) and self.__is_rate_limited(group, event):
             logger = logging.getLogger('sentry.plugins.{0}'.format(self.get_conf_key()))
             logger.info('notification.rate_limited', extra={'project_id': project.id})
             return False
@@ -161,6 +168,18 @@ class NotificationPlugin(Plugin):
 
     def get_notification_doc_html(self, **kwargs):
         return ""
+
+    def add_notification_referrer_param(self, url):
+        if self.slug:
+            parsed_url = urlparse(url)
+            query = parse_qs(parsed_url.query)
+            query['referrer'] = self.slug
+
+            url_list = list(parsed_url)
+            url_list[4] = urlencode(query, doseq=True)
+            return urlunparse(url_list)
+
+        return url
 
 
 # Backwards-compatibility

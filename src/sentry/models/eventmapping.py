@@ -10,9 +10,7 @@ from __future__ import absolute_import
 from django.db import models
 from django.utils import timezone
 
-from sentry.db.models import (
-    BoundedBigIntegerField, Model, sane_repr
-)
+from sentry.db.models import (BoundedBigIntegerField, Model, sane_repr)
 
 
 class EventMapping(Model):
@@ -26,7 +24,7 @@ class EventMapping(Model):
     class Meta:
         app_label = 'sentry'
         db_table = 'sentry_eventmapping'
-        unique_together = (('project_id', 'event_id'),)
+        unique_together = (('project_id', 'event_id'), )
 
     __repr__ = sane_repr('project_id', 'group_id', 'event_id')
 

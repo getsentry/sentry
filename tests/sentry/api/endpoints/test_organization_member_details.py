@@ -3,9 +3,7 @@ from __future__ import absolute_import
 from django.core.urlresolvers import reverse
 from mock import patch
 
-from sentry.models import (
-    AuthProvider, OrganizationMember
-)
+from sentry.models import (AuthProvider, OrganizationMember)
 from sentry.testutils import APITestCase
 
 
@@ -21,8 +19,9 @@ class UpdateOrganizationMemberTest(APITestCase):
             role='member',
         )
 
-        path = reverse('sentry-api-0-organization-member-details',
-                       args=[organization.slug, member_om.id])
+        path = reverse(
+            'sentry-api-0-organization-member-details', args=[organization.slug, member_om.id]
+        )
 
         self.login_as(self.user)
 
@@ -48,8 +47,9 @@ class UpdateOrganizationMemberTest(APITestCase):
             flags=1,
         )
 
-        path = reverse('sentry-api-0-organization-member-details',
-                       args=[organization.slug, member_om.id])
+        path = reverse(
+            'sentry-api-0-organization-member-details', args=[organization.slug, member_om.id]
+        )
 
         self.login_as(self.user)
 
@@ -70,8 +70,9 @@ class UpdateOrganizationMemberTest(APITestCase):
             role='member',
         )
 
-        path = reverse('sentry-api-0-organization-member-details',
-                       args=[organization.slug, member_om.id])
+        path = reverse(
+            'sentry-api-0-organization-member-details', args=[organization.slug, member_om.id]
+        )
 
         self.login_as(self.user)
 
@@ -93,8 +94,9 @@ class DeleteOrganizationMemberTest(APITestCase):
             role='member',
         )
 
-        path = reverse('sentry-api-0-organization-member-details',
-                       args=[organization.slug, member_om.id])
+        path = reverse(
+            'sentry-api-0-organization-member-details', args=[organization.slug, member_om.id]
+        )
 
         self.login_as(self.user)
 
@@ -122,8 +124,9 @@ class DeleteOrganizationMemberTest(APITestCase):
 
         assert owner_om.role == 'owner'
 
-        path = reverse('sentry-api-0-organization-member-details',
-                       args=[organization.slug, owner_om.id])
+        path = reverse(
+            'sentry-api-0-organization-member-details', args=[organization.slug, owner_om.id]
+        )
 
         self.login_as(other_user)
 
@@ -152,8 +155,9 @@ class DeleteOrganizationMemberTest(APITestCase):
 
         assert owner_om.role == 'owner'
 
-        path = reverse('sentry-api-0-organization-member-details',
-                       args=[organization.slug, owner_om.id])
+        path = reverse(
+            'sentry-api-0-organization-member-details', args=[organization.slug, owner_om.id]
+        )
 
         self.login_as(self.user)
 
@@ -206,9 +210,12 @@ class DeleteOrganizationMemberTest(APITestCase):
             user=member_user,
         )
 
-        path = reverse('sentry-api-0-organization-member-details', args=[
-            organization.slug, member_om.id,
-        ])
+        path = reverse(
+            'sentry-api-0-organization-member-details', args=[
+                organization.slug,
+                member_om.id,
+            ]
+        )
 
         self.login_as(admin_user)
 

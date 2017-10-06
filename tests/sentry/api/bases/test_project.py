@@ -25,8 +25,7 @@ class ProjectPermissionBase(TestCase):
         # bind request for tenants
         env.request = request
         return (
-            perm.has_permission(request, None) and
-            perm.has_object_permission(request, None, obj)
+            perm.has_permission(request, None) and perm.has_object_permission(request, None, obj)
         )
 
 
@@ -71,12 +70,7 @@ class ProjectPermissionTest(ProjectPermissionBase):
 
     def test_member_with_team_access(self):
         user = self.create_user(is_superuser=False)
-        self.create_member(
-            user=user,
-            organization=self.org,
-            role='member',
-            teams=[self.team]
-        )
+        self.create_member(user=user, organization=self.org, role='member', teams=[self.team])
         assert self.has_object_perm('GET', self.project, user=user)
 
     def test_api_key_with_org_access(self):

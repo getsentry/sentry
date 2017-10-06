@@ -39,16 +39,16 @@ class TeamManager(BoundManager):
         Returns a list of all teams a user has some level of access to.
         """
         from sentry.models import (
-            OrganizationMemberTeam, Project, ProjectStatus, OrganizationMember,
+            OrganizationMemberTeam,
+            Project,
+            ProjectStatus,
+            OrganizationMember,
         )
 
         if not user.is_authenticated():
             return []
 
-        base_team_qs = self.filter(
-            organization=organization,
-            status=TeamStatus.VISIBLE
-        )
+        base_team_qs = self.filter(organization=organization, status=TeamStatus.VISIBLE)
 
         if env.request and env.request.is_superuser() or settings.SENTRY_PUBLIC:
             team_list = list(base_team_qs)
@@ -67,23 +67,26 @@ class TeamManager(BoundManager):
             if scope is not None and scope not in om.get_scopes():
                 return []
 
-            team_list = list(base_team_qs.filter(
-                id__in=OrganizationMemberTeam.objects.filter(
-                    organizationmember=om,
-                    is_active=True,
-                ).values_list('team'),
-            ))
+            team_list = list(
+                base_team_qs.filter(
+                    id__in=OrganizationMemberTeam.objects.filter(
+                        organizationmember=om,
+                        is_active=True,
+                    ).values_list('team'),
+                )
+            )
 
         results = sorted(team_list, key=lambda x: x.name.lower())
 
         if with_projects:
-            project_list = sorted(Project.objects.filter(
-                team__in=team_list,
-                status=ProjectStatus.VISIBLE,
-            ), key=lambda x: x.name.lower())
-            projects_by_team = {
-                t.id: [] for t in team_list
-            }
+            project_list = sorted(
+                Project.objects.filter(
+                    team__in=team_list,
+                    status=ProjectStatus.VISIBLE,
+                ),
+                key=lambda x: x.name.lower()
+            )
+            projects_by_team = {t.id: [] for t in team_list}
             for project in project_list:
                 projects_by_team[project.team_id].append(project)
 
@@ -113,22 +116,21 @@ class Team(Model):
     organization = FlexibleForeignKey('sentry.Organization', related_name=None)
     slug = models.SlugField()
     name = models.CharField(max_length=64)
-    status = BoundedPositiveIntegerField(choices=(
-        (TeamStatus.VISIBLE, _('Active')),
-        (TeamStatus.PENDING_DELETION, _('Pending Deletion')),
-        (TeamStatus.DELETION_IN_PROGRESS, _('Deletion in Progress')),
-    ), default=TeamStatus.VISIBLE)
+    status = BoundedPositiveIntegerField(
+        choices=(
+            (TeamStatus.VISIBLE, _('Active')), (TeamStatus.PENDING_DELETION, _('Pending Deletion')),
+            (TeamStatus.DELETION_IN_PROGRESS, _('Deletion in Progress')),
+        ),
+        default=TeamStatus.VISIBLE
+    )
     date_added = models.DateTimeField(default=timezone.now, null=True)
 
-    objects = TeamManager(cache_fields=(
-        'pk',
-        'slug',
-    ))
+    objects = TeamManager(cache_fields=('pk', 'slug', ))
 
     class Meta:
         app_label = 'sentry'
         db_table = 'sentry_team'
-        unique_together = (('organization', 'slug'),)
+        unique_together = (('organization', 'slug'), )
 
     __repr__ = sane_repr('name', 'slug')
 
@@ -184,8 +186,8 @@ class Team(Model):
         Transfers a team and all projects under it to the given organization.
         """
         from sentry.models import (
-            OrganizationAccessRequest, OrganizationMember,
-            OrganizationMemberTeam, Project
+            OrganizationAccessRequest, OrganizationMember, OrganizationMemberTeam, Project,
+            ProjectTeam, ReleaseProject
         )
 
         try:
@@ -201,13 +203,30 @@ class Team(Model):
         else:
             new_team = self
 
+        project_ids = list(
+            Project.objects.filter(
+                team=self,
+            ).exclude(
+                organization=organization,
+            ).values_list('id', flat=True)
+        )
+
+        # remove associations with releases from other org
+        ReleaseProject.objects.filter(
+            project_id__in=project_ids,
+        ).delete()
+
         Project.objects.filter(
-            team=self,
-        ).exclude(
-            organization=organization,
+            id__in=project_ids,
         ).update(
             team=new_team,
             organization=organization,
+        )
+
+        ProjectTeam.objects.filter(
+            project_id__in=project_ids,
+        ).update(
+            team=new_team,
         )
 
         # remove any pending access requests from the old organization

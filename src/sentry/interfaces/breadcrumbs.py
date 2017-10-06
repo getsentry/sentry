@@ -8,7 +8,7 @@ sentry.interfaces.breadcrumbs
 
 from __future__ import absolute_import
 
-__all__ = ('Breadcrumbs',)
+__all__ = ('Breadcrumbs', )
 
 import six
 
@@ -67,8 +67,7 @@ class Breadcrumbs(Interface):
         ty = crumb.get('type') or 'default'
         ts = parse_timestamp(crumb.get('timestamp'))
         if ts is None:
-            raise InterfaceValidationError('Unable to determine timestamp '
-                                           'for crumb')
+            raise InterfaceValidationError('Unable to determine timestamp ' 'for crumb')
 
         rv = {
             'type': ty,
@@ -127,6 +126,7 @@ class Breadcrumbs(Interface):
                 'data': x.get('data') or None,
                 'event_id': x.get('event_id'),
             }
+
         return {
             'values': [_convert(v) for v in self.values],
         }

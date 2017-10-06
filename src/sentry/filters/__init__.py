@@ -1,8 +1,8 @@
 from __future__ import absolute_import, print_function
 
 __all__ = [
-    'Filter', 'FilterManager', 'FilterNotRegistered', 'all', 'exists', 'get',
-    'register', 'unregister'
+    'Filter', 'FilterManager', 'FilterNotRegistered', 'all', 'exists', 'get', 'register',
+    'unregister'
 ]
 
 from .base import Filter  # NOQA

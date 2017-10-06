@@ -12,8 +12,8 @@ def feature(parser, token):
     bits = token.split_contents()
     if len(bits) < 2:
         raise template.TemplateSyntaxError(
-            "%r tag requires an argument" %
-            token.contents.split()[0])
+            "%r tag requires an argument" % token.contents.split()[0]
+        )
 
     name = bits[1]
     params = bits[2:]
@@ -22,7 +22,7 @@ def feature(parser, token):
     token = parser.next_token()
 
     if token.contents == 'else':
-        nodelist_false = parser.parse(('endfeature',))
+        nodelist_false = parser.parse(('endfeature', ))
         parser.delete_first_token()
     else:
         nodelist_false = template.NodeList()

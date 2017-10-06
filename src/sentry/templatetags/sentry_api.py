@@ -4,11 +4,8 @@ from django import template
 from django.http import HttpRequest
 
 from sentry.api.serializers.base import serialize as serialize_func
-from sentry.api.serializers.models.organization import (
-    DetailedOrganizationSerializer
-)
+from sentry.api.serializers.models.organization import (DetailedOrganizationSerializer)
 from sentry.utils import json
-
 
 register = template.Library()
 

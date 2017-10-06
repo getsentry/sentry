@@ -1,17 +1,18 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import {Link} from 'react-router';
 
 import ApiMixin from '../mixins/apiMixin';
 import Count from './count';
-import GroupTitle from './group/title';
+import EventOrGroupTitle from './eventOrGroupTitle';
 import TimeSince from './timeSince';
 
 export default React.createClass({
   propTypes: {
-    orgId: React.PropTypes.string.isRequired,
-    projectId: React.PropTypes.string.isRequired,
-    issue: React.PropTypes.object.isRequired,
-    card: React.PropTypes.bool
+    orgId: PropTypes.string.isRequired,
+    projectId: PropTypes.string.isRequired,
+    issue: PropTypes.object.isRequired,
+    card: PropTypes.bool
   },
 
   mixins: [ApiMixin],
@@ -72,7 +73,7 @@ export default React.createClass({
           <div className={className}>
             <div style={{marginBottom: 20}}>
               <h3>
-                <GroupTitle data={issue} />
+                <EventOrGroupTitle data={issue} />
               </h3>
               <div className="event-message">
                 <span className="error-level">{issue.level}</span>

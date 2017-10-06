@@ -33,9 +33,12 @@ class OrganizationApiKeysView(OrganizationView):
                 data=key.get_audit_log_data(),
             )
 
-            redirect_uri = reverse('sentry-organization-api-key-settings', args=[
-                organization.slug, key.id,
-            ])
+            redirect_uri = reverse(
+                'sentry-organization-api-key-settings', args=[
+                    organization.slug,
+                    key.id,
+                ]
+            )
             return HttpResponseRedirect(redirect_uri)
 
         elif request.POST.get('op') == 'removekey':
@@ -61,9 +64,11 @@ class OrganizationApiKeysView(OrganizationView):
 
             return HttpResponseRedirect(request.path)
 
-        key_list = sorted(ApiKey.objects.filter(
-            organization=organization,
-        ), key=lambda x: x.label)
+        key_list = sorted(
+            ApiKey.objects.filter(
+                organization=organization,
+            ), key=lambda x: x.label
+        )
 
         context = {
             'key_list': key_list,

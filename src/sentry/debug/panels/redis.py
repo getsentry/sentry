@@ -8,7 +8,8 @@ from .base import CallRecordingPanel
 from ..utils.function_wrapper import FunctionWrapper
 from ..utils.patch_context import PatchContext
 
-TEMPLATE = Template("""
+TEMPLATE = Template(
+    """
 {% load i18n %}
 <h4>{% trans "Requests" %}</h4>
 <table>
@@ -29,7 +30,8 @@ TEMPLATE = Template("""
         {% endfor %}
     </tbody>
 </table>
-""")
+"""
+)
 
 
 class RedisPipelineWrapper(FunctionWrapper):
@@ -97,12 +99,14 @@ class RedisPanel(CallRecordingPanel):
             duration = int((call['end'] - call['start']) * 1000)
 
             total_time += duration
-            calls.append({
-                'duration': duration,
-                'command': call['name'],
-                'args': call['args'],
-                'kwargs': call['kwargs'],
-            })
+            calls.append(
+                {
+                    'duration': duration,
+                    'command': call['name'],
+                    'args': call['args'],
+                    'kwargs': call['kwargs'],
+                }
+            )
 
         self.record_stats({
             'calls': calls,

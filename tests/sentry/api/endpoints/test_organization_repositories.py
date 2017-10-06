@@ -2,9 +2,12 @@ from __future__ import absolute_import
 
 import six
 
+from mock import patch
+
 from django.core.urlresolvers import reverse
 
 from sentry.models import Repository
+from sentry.plugins.providers.dummy.repository import DummyRepositoryProvider
 from sentry.testutils import APITestCase
 
 
@@ -32,11 +35,14 @@ class OrganizationRepositoriesCreateTest(APITestCase):
 
         org = self.create_organization(owner=self.user, name='baz')
 
-        url = reverse('sentry-api-0-organization-repositories', args=[org.slug])
-        response = self.client.post(url, data={
-            'provider': 'dummy',
-            'name': 'getsentry/sentry',
-        })
+        with patch.object(DummyRepositoryProvider, 'needs_auth', return_value=False):
+            url = reverse('sentry-api-0-organization-repositories', args=[org.slug])
+            response = self.client.post(
+                url, data={
+                    'provider': 'dummy',
+                    'name': 'getsentry/sentry',
+                }
+            )
 
         assert response.status_code == 201, (response.status_code, response.content)
         assert response.data['id']

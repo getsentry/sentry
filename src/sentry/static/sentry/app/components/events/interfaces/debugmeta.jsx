@@ -1,5 +1,6 @@
+import PropTypes from 'prop-types';
 import React from 'react';
-import PropTypes from '../../../proptypes';
+import SentryTypes from '../../../proptypes';
 import EventDataSection from '../eventDataSection';
 import ClippedBox from '../../clippedBox';
 import KeyValueList from './keyValueList';
@@ -7,9 +8,9 @@ import {t} from '../../../locale';
 
 const DebugMetaInterface = React.createClass({
   propTypes: {
-    group: PropTypes.Group.isRequired,
-    event: PropTypes.Event.isRequired,
-    data: React.PropTypes.object.isRequired
+    group: SentryTypes.Group.isRequired,
+    event: SentryTypes.Event.isRequired,
+    data: PropTypes.object.isRequired
   },
 
   getImageDetail(img, evt) {
@@ -23,7 +24,6 @@ const DebugMetaInterface = React.createClass({
     if (name == 'dyld_sim') return null; // this is only for simulator builds
 
     let version = null;
-
     if (
       Number.isInteger(img.major_version) &&
       Number.isInteger(img.minor_version) &&
@@ -31,7 +31,7 @@ const DebugMetaInterface = React.createClass({
     ) {
       if (img.major_version == 0 && img.minor_version == 0 && img.revision_version == 0) {
         // we show the version
-        version = (evt.release && evt.release.version) || 'unknown';
+        version = (evt.release && evt.release.shortVersion) || 'unknown';
       } else
         version = `${img.major_version}.${img.minor_version}.${img.revision_version}`;
     } else version = img.uuid;

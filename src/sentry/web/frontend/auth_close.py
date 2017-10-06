@@ -13,5 +13,4 @@ class AuthCloseView(BaseView):
     def handle(self, request):
         logged_in = request.user.is_authenticated()
 
-        return render_to_response('sentry/auth_close.html',
-                                  {'logged_in': logged_in})
+        return render_to_response('sentry/auth_close.html', {'logged_in': logged_in})

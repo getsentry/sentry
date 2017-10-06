@@ -83,11 +83,30 @@ class TSDBModel(Enum):
     # the number of events blocked due to being blacklisted
     key_total_blacklisted = 502
 
+    # the number of events filtered by ip
+    project_total_received_ip_address = 601
+    # the number of events filtered by release
+    project_total_received_release_version = 602
+    # the number of events filtered by error message
+    project_total_received_error_message = 603
+    # the number of events filtered by browser extension
+    project_total_received_browser_extensions = 604
+    # the number of events filtered by legacy browser
+    project_total_received_legacy_browsers = 605
+    # the number of events filtered by localhost
+    project_total_received_localhost = 606
+    # the number of events filtered by web crawlers
+    project_total_received_web_crawlers = 607
+    # the number of events filtered by invalid csp
+    project_total_received_invalid_csp = 608
+    # the number of events filtered by invalid origin
+    project_total_received_cors = 609
+
 
 class BaseTSDB(Service):
     __all__ = (
-        'models', 'incr', 'incr_multi', 'get_range', 'get_rollups', 'get_sums',
-        'rollup', 'validate',
+        'models', 'incr', 'incr_multi', 'get_range', 'get_rollups', 'get_sums', 'rollup',
+        'validate',
     )
 
     models = TSDBModel
@@ -272,8 +291,7 @@ class BaseTSDB(Service):
     def get_sums(self, model, keys, start, end, rollup=None):
         range_set = self.get_range(model, keys, start, end, rollup)
         sum_set = dict(
-            (key, sum(p for _, p in points))
-            for (key, points) in six.iteritems(range_set)
+            (key, sum(p for _, p in points)) for (key, points) in six.iteritems(range_set)
         )
         return sum_set
 

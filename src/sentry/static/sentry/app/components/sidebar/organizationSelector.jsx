@@ -1,6 +1,6 @@
+import PropTypes from 'prop-types';
 import React from 'react';
-import {Link} from 'react-router';
-
+import Link from '../link';
 import SidebarPanel from '../sidebarPanel';
 import LetterAvatar from '../letterAvatar';
 
@@ -12,15 +12,15 @@ import {t} from '../../locale';
 
 const OrganizationSelector = React.createClass({
   propTypes: {
-    organization: React.PropTypes.object,
-    showPanel: React.PropTypes.bool,
-    togglePanel: React.PropTypes.func,
-    hidePanel: React.PropTypes.func,
-    currentPanel: React.PropTypes.string
+    organization: PropTypes.object,
+    showPanel: PropTypes.bool,
+    togglePanel: PropTypes.func,
+    hidePanel: PropTypes.func,
+    currentPanel: PropTypes.string
   },
 
   contextTypes: {
-    location: React.PropTypes.object
+    location: PropTypes.object
   },
 
   mixins: [AppState],

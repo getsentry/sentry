@@ -12,6 +12,10 @@
   .form-actions {
     margin-top: 20px;
   }
+
+ .form-actions-samlidp {
+    margin: 10px 0;
+  }
 }
 
 section.org-login {
@@ -33,25 +37,34 @@ section.org-login {
   border-radius: 2px;
   position: relative;
   top: 1px;
+  background-size: cover;
 
   &.google {
-    background: url(../images/auth-providers/google.png);
-    background-size: cover;
+    background-image: url(../images/auth-providers/google.png);
   }
 
   &.github {
-    background: url(../images/auth-providers/github.jpg);
-    background-size: cover;
+    background-image: url(../images/auth-providers/github.png);
   }
 
   &.onelogin {
-    background: url(../images/auth-providers/onelogin.png);
-    background-size: cover;
+    background-image: url(../images/auth-providers/onelogin.png);
+  }
+
+  &.auth0 {
+    background-image: url(../images/auth-providers/auth0.png);
   }
 
   &.okta {
-    background: url(../images/auth-providers/okta.png);
-    background-size: cover;
+    background-image: url(../images/auth-providers/okta.png);
+  }
+
+  &.rippling {
+    background-image: url(../images/auth-providers/rippling.png);
+  }
+
+  &.saml2 {
+    background-image: url(../images/auth-providers/saml2.png);
   }
 }
 
@@ -314,4 +327,28 @@ div.u2f-box {
     100% {
       opacity: .1;
     }
+}
+
+.password-strength-heading {
+  font-weight: bold;
+}
+
+.password-warnings {
+  opacity: 0.8;
+  font-size: 0.9em;
+  font-style: italic;
+}
+
+.password-strength {
+  display: none;
+  &.visible {
+    display: block;
+  }
+  .progress {
+    margin: 5px 0;
+  }
+  .progress-bar {
+    border-radius: 2px;
+    height: 14px;
+  }
 }

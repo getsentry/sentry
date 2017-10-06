@@ -22,8 +22,7 @@ is_rate_limited = load_script('quotas/is_rate_limited.lua')
 class BasicRedisQuota(object):
     __slots__ = ['key', 'limit', 'window', 'reason_code', 'enforce']
 
-    def __init__(self, key, limit=0, window=60, reason_code=None,
-                 enforce=True):
+    def __init__(self, key, limit=0, window=60, reason_code=None, enforce=True):
         self.key = key
         # maximum number of events in the given window, 0 indicates "no limit"
         self.limit = limit
@@ -81,12 +80,14 @@ class RedisQuota(Quota):
         ]
         if key:
             kquota = self.get_key_quota(key)
-            results.append(BasicRedisQuota(
-                key='k:{}'.format(key.id),
-                limit=kquota[0],
-                window=kquota[1],
-                reason_code='key_quota',
-            ))
+            results.append(
+                BasicRedisQuota(
+                    key='k:{}'.format(key.id),
+                    limit=kquota[0],
+                    window=kquota[1],
+                    reason_code='key_quota',
+                )
+            )
         return results
 
     def get_usage(self, organization_id, quotas, timestamp=None):
@@ -99,10 +100,7 @@ class RedisQuota(Quota):
 
             return client.get(
                 self.__get_redis_key(
-                    quota.key,
-                    timestamp,
-                    quota.window,
-                    organization_id % quota.window
+                    quota.key, timestamp, quota.window, organization_id % quota.window
                 ),
             )
 
@@ -133,8 +131,7 @@ class RedisQuota(Quota):
             timestamp = time()
 
         quotas = [
-            quota
-            for quota in self.get_quotas(project, key=key)
+            quota for quota in self.get_quotas(project, key=key)
             # x = (key, limit, interval)
             if quota.limit > 0  # a zero limit means "no limit", not "reject all"
         ]
@@ -145,7 +142,7 @@ class RedisQuota(Quota):
 
         def get_next_period_start(interval, shift):
             """Return the timestamp when the next rate limit period begins for an interval."""
-            return ((timestamp // interval) + 1) * interval - shift
+            return (((timestamp - shift) // interval) + 1) * interval + shift
 
         keys = []
         args = []

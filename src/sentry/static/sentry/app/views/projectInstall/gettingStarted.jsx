@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 
 import ProjectContext from '../projects/projectContext';
@@ -6,8 +7,8 @@ import ProjectSelector from '../../components/projectHeader/projectSelector';
 
 const GettingStartedBody = React.createClass({
   contextTypes: {
-    project: React.PropTypes.object,
-    organization: React.PropTypes.object
+    project: PropTypes.object,
+    organization: PropTypes.object
   },
 
   render() {
@@ -22,7 +23,10 @@ const GettingStartedBody = React.createClass({
         <div className="container">
           <div className="content">
             <ProjectDocsContext>
-              {this.props.children}
+              {React.cloneElement(this.props.children, {
+                linkPath: (orgId, projectId, platform) =>
+                  `/${orgId}/${projectId}/getting-started/${platform}/`
+              })}
             </ProjectDocsContext>
           </div>
         </div>

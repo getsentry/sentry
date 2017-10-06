@@ -42,12 +42,14 @@ class LazyServiceWrapper(LazyObject):
 
     def __init__(self, backend_base, backend_path, options, dangerous=()):
         super(LazyServiceWrapper, self).__init__()
-        self.__dict__.update({
-            '_backend': backend_path,
-            '_options': options,
-            '_base': backend_base,
-            '_dangerous': dangerous,
-        })
+        self.__dict__.update(
+            {
+                '_backend': backend_path,
+                '_options': options,
+                '_base': backend_base,
+                '_dangerous': dangerous,
+            }
+        )
 
     def __getattr__(self, name):
         if self._wrapped is empty:

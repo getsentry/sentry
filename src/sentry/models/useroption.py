@@ -26,6 +26,7 @@ class UserOptionValue(object):
     committed_deploys_only = '3'
     no_deploys = '4'
 
+
 option_scope_error = 'this is not a supported use case, scope to project OR organization'
 
 
@@ -123,8 +124,8 @@ class UserOptionManager(BaseManager):
             metakey = user_metakey(user)
         if metakey not in self.__metadata:
             result = dict(
-                (i.key, i.value) for i in
-                self.filter(
+                (i.key, i.value)
+                for i in self.filter(
                     user=user,
                     project=project,
                     organization=organization,
@@ -168,6 +169,6 @@ class UserOption(Model):
     class Meta:
         app_label = 'sentry'
         db_table = 'sentry_useroption'
-        unique_together = (('user', 'project', 'key',), ('user', 'organization', 'key',))
+        unique_together = (('user', 'project', 'key', ), ('user', 'organization', 'key', ))
 
     __repr__ = sane_repr('user_id', 'project_id', 'organization_id', 'key', 'value')

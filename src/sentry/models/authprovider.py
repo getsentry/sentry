@@ -5,8 +5,7 @@ from django.db import models
 from django.utils import timezone
 
 from sentry.db.models import (
-    BoundedPositiveIntegerField, EncryptedJsonField, FlexibleForeignKey, Model,
-    sane_repr
+    BoundedPositiveIntegerField, EncryptedJsonField, FlexibleForeignKey, Model, sane_repr
 )
 
 
@@ -28,9 +27,10 @@ class AuthProvider(Model):
     # through.
     default_teams = models.ManyToManyField('sentry.Team', blank=True)
 
-    flags = BitField(flags=(
-        ('allow_unlinked', 'Grant access to members who have not linked SSO accounts.'),
-    ), default=0)
+    flags = BitField(
+        flags=(('allow_unlinked', 'Grant access to members who have not linked SSO accounts.'), ),
+        default=0
+    )
 
     class Meta:
         app_label = 'sentry'

@@ -16,8 +16,7 @@ class DjangoNodeStorageTest(TestCase):
 
     def test_get(self):
         node = Node.objects.create(
-            id='d2502ebbd7df41ceba8d3275595cac33',
-            data={
+            id='d2502ebbd7df41ceba8d3275595cac33', data={
                 'foo': 'bar',
             }
         )
@@ -27,23 +26,17 @@ class DjangoNodeStorageTest(TestCase):
 
     def test_get_multi(self):
         nodes = [
-            Node.objects.create(
-                id='d2502ebbd7df41ceba8d3275595cac33',
-                data={
-                    'foo': 'bar',
-                }
-            ),
-            Node.objects.create(
-                id='5394aa025b8e401ca6bc3ddee3130edc',
-                data={
-                    'foo': 'baz',
-                }
-            ),
+            Node.objects.create(id='d2502ebbd7df41ceba8d3275595cac33', data={
+                'foo': 'bar',
+            }),
+            Node.objects.create(id='5394aa025b8e401ca6bc3ddee3130edc', data={
+                'foo': 'baz',
+            }),
         ]
 
-        result = self.ns.get_multi([
-            'd2502ebbd7df41ceba8d3275595cac33', '5394aa025b8e401ca6bc3ddee3130edc'
-        ])
+        result = self.ns.get_multi(
+            ['d2502ebbd7df41ceba8d3275595cac33', '5394aa025b8e401ca6bc3ddee3130edc']
+        )
         assert result == dict((n.id, n.data) for n in nodes)
 
     def test_set(self):
@@ -55,14 +48,16 @@ class DjangoNodeStorageTest(TestCase):
         }
 
     def test_set_multi(self):
-        self.ns.set_multi({
-            'd2502ebbd7df41ceba8d3275595cac33': {
-                'foo': 'bar',
-            },
-            '5394aa025b8e401ca6bc3ddee3130edc': {
-                'foo': 'baz',
-            },
-        })
+        self.ns.set_multi(
+            {
+                'd2502ebbd7df41ceba8d3275595cac33': {
+                    'foo': 'bar',
+                },
+                '5394aa025b8e401ca6bc3ddee3130edc': {
+                    'foo': 'baz',
+                },
+            }
+        )
         assert Node.objects.get(id='d2502ebbd7df41ceba8d3275595cac33').data == {
             'foo': 'bar',
         }
@@ -80,8 +75,7 @@ class DjangoNodeStorageTest(TestCase):
 
     def test_delete(self):
         node = Node.objects.create(
-            id='d2502ebbd7df41ceba8d3275595cac33',
-            data={
+            id='d2502ebbd7df41ceba8d3275595cac33', data={
                 'foo': 'bar',
             }
         )
@@ -91,8 +85,7 @@ class DjangoNodeStorageTest(TestCase):
 
     def test_delete_multi(self):
         node = Node.objects.create(
-            id='d2502ebbd7df41ceba8d3275595cac33',
-            data={
+            id='d2502ebbd7df41ceba8d3275595cac33', data={
                 'foo': 'bar',
             }
         )
@@ -105,17 +98,13 @@ class DjangoNodeStorageTest(TestCase):
         cutoff = now - timedelta(days=1)
 
         node = Node.objects.create(
-            id='d2502ebbd7df41ceba8d3275595cac33',
-            timestamp=now,
-            data={
+            id='d2502ebbd7df41ceba8d3275595cac33', timestamp=now, data={
                 'foo': 'bar',
             }
         )
 
         node2 = Node.objects.create(
-            id='d2502ebbd7df41ceba8d3275595cac34',
-            timestamp=cutoff,
-            data={
+            id='d2502ebbd7df41ceba8d3275595cac34', timestamp=cutoff, data={
                 'foo': 'bar',
             }
         )

@@ -22,9 +22,19 @@ export class Client {
     });
   }
 
+  merge(params, options) {
+    let path = '/projects/' + params.orgId + '/' + params.projectId + '/issues/';
+    return this.request(path, {
+      method: 'PUT',
+      data: {merge: 1},
+      ...options
+    });
+  }
+
   request(url, options) {
     let response = Client.findMockResponse(url, options);
     if (!response) {
+      // eslint-disable-next-line no-console
       console.error(
         'No mocked response found for request.',
         url,
@@ -44,7 +54,8 @@ export class Client {
           responseJSON: response.body
         });
     } else {
-      options.success && options.success(response.body);
+      options.success &&
+        options.success(response.body, {}, {getResponseHeader: () => {}});
     }
     options.complete && options.complete();
   }

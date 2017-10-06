@@ -1,23 +1,24 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import {Link} from 'react-router';
 import classNames from 'classnames';
 
 const MenuItem = React.createClass({
   propTypes: {
-    header: React.PropTypes.bool,
-    divider: React.PropTypes.bool,
-    title: React.PropTypes.string,
-    onSelect: React.PropTypes.func,
-    eventKey: React.PropTypes.any,
-    isActive: React.PropTypes.bool,
-    noAnchor: React.PropTypes.bool,
+    header: PropTypes.bool,
+    divider: PropTypes.bool,
+    title: PropTypes.string,
+    onSelect: PropTypes.func,
+    eventKey: PropTypes.any,
+    isActive: PropTypes.bool,
+    noAnchor: PropTypes.bool,
     // basic link
-    href: React.PropTypes.string,
+    href: PropTypes.string,
     // router link
-    to: React.PropTypes.string,
-    query: React.PropTypes.object,
-    linkClassName: React.PropTypes.string,
-    onClick: React.PropTypes.func
+    to: PropTypes.string,
+    query: PropTypes.object,
+    linkClassName: PropTypes.string,
+    onClick: PropTypes.func
   },
 
   handleClick(e) {

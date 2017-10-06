@@ -38,11 +38,9 @@ class RuleNodeField(serializers.WritableField):
 
 class RuleSerializer(serializers.Serializer):
     name = serializers.CharField(max_length=64)
-    actionMatch = serializers.ChoiceField(choices=(
-        ('all', 'all'),
-        ('any', 'any'),
-        ('none', 'none'),
-    ))
+    actionMatch = serializers.ChoiceField(
+        choices=(('all', 'all'), ('any', 'any'), ('none', 'none'), )
+    )
     actions = ListField(
         child=RuleNodeField(type='action/event'),
     )

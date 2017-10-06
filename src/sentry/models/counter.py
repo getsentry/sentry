@@ -11,9 +11,7 @@ from __future__ import absolute_import
 from django.db import connection, connections
 from django.db.models.signals import post_syncdb
 
-from sentry.db.models import (
-    FlexibleForeignKey, Model, sane_repr, BoundedBigIntegerField
-)
+from sentry.db.models import (FlexibleForeignKey, Model, sane_repr, BoundedBigIntegerField)
 from sentry.utils.db import is_mysql, is_postgres, is_sqlite
 
 
@@ -43,38 +41,50 @@ def increment_project_counter(project, delta=1):
     cur = connection.cursor()
     try:
         if is_postgres():
-            cur.execute('''
+            cur.execute(
+                '''
                 select sentry_increment_project_counter(%s, %s)
-            ''', [project.id, delta])
+            ''', [project.id, delta]
+            )
             return cur.fetchone()[0]
         elif is_sqlite():
-            value = cur.execute('''
+            value = cur.execute(
+                '''
                 insert or ignore into sentry_projectcounter
                   (project_id, value) values (%s, 0);
-            ''', [project.id])
-            value = cur.execute('''
+            ''', [project.id]
+            )
+            value = cur.execute(
+                '''
                 select value from sentry_projectcounter
                  where project_id = %s
-            ''', [project.id]).fetchone()[0]
+            ''', [project.id]
+            ).fetchone()[0]
             while 1:
-                cur.execute('''
+                cur.execute(
+                    '''
                     update sentry_projectcounter
                        set value = value + %s
                      where project_id = %s;
-                ''', [delta, project.id])
-                changes = cur.execute('''
+                ''', [delta, project.id]
+                )
+                changes = cur.execute(
+                    '''
                     select changes();
-                ''').fetchone()[0]
+                '''
+                ).fetchone()[0]
                 if changes != 0:
                     return value + delta
         elif is_mysql():
-            cur.execute('''
+            cur.execute(
+                '''
                 insert into sentry_projectcounter
                             (project_id, value)
                      values (%s, @new_val := %s)
            on duplicate key
                      update value = @new_val := value + %s
-            ''', [project.id, delta, delta])
+            ''', [project.id, delta, delta]
+            )
             cur.execute('select @new_val')
             return cur.fetchone()[0]
         else:
@@ -93,7 +103,8 @@ def create_counter_function(db, created_models, **kwargs):
         return
 
     cursor = connections[db].cursor()
-    cursor.execute('''
+    cursor.execute(
+        '''
         create or replace function sentry_increment_project_counter(
             project bigint, delta int) returns int as $$
         declare
@@ -116,7 +127,8 @@ def create_counter_function(db, created_models, **kwargs):
           end loop;
         end
         $$ language plpgsql;
-    ''')
+    '''
+    )
 
 
 post_syncdb.connect(

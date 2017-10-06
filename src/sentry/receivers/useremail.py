@@ -15,12 +15,8 @@ def create_user_email(instance, created, **kwargs):
         except IntegrityError:
             pass
 
-post_save.connect(
-    create_user_email,
-    sender=User,
-    dispatch_uid="create_user_email",
-    weak=False
-)
+
+post_save.connect(create_user_email, sender=User, dispatch_uid="create_user_email", weak=False)
 
 
 @email_verified.connect(weak=False)

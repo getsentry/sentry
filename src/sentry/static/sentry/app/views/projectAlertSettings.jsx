@@ -1,17 +1,20 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 
 import AsyncView from './asyncView';
+import Button from '../components/buttons/button';
 import ListLink from '../components/listLink';
 import PluginList from '../components/pluginList';
 import {ApiForm, RangeField, TextField} from '../components/forms';
 import {t, tct} from '../locale';
+import SpreadLayout from '../components/spreadLayout';
 
 class DigestSettings extends React.Component {
   static propTypes = {
-    orgId: React.PropTypes.string.isRequired,
-    projectId: React.PropTypes.string.isRequired,
-    initialData: React.PropTypes.object.isRequired,
-    onSave: React.PropTypes.func.isRequired
+    orgId: PropTypes.string.isRequired,
+    projectId: PropTypes.string.isRequired,
+    initialData: PropTypes.object.isRequired,
+    onSave: PropTypes.func.isRequired
   };
 
   render() {
@@ -72,10 +75,10 @@ class DigestSettings extends React.Component {
 
 class GeneralSettings extends React.Component {
   static propTypes = {
-    orgId: React.PropTypes.string.isRequired,
-    projectId: React.PropTypes.string.isRequired,
-    initialData: React.PropTypes.object,
-    onSave: React.PropTypes.func.isRequired
+    orgId: PropTypes.string.isRequired,
+    projectId: PropTypes.string.isRequired,
+    initialData: PropTypes.object,
+    onSave: PropTypes.func.isRequired
   };
 
   render() {
@@ -114,8 +117,8 @@ export default class ProjectAlertSettings extends AsyncView {
     // these are not declared as required of issues with cloned elements
     // not initially defining them (though they are bound before) ever
     // rendered
-    organization: React.PropTypes.object,
-    project: React.PropTypes.object
+    organization: PropTypes.object,
+    project: PropTypes.object
   };
 
   getEndpoints() {
@@ -179,13 +182,17 @@ export default class ProjectAlertSettings extends AsyncView {
     let {organization} = this.props;
     return (
       <div>
-        <a
-          href={`/${orgId}/${projectId}/settings/alerts/rules/new/`}
-          className="btn pull-right btn-primary btn-sm">
-          <span className="icon-plus" />
-          {t('New Alert Rule')}
-        </a>
-        <h2>{t('Alerts')}</h2>
+        <SpreadLayout style={{marginBottom: 20}}>
+          <h2 style={{margin: 0}}>{t('Alerts')}</h2>
+          <Button
+            href={`/${orgId}/${projectId}/settings/alerts/rules/new/`}
+            priority="primary"
+            size="small"
+            className="pull-right">
+            <span className="icon-plus" />
+            {t('New Alert Rule')}
+          </Button>
+        </SpreadLayout>
 
         <ul className="nav nav-tabs" style={{borderBottom: '1px solid #ddd'}}>
           <ListLink to={`/${orgId}/${projectId}/settings/alerts/`} index={true}>

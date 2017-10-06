@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 
 import ApiMixin from '../../mixins/apiMixin';
@@ -5,6 +6,7 @@ import SuggestedOwners from './suggestedOwners';
 import GroupParticipants from './participants';
 import GroupReleaseStats from './releaseStats';
 import GroupState from '../../mixins/groupState';
+import HookStore from '../../stores/hookStore';
 import IndicatorStore from '../../stores/indicatorStore';
 import TagDistributionMeter from './tagDistributionMeter';
 import LoadingError from '../../components/loadingError';
@@ -12,19 +14,27 @@ import {t, tct} from '../../locale';
 
 const GroupSidebar = React.createClass({
   propTypes: {
-    group: React.PropTypes.object,
-    event: React.PropTypes.object
+    group: PropTypes.object,
+    event: PropTypes.object
   },
 
   contextTypes: {
-    location: React.PropTypes.object
+    location: PropTypes.object
   },
 
   mixins: [ApiMixin, GroupState],
 
   getInitialState() {
+    // Allow injection via getsentry et all
+    let hooks = HookStore.get('issue:secondary-column').map(cb => {
+      return cb({
+        params: this.props.params
+      });
+    });
+
     return {
-      participants: []
+      participants: [],
+      hooks
     };
   },
 
@@ -98,10 +108,11 @@ const GroupSidebar = React.createClass({
     let issues = [];
     (this.props.group.pluginIssues || []).forEach(plugin => {
       let issue = plugin.issue;
+      // # TODO(dcramer): remove plugin.title check in Sentry 8.22+
       if (issue) {
         issues.push(
           <dl key={plugin.slug}>
-            <dt>{plugin.title + ': '}</dt>
+            <dt>{`${plugin.shortName || plugin.name || plugin.title}: `}</dt>
             <dd><a href={issue.url}>{issue.label}</a></dd>
           </dl>
         );
@@ -179,6 +190,8 @@ const GroupSidebar = React.createClass({
         />
 
         {this.renderPluginIssue()}
+
+        {this.state.hooks}
 
         <h6><span>{t('Tags')}</span></h6>
         {group.tags.map(data => {

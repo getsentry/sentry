@@ -20,11 +20,14 @@ logger = logging.getLogger('sentry.mailgun')
 
 class MailgunInboundWebhookView(View):
     def verify(self, api_key, token, timestamp, signature):
-        return constant_time_compare(signature, hmac.new(
-            key=api_key.encode('utf-8'),
-            msg=('{}{}'.format(timestamp, token)).encode('utf-8'),
-            digestmod=sha256
-        ).hexdigest())
+        return constant_time_compare(
+            signature,
+            hmac.new(
+                key=api_key.encode('utf-8'),
+                msg=('{}{}'.format(timestamp, token)).encode('utf-8'),
+                digestmod=sha256
+            ).hexdigest()
+        )
 
     @method_decorator(csrf_exempt)
     def dispatch(self, *args, **kwargs):
@@ -41,11 +44,14 @@ class MailgunInboundWebhookView(View):
             return HttpResponse(status=500)
 
         if not self.verify(key, token, timestamp, signature):
-            logger.info('mailgun.invalid-signature', extra={
-                'token': token,
-                'timestamp': timestamp,
-                'signature': signature,
-            })
+            logger.info(
+                'mailgun.invalid-signature',
+                extra={
+                    'token': token,
+                    'timestamp': timestamp,
+                    'signature': signature,
+                }
+            )
             return HttpResponse(status=200)
 
         to_email = request.POST['recipient']
@@ -54,9 +60,11 @@ class MailgunInboundWebhookView(View):
         try:
             group_id = email_to_group_id(to_email)
         except Exception:
-            logger.info('mailgun.invalid-email', extra={
-                'email': to_email,
-            })
+            logger.info(
+                'mailgun.invalid-email', extra={
+                    'email': to_email,
+                }
+            )
             return HttpResponse(status=200)
 
         payload = EmailReplyParser.parse_reply(request.POST['body-plain']).strip()

@@ -33,6 +33,6 @@ class GroupBookmark(Model):
         app_label = 'sentry'
         db_table = 'sentry_groupbookmark'
         # composite index includes project for efficient queries
-        unique_together = (('project', 'user', 'group'),)
+        unique_together = (('project', 'user', 'group'), )
 
     __repr__ = sane_repr('project_id', 'group_id', 'user_id')

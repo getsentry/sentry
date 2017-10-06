@@ -19,11 +19,8 @@ delete_logger = logging.getLogger('sentry.deletions.api')
 
 @scenario('GetTeam')
 def get_team_scenario(runner):
-    runner.request(
-        method='GET',
-        path='/teams/%s/%s/' % (
-            runner.org.slug, runner.default_team.slug)
-    )
+    runner.request(method='GET', path='/teams/%s/%s/' %
+                   (runner.org.slug, runner.default_team.slug))
 
 
 @scenario('UpdateTeam')
@@ -31,11 +28,8 @@ def update_team_scenario(runner):
     team = runner.utils.create_team('The Obese Philosophers', runner.org)
     runner.request(
         method='PUT',
-        path='/teams/%s/%s/' % (
-            runner.org.slug, team.slug),
-        data={
-            'name': 'The Inflated Philosophers'
-        }
+        path='/teams/%s/%s/' % (runner.org.slug, team.slug),
+        data={'name': 'The Inflated Philosophers'}
     )
 
 
@@ -53,7 +47,7 @@ class TeamSerializer(serializers.ModelSerializer):
             organization=self.object.organization,
         ).exclude(id=self.object.id)
         if qs.exists():
-            raise serializers.ValidationError('The slug "%s" is already in use.' % (value,))
+            raise serializers.ValidationError('The slug "%s" is already in use.' % (value, ))
         return attrs
 
 
@@ -146,10 +140,13 @@ class TeamDetailsEndpoint(TeamEndpoint):
                 transaction_id=transaction_id,
             )
 
-            delete_logger.info('object.delete.queued', extra={
-                'object_id': team.id,
-                'transaction_id': transaction_id,
-                'model': type(team).__name__,
-            })
+            delete_logger.info(
+                'object.delete.queued',
+                extra={
+                    'object_id': team.id,
+                    'transaction_id': transaction_id,
+                    'model': type(team).__name__,
+                }
+            )
 
         return Response(status=204)

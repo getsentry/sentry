@@ -7,8 +7,7 @@ from django.utils import timezone
 from jsonfield import JSONField
 
 from sentry.db.models import (
-    BaseManager, BoundedPositiveIntegerField, FlexibleForeignKey, Model,
-    sane_repr
+    BaseManager, BoundedPositiveIntegerField, FlexibleForeignKey, Model, sane_repr
 )
 
 
@@ -35,9 +34,7 @@ class GroupSnooze(Model):
     state = JSONField(null=True)
     actor_id = BoundedPositiveIntegerField(null=True)
 
-    objects = BaseManager(cache_fields=(
-        'group',
-    ))
+    objects = BaseManager(cache_fields=('group', ))
 
     class Meta:
         db_table = 'sentry_groupsnooze'
@@ -52,28 +49,24 @@ class GroupSnooze(Model):
             raise ValueError
 
         if self.until:
-            if self.until > timezone.now():
-                return True
+            if self.until <= timezone.now():
+                return False
 
         if self.count:
             if self.window:
                 if test_rates:
-                    if self.test_frequency_rates():
-                        return True
-                else:
-                    return True
-            elif self.count > group.times_seen - self.state['times_seen']:
-                return True
+                    if not self.test_frequency_rates():
+                        return False
+            elif self.count <= group.times_seen - self.state['times_seen']:
+                return False
 
-        if self.user_count:
-            if not test_rates:
-                return True
+        if self.user_count and test_rates:
             if self.user_window:
-                if self.test_user_rates():
-                    return True
-            elif self.user_count > group.count_users_seen() - self.state['users_seen']:
-                return True
-        return False
+                if not self.test_user_rates():
+                    return False
+            elif self.user_count <= group.count_users_seen() - self.state['users_seen']:
+                return False
+        return True
 
     def test_frequency_rates(self):
         from sentry.tsdb import backend as tsdb

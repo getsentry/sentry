@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 
 import CrumbTable from './crumbTable';
@@ -5,8 +6,8 @@ import SummaryLine from './summaryLine';
 
 const DefaultRenderer = React.createClass({
   propTypes: {
-    crumb: React.PropTypes.object.isRequired,
-    kvData: React.PropTypes.object
+    crumb: PropTypes.object.isRequired,
+    kvData: PropTypes.object
   },
 
   getTitle() {

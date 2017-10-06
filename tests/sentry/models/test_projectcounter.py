@@ -7,7 +7,6 @@ from sentry.testutils import TestCase
 
 
 class ProjectCounterTest(TestCase):
-
     def test_increment(self):
         user = self.create_user()
         org = self.create_organization(owner=user)

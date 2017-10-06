@@ -38,9 +38,11 @@ class ProjectDocsPlatformEndpoint(ProjectEndpoint):
 
         project_key = ProjectKey.get_default(project)
 
-        return Response({
-            'id': data['id'],
-            'name': data['name'],
-            'html': replace_keys(data['html'], project_key),
-            'link': data['link'],
-        })
+        return Response(
+            {
+                'id': data['id'],
+                'name': data['name'],
+                'html': replace_keys(data['html'], project_key),
+                'link': data['link'],
+            }
+        )

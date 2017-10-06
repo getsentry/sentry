@@ -5,8 +5,7 @@ from django.utils.html import escape, mark_safe
 
 from sentry import options
 from sentry.models import (
-    GroupSubscription, GroupSubscriptionReason, ProjectOption, UserAvatar,
-    UserOption
+    GroupSubscription, GroupSubscriptionReason, ProjectOption, UserAvatar, UserOption
 )
 from sentry.utils.assets import get_asset_url
 from sentry.utils.avatar import get_email_avatar
@@ -43,9 +42,7 @@ class ActivityEmail(object):
 
         if self.activity.user is not None and self.activity.user in participants:
             receive_own_activity = UserOption.objects.get_value(
-                user=self.activity.user,
-                key='self_notifications',
-                default='0'
+                user=self.activity.user, key='self_notifications', default='0'
             ) == '1'
 
             if not receive_own_activity:
@@ -66,11 +63,13 @@ class ActivityEmail(object):
         ))
 
     def get_group_link(self):
-        return absolute_uri('/{}/{}/issues/{}/'.format(
-            self.organization.slug,
-            self.project.slug,
-            self.group.id,
-        ))
+        return absolute_uri(
+            '/{}/{}/issues/{}/'.format(
+                self.organization.slug,
+                self.project.slug,
+                self.group.id,
+            )
+        )
 
     def get_base_context(self):
         activity = self.activity
@@ -104,9 +103,7 @@ class ActivityEmail(object):
         group = self.group
 
         return u'[%s] %s: %s' % (
-            self.project.get_full_name(),
-            group.get_level_display(),
-            group.title
+            self.project.get_full_name(), group.get_level_display(), group.title
         )
 
     def get_subject_with_prefix(self):
@@ -128,10 +125,8 @@ class ActivityEmail(object):
 
         return {
             'activity_name': self.get_activity_name(),
-            'text_description': self.description_as_text(
-                description, params),
-            'html_description': self.description_as_html(
-                description, html_params),
+            'text_description': self.description_as_text(description, params),
+            'html_description': self.description_as_html(description, html_params),
         }
 
     def get_user_context(self, user):
@@ -148,11 +143,13 @@ class ActivityEmail(object):
         }
 
         if group:
-            headers.update({
-                'X-Sentry-Logger': group.logger,
-                'X-Sentry-Logger-Level': group.get_level_display(),
-                'X-Sentry-Reply-To': group_id_to_email(group.id),
-            })
+            headers.update(
+                {
+                    'X-Sentry-Logger': group.logger,
+                    'X-Sentry-Logger-Level': group.get_level_display(),
+                    'X-Sentry-Reply-To': group_id_to_email(group.id),
+                }
+            )
 
         return headers
 
@@ -168,14 +165,11 @@ class ActivityEmail(object):
         avatar_type = user.get_avatar_type()
         if avatar_type == 'upload':
             return '<img class="avatar" src="{}" />'.format(
-                escape(self._get_user_avatar_url(user))
-            )
+                escape(self._get_user_avatar_url(user)))
         elif avatar_type == 'letter_avatar':
-            return get_email_avatar(
-                user.get_display_name(), user.get_label(), 20, False)
+            return get_email_avatar(user.get_display_name(), user.get_label(), 20, False)
         else:
-            return get_email_avatar(
-                user.get_display_name(), user.get_label(), 20, True)
+            return get_email_avatar(user.get_display_name(), user.get_label(), 20, True)
 
     def _get_sentry_avatar_url(self):
         url = '/images/sentry-email-avatar.png'
@@ -255,17 +249,21 @@ class ActivityEmail(object):
 
         for user, reason in participants.items():
             if group:
-                context.update({
-                    'reason': GroupSubscriptionReason.descriptions.get(
-                        reason,
-                        "are subscribed to this issue",
-                    ),
-                    'unsubscribe_link': generate_signed_link(
-                        user.id,
-                        'sentry-account-email-unsubscribe-issue',
-                        kwargs={'issue_id': group.id},
-                    ),
-                })
+                context.update(
+                    {
+                        'reason':
+                        GroupSubscriptionReason.descriptions.get(
+                            reason,
+                            "are subscribed to this issue",
+                        ),
+                        'unsubscribe_link':
+                        generate_signed_link(
+                            user.id,
+                            'sentry-account-email-unsubscribe-issue',
+                            kwargs={'issue_id': group.id},
+                        ),
+                    }
+                )
             user_context = self.get_user_context(user)
             if user_context:
                 user_context.update(context)

@@ -16,17 +16,15 @@ class ProjectPluginResetView(ProjectView):
             return self.redirect(
                 reverse(
                     'sentry-configure-project-plugin',
-                    args=[
-                        project.organization.slug,
-                        project.slug,
-                        slug]))
+                    args=[project.organization.slug, project.slug, slug]
+                )
+            )
 
         plugin.reset_options(project=project)
 
         return self.redirect(
             reverse(
                 'sentry-configure-project-plugin',
-                args=[
-                    project.organization.slug,
-                    project.slug,
-                    slug]))
+                args=[project.organization.slug, project.slug, slug]
+            )
+        )

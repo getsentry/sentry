@@ -13,9 +13,7 @@ from sentry.utils.apidocs import scenario, attach_scenarios
 @scenario('RetrieveEventCountsTeam')
 def retrieve_event_counts_team(runner):
     runner.request(
-        method='GET',
-        path='/teams/%s/%s/stats/' % (
-            runner.org.slug, runner.default_team.slug)
+        method='GET', path='/teams/%s/%s/stats/' % (runner.org.slug, runner.default_team.slug)
     )
 
 
@@ -60,11 +58,13 @@ class TeamStatsEndpoint(TeamEndpoint, StatsMixin):
         if not projects:
             return Response([])
 
-        data = list(tsdb.get_range(
-            model=tsdb.models.project,
-            keys=[p.id for p in projects],
-            **self._parse_args(request)
-        ).values())
+        data = list(
+            tsdb.get_range(
+                model=tsdb.models.project,
+                keys=[p.id for p in projects],
+                **self._parse_args(request)
+            ).values()
+        )
 
         summarized = []
         for n in range(len(data[0])):

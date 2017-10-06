@@ -18,11 +18,14 @@ class ProjectRuleDetailsTest(APITestCase):
 
         rule = project1.rule_set.all()[0]
 
-        url = reverse('sentry-api-0-project-rule-details', kwargs={
-            'organization_slug': project1.organization.slug,
-            'project_slug': project1.slug,
-            'rule_id': rule.id,
-        })
+        url = reverse(
+            'sentry-api-0-project-rule-details',
+            kwargs={
+                'organization_slug': project1.organization.slug,
+                'project_slug': project1.slug,
+                'rule_id': rule.id,
+            }
+        )
         response = self.client.get(url, format='json')
 
         assert response.status_code == 200, response.content
@@ -37,24 +40,35 @@ class UpdateProjectRuleTest(APITestCase):
 
         rule = Rule.objects.create(project=project, label='foo')
 
-        conditions = [{
-            'id': 'sentry.rules.conditions.first_seen_event.FirstSeenEventCondition',
-            'key': 'foo',
-            'match': 'eq',
-            'value': 'bar',
-        }]
+        conditions = [
+            {
+                'id': 'sentry.rules.conditions.first_seen_event.FirstSeenEventCondition',
+                'key': 'foo',
+                'match': 'eq',
+                'value': 'bar',
+            }
+        ]
 
-        url = reverse('sentry-api-0-project-rule-details', kwargs={
-            'organization_slug': project.organization.slug,
-            'project_slug': project.slug,
-            'rule_id': rule.id,
-        })
-        response = self.client.put(url, data={
-            'name': 'hello world',
-            'actionMatch': 'any',
-            'actions': [{'id': 'sentry.rules.actions.notify_event.NotifyEventAction'}],
-            'conditions': conditions,
-        }, format='json')
+        url = reverse(
+            'sentry-api-0-project-rule-details',
+            kwargs={
+                'organization_slug': project.organization.slug,
+                'project_slug': project.slug,
+                'rule_id': rule.id,
+            }
+        )
+        response = self.client.put(
+            url,
+            data={
+                'name': 'hello world',
+                'actionMatch': 'any',
+                'actions': [{
+                    'id': 'sentry.rules.actions.notify_event.NotifyEventAction'
+                }],
+                'conditions': conditions,
+            },
+            format='json'
+        )
 
         assert response.status_code == 200, response.content
         assert response.data['id'] == six.text_type(rule.id)
@@ -63,7 +77,10 @@ class UpdateProjectRuleTest(APITestCase):
         assert rule.label == 'hello world'
         assert rule.data['action_match'] == 'any'
         assert rule.data['actions'] == [
-            {'id': 'sentry.rules.actions.notify_event.NotifyEventAction'}]
+            {
+                'id': 'sentry.rules.actions.notify_event.NotifyEventAction'
+            }
+        ]
         assert rule.data['conditions'] == conditions
 
     def test_invalid_rule_node_type(self):
@@ -73,16 +90,25 @@ class UpdateProjectRuleTest(APITestCase):
 
         rule = Rule.objects.create(project=project, label='foo')
 
-        url = reverse('sentry-api-0-project-rule-details', kwargs={
-            'organization_slug': project.organization.slug,
-            'project_slug': project.slug,
-            'rule_id': rule.id,
-        })
-        response = self.client.put(url, data={
-            'name': 'hello world',
-            'actionMatch': 'any',
-            'conditions': [{'id': 'sentry.rules.actions.notify_event.NotifyEventAction'}],
-        }, format='json')
+        url = reverse(
+            'sentry-api-0-project-rule-details',
+            kwargs={
+                'organization_slug': project.organization.slug,
+                'project_slug': project.slug,
+                'rule_id': rule.id,
+            }
+        )
+        response = self.client.put(
+            url,
+            data={
+                'name': 'hello world',
+                'actionMatch': 'any',
+                'conditions': [{
+                    'id': 'sentry.rules.actions.notify_event.NotifyEventAction'
+                }],
+            },
+            format='json'
+        )
 
         assert response.status_code == 400, response.content
 
@@ -93,16 +119,25 @@ class UpdateProjectRuleTest(APITestCase):
 
         rule = Rule.objects.create(project=project, label='foo')
 
-        url = reverse('sentry-api-0-project-rule-details', kwargs={
-            'organization_slug': project.organization.slug,
-            'project_slug': project.slug,
-            'rule_id': rule.id,
-        })
-        response = self.client.put(url, data={
-            'name': 'hello world',
-            'actionMatch': 'any',
-            'actions': [{'id': 'foo'}],
-        }, format='json')
+        url = reverse(
+            'sentry-api-0-project-rule-details',
+            kwargs={
+                'organization_slug': project.organization.slug,
+                'project_slug': project.slug,
+                'rule_id': rule.id,
+            }
+        )
+        response = self.client.put(
+            url,
+            data={
+                'name': 'hello world',
+                'actionMatch': 'any',
+                'actions': [{
+                    'id': 'foo'
+                }],
+            },
+            format='json'
+        )
 
         assert response.status_code == 400, response.content
 
@@ -113,16 +148,25 @@ class UpdateProjectRuleTest(APITestCase):
 
         rule = Rule.objects.create(project=project, label='foo')
 
-        url = reverse('sentry-api-0-project-rule-details', kwargs={
-            'organization_slug': project.organization.slug,
-            'project_slug': project.slug,
-            'rule_id': rule.id,
-        })
-        response = self.client.put(url, data={
-            'name': 'hello world',
-            'actionMatch': 'any',
-            'conditions': [{'id': 'sentry.rules.conditions.tagged_event.TaggedEventCondition'}],
-        }, format='json')
+        url = reverse(
+            'sentry-api-0-project-rule-details',
+            kwargs={
+                'organization_slug': project.organization.slug,
+                'project_slug': project.slug,
+                'rule_id': rule.id,
+            }
+        )
+        response = self.client.put(
+            url,
+            data={
+                'name': 'hello world',
+                'actionMatch': 'any',
+                'conditions': [{
+                    'id': 'sentry.rules.conditions.tagged_event.TaggedEventCondition'
+                }],
+            },
+            format='json'
+        )
 
         assert response.status_code == 400, response.content
 
@@ -135,11 +179,14 @@ class DeleteProjectRuleTest(APITestCase):
 
         rule = Rule.objects.create(project=project, label='foo')
 
-        url = reverse('sentry-api-0-project-rule-details', kwargs={
-            'organization_slug': project.organization.slug,
-            'project_slug': project.slug,
-            'rule_id': rule.id,
-        })
+        url = reverse(
+            'sentry-api-0-project-rule-details',
+            kwargs={
+                'organization_slug': project.organization.slug,
+                'project_slug': project.slug,
+                'rule_id': rule.id,
+            }
+        )
         response = self.client.delete(url)
 
         assert response.status_code == 202, response.content

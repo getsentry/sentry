@@ -72,6 +72,7 @@ The following plugins are available and maintained by members of the Sentry comm
 * `sentry-telegram <https://github.com/butorov/sentry-telegram>`_
 * `sentry-top <https://github.com/getsentry/sentry-top>`_
 * `sentry-unfuddle <https://github.com/rkeilty/sentry-unfuddle>`_
+* `sentry-vsts <https://github.com/boylec/sentry-vsts>`_
 * `sentry-whatsapp <https://github.com/ecarreras/sentry-whatsapp>`_
 * `sentry-xmpp <https://github.com/chroto/sentry-xmpp>`_
 * `sentry-youtrack <https://github.com/bogdal/sentry-youtrack>`_

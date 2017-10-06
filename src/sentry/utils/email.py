@@ -32,9 +32,7 @@ from django.utils.encoding import force_bytes, force_str, force_text
 
 from sentry import options
 from sentry.logging import LoggingFormat
-from sentry.models import (
-    Activity, Event, Group, GroupEmailThread, Project, User, UserOption
-)
+from sentry.models import (Activity, Event, Group, GroupEmailThread, Project, User, UserOption)
 from sentry.utils import metrics
 from sentry.utils.safe import safe_execute
 from sentry.utils.strings import is_valid_dot_atom
@@ -99,10 +97,12 @@ def email_to_group_id(address):
 
 def group_id_to_email(group_id):
     signed_data = signer.sign(six.text_type(group_id))
-    return '@'.join((
-        signed_data.replace(':', '+'),
-        options.get('mail.reply-hostname') or get_from_email_domain(),
-    ))
+    return '@'.join(
+        (
+            signed_data.replace(':', '+'), options.get('mail.reply-hostname') or
+            get_from_email_domain(),
+        )
+    )
 
 
 def domain_from_email(email):
@@ -179,8 +179,8 @@ def get_email_addresses(user_ids, project=None):
 
     if pending:
         logger.warning(
-            'Could not resolve email addresses for user IDs in %r, discarding...',
-            pending)
+            'Could not resolve email addresses for user IDs in %r, discarding...', pending
+        )
 
     return results
 
@@ -238,7 +238,6 @@ default_list_type_handlers = {
     Event: attrgetter('project.slug', 'organization.slug'),
 }
 
-
 make_listid_from_instance = ListResolver(
     options.get('mail.list-namespace'),
     default_list_type_handlers,
@@ -246,9 +245,20 @@ make_listid_from_instance = ListResolver(
 
 
 class MessageBuilder(object):
-    def __init__(self, subject, context=None, template=None, html_template=None,
-                 body=None, html_body=None, headers=None, reference=None,
-                 reply_reference=None, from_email=None, type=None):
+    def __init__(
+        self,
+        subject,
+        context=None,
+        template=None,
+        html_template=None,
+        body=None,
+        html_body=None,
+        headers=None,
+        reference=None,
+        reply_reference=None,
+        from_email=None,
+        type=None
+    ):
         assert not (body and template)
         assert not (html_body and html_template)
         assert context or not (template or html_template)
@@ -293,9 +303,7 @@ class MessageBuilder(object):
         return self._txt_body
 
     def add_users(self, user_ids, project=None):
-        self._send_to.update(
-            get_email_addresses(user_ids, project).values()
-        )
+        self._send_to.update(get_email_addresses(user_ids, project).values())
 
     def build(self, to, reply_to=None, cc=None, bcc=None):
         if self.headers is None:
@@ -342,7 +350,7 @@ class MessageBuilder(object):
             subject=subject.splitlines()[0],
             body=self.__render_text_body(),
             from_email=self.from_email,
-            to=(to,),
+            to=(to, ),
             cc=cc or (),
             bcc=bcc or (),
             headers=headers,
@@ -379,9 +387,7 @@ class MessageBuilder(object):
         from sentry.tasks.email import send_email
         fmt = options.get('system.logging-format')
         messages = self.get_built_messages(to, bcc=bcc)
-        extra = {
-            'message_type': self.type
-        }
+        extra = {'message_type': self.type}
         loggable = [v for k, v in six.iteritems(self.context) if hasattr(v, 'id')]
         for context in loggable:
             extra['%s_id' % type(context).__name__.lower()] = context.id
@@ -394,6 +400,7 @@ class MessageBuilder(object):
                 _with_transaction=False,
             )
             extra['message_id'] = message.extra_headers['Message-Id']
+            metrics.incr('email.queued', instance=self.type)
             if fmt == LoggingFormat.HUMAN:
                 extra['message_to'] = self.format_to(message.to),
                 log_mail_queued()
@@ -444,7 +451,10 @@ def send_mail(subject, message, from_email, recipient_list, fail_silently=False)
     Wrapper that forces sending mail through our connection.
     """
     return _send_mail(
-        subject, message, from_email, recipient_list,
+        subject,
+        message,
+        from_email,
+        recipient_list,
         connection=get_connection(fail_silently=fail_silently),
     )
 

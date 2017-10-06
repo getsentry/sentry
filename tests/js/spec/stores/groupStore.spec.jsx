@@ -55,7 +55,7 @@ describe('GroupStore', function() {
         this.sandbox.stub(GroupStore, 'trigger');
         GroupStore.onUpdate(1337, undefined, 'somedata');
 
-        expect(GroupStore.trigger.calledOnce).toBeTruthy;
+        expect(GroupStore.trigger.calledOnce).toBeTruthy();
         expect(GroupStore.trigger.firstCall.args[0]).toEqual(new Set([1, 2, 3]));
       });
     });
@@ -65,7 +65,7 @@ describe('GroupStore', function() {
         this.sandbox.stub(GroupStore, 'trigger');
         GroupStore.onUpdateSuccess(1337, undefined, 'somedata');
 
-        expect(GroupStore.trigger.calledOnce).toBeTruthy;
+        expect(GroupStore.trigger.calledOnce).toBeTruthy();
         expect(GroupStore.trigger.firstCall.args[0]).toEqual(new Set([1, 2, 3]));
       });
     });
@@ -75,7 +75,7 @@ describe('GroupStore', function() {
         this.sandbox.stub(GroupStore, 'trigger');
         GroupStore.onUpdateError(1337, undefined, 'something failed', false);
 
-        expect(GroupStore.trigger.calledOnce).toBeTruthy;
+        expect(GroupStore.trigger.calledOnce).toBeTruthy();
         expect(GroupStore.trigger.firstCall.args[0]).toEqual(new Set([1, 2, 3]));
       });
     });

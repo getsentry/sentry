@@ -8,7 +8,7 @@ sentry.interfaces.query
 
 from __future__ import absolute_import
 
-__all__ = ('Query',)
+__all__ = ('Query', )
 
 from sentry.interfaces.base import Interface, InterfaceValidationError
 from sentry.utils.safe import trim
@@ -23,6 +23,7 @@ class Query(Interface):
     >>>     "engine": "psycopg2"
     >>> }
     """
+
     @classmethod
     def to_python(cls, data):
         if not data.get('query'):

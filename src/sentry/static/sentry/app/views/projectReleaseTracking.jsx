@@ -1,8 +1,9 @@
+import PropTypes from 'prop-types';
 import React from 'react';
-import _ from 'underscore';
+import _ from 'lodash';
 
 import ApiMixin from '../mixins/apiMixin';
-import {t} from '../locale';
+import {t, tct} from '../locale';
 import AlertActions from '../actions/alertActions';
 import PluginList from '../components/pluginList';
 import LoadingError from '../components/loadingError';
@@ -10,8 +11,8 @@ import LoadingIndicator from '../components/loadingIndicator';
 
 const ProjectReleaseTracking = React.createClass({
   propTypes: {
-    organization: React.PropTypes.object,
-    project: React.PropTypes.object
+    organization: PropTypes.object,
+    project: PropTypes.object
   },
 
   mixins: [ApiMixin],
@@ -173,9 +174,9 @@ const ProjectReleaseTracking = React.createClass({
           </div>
           <div className="box-content with-padding">
             <p>
-              {t(
-                'Start by binding the <code>release</code> attribute in your application:'
-              )}
+              {tct('Start by binding the [release] attribute in your application:', {
+                release: <code>release</code>
+              })}
             </p>
             <pre>{this.getReleaseClientConfigurationIntructions()}</pre>
             <p>
@@ -206,6 +207,8 @@ const ProjectReleaseTracking = React.createClass({
                 <code style={{display: 'inlineBlock'}} className="auto-select">
                   {this.state.token}
                 </code>
+              </p>
+              <p>
                 <button
                   type="submit"
                   className="btn btn-sm btn-danger"

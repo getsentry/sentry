@@ -4,9 +4,9 @@ import itertools
 import logging
 import random
 import time
+import functools
 
 from django.utils.encoding import force_bytes
-
 
 logger = logging.getLogger(__name__)
 
@@ -30,6 +30,22 @@ class RetryPolicy(object):
     def __call__(self, function):
         raise NotImplementedError
 
+    @classmethod
+    def wrap(cls, *args, **kwargs):
+        """
+        A decorator that may be used to wrap a function to be retried using
+        this policy.
+        """
+        retrier = cls(*args, **kwargs)
+
+        def decorator(fn):
+            @functools.wraps(fn)
+            def execute_with_retry(*args, **kwargs):
+                return retrier(functools.partial(fn, *args, **kwargs))
+
+            return execute_with_retry
+        return decorator
+
 
 class TimedRetryPolicy(RetryPolicy):
     """
@@ -40,7 +56,7 @@ class TimedRetryPolicy(RetryPolicy):
     number of this attempt (starting at 1.)
     """
 
-    def __init__(self, timeout, delay=None, exceptions=(Exception,)):
+    def __init__(self, timeout, delay=None, exceptions=(Exception, )):
         if delay is None:
             # 100ms +/- 50ms of randomized jitter
             def delay(i):
@@ -62,7 +78,9 @@ class TimedRetryPolicy(RetryPolicy):
                 if (now + delay) > (start + self.timeout):
                     raise RetryException(
                         'Could not successfully execute %r within %.3f seconds (%s attempts.)' %
-                        (function, now - start, i), error, )
+                        (function, now - start, i),
+                        error,
+                    )
                 else:
                     logger.debug(
                         'Failed to execute %r due to %r on attempt #%s, retrying in %s seconds...',

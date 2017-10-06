@@ -13,7 +13,7 @@ class UserAuthenticatorDetailsEndpoint(UserEndpoint):
     # XXX(dcramer): this requires superuser until we sort out how it will be
     # used from the React app (which will require some kind of double
     # verification)
-    permission_classes = (SuperuserPermission,)
+    permission_classes = (SuperuserPermission, )
 
     def delete(self, request, user, auth_id):
         try:
@@ -32,10 +32,7 @@ class UserAuthenticatorDetailsEndpoint(UserEndpoint):
             # process.
             if not authenticator.interface.is_backup_interface:
                 interfaces = Authenticator.objects.all_interfaces_for_user(user)
-                backup_interfaces = [
-                    x for x in interfaces
-                    if x.is_backup_interface
-                ]
+                backup_interfaces = [x for x in interfaces if x.is_backup_interface]
                 if len(backup_interfaces) == len(interfaces):
                     for iface in backup_interfaces:
                         iface.authenticator.delete()

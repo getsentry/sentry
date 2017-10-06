@@ -1,0 +1,50 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`SimilarScoreCard renders 1`] = `null`;
+
+exports[`SimilarScoreCard renders with score list 1`] = `
+<div
+  className="similar-score-card"
+>
+  <SpreadLayout
+    center={true}
+    className="similar-score-card-row"
+    responsive={false}
+  >
+    <div />
+    <div
+      className="similar-score-quantity empty"
+    />
+  </SpreadLayout>
+  <SpreadLayout
+    center={true}
+    className="similar-score-card-row"
+    responsive={false}
+  >
+    <div />
+    <div
+      className="similar-score-quantity med-high"
+    />
+  </SpreadLayout>
+  <SpreadLayout
+    center={true}
+    className="similar-score-card-row"
+    responsive={false}
+  >
+    <div />
+    <div
+      className="similar-score-quantity high"
+    />
+  </SpreadLayout>
+  <SpreadLayout
+    center={true}
+    className="similar-score-card-row"
+    responsive={false}
+  >
+    <div />
+    <div
+      className="similar-score-quantity med"
+    />
+  </SpreadLayout>
+</div>
+`;

@@ -2,7 +2,8 @@ from __future__ import absolute_import
 
 import six
 
-from sentry.models import EventTag, TagKey, TagValue
+from sentry import tagstore
+from sentry.models import EventTag
 from sentry.testutils import APITestCase
 
 
@@ -19,10 +20,12 @@ class GroupEventsTest(APITestCase):
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 2
-        assert sorted(map(lambda x: x['id'], response.data)) == sorted([
-            six.text_type(event_1.id),
-            six.text_type(event_2.id),
-        ])
+        assert sorted(map(lambda x: x['id'], response.data)) == sorted(
+            [
+                six.text_type(event_1.id),
+                six.text_type(event_2.id),
+            ]
+        )
 
     def test_tags(self):
         self.login_as(user=self.user)
@@ -31,11 +34,11 @@ class GroupEventsTest(APITestCase):
         event_1 = self.create_event('a' * 32, group=group)
         event_2 = self.create_event('b' * 32, group=group)
 
-        tagkey_1 = TagKey.objects.create(project=group.project, key='foo')
-        tagkey_2 = TagKey.objects.create(project=group.project, key='bar')
-        tagvalue_1 = TagValue.objects.create(project=group.project, key='foo', value='baz')
-        tagvalue_2 = TagValue.objects.create(project=group.project, key='bar', value='biz')
-        tagvalue_3 = TagValue.objects.create(project=group.project, key='bar', value='buz')
+        tagkey_1 = tagstore.create_tag_key(project_id=group.project_id, key='foo')
+        tagkey_2 = tagstore.create_tag_key(project_id=group.project_id, key='bar')
+        tagvalue_1 = tagstore.create_tag_value(project_id=group.project_id, key='foo', value='baz')
+        tagvalue_2 = tagstore.create_tag_value(project_id=group.project_id, key='bar', value='biz')
+        tagvalue_3 = tagstore.create_tag_value(project_id=group.project_id, key='bar', value='buz')
 
         EventTag.objects.create(
             project_id=group.project_id,

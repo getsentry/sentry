@@ -17,19 +17,17 @@ class ProjectPluginEnableView(ProjectView):
             return self.redirect(
                 reverse(
                     'sentry-configure-project-plugin',
-                    args=[
-                        project.organization.slug,
-                        project.slug,
-                        slug]))
+                    args=[project.organization.slug, project.slug, slug]
+                )
+            )
 
         if plugin.is_enabled(project):
             return self.redirect(
                 reverse(
                     'sentry-configure-project-plugin',
-                    args=[
-                        project.organization.slug,
-                        project.slug,
-                        slug]))
+                    args=[project.organization.slug, project.slug, slug]
+                )
+            )
 
         plugin.enable(project=project)
 
@@ -38,7 +36,6 @@ class ProjectPluginEnableView(ProjectView):
         return self.redirect(
             reverse(
                 'sentry-configure-project-plugin',
-                args=[
-                    project.organization.slug,
-                    project.slug,
-                    slug]))
+                args=[project.organization.slug, project.slug, slug]
+            )
+        )

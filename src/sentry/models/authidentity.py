@@ -5,9 +5,7 @@ from django.conf import settings
 from django.db import models
 from django.utils import timezone
 
-from sentry.db.models import (
-    EncryptedJsonField, FlexibleForeignKey, Model, sane_repr
-)
+from sentry.db.models import (EncryptedJsonField, FlexibleForeignKey, Model, sane_repr)
 
 
 class AuthIdentity(Model):

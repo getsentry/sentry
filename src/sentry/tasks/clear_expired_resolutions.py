@@ -2,15 +2,12 @@ from __future__ import absolute_import, print_function
 
 from django.db.models import Q
 
-from sentry.models import (
-    Activity, GroupResolution, Release
-)
+from sentry.models import (Activity, GroupResolution, Release)
 from sentry.tasks.base import instrumented_task
 
 
 @instrumented_task(name='sentry.tasks.clear_expired_resolutions',
-                   time_limit=15,
-                   soft_time_limit=10)
+                   time_limit=15, soft_time_limit=10)
 def clear_expired_resolutions(release_id):
     """
     This should be fired when ``release_id`` is created, and will indicate to
@@ -26,21 +23,21 @@ def clear_expired_resolutions(release_id):
     except Release.DoesNotExist:
         return
 
-    resolution_list = list(GroupResolution.objects.filter(
-        Q(type=GroupResolution.Type.in_next_release) | Q(type__isnull=True),
-        release__projects=release.projects.all(),
-        release__date_added__lt=release.date_added,
-        status=GroupResolution.Status.pending,
-    ).exclude(
-        release=release,
-    ))
+    resolution_list = list(
+        GroupResolution.objects.filter(
+            Q(type=GroupResolution.Type.in_next_release) | Q(type__isnull=True),
+            release__projects=release.projects.all(),
+            release__date_added__lt=release.date_added,
+            status=GroupResolution.Status.pending,
+        ).exclude(
+            release=release,
+        )
+    )
 
     if not resolution_list:
         return
 
-    GroupResolution.objects.filter(
-        id__in=[r.id for r in resolution_list]
-    ).update(
+    GroupResolution.objects.filter(id__in=[r.id for r in resolution_list]).update(
         release=release,
         type=GroupResolution.Type.in_release,
         status=GroupResolution.Status.resolved,

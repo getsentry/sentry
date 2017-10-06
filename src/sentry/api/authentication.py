@@ -1,9 +1,7 @@
 from __future__ import absolute_import
 
 from django.contrib.auth.models import AnonymousUser
-from rest_framework.authentication import (
-    BasicAuthentication, get_authorization_header
-)
+from rest_framework.authentication import (BasicAuthentication, get_authorization_header)
 from rest_framework.exceptions import AuthenticationFailed
 
 from sentry.app import raven

@@ -1,31 +1,29 @@
+import PropTypes from 'prop-types';
 import React from 'react';
-import _ from 'underscore';
+import _ from 'lodash';
 
 import Category from './category';
 
 const CrumbTable = React.createClass({
   propTypes: {
-    crumb: React.PropTypes.object,
-    title: React.PropTypes.string,
-    kvData: React.PropTypes.object,
-    summary: React.PropTypes.object
+    crumb: PropTypes.object,
+    title: PropTypes.string,
+    kvData: PropTypes.object,
+    summary: PropTypes.object
   },
 
   renderData() {
     if (!this.props.kvData) {
       return null;
     }
-    return _.chain(this.props.kvData)
-      .map((val, key) => [val, key])
-      .map(([val, key]) => {
-        return (
-          <tr key={key}>
-            <td className="key">{key}</td>
-            <td className="value"><pre>{val + ''}</pre></td>
-          </tr>
-        );
-      })
-      .value();
+    return _.map(this.props.kvData, (val, key) => {
+      return (
+        <tr key={key}>
+          <td className="key">{key}</td>
+          <td className="value"><pre>{val + ''}</pre></td>
+        </tr>
+      );
+    });
   },
 
   render() {

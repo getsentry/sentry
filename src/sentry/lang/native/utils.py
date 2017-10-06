@@ -8,9 +8,7 @@ from symsynd import get_cpu_name, parse_addr
 
 from sentry.interfaces.contexts import DeviceContextType
 
-
 logger = logging.getLogger(__name__)
-
 
 KNOWN_DSYM_TYPES = {
     'iOS': 'macho',
@@ -69,8 +67,7 @@ def get_sdk_from_os(data):
     if 'name' not in data or 'version' not in data:
         return
     try:
-        system_version = tuple(int(x) for x in (
-            data['version'] + '.0' * 3).split('.')[:3])
+        system_version = tuple(int(x) for x in (data['version'] + '.0' * 3).split('.')[:3])
     except ValueError:
         return
 
@@ -95,8 +92,7 @@ def cpu_name_from_data(data):
     unique_cpu_name = None
     images = (data.get('debug_meta') or {}).get('images') or []
     for img in images:
-        cpu_name = get_cpu_name(img['cpu_type'],
-                                img['cpu_subtype'])
+        cpu_name = get_cpu_name(img['cpu_type'], img['cpu_subtype'])
         if unique_cpu_name is None:
             unique_cpu_name = cpu_name
         elif unique_cpu_name != cpu_name:
@@ -131,9 +127,7 @@ def sdk_info_to_sdk_id(sdk_info):
     if sdk_info is None:
         return None
     rv = '%s_%d.%d.%d' % (
-        sdk_info['sdk_name'],
-        sdk_info['version_major'],
-        sdk_info['version_minor'],
+        sdk_info['sdk_name'], sdk_info['version_major'], sdk_info['version_minor'],
         sdk_info['version_patchlevel'],
     )
     build = sdk_info.get('build')

@@ -10,8 +10,11 @@ from sentry import options
 from sentry.models import GroupEmailThread, User, UserOption
 from sentry.testutils import TestCase
 from sentry.utils.email import (
-    ListResolver, MessageBuilder, default_list_type_handlers,
-    get_from_email_domain, get_mail_backend,
+    ListResolver,
+    MessageBuilder,
+    default_list_type_handlers,
+    get_from_email_domain,
+    get_mail_backend,
 )
 
 
@@ -37,7 +40,7 @@ class ListResolverTestCase(TestCase):
 
     def test_rejects_invalid_objects(self):
         resolver = ListResolver('namespace', {
-            object: lambda value: ('\x00',),
+            object: lambda value: ('\x00', ),
         })
 
         with pytest.raises(AssertionError):
@@ -63,8 +66,7 @@ class MessageBuilderTest(TestCase):
         assert out.body == 'hello world'
         assert len(out.alternatives) == 1
         assert out.alternatives[0] == (
-            '<!DOCTYPE html>\n<html><body><b>hello world</b></body></html>',
-            'text/html',
+            '<!DOCTYPE html>\n<html><body><b>hello world</b></body></html>', 'text/html',
         )
 
     def test_explicit_reply_to(self):
@@ -85,8 +87,7 @@ class MessageBuilderTest(TestCase):
         assert out.body == 'hello world'
         assert len(out.alternatives) == 1
         assert out.alternatives[0] == (
-            '<!DOCTYPE html>\n<html><body><b>hello world</b></body></html>',
-            'text/html',
+            '<!DOCTYPE html>\n<html><body><b>hello world</b></body></html>', 'text/html',
         )
 
     def test_with_users(self):
@@ -145,8 +146,7 @@ class MessageBuilderTest(TestCase):
         assert out.body == 'hello world'
         assert len(out.alternatives) == 1
         assert out.alternatives[0] == (
-            '<!DOCTYPE html>\n<html><body><b>hello world</b></body></html>',
-            'text/html',
+            '<!DOCTYPE html>\n<html><body><b>hello world</b></body></html>', 'text/html',
         )
 
     @patch('sentry.utils.email.make_msgid')
@@ -172,8 +172,7 @@ class MessageBuilderTest(TestCase):
         assert out.body == 'hello world'
         assert len(out.alternatives) == 1
         assert out.alternatives[0] == (
-            '<!DOCTYPE html>\n<html><body><b>hello world</b></body></html>',
-            'text/html',
+            '<!DOCTYPE html>\n<html><body><b>hello world</b></body></html>', 'text/html',
         )
 
         # Our new EmailThread row was added
@@ -207,8 +206,7 @@ class MessageBuilderTest(TestCase):
         assert out.body == 'hello world'
         assert len(out.alternatives) == 1
         assert out.alternatives[0] == (
-            '<!DOCTYPE html>\n<html><body><b>hello world</b></body></html>',
-            'text/html',
+            '<!DOCTYPE html>\n<html><body><b>hello world</b></body></html>', 'text/html',
         )
 
         # Our new EmailThread row was added
@@ -233,8 +231,7 @@ class MessageBuilderTest(TestCase):
         assert out.body == 'hello world'
         assert len(out.alternatives) == 1
         assert out.alternatives[0] == (
-            '<!DOCTYPE html>\n<html><body><b>hello world</b></body></html>',
-            'text/html',
+            '<!DOCTYPE html>\n<html><body><b>hello world</b></body></html>', 'text/html',
         )
 
         # Our new GroupEmailThread row was added
@@ -278,15 +275,10 @@ class MessageBuilderTest(TestCase):
             namespace=options.get('mail.list-namespace'),
         )
 
-        references = (
-            self.event,
-            self.event.group,
-            self.event.project,
-            self.activity,
-        )
+        references = (self.event, self.event.group, self.event.project, self.activity, )
 
         for reference in references:
-            (message,) = build_message(reference=reference).get_built_messages(['foo@example.com'])
+            (message, ) = build_message(reference=reference).get_built_messages(['foo@example.com'])
             assert message.message()['List-Id'] == expected
 
     def test_does_not_generates_list_ids_for_unregistered_types(self):

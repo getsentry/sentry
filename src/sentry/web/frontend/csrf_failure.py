@@ -16,8 +16,7 @@ class CsrfFailureView(View):
             'request': request,
         }
 
-        return render_to_response('sentry/403-csrf-failure.html', context, request,
-                                  status=403)
+        return render_to_response('sentry/403-csrf-failure.html', context, request, status=403)
 
 
 view = CsrfFailureView.as_view()

@@ -16,9 +16,11 @@ class UserOrganizationsTest(APITestCase):
 
         self.login_as(user=user)
 
-        url = reverse('sentry-api-0-user-organizations', kwargs={
-            'user_id': 'me',
-        })
+        url = reverse(
+            'sentry-api-0-user-organizations', kwargs={
+                'user_id': 'me',
+            }
+        )
         response = self.client.get(url, format='json')
 
         assert response.status_code == 200, response.content

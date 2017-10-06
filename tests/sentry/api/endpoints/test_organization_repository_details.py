@@ -23,9 +23,12 @@ class OrganizationRepositoryDeleteTest(APITestCase):
             organization_id=org.id,
         )
 
-        url = reverse('sentry-api-0-organization-repository-details', args=[
-            org.slug, repo.id,
-        ])
+        url = reverse(
+            'sentry-api-0-organization-repository-details', args=[
+                org.slug,
+                repo.id,
+            ]
+        )
         response = self.client.delete(url)
         assert response.status_code == 202, (response.status_code, response.content)
 
@@ -58,9 +61,12 @@ class OrganizationRepositoryDeleteTest(APITestCase):
             organization_id=org.id,
         )
 
-        url = reverse('sentry-api-0-organization-repository-details', args=[
-            org.slug, repo.id,
-        ])
+        url = reverse(
+            'sentry-api-0-organization-repository-details', args=[
+                org.slug,
+                repo.id,
+            ]
+        )
         response = self.client.delete(url)
 
         assert response.status_code == 202, (response.status_code, response.content)

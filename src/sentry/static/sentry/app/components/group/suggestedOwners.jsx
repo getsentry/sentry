@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import ReactDOMServer from 'react-dom/server';
 import moment from 'moment';
@@ -10,7 +11,7 @@ import {t} from '../../locale';
 
 const SuggestedOwners = React.createClass({
   propTypes: {
-    event: React.PropTypes.object
+    event: PropTypes.object
   },
 
   mixins: [
@@ -75,7 +76,7 @@ const SuggestedOwners = React.createClass({
 
   assignTo(member) {
     if (member.id !== undefined) {
-      this.api.assignTo({id: this.props.event.groupID, member: member});
+      this.api.assignTo({id: this.props.event.groupID, member});
     }
   },
 

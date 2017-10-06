@@ -31,16 +31,15 @@ class GroupDeletionTask(ModelDeletionTask):
             # Event is last as its the most time consuming
             models.Event,
         )
-        relations.extend([
-            ModelRelation(m, {'group_id': instance.id}) for m in model_list
-        ])
+        relations.extend([ModelRelation(m, {'group_id': instance.id}) for m in model_list])
 
         return relations
 
     def delete_instance(self, instance):
         from sentry.similarity import features
 
-        features.delete(instance)
+        if not self.skip_models or features not in self.skip_models:
+            features.delete(instance)
 
         return super(GroupDeletionTask, self).delete_instance(instance)
 

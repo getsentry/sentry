@@ -29,7 +29,7 @@ describe('Avatar', function() {
       this.sandbox.stub(avatar, 'buildGravatarUrl');
       this.sandbox.stub(avatar, 'buildProfileUrl');
       avatar.renderImg();
-      expect(avatar.buildGravatarUrl.calledOnce).toBeTruthy;
+      expect(avatar.buildGravatarUrl.calledOnce).toBeTruthy();
       expect(avatar.buildProfileUrl.called).not.toBeTruthy();
     });
 
@@ -44,7 +44,7 @@ describe('Avatar', function() {
       this.sandbox.stub(avatar, 'buildGravatarUrl');
       this.sandbox.stub(avatar, 'buildProfileUrl');
       avatar.renderImg();
-      expect(avatar.buildProfileUrl.calledOnce).toBeTruthy;
+      expect(avatar.buildProfileUrl.calledOnce).toBeTruthy();
       expect(avatar.buildGravatarUrl.called).not.toBeTruthy();
     });
 
@@ -68,7 +68,7 @@ describe('Avatar', function() {
       this.sandbox.stub(avatar, 'buildGravatarUrl');
       this.sandbox.stub(avatar, 'buildProfileUrl');
       avatar.renderImg();
-      expect(avatar.buildGravatarUrl.calledOnce).toBeTruthy;
+      expect(avatar.buildGravatarUrl.calledOnce).toBeTruthy();
       expect(avatar.buildProfileUrl.called).not.toBeTruthy();
     });
 

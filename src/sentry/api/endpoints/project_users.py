@@ -29,16 +29,16 @@ class ProjectUsersEndpoint(ProjectEndpoint):
                               For example, ``query=email:foo@example.com``
         """
         queryset = EventUser.objects.filter(
-            project=project,
+            project_id=project.id,
         )
         if request.GET.get('query'):
             pieces = request.GET['query'].strip().split(':', 1)
             if len(pieces) != 2:
                 return Response([])
             try:
-                queryset = queryset.filter(**{
-                    '{}__icontains'.format(EventUser.attr_from_keyword(pieces[0])): pieces[1]
-                })
+                queryset = queryset.filter(
+                    **{'{}__icontains'.format(EventUser.attr_from_keyword(pieces[0])): pieces[1]}
+                )
             except KeyError:
                 return Response([])
 

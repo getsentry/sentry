@@ -12,11 +12,7 @@ class BaseRelation(object):
         self.params = params
 
     def __repr__(self):
-        return '<%s: task=%s params=%s>' % (
-            type(self),
-            self.task,
-            self.params,
-        )
+        return '<%s: task=%s params=%s>' % (type(self), self.task, self.params, )
 
 
 class ModelRelation(BaseRelation):
@@ -33,18 +29,17 @@ class BaseDeletionTask(object):
 
     DEFAULT_CHUNK_SIZE = 100
 
-    def __init__(self, manager, transaction_id=None,
+    def __init__(self, manager, skip_models=None, transaction_id=None,
                  actor_id=None, chunk_size=DEFAULT_CHUNK_SIZE):
         self.manager = manager
+        self.skip_models = set(skip_models) if skip_models else None
         self.transaction_id = transaction_id
         self.actor_id = actor_id
         self.chunk_size = chunk_size
 
     def __repr__(self):
-        return '<%s: transaction_id=%s actor_id=%s>' % (
-            type(self),
-            self.transaction_id,
-            self.actor_id,
+        return '<%s: skip_models=%s transaction_id=%s actor_id=%s>' % (
+            type(self), self.skip_models, self.transaction_id, self.actor_id,
         )
 
     def chunk(self):
@@ -65,6 +60,13 @@ class BaseDeletionTask(object):
             # ModelRelation(Model, {'parent_id__in': [i.id for id in instance_list]})
         ]
 
+    def filter_relations(self, child_relations):
+        if not self.skip_models or not child_relations:
+            return child_relations
+
+        return list(filter(lambda rel: rel.params.get('model')
+                           not in self.skip_models, child_relations))
+
     def delete_bulk(self, instance_list):
         """
         Delete a batch of objects bound to this task.
@@ -75,6 +77,7 @@ class BaseDeletionTask(object):
         self.mark_deletion_in_progress(instance_list)
 
         child_relations = self.get_child_relations_bulk(instance_list)
+        child_relations = self.filter_relations(child_relations)
         if child_relations:
             has_more = self.delete_children(child_relations)
             if has_more:
@@ -82,6 +85,7 @@ class BaseDeletionTask(object):
 
         for instance in instance_list:
             child_relations = self.get_child_relations(instance)
+            child_relations = self.filter_relations(child_relations)
             if child_relations:
                 has_more = self.delete_children(child_relations)
                 if has_more:
@@ -119,26 +123,19 @@ class BaseDeletionTask(object):
 class ModelDeletionTask(BaseDeletionTask):
     DEFAULT_QUERY_LIMIT = None
 
-    def __init__(self, manager, model, query, query_limit=None, **kwargs):
+    def __init__(self, manager, model, query, query_limit=None, order_by=None, **kwargs):
         super(ModelDeletionTask, self).__init__(manager, **kwargs)
         self.model = model
         self.query = query
-        self.query_limit = (
-            query_limit or
-            self.DEFAULT_QUERY_LIMIT or
-            self.chunk_size
-        )
+        self.query_limit = (query_limit or self.DEFAULT_QUERY_LIMIT or self.chunk_size)
+        self.order_by = order_by
 
     def __repr__(self):
-        return '<%s: model=%s query=%s transaction_id=%s actor_id=%s>' % (
-            type(self),
-            self.model,
-            self.query,
-            self.transaction_id,
-            self.actor_id,
+        return '<%s: model=%s query=%s order_by=%s transaction_id=%s actor_id=%s>' % (
+            type(self), self.model, self.query, self.order_by, self.transaction_id, self.actor_id,
         )
 
-    def chunk(self):
+    def chunk(self, num_shards=None, shard_id=None):
         """
         Deletes a chunk of this instance's data. Return ``True`` if there is
         more work, or ``False`` if the entity has been removed.
@@ -146,9 +143,23 @@ class ModelDeletionTask(BaseDeletionTask):
         query_limit = self.query_limit
         remaining = self.chunk_size
         while remaining > 0:
-            queryset = list(self.model.objects.filter(
-                **self.query
-            )[:query_limit])
+            queryset = self.model.objects.filter(**self.query)
+            if self.order_by:
+                queryset = queryset.order_by(self.order_by)
+
+            if num_shards:
+                assert num_shards > 1
+                assert shard_id < num_shards
+                queryset = queryset.extra(
+                    where=[
+                        'id %% {num_shards} = {shard_id}'.format(
+                            num_shards=num_shards,
+                            shard_id=shard_id,
+                        )
+                    ]
+                )
+
+            queryset = list(queryset[:query_limit])
             if not queryset:
                 return False
 
@@ -166,12 +177,15 @@ class ModelDeletionTask(BaseDeletionTask):
         try:
             instance.delete()
         finally:
-            self.logger.info('object.delete.executed', extra={
-                'object_id': instance_id,
-                'transaction_id': self.transaction_id,
-                'app_label': instance._meta.app_label,
-                'model': type(instance).__name__,
-            })
+            self.logger.info(
+                'object.delete.executed',
+                extra={
+                    'object_id': instance_id,
+                    'transaction_id': self.transaction_id,
+                    'app_label': instance._meta.app_label,
+                    'model': type(instance).__name__,
+                }
+            )
 
     def get_actor(self):
         from sentry.models import User
@@ -211,8 +225,13 @@ class BulkModelDeletionTask(ModelDeletionTask):
                 **self.query
             )
         finally:
-            self.logger.info('object.delete.bulk_executed', extra=dict({
-                'transaction_id': self.transaction_id,
-                'app_label': self.model._meta.app_label,
-                'model': self.model.__name__,
-            }, **self.query))
+            self.logger.info(
+                'object.delete.bulk_executed',
+                extra=dict(
+                    {
+                        'transaction_id': self.transaction_id,
+                        'app_label': self.model._meta.app_label,
+                        'model': self.model.__name__,
+                    }, **self.query
+                )
+            )

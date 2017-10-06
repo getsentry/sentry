@@ -14,29 +14,25 @@ from six.moves.urllib.parse import parse_qsl
 from sentry import http
 from sentry.utils.strings import count_sprintf_parameters
 
-
 logger = logging.getLogger(__name__)
-
 
 SOFT_TIMEOUT = 600
 SOFT_TIMEOUT_FUZZINESS = 10
 HARD_TIMEOUT = 7200
 
-
-REACT_MAPPING_URL = ('https://raw.githubusercontent.com/facebook/'
-                     'react/master/scripts/error-codes/codes.json')
-
+REACT_MAPPING_URL = (
+    'https://raw.githubusercontent.com/facebook/'
+    'react/master/scripts/error-codes/codes.json'
+)
 
 error_processors = {}
 
 
 def is_expired(ts):
-    return ts > (time.time() - SOFT_TIMEOUT -
-                 random.random() * SOFT_TIMEOUT_FUZZINESS)
+    return ts > (time.time() - SOFT_TIMEOUT - random.random() * SOFT_TIMEOUT_FUZZINESS)
 
 
 class Processor(object):
-
     def __init__(self, vendor, mapping_url, regex, func):
         self.vendor = vendor
         self.mapping_url = mapping_url
@@ -54,10 +50,11 @@ class Processor(object):
 
         try:
             http_session = http.build_session()
-            response = http_session.get(self.mapping_url,
-                                        allow_redirects=True,
-                                        timeout=settings.SENTRY_SOURCE_FETCH_TIMEOUT,
-                                        )
+            response = http_session.get(
+                self.mapping_url,
+                allow_redirects=True,
+                timeout=settings.SENTRY_SOURCE_FETCH_TIMEOUT,
+            )
             # Make sure we only get a 2xx to prevent caching bad data
             response.raise_for_status()
             data = response.json()
@@ -81,6 +78,7 @@ class Processor(object):
 def minified_error(vendor, mapping_url, regex):
     def decorator(f):
         error_processors[vendor] = Processor(vendor, mapping_url, regex, f)
+
     return decorator
 
 

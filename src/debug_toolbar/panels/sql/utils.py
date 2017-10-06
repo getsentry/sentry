@@ -31,10 +31,12 @@ def reformat_sql(sql):
 
 def swap_fields(sql):
     expr = r'SELECT</strong> (...........*?) <strong>FROM'
-    subs = (r'SELECT</strong> '
-            r'<a class="djDebugUncollapsed djDebugToggle" href="#">&#8226;&#8226;&#8226;</a> '
-            r'<a class="djDebugCollapsed djDebugToggle" href="#">\1</a> '
-            r'<strong>FROM')
+    subs = (
+        r'SELECT</strong> '
+        r'<a class="djDebugUncollapsed djDebugToggle" href="#">&#8226;&#8226;&#8226;</a> '
+        r'<a class="djDebugCollapsed djDebugToggle" href="#">\1</a> '
+        r'<strong>FROM'
+    )
     return re.sub(expr, subs, sql)
 
 
@@ -43,11 +45,11 @@ def contrasting_color_generator():
     Generate constrasting colors by varying most significant bit of RGB first,
     and then vary subsequent bits systematically.
     """
+
     def rgb_to_hex(rgb):
         return '#%02x%02x%02x' % tuple(rgb)
 
-    triples = [(1, 0, 0), (0, 1, 0), (0, 0, 1),
-               (1, 1, 0), (0, 1, 1), (1, 0, 1), (1, 1, 1)]
+    triples = [(1, 0, 0), (0, 1, 0), (0, 0, 1), (1, 1, 0), (0, 1, 1), (1, 0, 1), (1, 1, 1)]
     n = 1 << 7
     so_far = [[0, 0, 0]]
     while True:

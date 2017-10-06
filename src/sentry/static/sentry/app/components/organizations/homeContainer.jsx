@@ -1,11 +1,12 @@
 import React from 'react';
-import {Link} from 'react-router';
 
 import OrganizationHomeSidebar from './homeSidebar';
 import OrganizationState from '../../mixins/organizationState';
 import ProjectSelector from '../projectHeader/projectSelector';
 import TooltipMixin from '../../mixins/tooltip';
 import {t} from '../../locale';
+
+import Button from '../../components/buttons/button';
 
 const HomeContainer = React.createClass({
   mixins: [
@@ -20,38 +21,40 @@ const HomeContainer = React.createClass({
     let access = this.getAccess();
 
     return (
-      <div className="organization-home">
+      <div className={`${this.props.className || ''} organization-home`}>
         <div className="sub-header flex flex-container flex-vertically-centered">
           <div>
             <ProjectSelector organization={org} />
           </div>
           <div className="align-right hidden-xs">
             {access.has('project:write')
-              ? <a
-                  href={`/organizations/${org.slug}/projects/new/`}
-                  className="btn btn-primary"
+              ? <Button
+                  to={`/organizations/${org.slug}/projects/new/`}
+                  priority="primary"
                   style={{marginRight: 5}}>
                   {t('New Project')}
-                </a>
-              : <a
-                  className="btn btn-primary btn-disabled tip"
+                </Button>
+              : <Button
+                  priority="primary"
+                  disabled
+                  className="tip"
                   data-placement="bottom"
                   title={t('You do not have enough permission to create new projects')}
                   style={{marginRight: 5}}>
                   {t('New Project')}
-                </a>}
+                </Button>}
             {access.has('team:write')
-              ? <Link
-                  to={`/organizations/${org.slug}/teams/new/`}
-                  className="btn btn-primary">
+              ? <Button to={`/organizations/${org.slug}/teams/new/`} priority="primary">
                   {t('New Team')}
-                </Link>
-              : <a
-                  className="btn btn-primary btn-disabled tip"
+                </Button>
+              : <Button
+                  priority="primary"
+                  disabled
+                  className="tip"
                   data-placement="bottom"
                   title={t('You do not have enough permission to create new teams')}>
                   {t('New Team')}
-                </a>}
+                </Button>}
           </div>
         </div>
         <div className="container">

@@ -15,10 +15,9 @@ from sentry.constants import LOG_LEVELS, LOG_LEVELS_MAP
 
 from sentry.rules.conditions.base import EventCondition
 
-LEVEL_CHOICES = OrderedDict([
-    ("{0}".format(k), v)
-    for k, v in sorted(LOG_LEVELS.items(), key=lambda x: x[0], reverse=True)
-])
+LEVEL_CHOICES = OrderedDict(
+    [("{0}".format(k), v) for k, v in sorted(LOG_LEVELS.items(), key=lambda x: x[0], reverse=True)]
+)
 
 
 class MatchType(object):
@@ -27,11 +26,12 @@ class MatchType(object):
     GREATER_OR_EQUAL = 'gte'
 
 
-MATCH_CHOICES = OrderedDict([
-    (MatchType.EQUAL, 'equal to'),
-    (MatchType.LESS_OR_EQUAL, 'less than or equal to'),
-    (MatchType.GREATER_OR_EQUAL, 'greater than or equal to')
-])
+MATCH_CHOICES = OrderedDict(
+    [
+        (MatchType.EQUAL, 'equal to'), (MatchType.LESS_OR_EQUAL, 'less than or equal to'),
+        (MatchType.GREATER_OR_EQUAL, 'greater than or equal to')
+    ]
+)
 
 
 class LevelEventForm(forms.Form):

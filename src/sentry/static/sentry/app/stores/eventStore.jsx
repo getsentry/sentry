@@ -1,6 +1,6 @@
 import jQuery from 'jquery';
 import Reflux from 'reflux';
-import _ from 'underscore';
+import _ from 'lodash';
 
 const EventStore = Reflux.createStore({
   init() {

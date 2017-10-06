@@ -22,11 +22,13 @@ class OAuthAuthorizeCodeTest(TestCase):
     def test_missing_response_type(self):
         self.login_as(self.user)
 
-        resp = self.client.get('{}?redirect_uri={}&client_id={}'.format(
-            self.path,
-            'https://example.com',
-            self.application.client_id,
-        ))
+        resp = self.client.get(
+            '{}?redirect_uri={}&client_id={}'.format(
+                self.path,
+                'https://example.com',
+                self.application.client_id,
+            )
+        )
 
         assert resp.status_code == 302
         assert resp['Location'] == 'https://example.com?error=unsupported_response_type'
@@ -34,11 +36,13 @@ class OAuthAuthorizeCodeTest(TestCase):
     def test_invalid_response_type(self):
         self.login_as(self.user)
 
-        resp = self.client.get('{}?response_type=foobar&redirect_uri={}&client_id={}'.format(
-            self.path,
-            'https://example.com',
-            self.application.client_id,
-        ))
+        resp = self.client.get(
+            '{}?response_type=foobar&redirect_uri={}&client_id={}'.format(
+                self.path,
+                'https://example.com',
+                self.application.client_id,
+            )
+        )
 
         assert resp.status_code == 302
         assert resp['Location'] == 'https://example.com?error=unsupported_response_type'
@@ -46,10 +50,12 @@ class OAuthAuthorizeCodeTest(TestCase):
     def test_missing_client_id(self):
         self.login_as(self.user)
 
-        resp = self.client.get('{}?response_type=code&redirect_uri={}'.format(
-            self.path,
-            'https://example.com',
-        ))
+        resp = self.client.get(
+            '{}?response_type=code&redirect_uri={}'.format(
+                self.path,
+                'https://example.com',
+            )
+        )
 
         assert resp.status_code == 200
         self.assertTemplateUsed('sentry/oauth-error.html')
@@ -58,10 +64,12 @@ class OAuthAuthorizeCodeTest(TestCase):
     def test_invalid_scope(self):
         self.login_as(self.user)
 
-        resp = self.client.get('{}?response_type=code&client_id={}&scope=foo'.format(
-            self.path,
-            self.application.client_id,
-        ))
+        resp = self.client.get(
+            '{}?response_type=code&client_id={}&scope=foo'.format(
+                self.path,
+                self.application.client_id,
+            )
+        )
 
         assert resp.status_code == 302
         assert resp['Location'] == 'https://example.com?error=invalid_scope'
@@ -71,7 +79,10 @@ class OAuthAuthorizeCodeTest(TestCase):
 
         resp = self.client.get(
             '{}?response_type=code&redirect_uri=https://google.com&client_id={}'.format(
-                self.path, self.application.client_id, ))
+                self.path,
+                self.application.client_id,
+            )
+        )
 
         assert resp.status_code == 200
         self.assertTemplateUsed('sentry/oauth-error.html')
@@ -80,10 +91,12 @@ class OAuthAuthorizeCodeTest(TestCase):
     def test_minimal_params_approve_flow(self):
         self.login_as(self.user)
 
-        resp = self.client.get('{}?response_type=code&client_id={}'.format(
-            self.path,
-            self.application.client_id,
-        ))
+        resp = self.client.get(
+            '{}?response_type=code&client_id={}'.format(
+                self.path,
+                self.application.client_id,
+            )
+        )
 
         assert resp.status_code == 200
         self.assertTemplateUsed('sentry/oauth-authorize.html')
@@ -112,10 +125,12 @@ class OAuthAuthorizeCodeTest(TestCase):
     def test_minimal_params_deny_flow(self):
         self.login_as(self.user)
 
-        resp = self.client.get('{}?response_type=code&client_id={}'.format(
-            self.path,
-            self.application.client_id,
-        ))
+        resp = self.client.get(
+            '{}?response_type=code&client_id={}'.format(
+                self.path,
+                self.application.client_id,
+            )
+        )
 
         assert resp.status_code == 200
         self.assertTemplateUsed('sentry/oauth-authorize.html')
@@ -136,7 +151,10 @@ class OAuthAuthorizeCodeTest(TestCase):
 
         resp = self.client.get(
             '{}?response_type=code&client_id={}&scope=org%3Aread&state=foo'.format(
-                self.path, self.application.client_id, ))
+                self.path,
+                self.application.client_id,
+            )
+        )
 
         assert resp.status_code == 200
         self.assertTemplateUsed('sentry/oauth-authorize.html')
@@ -166,10 +184,12 @@ class OAuthAuthorizeCodeTest(TestCase):
             application=self.application,
         )
 
-        resp = self.client.get('{}?response_type=code&client_id={}'.format(
-            self.path,
-            self.application.client_id,
-        ))
+        resp = self.client.get(
+            '{}?response_type=code&client_id={}'.format(
+                self.path,
+                self.application.client_id,
+            )
+        )
 
         grant = ApiGrant.objects.get(user=self.user)
         assert grant.redirect_uri == self.application.get_default_redirect_uri()
@@ -189,10 +209,12 @@ class OAuthAuthorizeCodeTest(TestCase):
             application=self.application,
         )
 
-        resp = self.client.get('{}?response_type=code&client_id={}&force_prompt=1'.format(
-            self.path,
-            self.application.client_id,
-        ))
+        resp = self.client.get(
+            '{}?response_type=code&client_id={}&force_prompt=1'.format(
+                self.path,
+                self.application.client_id,
+            )
+        )
 
         assert resp.status_code == 200
         self.assertTemplateUsed('sentry/oauth-authorize.html')
@@ -207,10 +229,12 @@ class OAuthAuthorizeCodeTest(TestCase):
             scope_list=['org:write'],
         )
 
-        resp = self.client.get('{}?response_type=code&client_id={}&scope=org:read'.format(
-            self.path,
-            self.application.client_id,
-        ))
+        resp = self.client.get(
+            '{}?response_type=code&client_id={}&scope=org:read'.format(
+                self.path,
+                self.application.client_id,
+            )
+        )
 
         assert resp.status_code == 200
         self.assertTemplateUsed('sentry/oauth-authorize.html')
@@ -233,14 +257,65 @@ class OAuthAuthorizeCodeTest(TestCase):
 
         resp = self.client.get(
             '{}?response_type=code&client_id={}&scope=member:read member:admin'.format(
-                self.path, self.application.client_id, ))
+                self.path,
+                self.application.client_id,
+            )
+        )
 
         assert resp.status_code == 200
         self.assertTemplateUsed('sentry/oauth-authorize.html')
         assert resp.context['application'] == self.application
         assert resp.context['scopes'] == ['member:read', 'member:admin']
         assert resp.context['permissions'] == [
-            'Read, write, and admin access to organization members.']
+            'Read, write, and admin access to organization members.'
+        ]
+
+    def test_unauthenticated_basic_auth(self):
+        full_path = '{}?response_type=code&client_id={}'.format(
+            self.path,
+            self.application.client_id,
+        )
+
+        resp = self.client.get(full_path)
+
+        assert resp.status_code == 200
+        self.assertTemplateUsed('sentry/login.html')
+        assert resp.context['banner'] == 'Connect Sentry to {}'.format(self.application.name)
+
+        resp = self.client.post(
+            full_path,
+            {
+                'username': self.user.username,
+                'password': 'admin',
+                'op': 'login',
+            },
+        )
+        assert resp.status_code == 302
+        assert resp.get('Location') == 'http://testserver{}'.format(full_path)
+
+        resp = self.client.get(full_path)
+        self.assertTemplateUsed('sentry/oauth-authorize.html')
+        assert resp.context['application'] == self.application
+
+        resp = self.client.post(full_path, {
+            'op': 'approve',
+        })
+
+        grant = ApiGrant.objects.get(user=self.user)
+        assert grant.redirect_uri == self.application.get_default_redirect_uri()
+        assert grant.application == self.application
+        assert not grant.get_scopes()
+
+        assert resp.status_code == 302
+        assert resp['Location'] == 'https://example.com?code={}'.format(
+            grant.code,
+        )
+
+        authorization = ApiAuthorization.objects.get(
+            user=self.user,
+            application=self.application,
+        )
+        assert authorization.get_scopes() == grant.get_scopes()
 
 
 class OAuthAuthorizeTokenTest(TestCase):
@@ -258,11 +333,13 @@ class OAuthAuthorizeTokenTest(TestCase):
     def test_missing_response_type(self):
         self.login_as(self.user)
 
-        resp = self.client.get('{}?redirect_uri={}&client_id={}'.format(
-            self.path,
-            'https://example.com',
-            self.application.client_id,
-        ))
+        resp = self.client.get(
+            '{}?redirect_uri={}&client_id={}'.format(
+                self.path,
+                'https://example.com',
+                self.application.client_id,
+            )
+        )
 
         assert resp.status_code == 302
         assert resp['Location'] == 'https://example.com?error=unsupported_response_type'
@@ -270,11 +347,13 @@ class OAuthAuthorizeTokenTest(TestCase):
     def test_invalid_response_type(self):
         self.login_as(self.user)
 
-        resp = self.client.get('{}?response_type=foobar&redirect_uri={}&client_id={}'.format(
-            self.path,
-            'https://example.com',
-            self.application.client_id,
-        ))
+        resp = self.client.get(
+            '{}?response_type=foobar&redirect_uri={}&client_id={}'.format(
+                self.path,
+                'https://example.com',
+                self.application.client_id,
+            )
+        )
 
         assert resp.status_code == 302
         assert resp['Location'] == 'https://example.com?error=unsupported_response_type'
@@ -282,10 +361,12 @@ class OAuthAuthorizeTokenTest(TestCase):
     def test_missing_client_id(self):
         self.login_as(self.user)
 
-        resp = self.client.get('{}?response_type=token&redirect_uri={}'.format(
-            self.path,
-            'https://example.com',
-        ))
+        resp = self.client.get(
+            '{}?response_type=token&redirect_uri={}'.format(
+                self.path,
+                'https://example.com',
+            )
+        )
 
         assert resp.status_code == 200
         self.assertTemplateUsed('sentry/oauth-error.html')
@@ -294,10 +375,12 @@ class OAuthAuthorizeTokenTest(TestCase):
     def test_invalid_scope(self):
         self.login_as(self.user)
 
-        resp = self.client.get('{}?response_type=token&client_id={}&scope=foo'.format(
-            self.path,
-            self.application.client_id,
-        ))
+        resp = self.client.get(
+            '{}?response_type=token&client_id={}&scope=foo'.format(
+                self.path,
+                self.application.client_id,
+            )
+        )
 
         assert resp.status_code == 302
         assert resp['Location'] == 'https://example.com#error=invalid_scope'
@@ -305,10 +388,12 @@ class OAuthAuthorizeTokenTest(TestCase):
     def test_minimal_params_approve_flow(self):
         self.login_as(self.user)
 
-        resp = self.client.get('{}?response_type=token&client_id={}'.format(
-            self.path,
-            self.application.client_id,
-        ))
+        resp = self.client.get(
+            '{}?response_type=token&client_id={}'.format(
+                self.path,
+                self.application.client_id,
+            )
+        )
 
         assert resp.status_code == 200
         self.assertTemplateUsed('sentry/oauth-authorize.html')
@@ -338,10 +423,12 @@ class OAuthAuthorizeTokenTest(TestCase):
     def test_minimal_params_code_deny_flow(self):
         self.login_as(self.user)
 
-        resp = self.client.get('{}?response_type=token&client_id={}'.format(
-            self.path,
-            self.application.client_id,
-        ))
+        resp = self.client.get(
+            '{}?response_type=token&client_id={}'.format(
+                self.path,
+                self.application.client_id,
+            )
+        )
 
         assert resp.status_code == 200
         self.assertTemplateUsed('sentry/oauth-authorize.html')

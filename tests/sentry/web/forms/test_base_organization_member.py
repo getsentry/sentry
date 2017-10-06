@@ -19,9 +19,7 @@ class BaseOrganizationMemberFormTest(TestCase):
         team2 = self.create_team(name='team2', organization=organization)
         some_user = self.create_user('someuser@example.com')
         user_org_membership = self.create_member(
-            teams=[team1],
-            user=some_user,
-            organization=organization
+            teams=[team1], user=some_user, organization=organization
         )
 
         form = BaseOrganizationMemberForm(data={
@@ -36,6 +34,7 @@ class BaseOrganizationMemberFormTest(TestCase):
         form.save_team_assignments(user_org_membership)
 
         assigned_teams = OrganizationMemberTeam.objects.filter(
-            organizationmember=user_org_membership)
+            organizationmember=user_org_membership
+        )
         assert len(assigned_teams) == 1
         assert assigned_teams[0].team_id == team2.id

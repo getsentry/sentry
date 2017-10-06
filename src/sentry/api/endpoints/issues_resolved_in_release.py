@@ -8,14 +8,17 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import StreamGroupSerializer
 from sentry.models import (
-    Group, GroupCommitResolution,
-    Release, ReleaseCommit,
+    Group,
+    GroupCommitResolution,
+    GroupResolution,
+    Release,
+    ReleaseCommit,
 )
 
 
 class IssuesResolvedInReleaseEndpoint(ProjectEndpoint):
     doc_section = DocSection.RELEASES
-    permission_classes = (ProjectPermission,)
+    permission_classes = (ProjectPermission, )
 
     def get(self, request, project, version):
         """
@@ -35,18 +38,27 @@ class IssuesResolvedInReleaseEndpoint(ProjectEndpoint):
         except Release.DoesNotExist:
             raise ResourceDoesNotExist
 
-        groups = Group.objects.filter(
-            project=project,
-            id__in=GroupCommitResolution.objects.filter(
+        group_ids = set()
+        group_ids |= set(
+            GroupResolution.objects.filter(
+                release=release,
+            ).values_list('group_id', flat=True)
+        )
+        group_ids |= set(
+            GroupCommitResolution.objects.filter(
                 commit_id__in=ReleaseCommit.objects.filter(
                     release=release,
-                ).values_list('commit_id', flat=True),
-            ).values_list('group_id', flat=True),
-        )
-
-        context = serialize(
-            list(groups), request.user, StreamGroupSerializer(
-                stats_period=None
+                ).values_list(
+                    'commit_id',
+                    flat=True,
+                )
+            ).values_list(
+                'group_id',
+                flat=True,
             )
         )
+
+        groups = Group.objects.filter(project=project, id__in=group_ids)
+
+        context = serialize(list(groups), request.user, StreamGroupSerializer(stats_period=None))
         return Response(context)

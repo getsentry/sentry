@@ -3,11 +3,10 @@ from __future__ import absolute_import
 import six
 import uuid
 
-__all__ = ('DebugMeta',)
+__all__ = ('DebugMeta', )
 
 from sentry.interfaces.base import Interface, InterfaceValidationError
 from sentry.utils.native import parse_addr
-
 
 image_types = {}
 
@@ -16,6 +15,7 @@ def imagetype(name):
     def decorator(f):
         image_types[name] = f
         return f
+
     return decorator
 
 
@@ -23,6 +23,7 @@ def imagetype(name):
 def process_apple_image(image):
     def _addr(x):
         return '0x%x' % parse_addr(x)
+
     try:
         apple_image = {
             'cpu_type': image['cpu_type'],
@@ -41,8 +42,7 @@ def process_apple_image(image):
             apple_image['revision_version'] = image['revision_version']
         return apple_image
     except KeyError as e:
-        raise InterfaceValidationError('Missing value for apple image: %s'
-                                       % e.args[0])
+        raise InterfaceValidationError('Missing value for apple image: %s' % e.args[0])
 
 
 @imagetype('proguard')
@@ -52,8 +52,7 @@ def process_proguard_image(image):
             'uuid': six.text_type(uuid.UUID(image['uuid'])),
         }
     except KeyError as e:
-        raise InterfaceValidationError('Missing value for proguard image: %s'
-                                       % e.args[0])
+        raise InterfaceValidationError('Missing value for proguard image: %s' % e.args[0])
 
 
 class DebugMeta(Interface):
@@ -113,8 +112,7 @@ class DebugMeta(Interface):
                 'build': sdk_info.get('build'),
             }
         except KeyError as e:
-            raise InterfaceValidationError('Missing value for sdk_info: %s'
-                                           % e.args[0])
+            raise InterfaceValidationError('Missing value for sdk_info: %s' % e.args[0])
 
     def get_path(self):
         return 'debug_meta'

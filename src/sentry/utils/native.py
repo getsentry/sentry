@@ -12,4 +12,4 @@ def parse_addr(x):
         if x[:2] == '0x':
             return int(x[2:], 16)
         return int(x)
-    raise ValueError('Unsupported address format %r' % (x,))
+    raise ValueError('Unsupported address format %r' % (x, ))

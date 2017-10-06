@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import ReactDOM from 'react-dom';
 import $ from 'jquery';
@@ -10,11 +11,11 @@ import RuleNodeList from './ruleNodeList';
 
 const RuleEditor = React.createClass({
   propTypes: {
-    actions: React.PropTypes.array.isRequired,
-    conditions: React.PropTypes.array.isRequired,
-    rule: React.PropTypes.object.isRequired,
-    project: React.PropTypes.object.isRequired,
-    organization: React.PropTypes.object.isRequired
+    actions: PropTypes.array.isRequired,
+    conditions: PropTypes.array.isRequired,
+    rule: PropTypes.object.isRequired,
+    project: PropTypes.object.isRequired,
+    organization: PropTypes.object.isRequired
   },
 
   mixins: [ApiMixin],
@@ -57,11 +58,11 @@ const RuleEditor = React.createClass({
     let frequency = $(ReactDOM.findDOMNode(this.refs.frequency)).val();
     let name = $(ReactDOM.findDOMNode(this.refs.name)).val();
     let data = {
-      actionMatch: actionMatch,
-      actions: actions,
-      conditions: conditions,
-      frequency: frequency,
-      name: name
+      actionMatch,
+      actions,
+      conditions,
+      frequency,
+      name
     };
     let rule = this.props.rule;
     let project = this.props.project;
@@ -74,7 +75,7 @@ const RuleEditor = React.createClass({
     let loadingIndicator = IndicatorStore.add('Saving...');
     this.api.request(endpoint, {
       method: rule.id ? 'PUT' : 'POST',
-      data: data,
+      data,
       success: () => {
         window.location.href = '../';
       },

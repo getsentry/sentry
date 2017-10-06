@@ -15,10 +15,7 @@ class DeletionTaskManager(object):
                 task = self.tasks[model]
             except KeyError:
                 task = self.default_task
-        return task(
-            manager=self,
-            **kwargs
-        )
+        return task(manager=self, **kwargs)
 
     def register(self, model, task):
         self.tasks[model] = task

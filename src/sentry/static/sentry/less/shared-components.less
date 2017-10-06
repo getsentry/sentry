@@ -498,6 +498,11 @@ table.integrations {
     border: 0;
     margin-bottom: 0;
 
+    & > thead > tr > th,
+    & > tbody > tr > td {
+      padding: 10px 15px;
+    }
+
     h5 {
       margin-bottom: 0;
       font-size: 16px;
@@ -509,8 +514,17 @@ table.integrations {
       }
     }
 
+    th {
+      text-transform: uppercase;
+      font-size: 14px;
+      color: #95899f;
+    }
+
     th, td {
       white-space: nowrap;
+      // #2d2635;
+      //
+      // fingerprint #3c3644
     }
 
     .table-user-info {
@@ -531,6 +545,7 @@ table.integrations {
     time {
       white-space: nowrap;
     }
+
   }
 }
 /**
@@ -1312,6 +1327,14 @@ table.integrations {
       }
     }
 
+    .empty-message {
+      font-weight: normal;
+      font-size: 1.2em;
+      text-align: center;
+      opacity: 0.7;
+      padding: 5px;
+    }
+
     li {
       position: relative;
       padding: 0 5px 0 15px;
@@ -1332,7 +1355,6 @@ table.integrations {
 
       > a {
         .truncate();
-        border-radius: 2px;
         padding: 6px 0 6px 6px;
         border-radius: 0;
         line-height: 1;
@@ -1355,6 +1377,25 @@ table.integrations {
             top: 0;
             bottom: 0;
             background: @purple-light;
+          }
+        }
+      }
+    }
+  }
+
+  &.is-empty {
+    .dropdown-menu {
+      li.empty-projects-item {
+        padding: 0 5px;
+
+        // need to override bootstrap for <a> in dropdown-menu
+        a {
+          margin-left: 0;
+          border-radius: 3px;
+          font-weight: 600;
+          color: #ffffff;
+          &:hover {
+            background-color: darken(@purple, 5);
           }
         }
       }
@@ -1727,6 +1768,10 @@ ul.faces {
 .assignee-selector {
   height: 24px;
 
+  .loading {
+    display: inline-block;
+  }
+
   .btn-group {
     height: 24px;
 
@@ -1767,7 +1812,7 @@ ul.faces {
     padding-bottom: 3px;
     max-width: 250px;
     top: 30px;
-    z-index: 1000;
+    z-index: @zindex-dropdown;
     font-size: 13px;
 
     .form-control {
@@ -1852,6 +1897,10 @@ ul.faces {
       opacity: .3;
     }
   }
+
+  .list-loading-container {
+    padding: 15px 0 10px 0;
+  }
 }
 
 /**
@@ -1867,7 +1916,7 @@ ul.faces {
   right: 0;
   bottom: 0;
   background: rgba(0,0,0, .65);
-  z-index: 10000;
+  z-index: @zindex-settings-modal;
   overflow: auto;
 
   .container {
@@ -1879,7 +1928,7 @@ ul.faces {
     margin-bottom: 30px;
     border-radius: 5px;
     background: #fff;
-    z-index: 10000;
+    z-index: @zindex-settings-modal;
   }
 
   .settings-modal-header {
@@ -3275,7 +3324,6 @@ ul.tag-list {
 * Client platform list
 * ============================================================================
 */
-
 .client-platform-list {
   .list-unstyled;
   .clearfix;
@@ -3323,13 +3371,19 @@ ul.tag-list {
     background: @gray; // Default BG
   }
 
-  // Colors
+  li.go .platformicon {
+    border: 2px solid @gray;
+  }
+}
 
-  li {
+.client-platform-list, .client-platform {
+
+  li, span {
     &.python .platformicon {
       background: darken(@blue, 6);
     }
     &.python-pylons .platformicon:before { content: "\e602"; }
+    &.python-celery .platformicon:before { content: "\e602"; }
     &.python-pyramid .platformicon:before { content: "\e602"; }
     &.python-tornado .platformicon:before { content: "\e602"; }
     &.python-rq .platformicon:before { content: "\e602"; }
@@ -3386,8 +3440,6 @@ ul.tag-list {
     &.objc .platformicon,
     &.cocoa .platformicon, {
       background: @gray;
-      line-height: 54px;
-      font-size: 38px;
     }
 
     &.app-engine .platformicon {
@@ -3399,10 +3451,8 @@ ul.tag-list {
     }
 
     &.go .platformicon {
-      border: 2px solid @gray;
       color: @gray-dark;
       background: #fff;
-      line-height: 52px;
       text-shadow: none;
     }
     &.go-http .platformicon:before { content: "\e606"; }
@@ -3419,6 +3469,15 @@ ul.tag-list {
 
     &.elixir .platformicon {
       background: @purple-dark;
+    }
+  }
+}
+
+.client-platform {
+    li, span {
+      .platformicon {
+        color:black !important;
+        background: white !important;
     }
   }
 }
@@ -3480,6 +3539,9 @@ div.qrcode {
 }
 &.level-fatal .error-level {
   background: @red;
+}
+&.level-sample .error-level {
+  background: @purple;
 }
 
 /**

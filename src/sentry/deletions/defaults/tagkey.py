@@ -5,14 +5,10 @@ from ..base import ModelDeletionTask, ModelRelation
 
 class TagKeyDeletionTask(ModelDeletionTask):
     def get_child_relations(self, instance):
-        from sentry.models import (
-            EventTag, GroupTagKey, GroupTagValue, TagValue
-        )
+        from sentry.models import (EventTag, GroupTagKey, GroupTagValue, TagValue)
 
         # in bulk
-        model_list = (
-            GroupTagValue, GroupTagKey, TagValue
-        )
+        model_list = (GroupTagValue, GroupTagKey, TagValue)
         relations = [
             ModelRelation(m, {
                 'project_id': instance.project_id,
@@ -28,7 +24,7 @@ class TagKeyDeletionTask(ModelDeletionTask):
         return relations
 
     def mark_deletion_in_progress(self, instance_list):
-        from sentry.models import TagKeyStatus
+        from sentry.tagstore import TagKeyStatus
 
         for instance in instance_list:
             if instance.status != TagKeyStatus.DELETION_IN_PROGRESS:

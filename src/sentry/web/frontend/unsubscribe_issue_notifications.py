@@ -34,11 +34,13 @@ class UnsubscribeIssueNotificationsView(BaseView):
         ).exists():
             raise Http404
 
-        issue_link = absolute_uri('/{}/{}/issues/{}/'.format(
-            group.project.organization.slug,
-            group.project.slug,
-            group.id,
-        ))
+        issue_link = absolute_uri(
+            '/{}/{}/issues/{}/'.format(
+                group.project.organization.slug,
+                group.project.slug,
+                group.id,
+            )
+        )
 
         if request.method == 'POST':
             if request.POST.get('op') == 'unsubscribe':
@@ -50,7 +52,8 @@ class UnsubscribeIssueNotificationsView(BaseView):
                 )
             return HttpResponseRedirect(issue_link)
 
-        return self.respond('sentry/unsubscribe-issue-notifications.html', {
-            'issue': group,
-            'issue_link': issue_link
-        })
+        return self.respond(
+            'sentry/unsubscribe-issue-notifications.html',
+            {'issue': group,
+             'issue_link': issue_link}
+        )

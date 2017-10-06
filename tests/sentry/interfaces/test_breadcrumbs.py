@@ -11,13 +11,19 @@ class BreadcrumbsTest(TestCase):
         assert Breadcrumbs().get_path() == 'sentry.interfaces.Breadcrumbs'
 
     def test_simple(self):
-        result = Breadcrumbs.to_python(dict(values=[{
-            'type': 'message',
-            'timestamp': 1458857193.973275,
-            'data': {
-                'message': 'Whats up dawg?',
-            },
-        }]))
+        result = Breadcrumbs.to_python(
+            dict(
+                values=[
+                    {
+                        'type': 'message',
+                        'timestamp': 1458857193.973275,
+                        'data': {
+                            'message': 'Whats up dawg?',
+                        },
+                    }
+                ]
+            )
+        )
         assert len(result.values) == 1
         assert result.values[0]['type'] == 'message'
         ts = result.values[0]['timestamp']
@@ -26,12 +32,20 @@ class BreadcrumbsTest(TestCase):
         assert result.values[0]['data'] == {'message': 'Whats up dawg?'}
 
     def test_non_string_keys(self):
-        result = Breadcrumbs.to_python(dict(values=[{
-            'type': 'message',
-            'timestamp': 1458857193.973275,
-            'data': {
-                'extra': {'foo': 'bar'},
-            },
-        }]))
+        result = Breadcrumbs.to_python(
+            dict(
+                values=[
+                    {
+                        'type': 'message',
+                        'timestamp': 1458857193.973275,
+                        'data': {
+                            'extra': {
+                                'foo': 'bar'
+                            },
+                        },
+                    }
+                ]
+            )
+        )
         assert len(result.values) == 1
         assert result.values[0]['data'] == {'extra': '{"foo":"bar"}'}

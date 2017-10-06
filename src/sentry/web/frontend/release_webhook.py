@@ -23,11 +23,14 @@ logger = logging.getLogger('sentry.webhooks')
 
 class ReleaseWebhookView(View):
     def verify(self, plugin_id, project_id, token, signature):
-        return constant_time_compare(signature, hmac.new(
-            key=token.encode('utf-8'),
-            msg=('{}-{}'.format(plugin_id, project_id)).encode('utf-8'),
-            digestmod=sha256
-        ).hexdigest())
+        return constant_time_compare(
+            signature,
+            hmac.new(
+                key=token.encode('utf-8'),
+                msg=('{}-{}'.format(plugin_id, project_id)).encode('utf-8'),
+                digestmod=sha256
+            ).hexdigest()
+        )
 
     @method_decorator(csrf_exempt)
     def dispatch(self, *args, **kwargs):
@@ -44,7 +47,9 @@ class ReleaseWebhookView(View):
         except JSONDecodeError as exc:
             return HttpResponse(
                 status=400,
-                content=json.dumps({'error': six.text_type(exc)}),
+                content=json.dumps({
+                    'error': six.text_type(exc)
+                }),
                 content_type='application/json',
             )
 
@@ -75,15 +80,34 @@ class ReleaseWebhookView(View):
         )
 
     def post(self, request, plugin_id, project_id, signature):
-        project = Project.objects.get_from_cache(id=project_id, unrestricted_unsafe=True)
+        try:
+            project = Project.objects.get_from_cache(id=project_id, unrestricted_unsafe=True)
+        except Project.DoesNotExist:
+            logger.warn('release-webhook.invalid-project', extra={
+                'project_id': project_id,
+                'plugin_id': plugin_id,
+            })
+            return HttpResponse(status=404)
+
+        logger.info('release-webhook.incoming', extra={
+            'project_id': project_id,
+            'plugin_id': plugin_id,
+        })
 
         token = ProjectOption.objects.get_value(project, 'sentry:release-token')
 
-        logger.info('Incoming webhook for project_id=%s, plugin_id=%s',
-                    project_id, plugin_id)
+        if token is None:
+            logger.warn('release-webhook.missing-token', extra={
+                'project_id': project_id,
+                'plugin_id': plugin_id,
+            })
+            return HttpResponse(status=403)
 
         if not self.verify(plugin_id, project_id, token, signature):
-            logger.warn('Unable to verify signature for release hook')
+            logger.warn('release-webhook.invalid-signature', extra={
+                'project_id': project_id,
+                'plugin_id': plugin_id,
+            })
             return HttpResponse(status=403)
 
         if plugin_id == 'builtin':
@@ -91,8 +115,10 @@ class ReleaseWebhookView(View):
 
         plugin = plugins.get(plugin_id)
         if not plugin.is_enabled(project):
-            logger.warn('Disabled release hook received for project_id=%s, plugin_id=%s',
-                        project_id, plugin_id)
+            logger.warn('release-webhook.plugin-disabled', extra={
+                'project_id': project_id,
+                'plugin_id': plugin_id,
+            })
             return HttpResponse(status=403)
 
         cls = plugin.get_release_hook()
@@ -102,7 +128,9 @@ class ReleaseWebhookView(View):
         except HookValidationError as exc:
             return HttpResponse(
                 status=400,
-                content=json.dumps({'error': six.text_type(exc)}),
+                content=json.dumps({
+                    'error': six.text_type(exc)
+                }),
                 content_type='application/json',
             )
 

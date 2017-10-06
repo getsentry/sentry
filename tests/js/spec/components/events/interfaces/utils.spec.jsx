@@ -1,4 +1,7 @@
-import {getCurlCommand} from 'app/components/events/interfaces/utils';
+import {
+  getCurlCommand,
+  objectToSortedTupleArray
+} from 'app/components/events/interfaces/utils';
 
 describe('components/interfaces/utils', function() {
   describe('getCurlCommand()', function() {
@@ -58,6 +61,49 @@ describe('components/interfaces/utils', function() {
           ' --data "{\\"hello\\": \\"world\\"}" \\\n' +
           ' "http://example.com/foo?foo=bar"'
       );
+
+      // Do not add data if data is empty
+      expect(
+        getCurlCommand({
+          url: 'http://example.com/foo',
+          headers: [],
+          env: {
+            ENV: 'prod'
+          },
+          fragment: '',
+          query: 'foo=bar',
+          method: 'GET'
+        })
+      ).toEqual('curl \\\n "http://example.com/foo?foo=bar"');
+    });
+  });
+
+  describe('objectToSortedTupleArray()', function() {
+    it('should convert a key/value object to a sorted array of key/value tuples', function() {
+      // expect(
+      //   objectToSortedTupleArray({
+      //     awe: 'some',
+      //     foo: 'bar',
+      //     bar: 'baz'
+      //   })
+      // ).toEqual([
+      //   // note sorted alphabetically by key
+      //   ['awe', 'some'],
+      //   ['bar', 'baz'],
+      //   ['foo', 'bar']
+      // ]);
+
+      expect(
+        objectToSortedTupleArray({
+          foo: ['bar', 'baz']
+        })
+      ).toEqual([['foo', 'bar'], ['foo', 'baz']]);
+
+      // expect(
+      //   objectToSortedTupleArray({
+      //     foo: ''
+      //   })
+      // ).toEqual([['foo', '']]);
     });
   });
 });

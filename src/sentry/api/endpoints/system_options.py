@@ -14,7 +14,7 @@ from sentry.utils.email import is_smtp_enabled
 
 
 class SystemOptionsEndpoint(Endpoint):
-    permission_classes = (SuperuserPermission,)
+    permission_classes = (SuperuserPermission, )
 
     def get(self, request):
         query = request.GET.get('query')
@@ -33,7 +33,9 @@ class SystemOptionsEndpoint(Endpoint):
 
             if smtp_disabled and k.name[:5] == 'mail.':
                 disabled_reason, disabled = 'smtpDisabled', True
-            elif bool(k.flags & options.FLAG_PRIORITIZE_DISK and settings.SENTRY_OPTIONS.get(k.name)):
+            elif bool(
+                k.flags & options.FLAG_PRIORITIZE_DISK and settings.SENTRY_OPTIONS.get(k.name)
+            ):
                 # TODO(mattrobenolt): Expose this as a property on Key.
                 disabled_reason, disabled = 'diskPriority', True
 
@@ -61,12 +63,14 @@ class SystemOptionsEndpoint(Endpoint):
                 option = options.lookup_key(k)
             except options.UnknownOption:
                 # TODO(dcramer): unify API errors
-                return Response({
-                    'error': 'unknown_option',
-                    'errorDetail': {
-                        'option': k,
-                    },
-                }, status=400)
+                return Response(
+                    {
+                        'error': 'unknown_option',
+                        'errorDetail': {
+                            'option': k,
+                        },
+                    }, status=400
+                )
 
             try:
                 if not (option.flags & options.FLAG_ALLOW_EMPTY) and not v:
@@ -74,13 +78,16 @@ class SystemOptionsEndpoint(Endpoint):
                 else:
                     options.set(k, v)
             except TypeError as e:
-                return Response({
-                    'error': 'invalid_type',
-                    'errorDetail': {
-                        'option': k,
-                        'message': six.text_type(e),
+                return Response(
+                    {
+                        'error': 'invalid_type',
+                        'errorDetail': {
+                            'option': k,
+                            'message': six.text_type(e),
+                        },
                     },
-                }, status=400)
+                    status=400
+                )
         # TODO(dcramer): this has nothing to do with configuring options and
         # should not be set here
         options.set('sentry:version-configured', sentry.get_version())

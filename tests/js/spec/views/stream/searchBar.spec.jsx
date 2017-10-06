@@ -118,7 +118,7 @@ describe('SearchBar', function() {
 
         wrapper.find('input').simulate('keyup', {key: 'Escape', keyCode: '27'});
 
-        expect(instance.blur.calledOnce).toBeTruthy;
+        expect(instance.blur.calledOnce).toBeTruthy();
       });
     });
   });

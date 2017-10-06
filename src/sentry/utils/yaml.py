@@ -19,10 +19,11 @@ try:
     )
 except ImportError:
     from yaml import (
-        Loader, Dumper,
-        SafeLoader, SafeDumper,
+        Loader,
+        Dumper,
+        SafeLoader,
+        SafeDumper,
     )
-
 
 load = partial(_load, Loader=Loader)
 dump = partial(_dump, Dumper=Dumper)

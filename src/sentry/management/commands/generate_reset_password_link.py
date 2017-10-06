@@ -1,4 +1,3 @@
-
 from __future__ import absolute_import
 
 import sys
@@ -15,8 +14,13 @@ class Command(BaseCommand):
     help = 'Generate a link for a user to reset their password'
 
     option_list = BaseCommand.option_list + (
-        make_option('--noinput', dest='noinput', action='store_true', default=False,
-                    help='Dont ask for confirmation before merging accounts.'),
+        make_option(
+            '--noinput',
+            dest='noinput',
+            action='store_true',
+            default=False,
+            help='Dont ask for confirmation before merging accounts.'
+        ),
     )
 
     def handle(self, username, **options):
@@ -33,8 +37,10 @@ class Command(BaseCommand):
                 password_hash.date_added = timezone.now()
                 password_hash.set_hash()
                 password_hash.save()
-            echo('{} ({}) - {}'.format(
-                user.username,
-                user.email,
-                password_hash.get_absolute_url(),
-            ))
+            echo(
+                '{} ({}) - {}'.format(
+                    user.username,
+                    user.email,
+                    password_hash.get_absolute_url(),
+                )
+            )

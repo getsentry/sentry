@@ -15,7 +15,7 @@ class Provider(object):
     def __init__(self, key, **config):
         self.key = key
         self.config = config
-        self.logger = logging.getLogger('sentry.auth.%s' % (key,))
+        self.logger = logging.getLogger('sentry.auth.%s' % (key, ))
 
     def get_configure_view(self):
         """
@@ -60,6 +60,9 @@ class Provider(object):
         >>> }
 
         The ``email`` and ``id`` keys are required, ``name`` is optional.
+
+        If the identity can not be constructed an ``IdentityNotValid`` error
+        should be raised.
         """
         raise NotImplementedError
 

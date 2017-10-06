@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import {Link, browserHistory} from 'react-router';
 import ApiMixin from '../../mixins/apiMixin';
@@ -8,19 +9,18 @@ import GroupSeenBy from './seenBy';
 import IndicatorStore from '../../stores/indicatorStore';
 import ListLink from '../../components/listLink';
 import ShortId from '../../components/shortId';
-import GroupTitle from '../../components/group/title';
+import EventOrGroupTitle from '../../components/eventOrGroupTitle';
 import ProjectState from '../../mixins/projectState';
 import TooltipMixin from '../../mixins/tooltip';
 import {t} from '../../locale';
 
 const GroupHeader = React.createClass({
   propTypes: {
-    group: React.PropTypes.object.isRequired,
-    memberList: React.PropTypes.array.isRequired
+    group: PropTypes.object.isRequired
   },
 
   contextTypes: {
-    location: React.PropTypes.object
+    location: PropTypes.object
   },
 
   mixins: [
@@ -98,6 +98,7 @@ const GroupHeader = React.createClass({
   render() {
     let group = this.props.group,
       orgFeatures = new Set(this.getOrganization().features),
+      projectFeatures = this.getProjectFeatures(),
       userCount = group.userCount;
 
     let className = 'group-detail';
@@ -118,15 +119,17 @@ const GroupHeader = React.createClass({
     let groupId = group.id,
       projectId = this.getProject().slug,
       orgId = this.getOrganization().slug;
-
     let message = this.getMessage();
+
+    let hasSimilarView = projectFeatures.has('similarity-view');
+    let hasMergeView = orgFeatures.has('group-unmerge');
 
     return (
       <div className={className}>
         <div className="row">
           <div className="col-sm-7">
             <h3>
-              <GroupTitle data={group} />
+              <EventOrGroupTitle data={group} />
             </h3>
             <div className="event-message">
               <span className="error-level">{group.level}</span>
@@ -155,7 +158,6 @@ const GroupHeader = React.createClass({
           <div className="col-sm-5 stats">
             <div className="flex flex-justify-right">
               {group.shortId &&
-                this.getFeatures().has('callsigns') &&
                 <div className="short-id-box count align-right">
                   <h6 className="nav-header">
                     <a
@@ -224,11 +226,15 @@ const GroupHeader = React.createClass({
             {t('Tags')}
           </ListLink>
           <ListLink to={`/${orgId}/${projectId}/issues/${groupId}/events/`}>
-            {t('Related Events')}
+            {t('Events')}
           </ListLink>
-          {orgFeatures.has('group-unmerge') &&
-            <ListLink to={`/${orgId}/${projectId}/issues/${groupId}/hashes/`}>
-              {t('Hashes')}
+          {hasMergeView &&
+            <ListLink to={`/${orgId}/${projectId}/issues/${groupId}/merged/`}>
+              {t('Merged')}
+            </ListLink>}
+          {hasSimilarView &&
+            <ListLink to={`/${orgId}/${projectId}/issues/${groupId}/similar/`}>
+              {t('Similar Issues')}
             </ListLink>}
         </ul>
       </div>

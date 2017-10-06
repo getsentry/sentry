@@ -36,9 +36,7 @@ def _get_ts(ts):
 
 
 class TOTP(object):
-
-    def __init__(self, secret=None, digits=6, interval=30,
-                 default_window=2):
+    def __init__(self, secret=None, digits=6, interval=30, default_window=2):
         if secret is None:
             secret = generate_secret_key()
         if len(secret) % 8 != 0:
@@ -52,19 +50,22 @@ class TOTP(object):
         if counter is None:
             ts = _get_ts(ts)
             counter = int(ts) // self.interval + offset
-        h = bytearray(hmac.HMAC(
-            base64.b32decode(self.secret.encode('ascii'), casefold=True),
-            _pack_int(counter),
-            hashlib.sha1,
-        ).digest())
+        h = bytearray(
+            hmac.HMAC(
+                base64.b32decode(self.secret.encode('ascii'), casefold=True),
+                _pack_int(counter),
+                hashlib.sha1,
+            ).digest()
+        )
         offset = h[-1] & 0xf
-        code = ((h[offset] & 0x7f) << 24 | (h[offset + 1] & 0xff) << 16 |
-                (h[offset + 2] & 0xff) << 8 | (h[offset + 3] & 0xff))
-        str_code = six.text_type(code % 10 ** self.digits)
+        code = (
+            (h[offset] & 0x7f) << 24 | (h[offset + 1] & 0xff) << 16 | (h[offset + 2] & 0xff) << 8 |
+            (h[offset + 3] & 0xff)
+        )
+        str_code = six.text_type(code % 10**self.digits)
         return ('0' * (self.digits - len(str_code))) + str_code
 
-    def verify(self, otp, ts=None, window=None, return_counter=False,
-               check_counter_func=None):
+    def verify(self, otp, ts=None, window=None, return_counter=False, check_counter_func=None):
         ts = _get_ts(ts)
         if window is None:
             window = self.default_window
@@ -87,9 +88,7 @@ class TOTP(object):
         if issuer is None:
             issuer = 'Sentry'
         rv = 'otpauth://totp/%s?issuer=%s&secret=%s' % (
-            quote(user.encode('utf-8')),
-            quote(issuer.encode('utf-8')),
-            self.secret
+            quote(user.encode('utf-8')), quote(issuer.encode('utf-8')), self.secret
         )
         if self.digits != 6:
             rv += '&digits=%d' % self.digits

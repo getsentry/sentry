@@ -2,12 +2,11 @@ from __future__ import absolute_import, unicode_literals
 
 import six
 
-from django.core.signals import (
-    request_started, request_finished, got_request_exception)
+from django.core.signals import (request_started, request_finished, got_request_exception)
 from django.db.backends.signals import connection_created
 from django.db.models.signals import (
-    class_prepared, pre_init, post_init, pre_save, post_save,
-    pre_delete, post_delete, post_syncdb)
+    class_prepared, pre_init, post_init, pre_save, post_save, pre_delete, post_delete, post_syncdb
+)
 
 from django.utils.translation import ugettext_lazy as _, ungettext
 
@@ -40,13 +39,19 @@ class SignalsPanel(Panel):
         # here we have to handle a double count translation, hence the
         # hard coding of one signal
         if num_signals == 1:
-            return ungettext("%(num_receivers)d receiver of 1 signal",
-                             "%(num_receivers)d receivers of 1 signal",
-                             num_receivers) % {'num_receivers': num_receivers}
-        return ungettext("%(num_receivers)d receiver of %(num_signals)d signals",
-                         "%(num_receivers)d receivers of %(num_signals)d signals",
-                         num_receivers) % {'num_receivers': num_receivers,
-                                           'num_signals': num_signals}
+            return ungettext(
+                "%(num_receivers)d receiver of 1 signal", "%(num_receivers)d receivers of 1 signal",
+                num_receivers
+            ) % {
+                'num_receivers': num_receivers
+            }
+        return ungettext(
+            "%(num_receivers)d receiver of %(num_signals)d signals",
+            "%(num_receivers)d receivers of %(num_signals)d signals", num_receivers
+        ) % {
+            'num_receivers': num_receivers,
+            'num_signals': num_signals
+        }
 
     title = _("Signals")
 
@@ -77,7 +82,7 @@ class SignalsPanel(Panel):
                 if getattr(receiver, '__self__', None) is not None:
                     receiver_class_name = getattr(receiver.__self__, '__class__', type).__name__
                     text = "%s.%s" % (receiver_class_name, receiver_name)
-                elif getattr(receiver, 'im_class', None) is not None:   # Python 2 only
+                elif getattr(receiver, 'im_class', None) is not None:  # Python 2 only
                     receiver_class_name = receiver.im_class.__name__
                     text = "%s.%s" % (receiver_class_name, receiver_name)
                 else:

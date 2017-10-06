@@ -30,7 +30,9 @@ class UserTest(TestCase):
         assert self.interface.to_json() == {
             'id': '1',
             'email': 'lol@example.com',
-            'data': {'favorite_color': 'brown'}
+            'data': {
+                'favorite_color': 'brown'
+            }
         }
 
     def test_invalid_ip_address(self):

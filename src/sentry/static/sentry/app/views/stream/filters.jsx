@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 
 import SavedSearchSelector from './savedSearchSelector';
@@ -7,28 +8,30 @@ import {t} from '../../locale';
 
 const StreamFilters = React.createClass({
   propTypes: {
-    orgId: React.PropTypes.string.isRequired,
-    projectId: React.PropTypes.string.isRequired,
-    access: React.PropTypes.object.isRequired,
-    tags: React.PropTypes.object.isRequired,
+    orgId: PropTypes.string.isRequired,
+    projectId: PropTypes.string.isRequired,
+    access: PropTypes.object.isRequired,
+    tags: PropTypes.object.isRequired,
 
-    searchId: React.PropTypes.string,
-    savedSearchList: React.PropTypes.array.isRequired,
+    searchId: PropTypes.string,
+    savedSearchList: PropTypes.array.isRequired,
 
-    defaultQuery: React.PropTypes.string,
-    sort: React.PropTypes.string,
-    filter: React.PropTypes.string,
-    query: React.PropTypes.string,
-    isSearchDisabled: React.PropTypes.bool,
+    defaultQuery: PropTypes.string,
+    sort: PropTypes.string,
+    filter: PropTypes.string,
+    query: PropTypes.string,
+    isSearchDisabled: PropTypes.bool,
+    queryCount: PropTypes.number,
+    queryMaxCount: PropTypes.number,
 
-    onSortChange: React.PropTypes.func,
-    onSearch: React.PropTypes.func,
-    onSidebarToggle: React.PropTypes.func,
-    onSavedSearchCreate: React.PropTypes.func.isRequired
+    onSortChange: PropTypes.func,
+    onSearch: PropTypes.func,
+    onSidebarToggle: PropTypes.func,
+    onSavedSearchCreate: PropTypes.func.isRequired
   },
 
   contextTypes: {
-    location: React.PropTypes.object
+    location: PropTypes.object
   },
 
   getDefaultProps() {
@@ -44,7 +47,25 @@ const StreamFilters = React.createClass({
   },
 
   render() {
-    let {access, orgId, projectId, searchId} = this.props;
+    let {
+      access,
+      orgId,
+      projectId,
+      searchId,
+      queryCount,
+      queryMaxCount,
+      query,
+      savedSearchList,
+      tags,
+      defaultQuery,
+      isSearchDisabled,
+      sort,
+
+      onSidebarToggle,
+      onSearch,
+      onSavedSearchCreate,
+      onSortChange
+    } = this.props;
 
     return (
       <div className="stream-header">
@@ -55,31 +76,33 @@ const StreamFilters = React.createClass({
               orgId={orgId}
               projectId={projectId}
               searchId={searchId}
-              query={this.props.query}
-              onSavedSearchCreate={this.props.onSavedSearchCreate}
-              savedSearchList={this.props.savedSearchList}
+              queryCount={queryCount}
+              queryMaxCount={queryMaxCount}
+              query={query}
+              onSavedSearchCreate={onSavedSearchCreate}
+              savedSearchList={savedSearchList}
             />
           </div>
           <div className="col-sm-7">
             <div className="search-container">
               <div className="stream-sort">
-                <SortOptions sort={this.props.sort} onSelect={this.props.onSortChange} />
+                <SortOptions sort={sort} onSelect={onSortChange} />
               </div>
 
               <SearchBar
                 orgId={orgId}
                 projectId={projectId}
                 ref="searchBar"
-                tags={this.props.tags}
-                defaultQuery={this.props.defaultQuery || ''}
+                tags={tags}
+                defaultQuery={defaultQuery || ''}
                 placeholder={t('Search for events, users, tags, and everything else.')}
-                query={this.props.query || ''}
-                onSearch={this.props.onSearch}
-                disabled={this.props.isSearchDisabled}
+                query={query || ''}
+                onSearch={onSearch}
+                disabled={isSearchDisabled}
               />
               <a
                 className="btn btn-default toggle-stream-sidebar"
-                onClick={this.props.onSidebarToggle}>
+                onClick={onSidebarToggle}>
                 <span className="icon-filter" />
               </a>
             </div>

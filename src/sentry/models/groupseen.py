@@ -28,6 +28,6 @@ class GroupSeen(Model):
     class Meta:
         app_label = 'sentry'
         db_table = 'sentry_groupseen'
-        unique_together = (('user', 'group'),)
+        unique_together = (('user', 'group'), )
 
     __repr__ = sane_repr('project_id', 'group_id', 'user_id', 'last_seen')

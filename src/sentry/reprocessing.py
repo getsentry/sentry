@@ -29,7 +29,8 @@ def resolve_processing_issue(project, scope, object=None, type=None):
         object = '*'
     from sentry.models import ProcessingIssue
     ProcessingIssue.objects.resolve_processing_issue(
-        project=project, scope=scope, object=object, type=type)
+        project=project, scope=scope, object=object, type=type
+    )
 
 
 def trigger_reprocessing(project):

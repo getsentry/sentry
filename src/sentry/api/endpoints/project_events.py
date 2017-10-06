@@ -12,8 +12,7 @@ from sentry.utils.apidocs import scenario, attach_scenarios
 def list_project_available_samples_scenario(runner):
     runner.request(
         method='GET',
-        path='/projects/%s/%s/events/' % (
-            runner.org.slug, runner.default_project.slug)
+        path='/projects/%s/%s/events/' % (runner.org.slug, runner.default_project.slug)
     )
 
 

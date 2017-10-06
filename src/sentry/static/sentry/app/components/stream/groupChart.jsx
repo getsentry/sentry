@@ -1,11 +1,12 @@
 import LazyLoad from 'react-lazy-load';
+import PropTypes from 'prop-types';
 import React from 'react';
 import BarChart from '../barChart';
 
 const GroupChart = React.createClass({
   propTypes: {
-    statsPeriod: React.PropTypes.string.isRequired,
-    data: React.PropTypes.object.isRequired
+    statsPeriod: PropTypes.string.isRequired,
+    data: PropTypes.object.isRequired
   },
 
   shouldComponentUpdate(nextProps) {

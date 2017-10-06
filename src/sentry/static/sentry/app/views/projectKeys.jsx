@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import DocumentTitle from 'react-document-title';
 import {Link} from 'react-router';
@@ -5,6 +6,7 @@ import {Link} from 'react-router';
 import ApiMixin from '../mixins/apiMixin';
 import AutoSelectText from '../components/autoSelectText';
 import ClippedBox from '../components/clippedBox';
+import Confirm from '../components/confirm';
 import IndicatorStore from '../stores/indicatorStore';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
@@ -14,12 +16,12 @@ import Pagination from '../components/pagination';
 
 const KeyRow = React.createClass({
   propTypes: {
-    orgId: React.PropTypes.string.isRequired,
-    projectId: React.PropTypes.string.isRequired,
-    data: React.PropTypes.object.isRequired,
-    access: React.PropTypes.object.isRequired,
-    onToggle: React.PropTypes.func.isRequired,
-    onRemove: React.PropTypes.func.isRequired
+    orgId: PropTypes.string.isRequired,
+    projectId: PropTypes.string.isRequired,
+    data: PropTypes.object.isRequired,
+    access: PropTypes.object.isRequired,
+    onToggle: PropTypes.func.isRequired,
+    onRemove: PropTypes.func.isRequired
   },
 
   mixins: [ApiMixin],
@@ -31,17 +33,8 @@ const KeyRow = React.createClass({
     };
   },
 
-  handleRemove(e) {
-    e.preventDefault();
+  handleRemove() {
     if (this.state.loading) return;
-
-    /* eslint no-alert:0*/
-    if (
-      !window.confirm(
-        'Are you sure you want to remove this key? This action is irreversible.'
-      )
-    )
-      return;
 
     let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
     let {orgId, projectId, data} = this.props;
@@ -119,13 +112,19 @@ const KeyRow = React.createClass({
         </a>
       );
       controls.push(
-        <a
+        <Confirm
           key="remove"
-          className="btn btn-sm btn-default"
-          onClick={this.handleRemove}
-          disabled={this.state.loading}>
-          <span className="icon icon-trash" />
-        </a>
+          priority="danger"
+          disabled={this.state.loading}
+          onConfirm={this.handleRemove}
+          confirmText={t('Remove Key')}
+          message={t(
+            'Are you sure you want to remove this key? This action is irreversible.'
+          )}>
+          <a className="btn btn-sm btn-default" disabled={this.state.loading}>
+            <span className="icon icon-trash" />
+          </a>
+        </Confirm>
       );
     }
 
@@ -233,9 +232,11 @@ export default React.createClass({
     this.setState(state => {
       let keyList = state.keyList;
       keyList.forEach(key => {
-        key.isActive = newData.isActive;
+        if (key.id === data.id) {
+          key.isActive = newData.isActive;
+        }
       });
-      return {keyList: keyList};
+      return {keyList};
     });
   },
 

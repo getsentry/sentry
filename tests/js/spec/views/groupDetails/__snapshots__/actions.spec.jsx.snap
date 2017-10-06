@@ -40,20 +40,16 @@ exports[`GroupActions render() renders correctly 1`] = `
       />
     </a>
   </div>
-  <div
-    className="btn-group"
-  >
-    <LinkWithConfirmation
-      className="group-remove btn btn-default btn-sm"
-      message="Deleting this event is permanent. Are you sure you wish to continue?"
-      onConfirm={[Function]}
-      title="Delete"
-    >
-      <span
-        className="icon-trash"
-      />
-    </LinkWithConfirmation>
-  </div>
+  <DeleteActions
+    onDelete={[Function]}
+    onDiscard={[Function]}
+    project={
+      Object {
+        "id": "2448",
+        "slug": "project",
+      }
+    }
+  />
   <a
     className="btn btn-default btn-sm btn-config-issue-tracking"
     href="/org/project/settings/issue-tracking/"

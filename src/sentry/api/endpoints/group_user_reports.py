@@ -19,9 +19,7 @@ class GroupUserReportsEndpoint(GroupEndpoint):
         :auth: required
         """
 
-        report_list = UserReport.objects.filter(
-            group=group
-        )
+        report_list = UserReport.objects.filter(group=group)
 
         return self.paginate(
             request=request,

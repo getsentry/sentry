@@ -1027,6 +1027,10 @@
     &.playstation .context-item-icon {
       background-image: url(../images/icons/context/playstation.png);
     }
+
+    &.qq-browser .context-item-icon {
+      background-image: url(../images/icons/context/qq-browser.png);
+    }
   }
 }
 
@@ -1038,7 +1042,9 @@
 .event-toolbar {
   position: relative;
   margin-bottom: -5px;
-  z-index: 1;
+  // z-index seems unnecessary, but increasing (instead of removing) just in case(billy)
+  // Fixes tooltips in toolbar having lower z-index than .btn-group .btn.active
+  z-index: 3;
   .clearfix;
   padding: 20px 30px 20px 40px;
 
@@ -1165,6 +1171,22 @@
     margin-bottom: 0;
   }
 }
+
+.extra-data
+  .box
+    .box-header {
+      margin-bottom: 20px;
+
+      h3 {
+        position: absolute;
+      }
+      .btn-group {
+        position:relative;
+        .btn {
+          margin: 0;
+        }
+      }
+    }
 
 /**
 * Traceback
@@ -2731,6 +2753,10 @@ ul.crumbs {
       padding: 0;
       border: 0;
       margin-bottom: 20px;
+    }
+
+    .detailed-error {
+      border-top: 1px solid @trim;
     }
   }
 

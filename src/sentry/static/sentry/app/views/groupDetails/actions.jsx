@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import {browserHistory} from 'react-router';
 import ApiMixin from '../../mixins/apiMixin';
@@ -6,6 +7,7 @@ import CustomIgnoreDurationModal from '../../components/customIgnoreDurationModa
 import CustomResolutionModal from '../../components/customResolutionModal';
 import DropdownLink from '../../components/dropdownLink';
 import Duration from '../../components/duration';
+import GroupActions from '../../actions/groupActions';
 import GroupState from '../../mixins/groupState';
 import IndicatorStore from '../../stores/indicatorStore';
 import IssuePluginActions from '../../components/group/issuePluginActions';
@@ -17,12 +19,12 @@ import {getShortVersion} from '../../utils';
 
 const ResolveActions = React.createClass({
   propTypes: {
-    group: React.PropTypes.object.isRequired,
-    hasRelease: React.PropTypes.bool.isRequired,
-    latestRelease: React.PropTypes.object,
-    onUpdate: React.PropTypes.func.isRequired,
-    orgId: React.PropTypes.string.isRequired,
-    projectId: React.PropTypes.string.isRequired
+    group: PropTypes.object.isRequired,
+    hasRelease: PropTypes.bool.isRequired,
+    latestRelease: PropTypes.object,
+    onUpdate: PropTypes.func.isRequired,
+    orgId: PropTypes.string.isRequired,
+    projectId: PropTypes.string.isRequired
   },
 
   getInitialState() {
@@ -37,7 +39,7 @@ const ResolveActions = React.createClass({
     });
     this.props.onUpdate({
       status: 'resolved',
-      statusDetails: statusDetails
+      statusDetails
     });
   },
 
@@ -153,8 +155,8 @@ const ResolveActions = React.createClass({
 
 const IgnoreActions = React.createClass({
   propTypes: {
-    group: React.PropTypes.object.isRequired,
-    onUpdate: React.PropTypes.func.isRequired
+    group: PropTypes.object.isRequired,
+    onUpdate: PropTypes.func.isRequired
   },
 
   getInitialState() {
@@ -357,6 +359,47 @@ const IgnoreActions = React.createClass({
   }
 });
 
+const DeleteActions = React.createClass({
+  propTypes: {
+    project: PropTypes.object.isRequired,
+    onDelete: PropTypes.func.isRequired,
+    onDiscard: PropTypes.func.isRequired
+  },
+
+  render() {
+    let features = new Set(this.props.project.features);
+    return (
+      <div className="btn-group">
+        <LinkWithConfirmation
+          className="group-remove btn btn-default btn-sm"
+          title={t('Delete')}
+          message={t(
+            'Deleting this issue is permanent. Are you sure you wish to continue?'
+          )}
+          onConfirm={this.props.onDelete}>
+          <span className="icon-trash" />
+        </LinkWithConfirmation>
+        {features.has('custom-filters') &&
+          <DropdownLink caret={true} className="group-delete btn btn-default btn-sm">
+            <li>
+              <LinkWithConfirmation
+                title={t('Discard')}
+                message={t(
+                  'Discarding this event will result in the deletion ' +
+                    'of most data associated with this issue and future ' +
+                    'events being discarded before reaching your stream. ' +
+                    'Are you sure you wish to continue?'
+                )}
+                onConfirm={this.props.onDiscard}>
+                <span>{t('Delete and discard future events')}</span>
+              </LinkWithConfirmation>
+            </li>
+          </DropdownLink>}
+      </div>
+    );
+  }
+});
+
 export default React.createClass({
   mixins: [
     ApiMixin,
@@ -404,7 +447,7 @@ export default React.createClass({
         orgId: org.slug,
         projectId: project.slug,
         itemIds: [group.id],
-        data: data
+        data
       },
       {
         complete: () => {
@@ -416,6 +459,31 @@ export default React.createClass({
 
   onToggleBookmark() {
     this.onUpdate({isBookmarked: !this.getGroup().isBookmarked});
+  },
+
+  onDiscard() {
+    let group = this.getGroup();
+    let project = this.getProject();
+    let org = this.getOrganization();
+    let id = this.api.uniqueId();
+    let loadingIndicator = IndicatorStore.add(t('Discarding event..'));
+
+    GroupActions.discard(id, group.id);
+
+    this.api.request(`/issues/${group.id}/`, {
+      method: 'PUT',
+      data: {discard: true},
+      success: response => {
+        GroupActions.discardSuccess(id, group.id, response);
+        browserHistory.pushState(null, `/${org.slug}/${project.slug}/`);
+      },
+      error: error => {
+        GroupActions.discardError(id, group.id, error);
+      },
+      complete: () => {
+        IndicatorStore.remove(loadingIndicator);
+      }
+    });
   },
 
   render() {
@@ -453,17 +521,11 @@ export default React.createClass({
             <span className="icon-star-solid" />
           </a>
         </div>
-        <div className="btn-group">
-          <LinkWithConfirmation
-            className="group-remove btn btn-default btn-sm"
-            title={t('Delete')}
-            message={t(
-              'Deleting this event is permanent. Are you sure you wish to continue?'
-            )}
-            onConfirm={this.onDelete}>
-            <span className="icon-trash" />
-          </LinkWithConfirmation>
-        </div>
+        <DeleteActions
+          project={project}
+          onDelete={this.onDelete}
+          onDiscard={this.onDiscard}
+        />
         {group.pluginActions.length > 1
           ? <div className="btn-group more">
               <DropdownLink className="btn btn-default btn-sm" title={t('More')}>

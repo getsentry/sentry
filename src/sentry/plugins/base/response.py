@@ -43,6 +43,6 @@ class JSONResponse(Response):
         self.status = status
 
     def respond(self, request, context=None):
-        return HttpResponse(json.dumps(self.context),
-                            content_type='application/json',
-                            status=self.status)
+        return HttpResponse(
+            json.dumps(self.context), content_type='application/json', status=self.status
+        )

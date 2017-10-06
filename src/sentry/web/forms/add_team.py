@@ -4,8 +4,7 @@ from django import forms
 from django.utils.translation import ugettext_lazy as _
 
 from sentry.models import (
-    AuditLogEntry, AuditLogEntryEvent, OrganizationMember,
-    OrganizationMemberTeam, Team
+    AuditLogEntry, AuditLogEntryEvent, OrganizationMember, OrganizationMemberTeam, Team
 )
 
 
@@ -17,12 +16,13 @@ class AddTeamForm(forms.ModelForm):
             attrs={
                 'placeholder': _('E.g. Operations, Web, Desktop, ...'),
                 'required': '',
-            }),
+            }
+        ),
         help_text='The team name has no significant impact and can be changed later.',
     )
 
     class Meta:
-        fields = ('name',)
+        fields = ('name', )
         model = Team
 
     def save(self, actor, organization, ip_address):

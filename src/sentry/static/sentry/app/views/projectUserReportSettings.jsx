@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 
 import ApiMixin from '../mixins/apiMixin';
@@ -8,9 +9,9 @@ import {t} from '../locale';
 
 const ProjectFeedbackSettingsForm = React.createClass({
   propTypes: {
-    orgId: React.PropTypes.string.isRequired,
-    projectId: React.PropTypes.string.isRequired,
-    initialData: React.PropTypes.object.isRequired
+    orgId: PropTypes.string.isRequired,
+    projectId: PropTypes.string.isRequired,
+    initialData: PropTypes.object.isRequired
   },
 
   mixins: [ApiMixin],
@@ -24,7 +25,7 @@ const ProjectFeedbackSettingsForm = React.createClass({
       }
     }
     return {
-      formData: formData,
+      formData,
       errors: {}
     };
   },
@@ -33,7 +34,7 @@ const ProjectFeedbackSettingsForm = React.createClass({
     let formData = this.state.formData;
     formData[name] = value;
     this.setState({
-      formData: formData
+      formData
     });
   },
 
@@ -109,7 +110,7 @@ const ProjectFeedbackSettingsForm = React.createClass({
 
 const ProjectUserReportSettings = React.createClass({
   propTypes: {
-    setProjectNavSection: React.PropTypes.func
+    setProjectNavSection: PropTypes.func
   },
 
   mixins: [ApiMixin],
@@ -173,7 +174,7 @@ const ProjectUserReportSettings = React.createClass({
       success: (data, _, jqXHR) => {
         let expected = this.state.expected - 1;
         this.setState({
-          expected: expected,
+          expected,
           loading: expected > 0,
           keyList: data
         });
@@ -182,7 +183,7 @@ const ProjectUserReportSettings = React.createClass({
         let expected = this.state.expected - 1;
         this.setState({
           error: true,
-          expected: expected,
+          expected,
           loading: expected > 0
         });
       }
@@ -192,7 +193,7 @@ const ProjectUserReportSettings = React.createClass({
       success: (data, _, jqXHR) => {
         let expected = this.state.expected - 1;
         this.setState({
-          expected: expected,
+          expected,
           loading: expected > 0,
           projectOptions: data.options
         });
@@ -200,7 +201,7 @@ const ProjectUserReportSettings = React.createClass({
       error: () => {
         let expected = this.state.expected - 1;
         this.setState({
-          expected: expected,
+          expected,
           error: true,
           loading: expected > 0
         });

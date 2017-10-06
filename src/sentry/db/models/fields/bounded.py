@@ -13,8 +13,8 @@ from django.db import models
 from django.utils.translation import ugettext_lazy as _
 
 __all__ = (
-    'BoundedAutoField', 'BoundedBigAutoField', 'BoundedIntegerField',
-    'BoundedBigIntegerField', 'BoundedPositiveIntegerField'
+    'BoundedAutoField', 'BoundedBigAutoField', 'BoundedIntegerField', 'BoundedBigIntegerField',
+    'BoundedPositiveIntegerField'
 )
 
 
@@ -49,6 +49,7 @@ class BoundedAutoField(models.AutoField):
 
 
 if settings.SENTRY_USE_BIG_INTS:
+
     class BoundedBigIntegerField(models.BigIntegerField):
         description = _("Big Integer")
 
@@ -111,4 +112,5 @@ if 'south' in settings.INSTALLED_APPS:
     add_introspection_rules([], ["^sentry\.db\.models\.fields\.bounded\.BoundedIntegerField"])
     add_introspection_rules([], ["^sentry\.db\.models\.fields\.bounded\.BoundedBigIntegerField"])
     add_introspection_rules(
-        [], ["^sentry\.db\.models\.fields\.bounded\.BoundedPositiveIntegerField"])
+        [], ["^sentry\.db\.models\.fields\.bounded\.BoundedPositiveIntegerField"]
+    )

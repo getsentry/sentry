@@ -55,11 +55,7 @@ def make_key(model, prefix, kwargs):
         kwargs_bits.append('%s=%s' % (k, v))
     kwargs_bits = ':'.join(kwargs_bits)
 
-    return '%s:%s:%s' % (
-        prefix,
-        model.__name__,
-        md5_text(kwargs_bits).hexdigest()
-    )
+    return '%s:%s:%s' % (prefix, model.__name__, md5_text(kwargs_bits).hexdigest())
 
 
 class BaseManager(Manager):
@@ -84,9 +80,8 @@ class BaseManager(Manager):
         self.__local_cache.value = value
 
     def _generate_cache_version(self):
-        return md5_text(
-            '&'.join(sorted(f.attname for f in self.model._meta.fields))
-        ).hexdigest()[:3]
+        return md5_text('&'.join(sorted(f.attname
+                                        for f in self.model._meta.fields))).hexdigest()[:3]
 
     __cache = property(_get_cache, _set_cache)
 
@@ -124,8 +119,7 @@ class BaseManager(Manager):
         """
         if instance.pk:
             self.__cache[instance] = {
-                f: self.__value_for_field(instance, f)
-                for f in self.cache_fields
+                f: self.__value_for_field(instance, f) for f in self.cache_fields
             }
 
     def __post_init(self, instance, **kwargs):
@@ -295,11 +289,9 @@ class BaseManager(Manager):
     def bind_nodes(self, object_list, *node_names):
         object_node_list = []
         for name in node_names:
-            object_node_list.extend((
-                (i, getattr(i, name))
-                for i in object_list
-                if getattr(i, name).id
-            ))
+            object_node_list.extend(
+                ((i, getattr(i, name)) for i in object_list if getattr(i, name).id)
+            )
 
         node_ids = [n.id for _, n in object_node_list]
         if not node_ids:

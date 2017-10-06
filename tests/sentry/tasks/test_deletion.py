@@ -1,24 +1,25 @@
 from __future__ import absolute_import
 
 from datetime import datetime, timedelta
+from mock import patch
 from uuid import uuid4
 
 import pytest
 
+from sentry import tagstore
 from sentry.constants import ObjectStatus
 from sentry.exceptions import DeleteAborted
 from sentry.models import (
-    ApiApplication, ApiApplicationStatus, ApiGrant, ApiToken, Commit,
-    CommitAuthor, Environment, EnvironmentProject, Event, EventMapping,
-    EventTag, Group, GroupAssignee, GroupHash, GroupMeta, GroupRedirect,
-    GroupResolution, GroupStatus, GroupTagKey, GroupTagValue, Organization,
-    OrganizationStatus, Project, ProjectStatus, Release, ReleaseCommit,
-    ReleaseEnvironment, Repository, TagKey, TagValue, Team, TeamStatus
+    ApiApplication, ApiApplicationStatus, ApiGrant, ApiToken, Commit, CommitAuthor, Environment,
+    EnvironmentProject, Event, EventMapping, EventTag, Group, GroupAssignee, GroupHash, GroupMeta,
+    GroupRedirect, GroupResolution, GroupStatus, GroupTagKey, GroupTagValue, Organization,
+    OrganizationStatus, Project, ProjectStatus, Release, ReleaseCommit, ReleaseEnvironment,
+    Repository, Team, TeamStatus
 )
+from sentry.plugins.providers.dummy.repository import DummyRepositoryProvider
 from sentry.tasks.deletion import (
-    delete_api_application, delete_group, delete_organization, delete_project,
-    delete_repository, delete_tag_key, delete_team, generic_delete,
-    revoke_api_tokens
+    delete_api_application, delete_group, delete_organization, delete_project, delete_repository,
+    delete_tag_key, delete_team, generic_delete, revoke_api_tokens
 )
 from sentry.testutils import TestCase
 
@@ -29,13 +30,14 @@ class DeleteOrganizationTest(TestCase):
             name='test',
             status=OrganizationStatus.PENDING_DELETION,
         )
+        user = self.create_user()
         self.create_team(organization=org, name='test1')
         self.create_team(organization=org, name='test2')
-        release = Release.objects.create(version='a' * 32,
-                                         organization_id=org.id)
+        release = Release.objects.create(version='a' * 32, organization_id=org.id)
         repo = Repository.objects.create(
             organization_id=org.id,
             name=org.name,
+            provider='dummy',
         )
         commit_author = CommitAuthor.objects.create(
             organization_id=org.id,
@@ -55,20 +57,15 @@ class DeleteOrganizationTest(TestCase):
             order=0,
         )
 
-        env = Environment.objects.create(
-            organization_id=org.id,
-            project_id=4,
-            name='foo'
-        )
+        env = Environment.objects.create(organization_id=org.id, project_id=4, name='foo')
         release_env = ReleaseEnvironment.objects.create(
-            organization_id=org.id,
-            project_id=4,
-            release_id=release.id,
-            environment_id=env.id
+            organization_id=org.id, project_id=4, release_id=release.id, environment_id=env.id
         )
 
         with self.tasks():
-            delete_organization(object_id=org.id)
+            with patch.object(DummyRepositoryProvider, 'delete_repository') as mock_delete_repo:
+                delete_organization(object_id=org.id, actor_id=user.id)
+                mock_delete_repo.assert_called_once()  # NOQA
 
         assert not Organization.objects.filter(id=org.id).exists()
         assert not Environment.objects.filter(id=env.id).exists()
@@ -135,14 +132,11 @@ class DeleteProjectTest(TestCase):
         GroupAssignee.objects.create(
             group=group, project=project, user=self.user)
         GroupMeta.objects.create(group=group, key='foo', value='bar')
-        release = Release.objects.create(version='a' * 32,
-                                         organization_id=project.organization_id)
+        release = Release.objects.create(version='a' * 32, organization_id=project.organization_id)
         release.add_project(project)
         GroupResolution.objects.create(group=group, release=release)
         env = Environment.objects.create(
-            organization_id=project.organization_id,
-            project_id=project.id,
-            name='foo'
+            organization_id=project.organization_id, project_id=project.id, name='foo'
         )
         env.add_project(project)
         repo = Repository.objects.create(
@@ -173,8 +167,7 @@ class DeleteProjectTest(TestCase):
 
         assert not Project.objects.unrestricted_unsafe().filter(id=project.id).exists()
         assert not EnvironmentProject.objects.filter(
-            project_id=project.id,
-            environment_id=env.id
+            project_id=project.id, environment_id=env.id
         ).exists()
         assert Environment.objects.filter(id=env.id).exists()
         assert Release.objects.filter(id=release.id).exists()
@@ -198,46 +191,55 @@ class DeleteTagKeyTest(TestCase):
         team = self.create_team(name='test', slug='test')
         project = self.create_project(team=team, name='test1', slug='test1')
         group = self.create_group(project=project)
-        tk = TagKey.objects.create(key='foo', project=project)
-        TagValue.objects.create(key='foo', value='bar', project=project)
-        GroupTagKey.objects.create(key='foo', group=group, project=project)
+        key = 'foo'
+        value = 'bar'
+        tk = tagstore.create_tag_key(key=key, project_id=project.id)
+        tagstore.create_tag_value(key=key, value=value, project_id=project.id)
+        GroupTagKey.objects.create(key=key, group_id=group.id, project_id=project.id)
         GroupTagValue.objects.create(
-            key='foo',
-            value='bar',
-            group_id=group.id,
-            project_id=project.id)
+            key=key, value=value, group_id=group.id, project_id=project.id
+        )
         EventTag.objects.create(
-            key_id=tk.id, group_id=group.id, value_id=1, project_id=project.id,
+            key_id=tk.id,
+            group_id=group.id,
+            value_id=1,
+            project_id=project.id,
             event_id=1,
         )
 
         project2 = self.create_project(team=team, name='test2')
         group2 = self.create_group(project=project2)
-        tk2 = TagKey.objects.create(key='foo', project=project2)
-        gtk2 = GroupTagKey.objects.create(key='foo', group=group2, project=project2)
+        tk2 = tagstore.create_tag_key(key=key, project_id=project2.id)
+        gtk2 = GroupTagKey.objects.create(key=key, group_id=group2.id, project_id=project2.id)
         gtv2 = GroupTagValue.objects.create(
-            key='foo',
-            value='bar',
-            group_id=group2.id,
-            project_id=project2.id)
+            key=key, value=value, group_id=group2.id, project_id=project2.id
+        )
         EventTag.objects.create(
-            key_id=tk2.id, group_id=group2.id, value_id=1, project_id=project.id,
+            key_id=tk2.id,
+            group_id=group2.id,
+            value_id=1,
+            project_id=project.id,
             event_id=1,
         )
 
         with self.tasks():
             delete_tag_key(object_id=tk.id)
 
-            assert not GroupTagValue.objects.filter(
-                key=tk.key, project_id=project.id).exists()
-            assert not GroupTagKey.objects.filter(
-                key=tk.key, project=project).exists()
-            assert not TagValue.objects.filter(
-                key=tk.key, project=project).exists()
+            assert not GroupTagValue.objects.filter(key=tk.key, project_id=project.id).exists()
+            assert not GroupTagKey.objects.filter(key=tk.key, project_id=project.id).exists()
+            try:
+                tagstore.get_tag_value(project.id, key, value)
+                assert False  # verify exception thrown
+            except tagstore.TagValueNotFound:
+                pass
             assert not EventTag.objects.filter(key_id=tk.id).exists()
-            assert not TagKey.objects.filter(id=tk.id).exists()
+            try:
+                tagstore.get_tag_key(project.id, key)
+                assert False  # verify exception thrown
+            except tagstore.TagKeyNotFound:
+                pass
 
-        assert TagKey.objects.filter(id=tk2.id).exists()
+        assert tagstore.get_tag_key(key=key, project_id=project2.id) is not None
         assert GroupTagKey.objects.filter(id=gtk2.id).exists()
         assert GroupTagValue.objects.filter(id=gtv2.id).exists()
         assert EventTag.objects.filter(key_id=tk2.id).exists()

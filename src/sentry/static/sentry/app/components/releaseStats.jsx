@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import Avatar from './avatar';
 import TooltipMixin from '../mixins/tooltip';
@@ -5,7 +6,7 @@ import {t} from '../locale';
 
 const ReleaseStats = React.createClass({
   propTypes: {
-    release: React.PropTypes.object
+    release: PropTypes.object
   },
 
   mixins: [

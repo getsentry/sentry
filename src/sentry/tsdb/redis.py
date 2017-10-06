@@ -29,9 +29,7 @@ from six.moves import reduce
 
 logger = logging.getLogger(__name__)
 
-
 SketchParameters = namedtuple('SketchParameters', 'depth width capacity')
-
 
 CountMinScript = Script(
     None,
@@ -124,10 +122,14 @@ class RedisTSDB(BaseTSDB):
             key=self.get_model_key(key),
         )
 
-    def make_counter_key(self, model, epoch, model_key):
+    def make_counter_key(self, model, rollup, timestamp, key):
         """
         Make a key that is used for counter values.
+
+        Returns a 2-tuple that contains the hash key and the hash field.
         """
+        model_key = self.get_model_key(key)
+
         if isinstance(model_key, six.integer_types):
             vnode = model_key % self.vnodes
         else:
@@ -135,7 +137,12 @@ class RedisTSDB(BaseTSDB):
                 model_key = model_key.encode('utf-8')
             vnode = crc32(model_key) % self.vnodes
 
-        return '{0}{1}:{2}:{3}'.format(self.prefix, model.value, epoch, vnode)
+        return '{prefix}{model}:{epoch}:{vnode}'.format(
+            prefix=self.prefix,
+            model=model.value,
+            epoch=self.normalize_to_rollup(timestamp, rollup),
+            vnode=vnode,
+        ), model_key
 
     def get_model_key(self, key):
         # We specialize integers so that a pure int-map can be optimized by
@@ -157,18 +164,14 @@ class RedisTSDB(BaseTSDB):
 
         >>> incr_multi([(TimeSeriesModel.project, 1), (TimeSeriesModel.group, 5)])
         """
-        make_key = self.make_counter_key
-        normalize_to_rollup = self.normalize_to_rollup
         if timestamp is None:
             timestamp = timezone.now()
 
         with self.cluster.map() as client:
             for rollup, max_values in six.iteritems(self.rollups):
-                norm_rollup = normalize_to_rollup(timestamp, rollup)
                 for model, key in items:
-                    model_key = self.get_model_key(key)
-                    hash_key = make_key(model, norm_rollup, model_key)
-                    client.hincrby(hash_key, model_key, count)
+                    hash_key, hash_field = self.make_counter_key(model, rollup, timestamp, key)
+                    client.hincrby(hash_key, hash_field, count)
                     client.expireat(
                         hash_key,
                         self.calculate_expiry(rollup, max_values, timestamp),
@@ -189,21 +192,11 @@ class RedisTSDB(BaseTSDB):
         results = []
         with self.cluster.map() as client:
             for key in keys:
-                model_key = self.get_model_key(key)
                 for timestamp in series:
-                    hash_key = self.make_counter_key(
-                        model,
-                        self.normalize_to_rollup(
-                            timestamp,
-                            rollup
-                        ),
-                        model_key,
-                    )
-                    results.append((
-                        to_timestamp(timestamp),
-                        key,
-                        client.hget(hash_key, model_key)
-                    ))
+                    hash_key, hash_field = self.make_counter_key(model, rollup, timestamp, key)
+                    results.append(
+                        (to_timestamp(timestamp), key, client.hget(
+                            hash_key, hash_field)))
 
         results_by_key = defaultdict(dict)
         for epoch, key, count in results:
@@ -223,34 +216,33 @@ class RedisTSDB(BaseTSDB):
                 for timestamp in series:
                     results = data[rollup][timestamp] = []
                     for source in sources:
-                        source_model_key = self.get_model_key(source)
-                        key = self.make_counter_key(
+                        source_hash_key, source_hash_field = self.make_counter_key(
                             model,
-                            self.normalize_to_rollup(timestamp, rollup),
-                            source_model_key,
+                            rollup,
+                            timestamp,
+                            source,
                         )
-                        results.append(client.hget(key, source_model_key))
-                        client.hdel(key, source_model_key)
+                        results.append(client.hget(source_hash_key, source_hash_field))
+                        client.hdel(source_hash_key, source_hash_field)
 
         with self.cluster.map() as client:
-            destination_model_key = self.get_model_key(destination)
-
             for rollup, series in data.items():
                 for timestamp, results in series.items():
                     total = sum(int(result.value or 0) for result in results)
                     if total:
-                        destination_counter_key = self.make_counter_key(
+                        destination_hash_key, destination_hash_field = self.make_counter_key(
                             model,
-                            self.normalize_to_rollup(timestamp, rollup),
-                            destination_model_key,
+                            rollup,
+                            timestamp,
+                            destination,
                         )
                         client.hincrby(
-                            destination_counter_key,
-                            destination_model_key,
+                            destination_hash_key,
+                            destination_hash_field,
                             total,
                         )
                         client.expireat(
-                            destination_counter_key,
+                            destination_hash_key,
                             self.calculate_expiry(
                                 rollup,
                                 self.rollups[rollup],
@@ -266,18 +258,20 @@ class RedisTSDB(BaseTSDB):
                 for timestamp in series:
                     for model in models:
                         for key in keys:
-                            model_key = self.get_model_key(key)
+                            hash_key, hash_field = self.make_counter_key(
+                                model,
+                                rollup,
+                                timestamp,
+                                key,
+                            )
+
                             client.hdel(
-                                self.make_counter_key(
-                                    model,
-                                    self.normalize_to_rollup(timestamp, rollup),
-                                    model_key,
-                                ),
-                                model_key,
+                                hash_key,
+                                hash_field,
                             )
 
     def record(self, model, key, values, timestamp=None):
-        self.record_multi(((model, key, values),), timestamp)
+        self.record_multi(((model, key, values), ), timestamp)
 
     def record_multi(self, items, timestamp=None):
         """
@@ -320,20 +314,21 @@ class RedisTSDB(BaseTSDB):
                 c = client.target_key(key)
                 r = responses[key] = []
                 for timestamp in series:
-                    r.append((
-                        timestamp,
-                        c.pfcount(
+                    r.append(
+                        (timestamp, c.pfcount(
                             self.make_key(
                                 model,
                                 rollup,
                                 timestamp,
                                 key,
                             ),
-                        ),
-                    ))
+                        ), )
+                    )
 
-        return {key: [(timestamp, promise.value) for timestamp, promise in value]
-                for key, value in six.iteritems(responses)}
+        return {
+            key: [(timestamp, promise.value) for timestamp, promise in value]
+            for key, value in six.iteritems(responses)
+        }
 
     def get_distinct_counts_totals(self, model, keys, start, end=None, rollup=None):
         """
@@ -373,9 +368,7 @@ class RedisTSDB(BaseTSDB):
             """
             Return a list containing all keys for each interval in the series for a key.
             """
-            return [
-                self.make_key(model, rollup, timestamp, key)
-                for timestamp in series]
+            return [self.make_key(model, rollup, timestamp, key) for timestamp in series]
 
         router = self.cluster.get_router()
 
@@ -396,11 +389,7 @@ class RedisTSDB(BaseTSDB):
             client = self.cluster.get_local_client(host)
             with client.pipeline(transaction=False) as pipeline:
                 pipeline.execute_command(
-                    'PFMERGE',
-                    destination,
-                    *itertools.chain.from_iterable(
-                        map(expand_key, keys)
-                    )
+                    'PFMERGE', destination, *itertools.chain.from_iterable(map(expand_key, keys))
                 )
                 pipeline.get(destination)
                 pipeline.delete(destination)
@@ -411,10 +400,7 @@ class RedisTSDB(BaseTSDB):
             Calculate the cardinality of the provided HyperLogLog values.
             """
             destination = make_temporary_key('a')  # all values will be merged into this key
-            aggregates = {
-                make_temporary_key('a:{}'.format(host)): value
-                for host, value in values
-            }
+            aggregates = {make_temporary_key('a:{}'.format(host)): value for host, value in values}
 
             # Choose a random host to execute the reduction on. (We use a host
             # here that we've already accessed as part of this process -- this
@@ -602,11 +588,12 @@ class RedisTSDB(BaseTSDB):
 
         commands = {}
         for key in keys:
-            commands[key] = [(
-                CountMinScript,
-                self.make_frequency_table_keys(model, rollup, timestamp, key),
-                arguments,
-            ) for timestamp in series]
+            commands[key] = [
+                (
+                    CountMinScript, self.make_frequency_table_keys(model, rollup, timestamp, key),
+                    arguments,
+                ) for timestamp in series
+            ]
 
         def unpack_response(response):
             return {item: float(score) for item, score in response.value}
@@ -658,8 +645,8 @@ class RedisTSDB(BaseTSDB):
         responses = {}
 
         for key, series in six.iteritems(
-            self.get_frequency_series(
-                model, items, start, end, rollup)):
+            self.get_frequency_series(model, items, start, end, rollup)
+        ):
             response = responses[key] = {}
             for timestamp, results in series:
                 for member, value in results.items():
@@ -678,10 +665,7 @@ class RedisTSDB(BaseTSDB):
                 end=None,
                 rollup=rollup,
             )
-            rollups.append((
-                rollup,
-                map(to_datetime, series),
-            ))
+            rollups.append((rollup, map(to_datetime, series), ))
 
         exports = defaultdict(list)
 
@@ -695,10 +679,12 @@ class RedisTSDB(BaseTSDB):
                         source,
                     )
                     arguments = ['EXPORT'] + list(self.DEFAULT_SKETCH_PARAMETERS)
-                    exports[source].extend([
-                        (CountMinScript, keys, arguments),
-                        ('DEL',) + tuple(keys),
-                    ])
+                    exports[source].extend(
+                        [
+                            (CountMinScript, keys, arguments),
+                            ('DEL', ) + tuple(keys),
+                        ]
+                    )
 
         imports = []
 
@@ -706,16 +692,18 @@ class RedisTSDB(BaseTSDB):
             results = iter(results)
             for rollup, series in rollups:
                 for timestamp in series:
-                    imports.append((
-                        CountMinScript,
-                        self.make_frequency_table_keys(
-                            model,
-                            rollup,
-                            to_timestamp(timestamp),
-                            destination,
-                        ),
-                        ['IMPORT'] + list(self.DEFAULT_SKETCH_PARAMETERS) + next(results).value,
-                    ))
+                    imports.append(
+                        (
+                            CountMinScript, self.make_frequency_table_keys(
+                                model,
+                                rollup,
+                                to_timestamp(timestamp),
+                                destination,
+                            ),
+                            ['IMPORT'] + list(self.DEFAULT_SKETCH_PARAMETERS) +
+                            next(results).value,
+                        )
+                    )
                     next(results)  # pop off the result of DEL
 
         self.cluster.execute_commands({
@@ -732,5 +720,6 @@ class RedisTSDB(BaseTSDB):
                         for key in keys:
                             c = client.target_key(key)
                             for k in self.make_frequency_table_keys(
-                                    model, rollup, to_timestamp(timestamp), key):
+                                model, rollup, to_timestamp(timestamp), key
+                            ):
                                 c.delete(k)

@@ -4,7 +4,17 @@ from django.db import models
 from django.utils import timezone
 from jsonfield import JSONField
 
-from sentry.db.models import Model, sane_repr
+from sentry.db.models import (Model, sane_repr)
+
+
+def schedule_jobs(jobs):
+    ScheduledJob.objects.bulk_create(
+        [
+            ScheduledJob(payload=payload, name=name, date_scheduled=date_scheduled)
+            for (payload, name, date_scheduled) in jobs
+        ]
+    )
+    return True
 
 
 class ScheduledJob(Model):

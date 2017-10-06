@@ -55,7 +55,9 @@ def instrumented_task(name, stat_suffix=None, **kwargs):
                 finally:
                     Raven.context.clear()
             return result
+
         return app.task(name=name, **kwargs)(_wrapped)
+
     return wrapped
 
 
@@ -79,5 +81,7 @@ def retry(func=None, on=(Exception, ), exclude=()):
             except on as exc:
                 Raven.captureException()
                 current.retry(exc=exc)
+
         return wrapped
+
     return inner

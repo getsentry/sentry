@@ -1,9 +1,10 @@
 import {Link} from 'react-router';
 import moment from 'moment';
+import PropTypes from 'prop-types';
 import React from 'react';
 
 import ConfigStore from '../../stores/configStore';
-import PropTypes from '../../proptypes';
+import SentryTypes from '../../proptypes';
 import DateTime from '../../components/dateTime';
 import FileSize from '../../components/fileSize';
 import TooltipMixin from '../../mixins/tooltip';
@@ -32,10 +33,10 @@ let formatDateDelta = (reference, observed) => {
 
 let GroupEventToolbar = React.createClass({
   propTypes: {
-    orgId: React.PropTypes.string.isRequired,
-    projectId: React.PropTypes.string.isRequired,
-    group: PropTypes.Group.isRequired,
-    event: PropTypes.Event.isRequired
+    orgId: PropTypes.string.isRequired,
+    projectId: PropTypes.string.isRequired,
+    group: SentryTypes.Group.isRequired,
+    event: SentryTypes.Event.isRequired
   },
 
   mixins: [
@@ -146,7 +147,15 @@ let GroupEventToolbar = React.createClass({
             {eventNavNodes}
           </div>
         </div>
-        <h4>{t('Event')} <span className="event-id">{evt.eventID}</span></h4>
+        <h4>
+          {t('Event')}
+          {' '}
+          <Link
+            to={`/${orgId}/${projectId}/issues/${groupId}/events/${evt.id}/`}
+            className="event-id">
+            {evt.eventID}
+          </Link>
+        </h4>
         <span>
           {/* use a key here to force removal of tooltip parent - fixes #3341 */}
           <span className="tip" data-title={this.getDateTooltip()} key={evt.id}>

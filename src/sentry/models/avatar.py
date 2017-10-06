@@ -86,10 +86,7 @@ class AvatarBase(Model):
                 instance.file = photo
                 instance.ident = uuid4().hex
 
-            instance.avatar_type = [
-                i for i, n in cls.AVATAR_TYPES
-                if n == type
-            ][0]
+            instance.avatar_type = [i for i, n in cls.AVATAR_TYPES if n == type][0]
 
             instance.save()
 

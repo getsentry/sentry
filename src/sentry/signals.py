@@ -13,6 +13,7 @@ class BetterSignal(Signal):
         >>>     pass
 
         """
+
         def wrapped(func):
             return super(BetterSignal, self).connect(func, **kwargs)
 

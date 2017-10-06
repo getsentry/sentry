@@ -1,12 +1,15 @@
-import jQuery from 'jquery';
+import PropTypes from 'prop-types';
 import React from 'react';
 import ReactDOM from 'react-dom';
+import classNames from 'classnames';
+import jQuery from 'jquery';
+
 import FormField from './formField';
 
 export default class MultipleCheckboxField extends FormField {
   static propTypes = {
     ...FormField.propTypes,
-    choices: React.PropTypes.array.isRequired
+    choices: PropTypes.array.isRequired
   };
 
   // XXX(dcramer): this comes from TooltipMixin
@@ -42,35 +45,55 @@ export default class MultipleCheckboxField extends FormField {
   };
 
   render() {
+    let {
+      required,
+      className,
+      disabled,
+      disabledReason,
+      label,
+      help,
+      choices,
+      style
+    } = this.props;
     let error = this.getError();
-    let className = 'control-group';
-    if (error) {
-      className += ' has-error';
-    }
+    let cx = classNames(className, 'control-group', {
+      'has-error': error
+    });
+    // Hacky, but this isn't really a form label vs the checkbox labels, but
+    // we want to treat it as one (i.e. for "required" indicator)
+    let labelCx = classNames({
+      required
+    });
+    let shouldShowDisabledReason = disabled && disabledReason;
+
     return (
-      <div className={className}>
-        <label className="control-label">
-          {this.props.label}
-          {this.props.disabled &&
-            this.props.disabledReason &&
-            <span className="disabled-indicator tip" title={this.props.disabledReason}>
-              <span className="icon-question" />
-            </span>}
-        </label>
-        {this.props.help && <p className="help-block">{this.props.help}</p>}
-        {error && <p className="error">{error}</p>}
-        <div className="controls control-list">
-          {this.props.choices.map(([value, label]) => {
+      <div style={style} className={cx}>
+        <div className={labelCx}>
+          <div className="controls">
+            <label className="control-label">
+              {label}
+              {shouldShowDisabledReason &&
+                <span className="disabled-indicator tip" title={disabledReason}>
+                  <span className="icon-question" />
+                </span>}
+            </label>
+            {help && <p className="help-block">{help}</p>}
+            {error && <p className="error">{error}</p>}
+          </div>
+        </div>
+
+        <div className="control-list">
+          {choices.map(([value, choiceLabel]) => {
             return (
               <label className="checkbox" key={value}>
                 <input
                   type="checkbox"
                   value={value}
                   onChange={this.onChange.bind(this, value)}
-                  disabled={this.props.disabled}
+                  disabled={disabled}
                   checked={this.state.value.indexOf(value) !== -1}
                 />
-                {label}
+                {choiceLabel}
               </label>
             );
           })}

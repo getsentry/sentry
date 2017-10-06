@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 
 import ApiMixin from '../mixins/apiMixin';
@@ -17,10 +18,10 @@ import {extractMultilineFields} from '../utils';
 
 const OrganizationSettingsForm = React.createClass({
   propTypes: {
-    orgId: React.PropTypes.string.isRequired,
-    access: React.PropTypes.object.isRequired,
-    initialData: React.PropTypes.object.isRequired,
-    onSave: React.PropTypes.func.isRequired
+    orgId: PropTypes.string.isRequired,
+    access: PropTypes.object.isRequired,
+    initialData: PropTypes.object.isRequired,
+    onSave: PropTypes.func.isRequired
   },
 
   mixins: [ApiMixin],
@@ -60,7 +61,7 @@ const OrganizationSettingsForm = React.createClass({
     };
     this.setState({
       hasChanges: true,
-      formData: formData
+      formData
     });
   },
 
@@ -330,7 +331,7 @@ const OrganizationSettings = React.createClass({
       method: 'GET',
       success: data => {
         this.setState({
-          data: data,
+          data,
           loading: false
         });
       },
@@ -344,51 +345,56 @@ const OrganizationSettings = React.createClass({
   },
 
   onSave(data) {
-    // TODO(dcramer): this shoudl propag
-    this.setState({data: data});
+    // TODO(dcramer): this should propagate
+    this.setState({data});
     OrganizationStore.add(data);
   },
 
   render() {
-    if (this.state.loading) return <LoadingIndicator />;
-
     let data = this.state.data;
     let orgId = this.props.params.orgId;
-    let access = new Set(data.access);
+    let access = data && new Set(data.access);
 
     return (
       <OrganizationHomeContainer>
-        <h3>{t('Organization Settings')}</h3>
-        <div className="box">
-          <div className="box-content with-padding">
-            <OrganizationSettingsForm
-              initialData={data}
-              orgId={orgId}
-              access={access}
-              onSave={this.onSave}
-            />
-          </div>
-        </div>
+        {this.state.loading && <LoadingIndicator />}
 
-        {access.has('org:admin') &&
-          !data.isDefault &&
-          <div className="box">
-            <div className="box-header">
-              <h3>{t('Remove Organization')}</h3>
+        {!this.state.loading &&
+          <div>
+            <h3>{t('Organization Settings')}</h3>
+            <div className="box">
+              <div className="box-content with-padding">
+                <OrganizationSettingsForm
+                  initialData={data}
+                  orgId={orgId}
+                  access={access}
+                  onSave={this.onSave}
+                />
+              </div>
             </div>
-            <div className="box-content with-padding">
-              <p>
-                {t(
-                  'Removing this organization will delete all data including projects and their associated events.'
-                )}
-              </p>
 
-              <fieldset className="form-actions">
-                <a href={`/organizations/${orgId}/remove/`} className="btn btn-danger">
-                  {t('Remove Organization')}
-                </a>
-              </fieldset>
-            </div>
+            {access.has('org:admin') &&
+              !data.isDefault &&
+              <div className="box">
+                <div className="box-header">
+                  <h3>{t('Remove Organization')}</h3>
+                </div>
+                <div className="box-content with-padding">
+                  <p>
+                    {t(
+                      'Removing this organization will delete all data including projects and their associated events.'
+                    )}
+                  </p>
+
+                  <fieldset className="form-actions">
+                    <a
+                      href={`/organizations/${orgId}/remove/`}
+                      className="btn btn-danger">
+                      {t('Remove Organization')}
+                    </a>
+                  </fieldset>
+                </div>
+              </div>}
           </div>}
       </OrganizationHomeContainer>
     );

@@ -6,7 +6,6 @@ from django.conf import settings
 from sentry.cache import default_cache
 from sentry.models import ProjectKey
 
-
 register = template.Library()
 
 
@@ -23,7 +22,7 @@ def _get_project_key(project_id):
 @register.simple_tag
 def public_dsn():
     project_id = settings.SENTRY_FRONTEND_PROJECT or settings.SENTRY_PROJECT
-    cache_key = 'dsn:%s' % (project_id,)
+    cache_key = 'dsn:%s' % (project_id, )
 
     result = default_cache.get(cache_key)
     if result is None:

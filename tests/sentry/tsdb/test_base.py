@@ -12,13 +12,15 @@ from sentry.utils.dates import to_timestamp
 
 class BaseTSDBTest(TestCase):
     def setUp(self):
-        self.tsdb = BaseTSDB(rollups=(
-            # time in seconds, samples to keep
-            (10, 30),  # 5 minutes at 10 seconds
-            (ONE_MINUTE, 120),  # 2 hours at 1 minute
-            (ONE_HOUR, 24),  # 1 days at 1 hour
-            (ONE_DAY, 30),  # 30 days at 1 day
-        ))
+        self.tsdb = BaseTSDB(
+            rollups=(
+                # time in seconds, samples to keep
+                (10, 30),  # 5 minutes at 10 seconds
+                (ONE_MINUTE, 120),  # 2 hours at 1 minute
+                (ONE_HOUR, 24),  # 1 days at 1 hour
+                (ONE_DAY, 30),  # 30 days at 1 day
+            )
+        )
 
     def test_normalize_to_epoch(self):
         timestamp = datetime(2013, 5, 18, 15, 13, 58, 132928, tzinfo=pytz.UTC)
@@ -39,9 +41,7 @@ class BaseTSDBTest(TestCase):
         }
         post_results = self.tsdb.rollup(pre_results, 3600)
         assert len(post_results) == 1
-        assert post_results[1] == [
-            [1368889200, 15], [1368892800, 7]
-        ]
+        assert post_results[1] == [[1368889200, 15], [1368892800, 7]]
 
     def test_calculate_expiry(self):
         timestamp = datetime(2013, 5, 18, 15, 13, 58, 132928, tzinfo=pytz.UTC)
@@ -54,26 +54,22 @@ class BaseTSDBTest(TestCase):
 
         start = now() - timedelta(seconds=30)
         assert self.tsdb.get_optimal_rollup_series(start) == (
-            10,
-            [to_timestamp(start + timedelta(seconds=10) * i) for i in xrange(4)],
+            10, [to_timestamp(start + timedelta(seconds=10) * i) for i in xrange(4)],
         )
 
         start = now() - timedelta(minutes=30)
         assert self.tsdb.get_optimal_rollup_series(start) == (
-            ONE_MINUTE,
-            [to_timestamp(start + timedelta(minutes=1) * i) for i in xrange(31)],
+            ONE_MINUTE, [to_timestamp(start + timedelta(minutes=1) * i) for i in xrange(31)],
         )
 
         start = now() - timedelta(hours=5)
         assert self.tsdb.get_optimal_rollup_series(start) == (
-            ONE_HOUR,
-            [to_timestamp(start + timedelta(hours=1) * i) for i in xrange(6)],
+            ONE_HOUR, [to_timestamp(start + timedelta(hours=1) * i) for i in xrange(6)],
         )
 
         start = now() - timedelta(days=7)
         assert self.tsdb.get_optimal_rollup_series(start) == (
-            ONE_DAY,
-            [to_timestamp(start + timedelta(hours=24) * i) for i in xrange(8)],
+            ONE_DAY, [to_timestamp(start + timedelta(hours=24) * i) for i in xrange(8)],
         )
 
     @mock.patch('django.utils.timezone.now')
@@ -87,9 +83,10 @@ class BaseTSDBTest(TestCase):
 
         now.return_value = datetime(2016, 8, 1, 0, 0, 15, tzinfo=pytz.utc)
         start = now() - timedelta(seconds=19)
-        assert self.tsdb.get_optimal_rollup_series(start, rollup=10) == (
-            10,
-            [
+        assert self.tsdb.get_optimal_rollup_series(
+            start, rollup=10
+        ) == (
+            10, [
                 to_timestamp(datetime(2016, 8, 1, 0, 0, 0, tzinfo=pytz.utc)),
                 to_timestamp(datetime(2016, 8, 1, 0, 0, 10, tzinfo=pytz.utc)),
             ]
@@ -97,14 +94,12 @@ class BaseTSDBTest(TestCase):
 
         now.return_value = datetime(2016, 8, 1, 0, 0, 30, tzinfo=pytz.utc)
         start = now() - timedelta(seconds=ONE_MINUTE - 1)
-        assert self.tsdb.get_optimal_rollup_series(start, rollup=ONE_MINUTE) == (
-            ONE_MINUTE,
-            [to_timestamp(datetime(2016, 8, 1, 0, 0, 0, tzinfo=pytz.utc))]
-        )
+        assert self.tsdb.get_optimal_rollup_series(
+            start, rollup=ONE_MINUTE
+        ) == (ONE_MINUTE, [to_timestamp(datetime(2016, 8, 1, 0, 0, 0, tzinfo=pytz.utc))])
 
         now.return_value = datetime(2016, 8, 1, 12, tzinfo=pytz.utc)
         start = now() - timedelta(seconds=ONE_DAY - 1)
-        assert self.tsdb.get_optimal_rollup_series(start, rollup=ONE_DAY) == (
-            ONE_DAY,
-            [to_timestamp(datetime(2016, 8, 1, 0, tzinfo=pytz.utc))]
-        )
+        assert self.tsdb.get_optimal_rollup_series(
+            start, rollup=ONE_DAY
+        ) == (ONE_DAY, [to_timestamp(datetime(2016, 8, 1, 0, tzinfo=pytz.utc))])

@@ -23,7 +23,8 @@ class RuleSerializer(Serializer):
         d = {
             # XXX(dcramer): we currently serialize unsaved rule objects
             # as part of the rule editor
-            'id': six.text_type(obj.id) if obj.id else None,
+            'id':
+            six.text_type(obj.id) if obj.id else None,
             'conditions': [
                 dict({
                     'name': _generate_rule_label(obj.project, obj, o),
@@ -34,9 +35,13 @@ class RuleSerializer(Serializer):
                     'name': _generate_rule_label(obj.project, obj, o),
                 }, **o) for o in obj.data.get('actions', [])
             ],
-            'actionMatch': obj.data.get('action_match') or Rule.DEFAULT_ACTION_MATCH,
-            'frequency': obj.data.get('frequency') or Rule.DEFAULT_FREQUENCY,
-            'name': obj.label,
-            'dateCreated': obj.date_added,
+            'actionMatch':
+            obj.data.get('action_match') or Rule.DEFAULT_ACTION_MATCH,
+            'frequency':
+            obj.data.get('frequency') or Rule.DEFAULT_FREQUENCY,
+            'name':
+            obj.label,
+            'dateCreated':
+            obj.date_added,
         }
         return d

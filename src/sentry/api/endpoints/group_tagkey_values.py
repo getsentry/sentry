@@ -1,12 +1,13 @@
 from __future__ import absolute_import
 
+from sentry import tagstore
 from sentry.api.base import DocSection
 from sentry.api.bases.group import GroupEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import DateTimePaginator, OffsetPaginator, Paginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.tagvalue import UserTagValueSerializer
-from sentry.models import GroupTagValue, TagKey, TagKeyStatus, Group
+from sentry.models import GroupTagValue, Group
 from sentry.utils.apidocs import scenario
 
 
@@ -15,8 +16,7 @@ def list_tag_values_scenario(runner):
     group = Group.objects.filter(project=runner.default_project).first()
     runner.request(
         method='GET',
-        path='/issues/%s/tags/%s/values/' % (
-            group.id, 'browser'),
+        path='/issues/%s/tags/%s/values/' % (group.id, 'browser'),
     )
 
 
@@ -36,18 +36,11 @@ class GroupTagKeyValuesEndpoint(GroupEndpoint):
         :pparam string key: the tag key to look the values up for.
         :auth: required
         """
-        # XXX(dcramer): kill sentry prefix for internal reserved tags
-        if TagKey.is_reserved_key(key):
-            lookup_key = 'sentry:{0}'.format(key)
-        else:
-            lookup_key = key
+        lookup_key = tagstore.prefix_reserved_key(key)
 
-        tagkey = TagKey.objects.filter(
-            project=group.project_id,
-            key=lookup_key,
-            status=TagKeyStatus.VISIBLE,
-        )
-        if not tagkey.exists():
+        try:
+            tagstore.get_tag_key(group.project_id, lookup_key)
+        except tagstore.TagKeyNotFound:
             raise ResourceDoesNotExist
 
         queryset = GroupTagValue.objects.filter(

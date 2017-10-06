@@ -38,6 +38,9 @@ class CallRecordingPanel(Panel):
         calls = len(self.calls)
         duration = int(sum(((c['end'] - c['start']) for c in self.calls)) * 1000)
 
-        return ungettext('%(calls)d call in %(duration).2fms',
-                         '%(calls)d calls in %(duration).2fms',
-                         calls) % {'calls': calls, 'duration': duration}
+        return ungettext(
+            '%(calls)d call in %(duration).2fms', '%(calls)d calls in %(duration).2fms', calls
+        ) % {
+            'calls': calls,
+            'duration': duration
+        }

@@ -1,4 +1,5 @@
 import jQuery from 'jquery';
+import PropTypes from 'prop-types';
 import React from 'react';
 import {browserHistory} from 'react-router';
 
@@ -6,15 +7,15 @@ import ApiMixin from '../../mixins/apiMixin';
 import LoadingError from '../../components/loadingError';
 import LoadingIndicator from '../../components/loadingIndicator';
 import Pagination from '../../components/pagination';
-import SearchBar from '../../components/searchBar.jsx';
+import SearchBar from '../../components/searchBar';
 import {t} from '../../locale';
 
 import ReleaseList from './releaseList';
 
 const ProjectReleases = React.createClass({
   propTypes: {
-    defaultQuery: React.PropTypes.string,
-    setProjectNavSection: React.PropTypes.func
+    defaultQuery: PropTypes.string,
+    setProjectNavSection: PropTypes.func
   },
 
   mixins: [ApiMixin],
@@ -133,11 +134,7 @@ const ProjectReleases = React.createClass({
   },
 
   renderLoading() {
-    return (
-      <div className="box">
-        <LoadingIndicator />
-      </div>
-    );
+    return <LoadingIndicator />;
   },
 
   renderNoQueryResults() {
@@ -151,7 +148,7 @@ const ProjectReleases = React.createClass({
 
   renderEmpty() {
     return (
-      <div className="box empty-stream">
+      <div className="empty-stream">
         <span className="icon icon-exclamation" />
         <p>{t("There don't seem to be any releases yet.")}</p>
         <p>

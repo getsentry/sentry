@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import Modal from 'react-bootstrap/lib/Modal';
 import ApiMixin from '../../mixins/apiMixin';
@@ -10,7 +11,7 @@ import {toTitleCase} from '../../utils';
 
 const IssuePluginActions = React.createClass({
   propTypes: {
-    plugin: React.PropTypes.object.isRequired
+    plugin: PropTypes.object.isRequired
   },
 
   mixins: [ApiMixin, GroupState],
@@ -79,14 +80,19 @@ const IssuePluginActions = React.createClass({
 
     let button;
     if (allowedActions.length === 1) {
+      // # TODO(dcramer): remove plugin.title check in Sentry 8.22+
       button = (
         <button
           className={'btn btn-default btn-sm btn-plugin-' + plugin.slug}
           onClick={this.openModal.bind(this, allowedActions[0])}>
-          {toTitleCase(allowedActions[0]) + ' ' + plugin.title + ' Issue'}
+          {toTitleCase(allowedActions[0]) +
+            ' ' +
+            (plugin.shortName || plugin.name || plugin.title) +
+            ' Issue'}
         </button>
       );
     } else {
+      // # TODO(dcramer): remove plugin.title check in Sentry 8.22+
       button = (
         <div className={'btn-group btn-plugin-' + plugin.slug}>
           <DropdownLink
@@ -94,7 +100,7 @@ const IssuePluginActions = React.createClass({
             className="btn btn-default btn-sm"
             title={
               <span>
-                {plugin.title}
+                {plugin.shortName || plugin.name || plugin.title}
                 <span
                   className="icon-arrow-down"
                   style={{marginLeft: 3, marginRight: -3}}
@@ -115,6 +121,7 @@ const IssuePluginActions = React.createClass({
       );
     }
 
+    // # TODO(dcramer): remove plugin.title check in Sentry 8.22+
     return (
       <span>
         {button}
@@ -125,7 +132,7 @@ const IssuePluginActions = React.createClass({
           backdrop="static"
           enforceFocus={false}>
           <Modal.Header closeButton>
-            <Modal.Title>{plugin.title + ' Issue'}</Modal.Title>
+            <Modal.Title>{`${plugin.name || plugin.title} Issue`}</Modal.Title>
           </Modal.Header>
           <Modal.Body>
             {!this.state.pluginLoading &&

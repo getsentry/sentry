@@ -1,15 +1,17 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import u2f from 'u2f-api';
+import Raven from 'raven-js';
 import ConfigStore from '../stores/configStore';
 
 import {t, tct} from '../locale';
 
 const U2fInterface = React.createClass({
   propTypes: {
-    challengeData: React.PropTypes.object.isRequired,
-    flowMode: React.PropTypes.string.isRequired,
-    onTap: React.PropTypes.func,
-    silentIfUnsupported: React.PropTypes.bool
+    challengeData: PropTypes.object.isRequired,
+    flowMode: PropTypes.string.isRequired,
+    onTap: PropTypes.func,
+    silentIfUnsupported: PropTypes.bool
   },
 
   getDefaultProps() {
@@ -79,15 +81,23 @@ const U2fInterface = React.createClass({
       })
       .catch(err => {
         let failure = 'DEVICE_ERROR';
-        if (err.metaData.type === 'DEVICE_INELIGIBLE') {
-          if (this.props.flowMode === 'enroll') {
-            failure = 'DUPLICATE_DEVICE';
-          } else {
-            failure = 'UNKNOWN_DEVICE';
+        // in some rare cases there is no metadata on the error which
+        // causes this to blow up badly.
+        if (err.metaData) {
+          if (err.metaData.type === 'DEVICE_INELIGIBLE') {
+            if (this.props.flowMode === 'enroll') {
+              failure = 'DUPLICATE_DEVICE';
+            } else {
+              failure = 'UNKNOWN_DEVICE';
+            }
+          } else if (err.metaData.type === 'BAD_REQUEST') {
+            failure = 'BAD_APPID';
           }
-        } else if (err.metaData.type === 'BAD_REQUEST') {
-          failure = 'BAD_APPID';
         }
+        // we want to know what is happening here.  There are some indicators
+        // that users are getting errors that should not happen through the
+        // regular u2f flow.
+        Raven.captureException(err);
         this.setState({
           deviceFailure: failure,
           hasBeenTapped: false
@@ -157,7 +167,7 @@ const U2fInterface = React.createClass({
                 {
                   p1: <p />,
                   p2: <p />,
-                  support: support
+                  support
                 }
               )
             }[deviceFailure]

@@ -12,24 +12,23 @@ import sentry
 BASE_URL = 'https://docs.sentry.io/_platforms/{}'
 
 # Also see INTEGRATION_DOC_FOLDER in setup.py
-DOC_FOLDER = os.path.abspath(os.path.join(os.path.dirname(sentry.__file__),
-                                          'integration-docs'))
+DOC_FOLDER = os.path.abspath(os.path.join(os.path.dirname(sentry.__file__), 'integration-docs'))
 
 # We cannot leverage six here, so we need to vendor
 # bits that we need.
 if sys.version_info[0] == 3:
+
     def iteritems(d, **kw):
         return iter(d.items(**kw))
 
     from urllib.request import urlopen
 
 else:
+
     def iteritems(d, **kw):
         return d.iteritems(**kw)  # NOQA
 
     from urllib2 import urlopen
-
-
 """
 Looking to add a new framework/language to /settings/install?
 
@@ -86,21 +85,23 @@ def sync_docs():
     data = json.loads(body)
     platform_list = []
     for platform_id, integrations in iteritems(data['platforms']):
-        platform_list.append({
-            'id': platform_id,
-            'name': integrations['_self']['name'],
-            'integrations': [
-                {
-                    'id': get_integration_id(platform_id, i_id),
-                    'name': i_data['name'],
-                    'type': i_data['type'],
-                    'link': i_data['doc_link'],
-                } for i_id, i_data in sorted(
-                    iteritems(integrations),
-                    key=lambda x: x[1]['name']
-                )
-            ],
-        })
+        platform_list.append(
+            {
+                'id':
+                platform_id,
+                'name':
+                integrations['_self']['name'],
+                'integrations': [
+                    {
+                        'id': get_integration_id(platform_id, i_id),
+                        'name': i_data['name'],
+                        'type': i_data['type'],
+                        'link': i_data['doc_link'],
+                    }
+                    for i_id, i_data in sorted(iteritems(integrations), key=lambda x: x[1]['name'])
+                ],
+            }
+        )
 
     platform_list.sort(key=lambda x: x['name'])
 
@@ -108,22 +109,21 @@ def sync_docs():
 
     for platform_id, platform_data in iteritems(data['platforms']):
         for integration_id, integration in iteritems(platform_data):
-            sync_integration_docs(platform_id, integration_id,
-                                  integration['details'])
+            sync_integration_docs(platform_id, integration_id, integration['details'])
 
 
 def sync_integration_docs(platform_id, integration_id, path):
-    echo('  syncing documentation for %s.%s integration' % (
-        platform_id, integration_id
-    ))
+    echo('  syncing documentation for %s.%s integration' % (platform_id, integration_id))
 
     data = json.load(urlopen(BASE_URL.format(path)))
 
     key = get_integration_id(platform_id, integration_id)
 
-    dump_doc(key, {
-        'id': key,
-        'name': data['name'],
-        'html': data['body'],
-        'link': data['doc_link'],
-    })
+    dump_doc(
+        key, {
+            'id': key,
+            'name': data['name'],
+            'html': data['body'],
+            'link': data['doc_link'],
+        }
+    )

@@ -1,14 +1,15 @@
 import React from 'react';
+import _ from 'lodash';
 
 import EventDataSection from './eventDataSection';
 import EventErrorItem from './errorItem';
-import PropTypes from '../../proptypes';
+import SentryTypes from '../../proptypes';
 import {t, tn} from '../../locale';
 
 const EventErrors = React.createClass({
   propTypes: {
-    group: PropTypes.Group.isRequired,
-    event: PropTypes.Event.isRequired
+    group: SentryTypes.Group.isRequired,
+    event: SentryTypes.Event.isRequired
   },
 
   getInitialState() {
@@ -28,8 +29,12 @@ const EventErrors = React.createClass({
     this.setState({isOpen: !this.state.isOpen});
   },
 
+  uniqueErrors(errors) {
+    return _.uniqBy(errors, _.isEqual);
+  },
+
   render() {
-    let errors = this.props.event.errors;
+    let errors = this.uniqueErrors(this.props.event.errors);
     let numErrors = errors.length;
     let isOpen = this.state.isOpen;
     return (

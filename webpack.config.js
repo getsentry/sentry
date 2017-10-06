@@ -1,9 +1,10 @@
 /*eslint-env node*/
-/*eslint no-var:0*/
+/*eslint no-var:0 import/no-nodejs-modules:0 */
 var path = require('path'),
   fs = require('fs'),
   webpack = require('webpack'),
-  ExtractTextPlugin = require('extract-text-webpack-plugin');
+  ExtractTextPlugin = require('extract-text-webpack-plugin'),
+  LodashModuleReplacementPlugin = require('lodash-webpack-plugin');
 
 var staticPrefix = 'src/sentry/static/sentry',
   distPath = path.join(__dirname, staticPrefix, 'dist');
@@ -14,32 +15,39 @@ if (process.env.SENTRY_STATIC_DIST_PATH) {
 }
 
 var IS_PRODUCTION = process.env.NODE_ENV === 'production';
-var REFRESH = process.env.WEBPACK_LIVERELOAD === '1';
+var IS_TEST = process.env.NODE_ENV === 'TEST' || process.env.TEST_SUITE;
+var WEBPACK_DEV_PORT = process.env.WEBPACK_DEV_PORT;
+var SENTRY_DEVSERVER_PORT = process.env.SENTRY_DEVSERVER_PORT;
+var USE_HOT_MODULE_RELOAD = !IS_PRODUCTION && WEBPACK_DEV_PORT && SENTRY_DEVSERVER_PORT;
 
 var babelConfig = JSON.parse(fs.readFileSync(path.join(__dirname, '.babelrc')));
 babelConfig.cacheDirectory = true;
 
 // only extract po files if we need to
 if (process.env.SENTRY_EXTRACT_TRANSLATIONS === '1') {
-  babelConfig.plugins.push('babel-gettext-extractor', {
-    fileName: 'build/javascript.po',
-    baseDirectory: path.join(__dirname, 'src/sentry'),
-    functionNames: {
-      gettext: ['msgid'],
-      ngettext: ['msgid', 'msgid_plural', 'count'],
-      gettextComponentTemplate: ['msgid'],
-      t: ['msgid'],
-      tn: ['msgid', 'msgid_plural', 'count'],
-      tct: ['msgid']
+  babelConfig.plugins.push([
+    'babel-gettext-extractor',
+    {
+      fileName: 'build/javascript.po',
+      baseDirectory: path.join(__dirname, 'src/sentry'),
+      functionNames: {
+        gettext: ['msgid'],
+        ngettext: ['msgid', 'msgid_plural', 'count'],
+        gettextComponentTemplate: ['msgid'],
+        t: ['msgid'],
+        tn: ['msgid', 'msgid_plural', 'count'],
+        tct: ['msgid']
+      }
     }
-  });
+  ]);
 }
 
-var entry = {
-  // js
-  app: 'app',
+var appEntry = {
+  app: ['app'],
   vendor: [
     'babel-polyfill',
+    // Yes this is included in prod builds, but has no effect on render and build size in prod
+    'react-hot-loader/patch',
     'bootstrap/js/dropdown',
     'bootstrap/js/tab',
     'bootstrap/js/tooltip',
@@ -61,20 +69,11 @@ var entry = {
     'reflux',
     'select2',
     'vendor/simple-slider/simple-slider',
-    'underscore',
     'ios-device-list'
-  ],
-
-  // css
-  // NOTE: this will also create an empty 'sentry.js' file
-  // TODO: figure out how to not generate this
-  sentry: 'less/sentry.less',
-
-  // debug toolbar
-  debugger: 'less/debugger.less'
+  ]
 };
 
-// dynamically iterate over locale files and add to `entry` config
+// dynamically iterate over locale files and add to `entry` appConfig
 var localeCatalogPath = path.join(__dirname, 'src', 'sentry', 'locale', 'catalogs.json');
 var localeCatalog = JSON.parse(fs.readFileSync(localeCatalogPath, 'utf8'));
 var localeEntries = [];
@@ -84,15 +83,18 @@ localeCatalog.supported_locales.forEach(function(locale) {
 
   // Django locale names are "zh_CN", moment's are "zh-cn"
   var normalizedLocale = locale.toLowerCase().replace('_', '-');
-  entry['locale/' + normalizedLocale] = [
+  appEntry['locale/' + normalizedLocale] = [
     'moment/locale/' + normalizedLocale,
     'sentry-locale/' + locale + '/LC_MESSAGES/django.po' // relative to static/sentry
   ];
   localeEntries.push('locale/' + normalizedLocale);
 });
 
-var config = {
-  entry: entry,
+/**
+ * Main Webpack config for Sentry React SPA.
+ */
+var appConfig = {
+  entry: appEntry,
   context: path.join(__dirname, staticPrefix),
   module: {
     rules: [
@@ -115,13 +117,20 @@ var config = {
         test: /\.json$/,
         loader: 'json-loader'
       },
+      // loader for dynamic styles imported into components (embedded as js)
       {
         test: /\.less$/,
-        include: path.join(__dirname, staticPrefix),
-        loader: ExtractTextPlugin.extract({
-          fallbackLoader: 'style-loader?sourceMap=false',
-          loader: 'css-loader' + (IS_PRODUCTION ? '?minimize=true' : '') + '!less-loader'
-        })
+        use: [
+          {
+            loader: 'style-loader'
+          },
+          {
+            loader: 'css-loader' + (IS_PRODUCTION ? '?minimize=true' : '')
+          },
+          {
+            loader: 'less-loader'
+          }
+        ]
       },
       {
         test: /\.(woff|woff2|ttf|eot|svg|png|gif|ico|jpg)($|\?)/,
@@ -136,6 +145,11 @@ var config = {
     ]
   },
   plugins: [
+    new LodashModuleReplacementPlugin({
+      collections: true,
+      currying: true, // these are enabled to support lodash/fp/ features
+      flattening: true // used by a dependency of react-mentions
+    }),
     new webpack.optimize.CommonsChunkPlugin({
       names: localeEntries.concat(['vendor']) // 'vendor' must be last entry
     }),
@@ -144,15 +158,16 @@ var config = {
       jQuery: 'jquery',
       'window.jQuery': 'jquery',
       'root.jQuery': 'jquery',
-      Raven: 'raven-js',
-      underscore: 'underscore',
-      _: 'underscore'
+      Raven: 'raven-js'
     }),
     new ExtractTextPlugin('[name].css'),
     new webpack.IgnorePlugin(/^\.\/locale$/, /moment$/), // ignore moment.js locale files
     new webpack.DefinePlugin({
       'process.env': {
-        NODE_ENV: JSON.stringify(process.env.NODE_ENV)
+        NODE_ENV: JSON.stringify(process.env.NODE_ENV),
+        IS_PERCY: JSON.stringify(
+          process.env.CI && !!process.env.PERCY_TOKEN && !!process.env.TRAVIS
+        )
       }
     }),
     // restrict translation files pulled into dist/app.js to only those specified
@@ -166,10 +181,13 @@ var config = {
   ],
   resolve: {
     alias: {
-      'sentry-locale': path.join(__dirname, 'src', 'sentry', 'locale')
+      'sentry-locale': path.join(__dirname, 'src', 'sentry', 'locale'),
+      'integration-docs-platforms': IS_TEST
+        ? path.join(__dirname, 'tests/fixtures/_platforms.json')
+        : path.join(__dirname, 'src/sentry/integration-docs/_platforms.json')
     },
     modules: [path.join(__dirname, staticPrefix), 'node_modules'],
-    extensions: ['*', '.jsx', '.js', '.json']
+    extensions: ['.less', '.jsx', '.js', '.json']
   },
   output: {
     path: distPath,
@@ -181,40 +199,124 @@ var config = {
   devtool: IS_PRODUCTION ? '#source-map' : '#cheap-source-map'
 };
 
-// We only need to use the webpack-livereload-plugin for development builds. Production
-// builds don't have this module.
-if (!IS_PRODUCTION && REFRESH) {
-  config.plugins.push(
-    new (require('webpack-livereload-plugin'))({appendScriptTag: true})
-  );
+/**
+ * Webpack entry for password strength checker
+ */
+var pwConfig = {
+  entry: {
+    pwstrength: './index'
+  },
+  context: path.resolve(path.join(__dirname, staticPrefix), 'js', 'pwstrength'),
+  module: {},
+  plugins: [],
+  resolve: {
+    modules: [path.join(__dirname, staticPrefix), 'node_modules'],
+    extensions: ['.js']
+  },
+  output: {
+    path: distPath,
+    filename: '[name].js',
+    libraryTarget: 'window',
+    library: 'sentrypw',
+    sourceMapFilename: '[name].js.map'
+  },
+  devtool: IS_PRODUCTION ? '#source-map' : '#cheap-source-map'
+};
+
+/**
+ * Legacy CSS Webpack appConfig for Django-powered views.
+ * This generates a single "sentry.css" file that imports ALL component styles
+ * for use on Django-powered pages.
+ */
+var legacyCssConfig = {
+  entry: {
+    sentry: 'less/sentry.less'
+  },
+  context: path.join(__dirname, staticPrefix),
+  output: {
+    path: distPath,
+    filename: '[name].css'
+  },
+  plugins: [new ExtractTextPlugin('[name].css')],
+  resolve: {
+    extensions: ['.less', '.js'],
+    modules: [path.join(__dirname, staticPrefix), 'node_modules']
+  },
+  module: {
+    rules: [
+      {
+        test: /\.less$/,
+        include: path.join(__dirname, staticPrefix),
+        loader: ExtractTextPlugin.extract({
+          fallbackLoader: 'style-loader?sourceMap=false',
+          loader: 'css-loader' + (IS_PRODUCTION ? '?minimize=true' : '') + '!less-loader'
+        })
+      },
+      {
+        test: /\.(woff|woff2|ttf|eot|svg|png|gif|ico|jpg)($|\?)/,
+        loader: 'file-loader?name=' + '[name].[ext]'
+      }
+    ]
+  }
+};
+
+// Dev only! Hot module reloading
+if (USE_HOT_MODULE_RELOAD) {
+  // Otherwise with hot reloads we get module ID number
+  appConfig.plugins.push(new webpack.NamedModulesPlugin());
+
+  // HMR
+  appConfig.plugins.push(new webpack.HotModuleReplacementPlugin());
+  appConfig.devServer = {
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Credentials': 'true'
+    },
+    // Required for getsentry
+    disableHostCheck: true,
+    contentBase: './src/sentry/static/sentry',
+    hot: true,
+    // If below is false, will reload on errors
+    hotOnly: true,
+    port: WEBPACK_DEV_PORT
+  };
+
+  // Required, without this we get this on updates:
+  // [HMR] Update failed: SyntaxError: Unexpected token < in JSON at position 12
+  appConfig.output.publicPath = 'http://localhost:' + WEBPACK_DEV_PORT + '/';
 }
 
-if (IS_PRODUCTION) {
+var minificationPlugins = [
   // This compression-webpack-plugin generates pre-compressed files
   // ending in .gz, to be picked up and served by our internal static media
   // server as well as nginx when paired with the gzip_static module.
-  config.plugins.push(
-    new (require('compression-webpack-plugin'))({
-      algorithm: function(buffer, options, callback) {
-        require('zlib').gzip(buffer, callback);
-      },
-      regExp: /\.(js|map|css|svg|html|txt|ico|eot|ttf)$/
-    })
-  );
+  new (require('compression-webpack-plugin'))({
+    algorithm: function(buffer, options, callback) {
+      require('zlib').gzip(buffer, callback);
+    },
+    regExp: /\.(js|map|css|svg|html|txt|ico|eot|ttf)$/
+  }),
 
   // Disable annoying UglifyJS warnings that pollute Travis log output
   // NOTE: This breaks -p in webpack 2. Must call webpack w/ NODE_ENV=production for minification.
-  config.plugins.push(
-    new webpack.optimize.UglifyJsPlugin({
-      compress: {
-        warnings: false
-      },
-      // https://github.com/webpack/webpack/blob/951a7603d279c93c936e4b8b801a355dc3e26292/bin/convert-argv.js#L442
-      sourceMap: config.devtool &&
-        (config.devtool.indexOf('sourcemap') >= 0 ||
-          config.devtool.indexOf('source-map') >= 0)
-    })
-  );
+  new webpack.optimize.UglifyJsPlugin({
+    compress: {
+      warnings: false
+    },
+    // https://github.com/webpack/webpack/blob/951a7603d279c93c936e4b8b801a355dc3e26292/bin/convert-argv.js#L442
+    sourceMap: appConfig.devtool &&
+      (appConfig.devtool.indexOf('sourcemap') >= 0 ||
+        appConfig.devtool.indexOf('source-map') >= 0)
+  })
+];
+
+if (IS_PRODUCTION) {
+  // NOTE: can't do plugins.push(Array) because webpack/webpack#2217
+  minificationPlugins.forEach(function(plugin) {
+    appConfig.plugins.push(plugin);
+    pwConfig.plugins.push(plugin);
+    legacyCssConfig.plugins.push(plugin);
+  });
 }
 
-module.exports = config;
+module.exports = [appConfig, legacyCssConfig, pwConfig];

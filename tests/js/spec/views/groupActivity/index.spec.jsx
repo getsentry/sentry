@@ -58,7 +58,7 @@ describe('GroupActivity', function() {
 
       let request = this.sandbox.stub(instance.api, 'request');
       instance.onNoteDelete({id: 1});
-      expect(request.calledOnce).toBeTruthy;
+      expect(request.calledOnce).toBeTruthy();
       expect(request.getCall(0).args[0]).toEqual('/issues/1337/comments/1/');
       expect(request.getCall(0).args[1]).toHaveProperty('method', 'DELETE');
     });

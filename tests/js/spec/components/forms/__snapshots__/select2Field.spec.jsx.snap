@@ -1,0 +1,111 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Select2Field render() renders with flat choices 1`] = `
+<div
+  className=""
+>
+  <div
+    className="controls"
+  >
+    <select
+      className="form-control"
+      disabled={false}
+      id="id-fieldName"
+      multiple={false}
+      onChange={[Function]}
+      placeholder="--"
+      required={false}
+      value="fieldValue"
+    >
+      <option
+        value="a"
+      />
+      <option
+        value="b"
+      />
+      <option
+        value="c"
+      />
+    </select>
+  </div>
+</div>
+`;
+
+exports[`Select2Field render() renders with form context 1`] = `
+<div
+  className=""
+>
+  <div
+    className="controls"
+  >
+    <select
+      className="form-control"
+      disabled={false}
+      id="id-fieldName"
+      multiple={false}
+      onChange={[Function]}
+      placeholder="--"
+      required={false}
+      value="fieldValue"
+    />
+  </div>
+</div>
+`;
+
+exports[`Select2Field render() renders with paired choices 1`] = `
+<div
+  className=""
+>
+  <div
+    className="controls"
+  >
+    <select
+      className="form-control"
+      disabled={false}
+      id="id-fieldName"
+      multiple={false}
+      onChange={[Function]}
+      placeholder="--"
+      required={false}
+      value="fieldValue"
+    >
+      <option
+        value="a"
+      >
+        abc
+      </option>
+      <option
+        value="b"
+      >
+        bcd
+      </option>
+      <option
+        value="c"
+      >
+        cde
+      </option>
+    </select>
+  </div>
+</div>
+`;
+
+exports[`Select2Field render() renders without form context 1`] = `
+<div
+  className=""
+>
+  <div
+    className="controls"
+  >
+    <select
+      className="form-control"
+      disabled={false}
+      id="id-fieldName"
+      multiple={false}
+      onChange={[Function]}
+      placeholder="--"
+      required={false}
+      value=""
+    />
+  </div>
+</div>
+`;

@@ -11,7 +11,7 @@ from __future__ import absolute_import
 from django.conf import settings
 from django.db.models import ForeignKey
 
-__all__ = ('FlexibleForeignKey',)
+__all__ = ('FlexibleForeignKey', )
 
 
 class FlexibleForeignKey(ForeignKey):
@@ -26,7 +26,9 @@ class FlexibleForeignKey(ForeignKey):
 if 'south' in settings.INSTALLED_APPS:
     from south.modelsinspector import add_introspection_rules
 
-    add_introspection_rules([], [
-        "^sentry\.db\.models\.fields\.FlexibleForeignKey",
-        "^sentry\.db\.models\.fields\.foreignkey\.FlexibleForeignKey",
-    ])
+    add_introspection_rules(
+        [], [
+            "^sentry\.db\.models\.fields\.FlexibleForeignKey",
+            "^sentry\.db\.models\.fields\.foreignkey\.FlexibleForeignKey",
+        ]
+    )

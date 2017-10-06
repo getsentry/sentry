@@ -9,10 +9,7 @@ from sentry.models import GroupSeen
 @register(GroupSeen)
 class GroupSeenSerializer(Serializer):
     def get_attrs(self, item_list, user):
-        user_map = {
-            d['id']: d
-            for d in serialize(set(i.user for i in item_list), user)
-        }
+        user_map = {d['id']: d for d in serialize(set(i.user for i in item_list), user)}
 
         result = {}
         for item in item_list:

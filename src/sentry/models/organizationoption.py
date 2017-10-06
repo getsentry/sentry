@@ -89,10 +89,7 @@ class OrganizationOptionManager(BaseManager):
 
     def reload_cache(self, organization_id):
         cache_key = self._make_key(organization_id)
-        result = dict(
-            (i.key, i.value)
-            for i in self.filter(organization=organization_id)
-        )
+        result = dict((i.key, i.value) for i in self.filter(organization=organization_id))
         cache.set(cache_key, result)
         self.__cache[organization_id] = result
         return result
@@ -130,6 +127,6 @@ class OrganizationOption(Model):
     class Meta:
         app_label = 'sentry'
         db_table = 'sentry_organizationoptions'
-        unique_together = (('organization', 'key',),)
+        unique_together = (('organization', 'key', ), )
 
     __repr__ = sane_repr('organization_id', 'key', 'value')

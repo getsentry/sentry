@@ -27,7 +27,7 @@ class RewriteRecordTestCase(TestCase):
 
     @fixture
     def record(self):
-        return event_to_record(self.event, (self.rule,))
+        return event_to_record(self.event, (self.rule, ))
 
     def test_success(self):
         assert rewrite_record(
@@ -82,8 +82,9 @@ class GroupRecordsTestCase(TestCase):
 
     def test_success(self):
         events = [self.create_event(group=self.group) for _ in range(3)]
-        records = [Record(event.id, Notification(event, [self.rule]), event.datetime)
-                   for event in events]
+        records = [
+            Record(event.id, Notification(event, [self.rule]), event.datetime) for event in events
+        ]
         assert reduce(group_records, records, defaultdict(lambda: defaultdict(list))) == {
             self.rule: {
                 self.group: records,
@@ -97,12 +98,17 @@ class SortRecordsTestCase(TestCase):
             project=self.project,
             label='Send a notification for regressions',
             data={
-                'match': 'all',
+                'match':
+                'all',
                 'conditions': [
-                    {'id': 'sentry.rules.conditions.regression_event.RegressionEventCondition'},
+                    {
+                        'id': 'sentry.rules.conditions.regression_event.RegressionEventCondition'
+                    },
                 ],
                 'actions': [
-                    {'id': 'sentry.rules.actions.notify_event.NotifyEventAction'},
+                    {
+                        'id': 'sentry.rules.actions.notify_event.NotifyEventAction'
+                    },
                 ],
             }
         )
@@ -129,12 +135,9 @@ class SortRecordsTestCase(TestCase):
             },
         }
 
-        assert sort_rule_groups(sort_group_contents(grouped)) == OrderedDict((
-            (rules[1], OrderedDict((
-                (groups[1], []),
-                (groups[2], []),
-            ))),
-            (rules[0], OrderedDict((
-                (groups[0], []),
-            ))),
-        ))
+        assert sort_rule_groups(sort_group_contents(grouped)) == OrderedDict(
+            (
+                (rules[1], OrderedDict(((groups[1], []), (groups[2], []), ))),
+                (rules[0], OrderedDict(((groups[0], []), ))),
+            )
+        )

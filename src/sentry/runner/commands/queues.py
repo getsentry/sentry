@@ -63,7 +63,8 @@ def purge(force, queue):
 
     if not force:
         click.confirm(
-            'Are you sure you want to purge %d messages from the queue \'%s\'?' %
-            (size, queue), abort=True)
+            'Are you sure you want to purge %d messages from the queue \'%s\'?' % (size, queue),
+            abort=True
+        )
 
     click.echo('Poof, %d messages deleted' % backend.purge_queue(queue), err=True)

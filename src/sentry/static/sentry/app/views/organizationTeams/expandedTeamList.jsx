@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import {Link} from 'react-router';
 import LazyLoad from 'react-lazy-load';
@@ -6,18 +7,18 @@ import ApiMixin from '../../mixins/apiMixin';
 import {update as projectUpdate} from '../../actionCreators/projects';
 import BarChart from '../../components/barChart';
 import ProjectLabel from '../../components/projectLabel';
-import PropTypes from '../../proptypes';
+import SentryTypes from '../../proptypes';
 import TooltipMixin from '../../mixins/tooltip';
 import {sortArray} from '../../utils';
 import {t, tct} from '../../locale';
 
 const ExpandedTeamList = React.createClass({
   propTypes: {
-    access: React.PropTypes.object.isRequired,
-    organization: PropTypes.Organization.isRequired,
-    teamList: React.PropTypes.arrayOf(PropTypes.Team).isRequired,
-    projectStats: React.PropTypes.object,
-    hasTeams: React.PropTypes.bool
+    access: PropTypes.object.isRequired,
+    organization: SentryTypes.Organization.isRequired,
+    teamList: PropTypes.arrayOf(SentryTypes.Team).isRequired,
+    projectStats: PropTypes.object,
+    hasTeams: PropTypes.bool
   },
 
   mixins: [

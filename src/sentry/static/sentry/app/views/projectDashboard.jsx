@@ -1,4 +1,5 @@
 import jQuery from 'jquery';
+import PropTypes from 'prop-types';
 import React from 'react';
 import {Link} from 'react-router';
 
@@ -14,8 +15,8 @@ const PERIODS = new Set([PERIOD_HOUR, PERIOD_DAY, PERIOD_WEEK]);
 
 const ProjectDashboard = React.createClass({
   propTypes: {
-    defaultStatsPeriod: React.PropTypes.string,
-    setProjectNavSection: React.PropTypes.func
+    defaultStatsPeriod: PropTypes.string,
+    setProjectNavSection: PropTypes.func
   },
 
   mixins: [ProjectState],
@@ -51,7 +52,7 @@ const ProjectDashboard = React.createClass({
     }
 
     return {
-      statsPeriod: statsPeriod
+      statsPeriod
     };
   },
 
@@ -118,7 +119,6 @@ const ProjectDashboard = React.createClass({
                   pathname: url,
                   query: {...routeQuery, statsPeriod: PERIOD_HOUR}
                 }}
-                active={statsPeriod === PERIOD_HOUR}
                 className={
                   'btn btn-sm btn-default' +
                     (statsPeriod === PERIOD_HOUR ? ' active' : '')
@@ -130,7 +130,6 @@ const ProjectDashboard = React.createClass({
                   pathname: url,
                   query: {...routeQuery, statsPeriod: PERIOD_DAY}
                 }}
-                active={statsPeriod === PERIOD_DAY}
                 className={
                   'btn btn-sm btn-default' + (statsPeriod === PERIOD_DAY ? ' active' : '')
                 }>

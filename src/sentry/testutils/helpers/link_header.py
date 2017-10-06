@@ -23,7 +23,7 @@ THE SOFTWARE.
 
 from __future__ import absolute_import
 
-__all__ = ('parse_link_header',)
+__all__ = ('parse_link_header', )
 
 import re
 

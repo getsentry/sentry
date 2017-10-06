@@ -1,14 +1,15 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import ReactDOM from 'react-dom';
 import PureRenderMixin from 'react-addons-pure-render-mixin';
 
 const SearchBar = React.createClass({
   propTypes: {
-    query: React.PropTypes.string,
-    defaultQuery: React.PropTypes.string,
-    onSearch: React.PropTypes.func,
-    onQueryChange: React.PropTypes.func,
-    placeholder: React.PropTypes.string
+    query: PropTypes.string,
+    defaultQuery: PropTypes.string,
+    onSearch: PropTypes.func,
+    onQueryChange: PropTypes.func,
+    placeholder: PropTypes.string
   },
 
   mixins: [PureRenderMixin],

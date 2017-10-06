@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import $ from 'jquery';
 import MD5 from 'crypto-js/md5';
@@ -6,11 +7,11 @@ import UserLetterAvatar from '../components/userLetterAvatar';
 
 const Avatar = React.createClass({
   propTypes: {
-    user: React.PropTypes.object,
-    size: React.PropTypes.number,
-    default: React.PropTypes.string,
-    title: React.PropTypes.string,
-    gravatar: React.PropTypes.bool
+    user: PropTypes.object,
+    size: PropTypes.number,
+    default: PropTypes.string,
+    title: PropTypes.string,
+    gravatar: PropTypes.bool
   },
 
   getDefaultProps() {

@@ -1,6 +1,7 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import {Link as RouterLink} from 'react-router';
-import _ from 'underscore';
+import _ from 'lodash';
 
 /**
  * A context-aware version of Link (from react-router) that falls
@@ -8,11 +9,11 @@ import _ from 'underscore';
  */
 const Link = React.createClass({
   propTypes: {
-    to: React.PropTypes.string.isRequired
+    to: PropTypes.string.isRequired
   },
 
   contextTypes: {
-    location: React.PropTypes.object
+    location: PropTypes.object
   },
 
   render() {

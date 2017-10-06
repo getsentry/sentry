@@ -1,7 +1,9 @@
+import PropTypes from 'prop-types';
 import React from 'react';
+import DocumentTitle from 'react-document-title';
+
 import ApiMixin from '../mixins/apiMixin';
 import Count from '../components/count';
-import DocumentTitle from 'react-document-title';
 import ListLink from '../components/listLink';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
@@ -13,15 +15,15 @@ import {t} from '../locale';
 
 const ReleaseDetails = React.createClass({
   propTypes: {
-    setProjectNavSection: React.PropTypes.func
+    setProjectNavSection: PropTypes.func
   },
 
   contextTypes: {
-    location: React.PropTypes.object
+    location: PropTypes.object
   },
 
   childContextTypes: {
-    release: React.PropTypes.object
+    release: PropTypes.object
   },
 
   mixins: [ApiMixin, ProjectState],
@@ -182,7 +184,7 @@ const ReleaseDetails = React.createClass({
             </ul>
           </div>
           {React.cloneElement(this.props.children, {
-            release: release
+            release
           })}
         </div>
       </DocumentTitle>

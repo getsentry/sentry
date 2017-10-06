@@ -71,10 +71,7 @@ class OrganizationManager(BoundManager):
         results = list(qs)
 
         if scope is not None:
-            return [
-                r.organization for r in results
-                if scope in r.get_scopes()
-            ]
+            return [r.organization for r in results if scope in r.get_scopes()]
         return [r.organization for r in results]
 
 
@@ -86,16 +83,20 @@ class Organization(Model):
 
     name = models.CharField(max_length=64)
     slug = models.SlugField(unique=True)
-    status = BoundedPositiveIntegerField(choices=(
-        (OrganizationStatus.VISIBLE, _('Visible')),
-        (OrganizationStatus.PENDING_DELETION, _('Pending Deletion')),
-        (OrganizationStatus.DELETION_IN_PROGRESS, _('Deletion in Progress')),
-    ), default=OrganizationStatus.VISIBLE)
+    status = BoundedPositiveIntegerField(
+        choices=(
+            (OrganizationStatus.VISIBLE,
+             _('Visible')), (OrganizationStatus.PENDING_DELETION, _('Pending Deletion')),
+            (OrganizationStatus.DELETION_IN_PROGRESS, _('Deletion in Progress')),
+        ),
+        default=OrganizationStatus.VISIBLE
+    )
     date_added = models.DateTimeField(default=timezone.now)
     members = models.ManyToManyField(
         settings.AUTH_USER_MODEL,
         through='sentry.OrganizationMember',
-        related_name='org_memberships')
+        related_name='org_memberships'
+    )
     default_role = models.CharField(
         choices=roles.get_choices(),
         max_length=32,
@@ -104,21 +105,24 @@ class Organization(Model):
 
     flags = BitField(
         flags=(
-            ('allow_joinleave',
-             'Allow members to join and leave teams without requiring approval.'),
-            ('enhanced_privacy',
-             'Enable enhanced privacy controls to limit personally identifiable information (PII) as well as source code in things like notifications.'),
-            ('disable_shared_issues',
-             'Disable sharing of limited details on issues to anonymous users.'),
-            ('early_adopter',
-             'Enable early adopter status, gaining access to features prior to public release.'),
+            (
+                'allow_joinleave',
+                'Allow members to join and leave teams without requiring approval.'
+            ), (
+                'enhanced_privacy',
+                'Enable enhanced privacy controls to limit personally identifiable information (PII) as well as source code in things like notifications.'
+            ), (
+                'disable_shared_issues',
+                'Disable sharing of limited details on issues to anonymous users.'
+            ), (
+                'early_adopter',
+                'Enable early adopter status, gaining access to features prior to public release.'
+            ),
         ),
-        default=1)
+        default=1
+    )
 
-    objects = OrganizationManager(cache_fields=(
-        'pk',
-        'slug',
-    ))
+    objects = OrganizationManager(cache_fields=('pk', 'slug', ))
 
     class Meta:
         app_label = 'sentry'
@@ -142,8 +146,7 @@ class Organization(Model):
         if not self.slug:
             lock = locks.get('slug:organization', duration=5)
             with TimedRetryPolicy(10)(lock.acquire):
-                slugify_instance(self, self.name,
-                                 reserved=RESERVED_ORGANIZATION_SLUGS)
+                slugify_instance(self, self.name, reserved=RESERVED_ORGANIZATION_SLUGS)
             super(Organization, self).save(*args, **kwargs)
         else:
             super(Organization, self).save(*args, **kwargs)
@@ -202,14 +205,25 @@ class Organization(Model):
 
     def merge_to(from_org, to_org):
         from sentry.models import (
-            ApiKey, AuditLogEntry, Commit, OrganizationMember,
-            OrganizationMemberTeam, Project, Release, ReleaseCommit,
-            ReleaseEnvironment, ReleaseFile, ReleaseHeadCommit,
-            Repository, Team, Environment,
+            ApiKey,
+            AuditLogEntry,
+            Commit,
+            OrganizationMember,
+            OrganizationMemberTeam,
+            Project,
+            Release,
+            ReleaseCommit,
+            ReleaseEnvironment,
+            ReleaseFile,
+            ReleaseHeadCommit,
+            Repository,
+            Team,
+            Environment,
         )
 
         for from_member in OrganizationMember.objects.filter(
-                organization=from_org, user__isnull=False):
+            organization=from_org, user__isnull=False
+        ):
             try:
                 to_member = OrganizationMember.objects.get(
                     organization=to_org,
@@ -258,14 +272,9 @@ class Organization(Model):
         # on version, organization for releases
         for release in Release.objects.filter(organization=from_org):
             try:
-                to_release = Release.objects.get(
-                    version=release.version,
-                    organization=to_org
-                )
+                to_release = Release.objects.get(version=release.version, organization=to_org)
             except Release.DoesNotExist:
-                Release.objects.filter(
-                    id=release.id
-                ).update(organization=to_org)
+                Release.objects.filter(id=release.id).update(organization=to_org)
             else:
                 Release.merge(to_release, [release])
 
@@ -274,11 +283,16 @@ class Organization(Model):
                 organization=from_org,
             ).update(organization=to_org)
 
-        for model in (Commit, ReleaseCommit, ReleaseEnvironment,
-                      ReleaseHeadCommit, Repository, Environment):
-            model.objects.filter(
-                organization_id=from_org.id,
-            ).update(organization_id=to_org.id)
+        for model in (
+            Commit, ReleaseCommit, ReleaseEnvironment, ReleaseHeadCommit, Repository, Environment
+        ):
+            try:
+                with transaction.atomic():
+                    model.objects.filter(
+                        organization_id=from_org.id,
+                    ).update(organization_id=to_org.id)
+            except IntegrityError:
+                pass
 
     # TODO: Make these a mixin
     def update_option(self, *args, **kwargs):
@@ -313,7 +327,7 @@ class Organization(Model):
         }
 
         MessageBuilder(
-            subject='%sOrganization Queued for Deletion' % (options.get('mail.subject-prefix'),),
+            subject='%sOrganization Queued for Deletion' % (options.get('mail.subject-prefix'), ),
             template='sentry/emails/org_delete_confirm.txt',
             html_template='sentry/emails/org_delete_confirm.html',
             type='org.confirm_delete',

@@ -94,10 +94,7 @@ const TeamDetails = React.createClass({
         <h3>{team.name}</h3>
 
         {access.has('team:admin') &&
-          <DropdownLink
-            topLevelClasses="pull-right anchor-right"
-            className="dropdown-menu-right"
-            title={t('More')}>
+          <DropdownLink anchorRight title={t('More')}>
             <MenuItem href={`${routePrefix}/remove/`}>{t('Remove Team')}</MenuItem>
           </DropdownLink>}
 
@@ -107,7 +104,7 @@ const TeamDetails = React.createClass({
         </ul>
 
         {React.cloneElement(this.props.children, {
-          team: team,
+          team,
           onTeamChange: this.onTeamChange
         })}
       </OrganizationHomeContainer>

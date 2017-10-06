@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 
 import AsyncView from './asyncView';
@@ -7,8 +8,8 @@ import {t} from '../locale';
 export default class TeamSettings extends AsyncView {
   static propTypes = {
     ...AsyncView.propTypes,
-    team: React.PropTypes.object.isRequired,
-    onTeamChange: React.PropTypes.func.isRequired
+    team: PropTypes.object.isRequired,
+    onTeamChange: PropTypes.func.isRequired
   };
 
   getTitle() {

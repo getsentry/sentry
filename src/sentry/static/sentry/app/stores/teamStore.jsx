@@ -42,8 +42,8 @@ const TeamStore = Reflux.createStore({
     let teamsChanged = new Set();
     projectIds.forEach((set, projectId) => {
       let teamId = this.projectMap[projectId];
+      if (teamId === undefined) return;
       let team = this.getById(teamId);
-
       // TODO: make copy of project? right now just assigning reference
       // to project form project store
       let project = ProjectStore.getById(projectId);

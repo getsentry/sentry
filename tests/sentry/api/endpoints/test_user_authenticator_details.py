@@ -16,10 +16,13 @@ class DeleteUserAuthenticatorTest(APITestCase):
 
         self.login_as(user=user)
 
-        url = reverse('sentry-api-0-user-authenticator-details', kwargs={
-            'user_id': user.id,
-            'auth_id': auth.id,
-        })
+        url = reverse(
+            'sentry-api-0-user-authenticator-details',
+            kwargs={
+                'user_id': user.id,
+                'auth_id': auth.id,
+            }
+        )
         resp = self.client.delete(url, format='json')
         assert resp.status_code == 204, (resp.status_code, resp.content)
 
@@ -36,10 +39,13 @@ class DeleteUserAuthenticatorTest(APITestCase):
 
         self.login_as(user=user)
 
-        url = reverse('sentry-api-0-user-authenticator-details', kwargs={
-            'user_id': user.id,
-            'auth_id': auth.id,
-        })
+        url = reverse(
+            'sentry-api-0-user-authenticator-details',
+            kwargs={
+                'user_id': user.id,
+                'auth_id': auth.id,
+            }
+        )
         resp = self.client.delete(url, format='json')
         assert resp.status_code == 403, (resp.status_code, resp.content)
 

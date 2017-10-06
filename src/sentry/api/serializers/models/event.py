@@ -11,10 +11,8 @@ from sentry.models import Event, EventError
 
 @register(Event)
 class EventSerializer(Serializer):
-    _reserved_keys = frozenset([
-        'sentry.interfaces.User', 'sdk', 'device',
-        'contexts'
-    ])
+    _reserved_keys = frozenset(
+        ['sentry.interfaces.User', 'sdk', 'device', 'contexts'])
 
     def _get_entries(self, event, user, is_public=False):
         # XXX(dcramer): These are called entries for future-proofing
@@ -34,7 +32,8 @@ class EventSerializer(Serializer):
                 'type': interface.get_alias(),
             }
             interface_list.append((interface, entry))
-        interface_list.sort(key=lambda x: x[0].get_display_score(), reverse=True)
+        interface_list.sort(
+            key=lambda x: x[0].get_display_score(), reverse=True)
 
         return [i[1] for i in interface_list]
 
@@ -77,28 +76,22 @@ class EventSerializer(Serializer):
 
     def serialize(self, obj, attrs, user):
         errors = []
-        error_set = set()
         for error in obj.data.get('errors', []):
             message = EventError.get_message(error)
-            if message in error_set:
-                continue
-            error_set.add(message)
             error_result = {
                 'type': error['type'],
                 'message': message,
-                'data': {
-                    k: v for k, v in six.iteritems(error)
-                    if k != 'type'
-                },
+                'data': {k: v for k, v in six.iteritems(error) if k != 'type'},
             }
             errors.append(error_result)
 
-        tags = sorted([
-            {
+        tags = sorted(
+            [{
                 'key': k.split('sentry:', 1)[-1],
                 'value': v
-            } for k, v in obj.get_tags()
-        ], key=lambda x: x['key'])
+            } for k, v in obj.get_tags()],
+            key=lambda x: x['key']
+        )
 
         received = obj.data.get('received')
         if received:
@@ -146,9 +139,7 @@ class EventSerializer(Serializer):
 
 class SharedEventSerializer(EventSerializer):
     def get_attrs(self, item_list, user):
-        return super(SharedEventSerializer, self).get_attrs(
-            item_list, user, is_public=True
-        )
+        return super(SharedEventSerializer, self).get_attrs(item_list, user, is_public=True)
 
     def serialize(self, obj, attrs, user):
         result = super(SharedEventSerializer, self).serialize(obj, attrs, user)
@@ -158,8 +149,6 @@ class SharedEventSerializer(EventSerializer):
         del result['tags']
         del result['sdk']
         del result['errors']
-        result['entries'] = [
-            e for e in result['entries']
-            if e['type'] != 'breadcrumbs'
-        ]
+        result['entries'] = [e for e in result['entries']
+                             if e['type'] != 'breadcrumbs']
         return result

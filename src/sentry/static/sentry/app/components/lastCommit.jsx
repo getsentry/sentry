@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 
 import Avatar from './avatar';
@@ -7,8 +8,8 @@ import {t} from '../locale';
 
 const LastCommit = React.createClass({
   propTypes: {
-    commit: React.PropTypes.object.isRequired,
-    headerClass: React.PropTypes.string
+    commit: PropTypes.object.isRequired,
+    headerClass: PropTypes.string
   },
 
   renderMessage(message) {

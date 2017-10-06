@@ -6,14 +6,14 @@ from datetime import timedelta
 from django.utils import timezone
 from mock import Mock, patch
 
-from sentry.models import EventTag, GroupSnooze, TagKey, TagValue
+from sentry import tagstore
+from sentry.models import EventTag, Group, GroupSnooze, GroupStatus
 from sentry.testutils import TestCase
 from sentry.tasks.merge import merge_group
 from sentry.tasks.post_process import index_event_tags, post_process_group
 
 
 class PostProcessGroupTest(TestCase):
-    @patch('sentry.tasks.post_process.record_affected_user', Mock())
     @patch('sentry.rules.processor.RuleProcessor')
     def test_rule_processor(self, mock_processor):
         group = self.create_group(project=self.project)
@@ -38,7 +38,6 @@ class PostProcessGroupTest(TestCase):
 
         mock_callback.assert_called_once_with(event, mock_futures)
 
-    @patch('sentry.tasks.post_process.record_affected_user', Mock())
     @patch('sentry.rules.processor.RuleProcessor')
     def test_group_refresh(self, mock_processor):
         group1 = self.create_group(project=self.project)
@@ -68,9 +67,9 @@ class PostProcessGroupTest(TestCase):
         assert event.group == group2
         assert event.group_id == group2.id
 
-    @patch('sentry.tasks.post_process.record_affected_user', Mock())
     def test_invalidates_snooze(self):
-        group = self.create_group(project=self.project)
+        group = self.create_group(
+            project=self.project, status=GroupStatus.IGNORED)
         event = self.create_event(group=group)
         snooze = GroupSnooze.objects.create(
             group=group,
@@ -88,7 +87,9 @@ class PostProcessGroupTest(TestCase):
             id=snooze.id,
         ).exists()
 
-    @patch('sentry.tasks.post_process.record_affected_user', Mock())
+        group = Group.objects.get(id=group.id)
+        assert group.status == GroupStatus.UNRESOLVED
+
     def test_maintains_valid_snooze(self):
         group = self.create_group(project=self.project)
         event = self.create_event(group=group)
@@ -128,25 +129,25 @@ class IndexEventTagsTest(TestCase):
         ).values_list('key_id', 'value_id'))
         assert len(tags) == 2
 
-        tagkey = TagKey.objects.get(
+        tagkey = tagstore.get_tag_key(
             key='foo',
-            project=self.project,
+            project_id=self.project.id,
         )
-        tagvalue = TagValue.objects.get(
+        tagvalue = tagstore.get_tag_value(
             key='foo',
             value='bar',
-            project=self.project,
+            project_id=self.project.id,
         )
         assert (tagkey.id, tagvalue.id) in tags
 
-        tagkey = TagKey.objects.get(
+        tagkey = tagstore.get_tag_key(
             key='biz',
-            project=self.project,
+            project_id=self.project.id,
         )
-        tagvalue = TagValue.objects.get(
+        tagvalue = tagstore.get_tag_value(
             key='biz',
             value='baz',
-            project=self.project,
+            project_id=self.project.id,
         )
         assert (tagkey.id, tagvalue.id) in tags
 

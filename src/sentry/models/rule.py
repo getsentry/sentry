@@ -11,8 +11,7 @@ from django.db import models
 from django.utils import timezone
 
 from sentry.db.models import (
-    BoundedPositiveIntegerField, Model, FlexibleForeignKey, GzippedDictField,
-    sane_repr
+    BoundedPositiveIntegerField, Model, FlexibleForeignKey, GzippedDictField, sane_repr
 )
 from sentry.db.models.manager import BaseManager
 from sentry.utils.cache import cache
@@ -35,16 +34,15 @@ class Rule(Model):
     project = FlexibleForeignKey('sentry.Project')
     label = models.CharField(max_length=64)
     data = GzippedDictField()
-    status = BoundedPositiveIntegerField(default=RuleStatus.ACTIVE, choices=(
-        (RuleStatus.ACTIVE, 'Active'),
-        (RuleStatus.INACTIVE, 'Inactive'),
-    ), db_index=True)
+    status = BoundedPositiveIntegerField(
+        default=RuleStatus.ACTIVE,
+        choices=((RuleStatus.ACTIVE, 'Active'), (RuleStatus.INACTIVE, 'Inactive'), ),
+        db_index=True
+    )
 
     date_added = models.DateTimeField(default=timezone.now)
 
-    objects = BaseManager(cache_fields=(
-        'pk',
-    ))
+    objects = BaseManager(cache_fields=('pk', ))
 
     class Meta:
         db_table = 'sentry_rule'

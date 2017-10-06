@@ -1,6 +1,7 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import DocumentTitle from 'react-document-title';
-import _ from 'underscore';
+import _ from 'lodash';
 
 import {t} from '../locale';
 import ApiMixin from '../mixins/apiMixin';
@@ -11,15 +12,15 @@ import {getOption, getOptionField, getForm} from '../options';
 
 const InstallWizardSettings = React.createClass({
   propTypes: {
-    options: React.PropTypes.object.isRequired,
-    formDisabled: React.PropTypes.bool,
-    onSubmit: React.PropTypes.func.isRequired
+    options: PropTypes.object.isRequired,
+    formDisabled: PropTypes.bool,
+    onSubmit: PropTypes.func.isRequired
   },
 
   getInitialState() {
     let options = {...this.props.options};
     let requiredOptions = Object.keys(
-      _.pick(options, option => {
+      _.pickBy(options, option => {
         return option.field.required && !option.field.disabled;
       })
     );
@@ -58,9 +59,9 @@ const InstallWizardSettings = React.createClass({
     }
 
     return {
-      options: options,
+      options,
       required: requiredOptions,
-      fields: fields
+      fields
     };
   },
 
@@ -68,7 +69,7 @@ const InstallWizardSettings = React.createClass({
     let options = {...this.state.options};
     options[name].value = value;
     this.setState({
-      options: options
+      options
     });
   },
 
@@ -105,7 +106,7 @@ const InstallWizardSettings = React.createClass({
 
 const InstallWizard = React.createClass({
   propTypes: {
-    onConfigured: React.PropTypes.func.isRequired
+    onConfigured: PropTypes.func.isRequired
   },
 
   mixins: [ApiMixin],
@@ -163,13 +164,22 @@ const InstallWizard = React.createClass({
     let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
 
     // We only want to send back the values which weren't disabled
-    let data = _.mapObject(
-      _.pick(options, option => !option.field.disabled),
+    let data = _.mapValues(
+      _.pickBy(options, option => !option.field.disabled),
       option => option.value
     );
+
+    // keys to cast as boolean, otherwise will throw server error
+    // see https://github.com/getsentry/sentry/issues/5699
+    ['mail.use-tls'].forEach(key => {
+      if (typeof data[key] !== 'undefined') {
+        data[key] = !!data[key];
+      }
+    });
+
     this.api.request('/internal/options/', {
       method: 'PUT',
-      data: data,
+      data,
       success: () => {
         this.setState({
           submitInProgress: false

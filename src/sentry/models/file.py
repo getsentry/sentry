@@ -22,9 +22,7 @@ from django.utils import timezone
 from jsonfield import JSONField
 
 from sentry.app import locks
-from sentry.db.models import (
-    BoundedPositiveIntegerField, FlexibleForeignKey, Model
-)
+from sentry.db.models import (BoundedPositiveIntegerField, FlexibleForeignKey, Model)
 from sentry.utils import metrics
 from sentry.utils.retries import TimedRetryPolicy
 
@@ -104,10 +102,7 @@ class FileBlob(Model):
 
     @classmethod
     def generate_unique_path(cls, timestamp):
-        pieces = [
-            six.text_type(x)
-            for x in divmod(int(timestamp.strftime('%s')), ONE_DAY)
-        ]
+        pieces = [six.text_type(x) for x in divmod(int(timestamp.strftime('%s')), ONE_DAY)]
         pieces.append(uuid4().hex)
         return u'/'.join(pieces)
 
@@ -158,6 +153,7 @@ class File(Model):
     # Remove in 8.1
     blob = FlexibleForeignKey('sentry.FileBlob', null=True, related_name='legacy_blob')
     path = models.TextField(null=True)
+
     # </Legacy fields>
 
     class Meta:
@@ -165,12 +161,14 @@ class File(Model):
         db_table = 'sentry_file'
 
     def getfile(self, *args, **kwargs):
-        return FileObj(ChunkedFileBlobIndexWrapper(
-            FileBlobIndex.objects.filter(
-                file=self,
-            ).select_related('blob').order_by('offset'),
-            mode=kwargs.get('mode'),
-        ), self.name)
+        return FileObj(
+            ChunkedFileBlobIndexWrapper(
+                FileBlobIndex.objects.filter(
+                    file=self,
+                ).select_related('blob').order_by('offset'),
+                mode=kwargs.get('mode'),
+            ), self.name
+        )
 
     def putfile(self, fileobj, blob_size=DEFAULT_BLOB_SIZE, commit=True):
         """
@@ -193,13 +191,11 @@ class File(Model):
             blob_fileobj = ContentFile(contents)
             blob = FileBlob.from_file(blob_fileobj)
 
-            results.append(
-                FileBlobIndex.objects.create(
-                    file=self,
-                    blob=blob,
-                    offset=offset,
-                )
-            )
+            results.append(FileBlobIndex.objects.create(
+                file=self,
+                blob=blob,
+                offset=offset,
+            ))
             offset += blob.size
         self.size = offset
         self.checksum = checksum.hexdigest()
@@ -219,7 +215,7 @@ class FileBlobIndex(Model):
     class Meta:
         app_label = 'sentry'
         db_table = 'sentry_fileblobindex'
-        unique_together = (('file', 'blob', 'offset'),)
+        unique_together = (('file', 'blob', 'offset'), )
 
 
 class ChunkedFileBlobIndexWrapper(object):

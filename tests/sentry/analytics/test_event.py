@@ -10,10 +10,7 @@ class ExampleEvent(Event):
     type = 'example'
 
     attributes = (
-        Attribute('id', type=int),
-        Map('map', (
-            Attribute('key'),
-        )),
+        Attribute('id', type=int), Map('map', (Attribute('key'), )),
         Attribute('optional', type=bool, required=False),
     )
 

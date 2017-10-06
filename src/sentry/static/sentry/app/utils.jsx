@@ -1,4 +1,12 @@
-import _ from 'underscore';
+import _ from 'lodash';
+
+// import/export sub-utils
+import parseLinkHeader from './utils/parseLinkHeader';
+import deviceNameMapper from './utils/deviceNameMapper';
+import Collection from './utils/collection';
+import PendingChangeQueue from './utils/pendingChangeQueue';
+import CursorPoller from './utils/cursorPoller';
+import StreamManager from './utils/streamManager';
 
 /*eslint no-use-before-define:0*/
 export const modelsEqual = function(obj1, obj2) {
@@ -222,7 +230,9 @@ export function formatBytes(bytes) {
 }
 
 export function getShortVersion(version) {
-  let match = version.match(/^(?:[a-zA-Z][a-zA-Z0-9-]+)(?:\.[a-zA-Z][a-zA-Z0-9-]+)+-(.*)$/);
+  let match = version.match(
+    /^(?:[a-zA-Z][a-zA-Z0-9-]+)(?:\.[a-zA-Z][a-zA-Z0-9-]+)+-(.*)$/
+  );
   if (match) {
     version = match[1];
   }
@@ -232,15 +242,14 @@ export function getShortVersion(version) {
   return version;
 }
 
-export function parseGitHubRepo(repo) {
-  if (repo) {
-    let re = /github\.com\/([^\/]+\/[^\/]+)/i;
-    let match = repo.match(re);
-    let parsedRepo;
-    match ? (parsedRepo = match[1]) : (parsedRepo = repo);
-    return parsedRepo;
-  } else {
+export function parseRepo(repo) {
+  if (!repo) {
     return repo;
+  } else {
+    let re = /(?:github\.com|bitbucket\.org)\/([^\/]+\/[^\/]+)/i;
+    let match = repo.match(re);
+    let parsedRepo = match ? match[1] : repo;
+    return parsedRepo;
   }
 }
 
@@ -252,44 +261,36 @@ export function extractMultilineFields(value) {
   return value.split('\n').map(f => trim(f)).filter(f => f !== '');
 }
 
-// import/export sub-utils
-import parseLinkHeader from './utils/parseLinkHeader';
-import deviceNameMapper from './utils/deviceNameMapper';
-import Collection from './utils/collection';
-import PendingChangeQueue from './utils/pendingChangeQueue';
-import CursorPoller from './utils/cursorPoller';
-import StreamManager from './utils/streamManager';
-
 // re-export under utils
 export {parseLinkHeader, deviceNameMapper, Collection, PendingChangeQueue, CursorPoller};
 
 // backwards compatible default export for use w/ getsentry (exported
 // as a single object w/ function refs for consumption by getsentry)
 export default {
-  getQueryParams: getQueryParams,
-  sortArray: sortArray,
-  objectIsEmpty: objectIsEmpty,
-  trim: trim,
-  defined: defined,
-  nl2br: nl2br,
-  isUrl: isUrl,
-  escape: escape,
-  percent: percent,
-  urlize: urlize,
-  toTitleCase: toTitleCase,
-  arrayIsEqual: arrayIsEqual,
-  objectMatchesSubset: objectMatchesSubset,
-  compareArrays: compareArrays,
-  intcomma: intcomma,
-  modelsEqual: modelsEqual,
-  valueIsEqual: valueIsEqual,
-  parseLinkHeader: parseLinkHeader,
+  getQueryParams,
+  sortArray,
+  objectIsEmpty,
+  trim,
+  defined,
+  nl2br,
+  isUrl,
+  escape,
+  percent,
+  urlize,
+  toTitleCase,
+  arrayIsEqual,
+  objectMatchesSubset,
+  compareArrays,
+  intcomma,
+  modelsEqual,
+  valueIsEqual,
+  parseLinkHeader,
 
   // external imports
-  deviceNameMapper: deviceNameMapper,
-  objectToArray: objectToArray,
-  Collection: Collection,
-  PendingChangeQueue: PendingChangeQueue,
-  StreamManager: StreamManager,
-  CursorPoller: CursorPoller
+  deviceNameMapper,
+  objectToArray,
+  Collection,
+  PendingChangeQueue,
+  StreamManager,
+  CursorPoller
 };

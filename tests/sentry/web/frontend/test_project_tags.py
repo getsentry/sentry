@@ -3,7 +3,7 @@ from __future__ import absolute_import, print_function
 from django.core.urlresolvers import reverse
 from exam import fixture
 
-from sentry.models import TagKey
+from sentry import tagstore
 from sentry.testutils import TestCase
 
 
@@ -11,18 +11,16 @@ class ProjectTagsTest(TestCase):
     @fixture
     def path(self):
         return reverse(
-            'sentry-manage-project-tags',
-            args=[
-                self.organization.slug,
-                self.project.slug])
+            'sentry-manage-project-tags', args=[self.organization.slug, self.project.slug]
+        )
 
     def test_requires_authentication(self):
         self.assertRequiresAuthentication(self.path)
 
     def test_simple(self):
-        TagKey.objects.create(project=self.project, key='site')
-        TagKey.objects.create(project=self.project, key='url')
-        TagKey.objects.create(project=self.project, key='os')
+        tagstore.create_tag_key(project_id=self.project.id, key='site')
+        tagstore.create_tag_key(project_id=self.project.id, key='url')
+        tagstore.create_tag_key(project_id=self.project.id, key='os')
 
         self.login_as(self.user)
 

@@ -1,0 +1,62 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Button renders 1`] = `
+<button
+  className="button button-primary button-lg"
+  disabled={false}
+  onClick={[Function]}
+  role="button"
+>
+  <FlowLayout
+    truncate={false}
+  >
+    <span
+      className="button-label"
+    >
+      Button
+    </span>
+  </FlowLayout>
+</button>
+`;
+
+exports[`Button renders normal link 1`] = `
+<a
+  className="button button-default"
+  disabled={false}
+  href="/some/relative/url"
+  onClick={[Function]}
+  role="button"
+>
+  <FlowLayout
+    truncate={false}
+  >
+    <span
+      className="button-label"
+    >
+      Normal Link
+    </span>
+  </FlowLayout>
+</a>
+`;
+
+exports[`Button renders react-router link 1`] = `
+<Link
+  className="button button-default"
+  disabled={false}
+  onClick={[Function]}
+  onlyActiveOnIndex={false}
+  role="button"
+  style={Object {}}
+  to="/some/route"
+>
+  <FlowLayout
+    truncate={false}
+  >
+    <span
+      className="button-label"
+    >
+      Router Link
+    </span>
+  </FlowLayout>
+</Link>
+`;

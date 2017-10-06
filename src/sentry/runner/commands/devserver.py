@@ -9,22 +9,32 @@ from __future__ import absolute_import, print_function
 
 import click
 import six
+from six.moves.urllib.parse import urlparse
 
 from sentry.runner.decorators import configuration, log_options
 
 
 @click.command()
 @click.option('--reload/--no-reload', default=True, help='Autoreloading of python files.')
-@click.option('--watchers/--no-watchers', default=True,
-              help='Watch static files and recompile on changes.')
+@click.option(
+    '--watchers/--no-watchers', default=True, help='Watch static files and recompile on changes.'
+)
 @click.option('--workers/--no-workers', default=False, help='Run asynchronous workers.')
-@click.option('--browser-reload/--no-browser-reload', default=False,
-              help='Automatic browser refreshing on webpack builds')
+@click.option(
+    '--browser-reload/--no-browser-reload',
+    default=False,
+    help='Automatic browser refreshing on webpack builds'
+)
+@click.option(
+    '--styleguide/--no-styleguide',
+    default=False,
+    help='Start local styleguide web server on port 9001'
+)
 @click.option('--environment', default='development', help='The environment name.')
 @click.argument('bind', default='127.0.0.1:8000', metavar='ADDRESS')
 @log_options()
 @configuration
-def devserver(reload, watchers, workers, browser_reload, environment, bind):
+def devserver(reload, watchers, workers, browser_reload, styleguide, environment, bind):
     "Starts a lightweight web server for development."
     if ':' in bind:
         host, port = bind.split(':', 1)
@@ -42,7 +52,12 @@ def devserver(reload, watchers, workers, browser_reload, environment, bind):
     from sentry.services.http import SentryHTTPServer
 
     url_prefix = options.get('system.url-prefix', '')
-    needs_https = url_prefix.startswith('https://')
+    parsed_url = urlparse(url_prefix)
+    # Make sure we're trying to use a port that we can actually bind to
+    needs_https = (
+        parsed_url.scheme == 'https' and
+        (parsed_url.port or 443) > 1024
+    )
     has_https = False
 
     if needs_https:
@@ -53,10 +68,12 @@ def devserver(reload, watchers, workers, browser_reload, environment, bind):
         except Exception:
             has_https = False
             from sentry.runner.initializer import show_big_error
-            show_big_error([
-                'missing `https` on your `$PATH`, but https is needed',
-                '`$ brew install mattrobenolt/stuff/https`',
-            ])
+            show_big_error(
+                [
+                    'missing `https` on your `$PATH`, but https is needed',
+                    '`$ brew install mattrobenolt/stuff/https`',
+                ]
+            )
 
     uwsgi_overrides = {
         # Make sure we don't try and use uwsgi protocol
@@ -73,13 +90,29 @@ def devserver(reload, watchers, workers, browser_reload, environment, bind):
 
     daemons = []
 
-    if watchers:
+    if watchers and not browser_reload:
         daemons += settings.SENTRY_WATCHERS
+
+    # For javascript dev, if browser reload and watchers, then:
+    # devserver listen on PORT + 1
+    # webpack dev server listen on PORT + 2
+    # proxy listen on PORT
+    if watchers and browser_reload:
+        new_port = port + 1
+        os.environ['WEBPACK_DEV_PROXY'] = '%s' % port
+        os.environ['WEBPACK_DEV_PORT'] = '%s' % (new_port + 1)
+        os.environ['SENTRY_DEVSERVER_PORT'] = '%s' % new_port
+        port = new_port
+
+        daemons += [
+            ('jsproxy', ['yarn', 'dev-proxy']), ('webpack', ['yarn', 'dev-server'])
+        ]
 
     if workers:
         if settings.CELERY_ALWAYS_EAGER:
             raise click.ClickException(
-                'Disable CELERY_ALWAYS_EAGER in your settings file to spawn workers.')
+                'Disable CELERY_ALWAYS_EAGER in your settings file to spawn workers.'
+            )
 
         daemons += [
             ('worker', ['sentry', 'run', 'worker', '-c', '1', '--autoreload']),
@@ -87,9 +120,7 @@ def devserver(reload, watchers, workers, browser_reload, environment, bind):
         ]
 
     if needs_https and has_https:
-        from six.moves.urllib.parse import urlparse
-        parsed_url = urlparse(url_prefix)
-        https_port = six.text_type(parsed_url.port or 443)
+        https_port = six.text_type(parsed_url.port)
         https_host = parsed_url.hostname
 
         # Determine a random port for the backend http server
@@ -124,8 +155,6 @@ def devserver(reload, watchers, workers, browser_reload, environment, bind):
     from honcho.manager import Manager
 
     os.environ['PYTHONUNBUFFERED'] = 'true'
-    if browser_reload:
-        os.environ['WEBPACK_LIVERELOAD'] = '1'
 
     # Make sure that the environment is prepared before honcho takes over
     # This sets all the appropriate uwsgi env vars, etc
@@ -134,13 +163,18 @@ def devserver(reload, watchers, workers, browser_reload, environment, bind):
         ('server', ['sentry', 'run', 'web']),
     ]
 
+    if styleguide:
+        daemons += [('storybook', ['yarn', 'storybook'])]
+
     cwd = os.path.realpath(os.path.join(settings.PROJECT_ROOT, os.pardir, os.pardir))
 
     manager = Manager()
     for name, cmd in daemons:
         manager.add_process(
-            name, list2cmdline(cmd),
-            quiet=False, cwd=cwd,
+            name,
+            list2cmdline(cmd),
+            quiet=False,
+            cwd=cwd,
         )
 
     manager.loop()

@@ -17,7 +17,7 @@ from django.db import models
 from sentry.utils.compat import pickle
 from sentry.utils.strings import decompress, compress
 
-__all__ = ('GzippedDictField',)
+__all__ = ('GzippedDictField', )
 
 logger = logging.getLogger('sentry')
 

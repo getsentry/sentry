@@ -1,22 +1,23 @@
+import PropTypes from 'prop-types';
 import React from 'react';
-import underscore from 'underscore';
+import _ from 'lodash';
 
 import FormState from './state';
 import {t} from '../../locale';
 
 export default class Form extends React.Component {
   static propTypes = {
-    cancelLabel: React.PropTypes.string,
-    onCancel: React.PropTypes.func,
-    onSubmit: React.PropTypes.func.isRequired,
-    onSubmitSuccess: React.PropTypes.func,
-    onSubmitError: React.PropTypes.func,
-    submitDisabled: React.PropTypes.bool,
-    submitLabel: React.PropTypes.string,
-    footerClass: React.PropTypes.string,
-    extraButton: React.PropTypes.element,
-    initialData: React.PropTypes.object,
-    requireChanges: React.PropTypes.bool
+    cancelLabel: PropTypes.string,
+    onCancel: PropTypes.func,
+    onSubmit: PropTypes.func.isRequired,
+    onSubmitSuccess: PropTypes.func,
+    onSubmitError: PropTypes.func,
+    submitDisabled: PropTypes.bool,
+    submitLabel: PropTypes.string,
+    footerClass: PropTypes.string,
+    extraButton: PropTypes.element,
+    initialData: PropTypes.object,
+    requireChanges: PropTypes.bool
   };
 
   static defaultProps = {
@@ -29,7 +30,7 @@ export default class Form extends React.Component {
   };
 
   static childContextTypes = {
-    form: React.PropTypes.object.isRequired
+    form: PropTypes.object.isRequired
   };
 
   constructor(props, context) {
@@ -95,7 +96,7 @@ export default class Form extends React.Component {
     let {initialData, data} = this.state;
     let {requireChanges} = this.props;
     let hasChanges = requireChanges
-      ? Object.keys(data).length && !underscore.isEqual(data, initialData)
+      ? Object.keys(data).length && !_.isEqual(data, initialData)
       : true;
     return (
       <form onSubmit={this.onSubmit} className={this.props.className}>
@@ -115,6 +116,7 @@ export default class Form extends React.Component {
           </button>
           {this.props.onCancel &&
             <button
+              type="button"
               className="btn btn-default"
               disabled={isSaving}
               onClick={this.props.onCancel}

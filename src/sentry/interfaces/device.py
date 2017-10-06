@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-__all__ = ('Device',)
+__all__ = ('Device', )
 
 from sentry.interfaces.base import Interface, InterfaceValidationError
 from sentry.utils.safe import trim, trim_dict
@@ -17,6 +17,7 @@ class Device(Interface):
     >>>     "arbitrary": "data"
     >>> }
     """
+
     @classmethod
     def to_python(cls, data):
         data = data.copy()

@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import Modal from 'react-bootstrap/lib/Modal';
 import {t} from '../../locale';
@@ -11,9 +12,9 @@ const Snooze = {
 
 const SnoozeAction = React.createClass({
   propTypes: {
-    disabled: React.PropTypes.bool,
-    onSnooze: React.PropTypes.func.isRequired,
-    tooltip: React.PropTypes.string
+    disabled: PropTypes.bool,
+    onSnooze: PropTypes.func.isRequired,
+    tooltip: PropTypes.string
   },
 
   getInitialState() {

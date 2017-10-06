@@ -1,26 +1,28 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import Modal from 'react-bootstrap/lib/Modal';
 import {Link} from 'react-router';
 
-import ApiMixin from '../../mixins/apiMixin';
-import DropdownLink from '../../components/dropdownLink';
-import IndicatorStore from '../../stores/indicatorStore';
-import MenuItem from '../../components/menuItem';
 import {t} from '../../locale';
+import ApiMixin from '../../mixins/apiMixin';
+import IndicatorStore from '../../stores/indicatorStore';
+import DropdownLink from '../../components/dropdownLink';
+import QueryCount from '../../components/queryCount';
+import MenuItem from '../../components/menuItem';
 import {BooleanField, FormState, TextField} from '../../components/forms';
 
 const SaveSearchButton = React.createClass({
   propTypes: {
-    orgId: React.PropTypes.string.isRequired,
-    projectId: React.PropTypes.string.isRequired,
-    access: React.PropTypes.object.isRequired,
-    query: React.PropTypes.string.isRequired,
-    disabled: React.PropTypes.bool,
-    style: React.PropTypes.object,
-    tooltip: React.PropTypes.string,
-    buttonTitle: React.PropTypes.string,
+    orgId: PropTypes.string.isRequired,
+    projectId: PropTypes.string.isRequired,
+    access: PropTypes.object.isRequired,
+    query: PropTypes.string.isRequired,
+    disabled: PropTypes.bool,
+    style: PropTypes.object,
+    tooltip: PropTypes.string,
+    buttonTitle: PropTypes.string,
 
-    onSave: React.PropTypes.func.isRequired
+    onSave: PropTypes.func.isRequired
   },
 
   mixins: [ApiMixin],
@@ -52,7 +54,7 @@ const SaveSearchButton = React.createClass({
     let formData = this.state.formData;
     formData[name] = value;
     this.setState({
-      formData: formData
+      formData
     });
   },
 
@@ -93,7 +95,7 @@ const SaveSearchButton = React.createClass({
             errors = errors.detail || true;
             this.setState({
               state: FormState.ERROR,
-              errors: errors
+              errors
             });
           },
           complete: () => {
@@ -181,12 +183,14 @@ const SaveSearchButton = React.createClass({
 
 const SavedSearchSelector = React.createClass({
   propTypes: {
-    orgId: React.PropTypes.string.isRequired,
-    projectId: React.PropTypes.string.isRequired,
-    searchId: React.PropTypes.string,
-    access: React.PropTypes.object.isRequired,
-    savedSearchList: React.PropTypes.array.isRequired,
-    onSavedSearchCreate: React.PropTypes.func.isRequired
+    orgId: PropTypes.string.isRequired,
+    projectId: PropTypes.string.isRequired,
+    searchId: PropTypes.string,
+    access: PropTypes.object.isRequired,
+    savedSearchList: PropTypes.array.isRequired,
+    queryCount: PropTypes.number,
+    queryMaxCount: PropTypes.number,
+    onSavedSearchCreate: PropTypes.func.isRequired
   },
 
   mixins: [ApiMixin],
@@ -201,7 +205,7 @@ const SavedSearchSelector = React.createClass({
   },
 
   render() {
-    let {access, orgId, projectId} = this.props;
+    let {access, orgId, projectId, queryCount, queryMaxCount} = this.props;
     let children = this.props.savedSearchList.map(search => {
       // TODO(dcramer): we want these to link directly to the saved
       // search ID, and pass that into the backend (probably)
@@ -214,7 +218,13 @@ const SavedSearchSelector = React.createClass({
     });
     return (
       <div className="saved-search-selector">
-        <DropdownLink title={this.getTitle()}>
+        <DropdownLink
+          title={
+            <span>
+              <span>{this.getTitle()}</span>
+              <QueryCount count={queryCount} max={queryMaxCount} />
+            </span>
+          }>
           {children.length
             ? children
             : <li className="empty">

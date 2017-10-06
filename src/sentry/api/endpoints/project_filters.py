@@ -19,13 +19,15 @@ class ProjectFiltersEndpoint(ProjectEndpoint):
         results = []
         for f_cls in filters.all():
             filter = f_cls(project)
-            results.append({
-                'id': filter.id,
-                # 'active' will be either a boolean or list for the legacy browser filters
-                # all other filters will be boolean
-                'active': filter.is_enabled(),
-                'description': filter.description,
-                'name': filter.name,
-            })
+            results.append(
+                {
+                    'id': filter.id,
+                    # 'active' will be either a boolean or list for the legacy browser filters
+                    # all other filters will be boolean
+                    'active': filter.is_enabled(),
+                    'description': filter.description,
+                    'name': filter.name,
+                }
+            )
         results.sort(key=lambda x: x['name'])
         return Response(results)

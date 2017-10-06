@@ -4,8 +4,7 @@ from exam import fixture
 from django.http import HttpRequest, HttpResponse, StreamingHttpResponse
 
 from sentry.testutils import TestCase
-from sentry.middleware.proxy import (
-    ContentLengthHeaderMiddleware, SetRemoteAddrFromForwardedFor)
+from sentry.middleware.proxy import (ContentLengthHeaderMiddleware, SetRemoteAddrFromForwardedFor)
 
 
 class ContentLengthHeaderMiddlewareTest(TestCase):

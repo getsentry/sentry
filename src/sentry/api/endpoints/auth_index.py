@@ -58,18 +58,24 @@ class AuthIndexEndpoint(Endpoint):
         # If 2fa login is enabled then we cannot sign in with username and
         # password through this api endpoint.
         if Authenticator.objects.user_has_2fa(request.user):
-            return Response({
-                '2fa_required': True,
-                'message': 'Cannot sign-in with basic auth when 2fa is enabled.'
-            }, status=403)
+            return Response(
+                {
+                    '2fa_required': True,
+                    'message': 'Cannot sign-in with basic auth when 2fa is enabled.'
+                },
+                status=403
+            )
 
         try:
             # Must use the real request object that Django knows about
             auth.login(request._request, request.user)
         except auth.AuthUserPasswordExpired:
-            return Response({
-                'message': 'Cannot sign-in with basic auth because password has expired.',
-            }, status=403)
+            return Response(
+                {
+                    'message': 'Cannot sign-in with basic auth because password has expired.',
+                },
+                status=403
+            )
 
         return self.get(request)
 

@@ -7,7 +7,6 @@ from sentry.models import TotpInterface
 
 
 class TwoFactorAuthTest(TestCase):
-
     def test_security_renders_without_2fa(self):
         user = self.create_user('foo@example.com')
         self.login_as(user)

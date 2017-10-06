@@ -21,7 +21,7 @@ from django.db import models
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
-from sentry import buffer, eventtypes
+from sentry import buffer, eventtypes, tagstore
 from sentry.constants import (
     DEFAULT_LOGGER_NAME, EVENT_ORDERING_KEY, LOG_LEVELS, MAX_CULPRIT_LENGTH
 )
@@ -112,14 +112,24 @@ class GroupManager(ProjectBoundManager):
         )
 
     def from_kwargs(self, project, **kwargs):
-        from sentry.event_manager import EventManager
+        from sentry.event_manager import HashDiscarded, EventManager
 
         manager = EventManager(kwargs)
         manager.normalize()
-        return manager.save(project)
+        try:
+            return manager.save(project)
+
+        # TODO(jess): this method maybe isn't even used?
+        except HashDiscarded as exc:
+            logger.info(
+                'discarded.hash', extra={
+                    'project_id': project,
+                    'description': exc.message,
+                }
+            )
 
     def add_tags(self, group, tags):
-        from sentry.models import TagValue, GroupTagValue
+        from sentry.models import GroupTagValue
 
         project_id = group.project_id
         date = group.last_seen
@@ -130,27 +140,23 @@ class GroupManager(ProjectBoundManager):
             else:
                 key, value, data = tag_item
 
-            buffer.incr(TagValue, {
-                'times_seen': 1,
-            }, {
-                'project_id': project_id,
-                'key': key,
-                'value': value,
-            }, {
+            tagstore.incr_times_seen(project_id, key, value, {
                 'last_seen': date,
                 'data': data,
             })
 
-            buffer.incr(GroupTagValue, {
-                'times_seen': 1,
-            }, {
-                'group_id': group.id,
-                'key': key,
-                'value': value,
-            }, {
-                'project_id': project_id,
-                'last_seen': date,
-            })
+            buffer.incr(
+                GroupTagValue, {
+                    'times_seen': 1,
+                }, {
+                    'group_id': group.id,
+                    'key': key,
+                    'value': value,
+                }, {
+                    'project_id': project_id,
+                    'last_seen': date,
+                }
+            )
 
 
 class Group(ProjectBoundMixin, Model):
@@ -162,26 +168,31 @@ class Group(ProjectBoundMixin, Model):
     project = FlexibleForeignKey(
         'sentry.Project', null=True, related_name=None)
     logger = models.CharField(
-        max_length=64, blank=True, default=DEFAULT_LOGGER_NAME, db_index=True)
-    level = BoundedPositiveIntegerField(
-        choices=LOG_LEVELS.items(), default=logging.ERROR, blank=True,
+        max_length=64,
+        blank=True,
+        default=DEFAULT_LOGGER_NAME,
         db_index=True)
+    level = BoundedPositiveIntegerField(
+        choices=LOG_LEVELS.items(), default=logging.ERROR, blank=True, db_index=True
+    )
     message = models.TextField()
     culprit = models.CharField(
-        max_length=MAX_CULPRIT_LENGTH, blank=True, null=True,
-        db_column='view')
+        max_length=MAX_CULPRIT_LENGTH, blank=True, null=True, db_column='view'
+    )
     num_comments = BoundedPositiveIntegerField(default=0, null=True)
     platform = models.CharField(max_length=64, null=True)
-    status = BoundedPositiveIntegerField(default=0, choices=(
-        (GroupStatus.UNRESOLVED, _('Unresolved')),
-        (GroupStatus.RESOLVED, _('Resolved')),
-        (GroupStatus.IGNORED, _('Ignored')),
-    ), db_index=True)
+    status = BoundedPositiveIntegerField(
+        default=0,
+        choices=(
+            (GroupStatus.UNRESOLVED, _('Unresolved')), (GroupStatus.RESOLVED, _('Resolved')),
+            (GroupStatus.IGNORED, _('Ignored')),
+        ),
+        db_index=True
+    )
     times_seen = BoundedPositiveIntegerField(default=1, db_index=True)
     last_seen = models.DateTimeField(default=timezone.now, db_index=True)
     first_seen = models.DateTimeField(default=timezone.now, db_index=True)
-    first_release = FlexibleForeignKey('sentry.Release', null=True,
-                                       on_delete=models.PROTECT)
+    first_release = FlexibleForeignKey('sentry.Release', null=True, on_delete=models.PROTECT)
     resolved_at = models.DateTimeField(null=True, db_index=True)
     # active_at should be the same as first_seen by default
     active_at = models.DateTimeField(null=True, db_index=True)
@@ -199,15 +210,9 @@ class Group(ProjectBoundMixin, Model):
         db_table = 'sentry_groupedmessage'
         verbose_name_plural = _('grouped messages')
         verbose_name = _('grouped message')
-        permissions = (
-            ("can_view", "Can view"),
-        )
-        index_together = (
-            ('project', 'first_release'),
-        )
-        unique_together = (
-            ('project', 'short_id'),
-        )
+        permissions = (("can_view", "Can view"), )
+        index_together = (('project', 'first_release'), )
+        unique_together = (('project', 'short_id'), )
 
     __repr__ = sane_repr('project_id')
 
@@ -228,16 +233,14 @@ class Group(ProjectBoundMixin, Model):
         super(Group, self).save(*args, **kwargs)
 
     def get_absolute_url(self):
-        return absolute_uri(reverse('sentry-group', args=[
-            self.organization.slug, self.project.slug, self.id]))
+        return absolute_uri(
+            reverse('sentry-group', args=[self.organization.slug, self.project.slug, self.id])
+        )
 
     @property
     def qualified_short_id(self):
         if self.short_id is not None:
-            return '%s-%s' % (
-                self.project.slug.upper(),
-                base32_encode(self.short_id),
-            )
+            return '%s-%s' % (self.project.slug.upper(), base32_encode(self.short_id), )
 
     @property
     def event_set(self):
@@ -279,9 +282,8 @@ class Group(ProjectBoundMixin, Model):
         return status
 
     def get_share_id(self):
-        return b16encode(
-            ('{}.{}'.format(self.project_id, self.id)).encode('utf-8')
-        ).lower().decode('utf-8')
+        return b16encode(('{}.{}'.format(self.project_id,
+                                         self.id)).encode('utf-8')).lower().decode('utf-8')
 
     @classmethod
     def from_share_id(cls, share_id):
@@ -297,13 +299,8 @@ class Group(ProjectBoundMixin, Model):
         return cls.objects.get(project=project_id, id=group_id)
 
     def get_score(self):
-        return int(
-            math.log(
-                self.times_seen) *
-            600 +
-            float(
-                time.mktime(
-                    self.last_seen.timetuple())))
+        return int(math.log(self.times_seen) * 600 +
+                   float(time.mktime(self.last_seen.timetuple())))
 
     def get_latest_event(self):
         from sentry.models import Event
@@ -355,24 +352,18 @@ class Group(ProjectBoundMixin, Model):
             'last_seen',
         ).order_by(order_by)
 
-    def get_tags(self, with_internal=True):
-        from sentry.models import GroupTagKey, TagKey
+    def get_tags(self):
+        from sentry.models import GroupTagKey
         if not hasattr(self, '_tag_cache'):
             group_tags = GroupTagKey.objects.filter(
-                group=self,
-                project=self.project,
+                group_id=self.id,
+                project_id=self.project_id,
             )
-            if not with_internal:
-                group_tags = group_tags.exclude(key__startswith='sentry:')
 
             group_tags = list(group_tags.values_list('key', flat=True))
 
             tag_keys = dict(
-                (t.key, t)
-                for t in TagKey.objects.filter(
-                    project=self.project,
-                    key__in=group_tags
-                )
+                (t.key, t) for t in tagstore.get_tag_keys(self.project_id, group_tags)
             )
 
             results = []
@@ -449,20 +440,18 @@ class Group(ProjectBoundMixin, Model):
         return et.to_string(self.get_event_metadata())
 
     def error(self):
-        warnings.warn('Group.error is deprecated, use Group.title',
-                      DeprecationWarning)
+        warnings.warn('Group.error is deprecated, use Group.title', DeprecationWarning)
         return self.title
+
     error.short_description = _('error')
 
     @property
     def message_short(self):
-        warnings.warn('Group.message_short is deprecated, use Group.title',
-                      DeprecationWarning)
+        warnings.warn('Group.message_short is deprecated, use Group.title', DeprecationWarning)
         return self.title
 
     def has_two_part_message(self):
-        warnings.warn('Group.has_two_part_message is no longer used',
-                      DeprecationWarning)
+        warnings.warn('Group.has_two_part_message is no longer used', DeprecationWarning)
         return False
 
     @property
@@ -489,6 +478,6 @@ class Group(ProjectBoundMixin, Model):
         from sentry.models import GroupTagKey
 
         return GroupTagKey.objects.filter(
-            group=self,
+            group_id=self.id,
             key='sentry:user',
         ).aggregate(t=models.Sum('values_seen'))['t'] or 0

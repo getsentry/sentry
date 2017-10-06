@@ -1,37 +1,48 @@
-import React from 'react';
 import Modal from 'react-bootstrap/lib/Modal';
+import PropTypes from 'prop-types';
+import React from 'react';
 
-import ApiMixin from '../mixins/apiMixin';
 import {FormState} from '../components/forms';
+import {sortArray, parseRepo} from '../utils';
+import {t, tct} from '../locale';
+import Button from '../components/buttons/button';
+import Confirm from '../components/confirm';
 import DropdownLink from '../components/dropdownLink';
 import IndicatorStore from '../stores/indicatorStore';
-import LoadingIndicator from '../components/loadingIndicator';
 import MenuItem from '../components/menuItem';
-import OrganizationHomeContainer from '../components/organizations/homeContainer';
+import OrganizationSettingsView from './organizationSettingsView';
 import PluginComponentBase from '../components/bases/pluginComponentBase';
-import {t, tct} from '../locale';
-import {sortArray, parseGitHubRepo} from '../utils';
 
 const UNKNOWN_ERROR = {
   error_type: 'unknown'
 };
 
 class AddRepositoryLink extends PluginComponentBase {
+  static propTypes = {
+    provider: PropTypes.object.isRequired
+  };
+
   constructor(props, context) {
     super(props, context);
 
     Object.assign(this.state, {
-      isModalOpen: false,
+      ...this.getDefaultState(),
       fieldList: null,
       loading: true,
-      state: FormState.LOADING,
-      error: {},
-      formData: {}
+      state: FormState.LOADING
     });
 
-    ['onOpen', 'onCancel', 'formSubmit', 'changeField'].map(
-      method => (this[method] = this[method].bind(this))
-    );
+    ['onOpen', 'onCancel', 'formSubmit', 'changeField'].forEach(method => {
+      this[method] = this[method].bind(this);
+    });
+  }
+
+  getDefaultState() {
+    return {
+      isModalOpen: false,
+      error: {},
+      formData: {}
+    };
   }
 
   onOpen() {
@@ -39,7 +50,7 @@ class AddRepositoryLink extends PluginComponentBase {
   }
 
   onCancel() {
-    this.setState({isModalOpen: false});
+    this.setState(this.getDefaultState());
   }
 
   formSubmit(ev) {
@@ -51,22 +62,24 @@ class AddRepositoryLink extends PluginComponentBase {
 
   onSubmit() {
     // TODO(dcramer): set form saving state
-    let repoName = this.props.provider.id === 'github'
-      ? {name: parseGitHubRepo(this.state.formData.name)}
-      : this.state.formData;
+    let formData = {
+      ...this.state.formData,
+      provider: this.props.provider.id
+    };
+    if (formData.name) {
+      formData.name = parseRepo(formData.name);
+    }
+
     this.setState(
       {
         state: FormState.SAVING
       },
       () => {
         this.api.request(`/organizations/${this.props.orgId}/repos/`, {
-          data: {
-            provider: this.props.provider.id,
-            ...repoName
-          },
+          data: formData,
           method: 'POST',
           success: this.onSaveSuccess.bind(this, data => {
-            this.setState({isModalOpen: false});
+            this.setState({isModalOpen: false, formData: {}, error: {}});
             this.props.onSuccess(data);
           }),
           error: this.onSaveError.bind(this, error => {
@@ -82,9 +95,12 @@ class AddRepositoryLink extends PluginComponentBase {
   }
 
   changeField(name, value) {
-    let formData = this.state.formData;
-    formData[name] = value;
-    this.setState({[name]: formData});
+    this.setState(state => {
+      state.formData = {
+        ...state.formData,
+        [name]: value
+      };
+    });
   }
 
   renderForm() {
@@ -94,7 +110,9 @@ class AddRepositoryLink extends PluginComponentBase {
       <form onSubmit={this.formSubmit}>
         {errors.__all__ &&
           <div className="alert alert-error alert-block" key="_errors">
-            <p>{errors.__all__}</p>
+            <p>
+              {errors.__all__}
+            </p>
           </div>}
         {provider.config.map(field => {
           return (
@@ -125,7 +143,7 @@ class AddRepositoryLink extends PluginComponentBase {
         <div>
           <div className="alert alert-warning m-b-1">
             {'You need to associate an identity with ' +
-              error.title +
+              this.props.provider.name +
               ' before you can create issues with this service.'}
           </div>
           <a className="btn btn-primary" href={authUrl}>
@@ -153,31 +171,35 @@ class AddRepositoryLink extends PluginComponentBase {
   }
 
   renderModal() {
-    let state = this.state.state;
+    let {error, state} = this.state;
     return (
       <Modal show={this.state.isModalOpen} animation={false}>
         <div className="modal-header">
-          <h4>{t('Add Repository')}</h4>
+          <h4>
+            {t('Add Repository')}
+          </h4>
         </div>
         <div className="modal-body">
           {this.renderBody()}
         </div>
-        <div className="modal-footer">
-          <button
-            type="button"
-            className="btn btn-default"
-            onClick={this.onCancel}
-            disabled={state === FormState.SAVING}>
-            {t('Cancel')}
-          </button>
-          <button
-            type="button"
-            className="btn btn-primary"
-            onClick={this.onSubmit}
-            disabled={state === FormState.SAVING}>
-            {t('Save Changes')}
-          </button>
-        </div>
+        {!error || error.error_type !== 'unknown' || error.message
+          ? <div className="modal-footer">
+              <button
+                type="button"
+                className="btn btn-default"
+                onClick={this.onCancel}
+                disabled={state === FormState.SAVING}>
+                {t('Cancel')}
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={this.onSubmit}
+                disabled={state === FormState.SAVING}>
+                {t('Save Changes')}
+              </button>
+            </div>
+          : null}
       </Modal>
     );
   }
@@ -193,62 +215,16 @@ class AddRepositoryLink extends PluginComponentBase {
   }
 }
 
-AddRepositoryLink.propTypes = {
-  provider: React.PropTypes.object.isRequired
-};
+class OrganizationRepositories extends OrganizationSettingsView {
+  getEndpoints() {
+    let {orgId} = this.props.params;
+    return [
+      ['itemList', `/organizations/${orgId}/repos/`, {query: {status: ''}}],
+      ['repoConfig', `/organizations/${orgId}/config/repos/`]
+    ];
+  }
 
-const OrganizationRepositories = React.createClass({
-  mixins: [ApiMixin],
-
-  getInitialState() {
-    return {
-      loading: true,
-      error: false,
-      itemList: null,
-      repoConfig: null
-    };
-  },
-
-  componentWillMount() {
-    this.fetchData();
-  },
-
-  fetchData() {
-    this.api.request(`/organizations/${this.props.params.orgId}/repos/?status=`, {
-      method: 'GET',
-      success: data => {
-        this.setState({
-          itemList: data,
-          loading: !this.state.repoConfig
-        });
-      },
-      error: () => {
-        this.setState({
-          loading: !this.state.repoConfig,
-          error: true
-        });
-      }
-    });
-    this.api.request(`/organizations/${this.props.params.orgId}/config/repos/`, {
-      method: 'GET',
-      success: data => {
-        this.setState({
-          repoConfig: data,
-          loading: !this.state.itemList
-        });
-      },
-      error: () => {
-        this.setState({
-          loading: !this.state.itemList,
-          error: true
-        });
-      }
-    });
-  },
-
-  deleteRepo(repo) {
-    if (!confirm(t('Are you sure you want to remove this repository?'))) return;
-
+  deleteRepo = repo => {
     let indicator = IndicatorStore.add(t('Saving changes..'));
     this.api.request(`/organizations/${this.props.params.orgId}/repos/${repo.id}/`, {
       method: 'DELETE',
@@ -260,7 +236,7 @@ const OrganizationRepositories = React.createClass({
           }
         });
         this.setState({
-          itemList: itemList
+          itemList
         });
       },
       error: () => {
@@ -272,9 +248,9 @@ const OrganizationRepositories = React.createClass({
         IndicatorStore.remove(indicator);
       }
     });
-  },
+  };
 
-  cancelDelete(repo) {
+  cancelDelete = repo => {
     let indicator = IndicatorStore.add(t('Saving changes..'));
     this.api.request(`/organizations/${this.props.params.orgId}/repos/${repo.id}/`, {
       method: 'PUT',
@@ -287,7 +263,7 @@ const OrganizationRepositories = React.createClass({
           }
         });
         this.setState({
-          itemList: itemList
+          itemList
         });
       },
       error: () => {
@@ -299,15 +275,15 @@ const OrganizationRepositories = React.createClass({
         IndicatorStore.remove(indicator);
       }
     });
-  },
+  };
 
-  onAddRepo(repo) {
+  onAddRepo = repo => {
     let itemList = this.state.itemList;
     itemList.push(repo);
     this.setState({
       itemList: sortArray(itemList, item => item.name)
     });
-  },
+  };
 
   getStatusLabel(repo) {
     switch (repo.status) {
@@ -320,19 +296,21 @@ const OrganizationRepositories = React.createClass({
       default:
         return null;
     }
-  },
+  }
 
-  render() {
-    if (this.state.loading) return <LoadingIndicator />;
+  getTitle() {
+    return 'Repositories';
+  }
 
+  renderBody() {
     let orgId = this.props.params.orgId;
     let itemList = this.state.itemList;
 
     return (
-      <OrganizationHomeContainer>
+      <div>
         <div className="pull-right">
           <DropdownLink
-            topLevelClasses="anchor-right"
+            anchorRight
             className="btn btn-primary btn-sm"
             title={t('Add Repository')}>
             {this.state.repoConfig.providers.map(provider => {
@@ -348,7 +326,9 @@ const OrganizationRepositories = React.createClass({
             })}
           </DropdownLink>
         </div>
-        <h3 className="m-b-2">{t('Repositories')}</h3>
+        <h3 className="m-b-2">
+          {t('Repositories')}
+        </h3>
         {itemList.length > 0 &&
           <div className="m-b-2">
             <p>
@@ -368,39 +348,46 @@ const OrganizationRepositories = React.createClass({
               <table className="table">
                 <tbody>
                   {itemList.map(repo => {
+                    let repoIsVisible = repo.status === 'visible';
+
                     return (
                       <tr key={repo.id}>
                         <td>
-                          <strong>{repo.name}</strong>
-                          {repo.status !== 'visible' &&
-                            <small> — {this.getStatusLabel(repo)}</small>}
+                          <strong>
+                            {repo.name}
+                          </strong>
+                          {!repoIsVisible &&
+                            <small>
+                              {' '}— {this.getStatusLabel(repo)}
+                            </small>}
                           {repo.status === 'pending_deletion' &&
                             <small>
-                              {' '}
-                              (
-                              <a onClick={this.cancelDelete.bind(this, repo)}>
+                              {' '}(
+                              <a onClick={() => this.cancelDelete(repo)}>
                                 {t('Cancel')}
                               </a>
                               )
                             </small>}
                           <br />
-                          <small>{repo.provider.name}</small>
+                          <small>
+                            {repo.provider.name}
+                          </small>
                           {repo.url &&
-                            <small> — <a href={repo.url}>{repo.url}</a></small>}
+                            <small>
+                              {' '}— <a href={repo.url}>{repo.url}</a>
+                            </small>}
                         </td>
                         <td style={{width: 60}}>
-                          {repo.status === 'visible'
-                            ? <button
-                                onClick={this.deleteRepo.bind(this, repo)}
-                                className="btn btn-default btn-xs">
-                                <span className="icon icon-trash" />
-                              </button>
-                            : <button
-                                onClick={this.deleteRepo.bind(this, repo)}
-                                disabled={true}
-                                className="btn btn-default btn-xs btn-disabled">
-                                <span className="icon icon-trash" />
-                              </button>}
+                          <Confirm
+                            disabled={!repoIsVisible}
+                            onConfirm={() => this.deleteRepo(repo)}
+                            message={t(
+                              'Are you sure you want to remove this repository?'
+                            )}>
+                            <Button size="xsmall">
+                              <span className="icon icon-trash" />
+                            </Button>
+                          </Confirm>
                         </td>
                       </tr>
                     );
@@ -410,7 +397,9 @@ const OrganizationRepositories = React.createClass({
             </div>
           : <div className="well blankslate align-center p-x-2 p-y-1">
               <div className="icon icon-lg icon-git-commit" />
-              <h3>{t('Sentry is better with commit data')}</h3>
+              <h3>
+                {t('Sentry is better with commit data')}
+              </h3>
               <p>
                 {t(
                   'Adding one or more repositories will enable enhanced releases and the ability to resolve Sentry Issues via git message.'
@@ -424,9 +413,9 @@ const OrganizationRepositories = React.createClass({
                 </a>
               </p>
             </div>}
-      </OrganizationHomeContainer>
+      </div>
     );
   }
-});
+}
 
 export default OrganizationRepositories;

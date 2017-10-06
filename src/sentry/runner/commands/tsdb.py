@@ -55,11 +55,13 @@ def query():
 @click.argument(
     'metrics',
     nargs=-1,
-    type=click.Choice([
-        'organization_total_received',
-        'organization_total_rejected',
-        'organization_total_blacklisted',
-    ]),
+    type=click.Choice(
+        [
+            'organization_total_received',
+            'organization_total_rejected',
+            'organization_total_blacklisted',
+        ]
+    ),
 )
 @click.option('--since', callback=DateTimeParamType())
 @click.option('--until', callback=DateTimeParamType())

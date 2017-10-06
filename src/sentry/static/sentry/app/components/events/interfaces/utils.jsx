@@ -1,5 +1,4 @@
 import {defined} from '../../../utils';
-import _ from 'underscore';
 
 export function escapeQuotes(v) {
   return v.replace(/"/g, '\\"');
@@ -30,10 +29,17 @@ export function getCurlCommand(data) {
     result += ' \\\n -H "' + header[0] + ': ' + escapeQuotes(header[1] + '') + '"';
   }
 
-  if (_.isString(data.data)) {
-    result += ' \\\n --data "' + escapeQuotes(data.data) + '"';
-  } else if (defined(data.data)) {
-    result += ' \\\n --data "' + escapeQuotes(jQuery.param(data.data)) + '"';
+  if (defined(data.data)) {
+    switch (data.inferredContentType) {
+      case 'application/json':
+        result += ' \\\n --data "' + escapeQuotes(JSON.stringify(data.data)) + '"';
+        break;
+      case 'application/x-www-form-urlencoded':
+        result += ' \\\n --data "' + escapeQuotes(jQuery.param(data.data)) + '"';
+        break;
+      default:
+        result += ' \\\n --data "' + escapeQuotes(data.data) + '"';
+    }
   }
 
   result += ' \\\n "' + data.url;
@@ -44,4 +50,34 @@ export function getCurlCommand(data) {
 
   result += '"';
   return result;
+}
+
+/**
+ * Converts an object of body/querystring key/value pairs
+ * into a tuple of [key, value] pairs, and sorts them.
+ *
+ * This handles the case for query strings that were decoded like so:
+ *
+ *   ?foo=bar&foo=baz => { foo: ['bar', 'baz'] }
+ *
+ * By converting them to [['foo', 'bar'], ['foo', 'baz']]
+ */
+export function objectToSortedTupleArray(obj) {
+  return Object.keys(obj)
+    .reduce((out, k) => {
+      let val = obj[k];
+      return out.concat(
+        {}.toString.call(val) === '[object Array]'
+          ? val.map(v => [k, v]) // key has multiple values (array)
+          : [[k, val]] // key has single value
+      );
+    }, [])
+    .sort(function([keyA, valA], [keyB, valB]) {
+      // if keys are identical, sort on value
+      if (keyA === keyB) {
+        return valA < valB ? -1 : 1;
+      }
+
+      return keyA < keyB ? -1 : 1;
+    });
 }

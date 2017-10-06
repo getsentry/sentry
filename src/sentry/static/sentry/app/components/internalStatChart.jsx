@@ -1,6 +1,8 @@
 /*eslint getsentry/jsx-needs-il8n:0*/
+import PropTypes from 'prop-types';
+
 import React from 'react';
-import underscore from 'underscore';
+import _ from 'lodash';
 
 import ApiMixin from '../mixins/apiMixin';
 import BarChart from '../components/barChart';
@@ -9,11 +11,11 @@ import LoadingIndicator from '../components/loadingIndicator';
 
 export default React.createClass({
   propTypes: {
-    since: React.PropTypes.number.isRequired,
-    resolution: React.PropTypes.string.isRequired,
-    stat: React.PropTypes.string.isRequired,
-    label: React.PropTypes.string,
-    height: React.PropTypes.number
+    since: PropTypes.number.isRequired,
+    resolution: PropTypes.string.isRequired,
+    stat: PropTypes.string.isRequired,
+    label: PropTypes.string,
+    height: PropTypes.number
   },
 
   mixins: [ApiMixin],
@@ -37,7 +39,7 @@ export default React.createClass({
   },
 
   componentWillReceiveProps(nextProps) {
-    if (!underscore.isEqual(nextProps, this.props)) {
+    if (!_.isEqual(nextProps, this.props)) {
       this.setState(
         {
           loading: true
@@ -61,7 +63,7 @@ export default React.createClass({
       },
       success: data => {
         this.setState({
-          data: data,
+          data,
           loading: false,
           error: false
         });

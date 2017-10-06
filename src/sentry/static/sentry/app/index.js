@@ -1,6 +1,21 @@
+/* global module */
 import jQuery from 'jquery';
+import moment from 'moment';
+import Raven from 'raven-js';
+import React from 'react';
+import ReactDOM from 'react-dom';
+import {AppContainer} from 'react-hot-loader';
+import PropTypes from 'prop-types';
+import {renderToStaticMarkup} from 'react-dom/server';
+import Reflux from 'reflux';
+import * as Router from 'react-router';
+import ReactBootstrapModal from 'react-bootstrap/lib/Modal';
+import JsCookie from 'js-cookie';
 
+import * as api from './api';
+import * as il8n from './locale';
 import plugins from './plugins';
+import Main from './main';
 
 const csrfCookieName = window.csrfCookieName || 'sc';
 
@@ -37,41 +52,41 @@ jQuery.ajaxSetup({
 // these get exported to a global variable, which is important as its the only
 // way we can call into scoped objects
 
-import moment from 'moment';
-import Raven from 'raven-js';
-import React from 'react';
-import ReactDOM from 'react-dom';
-import {renderToStaticMarkup} from 'react-dom/server';
-import Reflux from 'reflux';
-import * as Router from 'react-router';
-import underscore from 'underscore';
-import ReactBootstrapModal from 'react-bootstrap/lib/Modal';
+let render = Component => {
+  let rootEl = document.getElementById('blk_router');
+  ReactDOM.render(<AppContainer><Component /></AppContainer>, rootEl);
+};
 
-import * as api from './api';
-import * as il8n from './locale';
+if (module.hot) {
+  // webpack 2 has built in support for es2015 modules, so don't have to re-require
+  module.hot.accept('./main', () => {
+    render(Main);
+  });
+}
 
 export default {
-  jQuery: jQuery,
-  moment: moment,
-  Raven: Raven,
-  React: React,
+  jQuery,
+  moment,
+  Raven,
+  React,
   ReactDOM: {
     findDOMNode: ReactDOM.findDOMNode,
     render: ReactDOM.render
   },
+  PropTypes,
   ReactDOMServer: {
-    renderToStaticMarkup: renderToStaticMarkup
+    renderToStaticMarkup
   },
   ReactBootstrap: {
     Modal: ReactBootstrapModal
   },
-  Reflux: Reflux,
-  Router: Router,
-  underscore: underscore,
+  Reflux,
+  Router,
+  JsCookie,
+  SentryRenderApp: () => render(Main),
 
   Sentry: {
-    api: api,
-    routes: require('./routes').default,
+    api,
     forms: {
       // we dont yet export all form field classes as they're not
       // all needed by sentry.io
@@ -123,7 +138,7 @@ export default {
     Sidebar: require('./components/sidebar').default,
     StackedBarChart: require('./components/stackedBarChart').default,
     TimeSince: require('./components/timeSince').default,
-    TodoList: require('./components/todos').default,
+    TodoList: require('./components/onboardingWizard/todos').default,
     U2fEnrollment: require('./components/u2fenrollment').default,
     U2fSign: require('./components/u2fsign').default,
     Badge: require('./components/badge').default,

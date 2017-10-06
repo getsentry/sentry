@@ -9,8 +9,7 @@ from sentry.models import ProcessingIssue
 @register(ProcessingIssue)
 class ProcessingIssueSerializer(Serializer):
     def get_attrs(self, item_list, user):
-        counts = dict((i.id, getattr(i, 'num_events', None))
-                      for i in item_list)
+        counts = dict((i.id, getattr(i, 'num_events', None)) for i in item_list)
 
         missing_counts = []
         for pk, events in six.iteritems(counts):
@@ -19,7 +18,8 @@ class ProcessingIssueSerializer(Serializer):
 
         if missing_counts:
             extra_counts = ProcessingIssue.objects.with_num_events().filter(
-                pk__in=list(missing_counts)).values('id', 'num_events')
+                pk__in=list(missing_counts)
+            ).values('id', 'num_events')
             for d in extra_counts:
                 counts[d['id']] = d['num_events']
 

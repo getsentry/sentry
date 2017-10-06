@@ -17,14 +17,16 @@ class BroadcastSerializer(serializers.Serializer):
 
 
 class BroadcastIndexEndpoint(Endpoint):
-    permission_classes = (IsAuthenticated,)
+    permission_classes = (IsAuthenticated, )
 
     def get(self, request):
         # limit to only a few "recent" broadcasts
-        broadcasts = list(Broadcast.objects.filter(
-            Q(date_expires__isnull=True) | Q(date_expires__gt=timezone.now()),
-            is_active=True,
-        ).order_by('-date_added')[:5])
+        broadcasts = list(
+            Broadcast.objects.filter(
+                Q(date_expires__isnull=True) | Q(date_expires__gt=timezone.now()),
+                is_active=True,
+            ).order_by('-date_added')[:5]
+        )
 
         return Response(serialize(broadcasts, request.user))
 

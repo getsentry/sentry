@@ -1,13 +1,13 @@
 import React from 'react';
 import {shallow} from 'enzyme';
-
 import {browserHistory} from 'react-router';
-import stubReactComponents from '../../helpers/stubReactComponent';
 
 import {Client} from 'app/api';
 import ProjectReleases from 'app/views/projectReleases';
 import SearchBar from 'app/views/stream/searchBar';
 import Pagination from 'app/components/pagination';
+
+import stubReactComponents from '../../helpers/stubReactComponent';
 
 describe('ProjectReleases', function() {
   beforeEach(function() {
@@ -49,7 +49,7 @@ describe('ProjectReleases', function() {
 
       projectReleases.instance().onSearch('searchquery');
 
-      expect(browserHistory.pushState.calledOnce).toBeTruthy;
+      expect(browserHistory.pushState.calledOnce).toBeTruthy();
       expect(browserHistory.pushState.args[0]).toEqual([
         null,
         '/123/456/releases/',
@@ -75,7 +75,7 @@ describe('ProjectReleases', function() {
       };
       projectReleases.componentWillReceiveProps(newProps);
 
-      expect(setState.calledOnce).toBeTruthy;
+      expect(setState.calledOnce).toBeTruthy();
       expect(setState.getCall(0).args[0]).toEqual({
         query: 'newquery'
       });

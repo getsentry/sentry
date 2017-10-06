@@ -1,6 +1,5 @@
 import React from 'react';
 import {shallow} from 'enzyme';
-import toJson from 'enzyme-to-json';
 
 import TeamCreate from 'app/views/teamCreate';
 
@@ -17,7 +16,7 @@ describe('TeamCreate', function() {
           context: {router: TestStubs.router()}
         }
       );
-      expect(toJson(wrapper)).toMatchSnapshot();
+      expect(wrapper).toMatchSnapshot();
     });
   });
 });

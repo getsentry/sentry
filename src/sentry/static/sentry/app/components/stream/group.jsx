@@ -1,70 +1,27 @@
 import jQuery from 'jquery';
+import PropTypes from 'prop-types';
 import React from 'react';
 import Reflux from 'reflux';
-import {Link} from 'react-router';
 
 import AssigneeSelector from '../assigneeSelector';
 import Count from '../count';
 import GroupChart from './groupChart';
 import GroupCheckBox from './groupCheckBox';
 import ProjectState from '../../mixins/projectState';
-import TimeSince from '../timeSince';
-import GroupTitle from '../group/title';
 import GroupStore from '../../stores/groupStore';
 import SelectedGroupStore from '../../stores/selectedGroupStore';
-import ShortId from '../shortId';
+import EventOrGroupHeader from '../eventOrGroupHeader';
+import EventOrGroupExtraDetails from '../eventOrGroupExtraDetails';
 
 import {valueIsEqual} from '../../utils';
 
-const StreamGroupHeader = React.createClass({
-  propTypes: {
-    data: React.PropTypes.object.isRequired,
-    orgId: React.PropTypes.string.isRequired,
-    projectId: React.PropTypes.string.isRequired
-  },
-
-  getMessage() {
-    let data = this.props.data;
-    let metadata = data.metadata;
-    switch (data.type) {
-      case 'error':
-        return metadata.value;
-      case 'csp':
-        return metadata.message;
-      default:
-        return this.props.data.culprit || '';
-    }
-  },
-
-  render() {
-    let {orgId, projectId, data} = this.props;
-    let message = this.getMessage();
-    return (
-      <div>
-        <h3 className="truncate">
-          <Link to={`/${orgId}/${projectId}/issues/${data.id}/`}>
-            <span className="error-level truncate">{data.level}</span>
-            <span className="icon icon-soundoff" />
-            <span className="icon icon-star-solid" />
-            <GroupTitle data={data} />
-          </Link>
-        </h3>
-        {message &&
-          <div className="event-message truncate">
-            <span className="message">{this.getMessage()}</span>
-          </div>}
-      </div>
-    );
-  }
-});
-
 const StreamGroup = React.createClass({
   propTypes: {
-    id: React.PropTypes.string.isRequired,
-    orgId: React.PropTypes.string.isRequired,
-    projectId: React.PropTypes.string.isRequired,
-    statsPeriod: React.PropTypes.string.isRequired,
-    canSelect: React.PropTypes.bool
+    id: PropTypes.string.isRequired,
+    orgId: PropTypes.string.isRequired,
+    projectId: PropTypes.string.isRequired,
+    statsPeriod: PropTypes.string.isRequired,
+    canSelect: PropTypes.bool
   },
 
   mixins: [Reflux.listenTo(GroupStore, 'onGroupChange'), ProjectState],
@@ -108,7 +65,7 @@ const StreamGroup = React.createClass({
     let id = this.props.id;
     let data = GroupStore.get(id);
     this.setState({
-      data: data
+      data
     });
   },
 
@@ -143,11 +100,6 @@ const StreamGroup = React.createClass({
 
     let {id, orgId, projectId} = this.props;
 
-    let styles = {};
-    if (data.subscriptionDetails && data.subscriptionDetails.reason === 'mentioned') {
-      styles = {color: '#57be8c'};
-    }
-
     return (
       <li className={className} onClick={this.toggleSelect}>
         <div className="col-md-7 col-xs-8 event-details">
@@ -155,50 +107,14 @@ const StreamGroup = React.createClass({
             <div className="checkbox">
               <GroupCheckBox id={data.id} />
             </div>}
-          <StreamGroupHeader orgId={orgId} projectId={projectId} data={data} />
-          <div className="event-extra">
-            <ul>
-              {this.getFeatures().has('callsigns') &&
-                data.shortId &&
-                <li>
-                  <ShortId shortId={data.shortId} />
-                </li>}
-              <li>
-                <span className="icon icon-clock" />
-                <TimeSince date={data.lastSeen} />
-                &nbsp;—&nbsp;
-                <TimeSince date={data.firstSeen} suffix="old" />
-              </li>
-              {data.numComments !== 0 &&
-                <li>
-                  <Link
-                    to={`/${orgId}/${projectId}/issues/${id}/activity/`}
-                    className="comments">
-                    <span className="icon icon-comments" style={styles} />
-                    <span className="tag-count">{data.numComments}</span>
-                  </Link>
-                </li>}
-              {data.logger &&
-                <li className="event-annotation">
-                  <Link
-                    to={{
-                      pathname: `/${orgId}/${projectId}/`,
-                      query: {query: 'logger:' + data.logger}
-                    }}>
-                    {data.logger}
-                  </Link>
-                </li>}
-              {data.annotations.map((annotation, key) => {
-                return (
-                  <li
-                    className="event-annotation"
-                    dangerouslySetInnerHTML={{__html: annotation}}
-                    key={key}
-                  />
-                );
-              })}
-            </ul>
-          </div>
+          <EventOrGroupHeader data={data} orgId={orgId} projectId={projectId} />
+          <EventOrGroupExtraDetails
+            group
+            {...data}
+            groupId={id}
+            orgId={orgId}
+            projectId={projectId}
+          />
         </div>
         <div className="event-assignee col-md-1 hidden-sm hidden-xs">
           <AssigneeSelector id={data.id} />
@@ -216,5 +132,4 @@ const StreamGroup = React.createClass({
     );
   }
 });
-
 export default StreamGroup;

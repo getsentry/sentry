@@ -8,10 +8,7 @@ from templatetag_sugar.parser import Constant, Optional, Variable
 from templatetag_sugar.register import tag
 
 from sentry.models import User, UserAvatar
-from sentry.utils.avatar import (
-    get_email_avatar, get_gravatar_url, get_letter_avatar
-)
-
+from sentry.utils.avatar import (get_email_avatar, get_gravatar_url, get_letter_avatar)
 
 register = template.Library()
 
@@ -19,22 +16,29 @@ register = template.Library()
 # Adapted from http://en.gravatar.com/site/implement/images/django/
 # The "mm" default is for the grey, "mystery man" icon. See:
 #   http://en.gravatar.com/site/implement/images/
-@tag(register, [Variable('email'),
-                Optional([Constant('size'), Variable('size')]),
-                Optional([Constant('default'), Variable('default')])])
+@tag(
+    register, [
+        Variable('email'),
+        Optional([Constant('size'), Variable('size')]),
+        Optional([Constant('default'), Variable('default')])
+    ]
+)
 def gravatar_url(context, email, size=None, default='mm'):
     return get_gravatar_url(email, size, default)
 
 
-@tag(register, [Variable('display_name'),
-                Variable('identifier'),
-                Optional([Constant('size'), Variable('size')])])
+@tag(
+    register, [
+        Variable('display_name'),
+        Variable('identifier'),
+        Optional([Constant('size'), Variable('size')])
+    ]
+)
 def letter_avatar_svg(context, display_name, identifier, size=None):
     return get_letter_avatar(display_name, identifier, size=size)
 
 
-@tag(register, [Variable('user_id'),
-                Optional([Constant('size'), Variable('size')])])
+@tag(register, [Variable('user_id'), Optional([Constant('size'), Variable('size')])])
 def profile_photo_url(context, user_id, size=None):
     try:
         avatar = UserAvatar.objects.get_from_cache(user=user_id)
@@ -48,10 +52,14 @@ def profile_photo_url(context, user_id, size=None):
 
 # Don't use this in any situations where you're rendering more
 # than 1-2 avatars. It will make a request for every user!
-@tag(register, [Variable('display_name'),
-                Variable('identifier'),
-                Optional([Constant('size'), Variable('size')]),
-                Optional([Constant('try_gravatar'), Variable('try_gravatar')])])
+@tag(
+    register, [
+        Variable('display_name'),
+        Variable('identifier'),
+        Optional([Constant('size'), Variable('size')]),
+        Optional([Constant('try_gravatar'), Variable('try_gravatar')])
+    ]
+)
 def email_avatar(context, display_name, identifier, size=None, try_gravatar=True):
     return get_email_avatar(display_name, identifier, size, try_gravatar)
 

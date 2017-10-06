@@ -10,9 +10,9 @@ class OrganizationApiKeySettingsPermissionTest(PermissionTestCase):
     def setUp(self):
         super(OrganizationApiKeySettingsPermissionTest, self).setUp()
         key = ApiKey.objects.create(organization=self.organization)
-        self.path = reverse('sentry-organization-api-key-settings', args=[
-            self.organization.slug, key.id
-        ])
+        self.path = reverse(
+            'sentry-organization-api-key-settings', args=[self.organization.slug, key.id]
+        )
 
     def test_teamless_admin_cannot_load(self):
         self.assert_teamless_admin_cannot_access(self.path)
@@ -33,9 +33,12 @@ class OrganizationApiKeySettingsTest(TestCase):
 
         key = ApiKey.objects.create(organization=organization)
 
-        path = reverse('sentry-organization-api-key-settings', args=[
-            organization.slug, key.id,
-        ])
+        path = reverse(
+            'sentry-organization-api-key-settings', args=[
+                organization.slug,
+                key.id,
+            ]
+        )
 
         self.login_as(self.user)
 
@@ -51,9 +54,12 @@ class OrganizationApiKeySettingsTest(TestCase):
     def test_not_found(self):
         organization = self.create_organization(name='foo', owner=self.user)
 
-        path = reverse('sentry-organization-api-key-settings', args=[
-            organization.slug, 99999,
-        ])
+        path = reverse(
+            'sentry-organization-api-key-settings', args=[
+                organization.slug,
+                99999,
+            ]
+        )
 
         self.login_as(self.user)
 

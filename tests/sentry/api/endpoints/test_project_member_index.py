@@ -19,10 +19,13 @@ class ProjectMemberIndexTest(APITestCase):
 
         self.login_as(user=user_2)
 
-        url = reverse('sentry-api-0-project-member-index', kwargs={
-            'organization_slug': project_1.organization.slug,
-            'project_slug': project_1.slug,
-        })
+        url = reverse(
+            'sentry-api-0-project-member-index',
+            kwargs={
+                'organization_slug': project_1.organization.slug,
+                'project_slug': project_1.slug,
+            }
+        )
         response = self.client.get(url)
         assert response.status_code == 200
         assert len(response.data) == 2

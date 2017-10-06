@@ -20,10 +20,7 @@ class NotifyEventServiceForm(forms.Form):
     service = forms.ChoiceField(choices=())
 
     def __init__(self, *args, **kwargs):
-        service_choices = [
-            (plugin.slug, plugin.get_title())
-            for plugin in kwargs.pop('plugins')
-        ]
+        service_choices = [(plugin.slug, plugin.get_title()) for plugin in kwargs.pop('plugins')]
 
         super(NotifyEventServiceForm, self).__init__(*args, **kwargs)
 
@@ -38,9 +35,7 @@ class NotifyEventServiceAction(EventAction):
     def after(self, event, state):
         service = self.get_option('service')
 
-        extra = {
-            'event_id': event.id
-        }
+        extra = {'event_id': event.id}
         if not service:
             self.logger.info('rules.fail.is_configured', extra=extra)
             return

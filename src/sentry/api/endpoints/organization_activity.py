@@ -27,7 +27,5 @@ class OrganizationActivityEndpoint(OrganizationMemberEndpoint):
             queryset=queryset,
             paginator_cls=DateTimePaginator,
             order_by='-datetime',
-            on_results=lambda x: serialize(
-                x, request.user, OrganizationActivitySerializer()
-            ),
+            on_results=lambda x: serialize(x, request.user, OrganizationActivitySerializer()),
         )

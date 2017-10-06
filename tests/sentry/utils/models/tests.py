@@ -2,8 +2,8 @@ from __future__ import absolute_import
 
 from django.db import models
 from sentry.db.models import (
-    Model, BoundedIntegerField, BoundedBigIntegerField,
-    BoundedPositiveIntegerField)
+    Model, BoundedIntegerField, BoundedBigIntegerField, BoundedPositiveIntegerField
+)
 from sentry.testutils import TestCase
 
 

@@ -1,7 +1,7 @@
 import React from 'react';
-import _ from 'underscore';
+import _ from 'lodash';
 import ConfigStore from './stores/configStore';
-import {t} from './locale';
+import {t, tct} from './locale';
 import {EmailField, TextField, BooleanField} from './components/forms';
 
 // This are ordered based on their display order visually
@@ -16,6 +16,10 @@ const sections = [
   {
     key: 'auth',
     heading: t('Authentication')
+  },
+  {
+    key: 'beacon',
+    heading: t('Beacon')
   }
 ];
 
@@ -95,6 +99,18 @@ const definitions = [
     )
   },
   {
+    key: 'beacon.anonymous',
+    label: 'Anonymize Beacon',
+    component: BooleanField,
+    defaultValue: () => true,
+    help: tct(
+      'If enabled, any stats reported to sentry.io will exclude identifying information (such as your administrative email address). By anonymizing your installation the Sentry team will be unable to contact you about security updates. For more information on what data is sent to Sentry, see the [link:documentation].',
+      {
+        link: <a href="https://docs.sentry.io/server/beacon/" />
+      }
+    )
+  },
+  {
     key: 'mail.from',
     label: t('Email From'),
     component: EmailField,
@@ -135,7 +151,7 @@ const definitions = [
   }
 ];
 
-const definitionsMap = _.indexBy(definitions, 'key');
+const definitionsMap = _.keyBy(definitions, def => def.key);
 
 const disabledReasons = {
   diskPriority: 'This setting is defined in config.yml and may not be changed via the web UI.',

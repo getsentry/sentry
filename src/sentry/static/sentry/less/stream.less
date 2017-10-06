@@ -5,7 +5,7 @@
 
 .sticky {
   // !important because react-sticky uses inline styles w/ hardcoded z-index
-  z-index: 1000 !important;
+  z-index: @zindex-sticky-bar !important;
 
   .group-header .container {
     width: 100% !important;
@@ -54,10 +54,6 @@
   }
   .group-header {
     font-weight: bold;
-    .stream-actions-left {
-      padding-top: 10px;
-      padding-bottom: 0;
-    }
 
     .stream-actions-graph {
       font-size: 12px;
@@ -65,15 +61,13 @@
   }
 }
 
-.stream-actions {
-  background: @white-dark;
-  border: 1px solid @trim;
-  border-bottom: none;
-  border-radius: 3px 3px 0 0;
-  box-shadow: 0 1px 0 @trim;
-  margin: 0;
+.stream-actions, .stream-actions.toolbar {
+  padding-top: 0;
+  padding-bottom: 0;
   padding-right: 10px;
   height: 44px;
+  .flex;
+  .flex.flex-vertically-centered;
 
   .btn-group > .btn {
     color: inherit;
@@ -82,7 +76,7 @@
   .checkbox {
     position: absolute;
     left: 40px;
-    top: 1px;
+    top: -6px;
   }
 
   .btn-group {
@@ -97,14 +91,9 @@
     box-shadow: none !important;
   }
 
-  .dropdown-menu {
-    left: -6px;
-    top: 29px;
-  }
-
   .stream-actions-left {
     position: relative;
-    padding: 8px 0 8px 54px;
+    padding-left: 54px;
 
     .checkbox {
       position: absolute;
@@ -113,18 +102,12 @@
 
   .stream-actions-graph {
     font-size: 13px;
-    padding-top: 11px;
+    display: flex;
+    justify-content: space-between;
   }
 
-  .stream-actions-count,
-  .stream-actions-users,
-  .stream-actions-level,
-  .stream-actions-graph {
-    color: lighten(@gray, 10);
-    padding-top: 11px;
-    font-size: 12px;
-    text-transform: uppercase;
-    font-weight: bold;
+  .stream-actions-graph-label {
+    flex: 1;
   }
 
   .realtime-paused {
@@ -141,15 +124,15 @@
 
   .toggle-graph {
     .list-unstyled();
+    display: flex;
+    justify-content: space-between;
     margin-bottom: 0;
     font-size: 11px;
-    float: right;
     text-transform: uppercase;
     font-weight: bold;
 
     li {
-      float: left;
-      margin-right: 10px;
+      margin-right: 5px;
 
       &:last-child {
         margin-right: 0;
@@ -225,7 +208,7 @@
   }
 }
 
-.group-list {
+.group-list, .similar-list, .event-list {
   background: #fff;
   border: 1px solid @trim;
   border-top: 1px solid @trim;
@@ -234,7 +217,15 @@
   // position: relative;
 }
 
-.group-list, .events {
+.group-list {
+  .group {
+    .flex;
+    .flex.flex-vertically-centered;
+  }
+}
+
+// .similar-list is used in a tab in an Issue
+.group-list, .events, .similar-list, .event-list {
   .list-unstyled;
 
   .group {
@@ -358,16 +349,6 @@
       }
     }
 
-    &.type-default {
-      .event-assignee, .group-list, .event-graph {
-        padding-top: 20px;
-      }
-
-      .event-count, .event-users {
-        padding-top: 22px;
-      }
-    }
-
     &:first-child {
       .event-cell{
         border-top: 0;
@@ -405,46 +386,6 @@
 
   .event-details {
     padding: 12px 0 8px 54px;
-
-    h3 {
-      font-size: 16px;
-      line-height: 1.1;
-      margin: 0 0 5px;
-      font-weight: 600;
-
-      .event-type,
-      .error-level {
-        position: absolute;
-        left: -6px;
-        top: 13px;
-        font-size: 10px;
-        font-weight: 600;
-        text-transform: capitalize;
-        text-align: center;
-        color: #fff;
-        padding: 2px 4px;
-        width: 50px;
-        display: block;
-        float: left;
-        border-radius: 2px;
-        margin-right: 5px;
-      }
-
-      em {
-        font-style: normal;
-        font-size: 14px;
-        color: @60;
-        font-weight: normal;
-      }
-
-      a {
-        color: @gray-darker;
-
-        &:hover {
-          color: @gray-darkest;
-        }
-      }
-    }
 
     .event-message, .event-extra {
       line-height: 1.1;
@@ -537,7 +478,6 @@
   .event-graph,
   .event-users,
   .event-count {
-    padding-top: 28px;
     line-height: 24px;
   }
 
@@ -574,10 +514,6 @@
   &.group-list-small {
     margin: -1px;
 
-    .row {
-      padding: 0 10px;
-    }
-
     .event-details {
       padding-left: 20px;
       &:after {
@@ -597,6 +533,11 @@
   .severity {
     padding-top: 35px;
   }
+}
+
+// stop from accidentally clicking event title
+.similar-list .event-details h3 a {
+  display: inline-block;
 }
 
 .group-list-empty {
@@ -1232,7 +1173,7 @@
 */
 
 .stream-pagination {
-  margin: 20px 0;
+  margin: 20px 0 0 0;
 
   .icon-arrow-right, .icon-arrow-left {
     font-size: 20px !important;
@@ -1268,6 +1209,12 @@
   }
 }
 
+.panel {
+  .alert-box, .empty-stream {
+    border: 0;
+  }
+}
+
 
 /**
 * Responsive small screen
@@ -1282,22 +1229,11 @@
   .stream-actions {
     .stream-actions-count, .stream-actions-users {
       font-size: 13px;
-      padding-top: 8px;
     }
   }
 }
 
 @media(max-width: 767px) {
-  .event-users, .event-count {
-    padding-top: 33px !important;
-  }
-
-  .type-default {
-    .event-users, .event-count {
-      padding-top: 22px !important;
-    }
-  }
-
   .search {
     width: 100% !important;
   }
@@ -1374,6 +1310,49 @@
     }
   }
 }
+
+.event-issue-header {
+  h3 {
+    font-size: 16px;
+    line-height: 1.1;
+    margin: 0 0 5px;
+    font-weight: 600;
+
+    .event-type,
+    .error-level {
+      position: absolute;
+      left: -6px;
+      top: 13px;
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: capitalize;
+      text-align: center;
+      color: #fff;
+      padding: 2px 4px;
+      width: 50px;
+      display: block;
+      float: left;
+      border-radius: 2px;
+      margin-right: 5px;
+    }
+
+    em {
+      font-style: normal;
+      font-size: 14px;
+      color: @60;
+      font-weight: normal;
+    }
+
+    a {
+      color: @gray-darker;
+
+      &:hover {
+        color: @gray-darkest;
+      }
+    }
+  }
+}
+
 
 
 @media(max-width:400px) {

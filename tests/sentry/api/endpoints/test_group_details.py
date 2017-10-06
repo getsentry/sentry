@@ -6,9 +6,8 @@ from datetime import timedelta
 from django.utils import timezone
 
 from sentry.models import (
-    Activity, Group, GroupHash, GroupAssignee, GroupBookmark, GroupResolution,
-    GroupSeen, GroupSnooze, GroupSubscription, GroupStatus, GroupTagValue,
-    Release
+    Activity, Group, GroupHash, GroupAssignee, GroupBookmark, GroupResolution, GroupSeen,
+    GroupSnooze, GroupSubscription, GroupStatus, GroupTagValue, GroupTombstone, Release
 )
 from sentry.testutils import APITestCase
 
@@ -50,6 +49,33 @@ class GroupDetailsTest(APITestCase):
         assert response.data['id'] == six.text_type(group.id)
         assert response.data['firstRelease']['version'] == release.version
 
+    def test_pending_delete_pending_merge_excluded(self):
+        group1 = self.create_group(
+            status=GroupStatus.PENDING_DELETION,
+        )
+        group2 = self.create_group(
+            status=GroupStatus.DELETION_IN_PROGRESS,
+        )
+
+        group3 = self.create_group(
+            status=GroupStatus.PENDING_MERGE,
+        )
+
+        self.login_as(user=self.user)
+
+        url = '/api/0/issues/{}/'.format(group1.id)
+
+        response = self.client.get(url, format='json')
+        assert response.status_code == 404
+
+        url = '/api/0/issues/{}/'.format(group2.id)
+        response = self.client.get(url, format='json')
+        assert response.status_code == 404
+
+        url = '/api/0/issues/{}/'.format(group3.id)
+        response = self.client.get(url, format='json')
+        assert response.status_code == 404
+
 
 class GroupUpdateTest(APITestCase):
     def test_resolve(self):
@@ -59,9 +85,11 @@ class GroupUpdateTest(APITestCase):
 
         url = '/api/0/issues/{}/'.format(group.id)
 
-        response = self.client.put(url, data={
-            'status': 'resolved',
-        }, format='json')
+        response = self.client.put(
+            url, data={
+                'status': 'resolved',
+            }, format='json'
+        )
         assert response.status_code == 200, response.content
 
         group = Group.objects.get(
@@ -90,9 +118,11 @@ class GroupUpdateTest(APITestCase):
 
         url = '/api/0/issues/{}/'.format(group.id)
 
-        response = self.client.put(url, data={
-            'status': 'resolvedInNextRelease',
-        })
+        response = self.client.put(
+            url, data={
+                'status': 'resolvedInNextRelease',
+            }
+        )
         assert response.status_code == 200, response.content
 
         group = Group.objects.get(
@@ -112,10 +142,12 @@ class GroupUpdateTest(APITestCase):
 
         url = '/api/0/issues/{}/'.format(group.id)
 
-        response = self.client.put(url, data={
-            'status': 'ignored',
-            'ignoreDuration': 30,
-        }, format='json')
+        response = self.client.put(
+            url, data={
+                'status': 'ignored',
+                'ignoreDuration': 30,
+            }, format='json'
+        )
 
         assert response.status_code == 200
 
@@ -142,15 +174,16 @@ class GroupUpdateTest(APITestCase):
 
         url = '/api/0/issues/{}/'.format(group.id)
 
-        response = self.client.put(url, data={
-            'isBookmarked': '1',
-        }, format='json')
+        response = self.client.put(
+            url, data={
+                'isBookmarked': '1',
+            }, format='json'
+        )
 
         assert response.status_code == 200, response.content
 
         # ensure we've created the bookmark
-        assert GroupBookmark.objects.filter(
-            group=group, user=self.user).exists()
+        assert GroupBookmark.objects.filter(group=group, user=self.user).exists()
 
         assert GroupSubscription.objects.filter(
             user=self.user,
@@ -165,27 +198,27 @@ class GroupUpdateTest(APITestCase):
 
         url = '/api/0/issues/{}/'.format(group.id)
 
-        response = self.client.put(url, data={
-            'assignedTo': self.user.username,
-        }, format='json')
+        response = self.client.put(
+            url, data={
+                'assignedTo': self.user.username,
+            }, format='json'
+        )
 
         assert response.status_code == 200, response.content
 
-        assert GroupAssignee.objects.filter(
-            group=group, user=self.user
-        ).exists()
+        assert GroupAssignee.objects.filter(group=group, user=self.user).exists()
 
         assert Activity.objects.filter(
-            group=group, user=self.user, type=Activity.ASSIGNED,
+            group=group,
+            user=self.user,
+            type=Activity.ASSIGNED,
         ).count() == 1
 
         response = self.client.put(url, format='json')
 
         assert response.status_code == 200, response.content
 
-        assert GroupAssignee.objects.filter(
-            group=group, user=self.user
-        ).exists()
+        assert GroupAssignee.objects.filter(group=group, user=self.user).exists()
 
         assert GroupSubscription.objects.filter(
             user=self.user,
@@ -193,15 +226,15 @@ class GroupUpdateTest(APITestCase):
             is_active=True,
         ).exists()
 
-        response = self.client.put(url, data={
-            'assignedTo': '',
-        }, format='json')
+        response = self.client.put(
+            url, data={
+                'assignedTo': '',
+            }, format='json'
+        )
 
         assert response.status_code == 200, response.content
 
-        assert not GroupAssignee.objects.filter(
-            group=group, user=self.user
-        ).exists()
+        assert not GroupAssignee.objects.filter(group=group, user=self.user).exists()
 
     def test_mark_seen(self):
         self.login_as(user=self.user)
@@ -210,23 +243,25 @@ class GroupUpdateTest(APITestCase):
 
         url = '/api/0/issues/{}/'.format(group.id)
 
-        response = self.client.put(url, data={
-            'hasSeen': '1',
-        }, format='json')
+        response = self.client.put(
+            url, data={
+                'hasSeen': '1',
+            }, format='json'
+        )
 
         assert response.status_code == 200, response.content
 
-        assert GroupSeen.objects.filter(
-            group=group, user=self.user).exists()
+        assert GroupSeen.objects.filter(group=group, user=self.user).exists()
 
-        response = self.client.put(url, data={
-            'hasSeen': '0',
-        }, format='json')
+        response = self.client.put(
+            url, data={
+                'hasSeen': '0',
+            }, format='json'
+        )
 
         assert response.status_code == 200, response.content
 
-        assert not GroupSeen.objects.filter(
-            group=group, user=self.user).exists()
+        assert not GroupSeen.objects.filter(group=group, user=self.user).exists()
 
     def test_mark_seen_as_non_member(self):
         user = self.create_user('foo@example.com', is_superuser=True)
@@ -236,14 +271,15 @@ class GroupUpdateTest(APITestCase):
 
         url = '/api/0/issues/{}/'.format(group.id)
 
-        response = self.client.put(url, data={
-            'hasSeen': '1',
-        }, format='json')
+        response = self.client.put(
+            url, data={
+                'hasSeen': '1',
+            }, format='json'
+        )
 
         assert response.status_code == 200, response.content
 
-        assert not GroupSeen.objects.filter(
-            group=group, user=self.user).exists()
+        assert not GroupSeen.objects.filter(group=group, user=self.user).exists()
 
     def test_subscription(self):
         self.login_as(user=self.user)
@@ -251,9 +287,11 @@ class GroupUpdateTest(APITestCase):
 
         url = '/api/0/issues/{}/'.format(group.id)
 
-        resp = self.client.put(url, data={
-            'isSubscribed': 'true',
-        })
+        resp = self.client.put(
+            url, data={
+                'isSubscribed': 'true',
+            }
+        )
         assert resp.status_code == 200, resp.content
         assert GroupSubscription.objects.filter(
             user=self.user,
@@ -261,15 +299,52 @@ class GroupUpdateTest(APITestCase):
             is_active=True,
         ).exists()
 
-        resp = self.client.put(url, data={
-            'isSubscribed': 'false',
-        })
+        resp = self.client.put(
+            url, data={
+                'isSubscribed': 'false',
+            }
+        )
         assert resp.status_code == 200, resp.content
         assert GroupSubscription.objects.filter(
             user=self.user,
             group=group,
             is_active=False,
         ).exists()
+
+    def test_discard(self):
+        self.login_as(user=self.user)
+        group = self.create_group()
+
+        group_hash = GroupHash.objects.create(
+            hash='x' * 32,
+            project=group.project,
+            group=group,
+        )
+
+        url = '/api/0/issues/{}/'.format(group.id)
+
+        with self.tasks():
+            with self.feature('projects:custom-filters', True):
+                resp = self.client.put(
+                    url, data={
+                        'discard': True,
+                    }
+                )
+
+        assert resp.status_code == 204
+        assert not Group.objects.filter(
+            id=group.id,
+        ).exists()
+        assert GroupHash.objects.filter(
+            id=group_hash.id,
+        ).exists()
+        tombstone = GroupTombstone.objects.get(
+            id=GroupHash.objects.get(id=group_hash.id).group_tombstone_id,
+        )
+        assert tombstone.message == group.message
+        assert tombstone.culprit == group.culprit
+        assert tombstone.project == group.project
+        assert tombstone.data == group.data
 
 
 class GroupDeleteTest(APITestCase):

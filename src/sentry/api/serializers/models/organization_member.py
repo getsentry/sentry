@@ -10,10 +10,7 @@ from sentry.models import OrganizationMember
 class OrganizationMemberSerializer(Serializer):
     def get_attrs(self, item_list, user):
         # TODO(dcramer): assert on relations
-        users = {
-            d['id']: d
-            for d in serialize(set(i.user for i in item_list if i.user_id), user)
-        }
+        users = {d['id']: d for d in serialize(set(i.user for i in item_list if i.user_id), user)}
 
         return {
             item: {

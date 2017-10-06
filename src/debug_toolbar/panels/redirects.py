@@ -20,11 +20,12 @@ class RedirectsPanel(Panel):
         if 300 <= int(response.status_code) < 400:
             redirect_to = response.get('Location', None)
             if redirect_to:
-                try:        # Django >= 1.6
+                try:  # Django >= 1.6
                     reason_phrase = response.reason_phrase
                 except AttributeError:
-                    reason_phrase = STATUS_CODE_TEXT.get(response.status_code,
-                                                         'UNKNOWN STATUS CODE')
+                    reason_phrase = STATUS_CODE_TEXT.get(
+                        response.status_code, 'UNKNOWN STATUS CODE'
+                    )
                 status_line = '%s %s' % (response.status_code, reason_phrase)
                 cookies = response.cookies
                 context = {'redirect_to': redirect_to, 'status_line': status_line}

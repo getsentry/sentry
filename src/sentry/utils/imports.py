@@ -26,6 +26,7 @@ class ModuleProxyCache(dict):
 
         return handler
 
+
 _cache = ModuleProxyCache()
 
 

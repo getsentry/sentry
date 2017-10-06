@@ -6,6 +6,7 @@ from ua_parser.user_agent_parser import Parse
 from rest_framework import serializers
 from sentry.models import ProjectOption
 from sentry.api.fields import MultipleChoiceField
+from sentry.utils.data_filters import FilterStatKeys
 
 """
 For default (legacy) filter
@@ -23,18 +24,13 @@ MIN_VERSIONS = {
 
 class LegacyBrowserFilterSerializer(serializers.Serializer):
     active = serializers.BooleanField()
-    subfilters = MultipleChoiceField(choices=[
-        'ie_pre_9',
-        'ie9',
-        'ie10',
-        'opera_pre_15',
-        'android_pre_4',
-        'safari_pre_6'
-    ])
+    subfilters = MultipleChoiceField(
+        choices=['ie_pre_9', 'ie9', 'ie10', 'opera_pre_15', 'android_pre_4', 'safari_pre_6']
+    )
 
 
 class LegacyBrowsersFilter(Filter):
-    id = 'legacy-browsers'
+    id = FilterStatKeys.LEGACY_BROWSER
     name = 'Filter out known errors from legacy browsers'
     description = 'Older browsers often give less accurate information, and while they may report valid issues, the context to understand them is incorrect or missing.'
     default = False

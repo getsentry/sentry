@@ -1,13 +1,15 @@
 /*eslint react/jsx-key:0*/
+import PropTypes from 'prop-types';
+
 import React from 'react';
-import _ from 'underscore';
+import _ from 'lodash';
 
 import Avatar from '../../../components/avatar';
 import KeyValueList from '../interfaces/keyValueList';
 
 const UserContextType = React.createClass({
   propTypes: {
-    data: React.PropTypes.object.isRequired
+    data: PropTypes.object.isRequired
   },
 
   render() {
@@ -42,14 +44,16 @@ const UserContextType = React.createClass({
           <Avatar user={user} size={96} gravatar={false} />
         </div>
         <table className="key-value table">
-          {builtins.map(([key, value]) => {
-            return (
-              <tr key={key}>
-                <td className="key" key="0">{key}</td>
-                <td className="value" key="1">{value}</td>
-              </tr>
-            );
-          })}
+          <tbody>
+            {builtins.map(([key, value]) => {
+              return (
+                <tr key={key}>
+                  <td className="key" key="0">{key}</td>
+                  <td className="value" key="1">{value}</td>
+                </tr>
+              );
+            })}
+          </tbody>
         </table>
         {children && <KeyValueList data={children} isContextData={true} />}
       </div>

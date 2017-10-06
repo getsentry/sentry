@@ -5,12 +5,11 @@ from rest_framework import serializers, status
 from rest_framework.response import Response
 
 from sentry.api.base import DocSection
-from sentry.api.bases.organization import OrganizationEndpoint
+from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.team import TeamWithProjectsSerializer
 from sentry.models import (
-    AuditLogEntryEvent, OrganizationMember, OrganizationMemberTeam,
-    Team, TeamStatus
+    AuditLogEntryEvent, OrganizationMember, OrganizationMemberTeam, Team, TeamStatus
 )
 from sentry.utils.apidocs import scenario, attach_scenarios
 
@@ -28,19 +27,23 @@ def create_new_team_scenario(runner):
 
 @scenario('ListOrganizationTeams')
 def list_organization_teams_scenario(runner):
-    runner.request(
-        method='GET',
-        path='/organizations/%s/teams/' % runner.org.slug
-    )
+    runner.request(method='GET', path='/organizations/%s/teams/' % runner.org.slug)
+
+
+# OrganizationPermission + team:write
+class OrganizationTeamsPermission(OrganizationPermission):
+    def __init__(self):
+        for m in 'POST', 'PUT', 'DELETE':
+            self.scope_map[m].append('team:write')
 
 
 class TeamSerializer(serializers.Serializer):
     name = serializers.CharField(max_length=200, required=True)
-    slug = serializers.RegexField(r'^[a-z0-9_\-]+$', max_length=50,
-                                  required=False)
+    slug = serializers.RegexField(r'^[a-z0-9_\-]+$', max_length=50, required=False)
 
 
 class OrganizationTeamsEndpoint(OrganizationEndpoint):
+    permission_classes = (OrganizationTeamsPermission,)
     doc_section = DocSection.TEAMS
 
     @attach_scenarios([list_organization_teams_scenario])
@@ -60,13 +63,14 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
         if request.auth and hasattr(request.auth, 'project'):
             return Response(status=403)
 
-        team_list = list(Team.objects.filter(
-            organization=organization,
-            status=TeamStatus.VISIBLE,
-        ).order_by('name', 'slug'))
+        team_list = list(
+            Team.objects.filter(
+                organization=organization,
+                status=TeamStatus.VISIBLE,
+            ).order_by('name', 'slug')
+        )
 
-        return Response(serialize(
-            team_list, request.user, TeamWithProjectsSerializer()))
+        return Response(serialize(team_list, request.user, TeamWithProjectsSerializer()))
 
     @attach_scenarios([create_new_team_scenario])
     def post(self, request, organization):
@@ -99,7 +103,9 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
                     )
             except IntegrityError:
                 return Response(
-                    {'detail': 'A team with this slug already exists.'},
+                    {
+                        'detail': 'A team with this slug already exists.'
+                    },
                     status=409,
                 )
 
