@@ -361,7 +361,7 @@ class DSymCache(object):
             uuid__in=uuid_strings,
         ).select_related('file'))
         dsym_files = {}
-        for dsym_file in dsym_files:
+        for dsym_file in q:
             if on_dsym_file_referenced is not None:
                 on_dsym_file_referenced(dsym_file)
             dsym_files[dsym_file.id] = dsym_file
@@ -380,10 +380,11 @@ class DSymCache(object):
             dsym_file = dsym_files[cache_file.dsym_file_id]
             if cache_file.version == SYMCACHE_LATEST_VERSION and \
                cache_file.checksum == dsym_file.file.checksum:
-                cachefiles_to_update.pop(cache_file.uuid, None)
+                cachefiles_to_update.pop(six.text_type(cache_file.uuid), None)
                 cachefiles.append(cache_file)
             else:
-                cachefiles_to_update[cache_file.uuid] = (cache_file, dsym_file)
+                cachefiles_to_update[six.text_type(cache_file.uuid)] = \
+                    (cache_file, dsym_file)
 
         # if any cache files need to be updated, do that now.
         if cachefiles_to_update:
