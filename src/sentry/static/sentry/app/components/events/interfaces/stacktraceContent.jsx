@@ -74,6 +74,9 @@ const StacktraceContent = React.createClass({
       let repeatedFrame =
         nextFrame &&
         frame.lineNo === nextFrame.lineNo &&
+        frame.instructionAddr === nextFrame.instructionAddr &&
+        frame.package === nextFrame.package &&
+        frame.module === nextFrame.module &&
         frame.function === nextFrame.function;
 
       if (repeatedFrame) {
