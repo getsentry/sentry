@@ -6,6 +6,8 @@ exports[`ProjectAlertSettings render() renders 1`] = `
 >
   <div>
     <SpreadLayout
+      center={true}
+      responsive={false}
       style={
         Object {
           "marginBottom": 20,
