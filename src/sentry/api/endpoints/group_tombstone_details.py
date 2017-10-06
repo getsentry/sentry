@@ -5,7 +5,7 @@ from rest_framework.response import Response
 from sentry.api.bases import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 
-from sentry.models import GroupHash, GroupTombstone, PreProcessGroupHash
+from sentry.models import GroupHash, GroupTombstone, FilteredGroupHash
 
 
 class GroupTombstoneDetailsEndpoint(ProjectEndpoint):
@@ -36,7 +36,7 @@ class GroupTombstoneDetailsEndpoint(ProjectEndpoint):
             group_tombstone_id=None,
         )
 
-        PreProcessGroupHash.objects.filter(group_tombstone_id=tombstone_id).delete()
+        FilteredGroupHash.objects.filter(group_tombstone_id=tombstone_id).delete()
 
         tombstone.delete()
 

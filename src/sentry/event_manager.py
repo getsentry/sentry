@@ -30,8 +30,8 @@ from sentry.constants import (
 from sentry.interfaces.base import get_interface
 from sentry.models import (
     Activity, Environment, Event, EventMapping, EventUser, Group, GroupHash, GroupRelease,
-    GroupResolution, GroupStatus, PreProcessGroupHash, Project, Release, ReleaseEnvironment,
-    ReleaseProject, UserReport
+    GroupResolution, GroupStatus, FilteredGroupHash, Project, Release,
+    ReleaseEnvironment, ReleaseProject, UserReport
 )
 from sentry.plugins import plugins
 from sentry.signals import first_event_received, regression_signal
@@ -856,13 +856,16 @@ class EventManager(object):
                 if original_data:
                     pre_process_hashes = get_preprocess_hashes(original_data)
 
-                    if pre_process_hashes is not None:
-                        for ph in pre_process_hashes:
-                            PreProcessGroupHash.objects.create(
-                                project=project,
-                                hash=ph,
-                                group_tombstone_id=h.group_tombstone_id,
-                            )
+                    for ph in pre_process_hashes:
+                        try:
+                            with transaction.atomic():
+                                FilteredGroupHash.objects.create(
+                                    project=project,
+                                    hash=ph,
+                                    group_tombstone_id=h.group_tombstone_id,
+                                )
+                        except IntegrityError:
+                            pass
                 raise HashDiscarded('Matches group tombstone %s' % h.group_tombstone_id)
 
         # XXX(dcramer): this has the opportunity to create duplicate groups

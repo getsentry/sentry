@@ -27,6 +27,7 @@ Schema Changes
 - Added ``Identity`` model.
 - Added ``UserIdentity`` model.
 - Added ``ProjectTeam`` model
+- Added ``FilteredGroupHash`` model
 
 
 Version 8.20
@@ -55,7 +56,6 @@ Schema Changes
 - Dropped ``EventUser.project_id`` foreign key constraint
 - Added ``Email`` model
 - Change ``CommitFileChange.filename`` from varchar to text in PostgreSQL
-- Added ``PreProcessGroupHash`` model
 
 Version 8.19
 ------------

@@ -5,7 +5,12 @@ from django.db import models
 from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, Model
 
 
-class PreProcessGroupHash(Model):
+class FilteredGroupHash(Model):
+    """
+    Similar to GroupHash, but used only for filtering, and hashing is
+    based on unprocessed data, so hashing methods used to generate
+    these are slightly different.
+    """
     __core__ = False
 
     project = FlexibleForeignKey('sentry.Project', null=True)
@@ -14,5 +19,5 @@ class PreProcessGroupHash(Model):
 
     class Meta:
         app_label = 'sentry'
-        db_table = 'sentry_preprocessgrouphash'
+        db_table = 'sentry_filteredgrouphash'
         unique_together = (('project', 'hash'), )
