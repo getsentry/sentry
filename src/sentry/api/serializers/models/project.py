@@ -158,6 +158,7 @@ class ProjectWithTeamSerializer(ProjectSerializer):
         attrs = super(ProjectWithTeamSerializer,
                       self).get_attrs(item_list, user)
 
+        # todo(jess): fix this
         teams = {d['id']: d for d in serialize(
             list(set(i.team for i in item_list)), user)}
         for item in item_list:

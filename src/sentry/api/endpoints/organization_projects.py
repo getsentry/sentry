@@ -7,7 +7,7 @@ from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.project import ProjectWithTeamSerializer
-from sentry.models import Project, Team
+from sentry.models import Project
 from sentry.utils.apidocs import scenario, attach_scenarios
 
 ERR_INVALID_STATS_PERIOD = "Invalid stats_period. Valid choices are '', '24h', '14d', and '30d'"
@@ -57,15 +57,11 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint):
                 team_list = [request.auth.project.team]
                 queryset = queryset = Project.objects.filter(
                     id=request.auth.project.id,
-                ).select_related('team')
+                ).prefetch_related('teams')
             elif request.auth.organization is not None:
-                org = request.auth.organization
-                team_list = list(Team.objects.filter(
-                    organization=org,
-                ))
                 queryset = Project.objects.filter(
-                    team__in=team_list,
-                ).select_related('team')
+                    organization=organization,
+                ).prefetch_related('teams')
             else:
                 return Response(
                     {
@@ -76,8 +72,8 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint):
         else:
             team_list = list(request.access.teams)
             queryset = Project.objects.filter(
-                team__in=team_list,
-            ).select_related('team')
+                teams__in=team_list,
+            ).prefetch_related('teams')
 
         return self.paginate(
             request=request,

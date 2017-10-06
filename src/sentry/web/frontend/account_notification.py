@@ -11,7 +11,9 @@ from django.utils.decorators import method_decorator
 
 from sudo.decorators import sudo_required
 
-from sentry.models import (Project, ProjectStatus, Organization, OrganizationStatus)
+from sentry.models import (
+    Project, ProjectStatus, Organization, OrganizationMemberTeam, OrganizationStatus
+)
 from sentry.plugins import plugins
 from sentry.web.forms.accounts import (
     ProjectEmailOptionsForm, NotificationSettingsForm, NotificationReportSettingsForm,
@@ -54,8 +56,10 @@ class AccountNotificationView(BaseView):
 
         project_list = list(
             Project.objects.filter(
-                team__organizationmemberteam__organizationmember__user=request.user,
-                team__organizationmemberteam__is_active=True,
+                teams=OrganizationMemberTeam.objects.filter(
+                    organizationmember__user=request.user,
+                    is_active=True,
+                ).values('team'),
                 status=ProjectStatus.VISIBLE,
             ).distinct()
         )

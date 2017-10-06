@@ -69,11 +69,12 @@ class TeamProjectIndexEndpoint(TeamEndpoint):
         :auth: required
         """
         if request.user.is_authenticated():
-            results = list(Project.objects.get_for_user(team=team, user=request.user))
+            # TODO(jess): does this need to be updated
+            results = list(Project.objects.get_for_user(teams=[team], user=request.user))
         else:
             # TODO(dcramer): status should be selectable
             results = list(Project.objects.filter(
-                team=team,
+                teams=team,
                 status=ProjectStatus.VISIBLE,
             ))
 

@@ -50,8 +50,9 @@ class TeamStatsEndpoint(TeamEndpoint, StatsMixin):
                                    values.
         :auth: required
         """
+        # TODO(jess): does this need to be updated?
         projects = Project.objects.get_for_user(
-            team=team,
+            teams=[team],
             user=request.user,
         )
 

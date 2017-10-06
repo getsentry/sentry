@@ -8,7 +8,7 @@ from six.moves import reduce
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import TagBasedStreamGroupSerializer
-from sentry.models import (EventUser, Group, GroupTagValue, Project)
+from sentry.models import (EventUser, Group, GroupTagValue, ProjectTeam, Team)
 
 
 class OrganizationUserIssuesEndpoint(OrganizationEndpoint):
@@ -22,8 +22,16 @@ class OrganizationUserIssuesEndpoint(OrganizationEndpoint):
         )
         # they have organization access but not to this project, thus
         # they shouldn't be able to see this user
-        if not request.access.has_team_access(
-                Project.objects.select_related('team').get(pk=euser.project_id).team):
+        has_team_access = any([
+            request.access.has_team_access(t) for t in
+            Team.objects.filter(
+                id__in=ProjectTeam.objects.filter(
+                    project_id=euser.project_id,
+                ).values_list('team_id', flat=True),
+            )
+        ])
+
+        if not has_team_access:
             return Response([])
 
         other_eusers = euser.find_similar_users(request.user)

@@ -47,34 +47,39 @@ class ProjectTeam(Model):
 
 class ProjectManager(BaseManager):
     # TODO(dcramer): we might want to cache this per user
-    def get_for_user(self, team, user, scope=None, _skip_team_check=False):
+    # TODO(jess): does this actually need to change?
+    def get_for_user(self, teams, user, scope=None, _skip_team_check=False):
         from sentry.models import Team
 
         if not (user and user.is_authenticated()):
             return []
 
+        if teams:
+            organization = teams[0].organization
+            for team in teams:
+                if team.organization != organization:
+                    raise RuntimeError('Teams must be part of the same organization')
+
         if not _skip_team_check:
             team_list = Team.objects.get_for_user(
-                organization=team.organization,
+                organization=teams[0].organization,
                 user=user,
                 scope=scope,
             )
+            allowed_team_ids = {team.id for team in team_list}
+            allowed_teams = []
+            for team in teams:
+                if team.id in allowed_team_ids:
+                    allowed_teams.append(team)
+                else:
+                    logging.info('User does not have access to team: %s', team.id)
 
-            try:
-                team = team_list[team_list.index(team)]
-            except ValueError:
-                logging.info('User does not have access to team: %s', team.id)
-                return []
+            teams = allowed_teams
 
-        base_qs = self.filter(
-            team=team,
+        project_list = list(self.filter(
+            teams__in=teams,
             status=ProjectStatus.VISIBLE,
-        )
-
-        project_list = []
-        for project in base_qs:
-            project.team = team
-            project_list.append(project)
+        ).prefetch_related('teams'))
 
         return sorted(project_list, key=lambda x: x.name.lower())
 

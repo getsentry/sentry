@@ -20,7 +20,7 @@ class OrganizationUserIssuesSearchEndpoint(OrganizationEndpoint):
         # limit to only teams user has opted into
         project_ids = list(
             Project.objects.filter(
-                team__in=OrganizationMemberTeam.objects.filter(
+                teams__in=OrganizationMemberTeam.objects.filter(
                     organizationmember__user=request.user,
                     organizationmember__organization=organization,
                     is_active=True,

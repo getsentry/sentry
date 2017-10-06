@@ -4,7 +4,7 @@ from rest_framework.response import Response
 
 from sentry.api.serializers import serialize, StreamGroupSerializer
 from sentry.api.paginator import OffsetPaginator
-from sentry.models import (Group, GroupStatus, OrganizationMemberTeam, Project, ProjectStatus)
+from sentry.models import Group, GroupStatus, OrganizationMemberTeam, Project, ProjectStatus
 
 from .organizationmember import OrganizationMemberEndpoint
 
@@ -32,9 +32,9 @@ class OrganizationIssuesEndpoint(OrganizationMemberEndpoint):
 
         project_list = Project.objects.filter(
             organization=organization,
-            team__in=OrganizationMemberTeam.objects.filter(
+            teams=OrganizationMemberTeam.objects.filter(
                 organizationmember=member,
-            ).values('team')
+            ).values('team'),
         )
 
         queryset = self.get_queryset(request, organization, member, project_list)

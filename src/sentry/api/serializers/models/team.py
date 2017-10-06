@@ -71,21 +71,24 @@ class TeamWithProjectsSerializer(TeamSerializer):
     def get_attrs(self, item_list, user):
         project_qs = list(
             Project.objects.filter(
-                team__in=item_list,
+                teams__in=item_list,
                 status=ProjectStatus.VISIBLE,
             ).order_by('name', 'slug')
         )
 
-        team_map = {i.id: i for i in item_list}
+        # TODO(jess): is this even used?
+        # team_map = {i.id: i for i in item_list}
         # TODO(dcramer): we should query in bulk for ones we're missing here
         orgs = {i.organization_id: i.organization for i in item_list}
 
         for project in project_qs:
-            project._team_cache = team_map[project.team_id]
+            # TODO(jess): is this even used?
+            # project._team_cache = team_map[project.team_id]
             project._organization_cache = orgs[project.organization_id]
 
         project_map = defaultdict(list)
         for project, data in zip(project_qs, serialize(project_qs, user)):
+            # TODO: jess fix this
             project_map[project.team_id].append(data)
 
         result = super(TeamWithProjectsSerializer, self).get_attrs(item_list, user)

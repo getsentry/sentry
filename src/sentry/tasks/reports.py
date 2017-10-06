@@ -677,7 +677,7 @@ def deliver_organization_user_report(timestamp, duration, organization_id, user_
 
     projects = set()
     for team in Team.objects.get_for_user(organization, user):
-        projects.update(Project.objects.get_for_user(team, user, _skip_team_check=True))
+        projects.update(Project.objects.get_for_user([team], user, _skip_team_check=True))
 
     if not projects:
         logger.debug(

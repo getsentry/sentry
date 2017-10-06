@@ -20,7 +20,7 @@ class Command(BaseCommand):
 
     def handle(self, **options):
         from django.conf import settings
-        from sentry.models import Project
+        from sentry.models import Project, ProjectTeam
         from sentry.utils.samples import create_sample_event
 
         if not options['project']:
@@ -30,7 +30,12 @@ class Command(BaseCommand):
                 project = Project.objects.get(id=options['project'])
             elif '/' in options['project']:
                 t_slug, p_slug = options['project'].split('/', 1)
-                project = Project.objects.get(slug=p_slug, team__slug=t_slug)
+                project = Project.objects.get(
+                    slug=p_slug,
+                    teams=ProjectTeam.objects.filter(
+                        team__slug=t_slug,
+                    ).values_list('team', flat=True),
+                )
             else:
                 raise CommandError(
                     'Project must be specified as team-slug/project-slug or a project id'

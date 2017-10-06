@@ -74,14 +74,15 @@ class ProjectEndpoint(Endpoint):
             project = Project.objects.filter(
                 organization__slug=organization_slug,
                 slug=project_slug,
-            ).select_related('organization', 'team').get()
+            ).select_related('organization').prefetch_related('teams').get()
         except Project.DoesNotExist:
             raise ResourceDoesNotExist
 
         if project.status != ProjectStatus.VISIBLE:
             raise ResourceDoesNotExist
 
-        project.team.organization = project.organization
+        for team in project.teams.all():
+            team.organization = project.organization
 
         self.check_object_permissions(request, project)
 

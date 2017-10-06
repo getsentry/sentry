@@ -56,8 +56,9 @@ class OrganizationStatsEndpoint(OrganizationEndpoint, StatsMixin):
 
             project_list = []
             for team in team_list:
+                # TODO(jess): fix this
                 project_list.extend(Project.objects.get_for_user(
-                    team=team,
+                    teams=[team],
                     user=request.user,
                 ))
             keys = [p.id for p in project_list]

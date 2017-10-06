@@ -32,6 +32,7 @@
           <ul>
             {% for project in project_list|slice:"5" %}
               <li>
+                <!-- TODO(jess): fix this -->
                 {{ project.team.name }} &#47; {{ project.name }}
               </li>
             {% endfor %}

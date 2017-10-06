@@ -70,7 +70,7 @@ class TeamManager(BaseManager):
         if with_projects:
             project_list = sorted(
                 Project.objects.filter(
-                    team__in=team_list,
+                    teams__in=team_list,
                     status=ProjectStatus.VISIBLE,
                 ),
                 key=lambda x: x.name.lower()
@@ -193,7 +193,7 @@ class Team(Model):
 
         project_ids = list(
             Project.objects.filter(
-                team=self,
+                teams=self,
             ).exclude(
                 organization=organization,
             ).values_list('id', flat=True)

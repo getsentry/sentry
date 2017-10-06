@@ -3,18 +3,17 @@ from __future__ import absolute_import
 from sentry.api.bases import OrganizationMemberEndpoint
 from sentry.api.paginator import DateTimePaginator
 from sentry.api.serializers import serialize, OrganizationActivitySerializer
-from sentry.models import Activity, OrganizationMemberTeam, Project
+from sentry.models import Activity, OrganizationMemberTeam, ProjectTeam
 
 
 class OrganizationActivityEndpoint(OrganizationMemberEndpoint):
     def get(self, request, organization, member):
         queryset = Activity.objects.filter(
-            project__in=Project.objects.filter(
-                organization=organization,
+            project_id__in=ProjectTeam.objects.filter(
                 team__in=OrganizationMemberTeam.objects.filter(
                     organizationmember=member,
                 ).values('team')
-            )
+            ).values_list('project_id', flat=True),
         ).exclude(
             # There is an activity record created for both sides of the unmerge
             # operation, so we only need to include one of them here to avoid

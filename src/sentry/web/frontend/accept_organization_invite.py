@@ -62,7 +62,7 @@ class AcceptOrganizationInviteView(BaseView):
         qs = Project.objects.filter(
             organization=organization,
         )
-        project_list = list(qs.select_related('team')[:25])
+        project_list = list(qs.prefetch_related('teams')[:25])
         project_count = qs.count()
 
         context = {
