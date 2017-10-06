@@ -229,59 +229,58 @@ class RedisTSDB(BaseTSDB):
         return dict(results_by_key)
 
     def merge(self, model, destination, sources, timestamp=None, environment_ids=None):
-        raise NotImplementedError
-
         environment_ids = (
             set(environment_ids) if environment_ids is not None else set()).union(
             [None])
 
         rollups = self.get_active_series(timestamp=timestamp)
 
-        for environment_id in environment_ids:
-            cluster = self.get_cluster(environment_id)
-
+        for cluster, environment_ids in self.get_cluster_groups(environment_ids):
             with cluster.map() as client:
                 data = {}
                 for rollup, series in rollups.items():
                     data[rollup] = {}
                     for timestamp in series:
-                        results = data[rollup][timestamp] = []
+                        results = data[rollup][timestamp] = defaultdict(list)
                         for source in sources:
-                            source_hash_key, source_hash_field = self.make_counter_key(
-                                model,
-                                rollup,
-                                timestamp,
-                                source,
-                                environment_id,
-                            )
-                            results.append(client.hget(source_hash_key, source_hash_field))
-                            client.hdel(source_hash_key, source_hash_field)
+                            for environment_id in environment_ids:
+                                source_hash_key, source_hash_field = self.make_counter_key(
+                                    model,
+                                    rollup,
+                                    timestamp,
+                                    source,
+                                    environment_id,
+                                )
+                                results[environment_id].append(
+                                    client.hget(source_hash_key, source_hash_field))
+                                client.hdel(source_hash_key, source_hash_field)
 
             with cluster.map() as client:
                 for rollup, series in data.items():
-                    for timestamp, promises in series.items():
-                        total = sum([int(p.value) for p in promises if p.value])
-                        if total:
-                            destination_hash_key, destination_hash_field = self.make_counter_key(
-                                model,
-                                rollup,
-                                timestamp,
-                                destination,
-                                environment_id,
-                            )
-                            client.hincrby(
-                                destination_hash_key,
-                                destination_hash_field,
-                                total,
-                            )
-                            client.expireat(
-                                destination_hash_key,
-                                self.calculate_expiry(
+                    for timestamp, results in series.items():
+                        for environment_id, promises in results.items():
+                            total = sum([int(p.value) for p in promises if p.value])
+                            if total:
+                                destination_hash_key, destination_hash_field = self.make_counter_key(
+                                    model,
                                     rollup,
-                                    self.rollups[rollup],
                                     timestamp,
-                                ),
-                            )
+                                    destination,
+                                    environment_id,
+                                )
+                                client.hincrby(
+                                    destination_hash_key,
+                                    destination_hash_field,
+                                    total,
+                                )
+                                client.expireat(
+                                    destination_hash_key,
+                                    self.calculate_expiry(
+                                        rollup,
+                                        self.rollups[rollup],
+                                        timestamp,
+                                    ),
+                                )
 
     def delete(self, models, keys, start=None, end=None, timestamp=None, environment_ids=None):
         environment_ids = (
