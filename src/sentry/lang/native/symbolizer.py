@@ -200,17 +200,17 @@ class Symbolizer(object):
                 type = EventError.NATIVE_MISSING_OPTIONALLY_BUNDLED_DSYM
             else:
                 type = EventError.NATIVE_MISSING_DSYM
-            raise SymbolicationFailed(type=type, image=obj)
+            raise SymbolicationFailed(type=type, obj=obj)
 
         try:
             rv = symcache.lookup(rebase_addr(instruction_addr, obj))
         except SymbolicError as e:
             raise SymbolicationFailed(
-                type=EventError.NATIVE_BAD_DSYM, message=six.text_type(e), image=obj
+                type=EventError.NATIVE_BAD_DSYM, message=six.text_type(e), obj=obj
             )
 
         if not rv:
-            raise SymbolicationFailed(type=EventError.NATIVE_MISSING_SYMBOL, image=obj)
+            raise SymbolicationFailed(type=EventError.NATIVE_MISSING_SYMBOL, obj=obj)
         return [self._process_frame(s, obj) for s in reversed(rv)]
 
     def _convert_symbolserver_match(self, instruction_addr, symbolserver_match, obj):

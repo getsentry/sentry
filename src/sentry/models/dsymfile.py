@@ -356,41 +356,46 @@ class DSymCache(object):
     def fetch_symcaches(self, project, uuids, on_dsym_file_referenced=None):
         # Fetch dsym files first and invoke the callback if we need
         uuid_strings = list(map(six.text_type, uuids))
-        q = list(ProjectDSymFile.objects.filter(
+        dsym_files = list(ProjectDSymFile.objects.filter(
             project=project,
             uuid__in=uuid_strings,
         ).select_related('file'))
-        dsym_files = {}
-        for dsym_file in q:
+        if not dsym_files:
+            return {}
+
+        dsym_files_by_uuid = {}
+        for dsym_file in dsym_files:
             if on_dsym_file_referenced is not None:
                 on_dsym_file_referenced(dsym_file)
-            dsym_files[dsym_file.id] = dsym_file
+            dsym_files_by_uuid[dsym_file.uuid] = dsym_file
 
         # Now find all the cache files we already have.
-        cachefiles_to_update = dict.fromkeys(uuid_strings)
         q = ProjectSymCacheFile.objects.filter(
             project=project,
-            dsym_file_id__in=list(dsym_files),
-        ).select_related('cache_file')
+            dsym_file_id__in=[x.id for x in dsym_files],
+        ).select_related('cache_file', 'dsym_file__uuid')
 
         cachefiles = []
-        cachefiles_to_update = dict.fromkeys(
-            x.uuid for x in six.itervalues(dsym_files))
+        cachefiles_to_update = dict.fromkeys(x.uuid for x in dsym_files)
         for cache_file in q:
-            dsym_file = dsym_files[cache_file.dsym_file_id]
+            dsym_uuid = cache_file.dsym_file.uuid
+            dsym_file = dsym_files_by_uuid[dsym_uuid]
             if cache_file.version == SYMCACHE_LATEST_VERSION and \
                cache_file.checksum == dsym_file.file.checksum:
-                cachefiles_to_update.pop(six.text_type(cache_file.uuid), None)
-                cachefiles.append(cache_file)
+                cachefiles_to_update.pop(dsym_uuid, None)
+                cachefiles.append((dsym_uuid, cache_file))
             else:
-                cachefiles_to_update[six.text_type(cache_file.uuid)] = \
+                cachefiles_to_update[dsym_uuid] = \
                     (cache_file, dsym_file)
 
         # if any cache files need to be updated, do that now.
         if cachefiles_to_update:
             to_update = []
-            for cache_file, dsym_file in six.itervalues(cachefiles_to_update):
-                if cache_file is not None:
+            for dsym_uuid, it in six.iteritems(cachefiles_to_update):
+                if it is None:
+                    dsym_file = dsym_files_by_uuid[dsym_uuid]
+                else:
+                    cache_file, dsym_file = it
                     cache_file.delete()
                 to_update.append(dsym_file)
             cachefiles.extend(self._update_cachefiles(project, to_update))
@@ -401,6 +406,7 @@ class DSymCache(object):
         rv = []
 
         for dsym_file in dsym_files:
+            dsym_uuid = dsym_file.uuid
             tf = tempfile.NamedTemporaryFile()
             with dsym_file.file.getfile() as sf:
                 shutil.copyfileobj(sf, tf)
@@ -420,29 +426,29 @@ class DSymCache(object):
             file.putfile(cache.open_stream())
             try:
                 with transaction.atomic():
-                    rv.append(ProjectSymCacheFile.objects.get_or_create(
-                        file=file,
+                    rv.append((dsym_uuid, ProjectSymCacheFile.objects.get_or_create(
                         project=project,
+                        cache_file=file,
                         dsym_file=dsym_file,
                         defaults=dict(
                             checksum=dsym_file.file.checksum,
                             version=cache.file_format_version,
                         )
-                    ))
+                    )[0]))
             except IntegrityError:
                 file.delete()
-                rv.append(ProjectSymCacheFile.objects.get(
+                rv.append((dsym_uuid, ProjectSymCacheFile.objects.get(
                     project=project,
                     dsym_file=dsym_file,
-                ))
+                )))
 
         return rv
 
     def _load_cachefiles_via_fs(self, project, cachefiles):
         rv = {}
         base = self.get_project_path(project)
-        for symcache_file in cachefiles:
-            dsym_path = os.path.join(base, symcache_file.uuid + '.symcache')
+        for dsym_uuid, symcache_file in cachefiles:
+            dsym_path = os.path.join(base, dsym_uuid + '.symcache')
             try:
                 stat = os.stat(dsym_path)
             except OSError as e:
@@ -470,7 +476,7 @@ class DSymCache(object):
                                 pass
             else:
                 self.try_bump_timestamp(dsym_path, stat)
-            rv[uuid.UUID(symcache_file.uuid)] = SymCache.from_path(dsym_path)
+            rv[uuid.UUID(dsym_uuid)] = SymCache.from_path(dsym_path)
         return rv
 
     def try_bump_timestamp(self, path, old_stat):
