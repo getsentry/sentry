@@ -113,6 +113,12 @@ class RedisTSDB(BaseTSDB):
     def get_cluster(self, environment_id):
         return self.cluster
 
+    def get_cluster_groups(self, environment_ids):
+        results = defaultdict(set)
+        for environment_id in environment_ids:
+            results[self.get_cluster(environment_id)].add(environment_id)
+        return results.items()
+
     def add_environment_parameter(self, key, environment_id):
         if environment_id is not None:
             return '{}?e={}'.format(key, environment_id)
@@ -179,19 +185,18 @@ class RedisTSDB(BaseTSDB):
         if timestamp is None:
             timestamp = timezone.now()
 
-        environment_ids = set([None, environment_id])
-
-        for environment_id in environment_ids:
-            with self.get_cluster(environment_id).map() as client:
+        for cluster, environment_ids in self.get_cluster_groups(set([None, environment_id])):
+            with cluster.map() as client:
                 for rollup, max_values in six.iteritems(self.rollups):
                     for model, key in items:
-                        hash_key, hash_field = self.make_counter_key(
-                            model, rollup, timestamp, key, environment_id)
-                        client.hincrby(hash_key, hash_field, count)
-                        client.expireat(
-                            hash_key,
-                            self.calculate_expiry(rollup, max_values, timestamp),
-                        )
+                        for environment_id in environment_ids:
+                            hash_key, hash_field = self.make_counter_key(
+                                model, rollup, timestamp, key, environment_id)
+                            client.hincrby(hash_key, hash_field, count)
+                            client.expireat(
+                                hash_key,
+                                self.calculate_expiry(rollup, max_values, timestamp),
+                            )
 
     def get_range(self, model, keys, start, end, rollup=None, environment_id=None):
         """
@@ -224,6 +229,8 @@ class RedisTSDB(BaseTSDB):
         return dict(results_by_key)
 
     def merge(self, model, destination, sources, timestamp=None, environment_ids=None):
+        raise NotImplementedError
+
         environment_ids = (
             set(environment_ids) if environment_ids is not None else set()).union(
             [None])
@@ -283,24 +290,25 @@ class RedisTSDB(BaseTSDB):
 
         rollups = self.get_active_series(start, end, timestamp)
 
-        for environment_id in environment_ids:
-            with self.get_cluster(environment_id).map() as client:
+        for cluster, environment_ids in self.get_cluster_groups(environment_ids):
+            with cluster.map() as client:
                 for rollup, series in rollups.items():
                     for timestamp in series:
                         for model in models:
                             for key in keys:
-                                hash_key, hash_field = self.make_counter_key(
-                                    model,
-                                    rollup,
-                                    timestamp,
-                                    key,
-                                    environment_id,
-                                )
+                                for environment_id in environment_ids:
+                                    hash_key, hash_field = self.make_counter_key(
+                                        model,
+                                        rollup,
+                                        timestamp,
+                                        key,
+                                        environment_id,
+                                    )
 
-                                client.hdel(
-                                    hash_key,
-                                    hash_field,
-                                )
+                                    client.hdel(
+                                        hash_key,
+                                        hash_field,
+                                    )
 
     def record(self, model, key, values, timestamp=None, environment_id=None):
         self.record_multi(((model, key, values), ), timestamp, environment_id)
@@ -314,29 +322,28 @@ class RedisTSDB(BaseTSDB):
 
         ts = int(to_timestamp(timestamp))  # ``timestamp`` is not actually a timestamp :(
 
-        environment_ids = set([None, environment_id])
-
-        for environment_id in environment_ids:
-            with self.get_cluster(environment_id).fanout() as client:
+        for cluster, environment_ids in self.get_cluster_groups(set([None, environment_id])):
+            with cluster.fanout() as client:
                 for model, key, values in items:
                     c = client.target_key(key)
                     for rollup, max_values in six.iteritems(self.rollups):
-                        k = self.make_key(
-                            model,
-                            rollup,
-                            ts,
-                            key,
-                            environment_id,
-                        )
-                        c.pfadd(k, *values)
-                        c.expireat(
-                            k,
-                            self.calculate_expiry(
+                        for environment_id in environment_ids:
+                            k = self.make_key(
+                                model,
                                 rollup,
-                                max_values,
-                                timestamp,
-                            ),
-                        )
+                                ts,
+                                key,
+                                environment_id,
+                            )
+                            c.pfadd(k, *values)
+                            c.expireat(
+                                k,
+                                self.calculate_expiry(
+                                    rollup,
+                                    max_values,
+                                    timestamp,
+                                ),
+                            )
 
     def get_distinct_counts_series(self, model, keys, start, end=None,
                                    rollup=None, environment_id=None):
@@ -475,6 +482,8 @@ class RedisTSDB(BaseTSDB):
 
     def merge_distinct_counts(self, model, destination, sources,
                               timestamp=None, environment_ids=None):
+        raise NotImplementedError
+
         environment_ids = (
             set(environment_ids) if environment_ids is not None else set()).union(
             [None])
@@ -550,22 +559,23 @@ class RedisTSDB(BaseTSDB):
 
         rollups = self.get_active_series(start, end, timestamp)
 
-        for environment_id in environment_ids:
-            with self.get_cluster(environment_id).fanout() as client:
+        for cluster, environment_ids in self.get_cluster_groups(environment_ids):
+            with cluster.fanout() as client:
                 for rollup, series in rollups.items():
                     for timestamp in series:
                         for model in models:
                             for key in keys:
                                 c = client.target_key(key)
-                                c.delete(
-                                    self.make_key(
-                                        model,
-                                        rollup,
-                                        to_timestamp(timestamp),
-                                        key,
-                                        environment_id,
+                                for environment_id in environment_ids:
+                                    c.delete(
+                                        self.make_key(
+                                            model,
+                                            rollup,
+                                            to_timestamp(timestamp),
+                                            key,
+                                            environment_id,
+                                        )
                                     )
-                                )
 
     def make_frequency_table_keys(self, model, rollup, timestamp, key, environment_id):
         prefix = self.make_key(model, rollup, timestamp, key, environment_id)
@@ -581,11 +591,9 @@ class RedisTSDB(BaseTSDB):
         if timestamp is None:
             timestamp = timezone.now()
 
-        environment_ids = set([None, environment_id])
-
         ts = int(to_timestamp(timestamp))  # ``timestamp`` is not actually a timestamp :(
 
-        for environment_id in environment_ids:
+        for cluster, environment_ids in self.get_cluster_groups(set([None, environment_id])):
             commands = {}
 
             for model, request in requests:
@@ -596,9 +604,10 @@ class RedisTSDB(BaseTSDB):
                     # Figure out all of the keys we need to be incrementing, as
                     # well as their expiration policies.
                     for rollup, max_values in six.iteritems(self.rollups):
-                        chunk = self.make_frequency_table_keys(
-                            model, rollup, ts, key, environment_id)
-                        keys.extend(chunk)
+                        for environment_id in environment_ids:
+                            chunk = self.make_frequency_table_keys(
+                                model, rollup, ts, key, environment_id)
+                            keys.extend(chunk)
 
                         expiry = self.calculate_expiry(rollup, max_values, timestamp)
                         for k in chunk:
@@ -615,7 +624,7 @@ class RedisTSDB(BaseTSDB):
                     for k, t in expirations.items():
                         cmds.append(('EXPIREAT', k, t))
 
-            self.get_cluster(environment_id).execute_commands(commands)
+            cluster.execute_commands(commands)
 
     def get_most_frequent(self, model, keys, start, end=None,
                           rollup=None, limit=None, environment_id=None):
@@ -734,6 +743,8 @@ class RedisTSDB(BaseTSDB):
         return responses
 
     def merge_frequencies(self, model, destination, sources, timestamp=None, environment_ids=None):
+        raise NotImplementedError
+
         environment_ids = list(
             (set(environment_ids) if environment_ids is not None else set()).union(
                 [None]))
@@ -807,8 +818,8 @@ class RedisTSDB(BaseTSDB):
 
         rollups = self.get_active_series(start, end, timestamp)
 
-        for environment_id in environment_ids:
-            with self.get_cluster(environment_id).fanout() as client:
+        for cluster, environment_ids in self.get_cluster_groups(environment_ids):
+            with cluster.fanout() as client:
                 for rollup, series in rollups.items():
                     for timestamp in series:
                         for model in models:
