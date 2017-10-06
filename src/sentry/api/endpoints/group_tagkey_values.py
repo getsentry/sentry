@@ -4,7 +4,7 @@ from sentry import tagstore
 from sentry.api.base import DocSection
 from sentry.api.bases.group import GroupEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.api.paginator import DateTimePaginator, OffsetPaginator, Paginator
+from sentry.api.paginator import DateTimePaginator, Paginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.tagvalue import UserTagValueSerializer
 from sentry.models import GroupTagValue, Group
@@ -55,9 +55,6 @@ class GroupTagKeyValuesEndpoint(GroupEndpoint):
         elif sort == 'age':
             order_by = '-first_seen'
             paginator_cls = DateTimePaginator
-        elif sort == 'freq':
-            order_by = '-times_seen'
-            paginator_cls = OffsetPaginator
         else:
             order_by = '-id'
             paginator_cls = Paginator
