@@ -9,9 +9,12 @@ sentry.models.file
 from __future__ import absolute_import
 
 import six
+import shutil
+import tempfile
 
 from hashlib import sha1
 from uuid import uuid4
+from concurrent.futures import ThreadPoolExecutor
 
 from django.conf import settings
 from django.core.files.base import File as FileObj
@@ -160,15 +163,15 @@ class File(Model):
         app_label = 'sentry'
         db_table = 'sentry_file'
 
-    def getfile(self, *args, **kwargs):
-        return FileObj(
-            ChunkedFileBlobIndexWrapper(
-                FileBlobIndex.objects.filter(
-                    file=self,
-                ).select_related('blob').order_by('offset'),
-                mode=kwargs.get('mode'),
-            ), self.name
+    def getfile(self, mode=None, prefetch=False):
+        cfbiw = ChunkedFileBlobIndexWrapper(
+            FileBlobIndex.objects.filter(
+                file=self,
+            ).select_related('blob').order_by('offset'),
+            mode=mode,
+            prefetch=prefetch
         )
+        return FileObj(cfbiw, self.name)
 
     def putfile(self, fileobj, blob_size=DEFAULT_BLOB_SIZE, commit=True):
         """
@@ -219,11 +222,16 @@ class FileBlobIndex(Model):
 
 
 class ChunkedFileBlobIndexWrapper(object):
-    def __init__(self, indexes, mode=None):
+    def __init__(self, indexes, mode=None, prefetch=False):
         # eager load from database incase its a queryset
         self._indexes = list(indexes)
         self._curfile = None
         self._curidx = None
+        if prefetch:
+            self.prefetched = True
+            self._prefetch()
+        else:
+            self.prefetched = False
         self.mode = mode
         self.open()
 
@@ -234,12 +242,19 @@ class ChunkedFileBlobIndexWrapper(object):
         self.close()
 
     def _nextidx(self):
+        if self.prefetched:
+            self._
+        old_file = self._curfile
         try:
-            self._curidx = six.next(self._idxiter)
-            self._curfile = self._curidx.blob.getfile()
-        except StopIteration:
-            self._curidx = None
-            self._curfile = None
+            try:
+                self._curidx = six.next(self._idxiter)
+                self._curfile = self._curidx.blob.getfile()
+            except StopIteration:
+                self._curidx = None
+                self._curfile = None
+        finally:
+            if old_file is not None:
+                old_file.close()
 
     @property
     def size(self):
@@ -248,6 +263,23 @@ class ChunkedFileBlobIndexWrapper(object):
     def open(self):
         self.closed = False
         self.seek(0)
+
+    def _prefetch(self):
+        f = tempfile.NamedTemporaryFile()
+        fpath = f.name
+
+        def fetch_file(offset, getfile):
+            with open(fpath, 'r+') as f:
+                f.seek(offset)
+                with getfile() as sf:
+                    shutil.copyfileobj(sf, f)
+                f.flush()
+
+        with ThreadPoolExecutor(max_workers=4) as exe:
+            for idx in self._indexes:
+                exe.submit(fetch_file, idx.offset, idx.blob.getfile)
+
+        self._curfile = f
 
     def close(self):
         if self._curfile:
@@ -259,6 +291,10 @@ class ChunkedFileBlobIndexWrapper(object):
     def seek(self, pos):
         if self.closed:
             raise ValueError('I/O operation on closed file')
+
+        if self.prefetched:
+            return self._curfile.seek(pos)
+
         if pos < 0:
             raise IOError('Invalid argument')
         for n, idx in enumerate(self._indexes[::-1]):
@@ -269,12 +305,13 @@ class ChunkedFileBlobIndexWrapper(object):
                 break
         else:
             raise ValueError('Cannot seek to pos')
-        rel_pos = min(pos - self._curidx.offset, self._curidx.blob.size)
-        self._curfile.seek(rel_pos)
+        self._curfile.seek(pos - self._curidx.offset)
 
     def tell(self):
         if self.closed:
             raise ValueError('I/O operation on closed file')
+        if self.prefetched:
+            return self._curfile.tell()
         if self._curfile is None:
             return self.size
         return self._curidx.offset + self._curfile.tell()
@@ -282,6 +319,9 @@ class ChunkedFileBlobIndexWrapper(object):
     def read(self, n=-1):
         if self.closed:
             raise ValueError('I/O operation on closed file')
+
+        if self.prefetched:
+            return self._curfile.read(n)
 
         result = bytearray()
 
