@@ -74,6 +74,36 @@ class SAML2LoginView(AuthView):
         return self.redirect(auth.login())
 
 
+# With SAML, the SSO request can be initiated by both the Service Provider
+# (sentry) (the typical case) and the Identity Provider. In the second case,
+# the auth assertion is directly posted to the ACS URL. Because the user will
+# not have initiated their SSO flow we must provide a endpoint similar to
+# auth_provider_login, but with support for initing the auth flow.
+class SAML2AcceptACSView(BaseView):
+    @method_decorator(csrf_exempt)
+    def dispatch(self, request, organization_slug):
+        # NB: The 'auth' key is used in the helper
+        in_auth_flow = request.session.get('auth', False)
+
+        # SP initiated authentication
+        if in_auth_flow:
+            from sentry.web.frontend.auth_provider_login import AuthProviderLoginView
+            sso_login = AuthProviderLoginView()
+            return sso_login.handle(request)
+
+        # IdP initiated authentication. Start from org login flow
+        from sentry.web.frontend.auth_organization_login import AuthOrganizationLoginView
+
+        # AuthOranizationLogin will init the login flow *only if* the ``init``
+        # parameter is set.
+        request.POST._mutable = True
+        request.POST['init'] = True
+        request.POST._mutable = False
+
+        org_login = AuthOrganizationLoginView()
+        return org_login.handle(request, organization_slug)
+
+
 class SAML2ACSView(AuthView):
     @method_decorator(csrf_exempt)
     def dispatch(self, request, helper):
@@ -284,7 +314,7 @@ def build_saml_config(provider_config, org):
     idp = provider_config['idp']
 
     # TODO(epurkhiser): This is also available in the helper and should probably come from there.
-    acs_url = absolute_uri(reverse('sentry-auth-sso'))
+    acs_url = absolute_uri(reverse('sentry-auth-organization-saml-acs', args=[org]))
     sls_url = absolute_uri(reverse('sentry-auth-organization-saml-sls', args=[org]))
     metadata_url = absolute_uri(reverse('sentry-auth-organization-saml-metadata', args=[org]))
 
