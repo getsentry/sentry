@@ -276,15 +276,29 @@ class ChunkedFileBlobIndexWrapper(object):
             raise ValueError('I/O operation on closed file')
         return self._curidx.offset + self._curfile.tell()
 
-    def read(self, bytes=4096):
+    def read(self, bytes=-1):
         if self.closed:
             raise ValueError('I/O operation on closed file')
-        result = ''
-        while bytes and self._curfile is not None:
-            blob_result = self._curfile.read(bytes)
-            if not blob_result:
-                self._nextidx()
-                continue
-            bytes -= len(blob_result)
-            result += blob_result
-        return result
+
+        result = bytearray()
+
+        # Read to the end of the file
+        if bytes < 0:
+            while self._curfile is not None:
+                blob_result = self._curfile.read(32768)
+                if not blob_result:
+                    self._nextidx()
+                else:
+                    result.extend(blob_result)
+
+        # Read until a certain number of bytes are read
+        else:
+            while bytes > 0 and self._curfile is not None:
+                blob_result = self._curfile.read(min(bytes, 32768))
+                if not blob_result:
+                    self._nextidx()
+                else:
+                    bytes -= len(blob_result)
+                    result.extend(blob_result)
+
+        return bytes(result)
