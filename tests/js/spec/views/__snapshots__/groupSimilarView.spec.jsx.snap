@@ -284,10 +284,12 @@ exports[`Issues Similar View renders with mocked data 1`] = `
         className="similar-list-container"
       >
         <SpreadLayout
+          center={true}
           className="similar-list-header"
+          responsive={false}
         >
           <div
-            className="spread-layout similar-list-header"
+            className="spread-layout similar-list-header center"
           >
             <h2>
               <span>
@@ -354,10 +356,11 @@ exports[`Issues Similar View renders with mocked data 1`] = `
               className="toolbar similar-toolbar"
             >
               <SpreadLayout
+                center={true}
                 responsive={true}
               >
                 <div
-                  className="spread-layout allow-responsive"
+                  className="spread-layout center allow-responsive"
                 >
                   <FlowLayout
                     style={
@@ -796,10 +799,12 @@ exports[`Issues Similar View renders with mocked data 2`] = `
         className="similar-list-container"
       >
         <SpreadLayout
+          center={true}
           className="similar-list-header"
+          responsive={false}
         >
           <div
-            className="spread-layout similar-list-header"
+            className="spread-layout similar-list-header center"
           >
             <h2>
               <span>
@@ -866,10 +871,11 @@ exports[`Issues Similar View renders with mocked data 2`] = `
               className="toolbar similar-toolbar"
             >
               <SpreadLayout
+                center={true}
                 responsive={true}
               >
                 <div
-                  className="spread-layout allow-responsive"
+                  className="spread-layout center allow-responsive"
                 >
                   <FlowLayout
                     style={
