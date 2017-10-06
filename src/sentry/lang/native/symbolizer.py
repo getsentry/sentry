@@ -3,7 +3,7 @@ from __future__ import absolute_import
 import re
 import six
 
-from symbolic import SymbolicError, ObjectLookup, Symbol
+from symbolic import SymbolicError, ObjectLookup, Symbol, parse_addr
 
 from sentry.utils.safe import trim
 from sentry.utils.compat import implements_to_string
@@ -108,10 +108,10 @@ class Symbolizer(object):
 
         self.arch = arch
 
-    def _process_frame(self, sym, obj, package=None):
+    def _process_frame(self, sym, obj, package=None, addr_off=0):
         frame = {
-            'sym_addr': sym.sym_addr,
-            'instruction_addr': sym.instr_addr,
+            'sym_addr': sym.sym_addr + addr_off,
+            'instruction_addr': sym.instr_addr + addr_off,
             'line': sym.line,
         }
         symbol = trim(sym.symbol, MAX_SYM)
@@ -211,7 +211,7 @@ class Symbolizer(object):
 
         if not rv:
             raise SymbolicationFailed(type=EventError.NATIVE_MISSING_SYMBOL, obj=obj)
-        return [self._process_frame(s, obj) for s in reversed(rv)]
+        return [self._process_frame(s, obj, addr_off=obj.addr) for s in reversed(rv)]
 
     def _convert_symbolserver_match(self, instruction_addr, symbolserver_match, obj):
         """Symbolizes a frame with system symbols only."""
@@ -224,9 +224,9 @@ class Symbolizer(object):
 
         return [
             self._process_frame(Symbol(
-                sym_addr=symbolserver_match['addr'],
-                instr_addr=instruction_addr,
-                line=0,
+                sym_addr=parse_addr(symbolserver_match['addr']),
+                instr_addr=parse_addr(instruction_addr),
+                line=None,
                 symbol=symbol,
             ), obj, package=symbolserver_match['object_name'])
         ]
