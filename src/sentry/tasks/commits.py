@@ -22,10 +22,24 @@ def generate_invalid_identity_email(identity, commit_failure=False):
     }
 
     return MessageBuilder(
-        subject='Action Required',
+        subject='Unable to Fetch Commits' if commit_failure else 'Action Required',
         context=new_context,
         template='sentry/emails/identity-invalid.txt',
         html_template='sentry/emails/identity-invalid.html',
+    )
+
+
+def generate_fetch_commits_error_email(release, error_message):
+    new_context = {
+        'release': release,
+        'error_message': error_message,
+    }
+
+    return MessageBuilder(
+        subject='Unable to Fetch Commits',
+        context=new_context,
+        template='sentry/emails/unable-to-fetch-commits.txt',
+        html_template='sentry/emails/unable-to-fetch-commits.html',
     )
 
 # we're future proofing this function a bit so it could be used with other code
@@ -107,7 +121,7 @@ def fetch_commits(release_id, user_id, refs, prev_release_id=None, **kwargs):
             repo_commits = provider.compare_commits(repo, start_sha, end_sha, actor=user)
         except NotImplementedError:
             pass
-        except (PluginError, InvalidIdentity) as exc:
+        except Exception as exc:
             logger.exception(
                 'fetch_commits.error',
                 exc_info=True,
@@ -121,6 +135,13 @@ def fetch_commits(release_id, user_id, refs, prev_release_id=None, **kwargs):
             )
             if isinstance(exc, InvalidIdentity) and getattr(exc, 'identity', None):
                 handle_invalid_identity(identity=exc.identity, commit_failure=True)
+            elif isinstance(exc, (PluginError, InvalidIdentity)):
+                msg = generate_fetch_commits_error_email(release, exc.message)
+                msg.send_async(to=[user.email])
+            else:
+                msg = generate_fetch_commits_error_email(
+                    release, 'An internal system error occurred.')
+                msg.send_async(to=[user.email])
         else:
             logger.info(
                 'fetch_commits.complete',
