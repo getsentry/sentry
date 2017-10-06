@@ -269,21 +269,24 @@ class ChunkedFileBlobIndexWrapper(object):
                 break
         else:
             raise ValueError('Cannot seek to pos')
-        self._curfile.seek(pos - self._curidx.offset)
+        rel_pos = min(pos - self._curidx.offset, self._curidx.blob.size)
+        self._curfile.seek(rel_pos)
 
     def tell(self):
         if self.closed:
             raise ValueError('I/O operation on closed file')
+        if self._curfile is None:
+            return self.size
         return self._curidx.offset + self._curfile.tell()
 
-    def read(self, bytes=-1):
+    def read(self, n=-1):
         if self.closed:
             raise ValueError('I/O operation on closed file')
 
         result = bytearray()
 
         # Read to the end of the file
-        if bytes < 0:
+        if n < 0:
             while self._curfile is not None:
                 blob_result = self._curfile.read(32768)
                 if not blob_result:
@@ -293,12 +296,12 @@ class ChunkedFileBlobIndexWrapper(object):
 
         # Read until a certain number of bytes are read
         else:
-            while bytes > 0 and self._curfile is not None:
-                blob_result = self._curfile.read(min(bytes, 32768))
+            while n > 0 and self._curfile is not None:
+                blob_result = self._curfile.read(min(n, 32768))
                 if not blob_result:
                     self._nextidx()
                 else:
-                    bytes -= len(blob_result)
+                    n -= len(blob_result)
                     result.extend(blob_result)
 
         return bytes(result)

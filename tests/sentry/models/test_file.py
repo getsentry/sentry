@@ -39,16 +39,16 @@ class FileTest(TestCase):
         with file1.getfile() as fp:
             assert fp.read().decode('utf-8') == 'foo bar'
             fp.seek(2)
-            fp.tell() == 2
+            assert fp.tell() == 2
             assert fp.read().decode('utf-8') == 'o bar'
             fp.seek(0)
-            fp.tell() == 0
+            assert fp.tell() == 0
             assert fp.read().decode('utf-8') == 'foo bar'
             fp.seek(4)
-            fp.tell() == 4
+            assert fp.tell() == 4
             assert fp.read().decode('utf-8') == 'bar'
             fp.seek(1000)
-            fp.tell() == 1000
+            assert fp.tell() == 7
 
             with self.assertRaises(IOError):
                 fp.seek(-1)
