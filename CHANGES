@@ -12,6 +12,7 @@ Schema Changes
 - Added ``IdentityProvider`` model.
 - Added ``Identity`` model.
 - Added ``UserIdentity`` model.
+- Added ``ProjectTeam`` model
 
 Version 8.20
 ------------

@@ -32,7 +32,7 @@ install-brew:
 install-python:
 	# must be executed serialially
 	$(MAKE) install-python-base
-	$(MAKE) install-python-tests
+	$(MAKE) install-python-develop
 
 install-python-base:
 	@echo "--> Installing Python dependencies"
@@ -42,8 +42,11 @@ install-python-base:
 	$(PIP) install ujson
 	$(PIP) install "file://`pwd`#egg=sentry[dev]"
 
-install-python-tests:
+install-python-develop:
 	$(PIP) install "file://`pwd`#egg=sentry[dev,tests]"
+
+install-python-tests:
+	$(PIP) install "file://`pwd`#egg=sentry[dev,tests,optional]"
 
 dev-postgres: install-python
 
@@ -195,7 +198,8 @@ travis-setup-cassandra:
 	echo 'create table nodestore (key text primary key, value blob, flags int);' | cqlsh -k sentry --cqlversion=3.1.7
 travis-install-python:
 	$(MAKE) travis-upgrade-pip
-	$(MAKE) install-python install-python
+	$(MAKE) install-python-base
+	$(MAKE) install-python-tests
 	python -m pip install codecov
 travis-noop:
 	@echo "nothing to do here."
@@ -214,11 +218,11 @@ travis-install-acceptance: install-yarn travis-install-postgres
 travis-install-network: travis-install-postgres
 travis-install-js:
 	$(MAKE) travis-upgrade-pip
-	$(MAKE) install-python install-yarn
+	$(MAKE) travis-install-python install-yarn
 travis-install-cli: travis-install-postgres
 travis-install-dist:
 	$(MAKE) travis-upgrade-pip
-	$(MAKE) install-python install-yarn
+	$(MAKE) travis-install-python install-yarn
 travis-install-django-18: travis-install-postgres
 	pip install "Django>=1.8,<1.9"
 

@@ -183,7 +183,19 @@ exports[`OrganizationIntegrations render() with a provider renders 1`] = `
                     }
                   }
                 >
-                  New Project
+                  <FlowLayout
+                    truncate={false}
+                  >
+                    <div
+                      className="flow-layout"
+                    >
+                      <span
+                        className="button-label"
+                      >
+                        New Project
+                      </span>
+                    </div>
+                  </FlowLayout>
                 </a>
               </Link>
             </Button>
@@ -208,7 +220,19 @@ exports[`OrganizationIntegrations render() with a provider renders 1`] = `
                   role="button"
                   style={Object {}}
                 >
-                  New Team
+                  <FlowLayout
+                    truncate={false}
+                  >
+                    <div
+                      className="flow-layout"
+                    >
+                      <span
+                        className="button-label"
+                      >
+                        New Team
+                      </span>
+                    </div>
+                  </FlowLayout>
                 </a>
               </Link>
             </Button>
@@ -757,7 +781,19 @@ exports[`OrganizationIntegrations render() with a provider renders with a reposi
                     }
                   }
                 >
-                  New Project
+                  <FlowLayout
+                    truncate={false}
+                  >
+                    <div
+                      className="flow-layout"
+                    >
+                      <span
+                        className="button-label"
+                      >
+                        New Project
+                      </span>
+                    </div>
+                  </FlowLayout>
                 </a>
               </Link>
             </Button>
@@ -782,7 +818,19 @@ exports[`OrganizationIntegrations render() with a provider renders with a reposi
                   role="button"
                   style={Object {}}
                 >
-                  New Team
+                  <FlowLayout
+                    truncate={false}
+                  >
+                    <div
+                      className="flow-layout"
+                    >
+                      <span
+                        className="button-label"
+                      >
+                        New Team
+                      </span>
+                    </div>
+                  </FlowLayout>
                 </a>
               </Link>
             </Button>
@@ -1472,7 +1520,19 @@ exports[`OrganizationIntegrations render() without any providers renders 1`] = `
                     }
                   }
                 >
-                  New Project
+                  <FlowLayout
+                    truncate={false}
+                  >
+                    <div
+                      className="flow-layout"
+                    >
+                      <span
+                        className="button-label"
+                      >
+                        New Project
+                      </span>
+                    </div>
+                  </FlowLayout>
                 </a>
               </Link>
             </Button>
@@ -1497,7 +1557,19 @@ exports[`OrganizationIntegrations render() without any providers renders 1`] = `
                   role="button"
                   style={Object {}}
                 >
-                  New Team
+                  <FlowLayout
+                    truncate={false}
+                  >
+                    <div
+                      className="flow-layout"
+                    >
+                      <span
+                        className="button-label"
+                      >
+                        New Team
+                      </span>
+                    </div>
+                  </FlowLayout>
                 </a>
               </Link>
             </Button>
