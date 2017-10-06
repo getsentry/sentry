@@ -9,6 +9,8 @@ const FlowLayout = React.createClass({
   propTypes: {
     /** Centers content via `justify-content` */
     center: PropTypes.bool,
+    /** Changes flex direction to be column */
+    vertical: PropTypes.bool,
     /** Applies "overflow: hidden" to container so that children can be truncated */
     truncate: PropTypes.bool
   },
@@ -20,8 +22,9 @@ const FlowLayout = React.createClass({
   },
 
   render() {
-    let {className, children, truncate, center, ...otherProps} = this.props;
+    let {className, children, truncate, vertical, center, ...otherProps} = this.props;
     let cx = classNames('flow-layout', className, {
+      'is-vertical': vertical,
       'is-center': center,
       'is-truncated': truncate
     });

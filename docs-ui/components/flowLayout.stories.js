@@ -8,9 +8,28 @@ import SpreadLayout from 'sentry-ui/spreadLayout';
 
 storiesOf('ComponentLayouts/FlowLayout', module)
   .add(
-    'default',
+    'row',
     withInfo('Horizontal row with vertical centering')(() => (
       <FlowLayout style={{backgroundColor: '#fff'}}>
+        <div style={{padding: 6, backgroundColor: 'rgba(0, 0, 0, 0.2)'}}>
+          Flow
+        </div>
+        <div style={{padding: 12, backgroundColor: 'rgba(0, 0, 0, 0.1)'}}>
+          Layout
+        </div>
+        <div style={{padding: 24, backgroundColor: 'rgba(0, 0, 0, 0.05)'}}>
+          Flow
+        </div>
+        <div style={{padding: 18, backgroundColor: 'rgba(0, 0, 0, 0.3)'}}>
+          Layout
+        </div>
+      </FlowLayout>
+    ))
+  )
+  .add(
+    'column',
+    withInfo('Vertical column with horizontal centering')(() => (
+      <FlowLayout vertical style={{backgroundColor: '#fff'}}>
         <div style={{padding: 6, backgroundColor: 'rgba(0, 0, 0, 0.2)'}}>
           Flow
         </div>
