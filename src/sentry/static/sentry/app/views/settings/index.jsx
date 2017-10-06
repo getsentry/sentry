@@ -178,6 +178,7 @@ const SettingsPanelItem = React.createClass({
               hover={this.state.hover}
               error={error}
             />}
+          {error && <SettingsErrorReason>Why'd this break yo?</SettingsErrorReason>}
         </SettingsPanelItemCtrl>
       </SettingsPanelItemWrapper>
     );
@@ -343,9 +344,9 @@ const SettingsPanelItemHelp = styled.div`
 
 const SettingsPanelItemCtrl = styled(Box)`
   color: ${p => p.theme.gray3};
-  overflow: hidden;
   width: 50%;
   padding-left: 10px;
+  position: relative;
 `;
 
 const inputStyles = props => css`
@@ -373,7 +374,7 @@ const inputStyles = props => css`
  ${p => {
   if (props.error) {
     return css`
-    box-shadow: 0 0 0 2px ${props.theme.alert.error.border};
+    box-shadow: 0 0 0 1px ${props.theme.alert.error.border};
     &:hover:focus {
       background: #fff !important;
     }
@@ -385,6 +386,18 @@ const inputStyles = props => css`
     color: ${props.theme.gray2};
   }
 `;
+
+const SettingsErrorReason = withTheme(
+  styled.div`
+    color: ${p => p.theme.alert.error.textLight};
+    position: absolute;
+    left: 9px;
+    background: #fff;
+    padding: 8px 10px;
+    font-size: 12px;
+    border: 1px solid ${p => p.theme.alert.error.border};
+  `
+);
 
 const SettingsInputField = styled.input`
   ${inputStyles};
