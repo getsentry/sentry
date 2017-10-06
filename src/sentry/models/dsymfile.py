@@ -408,7 +408,7 @@ class DSymCache(object):
         for dsym_file in dsym_files:
             dsym_uuid = dsym_file.uuid
             tf = tempfile.NamedTemporaryFile()
-            with dsym_file.file.getfile() as sf:
+            with dsym_file.file.getfile(prefetch=True) as sf:
                 shutil.copyfileobj(sf, tf)
             tf.flush()
             tf.seek(0)
@@ -458,7 +458,7 @@ class DSymCache(object):
                     os.makedirs(base)
                 except OSError:
                     pass
-                with symcache_file.cache_file.getfile() as sf:
+                with symcache_file.cache_file.getfile(prefetch=True) as sf:
                     suffix = '_%s' % uuid.uuid4()
                     done = False
                     try:
