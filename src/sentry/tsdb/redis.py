@@ -481,17 +481,13 @@ class RedisTSDB(BaseTSDB):
 
     def merge_distinct_counts(self, model, destination, sources,
                               timestamp=None, environment_ids=None):
-        raise NotImplementedError
-
         environment_ids = (
             set(environment_ids) if environment_ids is not None else set()).union(
             [None])
 
         rollups = self.get_active_series(timestamp=timestamp)
 
-        for environment_id in environment_ids:
-            cluster = self.get_cluster(environment_id)
-
+        for cluster, environment_ids in self.get_cluster_groups(environment_ids):
             temporary_id = uuid.uuid1().hex
 
             def make_temporary_key(key):
@@ -499,22 +495,23 @@ class RedisTSDB(BaseTSDB):
 
             data = {}
             for rollup, series in rollups.items():
-                data[rollup] = {timestamp: [] for timestamp in series}
+                data[rollup] = {timestamp: {e: [] for e in environment_ids} for timestamp in series}
 
             with cluster.fanout() as client:
                 for source in sources:
                     c = client.target_key(source)
                     for rollup, series in data.items():
                         for timestamp, results in series.items():
-                            key = self.make_key(
-                                model,
-                                rollup,
-                                to_timestamp(timestamp),
-                                source,
-                                environment_id,
-                            )
-                            results.append(c.get(key))
-                            c.delete(key)
+                            for environment_id in environment_ids:
+                                key = self.make_key(
+                                    model,
+                                    rollup,
+                                    to_timestamp(timestamp),
+                                    source,
+                                    environment_id,
+                                )
+                                results[environment_id].append(c.get(key))
+                                c.delete(key)
 
             with cluster.fanout() as client:
                 c = client.target_key(destination)
@@ -522,33 +519,34 @@ class RedisTSDB(BaseTSDB):
                 temporary_key_sequence = itertools.count()
 
                 for rollup, series in data.items():
-                    for timestamp, promises in series.items():
-                        values = {}
-                        for promise in promises:
-                            if promise.value is None:
-                                continue
-                            k = make_temporary_key(next(temporary_key_sequence))
-                            values[k] = promise.value
+                    for timestamp, results in series.items():
+                        for environment_id, promises in results.items():
+                            values = {}
+                            for promise in promises:
+                                if promise.value is None:
+                                    continue
+                                k = make_temporary_key(next(temporary_key_sequence))
+                                values[k] = promise.value
 
-                        if values:
-                            key = self.make_key(
-                                model,
-                                rollup,
-                                to_timestamp(timestamp),
-                                destination,
-                                environment_id,
-                            )
-                            c.mset(values)
-                            c.pfmerge(key, key, *values.keys())
-                            c.delete(*values.keys())
-                            c.expireat(
-                                key,
-                                self.calculate_expiry(
+                            if values:
+                                key = self.make_key(
+                                    model,
                                     rollup,
-                                    self.rollups[rollup],
-                                    timestamp,
-                                ),
-                            )
+                                    to_timestamp(timestamp),
+                                    destination,
+                                    environment_id,
+                                )
+                                c.mset(values)
+                                c.pfmerge(key, key, *values.keys())
+                                c.delete(*values.keys())
+                                c.expireat(
+                                    key,
+                                    self.calculate_expiry(
+                                        rollup,
+                                        self.rollups[rollup],
+                                        timestamp,
+                                    ),
+                                )
 
     def delete_distinct_counts(self, models, keys, start=None, end=None,
                                timestamp=None, environment_ids=None):
