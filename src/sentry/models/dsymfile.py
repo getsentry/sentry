@@ -347,13 +347,13 @@ def find_dsym_file(project, image_uuid):
 
 class DSymCache(object):
     @property
-    def dsym_cache_path(self):
+    def cache_path(self):
         return options.get('dsym.cache-path')
 
     def get_project_path(self, project):
-        return os.path.join(self.dsym_cache_path, six.text_type(project.id))
+        return os.path.join(self.cache_path, six.text_type(project.id))
 
-    def fetch_symcaches(self, project, uuids, on_dsym_file_referenced=None):
+    def get_symcaches(self, project, uuids, on_dsym_file_referenced=None):
         # Fetch dsym files first and invoke the callback if we need
         uuid_strings = list(map(six.text_type, uuids))
         dsym_files = list(ProjectDSymFile.objects.filter(
@@ -448,9 +448,9 @@ class DSymCache(object):
         rv = {}
         base = self.get_project_path(project)
         for dsym_uuid, symcache_file in cachefiles:
-            dsym_path = os.path.join(base, dsym_uuid + '.symcache')
+            cachefile_path = os.path.join(base, dsym_uuid + '.symcache')
             try:
-                stat = os.stat(dsym_path)
+                stat = os.stat(cachefile_path)
             except OSError as e:
                 if e.errno != errno.ENOENT:
                     raise
@@ -462,38 +462,38 @@ class DSymCache(object):
                     suffix = '_%s' % uuid.uuid4()
                     done = False
                     try:
-                        with open(dsym_path + suffix, 'w') as df:
+                        with open(cachefile_path + suffix, 'w') as df:
                             shutil.copyfileobj(sf, df)
-                        os.rename(dsym_path + suffix, dsym_path)
+                        os.rename(cachefile_path + suffix, cachefile_path)
                         done = True
                     finally:
                         # Use finally here because it does not lie about
                         # the error on exit
                         if not done:
                             try:
-                                os.remove(dsym_path + suffix)
+                                os.remove(cachefile_path + suffix)
                             except Exception:
                                 pass
             else:
-                self.try_bump_timestamp(dsym_path, stat)
-            rv[uuid.UUID(dsym_uuid)] = SymCache.from_path(dsym_path)
+                self._try_bump_timestamp(cachefile_path, stat)
+            rv[uuid.UUID(dsym_uuid)] = SymCache.from_path(cachefile_path)
         return rv
 
-    def try_bump_timestamp(self, path, old_stat):
+    def _try_bump_timestamp(self, path, old_stat):
         now = int(time.time())
         if old_stat.st_ctime < now - ONE_DAY:
             os.utime(path, (now, now))
 
     def clear_old_entries(self):
         try:
-            cache_folders = os.listdir(self.dsym_cache_path)
+            cache_folders = os.listdir(self.cache_path)
         except OSError:
             return
 
         cutoff = int(time.time()) - ONE_DAY_AND_A_HALF
 
         for cache_folder in cache_folders:
-            cache_folder = os.path.join(self.dsym_cache_path, cache_folder)
+            cache_folder = os.path.join(self.cache_path, cache_folder)
             try:
                 items = os.listdir(cache_folder)
             except OSError:

@@ -103,7 +103,7 @@ class Symbolizer(object):
         if to_load is None:
             to_load = self.object_lookup.get_uuids()
 
-        self.symcaches = ProjectDSymFile.dsymcache.fetch_symcaches(
+        self.symcaches = ProjectDSymFile.dsymcache.get_symcaches(
             project, to_load, on_dsym_file_referenced=on_dsym_file_referenced)
 
         self.arch = arch
