@@ -39,7 +39,7 @@ class CreateProjectTest(AcceptanceTestCase):
         self.browser.click('.submit-new-team')
         self.browser.wait_until_not('.loading')
 
-        assert Project.objects.get(team__organization=self.org, name='Java')
+        assert Project.objects.unrestricted_unsafe().get(team__organization=self.org, name='Java')
         self.browser.snapshot(name='docs redirect')
 
     def test_no_teams(self):
