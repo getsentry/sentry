@@ -544,14 +544,6 @@ CELERYBEAT_SCHEDULE = {
             'expires': 300,
         },
     },
-    # Disabled for the time being:
-    # 'clear-old-cached-dsyms': {
-    #     'task': 'sentry.tasks.clear_old_cached_dsyms',
-    #     'schedule': timedelta(minutes=60),
-    #     'options': {
-    #         'expires': 3600,
-    #     },
-    # },
     'collect-project-platforms': {
         'task': 'sentry.tasks.collect_project_platforms',
         'schedule': timedelta(days=1),
