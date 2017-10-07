@@ -63,7 +63,7 @@ class OrganizationTeamsCreateTest(APITestCase):
             }
         )
         assert resp.status_code == 201, resp.content
-        team = Team.objects.unconstrained_unsafe().get(id=resp.data['id'])
+        team = Team.objects.unrestricted_unsafe().get(id=resp.data['id'])
         assert team.name == 'hello world'
         assert team.slug == 'foobar'
         assert team.organization == self.organization
@@ -88,7 +88,7 @@ class OrganizationTeamsCreateTest(APITestCase):
             }
         )
         assert resp.status_code == 201, resp.content
-        team = Team.objects.unconstrained_unsafe().get(id=resp.data['id'])
+        team = Team.objects.unrestricted_unsafe().get(id=resp.data['id'])
         assert team.slug == 'hello-world'
 
     def test_duplicate(self):

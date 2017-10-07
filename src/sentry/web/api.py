@@ -71,7 +71,7 @@ class APIView(BaseView):
         if not project_id.isdigit():
             raise APIError('Invalid project_id: %r' % project_id)
         try:
-            return Project.objects.get_from_cache(id=project_id, unconstrained_unsafe=True)
+            return Project.objects.get_from_cache(id=project_id, unrestricted_unsafe=True)
         except Project.DoesNotExist:
             raise APIError('Invalid project_id: %r' % project_id)
 
@@ -198,7 +198,7 @@ class APIView(BaseView):
             # Legacy API was /api/store/ and the project ID was only available elsewhere
             if not project:
                 project = Project.objects.get_from_cache(
-                    id=key.project_id, unconstrained_unsafe=True)
+                    id=key.project_id, unrestricted_unsafe=True)
                 helper.context.bind_project(project)
             elif key.project_id != project.id:
                 raise APIError('Two different projects were specified')
@@ -594,7 +594,7 @@ def crossdomain_xml(request, project_id):
         return HttpResponse(status=404)
 
     try:
-        project = Project.objects.get_from_cache(id=project_id, unconstrained_unsafe=True)
+        project = Project.objects.get_from_cache(id=project_id, unrestricted_unsafe=True)
     except Project.DoesNotExist:
         return HttpResponse(status=404)
 
