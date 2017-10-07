@@ -96,9 +96,8 @@ class SAML2AcceptACSView(BaseView):
 
         # AuthOranizationLogin will init the login flow *only if* the ``init``
         # parameter is set.
-        request.POST._mutable = True
+        request.POST = request.POST.copy()
         request.POST['init'] = True
-        request.POST._mutable = False
 
         org_login = AuthOrganizationLoginView()
         return org_login.handle(request, organization_slug)
