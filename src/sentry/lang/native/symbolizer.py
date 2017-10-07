@@ -89,7 +89,7 @@ class SymbolicationFailed(Exception):
 
 
 class Symbolizer(object):
-    """This symbolizer dispatches to both symsynd and the system symbols
+    """This symbolizer dispatches to both symbolic and the system symbols
     we have in the database and reports errors slightly differently.
     """
 

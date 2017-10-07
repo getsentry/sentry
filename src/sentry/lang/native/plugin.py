@@ -62,7 +62,7 @@ class NativeStacktraceProcessor(StacktraceProcessor):
 
         # We only need to provide meta information for frame zero
         if processable_frame.idx == 0:
-            # The signal is useful information for symsynd in some situations
+            # The signal is useful information for symbolic in some situations
             # to disambiugate the first frame.  If we can get this information
             # from the mechanism we want to pass it onwards.
             signal = None
