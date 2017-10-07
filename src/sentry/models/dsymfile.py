@@ -407,18 +407,13 @@ class DSymCache(object):
 
         for dsym_file in dsym_files:
             dsym_uuid = dsym_file.uuid
-            tf = tempfile.NamedTemporaryFile()
-            with dsym_file.file.getfile(prefetch=True) as sf:
-                shutil.copyfileobj(sf, tf)
-            tf.flush()
-            tf.seek(0)
+            with dsym_file.file.getfile(as_tempfile=True) as tf:
+                fo = FatObject.from_path(tf.name)
+                o = fo.get_object(uuid=dsym_file.uuid)
+                if o is None:
+                    continue
+                cache = o.make_symcache()
 
-            fo = FatObject.from_path(tf.name)
-            o = fo.get_object(uuid=dsym_file.uuid)
-            if o is None:
-                continue
-
-            cache = o.make_symcache()
             file = File.objects.create(
                 name=dsym_file.uuid,
                 type='project.symcache',
@@ -454,26 +449,7 @@ class DSymCache(object):
             except OSError as e:
                 if e.errno != errno.ENOENT:
                     raise
-                try:
-                    os.makedirs(base)
-                except OSError:
-                    pass
-                with symcache_file.cache_file.getfile(prefetch=True) as sf:
-                    suffix = '_%s' % uuid.uuid4()
-                    done = False
-                    try:
-                        with open(cachefile_path + suffix, 'w') as df:
-                            shutil.copyfileobj(sf, df)
-                        os.rename(cachefile_path + suffix, cachefile_path)
-                        done = True
-                    finally:
-                        # Use finally here because it does not lie about
-                        # the error on exit
-                        if not done:
-                            try:
-                                os.remove(cachefile_path + suffix)
-                            except Exception:
-                                pass
+                symcache_file.cache_file.save_to(cachefile_path)
             else:
                 self._try_bump_timestamp(cachefile_path, stat)
             rv[uuid.UUID(dsym_uuid)] = SymCache.from_path(cachefile_path)

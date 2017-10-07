@@ -8,6 +8,7 @@ sentry.models.file
 
 from __future__ import absolute_import
 
+import os
 import six
 import shutil
 import tempfile
@@ -163,15 +164,61 @@ class File(Model):
         app_label = 'sentry'
         db_table = 'sentry_file'
 
-    def getfile(self, mode=None, prefetch=False):
-        cfbiw = ChunkedFileBlobIndexWrapper(
+    def _get_chunked_blob(self, mode=None, prefetch=False,
+                          prefetch_to=None, delete=True):
+        return ChunkedFileBlobIndexWrapper(
             FileBlobIndex.objects.filter(
                 file=self,
             ).select_related('blob').order_by('offset'),
             mode=mode,
-            prefetch=prefetch
+            prefetch=prefetch,
+            prefetch_to=prefetch_to,
+            delete=delete,
         )
-        return FileObj(cfbiw, self.name)
+
+    def getfile(self, mode=None, prefetch=False, as_tempfile=False):
+        """Returns a file object.  By default the file is fetched on
+        demand but if prefetch is enabled the file is fully prefetched
+        into a tempfile before reading can happen.
+
+        Additionally if `as_tempfile` is passed a NamedTemporaryFile is
+        returned instead which can help in certain situations where a
+        tempfile is necessary.
+        """
+        if as_tempfile:
+            prefetch = True
+        impl = self._get_chunked_blob(mode, prefetch)
+        if as_tempfile:
+            return impl.detach_tempfile()
+        return FileObj(impl, self.name)
+
+    def save_to(self, path):
+        """Fetches the file and emplaces it at a certain location.  The
+        write is done atomically to a tempfile first and then moved over.
+        If the directory does not exist it is created.
+        """
+        path = os.path.abspath(path)
+        base = os.path.dirname(path)
+        try:
+            os.makedirs(base)
+        except OSError:
+            pass
+
+        f = None
+        try:
+            f = self._get_chunked_blob(prefetch=True,
+                                       prefetch_to=base,
+                                       delete=False).detach_tempfile()
+            os.rename(f.name, path)
+            f.close()
+            f = None
+        finally:
+            if f is not None:
+                f.close()
+                try:
+                    os.remove(f.name)
+                except Exception:
+                    pass
 
     def putfile(self, fileobj, blob_size=DEFAULT_BLOB_SIZE, commit=True):
         """
@@ -222,14 +269,15 @@ class FileBlobIndex(Model):
 
 
 class ChunkedFileBlobIndexWrapper(object):
-    def __init__(self, indexes, mode=None, prefetch=False):
+    def __init__(self, indexes, mode=None, prefetch=False,
+                 prefetch_to=None, delete=True):
         # eager load from database incase its a queryset
         self._indexes = list(indexes)
         self._curfile = None
         self._curidx = None
         if prefetch:
             self.prefetched = True
-            self._prefetch()
+            self._prefetch(prefetch_to, delete)
         else:
             self.prefetched = False
         self.mode = mode
@@ -240,6 +288,15 @@ class ChunkedFileBlobIndexWrapper(object):
 
     def __exit__(self, exc_type, exc_value, tb):
         self.close()
+
+    def detach_tempfile(self):
+        if not self.prefetched:
+            raise TypeError('Can only detech tempfiles in prefetch mode')
+        rv = self._curfile
+        self._curfile = None
+        self.close()
+        rv.seek(0)
+        return rv
 
     def _nextidx(self):
         assert not self.prefetched, 'this makes no sense'
@@ -263,8 +320,10 @@ class ChunkedFileBlobIndexWrapper(object):
         self.closed = False
         self.seek(0)
 
-    def _prefetch(self):
-        f = tempfile.NamedTemporaryFile()
+    def _prefetch(self, prefetch_to=None, delete=True):
+        f = tempfile.NamedTemporaryFile(prefix='._prefetch-',
+                                        dir=prefetch_to,
+                                        delete=delete)
         fpath = f.name
 
         def fetch_file(offset, getfile):
