@@ -580,6 +580,13 @@ CELERYBEAT_SCHEDULE = {
     },
 }
 
+BGTASKS = {
+    'sentry.bgtasks.clean_dsymcache:clean_dsymcache': {
+        'interval': 5 * 60,
+        'roles': ['worker'],
+    }
+}
+
 # Sentry logs to two major places: stdout, and it's internal project.
 # To disable logging to the internal project, add a logger who's only
 # handler is 'console' and disable propagating upwards.
