@@ -36,7 +36,7 @@ def bound_queryset(cls, prefix='Bound'):
                     klass = CLASS_MAPPING[klass]
                 except KeyError:
                     raise NotImplementedError(
-                        'Unable to clone to a bound type for {:r}'.format(klass))
+                        'Unable to clone to a bound type for {}'.format(repr(klass)))
             rv = cls._clone(self, klass=klass, *args, **kwargs)
             rv._constraints_applied = self._constraints_applied
             rv._binding_criteria_fn = self._binding_criteria_fn
