@@ -1,17 +1,20 @@
-import React from 'react';
-import {Link} from 'react-router';
 import $ from 'jquery';
-import styled, {css} from 'react-emotion';
 import {Flex, Box} from 'grid-emotion';
 import {withTheme} from 'emotion-theming';
+import React from 'react';
+import styled, {css} from 'react-emotion';
 
+import SettingsContainer from './components/settingsContainer';
+import SettingsHeading from './components/settingsHeading';
+import SettingsNavItem from './components/settingsNavItem';
+import SettingsNavSection from './components/settingsNavSection';
 import Switch from '../../components/switch';
 
 const Settings = React.createClass({
   componentWillMount() {
     $(document.body).addClass('settings');
   },
-  componentWillunMount() {
+  componentWillUnmount() {
     $(document.body).addClass('settings');
   },
   render() {
@@ -210,13 +213,6 @@ const SettingsWrapper = withTheme(
   `
 );
 
-const SettingsContainer = styled.div`
-  max-width: 960px;
-  padding: 0 16px;
-  margin: 0 auto;
-  line-height: 1;
-`;
-
 const SettingsHeader = styled(Flex)`
   margin-bottom: 60px;
   align-items: center;
@@ -226,44 +222,6 @@ const SettingsActivity = withTheme(
   styled(Box)`
     font-size: 14px;
     color: ${p => p.theme.gray2};
-  `
-);
-
-const SettingsHeading = styled.div`
-  color: ${p => p.theme.gray3};
-  font-size: 12px;
-  font-weight: 600;
-  text-transform: uppercase;
-  margin-bottom: 20px;
-`;
-
-const SettingsNavSection = styled.div`
-  margin-bottom: 20px;
-`;
-
-const SettingsNavItem = withTheme(
-  styled(({label, ...props}) => <Link {...props} children={label} />)`
-    display: block;
-    color: ${p => (p.active === true ? p.theme.gray5 : p.theme.gray2)};
-    font-size: 14px;
-    line-height: 30px;
-    position: relative;
-
-    &:hover, &:focus, &:active {
-      color: ${p => p.theme.gray5};
-    }
-
-    &:before {
-      position: absolute;
-      content: '';
-      display: block;
-      top: 8px;
-      left: -22px;
-      height: 14px;
-      width: 2px;
-      background: ${p => (p.active === true ? p.theme.purple : 'transparent')};
-      border-radius: 1px;
-    }
   `
 );
 
