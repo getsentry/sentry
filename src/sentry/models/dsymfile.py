@@ -288,7 +288,8 @@ def _analyze_progard_filename(filename):
         pass
 
 
-def create_files_from_dsym_zip(fileobj, project=None):
+def create_files_from_dsym_zip(fileobj, project,
+                               update_symcaches=True):
     """Creates all missing dsym files from the given zip file.  This
     returns a list of all files created.
     """
@@ -329,6 +330,14 @@ def create_files_from_dsym_zip(fileobj, project=None):
                 )
                 if created:
                     rv.append(dsym)
+
+        # By default we trigger the symcache generation on upload to avoid
+        # some obvious dogpiling.
+        if update_symcaches:
+            from sentry.tasks.symcache_update import symcache_update
+            symcache_update.delay(project_id=project.id,
+                                  uuids=[six.text_type(x.uuid) for x in rv])
+
         return rv
     finally:
         shutil.rmtree(scratchpad)
