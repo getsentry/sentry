@@ -109,7 +109,7 @@ class Symbolizer(object):
         frame = {
             'sym_addr': sym.sym_addr + addr_off,
             'instruction_addr': sym.instr_addr + addr_off,
-            'line': sym.line,
+            'lineno': sym.line,
         }
         symbol = trim(sym.symbol, MAX_SYM)
         function = trim(sym.function_name, MAX_SYM)

@@ -30,7 +30,7 @@ def process_apple_image(image):
             'arch': image.get('arch'),
             'cpu_type': image.get('cpu_type'),
             'cpu_subtype': image.get('cpu_subtype'),
-            'image_addr': _addr(image['image_addr']),
+            'image_addr': _addr(image.get('image_addr')),
             'image_size': image['image_size'],
             'image_vmaddr': _addr(image.get('image_vmaddr') or 0),
             'name': image.get('name'),
