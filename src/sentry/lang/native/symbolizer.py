@@ -210,6 +210,10 @@ class Symbolizer(object):
             )
 
         if not rv:
+            # For some frameworks we are willing to ignore missing symbol
+            # errors.
+            if self._is_optional_dsym(obj, sdk_info=sdk_info):
+                return []
             raise SymbolicationFailed(type=EventError.NATIVE_MISSING_SYMBOL, obj=obj)
         return [self._process_frame(s, obj, addr_off=obj.addr) for s in reversed(rv)]
 
