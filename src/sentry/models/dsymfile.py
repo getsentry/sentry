@@ -25,7 +25,8 @@ from django.db import models, transaction, IntegrityError
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
-from symbolic import FatObject, SymbolicError, SymCache, SYMCACHE_LATEST_VERSION
+from symbolic import FatObject, SymbolicError, UnsupportedObjectFile, \
+    SymCache, SYMCACHE_LATEST_VERSION
 
 from sentry import options
 from sentry.db.models import FlexibleForeignKey, Model, \
@@ -312,10 +313,13 @@ def create_files_from_dsym_zip(fileobj, project,
                 proguard_uuid = _analyze_progard_filename(fn)
                 if proguard_uuid is not None:
                     to_create.append(('proguard', 'any', six.text_type(proguard_uuid), fn, ))
+                    continue
 
                 # macho style debug symbols
                 try:
                     fo = FatObject.from_path(fn)
+                except UnsupportedObjectFile:
+                    pass
                 except SymbolicError:
                     # Whatever was contained there, was probably not a
                     # macho file.
@@ -371,12 +375,38 @@ class DSymCache(object):
         return os.path.join(self.cache_path, six.text_type(project.id))
 
     def update_symcaches(self, project, uuids):
+        """Given some uuids of dsyms this will update the symcaches for
+        all of these if a symcache is supported for that symbol.
+        """
         self._get_symcaches_impl(project, uuids)
 
     def get_symcaches(self, project, uuids, on_dsym_file_referenced=None):
+        """Given some uuids returns the symcaches loaded for these uuids."""
         cachefiles = self._get_symcaches_impl(project, uuids,
                                               on_dsym_file_referenced)
         return self._load_cachefiles_via_fs(project, cachefiles)
+
+    def fetch_dsyms(self, project, uuids):
+        """Given some uuids returns a uuid to path mapping for where the
+        debug symbol files are on the FS.
+        """
+        rv = {}
+        for image_uuid in uuids:
+            image_uuid = six.text_type(image_uuid).lower()
+            dsym_path = os.path.join(self.get_project_path(project), image_uuid)
+
+            try:
+                os.stat(dsym_path)
+            except OSError as e:
+                if e.errno != errno.ENOENT:
+                    raise
+                dsym_file = find_dsym_file(project, image_uuid)
+                if dsym_file is None:
+                    continue
+                dsym_file.file.save_to(dsym_path)
+            rv[uuid.UUID(image_uuid)] = dsym_path
+
+        return rv
 
     def _get_symcaches_impl(self, project, uuids, on_dsym_file_referenced=None):
         # Fetch dsym files first and invoke the callback if we need
