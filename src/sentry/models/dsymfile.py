@@ -188,6 +188,11 @@ class ProjectDSymFile(Model):
         ct = self.file.headers.get('Content-Type').lower()
         return KNOWN_DSYM_TYPES.get(ct, 'unknown')
 
+    @property
+    def supports_symcache(self):
+        # Only one that supports it so far.
+        return self.dsym_type == 'macho'
+
     def delete(self, *args, **kwargs):
         super(ProjectDSymFile, self).delete(*args, **kwargs)
         self.file.delete()
@@ -336,7 +341,8 @@ def create_files_from_dsym_zip(fileobj, project,
         if update_symcaches:
             from sentry.tasks.symcache_update import symcache_update
             symcache_update.delay(project_id=project.id,
-                                  uuids=[six.text_type(x.uuid) for x in rv])
+                                  uuids=[six.text_type(x.uuid) for x in rv
+                                         if x.supports_symcache])
 
         return rv
     finally:
@@ -365,10 +371,10 @@ class DSymCache(object):
     def get_symcaches(self, project, uuids, on_dsym_file_referenced=None):
         # Fetch dsym files first and invoke the callback if we need
         uuid_strings = list(map(six.text_type, uuids))
-        dsym_files = list(ProjectDSymFile.objects.filter(
+        dsym_files = [x for x in ProjectDSymFile.objects.filter(
             project=project,
             uuid__in=uuid_strings,
-        ).select_related('file'))
+        ).select_related('file') if x.supports_symcache]
         if not dsym_files:
             return {}
 
