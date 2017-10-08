@@ -17,4 +17,4 @@ def symcache_update(project_id, uuids, **kwargs):
         return
 
     uuids = list(map(uuid.UUID, uuids))
-    ProjectDSymFile.dsymcache.get_symcaches(project, uuids)
+    ProjectDSymFile.dsymcache.update_symcaches(project, uuids)

@@ -340,9 +340,11 @@ def create_files_from_dsym_zip(fileobj, project,
         # some obvious dogpiling.
         if update_symcaches:
             from sentry.tasks.symcache_update import symcache_update
-            symcache_update.delay(project_id=project.id,
-                                  uuids=[six.text_type(x.uuid) for x in rv
-                                         if x.supports_symcache])
+            uuids_to_update = [six.text_type(x.uuid) for x in rv
+                               if x.supports_symcache]
+            if uuids_to_update:
+                symcache_update.delay(project_id=project.id,
+                                      uuids=uuids_to_update)
 
         return rv
     finally:
@@ -368,7 +370,15 @@ class DSymCache(object):
     def get_project_path(self, project):
         return os.path.join(self.cache_path, six.text_type(project.id))
 
+    def update_symcaches(self, project, uuids):
+        self._get_symcaches_impl(project, uuids)
+
     def get_symcaches(self, project, uuids, on_dsym_file_referenced=None):
+        cachefiles = self._get_symcaches_impl(project, uuids,
+                                              on_dsym_file_referenced)
+        return self._load_cachefiles_via_fs(project, cachefiles)
+
+    def _get_symcaches_impl(self, project, uuids, on_dsym_file_referenced=None):
         # Fetch dsym files first and invoke the callback if we need
         uuid_strings = list(map(six.text_type, uuids))
         dsym_files = [x for x in ProjectDSymFile.objects.filter(
@@ -415,7 +425,7 @@ class DSymCache(object):
                 to_update.append(dsym_file)
             cachefiles.extend(self._update_cachefiles(project, to_update))
 
-        return self._load_cachefiles_via_fs(project, cachefiles)
+        return cachefiles
 
     def _update_cachefiles(self, project, dsym_files):
         rv = []
