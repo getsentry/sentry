@@ -93,18 +93,15 @@ class Symbolizer(object):
     we have in the database and reports errors slightly differently.
     """
 
-    def __init__(self, project, object_lookup, referenced_images=None,
+    def __init__(self, project, object_lookup, referenced_images,
                  arch=None, on_dsym_file_referenced=None):
         if not isinstance(object_lookup, ObjectLookup):
             object_lookup = ObjectLookup(object_lookup)
         self.object_lookup = object_lookup
 
-        to_load = referenced_images
-        if to_load is None:
-            to_load = self.object_lookup.get_uuids()
-
         self.symcaches = ProjectDSymFile.dsymcache.get_symcaches(
-            project, to_load, on_dsym_file_referenced=on_dsym_file_referenced)
+            project, referenced_images,
+            on_dsym_file_referenced=on_dsym_file_referenced)
 
         self.arch = arch
 
