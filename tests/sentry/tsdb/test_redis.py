@@ -203,10 +203,19 @@ class RedisTSDBTest(TestCase):
             1,
             ('baz', ),
             dts[1],
+            environment_id=1,
         )
 
         self.db.record_multi(
-            ((model, 1, ('foo', 'bar', 'baz'), ), (model, 2, ('bar', ), ), ), dts[2]
+            ((model, 1, ('foo', 'bar'), ), (model, 2, ('bar', ), ), ), dts[2]
+        )
+
+        self.db.record(
+            model,
+            1,
+            ('baz', ),
+            dts[2],
+            environment_id=1,
         )
 
         self.db.record(
@@ -238,16 +247,42 @@ class RedisTSDBTest(TestCase):
             ],
         }
 
+        assert self.db.get_distinct_counts_series(
+            model, [1, 2], dts[0], dts[-1], rollup=3600, environment_id=1,
+        ) == {
+            1: [
+                (timestamp(dts[0]), 0),
+                (timestamp(dts[1]), 1),
+                (timestamp(dts[2]), 1),
+                (timestamp(dts[3]), 0),
+            ],
+            2: [
+                (timestamp(dts[0]), 0),
+                (timestamp(dts[1]), 0),
+                (timestamp(dts[2]), 0),
+                (timestamp(dts[3]), 0),
+            ],
+        }
+
         results = self.db.get_distinct_counts_totals(model, [1, 2], dts[0], dts[-1], rollup=3600)
         assert results == {
             1: 3,
             2: 2,
         }
 
+        results = self.db.get_distinct_counts_totals(
+            model, [1, 2], dts[0], dts[-1], rollup=3600, environment_id=1)
+        assert results == {
+            1: 1,
+            2: 0,
+        }
+
         assert self.db.get_distinct_counts_union(model, [], dts[0], dts[-1], rollup=3600) == 0
         assert self.db.get_distinct_counts_union(model, [1, 2], dts[0], dts[-1], rollup=3600) == 3
+        assert self.db.get_distinct_counts_union(
+            model, [1, 2], dts[0], dts[-1], rollup=3600, environment_id=1) == 1
 
-        self.db.merge_distinct_counts(model, 1, [2], dts[0])
+        self.db.merge_distinct_counts(model, 1, [2], dts[0], environment_ids=[1])
 
         assert self.db.get_distinct_counts_series(
             model, [1], dts[0], dts[-1], rollup=3600
@@ -271,6 +306,23 @@ class RedisTSDBTest(TestCase):
             ],
         }
 
+        assert self.db.get_distinct_counts_series(
+            model, [1, 2], dts[0], dts[-1], rollup=3600, environment_id=1,
+        ) == {
+            1: [
+                (timestamp(dts[0]), 0),
+                (timestamp(dts[1]), 1),
+                (timestamp(dts[2]), 1),
+                (timestamp(dts[3]), 0),
+            ],
+            2: [
+                (timestamp(dts[0]), 0),
+                (timestamp(dts[1]), 0),
+                (timestamp(dts[2]), 0),
+                (timestamp(dts[3]), 0),
+            ],
+        }
+
         results = self.db.get_distinct_counts_totals(model, [1, 2], dts[0], dts[-1], rollup=3600)
         assert results == {
             1: 3,
@@ -282,9 +334,16 @@ class RedisTSDBTest(TestCase):
         assert self.db.get_distinct_counts_union(model, [1, 2], dts[0], dts[-1], rollup=3600) == 3
         assert self.db.get_distinct_counts_union(model, [2], dts[0], dts[-1], rollup=3600) == 0
 
-        self.db.delete_distinct_counts([model], [1, 2], dts[0], dts[-1])
+        self.db.delete_distinct_counts([model], [1, 2], dts[0], dts[-1], environment_ids=[1])
 
         results = self.db.get_distinct_counts_totals(model, [1, 2], dts[0], dts[-1])
+        assert results == {
+            1: 0,
+            2: 0,
+        }
+
+        results = self.db.get_distinct_counts_totals(
+            model, [1, 2], dts[0], dts[-1], environment_id=1)
         assert results == {
             1: 0,
             2: 0,
