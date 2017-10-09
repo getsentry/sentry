@@ -1,10 +1,14 @@
 #!/bin/bash -eu
+if [[ "$TRAVIS_PULL_REQUEST" != "false" ]]; then
+    BUILD_NAME="PR #${TRAVIS_PULL_REQUEST}"
+else
+    BUILD_NAME=""
+fi
 
-# TODO(dcramer): pass URL
 curl $ZEUS_HOOK_BASE/builds/$TRAVIS_BUILD_NUMBER \
     -X POST \
     -H 'Content-Type: application/json' \
-    -d "{\"ref\": \"$TRAVIS_COMMIT\", \"url\": \"https://travis-ci.org/${TRAVIS_REPO_SLUG}/builds/${TRAVIS_BUILD_ID}\"}"
+    -d "{\"label\": \"${BUILD_NAME}\", \"ref\": \"$TRAVIS_COMMIT\", \"url\": \"https://travis-ci.org/${TRAVIS_REPO_SLUG}/builds/${TRAVIS_BUILD_ID}\"}"
 
 curl $ZEUS_HOOK_BASE/builds/$TRAVIS_BUILD_NUMBER/jobs/$TRAVIS_JOB_NUMBER \
     -X POST \
