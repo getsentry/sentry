@@ -29,19 +29,19 @@
     "extract-text-webpack-plugin": "2.0.0-beta.5",
     "file-loader": "0.8.4",
     "gettext-parser": "1.1.1",
-    "history": "1.13.0",
+    "history": "1.14.0",
     "idx": "^1.5.0",
     "ios-device-list": "^1.1.17",
     "jed": "^1.1.0",
-    "jquery": "2.1.4",
+    "jquery": "3.0.0",
     "js-cookie": "2.0.4",
     "json-loader": "0.5.3",
     "less": "2.5.3",
     "less-loader": "^4.0.3",
     "lodash": "^4.17.4",
     "lodash-webpack-plugin": "^0.11.4",
-    "marked": "0.3.5",
-    "moment": "2.10.6",
+    "marked": "0.3.6",
+    "moment": "2.15.2",
     "moment-timezone": "0.4.1",
     "node-libs-browser": "0.5.3",
     "platformicons": "0.1.1",
@@ -73,7 +73,8 @@
     "url-loader": "0.5.6",
     "webpack": "2.2.0",
     "webpack-dev-middleware": "1.9.0",
-    "zxcvbn": "^4.4.2"
+    "zxcvbn": "^4.4.2",
+    "snyk": "^1.40.2"
   },
   "private": true,
   "APIMethod": "stub",
@@ -87,7 +88,9 @@
     "dev-proxy": "node scripts/devproxy.js",
     "dev-server": "webpack-dev-server",
     "storybook": "start-storybook -p 9001 -c .storybook",
-    "snapshot": "build-storybook && PERCY_TOKEN=$STORYBOOK_PERCY_TOKEN PERCY_PROJECT=$STORYBOOK_PERCY_PROJECT percy-storybook --widths=375,1280"
+    "snapshot": "build-storybook && PERCY_TOKEN=$STORYBOOK_PERCY_TOKEN PERCY_PROJECT=$STORYBOOK_PERCY_PROJECT percy-storybook --widths=375,1280",
+    "snyk-protect": "snyk protect",
+    "prepublish": "npm run snyk-protect"
   },
   "jest": {
     "snapshotSerializers": [
@@ -135,5 +138,6 @@
   },
   "optionalDependencies": {
     "fsevents": "^1.1.2"
-  }
+  },
+  "snyk": true
 }
