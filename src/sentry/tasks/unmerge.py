@@ -13,7 +13,7 @@ from sentry.event_manager import (
     ScoreClause, generate_culprit, get_hashes_for_event, md5_from_hash
 )
 from sentry.models import (
-    Activity, Environment, Event, EventMapping, EventTag, EventUser, Group, GroupHash, GroupRelease,
+    Activity, Environment, Event, EventMapping, EventUser, Group, GroupHash, GroupRelease,
     GroupTagValue, Project, Release, UserReport
 )
 from sentry.similarity import features
@@ -217,7 +217,7 @@ def migrate_events(caches, project, source_id, destination_id, fingerprints, eve
     for event in events:
         event.group = destination
 
-    EventTag.objects.filter(
+    tagstore.get_event_tag_qs(
         project_id=project.id,
         event_id__in=event_id_set,
     ).update(group_id=destination_id)
