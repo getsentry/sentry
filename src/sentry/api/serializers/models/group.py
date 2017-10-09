@@ -9,12 +9,12 @@ from django.core.urlresolvers import reverse
 from django.db.models import Q
 from django.utils import timezone
 
-from sentry import tsdb
+from sentry import tagstore, tsdb
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.constants import LOG_LEVELS, StatsPeriod
 from sentry.models import (
     Group, GroupAssignee, GroupBookmark, GroupMeta, GroupResolution, GroupSeen, GroupSnooze,
-    GroupStatus, GroupSubscription, GroupSubscriptionReason, GroupTagKey, User, UserOption,
+    GroupStatus, GroupSubscription, GroupSubscriptionReason, User, UserOption,
     UserOptionValue
 )
 from sentry.utils.db import attach_foreignkey
@@ -124,12 +124,7 @@ class GroupSerializer(Serializer):
             ).select_related('user')
         )
 
-        user_counts = dict(
-            GroupTagKey.objects.filter(
-                group_id__in=[g.id for g in item_list],
-                key='sentry:user',
-            ).values_list('group_id', 'values_seen')
-        )
+        user_counts = tagstore.get_values_seen([g.id for g in item_list], 'sentry:user')
 
         ignore_items = {g.group_id: g for g in GroupSnooze.objects.filter(
             group__in=item_list,

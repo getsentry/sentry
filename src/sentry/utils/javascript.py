@@ -14,10 +14,10 @@ from django.core.urlresolvers import reverse
 from django.utils import timezone
 from django.utils.html import escape
 
-from sentry import tsdb
+from sentry import tsdb, tagstore
 from sentry.app import env
 from sentry.models import (
-    Group, GroupBookmark, GroupMeta, GroupTagKey, GroupSeen, GroupStatus
+    Group, GroupBookmark, GroupMeta, GroupSeen, GroupStatus
 )
 from sentry.templatetags.sentry_plugins import get_legacy_annotations
 from sentry.utils import json
@@ -127,10 +127,7 @@ class GroupTransformer(Transformer):
         else:
             historical_data = {}
 
-        user_tagkeys = GroupTagKey.objects.filter(
-            group_id__in=[o.id for o in objects],
-            key='sentry:user',
-        )
+        user_tagkeys = tagstore.get_group_tag_keys([o.id for o in objects], 'sentry:user')
         user_counts = {}
         for user_tagkey in user_tagkeys:
             user_counts[user_tagkey.group_id] = user_tagkey.values_seen

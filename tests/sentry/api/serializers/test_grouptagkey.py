@@ -4,7 +4,6 @@ import six
 
 from sentry import tagstore
 from sentry.api.serializers import serialize
-from sentry.models import GroupTagKey
 from sentry.testutils import TestCase
 
 
@@ -16,7 +15,7 @@ class GroupTagKeySerializerTest(TestCase):
             project_id=project.id,
             key='key'
         )
-        grouptagkey = GroupTagKey.objects.create(
+        grouptagkey = tagstore.create_group_tag_key(
             project_id=project.id,
             group_id=self.create_group(project=project).id,
             key=tagkey.key

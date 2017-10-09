@@ -325,14 +325,8 @@ class Group(Model):
         return self._oldest_event
 
     def get_tags(self):
-        from sentry.models import GroupTagKey
         if not hasattr(self, '_tag_cache'):
-            group_tags = GroupTagKey.objects.filter(
-                group_id=self.id,
-                project_id=self.project_id,
-            )
-
-            group_tags = list(group_tags.values_list('key', flat=True))
+            group_tags = [gtk.key for gtk in tagstore.get_group_tag_keys(self.id)]
 
             tag_keys = dict(
                 (t.key, t) for t in tagstore.get_tag_keys(self.project_id, group_tags)
@@ -447,9 +441,4 @@ class Group(Model):
         )
 
     def count_users_seen(self):
-        from sentry.models import GroupTagKey
-
-        return GroupTagKey.objects.filter(
-            group_id=self.id,
-            key='sentry:user',
-        ).aggregate(t=models.Sum('values_seen'))['t'] or 0
+        return tagstore.get_values_seen(self.id, 'sentry:user')[self.id]

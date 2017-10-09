@@ -11,11 +11,12 @@ import pytz
 from django.utils import timezone
 from mock import patch
 
+from sentry import tagstore
 from sentry.app import tsdb
 from sentry.event_manager import ScoreClause
 from sentry.models import (
     Activity, Environment, EnvironmentProject, Event, EventMapping, Group, GroupHash, GroupRelease,
-    GroupTagKey, GroupTagValue, Release, UserReport
+    GroupTagValue, Release, UserReport
 )
 from sentry.similarity import features, _make_index_backend
 from sentry.tasks.unmerge import (
@@ -268,12 +269,14 @@ class UnmergeTestCase(TestCase):
                 hash=fingerprint,
             )
 
-        assert set(GroupTagKey.objects.filter(group_id=source.id).values_list('key', 'values_seen')
-                   ) == set([
-                       (u'color', 3),
-                       (u'environment', 1),
-                       (u'sentry:release', 1),
-                   ])
+        assert set([(gtk.key, gtk.values_seen) for gtk in tagstore.get_group_tag_keys(source.id)]
+                   ) == set(
+            [
+                (u'color', 3),
+                (u'environment', 1),
+                (u'sentry:release', 1),
+            ]
+        )
 
         assert set(
             GroupTagValue.objects.filter(
@@ -380,12 +383,14 @@ class UnmergeTestCase(TestCase):
             (u'production', now + shift(0), now + shift(9), ),
         ])
 
-        assert set(GroupTagKey.objects.filter(group_id=source.id).values_list('key', 'values_seen')
-                   ) == set([
-                       (u'color', 3),
-                       (u'environment', 1),
-                       (u'sentry:release', 1),
-                   ])
+        assert set([(gtk.key, gtk.values_seen) for gtk in tagstore.get_group_tag_keys(source.id)]
+                   ) == set(
+            [
+                (u'color', 3),
+                (u'environment', 1),
+                (u'sentry:release', 1),
+            ]
+        )
 
         assert set(
             GroupTagValue.objects.filter(
@@ -434,12 +439,14 @@ class UnmergeTestCase(TestCase):
             (u'production', now + shift(10), now + shift(16), ),
         ])
 
-        assert set(GroupTagKey.objects.filter(group_id=destination.id).values_list('key', 'values_seen')
-                   ) == set([
-                       (u'color', 3),
-                       (u'environment', 1),
-                       (u'sentry:release', 1),
-                   ])
+        assert set([(gtk.key, gtk.values_seen) for gtk in tagstore.get_group_tag_keys(source.id)]
+                   ) == set(
+            [
+                (u'color', 3),
+                (u'environment', 1),
+                (u'sentry:release', 1),
+            ]
+        )
 
         assert set(
             GroupTagValue.objects.filter(
