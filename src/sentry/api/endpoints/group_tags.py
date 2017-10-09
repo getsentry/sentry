@@ -8,14 +8,12 @@ from collections import defaultdict
 from sentry import tagstore
 from sentry.api.bases.group import GroupEndpoint
 from sentry.api.serializers import serialize
-from sentry.models import GroupTagValue, GroupTagKey
+from sentry.models import GroupTagValue
 
 
 class GroupTagsEndpoint(GroupEndpoint):
     def get(self, request, group):
-        grouptagkeys = list(GroupTagKey.objects.filter(
-            group_id=group.id
-        ).values_list('key', flat=True))
+        grouptagkeys = [gtk.key for gtk in tagstore.get_group_tag_keys(group.id)]
 
         tag_keys = tagstore.get_tag_keys(group.project_id, grouptagkeys)
 
