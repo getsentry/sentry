@@ -54,11 +54,11 @@ class OAuthAuthorizeView(AuthLoginView):
             }
         )
 
-    def respond_login(self, request, context, application):
+    def respond_login(self, request, context, application, *args, **kwargs):
         context['banner'] = 'Connect Sentry to {}'.format(application.name)
         return self.respond('sentry/login.html', context)
 
-    def get(self, request):
+    def get(self, request, *args, **kwargs):
         response_type = request.GET.get('response_type')
         client_id = request.GET.get('client_id')
         redirect_uri = request.GET.get('redirect_uri')
@@ -148,7 +148,8 @@ class OAuthAuthorizeView(AuthLoginView):
         request.session['oa2'] = payload
 
         if not request.user.is_authenticated():
-            return super(OAuthAuthorizeView, self).get(request, application)
+            return super(OAuthAuthorizeView, self).get(
+                request, application=application, *args, **kwargs)
 
         if not force_prompt:
             try:
@@ -207,7 +208,7 @@ class OAuthAuthorizeView(AuthLoginView):
         }
         return self.respond('sentry/oauth-authorize.html', context)
 
-    def post(self, request):
+    def post(self, request, *args, **kwargs):
         try:
             payload = request.session['oa2']
         except KeyError:
@@ -231,7 +232,8 @@ class OAuthAuthorizeView(AuthLoginView):
             )
 
         if not request.user.is_authenticated():
-            response = super(OAuthAuthorizeView, self).post(request, application)
+            response = super(OAuthAuthorizeView, self).post(
+                request, application=application, *args, **kwargs)
             # once they login, bind their user ID
             if request.user.is_authenticated():
                 request.session['oa2']['uid'] = request.user.id

@@ -2,13 +2,16 @@ from __future__ import absolute_import
 
 from django.core.urlresolvers import reverse
 
-from sentry.models import AuthIdentity, AuthProvider, OrganizationMember, UserEmail
+from sentry.models import (
+    AuthIdentity, AuthProvider, OrganizationMember, UserEmail
+)
 from sentry.testutils import AuthProviderTestCase
 
 
-# TODO(dcramer): this is an integration test
+# TODO(dcramer): this is an integration test and repeats tests from
+# core auth_login
 class OrganizationAuthLoginTest(AuthProviderTestCase):
-    def test_renders_basic_login_form(self):
+    def test_renders_basic(self):
         organization = self.create_organization(name='foo', owner=self.user)
 
         path = reverse('sentry-auth-organization', args=[organization.slug])
@@ -21,9 +24,9 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
 
         self.assertTemplateUsed(resp, 'sentry/organization-login.html')
 
-        assert resp.context['form']
+        assert resp.context['login_form']
+        assert resp.context['organization'] == organization
         assert 'provider_key' not in resp.context
-        assert resp.context['CAN_REGISTER']
 
     def test_renders_session_expire_message(self):
         organization = self.create_organization(name='foo', owner=self.user)
