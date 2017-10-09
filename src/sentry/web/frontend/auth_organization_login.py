@@ -8,7 +8,7 @@ from django.contrib import messages
 
 from sentry.auth.helper import AuthHelper
 from sentry.constants import WARN_SESSION_EXPIRED
-from sentry.models import AuthProvider, Organization, OrganizationStatus
+from sentry.models import AuthProvider, Organization, OrganizationStatus, OrganizationMember
 from sentry.utils import auth
 from sentry.web.forms.accounts import AuthenticationForm, RegistrationForm
 from sentry.web.frontend.base import BaseView
@@ -44,11 +44,14 @@ class AuthOrganizationLoginView(BaseView):
             user = register_form.save()
             user.send_confirm_emails(is_new_user=True)
 
-            defaults = {
-                'role': 'member',
-            }
+            try:
+                OrganizationMember.objects.get(email=user.email)
+            except OrganizationMember.DoesNotExist:
+                defaults = {
+                    'role': 'member',
+                }
 
-            organization.member_set.create(user=user, **defaults)
+                organization.member_set.create(user=user, **defaults)
 
             # HACK: grab whatever the first backend is and assume it works
             user.backend = settings.AUTHENTICATION_BACKENDS[0]
