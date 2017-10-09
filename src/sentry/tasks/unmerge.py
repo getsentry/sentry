@@ -239,10 +239,7 @@ def migrate_events(caches, project, source_id, destination_id, fingerprints, eve
 
 def truncate_denormalizations(group):
     tagstore.delete_all_group_tag_keys(group.id)
-
-    GroupTagValue.objects.filter(
-        group_id=group.id,
-    ).delete()
+    tagstore.delete_all_group_tag_values(group.id)
 
     GroupRelease.objects.filter(
         group_id=group.id,
@@ -297,7 +294,7 @@ def repair_tag_data(caches, project, events):
             # ingestion logic (but actually represent a more accurate value.)
             # See GH-5289 for more details.
             for value, (times_seen, first_seen, last_seen) in values.items():
-                instance, created = GroupTagValue.objects.get_or_create(
+                instance, created = tagstore.get_or_create_group_tag_value(
                     project_id=project.id,
                     group_id=group_id,
                     key=key,

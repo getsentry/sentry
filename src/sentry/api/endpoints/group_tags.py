@@ -2,13 +2,12 @@ from __future__ import absolute_import
 
 import six
 
+from collections import defaultdict
 from rest_framework.response import Response
 
-from collections import defaultdict
 from sentry import tagstore
 from sentry.api.bases.group import GroupEndpoint
 from sentry.api.serializers import serialize
-from sentry.models import GroupTagValue
 
 
 class GroupTagsEndpoint(GroupEndpoint):
@@ -21,8 +20,8 @@ class GroupTagsEndpoint(GroupEndpoint):
         data = []
         all_top_values = []
         for tag_key in tag_keys:
-            total_values = GroupTagValue.get_value_count(group.id, tag_key.key)
-            top_values = GroupTagValue.get_top_values(group.id, tag_key.key, limit=10)
+            total_values = tagstore.get_group_tag_value_count(group.id, tag_key.key)
+            top_values = tagstore.get_top_group_tag_values(group.id, tag_key.key, limit=10)
 
             all_top_values.extend(top_values)
 

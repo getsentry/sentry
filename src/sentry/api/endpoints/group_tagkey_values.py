@@ -7,7 +7,7 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import DateTimePaginator, Paginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.tagvalue import UserTagValueSerializer
-from sentry.models import GroupTagValue, Group
+from sentry.models import Group
 from sentry.utils.apidocs import scenario
 
 
@@ -43,10 +43,7 @@ class GroupTagKeyValuesEndpoint(GroupEndpoint):
         except tagstore.TagKeyNotFound:
             raise ResourceDoesNotExist
 
-        queryset = GroupTagValue.objects.filter(
-            group_id=group.id,
-            key=lookup_key,
-        )
+        queryset = tagstore.get_group_tag_value_qs(group.id, lookup_key)
 
         sort = request.GET.get('sort')
         if sort == 'date':

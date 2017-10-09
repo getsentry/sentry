@@ -5,7 +5,7 @@ from mock import patch
 
 from sentry import tagstore
 from sentry.tasks.merge import merge_group, rehash_group_events
-from sentry.models import Event, Group, GroupMeta, GroupRedirect, GroupTagValue
+from sentry.models import Event, Group, GroupMeta, GroupRedirect
 from sentry.similarity import _make_index_backend
 from sentry.testutils import TestCase
 from sentry.utils import redis
@@ -107,31 +107,27 @@ class MergeGroupTest(TestCase):
                 values_seen=values_seen,
             )
 
-        GroupTagValue.objects.bulk_create(
-            [
-                GroupTagValue(
-                    project_id=project.id,
-                    group_id=group.id,
-                    key=key,
-                    value=value,
-                    times_seen=times_seen,
-                ) for ((group, key, value), times_seen) in input_group_tag_values.items()
-            ]
-        )
+        for ((group, key, value), times_seen) in input_group_tag_values.items():
+            tagstore.create_group_tag_value(
+                project_id=project.id,
+                group_id=group.id,
+                key=key,
+                value=value,
+                times_seen=times_seen,
+            )
 
         with self.tasks():
             merge_group(other.id, target.id)
 
         assert not Group.objects.filter(id=other.id).exists()
         assert len(tagstore.get_group_tag_keys(other.id)) == 0
-        assert not GroupTagValue.objects.filter(group_id=other.id).exists()
+        assert len(tagstore.get_group_tag_values(other.id)) == 0
 
         for key, values_seen in output_group_tag_keys.items():
             assert tagstore.get_group_tag_key(target.id, key).values_seen == values_seen
 
         for (key, value), times_seen in output_group_tag_values.items():
-            assert GroupTagValue.objects.get(
-                project_id=project.id,
+            assert tagstore.get_group_tag_value(
                 group_id=target.id,
                 key=key,
                 value=value,
