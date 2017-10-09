@@ -134,7 +134,7 @@ class RedisTSDBTest(TestCase):
             2: 0,
         }
 
-        self.db.merge(TSDBModel.project, 1, [2], now, environment_ids=[1, 2, 3])
+        self.db.merge(TSDBModel.project, 1, [2], now, environment_ids=[0, 1, 2])
 
         results = self.db.get_range(TSDBModel.project, [1], dts[0], dts[-1])
         assert results == {
@@ -173,7 +173,7 @@ class RedisTSDBTest(TestCase):
             2: 0,
         }
 
-        self.db.delete([TSDBModel.project], [1, 2], dts[0], dts[-1], environment_ids=[1, 2, 3])
+        self.db.delete([TSDBModel.project], [1, 2], dts[0], dts[-1], environment_ids=[0, 1, 2])
 
         results = self.db.get_sums(TSDBModel.project, [1, 2], dts[0], dts[-1])
         assert results == {
@@ -297,7 +297,7 @@ class RedisTSDBTest(TestCase):
         assert self.db.get_distinct_counts_union(
             model, [1, 2], dts[0], dts[-1], rollup=3600, environment_id=0) == 0
 
-        self.db.merge_distinct_counts(model, 1, [2], dts[0], environment_ids=[1, 2])
+        self.db.merge_distinct_counts(model, 1, [2], dts[0], environment_ids=[0, 1])
 
         assert self.db.get_distinct_counts_series(
             model, [1], dts[0], dts[-1], rollup=3600
@@ -349,7 +349,7 @@ class RedisTSDBTest(TestCase):
         assert self.db.get_distinct_counts_union(model, [1, 2], dts[0], dts[-1], rollup=3600) == 3
         assert self.db.get_distinct_counts_union(model, [2], dts[0], dts[-1], rollup=3600) == 0
 
-        self.db.delete_distinct_counts([model], [1, 2], dts[0], dts[-1], environment_ids=[1, 2])
+        self.db.delete_distinct_counts([model], [1, 2], dts[0], dts[-1], environment_ids=[0, 1])
 
         results = self.db.get_distinct_counts_totals(model, [1, 2], dts[0], dts[-1])
         assert results == {
@@ -639,7 +639,7 @@ class RedisTSDBTest(TestCase):
             'organization:1',
             ['organization:2'],
             now,
-            environment_ids=[1],
+            environment_ids=[0, 1],
         )
 
         assert self.db.get_frequency_totals(
@@ -700,7 +700,7 @@ class RedisTSDBTest(TestCase):
             ['organization:1', 'organization:2'],
             now - timedelta(hours=1),
             now,
-            environment_ids=[1],
+            environment_ids=[0, 1],
         )
 
         assert self.db.get_most_frequent(
