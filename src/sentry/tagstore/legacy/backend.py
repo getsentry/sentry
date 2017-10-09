@@ -10,7 +10,7 @@ from __future__ import absolute_import
 
 import six
 
-from collections import defaultdict
+from collections import defaultdict, Iterable
 from django.db.models import Q
 from operator import or_
 from six.moves import reduce
@@ -62,16 +62,16 @@ class LegacyTagStorage(TagStorage):
             raise TagKeyNotFound
 
     def _get_tag_keys_cache_key(self, project_ids, status):
-        if isinstance(project_ids, list):
+        if isinstance(project_ids, Iterable):
             project_ids = "-".join(sorted(project_ids))
         return 'filterkey:all:%s:%s' % (project_ids, status)
 
     def get_tag_keys(self, project_ids, keys=None, status=TagKeyStatus.VISIBLE):
         def _get_base_qs():
-            if isinstance(project_ids, list):
-                qs = TagKey.objects.filter(project_id__in=project_ids)
-            else:
+            if isinstance(project_ids, six.integer_types):
                 qs = TagKey.objects.filter(project_id=project_ids)
+            else:
+                qs = TagKey.objects.filter(project_id__in=project_ids)
 
             if status:
                 qs = qs.filter(status=status)
@@ -110,10 +110,10 @@ class LegacyTagStorage(TagStorage):
     def get_tag_values(self, project_ids, key, values=None):
         qs = TagValue.objects.filter(key=key)
 
-        if isinstance(project_ids, list):
-            qs = qs.filter(project_id__in=project_ids)
-        else:
+        if isinstance(project_ids, six.integer_types):
             qs = qs.filter(project_id=project_ids)
+        else:
+            qs = qs.filter(project_id__in=project_ids)
 
         qs = TagValue.objects.filter(
             project_id__in=project_ids,
@@ -137,16 +137,16 @@ class LegacyTagStorage(TagStorage):
             raise GroupTagKeyNotFound
 
     def get_group_tag_keys(self, group_ids, keys=None, limit=None):
-        if isinstance(group_ids, list):
-            qs = GroupTagKey.objects.filter(group_id__in=group_ids)
-        else:
+        if isinstance(group_ids, six.integer_types):
             qs = GroupTagKey.objects.filter(group_id=group_ids)
+        else:
+            qs = GroupTagKey.objects.filter(group_id__in=group_ids)
 
         if keys is not None:
-            if isinstance(keys, list):
-                qs = qs.filter(key__in=keys)
-            else:
+            if isinstance(keys, six.text_type):
                 qs = qs.filter(key=keys)
+            else:
+                qs = qs.filter(key__in=keys)
 
         if limit is not None:
             qs = qs[:limit]
@@ -262,10 +262,10 @@ class LegacyTagStorage(TagStorage):
         return queryset
 
     def get_values_seen(self, group_ids, key):
-        if isinstance(group_ids, list):
-            qs = GroupTagKey.objects.filter(group_id__in=group_ids)
-        else:
+        if isinstance(group_ids, six.integer_types):
             qs = GroupTagKey.objects.filter(group_id=group_ids)
+        else:
+            qs = GroupTagKey.objects.filter(group_id__in=group_ids)
 
         return defaultdict(int, qs.filter(
             key=key,
