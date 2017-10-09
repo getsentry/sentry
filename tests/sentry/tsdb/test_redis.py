@@ -64,13 +64,20 @@ class RedisTSDBTest(TestCase):
             return t - (t % 3600)
 
         self.db.incr(TSDBModel.project, 1, dts[0])
-        self.db.incr(TSDBModel.project, 1, dts[1], count=3)
+        self.db.incr(TSDBModel.project, 1, dts[1], count=2)
+        self.db.incr(TSDBModel.project, 1, dts[1], environment_id=1)
         self.db.incr(TSDBModel.project, 1, dts[2])
         self.db.incr_multi(
             [
                 (TSDBModel.project, 1),
                 (TSDBModel.project, 2),
-            ], dts[3], count=4
+            ], dts[3], count=3, environment_id=1
+        )
+        self.db.incr_multi(
+            [
+                (TSDBModel.project, 1),
+                (TSDBModel.project, 2),
+            ], dts[3], count=1, environment_id=2
         )
 
         results = self.db.get_range(TSDBModel.project, [1], dts[0], dts[-1])
@@ -82,6 +89,7 @@ class RedisTSDBTest(TestCase):
                 (timestamp(dts[3]), 4),
             ],
         }
+
         results = self.db.get_range(TSDBModel.project, [2], dts[0], dts[-1])
         assert results == {
             2: [
@@ -92,13 +100,35 @@ class RedisTSDBTest(TestCase):
             ],
         }
 
+        results = self.db.get_range(TSDBModel.project, [1, 2], dts[0], dts[-1], environment_id=1)
+        assert results == {
+            1: [
+                (timestamp(dts[0]), 0),
+                (timestamp(dts[1]), 1),
+                (timestamp(dts[2]), 0),
+                (timestamp(dts[3]), 3),
+            ],
+            2: [
+                (timestamp(dts[0]), 0),
+                (timestamp(dts[1]), 0),
+                (timestamp(dts[2]), 0),
+                (timestamp(dts[3]), 3),
+            ],
+        }
+
         results = self.db.get_sums(TSDBModel.project, [1, 2], dts[0], dts[-1])
         assert results == {
             1: 9,
             2: 4,
         }
 
-        self.db.merge(TSDBModel.project, 1, [2], now)
+        results = self.db.get_sums(TSDBModel.project, [1, 2], dts[0], dts[-1], environment_id=1)
+        assert results == {
+            1: 4,
+            2: 3,
+        }
+
+        self.db.merge(TSDBModel.project, 1, [2], now, environment_ids=[1, 2])
 
         results = self.db.get_range(TSDBModel.project, [1], dts[0], dts[-1])
         assert results == {
@@ -109,6 +139,7 @@ class RedisTSDBTest(TestCase):
                 (timestamp(dts[3]), 8),
             ],
         }
+
         results = self.db.get_range(TSDBModel.project, [2], dts[0], dts[-1])
         assert results == {
             2: [
@@ -119,15 +150,32 @@ class RedisTSDBTest(TestCase):
             ],
         }
 
+        results = self.db.get_range(TSDBModel.project, [1, 2], dts[0], dts[-1], environment_id=1)
+        assert results == {
+            1: [
+                (timestamp(dts[0]), 0),
+                (timestamp(dts[1]), 1),
+                (timestamp(dts[2]), 0),
+                (timestamp(dts[3]), 6),
+            ],
+            2: [(timestamp(dts[i]), 0) for i in xrange(0, 4)],
+        }
+
         results = self.db.get_sums(TSDBModel.project, [1, 2], dts[0], dts[-1])
         assert results == {
             1: 13,
             2: 0,
         }
 
-        self.db.delete([TSDBModel.project], [1, 2], dts[0], dts[-1])
+        self.db.delete([TSDBModel.project], [1, 2], dts[0], dts[-1], environment_ids=[1, 2])
 
         results = self.db.get_sums(TSDBModel.project, [1, 2], dts[0], dts[-1])
+        assert results == {
+            1: 0,
+            2: 0,
+        }
+
+        results = self.db.get_sums(TSDBModel.project, [1, 2], dts[0], dts[-1], environment_id=1)
         assert results == {
             1: 0,
             2: 0,

@@ -289,7 +289,7 @@ class BaseTSDB(Service):
         raise NotImplementedError
 
     def get_sums(self, model, keys, start, end, rollup=None, environment_id=None):
-        range_set = self.get_range(model, keys, start, end, rollup)
+        range_set = self.get_range(model, keys, start, end, rollup, environment_id)
         sum_set = dict(
             (key, sum(p for _, p in points)) for (key, points) in six.iteritems(range_set)
         )
