@@ -1,11 +1,12 @@
 Version 8.22 (Unreleased)
 -------------------------
 
+- BREAKING: Members will no longer be automatically granted membership to the
+  default organization. You should use SSO or the invite flows.
+
 Version 8.21
 ------------
 
-- BREAKING: Members will no longer be automatically granted membership to the
-  default organization. You should use SSO or the invite flows.
 - Ignore querystrings when looking up release artifacts
 - Add Visual Studio authentication provider for plugins.
 - Add "team" parameter to the project details API.
