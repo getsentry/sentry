@@ -70,7 +70,7 @@
     "sprintf-js": "1.0.3",
     "style-loader": "0.12.4",
     "u2f-api": "0.2.3",
-    "url-loader": "0.5.6",
+    "url-loader": "0.6.0",
     "webpack": "2.2.0",
     "webpack-dev-middleware": "1.9.0",
     "zxcvbn": "^4.4.2"
