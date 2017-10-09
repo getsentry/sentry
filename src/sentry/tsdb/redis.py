@@ -762,13 +762,16 @@ class RedisTSDB(BaseTSDB):
             for source in sources:
                 for rollup, series in rollups:
                     for timestamp in series:
+                        keys = []
                         for environment_id in environment_ids:
-                            keys = self.make_frequency_table_keys(
-                                model,
-                                rollup,
-                                to_timestamp(timestamp),
-                                source,
-                                environment_id,
+                            keys.extend(
+                                self.make_frequency_table_keys(
+                                    model,
+                                    rollup,
+                                    to_timestamp(timestamp),
+                                    source,
+                                    environment_id,
+                                )
                             )
                         arguments = ['EXPORT'] + list(self.DEFAULT_SKETCH_PARAMETERS)
                         exports[source].extend(

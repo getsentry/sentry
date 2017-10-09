@@ -639,6 +639,7 @@ class RedisTSDBTest(TestCase):
             'organization:1',
             ['organization:2'],
             now,
+            environment_ids=[1],
         )
 
         assert self.db.get_frequency_totals(
@@ -671,7 +672,7 @@ class RedisTSDBTest(TestCase):
             model,
             {
                 'organization:1': ("project:1", "project:2", "project:3", "project:4", "project:5"),
-                'organization:2': ("project:1", ),
+                'organization:2': ("project:1", "project:2", "project:3", "project:4", "project:5"),
             },
             now - timedelta(hours=1),
             now,
@@ -683,10 +684,14 @@ class RedisTSDBTest(TestCase):
                 "project:2": 1.0,
                 "project:3": 2.0,
                 "project:4": 3.0,
-                "project:5": 0.0,
+                "project:5": 0.5,
             },
             'organization:2': {
                 "project:1": 0.0,
+                "project:2": 0.0,
+                "project:3": 0.0,
+                "project:4": 0.0,
+                "project:5": 0.0,
             },
         }
 
