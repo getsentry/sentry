@@ -12,7 +12,7 @@ import six
 
 from collections import defaultdict, Iterable
 from datetime import timedelta
-from django.db import connections, router
+from django.db import connections, router, IntegrityError, transaction
 from django.db.models import Q, Sum
 from django.utils import timezone
 from operator import or_
@@ -56,6 +56,20 @@ class LegacyTagStorage(TagStorage):
     def get_or_create_group_tag_value(self, project_id, group_id, key, value, **kwargs):
         return GroupTagValue.objects.get_or_create(
             project_id=project_id, group_id=group_id, key=key, value=value, **kwargs)
+
+    def create_event_tag(self, project_id, group_id, event_id, key_id, value_id):
+        try:
+            # don't let a duplicate break the outer transaction
+            with transaction.atomic():
+                EventTag.objects.create(
+                    project_id=project_id,
+                    group_id=group_id,
+                    event_id=event_id,
+                    key_id=key_id,
+                    value_id=value_id,
+                )
+        except IntegrityError:
+            pass
 
     def get_tag_key(self, project_id, key, status=TagKeyStatus.VISIBLE):
         from sentry.tagstore.exceptions import TagKeyNotFound
@@ -490,3 +504,6 @@ class LegacyTagStorage(TagStorage):
                 return None
 
         return matches
+
+    def get_event_tag_qs(self, **kwargs):
+        return EventTag.objects.filter(**kwargs)
