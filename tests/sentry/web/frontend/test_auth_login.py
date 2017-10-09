@@ -7,7 +7,7 @@ from exam import fixture
 
 from sentry import options
 from sentry.testutils import TestCase
-from sentry.models import User
+from sentry.models import OrganizationMember, User
 
 
 # TODO(dcramer): need tests for SSO behavior and single org behavior
@@ -81,6 +81,9 @@ class AuthLoginTest(TestCase):
         assert user.email == 'test-a-really-long-email-address@example.com'
         assert user.check_password('foobar')
         assert user.name == 'Foo Bar'
+        assert not OrganizationMember.objects.filter(
+            user=user,
+        ).exists()
 
     def test_register_renders_correct_template(self):
         options.set('auth.allow-registration', True)
