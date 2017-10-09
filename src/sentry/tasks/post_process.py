@@ -11,7 +11,6 @@ from __future__ import absolute_import, print_function
 import logging
 import six
 
-from django.db import IntegrityError, transaction
 from raven.contrib.django.models import client as Raven
 
 from sentry.plugins import plugins
@@ -139,7 +138,6 @@ def plugin_post_process_group(plugin_slug, event, **kwargs):
 )
 def index_event_tags(organization_id, project_id, event_id, tags, group_id=None, **kwargs):
     from sentry import tagstore
-    from sentry.models import EventTag
 
     Raven.tags_context({
         'project': project_id,
@@ -149,15 +147,10 @@ def index_event_tags(organization_id, project_id, event_id, tags, group_id=None,
         tagkey, _ = tagstore.get_or_create_tag_key(project_id, key)
         tagvalue, _ = tagstore.get_or_create_tag_value(project_id, key, value)
 
-        try:
-            # handle replaying of this task
-            with transaction.atomic():
-                EventTag.objects.create(
-                    project_id=project_id,
-                    group_id=group_id,
-                    event_id=event_id,
-                    key_id=tagkey.id,
-                    value_id=tagvalue.id,
-                )
-        except IntegrityError:
-            pass
+        tagstore.create_event_tag(
+            project_id=project_id,
+            group_id=group_id,
+            event_id=event_id,
+            key_id=tagkey.id,
+            value_id=tagvalue.id,
+        )

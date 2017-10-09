@@ -44,6 +44,7 @@ class TagStorage(Service):
         'get_or_create_group_tag_key',
         'create_group_tag_value',
         'get_or_create_group_tag_value',
+        'create_event_tag',
 
         'get_tag_key',
         'get_tag_keys',
@@ -75,6 +76,7 @@ class TagStorage(Service):
         'get_group_ids_for_users',
         'get_group_tag_values_for_users',
         'get_tags_for_search_filter',
+        'get_event_tag_qs',
     )
 
     def is_valid_key(self, key):
@@ -143,6 +145,12 @@ class TagStorage(Service):
     def get_or_create_group_tag_value(self, project_id, group_id, key, value, **kwargs):
         """
         >>> get_or_create_group_tag_value(1, 2, "key1", "value1")
+        """
+        raise NotImplementedError
+
+    def create_event_tag(self, project_id, group_id, event_id, key_id, value_id):
+        """
+        >>> create_event_tag(1, 2, 3, 4, 5)
         """
         raise NotImplementedError
 
@@ -315,5 +323,11 @@ class TagStorage(Service):
     def get_tags_for_search_filter(self, project_id, tags):
         """
         >>> get_tags_for_search_filter(1, [('key1', 'value1'), ('key2', 'value2')])
+        """
+        raise NotImplementedError
+
+    def get_event_tag_qs(self, **kwargs):
+        """
+        >>> get_event_tag_qs(event_id=1, key_id=2)
         """
         raise NotImplementedError
