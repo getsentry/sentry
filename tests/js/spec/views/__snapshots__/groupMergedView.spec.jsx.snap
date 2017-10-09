@@ -294,14 +294,18 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
               className="toolbar merged-toolbar"
             >
               <SpreadLayout
+                center={true}
                 responsive={true}
               >
                 <div
-                  className="spread-layout allow-responsive"
+                  className="spread-layout center allow-responsive"
                 >
-                  <SpreadLayout>
+                  <SpreadLayout
+                    center={true}
+                    responsive={false}
+                  >
                     <div
-                      className="spread-layout"
+                      className="spread-layout center"
                     >
                       <div
                         className="merged-toolbar-actions"
@@ -423,9 +427,12 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
                       </div>
                     </div>
                   </SpreadLayout>
-                  <SpreadLayout>
+                  <SpreadLayout
+                    center={true}
+                    responsive={false}
+                  >
                     <div
-                      className="spread-layout"
+                      className="spread-layout center"
                     >
                       <div>
                         <Button
@@ -575,11 +582,12 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
               className="merged-group expanded"
             >
               <SpreadLayout
+                center={true}
                 className="merged-controls"
                 responsive={true}
               >
                 <div
-                  className="spread-layout merged-controls allow-responsive"
+                  className="spread-layout merged-controls center allow-responsive"
                 >
                   <FlowLayout
                     onClick={[Function]}
@@ -632,11 +640,12 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
                 className="merged-events-list event-list"
               >
                 <SpreadLayout
+                  center={true}
                   className="event-details"
                   responsive={true}
                 >
                   <div
-                    className="spread-layout event-details allow-responsive"
+                    className="spread-layout event-details center allow-responsive"
                   >
                     <FlowLayout
                       truncate={true}
@@ -897,13 +906,12 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
                       vertical={true}
                     >
                       <div
-                        className="flow-layout is-truncated"
+                        className="flow-layout is-vertical is-truncated"
                         style={
                           Object {
                             "alignItems": "flex-end",
                           }
                         }
-                        vertical={true}
                       >
                         <span
                           className="fingerprint-header"
@@ -1039,11 +1047,12 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
               className="merged-group expanded"
             >
               <SpreadLayout
+                center={true}
                 className="merged-controls"
                 responsive={true}
               >
                 <div
-                  className="spread-layout merged-controls allow-responsive"
+                  className="spread-layout merged-controls center allow-responsive"
                 >
                   <FlowLayout
                     onClick={[Function]}
@@ -1096,11 +1105,12 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
                 className="merged-events-list event-list"
               >
                 <SpreadLayout
+                  center={true}
                   className="event-details"
                   responsive={true}
                 >
                   <div
-                    className="spread-layout event-details allow-responsive"
+                    className="spread-layout event-details center allow-responsive"
                   >
                     <FlowLayout
                       truncate={true}
@@ -1361,13 +1371,12 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
                       vertical={true}
                     >
                       <div
-                        className="flow-layout is-truncated"
+                        className="flow-layout is-vertical is-truncated"
                         style={
                           Object {
                             "alignItems": "flex-end",
                           }
                         }
-                        vertical={true}
                       >
                         <span
                           className="fingerprint-header"
@@ -1682,14 +1691,18 @@ exports[`Issues -> Merged View renders with mocked data 2`] = `
               className="toolbar merged-toolbar"
             >
               <SpreadLayout
+                center={true}
                 responsive={true}
               >
                 <div
-                  className="spread-layout allow-responsive"
+                  className="spread-layout center allow-responsive"
                 >
-                  <SpreadLayout>
+                  <SpreadLayout
+                    center={true}
+                    responsive={false}
+                  >
                     <div
-                      className="spread-layout"
+                      className="spread-layout center"
                     >
                       <div
                         className="merged-toolbar-actions"
@@ -1811,9 +1824,12 @@ exports[`Issues -> Merged View renders with mocked data 2`] = `
                       </div>
                     </div>
                   </SpreadLayout>
-                  <SpreadLayout>
+                  <SpreadLayout
+                    center={true}
+                    responsive={false}
+                  >
                     <div
-                      className="spread-layout"
+                      className="spread-layout center"
                     >
                       <div>
                         <Button
@@ -1963,11 +1979,12 @@ exports[`Issues -> Merged View renders with mocked data 2`] = `
               className="merged-group expanded"
             >
               <SpreadLayout
+                center={true}
                 className="merged-controls"
                 responsive={true}
               >
                 <div
-                  className="spread-layout merged-controls allow-responsive"
+                  className="spread-layout merged-controls center allow-responsive"
                 >
                   <FlowLayout
                     onClick={[Function]}
@@ -2020,11 +2037,12 @@ exports[`Issues -> Merged View renders with mocked data 2`] = `
                 className="merged-events-list event-list"
               >
                 <SpreadLayout
+                  center={true}
                   className="event-details"
                   responsive={true}
                 >
                   <div
-                    className="spread-layout event-details allow-responsive"
+                    className="spread-layout event-details center allow-responsive"
                   >
                     <FlowLayout
                       truncate={true}
@@ -2285,13 +2303,12 @@ exports[`Issues -> Merged View renders with mocked data 2`] = `
                       vertical={true}
                     >
                       <div
-                        className="flow-layout is-truncated"
+                        className="flow-layout is-vertical is-truncated"
                         style={
                           Object {
                             "alignItems": "flex-end",
                           }
                         }
-                        vertical={true}
                       >
                         <span
                           className="fingerprint-header"
@@ -2427,11 +2444,12 @@ exports[`Issues -> Merged View renders with mocked data 2`] = `
               className="merged-group expanded"
             >
               <SpreadLayout
+                center={true}
                 className="merged-controls"
                 responsive={true}
               >
                 <div
-                  className="spread-layout merged-controls allow-responsive"
+                  className="spread-layout merged-controls center allow-responsive"
                 >
                   <FlowLayout
                     onClick={[Function]}
@@ -2484,11 +2502,12 @@ exports[`Issues -> Merged View renders with mocked data 2`] = `
                 className="merged-events-list event-list"
               >
                 <SpreadLayout
+                  center={true}
                   className="event-details"
                   responsive={true}
                 >
                   <div
-                    className="spread-layout event-details allow-responsive"
+                    className="spread-layout event-details center allow-responsive"
                   >
                     <FlowLayout
                       truncate={true}
@@ -2749,13 +2768,12 @@ exports[`Issues -> Merged View renders with mocked data 2`] = `
                       vertical={true}
                     >
                       <div
-                        className="flow-layout is-truncated"
+                        className="flow-layout is-vertical is-truncated"
                         style={
                           Object {
                             "alignItems": "flex-end",
                           }
                         }
-                        vertical={true}
                       >
                         <span
                           className="fingerprint-header"
