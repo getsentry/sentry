@@ -89,9 +89,6 @@ class AuthSAML2Test(AuthProviderTestCase):
         assert 'SAMLRequest' in query
 
     def accept_auth(self):
-        # Start auth process
-        self.client.post(self.login_path, {'init': True})
-
         saml_response = self.load_fixture('saml2_auth_response.xml')
         saml_response = base64.b64encode(saml_response)
 
