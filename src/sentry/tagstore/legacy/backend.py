@@ -434,11 +434,11 @@ class LegacyTagStorage(TagStorage):
         ).update(project_id=new_project_id)
 
     def get_group_ids_for_users(self, project_ids, event_users, limit=100):
-        return GroupTagValue.objects.filter(
+        return list(GroupTagValue.objects.filter(
             key='sentry:user',
             value__in=[eu.tag_value for eu in event_users],
             project_id__in=project_ids,
-        ).order_by('-last_seen').values_list('group_id', flat=True)[:limit]
+        ).order_by('-last_seen').values_list('group_id', flat=True)[:limit])
 
     def get_group_tag_values_for_users(self, event_users, limit=100):
         tag_filters = [Q(value=eu.tag_value, project_id=eu.project_id) for eu in event_users]
