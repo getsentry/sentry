@@ -4,8 +4,9 @@ from __future__ import absolute_import
 
 from datetime import datetime, timedelta
 
+from sentry import tagstore
 from sentry.models import (
-    GroupAssignee, GroupBookmark, GroupStatus, GroupSubscription, GroupTagValue
+    GroupAssignee, GroupBookmark, GroupStatus, GroupSubscription
 )
 from sentry.search.base import ANY
 from sentry.search.django.backend import DjangoSearchBackend
@@ -71,14 +72,14 @@ class DjangoSearchBackendTest(TestCase):
         )
 
         for key, value in self.event1.data['tags']:
-            GroupTagValue.objects.create(
+            tagstore.create_group_tag_value(
                 project_id=self.group1.project_id,
                 group_id=self.group1.id,
                 key=key,
                 value=value,
             )
         for key, value in self.event2.data['tags']:
-            GroupTagValue.objects.create(
+            tagstore.create_group_tag_value(
                 project_id=self.group2.project_id,
                 group_id=self.group2.id,
                 key=key,

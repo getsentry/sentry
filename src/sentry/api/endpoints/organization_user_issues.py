@@ -1,14 +1,12 @@
 from __future__ import absolute_import
 
-from django.db.models import Q
-from operator import or_
 from rest_framework.response import Response
-from six.moves import reduce
 
+from sentry import tagstore
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import TagBasedStreamGroupSerializer
-from sentry.models import (EventUser, Group, GroupTagValue, Project)
+from sentry.models import (EventUser, Group, Project)
 
 
 class OrganizationUserIssuesEndpoint(OrganizationEndpoint):
@@ -30,14 +28,9 @@ class OrganizationUserIssuesEndpoint(OrganizationEndpoint):
         event_users = [euser] + list(other_eusers)
 
         if event_users:
-            tag_filters = [Q(value=eu.tag_value, project_id=eu.project_id)
-                           for eu in event_users]
-            tags = GroupTagValue.objects.filter(
-                reduce(or_, tag_filters),
-                key='sentry:user',
-            ).order_by('-last_seen')[:limit]
+            tags = tagstore.get_group_tag_values_for_users(event_users, limit=limit)
         else:
-            tags = GroupTagValue.objects.none()
+            tags = []
 
         tags = {t.group_id: t for t in tags}
         if tags:

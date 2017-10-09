@@ -16,7 +16,7 @@ from sentry.app import tsdb
 from sentry.event_manager import ScoreClause
 from sentry.models import (
     Activity, Environment, EnvironmentProject, Event, EventMapping, Group, GroupHash, GroupRelease,
-    GroupTagValue, Release, UserReport
+    Release, UserReport
 )
 from sentry.similarity import features, _make_index_backend
 from sentry.tasks.unmerge import (
@@ -269,28 +269,24 @@ class UnmergeTestCase(TestCase):
                 hash=fingerprint,
             )
 
-        assert set([(gtk.key, gtk.values_seen) for gtk in tagstore.get_group_tag_keys(source.id)]
-                   ) == set(
-            [
-                (u'color', 3),
-                (u'environment', 1),
-                (u'sentry:release', 1),
-            ]
-        )
+        assert set(
+            [(gtk.key, gtk.values_seen) for gtk in tagstore.get_group_tag_keys(source.id)]
+        ) == set([
+            (u'color', 3),
+            (u'environment', 1),
+            (u'sentry:release', 1)
+        ])
 
         assert set(
-            GroupTagValue.objects.filter(
-                group_id=source.id,
-            ).values_list('key', 'value', 'times_seen')
-        ) == set(
-            [
-                (u'color', u'red', 6),
-                (u'color', u'green', 6),
-                (u'color', u'blue', 5),
-                (u'environment', u'production', 17),
-                (u'sentry:release', u'version', 17),
-            ]
-        )
+            [(gtv.key, gtv.value, gtv.times_seen)
+             for gtv in tagstore.get_group_tag_values(source.id)]
+        ) == set([
+            (u'color', u'red', 6),
+            (u'color', u'green', 6),
+            (u'color', u'blue', 5),
+            (u'environment', u'production', 17),
+            (u'sentry:release', u'version', 17),
+        ])
 
         assert features.compare(source) == [
             (source.id, {
@@ -383,28 +379,24 @@ class UnmergeTestCase(TestCase):
             (u'production', now + shift(0), now + shift(9), ),
         ])
 
-        assert set([(gtk.key, gtk.values_seen) for gtk in tagstore.get_group_tag_keys(source.id)]
-                   ) == set(
-            [
-                (u'color', 3),
-                (u'environment', 1),
-                (u'sentry:release', 1),
-            ]
-        )
+        assert set(
+            [(gtk.key, gtk.values_seen) for gtk in tagstore.get_group_tag_keys(source.id)]
+        ) == set([
+            (u'color', 3),
+            (u'environment', 1),
+            (u'sentry:release', 1),
+        ])
 
         assert set(
-            GroupTagValue.objects.filter(
-                group_id=source.id,
-            ).values_list('key', 'value', 'times_seen', 'first_seen', 'last_seen')
-        ) == set(
-            [
-                (u'color', u'red', 4, now + shift(0), now + shift(9), ),
-                (u'color', u'green', 3, now + shift(1), now + shift(7), ),
-                (u'color', u'blue', 3, now + shift(2), now + shift(8), ),
-                (u'environment', u'production', 10, now + shift(0), now + shift(9), ),
-                (u'sentry:release', u'version', 10, now + shift(0), now + shift(9), ),
-            ]
-        )
+            [(gtv.key, gtv.value, gtv.times_seen,
+              gtv.first_seen, gtv.last_seen) for gtv in tagstore.get_group_tag_values(source.id)]
+        ) == set([
+            (u'color', u'red', 4, now + shift(0), now + shift(9), ),
+            (u'color', u'green', 3, now + shift(1), now + shift(7), ),
+            (u'color', u'blue', 3, now + shift(2), now + shift(8), ),
+            (u'environment', u'production', 10, now + shift(0), now + shift(9), ),
+            (u'sentry:release', u'version', 10, now + shift(0), now + shift(9), ),
+        ])
 
         destination_event_event_ids = map(
             lambda event: event.event_id,
@@ -449,18 +441,15 @@ class UnmergeTestCase(TestCase):
         )
 
         assert set(
-            GroupTagValue.objects.filter(
-                group_id=destination.id,
-            ).values_list('key', 'value', 'times_seen', 'first_seen', 'last_seen')
-        ) == set(
-            [
-                (u'color', u'red', 2, now + shift(12), now + shift(15), ),
-                (u'color', u'green', 3, now + shift(10), now + shift(16), ),
-                (u'color', u'blue', 2, now + shift(11), now + shift(14), ),
-                (u'environment', u'production', 7, now + shift(10), now + shift(16), ),
-                (u'sentry:release', u'version', 7, now + shift(10), now + shift(16), ),
-            ]
-        )
+            [(gtv.key, gtv.value, gtv.times_seen,
+              gtv.first_seen, gtv.last_seen) for gtv in tagstore.get_group_tag_values(destination.id)]
+        ) == set([
+            (u'color', u'red', 2, now + shift(12), now + shift(15), ),
+            (u'color', u'green', 3, now + shift(10), now + shift(16), ),
+            (u'color', u'blue', 2, now + shift(11), now + shift(14), ),
+            (u'environment', u'production', 7, now + shift(10), now + shift(16), ),
+            (u'sentry:release', u'version', 7, now + shift(10), now + shift(16), ),
+        ])
 
         rollup_duration = 3600
 

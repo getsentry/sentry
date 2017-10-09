@@ -19,3 +19,7 @@ class TagValueNotFound(Exception):
 
 class GroupTagKeyNotFound(Exception):
     pass
+
+
+class GroupTagValueNotFound(Exception):
+    pass

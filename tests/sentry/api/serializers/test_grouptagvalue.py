@@ -6,7 +6,7 @@ import six
 
 from sentry import tagstore
 from sentry.api.serializers import serialize
-from sentry.models import EventUser, GroupTagValue
+from sentry.models import EventUser
 from sentry.testutils import TestCase
 
 
@@ -23,7 +23,7 @@ class GroupTagValueSerializerTest(TestCase):
             key='sentry:user',
             value=euser.tag_value,
         )
-        grouptagvalue = GroupTagValue.objects.create(
+        grouptagvalue = tagstore.create_group_tag_value(
             project_id=project.id,
             group_id=self.create_group(project=project).id,
             key=tagvalue.key,

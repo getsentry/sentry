@@ -2,7 +2,8 @@
 
 from __future__ import absolute_import
 
-from sentry.models import Group, GroupTagValue, Team, User
+from sentry import tagstore
+from sentry.models import Group, Team, User
 from sentry.testutils import TestCase
 
 
@@ -20,7 +21,7 @@ class SentryManagerTest(TestCase):
         with self.tasks():
             Group.objects.add_tags(group, tags=(('foo', 'bar'), ('foo', 'baz'), ('biz', 'boz')))
 
-        results = list(GroupTagValue.objects.filter(group_id=group.id, key='foo').order_by('id'))
+        results = sorted(tagstore.get_group_tag_values(group.id, 'foo'), key=lambda x: x.id)
         assert len(results) == 2
         res = results[0]
         self.assertEquals(res.value, 'bar')
@@ -29,7 +30,7 @@ class SentryManagerTest(TestCase):
         self.assertEquals(res.value, 'baz')
         self.assertEquals(res.times_seen, 1)
 
-        results = list(GroupTagValue.objects.filter(group_id=group.id, key='biz').order_by('id'))
+        results = sorted(tagstore.get_group_tag_values(group.id, 'biz'), key=lambda x: x.id)
         assert len(results) == 1
         res = results[0]
         self.assertEquals(res.value, 'boz')

@@ -4,7 +4,7 @@ from django.http import Http404
 
 from sentry import tagstore
 from sentry.models import (
-    EventUser, GroupTagValue, Group, get_group_with_redirect
+    EventUser, Group, get_group_with_redirect
 )
 from sentry.web.frontend.base import ProjectView
 from sentry.web.frontend.mixins.csv import CsvMixin
@@ -85,10 +85,7 @@ class GroupTagExportView(ProjectView, CsvMixin):
             callbacks = []
 
         queryset = RangeQuerySetWrapper(
-            GroupTagValue.objects.filter(
-                group_id=group.id,
-                key=lookup_key,
-            ),
+            tagstore.get_group_tag_value_qs(group.id, lookup_key),
             callbacks=callbacks,
         )
 

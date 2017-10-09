@@ -9,7 +9,7 @@ from sentry.api.base import DocSection
 from sentry.api.bases.group import GroupEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
-from sentry.models import (GroupTagValue, Group)
+from sentry.models import Group
 from sentry.utils.apidocs import scenario
 
 
@@ -50,9 +50,8 @@ class GroupTagKeyDetailsEndpoint(GroupEndpoint):
         except tagstore.GroupTagKeyNotFound:
             raise ResourceDoesNotExist
 
-        total_values = GroupTagValue.get_value_count(group.id, lookup_key)
-
-        top_values = GroupTagValue.get_top_values(group.id, lookup_key, limit=9)
+        total_values = tagstore.get_group_tag_value_count(group.id, lookup_key)
+        top_values = tagstore.get_top_group_tag_values(group.id, lookup_key, limit=9)
 
         data = {
             'id': six.text_type(tag_key.id),
