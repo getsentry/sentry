@@ -462,12 +462,17 @@ class DSymCache(object):
 
         for dsym_file in dsym_files:
             dsym_uuid = dsym_file.uuid
-            with dsym_file.file.getfile(as_tempfile=True) as tf:
-                fo = FatObject.from_path(tf.name)
-                o = fo.get_object(uuid=dsym_file.uuid)
-                if o is None:
-                    continue
-                cache = o.make_symcache()
+            try:
+                with dsym_file.file.getfile(as_tempfile=True) as tf:
+                    fo = FatObject.from_path(tf.name)
+                    o = fo.get_object(uuid=dsym_file.uuid)
+                    if o is None:
+                        continue
+                    cache = o.make_symcache()
+            except SymbolicError:
+                logger.error('dsymfile.symcache-build-error',
+                             exc_info=True, extra=dict(dsym_uuid=dsym_uuid))
+                continue
 
             file = File.objects.create(
                 name=dsym_file.uuid,
