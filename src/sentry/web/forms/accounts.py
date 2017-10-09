@@ -134,6 +134,13 @@ class AuthenticationForm(forms.Form):
 
     def clean(self):
         username = self.cleaned_data.get('username')
+        password = self.cleaned_data.get('password')
+
+        if not (username and password):
+            raise forms.ValidationError(
+                self.error_messages['invalid_login'] %
+                {'username': self.username_field.verbose_name}
+            )
 
         if self.is_rate_limited():
             logger.info(
@@ -145,15 +152,13 @@ class AuthenticationForm(forms.Form):
             )
             raise forms.ValidationError(self.error_messages['rate_limited'])
 
-        password = self.cleaned_data.get('password')
+        self.user_cache = authenticate(username=username, password=password)
+        if self.user_cache is None:
+            raise forms.ValidationError(
+                self.error_messages['invalid_login'] %
+                {'username': self.username_field.verbose_name}
+            )
 
-        if username and password:
-            self.user_cache = authenticate(username=username, password=password)
-            if self.user_cache is None:
-                raise forms.ValidationError(
-                    self.error_messages['invalid_login'] %
-                    {'username': self.username_field.verbose_name}
-                )
         self.check_for_test_cookie()
         return self.cleaned_data
 
