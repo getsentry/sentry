@@ -29,7 +29,7 @@ const TagDistributionMeter = React.createClass({
     return {
       loading: true,
       error: false,
-      data: null
+      data: {}
     };
   },
 
@@ -151,7 +151,13 @@ const TagDistributionMeter = React.createClass({
   render() {
     return (
       <div className="distribution-graph">
-        <h6><span>{this.props.tag}</span></h6>
+        <h6><span>{this.props.tag}</span>
+        {this.state.data.anomaly &&
+          <span
+            className="icon icon-exclamation anomaly segment"
+            title="This may be a correlated factor."/>
+        }
+        </h6>
         {this.renderBody()}
       </div>
     );
