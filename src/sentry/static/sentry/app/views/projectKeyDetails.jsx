@@ -24,20 +24,12 @@ import {
 } from '../components/forms';
 import {t, tct} from '../locale';
 
-const getRateLimitError = (obj, key) => {
+// Exporting this only so we can quickly and simply unit test it
+// Not moving this to utils because this is tightly coupled to the UI
+export const getRateLimitError = (obj, key) => {
   if (!obj || !obj.rateLimit || !Array.isArray(obj.rateLimit)) return null;
 
-  let errors = obj.rateLimit.reduce((acc, errorObj) => {
-    Object.keys(errorObj).forEach(errorObjKey => {
-      if (errorObjKey === key) {
-        acc = acc.concat(errorObj[errorObjKey]);
-      }
-    });
-
-    return acc;
-  }, []);
-
-  return errors.join(', ');
+  return !!obj.rateLimit.find(errorObj => errorObj[key] && errorObj[key].length);
 };
 
 const KeyStats = React.createClass({
@@ -343,7 +335,7 @@ const KeySettings = React.createClass({
                 </p>
                 <div className="form-group rate-limit-group">
                   <label>{t('Rate Limit')}</label>
-                  <FlowLayout>
+                  <FlowLayout truncate={false}>
                     <div style={{width: 80}}>
                       <NumberField
                         hideErrorMessage
