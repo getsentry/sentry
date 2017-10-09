@@ -12,7 +12,7 @@ from mock import patch
 from sentry import tagstore
 from sentry.models import (
     Activity, EventMapping, Group, GroupAssignee, GroupBookmark, GroupHash, GroupResolution,
-    GroupSeen, GroupSnooze, GroupStatus, GroupSubscription, GroupTagValue,
+    GroupSeen, GroupSnooze, GroupStatus, GroupSubscription,
     GroupTombstone, Release, UserOption
 )
 from sentry.models.event import Event
@@ -247,11 +247,11 @@ class GroupListTest(APITestCase):
         release.add_project(project2)
         group = self.create_group(checksum='a' * 32, project=project)
         group2 = self.create_group(checksum='b' * 32, project=project2)
-        GroupTagValue.objects.create(
+        tagstore.create_group_tag_value(
             project_id=project.id, group_id=group.id, key='sentry:release', value=release.version
         )
 
-        GroupTagValue.objects.create(
+        tagstore.create_group_tag_value(
             project_id=project2.id, group_id=group2.id, key='sentry:release', value=release.version
         )
 

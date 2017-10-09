@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
 from sentry import tagstore
-from sentry.models import EventUser, GroupTagValue
+from sentry.models import EventUser
 from sentry.testutils import APITestCase
 
 
@@ -17,7 +17,7 @@ class GroupTagKeyValuesTest(APITestCase):
             key=key,
             value=value,
         )
-        GroupTagValue.objects.create(
+        tagstore.create_group_tag_value(
             project_id=project.id,
             group_id=group.id,
             key=key,
@@ -54,7 +54,7 @@ class GroupTagKeyValuesTest(APITestCase):
             key='sentry:user',
             value=euser.tag_value,
         )
-        GroupTagValue.objects.create(
+        tagstore.create_group_tag_value(
             project_id=project.id,
             group_id=group.id,
             key='sentry:user',

@@ -5,9 +5,10 @@ import six
 from datetime import timedelta
 from django.utils import timezone
 
+from sentry import tagstore
 from sentry.models import (
     Activity, Group, GroupHash, GroupAssignee, GroupBookmark, GroupResolution, GroupSeen,
-    GroupSnooze, GroupSubscription, GroupStatus, GroupTagValue, GroupTombstone, Release
+    GroupSnooze, GroupSubscription, GroupStatus, GroupTombstone, Release
 )
 from sentry.testutils import APITestCase
 
@@ -34,7 +35,7 @@ class GroupDetailsTest(APITestCase):
             version='1.0',
         )
         release.add_project(group.project)
-        GroupTagValue.objects.create(
+        tagstore.create_group_tag_value(
             group_id=group.id,
             project_id=group.project_id,
             key='sentry:release',
