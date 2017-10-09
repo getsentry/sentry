@@ -118,7 +118,11 @@ class AuthLoginView(BaseView):
             elif login_form.is_valid():
                 user = login_form.get_user()
 
-                auth.login(request, user)
+                auth.login(
+                    request,
+                    user,
+                    organization_id=organization.id if organization else None,
+                )
 
                 if not user.is_active:
                     return self.redirect(reverse('sentry-reactivate-account'))
