@@ -128,7 +128,13 @@ class RedisTSDBTest(TestCase):
             2: 3,
         }
 
-        self.db.merge(TSDBModel.project, 1, [2], now, environment_ids=[1, 2])
+        results = self.db.get_sums(TSDBModel.project, [1, 2], dts[0], dts[-1], environment_id=0)
+        assert results == {
+            1: 0,
+            2: 0,
+        }
+
+        self.db.merge(TSDBModel.project, 1, [2], now, environment_ids=[1, 2, 3])
 
         results = self.db.get_range(TSDBModel.project, [1], dts[0], dts[-1])
         assert results == {
@@ -167,7 +173,7 @@ class RedisTSDBTest(TestCase):
             2: 0,
         }
 
-        self.db.delete([TSDBModel.project], [1, 2], dts[0], dts[-1], environment_ids=[1, 2])
+        self.db.delete([TSDBModel.project], [1, 2], dts[0], dts[-1], environment_ids=[1, 2, 3])
 
         results = self.db.get_sums(TSDBModel.project, [1, 2], dts[0], dts[-1])
         assert results == {
@@ -277,12 +283,21 @@ class RedisTSDBTest(TestCase):
             2: 0,
         }
 
+        results = self.db.get_distinct_counts_totals(
+            model, [1, 2], dts[0], dts[-1], rollup=3600, environment_id=0)
+        assert results == {
+            1: 0,
+            2: 0,
+        }
+
         assert self.db.get_distinct_counts_union(model, [], dts[0], dts[-1], rollup=3600) == 0
         assert self.db.get_distinct_counts_union(model, [1, 2], dts[0], dts[-1], rollup=3600) == 3
         assert self.db.get_distinct_counts_union(
             model, [1, 2], dts[0], dts[-1], rollup=3600, environment_id=1) == 1
+        assert self.db.get_distinct_counts_union(
+            model, [1, 2], dts[0], dts[-1], rollup=3600, environment_id=0) == 0
 
-        self.db.merge_distinct_counts(model, 1, [2], dts[0], environment_ids=[1])
+        self.db.merge_distinct_counts(model, 1, [2], dts[0], environment_ids=[1, 2])
 
         assert self.db.get_distinct_counts_series(
             model, [1], dts[0], dts[-1], rollup=3600
@@ -334,7 +349,7 @@ class RedisTSDBTest(TestCase):
         assert self.db.get_distinct_counts_union(model, [1, 2], dts[0], dts[-1], rollup=3600) == 3
         assert self.db.get_distinct_counts_union(model, [2], dts[0], dts[-1], rollup=3600) == 0
 
-        self.db.delete_distinct_counts([model], [1, 2], dts[0], dts[-1], environment_ids=[1])
+        self.db.delete_distinct_counts([model], [1, 2], dts[0], dts[-1], environment_ids=[1, 2])
 
         results = self.db.get_distinct_counts_totals(model, [1, 2], dts[0], dts[-1])
         assert results == {
