@@ -56,7 +56,13 @@ const StreamTagStore = Reflux.createStore({
   },
 
   getTag(tagName) {
-    return this.tags[tagName];
+    if (tagName[0] == '-') {
+        if (this.tags[tagName.substr(1)].predefined)
+            return undefined;
+        return this.tags[tagName.substr(1)];
+    }
+    else
+        return this.tags[tagName];
   },
 
   getAllTags() {

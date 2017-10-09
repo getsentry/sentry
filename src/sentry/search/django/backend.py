@@ -157,12 +157,37 @@ class DjangoSearchBackend(SearchBackend):
             )
 
         if tags:
-            matches = self._tags_to_filter(project, tags)
-            if not matches:
-                return queryset.none()
-            queryset = queryset.filter(
-                id__in=matches,
-            )
+            filter_tags, exclude_tags = {}, {}
+            for k, v in six.iteritems(tags):
+                if k[0] == '-':
+                    exclude_tags[k[1:]] = v
+                else:
+                    filter_tags[k] = v
+            # Don't allow the same tag value to be both excluded and included
+            for k, v in six.iteritems(filter_tags):
+                if k in exclude_tags:
+                    if exclude_tags[k] == v:
+                        return queryset.none()
+                    else:
+                        # This exclude is unnecessary
+                        del exclude_tags[k]
+            if filter_tags:
+                matches = self._tags_to_filter(project, filter_tags)
+                if not matches:
+                    return queryset.none()
+                queryset = queryset.filter(
+                    id__in=matches,
+                )
+            if exclude_tags:
+                all_matches = []
+                for k, v in six.iteritems(exclude_tags):
+                    matches = self._tags_to_filter(project, {k: v})
+                    if not matches:
+                        continue
+                    all_matches += matches
+                queryset = queryset.exclude(
+                    id__in=set(all_matches),
+                )
 
         if age_from or age_to:
             params = {}
