@@ -139,20 +139,6 @@ class AuthLoginView(BaseView):
         }
         return self.respond_login(request, context, organization=organization, *args, **kwargs)
 
-    def handle_sso(self, request, *args, **kwargs):
-        org = request.POST.get('organization')
-        if not org:
-            return HttpResponseRedirect(request.path)
-
-        auth_provider = self.get_auth_provider(request.POST['organization'])
-        if auth_provider:
-            next_uri = reverse('sentry-auth-organization', args=[request.POST['organization']])
-        else:
-            next_uri = request.path
-            messages.add_message(request, messages.ERROR, ERR_NO_SSO)
-
-        return HttpResponseRedirect(next_uri)
-
     def handle_authenticated(self, request, *args, **kwargs):
         next_uri = self.get_next_uri(request, *args, **kwargs)
         if auth.is_valid_redirect(next_uri, host=request.get_host()):
