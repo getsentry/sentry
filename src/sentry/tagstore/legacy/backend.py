@@ -155,7 +155,7 @@ class LegacyTagStorage(TagStorage):
             qs = GroupTagKey.objects.filter(group_id__in=group_ids)
 
         if keys is not None:
-            if isinstance(keys, six.text_type):
+            if isinstance(keys, six.string_types):
                 qs = qs.filter(key=keys)
             else:
                 qs = qs.filter(key__in=keys)
@@ -184,13 +184,13 @@ class LegacyTagStorage(TagStorage):
             qs = GroupTagValue.objects.filter(group_id__in=group_ids)
 
         if keys is not None:
-            if isinstance(keys, six.text_type):
+            if isinstance(keys, six.string_types):
                 qs = qs.filter(key=keys)
             else:
                 qs = qs.filter(key__in=keys)
 
         if values is not None:
-            if isinstance(values, six.text_type):
+            if isinstance(values, six.string_types):
                 qs = qs.filter(value=values)
             else:
                 qs = qs.filter(value__in=values)
