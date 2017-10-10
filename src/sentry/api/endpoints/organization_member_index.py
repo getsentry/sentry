@@ -98,10 +98,6 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
             return Response(serializer.errors, status=400)
 
         result = serializer.object
-        teams = Team.objects.filter(
-            organization=organization,
-            status=TeamStatus.VISIBLE,
-            slug__in=result['teams'])
 
         can_admin, allowed_roles = get_allowed_roles(request, organization)
 
@@ -153,6 +149,11 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
             request, messages.SUCCESS,
             _('The organization member %s was added.') % result['email']
         )
+
+        teams = Team.objects.filter(
+            organization=organization,
+            status=TeamStatus.VISIBLE,
+            slug__in=result['teams'])
 
         self.save_team_assignments(om, teams)
 
