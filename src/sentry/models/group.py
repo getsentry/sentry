@@ -318,22 +318,11 @@ class Group(Model):
         if not hasattr(self, '_tag_cache'):
             group_tags = [gtk.key for gtk in tagstore.get_group_tag_keys(self.id)]
 
-            tag_keys = dict(
-                (t.key, t) for t in tagstore.get_tag_keys(self.project_id, group_tags)
-            )
-
             results = []
             for key in group_tags:
-                try:
-                    tag_key = tag_keys[key]
-                except KeyError:
-                    label = key.replace('_', ' ').title()
-                else:
-                    label = tag_key.get_label()
-
                 results.append({
                     'key': key,
-                    'label': label,
+                    'label': tagstore.get_tag_key_label(key),
                 })
 
             self._tag_cache = sorted(results, key=lambda x: x['label'])
@@ -413,4 +402,4 @@ class Group(Model):
         )
 
     def count_users_seen(self):
-        return tagstore.get_values_seen(self.id, 'sentry:user')[self.id]
+        return tagstore.get_group_values_seen(self.id, 'sentry:user')[self.id]

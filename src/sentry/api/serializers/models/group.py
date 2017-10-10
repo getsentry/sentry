@@ -124,7 +124,7 @@ class GroupSerializer(Serializer):
             ).select_related('user')
         )
 
-        user_counts = tagstore.get_values_seen([g.id for g in item_list], 'sentry:user')
+        user_counts = tagstore.get_group_values_seen([g.id for g in item_list], 'sentry:user')
 
         ignore_items = {g.group_id: g for g in GroupSnooze.objects.filter(
             group__in=item_list,
