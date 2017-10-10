@@ -63,13 +63,14 @@ class SingleException(Interface):
 
         type = data.get('type')
         value = data.get('value')
-        if not type and ':' in value.split(' ', 1)[0]:
-            type, value = value.split(':', 1)
-            # in case of TypeError: foo (no space)
-            value = value.strip()
-
-        if value is not None and not isinstance(value, six.string_types):
+        if isinstance(value, six.string_types):
+            if type is None and ':' in value.split(' ', 1)[0]:
+                type, value = value.split(':', 1)
+                # in case of TypeError: foo (no space)
+                value = value.strip()
+        elif value is not None:
             value = json.dumps(value)
+
         value = trim(value, 4096)
 
         mechanism = data.get('mechanism')

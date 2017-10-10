@@ -71,6 +71,14 @@ class ExceptionTest(TestCase):
         assert inst.values[0].value == 'hello world'
         assert inst.values[0].module == 'foo.bar'
 
+    def test_non_string_value_with_no_type(self):
+        inst = Exception.to_python(
+            {
+                'value': {'foo': 'bar'},
+            }
+        )
+        assert inst.values[0].value == '{"foo":"bar"}'
+
     def test_serialize_unserialize_behavior(self):
         result = type(self.interface).to_python(self.interface.to_json())
         assert result.to_json() == self.interface.to_json()
