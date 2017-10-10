@@ -126,7 +126,7 @@ class EventFileCommittersEndpoint(ProjectEndpoint):
     def get(self, _, project, event_id):
         """
         Retrieve Committer information for an event
-        ```````````````````````````````
+        ```````````````````````````````````````````
 
         Return commiters on an individual event, plus a per-frame breakdown.
 
