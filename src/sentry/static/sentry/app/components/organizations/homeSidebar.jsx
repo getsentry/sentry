@@ -29,8 +29,8 @@ const HomeSidebar = React.createClass({
     let access = this.getAccess();
     let features = this.getFeatures();
     let org = this.getOrganization();
-
     let orgId = org.slug;
+
     return (
       <div>
         <h6 className="nav-header">{t('Organization')}</h6>
@@ -75,24 +75,25 @@ const HomeSidebar = React.createClass({
             <h6 className="nav-header with-divider">{t('Manage')}</h6>
             <ul className="nav nav-stacked">
               {access.has('org:read') &&
-                <li>
-                  <a href={`/organizations/${orgId}/members/`}>
-                    {t('Members')}&nbsp;
-                    {access.has('org:write') &&
-                      org.pendingAccessRequests > 0 &&
-                      <span className="badge" style={{marginLeft: 5}}>
-                        {org.pendingAccessRequests}
-                      </span>}
-                  </a>
-                </li>}
+                <ListLink to={`/organizations/${orgId}/members/`}>
+                  {t('Members')}&nbsp;
+                  <span className="badge" style={{marginLeft: 5}}>
+                    {org.pendingAccessRequests}
+                  </span>
+                </ListLink>}
+
               {features.has('sso') &&
                 access.has('org:admin') &&
-                <li><a href={`/organizations/${orgId}/auth/`}>{t('Auth')}</a></li>}
+                <ListLink to={`/organizations/${orgId}/auth/`}>
+                  {t('Auth')}
+                </ListLink>}
+
               {access.has('org:admin') &&
                 features.has('api-keys') &&
-                <li>
-                  <a href={`/organizations/${orgId}/api-keys/`}>{t('API Keys')}</a>
-                </li>}
+                <ListLink to={`/organizations/${orgId}/api-keys/`}>
+                  {t('API Keys')}
+                </ListLink>}
+
               {access.has('org:write') &&
                 <ListLink to={`/organizations/${orgId}/audit-log/`}>
                   {t('Audit Log')}

@@ -92,6 +92,25 @@ class OrganizationIntegrationsPermission(OrganizationPermission):
     }
 
 
+class OrganizationApiKeysPermission(OrganizationPermission):
+    scope_map = {
+        'GET': ['org:admin'],
+        'POST': ['org:admin'],
+        'PUT': ['org:admin'],
+        'DELETE': ['org:admin'],
+    }
+
+
+class OrganizationAuthProvidersPermission(OrganizationPermission):
+    scope_map = {
+        # Required for members view
+        'GET': ['member:read', 'org:read'],
+        'POST': ['org:admin'],
+        'PUT': ['org:admin'],
+        'DELETE': ['org:admin'],
+    }
+
+
 class OrganizationEndpoint(Endpoint):
     permission_classes = (OrganizationPermission, )
 
