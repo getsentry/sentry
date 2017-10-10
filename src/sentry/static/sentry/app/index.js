@@ -92,6 +92,7 @@ export default {
       // all needed by sentry.io
       BooleanField: require('./components/forms/booleanField').default,
       EmailField: require('./components/forms/emailField').default,
+      Form: require('./components/forms/form').default,
       RangeField: require('./components/forms/rangeField').default,
       Select2Field: require('./components/forms/select2Field').default,
       TextField: require('./components/forms/textField').default,
