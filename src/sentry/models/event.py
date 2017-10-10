@@ -20,9 +20,8 @@ from sentry import eventtypes
 from sentry.db.models import (
     BaseManager, BoundedBigIntegerField, BoundedIntegerField, Model, NodeField, sane_repr
 )
-from sentry.interfaces.base import get_interface
+from sentry.interfaces.base import get_interfaces
 from sentry.utils.cache import memoize
-from sentry.utils.safe import safe_execute
 from sentry.utils.strings import truncatechars
 
 
@@ -161,22 +160,7 @@ class Event(Model):
         return None
 
     def get_interfaces(self):
-        result = []
-        for key, data in six.iteritems(self.data):
-            try:
-                cls = get_interface(key)
-            except ValueError:
-                continue
-
-            value = safe_execute(cls.to_python, data, _with_transaction=False)
-            if not value:
-                continue
-
-            result.append((key, value))
-
-        return OrderedDict(
-            (k, v) for k, v in sorted(result, key=lambda x: x[1].get_score(), reverse=True)
-        )
+        return get_interfaces(self.data)
 
     @memoize
     def interfaces(self):
