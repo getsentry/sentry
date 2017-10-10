@@ -14,7 +14,7 @@ from sentry.api.serializers import Serializer, register, serialize
 from sentry.constants import LOG_LEVELS, StatsPeriod
 from sentry.models import (
     Group, GroupAssignee, GroupBookmark, GroupMeta, GroupResolution, GroupSeen, GroupSnooze,
-    GroupStatus, GroupSubscription, GroupSubscriptionReason, User, UserOption,
+    GroupShare, GroupStatus, GroupSubscription, GroupSubscriptionReason, User, UserOption,
     UserOptionValue
 )
 from sentry.utils.db import attach_foreignkey
@@ -152,6 +152,10 @@ class GroupSerializer(Serializer):
         else:
             actors = {}
 
+        share_ids = dict(GroupShare.objects.filter(
+            group__in=item_list,
+        ).values_list('group_id', 'guid'))
+
         result = {}
         for item in item_list:
             active_date = item.active_at or item.first_seen
@@ -187,6 +191,7 @@ class GroupSerializer(Serializer):
                 'ignore_actor': ignore_actor,
                 'resolution': resolution,
                 'resolution_actor': resolution_actor,
+                'share_id': share_ids.get(item.id),
             }
         return result
 
@@ -250,7 +255,7 @@ class GroupSerializer(Serializer):
             permalink = None
 
         is_subscribed, subscription = attrs['subscription']
-        share_id = obj.get_share_id()
+        share_id = attrs['share_id']
 
         return {
             'id': six.text_type(obj.id),
