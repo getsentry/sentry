@@ -33,6 +33,10 @@ import MyIssuesAssignedToMe from './views/myIssues/assignedToMe';
 import MyIssuesBookmarked from './views/myIssues/bookmarked';
 import MyIssuesViewed from './views/myIssues/viewed';
 import OrganizationAuditLog from './views/organizationAuditLog';
+import OrganizationApiKeysView
+  from './views/settings/organization/apiKeys/organizationApiKeysView';
+import OrganizationApiKeyDetailsView
+  from './views/settings/organization/apiKeys/organizationApiKeyDetailsView';
 import OrganizationCreate from './views/organizationCreate';
 import OrganizationDashboard from './views/organizationDashboard';
 import OrganizationDetails from './views/organizationDetails';
@@ -160,6 +164,14 @@ function routes() {
 
       <Route path="/:orgId/" component={errorHandler(OrganizationDetails)}>
         <IndexRoute component={errorHandler(OrganizationDashboard)} />
+        <Route
+          path="/organizations/:orgId/api-keys/:apiKey/"
+          component={errorHandler(OrganizationApiKeyDetailsView)}
+        />
+        <Route
+          path="/organizations/:orgId/api-keys/"
+          component={errorHandler(OrganizationApiKeysView)}
+        />
         <Route
           path="/organizations/:orgId/audit-log/"
           component={errorHandler(OrganizationAuditLog)}

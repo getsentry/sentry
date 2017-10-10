@@ -38,9 +38,6 @@ from sentry.web.frontend.mailgun_inbound_webhook import \
 from sentry.web.frontend.oauth_authorize import OAuthAuthorizeView
 from sentry.web.frontend.oauth_token import OAuthTokenView
 from sentry.auth.providers.saml2 import SAML2AcceptACSView, SAML2SLSView, SAML2MetadataView
-from sentry.web.frontend.organization_api_key_settings import \
-    OrganizationApiKeySettingsView
-from sentry.web.frontend.organization_api_keys import OrganizationApiKeysView
 from sentry.web.frontend.organization_auth_settings import \
     OrganizationAuthSettingsView
 from sentry.web.frontend.organization_member_settings import \
@@ -317,12 +314,12 @@ urlpatterns += patterns(
     url(r'^organizations/new/$', generic_react_page_view),
     url(
         r'^organizations/(?P<organization_slug>[\w_-]+)/api-keys/$',
-        OrganizationApiKeysView.as_view(),
+        react_page_view,
         name='sentry-organization-api-keys'
     ),
     url(
         r'^organizations/(?P<organization_slug>[\w_-]+)/api-keys/(?P<key_id>[\w_-]+)/$',
-        OrganizationApiKeySettingsView.as_view(),
+        react_page_view,
         name='sentry-organization-api-key-settings'
     ),
     url(
