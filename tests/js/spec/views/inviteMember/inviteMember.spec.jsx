@@ -113,19 +113,23 @@ describe('CreateProject', function() {
         }
       });
 
-      Client.addMockResponse({
+      let inviteRequest = {
         url: '/organizations/testOrg/members/',
         method: 'POST',
         statusCode: 200,
         body: {}
-      });
+      };
+
+      Client.addMockResponse(inviteRequest);
 
       let wrapper;
 
       // 👺 ⚠️ this is a hack to defeat the method auto binding so we can fully stub the method. It would not be neccessary with es6 class components and it relies on react internals so it's fragile - maxbittker
       const index =
         InviteMember.prototype.__reactAutoBindPairs.indexOf('redirectToMemberPage') + 1;
+
       InviteMember.prototype.__reactAutoBindPairs[index] = () => {
+        expect(Client.getCallCount(inviteRequest)).toBe(3);
         expect(wrapper.state('loading')).toBe(true);
         done();
       };
@@ -146,7 +150,8 @@ describe('CreateProject', function() {
       node.props().onClick({preventDefault: () => {}});
       expect(wrapper.state('loading')).toBe(false);
 
-      wrapper.setState({email: 'test@email.com'});
+      wrapper.setState({email: 'test@email.com, test2@email.com, test3@email.com, '});
+
       node.props().onClick({preventDefault: () => {}});
     });
   });
