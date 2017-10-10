@@ -192,6 +192,7 @@ exports[`OrganizationApiKeysView renders 1`] = `
                   onConfirm={[Function]}
                   priority="primary"
                 >
+<<<<<<< HEAD
                   <a
                     className="btn btn-default btn-sm"
                     onClick={[Function]}
@@ -200,6 +201,333 @@ exports[`OrganizationApiKeysView renders 1`] = `
                     <span
                       className="icon-trash"
                     />
+=======
+<<<<<<< HEAD
+                  <span>
+                    <a
+                      className="btn btn-default btn-sm"
+=======
+                  <FlowLayout
+                    truncate={false}
+                  >
+                    <div
+                      className="flow-layout"
+                    >
+                      <span
+                        className="button-label"
+                      >
+                        New Team
+                      </span>
+                    </div>
+                  </FlowLayout>
+                </a>
+              </Link>
+            </Button>
+          </div>
+        </div>
+        <div
+          className="container"
+        >
+          <div
+            className="content row"
+          >
+            <div
+              className="col-md-2 org-sidebar"
+            >
+              <HomeSidebar>
+                <div>
+                  <h6
+                    className="nav-header"
+                  >
+                    Organization
+                  </h6>
+                  <ul
+                    className="nav nav-stacked"
+                  >
+                    <ListLink
+                      activeClassName="active"
+                      index={false}
+                      isActive={[Function]}
+                      to="/org-slug/"
+                    >
+                      <li
+                        className=""
+                      >
+                        <Link
+                          onlyActiveOnIndex={false}
+                          style={Object {}}
+                          to="/org-slug/"
+                        >
+                          <a
+                            onClick={[Function]}
+                            style={Object {}}
+                          >
+                            Dashboard
+                          </a>
+                        </Link>
+                      </li>
+                    </ListLink>
+                    <ListLink
+                      activeClassName="active"
+                      index={false}
+                      isActive={[Function]}
+                      to="/organizations/org-slug/teams/"
+                    >
+                      <li
+                        className=""
+                      >
+                        <Link
+                          onlyActiveOnIndex={false}
+                          style={Object {}}
+                          to="/organizations/org-slug/teams/"
+                        >
+                          <a
+                            onClick={[Function]}
+                            style={Object {}}
+                          >
+                            Projects & Teams
+                          </a>
+                        </Link>
+                      </li>
+                    </ListLink>
+                    <ListLink
+                      activeClassName="active"
+                      index={false}
+                      to="/organizations/org-slug/stats/"
+                    >
+                      <li
+                        className=""
+                      >
+                        <Link
+                          onlyActiveOnIndex={false}
+                          style={Object {}}
+                          to="/organizations/org-slug/stats/"
+                        >
+                          <a
+                            onClick={[Function]}
+                            style={Object {}}
+                          >
+                            Stats
+                          </a>
+                        </Link>
+                      </li>
+                    </ListLink>
+                  </ul>
+                  <div>
+                    <h6
+                      className="nav-header with-divider"
+                    >
+                      Issues
+                    </h6>
+                    <ul
+                      className="nav nav-stacked"
+                    >
+                      <ListLink
+                        activeClassName="active"
+                        index={false}
+                        to="/organizations/org-slug/issues/assigned/"
+                      >
+                        <li
+                          className=""
+                        >
+                          <Link
+                            onlyActiveOnIndex={false}
+                            style={Object {}}
+                            to="/organizations/org-slug/issues/assigned/"
+                          >
+                            <a
+                              onClick={[Function]}
+                              style={Object {}}
+                            >
+                              Assigned to Me
+                            </a>
+                          </Link>
+                        </li>
+                      </ListLink>
+                      <ListLink
+                        activeClassName="active"
+                        index={false}
+                        to="/organizations/org-slug/issues/bookmarks/"
+                      >
+                        <li
+                          className=""
+                        >
+                          <Link
+                            onlyActiveOnIndex={false}
+                            style={Object {}}
+                            to="/organizations/org-slug/issues/bookmarks/"
+                          >
+                            <a
+                              onClick={[Function]}
+                              style={Object {}}
+                            >
+                              Bookmarks
+                            </a>
+                          </Link>
+                        </li>
+                      </ListLink>
+                      <ListLink
+                        activeClassName="active"
+                        index={false}
+                        to="/organizations/org-slug/issues/history/"
+                      >
+                        <li
+                          className=""
+                        >
+                          <Link
+                            onlyActiveOnIndex={false}
+                            style={Object {}}
+                            to="/organizations/org-slug/issues/history/"
+                          >
+                            <a
+                              onClick={[Function]}
+                              style={Object {}}
+                            >
+                              History
+                            </a>
+                          </Link>
+                        </li>
+                      </ListLink>
+                    </ul>
+                  </div>
+                  <div>
+                    <h6
+                      className="nav-header with-divider"
+                    >
+                      Manage
+                    </h6>
+                    <ul
+                      className="nav nav-stacked"
+                    >
+                      <li
+                        className=""
+                      >
+                        <a
+                          href="/organizations/org-slug/members/"
+                        >
+                          Members
+                           
+                        </a>
+                      </li>
+                      <ListLink
+                        activeClassName="active"
+                        index={false}
+                        to="/organizations/org-slug/audit-log/"
+                      >
+                        <li
+                          className=""
+                        >
+                          <Link
+                            onlyActiveOnIndex={false}
+                            style={Object {}}
+                            to="/organizations/org-slug/audit-log/"
+                          >
+                            <a
+                              onClick={[Function]}
+                              style={Object {}}
+                            >
+                              Audit Log
+                            </a>
+                          </Link>
+                        </li>
+                      </ListLink>
+                      <ListLink
+                        activeClassName="active"
+                        index={false}
+                        to="/organizations/org-slug/rate-limits/"
+                      >
+                        <li
+                          className=""
+                        >
+                          <Link
+                            onlyActiveOnIndex={false}
+                            style={Object {}}
+                            to="/organizations/org-slug/rate-limits/"
+                          >
+                            <a
+                              onClick={[Function]}
+                              style={Object {}}
+                            >
+                              Rate Limits
+                            </a>
+                          </Link>
+                        </li>
+                      </ListLink>
+                      <ListLink
+                        activeClassName="active"
+                        index={false}
+                        to="/organizations/org-slug/repos/"
+                      >
+                        <li
+                          className=""
+                        >
+                          <Link
+                            onlyActiveOnIndex={false}
+                            style={Object {}}
+                            to="/organizations/org-slug/repos/"
+                          >
+                            <a
+                              onClick={[Function]}
+                              style={Object {}}
+                            >
+                              Repositories
+                            </a>
+                          </Link>
+                        </li>
+                      </ListLink>
+                      <ListLink
+                        activeClassName="active"
+                        index={false}
+                        to="/organizations/org-slug/settings/"
+                      >
+                        <li
+                          className=""
+                        >
+                          <Link
+                            onlyActiveOnIndex={false}
+                            style={Object {}}
+                            to="/organizations/org-slug/settings/"
+                          >
+                            <a
+                              onClick={[Function]}
+                              style={Object {}}
+                            >
+                              Settings
+                            </a>
+                          </Link>
+                        </li>
+                      </ListLink>
+                    </ul>
+                  </div>
+                </div>
+              </HomeSidebar>
+            </div>
+            <div
+              className="col-md-10"
+            >
+              <div>
+                <SpreadLayout
+                  center={true}
+                  className="page-header"
+                  responsive={false}
+                >
+                  <div
+                    className="spread-layout page-header center"
+                  >
+                    <h3>
+                      Api Keys
+                    </h3>
+                    <Button
+                      disabled={false}
+>>>>>>> snaps
+                      onClick={[Function]}
+                      title="Remove API Key?"
+                    >
+                      <span
+                        className="icon-trash"
+                      />
+                    </a>
+>>>>>>> snaps
                     <Modal
                       animation={false}
                       autoFocus={true}
