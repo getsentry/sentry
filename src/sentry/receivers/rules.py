@@ -4,7 +4,7 @@ from django.db.models.signals import post_save
 
 from sentry.models import Project, Rule
 
-DEFAULT_RULE_LABEL = 'Send a notification for new events'
+DEFAULT_RULE_LABEL = 'Send a notification for new issues'
 DEFAULT_RULE_DATA = {
     'match': 'all',
     'conditions': [
