@@ -350,7 +350,7 @@ class LegacyTagStorage(TagStorage):
             key=key,
         )
 
-    def get_values_seen(self, group_ids, key):
+    def get_group_values_seen(self, group_ids, key):
         if isinstance(group_ids, six.integer_types):
             qs = GroupTagKey.objects.filter(group_id=group_ids)
         else:

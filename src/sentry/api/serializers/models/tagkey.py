@@ -13,6 +13,6 @@ class TagKeySerializer(Serializer):
         return {
             'id': six.text_type(obj.id),
             'key': tagstore.get_standardized_key(obj.key),
-            'name': obj.get_label(),
+            'name': tagstore.get_tag_key_label(obj.key),
             'uniqueValues': obj.values_seen,
         }

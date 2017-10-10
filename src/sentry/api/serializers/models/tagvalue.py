@@ -10,30 +10,10 @@ from sentry.models import EventUser, TagValue
 @register(TagValue)
 class TagValueSerializer(Serializer):
     def get_attrs(self, item_list, user):
-        user_tags = [i.value for i in item_list if i.key == 'sentry:user']
-
-        tag_labels = {}
-        if user_tags:
-            tag_labels.update(
-                {
-                    ('sentry:user', k): v.get_label()
-                    for k, v in six.iteritems(
-                        EventUser.for_tags(
-                            project_id=item_list[0].project_id,
-                            values=user_tags,
-                        )
-                    )
-                }
-            )
-
         result = {}
         for item in item_list:
-            try:
-                label = tag_labels[(item.key, item.value)]
-            except KeyError:
-                label = item.get_label()
             result[item] = {
-                'name': label,
+                'name': tagstore.get_tag_value_label(item.key, item.value),
             }
         return result
 

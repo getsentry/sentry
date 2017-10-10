@@ -10,6 +10,7 @@ from __future__ import absolute_import
 
 import re
 
+from sentry.constants import TAG_LABELS
 from sentry.utils.services import Service
 
 # Valid pattern for tag key names
@@ -35,6 +36,8 @@ class TagStorage(Service):
         'is_reserved_key',
         'prefix_reserved_key',
         'get_standardized_key',
+        'get_tag_key_label',
+        'get_tag_value_label',
 
         'create_tag_key',
         'get_or_create_tag_key',
@@ -60,7 +63,7 @@ class TagStorage(Service):
         'delete_all_group_tag_keys',
         'delete_all_group_tag_values',
 
-        'get_values_seen',
+        'get_group_values_seen',
         'get_group_event_ids',
         'get_tag_value_qs',
         'get_group_tag_value_qs',
@@ -99,6 +102,28 @@ class TagStorage(Service):
         if key.startswith('sentry:'):
             return key.split('sentry:', 1)[-1]
         return key
+
+    def get_tag_key_label(self, key):
+        return TAG_LABELS.get(key) or key.replace('_', ' ').title()
+
+    def get_tag_value_label(self, key, value):
+        label = value
+
+        if key == 'sentry:user':
+            if value.startswith('id:'):
+                label = value[len('id:'):]
+            elif value.startswith('email:'):
+                label = value[len('email:'):]
+            elif value.startswith('username:'):
+                label = value[len('username:'):]
+            elif value.startswith('ip:'):
+                label = value[len('ip:'):]
+        elif key == 'sentry:release':
+            from sentry.models import Release
+
+            label = Release.get_display_version(value)
+
+        return label
 
     def create_tag_key(self, project_id, key, **kwargs):
         """
@@ -272,9 +297,9 @@ class TagStorage(Service):
         """
         raise NotImplementedError
 
-    def get_values_seen(self, group_ids, key):
+    def get_group_values_seen(self, group_ids, key):
         """
-        >>> get_values_seen([1, 2], 'key1')
+        >>> get_group_values_seen([1, 2], 'key1')
         """
         raise NotImplementedError
 

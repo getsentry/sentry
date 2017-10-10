@@ -10,21 +10,11 @@ from sentry.models import GroupTagKey
 @register(GroupTagKey)
 class GroupTagKeySerializer(Serializer):
     def get_attrs(self, item_list, user):
-        tag_labels = {
-            t.key: t.get_label()
-            for t in
-            tagstore.get_tag_keys(item_list[0].project_id, [i.key for i in item_list])
-        }
-
         result = {}
         for item in item_list:
             key = tagstore.get_standardized_key(item.key)
-            try:
-                label = tag_labels[item.key]
-            except KeyError:
-                label = key
             result[item] = {
-                'name': label,
+                'name': tagstore.get_tag_key_label(item.key),
                 'key': key,
             }
 

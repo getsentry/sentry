@@ -18,7 +18,7 @@ class ProjectTagsEndpoint(ProjectEndpoint):
                 {
                     'id': six.text_type(tag_key.id),
                     'key': tagstore.get_standardized_key(tag_key.key),
-                    'name': tag_key.get_label(),
+                    'name': tagstore.get_tag_key_label(tag_key.key),
                     'uniqueValues': tag_key.values_seen,
                 }
             )
