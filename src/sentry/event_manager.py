@@ -44,6 +44,9 @@ from sentry.utils.validators import validate_ip
 from sentry.stacktraces import normalize_in_app
 
 
+DEFAULT_FINGERPRINT_VALUES = frozenset(['{{ default }}', '{{default}}'])
+
+
 def count_limit(count):
     # TODO: could we do something like num_to_store = max(math.sqrt(100*count)+59, 200) ?
     # ~ 150 * ((log(n) - 1.5) ^ 2 - 0.25)
@@ -99,8 +102,7 @@ def get_grouping_behavior(event):
 
 
 def get_hashes_from_fingerprint(event, fingerprint):
-    default_values = set(['{{ default }}', '{{default}}'])
-    if any(d in fingerprint for d in default_values):
+    if any(d in fingerprint for d in DEFAULT_FINGERPRINT_VALUES):
         default_hashes = get_hashes_for_event(event)
         hash_count = len(default_hashes)
     else:
@@ -110,7 +112,7 @@ def get_hashes_from_fingerprint(event, fingerprint):
     for idx in range(hash_count):
         result = []
         for bit in fingerprint:
-            if bit in default_values:
+            if bit in DEFAULT_FINGERPRINT_VALUES:
                 result.extend(default_hashes[idx])
             else:
                 result.append(bit)
@@ -119,8 +121,7 @@ def get_hashes_from_fingerprint(event, fingerprint):
 
 
 def get_hashes_from_fingerprint_with_reason(event, fingerprint):
-    default_values = set(['{{ default }}', '{{default}}'])
-    if any(d in fingerprint for d in default_values):
+    if any(d in fingerprint for d in DEFAULT_FINGERPRINT_VALUES):
         default_hashes = get_hashes_for_event_with_reason(event)
         hash_count = len(default_hashes[1])
     else:
@@ -129,7 +130,7 @@ def get_hashes_from_fingerprint_with_reason(event, fingerprint):
     hashes = OrderedDict((bit, []) for bit in fingerprint)
     for idx in range(hash_count):
         for bit in fingerprint:
-            if bit in default_values:
+            if bit in DEFAULT_FINGERPRINT_VALUES:
                 hashes[bit].append(default_hashes)
             else:
                 hashes[bit] = bit
