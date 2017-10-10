@@ -5,6 +5,8 @@ import {Client} from 'app/api';
 import OrganizationApiKeyDetailsView
   from 'app/views/settings/organization/apiKeys/organizationApiKeyDetailsView';
 
+jest.mock('jquery');
+
 const childContextTypes = {
   organization: React.PropTypes.object,
   router: React.PropTypes.object,
