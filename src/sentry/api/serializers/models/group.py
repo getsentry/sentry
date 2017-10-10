@@ -250,10 +250,11 @@ class GroupSerializer(Serializer):
             permalink = None
 
         is_subscribed, subscription = attrs['subscription']
+        share_id = obj.get_share_id()
 
         return {
             'id': six.text_type(obj.id),
-            'shareId': obj.get_share_id(),
+            'shareId': share_id,
             'shortId': obj.qualified_short_id,
             'count': six.text_type(obj.times_seen),
             'userCount': attrs['user_count'],
@@ -266,7 +267,7 @@ class GroupSerializer(Serializer):
             'level': LOG_LEVELS.get(obj.level, 'unknown'),
             'status': status_label,
             'statusDetails': status_details,
-            'isPublic': obj.is_public,
+            'isPublic': share_id is not None,
             'project': {
                 'name': obj.project.name,
                 'slug': obj.project.slug,

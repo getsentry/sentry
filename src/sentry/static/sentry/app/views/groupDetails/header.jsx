@@ -54,9 +54,18 @@ const GroupHeader = React.createClass({
     );
   },
 
-  onShare() {
+  getShareURL(absolute) {
     let {shareId} = this.props.group;
-    return browserHistory.pushState(null, `/share/issue/${shareId}/`);
+    let path = `/share/issue/${shareId}/`;
+    if (!absolute) {
+      return path;
+    }
+    let {host, protocol} = window.location;
+    return `${protocol}//${host}${path}`;
+  },
+
+  onShare() {
+    return browserHistory.pushState(null, this.getShareURL(false));
   },
 
   onTogglePublic() {
@@ -197,9 +206,13 @@ const GroupHeader = React.createClass({
         {orgFeatures.has('shared-issues') &&
           <div className="pull-right">
             <div className="group-privacy">
-              <a onClick={this.onShare}>
-                <span className="icon" /> {t('Share this event')}
+              <a onClick={this.onTogglePublic}>
+                <span className="icon" />
+                {' '}
+                {group.isPublic ? t('Unshare this event') : t('Share this event')}
               </a>
+              {group.isPublic &&
+                <code onClick={this.onShare}>{this.getShareURL(true)}</code>}
             </div>
           </div>}
         <ul className="nav nav-tabs">
