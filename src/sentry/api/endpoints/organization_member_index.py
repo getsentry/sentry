@@ -109,29 +109,29 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
 
         # This is needed because `email` field is case sensitive, but from a user perspective,
         # Sentry treats email as case-insensitive (Eric@sentry.io equals eric@sentry.io).
-        if settings.SENTRY_ENABLE_INVITES:
-            try:
-                existing = OrganizationMember.objects.filter(
-                    organization=organization,
-                    user__email__iexact=result['email'],
-                    user__is_active=True,
-                )[0]
+        try:
+            existing = OrganizationMember.objects.filter(
+                organization=organization,
+                user__email__iexact=result['email'],
+                user__is_active=True,
+            )[0]
 
-            except IndexError:
-                pass
-            else:
-                messages.add_message(
-                    request, messages.INFO,
-                    _('The organization member %s already exists.') % result['email']
-                )
-                return Response(serialize(existing), status=200)
+        except IndexError:
+            pass
+        else:
+            messages.add_message(
+                request, messages.INFO,
+                _('The organization member %s already exists.') % result['email']
+            )
+            return Response(serialize(existing), status=200)
 
         om = OrganizationMember(
             organization=organization,
             email=result['email'],
             role=result['role'])
 
-        om.token = om.generate_token()
+        if settings.SENTRY_ENABLE_INVITES:
+            om.token = om.generate_token()
 
         sid = transaction.savepoint(using='default')
         try:
@@ -139,7 +139,10 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
 
         except IntegrityError:
             transaction.savepoint_rollback(sid, using='default')
-
+            messages.add_message(
+                request, messages.INFO,
+                _('The organization member %s already exists.') % result['email']
+            )
             return Response(serialize(OrganizationMember.objects.get(
                 email__iexact=om.email,
                 organization=organization,
