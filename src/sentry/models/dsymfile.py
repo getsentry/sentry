@@ -188,6 +188,27 @@ class ProjectDSymFile(Model):
         self.file.delete()
 
 
+class ProjectSymCacheFile(Model):
+    __core__ = False
+
+    project = FlexibleForeignKey('sentry.Project', null=True)
+    cache_file = FlexibleForeignKey('sentry.File')
+    dsym_file = FlexibleForeignKey('sentry.ProjectDSymFile')
+    checksum = models.CharField(max_length=40)
+    version = BoundedPositiveIntegerField()
+
+    class Meta:
+        unique_together = (('project', 'dsym_file'),)
+        db_table = 'sentry_projectsymcachefile'
+        app_label = 'sentry'
+
+    __repr__ = sane_repr('uuid')
+
+    def delete(self, *args, **kwargs):
+        super(ProjectSymCacheFile, self).delete(*args, **kwargs)
+        self.cache_file.delete()
+
+
 def _create_dsym_from_uuid(project, dsym_type, cpu_name, uuid, fileobj, basename):
     """This creates a mach dsym file or proguard mapping from the given
     uuid and open file object to a dsym file.  This will not verify the
