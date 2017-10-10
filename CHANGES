@@ -1,5 +1,16 @@
-Version 8.21 (Unreleased)
+Version 8.22 (Unreleased)
 -------------------------
+
+- BREAKING: Members will no longer be automatically granted membership to the
+  default organization. You should use SSO or the invite flows.
+
+Schema Changes
+~~~~~~~~~~~~~~
+
+- Added ``ProjectSymCacheFile`` model.
+
+Version 8.21
+------------
 
 - Ignore querystrings when looking up release artifacts
 - Add Visual Studio authentication provider for plugins.
@@ -13,6 +24,7 @@ Schema Changes
 - Added ``Identity`` model.
 - Added ``UserIdentity`` model.
 - Added ``ProjectTeam`` model
+
 
 Version 8.20
 ------------

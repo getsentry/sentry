@@ -6,14 +6,15 @@ from collections import defaultdict
 from django.db import transaction
 from django.db.models import F
 
+from sentry import tagstore
 from sentry.app import tsdb
 from sentry.constants import DEFAULT_LOGGER_NAME, LOG_LEVELS_MAP
 from sentry.event_manager import (
     ScoreClause, generate_culprit, get_hashes_for_event, md5_from_hash
 )
 from sentry.models import (
-    Activity, Environment, Event, EventMapping, EventTag, EventUser, Group, GroupHash, GroupRelease,
-    GroupTagKey, GroupTagValue, Project, Release, UserReport
+    Activity, Environment, Event, EventMapping, EventUser, Group, GroupHash, GroupRelease,
+    GroupTagValue, Project, Release, UserReport
 )
 from sentry.similarity import features
 from sentry.tasks.base import instrumented_task
@@ -216,7 +217,7 @@ def migrate_events(caches, project, source_id, destination_id, fingerprints, eve
     for event in events:
         event.group = destination
 
-    EventTag.objects.filter(
+    tagstore.get_event_tag_qs(
         project_id=project.id,
         event_id__in=event_id_set,
     ).update(group_id=destination_id)
@@ -237,13 +238,8 @@ def migrate_events(caches, project, source_id, destination_id, fingerprints, eve
 
 
 def truncate_denormalizations(group):
-    GroupTagKey.objects.filter(
-        group_id=group.id,
-    ).delete()
-
-    GroupTagValue.objects.filter(
-        group_id=group.id,
-    ).delete()
+    tagstore.delete_all_group_tag_keys(group.id)
+    tagstore.delete_all_group_tag_values(group.id)
 
     GroupRelease.objects.filter(
         group_id=group.id,
@@ -288,7 +284,7 @@ def collect_tag_data(events):
 def repair_tag_data(caches, project, events):
     for group_id, keys in collect_tag_data(events).items():
         for key, values in keys.items():
-            GroupTagKey.objects.get_or_create(
+            tagstore.get_or_create_group_tag_key(
                 project_id=project.id,
                 group_id=group_id,
                 key=key,
@@ -298,7 +294,7 @@ def repair_tag_data(caches, project, events):
             # ingestion logic (but actually represent a more accurate value.)
             # See GH-5289 for more details.
             for value, (times_seen, first_seen, last_seen) in values.items():
-                instance, created = GroupTagValue.objects.get_or_create(
+                instance, created = tagstore.get_or_create_group_tag_value(
                     project_id=project.id,
                     group_id=group_id,
                     key=key,
@@ -465,7 +461,7 @@ def repair_denormalizations(caches, project, events):
 
 
 def update_tag_value_counts(id_list):
-    instances = GroupTagKey.objects.filter(group_id__in=id_list)
+    instances = tagstore.get_group_tag_keys(id_list)
     for instance in instances:
         instance.update(
             values_seen=GroupTagValue.objects.filter(

@@ -8,12 +8,12 @@ sentry.search.django.backend
 
 from __future__ import absolute_import
 
-import six
 from django.db import router
 from django.db.models import Q
 
+from sentry import tagstore
 from sentry.api.paginator import DateTimePaginator, Paginator
-from sentry.search.base import ANY, EMPTY, SearchBackend
+from sentry.search.base import EMPTY, SearchBackend
 from sentry.search.django.constants import (
     MSSQL_ENGINES, MSSQL_SORT_CLAUSES, MYSQL_SORT_CLAUSES, ORACLE_SORT_CLAUSES, SORT_CLAUSES,
     SQLITE_SORT_CLAUSES
@@ -22,48 +22,6 @@ from sentry.utils.db import get_db_engine
 
 
 class DjangoSearchBackend(SearchBackend):
-    def _tags_to_filter(self, project, tags):
-        # Django doesnt support union, so we limit results and try to find
-        # reasonable matches
-        from sentry.models import GroupTagValue
-
-        # ANY matches should come last since they're the least specific and
-        # will provide the largest range of matches
-        tag_lookups = sorted(six.iteritems(tags), key=lambda x: x != ANY)
-
-        # get initial matches to start the filter
-        matches = None
-
-        # for each remaining tag, find matches contained in our
-        # existing set, pruning it down each iteration
-        for k, v in tag_lookups:
-            if v is EMPTY:
-                return None
-
-            elif v != ANY:
-                base_qs = GroupTagValue.objects.filter(
-                    key=k,
-                    value=v,
-                    project_id=project.id,
-                )
-
-            else:
-                base_qs = GroupTagValue.objects.filter(
-                    key=k,
-                    project_id=project.id,
-                ).distinct()
-
-            if matches:
-                base_qs = base_qs.filter(group_id__in=matches)
-            else:
-                # restrict matches to only the most recently seen issues
-                base_qs = base_qs.order_by('-last_seen')
-
-            matches = list(base_qs.values_list('group_id', flat=True)[:1000])
-            if not matches:
-                return None
-        return matches
-
     def _build_queryset(
         self,
         project,
@@ -157,7 +115,7 @@ class DjangoSearchBackend(SearchBackend):
             )
 
         if tags:
-            matches = self._tags_to_filter(project, tags)
+            matches = tagstore.get_tags_for_search_filter(project.id, tags)
             if not matches:
                 return queryset.none()
             queryset = queryset.filter(

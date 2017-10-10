@@ -75,8 +75,8 @@ class AuthSAML2Test(AuthProviderTestCase):
         return reverse('sentry-auth-organization', args=['saml2-org'])
 
     @fixture
-    def sso_path(self):
-        return reverse('sentry-auth-sso')
+    def acs_path(self):
+        return reverse('sentry-auth-organization-saml-acs', args=['saml2-org'])
 
     def test_redirects_to_idp(self):
         resp = self.client.post(self.login_path, {'init': True})
@@ -88,10 +88,7 @@ class AuthSAML2Test(AuthProviderTestCase):
         assert redirect.path == '/sso_url'
         assert 'SAMLRequest' in query
 
-    def test_auth_from_idp(self):
-        # Start auth process
-        self.client.post(self.login_path, {'init': True})
-
+    def accept_auth(self):
         saml_response = self.load_fixture('saml2_auth_response.xml')
         saml_response = base64.b64encode(saml_response)
 
@@ -99,10 +96,18 @@ class AuthSAML2Test(AuthProviderTestCase):
         is_valid = 'onelogin.saml2.response.OneLogin_Saml2_Response.is_valid'
 
         with mock.patch(is_valid, return_value=True):
-            resp = self.client.post(self.sso_path, {'SAMLResponse': saml_response})
+            resp = self.client.post(self.acs_path, {'SAMLResponse': saml_response})
 
         assert resp.status_code == 200
         assert resp.context['existing_user'] == self.user
+
+    def test_auth_sp_initiated(self):
+        # Start auth process from SP side
+        self.client.post(self.login_path, {'init': True})
+        self.accept_auth()
+
+    def test_auth_idp_initiated(self):
+        self.accept_auth()
 
     def test_saml_metadata(self):
         path = reverse('sentry-auth-organization-saml-metadata', args=['saml2-org'])

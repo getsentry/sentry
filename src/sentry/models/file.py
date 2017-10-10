@@ -173,7 +173,7 @@ class File(Model):
             mode=mode,
             prefetch=prefetch,
             prefetch_to=prefetch_to,
-            delete=delete,
+            delete=delete
         )
 
     def getfile(self, mode=None, prefetch=False, as_tempfile=False):
