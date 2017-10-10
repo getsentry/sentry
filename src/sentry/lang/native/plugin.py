@@ -222,7 +222,7 @@ class NativeStacktraceProcessor(StacktraceProcessor):
                     report_processing_issue(
                         self.data,
                         scope='native',
-                        object='dsym:%s' % e.obj_uuid,
+                        object='dsym:%s' % e.image_uuid,
                         type=e.type,
                         data={
                             'image_path': e.image_path,
