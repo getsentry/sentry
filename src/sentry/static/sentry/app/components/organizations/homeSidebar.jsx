@@ -29,8 +29,8 @@ const HomeSidebar = React.createClass({
     let access = this.getAccess();
     let features = this.getFeatures();
     let org = this.getOrganization();
-
     let orgId = org.slug;
+
     return (
       <div>
         <h6 className="nav-header">{t('Organization')}</h6>
@@ -85,9 +85,12 @@ const HomeSidebar = React.createClass({
                       </span>}
                   </a>
                 </li>}
+
               {features.has('sso') &&
                 access.has('org:admin') &&
-                <li><a href={`/organizations/${orgId}/auth/`}>{t('Auth')}</a></li>}
+                <ListLink to={`/organizations/${orgId}/auth/`}>
+                  {t('Auth')}
+                </ListLink>}
 
               {access.has('org:admin') &&
                 features.has('api-keys') &&

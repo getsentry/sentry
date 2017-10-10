@@ -42,6 +42,8 @@ import OrganizationDashboard from './views/organizationDashboard';
 import OrganizationDetails from './views/organizationDetails';
 import OrganizationContext from './views/organizationContext';
 import OrganizationIntegrations from './views/organizationIntegrations';
+import OrganizationAuthView
+  from './views/settings/organization/auth/organizationAuthView';
 import OrganizationRateLimits from './views/organizationRateLimits';
 import OrganizationRepositories from './views/organizationRepositories';
 import OrganizationSettings from './views/organizationSettings';
@@ -175,6 +177,10 @@ function routes() {
         <Route
           path="/organizations/:orgId/audit-log/"
           component={errorHandler(OrganizationAuditLog)}
+        />
+        <Route
+          path="/organizations/:orgId/auth/"
+          component={errorHandler(OrganizationAuthView)}
         />
         <Route
           path="/organizations/:orgId/repos/"
