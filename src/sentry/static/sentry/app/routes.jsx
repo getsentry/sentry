@@ -33,11 +33,17 @@ import MyIssuesAssignedToMe from './views/myIssues/assignedToMe';
 import MyIssuesBookmarked from './views/myIssues/bookmarked';
 import MyIssuesViewed from './views/myIssues/viewed';
 import OrganizationAuditLog from './views/organizationAuditLog';
+import OrganizationApiKeysView
+  from './views/settings/organization/apiKeys/organizationApiKeysView';
+import OrganizationApiKeyDetailsView
+  from './views/settings/organization/apiKeys/organizationApiKeyDetailsView';
 import OrganizationCreate from './views/organizationCreate';
 import OrganizationDashboard from './views/organizationDashboard';
 import OrganizationDetails from './views/organizationDetails';
 import OrganizationContext from './views/organizationContext';
 import OrganizationIntegrations from './views/organizationIntegrations';
+import OrganizationAuthView
+  from './views/settings/organization/auth/organizationAuthView';
 import OrganizationRateLimits from './views/organizationRateLimits';
 import OrganizationRepositories from './views/organizationRepositories';
 import OrganizationSettings from './views/organizationSettings';
@@ -161,8 +167,20 @@ function routes() {
       <Route path="/:orgId/" component={errorHandler(OrganizationDetails)}>
         <IndexRoute component={errorHandler(OrganizationDashboard)} />
         <Route
+          path="/organizations/:orgId/api-keys/:apiKey/"
+          component={errorHandler(OrganizationApiKeyDetailsView)}
+        />
+        <Route
+          path="/organizations/:orgId/api-keys/"
+          component={errorHandler(OrganizationApiKeysView)}
+        />
+        <Route
           path="/organizations/:orgId/audit-log/"
           component={errorHandler(OrganizationAuditLog)}
+        />
+        <Route
+          path="/organizations/:orgId/auth/"
+          component={errorHandler(OrganizationAuthView)}
         />
         <Route
           path="/organizations/:orgId/repos/"
