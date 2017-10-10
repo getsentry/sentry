@@ -23,7 +23,7 @@ class IssuesResolvedInReleaseEndpoint(ProjectEndpoint):
     def get(self, request, project, version):
         """
         List issues to be resolved in a particular release
-        ````````````````````````
+        ``````````````````````````````````````````````````
 
         Retrieve a list of issues to be resolved in a given release.
 
