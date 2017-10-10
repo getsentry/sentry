@@ -97,6 +97,8 @@ def cpu_name_from_data(data):
         elif img.get('cpu_type') is not None \
                 and img.get('cpu_subtype') is not None:
             cpu_name = arch_from_macho(img['cpu_type'], img['cpu_subtype'])
+        else:
+            cpu_name = None
         if unique_cpu_name is None:
             unique_cpu_name = cpu_name
         elif unique_cpu_name != cpu_name:
