@@ -60,7 +60,7 @@ const InviteMember = React.createClass({
   },
 
   splitEmails(text) {
-    return text.split(',').filter(i => i);
+    return text.split(',').map(e => e.trim()).filter(e => e);
   },
 
   inviteUser(email) {
@@ -72,6 +72,7 @@ const InviteMember = React.createClass({
         method: 'POST',
         data: {
           email,
+          user: email,
           teams: Array.from(selectedTeams.keys()),
           role: selectedRole
         },
