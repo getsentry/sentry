@@ -36,7 +36,7 @@ class AssociateDsymSerializer(serializers.Serializer):
     build = serializers.CharField(max_length=40, required=False)
 
 
-def upload_from_request(request, project=None):
+def upload_from_request(request, project):
     if 'file' not in request.FILES:
         return Response({'detail': 'Missing uploaded file'}, status=400)
     fileobj = request.FILES['file']
