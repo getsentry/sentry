@@ -56,7 +56,7 @@ class GroupTagKeyDetailsEndpoint(GroupEndpoint):
         data = {
             'id': six.text_type(tag_key.id),
             'key': key,
-            'name': tag_key.get_label(),
+            'name': tagstore.get_tag_key_label(tag_key.key),
             'uniqueValues': group_tag_key.values_seen,
             'totalValues': total_values,
             'topValues': serialize(top_values, request.user),
