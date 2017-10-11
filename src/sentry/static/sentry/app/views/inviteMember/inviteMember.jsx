@@ -199,8 +199,8 @@ const InviteMember = React.createClass({
           {loading && <LoadingIndicator mini className="pull-right" />}
           <TextField
             name="email"
-            label={isInvite ? 'Email(s)' : 'Username(s)'}
-            placeholderlabel={isInvite ? 'e.g. teammate@example.com' : 'Usernames'}
+            label={isInvite ? t('Email') + '(s)' : t('Username') + '(s)'}
+            placeholderlabel="e.g. teammate@example.com"
             spellCheck="false"
             onChange={v => this.setState({email: v})}
           />
