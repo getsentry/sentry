@@ -17,8 +17,8 @@ jest.mock('app/mixins/projectState', () => {
 
 const scores = [
   {'exception:stacktrace:pairs': 0.375},
-  {'exception:stacktrace:pairs': 0.375},
   {'exception:stacktrace:pairs': 0.01264},
+  {'exception:stacktrace:pairs': 0.875},
   {
     'exception:stacktrace:application-chunks': 0.000235,
     'exception:stacktrace:pairs': 0.001488

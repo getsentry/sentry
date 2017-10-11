@@ -68,7 +68,7 @@ export default [
       type: 'TypeError',
       value: "Cannot read property 'length' of undefined"
     },
-    status: 'unresolved',
+    status: 'resolved',
     subscriptionDetails: null,
     isPublic: false,
     hasSeen: false,

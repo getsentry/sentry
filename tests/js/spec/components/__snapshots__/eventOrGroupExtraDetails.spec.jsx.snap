@@ -168,6 +168,92 @@ exports[`EventOrGroupExtraDetails renders all details 1`] = `
 </div>
 `;
 
+exports[`EventOrGroupExtraDetails renders assignee and status 1`] = `
+<div
+  className="event-extra"
+>
+  <ul>
+    <li>
+      <ShortId
+        shortId="shortId"
+      />
+    </li>
+    <li>
+      <span
+        className="icon icon-clock"
+      />
+      <TimeSince
+        date="2017-07-25T22:56:12Z"
+        suffix="ago"
+      />
+      <span>
+         — 
+      </span>
+      <TimeSince
+        date="2017-07-01T02:06:02Z"
+        suffix="old"
+      />
+    </li>
+    <li>
+      <Link
+        className="comments"
+        onlyActiveOnIndex={false}
+        style={Object {}}
+        to="/orgId/projectId/issues/groupId/activity/"
+      >
+        <span
+          className="icon icon-comments"
+          style={Object {}}
+        />
+        <span
+          className="tag-count"
+        >
+          14
+        </span>
+      </Link>
+    </li>
+    <li
+      className="event-annotation"
+    >
+      <Link
+        onlyActiveOnIndex={false}
+        style={Object {}}
+        to={
+          Object {
+            "pathname": "/orgId/projectId/",
+            "query": Object {
+              "query": "logger:javascript logger",
+            },
+          }
+        }
+      >
+        javascript logger
+      </Link>
+    </li>
+    <li
+      className="event-annotation"
+      dangerouslySetInnerHTML={
+        Object {
+          "__html": "annotation1",
+        }
+      }
+    />
+    <li
+      className="event-annotation"
+      dangerouslySetInnerHTML={
+        Object {
+          "__html": "annotation2",
+        }
+      }
+    />
+    <li>
+      Assigned to 
+      Assignee Name
+    </li>
+  </ul>
+</div>
+`;
+
 exports[`EventOrGroupExtraDetails renders last and first seen 1`] = `
 <div
   className="event-extra"

@@ -93,7 +93,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
           },
           Object {
             "aggregate": Object {
-              "exception": 0.375,
+              "exception": 0.01264,
             },
             "isBelowThreshold": true,
             "issue": Object {
@@ -128,56 +128,6 @@ exports[`Issues Similar View renders with mocked data 1`] = `
               "title": "TypeError: Cannot read property 'size' of undefined",
               "type": "error",
               "userCount": 1,
-            },
-            "score": Object {
-              "exception:stacktrace:pairs": 0.375,
-            },
-            "scoresByInterface": Object {
-              "exception": Array [
-                Array [
-                  "exception:stacktrace:pairs",
-                  0.375,
-                ],
-              ],
-            },
-          },
-          Object {
-            "aggregate": Object {
-              "exception": 0.01264,
-            },
-            "isBelowThreshold": true,
-            "issue": Object {
-              "annotations": Array [],
-              "assignedTo": null,
-              "count": "90",
-              "culprit": "length(app/views/groupSimilar/groupSimilarView)",
-              "firstSeen": "2017-07-10T18:32:43Z",
-              "hasSeen": false,
-              "id": "271",
-              "isBookmarked": false,
-              "isPublic": false,
-              "isSubscribed": true,
-              "lastSeen": "2017-07-24T23:41:44Z",
-              "level": "error",
-              "logger": "javascript",
-              "metadata": Object {
-                "type": "TypeError",
-                "value": "Cannot read property 'length' of undefined",
-              },
-              "numComments": 0,
-              "permalink": "http://localhost:8000/sentry/internal/issues/271/",
-              "project": Object {
-                "name": "Internal",
-                "slug": "internal",
-              },
-              "shareId": "312e323731",
-              "shortId": "INTERNAL-4G",
-              "status": "unresolved",
-              "statusDetails": Object {},
-              "subscriptionDetails": null,
-              "title": "TypeError: Cannot read property 'length' of undefined",
-              "type": "error",
-              "userCount": 3,
             },
             "score": Object {
               "exception:stacktrace:pairs": 0.01264,
@@ -275,7 +225,60 @@ exports[`Issues Similar View renders with mocked data 1`] = `
         ]
       }
       groupId="groupId"
-      items={Array []}
+      items={
+        Array [
+          Object {
+            "aggregate": Object {
+              "exception": 0.875,
+            },
+            "isBelowThreshold": false,
+            "issue": Object {
+              "annotations": Array [],
+              "assignedTo": null,
+              "count": "90",
+              "culprit": "length(app/views/groupSimilar/groupSimilarView)",
+              "firstSeen": "2017-07-10T18:32:43Z",
+              "hasSeen": false,
+              "id": "271",
+              "isBookmarked": false,
+              "isPublic": false,
+              "isSubscribed": true,
+              "lastSeen": "2017-07-24T23:41:44Z",
+              "level": "error",
+              "logger": "javascript",
+              "metadata": Object {
+                "type": "TypeError",
+                "value": "Cannot read property 'length' of undefined",
+              },
+              "numComments": 0,
+              "permalink": "http://localhost:8000/sentry/internal/issues/271/",
+              "project": Object {
+                "name": "Internal",
+                "slug": "internal",
+              },
+              "shareId": "312e323731",
+              "shortId": "INTERNAL-4G",
+              "status": "resolved",
+              "statusDetails": Object {},
+              "subscriptionDetails": null,
+              "title": "TypeError: Cannot read property 'length' of undefined",
+              "type": "error",
+              "userCount": 3,
+            },
+            "score": Object {
+              "exception:stacktrace:pairs": 0.875,
+            },
+            "scoresByInterface": Object {
+              "exception": Array [
+                Array [
+                  "exception:stacktrace:pairs",
+                  0.875,
+                ],
+              ],
+            },
+          },
+        ]
+      }
       onMerge={[Function]}
       orgId="orgId"
       projectId="projectId"
@@ -509,6 +512,555 @@ exports[`Issues Similar View renders with mocked data 1`] = `
         <div
           className="similar-list"
         >
+          <SimilarIssueItem
+            aggregate={
+              Object {
+                "exception": 0.875,
+              }
+            }
+            groupId="groupId"
+            isBelowThreshold={false}
+            issue={
+              Object {
+                "annotations": Array [],
+                "assignedTo": null,
+                "count": "90",
+                "culprit": "length(app/views/groupSimilar/groupSimilarView)",
+                "firstSeen": "2017-07-10T18:32:43Z",
+                "hasSeen": false,
+                "id": "271",
+                "isBookmarked": false,
+                "isPublic": false,
+                "isSubscribed": true,
+                "lastSeen": "2017-07-24T23:41:44Z",
+                "level": "error",
+                "logger": "javascript",
+                "metadata": Object {
+                  "type": "TypeError",
+                  "value": "Cannot read property 'length' of undefined",
+                },
+                "numComments": 0,
+                "permalink": "http://localhost:8000/sentry/internal/issues/271/",
+                "project": Object {
+                  "name": "Internal",
+                  "slug": "internal",
+                },
+                "shareId": "312e323731",
+                "shortId": "INTERNAL-4G",
+                "status": "resolved",
+                "statusDetails": Object {},
+                "subscriptionDetails": null,
+                "title": "TypeError: Cannot read property 'length' of undefined",
+                "type": "error",
+                "userCount": 3,
+              }
+            }
+            orgId="orgId"
+            projectId="projectId"
+            score={
+              Object {
+                "exception:stacktrace:pairs": 0.875,
+              }
+            }
+            scoresByInterface={
+              Object {
+                "exception": Array [
+                  Array [
+                    "exception:stacktrace:pairs",
+                    0.875,
+                  ],
+                ],
+              }
+            }
+          >
+            <SpreadLayout
+              center={true}
+              className="group similar-issue isResolved"
+              onClick={[Function]}
+              responsive={true}
+            >
+              <div
+                className="spread-layout group similar-issue isResolved center allow-responsive"
+                onClick={[Function]}
+              >
+                <FlowLayout
+                  truncate={true}
+                >
+                  <div
+                    className="flow-layout is-truncated"
+                  >
+                    <FlowLayout
+                      truncate={true}
+                    >
+                      <div
+                        className="flow-layout is-truncated"
+                      >
+                        <div
+                          className="action-column"
+                        >
+                          <Checkbox
+                            checked={false}
+                            id="271"
+                            value="271"
+                          >
+                            <input
+                              checked={false}
+                              className="chk-select"
+                              id="271"
+                              type="checkbox"
+                              value="271"
+                            />
+                          </Checkbox>
+                        </div>
+                        <div
+                          className="event-details level-error"
+                          style={
+                            Object {
+                              "flex": 1,
+                            }
+                          }
+                        >
+                          <EventOrGroupHeader
+                            data={
+                              Object {
+                                "annotations": Array [],
+                                "assignedTo": null,
+                                "count": "90",
+                                "culprit": "length(app/views/groupSimilar/groupSimilarView)",
+                                "firstSeen": "2017-07-10T18:32:43Z",
+                                "hasSeen": false,
+                                "id": "271",
+                                "isBookmarked": false,
+                                "isPublic": false,
+                                "isSubscribed": true,
+                                "lastSeen": "2017-07-24T23:41:44Z",
+                                "level": "error",
+                                "logger": "javascript",
+                                "metadata": Object {
+                                  "type": "TypeError",
+                                  "value": "Cannot read property 'length' of undefined",
+                                },
+                                "numComments": 0,
+                                "permalink": "http://localhost:8000/sentry/internal/issues/271/",
+                                "project": Object {
+                                  "name": "Internal",
+                                  "slug": "internal",
+                                },
+                                "shareId": "312e323731",
+                                "shortId": "INTERNAL-4G",
+                                "status": "resolved",
+                                "statusDetails": Object {},
+                                "subscriptionDetails": null,
+                                "title": "TypeError: Cannot read property 'length' of undefined",
+                                "type": "error",
+                                "userCount": 3,
+                              }
+                            }
+                            includeLink={true}
+                            orgId="orgId"
+                            projectId="projectId"
+                          >
+                            <div
+                              className="event-issue-header"
+                            >
+                              <h3
+                                className="truncate"
+                              >
+                                <Link
+                                  onlyActiveOnIndex={false}
+                                  style={Object {}}
+                                  to="/orgId/projectId/issues/271/"
+                                >
+                                  <a
+                                    onClick={[Function]}
+                                    style={Object {}}
+                                  >
+                                    <span
+                                      className="error-level truncate"
+                                    >
+                                      error
+                                    </span>
+                                    <span
+                                      className="icon icon-soundoff"
+                                    />
+                                    <span
+                                      className="icon icon-star-solid"
+                                    />
+                                    <EventOrGroupTitle
+                                      data={
+                                        Object {
+                                          "annotations": Array [],
+                                          "assignedTo": null,
+                                          "count": "90",
+                                          "culprit": "length(app/views/groupSimilar/groupSimilarView)",
+                                          "firstSeen": "2017-07-10T18:32:43Z",
+                                          "hasSeen": false,
+                                          "id": "271",
+                                          "isBookmarked": false,
+                                          "isPublic": false,
+                                          "isSubscribed": true,
+                                          "lastSeen": "2017-07-24T23:41:44Z",
+                                          "level": "error",
+                                          "logger": "javascript",
+                                          "metadata": Object {
+                                            "type": "TypeError",
+                                            "value": "Cannot read property 'length' of undefined",
+                                          },
+                                          "numComments": 0,
+                                          "permalink": "http://localhost:8000/sentry/internal/issues/271/",
+                                          "project": Object {
+                                            "name": "Internal",
+                                            "slug": "internal",
+                                          },
+                                          "shareId": "312e323731",
+                                          "shortId": "INTERNAL-4G",
+                                          "status": "resolved",
+                                          "statusDetails": Object {},
+                                          "subscriptionDetails": null,
+                                          "title": "TypeError: Cannot read property 'length' of undefined",
+                                          "type": "error",
+                                          "userCount": 3,
+                                        }
+                                      }
+                                      includeLink={true}
+                                      orgId="orgId"
+                                      projectId="projectId"
+                                    >
+                                      <span>
+                                        <span
+                                          style={
+                                            Object {
+                                              "marginRight": 10,
+                                            }
+                                          }
+                                        >
+                                          TypeError
+                                        </span>
+                                        <em>
+                                          length(app/views/groupSimilar/groupSimilarView)
+                                        </em>
+                                        <br />
+                                      </span>
+                                    </EventOrGroupTitle>
+                                  </a>
+                                </Link>
+                              </h3>
+                              <div
+                                className="event-message truncate"
+                              >
+                                <span
+                                  className="message"
+                                >
+                                  Cannot read property 'length' of undefined
+                                </span>
+                              </div>
+                            </div>
+                          </EventOrGroupHeader>
+                          <EventOrGroupExtraDetails
+                            annotations={Array []}
+                            assignedTo={null}
+                            count="90"
+                            culprit="length(app/views/groupSimilar/groupSimilarView)"
+                            firstSeen="2017-07-10T18:32:43Z"
+                            group={true}
+                            groupId="271"
+                            hasSeen={false}
+                            id="271"
+                            isBookmarked={false}
+                            isPublic={false}
+                            isSubscribed={true}
+                            lastSeen={null}
+                            level="error"
+                            logger="javascript"
+                            metadata={
+                              Object {
+                                "type": "TypeError",
+                                "value": "Cannot read property 'length' of undefined",
+                              }
+                            }
+                            numComments={0}
+                            orgId="orgId"
+                            permalink="http://localhost:8000/sentry/internal/issues/271/"
+                            project={
+                              Object {
+                                "name": "Internal",
+                                "slug": "internal",
+                              }
+                            }
+                            projectId="projectId"
+                            shareId="312e323731"
+                            shortId="INTERNAL-4G"
+                            showAssignee={true}
+                            showStatus={true}
+                            status="resolved"
+                            statusDetails={Object {}}
+                            subscriptionDetails={null}
+                            title="TypeError: Cannot read property 'length' of undefined"
+                            type="error"
+                            userCount={3}
+                          >
+                            <div
+                              className="event-extra"
+                            >
+                              <ul>
+                                <li>
+                                  <ShortId
+                                    shortId="INTERNAL-4G"
+                                  >
+                                    <span
+                                      className="short-id"
+                                      onClick={[Function]}
+                                    >
+                                      <AutoSelectText>
+                                        <div>
+                                          INTERNAL-4G
+                                        </div>
+                                      </AutoSelectText>
+                                    </span>
+                                  </ShortId>
+                                </li>
+                                <li>
+                                  <span
+                                    className="icon icon-clock"
+                                  />
+                                  <TimeSince
+                                    date="2017-07-10T18:32:43Z"
+                                    suffix="old"
+                                  >
+                                    <time
+                                      dateTime="2017-07-10T18:32:43.000Z"
+                                      title="July 10, 2017 6:32 PM UTC"
+                                    >
+                                      3 months old
+                                    </time>
+                                  </TimeSince>
+                                </li>
+                                <li
+                                  className="event-annotation"
+                                >
+                                  <Link
+                                    onlyActiveOnIndex={false}
+                                    style={Object {}}
+                                    to={
+                                      Object {
+                                        "pathname": "/orgId/projectId/",
+                                        "query": Object {
+                                          "query": "logger:javascript",
+                                        },
+                                      }
+                                    }
+                                  >
+                                    <a
+                                      onClick={[Function]}
+                                      style={Object {}}
+                                    >
+                                      javascript
+                                    </a>
+                                  </Link>
+                                </li>
+                              </ul>
+                            </div>
+                          </EventOrGroupExtraDetails>
+                        </div>
+                      </div>
+                    </FlowLayout>
+                    <button
+                      className="btn btn-default btn-xs"
+                      onClick={[Function]}
+                      style={
+                        Object {
+                          "marginRight": 2,
+                        }
+                      }
+                    >
+                      Diff
+                    </button>
+                  </div>
+                </FlowLayout>
+                <div
+                  className="similar-score-columns"
+                >
+                  <count
+                    className="similar-score-column"
+                    value="90"
+                  >
+                    <span
+                      className="similar-score-column"
+                    >
+                      90
+                    </span>
+                  </count>
+                  <div
+                    className="similar-score-column"
+                  >
+                    <Hovercard
+                      body={
+                        <SimilarScoreCard
+                          scoreList={
+                            Array [
+                              Array [
+                                "exception:stacktrace:pairs",
+                                0.875,
+                              ],
+                            ]
+                          }
+                        />
+                      }
+                    >
+                      <span
+                        className="hovercard-container"
+                        onMouseEnter={[Function]}
+                        onMouseLeave={[Function]}
+                      >
+                        <ScoreBar
+                          palette={Array []}
+                          paletteClassNames={
+                            Array [
+                              "low",
+                              "low-med",
+                              "med",
+                              "med-high",
+                              "high",
+                            ]
+                          }
+                          score={4}
+                          vertical={true}
+                        >
+                          <div
+                            className="score-bar vertical"
+                          >
+                            <div
+                              className="score-bar-bar med-high"
+                              style={
+                                Object {
+                                  "height": undefined,
+                                  "width": undefined,
+                                }
+                              }
+                            />
+                            <div
+                              className="score-bar-bar med-high"
+                              style={
+                                Object {
+                                  "height": undefined,
+                                  "width": undefined,
+                                }
+                              }
+                            />
+                            <div
+                              className="score-bar-bar med-high"
+                              style={
+                                Object {
+                                  "height": undefined,
+                                  "width": undefined,
+                                }
+                              }
+                            />
+                            <div
+                              className="score-bar-bar med-high"
+                              style={
+                                Object {
+                                  "height": undefined,
+                                  "width": undefined,
+                                }
+                              }
+                            />
+                            <div
+                              className="score-bar-bar empty"
+                              style={
+                                Object {
+                                  "height": undefined,
+                                  "width": undefined,
+                                }
+                              }
+                            />
+                          </div>
+                        </ScoreBar>
+                      </span>
+                    </Hovercard>
+                  </div>
+                  <div
+                    className="similar-score-column"
+                  >
+                    <Hovercard
+                      body={0}
+                    >
+                      <span
+                        className="hovercard-container"
+                        onMouseEnter={[Function]}
+                        onMouseLeave={[Function]}
+                      >
+                        <ScoreBar
+                          palette={Array []}
+                          paletteClassNames={
+                            Array [
+                              "low",
+                              "low-med",
+                              "med",
+                              "med-high",
+                              "high",
+                            ]
+                          }
+                          score={0}
+                          vertical={true}
+                        >
+                          <div
+                            className="score-bar vertical"
+                          >
+                            <div
+                              className="score-bar-bar empty"
+                              style={
+                                Object {
+                                  "height": undefined,
+                                  "width": undefined,
+                                }
+                              }
+                            />
+                            <div
+                              className="score-bar-bar empty"
+                              style={
+                                Object {
+                                  "height": undefined,
+                                  "width": undefined,
+                                }
+                              }
+                            />
+                            <div
+                              className="score-bar-bar empty"
+                              style={
+                                Object {
+                                  "height": undefined,
+                                  "width": undefined,
+                                }
+                              }
+                            />
+                            <div
+                              className="score-bar-bar empty"
+                              style={
+                                Object {
+                                  "height": undefined,
+                                  "width": undefined,
+                                }
+                              }
+                            />
+                            <div
+                              className="score-bar-bar empty"
+                              style={
+                                Object {
+                                  "height": undefined,
+                                  "width": undefined,
+                                }
+                              }
+                            />
+                          </div>
+                        </ScoreBar>
+                      </span>
+                    </Hovercard>
+                  </div>
+                </div>
+              </div>
+            </SpreadLayout>
+          </SimilarIssueItem>
           <div
             className="similar-items-footer"
           >
@@ -517,7 +1069,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
               onClick={[Function]}
             >
               Show 
-              4
+              3
                issues below threshold
             </button>
           </div>
@@ -608,7 +1160,7 @@ exports[`Issues Similar View renders with mocked data 2`] = `
           },
           Object {
             "aggregate": Object {
-              "exception": 0.375,
+              "exception": 0.01264,
             },
             "isBelowThreshold": true,
             "issue": Object {
@@ -643,56 +1195,6 @@ exports[`Issues Similar View renders with mocked data 2`] = `
               "title": "TypeError: Cannot read property 'size' of undefined",
               "type": "error",
               "userCount": 1,
-            },
-            "score": Object {
-              "exception:stacktrace:pairs": 0.375,
-            },
-            "scoresByInterface": Object {
-              "exception": Array [
-                Array [
-                  "exception:stacktrace:pairs",
-                  0.375,
-                ],
-              ],
-            },
-          },
-          Object {
-            "aggregate": Object {
-              "exception": 0.01264,
-            },
-            "isBelowThreshold": true,
-            "issue": Object {
-              "annotations": Array [],
-              "assignedTo": null,
-              "count": "90",
-              "culprit": "length(app/views/groupSimilar/groupSimilarView)",
-              "firstSeen": "2017-07-10T18:32:43Z",
-              "hasSeen": false,
-              "id": "271",
-              "isBookmarked": false,
-              "isPublic": false,
-              "isSubscribed": true,
-              "lastSeen": "2017-07-24T23:41:44Z",
-              "level": "error",
-              "logger": "javascript",
-              "metadata": Object {
-                "type": "TypeError",
-                "value": "Cannot read property 'length' of undefined",
-              },
-              "numComments": 0,
-              "permalink": "http://localhost:8000/sentry/internal/issues/271/",
-              "project": Object {
-                "name": "Internal",
-                "slug": "internal",
-              },
-              "shareId": "312e323731",
-              "shortId": "INTERNAL-4G",
-              "status": "unresolved",
-              "statusDetails": Object {},
-              "subscriptionDetails": null,
-              "title": "TypeError: Cannot read property 'length' of undefined",
-              "type": "error",
-              "userCount": 3,
             },
             "score": Object {
               "exception:stacktrace:pairs": 0.01264,
@@ -790,7 +1292,60 @@ exports[`Issues Similar View renders with mocked data 2`] = `
         ]
       }
       groupId="groupId"
-      items={Array []}
+      items={
+        Array [
+          Object {
+            "aggregate": Object {
+              "exception": 0.875,
+            },
+            "isBelowThreshold": false,
+            "issue": Object {
+              "annotations": Array [],
+              "assignedTo": null,
+              "count": "90",
+              "culprit": "length(app/views/groupSimilar/groupSimilarView)",
+              "firstSeen": "2017-07-10T18:32:43Z",
+              "hasSeen": false,
+              "id": "271",
+              "isBookmarked": false,
+              "isPublic": false,
+              "isSubscribed": true,
+              "lastSeen": "2017-07-24T23:41:44Z",
+              "level": "error",
+              "logger": "javascript",
+              "metadata": Object {
+                "type": "TypeError",
+                "value": "Cannot read property 'length' of undefined",
+              },
+              "numComments": 0,
+              "permalink": "http://localhost:8000/sentry/internal/issues/271/",
+              "project": Object {
+                "name": "Internal",
+                "slug": "internal",
+              },
+              "shareId": "312e323731",
+              "shortId": "INTERNAL-4G",
+              "status": "resolved",
+              "statusDetails": Object {},
+              "subscriptionDetails": null,
+              "title": "TypeError: Cannot read property 'length' of undefined",
+              "type": "error",
+              "userCount": 3,
+            },
+            "score": Object {
+              "exception:stacktrace:pairs": 0.875,
+            },
+            "scoresByInterface": Object {
+              "exception": Array [
+                Array [
+                  "exception:stacktrace:pairs",
+                  0.875,
+                ],
+              ],
+            },
+          },
+        ]
+      }
       onMerge={[Function]}
       orgId="orgId"
       projectId="projectId"
@@ -1024,6 +1579,555 @@ exports[`Issues Similar View renders with mocked data 2`] = `
         <div
           className="similar-list"
         >
+          <SimilarIssueItem
+            aggregate={
+              Object {
+                "exception": 0.875,
+              }
+            }
+            groupId="groupId"
+            isBelowThreshold={false}
+            issue={
+              Object {
+                "annotations": Array [],
+                "assignedTo": null,
+                "count": "90",
+                "culprit": "length(app/views/groupSimilar/groupSimilarView)",
+                "firstSeen": "2017-07-10T18:32:43Z",
+                "hasSeen": false,
+                "id": "271",
+                "isBookmarked": false,
+                "isPublic": false,
+                "isSubscribed": true,
+                "lastSeen": "2017-07-24T23:41:44Z",
+                "level": "error",
+                "logger": "javascript",
+                "metadata": Object {
+                  "type": "TypeError",
+                  "value": "Cannot read property 'length' of undefined",
+                },
+                "numComments": 0,
+                "permalink": "http://localhost:8000/sentry/internal/issues/271/",
+                "project": Object {
+                  "name": "Internal",
+                  "slug": "internal",
+                },
+                "shareId": "312e323731",
+                "shortId": "INTERNAL-4G",
+                "status": "resolved",
+                "statusDetails": Object {},
+                "subscriptionDetails": null,
+                "title": "TypeError: Cannot read property 'length' of undefined",
+                "type": "error",
+                "userCount": 3,
+              }
+            }
+            orgId="orgId"
+            projectId="projectId"
+            score={
+              Object {
+                "exception:stacktrace:pairs": 0.875,
+              }
+            }
+            scoresByInterface={
+              Object {
+                "exception": Array [
+                  Array [
+                    "exception:stacktrace:pairs",
+                    0.875,
+                  ],
+                ],
+              }
+            }
+          >
+            <SpreadLayout
+              center={true}
+              className="group similar-issue isResolved"
+              onClick={[Function]}
+              responsive={true}
+            >
+              <div
+                className="spread-layout group similar-issue isResolved center allow-responsive"
+                onClick={[Function]}
+              >
+                <FlowLayout
+                  truncate={true}
+                >
+                  <div
+                    className="flow-layout is-truncated"
+                  >
+                    <FlowLayout
+                      truncate={true}
+                    >
+                      <div
+                        className="flow-layout is-truncated"
+                      >
+                        <div
+                          className="action-column"
+                        >
+                          <Checkbox
+                            checked={false}
+                            id="271"
+                            value="271"
+                          >
+                            <input
+                              checked={false}
+                              className="chk-select"
+                              id="271"
+                              type="checkbox"
+                              value="271"
+                            />
+                          </Checkbox>
+                        </div>
+                        <div
+                          className="event-details level-error"
+                          style={
+                            Object {
+                              "flex": 1,
+                            }
+                          }
+                        >
+                          <EventOrGroupHeader
+                            data={
+                              Object {
+                                "annotations": Array [],
+                                "assignedTo": null,
+                                "count": "90",
+                                "culprit": "length(app/views/groupSimilar/groupSimilarView)",
+                                "firstSeen": "2017-07-10T18:32:43Z",
+                                "hasSeen": false,
+                                "id": "271",
+                                "isBookmarked": false,
+                                "isPublic": false,
+                                "isSubscribed": true,
+                                "lastSeen": "2017-07-24T23:41:44Z",
+                                "level": "error",
+                                "logger": "javascript",
+                                "metadata": Object {
+                                  "type": "TypeError",
+                                  "value": "Cannot read property 'length' of undefined",
+                                },
+                                "numComments": 0,
+                                "permalink": "http://localhost:8000/sentry/internal/issues/271/",
+                                "project": Object {
+                                  "name": "Internal",
+                                  "slug": "internal",
+                                },
+                                "shareId": "312e323731",
+                                "shortId": "INTERNAL-4G",
+                                "status": "resolved",
+                                "statusDetails": Object {},
+                                "subscriptionDetails": null,
+                                "title": "TypeError: Cannot read property 'length' of undefined",
+                                "type": "error",
+                                "userCount": 3,
+                              }
+                            }
+                            includeLink={true}
+                            orgId="orgId"
+                            projectId="projectId"
+                          >
+                            <div
+                              className="event-issue-header"
+                            >
+                              <h3
+                                className="truncate"
+                              >
+                                <Link
+                                  onlyActiveOnIndex={false}
+                                  style={Object {}}
+                                  to="/orgId/projectId/issues/271/"
+                                >
+                                  <a
+                                    onClick={[Function]}
+                                    style={Object {}}
+                                  >
+                                    <span
+                                      className="error-level truncate"
+                                    >
+                                      error
+                                    </span>
+                                    <span
+                                      className="icon icon-soundoff"
+                                    />
+                                    <span
+                                      className="icon icon-star-solid"
+                                    />
+                                    <EventOrGroupTitle
+                                      data={
+                                        Object {
+                                          "annotations": Array [],
+                                          "assignedTo": null,
+                                          "count": "90",
+                                          "culprit": "length(app/views/groupSimilar/groupSimilarView)",
+                                          "firstSeen": "2017-07-10T18:32:43Z",
+                                          "hasSeen": false,
+                                          "id": "271",
+                                          "isBookmarked": false,
+                                          "isPublic": false,
+                                          "isSubscribed": true,
+                                          "lastSeen": "2017-07-24T23:41:44Z",
+                                          "level": "error",
+                                          "logger": "javascript",
+                                          "metadata": Object {
+                                            "type": "TypeError",
+                                            "value": "Cannot read property 'length' of undefined",
+                                          },
+                                          "numComments": 0,
+                                          "permalink": "http://localhost:8000/sentry/internal/issues/271/",
+                                          "project": Object {
+                                            "name": "Internal",
+                                            "slug": "internal",
+                                          },
+                                          "shareId": "312e323731",
+                                          "shortId": "INTERNAL-4G",
+                                          "status": "resolved",
+                                          "statusDetails": Object {},
+                                          "subscriptionDetails": null,
+                                          "title": "TypeError: Cannot read property 'length' of undefined",
+                                          "type": "error",
+                                          "userCount": 3,
+                                        }
+                                      }
+                                      includeLink={true}
+                                      orgId="orgId"
+                                      projectId="projectId"
+                                    >
+                                      <span>
+                                        <span
+                                          style={
+                                            Object {
+                                              "marginRight": 10,
+                                            }
+                                          }
+                                        >
+                                          TypeError
+                                        </span>
+                                        <em>
+                                          length(app/views/groupSimilar/groupSimilarView)
+                                        </em>
+                                        <br />
+                                      </span>
+                                    </EventOrGroupTitle>
+                                  </a>
+                                </Link>
+                              </h3>
+                              <div
+                                className="event-message truncate"
+                              >
+                                <span
+                                  className="message"
+                                >
+                                  Cannot read property 'length' of undefined
+                                </span>
+                              </div>
+                            </div>
+                          </EventOrGroupHeader>
+                          <EventOrGroupExtraDetails
+                            annotations={Array []}
+                            assignedTo={null}
+                            count="90"
+                            culprit="length(app/views/groupSimilar/groupSimilarView)"
+                            firstSeen="2017-07-10T18:32:43Z"
+                            group={true}
+                            groupId="271"
+                            hasSeen={false}
+                            id="271"
+                            isBookmarked={false}
+                            isPublic={false}
+                            isSubscribed={true}
+                            lastSeen={null}
+                            level="error"
+                            logger="javascript"
+                            metadata={
+                              Object {
+                                "type": "TypeError",
+                                "value": "Cannot read property 'length' of undefined",
+                              }
+                            }
+                            numComments={0}
+                            orgId="orgId"
+                            permalink="http://localhost:8000/sentry/internal/issues/271/"
+                            project={
+                              Object {
+                                "name": "Internal",
+                                "slug": "internal",
+                              }
+                            }
+                            projectId="projectId"
+                            shareId="312e323731"
+                            shortId="INTERNAL-4G"
+                            showAssignee={true}
+                            showStatus={true}
+                            status="resolved"
+                            statusDetails={Object {}}
+                            subscriptionDetails={null}
+                            title="TypeError: Cannot read property 'length' of undefined"
+                            type="error"
+                            userCount={3}
+                          >
+                            <div
+                              className="event-extra"
+                            >
+                              <ul>
+                                <li>
+                                  <ShortId
+                                    shortId="INTERNAL-4G"
+                                  >
+                                    <span
+                                      className="short-id"
+                                      onClick={[Function]}
+                                    >
+                                      <AutoSelectText>
+                                        <div>
+                                          INTERNAL-4G
+                                        </div>
+                                      </AutoSelectText>
+                                    </span>
+                                  </ShortId>
+                                </li>
+                                <li>
+                                  <span
+                                    className="icon icon-clock"
+                                  />
+                                  <TimeSince
+                                    date="2017-07-10T18:32:43Z"
+                                    suffix="old"
+                                  >
+                                    <time
+                                      dateTime="2017-07-10T18:32:43.000Z"
+                                      title="July 10, 2017 6:32 PM UTC"
+                                    >
+                                      3 months old
+                                    </time>
+                                  </TimeSince>
+                                </li>
+                                <li
+                                  className="event-annotation"
+                                >
+                                  <Link
+                                    onlyActiveOnIndex={false}
+                                    style={Object {}}
+                                    to={
+                                      Object {
+                                        "pathname": "/orgId/projectId/",
+                                        "query": Object {
+                                          "query": "logger:javascript",
+                                        },
+                                      }
+                                    }
+                                  >
+                                    <a
+                                      onClick={[Function]}
+                                      style={Object {}}
+                                    >
+                                      javascript
+                                    </a>
+                                  </Link>
+                                </li>
+                              </ul>
+                            </div>
+                          </EventOrGroupExtraDetails>
+                        </div>
+                      </div>
+                    </FlowLayout>
+                    <button
+                      className="btn btn-default btn-xs"
+                      onClick={[Function]}
+                      style={
+                        Object {
+                          "marginRight": 2,
+                        }
+                      }
+                    >
+                      Diff
+                    </button>
+                  </div>
+                </FlowLayout>
+                <div
+                  className="similar-score-columns"
+                >
+                  <count
+                    className="similar-score-column"
+                    value="90"
+                  >
+                    <span
+                      className="similar-score-column"
+                    >
+                      90
+                    </span>
+                  </count>
+                  <div
+                    className="similar-score-column"
+                  >
+                    <Hovercard
+                      body={
+                        <SimilarScoreCard
+                          scoreList={
+                            Array [
+                              Array [
+                                "exception:stacktrace:pairs",
+                                0.875,
+                              ],
+                            ]
+                          }
+                        />
+                      }
+                    >
+                      <span
+                        className="hovercard-container"
+                        onMouseEnter={[Function]}
+                        onMouseLeave={[Function]}
+                      >
+                        <ScoreBar
+                          palette={Array []}
+                          paletteClassNames={
+                            Array [
+                              "low",
+                              "low-med",
+                              "med",
+                              "med-high",
+                              "high",
+                            ]
+                          }
+                          score={4}
+                          vertical={true}
+                        >
+                          <div
+                            className="score-bar vertical"
+                          >
+                            <div
+                              className="score-bar-bar med-high"
+                              style={
+                                Object {
+                                  "height": undefined,
+                                  "width": undefined,
+                                }
+                              }
+                            />
+                            <div
+                              className="score-bar-bar med-high"
+                              style={
+                                Object {
+                                  "height": undefined,
+                                  "width": undefined,
+                                }
+                              }
+                            />
+                            <div
+                              className="score-bar-bar med-high"
+                              style={
+                                Object {
+                                  "height": undefined,
+                                  "width": undefined,
+                                }
+                              }
+                            />
+                            <div
+                              className="score-bar-bar med-high"
+                              style={
+                                Object {
+                                  "height": undefined,
+                                  "width": undefined,
+                                }
+                              }
+                            />
+                            <div
+                              className="score-bar-bar empty"
+                              style={
+                                Object {
+                                  "height": undefined,
+                                  "width": undefined,
+                                }
+                              }
+                            />
+                          </div>
+                        </ScoreBar>
+                      </span>
+                    </Hovercard>
+                  </div>
+                  <div
+                    className="similar-score-column"
+                  >
+                    <Hovercard
+                      body={0}
+                    >
+                      <span
+                        className="hovercard-container"
+                        onMouseEnter={[Function]}
+                        onMouseLeave={[Function]}
+                      >
+                        <ScoreBar
+                          palette={Array []}
+                          paletteClassNames={
+                            Array [
+                              "low",
+                              "low-med",
+                              "med",
+                              "med-high",
+                              "high",
+                            ]
+                          }
+                          score={0}
+                          vertical={true}
+                        >
+                          <div
+                            className="score-bar vertical"
+                          >
+                            <div
+                              className="score-bar-bar empty"
+                              style={
+                                Object {
+                                  "height": undefined,
+                                  "width": undefined,
+                                }
+                              }
+                            />
+                            <div
+                              className="score-bar-bar empty"
+                              style={
+                                Object {
+                                  "height": undefined,
+                                  "width": undefined,
+                                }
+                              }
+                            />
+                            <div
+                              className="score-bar-bar empty"
+                              style={
+                                Object {
+                                  "height": undefined,
+                                  "width": undefined,
+                                }
+                              }
+                            />
+                            <div
+                              className="score-bar-bar empty"
+                              style={
+                                Object {
+                                  "height": undefined,
+                                  "width": undefined,
+                                }
+                              }
+                            />
+                            <div
+                              className="score-bar-bar empty"
+                              style={
+                                Object {
+                                  "height": undefined,
+                                  "width": undefined,
+                                }
+                              }
+                            />
+                          </div>
+                        </ScoreBar>
+                      </span>
+                    </Hovercard>
+                  </div>
+                </div>
+              </div>
+            </SpreadLayout>
+          </SimilarIssueItem>
           <div
             className="similar-items-footer"
           >
@@ -1032,7 +2136,7 @@ exports[`Issues Similar View renders with mocked data 2`] = `
               onClick={[Function]}
             >
               Show 
-              4
+              3
                issues below threshold
             </button>
           </div>
