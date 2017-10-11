@@ -52,6 +52,7 @@ exports[`CustomResolutionModal render() renders correctly 1`] = `
           escapeMarkup={false}
           formatResult={[Function]}
           formatSelection={[Function]}
+          hideErrorMessage={false}
           id="version"
           minimumInputLength={null}
           multiple={false}
