@@ -27,7 +27,7 @@ mmh3>=2.3.1,<2.4
 oauth2>=1.5.167
 percy>=0.4.5
 petname>=2.0,<2.1
-Pillow>=3.2.0,<3.3.0
+Pillow>=3.2.0,<=4.2.1
 progressbar2>=3.10,<3.11
 psycopg2>=2.6.0,<2.7.0
 pytest>=3.1.2,<3.2.0
