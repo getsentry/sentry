@@ -10,7 +10,7 @@ from __future__ import absolute_import
 
 import os
 import six
-import shutil
+import mmap
 import tempfile
 
 from hashlib import sha1
@@ -321,22 +321,35 @@ class ChunkedFileBlobIndexWrapper(object):
         self.seek(0)
 
     def _prefetch(self, prefetch_to=None, delete=True):
+        size = self.size
         f = tempfile.NamedTemporaryFile(prefix='._prefetch-',
                                         dir=prefetch_to,
                                         delete=delete)
-        fpath = f.name
+        if size == 0:
+            self._curfile = f
+            return
+
+        # Zero out the file
+        f.seek(size - 1)
+        f.write('\x00')
+        f.flush()
+
+        mem = mmap.mmap(f.fileno(), size)
 
         def fetch_file(offset, getfile):
-            with open(fpath, 'r+') as f:
-                f.seek(offset)
-                with getfile() as sf:
-                    shutil.copyfileobj(sf, f)
-                f.flush()
+            with getfile() as sf:
+                while 1:
+                    chunk = sf.read(65535)
+                    if not chunk:
+                        break
+                    mem[offset:offset + len(chunk)] = chunk
+                    offset += len(chunk)
 
         with ThreadPoolExecutor(max_workers=4) as exe:
             for idx in self._indexes:
                 exe.submit(fetch_file, idx.offset, idx.blob.getfile)
 
+        mem.flush()
         self._curfile = f
 
     def close(self):
