@@ -1,53 +1,29 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import AsyncView from './asyncView';
-import {ApiForm, TextField} from '../components/forms';
-import {t} from '../locale';
+import LazyLoad from '../components/lazyLoad';
+import getSettingsComponent from '../utils/getSettingsComponent';
 
-export default class TeamSettings extends AsyncView {
+class TeamSettings extends React.Component {
   static propTypes = {
-    ...AsyncView.propTypes,
-    team: PropTypes.object.isRequired,
-    onTeamChange: PropTypes.func.isRequired,
+    routes: PropTypes.array,
   };
 
-  getTitle() {
-    return 'Team Settings';
-  }
-
-  renderBody() {
-    let {orgId, teamId} = this.props.params;
-    let team = this.props.team;
-
+  render() {
     return (
-      <div className="box">
-        <div className="box-content with-padding">
-          <ApiForm
-            apiMethod="PUT"
-            apiEndpoint={`/teams/${orgId}/${teamId}/`}
-            initialData={{
-              name: team.name,
-              slug: team.slug,
-            }}
-            onSubmitSuccess={this.props.onTeamChange}
-            requireChanges={true}
-          >
-            <TextField
-              name="name"
-              label={t('Name')}
-              placeholder={t('e.g. API Team')}
-              required={true}
-            />
-            <TextField
-              name="slug"
-              label={t('Short name')}
-              placeholder={t('e.g. api-team')}
-              required={true}
-            />
-          </ApiForm>
-        </div>
-      </div>
+      <LazyLoad
+        component={() =>
+          getSettingsComponent(
+            () =>
+              import(/*webpackChunkName: "teamSettings"*/ './settings/team/teamSettings'),
+            () =>
+              import(/*webpackChunkName: "teamSettings.old"*/ './settings/team/teamSettings.old'),
+            this.props.routes
+          )}
+        {...this.props}
+      />
     );
   }
 }
+
+export default TeamSettings;

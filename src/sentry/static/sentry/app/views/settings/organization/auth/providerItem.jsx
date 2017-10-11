@@ -8,11 +8,11 @@ export default class ProviderItem extends React.PureComponent {
   static propTypes = {
     providerKey: PropTypes.string.isRequired,
     providerName: PropTypes.string.isRequired,
-    onConfigure: PropTypes.func.isRequired
+    onConfigure: PropTypes.func.isRequired,
   };
 
   static defaultProps = {
-    onConfigure: () => {}
+    onConfigure: () => {},
   };
 
   handleConfigure = e => {

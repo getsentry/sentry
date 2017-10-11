@@ -12,7 +12,7 @@ const ROLES = [
   ['billing', 'Billing'],
   ['owner', 'Owner'],
   ['admin', 'Admin'],
-  ['manager', 'Manager']
+  ['manager', 'Manager'],
 ];
 
 class OrganizationAuthProvider extends React.Component {
@@ -24,22 +24,22 @@ class OrganizationAuthProvider extends React.Component {
     provider: PropTypes.shape({
       auth_provider: PropTypes.shape({
         id: PropTypes.string.isRequired,
-        provider: PropTypes.string.isRequired
+        provider: PropTypes.string.isRequired,
       }),
       require_link: PropTypes.bool,
       default_role: PropTypes.string,
       login_url: PropTypes.string,
       provider_name: PropTypes.string,
       pending_links_count: PropTypes.number,
-      content: PropTypes.string
+      content: PropTypes.string,
     }),
-    disableBusy: PropTypes.bool
+    disableBusy: PropTypes.bool,
   };
 
   static defaultProps = {
     provider: {},
     onDisableProvider: () => {},
-    onSendReminders: () => {}
+    onSendReminders: () => {},
   };
 
   render() {
@@ -49,7 +49,7 @@ class OrganizationAuthProvider extends React.Component {
       sendRemindersBusy,
       disableBusy,
       onDisableProvider,
-      onSendReminders
+      onSendReminders,
     } = this.props;
 
     if (!provider) return null;
@@ -58,7 +58,7 @@ class OrganizationAuthProvider extends React.Component {
       content,
       login_url: loginUrl,
       provider_name: providerName,
-      pending_links_count: pendingLinksCount
+      pending_links_count: pendingLinksCount,
     } = provider;
 
     return (
@@ -81,7 +81,7 @@ class OrganizationAuthProvider extends React.Component {
               <a href={loginUrl}>{loginUrl}</a>
             </pre>
 
-            {!!pendingLinksCount &&
+            {!!pendingLinksCount && (
               <div>
                 <hr />
                 <h4>{t('Unlinked Members')}</h4>
@@ -91,7 +91,8 @@ class OrganizationAuthProvider extends React.Component {
                   className="pull-right"
                   busy={sendRemindersBusy}
                   onClick={onSendReminders}
-                  style={{marginLeft: 20}}>
+                  style={{marginLeft: 20}}
+                >
                   {t('Send Reminders')}
                 </Button>
 
@@ -103,7 +104,8 @@ class OrganizationAuthProvider extends React.Component {
                     {pendingLinksCount, providerName}
                   )}
                 </p>
-              </div>}
+              </div>
+            )}
 
             <div dangerouslySetInnerHTML={{__html: content}} />
 
@@ -114,7 +116,8 @@ class OrganizationAuthProvider extends React.Component {
               initialData={provider}
               apiEndpoint={`/organizations/${orgId}/auth-provider/`}
               onSubmit={() => {}}
-              submitLabel={t('Save Settings')}>
+              submitLabel={t('Save Settings')}
+            >
               <BooleanField
                 name="require_link"
                 label="Require SSO"
@@ -148,7 +151,8 @@ class OrganizationAuthProvider extends React.Component {
               <Button
                 priority="danger"
                 disabled={disableBusy}
-                onClick={() => onDisableProvider(providerName)}>
+                onClick={() => onDisableProvider(providerName)}
+              >
                 {tct('Disable [providerName] Auth', {providerName})}
               </Button>
             </fieldset>

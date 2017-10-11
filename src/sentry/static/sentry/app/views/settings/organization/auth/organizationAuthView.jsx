@@ -9,13 +9,13 @@ import SentryTypes from '../../../../proptypes';
 
 class OrganizationAuthView extends OrganizationSettingsView {
   static contextTypes = {
-    organization: SentryTypes.Organization
+    organization: SentryTypes.Organization,
   };
 
   getEndpoints() {
     return [
       ['providerList', `/organizations/${this.props.params.orgId}/auth-providers/`],
-      ['provider', `/organizations/${this.props.params.orgId}/auth-provider/`]
+      ['provider', `/organizations/${this.props.params.orgId}/auth-provider/`],
     ];
   }
 
@@ -34,7 +34,7 @@ class OrganizationAuthView extends OrganizationSettingsView {
         data: {},
         success: data => IndicatorStore.add(t('Sent reminders to members'), 'success'),
         error: err => IndicatorStore.add(t('Failed to send reminders'), 'error'),
-        complete: () => this.setState({sendRemindersBusy: false})
+        complete: () => this.setState({sendRemindersBusy: false}),
       }
     );
   };
@@ -42,7 +42,7 @@ class OrganizationAuthView extends OrganizationSettingsView {
   // Configure auth provider
   handleConfigure = provider => {
     this.setState({
-      busy: true
+      busy: true,
     });
 
     this.api.request(`/organizations/${this.props.params.orgId}/auth-provider/`, {
@@ -56,14 +56,14 @@ class OrganizationAuthView extends OrganizationSettingsView {
       },
       error: err => {
         this.setState({busy: false});
-      }
+      },
     });
   };
 
   // Disable auth provider
   handleDisableProvider = provider => {
     this.setState({
-      disableBusy: true
+      disableBusy: true,
     });
 
     this.api.request(`/organizations/${this.props.params.orgId}/auth-provider/`, {
@@ -72,12 +72,12 @@ class OrganizationAuthView extends OrganizationSettingsView {
       success: data => {
         this.setState({
           provider: null,
-          disableBusy: false
+          disableBusy: false,
         });
       },
       error: err => {
         this.setState({disableBusy: false});
-      }
+      },
     });
   };
 

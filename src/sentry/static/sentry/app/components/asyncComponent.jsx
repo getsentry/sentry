@@ -22,7 +22,10 @@ class AsyncComponent extends React.Component {
   }
 
   componentWillReceiveProps(nextProps) {
-    if (!isEqual(this.props.params, nextProps.params)) {
+    if (
+      !isEqual(this.props.params, nextProps.params) ||
+      this.props.location.search !== nextProps.location.search
+    ) {
       this.remountComponent();
     }
   }
@@ -54,6 +57,7 @@ class AsyncComponent extends React.Component {
   // TODO(dcramer): we'd like to support multiple initial api requests
   fetchData() {
     let endpoints = this.getEndpoints();
+
     if (!endpoints.length) {
       this.setState({
         loading: false,
@@ -61,12 +65,14 @@ class AsyncComponent extends React.Component {
       });
       return;
     }
+
     // TODO(dcramer): this should cancel any existing API requests
     this.setState({
       loading: true,
       error: false,
       remainingRequests: endpoints.length,
     });
+
     endpoints.forEach(([stateKey, endpoint, params]) => {
       this.api.request(endpoint, {
         method: 'GET',
@@ -77,6 +83,7 @@ class AsyncComponent extends React.Component {
               [stateKey]: data,
               remainingRequests: prevState.remainingRequests - 1,
               loading: prevState.remainingRequests > 1,
+              pageLinks: jqXHR.getResponseHeader('Link'),
             };
           });
         },
@@ -100,11 +107,15 @@ class AsyncComponent extends React.Component {
 
   // DEPRECATED: use getEndpoints()
   getEndpointParams() {
+    // eslint-disable-next-line no-console
+    console.warn('getEndpointParams is deprecated');
     return {};
   }
 
   // DEPRECATED: use getEndpoints()
   getEndpoint() {
+    // eslint-disable-next-line no-console
+    console.warn('getEndpoint is deprecated');
     return null;
   }
 
@@ -148,6 +159,7 @@ AsyncComponent.errorHandler = (component, fn) => {
       return fn(...args);
     } catch (err) {
       /*eslint no-console:0*/
+      console.error(err);
       setTimeout(() => {
         throw err;
       });

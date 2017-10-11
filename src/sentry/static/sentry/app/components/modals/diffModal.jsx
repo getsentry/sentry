@@ -14,11 +14,16 @@ const DiffModal = React.createClass({
 
   componentDidMount() {
     // Listen for route changes so we can dismiss modal
-    this.unlisten = browserHistory.listen(() =>
+    this.unlisten = browserHistory.listen(() => {
+      // Ignore if diffModal is not visible
+      if (!this.state.diffModal) {
+        return;
+      }
+
       this.setState({
         diffModal: false,
-      })
-    );
+      });
+    });
   },
 
   componentWillUnmount() {

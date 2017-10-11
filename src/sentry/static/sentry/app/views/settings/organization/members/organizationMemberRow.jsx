@@ -1,5 +1,7 @@
+import {Flex, Box} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
+import styled from 'react-emotion';
 
 import {t, tct} from '../../../../locale';
 import Avatar from '../../../../components/avatar';
@@ -8,15 +10,33 @@ import Confirm from '../../../../components/confirm';
 import Link from '../../../../components/link';
 import LoadingIndicator from '../../../../components/loadingIndicator';
 import SentryTypes from '../../../../proptypes';
+import recreateRoute from '../../../../utils/recreateRoute';
+
+const UserName = styled(Link)`
+  font-size: 16px;
+`;
+
+const Email = styled.div`
+  color: ${p => p.theme.gray3};
+  font-size: 14px;
+`;
+
+const Row = styled(Flex)`
+  border-bottom: 1px solid ${p => p.theme.borderLight};
+
+  &:last-child {
+    border: 0;
+  }
+`;
 
 export default class OrganizationMemberRow extends React.PureComponent {
   static propTypes = {
+    routes: PropTypes.array,
     // XXX: Spreading this does not work :(
     member: SentryTypes.Member,
     onRemove: PropTypes.func.isRequired,
     onLeave: PropTypes.func.isRequired,
     onSendInvite: PropTypes.func.isRequired,
-    orgId: PropTypes.string.isRequired,
     orgName: PropTypes.string.isRequired,
     memberCanLeave: PropTypes.bool,
     requireLink: PropTypes.bool,
@@ -34,12 +54,16 @@ export default class OrganizationMemberRow extends React.PureComponent {
   handleRemove = e => {
     let {onRemove} = this.props;
 
+    if (typeof onRemove !== 'function') return;
+
     this.setState({busy: true});
     onRemove(this.props.member, e);
   };
 
   handleLeave = e => {
     let {onLeave} = this.props;
+
+    if (typeof onLeave !== 'function') return;
 
     this.setState({busy: true});
     onLeave(this.props.member, e);
@@ -48,13 +72,16 @@ export default class OrganizationMemberRow extends React.PureComponent {
   handleSendInvite = e => {
     let {onSendInvite} = this.props;
 
+    if (typeof onSendInvite !== 'function') return;
+
     onSendInvite(this.props.member, e);
   };
 
   render() {
     let {
+      params,
+      routes,
       member,
-      orgId,
       orgName,
       status,
       requireLink,
@@ -75,30 +102,24 @@ export default class OrganizationMemberRow extends React.PureComponent {
     // member has a `user` property if they are registered with sentry
     // i.e. has accepted an invite to join org
     let has2fa = user && user.has2fa;
-    let detailsUrl = `/organizations/${orgId}/members/${id}/`;
+    let detailsUrl = recreateRoute(id, {routes, params});
     let isInviteSuccessful = status === 'success';
     let isInviting = status === 'loading';
 
     return (
-      <tr key={id}>
-        <td className="table-user-info">
-          <Avatar
-            user={
-              user
-                ? user
-                : {
-                    email,
-                  }
-            }
-          />
-          <h5>
-            <Link to={detailsUrl}>{name}</Link>
-          </h5>
-          {email}
-          <br />
-        </td>
+      <Row align="center" py={1}>
+        <Box pl={2}>
+          <Avatar style={{width: 32, height: 32}} user={user ? user : {email}} />
+        </Box>
 
-        <td className="status">
+        <Box pl={1} pr={2} flex="1">
+          <h5 style={{margin: '0 0 3px'}}>
+            <UserName to={detailsUrl}>{name}</UserName>
+          </h5>
+          <Email>{email}</Email>
+        </Box>
+
+        <Box px={2} w={80} style={{textAlign: 'center'}}>
           {needsSso || pending ? (
             <div>
               <div>
@@ -138,20 +159,17 @@ export default class OrganizationMemberRow extends React.PureComponent {
               className="icon-exclamation tip"
               title={t('Two-factor auth not enabled')}
             />
-          ) : null}
-        </td>
+          ) : (
+            <span style={{color: 'green'}} className="icon-check" />
+          )}
+        </Box>
 
-        <td className="squash">{roleName}</td>
+        <Box px={2} w={100}>
+          {roleName}
+        </Box>
+
         {showRemoveButton || showLeaveButton ? (
-          <td className="align-right squash">
-            <Button
-              style={{marginRight: 4}}
-              size="small"
-              to={`/organizations/${orgId}/members/${id}/`}
-            >
-              {t('Details')}
-            </Button>
-
+          <Box px={2} w={120}>
             {showRemoveButton &&
               canRemoveMember && (
                 <Confirm
@@ -218,9 +236,9 @@ export default class OrganizationMemberRow extends React.PureComponent {
                   <span className="icon icon-exit" /> {t('Leave')}
                 </Button>
               )}
-          </td>
+          </Box>
         ) : null}
-      </tr>
+      </Row>
     );
   }
 }

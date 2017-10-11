@@ -78,6 +78,7 @@ exports[`OrganizationAuthProvider renders 1`] = `
         <BooleanField
           disabled={false}
           help="Require members to use a valid linked SSO account to access this organization"
+          hideErrorMessage={false}
           label="Require SSO"
           name="require_link"
           required={false}
@@ -111,6 +112,7 @@ exports[`OrganizationAuthProvider renders 1`] = `
           }
           disabled={false}
           escapeMarkup={true}
+          hideErrorMessage={false}
           label="Default Role"
           multiple={false}
           name="default_role"
@@ -292,6 +294,7 @@ exports[`OrganizationAuthProvider renders with Unlinked members  1`] = `
         <BooleanField
           disabled={false}
           help="Require members to use a valid linked SSO account to access this organization"
+          hideErrorMessage={false}
           label="Require SSO"
           name="require_link"
           required={false}
@@ -325,6 +328,7 @@ exports[`OrganizationAuthProvider renders with Unlinked members  1`] = `
           }
           disabled={false}
           escapeMarkup={true}
+          hideErrorMessage={false}
           label="Default Role"
           multiple={false}
           name="default_role"
@@ -455,6 +459,7 @@ Array [
         <BooleanField
             disabled={false}
             help="Require members to use a valid linked SSO account to access this organization"
+            hideErrorMessage={false}
             label="Require SSO"
             name="require_link"
             required={false}
@@ -488,6 +493,7 @@ Array [
             }
             disabled={false}
             escapeMarkup={true}
+            hideErrorMessage={false}
             label="Default Role"
             multiple={false}
             name="default_role"

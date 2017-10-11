@@ -11,7 +11,6 @@ import AdminProjects from './views/adminProjects';
 import AdminQueue from './views/adminQueue';
 import AdminSettings from './views/adminSettings';
 import AdminUsers from './views/adminUsers';
-import AllTeamsList from './views/organizationTeams/allTeamsList';
 import ApiApplicationDetails from './views/apiApplicationDetails';
 import ApiApplications from './views/apiApplications';
 import ApiLayout from './views/apiLayout';
@@ -35,18 +34,23 @@ import MyIssuesViewed from './views/myIssues/viewed';
 import NewProject from './views/projectInstall/newProject';
 import OnboardingConfigure from './views/onboarding/configure/index';
 import OnboardingWizard from './views/onboarding/index';
-import OrganizationAuditLog from './views/organizationAuditLog';
-import OrganizationContext from './views/organizationContext';
-import OrganizationApiKeysView from './views/settings/organization/apiKeys/organizationApiKeysView';
 import OrganizationApiKeyDetailsView from './views/settings/organization/apiKeys/organizationApiKeyDetailsView';
+import OrganizationApiKeysView from './views/settings/organization/apiKeys/organizationApiKeysView';
+import OrganizationAuditLogView from './views/settings/organization/auditLog/auditLogView';
+import OrganizationAuthView from './views/settings/organization/auth/organizationAuthView';
+import OrganizationContext from './views/organizationContext';
 import OrganizationCreate from './views/organizationCreate';
 import OrganizationDashboard from './views/organizationDashboard';
 import OrganizationDetails from './views/organizationDetails';
 import OrganizationHomeContainer from './components/organizations/homeContainer';
 import OrganizationIntegrations from './views/organizationIntegrations';
+import OrganizationMembersView from './views/settings/organization/members/organizationMembersView';
+import OrganizationPicker from './views/settings/components/organizationPicker';
+import OrganizationProjectsView from './views/settings/organization/projects/organizationProjectsView';
 import OrganizationRateLimits from './views/organizationRateLimits';
 import OrganizationRepositories from './views/organizationRepositories';
-import OrganizationSettings from './views/organizationSettings';
+import OrganizationGeneralSettingsView from './views/settings/organization/general/organizationGeneralSettingsView';
+import OrganizationSettingsLayout from './views/settings/organization/organizationSettingsLayout';
 import OrganizationStats from './views/organizationStats';
 import OrganizationTeams from './views/organizationTeams';
 import ProjectAlertRules from './views/projectAlertRules';
@@ -66,11 +70,13 @@ import ProjectInstallOverview from './views/projectInstall/overview';
 import ProjectInstallPlatform from './views/projectInstall/platform';
 import ProjectKeyDetails from './views/projectKeyDetails';
 import ProjectKeys from './views/projectKeys';
+import ProjectPicker from './views/settings/components/projectPicker';
 import ProjectProcessingIssues from './views/projectProcessingIssues';
 import ProjectReleaseTracking from './views/projectReleaseTracking';
 import ProjectReleases from './views/projectReleases';
 import ProjectSavedSearches from './views/projectSavedSearches';
 import ProjectSettings from './views/projectSettings';
+import ProjectSettingsLayout from './views/settings/project/projectSettingsLayout';
 import ProjectUserReportSettings from './views/projectUserReportSettings';
 import ProjectUserReports from './views/projectUserReports';
 import ReleaseAllEvents from './views/releaseAllEvents';
@@ -81,6 +87,8 @@ import ReleaseNewEvents from './views/releaseNewEvents';
 import ReleaseOverview from './views/releases/releaseOverview';
 import RouteNotFound from './views/routeNotFound';
 import SetCallsignsAction from './views/requiredAdminActions/setCallsigns';
+import SettingsIndex from './views/settings/settingsIndex';
+import SettingsWrapper from './views/settings/settingsWrapper';
 import SharedGroupDetails from './views/sharedGroupDetails';
 import Stream from './views/stream';
 import InviteMember from './views/inviteMember/inviteMember';
@@ -98,53 +106,111 @@ function appendTrailingSlash(nextState, replaceState) {
 }
 
 const orgSettingsRoutes = [
+  <IndexRedirect key="index-org-settings" to="settings/" />,
+
+  <Route
+    key="projects"
+    path="projects/"
+    name="Projects"
+    component={errorHandler(OrganizationProjectsView)}
+  />,
+
+  <Route
+    key="settings"
+    path="settings/"
+    name="General"
+    component={errorHandler(OrganizationGeneralSettingsView)}
+  />,
+
   <Route
     key="api-keys"
     path="api-keys/"
+    name="API Key"
     component={errorHandler(OrganizationApiKeysView)}
   />,
+
   <Route
     key="api-keys-detail"
     path="api-keys/:apiKey/"
     component={errorHandler(OrganizationApiKeyDetailsView)}
   />,
+
   <Route
     key="audit-log"
     path="audit-log/"
-    component={errorHandler(OrganizationAuditLog)}
+    name="Audit Log"
+    component={errorHandler(OrganizationAuditLogView)}
   />,
+
+  <Route
+    key="auth"
+    path="auth/"
+    name="Auth Providers"
+    component={errorHandler(OrganizationAuthView)}
+  />,
+
   <Route
     key="integrations"
     path="integrations/"
+    name="Integrations"
     component={errorHandler(OrganizationIntegrations)}
   />,
+
+  <Route key="members" path="members/" name="Members">
+    <IndexRoute component={errorHandler(OrganizationMembersView)} />
+    <Route path="new/" component={errorHandler(InviteMember)} />,
+  </Route>,
+
   <Route
     key="rate-limits"
     path="rate-limits/"
+    name="Rate Limits"
     component={errorHandler(OrganizationRateLimits)}
   />,
-  <Route key="members/new/" path="members/new/" component={errorHandler(InviteMember)} />,
-  <Route key="repos" path="repos/" component={errorHandler(OrganizationRepositories)} />,
+
+  <Route
+    key="repos"
+    path="repos/"
+    name="Repositories"
+    component={errorHandler(OrganizationRepositories)}
+  />,
+
   <Route
     key="settings"
     path="settings/"
-    component={errorHandler(OrganizationSettings)}
+    component={errorHandler(OrganizationGeneralSettingsView)}
   />,
 
-  <Route key="team-details" path="teams/:teamId/" component={errorHandler(TeamDetails)}>
+  <Route
+    key="team-details"
+    name="Teams"
+    path="teams/:teamId/"
+    component={errorHandler(TeamDetails)}
+  >
     <IndexRedirect to="settings/" />
-    <Route path="settings/" component={errorHandler(TeamSettings)} />
-    <Route path="members/" component={errorHandler(TeamMembers)} />
+    <Route path="settings/" name="Settings" component={errorHandler(TeamSettings)} />
+    <Route path="members/" name="Members" component={errorHandler(TeamMembers)} />
   </Route>,
 
-  <Route key="teams" path="teams/" component={errorHandler(OrganizationTeams)} />,
+  <Route
+    key="teams"
+    path="teams/"
+    name="Teams"
+    component={errorHandler(OrganizationTeams)}
+  />,
 
-  <Route key="all-teams" path="all-teams/" component={errorHandler(OrganizationTeams)}>
-    <IndexRoute component={errorHandler(AllTeamsList)} />
-  </Route>,
+  <Route
+    key="all-teams"
+    path="all-teams/"
+    name="All Teams"
+    allTeams
+    component={errorHandler(OrganizationTeams)}
+  />,
 ];
 
 const projectSettingsRoutes = [
+  <IndexRedirect key="projects-index" to="alerts/" />,
+
   <Route
     key="alerts/"
     name="Alerts"
@@ -258,6 +324,39 @@ function routes() {
           path="applications/:appId/"
           component={errorHandler(ApiApplicationDetails)}
         />
+      </Route>
+
+      <Route
+        newnew
+        path="/settings/"
+        name="Settings"
+        component={errorHandler(SettingsWrapper)}
+      >
+        <IndexRoute component={errorHandler(SettingsIndex)} />
+        <Route path="organization/">
+          <IndexRoute component={errorHandler(OrganizationPicker)} />
+
+          <Route
+            name="Organization"
+            path=":orgId/"
+            component={errorHandler(OrganizationContext)}
+          >
+            <Route component={errorHandler(OrganizationSettingsLayout)}>
+              {orgSettingsRoutes}
+            </Route>
+
+            <Route path="project/">
+              <IndexRoute component={errorHandler(ProjectPicker)} />
+              <Route
+                name="Project"
+                path=":projectId/"
+                component={errorHandler(ProjectSettingsLayout)}
+              >
+                {projectSettingsRoutes}
+              </Route>
+            </Route>
+          </Route>
+        </Route>
       </Route>
 
       <Route path="/api/new-token/" component={errorHandler(ApiNewToken)} />

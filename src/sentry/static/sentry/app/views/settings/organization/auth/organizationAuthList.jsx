@@ -8,12 +8,12 @@ import ProviderItem from './providerItem';
 
 class OrganizationAuthList extends React.Component {
   static contextTypes = {
-    organization: SentryTypes.Organization
+    organization: SentryTypes.Organization,
   };
 
   static propTypes = {
     onConfigure: PropTypes.func,
-    providerList: PropTypes.arrayOf(PropTypes.arrayOf(PropTypes.string))
+    providerList: PropTypes.arrayOf(PropTypes.arrayOf(PropTypes.string)),
   };
 
   render() {
@@ -25,20 +25,21 @@ class OrganizationAuthList extends React.Component {
         <h2>{t('Authentication')}</h2>
 
         <div className="box">
-          <div className="box-header"><h3>{t('Choose a provider')}</h3></div>
+          <div className="box-header">
+            <h3>{t('Choose a provider')}</h3>
+          </div>
           <div className="box-content with-padding">
-
             <p>
               {tct(
                 `Get started with Single Sign-on for your organization by selecting a
               provider. For more information on SSO please see our [link:documentation]`,
                 {
-                  link: <ExternalLink href="https://docs.sentry.io/learn/sso/" />
+                  link: <ExternalLink href="https://docs.sentry.io/learn/sso/" />,
                 }
               )}.
             </p>
 
-            {hasProviderList &&
+            {hasProviderList && (
               <ul className="simple-list list-unstyled">
                 {providerList.map(([providerKey, providerName]) => (
                   <ProviderItem
@@ -48,12 +49,14 @@ class OrganizationAuthList extends React.Component {
                     onConfigure={onConfigure}
                   />
                 ))}
-              </ul>}
+              </ul>
+            )}
 
-            {!hasProviderList &&
+            {!hasProviderList && (
               <p style={{padding: 50, textAlign: 'center'}}>
                 {t('No authentication providers are available.')}
-              </p>}
+              </p>
+            )}
           </div>
         </div>
       </div>

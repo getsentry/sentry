@@ -4,6 +4,7 @@ import ProjectStore from './projectStore';
 
 const TeamStore = Reflux.createStore({
   init() {
+    this.initialized = false;
     this.reset();
 
     this.listenTo(TeamActions.updateSuccess, this.onUpdateSuccess);
@@ -21,6 +22,7 @@ const TeamStore = Reflux.createStore({
         this.projectMap[project.id] = item.id;
       });
     });
+    this.initialized = true;
     this.items = items;
     this.trigger(new Set(items.map(item => item.id)));
   },

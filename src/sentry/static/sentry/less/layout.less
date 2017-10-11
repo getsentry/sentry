@@ -18,6 +18,13 @@ body {
   background-image: linear-gradient(@header-bg-color, @header-bg-color);
   background-size: @sidebar-width;
   background-repeat: repeat-y;
+
+  &.settings {
+    overflow-y: scroll;
+    background-image: none;
+    background-color: #fcfcfc;
+    padding: 0 0 40px;
+  }
 }
 
 /**

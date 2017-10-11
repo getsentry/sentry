@@ -35,7 +35,6 @@
 
 // Priority concerns
 // - font color, background, and border
-
 .button-default {
   color: @90;
   background: #fff;
@@ -45,6 +44,18 @@
   &:active {
     color: @100;
     border-color: @trim-darkest;
+  }
+}
+
+.button-link {
+  color: @blue;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  font-weight: 400;
+
+  .button-label {
+    padding: 0;
   }
 }
 

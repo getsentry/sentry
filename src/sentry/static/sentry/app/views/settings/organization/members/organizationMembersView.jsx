@@ -1,21 +1,33 @@
+import {Flex, Box} from 'grid-emotion';
+import {browserHistory} from 'react-router';
+import PropTypes from 'prop-types';
 import React from 'react';
 
 import {t, tct} from '../../../../locale';
-import Button from '../../../../components/buttons/button';
 import ConfigStore from '../../../../stores/configStore';
 import IndicatorStore from '../../../../stores/indicatorStore';
-import SentryTypes from '../../../../proptypes';
-import SpreadLayout from '../../../../components/spreadLayout';
-import OrganizationSettingsView from '../../../organizationSettingsView';
-import OrganizationMemberRow from './organizationMemberRow';
+import Link from '../../../../components/link';
 import OrganizationAccessRequests from './organizationAccessRequests';
+import OrganizationMemberRow from './organizationMemberRow';
+import OrganizationSettingsView from '../../../organizationSettingsView';
+import Panel from '../../../../components/forms/next/styled/panel';
+import PanelBody from '../../../../components/forms/next/styled/panelBody';
+import PanelHeader from '../../../../components/forms/next/styled/panelHeader';
+import SentryTypes from '../../../../proptypes';
+import SettingsPageHeader from '../../components/settingsPageHeader';
+import recreateRoute from '../../../../utils/recreateRoute';
 
 class OrganizationMembersView extends OrganizationSettingsView {
+  static propTypes = {
+    routes: PropTypes.array,
+  };
+
   static contextTypes = {
     organization: SentryTypes.Organization,
   };
 
-  // XXX(billy): careful, setState causes re-render of the entire class hierarchy
+  // XXX(billy): setState causes re-render of the entire view...
+  // we should not do this
   getDefaultState() {
     let state = super.getDefaultState();
     return {
@@ -49,7 +61,7 @@ class OrganizationMembersView extends OrganizationSettingsView {
         data: {},
         success: data => {
           this.setState(state => ({
-            members: state.members.filter(member => member.id !== id),
+            members: state.members.filter(({id: existingId}) => existingId !== id),
           }));
           resolve(data);
         },
@@ -73,7 +85,7 @@ class OrganizationMembersView extends OrganizationSettingsView {
         success: data => {
           this.setState(state => ({
             requestList: state.requestList.filter(
-              requestMember => requestMember.id !== id
+              ({id: existingId}) => existingId !== id
             ),
           }));
           resolve(data);
@@ -158,8 +170,27 @@ class OrganizationMembersView extends OrganizationSettingsView {
     });
   };
 
+  handleAddMember = () => {
+    this.setState({
+      busy: true,
+    });
+    this.api.request(`/organizations/${this.props.params.orgId}/members/`, {
+      method: 'POST',
+      data: {},
+      success: data => {
+        this.setState({busy: false});
+        browserHistory.push(
+          `/organizations/${this.props.params.orgId}/members/${data.id}`
+        );
+      },
+      error: () => {
+        this.setState({busy: false});
+      },
+    });
+  };
+
   renderBody() {
-    let {params} = this.props;
+    let {params, routes} = this.props;
     let {members, requestList} = this.state;
     let {organization} = this.context;
     let {orgId} = params || {};
@@ -171,27 +202,28 @@ class OrganizationMembersView extends OrganizationSettingsView {
     let isOnlyOwner = !members.find(
       ({role, email}) => role === 'owner' && email !== currentUser.email
     );
+    // Only admins/owners can remove members
     let requireLink = !!this.state.authProvider && this.state.authProvider.require_link;
+
+    let action = (
+      <Link
+        size="small"
+        className="pull-right"
+        disabled={!canAddMembers}
+        title={
+          !canAddMembers
+            ? t('You do not have enough permission to add new members')
+            : undefined
+        }
+        to={recreateRoute('new', {routes, params})}
+      >
+        <span className="icon-plus" /> {t('Invite Member')}
+      </Link>
+    );
 
     return (
       <div>
-        <SpreadLayout className="page-header">
-          <h3>Members</h3>
-          <Button
-            priority="primary"
-            size="small"
-            className="pull-right"
-            disabled={!canAddMembers}
-            title={
-              !canAddMembers
-                ? t('You do not have enough permission to add new members')
-                : undefined
-            }
-            to={`/organization/${orgId}/members/invite/`}
-          >
-            <span className="icon-plus" /> {t('Invite Member')}
-          </Button>
-        </SpreadLayout>
+        <SettingsPageHeader label="Members" action={action} />
 
         <OrganizationAccessRequests
           onApprove={this.handleApprove}
@@ -200,47 +232,48 @@ class OrganizationMembersView extends OrganizationSettingsView {
           requestList={requestList}
         />
 
-        <div className="panel panel-default horizontal-scroll">
-          <table className="table member-list">
-            <colgroup>
-              <col width="45%" />
-              <col width="15%" />
-              <col width="15%" />
-              <col width="25%" />
-            </colgroup>
+        <Panel>
+          <PanelHeader disablePadding={true}>
+            <Flex align="center">
+              <Box px={2} flex="1">
+                {t('Member')}
+              </Box>
+              <Box px={2} w={80}>
+                {t('Status')}
+              </Box>
+              <Box px={2} w={100}>
+                {t('Role')}
+              </Box>
+              <Box px={2} w={120}>
+                {t('Actions')}
+              </Box>
+            </Flex>
+          </PanelHeader>
 
-            <thead>
-              <tr>
-                <th>{t('Member')}</th>
-                <th>&nbsp;</th>
-                <th className="squash">{t('Role')}</th>
-                <th className="squash">&nbsp;</th>
-              </tr>
-            </thead>
-
-            <tbody>
-              {members.map(member => {
-                return (
-                  <OrganizationMemberRow
-                    key={member.id}
-                    member={member}
-                    status={this.state.invited.get(member.id)}
-                    orgId={orgId}
-                    orgName={orgName}
-                    memberCanLeave={!isOnlyOwner}
-                    currentUser={currentUser}
-                    canRemoveMembers={canRemove}
-                    canAddMembers={canAddMembers}
-                    requireLink={requireLink}
-                    onSendInvite={this.handleSendInvite}
-                    onRemove={this.handleRemove}
-                    onLeave={this.handleLeave}
-                  />
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+          <PanelBody>
+            {members.map(member => {
+              return (
+                <OrganizationMemberRow
+                  routes={routes}
+                  params={params}
+                  key={member.id}
+                  member={member}
+                  status={this.state.invited.get(member.id)}
+                  orgId={orgId}
+                  orgName={orgName}
+                  memberCanLeave={!isOnlyOwner}
+                  currentUser={currentUser}
+                  canRemoveMembers={canRemove}
+                  canAddMembers={canAddMembers}
+                  requireLink={requireLink}
+                  onSendInvite={this.handleSendInvite}
+                  onRemove={this.handleRemove}
+                  onLeave={this.handleLeave}
+                />
+              );
+            })}
+          </PanelBody>
+        </Panel>
       </div>
     );
   }

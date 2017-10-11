@@ -3,6 +3,7 @@ import React from 'react';
 
 const Switch = React.createClass({
   propTypes: {
+    id: PropTypes.string,
     size: PropTypes.string,
     isActive: PropTypes.bool,
     isLoading: PropTypes.bool,
@@ -12,29 +13,31 @@ const Switch = React.createClass({
 
   render() {
     let switchClasses = 'switch';
+    let {size, isActive, isLoading, isDisabled, toggle, id} = this.props;
 
-    if (this.props.size) {
-      switchClasses += ' switch-' + this.props.size;
+    if (size) {
+      switchClasses += ' switch-' + size;
     }
 
-    if (this.props.isActive) {
+    if (isActive) {
       switchClasses += ' switch-on';
     }
 
-    if (this.props.isLoading) {
+    if (isLoading) {
       switchClasses += ' switch-changing';
     }
 
-    if (this.props.isDisabled) {
+    if (isDisabled) {
       switchClasses += ' switch-disabled';
     }
 
     return (
       <div
+        id={id}
         className={switchClasses}
-        onClick={this.props.isDisabled ? null : this.props.toggle}
+        onClick={isDisabled ? null : toggle}
         role="checkbox"
-        aria-checked={this.props.isActive}
+        aria-checked={isActive}
       >
         <span className="switch-toggle" />
       </div>

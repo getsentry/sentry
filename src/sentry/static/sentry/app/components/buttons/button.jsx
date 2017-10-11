@@ -9,7 +9,7 @@ import '../../../less/components/button.less';
 
 const Button = React.createClass({
   propTypes: {
-    priority: PropTypes.oneOf(['primary', 'danger']),
+    priority: PropTypes.oneOf(['primary', 'danger', 'link']),
     size: PropTypes.oneOf(['small', 'xsmall', 'large']),
     disabled: PropTypes.bool,
     busy: PropTypes.bool,
@@ -69,13 +69,15 @@ const Button = React.createClass({
 
     let isPrimary = priority === 'primary' && !disabled;
     let isDanger = priority === 'danger' && !disabled;
+    let isLink = priority === 'link' && !disabled;
 
     let cx = classNames(className, 'button', {
       tip: !!title,
       'button-no-border': borderless,
       'button-primary': isPrimary,
       'button-danger': isDanger,
-      'button-default': !isPrimary && !isDanger,
+      'button-link': isLink && !isPrimary && !isDanger,
+      'button-default': !isLink && !isPrimary && !isDanger,
       'button-sm': size === 'small',
       'button-xs': size === 'xsmall',
       'button-lg': size === 'large',

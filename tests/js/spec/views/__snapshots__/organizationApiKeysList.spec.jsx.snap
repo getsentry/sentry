@@ -1,0 +1,580 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`OrganizationApiKeysList renders 1`] = `
+.glamor-3 {
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: -ms-flexbox;
+  display: flex;
+  font-size: 14px;
+  box-shadow: inset 0 -1px 0;
+  margin-bottom: 30px;
+}
+
+.glamor-1 {
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-flex: 1;
+  -ms-flex: 1;
+  flex: 1;
+}
+
+.glamor-0 {
+  display: inline-block;
+  font-weight: bold;
+  padding-bottom: 14px;
+  border-bottom: 3px solid;
+}
+
+.glamor-2 {
+  margin-right: 4px;
+}
+
+.glamor-4 {
+  line-height: 1.8;
+}
+
+.glamor-28 {
+  background: #fff;
+  border: 1px solid;
+  margin-bottom: 30px;
+}
+
+.glamor-16 {
+  border-bottom: 1px solid;
+  border-radius: 0 0;
+  background: padding:15px 0;
+}
+
+.glamor-15 {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  margin-bottom: 20px;
+  font-size: 13px;
+  margin: 0;
+}
+
+.glamor-13 {
+  box-sizing: border-box;
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-align-items: center;
+  -webkit-box-align: center;
+  -ms-flex-align: center;
+  align-items: center;
+}
+
+.glamor-9 {
+  box-sizing: border-box;
+  -webkit-flex: 1;
+  -ms-flex: 1;
+  flex: 1;
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-align-items: center;
+  -webkit-box-align: center;
+  -ms-flex-align: center;
+  align-items: center;
+}
+
+.glamor-5 {
+  box-sizing: border-box;
+  padding-left: 16px;
+  padding-right: 16px;
+  -webkit-flex: 1;
+  -ms-flex: 1;
+  flex: 1;
+}
+
+.glamor-7 {
+  box-sizing: border-box;
+  padding-left: 16px;
+  padding-right: 16px;
+  -webkit-flex: 2;
+  -ms-flex: 2;
+  flex: 2;
+}
+
+.glamor-11 {
+  box-sizing: border-box;
+  width: 100px;
+  padding-left: 16px;
+  padding-right: 16px;
+}
+
+.glamor-25 {
+  box-sizing: border-box;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-align-items: center;
+  -webkit-box-align: center;
+  -ms-flex-align: center;
+  align-items: center;
+  border-bottom: 1px solid;
+}
+
+.glamor-25:last-child {
+  border: 0;
+}
+
+<OrganizationApiKeysList
+  keys={
+    Array [
+      Object {
+        "allowed_origins": "",
+        "id": 1,
+        "key": "aa624bcc12024702a202cd90be5feda0",
+        "label": "Default",
+        "scope_list": Array [
+          "project:read",
+          "event:read",
+          "team:read",
+          "member:read",
+        ],
+        "status": 0,
+      },
+    ]
+  }
+  params={
+    Object {
+      "orgId": "org-slug",
+    }
+  }
+  routes={
+    Array [
+      Object {
+        "path": "/",
+      },
+      Object {
+        "path": "/:orgId/",
+      },
+      Object {
+        "path": "/organizations/:orgId/",
+      },
+      Object {
+        "name": "API Key",
+        "path": "api-keys/",
+      },
+    ]
+  }
+>
+  <div>
+    <SettingsPageHeading
+      action={
+        <Button
+          busy={undefined}
+          disabled={false}
+          onClick={undefined}
+          priority="link"
+        >
+          <Styled(span)
+            className="icon-plus"
+          />
+           
+          New API Key
+        </Button>
+      }
+      label="API Keys"
+    >
+      <Styled(div)>
+        <div
+          className="glamor-3"
+        >
+          <Styled(div)>
+            <div
+              className="glamor-1"
+            >
+              <Styled(div)>
+                <div
+                  className="glamor-0"
+                >
+                  API Keys
+                </div>
+              </Styled(div)>
+            </div>
+          </Styled(div)>
+          <div>
+            <Button
+              disabled={false}
+              priority="link"
+            >
+              <button
+                className="button button-link"
+                disabled={false}
+                onClick={[Function]}
+                role="button"
+              >
+                <FlowLayout
+                  truncate={false}
+                >
+                  <div
+                    className="flow-layout"
+                  >
+                    <span
+                      className="button-label"
+                    >
+                      <Styled(span)
+                        className="icon-plus"
+                      >
+                        <span
+                          className="icon-plus glamor-2"
+                        />
+                      </Styled(span)>
+                       
+                      New API Key
+                    </span>
+                  </div>
+                </FlowLayout>
+              </button>
+            </Button>
+          </div>
+        </div>
+      </Styled(div)>
+    </SettingsPageHeading>
+    <Styled(p)>
+      <p
+        className="glamor-4"
+      >
+        <span>
+          <span>
+            API keys grant access to the 
+          </span>
+          <ExternalLink
+            href="https://docs.sentry.io/hosted/api/"
+            rel="noreferrer noopener"
+            target="_blank"
+          >
+            <a
+              href="https://docs.sentry.io/hosted/api/"
+              rel="noreferrer noopener"
+              target="_blank"
+            >
+              <span>
+                developer web API
+              </span>
+            </a>
+          </ExternalLink>
+          <span>
+            .
+                      If you're looking to configure a Sentry client, you'll need a
+                      client key which is available in your project settings.
+          </span>
+        </span>
+      </p>
+    </Styled(p)>
+    <div
+      className="alert alert-block alert-info"
+    >
+      <span>
+        <span>
+          psst. Until Sentry supports OAuth, you might want to switch to using 
+        </span>
+        <Link
+          to="/api/"
+        >
+          <a
+            href="/api/"
+          >
+            <span>
+              Auth Tokens
+            </span>
+          </a>
+        </Link>
+        <span>
+           instead.
+        </span>
+      </span>
+    </div>
+    <Styled(div)>
+      <div
+        className="glamor-28"
+      >
+        <PanelHeader
+          disablePadding={true}
+        >
+          <Styled(div)
+            disablePadding={true}
+          >
+            <div
+              className="glamor-16"
+            >
+              <Styled(div)>
+                <div
+                  className="glamor-15"
+                >
+                  <Flex
+                    align="center"
+                  >
+                    <Base
+                      align="center"
+                      className="glamor-13"
+                    >
+                      <div
+                        className="glamor-13"
+                        is={null}
+                      >
+                        <Flex
+                          align="center"
+                          flex="1"
+                        >
+                          <Base
+                            align="center"
+                            className="glamor-9"
+                            flex="1"
+                          >
+                            <div
+                              className="glamor-9"
+                              is={null}
+                            >
+                              <Box
+                                flex="1"
+                                px={2}
+                              >
+                                <Base
+                                  className="glamor-5"
+                                  flex="1"
+                                  px={2}
+                                >
+                                  <div
+                                    className="glamor-5"
+                                    is={null}
+                                  >
+                                    Name
+                                  </div>
+                                </Base>
+                              </Box>
+                              <Box
+                                flex="2"
+                                px={2}
+                              >
+                                <Base
+                                  className="glamor-7"
+                                  flex="2"
+                                  px={2}
+                                >
+                                  <div
+                                    className="glamor-7"
+                                    is={null}
+                                  >
+                                    Key
+                                  </div>
+                                </Base>
+                              </Box>
+                            </div>
+                          </Base>
+                        </Flex>
+                        <Box
+                          px={2}
+                          w={100}
+                        >
+                          <Base
+                            className="glamor-11"
+                            px={2}
+                            w={100}
+                          >
+                            <div
+                              className="glamor-11"
+                              is={null}
+                            >
+                              Actions
+                            </div>
+                          </Base>
+                        </Box>
+                      </div>
+                    </Base>
+                  </Flex>
+                </div>
+              </Styled(div)>
+            </div>
+          </Styled(div)>
+        </PanelHeader>
+        <Styled(div)>
+          <div
+            className="glamor-27"
+          >
+            <Styled(Base)
+              align="center"
+              py={1}
+            >
+              <Base
+                align="center"
+                className="glamor-25"
+                py={1}
+              >
+                <div
+                  className="glamor-25"
+                  is={null}
+                >
+                  <Flex
+                    align="center"
+                    flex="1"
+                  >
+                    <Base
+                      align="center"
+                      className="glamor-9"
+                      flex="1"
+                    >
+                      <div
+                        className="glamor-9"
+                        is={null}
+                      >
+                        <Box
+                          align="center"
+                          flex="1"
+                          px={2}
+                        >
+                          <Base
+                            align="center"
+                            className="glamor-5"
+                            flex="1"
+                            px={2}
+                          >
+                            <div
+                              className="glamor-5"
+                              is={null}
+                            >
+                              <Link
+                                to="/organizations/org-slug/api-keys/1/"
+                              >
+                                <a
+                                  href="/organizations/org-slug/api-keys/1/"
+                                >
+                                  Default
+                                </a>
+                              </Link>
+                            </div>
+                          </Base>
+                        </Box>
+                        <Box
+                          flex="2"
+                          px={2}
+                        >
+                          <Base
+                            className="glamor-7"
+                            flex="2"
+                            px={2}
+                          >
+                            <div
+                              className="glamor-7"
+                              is={null}
+                            >
+                              <div
+                                className="form-control disabled auto-select"
+                              >
+                                aa624bcc12024702a202cd90be5feda0
+                              </div>
+                            </div>
+                          </Base>
+                        </Box>
+                      </div>
+                    </Base>
+                  </Flex>
+                  <Box
+                    px={2}
+                    w={100}
+                  >
+                    <Base
+                      className="glamor-11"
+                      px={2}
+                      w={100}
+                    >
+                      <div
+                        className="glamor-11"
+                        is={null}
+                      >
+                        <LinkWithConfirmation
+                          className="btn btn-default btn-sm"
+                          message="Are you sure you want to remove this API key?"
+                          onConfirm={[Function]}
+                          title="Remove API Key?"
+                        >
+                          <Confirm
+                            cancelText="Cancel"
+                            confirmText="Confirm"
+                            message="Are you sure you want to remove this API key?"
+                            onConfirm={[Function]}
+                            priority="primary"
+                          >
+                            <a
+                              className="btn btn-default btn-sm"
+                              onClick={[Function]}
+                              title="Remove API Key?"
+                            >
+                              <span
+                                className="icon-trash"
+                              />
+                              <Modal
+                                animation={false}
+                                autoFocus={true}
+                                backdrop={true}
+                                bsClass="modal"
+                                dialogComponentClass={[Function]}
+                                enforceFocus={true}
+                                keyboard={true}
+                                manager={
+                                  ModalManager {
+                                    "containers": Array [],
+                                    "data": Array [],
+                                    "handleContainerOverflow": true,
+                                    "hideSiblingNodes": true,
+                                    "modals": Array [],
+                                  }
+                                }
+                                onHide={[Function]}
+                                renderBackdrop={[Function]}
+                                restoreFocus={true}
+                                show={false}
+                              >
+                                <Modal
+                                  autoFocus={true}
+                                  backdrop={true}
+                                  backdropClassName="modal-backdrop"
+                                  backdropTransitionTimeout={150}
+                                  containerClassName="modal-open"
+                                  dialogTransitionTimeout={300}
+                                  enforceFocus={true}
+                                  keyboard={true}
+                                  manager={
+                                    ModalManager {
+                                      "containers": Array [],
+                                      "data": Array [],
+                                      "handleContainerOverflow": true,
+                                      "hideSiblingNodes": true,
+                                      "modals": Array [],
+                                    }
+                                  }
+                                  onEntering={[Function]}
+                                  onExited={[Function]}
+                                  onHide={[Function]}
+                                  renderBackdrop={[Function]}
+                                  restoreFocus={true}
+                                  show={false}
+                                />
+                              </Modal>
+                            </a>
+                          </Confirm>
+                        </LinkWithConfirmation>
+                      </div>
+                    </Base>
+                  </Box>
+                </div>
+              </Base>
+            </Styled(Base)>
+          </div>
+        </Styled(div)>
+      </div>
+    </Styled(div)>
+  </div>
+</OrganizationApiKeysList>
+`;
