@@ -28,7 +28,7 @@ from .models import EventTag, GroupTagKey, GroupTagValue, TagKey, TagValue
 
 
 class LegacyTagStorage(TagStorage):
-    def register(self):
+    def setup(self):
         # from sentry.deletions import default_manager, defaults
         # from .deletions import TagKeyDeletionTask
 

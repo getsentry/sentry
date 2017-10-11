@@ -10,7 +10,7 @@ from __future__ import absolute_import
 from django.db.models.signals import post_save
 
 from sentry.signals import buffer_incr_complete
-from sentry.releases.receivers import ensure_release_exists
+from sentry.receivers.releases import ensure_release_exists
 
 from .models import TagValue, GroupTagValue
 

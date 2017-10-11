@@ -11,5 +11,3 @@ backend = LazyServiceWrapper(
     TagStorage, settings.SENTRY_TAGSTORE, settings.SENTRY_TAGSTORE_OPTIONS
 )
 backend.expose(locals())
-
-# backend.register()
