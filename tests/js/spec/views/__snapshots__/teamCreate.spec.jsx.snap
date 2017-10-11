@@ -24,6 +24,7 @@ exports[`TeamCreate render() renders correctly 1`] = `
     >
       <TextField
         disabled={false}
+        hideErrorMessage={false}
         label="Team Name"
         name="name"
         placeholder="e.g. Operations, Web, Desktop"

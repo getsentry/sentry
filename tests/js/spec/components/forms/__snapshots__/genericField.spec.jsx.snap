@@ -5,6 +5,7 @@ exports[`GenericField render() renders text as TextInput 1`] = `
   disabled={false}
   formState="Ready"
   help={null}
+  hideErrorMessage={false}
   label="field label*"
   name="field-name"
   required={true}
@@ -21,6 +22,7 @@ exports[`GenericField render() renders text with choices as Select2TextInput 1`]
   escapeMarkup={true}
   formState="Ready"
   help={null}
+  hideErrorMessage={false}
   label="field label*"
   multiple={false}
   name="field-name"

@@ -116,6 +116,7 @@ exports[`ApiNewToken render() renders 1`] = `
           ]
         }
         disabled={false}
+        hideErrorMessage={false}
         label="Scopes"
         name="scopes"
         required={true}

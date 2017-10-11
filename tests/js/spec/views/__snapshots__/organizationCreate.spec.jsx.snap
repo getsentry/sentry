@@ -29,6 +29,7 @@ exports[`OrganizationCreate render() renders correctly 1`] = `
     >
       <TextField
         disabled={false}
+        hideErrorMessage={false}
         label="Organization Name"
         name="name"
         placeholder="e.g. My Company"

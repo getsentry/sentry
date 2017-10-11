@@ -29,6 +29,7 @@ exports[`TeamSettings render() renders 1`] = `
       >
         <TextField
           disabled={false}
+          hideErrorMessage={false}
           label="Name"
           name="name"
           placeholder="e.g. API Team"
@@ -36,6 +37,7 @@ exports[`TeamSettings render() renders 1`] = `
         />
         <TextField
           disabled={false}
+          hideErrorMessage={false}
           label="Short name"
           name="slug"
           placeholder="e.g. api-team"
