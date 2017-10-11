@@ -20,14 +20,37 @@ from six.moves import reduce
 
 from sentry import buffer
 from sentry.tagstore import TagKeyStatus
-from sentry.models import EventTag, GroupTagKey, GroupTagValue, TagKey, TagValue
 from sentry.tagstore.base import TagStorage
 from sentry.utils import db
 from sentry.utils.cache import cache
-from sentry.tasks.deletion import delete_tag_key
+
+from .models import EventTag, GroupTagKey, GroupTagValue, TagKey, TagValue
 
 
 class LegacyTagStorage(TagStorage):
+    def register(self):
+        # from sentry.deletions import default_manager, defaults
+        # from .deletions import TagKeyDeletionTask
+
+        # default_manager.register(TagKey, TagKeyDeletionTask)
+        # default_manager.register(TagValue, BulkModelDeletionTask)
+        # default_manager.register(GroupTagKey, BulkModelDeletionTask)
+        # default_manager.register(GroupTagValue, BulkModelDeletionTask)
+        # default_manager.register(EventTag, BulkModelDeletionTask)
+
+        # TODO: this method doesn't exist
+        # deletions.add_dependencies(Group, [EventTag, GroupTagKey, GroupTagValue])
+        # deletions.add_dependencies(Project, [TagKey, TagValue, GroupTagKey, GroupTagValue])
+
+        # TODO: cleanup: add these models as bulk deletes, and add them to skip_models later
+        # (GroupTagValue, 'last_seen',  None),
+        # (TagValue,      'last_seen',  None),
+        # (EventTag,      'date_added', 'date_added'),
+
+        # TODO: merge/unmerge deals with GroupTagKey, GroupTagValue
+
+        pass
+
     def create_tag_key(self, project_id, key, **kwargs):
         return TagKey.objects.create(project_id=project_id, key=key, **kwargs)
 
@@ -207,6 +230,8 @@ class LegacyTagStorage(TagStorage):
         return list(qs)
 
     def delete_tag_key(self, project_id, key):
+        from .tasks import delete_tag_key
+
         tagkey = self.get_tag_key(project_id, key, status=None)
 
         updated = TagKey.objects.filter(

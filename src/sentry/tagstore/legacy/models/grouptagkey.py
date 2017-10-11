@@ -1,14 +1,17 @@
 """
-sentry.models.grouptagkey
+sentry.tagstore.legacy.models.grouptagkey
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-:copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
+:copyright: (c) 2010-2017 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
 from __future__ import absolute_import
 
+import six
+
 from django.db import models
 
+from sentry.api.serializers import Serializer, register
 from sentry.constants import MAX_TAG_KEY_LENGTH
 from sentry.db.models import (
     Model, BoundedPositiveIntegerField, BaseManager, sane_repr
@@ -36,3 +39,27 @@ class GroupTagKey(Model):
         unique_together = (('project_id', 'group_id', 'key'), )
 
     __repr__ = sane_repr('project_id', 'group_id', 'key')
+
+
+@register(GroupTagKey)
+class GroupTagKeySerializer(Serializer):
+    def get_attrs(self, item_list, user):
+        from sentry import tagstore
+
+        result = {}
+        for item in item_list:
+            key = tagstore.get_standardized_key(item.key)
+            result[item] = {
+                'name': tagstore.get_tag_key_label(item.key),
+                'key': key,
+            }
+
+        return result
+
+    def serialize(self, obj, attrs, user):
+        return {
+            'id': six.text_type(obj.id),
+            'name': attrs['name'],
+            'key': attrs['key'],
+            'uniqueValues': obj.values_seen,
+        }

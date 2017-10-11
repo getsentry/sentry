@@ -82,6 +82,9 @@ class TagStorage(Service):
         'get_event_tag_qs',
     )
 
+    def register(self):
+        pass
+
     def is_valid_key(self, key):
         return bool(TAG_KEY_RE.match(key))
 

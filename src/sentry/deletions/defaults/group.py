@@ -12,7 +12,6 @@ class GroupDeletionTask(ModelDeletionTask):
         model_list = (
             # prioritize GroupHash
             models.GroupHash,
-            models.EventTag,
             models.EventMapping,
             models.GroupAssignee,
             models.GroupCommitResolution,
@@ -25,8 +24,6 @@ class GroupDeletionTask(ModelDeletionTask):
             models.GroupSeen,
             models.GroupShare,
             models.GroupSnooze,
-            models.GroupTagValue,
-            models.GroupTagKey,
             models.GroupEmailThread,
             models.GroupSubscription,
             models.UserReport,
