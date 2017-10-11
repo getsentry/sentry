@@ -95,6 +95,7 @@
     ],
     "moduleNameMapper": {
       "\\.(css|less)$": "<rootDir>/tests/js/helpers/importStyleMock.js",
+      "jquery": "<rootDir>/src/sentry/static/sentry/__mocks__/jquery.jsx",
       "integration-docs-platforms": "<rootDir>/tests/fixtures/_platforms.json"
     },
     "modulePaths": [

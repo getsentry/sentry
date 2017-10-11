@@ -11,7 +11,6 @@ import {
 } from '../components/forms';
 import IndicatorStore from '../stores/indicatorStore';
 import LoadingIndicator from '../components/loadingIndicator';
-import OrganizationHomeContainer from '../components/organizations/homeContainer';
 import OrganizationStore from '../stores/organizationStore';
 import {t} from '../locale';
 import {extractMultilineFields} from '../utils';
@@ -356,7 +355,7 @@ const OrganizationSettings = React.createClass({
     let access = data && new Set(data.access);
 
     return (
-      <OrganizationHomeContainer>
+      <div>
         {this.state.loading && <LoadingIndicator />}
 
         {!this.state.loading &&
@@ -396,7 +395,7 @@ const OrganizationSettings = React.createClass({
                 </div>
               </div>}
           </div>}
-      </OrganizationHomeContainer>
+      </div>
     );
   }
 });

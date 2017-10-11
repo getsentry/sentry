@@ -7,7 +7,6 @@ import Confirm from '../components/confirm';
 import DropdownLink from '../components/dropdownLink';
 import IndicatorStore from '../stores/indicatorStore';
 import MenuItem from '../components/menuItem';
-import OrganizationHomeContainer from '../components/organizations/homeContainer';
 
 export default class OrganizationIntegrations extends AsyncView {
   componentDidMount() {
@@ -133,7 +132,7 @@ export default class OrganizationIntegrations extends AsyncView {
     };
 
     return (
-      <OrganizationHomeContainer className="ref-organization-integrations">
+      <div className="ref-organization-integrations">
         <div className="pull-right">
           <DropdownLink
             anchorRight
@@ -208,7 +207,7 @@ export default class OrganizationIntegrations extends AsyncView {
                 </a>
               </p>
             </div>}
-      </OrganizationHomeContainer>
+      </div>
     );
   }
 }
