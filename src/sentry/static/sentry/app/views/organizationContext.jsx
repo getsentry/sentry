@@ -153,6 +153,14 @@ const OrganizationContext = React.createClass({
       return false;
     }
 
+    let setupReleases = tasks.find(
+      ({task, status}) => task === 6 && status === 'complete'
+    );
+
+    if (setupReleases) {
+      return false;
+    }
+
     // show it if they sent their first event more than 2 days ago
     return moment().diff(sentFirstEvent.dateCompleted, 'days') > 2;
   },
