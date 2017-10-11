@@ -21,7 +21,7 @@ install-yarn:
 	@echo "--> Installing Node dependencies"
 	@hash yarn 2> /dev/null || (echo 'Cannot continue with JavaScript dependencies. Please install yarn before proceeding. For more information refer to https://yarnpkg.com/lang/en/docs/install/'; echo 'If you are on a mac run:'; echo '  brew install yarn'; exit 1)
 	# Use NODE_ENV=development so that yarn installs both dependencies + devDependencies
-	NODE_ENV=development yarn install --ignore-optional --pure-lockfile
+	NODE_ENV=development yarn install --pure-lockfile
 	# Fix phantomjs-prebuilt not installed via yarn
 	# See: https://github.com/karma-runner/karma-phantomjs-launcher/issues/120#issuecomment-262634703
 	node ./node_modules/phantomjs-prebuilt/install.js
