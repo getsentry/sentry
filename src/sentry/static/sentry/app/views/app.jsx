@@ -4,6 +4,8 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import $ from 'jquery';
 import Cookies from 'js-cookie';
+import {ThemeProvider} from 'emotion-theming';
+import theme from '../utils/theme';
 
 import ApiMixin from '../mixins/apiMixin';
 import Alerts from '../components/alerts';
@@ -134,11 +136,13 @@ const App = React.createClass({
     }
 
     return (
-      <OrganizationsLoader>
-        <Alerts className="messages-container" />
-        <Indicators className="indicators-container" />
-        {this.props.children}
-      </OrganizationsLoader>
+      <ThemeProvider theme={theme}>
+        <OrganizationsLoader>
+          <Alerts className="messages-container" />
+          <Indicators className="indicators-container" />
+          {this.props.children}
+        </OrganizationsLoader>
+      </ThemeProvider>
     );
   },
 });

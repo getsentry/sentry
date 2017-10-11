@@ -30,6 +30,7 @@ describe('OrganizationMemberRow', function() {
   };
 
   let defaultProps = {
+    routes: [],
     orgId: 'org-slug',
     orgName: 'Organization Name',
     status: '',
@@ -222,8 +223,6 @@ describe('OrganizationMemberRow', function() {
 
     it('has button to leave organization and no button to remove', function() {
       let wrapper = shallow(<OrganizationMemberRow {...props} memberCanLeave={true} />);
-
-      expect(findWithText(wrapper.find('Button'), 'Details')).toHaveLength(1);
       expect(findWithText(wrapper.find('Button'), 'Leave')).toHaveLength(1);
       expect(findWithText(wrapper.find('Button'), 'Remove')).toHaveLength(0);
     });

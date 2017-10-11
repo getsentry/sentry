@@ -27,8 +27,8 @@ exports[`OrganizationAuthView renders from api 1`] = `
       </legend>
       <p>
         While Sentry will try to be clever about directing members to the
-                      appropriate login form, you're safest just to hit up your
-                      organization-specific login when visiting the app
+              appropriate login form, you're safest just to hit up your
+              organization-specific login when visiting the app
         :
       </p>
       <pre>
@@ -59,6 +59,7 @@ exports[`OrganizationAuthView renders from api 1`] = `
         <BooleanField
           disabled={false}
           help="Require members to use a valid linked SSO account to access this organization"
+          hideErrorMessage={false}
           label="Require SSO"
           name="require_link"
           required={false}
@@ -92,6 +93,7 @@ exports[`OrganizationAuthView renders from api 1`] = `
           }
           disabled={false}
           escapeMarkup={true}
+          hideErrorMessage={false}
           label="Default Role"
           multiple={false}
           name="default_role"
@@ -124,8 +126,8 @@ exports[`OrganizationAuthView renders from api 1`] = `
     >
       <p>
         Your organization will no longer being able to authenticate with their
-                      existing accounts. This will prevent any existing users from logging in
-                      unless they have access outside of SSO.
+              existing accounts. This will prevent any existing users from logging in
+              unless they have access outside of SSO.
       </p>
       <fieldset
         className="form-actions"

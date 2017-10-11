@@ -6,11 +6,12 @@ import {t} from '../../../../locale';
 import ApiForm from '../../../../components/forms/apiForm';
 import IndicatorStore from '../../../../stores/indicatorStore';
 import MultipleCheckboxField from '../../../../components/forms/multipleCheckboxField';
+import OrganizationSettingsView from '../../../organizationSettingsView';
 import SentryTypes from '../../../../proptypes';
 import SplitLayout from '../../../../components/splitLayout';
 import TextField from '../../../../components/forms/textField';
 import TextareaField from '../../../../components/forms/textareaField';
-import OrganizationSettingsView from '../../../organizationSettingsView';
+import recreateRoute from '../../../../utils/recreateRoute';
 
 const API_CHOICES = API_SCOPES.map(s => [s, s]);
 
@@ -73,7 +74,13 @@ class OrganizationApiKeyDetailsView extends OrganizationSettingsView {
           onSubmitSuccess={this.handleSubmitSuccess}
           onSubmitError={this.handleSubmitError}
           onCancel={() =>
-            browserHistory.push(`/organizations/${this.props.params.orgId}/api-keys/`)}
+            browserHistory.push(
+              recreateRoute('api-keys/', {
+                stepBack: -1,
+                routes: this.props.routes,
+                params: this.props.params,
+              })
+            )}
         >
           <SplitLayout splitWidth={15}>
             <TextField label={t('Label')} name="label" />

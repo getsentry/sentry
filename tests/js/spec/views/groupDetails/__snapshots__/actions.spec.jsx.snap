@@ -52,6 +52,7 @@ exports[`GroupActions render() renders correctly 1`] = `
     project={
       Object {
         "id": "2448",
+        "name": "project name",
         "slug": "project",
       }
     }
