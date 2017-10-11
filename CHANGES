@@ -3,6 +3,8 @@ Version 8.22 (Unreleased)
 
 - BREAKING: Members will no longer be automatically granted membership to the
   default organization. You should use SSO or the invite flows.
+- Add support for SAML2 authentication through identity providers that
+  implement the ``SAML2AuthProvider``. See getsentry/sentry-auth-saml2.
 
 Schema Changes
 ~~~~~~~~~~~~~~
