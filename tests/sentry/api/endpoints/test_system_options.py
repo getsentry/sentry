@@ -51,6 +51,13 @@ class SystemOptionsTest(APITestCase):
             assert response.data['mail.host']['field']['disabled'] is True
             assert response.data['mail.host']['field']['disabledReason'] == 'smtpDisabled'
 
+    def test_put_int_for_boolean(self):
+        self.login_as(user=self.user)
+        response = self.client.put(self.url, {
+            'auth.allow-registration': 1,
+        })
+        assert response.status_code == 200
+
     def test_put_unknown_option(self):
         self.login_as(user=self.user)
         response = self.client.put(self.url, {

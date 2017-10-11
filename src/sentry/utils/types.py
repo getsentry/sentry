@@ -70,8 +70,11 @@ class BoolType(Type):
     name = 'boolean'
     default = False
     expected_types = (bool, )
+    compatible_types = six.string_types + six.integer_types
 
     def convert(self, value):
+        if isinstance(value, six.integer_types):
+            return bool(value)
         value = value.lower()
         if value in ('y', 'yes', 't', 'true', '1', 'on'):
             return True

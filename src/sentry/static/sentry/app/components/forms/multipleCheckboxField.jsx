@@ -6,6 +6,8 @@ import jQuery from 'jquery';
 
 import FormField from './formField';
 
+import {defined} from '../../utils';
+
 export default class MultipleCheckboxField extends FormField {
   static propTypes = {
     ...FormField.propTypes,
@@ -15,12 +17,14 @@ export default class MultipleCheckboxField extends FormField {
 
   // XXX(dcramer): this comes from TooltipMixin
   componentDidMount() {
+    super.componentDidMount();
     this.attachTooltips();
   }
 
   componentWillUnmount() {
     this.removeTooltips();
     jQuery(ReactDOM.findDOMNode(this)).unbind();
+    super.componentWillUnmount();
   }
 
   attachTooltips() {
@@ -99,7 +103,9 @@ export default class MultipleCheckboxField extends FormField {
                   value={value}
                   onChange={this.onChange.bind(this, value)}
                   disabled={disabled}
-                  checked={this.state.value.indexOf(value) !== -1}
+                  checked={
+                    defined(this.state.value) && this.state.value.indexOf(value) !== -1
+                  }
                 />
                 {choiceLabel}
               </label>

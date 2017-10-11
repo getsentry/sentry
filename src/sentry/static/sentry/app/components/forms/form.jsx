@@ -83,11 +83,11 @@ export default class Form extends React.Component {
   };
 
   onFieldChange = (name, value) => {
-    this.setState({
-      data: {
-        ...this.state.data,
+    this.setState(state => {
+      state.data = {
+        ...state.data,
         [name]: value
-      }
+      };
     });
   };
 
