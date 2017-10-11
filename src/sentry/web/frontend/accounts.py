@@ -513,7 +513,7 @@ def show_emails(request):
         return HttpResponseRedirect(request.path)
 
     if 'primary' in request.POST:
-        new_primary = request.POST['new_primary_email'].lower()
+        new_primary = request.POST['new_primary_email'].lower().strip()
 
         if User.objects.filter(Q(email__iexact=new_primary) | Q(username__iexact=new_primary)
                                ).exclude(id=user.id).exists():
@@ -549,12 +549,12 @@ def show_emails(request):
 
     if email_form.is_valid():
 
-        alternative_email = email_form.cleaned_data['alt_email'].lower()
+        alternative_email = email_form.cleaned_data['alt_email'].lower().strip()
 
         # check if this alternative email already exists for user
         if alternative_email and not UserEmail.objects.filter(
             user=user, email__iexact=alternative_email
-        ):
+        ).exists():
             # create alternative email for user
             try:
                 with transaction.atomic():
