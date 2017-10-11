@@ -7,7 +7,6 @@ import DateTime from '../components/dateTime';
 import Avatar from '../components/avatar';
 import LoadingIndicator from '../components/loadingIndicator';
 import LoadingError from '../components/loadingError';
-import OrganizationHomeContainer from '../components/organizations/homeContainer';
 import OrganizationState from '../mixins/organizationState';
 import Pagination from '../components/pagination';
 import SelectInput from '../components/selectInput';
@@ -148,7 +147,7 @@ const OrganizationAuditLog = React.createClass({
 
     return (
       <DocumentTitle title={this.getTitle()}>
-        <OrganizationHomeContainer>
+        <div>
           <h3>{t('Audit Log')}</h3>
 
           <div className="pull-right">
@@ -195,7 +194,7 @@ const OrganizationAuditLog = React.createClass({
           </div>
           {this.state.pageLinks &&
             <Pagination pageLinks={this.state.pageLinks} {...this.props} />}
-        </OrganizationHomeContainer>
+        </div>
       </DocumentTitle>
     );
   }
