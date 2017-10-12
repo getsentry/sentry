@@ -17,12 +17,6 @@ class NodeDeletionTask(BaseDeletionTask):
 
 class EventDeletionTask(ModelDeletionTask):
     def get_child_relations_bulk(self, instance_list):
-        from sentry import models
-        from sentry.deletions import default_manager
-
         node_ids = [i.data.id for i in instance_list]
 
-        relations = [BaseRelation({'nodes': node_ids}, NodeDeletionTask)]
-        relations.extend([rel(instance_list) for rel in default_manager.dependencies[models.Event]])
-
-        return relations
+        return [BaseRelation({'nodes': node_ids}, NodeDeletionTask)]
