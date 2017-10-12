@@ -140,10 +140,13 @@ class SingleException(Interface):
     def get_path(self):
         return 'sentry.interfaces.Exception'
 
-    def get_hash(self, platform=None):
+    def get_hash(self, platform=None, is_processed_data=True):
         output = None
         if self.stacktrace:
-            output = self.stacktrace.get_hash(platform=platform)
+            output = self.stacktrace.get_hash(
+                platform=platform,
+                is_processed_data=is_processed_data,
+            )
             if output and self.type:
                 output.append(self.type)
         if not output:
@@ -246,7 +249,7 @@ class Exception(Interface):
 
         return [system_hash, app_hash]
 
-    def get_hash(self, platform=None, system_frames=True):
+    def get_hash(self, platform=None, system_frames=True, is_processed_data=True):
         # optimize around the fact that some exceptions might have stacktraces
         # while others may not and we ALWAYS want stacktraces over values
         output = []
@@ -256,6 +259,7 @@ class Exception(Interface):
             stack_hash = value.stacktrace.get_hash(
                 platform=platform,
                 system_frames=system_frames,
+                is_processed_data=is_processed_data,
             )
             if stack_hash:
                 output.extend(stack_hash)
@@ -263,7 +267,9 @@ class Exception(Interface):
 
         if not output:
             for value in self.values:
-                output.extend(value.get_hash(platform=platform))
+                output.extend(
+                    value.get_hash(platform=platform, is_processed_data=is_processed_data)
+                )
 
         return output
 
