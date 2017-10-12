@@ -10,6 +10,7 @@ Schema Changes
 ~~~~~~~~~~~~~~
 
 - Added ``ProjectSymCacheFile`` model.
+- Added index on ``TagValue(project_id, key, last_seen)``
 
 Version 8.21
 ------------
