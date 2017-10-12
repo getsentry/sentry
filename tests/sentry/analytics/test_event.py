@@ -26,7 +26,7 @@ class EventTest(TestCase):
     @patch('sentry.analytics.event.uuid1')
     def test_simple(self, mock_uuid1):
         class uuid(object):
-            hex = 'abc123'
+            bytes = b'\x00\x01\x02'
 
         mock_uuid1.return_value = uuid
 
@@ -44,14 +44,16 @@ class EventTest(TestCase):
             'optional': False,
         }
         assert result.serialize() == {
-            'id': 1,
-            'map': {
-                'key': 'value',
+            'data': {
+                'id': 1,
+                'map': {
+                    'key': 'value',
+                },
+                'optional': False,
             },
-            'optional': False,
             'type': 'example',
             'timestamp': 987552000,
-            'guid': 'abc123',
+            'guid': 'AAEC',
         }
 
     def test_optional_is_optional(self):
