@@ -1,7 +1,6 @@
 import React from 'react';
 import classnames from 'classnames';
 
-import OrganizationHomeContainer from '../../components/organizations/homeContainer';
 import Checkbox from '../../components/checkbox';
 import Radio from '../../components/radio';
 import LoadingIndicator from '../../components/loadingIndicator';
@@ -184,7 +183,7 @@ const InviteMember = React.createClass({
   render() {
     let {error, loading, isInvite} = this.state;
     return (
-      <OrganizationHomeContainer>
+      <div>
         <h3>{t('Add Member to Organization')}</h3>
         <p>
           {isInvite
@@ -212,7 +211,7 @@ const InviteMember = React.createClass({
         <button className="btn btn-primary submit-new-team" onClick={this.submit}>
           {t('Add Member')}
         </button>
-      </OrganizationHomeContainer>
+      </div>
     );
   }
 });

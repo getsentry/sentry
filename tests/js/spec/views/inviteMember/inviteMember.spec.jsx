@@ -6,6 +6,7 @@ import {Client} from 'app/api';
 import ConfigStore from 'app/stores/configStore';
 
 jest.mock('app/api');
+jest.mock('jquery');
 
 describe('CreateProject', function() {
   beforeEach(function() {

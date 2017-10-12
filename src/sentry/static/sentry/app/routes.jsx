@@ -124,6 +124,7 @@ const orgSettingsRoutes = [
     path="rate-limits/"
     component={errorHandler(OrganizationRateLimits)}
   />,
+  <Route key="members/new/" path="members/new/" component={errorHandler(InviteMember)} />,
   <Route key="repos" path="repos/" component={errorHandler(OrganizationRepositories)} />,
   <Route key="settings" path="settings/" component={errorHandler(OrganizationSettings)} />
 ];
@@ -241,10 +242,6 @@ function routes() {
         <Route
           path="/organizations/:orgId/stats/"
           component={errorHandler(OrganizationStats)}
-        />
-        <Route
-          path="/organizations/:orgId/members/new/"
-          component={errorHandler(InviteMember)}
         />
 
         <Route
