@@ -224,12 +224,7 @@ class NativeStacktraceProcessor(StacktraceProcessor):
                         scope='native',
                         object='dsym:%s' % e.image_uuid,
                         type=e.type,
-                        data={
-                            'image_path': e.image_path,
-                            'image_uuid': e.image_uuid,
-                            'image_arch': e.image_arch,
-                            'message': e.message,
-                        }
+                        data=e.get_data()
                     )
 
                 # This in many ways currently does not really do anything.

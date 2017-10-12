@@ -76,6 +76,17 @@ class SymbolicationFailed(Exception):
         """An error that most likely happened because of a bad SDK."""
         return self.type == EventError.NATIVE_UNKNOWN_IMAGE
 
+    def get_data(self):
+        """Returns the event data."""
+        rv = {'message': self.message}
+        if self.image_path is not None:
+            rv['image_path'] = self.image_path
+        if self.image_uuid is not None:
+            rv['image_uuid'] = self.image_uuid
+        if self.image_arch is not None:
+            rv['image_arch'] = self.image_arch
+        return rv
+
     def __str__(self):
         rv = []
         if self.type is not None:
