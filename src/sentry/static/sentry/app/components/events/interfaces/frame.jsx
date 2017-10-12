@@ -351,7 +351,7 @@ const Frame = React.createClass({
             ? <span className="package" title={data.package}>
                 {trimPackage(data.package)}
               </span>
-            : <span className="package" />}
+            : <span className="package">{'<unknown>'}</span>}
           <span className="address">
             {data.instructionAddr}
           </span>
