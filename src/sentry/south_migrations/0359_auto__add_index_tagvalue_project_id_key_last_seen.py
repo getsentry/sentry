@@ -13,7 +13,16 @@ class Migration(SchemaMigration):
 
     def forwards(self, orm):
         # Adding index on 'TagValue', fields ['project_id', 'key', 'last_seen']
-        db.create_index('sentry_filtervalue', ['project_id', 'key', 'last_seen'])
+        if is_postgres():
+            db.commit_transaction()
+            db.execute(
+                "CREATE INDEX CONCURRENTLY {} ON sentry_filtervalue (project_id, key, last_seen)".format(
+                    db.create_index_name('sentry_filtervalue', ['project_id', 'key', 'last_seen']),
+                )
+            )
+            db.start_transaction()
+        else:
+            db.create_index('sentry_filtervalue', ['project_id', 'key', 'last_seen'])
 
     def backwards(self, orm):
         # Removing index on 'TagValue', fields ['project_id', 'key', 'last_seen']
