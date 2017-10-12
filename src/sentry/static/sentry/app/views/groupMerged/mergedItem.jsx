@@ -117,6 +117,7 @@ const MergedItem = React.createClass({
 
             {event &&
               <SpreadLayout className="event-details" responsive>
+
                 <FlowLayout>
                   <EventOrGroupHeader
                     orgId={orgId}
@@ -125,20 +126,6 @@ const MergedItem = React.createClass({
                     hideIcons
                     hideLevel
                   />
-                </FlowLayout>
-
-                <FlowLayout vertical style={{alignItems: 'flex-end'}}>
-                  <span className="fingerprint-header">
-                    Other Fingerprints
-                  </span>
-
-                  <FlowLayout>
-                    {event.fingerprints.filter(fp => fp !== fingerprint).map(fp => (
-                      <span key={fp} className="fingerprint">
-                        {fp}
-                      </span>
-                    ))}
-                  </FlowLayout>
                 </FlowLayout>
 
               </SpreadLayout>}
