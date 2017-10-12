@@ -27,8 +27,8 @@ class TagKey(Model):
     label = models.CharField(max_length=64, null=True)
     status = BoundedPositiveIntegerField(
         choices=(
-            (TagKeyStatus.VISIBLE,
-             _('Visible')), (TagKeyStatus.PENDING_DELETION, _('Pending Deletion')),
+            (TagKeyStatus.VISIBLE, _('Visible')),
+            (TagKeyStatus.PENDING_DELETION, _('Pending Deletion')),
             (TagKeyStatus.DELETION_IN_PROGRESS, _('Deletion in Progress')),
         ),
         default=TagKeyStatus.VISIBLE
