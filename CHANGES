@@ -10,6 +10,7 @@ Schema Changes
 ~~~~~~~~~~~~~~
 
 - Added ``ProjectSymCacheFile`` model.
+- Added index on ``TagValue(project_id, key, last_seen)``
 
 Version 8.21
 ------------
@@ -500,7 +501,6 @@ Version 8.6
 - Added ability to link/unlink Issues, support is dependent on plugins.
 - Can now toggle between minified/original code in stacktraces where sourcemaps were applied.
 - Can now upload release artifacts with tilde prefix (~) to omit protocol + host in URL lookups.
-- Added index on ``TagValue(project_id, key, last_seen)``
 
 Schema Changes
 ~~~~~~~~~~~~~~
