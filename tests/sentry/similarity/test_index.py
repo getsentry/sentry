@@ -5,7 +5,7 @@ import time
 import msgpack
 from exam import fixture
 
-from sentry.similarity.backends.redis import RedisMinHashIndexBackend
+from sentry.similarity.backends.redis import RedisScriptMinHashIndexBackend
 from sentry.similarity.signatures import MinHashSignatureBuilder
 from sentry.testutils import TestCase
 from sentry.utils import redis
@@ -13,10 +13,10 @@ from sentry.utils import redis
 signature_builder = MinHashSignatureBuilder(32, 0xFFFF)
 
 
-class RedisMinHashIndexBackendTestCase(TestCase):
+class RedisScriptMinHashIndexBackendTestCase(TestCase):
     @fixture
     def index(self):
-        return RedisMinHashIndexBackend(
+        return RedisScriptMinHashIndexBackend(
             redis.clusters.get('default').get_local_client(0),
             'sim',
             signature_builder,
@@ -96,7 +96,7 @@ class RedisMinHashIndexBackendTestCase(TestCase):
                 for key, _ in self.index.compare('example', '1', [('index',
                                                                    0)])] == ['1', '2', '4', '5']
 
-        assert RedisMinHashIndexBackend(
+        assert RedisScriptMinHashIndexBackend(
             self.index.cluster,
             self.index.namespace + '2',
             self.index.signature_builder,
