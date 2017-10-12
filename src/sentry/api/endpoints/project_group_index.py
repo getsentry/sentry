@@ -799,6 +799,20 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
                 ),
             }
 
+        if 'isPublic' in result:
+            # We always want to delete an existing share, because triggering
+            # an isPublic=True even when it's already public, should trigger
+            # regenerating.
+            for group in group_list:
+                if GroupShare.objects.filter(group=group).delete():
+                    result['shareId'] = None
+                    Activity.objects.create(
+                        project=group.project,
+                        group=group,
+                        type=Activity.SET_PRIVATE,
+                        user=acting_user,
+                    )
+
         if result.get('isPublic'):
             for group in group_list:
                 share, created = GroupShare.objects.get_or_create(
@@ -812,16 +826,6 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
                         project=group.project,
                         group=group,
                         type=Activity.SET_PUBLIC,
-                        user=acting_user,
-                    )
-        elif result.get('isPublic') is False:
-            for group in group_list:
-                if GroupShare.objects.filter(group=group).delete():
-                    result['shareId'] = None
-                    Activity.objects.create(
-                        project=group.project,
-                        group=group,
-                        type=Activity.SET_PRIVATE,
                         user=acting_user,
                     )
 
