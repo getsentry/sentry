@@ -1,7 +1,7 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`CreateProject render() should render 1`] = `
-<HomeContainer>
+<div>
   <h3>
     Add Member to Organization
   </h3>
@@ -105,11 +105,11 @@ exports[`CreateProject render() should render 1`] = `
   >
     Add Member
   </button>
-</HomeContainer>
+</div>
 `;
 
 exports[`CreateProject render() should render no team select when there is only one option 1`] = `
-<HomeContainer>
+<div>
   <h3>
     Add Member to Organization
   </h3>
@@ -158,7 +158,7 @@ exports[`CreateProject render() should render no team select when there is only 
   >
     Add Member
   </button>
-</HomeContainer>
+</div>
 `;
 
 exports[`CreateProject render() should render roles when available and allowed, and handle submitting 1`] = `
@@ -169,539 +169,210 @@ exports[`CreateProject render() should render roles when available and allowed, 
     }
   }
 >
-  <HomeContainer>
+  <div>
+    <h3>
+      Add Member to Organization
+    </h3>
+    <p>
+      Invite a member to join this organization via their email address. If they do not already have an account, they will first be asked to create one. Multiple emails delimited by commas.
+    </p>
     <div
-      className=" organization-home"
+      className=""
+    >
+      <TextField
+        disabled={false}
+        hideErrorMessage={false}
+        label="Email(s)"
+        name="email"
+        onChange={[Function]}
+        placeholderlabel="e.g. teammate@example.com"
+        required={false}
+        spellCheck="false"
+      >
+        <div
+          className="control-group"
+        >
+          <div
+            className="controls"
+          >
+            <label
+              className="control-label"
+              htmlFor="id-email"
+            >
+              Email(s)
+            </label>
+            <input
+              className="form-control"
+              disabled={false}
+              id="id-email"
+              onChange={[Function]}
+              required={false}
+              spellCheck="false"
+              type="text"
+              value=""
+            />
+          </div>
+        </div>
+      </TextField>
+    </div>
+    <div
+      className="new-invite-team box"
     >
       <div
-        className="sub-header flex flex-container flex-vertically-centered"
+        className="box-header"
       >
-        <div>
-          <ProjectSelector
-            organization={
-              Object {
-                "id": "1",
-                "slug": "testOrg",
-                "teams": Array [
-                  Object {
-                    "hasAccess": true,
-                    "id": "1",
-                    "name": "bar",
-                    "slug": "bar",
-                  },
-                  Object {
-                    "hasAccess": false,
-                    "id": "2",
-                    "name": "foo",
-                    "slug": "foo",
-                  },
-                ],
-              }
-            }
-            projectId={null}
-          >
-            <div
-              className="project-select"
-            >
-              <h3>
-                <Link
-                  className="home-crumb"
-                  to="/testOrg/"
-                >
-                  <Link
-                    className="home-crumb"
-                    onlyActiveOnIndex={false}
-                    style={Object {}}
-                    to="/testOrg/"
-                  >
-                    <a
-                      className="home-crumb"
-                      onClick={[Function]}
-                      style={Object {}}
-                    >
-                      <span
-                        className="icon-home"
-                      />
-                    </a>
-                  </Link>
-                </Link>
-                Select a project
-                <DropdownLink
-                  anchorRight={false}
-                  caret={true}
-                  disabled={false}
-                  onClose={[Function]}
-                  onOpen={[Function]}
-                  title=""
-                  topLevelClasses="project-dropdown is-empty"
-                >
-                  <span
-                    className="project-dropdown is-empty dropdown"
-                  >
-                    <a
-                      className="dropdown-toggle"
-                      data-toggle="dropdown"
-                    >
-                      <i
-                        className="icon-arrow-down"
-                      />
-                    </a>
-                    <ul
-                      className="dropdown-menu"
-                    >
-                      <MenuItem
-                        className="empty-projects-item"
-                        noAnchor={true}
-                      >
-                        <li
-                          className="empty-projects-item"
-                          href={null}
-                          role="presentation"
-                          title={null}
-                        >
-                          <div
-                            className="empty-message"
-                          >
-                            You have no projects.
-                          </div>
-                        </li>
-                      </MenuItem>
-                    </ul>
-                  </span>
-                </DropdownLink>
-              </h3>
-            </div>
-          </ProjectSelector>
-        </div>
-        <div
-          className="align-right hidden-xs"
-        >
-          <Button
-            className="tip"
-            data-placement="bottom"
-            disabled={true}
-            priority="primary"
-            style={
-              Object {
-                "marginRight": 5,
-              }
-            }
-            title="You do not have enough permission to create new projects"
-          >
-            <button
-              className="tip button tip button-default button-disabled"
-              data-placement="bottom"
-              disabled={true}
-              onClick={[Function]}
-              role="button"
-              style={
-                Object {
-                  "marginRight": 5,
-                }
-              }
-            >
-              <FlowLayout
-                truncate={false}
-              >
-                <div
-                  className="flow-layout"
-                >
-                  <span
-                    className="button-label"
-                  >
-                    New Project
-                  </span>
-                </div>
-              </FlowLayout>
-            </button>
-          </Button>
-          <Button
-            className="tip"
-            data-placement="bottom"
-            disabled={true}
-            priority="primary"
-            title="You do not have enough permission to create new teams"
-          >
-            <button
-              className="tip button tip button-default button-disabled"
-              data-placement="bottom"
-              disabled={true}
-              onClick={[Function]}
-              role="button"
-            >
-              <FlowLayout
-                truncate={false}
-              >
-                <div
-                  className="flow-layout"
-                >
-                  <span
-                    className="button-label"
-                  >
-                    New Team
-                  </span>
-                </div>
-              </FlowLayout>
-            </button>
-          </Button>
-        </div>
+        <h4>
+          Role:
+        </h4>
       </div>
       <div
-        className="container"
+        className="box-content with-padding"
+      >
+        <ul
+          className="radio-inputs"
+        >
+          <li
+            className="radio"
+            onClick={[Function]}
+            style={Object {}}
+          >
+            <label
+              style={Object {}}
+            >
+              <Radio
+                checked={true}
+                id={1}
+                readOnly={true}
+                value="member"
+              >
+                <input
+                  checked={true}
+                  className="radio-select"
+                  id={1}
+                  readOnly={true}
+                  type="radio"
+                  value="member"
+                />
+              </Radio>
+              member
+              <div
+                className="help-block"
+              >
+                a normal member
+              </div>
+            </label>
+          </li>
+          <li
+            className="radio"
+            onClick={[Function]}
+            style={Object {}}
+          >
+            <label
+              style={Object {}}
+            >
+              <Radio
+                checked={false}
+                id={2}
+                readOnly={true}
+                value="bar"
+              >
+                <input
+                  checked={false}
+                  className="radio-select"
+                  id={2}
+                  readOnly={true}
+                  type="radio"
+                  value="bar"
+                />
+              </Radio>
+              bar
+              <div
+                className="help-block"
+              >
+                another role
+              </div>
+            </label>
+          </li>
+        </ul>
+      </div>
+    </div>
+    <div
+      className="new-invite-team box"
+    >
+      <div
+        className="box-header"
+      >
+        <h4>
+          Team:
+        </h4>
+      </div>
+      <div
+        className="grouping-controls team-choices row box-content with-padding"
       >
         <div
-          className="content row"
+          className="col-md-3"
+          onClick={[Function]}
         >
-          <div
-            className="col-md-2 org-sidebar"
+          <label
+            className="checkbox"
           >
-            <HomeSidebar>
-              <div>
-                <h6
-                  className="nav-header"
-                >
-                  Organization
-                </h6>
-                <ul
-                  className="nav nav-stacked"
-                >
-                  <ListLink
-                    activeClassName="active"
-                    index={false}
-                    isActive={[Function]}
-                    to="/testOrg/"
-                  >
-                    <li
-                      className=""
-                    >
-                      <Link
-                        onlyActiveOnIndex={false}
-                        style={Object {}}
-                        to="/testOrg/"
-                      >
-                        <a
-                          onClick={[Function]}
-                          style={Object {}}
-                        >
-                          Dashboard
-                        </a>
-                      </Link>
-                    </li>
-                  </ListLink>
-                  <ListLink
-                    activeClassName="active"
-                    index={false}
-                    isActive={[Function]}
-                    to="/organizations/testOrg/teams/"
-                  >
-                    <li
-                      className=""
-                    >
-                      <Link
-                        onlyActiveOnIndex={false}
-                        style={Object {}}
-                        to="/organizations/testOrg/teams/"
-                      >
-                        <a
-                          onClick={[Function]}
-                          style={Object {}}
-                        >
-                          Projects & Teams
-                        </a>
-                      </Link>
-                    </li>
-                  </ListLink>
-                </ul>
-                <div>
-                  <h6
-                    className="nav-header with-divider"
-                  >
-                    Issues
-                  </h6>
-                  <ul
-                    className="nav nav-stacked"
-                  >
-                    <ListLink
-                      activeClassName="active"
-                      index={false}
-                      to="/organizations/testOrg/issues/assigned/"
-                    >
-                      <li
-                        className=""
-                      >
-                        <Link
-                          onlyActiveOnIndex={false}
-                          style={Object {}}
-                          to="/organizations/testOrg/issues/assigned/"
-                        >
-                          <a
-                            onClick={[Function]}
-                            style={Object {}}
-                          >
-                            Assigned to Me
-                          </a>
-                        </Link>
-                      </li>
-                    </ListLink>
-                    <ListLink
-                      activeClassName="active"
-                      index={false}
-                      to="/organizations/testOrg/issues/bookmarks/"
-                    >
-                      <li
-                        className=""
-                      >
-                        <Link
-                          onlyActiveOnIndex={false}
-                          style={Object {}}
-                          to="/organizations/testOrg/issues/bookmarks/"
-                        >
-                          <a
-                            onClick={[Function]}
-                            style={Object {}}
-                          >
-                            Bookmarks
-                          </a>
-                        </Link>
-                      </li>
-                    </ListLink>
-                    <ListLink
-                      activeClassName="active"
-                      index={false}
-                      to="/organizations/testOrg/issues/history/"
-                    >
-                      <li
-                        className=""
-                      >
-                        <Link
-                          onlyActiveOnIndex={false}
-                          style={Object {}}
-                          to="/organizations/testOrg/issues/history/"
-                        >
-                          <a
-                            onClick={[Function]}
-                            style={Object {}}
-                          >
-                            History
-                          </a>
-                        </Link>
-                      </li>
-                    </ListLink>
-                  </ul>
-                </div>
-              </div>
-            </HomeSidebar>
-          </div>
-          <div
-            className="col-md-10"
+            <Checkbox
+              checked={true}
+              id="1"
+              value="bar"
+            >
+              <input
+                checked={true}
+                className="chk-select"
+                id="1"
+                type="checkbox"
+                value="bar"
+              />
+            </Checkbox>
+            bar
+            <span
+              className="team-slug"
+            >
+              bar
+            </span>
+          </label>
+        </div>
+        <div
+          className="col-md-3"
+          onClick={[Function]}
+        >
+          <label
+            className="checkbox"
           >
-            <h3>
-              Add Member to Organization
-            </h3>
-            <p>
-              Invite a member to join this organization via their email address. If they do not already have an account, they will first be asked to create one. Multiple emails delimited by commas.
-            </p>
-            <div
-              className=""
+            <Checkbox
+              checked={false}
+              id="2"
+              value="foo"
             >
-              <TextField
-                disabled={false}
-                hideErrorMessage={false}
-                label="Email(s)"
-                name="email"
-                onChange={[Function]}
-                placeholderlabel="e.g. teammate@example.com"
-                required={false}
-                spellCheck="false"
-              >
-                <div
-                  className="control-group"
-                >
-                  <div
-                    className="controls"
-                  >
-                    <label
-                      className="control-label"
-                      htmlFor="id-email"
-                    >
-                      Email(s)
-                    </label>
-                    <input
-                      className="form-control"
-                      disabled={false}
-                      id="id-email"
-                      onChange={[Function]}
-                      required={false}
-                      spellCheck="false"
-                      type="text"
-                      value=""
-                    />
-                  </div>
-                </div>
-              </TextField>
-            </div>
-            <div
-              className="new-invite-team box"
+              <input
+                checked={false}
+                className="chk-select"
+                id="2"
+                type="checkbox"
+                value="foo"
+              />
+            </Checkbox>
+            foo
+            <span
+              className="team-slug"
             >
-              <div
-                className="box-header"
-              >
-                <h4>
-                  Role:
-                </h4>
-              </div>
-              <div
-                className="box-content with-padding"
-              >
-                <ul
-                  className="radio-inputs"
-                >
-                  <li
-                    className="radio"
-                    onClick={[Function]}
-                    style={Object {}}
-                  >
-                    <label
-                      style={Object {}}
-                    >
-                      <Radio
-                        checked={true}
-                        id={1}
-                        readOnly={true}
-                        value="member"
-                      >
-                        <input
-                          checked={true}
-                          className="radio-select"
-                          id={1}
-                          readOnly={true}
-                          type="radio"
-                          value="member"
-                        />
-                      </Radio>
-                      member
-                      <div
-                        className="help-block"
-                      >
-                        a normal member
-                      </div>
-                    </label>
-                  </li>
-                  <li
-                    className="radio"
-                    onClick={[Function]}
-                    style={Object {}}
-                  >
-                    <label
-                      style={Object {}}
-                    >
-                      <Radio
-                        checked={false}
-                        id={2}
-                        readOnly={true}
-                        value="bar"
-                      >
-                        <input
-                          checked={false}
-                          className="radio-select"
-                          id={2}
-                          readOnly={true}
-                          type="radio"
-                          value="bar"
-                        />
-                      </Radio>
-                      bar
-                      <div
-                        className="help-block"
-                      >
-                        another role
-                      </div>
-                    </label>
-                  </li>
-                </ul>
-              </div>
-            </div>
-            <div
-              className="new-invite-team box"
-            >
-              <div
-                className="box-header"
-              >
-                <h4>
-                  Team:
-                </h4>
-              </div>
-              <div
-                className="grouping-controls team-choices row box-content with-padding"
-              >
-                <div
-                  className="col-md-3"
-                  onClick={[Function]}
-                >
-                  <label
-                    className="checkbox"
-                  >
-                    <Checkbox
-                      checked={true}
-                      id="1"
-                      value="bar"
-                    >
-                      <input
-                        checked={true}
-                        className="chk-select"
-                        id="1"
-                        type="checkbox"
-                        value="bar"
-                      />
-                    </Checkbox>
-                    bar
-                    <span
-                      className="team-slug"
-                    >
-                      bar
-                    </span>
-                  </label>
-                </div>
-                <div
-                  className="col-md-3"
-                  onClick={[Function]}
-                >
-                  <label
-                    className="checkbox"
-                  >
-                    <Checkbox
-                      checked={false}
-                      id="2"
-                      value="foo"
-                    >
-                      <input
-                        checked={false}
-                        className="chk-select"
-                        id="2"
-                        type="checkbox"
-                        value="foo"
-                      />
-                    </Checkbox>
-                    foo
-                    <span
-                      className="team-slug"
-                    >
-                      foo
-                    </span>
-                  </label>
-                </div>
-              </div>
-            </div>
-            <button
-              className="btn btn-primary submit-new-team"
-              onClick={[Function]}
-            >
-              Add Member
-            </button>
-          </div>
+              foo
+            </span>
+          </label>
         </div>
       </div>
     </div>
-  </HomeContainer>
+    <button
+      className="btn btn-primary submit-new-team"
+      onClick={[Function]}
+    >
+      Add Member
+    </button>
+  </div>
 </InviteMember>
 `;
