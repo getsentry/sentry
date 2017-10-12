@@ -12,7 +12,7 @@ from sentry.deletions.base import ModelDeletionTask, ModelRelation
 
 class TagKeyDeletionTask(ModelDeletionTask):
     def get_child_relations(self, instance):
-        from sentry.models import (EventTag, GroupTagKey, GroupTagValue, TagValue)
+        from .models import (EventTag, GroupTagKey, GroupTagValue, TagValue)
 
         # in bulk
         model_list = (GroupTagValue, GroupTagKey, TagValue)

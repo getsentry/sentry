@@ -6,6 +6,7 @@ from ..base import ModelDeletionTask, ModelRelation
 class GroupDeletionTask(ModelDeletionTask):
     def get_child_relations(self, instance):
         from sentry import models
+        from sentry.deletions import default_manager
 
         relations = []
 
@@ -30,7 +31,9 @@ class GroupDeletionTask(ModelDeletionTask):
             # Event is last as its the most time consuming
             models.Event,
         )
+
         relations.extend([ModelRelation(m, {'group_id': instance.id}) for m in model_list])
+        relations.extend([rel(instance) for rel in default_manager.dependencies[models.Group]])
 
         return relations
 

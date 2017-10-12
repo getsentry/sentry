@@ -6,6 +6,7 @@ from ..base import (BulkModelDeletionTask, ModelDeletionTask, ModelRelation)
 class ProjectDeletionTask(ModelDeletionTask):
     def get_child_relations(self, instance):
         from sentry import models
+        from sentry.deletions import default_manager
 
         relations = [
             # ProjectKey gets revoked immediately, in bulk
@@ -20,6 +21,7 @@ class ProjectDeletionTask(ModelDeletionTask):
             models.GroupShare, models.GroupSubscription, models.ProjectBookmark, models.ProjectKey,
             models.SavedSearchUserDefault, models.SavedSearch, models.UserReport,
         )
+
         relations.extend(
             [
                 ModelRelation(m, {'project_id': instance.id}, BulkModelDeletionTask)
@@ -46,5 +48,7 @@ class ProjectDeletionTask(ModelDeletionTask):
         relations.extend(
             [ModelRelation(m, {'project_id': instance.id}, ModelDeletionTask) for m in model_list]
         )
+
+        relations.extend([rel(instance) for rel in default_manager.dependencies[models.Project]])
 
         return relations

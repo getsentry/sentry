@@ -14,7 +14,7 @@ from sentry.event_manager import (
 )
 from sentry.models import (
     Activity, Environment, Event, EventMapping, EventUser, Group, GroupHash, GroupRelease,
-    GroupTagValue, Project, Release, UserReport
+    Project, Release, UserReport
 )
 from sentry.similarity import features
 from sentry.tasks.base import instrumented_task
@@ -461,6 +461,8 @@ def repair_denormalizations(caches, project, events):
 
 
 def update_tag_value_counts(id_list):
+    from sentry.tagstore.legacy.models import GroupTagValue
+
     instances = tagstore.get_group_tag_keys(id_list)
     for instance in instances:
         instance.update(

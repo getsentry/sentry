@@ -39,13 +39,15 @@ def merge_group(
         GroupHash,
         GroupRuleStatus,
         GroupSubscription,
-        GroupTagKey,
-        GroupTagValue,
         EventMapping,
         Event,
         UserReport,
         GroupRedirect,
         GroupMeta,
+    )
+    from sentry.tagstore.legacy.models import (
+        GroupTagKey,
+        GroupTagValue,
     )
 
     if not (from_object_id and to_object_id):
@@ -245,7 +247,7 @@ def _rehash_group_events(group, limit=100):
 
 
 def merge_objects(models, group, new_group, limit=1000, logger=None, transaction_id=None):
-    from sentry.models import GroupTagKey, GroupTagValue
+    from sentry.tagstore.legacy.models import GroupTagKey, GroupTagValue
 
     has_more = False
     for model in models:
