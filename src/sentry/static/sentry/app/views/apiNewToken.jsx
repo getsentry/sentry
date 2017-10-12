@@ -2,36 +2,13 @@ import React from 'react';
 import {browserHistory} from 'react-router';
 
 import AsyncView from './asyncView';
+import {API_SCOPES, DEFAULT_API_SCOPES} from '../constants';
 import NarrowLayout from '../components/narrowLayout';
 import {ApiForm, MultipleCheckboxField} from '../components/forms';
 import {t, tct} from '../locale';
 
-const SCOPES = new Set([
-  'project:read',
-  'project:write',
-  'project:admin',
-  'project:releases',
-  'team:read',
-  'team:write',
-  'team:admin',
-  'event:read',
-  'event:admin',
-  'org:read',
-  'org:write',
-  'org:admin',
-  'member:read',
-  'member:admin'
-]);
-
-const DEFAULT_SCOPES = new Set([
-  'event:read',
-  'event:admin',
-  'project:read',
-  'project:releases',
-  'org:read',
-  'team:read',
-  'member:read'
-]);
+const SORTED_DEFAULT_API_SCOPES = DEFAULT_API_SCOPES.sort();
+const API_CHOICES = API_SCOPES.map(s => [s, s]);
 
 export default class ApiNewToken extends AsyncView {
   getTitle() {
@@ -47,9 +24,6 @@ export default class ApiNewToken extends AsyncView {
   }
 
   renderBody() {
-    let defaultScopes = Array.from(DEFAULT_SCOPES);
-    defaultScopes.sort();
-
     return (
       <NarrowLayout>
         <h3>{t('Create New Token')}</h3>
@@ -71,12 +45,12 @@ export default class ApiNewToken extends AsyncView {
           apiMethod="POST"
           apiEndpoint="/api-tokens/"
           className="form-stacked api-new-token"
-          initialData={{scopes: defaultScopes}}
+          initialData={{scopes: SORTED_DEFAULT_API_SCOPES}}
           onSubmitSuccess={this.onSubmitSuccess}
           onCancel={this.onCancel}>
           <MultipleCheckboxField
             name="scopes"
-            choices={Array.from(SCOPES.keys()).map(s => [s, s])}
+            choices={API_CHOICES}
             label={t('Scopes')}
             required={true}
           />

@@ -38,6 +38,7 @@ class TagValue(Model):
         app_label = 'sentry'
         db_table = 'sentry_filtervalue'
         unique_together = (('project_id', 'key', 'value'), )
+        index_together = (('project_id', 'key', 'last_seen'), )
 
     __repr__ = sane_repr('project_id', 'key', 'value')
 

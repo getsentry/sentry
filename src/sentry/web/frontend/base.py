@@ -167,10 +167,28 @@ class BaseView(View, OrganizationMixin):
             self.csrf_protect = csrf_protect
         super(BaseView, self).__init__(*args, **kwargs)
 
-    # we manage csrf verification ourselves
     @csrf_exempt
     def dispatch(self, request, *args, **kwargs):
+        """
+        A note on the CSRF protection process.
+
+        Because the CSRF decorators don't work well with view subclasses, we
+        allow them to control whether a CSRF check is done by setting
+        self.csrf_protect. This has a couple of implications:
+
+        1. We need to mark this method as @csrf_exempt so that when the CSRF
+           middleware checks it as part of the regular middleware sequence, it
+           always passes.
+        2. If self.csrf_protect is set, we will re-run the CSRF check ourselves
+           using CsrfViewMiddleware().process_view()
+        3. But first we must remove the csrf_exempt attribute that was set by
+           the decorator so that the middleware doesn't shortcut and pass the
+           check unconditionally again.
+
+        """
         if self.csrf_protect:
+            if hasattr(self.dispatch.__func__, 'csrf_exempt'):
+                delattr(self.dispatch.__func__, 'csrf_exempt')
             response = self.test_csrf(request)
             if response:
                 return response

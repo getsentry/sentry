@@ -166,7 +166,7 @@ function optionsForSection(section) {
   return definitions.filter(option => option.key.split('.')[0] === section.key);
 }
 
-export function getOptionField(option, field, value, onChange) {
+export function getOptionField(option, field) {
   let meta = {...getOption(option), ...field};
   let Field = meta.component || TextField;
   return (
@@ -177,9 +177,7 @@ export function getOptionField(option, field, value, onChange) {
       defaultValue={meta.defaultValue ? meta.defaultValue() : undefined}
       placeholder={meta.placeholder}
       help={meta.help}
-      onChange={onChange}
       required={meta.required && !meta.allowEmpty}
-      value={value}
       disabled={meta.disabled}
       disabledReason={meta.disabledReason && disabledReasons[meta.disabledReason]}
     />
