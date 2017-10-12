@@ -57,5 +57,5 @@ class Device(Interface):
     def get_path(self):
         return 'device'
 
-    def get_hash(self):
+    def get_hash(self, is_processed_data=True):
         return []
