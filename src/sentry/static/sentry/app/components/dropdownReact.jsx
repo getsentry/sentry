@@ -10,14 +10,23 @@ class DropdownLink extends React.Component {
     disabled: PropTypes.bool,
     onOpen: PropTypes.func,
     onClose: PropTypes.func,
+
+    /**
+     * Callback function to check if we should ignore click outside to
+     * hide dropdown menu
+     */
+    shouldIgnoreClickOutside: PropTypes.func,
+
     /**
      * If this is set, then this will become a "controlled" component.
      * It will no longer set local state and dropdown visiblity will
      * only follow `isOpen`.
      */
     isOpen: PropTypes.bool,
+
     /** anchors menu to the right */
     anchorRight: PropTypes.bool,
+
     /** Keeps dropdown menu open when menu is clicked */
     keepMenuOpen: PropTypes.bool,
 
@@ -60,11 +69,16 @@ class DropdownLink extends React.Component {
   // Checks if click happens inside of dropdown menu (or its button)
   // Closes dropdownmenu if it is "outside"
   checkClickOutside = e => {
+    let {shouldIgnoreClickOutside} = this.props;
+
     if (!this.dropdownMenu) return;
     // Dropdown menu itself
     if (this.dropdownMenu.contains(e.target)) return;
     // Button that controls visibility of dropdown menu
     if (this.dropdownActor.contains(e.target)) return;
+
+    if (typeof shouldIgnoreClickOutside === 'function' && shouldIgnoreClickOutside(e))
+      return;
 
     this.handleClose(e);
   };
