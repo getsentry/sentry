@@ -234,6 +234,11 @@ def load_script(path):
     return call_script
 
 
+def replace(instance, name, function):
+    original = getattr(instance, name)
+    setattr(instance, name, functools.partial(function, original))
+
+
 @contextmanager
 def pipeline_with_future_responses(client):
     # TODO: Probably make something API compatible with concurrent.futures but
@@ -241,33 +246,28 @@ def pipeline_with_future_responses(client):
     pipeline = client.pipeline()
     pipeline.futures = []
 
-    original_reset = pipeline.reset
-
-    def reset(*args, **kwargs):
+    def reset(reset, *args, **kwargs):
         pipeline.futures = []
-        return original_reset(*args, **kwargs)
-    pipeline.reset = reset
+        return reset(*args, **kwargs)
 
-    original_pipeline_execute_command = pipeline.pipeline_execute_command
-
-    def pipeline_execute_command(*args, **kwargs):
+    def pipeline_execute_command(execute_command, *args, **kwargs):
         future = Future()
         pipeline.futures.append(future)
-        original_pipeline_execute_command(*args, **kwargs)
+        execute_command(*args, **kwargs)
         return future
-    pipeline.pipeline_execute_command = pipeline_execute_command
 
-    original_execute = pipeline.execute
-
-    def execute(*args, **kwargs):
+    def execute(execute, *args, **kwargs):
         futures = pipeline.futures  # reset will be called at the end of execute
         # TODO: Handle errors raised here and set exceptions on (all?) futures.
-        results = original_execute(*args, **kwargs)
+        results = execute(*args, **kwargs)
         assert len(futures) == len(results)
         for future, result in zip(futures, results):
             future.set_result(result)
         return results
-    pipeline.execute = execute
+
+    replace(pipeline, 'reset', reset)
+    replace(pipeline, 'pipeline_execute_command', pipeline_execute_command)
+    replace(pipeline, 'execute', execute)
 
     with pipeline:
         yield pipeline
