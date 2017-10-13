@@ -195,9 +195,9 @@ def worker(**options):
 
     from sentry.celery import app
     worker = app.Worker(
-        # without_gossip=True,
-        # without_mingle=True,
-        # without_heartbeat=True,
+        # This gets passed all the way down to the Gossip bootstrap step here:
+        # https://github.com/celery/celery/blob/v3.1.18/celery/worker/consumer.py#L668
+        interval=60,
         pool_cls='processes',
         **options
     )
