@@ -1,6 +1,7 @@
 import Clip from 'clipboard';
 import PropTypes from 'prop-types';
 import React from 'react';
+import ReactDOM from 'react-dom';
 
 import IndicatorStore from '../stores/indicatorStore';
 
@@ -34,7 +35,7 @@ class Clipboard extends React.Component {
     let hasErrorCb = typeof onError === 'function';
     let bindEventHandlers = !hideMessages || hasSuccessCb || hasErrorCb;
 
-    this.clipboard = new Clip(ref, {
+    this.clipboard = new Clip(ReactDOM.findDOMNode(ref), {
       text: () => this.props.value
     });
 
