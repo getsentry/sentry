@@ -5,7 +5,7 @@ import time
 
 from sentry.similarity.backends.abstract import AbstractIndexBackend
 from sentry.utils.iterators import chunked
-from sentry.utils.redis import load_script
+from sentry.utils.redis import load_script, with_future_responses
 
 
 index = load_script('similarity/index.lua')
@@ -31,17 +31,50 @@ class RedisMinHashIndexBackend(AbstractIndexBackend):
         self.retention = retention
         self.candidate_set_limit = candidate_set_limit
 
+    def __get_active_time_series(self, timestamp, function):
+        raise NotImplementedError
+
+    def __get_active_time_series_range(self, timestamp, function):
+        raise NotImplementedError
+
+    def __get_membership_key(self, index, interval, band, bucket):
+        raise NotImplementedError
+
+    def __get_frequency_key(self, index, item):
+        raise NotImplementedError
+
+    def __search(self, scope):
+        with with_future_responses(self.cluster.pipeline()) as pipeline:
+            # fetch candidates for all indices
+            pipeline.execute()
+
+        # sort and truncate candidates based on limit
+
+        with with_future_responses(self.cluster.pipeline()) as pipeline:
+            # fetch candidate data for all indices in parameters
+            pipeline.execute()
+
+        # sort similar items
+
     def classify(self, scope, items, limit=None, timestamp=None):
         if timestamp is None:
             timestamp = int(time.time())
 
         raise NotImplementedError
 
+        return self.__search(scope)
+
     def compare(self, scope, key, items, limit=None, timestamp=None):
         if timestamp is None:
             timestamp = int(time.time())
 
         raise NotImplementedError
+
+        with with_future_responses(self.cluster.pipeline()) as pipeline:
+            # fetch data
+            pipeline.execute()
+
+        return self.__search(scope)
 
     def record(self, scope, key, items, timestamp=None):
         if not items:
@@ -51,6 +84,10 @@ class RedisMinHashIndexBackend(AbstractIndexBackend):
             timestamp = int(time.time())
 
         raise NotImplementedError
+
+        with with_future_responses(self.cluster.pipeline()) as pipeline:
+            # write data
+            pipeline.execute()
 
     def merge(self, scope, destination, items, timestamp=None):
         if timestamp is None:
