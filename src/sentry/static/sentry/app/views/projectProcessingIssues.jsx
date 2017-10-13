@@ -13,7 +13,6 @@ import {t, tn} from '../locale';
 const MESSAGES = {
   native_no_crashed_thread: t('No crashed thread found in crash report'),
   native_internal_failure: t('Internal failure when attempting to symbolicate: {error}'),
-  native_no_symsynd: t('The symbolizer is not configured for this system.'),
   native_bad_dsym: t('The debug symbol file used was broken.'),
   native_missing_optionally_bundled_dsym: t('An optional debug symbol file was missing.'),
   native_missing_dsym: t('A required debug symbol file was missing.'),

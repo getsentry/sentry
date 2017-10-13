@@ -83,6 +83,8 @@ def devserver(reload, watchers, workers, browser_reload, styleguide, environment
         'worker-reload-mercy': 2,
         # We need stdin to support pdb in devserver
         'honour-stdin': True,
+        # accept ridiculously large files
+        'limit-post': 1 << 30,
     }
 
     if reload:

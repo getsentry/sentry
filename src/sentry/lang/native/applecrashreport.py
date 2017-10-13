@@ -3,8 +3,9 @@ from __future__ import absolute_import
 import posixpath
 
 from sentry.utils.compat import implements_to_string
-from sentry.utils.native import parse_addr
 from sentry.constants import NATIVE_UNKNOWN_STRING
+
+from symbolic import parse_addr
 
 REPORT_VERSION = '104'
 
