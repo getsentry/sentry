@@ -4,6 +4,7 @@ import functools
 import logging
 import posixpath
 import six
+from contextlib import contextmanager
 from concurrent.futures import Future
 from threading import Lock
 
@@ -233,13 +234,11 @@ def load_script(path):
     return call_script
 
 
-def with_future_responses(pipeline):
-    # TODO: Possibly turn this into a context manager and force execution on __exit__?
-    # TODO: Possibly just take the client/cluster object to avoid having to make the below assertion?
+@contextmanager
+def pipeline_with_future_responses(client):
     # TODO: Probably make something API compatible with concurrent.futures but
     # don't actually use it because we don't have to be concerned with locking?
-    assert len(pipeline) == 0, 'cannot add futures to a pipeline in progress'
-
+    pipeline = client.pipeline()
     pipeline.futures = []
 
     original_reset = pipeline.reset
@@ -270,4 +269,6 @@ def with_future_responses(pipeline):
         return results
     pipeline.execute = execute
 
-    return pipeline
+    with pipeline:
+        yield pipeline
+        pipeline.execute()
