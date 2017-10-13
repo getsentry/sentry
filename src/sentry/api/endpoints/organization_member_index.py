@@ -102,10 +102,7 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
         can_admin, allowed_roles = get_allowed_roles(request, organization)
 
         if not result['role'] in {r.id for r in allowed_roles}:
-            return Response(
-                '{"error": "You do not have permission to invite that role."}',
-                status=403
-            )
+            return Response({'role': 'You do not have permission to invite that role.'}, 403)
 
         # This is needed because `email` field is case sensitive, but from a user perspective,
         # Sentry treats email as case-insensitive (Eric@sentry.io equals eric@sentry.io).
