@@ -6,7 +6,6 @@ import Radio from '../../components/radio';
 import LoadingIndicator from '../../components/loadingIndicator';
 import TextField from '../../components/forms/textField';
 
-import ConfigStore from '../../stores/configStore';
 import ApiMixin from '../../mixins/apiMixin';
 import OrganizationState from '../../mixins/organizationState';
 
@@ -34,9 +33,7 @@ const InviteMember = React.createClass({
 
   componentDidMount() {
     let {slug} = this.getOrganization();
-    let user = ConfigStore.get('user');
-
-    this.api.request(`/organizations/${slug}/members/${user.id}/`, {
+    this.api.request(`/organizations/${slug}/members/me/`, {
       method: 'GET',
       success: ({role_list, is_invite}) => {
         this.setState({roleList: role_list, isInvite: is_invite, loading: false});

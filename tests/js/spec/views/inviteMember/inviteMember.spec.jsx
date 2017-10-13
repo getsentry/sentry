@@ -63,7 +63,7 @@ describe('CreateProject', function() {
 
     it('should redirect when no roles available', function() {
       Client.addMockResponse({
-        url: '/organizations/testOrg/members/1/',
+        url: '/organizations/testOrg/members/me/',
         body: {
           role_list: [
             {
@@ -98,7 +98,7 @@ describe('CreateProject', function() {
       done
     ) {
       Client.addMockResponse({
-        url: '/organizations/testOrg/members/1/',
+        url: '/organizations/testOrg/members/me/',
         body: {
           role_list: [
             {
