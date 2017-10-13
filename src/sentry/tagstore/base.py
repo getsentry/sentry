@@ -80,6 +80,7 @@ class TagStorage(Service):
         'get_group_tag_values_for_users',
         'get_tags_for_search_filter',
         'get_event_tag_qs',
+        'update_group_tag_key_values_seen',
     )
 
     def is_valid_key(self, key):
@@ -354,5 +355,11 @@ class TagStorage(Service):
     def get_event_tag_qs(self, **kwargs):
         """
         >>> get_event_tag_qs(event_id=1, key_id=2)
+        """
+        raise NotImplementedError
+
+    def update_group_tag_key_values_seen(self, group_ids):
+        """
+        >>> update_group_tag_key_values_seen([1, 2])
         """
         raise NotImplementedError

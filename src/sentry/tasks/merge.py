@@ -97,6 +97,7 @@ def merge_group(
             }
         )
 
+    # TODO: add global list so tagstore can add its own models
     model_list = (
         Activity, GroupAssignee, GroupHash, GroupRuleStatus, GroupSubscription, GroupTagValue,
         GroupTagKey, EventMapping, Event, UserReport, GroupRedirect, GroupMeta,
@@ -269,6 +270,7 @@ def merge_objects(models, group, new_group, limit=1000, logger=None, transaction
             else:
                 delete = False
 
+            # TODO: check for special merge method on models, move this code to models
             if delete:
                 # Before deleting, we want to merge in counts
                 try:

@@ -67,7 +67,7 @@ class LegacyTagStorage(TagStorage):
         ]
 
         # TODO: merge/unmerge deals with GroupTagKey, GroupTagValue
-        # TODO: check all references to `tagstore.backends.legacy.models`
+        # TODO: check all references to `tagstore.legacy.models`
 
     def create_tag_key(self, project_id, key, **kwargs):
         return TagKey.objects.create(project_id=project_id, key=key, **kwargs)
@@ -545,3 +545,14 @@ class LegacyTagStorage(TagStorage):
 
     def get_event_tag_qs(self, **kwargs):
         return EventTag.objects.filter(**kwargs)
+
+    def update_group_tag_key_values_seen(self, group_ids):
+        instances = self.get_group_tag_keys(group_ids)
+        for instance in instances:
+            instance.update(
+                values_seen=GroupTagValue.objects.filter(
+                    project_id=instance.project_id,
+                    group_id=instance.group_id,
+                    key=instance.key,
+                ).count(),
+            )
