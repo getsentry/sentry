@@ -134,6 +134,7 @@ class NativeStacktraceProcessor(StacktraceProcessor):
                     project=self.project,
                     data={'name': app_info.name},
                     platform=DSymPlatform.APPLE,
+                    no_fetch=True
                 )
                 try:
                     with transaction.atomic():

@@ -99,11 +99,13 @@ def _auto_enrich_data(data, app_id, platform):
 
 class DSymAppManager(BaseManager):
     def create_or_update_app(
-        self, sync_id, app_id, project, data=None, platform=DSymPlatform.GENERIC
+        self, sync_id, app_id, project, data=None, platform=DSymPlatform.GENERIC,
+        no_fetch=False
     ):
         if data is None:
             data = {}
-        _auto_enrich_data(data, app_id, platform)
+        if not no_fetch:
+            _auto_enrich_data(data, app_id, platform)
         existing_app = DSymApp.objects.filter(app_id=app_id, project=project).first()
         if existing_app is not None:
             now = timezone.now()
