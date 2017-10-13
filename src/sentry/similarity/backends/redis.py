@@ -20,6 +20,72 @@ def flatten(value):
     return list(itertools.chain.from_iterable(value))
 
 
+class RedisMinHashIndexBackend(AbstractIndexBackend):
+    def __init__(self, cluster, namespace, signature_builder,
+                 bands, interval, retention, candidate_set_limit):
+        self.cluster = cluster
+        self.namespace = namespace
+        self.signature_builder = signature_builder
+        self.bands = bands
+        self.interval = interval
+        self.retention = retention
+        self.candidate_set_limit = candidate_set_limit
+
+    def classify(self, scope, items, limit=None, timestamp=None):
+        if timestamp is None:
+            timestamp = int(time.time())
+
+        raise NotImplementedError
+
+    def compare(self, scope, key, items, limit=None, timestamp=None):
+        if timestamp is None:
+            timestamp = int(time.time())
+
+        raise NotImplementedError
+
+    def record(self, scope, key, items, timestamp=None):
+        if not items:
+            return  # nothing to do
+
+        if timestamp is None:
+            timestamp = int(time.time())
+
+        raise NotImplementedError
+
+    def merge(self, scope, destination, items, timestamp=None):
+        if timestamp is None:
+            timestamp = int(time.time())
+
+        raise NotImplementedError
+
+    def delete(self, scope, items, timestamp=None):
+        if timestamp is None:
+            timestamp = int(time.time())
+
+        raise NotImplementedError
+
+    def scan(self, scope, indices, batch=1000, timestamp=None):
+        if timestamp is None:
+            timestamp = int(time.time())
+
+        raise NotImplementedError
+
+    def flush(self, scope, indices, batch=1000, timestamp=None):
+        raise NotImplementedError
+
+    def export(self, scope, items, timestamp=None):
+        if timestamp is None:
+            timestamp = int(time.time())
+
+        raise NotImplementedError
+
+    def import_(self, scope, items, timestamp=None):
+        if timestamp is None:
+            timestamp = int(time.time())
+
+        raise NotImplementedError
+
+
 class RedisScriptMinHashIndexBackend(AbstractIndexBackend):
     def __init__(self, cluster, namespace, signature_builder,
                  bands, interval, retention, candidate_set_limit):

@@ -5,7 +5,7 @@ import time
 import msgpack
 from exam import fixture
 
-from sentry.similarity.backends.redis import RedisScriptMinHashIndexBackend
+from sentry.similarity.backends.redis import RedisMinHashIndexBackend, RedisScriptMinHashIndexBackend
 from sentry.similarity.signatures import MinHashSignatureBuilder
 from sentry.testutils import TestCase
 from sentry.utils import redis
@@ -14,6 +14,23 @@ from .base import MinHashIndexBackendTestMixin
 
 
 signature_builder = MinHashSignatureBuilder(32, 0xFFFF)
+
+
+class RedisMinHashIndexBackendTestCase(MinHashIndexBackendTestMixin, TestCase):
+    @fixture
+    def index(self):
+        return RedisMinHashIndexBackend(
+            redis.clusters.get('default').get_local_client(0),
+            'sim',
+            signature_builder,
+            16,
+            60 * 60,
+            12,
+            10,
+        )
+
+    def test_export_import(self):
+        raise NotImplementedError
 
 
 class RedisScriptMinHashIndexBackendTestCase(MinHashIndexBackendTestMixin, TestCase):
