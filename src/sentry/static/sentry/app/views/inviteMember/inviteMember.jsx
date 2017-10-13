@@ -4,6 +4,8 @@ import classnames from 'classnames';
 import Checkbox from '../../components/checkbox';
 import Radio from '../../components/radio';
 import LoadingIndicator from '../../components/loadingIndicator';
+import AlertActions from '../../actions/alertActions';
+
 import TextField from '../../components/forms/textField';
 
 import ApiMixin from '../../mixins/apiMixin';
@@ -72,9 +74,23 @@ const InviteMember = React.createClass({
           teams: Array.from(selectedTeams.keys()),
           role: selectedRole
         },
-        success: resolve,
+        success: () => {
+          AlertActions.addAlert({
+            message: `Added ${email}`,
+            type: 'success'
+          });
+          resolve();
+        },
         error: err => {
-          reject(err.responseJSON);
+          if (err.responseJSON && err.responseJSON.exists) {
+            AlertActions.addAlert({
+              message: `User already exists: ${email}`,
+              type: 'info'
+            });
+            resolve();
+          } else {
+            reject(err.responseJSON);
+          }
         }
       });
     });
@@ -86,11 +102,7 @@ const InviteMember = React.createClass({
     if (!emails.length) return;
     this.setState({loading: true});
 
-    //These are requested in series and not parallel becuase django messages don't work on parallel requests
-    emails
-      .reduce((prev, cur_email) => {
-        return prev.then(() => this.inviteUser(cur_email));
-      }, Promise.resolve())
+    Promise.all(emails.map(this.inviteUser))
       .then(() => this.redirectToMemberPage())
       .catch(error => {
         if (!error.email && !error.role) {
@@ -98,7 +110,6 @@ const InviteMember = React.createClass({
             extra: {error, state: this.state}
           });
         }
-
         this.setState({error, loading: false});
       });
   },

@@ -5,8 +5,6 @@ from django.db import transaction, IntegrityError
 from django.db.models import Q
 from rest_framework import serializers
 from rest_framework.response import Response
-from django.utils.translation import ugettext_lazy as _
-from django.contrib import messages
 from django.conf import settings
 
 
@@ -107,7 +105,7 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
         # This is needed because `email` field is case sensitive, but from a user perspective,
         # Sentry treats email as case-insensitive (Eric@sentry.io equals eric@sentry.io).
         try:
-            existing = OrganizationMember.objects.filter(
+            OrganizationMember.objects.filter(
                 organization=organization,
                 user__email__iexact=result['email'],
                 user__is_active=True,
@@ -116,11 +114,8 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
         except IndexError:
             pass
         else:
-            messages.add_message(
-                request, messages.INFO,
-                _('The organization member %s already exists.') % result['email']
-            )
-            return Response(serialize(existing), status=200)
+            return Response(
+                {'exists': result['email']}, 400)
 
         om = OrganizationMember(
             organization=organization,
@@ -136,19 +131,13 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
 
         except IntegrityError:
             transaction.savepoint_rollback(sid, using='default')
-            messages.add_message(
-                request, messages.INFO,
-                _('The organization member %s already exists.') % result['email']
-            )
+            return Response(
+                {'exists': result['email']}, 400)
+
             return Response(serialize(OrganizationMember.objects.get(
                 email__iexact=om.email,
                 organization=organization,
             )), status=200)
-
-        messages.add_message(
-            request, messages.SUCCESS,
-            _('The organization member %s was added.') % result['email']
-        )
 
         teams = Team.objects.filter(
             organization=organization,
