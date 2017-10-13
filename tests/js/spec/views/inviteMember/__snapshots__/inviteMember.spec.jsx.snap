@@ -99,12 +99,14 @@ exports[`CreateProject render() should render 1`] = `
       </div>
     </div>
   </div>
-  <button
-    className="btn btn-primary submit-new-team"
+  <Button
+    className="submit-new-team"
+    disabled={false}
     onClick={[Function]}
+    priority="primary"
   >
     Add Member
-  </button>
+  </Button>
 </div>
 `;
 
@@ -152,12 +154,14 @@ exports[`CreateProject render() should render no team select when there is only 
       />
     </div>
   </div>
-  <button
-    className="btn btn-primary submit-new-team"
+  <Button
+    className="submit-new-team"
+    disabled={false}
     onClick={[Function]}
+    priority="primary"
   >
     Add Member
-  </button>
+  </Button>
 </div>
 `;
 
@@ -367,12 +371,33 @@ exports[`CreateProject render() should render roles when available and allowed, 
         </div>
       </div>
     </div>
-    <button
-      className="btn btn-primary submit-new-team"
+    <Button
+      className="submit-new-team"
+      disabled={false}
       onClick={[Function]}
+      priority="primary"
     >
-      Add Member
-    </button>
+      <button
+        className="submit-new-team button button-primary"
+        disabled={false}
+        onClick={[Function]}
+        role="button"
+      >
+        <FlowLayout
+          truncate={false}
+        >
+          <div
+            className="flow-layout"
+          >
+            <span
+              className="button-label"
+            >
+              Add Member
+            </span>
+          </div>
+        </FlowLayout>
+      </button>
+    </Button>
   </div>
 </InviteMember>
 `;

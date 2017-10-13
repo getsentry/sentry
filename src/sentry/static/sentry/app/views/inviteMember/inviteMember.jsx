@@ -3,6 +3,7 @@ import classnames from 'classnames';
 
 import Checkbox from '../../components/checkbox';
 import Radio from '../../components/radio';
+import Button from '../../components/buttons/button';
 import LoadingIndicator from '../../components/loadingIndicator';
 import AlertActions from '../../actions/alertActions';
 
@@ -216,9 +217,9 @@ const InviteMember = React.createClass({
         {error && error.role && <p className="error alert-error">{error.role}</p>}
         {this.renderRoleSelect()}
         {this.renderTeamSelect()}
-        <button className="btn btn-primary submit-new-team" onClick={this.submit}>
+        <Button priority="primary" className="submit-new-team" onClick={this.submit}>
           {t('Add Member')}
-        </button>
+        </Button>
       </div>
     );
   }
