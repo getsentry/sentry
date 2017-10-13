@@ -65,7 +65,7 @@ class FileTest(TestCase):
             fp.read()
 
     def test_multi_chunk_prefetch(self):
-        random_data = os.urandom(1 << 16)
+        random_data = os.urandom(1 << 25)
 
         fileobj = ContentFile(random_data)
         file = File.objects.create(
@@ -73,7 +73,7 @@ class FileTest(TestCase):
             type='default',
             size=len(random_data),
         )
-        file.putfile(fileobj, 128)
+        file.putfile(fileobj)
 
         f = file.getfile(prefetch=True)
         assert f.read() == random_data

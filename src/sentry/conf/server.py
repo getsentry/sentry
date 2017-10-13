@@ -424,10 +424,11 @@ CELERY_IMPORTS = (
     'sentry.tasks.auth', 'sentry.tasks.auto_resolve_issues', 'sentry.tasks.beacon',
     'sentry.tasks.check_auth', 'sentry.tasks.clear_expired_snoozes',
     'sentry.tasks.collect_project_platforms', 'sentry.tasks.commits', 'sentry.tasks.deletion',
-    'sentry.tasks.digests', 'sentry.tasks.dsymcache', 'sentry.tasks.email', 'sentry.tasks.merge',
+    'sentry.tasks.digests', 'sentry.tasks.email', 'sentry.tasks.merge',
     'sentry.tasks.options', 'sentry.tasks.ping', 'sentry.tasks.post_process',
     'sentry.tasks.process_buffer', 'sentry.tasks.reports', 'sentry.tasks.reprocessing',
     'sentry.tasks.scheduler', 'sentry.tasks.store', 'sentry.tasks.unmerge',
+    'sentry.tasks.symcache_update',
 )
 CELERY_QUEUES = [
     Queue('alerts', routing_key='alerts'),
@@ -544,14 +545,6 @@ CELERYBEAT_SCHEDULE = {
             'expires': 300,
         },
     },
-    # Disabled for the time being:
-    # 'clear-old-cached-dsyms': {
-    #     'task': 'sentry.tasks.clear_old_cached_dsyms',
-    #     'schedule': timedelta(minutes=60),
-    #     'options': {
-    #         'expires': 3600,
-    #     },
-    # },
     'collect-project-platforms': {
         'task': 'sentry.tasks.collect_project_platforms',
         'schedule': timedelta(days=1),
@@ -586,6 +579,13 @@ CELERYBEAT_SCHEDULE = {
             'expires': 60 * 60 * 3,
         },
     },
+}
+
+BGTASKS = {
+    'sentry.bgtasks.clean_dsymcache:clean_dsymcache': {
+        'interval': 5 * 60,
+        'roles': ['worker'],
+    }
 }
 
 # Sentry logs to two major places: stdout, and it's internal project.

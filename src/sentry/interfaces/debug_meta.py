@@ -6,7 +6,8 @@ import uuid
 __all__ = ('DebugMeta', )
 
 from sentry.interfaces.base import Interface, InterfaceValidationError
-from sentry.utils.native import parse_addr
+
+from symbolic import parse_addr
 
 image_types = {}
 
@@ -26,12 +27,13 @@ def process_apple_image(image):
 
     try:
         apple_image = {
-            'cpu_type': image['cpu_type'],
-            'cpu_subtype': image['cpu_subtype'],
-            'image_addr': _addr(image['image_addr']),
+            'arch': image.get('arch'),
+            'cpu_type': image.get('cpu_type'),
+            'cpu_subtype': image.get('cpu_subtype'),
+            'image_addr': _addr(image.get('image_addr')),
             'image_size': image['image_size'],
             'image_vmaddr': _addr(image.get('image_vmaddr') or 0),
-            'name': image['name'],
+            'name': image.get('name'),
             'uuid': six.text_type(uuid.UUID(image['uuid']))
         }
         if image.get('major_version') is not None:

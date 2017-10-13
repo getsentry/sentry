@@ -240,7 +240,7 @@ class BasicInAppTest(TestCase):
                     '2DA67FF5-2643-44D6-8FFF-1B6BC78C9912',
                 ]
             ),
-            cpu_name='arm64'
+            arch='arm64'
         )
 
         assert sym.is_in_app(4295121764)

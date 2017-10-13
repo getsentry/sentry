@@ -4,7 +4,7 @@ import six
 import logging
 
 from collections import namedtuple
-from symsynd import get_cpu_name, parse_addr
+from symbolic import parse_addr, arch_from_macho, arch_is_known
 
 from sentry.interfaces.contexts import DeviceContextType
 
@@ -92,7 +92,13 @@ def cpu_name_from_data(data):
     unique_cpu_name = None
     images = (data.get('debug_meta') or {}).get('images') or []
     for img in images:
-        cpu_name = get_cpu_name(img['cpu_type'], img['cpu_subtype'])
+        if img.get('arch') and arch_is_known(img['arch']):
+            cpu_name = img['arch']
+        elif img.get('cpu_type') is not None \
+                and img.get('cpu_subtype') is not None:
+            cpu_name = arch_from_macho(img['cpu_type'], img['cpu_subtype'])
+        else:
+            cpu_name = None
         if unique_cpu_name is None:
             unique_cpu_name = cpu_name
         elif unique_cpu_name != cpu_name:
@@ -119,8 +125,8 @@ def version_build_from_data(data):
     return None
 
 
-def rebase_addr(instr_addr, img):
-    return parse_addr(instr_addr) - parse_addr(img['image_addr'])
+def rebase_addr(instr_addr, obj):
+    return parse_addr(instr_addr) - parse_addr(obj.addr)
 
 
 def sdk_info_to_sdk_id(sdk_info):
