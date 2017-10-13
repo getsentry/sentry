@@ -896,43 +896,6 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
                         </EventOrGroupHeader>
                       </div>
                     </FlowLayout>
-                    <FlowLayout
-                      style={
-                        Object {
-                          "alignItems": "flex-end",
-                        }
-                      }
-                      truncate={true}
-                      vertical={true}
-                    >
-                      <div
-                        className="flow-layout is-vertical is-truncated"
-                        style={
-                          Object {
-                            "alignItems": "flex-end",
-                          }
-                        }
-                      >
-                        <span
-                          className="fingerprint-header"
-                        >
-                          Other Fingerprints
-                        </span>
-                        <FlowLayout
-                          truncate={true}
-                        >
-                          <div
-                            className="flow-layout is-truncated"
-                          >
-                            <span
-                              className="fingerprint"
-                            >
-                              e05da55328a860b21f62e371f0a7507d
-                            </span>
-                          </div>
-                        </FlowLayout>
-                      </div>
-                    </FlowLayout>
                   </div>
                 </SpreadLayout>
               </div>
@@ -1359,43 +1322,6 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
                             </div>
                           </div>
                         </EventOrGroupHeader>
-                      </div>
-                    </FlowLayout>
-                    <FlowLayout
-                      style={
-                        Object {
-                          "alignItems": "flex-end",
-                        }
-                      }
-                      truncate={true}
-                      vertical={true}
-                    >
-                      <div
-                        className="flow-layout is-vertical is-truncated"
-                        style={
-                          Object {
-                            "alignItems": "flex-end",
-                          }
-                        }
-                      >
-                        <span
-                          className="fingerprint-header"
-                        >
-                          Other Fingerprints
-                        </span>
-                        <FlowLayout
-                          truncate={true}
-                        >
-                          <div
-                            className="flow-layout is-truncated"
-                          >
-                            <span
-                              className="fingerprint"
-                            >
-                              2c4887696f708c476a81ce4e834c4b02
-                            </span>
-                          </div>
-                        </FlowLayout>
                       </div>
                     </FlowLayout>
                   </div>
@@ -2293,43 +2219,6 @@ exports[`Issues -> Merged View renders with mocked data 2`] = `
                         </EventOrGroupHeader>
                       </div>
                     </FlowLayout>
-                    <FlowLayout
-                      style={
-                        Object {
-                          "alignItems": "flex-end",
-                        }
-                      }
-                      truncate={true}
-                      vertical={true}
-                    >
-                      <div
-                        className="flow-layout is-vertical is-truncated"
-                        style={
-                          Object {
-                            "alignItems": "flex-end",
-                          }
-                        }
-                      >
-                        <span
-                          className="fingerprint-header"
-                        >
-                          Other Fingerprints
-                        </span>
-                        <FlowLayout
-                          truncate={true}
-                        >
-                          <div
-                            className="flow-layout is-truncated"
-                          >
-                            <span
-                              className="fingerprint"
-                            >
-                              e05da55328a860b21f62e371f0a7507d
-                            </span>
-                          </div>
-                        </FlowLayout>
-                      </div>
-                    </FlowLayout>
                   </div>
                 </SpreadLayout>
               </div>
@@ -2756,43 +2645,6 @@ exports[`Issues -> Merged View renders with mocked data 2`] = `
                             </div>
                           </div>
                         </EventOrGroupHeader>
-                      </div>
-                    </FlowLayout>
-                    <FlowLayout
-                      style={
-                        Object {
-                          "alignItems": "flex-end",
-                        }
-                      }
-                      truncate={true}
-                      vertical={true}
-                    >
-                      <div
-                        className="flow-layout is-vertical is-truncated"
-                        style={
-                          Object {
-                            "alignItems": "flex-end",
-                          }
-                        }
-                      >
-                        <span
-                          className="fingerprint-header"
-                        >
-                          Other Fingerprints
-                        </span>
-                        <FlowLayout
-                          truncate={true}
-                        >
-                          <div
-                            className="flow-layout is-truncated"
-                          >
-                            <span
-                              className="fingerprint"
-                            >
-                              2c4887696f708c476a81ce4e834c4b02
-                            </span>
-                          </div>
-                        </FlowLayout>
                       </div>
                     </FlowLayout>
                   </div>
