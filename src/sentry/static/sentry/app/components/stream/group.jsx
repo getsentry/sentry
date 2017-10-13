@@ -1,19 +1,19 @@
-import jQuery from 'jquery';
 import PropTypes from 'prop-types';
 import React from 'react';
 import Reflux from 'reflux';
+import classNames from 'classnames';
+import jQuery from 'jquery';
 
+import {defined, valueIsEqual} from '../../utils';
 import AssigneeSelector from '../assigneeSelector';
 import Count from '../count';
+import EventOrGroupExtraDetails from '../eventOrGroupExtraDetails';
+import EventOrGroupHeader from '../eventOrGroupHeader';
 import GroupChart from './groupChart';
 import GroupCheckBox from './groupCheckBox';
-import ProjectState from '../../mixins/projectState';
 import GroupStore from '../../stores/groupStore';
+import ProjectState from '../../mixins/projectState';
 import SelectedGroupStore from '../../stores/selectedGroupStore';
-import EventOrGroupHeader from '../eventOrGroupHeader';
-import EventOrGroupExtraDetails from '../eventOrGroupExtraDetails';
-
-import {valueIsEqual} from '../../utils';
 
 const StreamGroup = React.createClass({
   propTypes: {
@@ -78,27 +78,18 @@ const StreamGroup = React.createClass({
   },
 
   render() {
-    let data = this.state.data;
-    let userCount = data.userCount;
-
-    let className = 'group row';
-    if (data.isBookmarked) {
-      className += ' isBookmarked';
-    }
-    if (data.hasSeen) {
-      className += ' hasSeen';
-    }
-    if (data.status === 'resolved') {
-      className += ' isResolved';
-    }
-    if (data.status === 'ignored') {
-      className += ' isIgnored';
-    }
-
-    className += ' type-' + data.type;
-    className += ' level-' + data.level;
-
     let {id, orgId, projectId} = this.props;
+    let {data} = this.state;
+    let userCount = data.userCount;
+    let className = classNames('group row', {
+      isBookmarked: data.isBookmarked,
+      isIgnored: data.status === 'ignored',
+      hasSeen: data.hasSeen,
+      [`type-${data.type}`]: defined(data.type),
+      [`level-${data.level}`]: defined(data.level)
+    });
+
+    let isResolved = data.status === 'resolved';
 
     return (
       <li className={className} onClick={this.toggleSelect}>
@@ -107,7 +98,12 @@ const StreamGroup = React.createClass({
             <div className="checkbox">
               <GroupCheckBox id={data.id} />
             </div>}
-          <EventOrGroupHeader data={data} orgId={orgId} projectId={projectId} />
+          <EventOrGroupHeader
+            isResolved={isResolved}
+            data={data}
+            orgId={orgId}
+            projectId={projectId}
+          />
           <EventOrGroupExtraDetails
             group
             {...data}

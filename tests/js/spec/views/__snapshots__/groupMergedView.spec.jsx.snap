@@ -876,7 +876,9 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
                                     orgId="orgId"
                                     projectId="projectId"
                                   >
-                                    <span>
+                                    <span
+                                      style={Object {}}
+                                    >
                                       TypeError
                                     </span>
                                   </EventOrGroupTitle>
@@ -1304,7 +1306,9 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
                                     orgId="orgId"
                                     projectId="projectId"
                                   >
-                                    <span>
+                                    <span
+                                      style={Object {}}
+                                    >
                                       TypeError
                                     </span>
                                   </EventOrGroupTitle>
@@ -2199,7 +2203,9 @@ exports[`Issues -> Merged View renders with mocked data 2`] = `
                                     orgId="orgId"
                                     projectId="projectId"
                                   >
-                                    <span>
+                                    <span
+                                      style={Object {}}
+                                    >
                                       TypeError
                                     </span>
                                   </EventOrGroupTitle>
@@ -2627,7 +2633,9 @@ exports[`Issues -> Merged View renders with mocked data 2`] = `
                                     orgId="orgId"
                                     projectId="projectId"
                                   >
-                                    <span>
+                                    <span
+                                      style={Object {}}
+                                    >
                                       TypeError
                                     </span>
                                   </EventOrGroupTitle>

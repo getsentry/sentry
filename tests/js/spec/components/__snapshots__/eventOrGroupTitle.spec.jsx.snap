@@ -1,7 +1,9 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`EventOrGroupTitle renders with no subtitle when \`type = default\` 1`] = `
-<span>
+<span
+  style={Object {}}
+>
   metadata title
 </span>
 `;
@@ -17,7 +19,9 @@ exports[`EventOrGroupTitle renders with subtitle when \`type = csp\` 1`] = `
   >
     metadata directive
   </span>
-  <em>
+  <em
+    style={Object {}}
+  >
     metadata uri
   </em>
   <br />
@@ -35,7 +39,9 @@ exports[`EventOrGroupTitle renders with subtitle when \`type = error\` 1`] = `
   >
     metadata type
   </span>
-  <em>
+  <em
+    style={Object {}}
+  >
     culprit
   </em>
   <br />
