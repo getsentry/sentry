@@ -154,7 +154,7 @@ class GroupSerializer(Serializer):
 
         share_ids = dict(GroupShare.objects.filter(
             group__in=item_list,
-        ).values_list('group_id', 'guid'))
+        ).values_list('group_id', 'uuid'))
 
         result = {}
         for item in item_list:

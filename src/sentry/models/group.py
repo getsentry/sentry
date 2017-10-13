@@ -266,7 +266,7 @@ class Group(Model):
         try:
             return GroupShare.objects.filter(
                 group_id=self.id,
-            ).values_list('guid', flat=True)[0]
+            ).values_list('uuid', flat=True)[0]
         except IndexError:
             # Otherwise it has not been shared yet.
             return None
@@ -279,7 +279,7 @@ class Group(Model):
         from sentry.models import GroupShare
         return cls.objects.get(
             id=GroupShare.objects.filter(
-                guid=share_id,
+                uuid=share_id,
             ).values_list('group_id'),
         )
 

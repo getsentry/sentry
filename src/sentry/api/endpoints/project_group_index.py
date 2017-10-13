@@ -821,7 +821,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
                     user=acting_user,
                 )
                 if created:
-                    result['shareId'] = share.guid
+                    result['shareId'] = share.uuid
                     Activity.objects.create(
                         project=group.project,
                         group=group,
