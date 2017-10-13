@@ -39,10 +39,10 @@ from sentry.db.models import BoundedIntegerField
 from sentry.interfaces.base import get_interface, InterfaceValidationError
 from sentry.interfaces.csp import Csp
 from sentry.event_manager import EventManager
+from sentry.filters.preprocess_hashes import matches_discarded_hash
 from sentry.models import EventError, ProjectKey
-from sentry.tasks.store import preprocess_event, \
-    preprocess_event_from_reprocessing
-from sentry.utils import json
+from sentry.tasks.store import preprocess_event, preprocess_event_from_reprocessing
+from sentry.utils import json, metrics
 from sentry.utils.auth import parse_auth_header
 from sentry.utils.csp import is_valid_csp_report
 from sentry.utils.http import origin_from_request
@@ -410,6 +410,10 @@ class ClientApiHelper(object):
             filter_obj = filter_cls(project)
             if filter_obj.is_enabled() and filter_obj.test(data):
                 return (True, six.text_type(filter_obj.id))
+
+        if matches_discarded_hash(data, project):
+            metrics.incr('preprocess.discarded', instance=project.id)
+            return (True, FilterStatKeys.DISCARDED)
 
         return (False, None)
 

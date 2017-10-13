@@ -208,6 +208,25 @@ class StoreViewTest(TestCase):
         resp = self._postWithHeader(body)
         assert resp.status_code == 403, (resp.status_code, resp.content)
 
+    @mock.patch('sentry.coreapi.matches_discarded_hash', mock.Mock(return_value=True))
+    def test_request_discarded_hash(self):
+        body = {
+            "release": "abcdefg",
+            "message": "foo bar",
+            "sentry.interfaces.User": {
+                "ip_address": "127.0.0.1"
+            },
+            "sentry.interfaces.Http": {
+                "method": "GET",
+                "url": "http://example.com/",
+                "env": {
+                    "REMOTE_ADDR": "127.0.0.1"
+                }
+            },
+        }
+        resp = self._postWithHeader(body)
+        assert resp.status_code == 403, (resp.status_code, resp.content)
+
     def test_request_with_short_release_globbing(self):
         self.project.update_option('sentry:{}'.format(FilterTypes.RELEASES), ['1.*'])
         body = {

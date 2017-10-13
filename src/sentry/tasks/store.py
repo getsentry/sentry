@@ -24,7 +24,7 @@ from sentry.utils.safe import safe_execute
 from sentry.stacktraces import process_stacktraces, \
     should_process_for_stacktraces
 from sentry.utils.dates import to_datetime
-from sentry.models import ProjectOption, Activity, Project
+from sentry.models import Activity, Project, ProjectOption
 
 error_logger = logging.getLogger('sentry.errors.events')
 info_logger = logging.getLogger('sentry.store')

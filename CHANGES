@@ -11,6 +11,7 @@ Schema Changes
 
 - Added ``ProjectSymCacheFile`` model.
 - Added index on ``TagValue(project_id, key, last_seen)``
+- Added ``FilteredGroupHash`` model
 
 Version 8.21
 ------------

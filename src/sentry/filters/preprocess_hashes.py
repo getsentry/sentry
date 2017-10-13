@@ -9,6 +9,7 @@ from sentry.interfaces.base import get_interfaces
 from sentry.interfaces.exception import Exception as ExceptionInterface, SingleException
 from sentry.interfaces.stacktrace import Frame, Stacktrace
 from sentry.event_manager import _get_hashes_from_fingerprint, md5_from_hash
+from sentry.models import FilteredGroupHash
 
 
 try:
@@ -70,3 +71,10 @@ def get_preprocess_hashes(data):
         hashes = [md5_from_hash(h) for h in get_preprocess_hash_inputs(data)]
 
     return hashes
+
+
+def matches_discarded_hash(data, project):
+    return FilteredGroupHash.objects.filter(
+        project_id=project,
+        hash__in=get_preprocess_hashes(data),
+    ).exists()
