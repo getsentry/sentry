@@ -1,7 +1,9 @@
 import React from 'react';
-import {shallow} from 'enzyme';
 
-import {NumberField} from 'app/components/forms';
+import {Form, NumberField} from 'app/components/forms';
+import {shallow, mount} from 'enzyme';
+
+jest.mock('jquery');
 
 describe('NumberField', function() {
   describe('render()', function() {
@@ -32,6 +34,14 @@ describe('NumberField', function() {
         }
       });
       expect(wrapper).toMatchSnapshot();
+    });
+
+    it('doesnt save `NaN` when new value is empty string', function() {
+      let wrapper = mount(
+        <Form onSubmit={() => {}}><NumberField name="fieldName" defaultValue="2" /></Form>
+      );
+      wrapper.find('input').simulate('change', {target: {value: ''}});
+      expect(wrapper.state('data').fieldName).toBe('');
     });
   });
 });
