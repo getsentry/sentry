@@ -33,7 +33,7 @@ def get_allowed_roles(request, organization, member=None):
 
     allowed_roles = []
     if can_admin and not request.is_superuser():
-        acting_member = OrganizationMember.objects.get(
+        acting_member = member or OrganizationMember.objects.get(
             user=request.user,
             organization=organization,
         )
@@ -102,7 +102,10 @@ class OrganizationMemberDetailsEndpoint(OrganizationEndpoint):
     def get(self, request, organization, member_id):
         """Currently only returns allowed invite roles for member invite"""
 
-        can_admin, allowed_roles = get_allowed_roles(request, organization)
+        member = self._get_member(request, organization, member_id)
+
+        _, allowed_roles = get_allowed_roles(
+            request, organization, member)
 
         role_list = [{'role': serialize(r, serializer=RoleSerializer()),
                       'allowed': r in allowed_roles} for r in roles.get_all()]
@@ -119,7 +122,8 @@ class OrganizationMemberDetailsEndpoint(OrganizationEndpoint):
         except OrganizationMember.DoesNotExist:
             raise ResourceDoesNotExist
 
-        serializer = OrganizationMemberSerializer(data=request.DATA, partial=True)
+        serializer = OrganizationMemberSerializer(
+            data=request.DATA, partial=True)
         if not serializer.is_valid():
             return Response(status=400)
 
