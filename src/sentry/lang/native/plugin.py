@@ -71,7 +71,7 @@ class NativeStacktraceProcessor(StacktraceProcessor):
                 mechanism = exc['values'][0].get('mechanism')
                 if mechanism and 'posix_signal' in mechanism and \
                    'signal' in mechanism['posix_signal']:
-                    signal = mechanism['posix_signal']['signal']
+                    signal = int(mechanism['posix_signal']['signal'])
             registers = processable_frame.stacktrace_info.stacktrace.get('registers')
             if registers:
                 ip_reg_name = arch_get_ip_reg_name(self.arch)
