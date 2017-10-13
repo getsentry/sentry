@@ -39,6 +39,5 @@ class CreateOrganizationMemberTest(AcceptanceTestCase):
         self.browser.snapshot(name='invite organization member')
         self.browser.click('.submit-new-team')
 
-        self.browser.wait_until('.alert-success')
         self.browser.wait_until_not('.loading')
-        assert self.browser.element_exists('.member-list')
+        self.browser.wait_until('.alert-success')
