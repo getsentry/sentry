@@ -93,15 +93,14 @@ class Confirm extends React.PureComponent {
       </Modal>
     );
 
-    return (
-      <span>
-        {React.cloneElement(children, {
-          disabled,
-          onClick: this.handleToggle
-        })}
-        {ConfirmModal}
-      </span>
-    );
+    return React.cloneElement(children, {
+      disabled,
+      children: [
+        (children.props && children.props.children) || null,
+        React.cloneElement(ConfirmModal, {key: 'confirm'})
+      ],
+      onClick: this.handleToggle
+    });
   }
 }
 
