@@ -4,7 +4,6 @@ import functools
 import logging
 import posixpath
 import six
-from contextlib import contextmanager
 from concurrent.futures import Future
 from threading import Lock
 
@@ -239,11 +238,11 @@ def replace(instance, name, function):
     setattr(instance, name, functools.partial(function, original))
 
 
-@contextmanager
-def pipeline_with_future_responses(client):
+def with_future_responses(pipeline):
     # TODO: Probably make something API compatible with concurrent.futures but
     # don't actually use it because we don't have to be concerned with locking?
-    pipeline = client.pipeline()
+    assert len(pipeline) == 0, 'cannot add futures to a pipeline in progress'
+
     pipeline.futures = []
 
     def reset(reset, *args, **kwargs):
@@ -269,6 +268,4 @@ def pipeline_with_future_responses(client):
     replace(pipeline, 'pipeline_execute_command', pipeline_execute_command)
     replace(pipeline, 'execute', execute)
 
-    with pipeline:
-        yield pipeline
-        pipeline.execute()
+    return pipeline
