@@ -9,6 +9,8 @@ class Confirm extends React.PureComponent {
     disabled: PropTypes.bool,
     message: PropTypes.string.isRequired,
     onConfirm: PropTypes.func.isRequired,
+    onConfirming: PropTypes.func,
+    onCancel: PropTypes.func,
     priority: PropTypes.oneOf(['primary', 'danger']).isRequired,
     confirmText: PropTypes.string.isRequired,
     cancelText: PropTypes.string.isRequired
@@ -45,7 +47,19 @@ class Confirm extends React.PureComponent {
   };
 
   handleToggle = () => {
-    if (this.props.disabled) return;
+    let {onConfirming, onCancel, disabled} = this.props;
+    if (disabled) return;
+
+    // Current state is closed, means it will toggle open
+    if (!this.state.isModalOpen) {
+      if (typeof onConfirming === 'function') {
+        onConfirming();
+      }
+    } else {
+      if (typeof onCancel === 'function') {
+        onCancel();
+      }
+    }
 
     // Toggle modal display state
     // Also always reset `confirming` when modal visibility changes
@@ -53,6 +67,7 @@ class Confirm extends React.PureComponent {
       isModalOpen: !state.isModalOpen,
       disableConfirmButton: false
     }));
+
     this.confirming = false;
   };
 
