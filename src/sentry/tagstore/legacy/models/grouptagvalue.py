@@ -9,7 +9,7 @@ from __future__ import absolute_import
 
 import six
 
-from django.db import models
+from django.db import models, router, transaction, DataError
 from django.utils import timezone
 
 from sentry.api.serializers import Serializer, register
@@ -49,6 +49,23 @@ class GroupTagValue(Model):
         if not self.first_seen:
             self.first_seen = self.last_seen
         super(GroupTagValue, self).save(*args, **kwargs)
+
+    def merge_counts(self, new_group):
+        try:
+            with transaction.atomic(using=router.db_for_write(GroupTagValue)):
+                new_obj = GroupTagValue.objects.get(
+                    group_id=new_group.id,
+                    key=self.key,
+                    value=self.value,
+                )
+                new_obj.update(
+                    first_seen=min(new_obj.first_seen, self.first_seen),
+                    last_seen=max(new_obj.last_seen, self.last_seen),
+                    times_seen=new_obj.times_seen + self.times_seen,
+                )
+        except DataError:
+            # it's possible to hit an out of range value for counters
+            pass
 
 
 @register(GroupTagValue)

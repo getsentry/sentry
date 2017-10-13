@@ -22,6 +22,9 @@ logger = logging.getLogger('sentry.merge')
 delete_logger = logging.getLogger('sentry.deletions.async')
 
 
+EXTRA_MERGE_MODELS = []
+
+
 @instrumented_task(
     name='sentry.tasks.merge.merge_group',
     queue='merge',
@@ -44,10 +47,6 @@ def merge_group(
         UserReport,
         GroupRedirect,
         GroupMeta,
-    )
-    from sentry.tagstore.legacy.models import (
-        GroupTagKey,
-        GroupTagValue,
     )
 
     if not (from_object_id and to_object_id):
@@ -97,10 +96,9 @@ def merge_group(
             }
         )
 
-    # TODO: add global list so tagstore can add its own models
-    model_list = (
-        Activity, GroupAssignee, GroupHash, GroupRuleStatus, GroupSubscription, GroupTagValue,
-        GroupTagKey, EventMapping, Event, UserReport, GroupRedirect, GroupMeta,
+    model_list = tuple(EXTRA_MERGE_MODELS) + (
+        Activity, GroupAssignee, GroupHash, GroupRuleStatus, GroupSubscription,
+        EventMapping, Event, UserReport, GroupRedirect, GroupMeta,
     )
 
     has_more = merge_objects(
@@ -248,8 +246,6 @@ def _rehash_group_events(group, limit=100):
 
 
 def merge_objects(models, group, new_group, limit=1000, logger=None, transaction_id=None):
-    from sentry.tagstore.legacy.models import GroupTagKey, GroupTagValue
-
     has_more = False
     for model in models:
         all_fields = model._meta.get_all_field_names()
@@ -270,36 +266,11 @@ def merge_objects(models, group, new_group, limit=1000, logger=None, transaction
             else:
                 delete = False
 
-            # TODO: check for special merge method on models, move this code to models
             if delete:
                 # Before deleting, we want to merge in counts
-                try:
-                    if model == GroupTagKey:
-                        with transaction.atomic(using=router.db_for_write(model)):
-                            model.objects.filter(
-                                group_id=new_group.id,
-                                key=obj.key,
-                            ).update(
-                                values_seen=GroupTagValue.objects.filter(
-                                    group_id=new_group.id,
-                                    key=obj.key,
-                                ).count()
-                            )
-                    elif model == GroupTagValue:
-                        with transaction.atomic(using=router.db_for_write(model)):
-                            new_obj = model.objects.get(
-                                group_id=new_group.id,
-                                key=obj.key,
-                                value=obj.value,
-                            )
-                            new_obj.update(
-                                first_seen=min(new_obj.first_seen, obj.first_seen),
-                                last_seen=max(new_obj.last_seen, obj.last_seen),
-                                times_seen=new_obj.times_seen + obj.times_seen,
-                            )
-                except DataError:
-                    # it's possible to hit an out of range value for counters
-                    pass
+                if hasattr(model, 'merge_counts'):
+                    obj.merge_counts(new_group)
+
                 obj_id = obj.id
                 obj.delete()
                 if logger is not None:

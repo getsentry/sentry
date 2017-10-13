@@ -9,7 +9,7 @@ from __future__ import absolute_import
 
 import six
 
-from django.db import models
+from django.db import models, router, transaction, DataError
 
 from sentry.api.serializers import Serializer, register
 from sentry.constants import MAX_TAG_KEY_LENGTH
@@ -39,6 +39,24 @@ class GroupTagKey(Model):
         unique_together = (('project_id', 'group_id', 'key'), )
 
     __repr__ = sane_repr('project_id', 'group_id', 'key')
+
+    def merge_counts(self, new_group):
+        from sentry.tagstore.legacy.models import GroupTagValue
+
+        try:
+            with transaction.atomic(using=router.db_for_write(GroupTagKey)):
+                GroupTagKey.objects.filter(
+                    group_id=new_group.id,
+                    key=self.key,
+                ).update(
+                    values_seen=GroupTagValue.objects.filter(
+                        group_id=new_group.id,
+                        key=self.key,
+                    ).count()
+                )
+        except DataError:
+            # it's possible to hit an out of range value for counters
+            pass
 
 
 @register(GroupTagKey)

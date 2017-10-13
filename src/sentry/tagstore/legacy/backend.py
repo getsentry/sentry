@@ -34,6 +34,7 @@ class LegacyTagStorage(TagStorage):
         from sentry.deletions.base import ModelRelation, ModelDeletionTask
         from sentry.models import Group, Project, Event
         from sentry.runner.commands import cleanup
+        from sentry.tasks import merge
 
         from .deletions import TagKeyDeletionTask
 
@@ -66,8 +67,10 @@ class LegacyTagStorage(TagStorage):
             (EventTag, 'date_added', 'date_added'),
         ]
 
-        # TODO: merge/unmerge deals with GroupTagKey, GroupTagValue
-        # TODO: check all references to `tagstore.legacy.models`
+        merge.EXTRA_MERGE_MODELS += [
+            GroupTagValue,
+            GroupTagKey,
+        ]
 
     def create_tag_key(self, project_id, key, **kwargs):
         return TagKey.objects.create(project_id=project_id, key=key, **kwargs)
