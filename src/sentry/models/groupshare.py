@@ -24,7 +24,7 @@ class GroupShare(Model):
 
     project = FlexibleForeignKey('sentry.Project')
     group = FlexibleForeignKey('sentry.Group', unique=True)
-    guid = models.CharField(max_length=32, unique=True, default=lambda: uuid4().hex)
+    uuid = models.CharField(max_length=32, unique=True, default=lambda: uuid4().hex)
     # Tracking the user that initiated the share.
     user = FlexibleForeignKey(settings.AUTH_USER_MODEL, null=True)
     date_added = models.DateTimeField(default=timezone.now)
@@ -35,4 +35,4 @@ class GroupShare(Model):
         app_label = 'sentry'
         db_table = 'sentry_groupshare'
 
-    __repr__ = sane_repr('project_id', 'group_id', 'guid')
+    __repr__ = sane_repr('project_id', 'group_id', 'uuid')
