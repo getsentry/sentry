@@ -108,7 +108,7 @@ class OrganizationMemberListTest(APITestCase):
                     self.team.slug,
                 ]})
 
-        assert resp.status_code == 200
+        assert resp.status_code == 400
 
         member = OrganizationMember.objects.get(id=member.id)
 
@@ -179,7 +179,7 @@ class OrganizationMemberListTest(APITestCase):
                 'email': 'eric@localhost', 'role': 'member', 'teams': [self.team.slug]
             })
 
-        assert response.status_code == 200
+        assert response.status_code == 400
 
     def test_admin_invites(self):
         admin_user = self.create_user('admin22@localhost')
