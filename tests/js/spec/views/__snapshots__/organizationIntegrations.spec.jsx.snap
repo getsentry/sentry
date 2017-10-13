@@ -210,15 +210,13 @@ exports[`OrganizationIntegrations render() with a provider renders with a reposi
                   onConfirm={[Function]}
                   priority="primary"
                 >
-                  <span>
-                    <button
-                      className="btn btn-default btn-xs"
-                      onClick={[Function]}
-                    >
-                      <span
-                        className="icon icon-trash"
-                      />
-                    </button>
+                  <button
+                    className="btn btn-default btn-xs"
+                    onClick={[Function]}
+                  >
+                    <span
+                      className="icon icon-trash"
+                    />
                     <Modal
                       animation={false}
                       autoFocus={true}
@@ -267,7 +265,7 @@ exports[`OrganizationIntegrations render() with a provider renders with a reposi
                         show={false}
                       />
                     </Modal>
-                  </span>
+                  </button>
                 </Confirm>
               </td>
             </tr>

@@ -356,84 +356,82 @@ exports[`OrganizationRepositories render() with a provider renders with a reposi
                   onConfirm={[Function]}
                   priority="primary"
                 >
-                  <span>
-                    <Button
+                  <Button
+                    disabled={false}
+                    onClick={[Function]}
+                    size="xsmall"
+                  >
+                    <button
+                      className="button button-default button-xs"
                       disabled={false}
                       onClick={[Function]}
-                      size="xsmall"
+                      role="button"
                     >
-                      <button
-                        className="button button-default button-xs"
-                        disabled={false}
-                        onClick={[Function]}
-                        role="button"
+                      <FlowLayout
+                        truncate={false}
                       >
-                        <FlowLayout
-                          truncate={false}
+                        <div
+                          className="flow-layout"
                         >
-                          <div
-                            className="flow-layout"
+                          <span
+                            className="button-label"
                           >
                             <span
-                              className="button-label"
+                              className="icon icon-trash"
+                            />
+                            <Modal
+                              animation={false}
+                              autoFocus={true}
+                              backdrop={true}
+                              bsClass="modal"
+                              dialogComponentClass={[Function]}
+                              enforceFocus={true}
+                              keyboard={true}
+                              manager={
+                                ModalManager {
+                                  "containers": Array [],
+                                  "data": Array [],
+                                  "handleContainerOverflow": true,
+                                  "hideSiblingNodes": true,
+                                  "modals": Array [],
+                                }
+                              }
+                              onHide={[Function]}
+                              renderBackdrop={[Function]}
+                              restoreFocus={true}
+                              show={false}
                             >
-                              <span
-                                className="icon icon-trash"
+                              <Modal
+                                autoFocus={true}
+                                backdrop={true}
+                                backdropClassName="modal-backdrop"
+                                backdropTransitionTimeout={150}
+                                containerClassName="modal-open"
+                                dialogTransitionTimeout={300}
+                                enforceFocus={true}
+                                keyboard={true}
+                                manager={
+                                  ModalManager {
+                                    "containers": Array [],
+                                    "data": Array [],
+                                    "handleContainerOverflow": true,
+                                    "hideSiblingNodes": true,
+                                    "modals": Array [],
+                                  }
+                                }
+                                onEntering={[Function]}
+                                onExited={[Function]}
+                                onHide={[Function]}
+                                renderBackdrop={[Function]}
+                                restoreFocus={true}
+                                show={false}
                               />
-                            </span>
-                          </div>
-                        </FlowLayout>
-                      </button>
-                    </Button>
-                    <Modal
-                      animation={false}
-                      autoFocus={true}
-                      backdrop={true}
-                      bsClass="modal"
-                      dialogComponentClass={[Function]}
-                      enforceFocus={true}
-                      keyboard={true}
-                      manager={
-                        ModalManager {
-                          "containers": Array [],
-                          "data": Array [],
-                          "handleContainerOverflow": true,
-                          "hideSiblingNodes": true,
-                          "modals": Array [],
-                        }
-                      }
-                      onHide={[Function]}
-                      renderBackdrop={[Function]}
-                      restoreFocus={true}
-                      show={false}
-                    >
-                      <Modal
-                        autoFocus={true}
-                        backdrop={true}
-                        backdropClassName="modal-backdrop"
-                        backdropTransitionTimeout={150}
-                        containerClassName="modal-open"
-                        dialogTransitionTimeout={300}
-                        enforceFocus={true}
-                        keyboard={true}
-                        manager={
-                          ModalManager {
-                            "containers": Array [],
-                            "data": Array [],
-                            "handleContainerOverflow": true,
-                            "hideSiblingNodes": true,
-                            "modals": Array [],
-                          }
-                        }
-                        onEntering={[Function]}
-                        onExited={[Function]}
-                        onHide={[Function]}
-                        renderBackdrop={[Function]}
-                        restoreFocus={true}
-                        show={false}
-                      />
-                    </Modal>
-                  </span>
+                            </Modal>
+                          </span>
+                        </div>
+                      </FlowLayout>
+                    </button>
+                  </Button>
                 </Confirm>
               </td>
             </tr>

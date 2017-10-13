@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import {Link, browserHistory} from 'react-router';
+import {Link} from 'react-router';
 import ApiMixin from '../../mixins/apiMixin';
 import AssigneeSelector from '../../components/assigneeSelector';
 import Count from '../../components/count';
@@ -44,43 +44,6 @@ const GroupHeader = React.createClass({
         itemIds: [group.id],
         data: {
           status: group.status === 'ignored' ? 'unresolved' : 'ignored'
-        }
-      },
-      {
-        complete: () => {
-          IndicatorStore.remove(loadingIndicator);
-        }
-      }
-    );
-  },
-
-  getShareURL(absolute) {
-    let {shareId} = this.props.group;
-    let path = `/share/issue/${shareId}/`;
-    if (!absolute) {
-      return path;
-    }
-    let {host, protocol} = window.location;
-    return `${protocol}//${host}${path}`;
-  },
-
-  onShare() {
-    return browserHistory.pushState(null, this.getShareURL(false));
-  },
-
-  onTogglePublic() {
-    let group = this.props.group;
-    let project = this.getProject();
-    let org = this.getOrganization();
-    let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
-
-    this.api.bulkUpdate(
-      {
-        orgId: org.slug,
-        projectId: project.slug,
-        itemIds: [group.id],
-        data: {
-          isPublic: !group.isPublic
         }
       },
       {
@@ -203,18 +166,6 @@ const GroupHeader = React.createClass({
         </div>
         <GroupSeenBy />
         <GroupActions />
-        {orgFeatures.has('shared-issues') &&
-          <div className="pull-right">
-            <div className="group-privacy">
-              <a onClick={this.onTogglePublic}>
-                <span className="icon" />
-                {' '}
-                {group.isPublic ? t('Unshare this event') : t('Share this event')}
-              </a>
-              {group.isPublic &&
-                <code onClick={this.onShare}>{this.getShareURL(true)}</code>}
-            </div>
-          </div>}
         <ul className="nav nav-tabs">
           <ListLink
             to={`/${orgId}/${projectId}/issues/${groupId}/`}
