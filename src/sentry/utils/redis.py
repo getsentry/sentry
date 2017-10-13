@@ -4,7 +4,7 @@ import functools
 import logging
 import posixpath
 import six
-
+from concurrent.futures import Future
 from threading import Lock
 
 import rb
@@ -231,3 +231,43 @@ def load_script(path):
         return script(keys, args, client)
 
     return call_script
+
+
+def with_future_responses(pipeline):
+    # TODO: Possibly turn this into a context manager and force execution on __exit__?
+    # TODO: Possibly just take the client/cluster object to avoid having to make the below assertion?
+    # TODO: Probably make something API compatible with concurrent.futures but
+    # don't actually use it because we don't have to be concerned with locking?
+    assert len(pipeline) == 0, 'cannot add futures to a pipeline in progress'
+
+    pipeline.futures = []
+
+    original_reset = pipeline.reset
+
+    def reset(*args, **kwargs):
+        pipeline.futures = []
+        return original_reset(*args, **kwargs)
+    pipeline.reset = reset
+
+    original_pipeline_execute_command = pipeline.pipeline_execute_command
+
+    def pipeline_execute_command(*args, **kwargs):
+        future = Future()
+        pipeline.futures.append(future)
+        original_pipeline_execute_command(*args, **kwargs)
+        return future
+    pipeline.pipeline_execute_command = pipeline_execute_command
+
+    original_execute = pipeline.execute
+
+    def execute(*args, **kwargs):
+        futures = pipeline.futures  # reset will be called at the end of execute
+        # TODO: Handle errors raised here and set exceptions on (all?) futures.
+        results = original_execute(*args, **kwargs)
+        assert len(futures) == len(results)
+        for future, result in zip(futures, results):
+            future.set_result(result)
+        return results
+    pipeline.execute = execute
+
+    return pipeline
