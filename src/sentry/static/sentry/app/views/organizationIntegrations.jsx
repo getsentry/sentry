@@ -4,7 +4,7 @@ import {sortArray} from '../utils';
 import {t} from '../locale';
 import AsyncView from './asyncView';
 import Confirm from '../components/confirm';
-import DropdownLink from '../components/dropdownLink';
+import DropdownReact from '../components/dropdownReact';
 import IndicatorStore from '../stores/indicatorStore';
 import MenuItem from '../components/menuItem';
 
@@ -134,7 +134,7 @@ export default class OrganizationIntegrations extends AsyncView {
     return (
       <div className="ref-organization-integrations">
         <div className="pull-right">
-          <DropdownLink
+          <DropdownReact
             anchorRight
             className="btn btn-primary btn-sm"
             title={t('Add Integration')}>
@@ -147,7 +147,7 @@ export default class OrganizationIntegrations extends AsyncView {
                 </MenuItem>
               );
             })}
-          </DropdownLink>
+          </DropdownReact>
         </div>
         <h3 className="m-b-2">
           {t('Integrations')}

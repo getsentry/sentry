@@ -9,7 +9,7 @@ import {valueIsEqual} from '../utils';
 import ApiMixin from '../mixins/apiMixin';
 import Avatar from '../components/avatar';
 import ConfigStore from '../stores/configStore';
-import DropdownLink from './dropdownLink';
+import DropdownReact from './dropdownReact';
 import FlowLayout from './flowLayout';
 import GroupStore from '../stores/groupStore';
 import LoadingIndicator from '../components/loadingIndicator';
@@ -235,7 +235,7 @@ const AssigneeSelector = React.createClass({
         <div className={classNames(className, 'tip')} title={tooltipTitle}>
           {loading
             ? <LoadingIndicator mini />
-            : <DropdownLink
+            : <DropdownReact
                 className="assignee-selector-toggle"
                 onOpen={this.onDropdownOpen}
                 onClose={this.onDropdownClose}
@@ -273,7 +273,7 @@ const AssigneeSelector = React.createClass({
                       <LoadingIndicator mini />
                     </FlowLayout>
                   </li>}
-              </DropdownLink>}
+              </DropdownReact>}
         </div>
       </div>
     );
