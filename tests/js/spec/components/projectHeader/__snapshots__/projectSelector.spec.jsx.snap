@@ -50,17 +50,19 @@ exports[`ProjectSelector render() can filter projects by project name 1`] = `
         anchorRight={false}
         caret={true}
         disabled={false}
+        isOpen={true}
+        keepMenuOpen={false}
         onClose={[Function]}
         onOpen={[Function]}
         title=""
         topLevelClasses="project-dropdown"
       >
         <span
-          className="project-dropdown dropdown"
+          className="dropdown project-dropdown open"
         >
           <a
-            className="dropdown-toggle"
-            data-toggle="dropdown"
+            className="dropdown-actor dropdown-toggle"
+            onClick={[Function]}
           >
             <i
               className="icon-arrow-down"
@@ -68,6 +70,7 @@ exports[`ProjectSelector render() can filter projects by project name 1`] = `
           </a>
           <ul
             className="dropdown-menu"
+            onClick={[Function]}
           >
             <li
               className="project-filter"
@@ -75,6 +78,7 @@ exports[`ProjectSelector render() can filter projects by project name 1`] = `
               <input
                 onBlur={[Function]}
                 onChange={[Function]}
+                onClick={[Function]}
                 onKeyDown={[Function]}
                 onKeyUp={[Function]}
                 placeholder="Filter projects"
@@ -168,17 +172,19 @@ exports[`ProjectSelector render() can filter projects by team name/project name 
         anchorRight={false}
         caret={true}
         disabled={false}
+        isOpen={true}
+        keepMenuOpen={false}
         onClose={[Function]}
         onOpen={[Function]}
         title=""
         topLevelClasses="project-dropdown"
       >
         <span
-          className="project-dropdown dropdown"
+          className="dropdown project-dropdown open"
         >
           <a
-            className="dropdown-toggle"
-            data-toggle="dropdown"
+            className="dropdown-actor dropdown-toggle"
+            onClick={[Function]}
           >
             <i
               className="icon-arrow-down"
@@ -186,6 +192,7 @@ exports[`ProjectSelector render() can filter projects by team name/project name 
           </a>
           <ul
             className="dropdown-menu"
+            onClick={[Function]}
           >
             <li
               className="project-filter"
@@ -193,6 +200,7 @@ exports[`ProjectSelector render() can filter projects by team name/project name 
               <input
                 onBlur={[Function]}
                 onChange={[Function]}
+                onClick={[Function]}
                 onKeyDown={[Function]}
                 onKeyUp={[Function]}
                 placeholder="Filter projects"
@@ -275,6 +283,8 @@ exports[`ProjectSelector render() lists projects and has filter 1`] = `
       anchorRight={false}
       caret={true}
       disabled={false}
+      isOpen={false}
+      keepMenuOpen={false}
       onClose={[Function]}
       onOpen={[Function]}
       title=""
@@ -286,6 +296,7 @@ exports[`ProjectSelector render() lists projects and has filter 1`] = `
         <input
           onBlur={[Function]}
           onChange={[Function]}
+          onClick={[Function]}
           onKeyDown={[Function]}
           onKeyUp={[Function]}
           placeholder="Filter projects"
@@ -334,6 +345,8 @@ exports[`ProjectSelector render() should show empty message and create project b
       anchorRight={false}
       caret={true}
       disabled={false}
+      isOpen={false}
+      keepMenuOpen={false}
       onClose={[Function]}
       onOpen={[Function]}
       title=""
@@ -386,6 +399,8 @@ exports[`ProjectSelector render() should show empty message with no projects but
       anchorRight={false}
       caret={true}
       disabled={false}
+      isOpen={false}
+      keepMenuOpen={false}
       onClose={[Function]}
       onOpen={[Function]}
       title=""
@@ -456,17 +471,19 @@ exports[`ProjectSelector render() shows empty filter message when filtering has 
         anchorRight={false}
         caret={true}
         disabled={false}
+        isOpen={true}
+        keepMenuOpen={false}
         onClose={[Function]}
         onOpen={[Function]}
         title=""
         topLevelClasses="project-dropdown is-empty"
       >
         <span
-          className="project-dropdown is-empty dropdown"
+          className="dropdown project-dropdown is-empty open"
         >
           <a
-            className="dropdown-toggle"
-            data-toggle="dropdown"
+            className="dropdown-actor dropdown-toggle"
+            onClick={[Function]}
           >
             <i
               className="icon-arrow-down"
@@ -474,6 +491,7 @@ exports[`ProjectSelector render() shows empty filter message when filtering has 
           </a>
           <ul
             className="dropdown-menu"
+            onClick={[Function]}
           >
             <li
               className="project-filter"
@@ -481,6 +499,7 @@ exports[`ProjectSelector render() shows empty filter message when filtering has 
               <input
                 onBlur={[Function]}
                 onChange={[Function]}
+                onClick={[Function]}
                 onKeyDown={[Function]}
                 onKeyUp={[Function]}
                 placeholder="Filter projects"

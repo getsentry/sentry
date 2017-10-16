@@ -1,98 +1,169 @@
-import jQuery from 'jquery';
 import PropTypes from 'prop-types';
 import React from 'react';
 import classNames from 'classnames';
 
-require('bootstrap/js/dropdown');
-
-const DropdownLink = React.createClass({
-  propTypes: {
+class DropdownLink extends React.Component {
+  static propTypes = {
     title: PropTypes.node,
     /** display dropdown caret */
     caret: PropTypes.bool,
     disabled: PropTypes.bool,
     onOpen: PropTypes.func,
     onClose: PropTypes.func,
+    /**
+     * If this is set, then this will become a "controlled" component.
+     * It will no longer set local state and dropdown visiblity will
+     * only follow `isOpen`.
+     */
+    isOpen: PropTypes.bool,
     /** anchors menu to the right */
     anchorRight: PropTypes.bool,
+    /** Keeps dropdown menu open when menu is clicked */
+    keepMenuOpen: PropTypes.bool,
     topLevelClasses: PropTypes.string,
     menuClasses: PropTypes.string
-  },
+  };
 
-  getDefaultProps() {
-    return {
-      disabled: false,
-      anchorRight: false,
-      caret: true
-    };
-  },
-  getInitialState() {
-    return {
+  static defaultProps = {
+    disabled: false,
+    anchorRight: false,
+    keepMenuOpen: false,
+    caret: true
+  };
+
+  constructor(...args) {
+    super(...args);
+    this.state = {
       isOpen: false
     };
-  },
-
-  componentDidMount() {
-    jQuery(this.refs.dropdownToggle).dropdown();
-    jQuery(this.refs.dropdownToggle.parentNode)
-      .on('shown.bs.dropdown', e => {
-        this.setState({
-          isOpen: true
-        });
-        this.props.onOpen && this.props.onOpen(e);
-      })
-      .on('hidden.bs.dropdown', e => {
-        setTimeout(() => {
-          if (!this.isMounted()) {
-            return;
-          }
-          this.setState({
-            isOpen: false
-          });
-          this.props.onClose && this.props.onClose(e);
-        });
-      });
-  },
+  }
 
   componentWillUnmount() {
-    jQuery(this.refs.dropdownToggle.parentNode).off();
-  },
+    $(document).off('click', this.checkClickOutside);
+  }
 
-  close() {
-    this.setState({isOpen: false});
-  },
+  // Gets open state from props or local state when appropriate
+  isOpen = () => {
+    let {isOpen} = this.props;
+    let isControlled = typeof isOpen !== 'undefined';
+    return (isControlled && isOpen) || this.state.isOpen;
+  };
+
+  // Checks if click happens inside of dropdown menu (or its button)
+  // Closes dropdownmenu if it is "outside"
+  checkClickOutside = e => {
+    if (!this.dropdownMenu) return;
+    // Dropdown menu itself
+    if (this.dropdownMenu.contains(e.target)) return;
+    // Button that controls visibility of dropdown menu
+    if (this.dropdownActor.contains(e.target)) return;
+
+    this.handleClose(e);
+  };
+
+  // Opens dropdown menu
+  handleOpen = e => {
+    let {onOpen, isOpen} = this.props;
+    let isControlled = typeof isOpen !== 'undefined';
+    if (!isControlled) {
+      this.setState({
+        isOpen: true
+      });
+    }
+
+    if (typeof onOpen === 'function') {
+      onOpen(e);
+    }
+  };
+
+  // Closes dropdown menu
+  handleClose = e => {
+    let {onClose, isOpen} = this.props;
+    let isControlled = typeof isOpen !== 'undefined';
+    if (!isControlled) {
+      this.setState({isOpen: false});
+    }
+
+    if (typeof onClose === 'function') {
+      onClose(e);
+    }
+  };
+
+  // When dropdown menu is displayed and mounted to DOM,
+  // bind a click handler to `document` to listen for clicks outside of
+  // this component and close menu if so
+  handleMenuMount = ref => {
+    this.dropdownMenu = ref;
+
+    if (this.dropdownMenu) {
+      $(document).on('click', this.checkClickOutside);
+    } else {
+      $(document).off('click', this.checkClickOutside);
+    }
+  };
+
+  handleToggle = e => {
+    if (this.isOpen()) {
+      this.handleClose(e);
+    } else {
+      this.handleOpen(e);
+    }
+  };
+
+  // Control whether we should hide dropdown menu when it is clicked
+  handleDropdownMenuClick = e => {
+    if (this.props.keepMenuOpen) return;
+
+    this.handleClose(e);
+  };
 
   render() {
-    let {anchorRight, disabled} = this.props;
+    let {
+      anchorRight,
+      disabled,
+      title,
+      caret,
+      children,
+      menuClasses,
+      className,
+      topLevelClasses
+    } = this.props;
 
     // Default anchor = left
     let isRight = anchorRight;
+    let shouldShowDropdown = this.isOpen();
 
-    let className = classNames(this.props.className, {
+    let cx = classNames('dropdown-actor', className, {
       'dropdown-menu-right': isRight,
       'dropdown-toggle': true,
       disabled
     });
 
-    let topLevelClasses = classNames(this.props.topLevelClasses, {
+    let topLevelCx = classNames('dropdown', topLevelClasses, {
       'pull-right': isRight,
       'anchor-right': isRight,
-      dropdown: true,
-      open: this.state.isOpen
+      open: shouldShowDropdown
     });
 
     return (
-      <span className={topLevelClasses}>
-        <a className={className} data-toggle="dropdown" ref="dropdownToggle">
-          {this.props.title}
-          {this.props.caret && <i className="icon-arrow-down" />}
+      <span className={topLevelCx}>
+        <a
+          className={cx}
+          ref={ref => (this.dropdownActor = ref)}
+          onClick={this.handleToggle}>
+          {title}
+          {caret && <i className="icon-arrow-down" />}
         </a>
-        <ul className={classNames(this.props.menuClasses, 'dropdown-menu')}>
-          {this.props.children}
-        </ul>
+        {shouldShowDropdown &&
+          <ul
+            ref={this.handleMenuMount}
+            onClick={this.handleDropdownMenuClick}
+            className={classNames(menuClasses, 'dropdown-menu')}>
+            {children}
+          </ul>}
       </span>
     );
   }
-});
+}
 
 export default DropdownLink;
