@@ -6,9 +6,13 @@ from rest_framework import serializers
 from rest_framework.response import Response
 
 from sentry import roles
-from sentry.api.bases.organization import (OrganizationEndpoint, OrganizationPermission)
+from sentry.api.bases.organization import (
+    OrganizationEndpoint, OrganizationPermission)
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.models import (AuditLogEntryEvent, AuthIdentity, AuthProvider, OrganizationMember)
+from sentry.api.serializers import serialize, RoleSerializer
+
+from sentry.models import (
+    AuditLogEntryEvent, AuthIdentity, AuthProvider, OrganizationMember)
 from sentry.signals import sso_enabled
 
 ERR_NO_AUTH = 'You cannot remove this member with an unauthenticated API request.'
@@ -20,6 +24,28 @@ ERR_INSUFFICIENT_SCOPE = 'You are missing the member:admin scope.'
 ERR_ONLY_OWNER = 'You cannot remove the only remaining owner of the organization.'
 
 ERR_UNINVITABLE = 'You cannot send an invitation to a user who is already a full member.'
+
+
+def get_allowed_roles(request, organization, member=None):
+    can_admin = request.access.has_scope('member:admin')
+
+    allowed_roles = []
+    if can_admin and not request.is_superuser():
+        acting_member = member or OrganizationMember.objects.get(
+            user=request.user,
+            organization=organization,
+        )
+        if member and roles.get(acting_member.role).priority < roles.get(member.role).priority:
+            can_admin = False
+        else:
+            allowed_roles = [
+                r for r in roles.get_all()
+                if r.priority <= roles.get(acting_member.role).priority
+            ]
+            can_admin = bool(allowed_roles)
+    elif request.is_superuser():
+        allowed_roles = roles.get_all()
+    return (can_admin, allowed_roles, )
 
 
 class OrganizationMemberSerializer(serializers.Serializer):
@@ -71,13 +97,33 @@ class OrganizationMemberDetailsEndpoint(OrganizationEndpoint):
 
         return True
 
+    def get(self, request, organization, member_id):
+        """Currently only returns allowed invite roles for member invite"""
+
+        member = self._get_member(request, organization, member_id)
+
+        _, allowed_roles = get_allowed_roles(request, organization, member)
+
+        allowed_roles = [{'role': serialize(r, serializer=RoleSerializer()),
+                          'allowed': r in allowed_roles} for r in roles.get_all()]
+
+        context = serialize(
+            member,
+            OrganizationMemberSerializer(),
+        )
+
+        context['allowed_roles'] = allowed_roles
+
+        return Response(context)
+
     def put(self, request, organization, member_id):
         try:
             om = self._get_member(request, organization, member_id)
         except OrganizationMember.DoesNotExist:
             raise ResourceDoesNotExist
 
-        serializer = OrganizationMemberSerializer(data=request.DATA, partial=True)
+        serializer = OrganizationMemberSerializer(
+            data=request.DATA, partial=True)
         if not serializer.is_valid():
             return Response(status=400)
 

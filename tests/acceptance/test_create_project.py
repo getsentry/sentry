@@ -36,7 +36,7 @@ class CreateProjectTest(AcceptanceTestCase):
         self.browser.click('.platformicon-java')
         self.browser.snapshot(name='create project')
 
-        self.browser.click('.submit-new-team')
+        self.browser.click('.new-project-submit')
         self.browser.wait_until_not('.loading')
 
         assert Project.objects.get(team__organization=self.org, name='Java')
