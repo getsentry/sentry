@@ -1,7 +1,6 @@
 from __future__ import absolute_import, print_function
 
 import logging
-import json
 
 from uuid import uuid4
 
@@ -27,6 +26,7 @@ from sentry.utils.http import absolute_uri
 from sentry.utils.retries import TimedRetryPolicy
 from sentry.web.forms.accounts import AuthenticationForm
 from sentry.web.helpers import render_to_response
+import sentry.utils.json as json
 
 from . import manager
 
