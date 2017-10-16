@@ -22,14 +22,15 @@ exports[`OrganizationIntegrations render() with a provider renders 1`] = `
           caret={true}
           className="btn btn-primary btn-sm"
           disabled={false}
+          keepMenuOpen={false}
           title="Add Integration"
         >
           <span
-            className="pull-right anchor-right dropdown"
+            className="dropdown pull-right anchor-right open"
           >
             <a
-              className="btn btn-primary btn-sm dropdown-menu-right dropdown-toggle"
-              data-toggle="dropdown"
+              className="dropdown-actor btn btn-primary btn-sm dropdown-menu-right dropdown-toggle"
+              onClick={[Function]}
             >
               Add Integration
               <i
@@ -38,6 +39,7 @@ exports[`OrganizationIntegrations render() with a provider renders 1`] = `
             </a>
             <ul
               className="dropdown-menu"
+              onClick={[Function]}
             >
               <MenuItem
                 noAnchor={true}
@@ -114,14 +116,15 @@ exports[`OrganizationIntegrations render() with a provider renders with a reposi
           caret={true}
           className="btn btn-primary btn-sm"
           disabled={false}
+          keepMenuOpen={false}
           title="Add Integration"
         >
           <span
-            className="pull-right anchor-right dropdown"
+            className="dropdown pull-right anchor-right open"
           >
             <a
-              className="btn btn-primary btn-sm dropdown-menu-right dropdown-toggle"
-              data-toggle="dropdown"
+              className="dropdown-actor btn btn-primary btn-sm dropdown-menu-right dropdown-toggle"
+              onClick={[Function]}
             >
               Add Integration
               <i
@@ -130,6 +133,7 @@ exports[`OrganizationIntegrations render() with a provider renders with a reposi
             </a>
             <ul
               className="dropdown-menu"
+              onClick={[Function]}
             >
               <MenuItem
                 noAnchor={true}
@@ -290,6 +294,7 @@ exports[`OrganizationIntegrations render() without any providers is loading when
         caret={true}
         className="btn btn-primary btn-sm"
         disabled={false}
+        keepMenuOpen={false}
         title="Add Integration"
       />
     </div>
@@ -347,14 +352,15 @@ exports[`OrganizationIntegrations render() without any providers renders 1`] = `
           caret={true}
           className="btn btn-primary btn-sm"
           disabled={false}
+          keepMenuOpen={false}
           title="Add Integration"
         >
           <span
-            className="pull-right anchor-right dropdown"
+            className="dropdown pull-right anchor-right open"
           >
             <a
-              className="btn btn-primary btn-sm dropdown-menu-right dropdown-toggle"
-              data-toggle="dropdown"
+              className="dropdown-actor btn btn-primary btn-sm dropdown-menu-right dropdown-toggle"
+              onClick={[Function]}
             >
               Add Integration
               <i
@@ -363,6 +369,7 @@ exports[`OrganizationIntegrations render() without any providers renders 1`] = `
             </a>
             <ul
               className="dropdown-menu"
+              onClick={[Function]}
             />
           </span>
         </DropdownLink>
