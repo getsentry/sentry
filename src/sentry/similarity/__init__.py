@@ -8,7 +8,7 @@ from django.conf import settings
 from sentry.interfaces.stacktrace import Frame
 from sentry.similarity.backends.dummy import DummyIndexBackend
 from sentry.similarity.backends.metrics import MetricsWrapper
-from sentry.similarity.backends.redis import RedisMinHashIndexBackend
+from sentry.similarity.backends.redis import RedisScriptMinHashIndexBackend
 from sentry.similarity.encoder import Encoder
 from sentry.similarity.features import (
     ExceptionFeature,
@@ -78,7 +78,7 @@ def _make_index_backend(cluster=None):
             return index
 
     return MetricsWrapper(
-        RedisMinHashIndexBackend(
+        RedisScriptMinHashIndexBackend(
             cluster,
             'sim:1',
             MinHashSignatureBuilder(16, 0xFFFF),
