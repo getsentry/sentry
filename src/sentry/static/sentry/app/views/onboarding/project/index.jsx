@@ -91,7 +91,7 @@ const OnboardingProject = React.createClass({
           </div>
           {this.renderTeamPicker()}
           <div>
-            <button className="btn btn-primary submit-new-team" onClick={this.submit}>
+            <button className="btn btn-primary new-project-submit" onClick={this.submit}>
               {t('Create Project')}
             </button>
           </div>

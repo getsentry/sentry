@@ -100,7 +100,7 @@ exports[`CreateProject render() should render 1`] = `
     </div>
   </div>
   <Button
-    className="submit-new-team"
+    className="invite-member-submit"
     disabled={false}
     onClick={[Function]}
     priority="primary"
@@ -155,7 +155,7 @@ exports[`CreateProject render() should render no team select when there is only 
     </div>
   </div>
   <Button
-    className="submit-new-team"
+    className="invite-member-submit"
     disabled={false}
     onClick={[Function]}
     priority="primary"
@@ -373,13 +373,13 @@ exports[`CreateProject render() should render roles when available and allowed, 
       </div>
     </div>
     <Button
-      className="submit-new-team"
+      className="invite-member-submit"
       disabled={false}
       onClick={[Function]}
       priority="primary"
     >
       <button
-        className="submit-new-team button button-primary"
+        className="invite-member-submit button button-primary"
         disabled={false}
         onClick={[Function]}
         role="button"
