@@ -20,15 +20,14 @@ exports[`OrganizationRepositories render() with a provider renders 1`] = `
           caret={true}
           className="btn btn-primary btn-sm"
           disabled={false}
-          keepMenuOpen={false}
           title="Add Repository"
         >
           <span
-            className="dropdown pull-right anchor-right open"
+            className="pull-right anchor-right dropdown"
           >
             <a
-              className="dropdown-actor btn btn-primary btn-sm dropdown-menu-right dropdown-toggle"
-              onClick={[Function]}
+              className="btn btn-primary btn-sm dropdown-menu-right dropdown-toggle"
+              data-toggle="dropdown"
             >
               Add Repository
               <i
@@ -37,7 +36,6 @@ exports[`OrganizationRepositories render() with a provider renders 1`] = `
             </a>
             <ul
               className="dropdown-menu"
-              onClick={[Function]}
             >
               <MenuItem
                 noAnchor={true}
@@ -181,15 +179,14 @@ exports[`OrganizationRepositories render() with a provider renders with a reposi
           caret={true}
           className="btn btn-primary btn-sm"
           disabled={false}
-          keepMenuOpen={false}
           title="Add Repository"
         >
           <span
-            className="dropdown pull-right anchor-right open"
+            className="pull-right anchor-right dropdown"
           >
             <a
-              className="dropdown-actor btn btn-primary btn-sm dropdown-menu-right dropdown-toggle"
-              onClick={[Function]}
+              className="btn btn-primary btn-sm dropdown-menu-right dropdown-toggle"
+              data-toggle="dropdown"
             >
               Add Repository
               <i
@@ -198,7 +195,6 @@ exports[`OrganizationRepositories render() with a provider renders with a reposi
             </a>
             <ul
               className="dropdown-menu"
-              onClick={[Function]}
             >
               <MenuItem
                 noAnchor={true}
@@ -458,7 +454,6 @@ exports[`OrganizationRepositories render() without any providers is loading when
         caret={true}
         className="btn btn-primary btn-sm"
         disabled={false}
-        keepMenuOpen={false}
         title="Add Repository"
       />
     </div>
@@ -514,15 +509,14 @@ exports[`OrganizationRepositories render() without any providers renders 1`] = `
           caret={true}
           className="btn btn-primary btn-sm"
           disabled={false}
-          keepMenuOpen={false}
           title="Add Repository"
         >
           <span
-            className="dropdown pull-right anchor-right open"
+            className="pull-right anchor-right dropdown"
           >
             <a
-              className="dropdown-actor btn btn-primary btn-sm dropdown-menu-right dropdown-toggle"
-              onClick={[Function]}
+              className="btn btn-primary btn-sm dropdown-menu-right dropdown-toggle"
+              data-toggle="dropdown"
             >
               Add Repository
               <i
@@ -531,7 +525,6 @@ exports[`OrganizationRepositories render() without any providers renders 1`] = `
             </a>
             <ul
               className="dropdown-menu"
-              onClick={[Function]}
             />
           </span>
         </DropdownLink>
