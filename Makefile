@@ -154,11 +154,6 @@ test-acceptance: build-platform-assets
 	py.test tests/acceptance --cov . --cov-report="xml:coverage.xml" --junit-xml="junit.xml" --html="pytest.html"
 	@echo ""
 
-test-python-coverage: build-platform-assets
-	@echo "--> Running Python tests"
-	SOUTH_TESTS_MIGRATE=1 coverage run --source=src/sentry -m py.test tests/integration tests/sentry --junit-xml="junit.xml"
-	@echo ""
-
 lint: lint-python lint-js
 
 lint-python:
@@ -172,7 +167,7 @@ lint-js:
 	@echo ""
 
 coverage: develop
-	$(MAKE) test-python-coverage
+	$(MAKE) test-python
 	coverage html
 
 publish:
@@ -183,7 +178,7 @@ extract-api-docs:
 	cd api-docs; python generator.py
 
 
-.PHONY: develop dev-postgres dev-docs setup-git build clean locale update-transifex update-submodules test testloop test-cli test-js test-python test-acceptance test-python-coverage lint lint-python lint-js coverage publish
+.PHONY: develop dev-postgres dev-docs setup-git build clean locale update-transifex update-submodules test testloop test-cli test-js test-python test-acceptance lint lint-python lint-js coverage publish
 
 
 ############################
@@ -245,9 +240,9 @@ travis-lint-django-18: travis-lint-postgres
 # Test steps
 travis-test-danger:
 	bundle exec danger
-travis-test-sqlite: test-python-coverage
-travis-test-postgres: test-python-coverage
-travis-test-mysql: test-python-coverage
+travis-test-sqlite: test-python
+travis-test-postgres: test-python
+travis-test-mysql: test-python
 travis-test-acceptance: test-acceptance
 travis-test-network: test-network
 travis-test-js: test-js

@@ -27,6 +27,7 @@ env:
     - SENTRY_SKIP_BACKEND_VALIDATION=1
     - TRAVIS_NODE_VERSION=4
     - CXX=g++-4.8
+    - SOUTH_TESTS_MIGRATE=1
 before_install:
   - bin/update-zeus-job in_progress unknown || echo "failed to report build to Zeus; continuing"
 install:
