@@ -6,7 +6,7 @@ exports[`CreateProject render() should render 1`] = `
     Add Member to Organization
   </h3>
   <p>
-    You may add a user by their username if they already have an account. Multiple inputs delimited by commas.
+    Invite a member to join this organization via their email address. If they do not already have an account, they will first be asked to create one. Multiple emails delimited by commas.
   </p>
   <div
     className=""
@@ -18,7 +18,7 @@ exports[`CreateProject render() should render 1`] = `
     <TextField
       disabled={false}
       hideErrorMessage={false}
-      label="Username(s)"
+      label="Email(s)"
       name="email"
       onChange={[Function]}
       placeholder="e.g. teammate@example.com"
@@ -116,7 +116,7 @@ exports[`CreateProject render() should render no team select when there is only 
     Add Member to Organization
   </h3>
   <p>
-    You may add a user by their username if they already have an account. Multiple inputs delimited by commas.
+    Invite a member to join this organization via their email address. If they do not already have an account, they will first be asked to create one. Multiple emails delimited by commas.
   </p>
   <div
     className=""
@@ -128,7 +128,7 @@ exports[`CreateProject render() should render no team select when there is only 
     <TextField
       disabled={false}
       hideErrorMessage={false}
-      label="Username(s)"
+      label="Email(s)"
       name="email"
       onChange={[Function]}
       placeholder="e.g. teammate@example.com"
@@ -401,4 +401,114 @@ exports[`CreateProject render() should render roles when available and allowed, 
     </Button>
   </div>
 </InviteMember>
+`;
+
+exports[`CreateProject render() should use invite/add language based on config 1`] = `
+<div>
+  <h3>
+    Add Member to Organization
+  </h3>
+  <p>
+    You may add a user by their username if they already have an account. Multiple inputs delimited by commas.
+  </p>
+  <div
+    className=""
+  >
+    <LoadingIndicator
+      className="pull-right"
+      mini={true}
+    />
+    <TextField
+      disabled={false}
+      hideErrorMessage={false}
+      label="Username(s)"
+      name="email"
+      onChange={[Function]}
+      placeholder="e.g. teammate@example.com"
+      required={false}
+      spellCheck="false"
+    />
+  </div>
+  <div
+    className="new-invite-team box"
+  >
+    <div
+      className="box-header"
+    >
+      <h4>
+        Role:
+      </h4>
+    </div>
+    <div
+      className="box-content with-padding"
+    >
+      <ul
+        className="radio-inputs"
+      />
+    </div>
+  </div>
+  <div
+    className="new-invite-team box"
+  >
+    <div
+      className="box-header"
+    >
+      <h4>
+        Team:
+      </h4>
+    </div>
+    <div
+      className="grouping-controls team-choices row box-content with-padding"
+    >
+      <div
+        className="col-md-3"
+        onClick={[Function]}
+      >
+        <label
+          className="checkbox"
+        >
+          <Checkbox
+            checked={false}
+            id="1"
+            value="bar"
+          />
+          bar
+          <span
+            className="team-slug"
+          >
+            bar
+          </span>
+        </label>
+      </div>
+      <div
+        className="col-md-3"
+        onClick={[Function]}
+      >
+        <label
+          className="checkbox"
+        >
+          <Checkbox
+            checked={false}
+            id="2"
+            value="foo"
+          />
+          foo
+          <span
+            className="team-slug"
+          >
+            foo
+          </span>
+        </label>
+      </div>
+    </div>
+  </div>
+  <Button
+    className="invite-member-submit"
+    disabled={false}
+    onClick={[Function]}
+    priority="primary"
+  >
+    Add Member
+  </Button>
+</div>
 `;
