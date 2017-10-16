@@ -80,12 +80,14 @@ const GroupTags = React.createClass({
               <Link
                 className="tag-bar"
                 to={{
-                  pathname: `/${orgId}/${projectId}/`,
+                  pathname: `/${orgId}/${projectId}/issues/${groupId}/events/`,
                   query: {query: tag.key + ':' + '"' + tagValue.value + '"'}
                 }}>
                 <span className="tag-bar-background" style={{width: pct + '%'}} />
                 <span className="tag-bar-label">{deviceNameMapper(tagValue.name)}</span>
-                <span className="tag-bar-count"><Count value={tagValue.count} /></span>
+                <span className="tag-bar-count">
+                  <Count value={tagValue.count} />
+                </span>
               </Link>
             </li>
           );
@@ -105,9 +107,7 @@ const GroupTags = React.createClass({
                 <h5>{tag.name}</h5>
               </div>
               <div className="box-content with-padding">
-                <ul className="list-unstyled">
-                  {valueChildren}
-                </ul>
+                <ul className="list-unstyled">{valueChildren}</ul>
               </div>
             </div>
           </div>
@@ -121,8 +121,8 @@ const GroupTags = React.createClass({
 
         <div className="col-md-12">
           <div className="alert alert-block alert-info">
-            Tags are automatically indexed for searching and breakdown charts.
-            Learn how to <a href={this.getTagsDocsUrl()}>add custom tags to issues</a>.
+            Tags are automatically indexed for searching and breakdown charts. Learn how
+            to <a href={this.getTagsDocsUrl()}>add custom tags to issues</a>.
           </div>
         </div>
       </div>
