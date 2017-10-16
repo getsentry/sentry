@@ -66,6 +66,7 @@ const AssigneeSelector = React.createClass({
       assignedTo: group.assignedTo,
       memberList: MemberListStore.loaded ? MemberListStore.getAll() : null,
       filter: '',
+      isOpen: false,
       loading: false
     };
   },
@@ -82,10 +83,11 @@ const AssigneeSelector = React.createClass({
   },
 
   shouldComponentUpdate(nextProps, nextState) {
-    if (nextState.filter !== this.state.filter) {
-      return true;
-    }
-    if (nextState.loading !== this.state.loading) {
+    if (
+      nextState.isOpen !== this.state.isOpen ||
+      nextState.filter !== this.state.filter ||
+      nextState.loading !== this.state.loading
+    ) {
       return true;
     }
 
@@ -102,12 +104,6 @@ const AssigneeSelector = React.createClass({
   },
 
   componentDidUpdate(prevProps, prevState) {
-    // XXX(dcramer): fix odd dedraw issue as of Chrome 45.0.2454.15 dev (64-bit)
-    if (!this.containerRef) {
-      let node = jQuery(this.containerRef);
-      node.hide().show(0);
-    }
-
     let oldAssignee = prevState.assignedTo && prevState.assignedTo.id;
     let newAssignee = this.state.assignedTo && this.state.assignedTo.id;
     if (oldAssignee !== newAssignee) {
@@ -141,8 +137,7 @@ const AssigneeSelector = React.createClass({
 
   onFilterKeyUp(evt) {
     if (evt.key === 'Escape') {
-      if (!this.dropdownRef) return;
-      this.dropdownRef.close();
+      this.onDropdownClose();
     } else {
       this.setState({
         filter: evt.target.value
@@ -162,14 +157,25 @@ const AssigneeSelector = React.createClass({
     }
   },
 
-  onDropdownOpen() {
-    if (this.filterRef) {
-      this.filterRef.focus();
+  onFilterMount(ref) {
+    if (ref) {
+      // focus filter input
+      ref.focus();
     }
+  },
+
+  onFilterClick(e) {
+    // Prevent dropdown menu from closing when filter input is clicked
+    e.stopPropagation();
+  },
+
+  onDropdownOpen() {
+    this.setState({isOpen: true});
   },
 
   onDropdownClose() {
     this.setState({
+      isOpen: false,
       filter: ''
     });
   },
@@ -223,16 +229,17 @@ const AssigneeSelector = React.createClass({
 
     let tooltipTitle = assignedTo ? userDisplayName(assignedTo) : null;
 
+    // Outter div is needed to make tooltip work
     return (
-      <div ref={ref => (this.containerRef = ref)}>
+      <div>
         <div className={classNames(className, 'tip')} title={tooltipTitle}>
           {loading
             ? <LoadingIndicator mini />
             : <DropdownLink
-                ref={ref => (this.dropdownRef = ref)}
                 className="assignee-selector-toggle"
                 onOpen={this.onDropdownOpen}
                 onClose={this.onDropdownClose}
+                isOpen={this.state.isOpen}
                 title={
                   assignedTo
                     ? <Avatar user={assignedTo} className="avatar" size={48} />
@@ -244,7 +251,8 @@ const AssigneeSelector = React.createClass({
                       type="text"
                       className="form-control input-sm"
                       placeholder={t('Filter people')}
-                      ref={ref => (this.filterRef = ref)}
+                      ref={ref => this.onFilterMount(ref)}
+                      onClick={this.onFilterClick}
                       onKeyDown={this.onFilterKeyDown}
                       onKeyUp={this.onFilterKeyUp}
                     />

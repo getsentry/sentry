@@ -15,6 +15,10 @@ if (!WEBPACK_DEV_PORT || !WEBPACK_DEV_PROXY || !SENTRY_DEVSERVER_PORT) {
 }
 
 const createProxy = function(proxy, req, res, port, cb) {
+  if (res.headersSent) {
+    return;
+  }
+
   proxy.web(req, res, {target: 'http://localhost:' + port}, function(e, r) {
     cb && cb(e, r);
     if (e) {
