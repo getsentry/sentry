@@ -147,7 +147,7 @@ describe('CreateProject', function() {
 
       expect(wrapper).toMatchSnapshot();
 
-      node = wrapper.find('.submit-new-team').first();
+      node = wrapper.find('.invite-member-submit').first();
       node.props().onClick({preventDefault: () => {}});
       expect(wrapper.state('loading')).toBe(false);
 

@@ -216,7 +216,7 @@ const InviteMember = React.createClass({
         {error && error.role && <p className="error alert-error">{error.role}</p>}
         {this.renderRoleSelect()}
         {this.renderTeamSelect()}
-        <Button priority="primary" className="submit-new-team" onClick={this.submit}>
+        <Button priority="primary" className="invite-member-submit" onClick={this.submit}>
           {t('Add Member')}
         </Button>
       </div>
