@@ -15,6 +15,7 @@ exports[`TeamSettings render() renders 1`] = `
         apiMethod="PUT"
         cancelLabel="Cancel"
         className="form-stacked"
+        disabledFields={Array []}
         footerClass="form-actions align-right"
         initialData={
           Object {

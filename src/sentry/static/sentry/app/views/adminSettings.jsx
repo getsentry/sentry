@@ -29,6 +29,7 @@ export default class AdminSettings extends AsyncView {
 
     let initialData = {};
     let fields = {};
+    let disabledFields = [];
     for (let key of optionsAvailable) {
       // TODO(dcramer): we should not be mutating options
       let option = data[key] || {field: {}};
@@ -39,6 +40,9 @@ export default class AdminSettings extends AsyncView {
         initialData[key] = option.value;
       }
       fields[key] = getOptionField(key, option.field);
+      if (option.field && option.field.disabled) {
+        disabledFields.push(key);
+      }
     }
 
     return (
@@ -50,6 +54,7 @@ export default class AdminSettings extends AsyncView {
           apiEndpoint={this.getEndpoint()}
           onSubmit={this.onSubmit}
           initialData={initialData}
+          disabledFields={disabledFields}
           requireChanges={true}>
           <h4>General</h4>
           {fields['system.url-prefix']}

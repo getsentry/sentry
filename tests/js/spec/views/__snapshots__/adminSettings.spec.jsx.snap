@@ -13,6 +13,19 @@ exports[`AdminSettings render() renders 1`] = `
       apiMethod="PUT"
       cancelLabel="Cancel"
       className="form-stacked"
+      disabledFields={
+        Array [
+          "system.url-prefix",
+          "system.admin-email",
+          "system.support-email",
+          "system.security-email",
+          "system.rate-limit",
+          "auth.allow-registration",
+          "auth.ip-rate-limit",
+          "auth.user-rate-limit",
+          "api.rate-limit.org-create",
+        ]
+      }
       footerClass="form-actions align-right"
       initialData={
         Object {

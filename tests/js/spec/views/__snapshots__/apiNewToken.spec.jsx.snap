@@ -34,6 +34,7 @@ exports[`ApiNewToken render() renders 1`] = `
       apiMethod="POST"
       cancelLabel="Cancel"
       className="form-stacked api-new-token"
+      disabledFields={Array []}
       footerClass="form-actions align-right"
       initialData={
         Object {

@@ -67,6 +67,13 @@ export default class InstallWizard extends AsyncView {
     return data;
   }
 
+  getDisabledFields() {
+    let options = this.state.data;
+    let disabledFields = Object.keys(options)
+      .filter(k => options[k].field && options[k].field.disabled);
+    return disabledFields;
+  }
+
   getTitle() {
     return t('Setup Sentry');
   }
@@ -111,6 +118,7 @@ export default class InstallWizard extends AsyncView {
         apiEndpoint={this.getEndpoint()}
         submitLabel={t('Continue')}
         initialData={this.getInitialData()}
+        disabledFields={this.getDisabledFields()}
         onSubmitSuccess={this.props.onConfigured}>
         <p>
           {t('Complete setup by filling out the required configuration.')}

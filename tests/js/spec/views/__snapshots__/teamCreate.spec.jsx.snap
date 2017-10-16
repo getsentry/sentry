@@ -16,6 +16,7 @@ exports[`TeamCreate render() renders correctly 1`] = `
       apiMethod="POST"
       cancelLabel="Cancel"
       className="form-stacked"
+      disabledFields={Array []}
       footerClass="form-actions align-right"
       onSubmitSuccess={[Function]}
       requireChanges={true}
