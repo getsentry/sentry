@@ -99,6 +99,16 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
 
         can_admin, allowed_roles = get_allowed_roles(request, organization)
 
+        # ensure listed teams are real teams
+        teams = list(Team.objects.filter(
+            organization=organization,
+            status=TeamStatus.VISIBLE,
+            id__in=result['teams'],
+        ))
+
+        if len(set(result['teams'])) != len(teams):
+            return Response({'teams': 'Invalid team'}, 400)
+
         if not result['role'] in {r.id for r in allowed_roles}:
             return Response({'role': 'You do not have permission to invite that role.'}, 403)
 
@@ -138,11 +148,6 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
                 email__iexact=om.email,
                 organization=organization,
             )), status=200)
-
-        teams = Team.objects.filter(
-            organization=organization,
-            status=TeamStatus.VISIBLE,
-            slug__in=result['teams'])
 
         self.save_team_assignments(om, teams)
 
