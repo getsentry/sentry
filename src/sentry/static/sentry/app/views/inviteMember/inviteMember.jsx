@@ -12,6 +12,7 @@ import TextField from '../../components/forms/textField';
 import ApiMixin from '../../mixins/apiMixin';
 import OrganizationState from '../../mixins/organizationState';
 
+import ConfigStore from '../../stores/configStore';
 import {t} from '../../locale';
 
 const InviteMember = React.createClass({
@@ -25,7 +26,6 @@ const InviteMember = React.createClass({
 
     return {
       selectedTeams: new Set(initialTeamSelection),
-      isInvite: undefined,
       roleList: [],
       selectedRole: 'member',
       email: '',
@@ -38,9 +38,9 @@ const InviteMember = React.createClass({
     let {slug} = this.getOrganization();
     this.api.request(`/organizations/${slug}/members/me/`, {
       method: 'GET',
-      success: ({role_list, is_invite}) => {
-        this.setState({roleList: role_list, isInvite: is_invite, loading: false});
-        if (role_list.filter(({_, allowed}) => allowed).length === 0) {
+      success: ({allowed_roles}) => {
+        this.setState({roleList: allowed_roles, loading: false});
+        if (allowed_roles.filter(({_, allowed}) => allowed).length === 0) {
           //not allowed to invite, redirect
           this.redirectToMemberPage();
         }
@@ -189,12 +189,13 @@ const InviteMember = React.createClass({
   },
 
   render() {
-    let {error, loading, isInvite} = this.state;
+    let {error, loading} = this.state;
+    let {invitesEnabled} = ConfigStore.getConfig();
     return (
       <div>
         <h3>{t('Add Member to Organization')}</h3>
         <p>
-          {isInvite
+          {invitesEnabled
             ? t(
                 'Invite a member to join this organization via their email address. If they do not already have an account, they will first be asked to create one. Multiple emails delimited by commas.'
               )
@@ -206,7 +207,7 @@ const InviteMember = React.createClass({
           {loading && <LoadingIndicator mini className="pull-right" />}
           <TextField
             name="email"
-            label={isInvite ? t('Email') + '(s)' : t('Username') + '(s)'}
+            label={invitesEnabled ? t('Email') + '(s)' : t('Username') + '(s)'}
             placeholder="e.g. teammate@example.com"
             spellCheck="false"
             onChange={v => this.setState({email: v})}

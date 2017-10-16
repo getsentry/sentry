@@ -1,7 +1,5 @@
 from __future__ import absolute_import
 
-from django.conf import settings
-
 from django.db import transaction
 from django.db.models import Q
 from rest_framework import serializers
@@ -104,17 +102,19 @@ class OrganizationMemberDetailsEndpoint(OrganizationEndpoint):
 
         member = self._get_member(request, organization, member_id)
 
-        _, allowed_roles = get_allowed_roles(
-            request, organization, member)
+        _, allowed_roles = get_allowed_roles(request, organization, member)
 
-        role_list = [{'role': serialize(r, serializer=RoleSerializer()),
-                      'allowed': r in allowed_roles} for r in roles.get_all()]
+        allowed_roles = [{'role': serialize(r, serializer=RoleSerializer()),
+                          'allowed': r in allowed_roles} for r in roles.get_all()]
 
-        context = {
-            'is_invite': settings.SENTRY_ENABLE_INVITES,
-            'role_list': role_list,
-        }
-        return Response(context, status=200)
+        context = serialize(
+            member,
+            OrganizationMemberSerializer(),
+        )
+
+        context['allowed_roles'] = allowed_roles
+
+        return Response(context)
 
     def put(self, request, organization, member_id):
         try:

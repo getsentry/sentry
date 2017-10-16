@@ -11,7 +11,7 @@ jest.mock('jquery');
 describe('CreateProject', function() {
   beforeEach(function() {
     this.sandbox = sinon.sandbox.create();
-    this.sandbox.stub(ConfigStore, 'get').returns({id: 1});
+    this.sandbox.stub(ConfigStore, 'getConfig').returns({id: 1, invitesEnabled: true});
     Client.clearMockResponses();
   });
 
@@ -61,11 +61,20 @@ describe('CreateProject', function() {
       expect(wrapper).toMatchSnapshot();
     });
 
+    it('should use invite/add language based on config', function() {
+      this.sandbox.restore(ConfigStore, 'getConfig');
+      this.sandbox.stub(ConfigStore, 'getConfig').returns({id: 1, invitesEnabled: false});
+
+      let wrapper = shallow(<InviteMember {...baseProps} />, baseContext);
+
+      expect(wrapper).toMatchSnapshot();
+    });
+
     it('should redirect when no roles available', function() {
       Client.addMockResponse({
         url: '/organizations/testOrg/members/me/',
         body: {
-          role_list: [
+          allowed_roles: [
             {
               role: {
                 id: 1,
@@ -74,8 +83,7 @@ describe('CreateProject', function() {
               },
               allowed: false
             }
-          ],
-          is_invite: true
+          ]
         }
       });
 
@@ -100,7 +108,7 @@ describe('CreateProject', function() {
       Client.addMockResponse({
         url: '/organizations/testOrg/members/me/',
         body: {
-          role_list: [
+          allowed_roles: [
             {
               role: {id: 1, name: 'member', desc: 'a normal member'},
               allowed: true
@@ -109,8 +117,7 @@ describe('CreateProject', function() {
               role: {id: 2, name: 'bar', desc: 'another role'},
               allowed: true
             }
-          ],
-          is_invite: true
+          ]
         }
       });
 
