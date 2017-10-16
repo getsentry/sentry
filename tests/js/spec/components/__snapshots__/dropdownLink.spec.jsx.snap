@@ -2,32 +2,52 @@
 
 exports[`DropdownLink renders and anchors to left by default 1`] = `
 <span
-  className="dropdown top-level-class"
+  className="top-level-class dropdown"
 >
   <a
-    className="dropdown-actor dropdown-toggle"
-    onClick={[Function]}
+    className="dropdown-toggle"
+    data-toggle="dropdown"
   >
     test
     <i
       className="icon-arrow-down"
     />
   </a>
+  <ul
+    className="dropdown-menu"
+  >
+    <div>
+      1
+    </div>
+    <div>
+      2
+    </div>
+  </ul>
 </span>
 `;
 
 exports[`DropdownLink renders and anchors to right 1`] = `
 <span
-  className="dropdown top-level-class pull-right anchor-right"
+  className="top-level-class pull-right anchor-right dropdown"
 >
   <a
-    className="dropdown-actor dropdown-menu-right dropdown-toggle"
-    onClick={[Function]}
+    className="dropdown-menu-right dropdown-toggle"
+    data-toggle="dropdown"
   >
     test
     <i
       className="icon-arrow-down"
     />
   </a>
+  <ul
+    className="dropdown-menu"
+  >
+    <div>
+      1
+    </div>
+    <div>
+      2
+    </div>
+  </ul>
 </span>
 `;

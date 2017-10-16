@@ -94,8 +94,6 @@ describe('AssigneeSelector', function() {
 
   describe('loading', function() {
     let assigneeSelector;
-    let openMenu;
-
     beforeEach(function() {
       // Reset sandbox because we don't want <LoadingIndicator /> stubbed
       this.sandbox.restore();
@@ -107,16 +105,13 @@ describe('AssigneeSelector', function() {
       MemberListStore.items = [];
       MemberListStore.loaded = false;
       assigneeSelector = mount(<AssigneeSelector id="1337" />);
-      openMenu = () => assigneeSelector.find('a').simulate('click');
     });
 
     it('should initially have loading state', function() {
-      openMenu();
       expect(assigneeSelector.find('LoadingIndicator').exists()).toBe(true);
     });
 
     it('does not have loading state and shows member list after calling MemberListStore.loadInitialData', function() {
-      openMenu();
       MemberListStore.loadInitialData([USER_1, USER_2]);
 
       expect(assigneeSelector.find('Avatar').length).toBe(2);
@@ -124,7 +119,6 @@ describe('AssigneeSelector', function() {
     });
 
     it('does NOT update member list after initial load', function() {
-      openMenu();
       MemberListStore.loadInitialData([USER_1, USER_2]);
 
       expect(assigneeSelector.find('Avatar').length).toBe(2);
@@ -138,20 +132,13 @@ describe('AssigneeSelector', function() {
   });
 
   describe('onFilterKeyDown()', function() {
-    let assigneeSelector;
-    let assignTo;
-
     beforeEach(function() {
       MemberListStore.loaded = true;
-      if (assigneeSelector) {
-        assigneeSelector.unmount();
-      }
+      let assigneeSelector = (this.assigneeSelector = mount(
+        <AssigneeSelector id="1337" />
+      ));
 
-      assigneeSelector = mount(<AssigneeSelector id="1337" />);
-      // open menu
-      assigneeSelector.find('a').simulate('click');
-
-      assignTo = this.sandbox.stub(assigneeSelector.instance(), 'assignTo');
+      this.assignTo = this.sandbox.stub(assigneeSelector.instance(), 'assignTo');
     });
 
     afterEach(function() {
@@ -159,45 +146,43 @@ describe('AssigneeSelector', function() {
     });
 
     it('should assign the first filtered member when the Enter key is pressed and filter is truthy', function() {
+      let assigneeSelector = this.assigneeSelector;
       assigneeSelector.setState({filter: 'Jane'});
 
-      let filter = assigneeSelector.find('input');
+      let filterEl = assigneeSelector.instance().filterRef;
+      let filter = assigneeSelector.findWhere(node => node.node === filterEl);
       filter.simulate('keyDown', {key: 'Enter', keyCode: 13, which: 13});
 
-      expect(assignTo.calledOnce).toBeTruthy();
-      expect(assignTo.lastCall.args[0]).toHaveProperty('name', 'Jane Doe');
+      expect(this.assignTo.calledOnce).toBeTruthy();
+      expect(this.assignTo.lastCall.args[0]).toHaveProperty('name', 'Jane Doe');
     });
 
     it('should do nothing when the Enter key is pressed, but filter is the empty string', function() {
+      let assigneeSelector = this.assigneeSelector;
       assigneeSelector.setState({filter: ''});
 
-      let filter = assigneeSelector.find('input');
+      let filterEl = assigneeSelector.instance().filterRef;
+      let filter = assigneeSelector.findWhere(node => node.node === filterEl);
       filter.simulate('keyDown', {key: 'Enter', keyCode: 13, which: 13});
 
-      expect(assignTo.notCalled).toBeTruthy();
+      expect(this.assignTo.notCalled).toBeTruthy();
     });
 
     it('should do nothing if a non-Enter key is pressed', function() {
+      let assigneeSelector = this.assigneeSelector;
       assigneeSelector.setState({filter: 'Jane'});
 
-      let filter = assigneeSelector.find('input');
+      let filterEl = assigneeSelector.instance().filterRef;
+      let filter = assigneeSelector.findWhere(node => node.node === filterEl);
       filter.simulate('keyDown', {key: 'h', keyCode: 72, which: 72});
-      expect(assignTo.notCalled).toBeTruthy();
+      expect(this.assignTo.notCalled).toBeTruthy();
     });
   });
 
   describe('onFilterKeyUp()', function() {
-    let assigneeSelector;
     beforeEach(function() {
       MemberListStore.loaded = true;
-      if (assigneeSelector) {
-        assigneeSelector.unmount();
-      }
-
-      assigneeSelector = mount(<AssigneeSelector id="1337" />);
-
-      // open menu
-      assigneeSelector.find('a').simulate('click');
+      this.assigneeSelector = mount(<AssigneeSelector id="1337" />);
     });
 
     afterEach(function() {
@@ -205,14 +190,21 @@ describe('AssigneeSelector', function() {
     });
 
     it('should close the dropdown when keyup is triggered with the Escape key', function() {
-      let filter = assigneeSelector.find('input');
+      let assigneeSelector = this.assigneeSelector;
+      let closeStub = this.sandbox.stub(assigneeSelector.instance().dropdownRef, 'close');
+
+      let filterEl = assigneeSelector.instance().filterRef;
+      let filter = assigneeSelector.findWhere(node => node.node === filterEl);
       filter.simulate('keyUp', {key: 'Escape'});
 
-      expect(assigneeSelector.state('isOpen')).toBe(false);
+      expect(closeStub.calledOnce).toBeTruthy();
     });
 
     it('should update the local filter state if any other key is pressed', function() {
-      let filter = assigneeSelector.find('input');
+      let assigneeSelector = this.assigneeSelector;
+
+      let filterEl = assigneeSelector.instance().filterRef;
+      let filter = assigneeSelector.findWhere(node => node.node === filterEl);
       filter.simulate('keyUp', {target: {value: 'foo'}});
       expect(assigneeSelector.state('filter')).toEqual('foo');
     });

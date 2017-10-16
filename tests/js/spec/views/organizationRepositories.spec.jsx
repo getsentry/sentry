@@ -48,7 +48,6 @@ describe('OrganizationRepositories', function() {
           },
           childContextTypes
         });
-        wrapper.find('.dropdown-actor').simulate('click');
         expect(wrapper.state('loading')).toBe(false);
         expect(wrapper).toMatchSnapshot();
       });
@@ -74,7 +73,6 @@ describe('OrganizationRepositories', function() {
           },
           childContextTypes
         });
-        wrapper.find('.dropdown-actor').simulate('click');
         expect(wrapper.state('loading')).toBe(false);
         expect(wrapper).toMatchSnapshot();
       });
@@ -91,7 +89,6 @@ describe('OrganizationRepositories', function() {
           },
           childContextTypes
         });
-        wrapper.find('.dropdown-actor').simulate('click');
         expect(wrapper.state('loading')).toBe(false);
         expect(wrapper).toMatchSnapshot();
       });
