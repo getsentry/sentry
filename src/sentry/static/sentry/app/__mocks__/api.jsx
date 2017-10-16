@@ -23,11 +23,11 @@ export class Client {
     });
   }
 
-  clear() {}
-
   static getCallCount(response) {
     return Client.findMockResponse(response.url, response).callCount;
   }
+
+  clear() {}
 
   merge(params, options) {
     let path = '/projects/' + params.orgId + '/' + params.projectId + '/issues/';

@@ -1,5 +1,5 @@
 import React from 'react';
-import classnames from 'classnames';
+import classNames from 'classnames';
 
 import Checkbox from '../../components/checkbox';
 import Radio from '../../components/radio';
@@ -158,8 +158,7 @@ const InviteMember = React.createClass({
   },
 
   renderTeamSelect() {
-    let org = this.getOrganization();
-    let {teams} = org;
+    let {teams} = this.getOrganization();
     let {selectedTeams} = this.state;
     //no need to select a team when there's only one option
     if (teams.length < 2) return null;
@@ -203,12 +202,12 @@ const InviteMember = React.createClass({
                 'You may add a user by their username if they already have an account. Multiple inputs delimited by commas.'
               )}
         </p>
-        <div className={classnames({'has-error': error && error.email})}>
+        <div className={classNames({'has-error': error && error.email})}>
           {loading && <LoadingIndicator mini className="pull-right" />}
           <TextField
             name="email"
             label={isInvite ? t('Email') + '(s)' : t('Username') + '(s)'}
-            placeholderlabel="e.g. teammate@example.com"
+            placeholder="e.g. teammate@example.com"
             spellCheck="false"
             onChange={v => this.setState({email: v})}
           />

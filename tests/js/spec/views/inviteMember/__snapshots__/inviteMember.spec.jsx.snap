@@ -21,7 +21,7 @@ exports[`CreateProject render() should render 1`] = `
       label="Username(s)"
       name="email"
       onChange={[Function]}
-      placeholderlabel="e.g. teammate@example.com"
+      placeholder="e.g. teammate@example.com"
       required={false}
       spellCheck="false"
     />
@@ -131,7 +131,7 @@ exports[`CreateProject render() should render no team select when there is only 
       label="Username(s)"
       name="email"
       onChange={[Function]}
-      placeholderlabel="e.g. teammate@example.com"
+      placeholder="e.g. teammate@example.com"
       required={false}
       spellCheck="false"
     />
@@ -189,7 +189,7 @@ exports[`CreateProject render() should render roles when available and allowed, 
         label="Email(s)"
         name="email"
         onChange={[Function]}
-        placeholderlabel="e.g. teammate@example.com"
+        placeholder="e.g. teammate@example.com"
         required={false}
         spellCheck="false"
       >
@@ -210,6 +210,7 @@ exports[`CreateProject render() should render roles when available and allowed, 
               disabled={false}
               id="id-email"
               onChange={[Function]}
+              placeholder="e.g. teammate@example.com"
               required={false}
               spellCheck="false"
               type="text"
