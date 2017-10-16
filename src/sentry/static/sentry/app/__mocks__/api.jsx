@@ -22,8 +22,6 @@ export class Client {
     });
   }
 
-  clear() {}
-
   merge(params, options) {
     let path = '/projects/' + params.orgId + '/' + params.projectId + '/issues/';
     return this.request(path, {
