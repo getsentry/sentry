@@ -8,8 +8,17 @@ export default class NumberField extends InputField {
     max: PropTypes.number
   };
 
-  coerceValue(value) {
-    return parseInt(value, 10);
+  coerceValue(value, prevValue) {
+    let intValue = parseInt(value, 10);
+
+    // return previous value if new value is NaN, otherwise, will get recursive error
+    let isNewCoercedNaN = isNaN(intValue);
+
+    if (!isNewCoercedNaN) {
+      return intValue;
+    }
+
+    return '';
   }
 
   getType() {

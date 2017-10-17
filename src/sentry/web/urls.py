@@ -37,10 +37,7 @@ from sentry.web.frontend.mailgun_inbound_webhook import \
     MailgunInboundWebhookView
 from sentry.web.frontend.oauth_authorize import OAuthAuthorizeView
 from sentry.web.frontend.oauth_token import OAuthTokenView
-from sentry.auth.providers.saml2 import SAML2SLSView, SAML2MetadataView
-from sentry.web.frontend.organization_api_key_settings import \
-    OrganizationApiKeySettingsView
-from sentry.web.frontend.organization_api_keys import OrganizationApiKeysView
+from sentry.auth.providers.saml2 import SAML2AcceptACSView, SAML2SLSView, SAML2MetadataView
 from sentry.web.frontend.organization_auth_settings import \
     OrganizationAuthSettingsView
 from sentry.web.frontend.organization_member_settings import \
@@ -144,6 +141,8 @@ urlpatterns += patterns(
     url(r'^oauth/token/$', OAuthTokenView.as_view()),
 
     # SAML
+    url(r'^saml/acs/(?P<organization_slug>[^/]+)/$', SAML2AcceptACSView.as_view(),
+        name='sentry-auth-organization-saml-acs'),
     url(r'^saml/sls/(?P<organization_slug>[^/]+)/$', SAML2SLSView.as_view(),
         name='sentry-auth-organization-saml-sls'),
     url(r'^saml/metadata/(?P<organization_slug>[^/]+)/$', SAML2MetadataView.as_view(),
@@ -315,12 +314,12 @@ urlpatterns += patterns(
     url(r'^organizations/new/$', generic_react_page_view),
     url(
         r'^organizations/(?P<organization_slug>[\w_-]+)/api-keys/$',
-        OrganizationApiKeysView.as_view(),
+        react_page_view,
         name='sentry-organization-api-keys'
     ),
     url(
         r'^organizations/(?P<organization_slug>[\w_-]+)/api-keys/(?P<key_id>[\w_-]+)/$',
-        OrganizationApiKeySettingsView.as_view(),
+        react_page_view,
         name='sentry-organization-api-key-settings'
     ),
     url(

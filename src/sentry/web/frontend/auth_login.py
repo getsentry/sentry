@@ -53,7 +53,7 @@ class AuthLoginView(BaseView):
         )
 
     def can_register(self, request, *args, **kwargs):
-        return auth.has_user_registration() or request.session.get('can_register')
+        return bool(auth.has_user_registration() or request.session.get('can_register'))
 
     def get_next_uri(self, request, *args, **kwargs):
         return request.GET.get(REDIRECT_FIELD_NAME, None)
@@ -61,8 +61,9 @@ class AuthLoginView(BaseView):
     def respond_login(self, request, context, *args, **kwargs):
         return self.respond('sentry/login.html', context)
 
-    def handle_basic_auth(self, request, *args, **kwargs):
-        can_register = self.can_register(request, *args, **kwargs)
+    def handle_basic_auth(self, request, organization=None, *args, **kwargs):
+        can_register = self.can_register(
+            request, organization=organization, *args, **kwargs)
 
         op = request.POST.get('op')
 
@@ -86,7 +87,11 @@ class AuthLoginView(BaseView):
             # HACK: grab whatever the first backend is and assume it works
             user.backend = settings.AUTHENTICATION_BACKENDS[0]
 
-            auth.login(request, user)
+            auth.login(
+                request,
+                user,
+                organization_id=organization.id if organization else None,
+            )
 
             # can_register should only allow a single registration
             request.session.pop('can_register', None)
@@ -113,7 +118,11 @@ class AuthLoginView(BaseView):
             elif login_form.is_valid():
                 user = login_form.get_user()
 
-                auth.login(request, user)
+                auth.login(
+                    request,
+                    user,
+                    organization_id=organization.id if organization else None,
+                )
 
                 if not user.is_active:
                     return self.redirect(reverse('sentry-reactivate-account'))
@@ -124,24 +133,11 @@ class AuthLoginView(BaseView):
             'op': op or 'login',
             'server_hostname': get_server_hostname(),
             'login_form': login_form,
+            'organization': organization,
             'register_form': register_form,
             'CAN_REGISTER': can_register,
         }
-        return self.respond_login(request, context, *args, **kwargs)
-
-    def handle_sso(self, request, *args, **kwargs):
-        org = request.POST.get('organization')
-        if not org:
-            return HttpResponseRedirect(request.path)
-
-        auth_provider = self.get_auth_provider(request.POST['organization'])
-        if auth_provider:
-            next_uri = reverse('sentry-auth-organization', args=[request.POST['organization']])
-        else:
-            next_uri = request.path
-            messages.add_message(request, messages.ERROR, ERR_NO_SSO)
-
-        return HttpResponseRedirect(next_uri)
+        return self.respond_login(request, context, organization=organization, *args, **kwargs)
 
     def handle_authenticated(self, request, *args, **kwargs):
         next_uri = self.get_next_uri(request, *args, **kwargs)

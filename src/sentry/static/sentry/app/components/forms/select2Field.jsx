@@ -75,10 +75,12 @@ export default class Select2Field extends InputField {
   }
 
   componentDidMount() {
+    super.componentDidMount();
     jQuery(this.refs.input).select2(this.getSelect2Options()).on('change', this.onChange);
   }
 
   componentWillUnmount() {
     jQuery(this.refs.select).select2('destroy');
+    super.componentWillUnmount();
   }
 }

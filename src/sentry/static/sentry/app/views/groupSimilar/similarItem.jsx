@@ -103,6 +103,7 @@ const SimilarIssueItem = React.createClass({
     }
 
     let cx = classNames('group', 'similar-issue', {
+      isResolved: issue.status === 'resolved',
       busy: this.state.busy
     });
 
@@ -121,6 +122,8 @@ const SimilarIssueItem = React.createClass({
                 orgId={orgId}
                 projectId={projectId}
                 lastSeen={null}
+                showAssignee
+                showStatus
                 group
               />
             </div>

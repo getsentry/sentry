@@ -1,12 +1,18 @@
 from __future__ import absolute_import
 
+import os
+import zipfile
 from mock import patch
+from six import BytesIO
+
+from django.core.files.uploadedfile import SimpleUploadedFile
+from django.core.urlresolvers import reverse
 
 from sentry.models import Event
 from sentry.testutils import TestCase
 from sentry.lang.native.symbolizer import Symbolizer
 
-from symsynd import parse_addr
+from symbolic import parse_addr
 
 
 class BasicResolvingIntegrationTest(TestCase):
@@ -1028,3 +1034,84 @@ class InAppHonoringResolvingIntegrationTest(TestCase):
         bt = event.interfaces['sentry.interfaces.Exception'].values[0].stacktrace
         frames = bt.frames
         assert frames[0].in_app
+
+
+class RealResolvingIntegrationTest(TestCase):
+    def test_real_resolving(self):
+        url = reverse(
+            'sentry-api-0-dsym-files',
+            kwargs={
+                'organization_slug': self.project.organization.slug,
+                'project_slug': self.project.slug,
+            }
+        )
+
+        self.login_as(user=self.user)
+
+        out = BytesIO()
+        f = zipfile.ZipFile(out, 'w')
+        f.write(os.path.join(os.path.dirname(__file__), 'fixtures', 'hello.dsym'),
+                'dSYM/hello')
+        f.close()
+
+        response = self.client.post(
+            url, {
+                'file':
+                SimpleUploadedFile('symbols.zip', out.getvalue(), content_type='application/zip'),
+            },
+            format='multipart'
+        )
+        assert response.status_code == 201, response.content
+        assert len(response.data) == 1
+
+        event_data = {
+            "project": self.project.id,
+            "platform": "cocoa",
+            "debug_meta": {
+                "images": [{
+                    "type": "apple",
+                    "arch": "x86_64",
+                    "uuid": "502fc0a5-1ec1-3e47-9998-684fa139dca7",
+                    "image_vmaddr": "0x0000000100000000",
+                    "image_size": 4096,
+                    "image_addr": "0x0000000100000000",
+                    "name": "Foo.app/Contents/Foo"
+                }],
+                "sdk_info": {
+                    "dsym_type": "macho",
+                    "sdk_name": "macOS",
+                    "version_major": 10,
+                    "version_minor": 12,
+                    "version_patchlevel": 4,
+                }
+            },
+            "sentry.interfaces.Exception": {
+                "values": [
+                    {
+                        'stacktrace': {
+                            "frames": [
+                                {
+                                    "function": "unknown",
+                                    "instruction_addr": "0x0000000100000fa0"
+                                },
+                            ]
+                        },
+                        "type": "Fail",
+                        "value": "fail"
+                    }
+                ]
+            },
+        }
+
+        resp = self._postWithHeader(event_data)
+        assert resp.status_code == 200
+
+        event = Event.objects.get()
+
+        bt = event.interfaces['sentry.interfaces.Exception'].values[0].stacktrace
+        frames = bt.frames
+
+        assert frames[0].function == 'main'
+        assert frames[0].filename == 'hello.c'
+        assert frames[0].abs_path == '/tmp/hello.c'
+        assert frames[0].lineno == 1

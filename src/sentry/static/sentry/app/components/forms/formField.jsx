@@ -5,7 +5,7 @@ import idx from 'idx';
 
 import {defined} from '../../utils';
 
-export default class FormField extends React.Component {
+export default class FormField extends React.PureComponent {
   static propTypes = {
     name: PropTypes.string.isRequired,
     /** Inline style */
@@ -17,6 +17,7 @@ export default class FormField extends React.Component {
     disabledReason: PropTypes.string,
     help: PropTypes.oneOfType([PropTypes.string, PropTypes.element]),
     required: PropTypes.bool,
+    hideErrorMessage: PropTypes.bool,
 
     // the following should only be used without form context
     onChange: PropTypes.func,
@@ -25,6 +26,7 @@ export default class FormField extends React.Component {
   };
 
   static defaultProps = {
+    hideErrorMessage: false,
     disabled: false,
     required: false
   };
@@ -34,21 +36,24 @@ export default class FormField extends React.Component {
   };
 
   constructor(props, context) {
-    super(props);
-
+    super(props, context);
     this.state = {
       value: this.getValue(props, context)
     };
   }
+
+  componentDidMount() {}
 
   componentWillReceiveProps(nextProps, nextContext) {
     if (
       this.props.value !== nextProps.value ||
       (!defined(this.context.form) && defined(nextContext.form))
     ) {
-      this.setState({value: this.getValue(nextProps, nextContext)});
+      this.setValue(this.getValue(nextProps, nextContext));
     }
   }
+
+  componentWillUnmount() {}
 
   getValue(props, context) {
     let form = (context || this.context || {}).form;
@@ -102,12 +107,22 @@ export default class FormField extends React.Component {
   }
 
   render() {
-    let {className, required, label, disabled, disabledReason, help, style} = this.props;
+    let {
+      className,
+      required,
+      label,
+      disabled,
+      disabledReason,
+      hideErrorMessage,
+      help,
+      style
+    } = this.props;
     let error = this.getError();
     let cx = classNames(className, this.getClassName(), {
       'has-error': !!error,
       required
     });
+    let shouldShowErrorMessage = error && !hideErrorMessage;
 
     return (
       <div style={style} className={cx}>
@@ -123,7 +138,7 @@ export default class FormField extends React.Component {
               <span className="icon-question" />
             </span>}
           {defined(help) && <p className="help-block">{help}</p>}
-          {error && <p className="error">{error}</p>}
+          {shouldShowErrorMessage && <p className="error">{error}</p>}
         </div>
       </div>
     );

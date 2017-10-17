@@ -1,5 +1,20 @@
-Version 8.21 (Unreleased)
+Version 8.22 (Unreleased)
 -------------------------
+
+- BREAKING: Members will no longer be automatically granted membership to the
+  default organization. You should use SSO or the invite flows.
+- Add support for SAML2 authentication through identity providers that
+  implement the ``SAML2AuthProvider``. See getsentry/sentry-auth-saml2.
+
+Schema Changes
+~~~~~~~~~~~~~~
+
+- Added ``ProjectSymCacheFile`` model.
+- Added index on ``TagValue(project_id, key, last_seen)``
+- Add ``GroupShare`` model.
+
+Version 8.21
+------------
 
 - Ignore querystrings when looking up release artifacts
 - Add Visual Studio authentication provider for plugins.
@@ -13,6 +28,7 @@ Schema Changes
 - Added ``Identity`` model.
 - Added ``UserIdentity`` model.
 - Added ``ProjectTeam`` model
+
 
 Version 8.20
 ------------

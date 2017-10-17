@@ -35,11 +35,18 @@ class RedisTSDBTest(TestCase):
             client.flushdb()
 
     def test_make_counter_key(self):
-        result = self.db.make_counter_key(TSDBModel.project, 1, to_datetime(1368889980), 1)
+        result = self.db.make_counter_key(TSDBModel.project, 1, to_datetime(1368889980), 1, None)
         assert result == ('ts:1:1368889980:1', 1)
 
-        result = self.db.make_counter_key(TSDBModel.project, 1, to_datetime(1368889980), 'foo')
+        result = self.db.make_counter_key(
+            TSDBModel.project, 1, to_datetime(1368889980), 'foo', None)
         assert result == ('ts:1:1368889980:46', self.db.get_model_key('foo'))
+
+        result = self.db.make_counter_key(TSDBModel.project, 1, to_datetime(1368889980), 1, 1)
+        assert result == ('ts:1:1368889980:1', '1?e=1')
+
+        result = self.db.make_counter_key(TSDBModel.project, 1, to_datetime(1368889980), 'foo', 1)
+        assert result == ('ts:1:1368889980:46', self.db.get_model_key('foo') + '?e=1')
 
     def test_get_model_key(self):
         result = self.db.get_model_key(1)
@@ -57,13 +64,20 @@ class RedisTSDBTest(TestCase):
             return t - (t % 3600)
 
         self.db.incr(TSDBModel.project, 1, dts[0])
-        self.db.incr(TSDBModel.project, 1, dts[1], count=3)
+        self.db.incr(TSDBModel.project, 1, dts[1], count=2)
+        self.db.incr(TSDBModel.project, 1, dts[1], environment_id=1)
         self.db.incr(TSDBModel.project, 1, dts[2])
         self.db.incr_multi(
             [
                 (TSDBModel.project, 1),
                 (TSDBModel.project, 2),
-            ], dts[3], count=4
+            ], dts[3], count=3, environment_id=1
+        )
+        self.db.incr_multi(
+            [
+                (TSDBModel.project, 1),
+                (TSDBModel.project, 2),
+            ], dts[3], count=1, environment_id=2
         )
 
         results = self.db.get_range(TSDBModel.project, [1], dts[0], dts[-1])
@@ -75,6 +89,7 @@ class RedisTSDBTest(TestCase):
                 (timestamp(dts[3]), 4),
             ],
         }
+
         results = self.db.get_range(TSDBModel.project, [2], dts[0], dts[-1])
         assert results == {
             2: [
@@ -85,13 +100,41 @@ class RedisTSDBTest(TestCase):
             ],
         }
 
+        results = self.db.get_range(TSDBModel.project, [1, 2], dts[0], dts[-1], environment_id=1)
+        assert results == {
+            1: [
+                (timestamp(dts[0]), 0),
+                (timestamp(dts[1]), 1),
+                (timestamp(dts[2]), 0),
+                (timestamp(dts[3]), 3),
+            ],
+            2: [
+                (timestamp(dts[0]), 0),
+                (timestamp(dts[1]), 0),
+                (timestamp(dts[2]), 0),
+                (timestamp(dts[3]), 3),
+            ],
+        }
+
         results = self.db.get_sums(TSDBModel.project, [1, 2], dts[0], dts[-1])
         assert results == {
             1: 9,
             2: 4,
         }
 
-        self.db.merge(TSDBModel.project, 1, [2], now)
+        results = self.db.get_sums(TSDBModel.project, [1, 2], dts[0], dts[-1], environment_id=1)
+        assert results == {
+            1: 4,
+            2: 3,
+        }
+
+        results = self.db.get_sums(TSDBModel.project, [1, 2], dts[0], dts[-1], environment_id=0)
+        assert results == {
+            1: 0,
+            2: 0,
+        }
+
+        self.db.merge(TSDBModel.project, 1, [2], now, environment_ids=[0, 1, 2])
 
         results = self.db.get_range(TSDBModel.project, [1], dts[0], dts[-1])
         assert results == {
@@ -102,6 +145,7 @@ class RedisTSDBTest(TestCase):
                 (timestamp(dts[3]), 8),
             ],
         }
+
         results = self.db.get_range(TSDBModel.project, [2], dts[0], dts[-1])
         assert results == {
             2: [
@@ -112,15 +156,32 @@ class RedisTSDBTest(TestCase):
             ],
         }
 
+        results = self.db.get_range(TSDBModel.project, [1, 2], dts[0], dts[-1], environment_id=1)
+        assert results == {
+            1: [
+                (timestamp(dts[0]), 0),
+                (timestamp(dts[1]), 1),
+                (timestamp(dts[2]), 0),
+                (timestamp(dts[3]), 6),
+            ],
+            2: [(timestamp(dts[i]), 0) for i in xrange(0, 4)],
+        }
+
         results = self.db.get_sums(TSDBModel.project, [1, 2], dts[0], dts[-1])
         assert results == {
             1: 13,
             2: 0,
         }
 
-        self.db.delete([TSDBModel.project], [1, 2], dts[0], dts[-1])
+        self.db.delete([TSDBModel.project], [1, 2], dts[0], dts[-1], environment_ids=[0, 1, 2])
 
         results = self.db.get_sums(TSDBModel.project, [1, 2], dts[0], dts[-1])
+        assert results == {
+            1: 0,
+            2: 0,
+        }
+
+        results = self.db.get_sums(TSDBModel.project, [1, 2], dts[0], dts[-1], environment_id=1)
         assert results == {
             1: 0,
             2: 0,
@@ -148,10 +209,19 @@ class RedisTSDBTest(TestCase):
             1,
             ('baz', ),
             dts[1],
+            environment_id=1,
         )
 
         self.db.record_multi(
-            ((model, 1, ('foo', 'bar', 'baz'), ), (model, 2, ('bar', ), ), ), dts[2]
+            ((model, 1, ('foo', 'bar'), ), (model, 2, ('bar', ), ), ), dts[2]
+        )
+
+        self.db.record(
+            model,
+            1,
+            ('baz', ),
+            dts[2],
+            environment_id=1,
         )
 
         self.db.record(
@@ -183,16 +253,51 @@ class RedisTSDBTest(TestCase):
             ],
         }
 
+        assert self.db.get_distinct_counts_series(
+            model, [1, 2], dts[0], dts[-1], rollup=3600, environment_id=1,
+        ) == {
+            1: [
+                (timestamp(dts[0]), 0),
+                (timestamp(dts[1]), 1),
+                (timestamp(dts[2]), 1),
+                (timestamp(dts[3]), 0),
+            ],
+            2: [
+                (timestamp(dts[0]), 0),
+                (timestamp(dts[1]), 0),
+                (timestamp(dts[2]), 0),
+                (timestamp(dts[3]), 0),
+            ],
+        }
+
         results = self.db.get_distinct_counts_totals(model, [1, 2], dts[0], dts[-1], rollup=3600)
         assert results == {
             1: 3,
             2: 2,
         }
 
+        results = self.db.get_distinct_counts_totals(
+            model, [1, 2], dts[0], dts[-1], rollup=3600, environment_id=1)
+        assert results == {
+            1: 1,
+            2: 0,
+        }
+
+        results = self.db.get_distinct_counts_totals(
+            model, [1, 2], dts[0], dts[-1], rollup=3600, environment_id=0)
+        assert results == {
+            1: 0,
+            2: 0,
+        }
+
         assert self.db.get_distinct_counts_union(model, [], dts[0], dts[-1], rollup=3600) == 0
         assert self.db.get_distinct_counts_union(model, [1, 2], dts[0], dts[-1], rollup=3600) == 3
+        assert self.db.get_distinct_counts_union(
+            model, [1, 2], dts[0], dts[-1], rollup=3600, environment_id=1) == 1
+        assert self.db.get_distinct_counts_union(
+            model, [1, 2], dts[0], dts[-1], rollup=3600, environment_id=0) == 0
 
-        self.db.merge_distinct_counts(model, 1, [2], dts[0])
+        self.db.merge_distinct_counts(model, 1, [2], dts[0], environment_ids=[0, 1])
 
         assert self.db.get_distinct_counts_series(
             model, [1], dts[0], dts[-1], rollup=3600
@@ -216,6 +321,23 @@ class RedisTSDBTest(TestCase):
             ],
         }
 
+        assert self.db.get_distinct_counts_series(
+            model, [1, 2], dts[0], dts[-1], rollup=3600, environment_id=1,
+        ) == {
+            1: [
+                (timestamp(dts[0]), 0),
+                (timestamp(dts[1]), 1),
+                (timestamp(dts[2]), 1),
+                (timestamp(dts[3]), 0),
+            ],
+            2: [
+                (timestamp(dts[0]), 0),
+                (timestamp(dts[1]), 0),
+                (timestamp(dts[2]), 0),
+                (timestamp(dts[3]), 0),
+            ],
+        }
+
         results = self.db.get_distinct_counts_totals(model, [1, 2], dts[0], dts[-1], rollup=3600)
         assert results == {
             1: 3,
@@ -227,9 +349,16 @@ class RedisTSDBTest(TestCase):
         assert self.db.get_distinct_counts_union(model, [1, 2], dts[0], dts[-1], rollup=3600) == 3
         assert self.db.get_distinct_counts_union(model, [2], dts[0], dts[-1], rollup=3600) == 0
 
-        self.db.delete_distinct_counts([model], [1, 2], dts[0], dts[-1])
+        self.db.delete_distinct_counts([model], [1, 2], dts[0], dts[-1], environment_ids=[0, 1])
 
         results = self.db.get_distinct_counts_totals(model, [1, 2], dts[0], dts[-1])
+        assert results == {
+            1: 0,
+            2: 0,
+        }
+
+        results = self.db.get_distinct_counts_totals(
+            model, [1, 2], dts[0], dts[-1], environment_id=1)
         assert results == {
             1: 0,
             2: 0,
@@ -257,17 +386,36 @@ class RedisTSDBTest(TestCase):
                     model, {
                         'organization:1': {
                             "project:1": 1,
-                            "project:2": 2,
-                            "project:3": 3,
-                            "project:4": 4,
+                            "project:2": 1,
+                            "project:3": 1,
+                            "project:4": 1,
                         },
                         "organization:2": {
-                            "project:5": 1.5,
+                            "project:5": 1,
                         },
                     }
                 ),
             ),
             now - timedelta(hours=1),
+        )
+
+        self.db.record_frequency_multi(
+            (
+                (
+                    model, {
+                        'organization:1': {
+                            "project:2": 1,
+                            "project:3": 2,
+                            "project:4": 3,
+                        },
+                        "organization:2": {
+                            "project:5": 0.5,
+                        },
+                    }
+                ),
+            ),
+            now - timedelta(hours=1),
+            environment_id=1,
         )
 
         assert self.db.get_most_frequent(
@@ -282,6 +430,24 @@ class RedisTSDBTest(TestCase):
                 ('project:1', 1.0),
             ],
             'organization:2': [],
+        }
+
+        assert self.db.get_most_frequent(
+            model,
+            ('organization:1', 'organization:2'),
+            now - timedelta(hours=1),
+            now,
+            rollup=rollup,
+            environment_id=1,
+        ) == {
+            'organization:1': [
+                ('project:4', 3.0),
+                ('project:3', 2.0),
+                ('project:2', 1.0),
+            ],
+            'organization:2': [
+                ('project:5', 0.5),
+            ],
         }
 
         assert self.db.get_most_frequent(
@@ -312,6 +478,20 @@ class RedisTSDBTest(TestCase):
             ],
             'organization:2': [
                 ('project:5', 1.5),
+            ],
+        }
+
+        assert self.db.get_most_frequent(
+            model,
+            ('organization:1', 'organization:2'),
+            now - timedelta(hours=1),
+            now,
+            rollup=rollup,
+            environment_id=0,
+        ) == {
+            'organization:1': [
+            ],
+            'organization:2': [
             ],
         }
 
@@ -389,11 +569,50 @@ class RedisTSDBTest(TestCase):
             ],
         }
 
+        assert self.db.get_frequency_series(
+            model,
+            {
+                'organization:1': ("project:1", "project:2", "project:3", "project:4"),
+                'organization:2': ("project:5", ),
+            },
+            now - timedelta(hours=1),
+            now,
+            rollup=rollup,
+            environment_id=1,
+        ) == {
+            'organization:1': [
+                (
+                    timestamp - rollup, {
+                        "project:1": 0.0,
+                        "project:2": 1.0,
+                        "project:3": 2.0,
+                        "project:4": 3.0,
+                    }
+                ),
+                (
+                    timestamp, {
+                        "project:1": 0.0,
+                        "project:2": 0.0,
+                        "project:3": 0.0,
+                        "project:4": 0.0,
+                    }
+                ),
+            ],
+            'organization:2': [
+                (timestamp - rollup, {
+                    "project:5": 0.5,
+                }),
+                (timestamp, {
+                    "project:5": 0.0,
+                }),
+            ],
+        }
+
         assert self.db.get_frequency_totals(
             model,
             {
                 'organization:1': ("project:1", "project:2", "project:3", "project:4", "project:5"),
-                'organization:2': ("project:1", ),
+                'organization:2': ("project:1", "project:2", "project:3", "project:4", "project:5"),
             },
             now - timedelta(hours=1),
             now,
@@ -408,6 +627,71 @@ class RedisTSDBTest(TestCase):
             },
             'organization:2': {
                 "project:1": 0.0,
+                "project:2": 0.0,
+                "project:3": 0.0,
+                "project:4": 0.0,
+                "project:5": 1.5,
+            },
+        }
+
+        self.db.merge_frequencies(
+            model,
+            'organization:1',
+            ['organization:2'],
+            now,
+            environment_ids=[0, 1],
+        )
+
+        assert self.db.get_frequency_totals(
+            model,
+            {
+                'organization:1': ("project:1", "project:2", "project:3", "project:4", "project:5"),
+                'organization:2': ("project:1", "project:2", "project:3", "project:4", "project:5"),
+            },
+            now - timedelta(hours=1),
+            now,
+            rollup=rollup,
+        ) == {
+            'organization:1': {
+                "project:1": 1.0 + 1.0,
+                "project:2": 2.0 + 2.0,
+                "project:3": 3.0 + 3.0,
+                "project:4": 4.0,
+                "project:5": 1.5,
+            },
+            'organization:2': {
+                "project:1": 0.0,
+                "project:2": 0.0,
+                "project:3": 0.0,
+                "project:4": 0.0,
+                "project:5": 0.0,
+            },
+        }
+
+        assert self.db.get_frequency_totals(
+            model,
+            {
+                'organization:1': ("project:1", "project:2", "project:3", "project:4", "project:5"),
+                'organization:2': ("project:1", "project:2", "project:3", "project:4", "project:5"),
+            },
+            now - timedelta(hours=1),
+            now,
+            rollup=rollup,
+            environment_id=1,
+        ) == {
+            'organization:1': {
+                "project:1": 0.0,
+                "project:2": 1.0,
+                "project:3": 2.0,
+                "project:4": 3.0,
+                "project:5": 0.5,
+            },
+            'organization:2': {
+                "project:1": 0.0,
+                "project:2": 0.0,
+                "project:3": 0.0,
+                "project:4": 0.0,
+                "project:5": 0.0,
             },
         }
 
@@ -416,12 +700,23 @@ class RedisTSDBTest(TestCase):
             ['organization:1', 'organization:2'],
             now - timedelta(hours=1),
             now,
+            environment_ids=[0, 1],
         )
 
         assert self.db.get_most_frequent(
             model,
             ('organization:1', 'organization:2'),
             now,
+        ) == {
+            'organization:1': [],
+            'organization:2': [],
+        }
+
+        assert self.db.get_most_frequent(
+            model,
+            ('organization:1', 'organization:2'),
+            now,
+            environment_id=1,
         ) == {
             'organization:1': [],
             'organization:2': [],

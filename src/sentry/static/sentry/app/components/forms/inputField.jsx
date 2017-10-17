@@ -12,12 +12,14 @@ export default class InputField extends FormField {
 
   // XXX(dcramer): this comes from TooltipMixin
   componentDidMount() {
+    super.componentDidMount();
     this.attachTooltips();
   }
 
   componentWillUnmount() {
     this.removeTooltips();
     jQuery(ReactDOM.findDOMNode(this)).unbind();
+    super.componentWillUnmount();
   }
 
   attachTooltips() {

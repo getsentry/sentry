@@ -16,6 +16,7 @@ import time
 import errno
 import shutil
 import hashlib
+import logging
 import tempfile
 from requests.exceptions import RequestException
 
@@ -24,7 +25,8 @@ from django.db import models, transaction, IntegrityError
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
-from symsynd import DebugInfo, DebugInfoError
+from symbolic import FatObject, SymbolicError, UnsupportedObjectFile, \
+    SymCache, SYMCACHE_LATEST_VERSION
 
 from sentry import options
 from sentry.db.models import FlexibleForeignKey, Model, \
@@ -33,6 +35,10 @@ from sentry.models.file import File
 from sentry.utils.zip import safe_extract_zip
 from sentry.constants import KNOWN_DSYM_TYPES
 from sentry.reprocessing import resolve_processing_issue
+
+
+logger = logging.getLogger(__name__)
+
 
 ONE_DAY = 60 * 60 * 24
 ONE_DAY_AND_A_HALF = int(ONE_DAY * 1.5)
@@ -93,11 +99,13 @@ def _auto_enrich_data(data, app_id, platform):
 
 class DSymAppManager(BaseManager):
     def create_or_update_app(
-        self, sync_id, app_id, project, data=None, platform=DSymPlatform.GENERIC
+        self, sync_id, app_id, project, data=None, platform=DSymPlatform.GENERIC,
+        no_fetch=False
     ):
         if data is None:
             data = {}
-        _auto_enrich_data(data, app_id, platform)
+        if not no_fetch:
+            _auto_enrich_data(data, app_id, platform)
         existing_app = DSymApp.objects.filter(app_id=app_id, project=project).first()
         if existing_app is not None:
             now = timezone.now()
@@ -183,9 +191,35 @@ class ProjectDSymFile(Model):
         ct = self.file.headers.get('Content-Type').lower()
         return KNOWN_DSYM_TYPES.get(ct, 'unknown')
 
+    @property
+    def supports_symcache(self):
+        # Only one that supports it so far.
+        return self.dsym_type == 'macho'
+
     def delete(self, *args, **kwargs):
         super(ProjectDSymFile, self).delete(*args, **kwargs)
         self.file.delete()
+
+
+class ProjectSymCacheFile(Model):
+    __core__ = False
+
+    project = FlexibleForeignKey('sentry.Project', null=True)
+    cache_file = FlexibleForeignKey('sentry.File')
+    dsym_file = FlexibleForeignKey('sentry.ProjectDSymFile')
+    checksum = models.CharField(max_length=40)
+    version = BoundedPositiveIntegerField()
+
+    class Meta:
+        unique_together = (('project', 'dsym_file'),)
+        db_table = 'sentry_projectsymcachefile'
+        app_label = 'sentry'
+
+    __repr__ = sane_repr('uuid')
+
+    def delete(self, *args, **kwargs):
+        super(ProjectSymCacheFile, self).delete(*args, **kwargs)
+        self.cache_file.delete()
 
 
 def _create_dsym_from_uuid(project, dsym_type, cpu_name, uuid, fileobj, basename):
@@ -262,7 +296,8 @@ def _analyze_progard_filename(filename):
         pass
 
 
-def create_files_from_dsym_zip(fileobj, project=None):
+def create_files_from_dsym_zip(fileobj, project,
+                               update_symcaches=True):
     """Creates all missing dsym files from the given zip file.  This
     returns a list of all files created.
     """
@@ -280,19 +315,22 @@ def create_files_from_dsym_zip(fileobj, project=None):
                 proguard_uuid = _analyze_progard_filename(fn)
                 if proguard_uuid is not None:
                     to_create.append(('proguard', 'any', six.text_type(proguard_uuid), fn, ))
+                    continue
 
                 # macho style debug symbols
                 try:
-                    di = DebugInfo.open_path(fn)
-                except DebugInfoError:
+                    fo = FatObject.from_path(fn)
+                except UnsupportedObjectFile:
+                    pass
+                except SymbolicError:
                     # Whatever was contained there, was probably not a
                     # macho file.
-                    pass
+                    # XXX: log?
+                    logger.warning('dsymfile.bad-fat-object', exc_info=True)
                 else:
-                    for variant in di.get_variants():
-                        to_create.append(
-                            ('macho', variant.cpu_name, six.text_type(variant.uuid), fn, )
-                        )
+                    for obj in fo.iter_objects():
+                        to_create.append((obj.kind, obj.arch,
+                                          six.text_type(obj.uuid), fn))
                     continue
 
         rv = []
@@ -303,6 +341,17 @@ def create_files_from_dsym_zip(fileobj, project=None):
                 )
                 if created:
                     rv.append(dsym)
+
+        # By default we trigger the symcache generation on upload to avoid
+        # some obvious dogpiling.
+        if update_symcaches:
+            from sentry.tasks.symcache_update import symcache_update
+            uuids_to_update = [six.text_type(x.uuid) for x in rv
+                               if x.supports_symcache]
+            if uuids_to_update:
+                symcache_update.delay(project_id=project.id,
+                                      uuids=uuids_to_update)
+
         return rv
     finally:
         shutil.rmtree(scratchpad)
@@ -321,80 +370,168 @@ def find_dsym_file(project, image_uuid):
 
 class DSymCache(object):
     @property
-    def dsym_cache_path(self):
+    def cache_path(self):
         return options.get('dsym.cache-path')
 
     def get_project_path(self, project):
-        return os.path.join(self.dsym_cache_path, six.text_type(project.id))
+        return os.path.join(self.cache_path, six.text_type(project.id))
 
-    def fetch_dsyms(self, project, uuids, on_dsym_file_referenced=None):
+    def update_symcaches(self, project, uuids):
+        """Given some uuids of dsyms this will update the symcaches for
+        all of these if a symcache is supported for that symbol.
+        """
+        self._get_symcaches_impl(project, uuids)
+
+    def get_symcaches(self, project, uuids, on_dsym_file_referenced=None):
+        """Given some uuids returns the symcaches loaded for these uuids."""
+        cachefiles = self._get_symcaches_impl(project, uuids,
+                                              on_dsym_file_referenced)
+        return self._load_cachefiles_via_fs(project, cachefiles)
+
+    def fetch_dsyms(self, project, uuids):
+        """Given some uuids returns a uuid to path mapping for where the
+        debug symbol files are on the FS.
+        """
         rv = {}
         for image_uuid in uuids:
-            path = self.fetch_dsym(
-                project, image_uuid, on_dsym_file_referenced=on_dsym_file_referenced
-            )
-            if path is not None:
-                rv[image_uuid] = path
+            image_uuid = six.text_type(image_uuid).lower()
+            dsym_path = os.path.join(self.get_project_path(project), image_uuid)
+
+            try:
+                os.stat(dsym_path)
+            except OSError as e:
+                if e.errno != errno.ENOENT:
+                    raise
+                dsym_file = find_dsym_file(project, image_uuid)
+                if dsym_file is None:
+                    continue
+                dsym_file.file.save_to(dsym_path)
+            rv[uuid.UUID(image_uuid)] = dsym_path
+
         return rv
 
-    def try_bump_timestamp(self, path, old_stat):
+    def _get_symcaches_impl(self, project, uuids, on_dsym_file_referenced=None):
+        # Fetch dsym files first and invoke the callback if we need
+        uuid_strings = list(map(six.text_type, uuids))
+        dsym_files = [x for x in ProjectDSymFile.objects.filter(
+            project=project,
+            uuid__in=uuid_strings,
+        ).select_related('file') if x.supports_symcache]
+        if not dsym_files:
+            return {}
+
+        dsym_files_by_uuid = {}
+        for dsym_file in dsym_files:
+            if on_dsym_file_referenced is not None:
+                on_dsym_file_referenced(dsym_file)
+            dsym_files_by_uuid[dsym_file.uuid] = dsym_file
+
+        # Now find all the cache files we already have.
+        q = ProjectSymCacheFile.objects.filter(
+            project=project,
+            dsym_file_id__in=[x.id for x in dsym_files],
+        ).select_related('cache_file', 'dsym_file__uuid')
+
+        cachefiles = []
+        cachefiles_to_update = dict.fromkeys(x.uuid for x in dsym_files)
+        for cache_file in q:
+            dsym_uuid = cache_file.dsym_file.uuid
+            dsym_file = dsym_files_by_uuid[dsym_uuid]
+            if cache_file.version == SYMCACHE_LATEST_VERSION and \
+               cache_file.checksum == dsym_file.file.checksum:
+                cachefiles_to_update.pop(dsym_uuid, None)
+                cachefiles.append((dsym_uuid, cache_file))
+            else:
+                cachefiles_to_update[dsym_uuid] = \
+                    (cache_file, dsym_file)
+
+        # if any cache files need to be updated, do that now.
+        if cachefiles_to_update:
+            to_update = []
+            for dsym_uuid, it in six.iteritems(cachefiles_to_update):
+                if it is None:
+                    dsym_file = dsym_files_by_uuid[dsym_uuid]
+                else:
+                    cache_file, dsym_file = it
+                    cache_file.delete()
+                to_update.append(dsym_file)
+            cachefiles.extend(self._update_cachefiles(project, to_update))
+
+        return cachefiles
+
+    def _update_cachefiles(self, project, dsym_files):
+        rv = []
+
+        for dsym_file in dsym_files:
+            dsym_uuid = dsym_file.uuid
+            try:
+                with dsym_file.file.getfile(as_tempfile=True) as tf:
+                    fo = FatObject.from_path(tf.name)
+                    o = fo.get_object(uuid=dsym_file.uuid)
+                    if o is None:
+                        continue
+                    cache = o.make_symcache()
+            except SymbolicError:
+                logger.error('dsymfile.symcache-build-error',
+                             exc_info=True, extra=dict(dsym_uuid=dsym_uuid))
+                continue
+
+            file = File.objects.create(
+                name=dsym_file.uuid,
+                type='project.symcache',
+            )
+            file.putfile(cache.open_stream())
+            try:
+                with transaction.atomic():
+                    rv.append((dsym_uuid, ProjectSymCacheFile.objects.get_or_create(
+                        project=project,
+                        cache_file=file,
+                        dsym_file=dsym_file,
+                        defaults=dict(
+                            checksum=dsym_file.file.checksum,
+                            version=cache.file_format_version,
+                        )
+                    )[0]))
+            except IntegrityError:
+                file.delete()
+                rv.append((dsym_uuid, ProjectSymCacheFile.objects.get(
+                    project=project,
+                    dsym_file=dsym_file,
+                )))
+
+        return rv
+
+    def _load_cachefiles_via_fs(self, project, cachefiles):
+        rv = {}
+        base = self.get_project_path(project)
+        for dsym_uuid, symcache_file in cachefiles:
+            cachefile_path = os.path.join(base, dsym_uuid + '.symcache')
+            try:
+                stat = os.stat(cachefile_path)
+            except OSError as e:
+                if e.errno != errno.ENOENT:
+                    raise
+                symcache_file.cache_file.save_to(cachefile_path)
+            else:
+                self._try_bump_timestamp(cachefile_path, stat)
+            rv[uuid.UUID(dsym_uuid)] = SymCache.from_path(cachefile_path)
+        return rv
+
+    def _try_bump_timestamp(self, path, old_stat):
         now = int(time.time())
         if old_stat.st_ctime < now - ONE_DAY:
             os.utime(path, (now, now))
-        return path
-
-    def fetch_dsym(self, project, image_uuid, on_dsym_file_referenced=None):
-        image_uuid = image_uuid.lower()
-        dsym_path = os.path.join(self.get_project_path(project), image_uuid)
-        try:
-            os.stat(dsym_path)
-        except OSError as e:
-            if e.errno != errno.ENOENT:
-                raise
-        else:
-            return dsym_path
-
-        dsf = find_dsym_file(project, image_uuid)
-        if dsf is None:
-            return None
-
-        if on_dsym_file_referenced is not None:
-            on_dsym_file_referenced(dsf)
-
-        try:
-            os.makedirs(os.path.dirname(dsym_path))
-        except OSError:
-            pass
-
-        with dsf.file.getfile() as sf:
-            suffix = '_%s' % uuid.uuid4()
-            done = False
-            try:
-                with open(dsym_path + suffix, 'w') as df:
-                    shutil.copyfileobj(sf, df)
-                os.rename(dsym_path + suffix, dsym_path)
-                done = True
-            finally:
-                # Use finally here because it does not lie about the
-                # error on exit
-                if not done:
-                    try:
-                        os.remove(dsym_path + suffix)
-                    except Exception:
-                        pass
-
-        return dsym_path
 
     def clear_old_entries(self):
         try:
-            cache_folders = os.listdir(self.dsym_cache_path)
+            cache_folders = os.listdir(self.cache_path)
         except OSError:
             return
 
         cutoff = int(time.time()) - ONE_DAY_AND_A_HALF
 
         for cache_folder in cache_folders:
-            cache_folder = os.path.join(self.dsym_cache_path, cache_folder)
+            cache_folder = os.path.join(self.cache_path, cache_folder)
             try:
                 items = os.listdir(cache_folder)
             except OSError:

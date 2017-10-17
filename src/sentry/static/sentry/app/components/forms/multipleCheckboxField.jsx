@@ -6,20 +6,25 @@ import jQuery from 'jquery';
 
 import FormField from './formField';
 
+import {defined} from '../../utils';
+
 export default class MultipleCheckboxField extends FormField {
   static propTypes = {
     ...FormField.propTypes,
+    hideLabelDivider: PropTypes.bool,
     choices: PropTypes.array.isRequired
   };
 
   // XXX(dcramer): this comes from TooltipMixin
   componentDidMount() {
+    super.componentDidMount();
     this.attachTooltips();
   }
 
   componentWillUnmount() {
     this.removeTooltips();
     jQuery(ReactDOM.findDOMNode(this)).unbind();
+    super.componentWillUnmount();
   }
 
   attachTooltips() {
@@ -53,6 +58,7 @@ export default class MultipleCheckboxField extends FormField {
       label,
       help,
       choices,
+      hideLabelDivider,
       style
     } = this.props;
     let error = this.getError();
@@ -70,7 +76,13 @@ export default class MultipleCheckboxField extends FormField {
       <div style={style} className={cx}>
         <div className={labelCx}>
           <div className="controls">
-            <label className="control-label">
+            <label
+              className="control-label"
+              style={{
+                display: 'block',
+                marginBottom: !hideLabelDivider ? 10 : undefined,
+                borderBottom: !hideLabelDivider ? '1px solid #f1eff3' : undefined
+              }}>
               {label}
               {shouldShowDisabledReason &&
                 <span className="disabled-indicator tip" title={disabledReason}>
@@ -91,7 +103,9 @@ export default class MultipleCheckboxField extends FormField {
                   value={value}
                   onChange={this.onChange.bind(this, value)}
                   disabled={disabled}
-                  checked={this.state.value.indexOf(value) !== -1}
+                  checked={
+                    defined(this.state.value) && this.state.value.indexOf(value) !== -1
+                  }
                 />
                 {choiceLabel}
               </label>

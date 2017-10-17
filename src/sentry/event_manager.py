@@ -7,6 +7,7 @@ sentry.event_manager
 """
 from __future__ import absolute_import, print_function
 
+import functools
 import logging
 import math
 import six
@@ -42,6 +43,9 @@ from sentry.utils.safe import safe_execute, trim, trim_dict
 from sentry.utils.strings import truncatechars
 from sentry.utils.validators import validate_ip
 from sentry.stacktraces import normalize_in_app
+
+
+DEFAULT_FINGERPRINT_VALUES = frozenset(['{{ default }}', '{{default}}'])
 
 
 def count_limit(count):
@@ -87,7 +91,8 @@ def get_hashes_for_event_with_reason(event):
         if not result:
             continue
         return (interface.get_path(), result)
-    return ('message', [event.message])
+
+    return ('no_interfaces', [''])
 
 
 def get_grouping_behavior(event):
@@ -98,10 +103,9 @@ def get_grouping_behavior(event):
     return ('fingerprint', get_hashes_from_fingerprint_with_reason(event, fingerprint))
 
 
-def get_hashes_from_fingerprint(event, fingerprint):
-    default_values = set(['{{ default }}', '{{default}}'])
-    if any(d in fingerprint for d in default_values):
-        default_hashes = get_hashes_for_event(event)
+def _get_hashes_from_fingerprint(get_hash_inputs, fingerprint):
+    if any(d in fingerprint for d in DEFAULT_FINGERPRINT_VALUES):
+        default_hashes = get_hash_inputs()
         hash_count = len(default_hashes)
     else:
         hash_count = 1
@@ -110,7 +114,7 @@ def get_hashes_from_fingerprint(event, fingerprint):
     for idx in range(hash_count):
         result = []
         for bit in fingerprint:
-            if bit in default_values:
+            if bit in DEFAULT_FINGERPRINT_VALUES:
                 result.extend(default_hashes[idx])
             else:
                 result.append(bit)
@@ -118,9 +122,15 @@ def get_hashes_from_fingerprint(event, fingerprint):
     return hashes
 
 
+def get_hashes_from_fingerprint(event, fingerprint):
+    return _get_hashes_from_fingerprint(
+        functools.partial(get_hashes_for_event, event),
+        fingerprint,
+    )
+
+
 def get_hashes_from_fingerprint_with_reason(event, fingerprint):
-    default_values = set(['{{ default }}', '{{default}}'])
-    if any(d in fingerprint for d in default_values):
+    if any(d in fingerprint for d in DEFAULT_FINGERPRINT_VALUES):
         default_hashes = get_hashes_for_event_with_reason(event)
         hash_count = len(default_hashes[1])
     else:
@@ -129,7 +139,7 @@ def get_hashes_from_fingerprint_with_reason(event, fingerprint):
     hashes = OrderedDict((bit, []) for bit in fingerprint)
     for idx in range(hash_count):
         for bit in fingerprint:
-            if bit in default_values:
+            if bit in DEFAULT_FINGERPRINT_VALUES:
                 hashes[bit].append(default_hashes)
             else:
                 hashes[bit] = bit

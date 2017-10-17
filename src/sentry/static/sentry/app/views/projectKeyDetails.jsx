@@ -24,6 +24,14 @@ import {
 } from '../components/forms';
 import {t, tct} from '../locale';
 
+// Exporting this only so we can quickly and simply unit test it
+// Not moving this to utils because this is tightly coupled to the UI
+export const getRateLimitError = (obj, key) => {
+  if (!obj || !obj.rateLimit || !Array.isArray(obj.rateLimit)) return null;
+
+  return !!obj.rateLimit.find(errorObj => errorObj[key] && errorObj[key].length);
+};
+
 const KeyStats = React.createClass({
   mixins: [ApiMixin],
 
@@ -252,6 +260,9 @@ const KeySettings = React.createClass({
     let {errors, formData} = this.state;
     let hasChanges = !isEqual(this.props.initialData, formData);
     let {access, data, rateLimitsEnabled, organization, project} = this.props;
+    let rateLimitWindowError = getRateLimitError(errors, 'window');
+    let rateLimitCountError = getRateLimitError(errors, 'count');
+
     return (
       <form onSubmit={this.onSubmit} className="form-stacked">
         {this.state.state === FormState.ERROR &&
@@ -324,15 +335,16 @@ const KeySettings = React.createClass({
                 </p>
                 <div className="form-group rate-limit-group">
                   <label>{t('Rate Limit')}</label>
-                  <FlowLayout>
+                  <FlowLayout truncate={false}>
                     <div style={{width: 80}}>
                       <NumberField
+                        hideErrorMessage
                         key="rateLimit.count"
                         name="rateLimit.count"
                         min={0}
                         value={idx(formData, _ => _.rateLimit.count)}
                         required={false}
-                        error={errors.rateLimit}
+                        error={rateLimitCountError}
                         placeholder={t('count')}
                         onChange={this.onRateLimitChange.bind(this, 'count')}
                         className=""
@@ -344,12 +356,13 @@ const KeySettings = React.createClass({
                     <div style={{width: 150}}>
                       <Select2Field
                         width="100%"
+                        hideErrorMessage
                         key="rateLimit.window"
                         name="rateLimit.window"
                         choices={this.getRateLimitWindows()}
                         value={idx(formData, _ => _.rateLimit.window)}
                         required={false}
-                        error={errors.rateLimit}
+                        error={rateLimitWindowError}
                         placeholder={t('window')}
                         allowClear={true}
                         onChange={this.onRateLimitChange.bind(this, 'window')}

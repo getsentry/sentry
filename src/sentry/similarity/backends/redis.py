@@ -20,7 +20,7 @@ def flatten(value):
     return list(itertools.chain.from_iterable(value))
 
 
-class RedisMinHashIndexBackend(AbstractIndexBackend):
+class RedisScriptMinHashIndexBackend(AbstractIndexBackend):
     def __init__(self, cluster, namespace, signature_builder,
                  bands, interval, retention, candidate_set_limit):
         self.cluster = cluster

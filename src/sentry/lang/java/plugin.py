@@ -1,5 +1,8 @@
 from __future__ import absolute_import
 
+import six
+import uuid
+
 from libsourcemap import ProguardView
 from sentry.plugins import Plugin2
 from sentry.stacktraces import StacktraceProcessor
@@ -19,7 +22,7 @@ class JavaStacktraceProcessor(StacktraceProcessor):
             self.debug_meta = debug_meta
             for img in debug_meta['images']:
                 if img['type'] == 'proguard':
-                    self.images.add(img['uuid'])
+                    self.images.add(uuid.UUID(img['uuid']))
         else:
             self.available = False
 
@@ -32,7 +35,7 @@ class JavaStacktraceProcessor(StacktraceProcessor):
             (
                 FRAME_CACHE_VERSION, processable_frame.frame['module'],
                 processable_frame.frame['function'],
-            ) + tuple(sorted(self.images))
+            ) + tuple(sorted(map(six.text_type, self.images)))
         )
 
     def preprocess_step(self, processing_task):

@@ -146,7 +146,7 @@ class Project(OrganizationBoundMixin, Model):
         return absolute_uri('/{}/{}/'.format(self.organization.slug, self.slug))
 
     def merge_to(self, project):
-        from sentry.models import (Group, GroupTagValue, Event)
+        from sentry.models import (Group, Event)
 
         if not isinstance(project, Project):
             project = Project.objects.get_from_cache(pk=project)
@@ -158,17 +158,17 @@ class Project(OrganizationBoundMixin, Model):
                 )
             except Group.DoesNotExist:
                 group.update(project=project)
-                GroupTagValue.objects.filter(
-                    project_id=self.id,
+                tagstore.update_project_for_group(
                     group_id=group.id,
-                ).update(project_id=project.id)
+                    old_project_id=self.id,
+                    new_project_id=project.id)
             else:
                 Event.objects.filter(
                     group_id=group.id,
                 ).update(group_id=other.id)
 
-                for obj in GroupTagValue.objects.filter(group=group):
-                    obj2, created = GroupTagValue.objects.get_or_create(
+                for obj in tagstore.get_group_tag_values(group_id=group.id):
+                    obj2, created = tagstore.get_or_create_group_tag_value(
                         project_id=project.id,
                         group_id=group.id,
                         key=obj.key,

@@ -21,7 +21,7 @@ from django.db import models
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
-from sentry import buffer, eventtypes, tagstore
+from sentry import eventtypes, tagstore
 from sentry.constants import (
     DEFAULT_LOGGER_NAME, EVENT_ORDERING_KEY, LOG_LEVELS, MAX_CULPRIT_LENGTH
 )
@@ -129,8 +129,6 @@ class GroupManager(ProjectBoundManager):
             )
 
     def add_tags(self, group, tags):
-        from sentry.models import GroupTagValue
-
         project_id = group.project_id
         date = group.last_seen
 
@@ -140,23 +138,15 @@ class GroupManager(ProjectBoundManager):
             else:
                 key, value, data = tag_item
 
-            tagstore.incr_times_seen(project_id, key, value, {
+            tagstore.incr_tag_value_times_seen(project_id, key, value, {
                 'last_seen': date,
                 'data': data,
             })
 
-            buffer.incr(
-                GroupTagValue, {
-                    'times_seen': 1,
-                }, {
-                    'group_id': group.id,
-                    'key': key,
-                    'value': value,
-                }, {
-                    'project_id': project_id,
-                    'last_seen': date,
-                }
-            )
+            tagstore.incr_group_tag_value_times_seen(group.id, key, value, {
+                'project_id': project_id,
+                'last_seen': date,
+            })
 
 
 class Group(ProjectBoundMixin, Model):
@@ -335,49 +325,15 @@ class Group(ProjectBoundMixin, Model):
                 self._oldest_event = None
         return self._oldest_event
 
-    def get_unique_tags(self, tag, since=None, order_by='-times_seen'):
-        # TODO(dcramer): this has zero test coverage and is a critical path
-        from sentry.models import GroupTagValue
-
-        queryset = GroupTagValue.objects.filter(
-            group=self,
-            key=tag,
-        )
-        if since:
-            queryset = queryset.filter(last_seen__gte=since)
-        return queryset.values_list(
-            'value',
-            'times_seen',
-            'first_seen',
-            'last_seen',
-        ).order_by(order_by)
-
     def get_tags(self):
-        from sentry.models import GroupTagKey
         if not hasattr(self, '_tag_cache'):
-            group_tags = GroupTagKey.objects.filter(
-                group_id=self.id,
-                project_id=self.project_id,
-            )
-
-            group_tags = list(group_tags.values_list('key', flat=True))
-
-            tag_keys = dict(
-                (t.key, t) for t in tagstore.get_tag_keys(self.project_id, group_tags)
-            )
+            group_tags = [gtk.key for gtk in tagstore.get_group_tag_keys(self.id)]
 
             results = []
             for key in group_tags:
-                try:
-                    tag_key = tag_keys[key]
-                except KeyError:
-                    label = key.replace('_', ' ').title()
-                else:
-                    label = tag_key.get_label()
-
                 results.append({
                     'key': key,
-                    'label': label,
+                    'label': tagstore.get_tag_key_label(key),
                 })
 
             self._tag_cache = sorted(results, key=lambda x: x['label'])
@@ -385,31 +341,13 @@ class Group(ProjectBoundMixin, Model):
         return self._tag_cache
 
     def get_first_release(self):
-        from sentry.models import GroupTagValue
         if self.first_release_id is None:
-            try:
-                first_release = GroupTagValue.objects.filter(
-                    group_id=self.id,
-                    key__in=('sentry:release', 'release'),
-                ).order_by('first_seen')[0]
-            except IndexError:
-                return None
-            else:
-                return first_release.value
+            return tagstore.get_first_release(self.id)
 
         return self.first_release.version
 
     def get_last_release(self):
-        from sentry.models import GroupTagValue
-        try:
-            last_release = GroupTagValue.objects.filter(
-                group_id=self.id,
-                key__in=('sentry:release', 'release'),
-            ).order_by('-last_seen')[0]
-        except IndexError:
-            return None
-
-        return last_release.value
+        return tagstore.get_last_release(self.id)
 
     def get_event_type(self):
         """
@@ -475,9 +413,4 @@ class Group(ProjectBoundMixin, Model):
         )
 
     def count_users_seen(self):
-        from sentry.models import GroupTagKey
-
-        return GroupTagKey.objects.filter(
-            group_id=self.id,
-            key='sentry:user',
-        ).aggregate(t=models.Sum('values_seen'))['t'] or 0
+        return tagstore.get_group_values_seen(self.id, 'sentry:user')[self.id]

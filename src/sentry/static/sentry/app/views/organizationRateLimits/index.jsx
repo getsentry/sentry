@@ -3,7 +3,6 @@ import React from 'react';
 
 import ApiMixin from '../../mixins/apiMixin';
 import IndicatorStore from '../../stores/indicatorStore';
-import OrganizationHomeContainer from '../../components/organizations/homeContainer';
 import OrganizationState from '../../mixins/organizationState';
 import {RangeField} from '../../components/forms';
 import {t} from '../../locale';
@@ -200,16 +199,14 @@ const OrganizationRateLimits = React.createClass({
     let org = this.context.organization;
 
     return (
-      <OrganizationHomeContainer>
-        <div className="box">
-          <div className="box-header">
-            <h3>{t('Rate Limits')}</h3>
-          </div>
-          <div className="box-content with-padding">
-            <RateLimitEditor organization={org} />
-          </div>
+      <div className="box">
+        <div className="box-header">
+          <h3>{t('Rate Limits')}</h3>
         </div>
-      </OrganizationHomeContainer>
+        <div className="box-content with-padding">
+          <RateLimitEditor organization={org} />
+        </div>
+      </div>
     );
   }
 });
