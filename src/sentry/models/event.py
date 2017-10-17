@@ -200,6 +200,8 @@ class Event(Model):
         data['time_spent'] = self.time_spent
         data['tags'] = self.get_tags()
         for k, v in sorted(six.iteritems(self.data)):
+            if k == 'sdk':
+                v = {v_k: v_v for v_k, v_v in six.iteritems(v) if v_k != 'client_ip'}
             data[k] = v
         return data
 
