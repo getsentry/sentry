@@ -1,16 +1,16 @@
 import React from 'react';
 import classNames from 'classnames';
 
-import Checkbox from '../../components/checkbox';
-import Radio from '../../components/radio';
-import Button from '../../components/buttons/button';
-import LoadingIndicator from '../../components/loadingIndicator';
+import OrganizationState from '../../mixins/organizationState';
+import ApiMixin from '../../mixins/apiMixin';
 import AlertActions from '../../actions/alertActions';
 
+import Button from '../../components/buttons/button';
+import LoadingIndicator from '../../components/loadingIndicator';
 import TextField from '../../components/forms/textField';
 
-import ApiMixin from '../../mixins/apiMixin';
-import OrganizationState from '../../mixins/organizationState';
+import RoleSelect from './roleSelect';
+import TeamSelect from './teamSelect';
 
 import ConfigStore from '../../stores/configStore';
 import {t} from '../../locale';
@@ -104,7 +104,7 @@ const InviteMember = React.createClass({
     this.setState({loading: true});
 
     Promise.all(emails.map(this.inviteUser))
-      .then(() => this.redirectToMemberPage())
+      .then(() => setTimeout(this.redirectToMemberPage, 3000))
       .catch(error => {
         if (!error.email && !error.role) {
           Raven.captureMessage('unkown error ', {
@@ -115,7 +115,7 @@ const InviteMember = React.createClass({
       });
   },
 
-  toggleID(id) {
+  toggleTeam(id) {
     let {selectedTeams} = this.state;
     if (selectedTeams.has(id)) {
       selectedTeams.delete(id);
@@ -125,71 +125,9 @@ const InviteMember = React.createClass({
     this.setState({selectedTeams});
   },
 
-  renderRoleSelect() {
-    let {roleList, selectedRole} = this.state;
-
-    return (
-      <div className="new-invite-team box">
-        <div className="box-header">
-          <h4>{t('Role') + ':'}</h4>
-        </div>
-        <div className="box-content with-padding">
-          <ul className="radio-inputs">
-            {roleList.map(({role, allowed}, i) => {
-              let {desc, name, id} = role;
-              return (
-                <li
-                  className="radio"
-                  key={id}
-                  onClick={() => allowed && this.setState({selectedRole: id})}
-                  style={allowed ? {} : {color: 'grey', cursor: 'default'}}>
-                  <label style={allowed ? {} : {cursor: 'default'}}>
-                    <Radio id={id} value={name} checked={id === selectedRole} readOnly />
-                    {name}
-                    <div className="help-block">{desc}</div>
-                  </label>
-                </li>
-              );
-            })}
-          </ul>
-        </div>
-      </div>
-    );
-  },
-
-  renderTeamSelect() {
-    let {teams} = this.getOrganization();
-    let {selectedTeams} = this.state;
-    //no need to select a team when there's only one option
-    if (teams.length < 2) return null;
-    return (
-      <div className="new-invite-team box">
-        <div className="box-header">
-          <h4>{t('Team') + ':'}</h4>
-        </div>
-        <div className="grouping-controls team-choices row box-content with-padding">
-          {teams.map(({slug, name, id}, i) => (
-            <div
-              key={id}
-              onClick={e => {
-                e.preventDefault();
-                this.toggleID(id);
-              }}
-              className="col-md-3">
-              <label className="checkbox">
-                <Checkbox id={id} value={name} checked={selectedTeams.has(id)} />
-                {name}
-                <span className="team-slug">{slug}</span>
-              </label>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  },
-
   render() {
-    let {error, loading} = this.state;
+    let {error, loading, roleList, selectedRole, selectedTeams} = this.state;
+    let {teams} = this.getOrganization();
     let {invitesEnabled} = ConfigStore.getConfig();
     return (
       <div>
@@ -215,8 +153,16 @@ const InviteMember = React.createClass({
           {error && error.email && <p className="error">{error.email}</p>}
         </div>
         {error && error.role && <p className="error alert-error">{error.role}</p>}
-        {this.renderRoleSelect()}
-        {this.renderTeamSelect()}
+        <RoleSelect
+          roleList={roleList}
+          selectedRole={selectedRole}
+          setRole={id => this.setState({selectedRole: id})}
+        />
+        <TeamSelect
+          teams={teams}
+          selectedTeams={selectedTeams}
+          toggleTeam={this.toggleTeam}
+        />
         <Button priority="primary" className="invite-member-submit" onClick={this.submit}>
           {t('Add Member')}
         </Button>

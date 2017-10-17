@@ -52,11 +52,27 @@ describe('CreateProject', function() {
     });
 
     it('should render no team select when there is only one option', function() {
+      Client.addMockResponse({
+        url: '/organizations/testOrg/members/me/',
+        body: {
+          allowed_roles: [
+            {
+              role: {
+                id: '1',
+                name: 'member',
+                desc: 'a normal member'
+              },
+              allowed: true
+            }
+          ]
+        }
+      });
+
       let context = _.cloneDeep(baseContext);
 
       context.context.organization.teams = context.context.organization.teams.slice(0, 1);
 
-      let wrapper = shallow(<InviteMember {...baseProps} />, context);
+      let wrapper = mount(<InviteMember {...baseProps} />, context);
 
       expect(wrapper).toMatchSnapshot();
     });
@@ -77,7 +93,7 @@ describe('CreateProject', function() {
           allowed_roles: [
             {
               role: {
-                id: 1,
+                id: '1',
                 name: 'member',
                 desc: 'a normal member'
               },
@@ -110,11 +126,11 @@ describe('CreateProject', function() {
         body: {
           allowed_roles: [
             {
-              role: {id: 1, name: 'member', desc: 'a normal member'},
+              role: {id: '1', name: 'member', desc: 'a normal member'},
               allowed: true
             },
             {
-              role: {id: 2, name: 'bar', desc: 'another role'},
+              role: {id: '2', name: 'bar', desc: 'another role'},
               allowed: true
             }
           ]
