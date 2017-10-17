@@ -1,8 +1,19 @@
 from __future__ import absolute_import, print_function
 
+import codecs
+from six import text_type
+from symbolic import SourceView
 from sentry.utils.strings import codec_lookup
 
 __all__ = ['SourceCache', 'SourceMapCache']
+
+
+def is_utf8(codec):
+    try:
+        name = codecs.lookup(codec).name
+    except Exception:
+        return False
+    return name in ('utf-8', 'ascii')
 
 
 class SourceCache(object):
@@ -20,35 +31,8 @@ class SourceCache(object):
             url = self._aliases[url]
         return url
 
-    def get(self, url, raw=False):
-        url = self._get_canonical_url(url)
-        try:
-            parsed, rv = self._cache[url]
-        except KeyError:
-            return None
-
-        # We have already gotten this file and we've
-        # decoded the response, so just return
-        if parsed:
-            parsed, raw_body = rv
-            if raw:
-                return raw_body
-            return parsed
-
-        # Otherwise, we have a 2-tuple that needs to be applied
-        body, encoding = rv
-
-        # Our body is lazily evaluated if it
-        # comes from libsourcemap
-        if callable(body):
-            body = body()
-
-        raw_body = body
-        body = body.decode(codec_lookup(encoding, 'utf-8').name, 'replace').split(u'\n')
-
-        # Set back a marker to indicate we've parsed this url
-        self._cache[url] = (True, (body, raw_body))
-        return body
+    def get(self, url):
+        return self._cache.get(self._get_canonical_url(url))
 
     def get_errors(self, url):
         url = self._get_canonical_url(url)
@@ -65,10 +49,20 @@ class SourceCache(object):
 
     def add(self, url, source, encoding=None):
         url = self._get_canonical_url(url)
-        # Insert into the cache, an unparsed (source, encoding)
-        # tuple. This allows the source to be split and decoded
-        # on demand when first accessed.
-        self._cache[url] = (False, (source, encoding))
+
+        if not isinstance(source, SourceView):
+            if isinstance(source, text_type):
+                source = source.encode('utf-8')
+            # If an encoding is provided and it's not utf-8 compatible
+            # we try to re-encoding the source and create a source view
+            # from it.
+            elif encoding is not None and not is_utf8(encoding):
+                try:
+                    source = source.decode(encoding).encode('utf-8')
+                except UnicodeError:
+                    pass
+            source = SourceView.from_bytes(source)
+        self._cache[url] = source
 
     def add_error(self, url, error):
         url = self._get_canonical_url(url)
