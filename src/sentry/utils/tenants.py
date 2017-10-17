@@ -1,8 +1,11 @@
 from __future__ import absolute_import
 
+import logging
+
 from sentry.app import env
 from sentry.utils.cache import memoize
 
+logger = logging.getLogger('sentry.tenants')
 
 ALL = object()
 
@@ -111,6 +114,9 @@ def set_current_tenant(tenant):
 
     >>> set_current_tenant(UnrestrictedTenant)
     """
+    logger.info('tenant.bind', extra={
+        'user_id': tenant.user_id,
+    })
     env.tenant = tenant
 
 

@@ -21,6 +21,7 @@ from django.db.models.signals import (
 from django.utils.encoding import smart_text
 
 from sentry import nodestore
+from sentry.exceptions import MissingTenant
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import md5_text
 
@@ -340,7 +341,9 @@ class OrganizationBoundManager(BoundManager):
     def get_binding_criteria(self):
         from sentry.utils import tenants
         tenant = tenants.get_current_tenant()
-        if not tenant or not tenant.organization_ids:
+        if not tenant:
+            raise MissingTenant
+        elif not tenant.organization_ids:
             return
         elif tenant.organization_ids == tenants.ALL:
             return Q()
@@ -351,7 +354,9 @@ class ProjectBoundManager(BoundManager):
     def get_binding_criteria(self):
         from sentry.utils import tenants
         tenant = tenants.get_current_tenant()
-        if not tenant or not tenant.project_ids:
+        if not tenant:
+            raise MissingTenant
+        elif not tenant.organization_ids:
             return
         elif tenant.project_ids == tenants.ALL:
             return Q()

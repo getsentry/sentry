@@ -59,3 +59,7 @@ class HookValidationError(Exception):
 
 class NotRegistered(Exception):
     pass
+
+
+class MissingTenant(Exception):
+    pass

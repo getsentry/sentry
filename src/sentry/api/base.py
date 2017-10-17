@@ -19,6 +19,7 @@ from rest_framework.views import APIView
 from sentry import tsdb
 from sentry.app import raven
 from sentry.models import ApiKey, AuditLogEntry
+from sentry.utils import tenants
 from sentry.utils.cursors import Cursor
 from sentry.utils.dates import to_datetime
 from sentry.utils.http import absolute_uri, is_valid_origin
@@ -163,6 +164,15 @@ class Endpoint(APIView):
                     return self.response
 
             self.initial(request, *args, **kwargs)
+
+            if request.user.is_authenticated():
+                raven.user_context({
+                    'id': request.user.id,
+                    'email': request.user.email,
+                    'username': request.user.username,
+                })
+
+            tenants.set_current_tenant(tenants.Tenant.from_user(request.user))
 
             # Get the appropriate handler method
             if request.method.lower() in self.http_method_names:
