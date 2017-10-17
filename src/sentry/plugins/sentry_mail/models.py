@@ -187,8 +187,8 @@ class MailPlugin(NotificationPlugin):
         headers = {
             'X-Sentry-Logger': group.logger,
             'X-Sentry-Logger-Level': group.get_level_display(),
-            'X-Sentry-Team': project.team.name,
-            'X-Sentry-Project': project.name,
+            'X-Sentry-Team': project.team.slug,
+            'X-Sentry-Project': project.slug,
             'X-Sentry-Reply-To': group_id_to_email(group.id),
         }
 
@@ -240,6 +240,11 @@ class MailPlugin(NotificationPlugin):
             'counts': counts,
         }
 
+        headers = {
+            'X-Sentry-Team': project.team.slug,
+            'X-Sentry-Project': project.slug,
+        }
+
         subject = self.get_digest_subject(project, counts, start)
 
         for user_id in self.get_send_to(project):
@@ -250,6 +255,7 @@ class MailPlugin(NotificationPlugin):
                 html_template='sentry/emails/digests/body.html',
                 project=project,
                 reference=project,
+                headers=headers,
                 type='notify.digest',
                 context=context,
                 send_to=[user_id],
