@@ -12,7 +12,6 @@ exports[`ShareIssue renders when busy 1`] = `
     <div
       style={
         Object {
-          "display": "inline-block",
           "marginRight": 4,
         }
       }
@@ -67,7 +66,6 @@ exports[`ShareIssue renders when not shared 1`] = `
     <div
       style={
         Object {
-          "display": "inline-block",
           "marginRight": 4,
         }
       }
@@ -125,7 +123,6 @@ exports[`ShareIssue renders when not shared 2`] = `
     <div
       style={
         Object {
-          "display": "inline-block",
           "marginRight": 4,
         }
       }

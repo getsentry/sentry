@@ -173,7 +173,7 @@ class ShareIssue extends React.Component {
     // Needs to wrap in an inline block for DropdownReact,
     // or else dropdown icon gets wrapped?
     const title = (
-      <div style={{display: 'inline-block', marginRight: 4}}>
+      <div style={{marginRight: 4}}>
         <FlowLayout center>
           <IndicatorDot active={isSharing} />
           {shareTitle}

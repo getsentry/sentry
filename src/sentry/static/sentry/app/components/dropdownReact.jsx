@@ -169,14 +169,18 @@ class DropdownReact extends React.Component {
       open: shouldShowDropdown
     });
 
+    // .dropdown-actor-title = flexbox to fix vertical alignment on firefox
+    // Need the extra container because dropdown-menu alignment is off if `dropdown-actor` is a flexbox
     return (
       <span className={topLevelCx}>
         <a
           className={cx}
           ref={ref => (this.dropdownActor = ref)}
           onClick={this.handleToggle}>
-          {title}
-          {caret && <i className="icon-arrow-down" />}
+          <div className="dropdown-actor-title">
+            <span>{title}</span>
+            {caret && <i className="icon-arrow-down" />}
+          </div>
         </a>
         {(shouldShowDropdown || alwaysRenderMenu) &&
           <ul

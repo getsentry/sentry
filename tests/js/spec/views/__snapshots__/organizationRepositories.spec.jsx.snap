@@ -30,10 +30,16 @@ exports[`OrganizationRepositories render() with a provider renders 1`] = `
               className="dropdown-actor btn btn-primary btn-sm dropdown-menu-right dropdown-toggle"
               onClick={[Function]}
             >
-              Add Repository
-              <i
-                className="icon-arrow-down"
-              />
+              <div
+                className="dropdown-actor-title"
+              >
+                <span>
+                  Add Repository
+                </span>
+                <i
+                  className="icon-arrow-down"
+                />
+              </div>
             </a>
             <ul
               className="dropdown-menu"
@@ -191,10 +197,16 @@ exports[`OrganizationRepositories render() with a provider renders with a reposi
               className="dropdown-actor btn btn-primary btn-sm dropdown-menu-right dropdown-toggle"
               onClick={[Function]}
             >
-              Add Repository
-              <i
-                className="icon-arrow-down"
-              />
+              <div
+                className="dropdown-actor-title"
+              >
+                <span>
+                  Add Repository
+                </span>
+                <i
+                  className="icon-arrow-down"
+                />
+              </div>
             </a>
             <ul
               className="dropdown-menu"
@@ -522,10 +534,16 @@ exports[`OrganizationRepositories render() without any providers renders 1`] = `
               className="dropdown-actor btn btn-primary btn-sm dropdown-menu-right dropdown-toggle"
               onClick={[Function]}
             >
-              Add Repository
-              <i
-                className="icon-arrow-down"
-              />
+              <div
+                className="dropdown-actor-title"
+              >
+                <span>
+                  Add Repository
+                </span>
+                <i
+                  className="icon-arrow-down"
+                />
+              </div>
             </a>
             <ul
               className="dropdown-menu"

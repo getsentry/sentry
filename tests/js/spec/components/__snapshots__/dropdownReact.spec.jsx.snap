@@ -8,10 +8,16 @@ exports[`DropdownReact renders and anchors to left by default 1`] = `
     className="dropdown-actor dropdown-toggle"
     onClick={[Function]}
   >
-    test
-    <i
-      className="icon-arrow-down"
-    />
+    <div
+      className="dropdown-actor-title"
+    >
+      <span>
+        test
+      </span>
+      <i
+        className="icon-arrow-down"
+      />
+    </div>
   </a>
 </span>
 `;
@@ -24,10 +30,16 @@ exports[`DropdownReact renders and anchors to right 1`] = `
     className="dropdown-actor dropdown-menu-right dropdown-toggle"
     onClick={[Function]}
   >
-    test
-    <i
-      className="icon-arrow-down"
-    />
+    <div
+      className="dropdown-actor-title"
+    >
+      <span>
+        test
+      </span>
+      <i
+        className="icon-arrow-down"
+      />
+    </div>
   </a>
 </span>
 `;
