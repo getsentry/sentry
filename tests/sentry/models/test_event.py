@@ -47,6 +47,20 @@ class EventTest(TestCase):
 
         assert event1.get_email_subject() == 'foo Bar production@0 $ baz ${tag:invalid} $invalid'
 
+    def test_as_dict_hides_client_ip(self):
+        event = self.create_event(
+            data={'sdk': {
+                'name': 'foo',
+                'version': '1.0',
+                'client_ip': '127.0.0.1',
+            }}
+        )
+        result = event.as_dict()
+        assert result['sdk'] == {
+            'name': 'foo',
+            'version': '1.0',
+        }
+
 
 class EventGetLegacyMessageTest(TestCase):
     def test_message(self):
