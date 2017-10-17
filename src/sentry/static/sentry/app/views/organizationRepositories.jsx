@@ -95,12 +95,12 @@ class AddRepositoryLink extends PluginComponentBase {
   }
 
   changeField(name, value) {
-    this.setState(state => {
-      state.formData = {
+    this.setState(state => ({
+      formData: {
         ...state.formData,
         [name]: value
-      };
-    });
+      }
+    }));
   }
 
   renderForm() {
