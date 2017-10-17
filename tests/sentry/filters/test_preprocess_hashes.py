@@ -6,8 +6,10 @@ import logging
 
 from sentry.event_manager import EventManager
 from sentry.filters.preprocess_hashes import (
-    get_preprocess_hash_inputs, get_preprocess_hashes, UnableToGenerateHash
+    get_preprocess_hash_inputs, get_preprocess_hashes,
+    matches_discarded_hash, UnableToGenerateHash
 )
+from sentry.models import FilteredGroupHash
 from sentry.testutils import TestCase
 
 
@@ -246,3 +248,15 @@ class PreProcessingHashTest(TestCase):
             u'Constructor.render',
             u'TypeError'
         ]]
+
+    def test_matches_discarded_hash(self):
+        project = self.create_project()
+        data = self.make_event_data()
+        assert matches_discarded_hash(data, project) == (False, None)
+
+        fitlered_hash = FilteredGroupHash.objects.create(
+            project=project,
+            hash=get_preprocess_hashes(data)[0],
+        )
+
+        assert matches_discarded_hash(data, project) == (True, fitlered_hash.id)

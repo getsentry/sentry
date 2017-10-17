@@ -411,9 +411,14 @@ class ClientApiHelper(object):
             if filter_obj.is_enabled() and filter_obj.test(data):
                 return (True, six.text_type(filter_obj.id))
 
-        if matches_discarded_hash(data, project):
-            metrics.incr('preprocess.discarded', instance=project.id)
-            return (True, FilterStatKeys.DISCARDED)
+        matches, hash_id = matches_discarded_hash(data, project)
+        if matches:
+            metrics.incr(
+                'preprocess.discarded',
+                instance=project.id,
+                tags={'discarded_hash': hash_id}
+            )
+            return (True, FilterStatKeys.DISCARDED_HASH)
 
         return (False, None)
 

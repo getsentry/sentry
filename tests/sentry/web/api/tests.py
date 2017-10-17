@@ -208,7 +208,7 @@ class StoreViewTest(TestCase):
         resp = self._postWithHeader(body)
         assert resp.status_code == 403, (resp.status_code, resp.content)
 
-    @mock.patch('sentry.coreapi.matches_discarded_hash', mock.Mock(return_value=True))
+    @mock.patch('sentry.coreapi.matches_discarded_hash', mock.Mock(return_value=(True, 5)))
     def test_request_discarded_hash(self):
         body = {
             "release": "abcdefg",

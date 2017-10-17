@@ -4,6 +4,7 @@ import functools
 import six
 
 from django.core.cache import cache, get_cache, InvalidCacheBackendError
+from django.db import IntegrityError, transaction
 
 from sentry.interfaces.base import get_interfaces
 from sentry.interfaces.exception import Exception as ExceptionInterface, SingleException
@@ -74,7 +75,29 @@ def get_preprocess_hashes(data):
 
 
 def matches_discarded_hash(data, project):
-    return FilteredGroupHash.objects.filter(
-        project_id=project,
-        hash__in=get_preprocess_hashes(data),
-    ).exists()
+    try:
+        hash_id = FilteredGroupHash.objects.filter(
+            project_id=project,
+            hash__in=get_preprocess_hashes(data),
+        ).values_list('id', flat=True)[0]
+    except IndexError:
+        return (False, None)
+    return (True, hash_id)
+
+
+def save_filtered_hashes(project, event, group_hash):
+    key = get_raw_cache_key(project.id, event.event_id)
+    original_data = hash_cache.get(key)
+    if original_data:
+        pre_process_hashes = get_preprocess_hashes(original_data)
+
+        for ph in pre_process_hashes:
+            try:
+                with transaction.atomic():
+                    FilteredGroupHash.objects.create(
+                        project=project,
+                        hash=ph,
+                        group_tombstone_id=group_hash.group_tombstone_id,
+                    )
+            except IntegrityError:
+                pass
