@@ -226,6 +226,8 @@ class SAML2Provider(Provider):
       state during setup. The attribute mapping should map the `Attributes`
       constants to the Identity Provider attribute keys.
     """
+    # Most SAML providers require the advanced SSO feature
+    required_feature = 'organizations:sso-adv'
 
     def get_auth_pipeline(self):
         return [SAML2LoginView(), SAML2ACSView()]
