@@ -22,7 +22,7 @@ const InviteMember = React.createClass({
     let {teams} = this.getOrganization();
 
     //select team if there's only one
-    let initialTeamSelection = teams.length === 1 ? [teams[0].id] : [];
+    let initialTeamSelection = teams.length === 1 ? [teams[0].slug] : [];
 
     return {
       selectedTeams: new Set(initialTeamSelection),
@@ -115,12 +115,12 @@ const InviteMember = React.createClass({
       });
   },
 
-  toggleTeam(id) {
+  toggleTeam(slug) {
     let {selectedTeams} = this.state;
-    if (selectedTeams.has(id)) {
-      selectedTeams.delete(id);
+    if (selectedTeams.has(slug)) {
+      selectedTeams.delete(slug);
     } else {
-      selectedTeams.add(id);
+      selectedTeams.add(slug);
     }
     this.setState({selectedTeams});
   },
@@ -156,7 +156,7 @@ const InviteMember = React.createClass({
         <RoleSelect
           roleList={roleList}
           selectedRole={selectedRole}
-          setRole={id => this.setState({selectedRole: id})}
+          setRole={slug => this.setState({selectedRole: slug})}
         />
         <TeamSelect
           teams={teams}

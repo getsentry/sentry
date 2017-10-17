@@ -103,7 +103,7 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
         teams = list(Team.objects.filter(
             organization=organization,
             status=TeamStatus.VISIBLE,
-            id__in=result['teams'],
+            slug__in=result['teams'],
         ))
 
         if len(set(result['teams'])) != len(teams):

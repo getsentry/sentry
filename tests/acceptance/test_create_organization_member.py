@@ -15,6 +15,8 @@ class CreateOrganizationMemberTest(AcceptanceTestCase):
             organization=self.org, name='Mariachi Band')
         self.team = self.create_team(
             organization=self.org, name='Other Team')
+        self.team = self.create_team(
+            organization=self.org, name='team three')
 
         self.create_member(
             user=self.user,

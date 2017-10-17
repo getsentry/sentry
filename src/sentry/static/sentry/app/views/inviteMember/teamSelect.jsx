@@ -22,16 +22,16 @@ const TeamSelect = React.createClass({
           <h4>{t('Team') + ':'}</h4>
         </div>
         <div className="grouping-controls team-choices row box-content with-padding">
-          {teams.map(({slug, name, id}, i) => (
+          {teams.map(({slug, name}, i) => (
             <div
-              key={id}
+              key={slug}
               onClick={e => {
                 e.preventDefault();
-                toggleTeam(id);
+                toggleTeam(slug);
               }}
               className="col-md-3">
               <label className="checkbox">
-                <Checkbox id={id} value={name} checked={selectedTeams.has(id)} />
+                <Checkbox id={slug} value={name} checked={selectedTeams.has(slug)} />
                 {name}
                 <span className="team-slug">{slug}</span>
               </label>

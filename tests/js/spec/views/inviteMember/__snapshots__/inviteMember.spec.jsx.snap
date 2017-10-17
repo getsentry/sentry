@@ -187,7 +187,7 @@ exports[`CreateProject render() should render no team select when there is only 
     <TeamSelect
       selectedTeams={
         Array [
-          "1",
+          "bar",
         ]
       }
       teams={
@@ -397,7 +397,7 @@ exports[`CreateProject render() should render roles when available and allowed, 
     <TeamSelect
       selectedTeams={
         Array [
-          "1",
+          "bar",
         ]
       }
       teams={
@@ -440,13 +440,13 @@ exports[`CreateProject render() should render roles when available and allowed, 
             >
               <Checkbox
                 checked={true}
-                id="1"
+                id="bar"
                 value="bar"
               >
                 <input
                   checked={true}
                   className="chk-select"
-                  id="1"
+                  id="bar"
                   type="checkbox"
                   value="bar"
                 />
@@ -468,13 +468,13 @@ exports[`CreateProject render() should render roles when available and allowed, 
             >
               <Checkbox
                 checked={false}
-                id="2"
+                id="foo"
                 value="foo"
               >
                 <input
                   checked={false}
                   className="chk-select"
-                  id="2"
+                  id="foo"
                   type="checkbox"
                   value="foo"
                 />
