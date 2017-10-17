@@ -11,49 +11,6 @@ describe('DropdownReact', function() {
     menuClasses: ''
   };
 
-  describe('jQuery event listeners', function() {
-    let wrapper;
-
-    beforeEach(function() {
-      if (wrapper) {
-        wrapper.unmount();
-      }
-      jQuery(document).off('click');
-
-      wrapper = mount(<DropdownReact title="test"><li>hi</li></DropdownReact>);
-    });
-
-    it('has document event listeners only when dropdown menu is open', function() {
-      let events = jQuery._data(document, 'events');
-      expect(events).toBeUndefined();
-
-      // Open
-      wrapper.find('a').simulate('click');
-      events = jQuery._data(document, 'events');
-      expect(events.click.length).toBe(1);
-
-      // Close
-      wrapper.find('a').simulate('click');
-      events = jQuery._data(document, 'events');
-      expect(events).toBeUndefined();
-    });
-
-    it('clears event listeners after unmount', function() {
-      let events = jQuery._data(document, 'events');
-      expect(events).toBeUndefined();
-
-      // Open
-      wrapper.find('a').simulate('click');
-      events = jQuery._data(document, 'events');
-      expect(events.click.length).toBe(1);
-
-      // Close
-      wrapper.unmount();
-      events = jQuery._data(document, 'events');
-      expect(events).toBeUndefined();
-    });
-  });
-
   describe('renders', function() {
     it('and anchors to left by default', function() {
       let component = shallow(
@@ -106,9 +63,10 @@ describe('DropdownReact', function() {
         wrapper.find('a').simulate('click');
       });
 
-      it('closes when clicked outside', function() {
+      it.skip('closes when clicked outside', function() {
         jQuery(document).click();
         expect(wrapper.state('isOpen')).toBe(false);
+        expect(wrapper.instance().checkClickOutside).toHaveBeenCalled();
       });
 
       it('closes when dropdown actor button is clicked', function() {

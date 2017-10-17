@@ -2,7 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import classNames from 'classnames';
 
-class DropdownLink extends React.Component {
+class DropdownReact extends React.Component {
   static propTypes = {
     title: PropTypes.node,
     /** display dropdown caret */
@@ -56,7 +56,7 @@ class DropdownLink extends React.Component {
   }
 
   componentWillUnmount() {
-    $(document).off('click', this.checkClickOutside);
+    document.removeEventListener('click', this.checkClickOutside, true);
   }
 
   // Gets open state from props or local state when appropriate
@@ -118,9 +118,10 @@ class DropdownLink extends React.Component {
     this.dropdownMenu = ref;
 
     if (this.dropdownMenu) {
-      $(document).on('click', this.checkClickOutside);
+      // 3rd arg = useCapture = so event capturing vs event bubbling
+      document.addEventListener('click', this.checkClickOutside, true);
     } else {
-      $(document).off('click', this.checkClickOutside);
+      document.removeEventListener('click', this.checkClickOutside, true);
     }
   };
 
@@ -189,4 +190,4 @@ class DropdownLink extends React.Component {
   }
 }
 
-export default DropdownLink;
+export default DropdownReact;

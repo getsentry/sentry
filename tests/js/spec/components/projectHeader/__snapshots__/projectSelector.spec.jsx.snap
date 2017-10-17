@@ -46,7 +46,7 @@ exports[`ProjectSelector render() can filter projects by project name 1`] = `
         </a>
       </Link>
       Select a project
-      <DropdownLink
+      <DropdownReact
         anchorRight={false}
         caret={true}
         disabled={false}
@@ -116,7 +116,7 @@ exports[`ProjectSelector render() can filter projects by project name 1`] = `
             </MenuItem>
           </ul>
         </span>
-      </DropdownLink>
+      </DropdownReact>
     </h3>
   </div>
 </ProjectSelector>
@@ -168,7 +168,7 @@ exports[`ProjectSelector render() can filter projects by team name/project name 
         </a>
       </Link>
       Select a project
-      <DropdownLink
+      <DropdownReact
         anchorRight={false}
         caret={true}
         disabled={false}
@@ -259,7 +259,7 @@ exports[`ProjectSelector render() can filter projects by team name/project name 
             </MenuItem>
           </ul>
         </span>
-      </DropdownLink>
+      </DropdownReact>
     </h3>
   </div>
 </ProjectSelector>
@@ -279,7 +279,7 @@ exports[`ProjectSelector render() lists projects and has filter 1`] = `
       />
     </Link>
     Select a project
-    <DropdownLink
+    <DropdownReact
       anchorRight={false}
       caret={true}
       disabled={false}
@@ -322,7 +322,7 @@ exports[`ProjectSelector render() lists projects and has filter 1`] = `
           Test Project
         </span>
       </MenuItem>
-    </DropdownLink>
+    </DropdownReact>
   </h3>
 </div>
 `;
@@ -341,7 +341,7 @@ exports[`ProjectSelector render() should show empty message and create project b
       />
     </Link>
     Select a project
-    <DropdownLink
+    <DropdownReact
       anchorRight={false}
       caret={true}
       disabled={false}
@@ -376,7 +376,7 @@ exports[`ProjectSelector render() should show empty message and create project b
           Create project
         </a>
       </MenuItem>
-    </DropdownLink>
+    </DropdownReact>
   </h3>
 </div>
 `;
@@ -395,7 +395,7 @@ exports[`ProjectSelector render() should show empty message with no projects but
       />
     </Link>
     Select a project
-    <DropdownLink
+    <DropdownReact
       anchorRight={false}
       caret={true}
       disabled={false}
@@ -416,7 +416,7 @@ exports[`ProjectSelector render() should show empty message with no projects but
           You have no projects.
         </div>
       </MenuItem>
-    </DropdownLink>
+    </DropdownReact>
   </h3>
 </div>
 `;
@@ -467,7 +467,7 @@ exports[`ProjectSelector render() shows empty filter message when filtering has 
         </a>
       </Link>
       Select a project
-      <DropdownLink
+      <DropdownReact
         anchorRight={false}
         caret={true}
         disabled={false}
@@ -526,7 +526,7 @@ exports[`ProjectSelector render() shows empty filter message when filtering has 
             </MenuItem>
           </ul>
         </span>
-      </DropdownLink>
+      </DropdownReact>
     </h3>
   </div>
 </ProjectSelector>
