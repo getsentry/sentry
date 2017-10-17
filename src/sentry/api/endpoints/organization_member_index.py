@@ -135,14 +135,11 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
         if settings.SENTRY_ENABLE_INVITES:
             om.token = om.generate_token()
 
-        sid = transaction.savepoint(using='default')
         try:
-            om.save()
-
+            with transaction.atomic():
+                om.save()
         except IntegrityError:
-            transaction.savepoint_rollback(sid, using='default')
-            return Response(
-                {'email': 'The user %s is already a member' % result['email']}, 409)
+            return Response({'email': 'The user %s is already a member' % result['email']}, 409)
 
         self.save_team_assignments(om, teams)
 
