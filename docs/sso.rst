@@ -20,7 +20,7 @@ with a feature switch in your ``sentry.conf.py``::
     # turn SSO on our off
     SENTRY_FEATURES['organizations:sso'] = False
 
-Additionally you may enabled advanced SSO features::
+Additionally you may enable advanced SSO features::
 
     from sentry.conf.server import *
 
