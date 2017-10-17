@@ -58,8 +58,11 @@ const ShareUrlContainer = ({
       </div>
 
       <FlowLayout style={{alignItems: 'stretch'}}>
-        <Clipboard value={url}>
-          <Button borderless size="xsmall">
+        <Clipboard hideUnsupported value={url}>
+          <Button
+            borderless
+            size="xsmall"
+            style={{borderRadius: 0, borderRight: `1px solid ${BORDER_COLOR}`}}>
             <IconCopy />
           </Button>
         </Clipboard>
@@ -71,10 +74,7 @@ const ShareUrlContainer = ({
           onCancel={onCancel}
           onConfirming={onConfirming}
           onConfirm={onShare}>
-          <Button
-            style={{borderRadius: 0, borderLeft: `1px solid ${BORDER_COLOR}`}}
-            borderless
-            size="xsmall">
+          <Button borderless size="xsmall">
             <IconRefresh />
           </Button>
         </Confirm>
@@ -97,8 +97,6 @@ const SmallHeading = ({children, ...props}) => (
   <h6
     {...props}
     style={{
-      // fontWeight: 'normal',
-      // fontSize: 16,
       margin: 0,
       paddingRight: 30,
       whiteSpace: 'nowrap'
@@ -194,7 +192,7 @@ class ShareIssue extends React.Component {
           ref={ref => (this.container = ref)}>
           <SpreadLayout style={{marginBottom: busy || isSharing ? 12 : undefined}}>
             <SmallHeading>
-              Enable public share link
+              {t('Enable public share link')}
             </SmallHeading>
             <Switch isActive={isSharing} size="sm" toggle={this.handleToggleShare} />
           </SpreadLayout>

@@ -11,6 +11,11 @@ class Clipboard extends React.Component {
     successMessage: PropTypes.string,
     errorMessage: PropTypes.string,
     hideMessages: PropTypes.bool,
+
+    /**
+     * Hide component if browser does not support "execCommand"
+     */
+    hideUnsupported: PropTypes.bool,
     onSuccess: PropTypes.func,
     onError: PropTypes.func
   };
@@ -61,7 +66,14 @@ class Clipboard extends React.Component {
   };
 
   render() {
-    return React.cloneElement(this.props.children, {
+    let {children, hideUnsupported} = this.props;
+
+    // Browser doesn't support `execCommand`
+    if (hideUnsupported && !Clip.isSupported()) {
+      return null;
+    }
+
+    return React.cloneElement(children, {
       ref: this.handleMount
     });
   }
