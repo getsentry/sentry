@@ -1,6 +1,5 @@
 from __future__ import absolute_import, print_function
 
-import codecs
 from six import text_type
 from symbolic import SourceView
 from sentry.utils.strings import codec_lookup
@@ -10,7 +9,7 @@ __all__ = ['SourceCache', 'SourceMapCache']
 
 def is_utf8(codec):
     try:
-        name = codecs.lookup(codec).name
+        name = codec_lookup(codec).name
     except Exception:
         return False
     return name in ('utf-8', 'ascii')
