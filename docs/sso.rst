@@ -24,7 +24,7 @@ Additionally you may enable advanced SSO features::
 
     from sentry.conf.server import *
 
-    SENTRY_FEATURES['organizations:sso-adv'] = True
+    SENTRY_FEATURES['organizations:sso-saml2'] = True
     SENTRY_FEATURES['organizations:sso-rippling'] = True
 
 You should see an **Auth** subheading under your organization's dashboard when SSO is enabled.

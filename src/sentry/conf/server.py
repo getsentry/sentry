@@ -721,7 +721,7 @@ SENTRY_FEATURES = {
     'organizations:api-keys': False,
     'organizations:create': True,
     'organizations:sso': True,
-    'organizations:sso-adv': False,
+    'organizations:sso-saml2': False,
     'organizations:sso-rippling': False,
     'organizations:group-unmerge': False,
     'organizations:integrations-v3': False,
