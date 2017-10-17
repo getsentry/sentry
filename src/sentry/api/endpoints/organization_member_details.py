@@ -100,7 +100,10 @@ class OrganizationMemberDetailsEndpoint(OrganizationEndpoint):
     def get(self, request, organization, member_id):
         """Currently only returns allowed invite roles for member invite"""
 
-        member = self._get_member(request, organization, member_id)
+        try:
+            member = self._get_member(request, organization, member_id)
+        except OrganizationMember.DoesNotExist:
+            raise ResourceDoesNotExist
 
         _, allowed_roles = get_allowed_roles(request, organization, member)
 
@@ -109,7 +112,6 @@ class OrganizationMemberDetailsEndpoint(OrganizationEndpoint):
 
         context = serialize(
             member,
-            OrganizationMemberSerializer(),
         )
 
         context['allowed_roles'] = allowed_roles

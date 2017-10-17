@@ -82,7 +82,7 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
 
         :pparam string organization_slug: the slug of the organization the member will belong to
         :param string email: the email address to invite
-        :param string role: the role the new member
+        :param string role: the role of the new member
         :param array teams: the slugs of the teams the member should belong to.
 
         :auth: required
@@ -97,7 +97,7 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
 
         result = serializer.object
 
-        can_admin, allowed_roles = get_allowed_roles(request, organization)
+        _, allowed_roles = get_allowed_roles(request, organization)
 
         # ensure listed teams are real teams
         teams = list(Team.objects.filter(
@@ -143,11 +143,6 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
             transaction.savepoint_rollback(sid, using='default')
             return Response(
                 {'exists': result['email']}, 400)
-
-            return Response(serialize(OrganizationMember.objects.get(
-                email__iexact=om.email,
-                organization=organization,
-            )), status=200)
 
         self.save_team_assignments(om, teams)
 
