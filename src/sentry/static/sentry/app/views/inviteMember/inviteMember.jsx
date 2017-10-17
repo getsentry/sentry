@@ -83,7 +83,7 @@ const InviteMember = React.createClass({
           resolve();
         },
         error: err => {
-          if (err.responseJSON && err.responseJSON.exists) {
+          if (err.status === 409) {
             AlertActions.addAlert({
               message: `User already exists: ${email}`,
               type: 'info'

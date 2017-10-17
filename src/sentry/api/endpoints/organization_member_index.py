@@ -125,7 +125,7 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
             pass
         else:
             return Response(
-                {'exists': result['email']}, 400)
+                {'email': 'The user %s is already a member' % result['email']}, 409)
 
         om = OrganizationMember(
             organization=organization,
@@ -142,7 +142,7 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
         except IntegrityError:
             transaction.savepoint_rollback(sid, using='default')
             return Response(
-                {'exists': result['email']}, 400)
+                {'email': 'The user %s is already a member' % result['email']}, 409)
 
         self.save_team_assignments(om, teams)
 
