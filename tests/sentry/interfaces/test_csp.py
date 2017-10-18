@@ -187,7 +187,7 @@ class CspTest(TestCase):
                 violated_directive="script-src 'unsafe-inline'",
             )
         )
-        assert result.get_message() == "Blocked unsafe eval() 'script'"
+        assert result.get_message() == "Blocked unsafe inline 'script'"
 
         result = Csp.to_python(
             dict(
@@ -197,7 +197,7 @@ class CspTest(TestCase):
                 violated_directive="script-src 'unsafe-eval'",
             )
         )
-        assert result.get_message() == "Blocked unsafe inline 'script'"
+        assert result.get_message() == "Blocked unsafe eval() 'script'"
 
         result = Csp.to_python(
             dict(

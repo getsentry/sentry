@@ -101,10 +101,10 @@ class Csp(Interface):
         # We want to distinguish between the different script-src
         # violations that happen in
         if _is_unsafe_script(directive, uri) and self.violated_directive:
-            if "'unsafe-inline" in self.violated_directive:
-                uri = "'unsafe-eval'"
+            if "'unsafe-inline'" in self.violated_directive:
+                uri = "'unsafe-inline'"
             elif "'unsafe-eval'" in self.violated_directive:
-                uri = "'unsafe-inline"
+                uri = "'unsafe-eval'"
 
         return [directive, uri]
 
@@ -121,9 +121,9 @@ class Csp(Interface):
         # so we want to attempt to guess which it was
         if _is_unsafe_script(directive, uri) and self.violated_directive:
             if "'unsafe-inline'" in self.violated_directive:
-                tmpl = "Blocked unsafe eval() 'script'"
-            elif "'unsafe-eval'" in self.violated_directive:
                 tmpl = "Blocked unsafe inline 'script'"
+            elif "'unsafe-eval'" in self.violated_directive:
+                tmpl = "Blocked unsafe eval() 'script'"
 
         if tmpl is None:
             try:
