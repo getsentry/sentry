@@ -1,8 +1,11 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import ReactDOM from 'react-dom';
 import classNames from 'classnames';
 
+import {selectText} from '../utils/selectText';
 import {t} from '../locale';
+import AutoSelectText from './autoSelectText';
 import Button from './buttons/button';
 import Clipboard from './clipboard';
 import Confirm from './confirm';
@@ -16,82 +19,85 @@ import Switch from './switch';
 
 const BORDER_COLOR = '#dad5df';
 
-const ShareUrlContainer = ({
-  isSharing,
-  busy,
-  shareUrl,
-  onConfirming,
-  onCancel,
-  onShare
-}) => {
-  let url = !busy && isSharing ? shareUrl : 'Not shared';
+class ShareUrlContainer extends React.Component {
+  static propTypes = {
+    isSharing: PropTypes.bool,
+    shareUrl: PropTypes.string,
+    onShare: PropTypes.func,
+    onConfirming: PropTypes.func,
+    onCancel: PropTypes.func,
+    busy: PropTypes.bool
+  };
 
-  return (
-    <FlowLayout
-      style={{
-        flex: 'none',
-        alignItems: 'stretch',
-        border: `1px solid ${BORDER_COLOR}`,
-        borderRadius: 4
-      }}>
+  handleCopyClick = () => {
+    if (!this.urlRef) return;
+    selectText(ReactDOM.findDOMNode(this.urlRef));
+  };
 
-      <div
+  render() {
+    let {isSharing, busy, shareUrl, onConfirming, onCancel, onShare} = this.props;
+    let url = !busy && isSharing ? shareUrl : 'Not shared';
+
+    return (
+      <FlowLayout
         style={{
-          position: 'relative',
-          display: 'flex',
-          flex: 1,
-          backgroundColor: !isSharing ? '#f9f7f9' : 'transparent',
-          borderRight: `1px solid ${BORDER_COLOR}`,
-          maxWidth: 288
+          flex: 'none',
+          alignItems: 'stretch',
+          border: `1px solid ${BORDER_COLOR}`,
+          borderRadius: 4
         }}>
+
         <div
           style={{
+            position: 'relative',
+            display: 'flex',
             flex: 1,
-            border: 'none',
-            padding: 4,
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
-            overflow: 'hidden'
+            backgroundColor: !isSharing ? '#f9f7f9' : 'transparent',
+            borderRight: `1px solid ${BORDER_COLOR}`,
+            maxWidth: 288
           }}>
-          {url}
+          <AutoSelectText
+            ref={ref => (this.urlRef = ref)}
+            style={{
+              flex: 1,
+              border: 'none',
+              padding: 4,
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+              overflow: 'hidden'
+            }}>
+            {url}
+          </AutoSelectText>
         </div>
-      </div>
 
-      <FlowLayout style={{alignItems: 'stretch'}}>
-        <Clipboard hideUnsupported value={url}>
-          <Button
-            borderless
-            size="xsmall"
-            style={{borderRadius: 0, borderRight: `1px solid ${BORDER_COLOR}`}}>
-            <IconCopy />
-          </Button>
-        </Clipboard>
+        <FlowLayout style={{alignItems: 'stretch'}}>
+          <Clipboard hideUnsupported value={url}>
+            <Button
+              borderless
+              size="xsmall"
+              onClick={this.handleCopyClick}
+              style={{borderRadius: 0, borderRight: `1px solid ${BORDER_COLOR}`}}>
+              <IconCopy />
+            </Button>
+          </Clipboard>
 
-        <Confirm
-          message={t(
-            'You are about to regenerate a new shared URL. Your previously shared URL will no longer work. Do you want to continue?'
-          )}
-          onCancel={onCancel}
-          onConfirming={onConfirming}
-          onConfirm={onShare}>
-          <Button borderless size="xsmall">
-            <IconRefresh />
-          </Button>
-        </Confirm>
+          <Confirm
+            message={t(
+              'You are about to regenerate a new shared URL. Your previously shared URL will no longer work. Do you want to continue?'
+            )}
+            onCancel={onCancel}
+            onConfirming={onConfirming}
+            onConfirm={onShare}>
+            <Button borderless size="xsmall">
+              <IconRefresh />
+            </Button>
+          </Confirm>
+        </FlowLayout>
+
       </FlowLayout>
-
-    </FlowLayout>
-  );
-};
-
-ShareUrlContainer.propTypes = {
-  isSharing: PropTypes.bool,
-  shareUrl: PropTypes.string,
-  onShare: PropTypes.func,
-  onConfirming: PropTypes.func,
-  onCancel: PropTypes.func,
-  busy: PropTypes.bool
-};
+    );
+  }
+}
 
 const SmallHeading = ({children, ...props}) => (
   <h6
