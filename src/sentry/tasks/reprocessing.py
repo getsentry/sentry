@@ -45,7 +45,7 @@ def create_reprocessing_report(project_id, event_id):
     return ReprocessingReport.objects.create(project_id=project_id, event_id=event_id)
 
 
-@instrumented_task(name='sentry.tasks.clear_expired_raw_events', time_limit=15, soft_time_limit=10)
+@instrumented_task(name='sentry.tasks.clear_expired_raw_events')
 def clear_expired_raw_events():
     from sentry.models import RawEvent, ProcessingIssue
 
