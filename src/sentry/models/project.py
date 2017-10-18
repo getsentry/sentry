@@ -8,9 +8,9 @@ sentry.models.project
 from __future__ import absolute_import, print_function
 
 import logging
-import six
 import warnings
 
+import six
 from bitfield import BitField
 from django.conf import settings
 from django.db import IntegrityError, models, transaction
@@ -326,16 +326,6 @@ class Project(Model):
         else:
             is_enabled = bool(is_enabled)
         return is_enabled
-
-    def is_user_subscribed_to_workflow(self, user):
-        from sentry.models import UserOption, UserOptionValue
-
-        opt_value = UserOption.objects.get_value(user, 'workflow:notifications', project=self)
-        if opt_value is None:
-            opt_value = UserOption.objects.get_value(
-                user, 'workflow:notifications', UserOptionValue.all_conversations
-            )
-        return opt_value == UserOptionValue.all_conversations
 
     def transfer_to(self, team):
         from sentry.models import ReleaseProject
