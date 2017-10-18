@@ -1,6 +1,6 @@
+import DocumentTitle from 'react-document-title';
 import React from 'react';
 import jQuery from 'jquery';
-import DocumentTitle from 'react-document-title';
 
 import {t} from '../../locale';
 import ApiMixin from '../../mixins/apiMixin';
@@ -8,8 +8,8 @@ import EventEntries from '../../components/events/eventEntries';
 import Footer from '../../components/footer';
 import LoadingError from '../../components/loadingError';
 import LoadingIndicator from '../../components/loadingIndicator';
+import NotFound from '../../components/errors/notFound';
 import SentryTypes from '../../proptypes';
-
 import SharedGroupHeader from './sharedGroupHeader';
 
 const SharedGroupDetails = React.createClass({
@@ -81,8 +81,7 @@ const SharedGroupDetails = React.createClass({
     if (this.state.loading) {
       return <LoadingIndicator />;
     } else if (!group) {
-      let errorMessage = t('The issue was not found or it may have been unshared');
-      return <LoadingError message={errorMessage} />;
+      return <NotFound />;
     } else if (this.state.error) {
       return <LoadingError onRetry={this.fetchData} />;
     }
