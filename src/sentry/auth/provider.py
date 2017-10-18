@@ -11,6 +11,7 @@ class Provider(object):
     including its configuration and basic identity management.
     """
     name = None
+    required_feature = None
 
     def __init__(self, key, **config):
         self.key = key

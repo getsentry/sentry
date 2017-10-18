@@ -185,6 +185,10 @@ class OrganizationAuthSettingsView(OrganizationView):
                 flow=AuthHelper.FLOW_SETUP_PROVIDER,
             )
 
+            feature = helper.provider.required_feature
+            if feature and not features.has(feature, organization, actor=request.user):
+                return HttpResponse('Provider is not enabled', status=401)
+
             if request.POST.get('init'):
                 helper.init_pipeline()
 
@@ -197,11 +201,13 @@ class OrganizationAuthSettingsView(OrganizationView):
         provider_list = []
 
         for k, v in manager:
-            if issubclass(v, SAML2Provider):
-                if not HAS_SAML2:
-                    continue
-                if not features.has('organizations:saml2', organization, actor=request.user):
-                    continue
+            if issubclass(v, SAML2Provider) and not HAS_SAML2:
+                continue
+
+            feature = v.required_feature
+            if feature and not features.has(feature, organization, actor=request.user):
+                continue
+
             provider_list.append((k, v.name))
 
         context = {
