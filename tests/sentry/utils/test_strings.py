@@ -25,7 +25,7 @@ def test_codec_lookup():
     assert codec_lookup('utf-8').name == 'utf-8'
     assert codec_lookup('utf8').name == 'utf-8'
     if sys.version_info[:3] >= (2, 7, 12):
-        assert codec_lookup('zlib') == 'utf-8'
+        assert codec_lookup('zlib').name == 'utf-8'
     assert codec_lookup('utf16').name == 'utf-16'
     assert codec_lookup('undefined').name == 'utf-8'
     assert codec_lookup('undefined', default=None) is None
