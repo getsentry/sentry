@@ -70,8 +70,10 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
         click.echo('Error: Minimum concurrency is 1', err=True)
         raise click.Abort()
 
-    from threading import Thread
+    import os
+    import sys
     from django.db import router as db_router
+    from django.db import connections
     from sentry.app import nodestore
     from sentry.db.deletion import BulkDeleteQuery
     from sentry import deletions
@@ -220,19 +222,29 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
                         num_shards=num_shards, shard_id=shard_id)
 
             if concurrency > 1:
-                threads = []
-                for shard_id in range(concurrency):
-                    t = Thread(
-                        target=(
-                            lambda shard_id=shard_id: _chunk_until_complete(
-                                num_shards=concurrency, shard_id=shard_id)
-                        )
-                    )
-                    t.start()
-                    threads.append(t)
+                for c in connections.all():
+                    c.close()
 
-                for t in threads:
-                    t.join()
+                pids = []
+                for shard_id in range(concurrency):
+                    f = os.fork()
+                    if f == 0:
+                        _chunk_until_complete(
+                            num_shards=concurrency, shard_id=shard_id)
+                        sys.exit(0)
+                    else:
+                        pids.append(f)
+
+                click.echo(
+                    "%s concurrent processes forked, waiting on them to complete." % concurrency)
+
+                complete = 0
+                for pid in pids:
+                    os.waitpid(pid, 0)
+                    complete += 1
+                    click.echo(
+                        "%s/%s concurrent processes are finished." % (complete, concurrency))
+
             else:
                 _chunk_until_complete()
 
