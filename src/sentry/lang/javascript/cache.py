@@ -34,14 +34,9 @@ class SourceCache(object):
         url = self._get_canonical_url(url)
         return self._errors.get(url, [])
 
-    def alias(self, u1, u2):
-        if u1 == u2:
-            return
-
-        if u1 in self._cache or u1 not in self._aliases:
-            self._aliases[u1] = u1
-        else:
-            self._aliases[u2] = u1
+    def alias(self, alias, target):
+        if alias != target:
+            self._aliases[alias] = target
 
     def add(self, url, source, encoding=None):
         url = self._get_canonical_url(url)
