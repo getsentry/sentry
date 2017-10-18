@@ -1,0 +1,45 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`DropdownReact renders and anchors to left by default 1`] = `
+<span
+  className="dropdown top-level-class"
+>
+  <a
+    className="dropdown-actor dropdown-toggle"
+    onClick={[Function]}
+  >
+    <div
+      className="dropdown-actor-title"
+    >
+      <span>
+        test
+      </span>
+      <i
+        className="icon-arrow-down"
+      />
+    </div>
+  </a>
+</span>
+`;
+
+exports[`DropdownReact renders and anchors to right 1`] = `
+<span
+  className="dropdown top-level-class pull-right anchor-right"
+>
+  <a
+    className="dropdown-actor dropdown-menu-right dropdown-toggle"
+    onClick={[Function]}
+  >
+    <div
+      className="dropdown-actor-title"
+    >
+      <span>
+        test
+      </span>
+      <i
+        className="icon-arrow-down"
+      />
+    </div>
+  </a>
+</span>
+`;

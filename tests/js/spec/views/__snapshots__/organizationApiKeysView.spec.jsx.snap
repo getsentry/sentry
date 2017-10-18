@@ -192,16 +192,14 @@ exports[`OrganizationApiKeysView renders 1`] = `
                   onConfirm={[Function]}
                   priority="primary"
                 >
-                  <span>
-                    <a
-                      className="btn btn-default btn-sm"
-                      onClick={[Function]}
-                      title="Remove API Key?"
-                    >
-                      <span
-                        className="icon-trash"
-                      />
-                    </a>
+                  <a
+                    className="btn btn-default btn-sm"
+                    onClick={[Function]}
+                    title="Remove API Key?"
+                  >
+                    <span
+                      className="icon-trash"
+                    />
                     <Modal
                       animation={false}
                       autoFocus={true}
@@ -250,7 +248,7 @@ exports[`OrganizationApiKeysView renders 1`] = `
                         show={false}
                       />
                     </Modal>
-                  </span>
+                  </a>
                 </Confirm>
               </LinkWithConfirmation>
             </td>

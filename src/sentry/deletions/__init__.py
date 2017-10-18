@@ -57,6 +57,7 @@ def load_defaults():
     default_manager.register(models.GroupResolution, BulkModelDeletionTask)
     default_manager.register(models.GroupRuleStatus, BulkModelDeletionTask)
     default_manager.register(models.GroupSeen, BulkModelDeletionTask)
+    default_manager.register(models.GroupShare, BulkModelDeletionTask)
     default_manager.register(models.GroupSnooze, BulkModelDeletionTask)
     default_manager.register(models.GroupSubscription, BulkModelDeletionTask)
     default_manager.register(models.GroupTagKey, BulkModelDeletionTask)

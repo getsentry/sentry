@@ -184,6 +184,7 @@
       2,
       {
         "ignore": [
+          "style",
           "className",
           "children",
           "location",

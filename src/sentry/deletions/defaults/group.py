@@ -22,6 +22,8 @@ class GroupDeletionTask(ModelDeletionTask):
             models.GroupRedirect,
             models.GroupResolution,
             models.GroupRuleStatus,
+            models.GroupSeen,
+            models.GroupShare,
             models.GroupSnooze,
             models.GroupTagValue,
             models.GroupTagKey,

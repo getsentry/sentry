@@ -325,18 +325,16 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
                             onConfirm={[Function]}
                             priority="primary"
                           >
-                            <span>
-                              <a
-                                className="btn btn-sm btn-default disabled"
-                                disabled={true}
-                                onClick={[Function]}
-                                title="Unmerging 0 events"
-                              >
-                                Unmerge
-                                 (
-                                0
-                                )
-                              </a>
+                            <a
+                              className="btn btn-sm btn-default disabled"
+                              disabled={true}
+                              onClick={[Function]}
+                              title="Unmerging 0 events"
+                            >
+                              Unmerge
+                               (
+                              0
+                              )
                               <Modal
                                 animation={false}
                                 autoFocus={true}
@@ -385,7 +383,7 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
                                   show={false}
                                 />
                               </Modal>
-                            </span>
+                            </a>
                           </Confirm>
                         </LinkWithConfirmation>
                         <Button
@@ -1648,18 +1646,16 @@ exports[`Issues -> Merged View renders with mocked data 2`] = `
                             onConfirm={[Function]}
                             priority="primary"
                           >
-                            <span>
-                              <a
-                                className="btn btn-sm btn-default disabled"
-                                disabled={true}
-                                onClick={[Function]}
-                                title="Unmerging 0 events"
-                              >
-                                Unmerge
-                                 (
-                                0
-                                )
-                              </a>
+                            <a
+                              className="btn btn-sm btn-default disabled"
+                              disabled={true}
+                              onClick={[Function]}
+                              title="Unmerging 0 events"
+                            >
+                              Unmerge
+                               (
+                              0
+                              )
                               <Modal
                                 animation={false}
                                 autoFocus={true}
@@ -1708,7 +1704,7 @@ exports[`Issues -> Merged View renders with mocked data 2`] = `
                                   show={false}
                                 />
                               </Modal>
-                            </span>
+                            </a>
                           </Confirm>
                         </LinkWithConfirmation>
                         <Button
