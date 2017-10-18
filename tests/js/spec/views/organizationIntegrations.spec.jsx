@@ -48,6 +48,7 @@ describe('OrganizationIntegrations', function() {
           },
           childContextTypes
         });
+        wrapper.find('.dropdown-actor').simulate('click');
         expect(wrapper.state('loading')).toBe(false);
         expect(wrapper).toMatchSnapshot();
       });
@@ -60,6 +61,7 @@ describe('OrganizationIntegrations', function() {
           body: {providers: [TestStubs.GitHubIntegrationProvider()]}
         });
       });
+
       it('renders', function() {
         Client.addMockResponse({
           url: '/organizations/org-slug/integrations/',
@@ -73,9 +75,11 @@ describe('OrganizationIntegrations', function() {
           },
           childContextTypes
         });
+        wrapper.find('.dropdown-actor').simulate('click');
         expect(wrapper.state('loading')).toBe(false);
         expect(wrapper).toMatchSnapshot();
       });
+
       it('renders with a repository', function() {
         Client.addMockResponse({
           url: '/organizations/org-slug/integrations/',
@@ -89,6 +93,7 @@ describe('OrganizationIntegrations', function() {
           },
           childContextTypes
         });
+        wrapper.find('.dropdown-actor').simulate('click');
         expect(wrapper.state('loading')).toBe(false);
         expect(wrapper).toMatchSnapshot();
       });

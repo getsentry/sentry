@@ -7,7 +7,7 @@ import {sortArray, parseRepo} from '../utils';
 import {t, tct} from '../locale';
 import Button from '../components/buttons/button';
 import Confirm from '../components/confirm';
-import DropdownLink from '../components/dropdownLink';
+import DropdownReact from '../components/dropdownReact';
 import IndicatorStore from '../stores/indicatorStore';
 import MenuItem from '../components/menuItem';
 import OrganizationSettingsView from './organizationSettingsView';
@@ -309,7 +309,7 @@ class OrganizationRepositories extends OrganizationSettingsView {
     return (
       <div>
         <div className="pull-right">
-          <DropdownLink
+          <DropdownReact
             anchorRight
             className="btn btn-primary btn-sm"
             title={t('Add Repository')}>
@@ -324,7 +324,7 @@ class OrganizationRepositories extends OrganizationSettingsView {
                 </MenuItem>
               );
             })}
-          </DropdownLink>
+          </DropdownReact>
         </div>
         <h3 className="m-b-2">
           {t('Repositories')}

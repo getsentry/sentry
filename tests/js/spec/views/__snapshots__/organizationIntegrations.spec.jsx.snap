@@ -17,27 +17,35 @@ exports[`OrganizationIntegrations render() with a provider renders 1`] = `
       <div
         className="pull-right"
       >
-        <DropdownLink
+        <DropdownReact
           anchorRight={true}
           caret={true}
           className="btn btn-primary btn-sm"
           disabled={false}
+          keepMenuOpen={false}
           title="Add Integration"
         >
           <span
-            className="pull-right anchor-right dropdown"
+            className="dropdown pull-right anchor-right open"
           >
             <a
-              className="btn btn-primary btn-sm dropdown-menu-right dropdown-toggle"
-              data-toggle="dropdown"
+              className="dropdown-actor btn btn-primary btn-sm dropdown-menu-right dropdown-toggle"
+              onClick={[Function]}
             >
-              Add Integration
-              <i
-                className="icon-arrow-down"
-              />
+              <div
+                className="dropdown-actor-title"
+              >
+                <span>
+                  Add Integration
+                </span>
+                <i
+                  className="icon-arrow-down"
+                />
+              </div>
             </a>
             <ul
               className="dropdown-menu"
+              onClick={[Function]}
             >
               <MenuItem
                 noAnchor={true}
@@ -57,7 +65,7 @@ exports[`OrganizationIntegrations render() with a provider renders 1`] = `
               </MenuItem>
             </ul>
           </span>
-        </DropdownLink>
+        </DropdownReact>
       </div>
       <h3
         className="m-b-2"
@@ -109,27 +117,35 @@ exports[`OrganizationIntegrations render() with a provider renders with a reposi
       <div
         className="pull-right"
       >
-        <DropdownLink
+        <DropdownReact
           anchorRight={true}
           caret={true}
           className="btn btn-primary btn-sm"
           disabled={false}
+          keepMenuOpen={false}
           title="Add Integration"
         >
           <span
-            className="pull-right anchor-right dropdown"
+            className="dropdown pull-right anchor-right open"
           >
             <a
-              className="btn btn-primary btn-sm dropdown-menu-right dropdown-toggle"
-              data-toggle="dropdown"
+              className="dropdown-actor btn btn-primary btn-sm dropdown-menu-right dropdown-toggle"
+              onClick={[Function]}
             >
-              Add Integration
-              <i
-                className="icon-arrow-down"
-              />
+              <div
+                className="dropdown-actor-title"
+              >
+                <span>
+                  Add Integration
+                </span>
+                <i
+                  className="icon-arrow-down"
+                />
+              </div>
             </a>
             <ul
               className="dropdown-menu"
+              onClick={[Function]}
             >
               <MenuItem
                 noAnchor={true}
@@ -149,7 +165,7 @@ exports[`OrganizationIntegrations render() with a provider renders with a reposi
               </MenuItem>
             </ul>
           </span>
-        </DropdownLink>
+        </DropdownReact>
       </div>
       <h3
         className="m-b-2"
@@ -206,15 +222,13 @@ exports[`OrganizationIntegrations render() with a provider renders with a reposi
                   onConfirm={[Function]}
                   priority="primary"
                 >
-                  <span>
-                    <button
-                      className="btn btn-default btn-xs"
-                      onClick={[Function]}
-                    >
-                      <span
-                        className="icon icon-trash"
-                      />
-                    </button>
+                  <button
+                    className="btn btn-default btn-xs"
+                    onClick={[Function]}
+                  >
+                    <span
+                      className="icon icon-trash"
+                    />
                     <Modal
                       animation={false}
                       autoFocus={true}
@@ -263,7 +277,7 @@ exports[`OrganizationIntegrations render() with a provider renders with a reposi
                         show={false}
                       />
                     </Modal>
-                  </span>
+                  </button>
                 </Confirm>
               </td>
             </tr>
@@ -285,11 +299,12 @@ exports[`OrganizationIntegrations render() without any providers is loading when
     <div
       className="pull-right"
     >
-      <DropdownLink
+      <DropdownReact
         anchorRight={true}
         caret={true}
         className="btn btn-primary btn-sm"
         disabled={false}
+        keepMenuOpen={false}
         title="Add Integration"
       />
     </div>
@@ -342,30 +357,38 @@ exports[`OrganizationIntegrations render() without any providers renders 1`] = `
       <div
         className="pull-right"
       >
-        <DropdownLink
+        <DropdownReact
           anchorRight={true}
           caret={true}
           className="btn btn-primary btn-sm"
           disabled={false}
+          keepMenuOpen={false}
           title="Add Integration"
         >
           <span
-            className="pull-right anchor-right dropdown"
+            className="dropdown pull-right anchor-right open"
           >
             <a
-              className="btn btn-primary btn-sm dropdown-menu-right dropdown-toggle"
-              data-toggle="dropdown"
+              className="dropdown-actor btn btn-primary btn-sm dropdown-menu-right dropdown-toggle"
+              onClick={[Function]}
             >
-              Add Integration
-              <i
-                className="icon-arrow-down"
-              />
+              <div
+                className="dropdown-actor-title"
+              >
+                <span>
+                  Add Integration
+                </span>
+                <i
+                  className="icon-arrow-down"
+                />
+              </div>
             </a>
             <ul
               className="dropdown-menu"
+              onClick={[Function]}
             />
           </span>
-        </DropdownLink>
+        </DropdownReact>
       </div>
       <h3
         className="m-b-2"

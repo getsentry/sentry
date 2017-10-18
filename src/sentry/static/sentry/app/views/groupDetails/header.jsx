@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import {Link, browserHistory} from 'react-router';
+import {Link} from 'react-router';
 import ApiMixin from '../../mixins/apiMixin';
 import AssigneeSelector from '../../components/assigneeSelector';
 import Count from '../../components/count';
@@ -44,34 +44,6 @@ const GroupHeader = React.createClass({
         itemIds: [group.id],
         data: {
           status: group.status === 'ignored' ? 'unresolved' : 'ignored'
-        }
-      },
-      {
-        complete: () => {
-          IndicatorStore.remove(loadingIndicator);
-        }
-      }
-    );
-  },
-
-  onShare() {
-    let {shareId} = this.props.group;
-    return browserHistory.pushState(null, `/share/issue/${shareId}/`);
-  },
-
-  onTogglePublic() {
-    let group = this.props.group;
-    let project = this.getProject();
-    let org = this.getOrganization();
-    let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
-
-    this.api.bulkUpdate(
-      {
-        orgId: org.slug,
-        projectId: project.slug,
-        itemIds: [group.id],
-        data: {
-          isPublic: !group.isPublic
         }
       },
       {
@@ -194,14 +166,6 @@ const GroupHeader = React.createClass({
         </div>
         <GroupSeenBy />
         <GroupActions />
-        {orgFeatures.has('shared-issues') &&
-          <div className="pull-right">
-            <div className="group-privacy">
-              <a onClick={this.onShare}>
-                <span className="icon" /> {t('Share this event')}
-              </a>
-            </div>
-          </div>}
         <ul className="nav nav-tabs">
           <ListLink
             to={`/${orgId}/${projectId}/issues/${groupId}/`}

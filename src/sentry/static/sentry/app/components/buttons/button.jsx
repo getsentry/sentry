@@ -25,6 +25,7 @@ const Button = React.createClass({
      * Tooltip text
      */
     title: PropTypes.string,
+    borderless: PropTypes.bool,
     onClick: PropTypes.func
   },
 
@@ -57,6 +58,7 @@ const Button = React.createClass({
       disabled,
       busy,
       title,
+      borderless,
 
       // destructure from `buttonProps`
       // not necessary, but just in case someone re-orders props
@@ -70,6 +72,7 @@ const Button = React.createClass({
 
     let cx = classNames(className, 'button', {
       tip: !!title,
+      'button-no-border': borderless,
       'button-primary': isPrimary,
       'button-danger': isDanger,
       'button-default': !isPrimary && !isDanger,

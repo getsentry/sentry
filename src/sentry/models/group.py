@@ -14,7 +14,6 @@ import six
 import time
 import warnings
 
-from base64 import b16decode, b16encode
 from datetime import timedelta
 from django.core.urlresolvers import reverse
 from django.db import models
@@ -179,6 +178,7 @@ class Group(Model):
     time_spent_total = BoundedIntegerField(default=0)
     time_spent_count = BoundedIntegerField(default=0)
     score = BoundedIntegerField(default=0)
+    # deprecated, do not use. GroupShare has superseded
     is_public = models.NullBooleanField(default=False, null=True)
     data = GzippedDictField(blank=True, null=True)
     short_id = BoundedBigIntegerField(null=True)
@@ -262,20 +262,26 @@ class Group(Model):
         return status
 
     def get_share_id(self):
-        return b16encode(('{}.{}'.format(self.project_id,
-                                         self.id)).encode('utf-8')).lower().decode('utf-8')
+        from sentry.models import GroupShare
+        try:
+            return GroupShare.objects.filter(
+                group_id=self.id,
+            ).values_list('uuid', flat=True)[0]
+        except IndexError:
+            # Otherwise it has not been shared yet.
+            return None
 
     @classmethod
     def from_share_id(cls, share_id):
-        if not share_id:
+        if not share_id or len(share_id) != 32:
             raise cls.DoesNotExist
-        try:
-            project_id, group_id = b16decode(share_id.upper()).decode('utf-8').split('.')
-        except (ValueError, TypeError):
-            raise cls.DoesNotExist
-        if not (project_id.isdigit() and group_id.isdigit()):
-            raise cls.DoesNotExist
-        return cls.objects.get(project=project_id, id=group_id)
+
+        from sentry.models import GroupShare
+        return cls.objects.get(
+            id=GroupShare.objects.filter(
+                uuid=share_id,
+            ).values_list('group_id'),
+        )
 
     def get_score(self):
         return int(math.log(self.times_seen) * 600 +

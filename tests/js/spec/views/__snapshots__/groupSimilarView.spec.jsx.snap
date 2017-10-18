@@ -405,18 +405,16 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                 onConfirm={[Function]}
                                 priority="primary"
                               >
-                                <span>
-                                  <a
-                                    className="btn btn-sm btn-default disabled"
-                                    disabled={true}
-                                    onClick={[Function]}
-                                    title="Merging 0 issues"
-                                  >
-                                    Merge
-                                     (
-                                    0
-                                    )
-                                  </a>
+                                <a
+                                  className="btn btn-sm btn-default disabled"
+                                  disabled={true}
+                                  onClick={[Function]}
+                                  title="Merging 0 issues"
+                                >
+                                  Merge
+                                   (
+                                  0
+                                  )
                                   <Modal
                                     animation={false}
                                     autoFocus={true}
@@ -465,7 +463,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                       show={false}
                                     />
                                   </Modal>
-                                </span>
+                                </a>
                               </Confirm>
                             </LinkWithConfirmation>
                           </div>
@@ -1472,18 +1470,16 @@ exports[`Issues Similar View renders with mocked data 2`] = `
                                 onConfirm={[Function]}
                                 priority="primary"
                               >
-                                <span>
-                                  <a
-                                    className="btn btn-sm btn-default disabled"
-                                    disabled={true}
-                                    onClick={[Function]}
-                                    title="Merging 0 issues"
-                                  >
-                                    Merge
-                                     (
-                                    0
-                                    )
-                                  </a>
+                                <a
+                                  className="btn btn-sm btn-default disabled"
+                                  disabled={true}
+                                  onClick={[Function]}
+                                  title="Merging 0 issues"
+                                >
+                                  Merge
+                                   (
+                                  0
+                                  )
                                   <Modal
                                     animation={false}
                                     autoFocus={true}
@@ -1532,7 +1528,7 @@ exports[`Issues Similar View renders with mocked data 2`] = `
                                       show={false}
                                     />
                                   </Modal>
-                                </span>
+                                </a>
                               </Confirm>
                             </LinkWithConfirmation>
                           </div>

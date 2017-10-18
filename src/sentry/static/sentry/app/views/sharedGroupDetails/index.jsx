@@ -1,14 +1,15 @@
+import DocumentTitle from 'react-document-title';
 import React from 'react';
 import jQuery from 'jquery';
-import DocumentTitle from 'react-document-title';
 
+import {t} from '../../locale';
 import ApiMixin from '../../mixins/apiMixin';
 import EventEntries from '../../components/events/eventEntries';
 import Footer from '../../components/footer';
 import LoadingError from '../../components/loadingError';
 import LoadingIndicator from '../../components/loadingIndicator';
+import NotFound from '../../components/errors/notFound';
 import SentryTypes from '../../proptypes';
-
 import SharedGroupHeader from './sharedGroupHeader';
 
 const SharedGroupDetails = React.createClass({
@@ -77,8 +78,13 @@ const SharedGroupDetails = React.createClass({
   render() {
     let group = this.state.group;
 
-    if (this.state.loading || !group) return <LoadingIndicator />;
-    else if (this.state.error) return <LoadingError onRetry={this.fetchData} />;
+    if (this.state.loading) {
+      return <LoadingIndicator />;
+    } else if (!group) {
+      return <NotFound />;
+    } else if (this.state.error) {
+      return <LoadingError onRetry={this.fetchData} />;
+    }
 
     let evt = this.state.group.latestEvent;
 
@@ -94,7 +100,7 @@ const SharedGroupDetails = React.createClass({
                 </a>
                 {this.state.group.permalink &&
                   <a className="pull-right" href={this.state.group.permalink}>
-                    Details
+                    {t('Details')}
                   </a>}
               </div>
               <div className="box-content">

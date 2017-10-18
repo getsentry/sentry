@@ -5,6 +5,7 @@ Version 8.22 (Unreleased)
   default organization. You should use SSO or the invite flows.
 - Add support for SAML2 authentication through identity providers that
   implement the ``SAML2AuthProvider``. See getsentry/sentry-auth-saml2.
+- BREAKING: Group share urls have all been invalidated and must be regenerated.
 
 Schema Changes
 ~~~~~~~~~~~~~~

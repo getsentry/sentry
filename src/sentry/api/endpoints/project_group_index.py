@@ -21,8 +21,8 @@ from sentry.constants import DEFAULT_SORT_OPTION
 from sentry.db.models.query import create_or_update
 from sentry.models import (
     Activity, EventMapping, Group, GroupAssignee, GroupBookmark, GroupHash, GroupResolution,
-    GroupSeen, GroupSnooze, GroupStatus, GroupSubscription, GroupSubscriptionReason, GroupTombstone,
-    Release, TOMBSTONE_FIELDS_FROM_GROUP, UserOption
+    GroupSeen, GroupShare, GroupSnooze, GroupStatus, GroupSubscription, GroupSubscriptionReason,
+    GroupTombstone, Release, TOMBSTONE_FIELDS_FROM_GROUP, UserOption
 )
 from sentry.models.event import Event
 from sentry.models.group import looks_like_short_id
@@ -799,30 +799,35 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
                 ),
             }
 
+        if 'isPublic' in result:
+            # We always want to delete an existing share, because triggering
+            # an isPublic=True even when it's already public, should trigger
+            # regenerating.
+            for group in group_list:
+                if GroupShare.objects.filter(group=group).delete():
+                    result['shareId'] = None
+                    Activity.objects.create(
+                        project=group.project,
+                        group=group,
+                        type=Activity.SET_PRIVATE,
+                        user=acting_user,
+                    )
+
         if result.get('isPublic'):
-            queryset.update(is_public=True)
             for group in group_list:
-                if group.is_public:
-                    continue
-                group.is_public = True
-                Activity.objects.create(
+                share, created = GroupShare.objects.get_or_create(
                     project=group.project,
                     group=group,
-                    type=Activity.SET_PUBLIC,
                     user=acting_user,
                 )
-        elif result.get('isPublic') is False:
-            queryset.update(is_public=False)
-            for group in group_list:
-                if not group.is_public:
-                    continue
-                group.is_public = False
-                Activity.objects.create(
-                    project=group.project,
-                    group=group,
-                    type=Activity.SET_PRIVATE,
-                    user=acting_user,
-                )
+                if created:
+                    result['shareId'] = share.uuid
+                    Activity.objects.create(
+                        project=group.project,
+                        group=group,
+                        type=Activity.SET_PUBLIC,
+                        user=acting_user,
+                    )
 
         # XXX(dcramer): this feels a bit shady like it should be its own
         # endpoint

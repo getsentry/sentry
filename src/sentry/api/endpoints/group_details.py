@@ -263,6 +263,7 @@ class GroupDetailsEndpoint(GroupEndpoint):
                                      user context this allows changing of
                                      the bookmark flag.
         :param boolean isSubscribed:
+        :param boolean isPublic: sets the issue to public or private.
         :auth: required
         """
         discard = request.DATA.get('discard')

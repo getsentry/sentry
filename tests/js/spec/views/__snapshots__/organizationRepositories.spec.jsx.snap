@@ -15,27 +15,35 @@ exports[`OrganizationRepositories render() with a provider renders 1`] = `
       <div
         className="pull-right"
       >
-        <DropdownLink
+        <DropdownReact
           anchorRight={true}
           caret={true}
           className="btn btn-primary btn-sm"
           disabled={false}
+          keepMenuOpen={false}
           title="Add Repository"
         >
           <span
-            className="pull-right anchor-right dropdown"
+            className="dropdown pull-right anchor-right open"
           >
             <a
-              className="btn btn-primary btn-sm dropdown-menu-right dropdown-toggle"
-              data-toggle="dropdown"
+              className="dropdown-actor btn btn-primary btn-sm dropdown-menu-right dropdown-toggle"
+              onClick={[Function]}
             >
-              Add Repository
-              <i
-                className="icon-arrow-down"
-              />
+              <div
+                className="dropdown-actor-title"
+              >
+                <span>
+                  Add Repository
+                </span>
+                <i
+                  className="icon-arrow-down"
+                />
+              </div>
             </a>
             <ul
               className="dropdown-menu"
+              onClick={[Function]}
             >
               <MenuItem
                 noAnchor={true}
@@ -124,7 +132,7 @@ exports[`OrganizationRepositories render() with a provider renders 1`] = `
               </MenuItem>
             </ul>
           </span>
-        </DropdownLink>
+        </DropdownReact>
       </div>
       <h3
         className="m-b-2"
@@ -174,27 +182,35 @@ exports[`OrganizationRepositories render() with a provider renders with a reposi
       <div
         className="pull-right"
       >
-        <DropdownLink
+        <DropdownReact
           anchorRight={true}
           caret={true}
           className="btn btn-primary btn-sm"
           disabled={false}
+          keepMenuOpen={false}
           title="Add Repository"
         >
           <span
-            className="pull-right anchor-right dropdown"
+            className="dropdown pull-right anchor-right open"
           >
             <a
-              className="btn btn-primary btn-sm dropdown-menu-right dropdown-toggle"
-              data-toggle="dropdown"
+              className="dropdown-actor btn btn-primary btn-sm dropdown-menu-right dropdown-toggle"
+              onClick={[Function]}
             >
-              Add Repository
-              <i
-                className="icon-arrow-down"
-              />
+              <div
+                className="dropdown-actor-title"
+              >
+                <span>
+                  Add Repository
+                </span>
+                <i
+                  className="icon-arrow-down"
+                />
+              </div>
             </a>
             <ul
               className="dropdown-menu"
+              onClick={[Function]}
             >
               <MenuItem
                 noAnchor={true}
@@ -283,7 +299,7 @@ exports[`OrganizationRepositories render() with a provider renders with a reposi
               </MenuItem>
             </ul>
           </span>
-        </DropdownLink>
+        </DropdownReact>
       </div>
       <h3
         className="m-b-2"
@@ -352,84 +368,82 @@ exports[`OrganizationRepositories render() with a provider renders with a reposi
                   onConfirm={[Function]}
                   priority="primary"
                 >
-                  <span>
-                    <Button
+                  <Button
+                    disabled={false}
+                    onClick={[Function]}
+                    size="xsmall"
+                  >
+                    <button
+                      className="button button-default button-xs"
                       disabled={false}
                       onClick={[Function]}
-                      size="xsmall"
+                      role="button"
                     >
-                      <button
-                        className="button button-default button-xs"
-                        disabled={false}
-                        onClick={[Function]}
-                        role="button"
+                      <FlowLayout
+                        truncate={false}
                       >
-                        <FlowLayout
-                          truncate={false}
+                        <div
+                          className="flow-layout"
                         >
-                          <div
-                            className="flow-layout"
+                          <span
+                            className="button-label"
                           >
                             <span
-                              className="button-label"
+                              className="icon icon-trash"
+                            />
+                            <Modal
+                              animation={false}
+                              autoFocus={true}
+                              backdrop={true}
+                              bsClass="modal"
+                              dialogComponentClass={[Function]}
+                              enforceFocus={true}
+                              keyboard={true}
+                              manager={
+                                ModalManager {
+                                  "containers": Array [],
+                                  "data": Array [],
+                                  "handleContainerOverflow": true,
+                                  "hideSiblingNodes": true,
+                                  "modals": Array [],
+                                }
+                              }
+                              onHide={[Function]}
+                              renderBackdrop={[Function]}
+                              restoreFocus={true}
+                              show={false}
                             >
-                              <span
-                                className="icon icon-trash"
+                              <Modal
+                                autoFocus={true}
+                                backdrop={true}
+                                backdropClassName="modal-backdrop"
+                                backdropTransitionTimeout={150}
+                                containerClassName="modal-open"
+                                dialogTransitionTimeout={300}
+                                enforceFocus={true}
+                                keyboard={true}
+                                manager={
+                                  ModalManager {
+                                    "containers": Array [],
+                                    "data": Array [],
+                                    "handleContainerOverflow": true,
+                                    "hideSiblingNodes": true,
+                                    "modals": Array [],
+                                  }
+                                }
+                                onEntering={[Function]}
+                                onExited={[Function]}
+                                onHide={[Function]}
+                                renderBackdrop={[Function]}
+                                restoreFocus={true}
+                                show={false}
                               />
-                            </span>
-                          </div>
-                        </FlowLayout>
-                      </button>
-                    </Button>
-                    <Modal
-                      animation={false}
-                      autoFocus={true}
-                      backdrop={true}
-                      bsClass="modal"
-                      dialogComponentClass={[Function]}
-                      enforceFocus={true}
-                      keyboard={true}
-                      manager={
-                        ModalManager {
-                          "containers": Array [],
-                          "data": Array [],
-                          "handleContainerOverflow": true,
-                          "hideSiblingNodes": true,
-                          "modals": Array [],
-                        }
-                      }
-                      onHide={[Function]}
-                      renderBackdrop={[Function]}
-                      restoreFocus={true}
-                      show={false}
-                    >
-                      <Modal
-                        autoFocus={true}
-                        backdrop={true}
-                        backdropClassName="modal-backdrop"
-                        backdropTransitionTimeout={150}
-                        containerClassName="modal-open"
-                        dialogTransitionTimeout={300}
-                        enforceFocus={true}
-                        keyboard={true}
-                        manager={
-                          ModalManager {
-                            "containers": Array [],
-                            "data": Array [],
-                            "handleContainerOverflow": true,
-                            "hideSiblingNodes": true,
-                            "modals": Array [],
-                          }
-                        }
-                        onEntering={[Function]}
-                        onExited={[Function]}
-                        onHide={[Function]}
-                        renderBackdrop={[Function]}
-                        restoreFocus={true}
-                        show={false}
-                      />
-                    </Modal>
-                  </span>
+                            </Modal>
+                          </span>
+                        </div>
+                      </FlowLayout>
+                    </button>
+                  </Button>
                 </Confirm>
               </td>
             </tr>
@@ -449,11 +463,12 @@ exports[`OrganizationRepositories render() without any providers is loading when
     <div
       className="pull-right"
     >
-      <DropdownLink
+      <DropdownReact
         anchorRight={true}
         caret={true}
         className="btn btn-primary btn-sm"
         disabled={false}
+        keepMenuOpen={false}
         title="Add Repository"
       />
     </div>
@@ -504,30 +519,38 @@ exports[`OrganizationRepositories render() without any providers renders 1`] = `
       <div
         className="pull-right"
       >
-        <DropdownLink
+        <DropdownReact
           anchorRight={true}
           caret={true}
           className="btn btn-primary btn-sm"
           disabled={false}
+          keepMenuOpen={false}
           title="Add Repository"
         >
           <span
-            className="pull-right anchor-right dropdown"
+            className="dropdown pull-right anchor-right open"
           >
             <a
-              className="btn btn-primary btn-sm dropdown-menu-right dropdown-toggle"
-              data-toggle="dropdown"
+              className="dropdown-actor btn btn-primary btn-sm dropdown-menu-right dropdown-toggle"
+              onClick={[Function]}
             >
-              Add Repository
-              <i
-                className="icon-arrow-down"
-              />
+              <div
+                className="dropdown-actor-title"
+              >
+                <span>
+                  Add Repository
+                </span>
+                <i
+                  className="icon-arrow-down"
+                />
+              </div>
             </a>
             <ul
               className="dropdown-menu"
+              onClick={[Function]}
             />
           </span>
-        </DropdownLink>
+        </DropdownReact>
       </div>
       <h3
         className="m-b-2"

@@ -13,7 +13,7 @@ from sentry import tagstore
 from sentry.models import (
     Activity, EventMapping, Group, GroupAssignee, GroupBookmark, GroupHash, GroupResolution,
     GroupSeen, GroupSnooze, GroupStatus, GroupSubscription,
-    GroupTombstone, Release, UserOption
+    GroupTombstone, Release, UserOption, GroupShare,
 )
 from sentry.models.event import Event
 from sentry.testutils import APITestCase
@@ -1058,8 +1058,8 @@ class GroupUpdateTest(APITestCase):
         ).exists()
 
     def test_set_public(self):
-        group1 = self.create_group(checksum='a' * 32, is_public=False)
-        group2 = self.create_group(checksum='b' * 32, is_public=False)
+        group1 = self.create_group(checksum='a' * 32)
+        group2 = self.create_group(checksum='b' * 32)
 
         self.login_as(user=self.user)
         url = '{url}?id={group1.id}&id={group2.id}'.format(
@@ -1073,19 +1073,26 @@ class GroupUpdateTest(APITestCase):
             }, format='json'
         )
         assert response.status_code == 200
-        assert response.data == {
-            'isPublic': True,
-        }
+        assert response.data['isPublic'] is True
+        assert 'shareId' in response.data
 
         new_group1 = Group.objects.get(id=group1.id)
-        assert new_group1.is_public
+        assert bool(new_group1.get_share_id())
 
         new_group2 = Group.objects.get(id=group2.id)
-        assert new_group2.is_public
+        assert bool(new_group2.get_share_id())
 
     def test_set_private(self):
-        group1 = self.create_group(checksum='a' * 32, is_public=True)
-        group2 = self.create_group(checksum='b' * 32, is_public=True)
+        group1 = self.create_group(checksum='a' * 32)
+        group2 = self.create_group(checksum='b' * 32)
+
+        # Manually mark them as shared
+        for g in group1, group2:
+            GroupShare.objects.create(
+                project_id=g.project_id,
+                group=g,
+            )
+            assert bool(g.get_share_id())
 
         self.login_as(user=self.user)
         url = '{url}?id={group1.id}&id={group2.id}'.format(
@@ -1104,10 +1111,10 @@ class GroupUpdateTest(APITestCase):
         }
 
         new_group1 = Group.objects.get(id=group1.id)
-        assert not new_group1.is_public
+        assert not bool(new_group1.get_share_id())
 
         new_group2 = Group.objects.get(id=group2.id)
-        assert not new_group2.is_public
+        assert not bool(new_group2.get_share_id())
 
     def test_set_has_seen(self):
         group1 = self.create_group(checksum='a' * 32, status=GroupStatus.RESOLVED)
