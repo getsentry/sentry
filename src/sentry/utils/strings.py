@@ -206,17 +206,13 @@ def codec_lookup(encoding, default='utf-8'):
     Note: the default value is not sanity checked and would
     bypass these checks."""
 
-    def _get_default():
-        if default is not None:
-            return codecs.lookup(default)
-
     if not encoding:
-        return _get_default()
+        return codecs.lookup(default)
 
     try:
         info = codecs.lookup(encoding)
     except (LookupError, TypeError):
-        return _get_default()
+        return codecs.lookup(default)
 
     try:
         # Check for `CodecInfo._is_text_encoding`.
@@ -225,13 +221,13 @@ def codec_lookup(encoding, default='utf-8'):
         # introduced into 2.7.12, so versions prior to this will
         # raise, but this is the best we can do.
         if not info._is_text_encoding:
-            return _get_default()
+            return codecs.lookup(default)
     except AttributeError:
         pass
 
     # `undefined` is special a special encoding in python that 100% of
     # the time will raise, so ignore it.
     if info.name == 'undefined':
-        return _get_default()
+        return codecs.lookup(default)
 
     return info
