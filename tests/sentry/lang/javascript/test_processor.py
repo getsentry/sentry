@@ -5,7 +5,7 @@ from __future__ import absolute_import
 import pytest
 import responses
 import six
-from libsourcemap import Token
+from symbolic import SourceMapTokenMatch
 
 from mock import patch
 from requests.exceptions import RequestException
@@ -399,18 +399,20 @@ class GenerateModuleTest(TestCase):
 class FetchSourcemapTest(TestCase):
     def test_simple_base64(self):
         smap_view = fetch_sourcemap(base64_sourcemap)
-        tokens = [Token(1, 0, '/test.js', 0, 0, 0, None)]
+        tokens = [SourceMapTokenMatch(0, 0, 1, 0, src='/test.js', src_id=0)]
 
         assert list(smap_view) == tokens
-        assert smap_view.get_source_contents(0) == 'console.log("hello, World!")'
+        sv = smap_view.get_sourceview(0)
+        assert sv.get_source() == u'console.log("hello, World!")'
         assert smap_view.get_source_name(0) == u'/test.js'
 
     def test_base64_without_padding(self):
         smap_view = fetch_sourcemap(base64_sourcemap.rstrip('='))
-        tokens = [Token(1, 0, '/test.js', 0, 0, 0, None)]
+        tokens = [SourceMapTokenMatch(0, 0, 1, 0, src='/test.js', src_id=0)]
 
         assert list(smap_view) == tokens
-        assert smap_view.get_source_contents(0) == 'console.log("hello, World!")'
+        sv = smap_view.get_sourceview(0)
+        assert sv.get_source() == u'console.log("hello, World!")'
         assert smap_view.get_source_name(0) == u'/test.js'
 
     def test_broken_base64(self):
