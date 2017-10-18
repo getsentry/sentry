@@ -19,7 +19,6 @@ hiredis>=0.1.0,<0.2.0
 honcho>=0.7.0,<0.8.0
 kombu==3.0.35
 ipaddress>=1.0.16,<1.1.0
-libsourcemap>=0.8.2,<0.9.0
 loremipsum>=1.0.5,<1.1.0
 lxml>=3.4.1
 mock>=0.8.0,<1.1
@@ -47,7 +46,7 @@ setproctitle>=1.1.7,<1.2.0
 statsd>=3.1.0,<3.2.0
 structlog==16.1.0
 sqlparse>=0.1.16,<0.2.0
-symbolic>=0.9.8,<1.0.0
+symbolic>=1.0.3,<2.0.0
 toronado>=0.0.11,<0.1.0
 ua-parser>=0.6.1,<0.8.0
 urllib3>=1.22,<1.23
