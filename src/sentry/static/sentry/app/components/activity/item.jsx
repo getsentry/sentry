@@ -56,9 +56,9 @@ const ActivityItem = React.createClass({
     let issue = item.issue;
 
     let issueLink = issue
-      ? (<IssueLink orgId={orgId} projectId={project.slug} issue={issue}>
+      ? <IssueLink orgId={orgId} projectId={project.slug} issue={issue}>
           {issue.shortId}
-        </IssueLink>)
+        </IssueLink>
       : null;
 
     switch (item.type) {
@@ -158,12 +158,12 @@ const ActivityItem = React.createClass({
           issue: issueLink
         });
       case 'set_public':
-        return tct('[author] made an [issue] public', {
+        return tct('[author] made [issue] public', {
           author,
           issue: issueLink
         });
       case 'set_private':
-        return tct('[author] made an [issue] private', {
+        return tct('[author] made [issue] private', {
           author,
           issue: issueLink
         });
