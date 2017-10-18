@@ -13,7 +13,6 @@ Schema Changes
 - Added ``ProjectSymCacheFile`` model.
 - Added index on ``TagValue(project_id, key, last_seen)``
 - Add ``GroupShare`` model.
-- BREAKING: Group share urls have all been invalidated and must be regenerated.
 
 Version 8.21
 ------------
