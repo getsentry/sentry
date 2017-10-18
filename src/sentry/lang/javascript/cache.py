@@ -8,10 +8,7 @@ __all__ = ['SourceCache', 'SourceMapCache']
 
 
 def is_utf8(codec):
-    try:
-        name = codec_lookup(codec).name
-    except Exception:
-        return False
+    name = codec_lookup(codec).name
     return name in ('utf-8', 'ascii')
 
 
