@@ -2,6 +2,7 @@ import React from 'react';
 import jQuery from 'jquery';
 import DocumentTitle from 'react-document-title';
 
+import {t} from '../../locale';
 import ApiMixin from '../../mixins/apiMixin';
 import EventEntries from '../../components/events/eventEntries';
 import Footer from '../../components/footer';
@@ -77,8 +78,14 @@ const SharedGroupDetails = React.createClass({
   render() {
     let group = this.state.group;
 
-    if (this.state.loading || !group) return <LoadingIndicator />;
-    else if (this.state.error) return <LoadingError onRetry={this.fetchData} />;
+    if (this.state.loading) {
+      return <LoadingIndicator />;
+    } else if (!group) {
+      let errorMessage = t('The issue was not found or it may have been unshared');
+      return <LoadingError message={errorMessage} />;
+    } else if (this.state.error) {
+      return <LoadingError onRetry={this.fetchData} />;
+    }
 
     let evt = this.state.group.latestEvent;
 
@@ -94,7 +101,7 @@ const SharedGroupDetails = React.createClass({
                 </a>
                 {this.state.group.permalink &&
                   <a className="pull-right" href={this.state.group.permalink}>
-                    Details
+                    {t('Details')}
                   </a>}
               </div>
               <div className="box-content">
