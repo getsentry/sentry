@@ -1,13 +1,38 @@
 from __future__ import absolute_import
 
+import sys
 import functools
 
 from sentry.utils.strings import (
-    is_valid_dot_atom, iter_callsign_choices, soft_break, soft_hyphenate, tokens_from_name
+    is_valid_dot_atom, iter_callsign_choices, soft_break, soft_hyphenate,
+    tokens_from_name, codec_lookup
 )
 
 ZWSP = u'\u200b'  # zero width space
 SHY = u'\u00ad'  # soft hyphen
+
+
+def test_codec_lookup():
+    def assert_match(enc, ref=None):
+        if ref is None:
+            ref = enc
+        rv = codec_lookup(enc)
+        if rv is None:
+            assert ref is rv is None
+        else:
+            assert rv.name == ref
+
+    assert codec_lookup('utf-8').name == 'utf-8'
+    assert codec_lookup('utf8').name == 'utf-8'
+    if sys.version_info[:3] >= (2, 7, 12):
+        assert codec_lookup('zlib').name == 'utf-8'
+    assert codec_lookup('utf16').name == 'utf-16'
+    assert codec_lookup('undefined').name == 'utf-8'
+    assert codec_lookup('undefined', default=None) is None
+    assert codec_lookup('undefined', default='latin1').name == 'iso8859-1'
+    if sys.version_info[:3] >= (2, 7, 12):
+        assert codec_lookup('zlib', default='latin1').name == 'iso8859-1'
+    assert codec_lookup('unknownshit', default='latin1').name == 'iso8859-1'
 
 
 def test_soft_break():
