@@ -672,12 +672,14 @@ class NotificationSettingsForm(forms.Form):
             UserOption.objects.unset_value(
                 user=self.user,
                 key='workflow:notifications',
+                project=None,
             )
         else:
             UserOption.objects.set_value(
                 user=self.user,
                 key='workflow:notifications',
                 value=workflow_notifications_value,
+                project=None,
             )
 
 
