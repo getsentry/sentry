@@ -33,6 +33,64 @@ def get_project(value):
         return None
 
 
+def chunker(seq, size):
+    return (seq[pos:pos + size] for pos in xrange(0, len(seq), size))
+
+
+class ForkTheGIL(object):
+    def __init__(self, concurrency_level, logger=None):
+        self.concurrency_level = concurrency_level
+        self.logger = logger
+
+    def run(self, fn, fn_args):
+        import math
+        import multiprocessing
+        import os
+        import sys
+        from threading import Thread
+
+        from django.db import connections
+
+        # can't use open connections after a fork
+        for c in connections.all():
+            c.close()
+
+        threads_per_cpu = int(math.ceil(
+            self.concurrency_level / float(multiprocessing.cpu_count())))
+
+        pids = []
+        for input_chunk in chunker(fn_args, threads_per_cpu):
+            f = os.fork()
+            if f == 0:
+                threads = []
+
+                for args, kwargs in input_chunk:
+                    t = Thread(target=lambda args=args,
+                               kwargs=kwargs: fn(*args, **kwargs))
+                    t.start()
+                    threads.append(t)
+
+                for t in threads:
+                    t.join()
+
+                sys.exit(0)
+            else:
+                pids.append(f)
+
+        total_pid_count = len(pids)
+        if self.logger:
+            self.logger(
+                "%s concurrent processes forked, waiting on them to complete." % total_pid_count)
+
+        complete = 0
+        for pid in pids:
+            os.waitpid(pid, 0)
+            complete += 1
+            if self.logger:
+                self.logger(
+                    "%s/%s concurrent processes are finished." % (complete, total_pid_count))
+
+
 @click.command()
 @click.option('--days', default=30, show_default=True, help='Numbers of days to truncate on.')
 @click.option('--project', help='Limit truncation to only entries from project.')
@@ -70,10 +128,7 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
         click.echo('Error: Minimum concurrency is 1', err=True)
         raise click.Abort()
 
-    import os
-    import sys
     from django.db import router as db_router
-    from django.db import connections
     from sentry.app import nodestore
     from sentry.db.deletion import BulkDeleteQuery
     from sentry import deletions
@@ -222,29 +277,13 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
                         num_shards=num_shards, shard_id=shard_id)
 
             if concurrency > 1:
-                for c in connections.all():
-                    c.close()
-
-                pids = []
-                for shard_id in range(concurrency):
-                    f = os.fork()
-                    if f == 0:
-                        _chunk_until_complete(
-                            num_shards=concurrency, shard_id=shard_id)
-                        sys.exit(0)
-                    else:
-                        pids.append(f)
-
-                click.echo(
-                    "%s concurrent processes forked, waiting on them to complete." % concurrency)
-
-                complete = 0
-                for pid in pids:
-                    os.waitpid(pid, 0)
-                    complete += 1
-                    click.echo(
-                        "%s/%s concurrent processes are finished." % (complete, concurrency))
-
+                forker = ForkTheGIL(concurrency, logger=click.echo)
+                shard_ids = range(concurrency)
+                forker.run(
+                    lambda shard_id: _chunk_until_complete(
+                        num_shards=concurrency, shard_id=shard_id),
+                    [((shard_id, ), {}) for shard_id in shard_ids]
+                )
             else:
                 _chunk_until_complete()
 
