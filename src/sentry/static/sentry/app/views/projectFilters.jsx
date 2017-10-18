@@ -63,14 +63,13 @@ const FilterRow = React.createClass({
         <div className="row">
           <div className="col-md-9">
             <h5 style={{marginBottom: 10}}>{data.name}</h5>
-            {data.description && (
+            {data.description &&
               <small
                 className="help-block"
                 dangerouslySetInnerHTML={{
                   __html: marked(data.description)
                 }}
-              />
-            )}
+              />}
           </div>
           <div className="col-md-3 align-right" style={{paddingRight: '25px'}}>
             <FilterSwitch {...this.props} size="lg" />
@@ -200,14 +199,13 @@ const LegacyBrowserFilterRow = React.createClass({
         <div className="row">
           <div className="col-md-9">
             <h5 style={{marginBottom: 10}}>{data.name}</h5>
-            {data.description && (
+            {data.description &&
               <small
                 className="help-block"
                 dangerouslySetInnerHTML={{
                   __html: marked(data.description)
                 }}
-              />
-            )}
+              />}
           </div>
           <div className="col-md-3 align-right">
             <div className="filter-grid-filter">
@@ -354,13 +352,12 @@ const ProjectFiltersSettingsForm = React.createClass({
 
     return (
       <form onSubmit={this.onSubmit} className="form-stacked p-b-1">
-        {this.state.state === FormState.ERROR && (
+        {this.state.state === FormState.ERROR &&
           <div className="alert alert-error alert-block">
             {t(
               'Unable to save your changes. Please ensure all fields are valid and try again.'
             )}
-          </div>
-        )}
+          </div>}
         <fieldset>
           <h5>{t('Filter errors from these IP addresses:')}</h5>
           <TextareaField
@@ -372,11 +369,9 @@ const ProjectFiltersSettingsForm = React.createClass({
             error={errors['filters:blacklisted_ips']}
             onChange={this.onFieldChange.bind(this, 'filters:blacklisted_ips')}
           />
-          {features.has('custom-inbound-filters') ? (
-            this.renderAdditionalFilters()
-          ) : (
-            this.renderDisabledFeature()
-          )}
+          {features.has('custom-inbound-filters')
+            ? this.renderAdditionalFilters()
+            : this.renderDisabledFeature()}
           <div className="pull-right">
             <button
               type="submit"
@@ -430,32 +425,17 @@ const ProjectFilters = React.createClass({
       localhost: 'Localhost',
       'web-crawlers': 'Web Crawler',
       'invalid-csp': 'Invalid CSP',
-      cors: 'CORS',
-      blacklisted: 'Filtered Events' //TODO(maxbittker) this is only needed until October 10th, 2017
+      cors: 'CORS'
     };
   },
 
   formatData(rawData) {
-    let cutOverDate = moment([2017, 8, 11]); // date when detailed stats started being recorded
-
     return Object.keys(this.getStatOpts()).map(stat => {
       return {
         data: rawData[stat].map(([x, y]) => {
           if (y > 0) {
             this.setState({blankStats: false});
           }
-
-          //TODO(maxbittker) this is only needed until October 10th, 2017 :
-          let statDate = moment(x * 1000);
-          let timeSince = cutOverDate.diff(statDate, 'days');
-          // this means detailed stats are available
-          if (
-            (timeSince < 0 && stat === 'blacklisted') ||
-            (timeSince >= 0 && stat !== 'blacklisted')
-          ) {
-            return {x, y: 0};
-          }
-          //END
 
           return {x, y};
         }),
@@ -640,11 +620,9 @@ const ProjectFilters = React.createClass({
               projectId,
               onToggle: this.onToggleFilter
             };
-            return filter.id === 'legacy-browsers' ? (
-              <LegacyBrowserFilterRow {...props} />
-            ) : (
-              <FilterRow {...props} />
-            );
+            return filter.id === 'legacy-browsers'
+              ? <LegacyBrowserFilterRow {...props} />
+              : <FilterRow {...props} />;
           })}
 
           <div style={{borderTop: '1px solid #f2f3f4', padding: '20px 0 0'}}>
@@ -736,30 +714,25 @@ const ProjectFilters = React.createClass({
                 </div>
               </div>}
         </div>
-        {features.has('custom-filters') && (
+        {features.has('custom-filters') &&
           <div className="sub-header flex flex-container flex-vertically-centered">
             <div className="p-t-1">
               <ul className="nav nav-tabs">
                 <li
-                  className={`col-xs-5  ${navSection == 'data-filters'
-                    ? 'active '
-                    : ''}`}>
+                  className={`col-xs-5  ${navSection == 'data-filters' ? 'active ' : ''}`}>
                   <a onClick={() => this.setProjectNavSection('data-filters')}>
                     {t('Data Filters')}
                   </a>
                 </li>
                 <li
-                  className={`col-xs-5 align-right ${navSection == 'discarded-groups'
-                    ? 'active '
-                    : ''}`}>
+                  className={`col-xs-5 align-right ${navSection == 'discarded-groups' ? 'active ' : ''}`}>
                   <a onClick={() => this.setProjectNavSection('discarded-groups')}>
                     {t('Discarded Groups')}
                   </a>
                 </li>
               </ul>
             </div>
-          </div>
-        )}
+          </div>}
         {this.renderSection()}
       </div>
     );
