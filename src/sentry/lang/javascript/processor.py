@@ -12,7 +12,7 @@ from django.conf import settings
 from os.path import splitext
 from requests.utils import get_encoding_from_headers
 from six.moves.urllib.parse import urljoin, urlsplit
-from libsourcemap import from_json as view_from_json
+from symbolic import SourceMapView
 
 # In case SSL is unavailable (light builds) we can't import this here.
 try:
@@ -391,7 +391,7 @@ def fetch_sourcemap(url, project=None, release=None, dist=None, allow_scraping=T
         )
         body = result.body
     try:
-        return view_from_json(body)
+        return SourceMapView.from_json_bytes(body)
     except Exception as exc:
         # This is in debug because the product shows an error already.
         logger.debug(six.text_type(exc), exc_info=True)
@@ -526,7 +526,7 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
 
         # This might fail but that's okay, we try with a different path a
         # bit later down the road.
-        source = self.get_source(frame['abs_path'])
+        source = self.get_sourceview(frame['abs_path'])
 
         in_app = None
         new_frame = dict(frame)
@@ -549,11 +549,20 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
 
             sourcemap_label = http.expose_url(sourcemap_label)
 
+            if frame.get('function'):
+                minified_function_name = frame['function']
+                minified_source = self.get_sourceview(frame['abs_path'])
+            else:
+                minified_function_name = minified_source = None
+
             try:
                 # Errors are 1-indexed in the frames, so we need to -1 to get
                 # zero-indexed value from tokens.
                 assert frame['lineno'] > 0, "line numbers are 1-indexed"
-                token = sourcemap_view.lookup_token(frame['lineno'] - 1, frame['colno'] - 1)
+                token = sourcemap_view.lookup(frame['lineno'] - 1,
+                                              frame['colno'] - 1,
+                                              minified_function_name,
+                                              minified_source)
             except Exception:
                 token = None
                 all_errors.append(
@@ -580,7 +589,7 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
                 logger.debug(
                     'Mapping compressed source %r to mapping in %r', frame['abs_path'], abs_path
                 )
-                source = self.get_source(abs_path)
+                source = self.get_sourceview(abs_path)
 
             if not source:
                 errors = cache.get_errors(abs_path)
@@ -599,17 +608,12 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
                 new_frame['lineno'] = token.src_line + 1
                 new_frame['colno'] = token.src_col + 1
 
-                # Find the original function name with a bit of guessing
-                original_function_name = None
+                # Try to use the function name we got from symbolic
+                original_function_name = token.function_name
 
                 # In the ideal case we can use the function name from the
                 # frame and the location to resolve the original name
                 # through the heuristics in our sourcemap library.
-                if frame.get('function'):
-                    minified_source = self.get_source(frame['abs_path'], raw=True)
-                    original_function_name = sourcemap_view.get_original_function_name(
-                        token.dst_line, token.dst_col, frame['function'],
-                        minified_source)
                 if original_function_name is None:
                     last_token = None
 
@@ -696,7 +700,7 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
     def expand_frame(self, frame, source=None):
         if frame.get('lineno') is not None:
             if source is None:
-                source = self.get_source(frame['abs_path'])
+                source = self.get_sourceview(frame['abs_path'])
                 if source is None:
                     logger.debug('No source found for %s', frame['abs_path'])
                     return False
@@ -707,10 +711,10 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
             return True
         return False
 
-    def get_source(self, filename, raw=False):
+    def get_sourceview(self, filename):
         if filename not in self.cache:
             self.cache_source(filename)
-        return self.cache.get(filename, raw=raw)
+        return self.cache.get(filename)
 
     def cache_source(self, filename):
         sourcemaps = self.sourcemaps
@@ -766,12 +770,12 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
         sourcemaps.add(sourcemap_url, sourcemap_view)
 
         # cache any inlined sources
-        for src_id, source in sourcemap_view.iter_sources():
-            if sourcemap_view.has_source_contents(src_id):
+        for src_id, source_name in sourcemap_view.iter_sources():
+            source_view = sourcemap_view.get_sourceview(src_id)
+            if source_view is not None:
                 self.cache.add(
-                    urljoin(sourcemap_url, source),
-                    lambda view=sourcemap_view, id=src_id: view.get_source_contents(id),
-                    None,
+                    urljoin(sourcemap_url, source_name),
+                    source_view
                 )
 
     def populate_source_cache(self, frames):
