@@ -42,7 +42,7 @@ export function getCurlCommand(data) {
         if (isString(data.data)) {
           result += ' \\\n --data "' + escapeQuotes(data.data) + '"';
         } else {
-          Raven.captureMessage('weird event data', {
+          Raven.captureMessage('Unknown event data', {
             extra: data.data
           });
         }
