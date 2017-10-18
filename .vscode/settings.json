@@ -3,7 +3,7 @@
         "**/*.pyc": true,
         "**/*.min.js": true,
         "**/*.js.map": true,
-        "static": true,
+        "static/dist/": true,
         "node_modules": true,
         "htmlcov": true,
         "build": true,
