@@ -7,6 +7,7 @@ exports[`ShareIssue renders when busy 1`] = `
   className="share-issue btn-sm btn btn-default"
   disabled={false}
   keepMenuOpen={true}
+  onOpen={[Function]}
   shouldIgnoreClickOutside={[Function]}
   title={
     <div
@@ -61,6 +62,7 @@ exports[`ShareIssue renders when not shared 1`] = `
   className="share-issue btn-sm btn btn-default"
   disabled={false}
   keepMenuOpen={true}
+  onOpen={[Function]}
   shouldIgnoreClickOutside={[Function]}
   title={
     <div
@@ -118,6 +120,7 @@ exports[`ShareIssue renders when not shared 2`] = `
   className="share-issue btn-sm btn btn-default"
   disabled={false}
   keepMenuOpen={true}
+  onOpen={[Function]}
   shouldIgnoreClickOutside={[Function]}
   title={
     <div
