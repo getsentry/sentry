@@ -1,9 +1,12 @@
 from __future__ import absolute_import, print_function
 
 import logging
+import re
 
 from sentry.constants import ObjectStatus
 from sentry.utils.query import bulk_delete_objects
+
+_leaf_re = re.compile(r'^(Event|Group)(.+)')
 
 
 class BaseRelation(object):
@@ -177,15 +180,18 @@ class ModelDeletionTask(BaseDeletionTask):
         try:
             instance.delete()
         finally:
-            self.logger.info(
-                'object.delete.executed',
-                extra={
-                    'object_id': instance_id,
-                    'transaction_id': self.transaction_id,
-                    'app_label': instance._meta.app_label,
-                    'model': type(instance).__name__,
-                }
-            )
+            # Don't log Group and Event child object deletions.
+            model_name = type(instance).__name__
+            if not _leaf_re.search(model_name):
+                self.logger.info(
+                    'object.delete.executed',
+                    extra={
+                        'object_id': instance_id,
+                        'transaction_id': self.transaction_id,
+                        'app_label': instance._meta.app_label,
+                        'model': model_name,
+                    }
+                )
 
     def get_actor(self):
         from sentry.models import User
@@ -225,13 +231,16 @@ class BulkModelDeletionTask(ModelDeletionTask):
                 **self.query
             )
         finally:
-            self.logger.info(
-                'object.delete.bulk_executed',
-                extra=dict(
-                    {
-                        'transaction_id': self.transaction_id,
-                        'app_label': self.model._meta.app_label,
-                        'model': self.model.__name__,
-                    }, **self.query
+            # Don't log Group and Event child object deletions.
+            model_name = self.model.__name__
+            if not _leaf_re.search(model_name):
+                self.logger.info(
+                    'object.delete.bulk_executed',
+                    extra=dict(
+                        {
+                            'transaction_id': self.transaction_id,
+                            'app_label': self.model._meta.app_label,
+                            'model': model_name,
+                        }, **self.query
+                    )
                 )
-            )
