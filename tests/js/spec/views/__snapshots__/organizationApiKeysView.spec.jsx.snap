@@ -192,8 +192,6 @@ exports[`OrganizationApiKeysView renders 1`] = `
                   onConfirm={[Function]}
                   priority="primary"
                 >
-<<<<<<< HEAD
-<<<<<<< HEAD
                   <a
                     className="btn btn-default btn-sm"
                     onClick={[Function]}
@@ -202,21 +200,6 @@ exports[`OrganizationApiKeysView renders 1`] = `
                     <span
                       className="icon-trash"
                     />
-=======
-<<<<<<< HEAD
-=======
->>>>>>> fix snaps
-                  <span>
-                    <a
-                      className="btn btn-default btn-sm"
-                      onClick={[Function]}
-                      title="Remove API Key?"
-                    >
-                      <span
-                        className="icon-trash"
-                      />
-                    </a>
->>>>>>> snaps
                     <Modal
                       animation={false}
                       autoFocus={true}
