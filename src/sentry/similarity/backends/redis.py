@@ -245,9 +245,14 @@ class RedisMinHashIndexBackend(AbstractIndexBackend):
         return self.__search(
             scope,
             [
-                (index, [
-                    {tuple(bucket): 1} for bucket in banded(self.bands, self.signature_builder(features))
-                ], thresholds) for index, thresholds, features in items
+                (
+                    index,
+                    [{tuple(bucket): 1}
+                     for bucket in banded(self.bands, self.signature_builder(features))]
+                    if features else
+                    [{} for _ in range(self.bands)],
+                    thresholds
+                ) for index, thresholds, features in items
             ],
             timestamp,
             limit,
