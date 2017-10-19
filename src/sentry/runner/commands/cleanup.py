@@ -7,6 +7,7 @@ sentry.runner.commands.cleanup
 """
 from __future__ import absolute_import, print_function
 
+import six
 from datetime import timedelta
 from uuid import uuid4
 
@@ -37,58 +38,84 @@ def chunker(seq, size):
     return (seq[pos:pos + size] for pos in xrange(0, len(seq), size))
 
 
-class ForkTheGIL(object):
-    def __init__(self, concurrency_level, logger=None):
-        self.concurrency_level = concurrency_level
-        self.logger = logger
+@click.command()
+@click.option('--days', type=click.INT, required=True)
+@click.option('--project_id', type=click.INT, required=False)
+@click.option('--model', required=True)
+@click.option('--dtfield', required=True)
+@click.option('--order_by', required=True)
+@click.option('--num_shards', required=True)
+@click.option('--shard_ids', required=True)
+@configuration
+def cleanup_chunk(days, project_id, model, dtfield, order_by, num_shards, shard_ids):
+    import pickle
+    from threading import Thread
 
-    def run(self, fn, fn_args):
-        import math
-        import multiprocessing
-        import os
-        import sys
-        from threading import Thread
+    model = pickle.loads(model)
+    shard_ids = [int(s) for s in shard_ids.split(",")]
 
-        from django.db import connections
+    task = create_deletion_task(
+        days, project_id, model, dtfield, order_by)
 
-        # can't use open connections after a fork
-        for c in connections.all():
-            c.close()
+    click.echo("days: %s, project_id: %s, model: %s, dtfield: %s, order_by: %s, shard_ids:%s" %
+               (days, project_id, model, dtfield, order_by, shard_ids))
 
-        threads_per_cpu = int(math.ceil(
-            self.concurrency_level / float(multiprocessing.cpu_count())))
+    threads = []
+    for shard_id in shard_ids:
+        t = Thread(
+            target=(
+                lambda shard_id=shard_id: _chunk_until_complete(
+                    task, num_shards=num_shards, shard_id=shard_id)
+            )
+        )
+        t.start()
+        threads.append(t)
 
-        pids = []
-        for input_chunk in chunker(fn_args, threads_per_cpu):
-            f = os.fork()
-            if f == 0:
-                threads = []
+    for t in threads:
+        t.join()
 
-                for args, kwargs in input_chunk:
-                    t = Thread(target=lambda args=args,
-                               kwargs=kwargs: fn(*args, **kwargs))
-                    t.start()
-                    threads.append(t)
 
-                for t in threads:
-                    t.join()
+def create_deletion_task(days, project_id, model, dtfield, order_by):
+    from sentry import models
+    from sentry import deletions
+    from sentry import similarity
 
-                sys.exit(0)
-            else:
-                pids.append(f)
+    query = {
+        '{}__lte'.format(dtfield): (timezone.now() - timedelta(days=days)),
+    }
 
-        total_pid_count = len(pids)
-        if self.logger:
-            self.logger(
-                "%s concurrent processes forked, waiting on them to complete." % total_pid_count)
+    if project_id:
+        if 'project' in model._meta.get_all_field_names():
+            query['project'] = project_id
+        else:
+            query['project_id'] = project_id
 
-        complete = 0
-        for pid in pids:
-            os.waitpid(pid, 0)
-            complete += 1
-            if self.logger:
-                self.logger(
-                    "%s/%s concurrent processes are finished." % (complete, total_pid_count))
+    task = deletions.get(
+        model=model,
+        query=query,
+        order_by=order_by,
+        skip_models=[
+            # Handled by other parts of cleanup
+            models.Event,
+            models.EventMapping,
+            models.EventTag,
+            models.GroupEmailThread,
+            models.GroupRuleStatus,
+            models.GroupTagValue,
+            # Handled by TTL
+            similarity.features,
+        ],
+        transaction_id=uuid4().hex,
+    )
+
+    return task
+
+
+def _chunk_until_complete(task, num_shards=None, shard_id=None):
+    has_more = True
+    while has_more:
+        has_more = task.chunk(
+            num_shards=num_shards, shard_id=shard_id)
 
 
 @click.command()
@@ -99,7 +126,14 @@ class ForkTheGIL(object):
     type=int,
     default=1,
     show_default=True,
-    help='The number of concurrent workers to run.'
+    help='The total number of concurrent threads to run across processes.'
+)
+@click.option(
+    '--max_procs',
+    type=int,
+    default=8,
+    show_default=True,
+    help='The maximum number of processes to fork off for concurrency.'
 )
 @click.option(
     '--silent', '-q', default=False, is_flag=True, help='Run quietly. No output on success.'
@@ -115,7 +149,7 @@ class ForkTheGIL(object):
 )
 @log_options()
 @configuration
-def cleanup(days, project, concurrency, silent, model, router, timed):
+def cleanup(days, project, concurrency, max_procs, silent, model, router, timed):
     """Delete a portion of trailing data based on creation date.
 
     All data that is older than `--days` will be deleted.  The default for
@@ -128,12 +162,15 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
         click.echo('Error: Minimum concurrency is 1', err=True)
         raise click.Abort()
 
+    import math
+    import multiprocessing
+    import pickle
+    import subprocess
+    import sys
     from django.db import router as db_router
     from sentry.app import nodestore
     from sentry.db.deletion import BulkDeleteQuery
-    from sentry import deletions
     from sentry import models
-    from sentry import similarity
 
     if timed:
         import time
@@ -242,50 +279,43 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
             if not silent:
                 click.echo('>> Skipping %s' % model.__name__)
         else:
-            query = {
-                '{}__lte'.format(dtfield): (timezone.now() - timedelta(days=days)),
-            }
-
-            if project_id:
-                if 'project' in model._meta.get_all_field_names():
-                    query['project'] = project_id
-                else:
-                    query['project_id'] = project_id
-
-            task = deletions.get(
-                model=model,
-                query=query,
-                order_by=order_by,
-                skip_models=[
-                    # Handled by other parts of cleanup
-                    models.Event,
-                    models.EventMapping,
-                    models.EventTag,
-                    models.GroupEmailThread,
-                    models.GroupRuleStatus,
-                    models.GroupTagValue,
-                    # Handled by TTL
-                    similarity.features,
-                ],
-                transaction_id=uuid4().hex,
-            )
-
-            def _chunk_until_complete(num_shards=None, shard_id=None):
-                has_more = True
-                while has_more:
-                    has_more = task.chunk(
-                        num_shards=num_shards, shard_id=shard_id)
-
             if concurrency > 1:
-                forker = ForkTheGIL(concurrency, logger=click.echo)
                 shard_ids = range(concurrency)
-                forker.run(
-                    lambda shard_id: _chunk_until_complete(
-                        num_shards=concurrency, shard_id=shard_id),
-                    [((shard_id, ), {}) for shard_id in shard_ids]
-                )
+                num_procs = min(concurrency, max_procs)
+                threads_per_proc = int(math.ceil(
+                    num_procs / float(multiprocessing.cpu_count())))
+
+                pids = []
+                for shard_id_chunk in chunker(shard_ids, threads_per_proc):
+                    pid = subprocess.Popen([
+                        sys.argv[0],
+                        'cleanup_chunk',
+                        '--days', six.binary_type(days),
+                    ] + (['--project_id', six.binary_type(project_id)] if project_id else []) + [
+                        '--model', pickle.dumps(model),
+                        '--dtfield', dtfield,
+                        '--order_by', order_by,
+                        '--num_shards', six.binary_type(concurrency),
+                        '--shard_ids', ",".join([six.binary_type(s)
+                                                 for s in shard_id_chunk]),
+                    ])
+                    pids.append(pid)
+
+                total_pid_count = len(pids)
+                click.echo(
+                    "%s concurrent processes forked, waiting on them to complete." % total_pid_count)
+
+                complete = 0
+                for pid in pids:
+                    pid.wait()
+                    complete += 1
+                    click.echo(
+                        "%s/%s concurrent processes are finished." % (complete, total_pid_count))
+
             else:
-                _chunk_until_complete()
+                task = create_deletion_task(
+                    days, project_id, model, dtfield, order_by)
+                _chunk_until_complete(task)
 
     # EventMapping is fairly expensive and is special cased as it's likely you
     # won't need a reference to an event for nearly as long
