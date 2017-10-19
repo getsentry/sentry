@@ -70,6 +70,23 @@ class RedisMinHashIndexBackend(AbstractIndexBackend):
             struct.Struct('>' + ('H' * int(self.signature_builder.columns / self.bands))),
         )
 
+    def __make_membership_key(self, scope, index, time, band, bucket):
+        return '{namespace}:{{{scope}}}:{index}:m:{time}:{location}'.format(
+            namespace=self.namespace,
+            scope=scope,
+            index=index,
+            time=time,
+            location=self.__pack_frequency_key(band, bucket),
+        )
+
+    def __make_frequency_key(self, scope, index, key):
+        return '{namespace}:{{{scope}}}:{index}:f:{key}'.format(
+            namespace=self.namespace,
+            scope=scope,
+            index=index,
+            key=key,
+        )
+
     def __pack_frequency_key(self, band, bucket):
         band_struct, bucket_struct = self.__frequency_key_structs
         return ''.join([
@@ -103,12 +120,12 @@ class RedisMinHashIndexBackend(AbstractIndexBackend):
                     for time_index in time_series:
                         bands[band].append(
                             pipeline.smembers(
-                                '{namespace}:{{{scope}}}:{index}:m:{time}:{coordinates}'.format(
-                                    namespace=self.namespace,
-                                    scope=scope,
-                                    index=index,
-                                    time=time_index,
-                                    coordinates=self.__pack_frequency_key(band, bucket),
+                                self.__make_membership_key(
+                                    scope,
+                                    index,
+                                    time_index,
+                                    band,
+                                    bucket,
                                 )
                             )
                         )
@@ -154,12 +171,7 @@ class RedisMinHashIndexBackend(AbstractIndexBackend):
             for key in keys:
                 results.append([
                     pipeline.hgetall(
-                        '{namespace}:{{{scope}}}:{index}:f:{key}'.format(
-                            namespace=self.namespace,
-                            scope=scope,
-                            index=index,
-                            key=key,
-                        )
+                        self.__make_frequency_key(scope, index, key)
                     ) for (index, frequencies, threshold) in parameters
                 ])
             return results
@@ -265,12 +277,7 @@ class RedisMinHashIndexBackend(AbstractIndexBackend):
         with with_future_responses(self.cluster.pipeline()) as pipeline:
             results = [
                 pipeline.hgetall(
-                    '{namespace}:{{{scope}}}:{index}:f:{key}'.format(
-                        namespace=self.namespace,
-                        scope=scope,
-                        index=index,
-                        key=key,
-                    )
+                    self.__make_frequency_key(scope, index, key)
                 ) for (index, threshold) in items
             ]
             pipeline.execute()
@@ -296,13 +303,8 @@ class RedisMinHashIndexBackend(AbstractIndexBackend):
         with with_future_responses(self.cluster.pipeline()) as pipeline:
             for index, features in items:
                 signature = list(self.signature_builder(features))
-                key_prefix = '{namespace}:{{{scope}}}:{index}'.format(
-                    namespace=self.namespace,
-                    scope=scope,
-                    index=index,
-                )
                 for band, bucket in enumerate(banded(self.bands, signature)):
-                    frequency_key = '{}:f:{}'.format(key_prefix, key)
+                    frequency_key = self.__make_frequency_key(scope, index, key)
                     pipeline.hincrby(
                         frequency_key,
                         self.__pack_frequency_key(band, bucket),
@@ -318,11 +320,8 @@ class RedisMinHashIndexBackend(AbstractIndexBackend):
                         int(timestamp / self.interval) + self.retention + 1,
                     )
                     for time_index in time_series:
-                        membership_set_key = '{}:m:{}:{}'.format(
-                            key_prefix,
-                            time_index,
-                            self.__pack_frequency_key(band, bucket),
-                        )
+                        membership_set_key = self.__make_membership_key(
+                            scope, index, time_index, band, bucket)
                         pipeline.sadd(membership_set_key, key)
                         pipeline.expireat(
                             membership_set_key,
