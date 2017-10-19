@@ -312,7 +312,7 @@ const ProjectFiltersSettingsForm = React.createClass({
   },
 
   renderAdditionalFilters() {
-    let errors = this.state.errors;
+    let errors = this.state.errors || {};
     return (
       <div>
         <h5>{t('Filter errors from these releases:')}</h5>
@@ -347,7 +347,7 @@ const ProjectFiltersSettingsForm = React.createClass({
 
   render() {
     let isSaving = this.state.state === FormState.SAVING;
-    let errors = this.state.errors;
+    let errors = this.state.errors || {};
     let features = this.getProjectFeatures();
 
     return (
