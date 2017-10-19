@@ -119,7 +119,15 @@ class RedisMinHashIndexBackend(AbstractIndexBackend):
                         set(),
                     )
                 )
-            return candidates.most_common(limit)
+
+            candidates = candidates.most_common(limit)
+            if threshold > 0:
+                candidates = filter(
+                    lambda (key, hits): hits >= threshold,
+                    candidates,
+                )
+
+            return candidates
 
         def combine_candidates(candidates):
             results = defaultdict(list)
@@ -200,9 +208,16 @@ class RedisMinHashIndexBackend(AbstractIndexBackend):
         if timestamp is None:
             timestamp = int(time.time())
 
-        raise NotImplementedError
-
-        return self.__search(scope)
+        return self.__search(
+            scope,
+            [
+                (index, [
+                    {tuple(bucket): 1} for bucket in banded(self.bands, self.signature_builder(features))
+                ], thresholds) for index, thresholds, features in items
+            ],
+            timestamp,
+            limit,
+        )
 
     def compare(self, scope, key, items, limit=None, timestamp=None):
         if timestamp is None:
