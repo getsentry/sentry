@@ -775,4 +775,4 @@ class AuthHelper(object):
         self.state.data = data
 
     def fetch_state(self, key=None):
-        return self.state.data if key is None else self.state.data.get('key')
+        return self.state.data if key is None else self.state.data.get(key)
