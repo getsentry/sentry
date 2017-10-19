@@ -430,6 +430,8 @@ class Frame(Interface):
         return output
 
     def _get_unprocessed_hash(self, platform=None):
+        from sentry.filters.preprocess_hashes import UnableToGenerateHash
+
         platform = self.platform or platform
         if platform == 'javascript':
             # Safari throws [native code] frames in for calls like ``forEach``
@@ -441,8 +443,7 @@ class Frame(Interface):
             attrs = [self.filename, self.function, self.colno, self.lineno]
             if all(attrs):
                 return attrs
-            else:
-                return []
+            raise UnableToGenerateHash
         else:
             return self._get_processed_hash(platform=platform)
 
