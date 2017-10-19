@@ -302,7 +302,43 @@ class RedisMinHashIndexBackend(AbstractIndexBackend):
         if timestamp is None:
             timestamp = int(time.time())
 
-        raise NotImplementedError
+        with with_future_responses(self.cluster.pipeline()) as pipeline:
+            results = []
+            for index, key in items:
+                key = '{namespace}:{{{scope}}}:{index}:f:{key}'.format(
+                    namespace=self.namespace,
+                    scope=scope,
+                    index=index,
+                    key=key,
+                )
+                results.append(pipeline.hgetall(key))
+                pipeline.delete(key)
+            pipeline.execute()
+
+        results = map(
+            self.__convert_frequency_response,
+            results,
+        )
+
+        time_series = range(
+            int(timestamp / self.interval),
+            int(timestamp / self.interval) + self.retention + 1,
+        )
+
+        with with_future_responses(self.cluster.pipeline()) as pipeline:
+            for (index, key), frequencies in zip(items, results):
+                for band, buckets in enumerate(frequencies):
+                    for bucket, count in buckets.items():
+                        for time_index in time_series:
+                            membership_set_key = '{namespace}:{{{scope}}}:{index}:m:{time}:{key}'.format(
+                                namespace=self.namespace,
+                                scope=scope,
+                                index=index,
+                                time=time_index,
+                                key=self.__pack_frequency_key(band, bucket),
+                            )
+                            pipeline.srem(membership_set_key, key)
+            pipeline.execute()
 
     def scan(self, scope, indices, batch=1000, timestamp=None):
         if timestamp is None:
