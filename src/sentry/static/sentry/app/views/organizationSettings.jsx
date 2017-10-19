@@ -352,7 +352,7 @@ const OrganizationSettings = React.createClass({
   render() {
     let data = this.state.data;
     let orgId = this.props.params.orgId;
-    let access = data && new Set(data.access);
+    let access = new Set((data && data.access) || []);
 
     return (
       <div>
