@@ -433,6 +433,7 @@ class Frame(Interface):
         from sentry.filters.preprocess_hashes import UnableToGenerateHash
 
         platform = self.platform or platform
+        # TODO(jess): consider special casing mobile/native
         if platform == 'javascript':
             # Safari throws [native code] frames in for calls like ``forEach``
             # whereas Chrome ignores these. Let's remove it from the hashing algo
