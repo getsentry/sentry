@@ -2085,11 +2085,16 @@ pre.val, span.val {
 
     > .box {
       > .box-header {
-        padding: 15px 30px 10px;
+        padding: 15px 30px 13px;
+        display: flex;
+        align-items: center;
 
         a {
-          font-size: 20px;
 
+          &.logo {
+            font-size: 20px;
+            flex: 1;
+          }
           &:hover {
             color: @gray-dark;
           }
@@ -2109,10 +2114,6 @@ pre.val, span.val {
         }
       }
     }
-  }
-
-  .box-content {
-
   }
 
   .container {
