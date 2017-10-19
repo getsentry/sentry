@@ -95,11 +95,11 @@ const SharedGroupDetails = React.createClass({
           <div className="container">
             <div className="box box-modal">
               <div className="box-header">
-                <a href="/">
+                <a className="logo" href="/">
                   <span className="icon-sentry-logo-full" />
                 </a>
                 {this.state.group.permalink &&
-                  <a className="pull-right" href={this.state.group.permalink}>
+                  <a className="details" href={this.state.group.permalink}>
                     {t('Details')}
                   </a>}
               </div>
