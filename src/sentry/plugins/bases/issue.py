@@ -56,7 +56,8 @@ class IssueTrackingPlugin(Plugin):
 
     def _get_group_description(self, request, group, event):
         output = [
-            absolute_uri(group.get_absolute_url()),
+            "[Internal issue](%s)" % (group.get_absolute_url()),
+            "[Public issue](%s)" % (group.get_share_url())
         ]
         body = self._get_group_body(request, group, event)
         if body:

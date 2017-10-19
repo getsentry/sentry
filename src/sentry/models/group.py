@@ -217,6 +217,9 @@ class Group(Model):
             reverse('sentry-group', args=[self.organization.slug, self.project.slug, self.id])
         )
 
+    def get_share_url(self):
+        return absolute_uri('share/issue/%s/' % (self.get_share_id()))
+
     @property
     def qualified_short_id(self):
         if self.short_id is not None:
