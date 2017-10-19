@@ -84,7 +84,6 @@ import RouteNotFound from './views/routeNotFound';
 import SetCallsignsAction from './views/requiredAdminActions/setCallsigns';
 import SharedGroupDetails from './views/sharedGroupDetails';
 import Stream from './views/stream';
-import InviteMember from './views/inviteMember/inviteMember';
 import TeamCreate from './views/teamCreate';
 import TeamDetails from './views/teamDetails';
 import TeamMembers from './views/teamMembers';
@@ -124,7 +123,6 @@ const orgSettingsRoutes = [
     path="rate-limits/"
     component={errorHandler(OrganizationRateLimits)}
   />,
-  <Route key="members/new/" path="members/new/" component={errorHandler(InviteMember)} />,
   <Route key="repos" path="repos/" component={errorHandler(OrganizationRepositories)} />,
   <Route key="settings" path="settings/" component={errorHandler(OrganizationSettings)} />
 ];

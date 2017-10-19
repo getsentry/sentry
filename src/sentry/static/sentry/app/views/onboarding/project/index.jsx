@@ -43,7 +43,6 @@ const OnboardingProject = React.createClass({
     this.setWarning(this.props.name);
     if (this.props.name) this.props.next();
   },
-
   renderTeamPicker() {
     let {team, teams, setTeam} = this.props;
     if (teams.length < 2) return null;
@@ -91,7 +90,7 @@ const OnboardingProject = React.createClass({
           </div>
           {this.renderTeamPicker()}
           <div>
-            <button className="btn btn-primary new-project-submit" onClick={this.submit}>
+            <button className="btn btn-primary submit-new-team" onClick={this.submit}>
               {t('Create Project')}
             </button>
           </div>
