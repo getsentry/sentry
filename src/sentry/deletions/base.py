@@ -6,6 +6,8 @@ import re
 from sentry.constants import ObjectStatus
 from sentry.utils.query import bulk_delete_objects
 
+_leaf_re = re.compile(r'^(Event|Group)(.+)')
+
 
 class BaseRelation(object):
     def __init__(self, params, task):
@@ -180,7 +182,7 @@ class ModelDeletionTask(BaseDeletionTask):
         finally:
             # Don't log Group and Event child object deletions.
             model_name = type(instance).__name__
-            if not re.search('^(Event|Group)(.+)', model_name):
+            if not _leaf_re.search(model_name):
                 self.logger.info(
                     'object.delete.executed',
                     extra={
@@ -231,7 +233,7 @@ class BulkModelDeletionTask(ModelDeletionTask):
         finally:
             # Don't log Group and Event child object deletions.
             model_name = self.model.__name__
-            if not re.search('^(Event|Group)(.+)', model_name):
+            if not _leaf_re.search(model_name):
                 self.logger.info(
                     'object.delete.bulk_executed',
                     extra=dict(
