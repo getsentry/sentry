@@ -854,7 +854,7 @@ SENTRY_SMTP_DISABLED_BACKENDS = frozenset(
 # make projects public
 SENTRY_ALLOW_PUBLIC_PROJECTS = True
 
-# Can users be invited to organizations?
+# Will an invite be sent when a member is added to an organization?
 SENTRY_ENABLE_INVITES = True
 
 # Default to not sending the Access-Control-Allow-Origin header on api/store

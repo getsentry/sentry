@@ -757,7 +757,7 @@ exports[`CreateProject render() should deal with incorrect platform name if its 
           </div>
           <div>
             <button
-              className="btn btn-primary submit-new-team"
+              className="btn btn-primary new-project-submit"
               onClick={[Function]}
             >
               Create Project
@@ -1122,7 +1122,7 @@ exports[`CreateProject render() should fill in platform name if its provided by 
           </div>
           <div>
             <button
-              className="btn btn-primary submit-new-team"
+              className="btn btn-primary new-project-submit"
               onClick={[Function]}
             >
               Create Project
@@ -1877,7 +1877,7 @@ exports[`CreateProject render() should fill in project name if its empty when pl
           </div>
           <div>
             <button
-              className="btn btn-primary submit-new-team"
+              className="btn btn-primary new-project-submit"
               onClick={[Function]}
             >
               Create Project
