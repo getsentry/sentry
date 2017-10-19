@@ -89,7 +89,7 @@ class ApiToken(Model):
 
     def get_allowed_origins(self):
         if self.application:
-            return self.key.get_allowed_origins()
+            return self.application.get_allowed_origins()
         return ()
 
     def refresh(self, expires_at=None):
