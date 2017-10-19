@@ -2085,14 +2085,21 @@ pre.val, span.val {
 
     > .box {
       > .box-header {
-        padding: 15px 30px 10px;
+        padding: 15px 30px;
+        display: flex;
+        align-items: center;
 
         a {
-          font-size: 20px;
-
+          .icon-sentry-logo-full {
+            font-size: 20px;
+          }
           &:hover {
             color: @gray-dark;
           }
+        }
+
+        .pull-right {
+          align-self: flex-end;
         }
 
         .back-to, .pull-right a {
@@ -2109,10 +2116,6 @@ pre.val, span.val {
         }
       }
     }
-  }
-
-  .box-content {
-
   }
 
   .container {
