@@ -241,8 +241,17 @@ class PreProcessingHashTest(TestCase):
         )
 
         assert get_preprocess_hash_inputs(event_data) == [[
+            u'/_static/373562702009df1692da6eb80a933139f29e094b/sentry/dist/vendor.js',
             u'Object.receiveComponent',
+            22,
+            17866,
+            u'/_static/373562702009df1692da6eb80a933139f29e094b/sentry/dist/vendor.js',
             u'ReactCompositeComponentWrapper.receiveComponent',
+            10,
+            74002,
+            u'/_static/373562702009df1692da6eb80a933139f29e094b/sentry/dist/app.js',
             u'Constructor.render',
+            9,
+            47628,
             u'TypeError'
         ]]
