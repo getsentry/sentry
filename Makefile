@@ -131,6 +131,11 @@ test-js:
 	@${NPM_ROOT}/.bin/webpack
 	@echo "--> Running JavaScript tests"
 	@npm run test-ci
+	@echo ""
+
+# builds and creates percy snapshots
+test-styleguide:
+	@echo "--> Building and snapshotting styleguide"
 	@npm run snapshot
 	@echo ""
 
@@ -178,7 +183,7 @@ extract-api-docs:
 	cd api-docs; python generator.py
 
 
-.PHONY: develop dev-postgres dev-docs setup-git build clean locale update-transifex update-submodules test testloop test-cli test-js test-python test-acceptance lint lint-python lint-js coverage publish
+.PHONY: develop dev-postgres dev-docs setup-git build clean locale update-transifex update-submodules test testloop test-cli test-js test-styleguide test-python test-acceptance lint lint-python lint-js coverage publish
 
 
 ############################
@@ -245,7 +250,9 @@ travis-test-postgres: test-python
 travis-test-mysql: test-python
 travis-test-acceptance: test-acceptance
 travis-test-network: test-network
-travis-test-js: test-js
+travis-test-js:
+	$(MAKE) test-js
+	$(MAKE) test-styleguide
 travis-test-cli: test-cli
 travis-test-dist:
 	SENTRY_BUILD=$(TRAVIS_COMMIT) SENTRY_LIGHT_BUILD=0 python setup.py sdist bdist_wheel
