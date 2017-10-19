@@ -61,7 +61,7 @@ class ShareUrlContainer extends React.Component {
             style={{
               flex: 1,
               border: 'none',
-              padding: 4,
+              padding: '4px 6px 4px 10px',
               textOverflow: 'ellipsis',
               whiteSpace: 'nowrap',
               overflow: 'hidden'
