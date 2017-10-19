@@ -19,7 +19,7 @@ from sentry.models import (
     OrganizationMemberTeam, User, UserEmail
 )
 from sentry.tasks.auth import email_missing_links
-from sentry.utils import auth
+from sentry.utils import auth, metrics
 from sentry.utils.redis import clusters
 from sentry.utils.hashlib import md5_text
 from sentry.utils.http import absolute_uri
@@ -628,6 +628,7 @@ class AuthHelper(object):
             return HttpResponseRedirect(auth.get_login_redirect(self.request))
 
         self.clear_session()
+        metrics.incr('sso.login-success', tags={'provider': self.provider.key})
 
         return HttpResponseRedirect(auth.get_login_redirect(self.request))
 
@@ -759,6 +760,11 @@ class AuthHelper(object):
             redirect_uri = reverse(
                 'sentry-organization-auth-settings', args=[self.organization.slug]
             )
+
+        metrics.incr('sso.error', tags={
+            'provider': self.provider.key,
+            'flow': self.state.flow
+        })
 
         messages.add_message(
             self.request,
