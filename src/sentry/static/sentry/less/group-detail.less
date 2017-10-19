@@ -2085,21 +2085,19 @@ pre.val, span.val {
 
     > .box {
       > .box-header {
-        padding: 15px 30px;
+        padding: 15px 30px 13px;
         display: flex;
         align-items: center;
 
         a {
-          .icon-sentry-logo-full {
+
+          &.logo {
             font-size: 20px;
+            flex: 1;
           }
           &:hover {
             color: @gray-dark;
           }
-        }
-
-        .pull-right {
-          align-self: flex-end;
         }
 
         .back-to, .pull-right a {
