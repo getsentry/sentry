@@ -7,7 +7,7 @@ from rest_framework import serializers
 from rest_framework.response import Response
 from django.conf import settings
 
-
+from sentry.app import locks
 from sentry import roles
 from sentry.api.bases.organization import (
     OrganizationEndpoint, OrganizationPermission)
@@ -18,6 +18,7 @@ from sentry.models import AuditLogEntryEvent, OrganizationMember, OrganizationMe
 from sentry.search.utils import tokenize_query
 from sentry.signals import member_invited
 from .organization_member_details import get_allowed_roles
+from sentry.utils.retries import TimedRetryPolicy
 
 
 class MemberPermission(OrganizationPermission):
@@ -40,16 +41,18 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
 
     @transaction.atomic
     def save_team_assignments(self, organization_member, teams):
-        # teams may be empty
-        OrganizationMemberTeam.objects.filter(
-            organizationmember=organization_member).delete()
-        OrganizationMemberTeam.objects.bulk_create(
-            [
-                OrganizationMemberTeam(
-                    team=team, organizationmember=organization_member)
-                for team in teams
-            ]
-        )
+        lock = locks.get('org:member:{}'.format(organization_member.id), duration=5)
+        with TimedRetryPolicy(10)(lock.acquire):
+            # teams may be empty
+            OrganizationMemberTeam.objects.filter(
+                organizationmember=organization_member).delete()
+            OrganizationMemberTeam.objects.bulk_create(
+                [
+                    OrganizationMemberTeam(
+                        team=team, organizationmember=organization_member)
+                    for team in teams
+                ]
+            )
 
     def get(self, request, organization):
         queryset = OrganizationMember.objects.filter(
