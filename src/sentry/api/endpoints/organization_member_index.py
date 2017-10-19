@@ -40,6 +40,7 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
 
     @transaction.atomic
     def save_team_assignments(self, organization_member, teams):
+        # teams may be empty
         OrganizationMemberTeam.objects.filter(
             organizationmember=organization_member).delete()
         OrganizationMemberTeam.objects.bulk_create(
