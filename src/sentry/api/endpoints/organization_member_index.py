@@ -30,7 +30,7 @@ class MemberPermission(OrganizationPermission):
 
 
 class OrganizationMemberSerializer(serializers.Serializer):
-    email = serializers.EmailField(max_length=75, required=False)
+    email = serializers.EmailField(max_length=75, required=True)
     role = serializers.ChoiceField(choices=roles.get_choices(), required=True)
     teams = ListField(required=False, allow_null=False)
 
@@ -113,19 +113,16 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
             return Response({'role': 'You do not have permission to invite that role.'}, 403)
 
         # This is needed because `email` field is case sensitive, but from a user perspective,
-        # Sentry treats email as case-insensitive (Eric@sentry.io equals eric@sentry.io).
-        try:
-            OrganizationMember.objects.filter(
-                organization=organization,
-                user__email__iexact=result['email'],
-                user__is_active=True,
-            )[0]
+        # Sentry treats email as case-insensitive (Eric@example.com equals eric@example.com).
 
-        except IndexError:
-            pass
-        else:
-            return Response(
-                {'email': 'The user %s is already a member' % result['email']}, 409)
+        existing = OrganizationMember.objects.filter(
+            organization=organization,
+            user__email__iexact=result['email'],
+            user__is_active=True,
+        ).exists()
+
+        if existing:
+            return Response({'email': 'The user %s is already a member' % result['email']}, 409)
 
         om = OrganizationMember(
             organization=organization,
