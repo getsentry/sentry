@@ -41,18 +41,16 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
 
     @transaction.atomic
     def save_team_assignments(self, organization_member, teams):
-        lock = locks.get('org:member:{}'.format(organization_member.id), duration=5)
-        with TimedRetryPolicy(10)(lock.acquire):
-            # teams may be empty
-            OrganizationMemberTeam.objects.filter(
-                organizationmember=organization_member).delete()
-            OrganizationMemberTeam.objects.bulk_create(
-                [
-                    OrganizationMemberTeam(
-                        team=team, organizationmember=organization_member)
-                    for team in teams
-                ]
-            )
+        # teams may be empty
+        OrganizationMemberTeam.objects.filter(
+            organizationmember=organization_member).delete()
+        OrganizationMemberTeam.objects.bulk_create(
+            [
+                OrganizationMemberTeam(
+                    team=team, organizationmember=organization_member)
+                for team in teams
+            ]
+        )
 
     def get(self, request, organization):
         queryset = OrganizationMember.objects.filter(
@@ -142,7 +140,9 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
         except IntegrityError:
             return Response({'email': 'The user %s is already a member' % result['email']}, 409)
 
-        self.save_team_assignments(om, teams)
+        lock = locks.get('org:member:{}'.format(om.id), duration=5)
+        with TimedRetryPolicy(10)(lock.acquire):
+            self.save_team_assignments(om, teams)
 
         if settings.SENTRY_ENABLE_INVITES:
             om.send_invite_email()
