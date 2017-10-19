@@ -38,6 +38,11 @@ def get_manhattan_distance(this, that):
 
 
 def get_similarity(this, that):
+    if sum(map(len, this)) == 0 and sum(map(len, that)) == 0:
+        return -1
+    elif sum(map(len, this)) == 0 or sum(map(len, that)) == 0:
+        return -2
+
     rescale = functools.partial(map, functools.partial(apply_values, scale_to_total))
     this = rescale(this)
     that = rescale(that)
@@ -138,11 +143,11 @@ class RedisMinHashIndexBackend(AbstractIndexBackend):
             return [key for key, hits in sorted(
                 results.items(),
                 key=lambda (key, hits): (
-                    sum(hits) / len(hits),
-                    len(hits),
+                    sum(hits) / len(hits) * -1,
+                    len(hits) * -1,
                     key,
                 ),
-            )[:limit]]
+            )[:self.candidate_set_limit]]
 
         def fetch_frequencies(pipeline, parameters, keys):
             results = []
@@ -190,18 +195,47 @@ class RedisMinHashIndexBackend(AbstractIndexBackend):
             frequencies = fetch_frequencies(pipeline, parameters, candidates)
             pipeline.execute()
 
-        return sorted(
-            zip(
-                candidates,
+        score_replacements = {
+            -1.0: None,  # both items don't have the feature (no comparison)
+            -2.0: 0,     # one item doesn't have the feature (totally dissimilar)
+        }
+
+        def decode_search_result(result):
+            key, scores = result
+            return (
+                key,
                 map(
-                    functools.partial(calculate_similarity, parameters),
-                    frequencies,
+                    lambda score: score_replacements.get(score, score),
+                    map(float, scores),
+                )
+            )
+
+        def get_comparison_key(result):
+            key, scores = result
+
+            scores = filter(
+                lambda score: score is not None,
+                scores,
+            )
+
+            return (
+                sum(scores) / len(scores) * -1,  # average score, descending
+                len(scores) * -1,  # number of indexes with scores, descending
+                key,  # lexicographical sort on key, ascending
+            )
+
+        return sorted(
+            map(
+                decode_search_result,
+                zip(
+                    candidates,
+                    map(
+                        functools.partial(calculate_similarity, parameters),
+                        frequencies,
+                    )
                 ),
             ),
-            key=lambda (key, frequencies): (
-                sum(frequencies) * -1,
-                key,
-            ),
+            key=get_comparison_key,
         )[:limit]
 
     def classify(self, scope, items, limit=None, timestamp=None):
