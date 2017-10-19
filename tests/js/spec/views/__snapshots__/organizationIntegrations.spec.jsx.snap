@@ -18,6 +18,7 @@ exports[`OrganizationIntegrations render() with a provider renders 1`] = `
         className="pull-right"
       >
         <DropdownReact
+          alwaysRenderMenu={true}
           anchorRight={true}
           caret={true}
           className="btn btn-primary btn-sm"
@@ -118,6 +119,7 @@ exports[`OrganizationIntegrations render() with a provider renders with a reposi
         className="pull-right"
       >
         <DropdownReact
+          alwaysRenderMenu={true}
           anchorRight={true}
           caret={true}
           className="btn btn-primary btn-sm"
@@ -300,6 +302,7 @@ exports[`OrganizationIntegrations render() without any providers is loading when
       className="pull-right"
     >
       <DropdownReact
+        alwaysRenderMenu={true}
         anchorRight={true}
         caret={true}
         className="btn btn-primary btn-sm"
@@ -358,6 +361,7 @@ exports[`OrganizationIntegrations render() without any providers renders 1`] = `
         className="pull-right"
       >
         <DropdownReact
+          alwaysRenderMenu={true}
           anchorRight={true}
           caret={true}
           className="btn btn-primary btn-sm"

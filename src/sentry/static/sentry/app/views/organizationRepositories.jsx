@@ -311,6 +311,7 @@ class OrganizationRepositories extends OrganizationSettingsView {
         <div className="pull-right">
           <DropdownReact
             anchorRight
+            alwaysRenderMenu
             className="btn btn-primary btn-sm"
             title={t('Add Repository')}>
             {this.state.repoConfig.providers.map(provider => {

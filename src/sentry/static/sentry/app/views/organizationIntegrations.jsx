@@ -136,6 +136,7 @@ export default class OrganizationIntegrations extends AsyncView {
         <div className="pull-right">
           <DropdownReact
             anchorRight
+            alwaysRenderMenu
             className="btn btn-primary btn-sm"
             title={t('Add Integration')}>
             {this.state.config.providers.map(provider => {
