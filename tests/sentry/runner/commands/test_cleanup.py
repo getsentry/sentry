@@ -2,7 +2,8 @@
 
 from __future__ import absolute_import
 
-from sentry.models import Event, Group, GroupTagKey, GroupTagValue, TagValue
+from sentry.models import Event, Group
+from sentry.tagstore.legacy.models import GroupTagKey, GroupTagValue, TagValue
 from sentry.runner.commands.cleanup import cleanup
 from sentry.testutils import CliTestCase
 

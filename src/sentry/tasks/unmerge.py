@@ -14,7 +14,7 @@ from sentry.event_manager import (
 )
 from sentry.models import (
     Activity, Environment, Event, EventMapping, EventUser, Group, GroupHash, GroupRelease,
-    GroupTagValue, Project, Release, UserReport
+    Project, Release, UserReport
 )
 from sentry.similarity import features
 from sentry.tasks.base import instrumented_task
@@ -460,18 +460,6 @@ def repair_denormalizations(caches, project, events):
         features.record([event])
 
 
-def update_tag_value_counts(id_list):
-    instances = tagstore.get_group_tag_keys(id_list)
-    for instance in instances:
-        instance.update(
-            values_seen=GroupTagValue.objects.filter(
-                project_id=instance.project_id,
-                group_id=instance.group_id,
-                key=instance.key,
-            ).count(),
-        )
-
-
 def lock_hashes(project_id, source_id, fingerprints):
     with transaction.atomic():
         eligible_hashes = list(
@@ -545,7 +533,7 @@ def unmerge(
 
     # If there are no more events to process, we're done with the migration.
     if not events:
-        update_tag_value_counts([source_id, destination_id])
+        tagstore.update_group_tag_key_values_seen([source_id, destination_id])
         unlock_hashes(project_id, fingerprints)
         return destination_id
 

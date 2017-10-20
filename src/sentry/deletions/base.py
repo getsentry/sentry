@@ -63,6 +63,12 @@ class BaseDeletionTask(object):
             # ModelRelation(Model, {'parent_id__in': [i.id for id in instance_list]})
         ]
 
+    def extend_relations(self, child_relations, obj):
+        return child_relations
+
+    def extend_relations_bulk(self, child_relations, obj_list):
+        return child_relations
+
     def filter_relations(self, child_relations):
         if not self.skip_models or not child_relations:
             return child_relations
@@ -80,6 +86,7 @@ class BaseDeletionTask(object):
         self.mark_deletion_in_progress(instance_list)
 
         child_relations = self.get_child_relations_bulk(instance_list)
+        child_relations = self.extend_relations_bulk(child_relations, instance_list)
         child_relations = self.filter_relations(child_relations)
         if child_relations:
             has_more = self.delete_children(child_relations)
@@ -88,6 +95,7 @@ class BaseDeletionTask(object):
 
         for instance in instance_list:
             child_relations = self.get_child_relations(instance)
+            child_relations = self.extend_relations(child_relations, instance)
             child_relations = self.filter_relations(child_relations)
             if child_relations:
                 has_more = self.delete_children(child_relations)
@@ -137,6 +145,17 @@ class ModelDeletionTask(BaseDeletionTask):
         return '<%s: model=%s query=%s order_by=%s transaction_id=%s actor_id=%s>' % (
             type(self), self.model, self.query, self.order_by, self.transaction_id, self.actor_id,
         )
+
+    def extend_relations(self, child_relations, obj):
+        from sentry.deletions import default_manager
+
+        return child_relations + [rel(obj) for rel in default_manager.dependencies[self.model]]
+
+    def extend_relations_bulk(self, child_relations, obj_list):
+        from sentry.deletions import default_manager
+
+        return child_relations + [rel(obj_list)
+                                  for rel in default_manager.bulk_dependencies[self.model]]
 
     def chunk(self, num_shards=None, shard_id=None):
         """

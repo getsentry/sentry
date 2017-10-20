@@ -10,12 +10,10 @@ from django.db.models.signals import post_syncdb, post_save
 from functools import wraps
 from pkg_resources import parse_version as Version
 
-from sentry import options, tagstore
+from sentry import options
 from sentry.models import (
-    Organization, OrganizationMember, Project, User, Team, ProjectKey, TagValue,
-    GroupTagValue
+    Organization, OrganizationMember, Project, User, Team, ProjectKey
 )
-from sentry.signals import buffer_incr_complete
 from sentry.utils import db
 
 PROJECT_SEQUENCE_FIX = """
@@ -137,33 +135,6 @@ def create_keys_for_project(instance, created, **kwargs):
             project=instance,
             label='Default',
         )
-
-
-@buffer_incr_complete.connect(sender=TagValue, weak=False)
-def record_project_tag_count(filters, created, **kwargs):
-    if not created:
-        return
-
-    # TODO(dcramer): remove in 7.6.x
-    project_id = filters.get('project_id')
-    if not project_id:
-        project_id = filters['project'].id
-
-    tagstore.incr_tag_key_values_seen(project_id, filters['key'])
-
-
-@buffer_incr_complete.connect(sender=GroupTagValue, weak=False)
-def record_group_tag_count(filters, created, extra, **kwargs):
-    if not created:
-        return
-
-    project_id = extra.get('project_id')
-    if not project_id:
-        project_id = extra['project']
-
-    group_id = filters['group_id']
-
-    tagstore.incr_group_tag_key_values_seen(project_id, group_id, filters['key'])
 
 
 # Anything that relies on default objects that may not exist with default
