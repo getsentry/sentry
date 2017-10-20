@@ -57,7 +57,8 @@ class RedisBuffer(Buffer):
     incr_batch_size = 2
 
     def __init__(self, **options):
-        self.cluster, options = get_cluster_from_options('SENTRY_BUFFER_OPTIONS', options)
+        self.cluster, options = get_cluster_from_options(
+            'SENTRY_BUFFER_OPTIONS', options)
 
     def validate(self):
         try:
@@ -78,7 +79,8 @@ class RedisBuffer(Buffer):
         return 'b:k:%s:%s' % (
             model._meta, md5_text(
                 '&'.
-                join('%s=%s' % (k, self._coerce_val(v)) for k, v in sorted(six.iteritems(filters)))
+                join('%s=%s' % (k, self._coerce_val(v))
+                     for k, v in sorted(six.iteritems(filters)))
             ).hexdigest(),
         )
 
@@ -170,7 +172,8 @@ class RedisBuffer(Buffer):
         # tasks
         if not client.set(lock_key, '1', nx=True, ex=10):
             metrics.incr('buffer.revoked', tags={'reason': 'locked'})
-            self.logger.debug('buffer.revoked.locked', extra={'redis_key': key})
+            self.logger.debug('buffer.revoked.locked',
+                              extra={'redis_key': key})
             return
 
         try:
@@ -183,10 +186,16 @@ class RedisBuffer(Buffer):
 
             if not values:
                 metrics.incr('buffer.revoked', tags={'reason': 'empty'})
-                self.logger.debug('buffer.revoked.empty', extra={'redis_key': key})
+                self.logger.debug('buffer.revoked.empty',
+                                  extra={'redis_key': key})
                 return
 
-            model = import_string(values['m'])
+            try:
+                model = import_string(values['m'])
+            except Exception:
+                # Temporary hack because of model path changes in #6327
+                return
+
             filters = pickle.loads(values['f'])
             incr_values = {}
             extra_values = {}
@@ -196,6 +205,7 @@ class RedisBuffer(Buffer):
                 elif k.startswith('e+'):
                     extra_values[k[2:]] = pickle.loads(v)
 
-            super(RedisBuffer, self).process(model, incr_values, filters, extra_values)
+            super(RedisBuffer, self).process(
+                model, incr_values, filters, extra_values)
         finally:
             client.delete(lock_key)
