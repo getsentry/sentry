@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import {browserHistory} from 'react-router';
+import {browserHistory, Link} from 'react-router';
 
 import AutoSelectText from '../../components/autoSelectText';
 import PlatformPicker from '../onboarding/project/platformpicker';
@@ -39,6 +39,7 @@ const ProjectInstallOverview = React.createClass({
 
   render() {
     let {data} = this.state;
+    let {orgId, projectId} = this.props.params;
 
     return (
       <div>
@@ -63,15 +64,22 @@ const ProjectInstallOverview = React.createClass({
                 <AutoSelectText className="form-control disabled">
                   {data.dsnPublic}
                 </AutoSelectText>
-                <div className="help-block">
-                  {t('Your public DSN should be used with JavaScript and ActionScript.')}
+                <div className="help-block m-b-3">
+                  <Link
+                    to={`/${orgId}/${projectId}/#welcome`}
+                    className="btn btn-primary btn-lg pull-right">
+                    {t('Got it! Take me to the Issue Stream.')}
+                  </Link>
+                  {t('The public DSN should be used with JavaScript.')}
                 </div>
               </div>
             </div>
           : <p>
               <small>
-                {tct('Already have things setup? [link:Get your DSN].', {
-                  link: <a onClick={this.toggleDsn} />
+                {tct('Already have things setup? [link:Get your DSN]', {
+                  link: (
+                    <a className="btn btn-xsmall btn-primary" onClick={this.toggleDsn} />
+                  )
                 })}
               </small>
             </p>}
