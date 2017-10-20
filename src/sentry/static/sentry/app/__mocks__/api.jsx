@@ -12,7 +12,6 @@ export class Client {
       statusCode: 200,
       body: '',
       method: 'GET',
-      callCount: 0,
       ...response
     });
   }
@@ -21,10 +20,6 @@ export class Client {
     return Client.mockResponses.find(response => {
       return url === response.url && (options.method || 'GET') === response.method;
     });
-  }
-
-  static getCallCount(response) {
-    return Client.findMockResponse(response.url, response).callCount;
   }
 
   clear() {}
@@ -54,7 +49,6 @@ export class Client {
           responseJSON: null
         });
     } else if (response.statusCode !== 200) {
-      response.callCount++;
       options.error &&
         options.error({
           status: response.statusCode,
@@ -62,7 +56,6 @@ export class Client {
           responseJSON: response.body
         });
     } else {
-      response.callCount++;
       options.success &&
         options.success(response.body, {}, {getResponseHeader: () => {}});
     }

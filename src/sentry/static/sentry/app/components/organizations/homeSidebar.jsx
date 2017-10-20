@@ -1,7 +1,5 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import classnames from 'classnames';
-
 import ListLink from '../listLink';
 import OrganizationState from '../../mixins/organizationState';
 import HookStore from '../../stores/hookStore';
@@ -77,12 +75,7 @@ const HomeSidebar = React.createClass({
             <h6 className="nav-header with-divider">{t('Manage')}</h6>
             <ul className="nav nav-stacked">
               {access.has('org:read') &&
-                <li
-                  className={classnames({
-                    active: /^\/organizations\/[^\/]+\/members\/new\/$/.test(
-                      this.context.location.pathname
-                    )
-                  })}>
+                <li>
                   <a href={`/organizations/${orgId}/members/`}>
                     {t('Members')}&nbsp;
                     {access.has('org:write') &&
