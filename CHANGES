@@ -6,6 +6,7 @@ Version 8.22 (Unreleased)
 - Add support for SAML2 authentication through identity providers that
   implement the ``SAML2AuthProvider``. See getsentry/sentry-auth-saml2.
 - BREAKING: Group share urls have all been invalidated and must be regenerated.
+- Added the ability for users to disable workflow notifications on a per-project basis.
 
 Schema Changes
 ~~~~~~~~~~~~~~
