@@ -4,7 +4,6 @@ import Reflux from 'reflux';
 import {t} from '../../locale';
 import ApiMixin from '../../mixins/apiMixin';
 import ListLink from '../../components/listLink';
-import OrganizationHomeContainer from '../../components/organizations/homeContainer';
 import OrganizationState from '../../mixins/organizationState';
 import TeamStore from '../../stores/teamStore';
 import {sortArray} from '../../utils';
@@ -61,44 +60,42 @@ const OrganizationTeams = React.createClass({
     let activeTeams = this.state.teamList.filter(team => team.isMember);
 
     return (
-      <OrganizationHomeContainer>
-        <div className="row">
-          <div className="col-md-9">
-            <div className="team-list">
-              <ul className="nav nav-tabs border-bottom">
-                <ListLink to={`/organizations/${org.slug}/teams/`}>
-                  {t('Your Teams')}
-                </ListLink>
-                <ListLink to={`/organizations/${org.slug}/all-teams/`}>
-                  {t('All Teams')}{' '}
-                  <span className="badge badge-soft">{allTeams.length}</span>
-                </ListLink>
-              </ul>
-              {this.props.children /* should be AllTeamsList */ ? (
-                React.cloneElement(this.props.children, {
-                  organization: org,
-                  teamList: allTeams,
-                  access,
-                  openMembership:
-                    features.has('open-membership') || access.has('org:write'),
-                })
-              ) : (
-                <ExpandedTeamList
-                  organization={org}
-                  teamList={activeTeams}
-                  projectStats={this.state.projectStats}
-                  hasTeams={allTeams.length !== 0}
-                  access={access}
-                />
-              )}
-            </div>
+      <div className="row">
+        <div className="col-md-9">
+          <div className="team-list">
+            <ul className="nav nav-tabs border-bottom">
+              <ListLink to={`/organizations/${org.slug}/teams/`}>
+                {t('Your Teams')}
+              </ListLink>
+              <ListLink to={`/organizations/${org.slug}/all-teams/`}>
+                {t('All Teams')}{' '}
+                <span className="badge badge-soft">{allTeams.length}</span>
+              </ListLink>
+            </ul>
+            {this.props.children /* should be AllTeamsList */ ? (
+              React.cloneElement(this.props.children, {
+                organization: org,
+                teamList: allTeams,
+                access,
+                openMembership:
+                  features.has('open-membership') || access.has('org:write'),
+              })
+            ) : (
+              <ExpandedTeamList
+                organization={org}
+                teamList={activeTeams}
+                projectStats={this.state.projectStats}
+                hasTeams={allTeams.length !== 0}
+                access={access}
+              />
+            )}
           </div>
-          <OrganizationStatOverview
-            orgId={this.props.params.orgId}
-            className="col-md-3 stats-column"
-          />
         </div>
-      </OrganizationHomeContainer>
+        <OrganizationStatOverview
+          orgId={this.props.params.orgId}
+          className="col-md-3 stats-column"
+        />
+      </div>
     );
   },
 });
