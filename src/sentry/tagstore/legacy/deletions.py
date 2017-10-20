@@ -1,11 +1,18 @@
+"""
+sentry.tagstore.legacy.deletions
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+:copyright: (c) 2010-2017 by the Sentry Team, see AUTHORS for more details.
+:license: BSD, see LICENSE for more details.
+"""
 from __future__ import absolute_import, print_function
 
-from ..base import ModelDeletionTask, ModelRelation
+from sentry.deletions.base import ModelDeletionTask, ModelRelation
 
 
 class TagKeyDeletionTask(ModelDeletionTask):
     def get_child_relations(self, instance):
-        from sentry.models import (EventTag, GroupTagKey, GroupTagValue, TagValue)
+        from .models import (EventTag, GroupTagKey, GroupTagValue, TagValue)
 
         # in bulk
         model_list = (GroupTagValue, GroupTagKey, TagValue)

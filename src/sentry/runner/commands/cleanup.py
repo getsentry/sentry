@@ -17,6 +17,11 @@ from django.utils import timezone
 from sentry.runner.decorators import configuration, log_options
 
 
+# allows services like tagstore to add their own (abstracted) models
+# to cleanup
+EXTRA_BULK_QUERY_DELETES = []
+
+
 def get_project(value):
     from sentry.models import Project
 
@@ -90,21 +95,22 @@ def create_deletion_task(days, project_id, model, dtfield, order_by):
         else:
             query['project_id'] = project_id
 
+    skip_models = [
+        # Handled by other parts of cleanup
+        models.Event,
+        models.EventMapping,
+        models.Group,
+        models.GroupEmailThread,
+        models.GroupRuleStatus,
+        # Handled by TTL
+        similarity.features,
+    ] + [b[0] for b in EXTRA_BULK_QUERY_DELETES]
+
     task = deletions.get(
         model=model,
         query=query,
         order_by=order_by,
-        skip_models=[
-            # Handled by other parts of cleanup
-            models.Event,
-            models.EventMapping,
-            models.EventTag,
-            models.GroupEmailThread,
-            models.GroupRuleStatus,
-            models.GroupTagValue,
-            # Handled by TTL
-            similarity.features,
-        ],
+        skip_models=skip_models,
         transaction_id=uuid4().hex,
     )
 
@@ -189,13 +195,10 @@ def cleanup(days, project, concurrency, max_procs, silent, model, router, timed)
 
     # Deletions that use `BulkDeleteQuery` (and don't need to worry about child relations)
     # (model, datetime_field, order_by)
-    BULK_QUERY_DELETES = (
+    BULK_QUERY_DELETES = [
         (models.GroupEmailThread, 'date', None),
         (models.GroupRuleStatus, 'date_added', None),
-        (models.GroupTagValue, 'last_seen', None),
-        (models.TagValue, 'last_seen', None),
-        (models.EventTag, 'date_added', 'date_added'),
-    )
+    ] + EXTRA_BULK_QUERY_DELETES
 
     # Deletions that use the `deletions` code path (which handles their child relations)
     # (model, datetime_field, order_by)

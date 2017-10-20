@@ -20,14 +20,58 @@ from six.moves import reduce
 
 from sentry import buffer
 from sentry.tagstore import TagKeyStatus
-from sentry.models import EventTag, GroupTagKey, GroupTagValue, TagKey, TagValue
 from sentry.tagstore.base import TagStorage
 from sentry.utils import db
 from sentry.utils.cache import cache
-from sentry.tasks.deletion import delete_tag_key
+
+from .models import EventTag, GroupTagKey, GroupTagValue, TagKey, TagValue
 
 
 class LegacyTagStorage(TagStorage):
+    def setup(self):
+        from sentry.deletions import default_manager
+        from sentry.deletions.defaults import BulkModelDeletionTask
+        from sentry.deletions.base import ModelRelation, ModelDeletionTask
+        from sentry.models import Group, Project, Event
+        from sentry.runner.commands import cleanup
+        from sentry.tasks import merge
+
+        from .deletions import TagKeyDeletionTask
+
+        default_manager.register(TagKey, TagKeyDeletionTask)
+        default_manager.register(TagValue, BulkModelDeletionTask)
+        default_manager.register(GroupTagKey, BulkModelDeletionTask)
+        default_manager.register(GroupTagValue, BulkModelDeletionTask)
+        default_manager.register(EventTag, BulkModelDeletionTask)
+
+        default_manager.add_dependencies(Group, [
+            lambda instance: ModelRelation(EventTag, {'group_id': instance.id}),
+            lambda instance: ModelRelation(GroupTagKey, {'group_id': instance.id}),
+            lambda instance: ModelRelation(GroupTagValue, {'group_id': instance.id}),
+        ])
+        default_manager.add_dependencies(Project, [
+            lambda instance: ModelRelation(TagKey, {'project_id': instance.id}),
+            lambda instance: ModelRelation(TagValue, {'project_id': instance.id}),
+            lambda instance: ModelRelation(GroupTagKey, {'project_id': instance.id}),
+            lambda instance: ModelRelation(GroupTagValue, {'project_id': instance.id}),
+        ])
+        default_manager.add_bulk_dependencies(Event, [
+            lambda instance_list: ModelRelation(EventTag,
+                                                {'event_id__in': [i.id for i in instance_list]},
+                                                ModelDeletionTask),
+        ])
+
+        cleanup.EXTRA_BULK_QUERY_DELETES += [
+            (GroupTagValue, 'last_seen', None),
+            (TagValue, 'last_seen', None),
+            (EventTag, 'date_added', 'date_added'),
+        ]
+
+        merge.EXTRA_MERGE_MODELS += [
+            GroupTagValue,
+            GroupTagKey,
+        ]
+
     def create_tag_key(self, project_id, key, **kwargs):
         return TagKey.objects.create(project_id=project_id, key=key, **kwargs)
 
@@ -207,6 +251,8 @@ class LegacyTagStorage(TagStorage):
         return list(qs)
 
     def delete_tag_key(self, project_id, key):
+        from .tasks import delete_tag_key
+
         tagkey = self.get_tag_key(project_id, key, status=None)
 
         updated = TagKey.objects.filter(
@@ -502,3 +548,14 @@ class LegacyTagStorage(TagStorage):
 
     def get_event_tag_qs(self, **kwargs):
         return EventTag.objects.filter(**kwargs)
+
+    def update_group_tag_key_values_seen(self, group_ids):
+        instances = self.get_group_tag_keys(group_ids)
+        for instance in instances:
+            instance.update(
+                values_seen=GroupTagValue.objects.filter(
+                    project_id=instance.project_id,
+                    group_id=instance.group_id,
+                    key=instance.key,
+                ).count(),
+            )

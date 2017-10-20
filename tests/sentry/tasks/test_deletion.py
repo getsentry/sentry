@@ -18,7 +18,7 @@ from sentry.models import (
 from sentry.plugins.providers.dummy.repository import DummyRepositoryProvider
 from sentry.tasks.deletion import (
     delete_api_application, delete_group, delete_organization, delete_project, delete_repository,
-    delete_tag_key, delete_team, generic_delete, revoke_api_tokens
+    delete_team, generic_delete, revoke_api_tokens
 )
 from sentry.testutils import TestCase
 
@@ -184,6 +184,8 @@ class DeleteProjectTest(TestCase):
 
 class DeleteTagKeyTest(TestCase):
     def test_simple(self):
+        from sentry.tagstore.legacy.tasks import delete_tag_key
+
         team = self.create_team(name='test', slug='test')
         project = self.create_project(team=team, name='test1', slug='test1')
         group = self.create_group(project=project)
