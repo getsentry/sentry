@@ -191,6 +191,7 @@ function routes() {
         <IndexRoute component={errorHandler(OrganizationDashboard)} />
 
         <Route path="/organizations/:orgId/" component={OrganizationHomeContainer}>
+          {hooksOrgRoutes}
           {orgSettingsRoutes}
         </Route>
 
@@ -246,8 +247,6 @@ function routes() {
           path="/organizations/:orgId/actions/set-callsigns/"
           component={errorHandler(SetCallsignsAction)}
         />
-
-        {hooksOrgRoutes}
 
         <Route
           path=":projectId/getting-started/"
