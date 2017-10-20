@@ -284,9 +284,9 @@ def cleanup(days, project, concurrency, max_procs, silent, model, router, timed)
         else:
             if concurrency > 1:
                 shard_ids = range(concurrency)
-                num_procs = min(concurrency, max_procs)
+                num_procs = min(multiprocessing.cpu_count(), max_procs)
                 threads_per_proc = int(math.ceil(
-                    num_procs / float(multiprocessing.cpu_count())))
+                    concurrency / float(num_procs)))
 
                 pids = []
                 for shard_id_chunk in chunker(shard_ids, threads_per_proc):

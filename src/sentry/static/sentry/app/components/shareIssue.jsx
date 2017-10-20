@@ -29,9 +29,19 @@ class ShareUrlContainer extends React.Component {
     busy: PropTypes.bool
   };
 
+  // Select URL when its container is clicked
   handleCopyClick = () => {
     if (!this.urlRef) return;
     selectText(ReactDOM.findDOMNode(this.urlRef));
+  };
+
+  handleUrlMount = ref => {
+    this.urlRef = ref;
+
+    if (this.urlRef) {
+      // Always select url if it's available
+      selectText(ReactDOM.findDOMNode(this.urlRef));
+    }
   };
 
   render() {
@@ -57,11 +67,11 @@ class ShareUrlContainer extends React.Component {
             maxWidth: 288
           }}>
           <AutoSelectText
-            ref={ref => (this.urlRef = ref)}
+            ref={this.handleUrlMount}
             style={{
               flex: 1,
               border: 'none',
-              padding: 4,
+              padding: '4px 6px 4px 10px',
               textOverflow: 'ellipsis',
               whiteSpace: 'nowrap',
               overflow: 'hidden'
@@ -163,6 +173,13 @@ class ShareIssue extends React.Component {
     this.hasConfirmModal = false;
   };
 
+  // Should share URL if
+  handleOpen = () => {
+    if (!this.props.isSharing) {
+      this.handleShare();
+    }
+  };
+
   // State of confirm modal so we can keep dropdown menu opn
   handleConfirmCancel = e => (this.hasConfirmModal = false);
   handleConfirmReshare = () => (this.hasConfirmModal = true);
@@ -190,6 +207,7 @@ class ShareIssue extends React.Component {
         className={cx}
         shouldIgnoreClickOutside={() => this.hasConfirmModal}
         title={title}
+        onOpen={this.handleOpen}
         keepMenuOpen>
         <li
           style={{

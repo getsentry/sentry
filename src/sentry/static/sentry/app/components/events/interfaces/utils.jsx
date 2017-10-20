@@ -1,3 +1,4 @@
+import {isString} from 'lodash';
 import {defined} from '../../../utils';
 
 export function escapeQuotes(v) {
@@ -38,7 +39,13 @@ export function getCurlCommand(data) {
         result += ' \\\n --data "' + escapeQuotes(jQuery.param(data.data)) + '"';
         break;
       default:
-        result += ' \\\n --data "' + escapeQuotes(data.data) + '"';
+        if (isString(data.data)) {
+          result += ' \\\n --data "' + escapeQuotes(data.data) + '"';
+        } else {
+          Raven.captureMessage('Unknown event data', {
+            extra: data
+          });
+        }
     }
   }
 
