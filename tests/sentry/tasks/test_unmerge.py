@@ -28,7 +28,6 @@ from sentry.utils.dates import to_timestamp
 from sentry.utils import redis
 from six.moves import xrange
 
-
 # Use the default redis client as a cluster client in the similarity index
 index = _make_index_backend(redis.clusters.get('default').get_local_client(0))
 
