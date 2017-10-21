@@ -53,7 +53,7 @@ def index():
     req = Request('{}/api/0/organizations/'.format(BASE_URL), None, headers)
     try:
         res = urlopen(req)
-    except URLError, e:
+    except URLError as e:
         if e.code == 401:
             # Unauthorized - bad token
             session.pop('access_token', None)
