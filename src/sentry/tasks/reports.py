@@ -303,7 +303,7 @@ def prepare_project_usage_summary(start_stop, project):
 
 
 def get_calendar_range(ignore_stop_time, months):
-    _, stop = ignore_stop
+    _, stop_time = ignore_stop_time
     assert (
         stop_time.hour, stop_time.minute, stop_time.second, stop_time.microsecond, stop_time.tzinfo,
     ) == (0, 0, 0, 0, pytz.utc)
