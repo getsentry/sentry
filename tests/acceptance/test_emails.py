@@ -16,6 +16,7 @@ EMAILS = (
     ('/debug/mail/resolved-in-release/upcoming/', 'resolved in release upcoming'),
     ('/debug/mail/unassigned/', 'unassigned'),
     ('/debug/mail/unable-to-fetch-commits/', 'unable to fetch commits'),
+    ('/debug/mail/unable-to-delete-repo/', 'unable to delete repo'),
     ('/debug/mail/alert/', 'alert'),
     ('/debug/mail/digest/', 'digest'),
     ('/debug/mail/invalid-identity/', 'invalid identity'),
