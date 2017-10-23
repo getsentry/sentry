@@ -123,6 +123,7 @@ export default {
     HookStore: require('./stores/hookStore').default,
     Indicators: require('./components/indicators').default,
     IndicatorStore: require('./stores/indicatorStore').default,
+    InviteMember: require('./views/inviteMember/inviteMember').default,
     LoadingError: require('./components/loadingError').default,
     LoadingIndicator: require('./components/loadingIndicator').default,
     ListLink: require('./components/listLink').default,
