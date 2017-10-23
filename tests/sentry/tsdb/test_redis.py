@@ -164,7 +164,7 @@ class RedisTSDBTest(TestCase):
                 (timestamp(dts[2]), 0),
                 (timestamp(dts[3]), 6),
             ],
-            2: [(timestamp(dts[i]), 0) for i in xrange(0, 4)],
+            2: [(timestamp(dts[i]), 0) for i in range(0, 4)],
         }
 
         results = self.db.get_sums(TSDBModel.project, [1, 2], dts[0], dts[-1])
