@@ -23,6 +23,7 @@ from sentry.web.frontend.debug.debug_resolved_email import (DebugResolvedEmailVi
 from sentry.web.frontend.debug.debug_resolved_in_release_email import (
     DebugResolvedInReleaseEmailView, DebugResolvedInReleaseUpcomingEmailView
 )
+from sentry.web.frontend.debug.debug_unable_to_delete_repository import DebugUnableToDeleteRepository
 from sentry.web.frontend.debug.debug_unable_to_fetch_commits_email import DebugUnableToFetchCommitsEmailView
 from sentry.web.frontend.debug.debug_unassigned_email import (DebugUnassignedEmailView)
 from sentry.web.frontend.debug.debug_new_processing_issues_email import (
@@ -58,6 +59,7 @@ urlpatterns = patterns(
     url(r'^debug/mail/invalid-identity/$', DebugInvalidIdentityEmailView.as_view()),
     url(r'^debug/mail/confirm-email/$', sentry.web.frontend.debug.mail.confirm_email),
     url(r'^debug/mail/recover-account/$', sentry.web.frontend.debug.mail.recover_account),
+    url(r'^debug/mail/unable-to-delete-repo/$', DebugUnableToDeleteRepository.as_view()),
     url(r'^debug/mail/unable-to-fetch-commits/$', DebugUnableToFetchCommitsEmailView.as_view()),
     url(r'^debug/mail/unassigned/$', DebugUnassignedEmailView.as_view()),
     url(r'^debug/mail/org-delete-confirm/$', sentry.web.frontend.debug.mail.org_delete_confirm),
