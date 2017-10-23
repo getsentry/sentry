@@ -54,7 +54,12 @@ jQuery.ajaxSetup({
 
 let render = Component => {
   let rootEl = document.getElementById('blk_router');
-  ReactDOM.render(<AppContainer><Component /></AppContainer>, rootEl);
+  ReactDOM.render(
+    <AppContainer>
+      <Component />
+    </AppContainer>,
+    rootEl
+  );
 };
 
 if (module.hot) {
@@ -90,6 +95,7 @@ export default {
     forms: {
       // we dont yet export all form field classes as they're not
       // all needed by sentry.io
+      ApiForm: require('./components/forms/apiForm').default,
       BooleanField: require('./components/forms/booleanField').default,
       EmailField: require('./components/forms/emailField').default,
       Form: require('./components/forms/form').default,
