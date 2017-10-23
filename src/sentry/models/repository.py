@@ -40,12 +40,38 @@ class Repository(Model):
         provider_cls = bindings.get('repository.provider').get(self.provider)
         return provider_cls(self.provider)
 
+    def generate_delete_fail_email(self, error_message):
+        from sentry.utils.email import MessageBuilder
+
+        new_context = {
+            'repo': self,
+            'error_message': error_message,
+        }
+
+        return MessageBuilder(
+            subject='Unable to Delete Repository',
+            context=new_context,
+            template='sentry/emails/unable-to-delete-repo.txt',
+            html_template='sentry/emails/unable-to-delete-repo.html',
+        )
+
 
 def on_delete(instance, actor=None, **kwargs):
-    instance.get_provider().delete_repository(
-        repo=instance,
-        actor=actor,
-    )
+    from sentry.exceptions import InvalidIdentity, PluginError
+    try:
+        instance.get_provider().delete_repository(
+            repo=instance,
+            actor=actor,
+        )
+    except Exception as exc:
+        if isinstance(exc, (PluginError, InvalidIdentity)):
+            error = exc.message
+        else:
+            error = 'An unknown error occurred'
+        if actor is not None:
+            msg = instance.generate_delete_fail_email(error)
+            msg.send_async(to=[actor.email])
+        raise
 
 
 pending_delete.connect(on_delete, sender=Repository, weak=False)
