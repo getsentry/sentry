@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+from uuid import uuid4
+
 from datetime import timedelta
 from django.db import connections, router
 from django.utils import timezone
@@ -127,3 +129,67 @@ class BulkDeleteQuery(object):
             self.execute_postgres(chunk_size)
         else:
             self.execute_generic(chunk_size)
+
+    def iterator(self, chunk_size=100):
+        assert db.is_postgres()
+
+        dbc = connections[self.using]
+        quote_name = dbc.ops.quote_name
+
+        where = []
+        if self.dtfield and self.days is not None:
+            where.append(
+                "{} < '{}'::timestamptz".format(
+                    quote_name(self.dtfield),
+                    (timezone.now() - timedelta(days=self.days)).isoformat(),
+                    self.days,
+                )
+            )
+        if self.project_id:
+            where.append("project_id = {}".format(self.project_id))
+
+        if where:
+            where_clause = 'where {}'.format(' and '.join(where))
+        else:
+            where_clause = ''
+
+        if self.order_by:
+            if self.order_by[0] == '-':
+                direction = 'desc'
+                order_field = self.order_by[1:]
+            else:
+                direction = 'asc'
+                order_field = self.order_by
+            order_clause = 'order by {} {}'.format(
+                quote_name(order_field),
+                direction,
+            )
+        else:
+            order_clause = ''
+
+        query = """
+            select id
+            from {table}
+            {where}
+            {order}
+        """.format(
+            table=self.model._meta.db_table,
+            where=where_clause,
+            order=order_clause,
+        )
+
+        # Explicitly use a named cursor so we can read rows
+        # from postgres incrementally without pulling them all
+        # into memory and we can iterate one big query for
+        # all rows instead of a bunch of smaller ones
+        with dbc.get_new_connection(dbc.get_connection_params()) as conn:
+            with conn.cursor(uuid4().hex) as cursor:
+                cursor.execute(query)
+                chunk = []
+                for row in cursor:
+                    chunk.append(row[0])
+                    if len(chunk) == chunk_size:
+                        yield tuple(chunk)
+                        chunk = []
+                if chunk:
+                    yield tuple(chunk)

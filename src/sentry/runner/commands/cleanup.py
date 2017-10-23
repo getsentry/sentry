@@ -7,14 +7,13 @@ sentry.runner.commands.cleanup
 """
 from __future__ import absolute_import, print_function
 
-import six
 from datetime import timedelta
 from uuid import uuid4
 
 import click
 from django.utils import timezone
 
-from sentry.runner.decorators import configuration, log_options
+from sentry.runner.decorators import log_options
 from six.moves import xrange
 
 
@@ -40,92 +39,62 @@ def get_project(value):
         return None
 
 
-def chunker(seq, size):
-    return (seq[pos:pos + size] for pos in xrange(0, len(seq), size))
+# We need a unique value to indicate when to stop multiprocessing queue
+# an identity on an object() isn't guaranteed to work between parent
+# and child proc
+_STOP_WORKER = '91650ec271ae4b3e8a67cdc909d80f8c'
 
 
-@click.command()
-@click.option('--days', type=click.INT, required=True)
-@click.option('--project_id', type=click.INT, required=False)
-@click.option('--model', required=True)
-@click.option('--dtfield', required=True)
-@click.option('--order_by', required=True)
-@click.option('--num_shards', required=True)
-@click.option('--shard_ids', required=True)
-@configuration
-def cleanup_chunk(days, project_id, model, dtfield, order_by, num_shards, shard_ids):
-    import pickle
-    from threading import Thread
+def multiprocess_worker(task_queue):
+    # Configure within each Process
+    from sentry.utils.imports import import_string
 
-    model = pickle.loads(model)
-    shard_ids = [int(s) for s in shard_ids.split(",")]
+    configured = False
 
-    task = create_deletion_task(
-        days, project_id, model, dtfield, order_by)
+    while True:
+        j = task_queue.get()
+        if j == _STOP_WORKER:
+            task_queue.task_done()
+            return
 
-    click.echo("days: %s, project_id: %s, model: %s, dtfield: %s, order_by: %s, shard_ids:%s" %
-               (days, project_id, model, dtfield, order_by, shard_ids))
+        # On first task, configure Sentry environment
+        if not configured:
+            from sentry.runner import configure
+            configure()
 
-    threads = []
-    for shard_id in shard_ids:
-        t = Thread(
-            target=(
-                lambda shard_id=shard_id: _chunk_until_complete(
-                    task, num_shards=num_shards, shard_id=shard_id)
-            )
+            from sentry import models
+            from sentry import deletions
+            from sentry import similarity
+
+            skip_models = [
+                # Handled by other parts of cleanup
+                models.Event,
+                models.EventMapping,
+                models.EventAttachment,
+                models.UserReport,
+                models.Group,
+                models.GroupEmailThread,
+                models.GroupRuleStatus,
+                models.GroupHashTombstone,
+                # Handled by TTL
+                similarity.features,
+            ] + [b[0] for b in EXTRA_BULK_QUERY_DELETES]
+
+        model, chunk = j
+        model = import_string(model)
+
+        task = deletions.get(
+            model=model,
+            query={'id__in': chunk},
+            skip_models=skip_models,
+            transaction_id=uuid4().hex,
         )
-        t.start()
-        threads.append(t)
 
-    for t in threads:
-        t.join()
+        while True:
+            if not task.chunk():
+                break
 
-
-def create_deletion_task(days, project_id, model, dtfield, order_by):
-    from sentry import models
-    from sentry import deletions
-    from sentry import similarity
-
-    query = {
-        '{}__lte'.format(dtfield): (timezone.now() - timedelta(days=days)),
-    }
-
-    if project_id:
-        if 'project' in model._meta.get_all_field_names():
-            query['project'] = project_id
-        else:
-            query['project_id'] = project_id
-
-    skip_models = [
-        # Handled by other parts of cleanup
-        models.Event,
-        models.EventMapping,
-        models.EventAttachment,
-        models.UserReport,
-        models.Group,
-        models.GroupEmailThread,
-        models.GroupRuleStatus,
-        models.GroupHashTombstone,
-        # Handled by TTL
-        similarity.features,
-    ] + [b[0] for b in EXTRA_BULK_QUERY_DELETES]
-
-    task = deletions.get(
-        model=model,
-        query=query,
-        order_by=order_by,
-        skip_models=skip_models,
-        transaction_id=uuid4().hex,
-    )
-
-    return task
-
-
-def _chunk_until_complete(task, num_shards=None, shard_id=None):
-    has_more = True
-    while has_more:
-        has_more = task.chunk(
-            num_shards=num_shards, shard_id=shard_id)
+        task_queue.task_done()
 
 
 @click.command()
@@ -158,7 +127,6 @@ def _chunk_until_complete(task, num_shards=None, shard_id=None):
     help='Send the duration of this command to internal metrics.'
 )
 @log_options()
-@configuration
 def cleanup(days, project, concurrency, max_procs, silent, model, router, timed):
     """Delete a portion of trailing data based on creation date.
 
@@ -172,11 +140,21 @@ def cleanup(days, project, concurrency, max_procs, silent, model, router, timed)
         click.echo('Error: Minimum concurrency is 1', err=True)
         raise click.Abort()
 
-    import math
-    import multiprocessing
-    import pickle
-    import subprocess
-    import sys
+    pool = []
+    # Make sure we fork off multiprocessing pool
+    # before we import or configure out app
+    from multiprocessing import Process, JoinableQueue
+
+    task_queue = JoinableQueue(1000)
+    for _ in xrange(concurrency):
+        p = Process(target=multiprocess_worker, args=(task_queue,))
+        p.daemon = True
+        p.start()
+        pool.append(p)
+
+    from sentry.runner import configure
+    configure()
+
     from django.db import router as db_router
     from sentry.app import nodestore
     from sentry.db.deletion import BulkDeleteQuery
@@ -296,43 +274,20 @@ def cleanup(days, project, concurrency, max_procs, silent, model, router, timed)
             if not silent:
                 click.echo('>> Skipping %s' % model.__name__)
         else:
-            if concurrency > 1:
-                shard_ids = range(concurrency)
-                num_procs = min(multiprocessing.cpu_count(), max_procs)
-                threads_per_proc = int(math.ceil(
-                    concurrency / float(num_procs)))
+            imp = '.'.join((model.__module__, model.__name__))
 
-                pids = []
-                for shard_id_chunk in chunker(shard_ids, threads_per_proc):
-                    pid = subprocess.Popen([
-                        sys.argv[0],
-                        'cleanup_chunk',
-                        '--days', six.binary_type(days),
-                    ] + (['--project_id', six.binary_type(project_id)] if project_id else []) + [
-                        '--model', pickle.dumps(model),
-                        '--dtfield', dtfield,
-                        '--order_by', order_by,
-                        '--num_shards', six.binary_type(concurrency),
-                        '--shard_ids', ",".join([six.binary_type(s)
-                                                 for s in shard_id_chunk]),
-                    ])
-                    pids.append(pid)
+            q = BulkDeleteQuery(
+                model=model,
+                dtfield=dtfield,
+                days=days,
+                project_id=project_id,
+                order_by=order_by,
+            )
 
-                total_pid_count = len(pids)
-                click.echo(
-                    "%s concurrent processes forked, waiting on them to complete." % total_pid_count)
+            for chunk in q.iterator(chunk_size=100):
+                task_queue.put((imp, chunk))
 
-                complete = 0
-                for pid in pids:
-                    pid.wait()
-                    complete += 1
-                    click.echo(
-                        "%s/%s concurrent processes are finished." % (complete, total_pid_count))
-
-            else:
-                task = create_deletion_task(
-                    days, project_id, model, dtfield, order_by)
-                _chunk_until_complete(task)
+            task_queue.join()
 
     # Clean up FileBlob instances which are no longer used and aren't super
     # recent (as there could be a race between blob creation and reference)
@@ -343,6 +298,14 @@ def cleanup(days, project, concurrency, max_procs, silent, model, router, timed)
             click.echo('>> Skipping FileBlob')
     else:
         cleanup_unused_files(silent)
+
+    # Shut down our pool
+    for _ in pool:
+        task_queue.put(_STOP_WORKER)
+
+    # And wait for it to drain
+    for p in pool:
+        p.join()
 
     if timed:
         duration = int(time.time() - start_time)
