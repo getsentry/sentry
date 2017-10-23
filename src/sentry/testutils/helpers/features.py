@@ -7,7 +7,21 @@ from mock import patch
 
 
 @contextmanager
-def Feature(name, active=True):
+def Feature(names):
+    """
+    Control whether a feature is enabled.
+
+    >> with Feature({'feature-1': True, 'feature-2': False}):
+    >>   # Executes with feature-1 enabled and feature-2 disabled
+
+    The following two invocations are equivalent:
+
+    >> with Feature(['feature-1', 'feature-2']):
+    >> with Feature({'feature-1': True, 'feature-2': True}):
+    """
+    if isinstance(names, list):
+        names = {k: True for k in names}
+
     with patch('sentry.features.has') as features_has:
-        features_has.side_effect = lambda x, *a, **k: active and x == name
+        features_has.side_effect = lambda x, *a, **k: names.get(x, False)
         yield
