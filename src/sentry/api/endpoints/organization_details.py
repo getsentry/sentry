@@ -78,7 +78,10 @@ class OrganizationSerializer(serializers.Serializer):
 
     def validate_slug(self, attrs, source):
         value = attrs[source]
-        if Organization.objects.filter(slug=value).exclude(id=self.context['organization'].id):
+        qs = Organization.objects.filter(
+            slug=value,
+        ).exclude(id=self.context['organization'].id)
+        if qs.exists():
             raise serializers.ValidationError('The slug "%s" is already in use.' % (value, ))
         return attrs
 
