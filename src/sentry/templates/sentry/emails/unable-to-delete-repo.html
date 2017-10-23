@@ -1,0 +1,9 @@
+{% extends "sentry/emails/base.html" %}
+
+{% block main %}
+  <h3>Unable to Delete Repository</h3>
+  <p>We were unable to delete your repository (<em>{{ repo.name }}</em>) due to the following error:</p>
+  <p>{{ error_message }}</p>
+{% endblock %}
+
+{% block footer %}{% endblock %}
