@@ -15,6 +15,7 @@ import click
 from django.utils import timezone
 
 from sentry.runner.decorators import configuration, log_options
+from six.moves import xrange
 
 
 # allows services like tagstore to add their own (abstracted) models
