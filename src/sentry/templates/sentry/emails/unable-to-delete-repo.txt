@@ -1,0 +1,6 @@
+Unable to Delete Repo
+---------------------
+
+We were unable to delete your repository ({{ repo.name }}) due to the following error:
+
+{{ error_message }}
