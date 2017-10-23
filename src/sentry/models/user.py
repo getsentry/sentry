@@ -138,6 +138,11 @@ class User(BaseModel, AbstractBaseUser):
     def get_short_name(self):
         return self.username
 
+    def get_salutation_name(self):
+        name = self.name or self.username.split('@', 1)[0]
+        first_name = name.split(' ', 1)[0]
+        return first_name.capitalize()
+
     def get_avatar_type(self):
         avatar = self.avatar.first()
         if avatar:
