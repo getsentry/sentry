@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 __all__ = ['Feature']
 
+import six
 from contextlib import contextmanager
 from mock import patch
 
@@ -11,14 +12,26 @@ def Feature(names):
     """
     Control whether a feature is enabled.
 
-    >> with Feature({'feature-1': True, 'feature-2': False}):
-    >>   # Executes with feature-1 enabled and feature-2 disabled
+    A single feature may be conviniently enabled with
+
+    >>> with Feature('feature-1'):
+    >>>   # Executes with feature-1 enabled
+
+    More advanced enabling / disabling can be done using a dict
+
+    >>> with Feature({'feature-1': True, 'feature-2': False}):
+    >>>   # Executes with feature-1 enabled and feature-2 disabled
 
     The following two invocations are equivalent:
 
-    >> with Feature(['feature-1', 'feature-2']):
-    >> with Feature({'feature-1': True, 'feature-2': True}):
+    >>> with Feature(['feature-1', 'feature-2']):
+    >>>   # execute with both features enabled
+    >>> with Feature({'feature-1': True, 'feature-2': True}):
+    >>>   # execute with both features enabled
     """
+    if isinstance(names, six.text_type):
+        names = {names: True}
+
     if isinstance(names, list):
         names = {k: True for k in names}
 

@@ -79,12 +79,12 @@ class BaseTestCase(Fixtures, Exam):
     def tasks(self):
         return TaskRunner()
 
-    def feature(self, name, active=True):
+    def feature(self, names):
         """
-        >>> with self.feature('feature:name')
+        >>> with self.feature({'feature:name': True})
         >>>     # ...
         """
-        return Feature(name, active)
+        return Feature(names)
 
     def auth_provider(self, name, cls):
         """
