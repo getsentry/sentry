@@ -22,7 +22,7 @@ from sentry.coreapi import (
     APIError, APIForbidden, APIRateLimited, ClientApiHelper, CspApiHelper, LazyData,
     MinidumpApiHelper,
 )
-from sentry.models import Project, OrganizationOption, Organization
+from sentry.models import Project, OrganizationOption, Organization, upload_minidump
 from sentry.signals import (
     event_accepted, event_dropped, event_filtered, event_received)
 from sentry.quotas.base import RateLimit
@@ -552,6 +552,12 @@ class MinidumpView(StoreView):
 
         if isinstance(response_or_event_id, HttpResponse):
             return response_or_event_id
+
+        try:
+            upload_minidump(minidump, response_or_event_id)
+        except Exception:
+            # TODO(ja): If anything goes wrong here, we need to clean up the event
+            raise
 
         return HttpResponse(
             json.dumps({'id': response_or_event_id}),
