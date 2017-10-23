@@ -243,4 +243,4 @@ if os.environ.get('SENTRY_FEDERATED_DOCS') != '1':
         import sentryext
         sentryext.activate()
     except ImportError:
-        print('ERROR: could not import sentryext.  You need to check out the _sentryext submodule.)
+        print('ERROR: could not import sentryext.  You need to check out the _sentryext submodule.')
