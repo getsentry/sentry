@@ -39,7 +39,7 @@ from sentry.db.models import BoundedIntegerField
 from sentry.interfaces.base import get_interface, InterfaceValidationError
 from sentry.interfaces.csp import Csp
 from sentry.event_manager import EventManager
-from sentry.models import EventError, ProjectKey
+from sentry.models import EventError, ProjectKey, upload_minidump
 from sentry.tasks.store import preprocess_event, \
     preprocess_event_from_reprocessing
 from sentry.utils import json
@@ -865,19 +865,25 @@ class MinidumpApiHelper(ClientApiHelper):
         return auth
 
     def validate_data(self, project, data):
-        import pprint
-        pprint.pprint('validate data')
-        extra = data.copy()
-
         try:
-            release = extra.pop('release')
+            release = data.pop('release')
         except KeyError:
             release = None
+
+        # Minidump request payloads do not have the same structure as
+        # usual events from other SDKs. Most importantly, all parameters
+        # passed in the POST body are only "extra" information. The
+        # actual information is in the "upload_file_minidump" field.
+
+        # At this point, we only extract the bare minimum information
+        # needed to continue processing. If all validations pass, the
+        # event will be inserted into the database, at which point we
+        # can process the minidump and extract a little more information.
 
         validated = {
             'platform': 'minidump',
             'project': project.id,
-            'extra': extra,
+            'extra': data,
             'errors': [],
             'sentry.interfaces.User': {
                 'ip_address': self.context.ip_address,
@@ -897,6 +903,30 @@ class MinidumpApiHelper(ClientApiHelper):
                 })
 
         return validated
+
+    def insert_data_to_database(self, data, from_reprocessing=False):
+        # Seems like the event is valid and we can do some more expensive
+        # work on the minidump. That is, persisting the file itself for
+        # later postprocessing and extracting some more information from
+        # the minidump to populate the initial callstacks and exception
+        # information.
+        event_id = data['event_id']
+        minidump = data['extra'].pop('upload_file_minidump')
+        upload_minidump(minidump, event_id)
+
+        # TODO(ja): Perform basic minidump processing and extract
+        # exception / loose stacktraces here.
+
+        # All more advanced analysis, such as stack frame symbolication,
+        # requires a proper stacktrace, which requires call frame infos
+        # (CFI) for more accurate stackwalking. This task is executed
+        # even before starting the native language plugin, which will
+        # ultimately perform stack frame symbolication.
+
+        # Continue with persisting the event in the usual manner and
+        # schedule default preprocessing tasks
+        super(MinidumpApiHelper, self).insert_data_to_database(
+            data, from_reprocessing)
 
 
 class CspApiHelper(ClientApiHelper):
