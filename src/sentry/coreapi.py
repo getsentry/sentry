@@ -850,6 +850,61 @@ class ClientApiHelper(object):
                    event_id=data['event_id'])
 
 
+class MinidumpApiHelper(ClientApiHelper):
+    def origin_from_request(self, request):
+        # We don't use an origin here
+        return None
+
+    def auth_from_request(self, request):
+        key = request.GET.get('sentry_key')
+        if not key:
+            raise APIUnauthorized('Unable to find authentication information')
+
+        auth = Auth({'sentry_key': key}, is_public=True)
+        auth.client = 'sentry-minidump'
+        return auth
+
+    def validate_data(self, project, data):
+        import pprint
+        pprint.pprint('validate data')
+        extra = data.copy()
+
+        try:
+            guid = extra.pop('guid')
+        except KeyError:
+            raise APIError('Missing minidump GUID')
+
+        try:
+            release = extra.pop('release')
+        except KeyError:
+            release = None
+
+        validated = {
+            'platform': 'minidump',
+            'project': project.id,
+            'minidump_id': guid,
+            'extra': extra,
+            'errors': [],
+            'sentry.interfaces.User': {
+                'ip_address': self.context.ip_address,
+            },
+        }
+
+        # Copy/pasted from above in ClientApiHelper.validate_data
+        if release:
+            release = six.text_type(release)
+            if len(release) <= 64:
+                validated['release'] = release
+            else:
+                validated['errors'].append({
+                    'type': EventError.VALUE_TOO_LONG,
+                    'name': 'release',
+                    'value': release,
+                })
+
+        return validated
+
+
 class CspApiHelper(ClientApiHelper):
     def origin_from_request(self, request):
         # We don't use an origin here

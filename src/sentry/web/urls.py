@@ -103,6 +103,11 @@ urlpatterns += patterns(
     '',
     # Store endpoints first since they are the most active
     url(r'^api/store/$', api.StoreView.as_view(), name='sentry-api-store'),
+    url(
+        r'^api/(?P<project_id>[\w_-]+)/minidump/?$',
+        api.MinidumpView.as_view(),
+        name='sentry-api-minidump'
+    ),
     url(r'^api/(?P<project_id>[\w_-]+)/store/$', api.StoreView.as_view(), name='sentry-api-store'),
     url(
         r'^api/(?P<project_id>\d+)/csp-report/$',
