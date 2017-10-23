@@ -15,6 +15,7 @@ from sentry.quotas.redis import (
 )
 from sentry.testutils import TestCase
 from sentry.utils.redis import clusters
+from six.moves import xrange
 
 
 def test_is_rate_limited_script():
