@@ -870,11 +870,6 @@ class MinidumpApiHelper(ClientApiHelper):
         extra = data.copy()
 
         try:
-            guid = extra.pop('guid')
-        except KeyError:
-            raise APIError('Missing minidump GUID')
-
-        try:
             release = extra.pop('release')
         except KeyError:
             release = None
@@ -882,7 +877,6 @@ class MinidumpApiHelper(ClientApiHelper):
         validated = {
             'platform': 'minidump',
             'project': project.id,
-            'minidump_id': guid,
             'extra': extra,
             'errors': [],
             'sentry.interfaces.User': {
