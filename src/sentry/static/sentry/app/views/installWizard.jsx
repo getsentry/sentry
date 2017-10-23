@@ -60,7 +60,7 @@ export default class InstallWizard extends AsyncView {
     let data = {};
     Object.keys(options).forEach(optionName => {
       let option = options[optionName];
-      if (option.field.isSet) {
+      if (!option.field.isSet) {
         data[optionName] = option.value;
       }
     });
