@@ -3,6 +3,7 @@ from __future__ import absolute_import
 __all__ = ['Feature']
 
 import six
+import collections
 from contextlib import contextmanager
 from mock import patch
 
@@ -32,7 +33,7 @@ def Feature(names):
     if isinstance(names, six.text_type):
         names = {names: True}
 
-    if isinstance(names, list):
+    if not isinstance(names, collections.Mapping):
         names = {k: True for k in names}
 
     with patch('sentry.features.has') as features_has:
