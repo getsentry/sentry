@@ -9,6 +9,7 @@ sentry.interfaces.schemas
 from __future__ import absolute_import
 
 import six
+import jsonschema
 
 CSP_SCHEMA = {
     'type': 'object',
@@ -129,6 +130,54 @@ HPKP_INTERFACE_SCHEMA = {
     'additionalProperties': False,  # Don't allow any other keys.
 }
 
+PAIRS = {
+    'type': 'array',
+    'items': {
+        'type': 'array',
+        'minItems': 2,
+        'maxItems': 2,
+        'items': {'type': 'string'}
+    }
+}
+
+HTTP_INTERFACE_SCHEMA = {
+    'type': 'object',
+    'properties': {
+        'url': {'type': 'string'},
+        'method': {'type': 'string'},
+        'query_string': {
+            'anyOf': [
+                {'type': 'string'},
+                {'type': 'object'},
+            ],
+        },
+        'inferred_content_type': {'type': 'string'},
+        'cookies': {
+            'anyOf': [
+                {'type': 'object'},  # either an object
+                {'type': 'string'},  # or a query string
+                PAIRS,  # or a list of 2-tuples
+            ]
+        },
+        'env': {'type': 'object'},
+        'headers': {
+            'anyOf': [
+                {'type': 'object'},  # either an object
+                PAIRS,  # or a list of 2-tuples
+            ]
+        },
+        'data': {
+            'anyOf': [
+                {'type': 'string'},
+                {'type': 'object'},
+            ],
+        },
+        'fragment': {'type': 'string'},
+    },
+    'required': ['url'],
+    'additionalProperties': False,  # Don't allow any other keys.
+}
+
 """
 Schemas for raw request data.
 
@@ -151,4 +200,24 @@ INTERFACE_SCHEMAS = {
     # These should match SENTRY_INTERFACES keys
     'sentry.interfaces.Csp': CSP_INTERFACE_SCHEMA,
     'hpkp': HPKP_INTERFACE_SCHEMA,
+    'sentry.interfaces.Http': HTTP_INTERFACE_SCHEMA,
+    'request': HTTP_INTERFACE_SCHEMA,
 }
+
+
+def is_valid_input(data, interface):
+    if interface in INPUT_SCHEMAS:
+        try:
+            jsonschema.validate(data, INPUT_SCHEMAS[interface])
+        except jsonschema.ValidationError:
+            return False
+    return True
+
+
+def is_valid_interface(data, interface):
+    if interface in INTERFACE_SCHEMAS:
+        try:
+            jsonschema.validate(data, INTERFACE_SCHEMAS[interface])
+        except jsonschema.ValidationError:
+            return False
+    return True
