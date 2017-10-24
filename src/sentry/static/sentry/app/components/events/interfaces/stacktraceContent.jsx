@@ -22,10 +22,6 @@ const StacktraceContent = React.createClass({
     };
   },
 
-  shouldRenderAsTable() {
-    return this.props.platform === 'cocoa';
-  },
-
   renderOmittedFrames(firstFrameOmitted, lastFrameOmitted) {
     let props = {
       className: 'frame frames-omitted',
