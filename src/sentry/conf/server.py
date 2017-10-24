@@ -725,7 +725,7 @@ SENTRY_FEATURES = {
     'organizations:sso-rippling': False,
     'organizations:group-unmerge': False,
     'organizations:integrations-v3': False,
-    'organizations:invite-member': True,
+    'organizations:invite-members': True,
     'projects:global-events': False,
     'projects:plugins': True,
     'projects:dsym': False,
