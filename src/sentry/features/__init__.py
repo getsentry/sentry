@@ -15,6 +15,7 @@ default_manager.add('organizations:onboarding', OrganizationFeature)  # NOQA
 default_manager.add('organizations:repos', OrganizationFeature)  # NOQA
 default_manager.add('organizations:release-commits', OrganizationFeature)  # NOQA
 default_manager.add('organizations:group-unmerge', OrganizationFeature)  # NOQA
+default_manager.add('organizations:invite-members', OrganizationFeature)  # NOQA
 default_manager.add('organizations:integrations-v3', OrganizationFeature)  # NOQA
 default_manager.add('projects:similarity-view', ProjectFeature)  # NOQA
 default_manager.add('projects:global-events', ProjectFeature)  # NOQA
