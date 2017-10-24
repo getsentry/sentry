@@ -177,6 +177,17 @@ const KeyRow = React.createClass({
               )}
             </div>
           </div>
+          <div className="form-group">
+            <label>{t('Minidump Endpoint')}</label>
+            <AutoSelectText className="form-control disabled">
+              {data.dsn.minidump}
+            </AutoSelectText>
+            <div className="help-block">
+              {tct('Use this endpoint to upload minidump crash reports, for example with Electron, Crashpad or Breakpad.', {
+                /* TODO: add a link to minidump docs */
+              })}
+            </div>
+          </div>
         </ClippedBox>
       </div>
     );
