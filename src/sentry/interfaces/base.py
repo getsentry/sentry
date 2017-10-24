@@ -99,7 +99,7 @@ class Interface(object):
 
     @classmethod
     def to_python(cls, data):
-        return cls(data)
+        return cls(**data)
 
     def get_api_context(self, is_public=False):
         return self.to_json()

@@ -12,7 +12,7 @@ class CspEvent(BaseEvent):
     def get_metadata(self):
         # TODO(dcramer): we need to avoid importing interfaces in this module
         # due to recursion at top level
-        from sentry.interfaces.csp import Csp
+        from sentry.interfaces.security import Csp
         # TODO(dcramer): pull get message into here to avoid instantiation
         # or ensure that these get interfaces passed instead of raw data
         csp = Csp.to_python(self.data['sentry.interfaces.Csp'])

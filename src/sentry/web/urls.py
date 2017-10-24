@@ -105,8 +105,15 @@ urlpatterns += patterns(
         api.StoreView.as_view(), name='sentry-api-store'),
     url(
         r'^api/(?P<project_id>\d+)/csp-report/$',
-        api.CspReportView.as_view(),
+        api.SecurityReportView.as_view(),
+        kwargs={'report_type': 'sentry.interfaces.Csp'},
         name='sentry-api-csp-report'
+    ),
+    url(
+        r'^api/(?P<project_id>\d+)/hpkp-report/$',
+        api.SecurityReportView.as_view(),
+        kwargs={'report_type': 'hpkp'},
+        name='sentry-api-hpkp-report'
     ),
     url(
         r'^api/(?P<project_id>[\w_-]+)/crossdomain\.xml$',

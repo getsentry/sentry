@@ -2,15 +2,13 @@ from __future__ import absolute_import
 
 import pytest
 
-from sentry.utils.csp import is_valid_csp_report
+from sentry.interfaces.security import Csp
 
 
 @pytest.mark.parametrize(
     'report', (
         {}, {
             'effective_directive': 'lolnotreal'
-        }, {
-            'effective_directive': 'style-src'
         }, {
             'effective_directive': 'style-src',
             'blocked_uri': 'about'
@@ -36,7 +34,7 @@ from sentry.utils.csp import is_valid_csp_report
     )
 )
 def test_blocked_csp_report(report):
-    assert is_valid_csp_report(report) is False
+    assert Csp.to_python(report).should_filter() is True
 
 
 @pytest.mark.parametrize(
@@ -50,8 +48,10 @@ def test_blocked_csp_report(report):
         }, {
             'effective_directive': 'style-src',
             'source_file': 'http://example.com'
+        }, {
+            'effective_directive': 'style-src'
         },
     )
 )
 def test_valid_csp_report(report):
-    assert is_valid_csp_report(report) is True
+    assert Csp.to_python(report).should_filter() is False

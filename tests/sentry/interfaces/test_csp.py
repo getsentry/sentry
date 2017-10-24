@@ -4,7 +4,7 @@ from __future__ import absolute_import
 
 from exam import fixture
 
-from sentry.interfaces.csp import Csp
+from sentry.interfaces.security import Csp
 from sentry.testutils import TestCase
 
 
