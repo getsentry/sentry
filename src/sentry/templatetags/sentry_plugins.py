@@ -103,27 +103,6 @@ def get_annotations(group, request=None):
     return annotation_list
 
 
-@register.simple_tag
-def handle_before_events(request, event_list):
-    if not event_list:
-        return ''
-
-    if not hasattr(event_list, '__iter__'):
-        project = event_list.project
-        event_list = [event_list]
-    else:
-        projects = set(e.project for e in event_list)
-        if len(projects) == 1:
-            project = projects.pop()
-        else:
-            project = None
-
-    for plugin in plugins.for_project(project):
-        safe_execute(plugin.before_events, request, event_list)
-
-    return ''
-
-
 @register.filter
 def get_plugins(project):
     results = []
