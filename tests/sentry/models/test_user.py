@@ -1,7 +1,19 @@
 from __future__ import absolute_import
 
-from sentry.models import Authenticator, OrganizationMember, UserEmail
+from sentry.models import Authenticator, OrganizationMember, User, UserEmail
 from sentry.testutils import TestCase
+
+
+class UserDetailsTest(TestCase):
+    def test_salutation(self):
+        user = self.create_user(email='a@example.com', username='a@example.com')
+        assert user.get_salutation_name() == 'A'
+
+        user.update(name='hello world', email='b@example.com')
+        user = User.objects.get(id=user.id)
+        assert user.name == 'hello world'
+        assert user.email == 'b@example.com'
+        assert user.get_salutation_name() == 'Hello'
 
 
 class UserMergeToTest(TestCase):
