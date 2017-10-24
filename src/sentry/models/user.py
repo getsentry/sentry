@@ -139,7 +139,7 @@ class User(BaseModel, AbstractBaseUser):
         return self.username
 
     def get_salutation_name(self):
-        name = self.name or self.username.split('@', 1)[0]
+        name = self.name or self.username.split('@', 1)[0].split('.', 1)[0]
         first_name = name.split(' ', 1)[0]
         return first_name.capitalize()
 
