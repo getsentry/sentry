@@ -24,6 +24,7 @@ from sentry.coreapi import (
     APIError, APIForbidden, APIRateLimited, ClientApiHelper, CspApiHelper, LazyData,
     MinidumpApiHelper,
 )
+from sentry.interfaces import schemas
 from sentry.models import Project, OrganizationOption, Organization
 from sentry.signals import (
     event_accepted, event_dropped, event_filtered, event_received)
@@ -575,6 +576,11 @@ class MinidumpView(StoreView):
             json.dumps({'id': response_or_event_id}),
             content_type='application/json'
         )
+
+
+class StoreSchemaView(BaseView):
+    def get(self, request, **kwargs):
+        return HttpResponse(json.dumps(schemas.EVENT_SCHEMA), content_type='application/json')
 
 
 class CspReportView(StoreView):
