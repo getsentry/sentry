@@ -69,7 +69,7 @@ const ProjectInstallOverview = React.createClass({
                 </div>
                 <Link
                   to={`/${orgId}/${projectId}/#welcome`}
-                  className="btn btn-primary btn-lg m-b-1">
+                  className="btn btn-primary m-b-1">
                   {t('Got it! Take me to the Issue Stream.')}
                 </Link>
               </div>
