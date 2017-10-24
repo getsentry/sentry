@@ -101,9 +101,6 @@ LOG_LEVELS_MAP = {v: k for k, v in six.iteritems(LOG_LEVELS)}
 DEFAULT_ALERT_PROJECT_THRESHOLD = (500, 25)  # 500%, 25 events
 DEFAULT_ALERT_GROUP_THRESHOLD = (1000, 25)  # 1000%, 25 events
 
-# Default paginator value
-EVENTS_PER_PAGE = 15
-
 # Default sort option for the group stream
 DEFAULT_SORT_OPTION = 'date'
 
