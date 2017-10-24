@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import six
 import pytest
 import base64
 import mock
@@ -12,6 +13,7 @@ from django.core.urlresolvers import reverse
 from sentry.auth.providers.saml2 import SAML2Provider, Attributes, HAS_SAML2
 from sentry.models import AuthProvider
 from sentry.testutils import AuthProviderTestCase
+from sentry.testutils.helpers import Feature
 
 
 dummy_provider_config = {
@@ -33,6 +35,9 @@ dummy_provider_config = {
 class DummySAML2Provider(SAML2Provider):
     def get_saml_setup_pipeline(self):
         return []
+
+    def build_config(self, state):
+        return dummy_provider_config
 
 
 @pytest.mark.skipif(not HAS_SAML2, reason='SAML2 library is not installed')
@@ -76,6 +81,10 @@ class AuthSAML2Test(AuthProviderTestCase):
     def acs_path(self):
         return reverse('sentry-auth-organization-saml-acs', args=['saml2-org'])
 
+    @fixture
+    def setup_path(self):
+        return reverse('sentry-organization-auth-settings', args=['saml2-org'])
+
     def test_redirects_to_idp(self):
         resp = self.client.post(self.login_path, {'init': True})
 
@@ -86,7 +95,7 @@ class AuthSAML2Test(AuthProviderTestCase):
         assert redirect.path == '/sso_url'
         assert 'SAMLRequest' in query
 
-    def accept_auth(self):
+    def accept_auth(self, **kargs):
         saml_response = self.load_fixture('saml2_auth_response.xml')
         saml_response = base64.b64encode(saml_response)
 
@@ -94,18 +103,52 @@ class AuthSAML2Test(AuthProviderTestCase):
         is_valid = 'onelogin.saml2.response.OneLogin_Saml2_Response.is_valid'
 
         with mock.patch(is_valid, return_value=True):
-            resp = self.client.post(self.acs_path, {'SAMLResponse': saml_response})
-
-        assert resp.status_code == 200
-        assert resp.context['existing_user'] == self.user
+            return self.client.post(self.acs_path, {'SAMLResponse': saml_response}, **kargs)
 
     def test_auth_sp_initiated(self):
         # Start auth process from SP side
         self.client.post(self.login_path, {'init': True})
-        self.accept_auth()
+        auth = self.accept_auth()
+
+        assert auth.status_code == 200
+        assert auth.context['existing_user'] == self.user
 
     def test_auth_idp_initiated(self):
-        self.accept_auth()
+        auth = self.accept_auth()
+
+        assert auth.status_code == 200
+        assert auth.context['existing_user'] == self.user
+
+    def test_auth_setup(self):
+        self.auth_provider.delete()
+        self.login_as(self.user)
+
+        data = {'init': True, 'provider': self.provider_name}
+
+        with Feature(['organizations:sso', 'organizations:sso-saml2']):
+            setup = self.client.post(self.setup_path, data)
+
+        assert setup.status_code == 302
+        redirect = urlparse(setup.get('Location', ''))
+        assert redirect.path == '/sso_url'
+
+        auth = self.accept_auth(follow=True)
+
+        messages = map(lambda m: six.text_type(m), auth.context['messages'])
+
+        assert len(messages) == 2
+        assert messages[0] == 'You have successfully linked your account to your SSO provider.'
+        assert messages[1].startswith('SSO has been configured for your organization')
+
+    def test_auth_idp_initiated_no_provider(self):
+        self.auth_provider.delete()
+        auth = self.accept_auth(follow=True)
+
+        assert auth.status_code == 200
+
+        messages = map(lambda m: six.text_type(m), auth.context['messages'])
+        assert len(messages) == 1
+        assert messages[0] == 'The organization does not exist or does not have SAML SSO enabled.'
 
     def test_saml_metadata(self):
         path = reverse('sentry-auth-organization-saml-metadata', args=['saml2-org'])

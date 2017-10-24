@@ -82,25 +82,39 @@ class SAML2LoginView(AuthView):
 class SAML2AcceptACSView(BaseView):
     @method_decorator(csrf_exempt)
     def dispatch(self, request, organization_slug):
-        # NB: The 'auth' key is used in the helper
-        in_auth_flow = request.session.get('auth', False)
+        from sentry.auth.helper import AuthHelper
+        helper = AuthHelper.get_for_request(request)
 
-        # SP initiated authentication
-        if in_auth_flow:
+        # SP initiated authentication, request helper is provided
+        if helper:
             from sentry.web.frontend.auth_provider_login import AuthProviderLoginView
             sso_login = AuthProviderLoginView()
             return sso_login.handle(request)
 
-        # IdP initiated authentication. Start from org login flow
-        from sentry.web.frontend.auth_organization_login import AuthOrganizationLoginView
+        # IdP initiated authentication. The organizatio_slug must be valid and
+        # an auth provider must exist for this organization to proceed with
+        # IdP initiated SAML auth.
+        try:
+            organization = Organization.objects.get(slug=organization_slug)
+        except Organization.DoesNotExist:
+            messages.add_message(request, messages.ERROR, ERR_NO_SAML_SSO)
+            return self.redirect(reverse('sentry-login'))
 
-        # AuthOranizationLogin will init the login flow *only if* the ``init``
-        # parameter is set.
-        request.POST = request.POST.copy()
-        request.POST['init'] = True
+        try:
+            auth_provider = AuthProvider.objects.get(organization=organization)
+        except AuthProvider.DoesNotExist:
+            messages.add_message(request, messages.ERROR, ERR_NO_SAML_SSO)
+            return self.redirect(reverse('sentry-login'))
 
-        org_login = AuthOrganizationLoginView()
-        return org_login.handle(request, organization_slug)
+        helper = AuthHelper(
+            request=request,
+            organization=organization,
+            auth_provider=auth_provider,
+            flow=AuthHelper.FLOW_LOGIN,
+        )
+
+        helper.init_pipeline()
+        return helper.current_step()
 
 
 class SAML2ACSView(AuthView):
