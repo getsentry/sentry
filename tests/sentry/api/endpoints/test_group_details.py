@@ -325,7 +325,7 @@ class GroupUpdateTest(APITestCase):
         url = '/api/0/issues/{}/'.format(group.id)
 
         with self.tasks():
-            with self.feature('projects:custom-filters', True):
+            with self.feature('projects:custom-filters'):
                 resp = self.client.put(
                     url, data={
                         'discard': True,

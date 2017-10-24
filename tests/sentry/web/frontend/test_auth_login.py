@@ -61,7 +61,7 @@ class AuthLoginTest(TestCase):
 
     def test_registration_disabled(self):
         options.set('auth.allow-registration', True)
-        with self.feature('auth:register', False):
+        with self.feature({'auth:register': False}):
             resp = self.client.get(self.path)
             assert resp.context['register_form'] is None
 
