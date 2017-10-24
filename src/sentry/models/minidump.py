@@ -97,7 +97,8 @@ def merge_minidump_event(data, minidump_path):
         'value': data['message'],
         'thread_id': crashed_thread['id'],
         'type': state.crash_reason,
-        'stacktrace': crashed_thread['stacktrace'],
+        # Move stacktrace here from crashed_thread (mutating!)
+        'stacktrace': crashed_thread.pop('stacktrace'),
     }
 
     data.setdefault('exception', {}) \
