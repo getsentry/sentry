@@ -504,10 +504,11 @@ class StoreView(APIView):
 
 class MinidumpView(StoreView):
     helper_cls = MinidumpApiHelper
-    content_types = ('multipart/form-data')
+    content_types = ('multipart/form-data', )
 
     def _dispatch(self, request, helper, project_id=None, origin=None, *args, **kwargs):
-        # TODO(ja): Refactor shared code with CspReportView
+        # TODO(ja): Refactor shared code with CspReportView. Especially, look at
+        # the sentry_key override and test it.
 
         # A minidump submission as implemented by Breakpad and Crashpad or any
         # other library following the Mozilla Soccorro protocol is a POST request
@@ -517,6 +518,8 @@ class MinidumpView(StoreView):
             return HttpResponseNotAllowed(['POST'])
 
         content_type = request.META.get('CONTENT_TYPE')
+        # In case of multipart/form-data, the Content-Type header also includes
+        # a boundary. Therefore, we cannot check for an exact match.
         if content_type is None or not content_type.startswith(self.content_types):
             raise APIError('Invalid Content-Type')
 
