@@ -154,8 +154,8 @@ def merge_series(target, other, function=operator.add):
     return results
 
 
-def prepare_project_series(start_stop, project, rollup=60 * 60 * 24):
-    start, stop = start_stop
+def prepare_project_series(start__stop, project, rollup=60 * 60 * 24):
+    start, stop = start__stop
     resolution, series = tsdb.get_optimal_rollup_series(start, stop, rollup)
     assert resolution == rollup, 'resolution does not match requested value'
     clean = functools.partial(clean_series, start, stop, rollup)
@@ -194,11 +194,11 @@ def prepare_project_series(start_stop, project, rollup=60 * 60 * 24):
     )
 
 
-def prepare_project_aggregates(ignore_stop, project):
+def prepare_project_aggregates(ignore__stop, project):
     # TODO: This needs to return ``None`` for periods that don't have any data
     # (because the project is not old enough) and possibly extrapolate for
     # periods that only have partial periods.
-    _, stop = ignore_stop
+    _, stop = ignore__stop
     segments = 4
     period = timedelta(days=7)
     start = stop - (period * segments)
@@ -283,8 +283,8 @@ def prepare_project_issue_summaries(interval, project):
     ]
 
 
-def prepare_project_usage_summary(start_stop, project):
-    start, stop = start_stop
+def prepare_project_usage_summary(start__stop, project):
+    start, stop = start__stop
     return (
         tsdb.get_sums(
             tsdb.models.project_total_blacklisted,
@@ -302,8 +302,8 @@ def prepare_project_usage_summary(start_stop, project):
     )
 
 
-def get_calendar_range(ignore_stop_time, months):
-    _, stop_time = ignore_stop_time
+def get_calendar_range(ignore__stop_time, months):
+    _, stop_time = ignore__stop_time
     assert (
         stop_time.hour, stop_time.minute, stop_time.second, stop_time.microsecond, stop_time.tzinfo,
     ) == (0, 0, 0, 0, pytz.utc)
@@ -552,8 +552,8 @@ def prepare_organization_report(timestamp, duration, organization_id, dry_run=Fa
         )
 
 
-def fetch_personal_statistics(start_stop, organization, user):
-    start, stop = start_stop
+def fetch_personal_statistics(start__stop, organization, user):
+    start, stop = start__stop
     resolved_issue_ids = Activity.objects.filter(
         project__organization_id=organization.id,
         user_id=user.id,
@@ -649,8 +649,8 @@ class Skipped(object):
     NoReports = object()
 
 
-def has_valid_aggregates(interval, project_report):
-    project, report = project_report
+def has_valid_aggregates(interval, project__report):
+    project, report = project__report
     return any(bool(value) for value in report.aggregates)
 
 
