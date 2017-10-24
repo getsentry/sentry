@@ -147,13 +147,15 @@ urlpatterns = patterns(
         ApiAuthorizationsEndpoint.as_view(),
         name='sentry-api-0-api-authorizations'
     ),
-    url(r'^api-tokens/$', ApiTokensEndpoint.as_view(), name='sentry-api-0-api-tokens'),
+    url(r'^api-tokens/$', ApiTokensEndpoint.as_view(),
+        name='sentry-api-0-api-tokens'),
 
     # Auth
     url(r'^auth/$', AuthIndexEndpoint.as_view(), name='sentry-api-0-auth'),
 
     # Broadcasts
-    url(r'^broadcasts/$', BroadcastIndexEndpoint.as_view(), name='sentry-api-0-broadcast-index'),
+    url(r'^broadcasts/$', BroadcastIndexEndpoint.as_view(),
+        name='sentry-api-0-broadcast-index'),
 
     # Users
     url(r'^users/$', UserIndexEndpoint.as_view(), name='sentry-api-0-user-index'),
@@ -401,7 +403,8 @@ urlpatterns = patterns(
     ),
 
     # Projects
-    url(r'^projects/$', ProjectIndexEndpoint.as_view(), name='sentry-api-0-projects'),
+    url(r'^projects/$', ProjectIndexEndpoint.as_view(),
+        name='sentry-api-0-projects'),
     url(
         r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/$',
         ProjectDetailsEndpoint.as_view(),
@@ -745,12 +748,14 @@ urlpatterns = patterns(
     ),
 
     # Internal
-    url(r'^internal/health/$', SystemHealthEndpoint.as_view(), name='sentry-api-0-system-health'),
+    url(r'^internal/health/$', SystemHealthEndpoint.as_view(),
+        name='sentry-api-0-system-health'),
     url(
         r'^internal/options/$', SystemOptionsEndpoint.as_view(), name='sentry-api-0-system-options'
     ),
     url(r'^internal/queue/tasks/$', InternalQueueTasksEndpoint.as_view()),
-    url(r'^internal/stats/$', InternalStatsEndpoint.as_view(), name='sentry-api-0-internal-stats'),
+    url(r'^internal/stats/$', InternalStatsEndpoint.as_view(),
+        name='sentry-api-0-internal-stats'),
     url(r'^$', IndexEndpoint.as_view(), name='sentry-api-index'),
     url(r'^', CatchallEndpoint.as_view(), name='sentry-api-catchall'),
 

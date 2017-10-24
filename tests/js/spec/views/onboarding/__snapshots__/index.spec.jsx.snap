@@ -814,7 +814,7 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
               </div>
               <div>
                 <button
-                  className="btn btn-primary submit-new-team"
+                  className="btn btn-primary new-project-submit"
                   onClick={[Function]}
                 >
                   Create Project
@@ -1624,7 +1624,7 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
               </div>
               <div>
                 <button
-                  className="btn btn-primary submit-new-team"
+                  className="btn btn-primary new-project-submit"
                   onClick={[Function]}
                 >
                   Create Project
