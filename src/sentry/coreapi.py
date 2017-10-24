@@ -39,7 +39,7 @@ from sentry.db.models import BoundedIntegerField
 from sentry.interfaces.base import get_interface, InterfaceValidationError
 from sentry.interfaces.csp import Csp
 from sentry.event_manager import EventManager
-from sentry.models import EventError, ProjectKey, upload_minidump
+from sentry.models import EventError, ProjectKey, upload_minidump, merge_minidump_event
 from sentry.tasks.store import preprocess_event, \
     preprocess_event_from_reprocessing
 from sentry.utils import json
@@ -881,7 +881,7 @@ class MinidumpApiHelper(ClientApiHelper):
         # can process the minidump and extract a little more information.
 
         validated = {
-            'platform': 'minidump',
+            'platform': 'native',
             'project': project.id,
             'extra': data,
             'errors': [],
@@ -912,10 +912,8 @@ class MinidumpApiHelper(ClientApiHelper):
         # information.
         event_id = data['event_id']
         minidump = data['extra'].pop('upload_file_minidump')
+        merge_minidump_event(data, minidump.temporary_file_path())
         upload_minidump(minidump, event_id)
-
-        # TODO(ja): Perform basic minidump processing and extract
-        # exception / loose stacktraces here.
 
         # All more advanced analysis, such as stack frame symbolication,
         # requires a proper stacktrace, which requires call frame infos
