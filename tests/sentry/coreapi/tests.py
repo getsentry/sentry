@@ -15,7 +15,7 @@ from sentry.coreapi import (
     APIUnauthorized,
     Auth,
     ClientApiHelper,
-    CspApiHelper,
+    SecurityApiHelper,
     APIForbidden,
 )
 from sentry.event_manager import EventManager
@@ -621,27 +621,23 @@ class EnsureHasIpTest(BaseAPITest):
         assert out['sentry.interfaces.User']['ip_address'] == '127.0.0.1'
 
 
-class CspApiHelperTest(BaseAPITest):
-    helper_cls = CspApiHelper
+class SecurityApiHelperTest(BaseAPITest):
+    helper_cls = SecurityApiHelper
 
-    def test_validate_basic(self):
+    def test_csp_validate_basic(self):
         report = {
-            "document-uri":
-            "http://45.55.25.245:8123/csp",
-            "referrer":
-            "http://example.com",
-            "violated-directive":
-            "img-src https://45.55.25.245:8123/",
-            "effective-directive":
-            "img-src",
-            "original-policy":
-            "default-src  https://45.55.25.245:8123/; child-src  https://45.55.25.245:8123/; connect-src  https://45.55.25.245:8123/; font-src  https://45.55.25.245:8123/; img-src  https://45.55.25.245:8123/; media-src  https://45.55.25.245:8123/; object-src  https://45.55.25.245:8123/; script-src  https://45.55.25.245:8123/; style-src  https://45.55.25.245:8123/; form-action  https://45.55.25.245:8123/; frame-ancestors 'none'; plugin-types 'none'; report-uri http://45.55.25.245:8123/csp-report?os=OS%20X&device=&browser_version=43.0&browser=chrome&os_version=Lion",
-            "blocked-uri":
-            "http://google.com",
-            "status-code":
-            200,
-            "_meta": {
-                "release": "abc123",
+            "release": "abc123",
+            "interface": 'sentry.interfaces.Csp',
+            "report": {
+                "csp-report": {
+                    "document-uri": "http://45.55.25.245:8123/csp",
+                    "referrer": "http://example.com",
+                    "violated-directive": "img-src https://45.55.25.245:8123/",
+                    "effective-directive": "img-src",
+                    "original-policy": "default-src  https://45.55.25.245:8123/; child-src  https://45.55.25.245:8123/; connect-src  https://45.55.25.245:8123/; font-src  https://45.55.25.245:8123/; img-src  https://45.55.25.245:8123/; media-src  https://45.55.25.245:8123/; object-src  https://45.55.25.245:8123/; script-src  https://45.55.25.245:8123/; style-src  https://45.55.25.245:8123/; form-action  https://45.55.25.245:8123/; frame-ancestors 'none'; plugin-types 'none'; report-uri http://45.55.25.245:8123/csp-report?os=OS%20X&device=&browser_version=43.0&browser=chrome&os_version=Lion",
+                    "blocked-uri": "http://google.com",
+                    "status-code": 200,
+                }
             }
         }
         result = self.validate_and_normalize(report)
@@ -661,29 +657,32 @@ class CspApiHelperTest(BaseAPITest):
             'Referer': 'http://example.com'
         }
 
-    @mock.patch('sentry.interfaces.csp.Csp.to_python', mock.Mock(side_effect=Exception))
-    def test_validate_raises_invalid_interface(self):
-        with self.assertRaises(APIForbidden):
-            self.validate_and_normalize({})
-
-    def test_tags_out_of_bounds(self):
+    def test_csp_validate_failure(self):
         report = {
-            "document-uri":
-            "http://45.55.25.245:8123/csp",
-            "referrer":
-            "http://example.com",
-            "violated-directive":
-            "img-src https://45.55.25.245:8123/",
-            "effective-directive":
-            "img-src",
-            "original-policy":
-            "default-src  https://45.55.25.245:8123/; child-src  https://45.55.25.245:8123/; connect-src  https://45.55.25.245:8123/; font-src  https://45.55.25.245:8123/; img-src  https://45.55.25.245:8123/; media-src  https://45.55.25.245:8123/; object-src  https://45.55.25.245:8123/; script-src  https://45.55.25.245:8123/; style-src  https://45.55.25.245:8123/; form-action  https://45.55.25.245:8123/; frame-ancestors 'none'; plugin-types 'none'; report-uri http://45.55.25.245:8123/csp-report?os=OS%20X&device=&browser_version=43.0&browser=chrome&os_version=Lion",
-            "blocked-uri":
-            "v" * 201,
-            "status-code":
-            200,
-            "_meta": {
-                "release": "abc123",
+            "release": "abc123",
+            "interface": 'sentry.interfaces.Csp',
+            "report": {}
+        }
+        with self.assertRaises(APIError):
+            self.validate_and_normalize(report)
+
+        with self.assertRaises(APIError):
+            self.validate_and_normalize(report, {})
+
+    def test_csp_tags_out_of_bounds(self):
+        report = {
+            "release": "abc123",
+            "interface": 'sentry.interfaces.Csp',
+            "report": {
+                "csp-report": {
+                    "document-uri": "http://45.55.25.245:8123/csp",
+                    "referrer": "http://example.com",
+                    "violated-directive": "img-src https://45.55.25.245:8123/",
+                    "effective-directive": "img-src",
+                    "original-policy": "default-src  https://45.55.25.245:8123/; child-src  https://45.55.25.245:8123/; connect-src  https://45.55.25.245:8123/; font-src  https://45.55.25.245:8123/; img-src  https://45.55.25.245:8123/; media-src  https://45.55.25.245:8123/; object-src  https://45.55.25.245:8123/; script-src  https://45.55.25.245:8123/; style-src  https://45.55.25.245:8123/; form-action  https://45.55.25.245:8123/; frame-ancestors 'none'; plugin-types 'none'; report-uri http://45.55.25.245:8123/csp-report?os=OS%20X&device=&browser_version=43.0&browser=chrome&os_version=Lion",
+                    "blocked-uri": "v" * 201,
+                    "status-code": 200,
+                }
             }
         }
         result = self.validate_and_normalize(report)
@@ -692,24 +691,20 @@ class CspApiHelperTest(BaseAPITest):
         ]
         assert len(result['errors']) == 1
 
-    def test_tag_value(self):
+    def test_csp_tag_value(self):
         report = {
-            "document-uri":
-            "http://45.55.25.245:8123/csp",
-            "referrer":
-            "http://example.com",
-            "violated-directive":
-            "img-src https://45.55.25.245:8123/",
-            "effective-directive":
-            "img-src",
-            "original-policy":
-            "default-src  https://45.55.25.245:8123/; child-src  https://45.55.25.245:8123/; connect-src  https://45.55.25.245:8123/; font-src  https://45.55.25.245:8123/; img-src  https://45.55.25.245:8123/; media-src  https://45.55.25.245:8123/; object-src  https://45.55.25.245:8123/; script-src  https://45.55.25.245:8123/; style-src  https://45.55.25.245:8123/; form-action  https://45.55.25.245:8123/; frame-ancestors 'none'; plugin-types 'none'; report-uri http://45.55.25.245:8123/csp-report?os=OS%20X&device=&browser_version=43.0&browser=chrome&os_version=Lion",
-            "blocked-uri":
-            "http://google.com",
-            "status-code":
-            200,
-            "_meta": {
-                "release": "abc123",
+            "release": "abc123",
+            "interface": 'sentry.interfaces.Csp',
+            "report": {
+                "csp-report": {
+                    "document-uri": "http://45.55.25.245:8123/csp",
+                    "referrer": "http://example.com",
+                    "violated-directive": "img-src https://45.55.25.245:8123/",
+                    "effective-directive": "img-src",
+                    "original-policy": "default-src  https://45.55.25.245:8123/; child-src  https://45.55.25.245:8123/; connect-src  https://45.55.25.245:8123/; font-src  https://45.55.25.245:8123/; img-src  https://45.55.25.245:8123/; media-src  https://45.55.25.245:8123/; object-src  https://45.55.25.245:8123/; script-src  https://45.55.25.245:8123/; style-src  https://45.55.25.245:8123/; form-action  https://45.55.25.245:8123/; frame-ancestors 'none'; plugin-types 'none'; report-uri http://45.55.25.245:8123/csp-report?os=OS%20X&device=&browser_version=43.0&browser=chrome&os_version=Lion",
+                    "blocked-uri": "http://google.com",
+                    "status-code": 200,
+                }
             }
         }
         result = self.validate_and_normalize(report)
@@ -719,26 +714,45 @@ class CspApiHelperTest(BaseAPITest):
         ]
         assert len(result['errors']) == 0
 
-    def test_no_tags(self):
+    def test_hpkp_validate_basic(self):
         report = {
-            "document-uri":
-            "http://45.55.25.245:8123/csp",
-            "referrer":
-            "http://example.com",
-            "violated-directive":
-            "img-src https://45.55.25.245:8123/",
-            "effective-directive":
-            "v" * 201,
-            "original-policy":
-            "default-src  https://45.55.25.245:8123/; child-src  https://45.55.25.245:8123/; connect-src  https://45.55.25.245:8123/; font-src  https://45.55.25.245:8123/; img-src  https://45.55.25.245:8123/; media-src  https://45.55.25.245:8123/; object-src  https://45.55.25.245:8123/; script-src  https://45.55.25.245:8123/; style-src  https://45.55.25.245:8123/; form-action  https://45.55.25.245:8123/; frame-ancestors 'none'; plugin-types 'none'; report-uri http://45.55.25.245:8123/csp-report?os=OS%20X&device=&browser_version=43.0&browser=chrome&os_version=Lion",
-            "blocked-uri":
-            "http://goo\ngle.com",
-            "status-code":
-            200,
-            "_meta": {
-                "release": "abc123",
+            "release": "abc123",
+            "interface": 'hpkp',
+            "report": {
+                "date-time": "2014-04-06T13:00:50Z",
+                "hostname": "www.example.com",
+                "port": 443,
+                "effective-expiration-date": "2014-05-01T12:40:50Z",
+                "include-subdomains": False,
+                "served-certificate-chain": ["-----BEGIN CERTIFICATE-----\n-----END CERTIFICATE-----"],
+                "validated-certificate-chain": ["-----BEGIN CERTIFICATE-----\n-----END CERTIFICATE-----"],
+                "known-pins": ["pin-sha256=\"E9CZ9INDbd+2eRQozYqqbQ2yXLVKB9+xcprMF+44U1g=\""],
             }
         }
         result = self.validate_and_normalize(report)
-        assert result['tags'] == []
-        assert len(result['errors']) == 2
+        assert result['project'] == self.project.id
+        assert result['release'] == 'abc123'
+        assert result['errors'] == []
+        assert 'message' in result
+        assert 'culprit' in result
+        assert result['tags'] == [
+            ('port', '443'),
+            ('include-subdomains', 'false'),
+            ('hostname', 'www.example.com'),
+        ]
+        assert result['sentry.interfaces.User'] == {'ip_address': '198.51.100.0'}
+        assert result['sentry.interfaces.Http'] == {
+            'url': 'www.example.com',
+            'headers': {
+                'User-Agent': 'Awesome Browser',
+            }
+        }
+
+    def test_hpkp_validate_failure(self):
+        report = {
+            "release": "abc123",
+            "interface": 'hpkp',
+            "report": {}
+        }
+        with self.assertRaises(APIError):
+            self.helper.validate_data(self.project, report)

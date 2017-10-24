@@ -1,6 +1,7 @@
 from __future__ import absolute_import, print_function
 
 import base64
+import jsonschema
 import logging
 import six
 import traceback
@@ -22,10 +23,11 @@ from raven.contrib.django.models import client as Raven
 
 from sentry import quotas, tsdb
 from sentry.coreapi import (
-    APIError, APIForbidden, APIRateLimited, ClientApiHelper, CspApiHelper, LazyData,
+    APIError, APIForbidden, APIRateLimited, ClientApiHelper, SecurityApiHelper, LazyData,
     MinidumpApiHelper,
 )
 from sentry.interfaces import schemas
+from sentry.interfaces.base import get_interface
 from sentry.lang.native.utils import merge_minidump_event
 from sentry.models import Project, OrganizationOption, Organization
 from sentry.signals import (
@@ -452,12 +454,6 @@ class StoreView(APIView):
         org_options = OrganizationOption.objects.get_all_values(
             project.organization_id)
 
-        if org_options.get('sentry:require_scrub_ip_address', False):
-            scrub_ip_address = True
-        else:
-            scrub_ip_address = project.get_option(
-                'sentry:scrub_ip_address', False)
-
         event_id = data['event_id']
 
         # TODO(dcramer): ideally we'd only validate this if the event_id was
@@ -468,10 +464,10 @@ class StoreView(APIView):
             raise APIForbidden(
                 'An event with the same ID already exists (%s)' % (event_id, ))
 
-        if org_options.get('sentry:require_scrub_data', False):
-            scrub_data = True
-        else:
-            scrub_data = project.get_option('sentry:scrub_data', True)
+        scrub_ip_address = (org_options.get('sentry:require_scrub_ip_address', False) or
+                            project.get_option('sentry:scrub_ip_address', False))
+        scrub_data = (org_options.get('sentry:require_scrub_data', False) or
+                      project.get_option('sentry:scrub_data', True))
 
         if scrub_data:
             # We filter data immediately before it ever gets into the queue
@@ -487,18 +483,14 @@ class StoreView(APIView):
                 project.get_option(exclude_fields_key, [])
             )
 
-            if org_options.get('sentry:require_scrub_defaults', False):
-                scrub_defaults = True
-            else:
-                scrub_defaults = project.get_option(
-                    'sentry:scrub_defaults', True)
+            scrub_defaults = (org_options.get('sentry:require_scrub_defaults', False) or
+                              project.get_option('sentry:scrub_defaults', True))
 
-            inst = SensitiveDataFilter(
+            SensitiveDataFilter(
                 fields=sensitive_fields,
                 include_defaults=scrub_defaults,
                 exclude_fields=exclude_fields,
-            )
-            inst.apply(data)
+            ).apply(data)
 
         if scrub_ip_address:
             # We filter data immediately before it ever gets into the queue
@@ -602,8 +594,9 @@ class StoreSchemaView(BaseView):
         return HttpResponse(json.dumps(schemas.EVENT_SCHEMA), content_type='application/json')
 
 
-class CspReportView(StoreView):
-    helper_cls = CspApiHelper
+class SecurityReportView(StoreView):
+    helper_cls = SecurityApiHelper
+    # TODO additional types required for other reports?
     content_types = ('application/csp-report', 'application/json')
 
     def _dispatch(self, request, helper, project_id=None, origin=None, *args, **kwargs):
@@ -642,35 +635,30 @@ class CspReportView(StoreView):
         )
 
     def post(self, request, project, helper, **kwargs):
-        data = helper.safely_load_json_string(request.body)
+        report_type = kwargs['report_type']
+        json_body = helper.safely_load_json_string(request.body)
+        interface = get_interface(report_type)
 
-        # Do origin check based on the `document-uri` key as explained
-        # in `_dispatch`.
         try:
-            report = data['csp-report']
-        except KeyError:
-            raise APIError('Missing csp-report')
+            instance = interface.from_raw(json_body)
+        except jsonschema.ValidationError as e:
+            raise APIError('Invalid security report: %s' % str(e).splitlines()[0])
 
-        origin = report.get('document-uri')
-
-        # No idea, but this is garbage
-        if origin == 'about:blank':
-            raise APIForbidden('Invalid document-uri')
-
+        # Do origin check based on the `document-uri` key as explained in `_dispatch`.
+        origin = instance.get_origin()
         if not is_valid_origin(origin, project):
             if project:
-                tsdb.incr(tsdb.models.project_total_received_cors,
-                          project.id)
-            raise APIForbidden('Invalid document-uri')
+                tsdb.incr(tsdb.models.project_total_received_cors, project.id)
+            raise APIForbidden('Invalid origin')
 
-        # Attach on collected meta data. This data obviously isn't a part
-        # of the spec, but we need to append to the report sentry specific things.
-        report['_meta'] = {
+        data = {
+            'interface': interface.path,
+            'report': instance,
             'release': request.GET.get('sentry_release'),
         }
 
         response_or_event_id = self.process(
-            request, project=project, helper=helper, data=report, **kwargs
+            request, project=project, helper=helper, data=data, **kwargs
         )
         if isinstance(response_or_event_id, HttpResponse):
             return response_or_event_id

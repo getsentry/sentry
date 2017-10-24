@@ -15,7 +15,7 @@ from sentry.utils import json
 from sentry.utils.data_filters import FilterTypes
 
 
-class CspReportViewTest(TestCase):
+class SecurityReportCspTest(TestCase):
     @fixture
     def path(self):
         path = reverse('sentry-api-csp-report', kwargs={'project_id': self.project.id})
@@ -44,7 +44,7 @@ class CspReportViewTest(TestCase):
         resp = self.client.post(
             self.path,
             content_type='application/csp-report',
-            data='{"csp-report":{"document-uri":"http://lolnope.com"}}',
+            data='{"csp-report":{"document-uri":"http://lolnope.com","effective-directive":"img-src","violated-directive":"img-src","source-file":"test.html"}}',
             HTTP_USER_AGENT='awesome',
         )
         assert resp.status_code == 403, resp.content
@@ -56,10 +56,10 @@ class CspReportViewTest(TestCase):
             data='{"csp-report":{"document-uri":"about:blank"}}',
             HTTP_USER_AGENT='awesome',
         )
-        assert resp.status_code == 403, resp.content
+        assert resp.status_code == 400, resp.content
 
     @mock.patch('sentry.web.api.is_valid_origin', mock.Mock(return_value=True))
-    @mock.patch('sentry.web.api.CspReportView.process')
+    @mock.patch('sentry.web.api.SecurityReportView.process')
     def test_post_success(self, process):
         process.return_value = 'ok'
         resp = self._postCspWithHeader(
@@ -67,7 +67,36 @@ class CspReportViewTest(TestCase):
                 'document-uri': 'http://example.com',
                 'source-file': 'http://example.com',
                 'effective-directive': 'style-src',
+                'violated-directive': 'style-src',
             }
+        )
+        assert resp.status_code == 201, resp.content
+
+
+class SecurityReportHpkpTest(TestCase):
+    @fixture
+    def path(self):
+        path = reverse('sentry-api-hpkp-report', kwargs={'project_id': self.project.id})
+        return path + '?sentry_key=%s' % self.projectkey.public_key
+
+    @mock.patch('sentry.web.api.is_valid_origin', mock.Mock(return_value=True))
+    @mock.patch('sentry.web.api.SecurityReportView.process')
+    def test_post_success(self, process):
+        process.return_value = 'ok'
+        resp = self.client.post(
+            self.path,
+            content_type='application/json',
+            data=json.dumps({
+                "date-time": "2014-04-06T13:00:50Z",
+                "hostname": "www.example.com",
+                "port": 443,
+                "effective-expiration-date": "2014-05-01T12:40:50Z",
+                "include-subdomains": False,
+                "served-certificate-chain": ["-----BEGIN CERTIFICATE-----\n-----END CERTIFICATE-----"],
+                "validated-certificate-chain": ["-----BEGIN CERTIFICATE-----\n-----END CERTIFICATE-----"],
+                "known-pins": ["pin-sha256=\"E9CZ9INDbd+2eRQozYqqbQ2yXLVKB9+xcprMF+44U1g=\""],
+            }),
+            HTTP_USER_AGENT='awesome',
         )
         assert resp.status_code == 201, resp.content
 

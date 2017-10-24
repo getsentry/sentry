@@ -11,10 +11,11 @@ sentry.coreapi
 from __future__ import absolute_import, print_function
 
 import base64
+import jsonschema
 import logging
+import re
 import six
 import zlib
-import re
 
 from collections import MutableMapping
 from django.core.exceptions import SuspiciousOperation
@@ -25,14 +26,14 @@ from time import time
 
 from sentry import filters
 from sentry.cache import default_cache
-from sentry.interfaces.csp import Csp
+from sentry.constants import VERSION_LENGTH
+from sentry.interfaces.base import get_interface
 from sentry.event_manager import EventManager
 from sentry.models import ProjectKey
 from sentry.tasks.store import preprocess_event, \
     preprocess_event_from_reprocessing
 from sentry.utils import json
 from sentry.utils.auth import parse_auth_header
-from sentry.utils.csp import is_valid_csp_report
 from sentry.utils.http import origin_from_request
 from sentry.utils.data_filters import is_valid_ip, \
     is_valid_release, is_valid_error_message, FilterStatKeys
@@ -382,9 +383,14 @@ class MinidumpApiHelper(ClientApiHelper):
         return auth
 
 
-class CspApiHelper(ClientApiHelper):
+class SecurityApiHelper(ClientApiHelper):
+
+    report_interfaces = ('sentry.interfaces.Csp', 'hpkp')
+
     def origin_from_request(self, request):
-        # We don't use an origin here
+        # In the case of security reports, the origin is not available at the
+        # dispatch() stage, as we need to parse it out of the request body, so
+        # we do our own CORS check once we have parsed it.
         return None
 
     def auth_from_request(self, request):
@@ -401,48 +407,55 @@ class CspApiHelper(ClientApiHelper):
         return auth
 
     def should_filter(self, project, data, ip_address=None):
-        if not is_valid_csp_report(data['sentry.interfaces.Csp'], project):
-            return (True, FilterStatKeys.INVALID_CSP)
-        return super(CspApiHelper, self).should_filter(project, data, ip_address)
+        for name in self.report_interfaces:
+            if name in data:
+                interface = get_interface(name)
+                if interface.to_python(data[name]).should_filter(project):
+                    return (True, FilterStatKeys.INVALID_CSP)
+
+        return super(SecurityApiHelper, self).should_filter(project, data, ip_address)
 
     def validate_data(self, data):
-        # pop off our meta data used to hold Sentry specific stuff
-        meta = data.pop('_meta', {})
-
-        # All keys are sent with hyphens, so we want to conver to underscores
-        report = {k.replace('-', '_'): v for k, v in six.iteritems(data)}
-
         try:
-            inst = Csp.to_python(report)
-        except Exception as exc:
-            raise APIForbidden('Invalid CSP Report: %s' % exc)
+            interface = get_interface(data.pop('interface'))
+            report = data.pop('report')
+        except KeyError:
+            raise APIForbidden('No report or interface data')
 
-        # Construct a faux Http interface based on the little information we have
-        headers = {}
-        if self.context.agent:
-            headers['User-Agent'] = self.context.agent
-        if inst.referrer:
-            headers['Referer'] = inst.referrer
+        # To support testing, we can either accept a buillt interface instance, or the raw data in
+        # which case we build the instance ourselves
+        try:
+            instance = report if isinstance(report, interface) else interface.from_raw(report)
+        except jsonschema.ValidationError as e:
+            raise APIError('Invalid security report: %s' % str(e).splitlines()[0])
 
-        data = {
+        def clean(d):
+            return dict(filter(lambda x: x[1], d.items()))
+
+        data.update({
             'logger': 'csp',
-            'message': inst.get_message(),
-            'culprit': inst.get_culprit(),
-            'release': meta.get('release'),
-            'tags': inst.get_tags(),
-            inst.get_path(): inst.to_json(),
+            'message': instance.get_message(),
+            'culprit': instance.get_culprit(),
+            instance.get_path(): instance.to_json(),
+            'errors': [],
+
+            'sentry.interfaces.User': {
+                'ip_address': self.context.ip_address,
+            },
+
+            # Construct a faux Http interface based on the little information we have
             # This is a bit weird, since we don't have nearly enough
             # information to create an Http interface, but
             # this automatically will pick up tags for the User-Agent
             # which is actually important here for CSP
             'sentry.interfaces.Http': {
-                'url': inst.document_uri,
-                'headers': headers,
+                'url': instance.get_origin(),
+                'headers': clean({
+                    'User-Agent': self.context.agent,
+                    'Referer': instance.get_referrer(),
+                })
             },
-            'sentry.interfaces.User': {
-                'ip_address': self.context.ip_address,
-            },
-        }
+        })
 
         return data
 
