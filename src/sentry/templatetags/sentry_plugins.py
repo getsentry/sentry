@@ -70,24 +70,6 @@ def get_widgets(group, request):
 
 
 @register.filter
-def get_legacy_annotations(group, request=None):
-    project = group.project
-
-    annotation_list = []
-    for plugin in plugins.for_project(project, version=1):
-        results = safe_execute(
-            plugin.tags, request, group, annotation_list, _with_transaction=False
-        )
-
-        if not results:
-            continue
-
-        annotation_list = results
-
-    return annotation_list
-
-
-@register.filter
 def get_annotations(group, request=None):
     project = group.project
 
