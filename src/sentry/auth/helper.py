@@ -129,6 +129,9 @@ class AuthHelper(object):
     @classmethod
     def get_for_request(cls, request):
         state = RedisBackedState(request)
+        if not state.is_valid():
+            return None
+
         organization_id = state.org_id
         if not organization_id:
             logging.info('Invalid SSO data found')
