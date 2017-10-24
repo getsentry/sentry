@@ -84,7 +84,7 @@ class EventManagerTest(TransactionTestCase):
         assert event.id
 
         manager = EventManager(self.make_event())
-        with self.feature('projects:sample-events', False):
+        with self.feature({'projects:sample-events': False}):
             event = manager.save(1)
         assert not event.id
 
