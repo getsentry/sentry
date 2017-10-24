@@ -251,8 +251,21 @@ class OrganizationMemberListTest(APITestCase):
 
         assert resp.status_code == 401
 
-    def test_duplicate_email_invites(self):
-        pass
-
     def test_no_team_invites(self):
-        pass
+        self.login_as(user=self.owner_user)
+        response = self.client.post(
+            self.url, {
+                'email': 'eric@localhost', 'role': 'owner', 'teams': []
+            })
+
+        assert response.status_code == 201
+        assert response.data['email'] == 'eric@localhost'
+
+    def test_invalid_team_invites(self):
+        self.login_as(user=self.owner_user)
+        response = self.client.post(
+            self.url, {
+                'email': 'eric@localhost', 'role': 'owner', 'teams': ['faketeam']
+            })
+
+        assert response.status_code == 400
