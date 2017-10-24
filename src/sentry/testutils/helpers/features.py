@@ -33,7 +33,7 @@ def Feature(names):
     if isinstance(names, six.string_types):
         names = {names: True}
 
-    if not isinstance(names, collections.Mapping):
+    elif not isinstance(names, collections.Mapping):
         names = {k: True for k in names}
 
     with patch('sentry.features.has') as features_has:
