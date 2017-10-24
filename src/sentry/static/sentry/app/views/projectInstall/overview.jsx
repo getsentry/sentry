@@ -64,23 +64,21 @@ const ProjectInstallOverview = React.createClass({
                 <AutoSelectText className="form-control disabled">
                   {data.dsnPublic}
                 </AutoSelectText>
-                <div className="help-block m-b-3">
-                  <Link
-                    to={`/${orgId}/${projectId}/#welcome`}
-                    className="btn btn-primary btn-lg pull-right">
-                    {t('Got it! Take me to the Issue Stream.')}
-                  </Link>
+                <div className="help-block m-b-1">
                   {t('The public DSN should be used with JavaScript.')}
                 </div>
+                <Link
+                  to={`/${orgId}/${projectId}/#welcome`}
+                  className="btn btn-primary btn-lg m-b-1">
+                  {t('Got it! Take me to the Issue Stream.')}
+                </Link>
               </div>
             </div>
           : <p>
               <small>
                 {tct('Already have things setup? [link:Get your DSN]', {
-                  link: (
-                    <a className="btn btn-xsmall btn-primary" onClick={this.toggleDsn} />
-                  )
-                })}
+                  link: <a className="btn-xsmall" onClick={this.toggleDsn} />
+                })}.
               </small>
             </p>}
         <PlatformPicker setPlatform={this.redirectToDocs} showOther={false} />
