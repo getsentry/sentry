@@ -59,14 +59,11 @@ class TagStorage(Service):
         'get_group_tag_values',
 
         'delete_tag_key',
-        'delete_group_tag_key',
         'delete_all_group_tag_keys',
         'delete_all_group_tag_values',
 
         'get_group_values_seen',
         'get_group_event_ids',
-        'get_tag_value_qs',
-        'get_group_tag_value_qs',
         'get_group_tag_value_count',
         'get_top_group_tag_values',
         'get_first_release',
@@ -79,8 +76,11 @@ class TagStorage(Service):
         'get_group_ids_for_users',
         'get_group_tag_values_for_users',
         'get_tags_for_search_filter',
-        'get_event_tag_qs',
         'update_group_tag_key_values_seen',
+
+        'get_tag_value_qs',
+        'get_group_tag_value_qs',
+        'get_event_tag_qs',
     )
 
     def is_valid_key(self, key):
@@ -235,12 +235,6 @@ class TagStorage(Service):
     def delete_tag_key(self, project_id, key):
         """
         >>> delete_tag_key(1, "key1")
-        """
-        raise NotImplementedError
-
-    def delete_group_tag_key(self, group_id, key):
-        """
-        >>> delete_group_tag_key(1, "key1")
         """
         raise NotImplementedError
 
