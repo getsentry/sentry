@@ -383,10 +383,6 @@ class Group(Model):
         warnings.warn('Group.message_short is deprecated, use Group.title', DeprecationWarning)
         return self.title
 
-    def has_two_part_message(self):
-        warnings.warn('Group.has_two_part_message is no longer used', DeprecationWarning)
-        return False
-
     @property
     def organization(self):
         return self.project.organization
