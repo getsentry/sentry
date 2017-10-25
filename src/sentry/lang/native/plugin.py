@@ -26,6 +26,8 @@ FRAME_CACHE_VERSION = 6
 
 
 class NativeStacktraceProcessor(StacktraceProcessor):
+    supported_platforms = ('cocoa', 'native')
+
     def __init__(self, *args, **kwargs):
         StacktraceProcessor.__init__(self, *args, **kwargs)
         debug_meta = self.data.get('debug_meta')
@@ -72,7 +74,8 @@ class NativeStacktraceProcessor(StacktraceProcessor):
                 if mechanism and 'posix_signal' in mechanism and \
                    'signal' in mechanism['posix_signal']:
                     signal = int(mechanism['posix_signal']['signal'])
-            registers = processable_frame.stacktrace_info.stacktrace.get('registers')
+            registers = processable_frame.stacktrace_info.stacktrace.get(
+                'registers')
             if registers:
                 ip_reg_name = arch_get_ip_reg_name(self.arch)
                 if ip_reg_name:
@@ -89,7 +92,8 @@ class NativeStacktraceProcessor(StacktraceProcessor):
 
     def handles_frame(self, frame, stacktrace_info):
         platform = frame.get('platform') or self.data.get('platform')
-        return (platform == 'cocoa' and self.available and 'instruction_addr' in frame)
+        return (platform in self.supported_platforms and self.available
+                and 'instruction_addr' in frame)
 
     def preprocess_frame(self, processable_frame):
         instr_addr = self.find_best_instruction(processable_frame)
@@ -155,7 +159,6 @@ class NativeStacktraceProcessor(StacktraceProcessor):
         self.sym = Symbolizer(
             self.project,
             self.object_lookup,
-            arch=self.arch,
             referenced_images=referenced_images,
             on_dsym_file_referenced=on_referenced
         )
@@ -192,22 +195,29 @@ class NativeStacktraceProcessor(StacktraceProcessor):
 
     def process_frame(self, processable_frame, processing_task):
         frame = processable_frame.frame
+        raw_frame = dict(frame)
         errors = []
 
-        new_frames = []
-        raw_frame = dict(frame)
         if processable_frame.cache_value is None:
             # Construct a raw frame that is used by the symbolizer
             # backend.  We only assemble the bare minimum we need here.
             instruction_addr = processable_frame.data['instruction_addr']
-            in_app = self.sym.is_in_app(instruction_addr, sdk_info=self.sdk_info)
+            in_app = self.sym.is_in_app(
+                instruction_addr,
+                sdk_info=self.sdk_info
+            )
+
             if in_app and raw_frame.get('function') is not None:
-                in_app = not self.sym.is_internal_function(raw_frame['function'])
+                in_app = not self.sym.is_internal_function(
+                    raw_frame['function'])
+
             if raw_frame.get('in_app') is None:
                 raw_frame['in_app'] = in_app
+
             obj_uuid = processable_frame.data['obj_uuid']
             if obj_uuid is not None:
                 self.dsyms_referenced.add(obj_uuid)
+
             try:
                 symbolicated_frames = self.sym.symbolize_frame(
                     instruction_addr,
@@ -238,24 +248,26 @@ class NativeStacktraceProcessor(StacktraceProcessor):
                 # optional dsyms)
                 errors = []
                 if e.is_user_fixable or e.is_sdk_failure:
-                    errors.append(
-                        {
-                            'type': e.type,
-                            'image_uuid': e.image_uuid,
-                            'image_path': e.image_path,
-                            'image_arch': e.image_arch,
-                            'message': e.message,
-                        }
-                    )
+                    errors.append({
+                        'type': e.type,
+                        'image_uuid': e.image_uuid,
+                        'image_path': e.image_path,
+                        'image_arch': e.image_arch,
+                        'message': e.message,
+                    })
                 else:
-                    logger.debug('Failed to symbolicate with native backend', exc_info=True)
+                    logger.debug('Failed to symbolicate with native backend',
+                                 exc_info=True)
+
                 return [raw_frame], [raw_frame], errors
 
             processable_frame.set_cache_value([in_app, symbolicated_frames])
-        else:
+
+        else:  # processable_frame.cache_value is present
             in_app, symbolicated_frames = processable_frame.cache_value
             raw_frame['in_app'] = in_app
 
+        new_frames = []
         for sfrm in symbolicated_frames:
             new_frame = dict(frame)
             new_frame['function'] = sfrm['function']
@@ -263,16 +275,18 @@ class NativeStacktraceProcessor(StacktraceProcessor):
                 new_frame['symbol'] = sfrm['symbol']
             new_frame['abs_path'] = sfrm['abs_path']
             new_frame['filename'] = sfrm.get('filename') or \
-                (sfrm['abs_path'] and posixpath.basename(sfrm['abs_path'])) or None
+                (sfrm['abs_path'] and posixpath.basename(sfrm['abs_path'])) or \
+                None
             if sfrm.get('lineno'):
                 new_frame['lineno'] = sfrm['lineno']
             if sfrm.get('colno'):
                 new_frame['colno'] = sfrm['colno']
-            if sfrm.get('package'):
-                new_frame['package'] = sfrm['package']
+            if sfrm.get('package') or processable_frame.data['obj'] is not None:
+                new_frame['package'] = sfrm.get(
+                    'package', processable_frame.data['obj'].name)
             if new_frame.get('in_app') is None:
-                new_frame['in_app'
-                          ] = (in_app and not self.sym.is_internal_function(new_frame['function']))
+                new_frame['in_app'] = in_app and \
+                    not self.sym.is_internal_function(new_frame['function'])
             new_frames.append(new_frame)
 
         return new_frames, [raw_frame], []
@@ -282,5 +296,5 @@ class NativePlugin(Plugin2):
     can_disable = False
 
     def get_stacktrace_processors(self, data, stacktrace_infos, platforms, **kwargs):
-        if 'cocoa' in platforms:
+        if any(platform in NativeStacktraceProcessor.supported_platforms for platform in platforms):
             return [NativeStacktraceProcessor]
