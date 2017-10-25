@@ -8,7 +8,7 @@ from rest_framework.response import Response
 from django.conf import settings
 
 from sentry.app import locks
-from sentry import roles
+from sentry import roles, features
 from sentry.api.bases.organization import (
     OrganizationEndpoint, OrganizationPermission)
 from sentry.api.paginator import OffsetPaginator
@@ -91,6 +91,10 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
         """
         # TODO: If the member already exists, should this still update the role and team?
         # For now, it doesn't, but simply returns the existing object
+
+        if not features.has('organizations:invite-members', organization, actor=request.user):
+            return Response(
+                {'organization': 'Your organization is not allowed to invite members'}, status=401)
 
         serializer = OrganizationMemberSerializer(data=request.DATA)
 
