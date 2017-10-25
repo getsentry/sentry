@@ -186,7 +186,7 @@ class NativeStacktraceProcessor(StacktraceProcessor):
         if not to_lookup:
             return
 
-        rv = lookup_system_symbols(to_lookup, self.sdk_info, self.sym.arch)
+        rv = lookup_system_symbols(to_lookup, self.sdk_info, self.arch)
         if rv is not None:
             for symrv, pf in zip(rv, pf_list):
                 if symrv is None:
