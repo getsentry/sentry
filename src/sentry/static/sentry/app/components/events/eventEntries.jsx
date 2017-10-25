@@ -106,6 +106,7 @@ const EventEntries = React.createClass({
     let hasContextSummary =
       hasContext &&
       (evt.platform === 'cocoa' ||
+        evt.platform === 'native' ||
         evt.platform === 'javascript' ||
         evt.platform === 'java');
 

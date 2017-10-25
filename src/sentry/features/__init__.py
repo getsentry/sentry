@@ -26,6 +26,7 @@ default_manager.add('projects:sample-events', ProjectFeature)  # NOQA
 default_manager.add('projects:similarity-indexing', ProjectFeature)  # NOQA
 default_manager.add('projects:custom-filters', ProjectFeature)  # NOQA
 default_manager.add('projects:custom-inbound-filters', ProjectFeature)  # NOQA
+default_manager.add('projects:minidump', ProjectFeature)  # NOQA
 
 # expose public api
 add = default_manager.add

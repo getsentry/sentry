@@ -101,8 +101,16 @@ urlpatterns += patterns(
     '',
     # Store endpoints first since they are the most active
     url(r'^api/store/$', api.StoreView.as_view(), name='sentry-api-store'),
-    url(r'^api/(?P<project_id>[\w_-]+)/store/$',
-        api.StoreView.as_view(), name='sentry-api-store'),
+    url(
+        r'^api/(?P<project_id>[\w_-]+)/store/$',
+        api.StoreView.as_view(),
+        name='sentry-api-store'
+    ),
+    url(
+        r'^api/(?P<project_id>[\w_-]+)/minidump/?$',
+        api.MinidumpView.as_view(),
+        name='sentry-api-minidump'
+    ),
     url(
         r'^api/(?P<project_id>\d+)/csp-report/$',
         api.CspReportView.as_view(),
@@ -481,7 +489,8 @@ urlpatterns += patterns(
     # XXX(dcramer): preferably we'd be able to use 'integrations' as the URL
     # prefix here, but unfortunately sentry.io has that mapped to marketing
     # assets for the time being
-    url(r'^extensions/(?P<provider_id>[\w_-]+)/setup/$', IntegrationSetupView.as_view()),
+    url(r'^extensions/(?P<provider_id>[\w_-]+)/setup/$',
+        IntegrationSetupView.as_view()),
     url(r'^extensions/cloudflare/', include('sentry.integrations.cloudflare.urls')),
     url(r'^extensions/slack/', include('sentry.integrations.slack.urls')),
 

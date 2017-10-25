@@ -131,6 +131,8 @@ const EventContextSummary = React.createClass({
     let children = [<UserSummary key="user" data={evt.user} />];
     switch (evt.platform) {
       case 'cocoa':
+        // fallthrough
+      case 'native':
         children.push(<DeviceSummary key="device" data={contexts.device} />);
         children.push(
           <GenericSummary key="os" data={contexts.os} unknownTitle={t('Unknown OS')} />

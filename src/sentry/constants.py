@@ -39,7 +39,9 @@ DATA_ROOT = os.path.join(MODULE_ROOT, 'data')
 
 SORT_OPTIONS = OrderedDict(
     (
-        ('priority', _('Priority')), ('date', _('Last Seen')), ('new', _('First Seen')),
+        ('priority', _('Priority')),
+        ('date', _('Last Seen')),
+        ('new', _('First Seen')),
         ('freq', _('Frequency')),
     )
 )
@@ -106,7 +108,8 @@ DEFAULT_SORT_OPTION = 'date'
 
 # Setup languages for only available locales
 LANGUAGE_MAP = dict(settings.LANGUAGES)
-LANGUAGES = [(k, LANGUAGE_MAP[k]) for k in get_all_languages() if k in LANGUAGE_MAP]
+LANGUAGES = [(k, LANGUAGE_MAP[k])
+             for k in get_all_languages() if k in LANGUAGE_MAP]
 
 # TODO(dcramer): We eventually want to make this user-editable
 TAG_LABELS = {
@@ -134,7 +137,8 @@ SENTRY_RULES = (
 )
 
 # methods as defined by http://www.w3.org/Protocols/rfc2616/rfc2616-sec9.html + PATCH
-HTTP_METHODS = ('GET', 'POST', 'PUT', 'OPTIONS', 'HEAD', 'DELETE', 'TRACE', 'CONNECT', 'PATCH')
+HTTP_METHODS = ('GET', 'POST', 'PUT', 'OPTIONS', 'HEAD',
+                'DELETE', 'TRACE', 'CONNECT', 'PATCH')
 
 CLIENT_RESERVED_ATTRS = (
     'project', 'errors', 'event_id', 'message', 'checksum', 'culprit', 'fingerprint', 'level',
@@ -177,6 +181,7 @@ VALID_PLATFORMS = set(
         'elixir',
         'haskell',
         'groovy',
+        'native',
     ]
 )
 
@@ -304,7 +309,8 @@ def get_integration_id_for_event(platform, sdk_name, integrations):
                 return integration_id
 
     # try sdk name, for example "sentry-java" -> "java" or "raven-java:log4j" -> "java-log4j"
-    sdk_name = sdk_name.lower().replace("sentry-", "").replace("raven-", "").replace(":", "-")
+    sdk_name = sdk_name.lower().replace(
+        "sentry-", "").replace("raven-", "").replace(":", "-")
     if sdk_name in INTEGRATION_ID_TO_PLATFORM_DATA:
         return sdk_name
 
@@ -322,8 +328,9 @@ class ObjectStatus(object):
     @classmethod
     def as_choices(cls):
         return (
-            (cls.VISIBLE, 'visible'), (cls.HIDDEN,
-                                       'hidden'), (cls.PENDING_DELETION, 'pending_deletion'),
+            (cls.VISIBLE, 'visible'),
+            (cls.HIDDEN, 'hidden'),
+            (cls.PENDING_DELETION, 'pending_deletion'),
             (cls.DELETION_IN_PROGRESS, 'deletion_in_progress'),
         )
 

@@ -340,7 +340,7 @@ const Frame = React.createClass({
     );
   },
 
-  renderCocoaLine() {
+  renderNativeLine() {
     let data = this.props.data;
     let hint = this.getFrameHint();
     return (
@@ -377,8 +377,11 @@ const Frame = React.createClass({
   renderLine() {
     switch (this.getPlatform()) {
       case 'objc':
+        // fallthrough
       case 'cocoa':
-        return this.renderCocoaLine();
+        // fallthrough
+      case 'native':
+        return this.renderNativeLine();
       default:
         return this.renderDefaultLine();
     }

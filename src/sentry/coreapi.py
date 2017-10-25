@@ -39,7 +39,7 @@ from sentry.db.models import BoundedIntegerField
 from sentry.interfaces.base import get_interface, InterfaceValidationError
 from sentry.interfaces.csp import Csp
 from sentry.event_manager import EventManager
-from sentry.models import EventError, ProjectKey
+from sentry.models import EventError, ProjectKey, upload_minidump, merge_minidump_event
 from sentry.tasks.store import preprocess_event, \
     preprocess_event_from_reprocessing
 from sentry.utils import json
@@ -848,6 +848,83 @@ class ClientApiHelper(object):
             preprocess_event_from_reprocessing or preprocess_event
         task.delay(cache_key=cache_key, start_time=time(),
                    event_id=data['event_id'])
+
+
+class MinidumpApiHelper(ClientApiHelper):
+    def origin_from_request(self, request):
+        # We don't use an origin here
+        return None
+
+    def auth_from_request(self, request):
+        key = request.GET.get('sentry_key')
+        if not key:
+            raise APIUnauthorized('Unable to find authentication information')
+
+        auth = Auth({'sentry_key': key}, is_public=True)
+        auth.client = 'sentry-minidump'
+        return auth
+
+    def validate_data(self, project, data):
+        try:
+            release = data.pop('release')
+        except KeyError:
+            release = None
+
+        # Minidump request payloads do not have the same structure as
+        # usual events from other SDKs. Most importantly, all parameters
+        # passed in the POST body are only "extra" information. The
+        # actual information is in the "upload_file_minidump" field.
+
+        # At this point, we only extract the bare minimum information
+        # needed to continue processing. If all validations pass, the
+        # event will be inserted into the database, at which point we
+        # can process the minidump and extract a little more information.
+
+        validated = {
+            'platform': 'native',
+            'project': project.id,
+            'extra': data,
+            'errors': [],
+            'sentry.interfaces.User': {
+                'ip_address': self.context.ip_address,
+            },
+        }
+
+        # Copy/pasted from above in ClientApiHelper.validate_data
+        if release:
+            release = six.text_type(release)
+            if len(release) <= 64:
+                validated['release'] = release
+            else:
+                validated['errors'].append({
+                    'type': EventError.VALUE_TOO_LONG,
+                    'name': 'release',
+                    'value': release,
+                })
+
+        return validated
+
+    def insert_data_to_database(self, data, from_reprocessing=False):
+        # Seems like the event is valid and we can do some more expensive
+        # work on the minidump. That is, persisting the file itself for
+        # later postprocessing and extracting some more information from
+        # the minidump to populate the initial callstacks and exception
+        # information.
+        event_id = data['event_id']
+        minidump = data['extra'].pop('upload_file_minidump')
+        merge_minidump_event(data, minidump.temporary_file_path())
+        upload_minidump(minidump, event_id)
+
+        # All more advanced analysis, such as stack frame symbolication,
+        # requires a proper stacktrace, which requires call frame infos
+        # (CFI) for more accurate stackwalking. This task is executed
+        # even before starting the native language plugin, which will
+        # ultimately perform stack frame symbolication.
+
+        # Continue with persisting the event in the usual manner and
+        # schedule default preprocessing tasks
+        super(MinidumpApiHelper, self).insert_data_to_database(
+            data, from_reprocessing)
 
 
 class CspApiHelper(ClientApiHelper):

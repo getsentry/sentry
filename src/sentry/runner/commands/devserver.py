@@ -85,6 +85,8 @@ def devserver(reload, watchers, workers, browser_reload, styleguide, environment
         'honour-stdin': True,
         # accept ridiculously large files
         'limit-post': 1 << 30,
+        # do something with chunked
+        'http-chunked-input': True,
     }
 
     if reload:
