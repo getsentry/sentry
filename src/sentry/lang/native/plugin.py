@@ -48,7 +48,12 @@ class NativeStacktraceProcessor(StacktraceProcessor):
         StacktraceProcessor.close(self)
         if self.dsyms_referenced:
             metrics.incr(
-                'dsyms.processed', amount=len(self.dsyms_referenced), instance=self.project.id
+                'dsyms.processed',
+                amount=len(self.dsyms_referenced),
+                skip_internal=True,
+                tags={
+                    'project_id': self.project.id,
+                },
             )
 
     def find_best_instruction(self, processable_frame):
