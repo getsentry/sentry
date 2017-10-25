@@ -139,6 +139,9 @@ class LegacyTagStorage(TagStorage):
         if status is not None:
             qs = qs.filter(status=status)
 
+        if keys is not None:
+            qs = qs.filter(key__in=keys)
+
         return list(qs)
 
     def get_tag_value(self, project_id, key, value):
