@@ -807,5 +807,8 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
             metrics.incr(
                 'sourcemaps.processed',
                 amount=len(self.sourcemaps_touched),
-                instance=self.project.id
+                skip_internal=True,
+                tags={
+                    'project_id': self.project.id,
+                },
             )
