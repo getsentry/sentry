@@ -39,6 +39,7 @@ from sentry.tasks.merge import merge_group
 from sentry.tasks.post_process import post_process_group
 from sentry.utils.cache import default_cache
 from sentry.utils.db import get_db_engine
+from sentry.utils.metrics import incr as metrics_incr
 from sentry.utils.safe import safe_execute, trim, trim_dict
 from sentry.utils.strings import truncatechars
 from sentry.utils.validators import validate_ip
@@ -870,6 +871,8 @@ class EventManager(object):
                     ).values_list('id', flat=True).first() if first_release else None,
                     **kwargs
                 ), True
+
+            metrics_incr('group.created', skip_internal=True, tags={'platform': event.platform})
 
         else:
             group = Group.objects.get(id=existing_group_id)
