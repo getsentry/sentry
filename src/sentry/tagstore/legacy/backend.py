@@ -122,7 +122,7 @@ class LegacyTagStorage(TagStorage):
             key=key,
         )
 
-        if status:
+        if status is not None:
             qs = qs.filter(status=status)
 
         try:
@@ -136,7 +136,7 @@ class LegacyTagStorage(TagStorage):
         else:
             qs = TagKey.objects.filter(project_id__in=project_ids)
 
-        if status:
+        if status is not None:
             qs = qs.filter(status=status)
 
         return list(qs)
