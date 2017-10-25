@@ -139,7 +139,7 @@ class LegacyTagStorage(TagStorage):
         if status:
             qs = qs.filter(status=status)
 
-        return list(qs.order_by('key'))
+        return list(qs)
 
     def get_tag_value(self, project_id, key, value):
         from sentry.tagstore.exceptions import TagValueNotFound
