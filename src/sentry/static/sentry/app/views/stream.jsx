@@ -7,11 +7,10 @@ import {StickyContainer, Sticky} from 'react-sticky';
 import classNames from 'classnames';
 import _ from 'lodash';
 
-import ApiMixin from '../mixins/apiMixin';
+import withSentry from '../providers/withSentry';
 import GroupStore from '../stores/groupStore';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
-import ProjectState from '../mixins/projectState';
 import Pagination from '../components/pagination';
 import StreamGroup from '../components/stream/group';
 import StreamActions from './stream/actions';
@@ -37,8 +36,6 @@ const Stream = React.createClass({
   mixins: [
     Reflux.listenTo(GroupStore, 'onGroupChange'),
     Reflux.listenTo(StreamTagStore, 'onStreamTagChange'),
-    ApiMixin,
-    ProjectState
   ],
 
   getDefaultProps() {
@@ -52,7 +49,7 @@ const Stream = React.createClass({
 
   getInitialState() {
     let searchId = this.props.params.searchId || null;
-    let project = this.getProject();
+    let project = this.props.project;
     let realtimeActiveCookie = Cookies.get('realtimeActive');
     let realtimeActive = typeof realtimeActiveCookie === 'undefined'
       ? project && !project.firstEvent
@@ -144,7 +141,7 @@ const Stream = React.createClass({
     });
 
     let {orgId, projectId} = this.props.params;
-    this.api.request(`/projects/${orgId}/${projectId}/searches/`, {
+    this.props.api.request(`/projects/${orgId}/${projectId}/searches/`, {
       success: data => {
         let newState = {
           isDefaultSearch: false,
@@ -205,7 +202,7 @@ const Stream = React.createClass({
 
   fetchProcessingIssues() {
     let {orgId, projectId} = this.props.params;
-    this.api.request(`/projects/${orgId}/${projectId}/processingissues/`, {
+    this.props.api.request(`/projects/${orgId}/${projectId}/processingissues/`, {
       success: data => {
         if (data.hasIssues || data.resolveableIssues > 0 || data.issuesProcessing > 0) {
           this.setState({
@@ -229,7 +226,7 @@ const Stream = React.createClass({
     });
 
     let params = this.props.params;
-    this.api.request(`/projects/${params.orgId}/${params.projectId}/tags/`, {
+    this.props.api.request(`/projects/${params.orgId}/${params.projectId}/tags/`, {
       success: tags => {
         this.setState({tagsLoading: false});
         StreamTagActions.loadTagsSuccess(tags);
@@ -350,7 +347,7 @@ const Stream = React.createClass({
 
     this._poller.disable();
 
-    this.lastRequest = this.api.request(url, {
+    this.lastRequest = this.props.api.request(url, {
       method: 'GET',
       data: requestParams,
       success: (data, ignore, jqXHR) => {
@@ -539,7 +536,7 @@ const Stream = React.createClass({
   createSampleEvent() {
     let params = this.props.params;
     let url = `/projects/${params.orgId}/${params.projectId}/create-sample/`;
-    this.api.request(url, {
+    this.props.api.request(url, {
       method: 'POST',
       success: data => {
         browserHistory.pushState(
@@ -634,8 +631,8 @@ const Stream = React.createClass({
     return <ul className="group-list" ref="groupList">{groupNodes}</ul>;
   },
   renderAwaitingEvents() {
-    let org = this.getOrganization();
-    let project = this.getProject();
+    let org = this.props.organization();
+    let project = this.props.project;
     let sampleLink = null;
     if (this.state.groupIds.length > 0) {
       let sampleIssueId = this.state.groupIds[0];
@@ -699,7 +696,7 @@ const Stream = React.createClass({
   },
   renderStreamBody() {
     let body;
-    let project = this.getProject();
+    let project = this.props.project;
     if (this.state.dataLoading) {
       body = this.renderLoading();
     } else if (this.state.error) {
@@ -723,8 +720,8 @@ const Stream = React.createClass({
     if (this.state.isSidebarVisible) classes.push('show-sidebar');
     let {orgId, projectId} = this.props.params;
     let searchId = this.state.searchId;
-    let access = this.getAccess();
-    let projectFeatures = this.getProjectFeatures();
+    let access = this.props.getAccess();
+    let projectFeatures = this.props.getProjectFeatures();
     return (
       <StickyContainer>
         <div className={classNames(classes)}>
@@ -754,7 +751,7 @@ const Stream = React.createClass({
                     orgId={params.orgId}
                     projectId={params.projectId}
                     hasReleases={projectFeatures.has('releases')}
-                    latestRelease={this.context.project.latestRelease}
+                    latestRelease={this.props.project.latestRelease}
                     query={this.state.query}
                     onSelectStatsPeriod={this.onSelectStatsPeriod}
                     onRealtimeChange={this.onRealtimeChange}
@@ -783,4 +780,5 @@ const Stream = React.createClass({
     );
   }
 });
-export default Stream;
+
+export default withSentry('api', 'project')(Stream);
