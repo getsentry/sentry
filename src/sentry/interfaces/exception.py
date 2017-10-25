@@ -15,6 +15,7 @@ import six
 from django.conf import settings
 
 from sentry.interfaces.base import Interface, InterfaceValidationError
+from sentry.interfaces.schemas import is_valid_interface
 from sentry.interfaces.stacktrace import Stacktrace, slim_frame_data
 from sentry.utils import json
 from sentry.utils.safe import trim
@@ -40,11 +41,12 @@ class SingleException(Interface):
     >>> }
     """
     score = 2000
+    path = 'sentry.interfaces.Exception'
 
     @classmethod
     def to_python(cls, data, slim_frames=True):
-        if not (data.get('type') or data.get('value')):
-            raise InterfaceValidationError("No 'type' or 'value' present")
+        if not is_valid_interface(data, cls.path):
+            raise InterfaceValidationError("Invalid exception")
 
         if data.get('stacktrace') and data['stacktrace'].get('frames'):
             stacktrace = Stacktrace.to_python(
@@ -75,8 +77,6 @@ class SingleException(Interface):
 
         mechanism = data.get('mechanism')
         if mechanism is not None:
-            if not isinstance(mechanism, dict):
-                raise InterfaceValidationError('Bad value for mechanism')
             mechanism = trim(data.get('mechanism'), 4096)
             mechanism.setdefault('type', 'generic')
 
@@ -138,7 +138,7 @@ class SingleException(Interface):
         return 'exception'
 
     def get_path(self):
-        return 'sentry.interfaces.Exception'
+        return self.path
 
     def get_hash(self, platform=None, is_processed_data=True):
         output = None

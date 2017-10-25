@@ -20,6 +20,7 @@ from six.moves.urllib.parse import urlparse
 
 from sentry.app import env
 from sentry.interfaces.base import Interface, InterfaceValidationError
+from sentry.interfaces.schemas import is_valid_interface
 from sentry.models import UserOption
 from sentry.utils.safe import trim, trim_dict
 from sentry.web.helpers import render_to_string
@@ -253,8 +254,17 @@ def handle_nan(value):
 
 
 class Frame(Interface):
+
+    path = 'frame'
+
     @classmethod
     def to_python(cls, data, raw=False):
+        # TODO(alex) since the stacktrace schema already includes
+        # the frame schema, might not need to re-validate here.
+        # probably just need to do one or the other.
+        if not is_valid_interface(data, cls.path):
+            raise InterfaceValidationError("Invalid stack frame data.")
+
         abs_path = data.get('abs_path')
         filename = data.get('filename')
         symbol = data.get('symbol')
@@ -269,11 +279,6 @@ class Frame(Interface):
         # For consistency reasons
         if symbol == '?':
             symbol = None
-
-        for name in ('abs_path', 'filename', 'symbol', 'function', 'module', 'package'):
-            v = data.get(name)
-            if v is not None and not isinstance(v, six.string_types):
-                raise InterfaceValidationError("Invalid value for '%s'" % name)
 
         # Some of this processing should only be done for non raw frames
         if not raw:
@@ -292,12 +297,6 @@ class Frame(Interface):
                         filename = abs_path
                 else:
                     filename = abs_path
-
-            if not (filename or function or module or package):
-                raise InterfaceValidationError(
-                    "No 'filename' or 'function' or "
-                    "'module' or 'package'"
-                )
 
         platform = data.get('platform')
         if platform not in VALID_PLATFORMS:
@@ -329,10 +328,7 @@ class Frame(Interface):
         else:
             pre_context, post_context = None, None
 
-        try:
-            in_app = validate_bool(data.get('in_app'), False)
-        except AssertionError:
-            raise InterfaceValidationError("Invalid value for 'in_app'")
+        in_app = validate_bool(data.get('in_app'), False)
 
         kwargs = {
             'abs_path': trim(abs_path, 2048),
@@ -672,17 +668,17 @@ class Stacktrace(Interface):
               to the full interface path.
     """
     score = 2000
+    path = 'sentry.interfaces.Stacktrace'
 
     def __iter__(self):
         return iter(self.frames)
 
     @classmethod
     def to_python(cls, data, slim_frames=True, raw=False):
-        if not data.get('frames'):
-            raise InterfaceValidationError("No 'frames' present")
-
-        if not isinstance(data['frames'], list):
-            raise InterfaceValidationError("Invalid value for 'frames'")
+        # TODO(alex) since the exception schema already includes
+        # the stacktrace schema, might not need to re-validate here.
+        if not is_valid_interface(data, cls.path):
+            raise InterfaceValidationError("Invalid exception data.")
 
         frame_list = [
             # XXX(dcramer): handle PHP sending an empty array for a frame
@@ -698,8 +694,6 @@ class Stacktrace(Interface):
             kwargs['registers'] = data.get('registers')
 
         if data.get('frames_omitted'):
-            if len(data['frames_omitted']) != 2:
-                raise InterfaceValidationError("Invalid value for 'frames_omitted'")
             kwargs['frames_omitted'] = data['frames_omitted']
         else:
             kwargs['frames_omitted'] = None
@@ -745,7 +739,7 @@ class Stacktrace(Interface):
         }
 
     def get_path(self):
-        return 'sentry.interfaces.Stacktrace'
+        return self.path
 
     def compute_hashes(self, platform):
         system_hash = self.get_hash(platform, system_frames=True)

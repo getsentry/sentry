@@ -11,6 +11,8 @@ from __future__ import absolute_import
 import six
 import jsonschema
 
+from sentry.constants import VALID_PLATFORMS
+
 CSP_SCHEMA = {
     'type': 'object',
     'properties': {
@@ -178,6 +180,151 @@ HTTP_INTERFACE_SCHEMA = {
     'additionalProperties': False,  # Don't allow any other keys.
 }
 
+FRAME_INTERFACE_SCHEMA = {
+    'type': 'object',
+    'properties': {
+        'abs_path': {'type': 'string'},
+        'colno': {'type': 'number'},
+        'context_line': {'type': 'string'},
+        'data': {
+            'anyOf': [
+                {'type': 'object'},
+                PAIRS,
+            ]
+        },
+        'errors': {},
+        'filename': {
+            'anyOf': [
+                {'type': 'string'},
+                {'type': 'null'},
+            ],
+        },
+        'function': {'type': 'string'},
+        'image_addr': {},
+        'in_app': {
+            'anyOf': [
+                {'type': 'boolean', 'default': False},
+                {'type': 'null'},
+            ],
+        },
+        'instruction_addr': {},
+        'lineno': {'type': 'number'},
+        'module': {'type': 'string'},
+        'package': {'type': 'string'},
+        'platform': {
+            'type': 'string',
+            'enum': list(VALID_PLATFORMS),
+        },
+        'post_context': {},
+        'pre_context': {},
+        'symbol': {'type': 'string'},
+        'symbol_addr': {},
+        'vars': {
+            'anyOf': [
+                {'type': 'object'},
+                PAIRS,
+            ]
+        },
+    },
+    'anyOf': [
+        # TODO abs_path vs. filename validation depends on whether this is a raw frame or not.
+        {'required': ['abs_path']},
+        {'required': ['filename']},
+        {
+            # can only accept function on its own if it's not None or '?'
+            'required': ['function'],
+            'properties': {
+                'function': {
+                    'type': 'string',  # TODO probably shouldn't allow empty string either
+                    'not': {'pattern': '^\?$'},
+                },
+            },
+        },
+        {'required': ['module']},
+        {'required': ['package']},
+    ],
+    'additionalProperties': False,
+}
+
+STACKTRACE_INTERFACE_SCHEMA = {
+    'type': 'object',
+    'properties': {
+        'frames': {
+            'type': 'array',
+            'items': FRAME_INTERFACE_SCHEMA,
+            'minItems': 1,
+        },
+        'frames_omitted': {
+            'anyOf': [
+                {
+                    'type': 'array',
+                    'maxItems': 2,
+                    'minItems': 2,
+                    'items': {'type': 'number'}
+                },
+                {'type': 'null'},
+            ],
+        },
+        'registers': {
+            'anyOf': [
+                {'type': 'object'},
+                {'type': 'null'},
+            ],
+        }
+    },
+    'required': ['frames'],
+    'additionalProperties': False,
+}
+
+EXCEPTION_INTERFACE_SCHEMA = {
+    'type': 'object',
+    'properties': {
+        'type': {'type': 'string'},
+        'value': {},  # any type
+        'module': {'type': 'string'},
+        'mechanism': {
+            'anyOf': [
+                {'type': 'object'},
+                {'type': 'null'},
+            ],
+        },
+        'stacktrace': {
+            'anyOf': [
+                STACKTRACE_INTERFACE_SCHEMA,
+                {'type': 'null'},
+                {
+                    # The code allows for the possibility of an empty
+                    # {"frames":[]} object, this sucks and should go.
+                    'type': 'object',
+                    'properties': {
+                        'frames': {'type': 'array', 'maxItems': 0},
+                    },
+                },
+            ],
+        },
+        'thread_id': {},
+        'raw_stacktrace': {
+            'anyOf': [
+                STACKTRACE_INTERFACE_SCHEMA,
+                {'type': 'null'},
+                {
+                    # The code allows for the possibility of an empty
+                    # {"frames":[]} object, this sucks and should go.
+                    'type': 'object',
+                    'properties': {
+                        'frames': {'type': 'array', 'maxItems': 0},
+                    },
+                },
+            ],
+        },
+    },
+    'anyOf': [  # Require at least one of these keys.
+        {'required': ['type']},
+        {'required': ['value']},
+    ],
+    'additionalProperties': False,  # Don't allow any other keys.
+}
+
 """
 Schemas for raw request data.
 
@@ -202,6 +349,11 @@ INTERFACE_SCHEMAS = {
     'hpkp': HPKP_INTERFACE_SCHEMA,
     'sentry.interfaces.Http': HTTP_INTERFACE_SCHEMA,
     'request': HTTP_INTERFACE_SCHEMA,
+    'exception': EXCEPTION_INTERFACE_SCHEMA,
+    'sentry.interfaces.Exception': EXCEPTION_INTERFACE_SCHEMA,
+    'stacktrace': STACKTRACE_INTERFACE_SCHEMA,
+    'sentry.interfaces.Stacktrace': STACKTRACE_INTERFACE_SCHEMA,
+    'frame': FRAME_INTERFACE_SCHEMA,
 }
 
 
