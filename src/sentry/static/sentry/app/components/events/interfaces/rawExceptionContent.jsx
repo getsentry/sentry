@@ -24,14 +24,19 @@ const RawExceptionContent = React.createClass({
     };
   },
 
+  isNative() {
+    let { platform } = this.props;
+    return platform === 'cocoa' || platform === 'native';
+  },
+
   componentDidMount() {
-    if (this.props.platform == 'cocoa') {
+    if (this.isNative()) {
       this.fetchAppleCrashReport();
     }
   },
 
   componentDidUpdate(prevProps) {
-    if (this.props.platform == 'cocoa' && this.props.type !== prevProps.type) {
+    if (this.isNative() && this.props.type !== prevProps.type) {
       this.fetchAppleCrashReport();
     }
   },
@@ -76,7 +81,7 @@ const RawExceptionContent = React.createClass({
           this.props.platform,
           exc
         );
-      if (this.props.platform == 'cocoa') {
+      if (this.isNative()) {
         if (this.state.loading) content = <LoadingIndicator />;
         else if (this.state.error) content = <LoadingError onRetry={this.fetchData} />;
         else if (!this.state.loading && this.state.crashReport != '') {
