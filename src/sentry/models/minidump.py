@@ -11,6 +11,7 @@ from __future__ import absolute_import
 import re
 import six
 from django.db import models, transaction
+from django.utils import timezone
 from symbolic import ProcessState
 
 from sentry.constants import LOG_LEVELS_MAP
@@ -28,11 +29,14 @@ class MinidumpFile(Model):
     __core__ = False
 
     file = FlexibleForeignKey('sentry.File')
-    event_id = models.CharField(max_length=36, unique=True)
+    project = FlexibleForeignKey('sentry.Project', null=True)
+    datetime = models.DateTimeField(default=timezone.now, db_index=True)
+    event_id = models.CharField(max_length=36)
 
     class Meta:
         db_table = 'sentry_minidumpfile'
         app_label = 'sentry'
+        unique_together = (('project', 'event_id'), )
 
     __repr__ = sane_repr('event_id')
 
@@ -41,7 +45,7 @@ class MinidumpFile(Model):
         self.file.delete()
 
 
-def upload_minidump(fileobj, event_id):
+def upload_minidump(fileobj, event_id, project_id):
     """Creates a new minidump file object and stores it."""
     with transaction.atomic():
         file = File.objects.create(
@@ -55,6 +59,7 @@ def upload_minidump(fileobj, event_id):
         return MinidumpFile.objects.create(
             file=file,
             event_id=event_id,
+            project_id=project_id,
         )
 
 

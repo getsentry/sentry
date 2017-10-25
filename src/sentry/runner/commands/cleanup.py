@@ -99,6 +99,7 @@ def create_deletion_task(days, project_id, model, dtfield, order_by):
         # Handled by other parts of cleanup
         models.Event,
         models.EventMapping,
+        models.MinidumpFile,
         models.Group,
         models.GroupEmailThread,
         models.GroupRuleStatus,
@@ -204,6 +205,7 @@ def cleanup(days, project, concurrency, max_procs, silent, model, router, timed)
     # (model, datetime_field, order_by)
     DELETES = (
         (models.Event, 'datetime', 'datetime'),
+        (models.MinidumpFile, 'datetime', 'datetime'),
         (models.Group, 'last_seen', 'last_seen'),
     )
 
