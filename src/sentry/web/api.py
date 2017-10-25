@@ -20,6 +20,7 @@ from raven.contrib.django.models import client as Raven
 from sentry import quotas, tsdb
 from sentry.coreapi import (
     APIError, APIForbidden, APIRateLimited, ClientApiHelper, CspApiHelper, LazyData,
+    MinidumpApiHelper,
 )
 from sentry.models import Project, OrganizationOption, Organization
 from sentry.signals import (
@@ -361,7 +362,8 @@ class StoreView(APIView):
                 (tsdb.models.key_total_blacklisted, key.id),
             ]
             try:
-                increment_list.append((FILTER_STAT_KEYS_TO_VALUES[filter_reason], project.id))
+                increment_list.append(
+                    (FILTER_STAT_KEYS_TO_VALUES[filter_reason], project.id))
             # should error when filter_reason does not match a key in FILTER_STAT_KEYS_TO_VALUES
             except KeyError:
                 pass
@@ -498,6 +500,66 @@ class StoreView(APIView):
         )
 
         return event_id
+
+
+class MinidumpView(StoreView):
+    helper_cls = MinidumpApiHelper
+    content_types = ('multipart/form-data', )
+
+    def _dispatch(self, request, helper, project_id=None, origin=None, *args, **kwargs):
+        # TODO(ja): Refactor shared code with CspReportView. Especially, look at
+        # the sentry_key override and test it.
+
+        # A minidump submission as implemented by Breakpad and Crashpad or any
+        # other library following the Mozilla Soccorro protocol is a POST request
+        # without Origin or Referer headers. Therefore, we cannot validate the
+        # origin of the request, but we *can* validate the "prod" key in future.
+        if request.method != 'POST':
+            return HttpResponseNotAllowed(['POST'])
+
+        content_type = request.META.get('CONTENT_TYPE')
+        # In case of multipart/form-data, the Content-Type header also includes
+        # a boundary. Therefore, we cannot check for an exact match.
+        if content_type is None or not content_type.startswith(self.content_types):
+            raise APIError('Invalid Content-Type')
+
+        request.user = AnonymousUser()
+
+        project = self._get_project_from_id(project_id)
+        helper.context.bind_project(project)
+        Raven.tags_context(helper.context.get_tags_context())
+
+        # This is yanking the auth from the querystring since it's not
+        # in the POST body. This means we expect a `sentry_key` and
+        # `sentry_version` to be set in querystring
+        auth = helper.auth_from_request(request)
+
+        key = helper.project_key_from_auth(auth)
+        if key.project_id != project.id:
+            raise APIError('Two different projects were specified')
+
+        helper.context.bind_auth(auth)
+        Raven.tags_context(helper.context.get_tags_context())
+
+        return super(APIView, self).dispatch(
+            request=request, project=project, auth=auth, helper=helper, key=key, **kwargs
+        )
+
+    def post(self, request, **kwargs):
+        try:
+            data = request.POST
+            data['upload_file_minidump'] = request.FILES['upload_file_minidump']
+        except KeyError:
+            raise APIError('Missing minidump upload')
+
+        response_or_event_id = self.process(request, data=data, **kwargs)
+        if isinstance(response_or_event_id, HttpResponse):
+            return response_or_event_id
+
+        return HttpResponse(
+            json.dumps({'id': response_or_event_id}),
+            content_type='application/json'
+        )
 
 
 class CspReportView(StoreView):

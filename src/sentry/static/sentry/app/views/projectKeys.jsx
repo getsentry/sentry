@@ -12,6 +12,7 @@ import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
 import {t, tct} from '../locale';
 import OrganizationState from '../mixins/organizationState';
+import ProjectState from '../mixins/projectState';
 import Pagination from '../components/pagination';
 
 const KeyRow = React.createClass({
@@ -24,7 +25,7 @@ const KeyRow = React.createClass({
     onRemove: PropTypes.func.isRequired
   },
 
-  mixins: [ApiMixin],
+  mixins: [ApiMixin, ProjectState],
 
   getInitialState() {
     return {
@@ -94,6 +95,7 @@ const KeyRow = React.createClass({
   },
 
   render() {
+    let features = this.getProjectFeatures();
     let {access, data, orgId, projectId} = this.props;
     let editUrl = `/${orgId}/${projectId}/settings/keys/${data.id}/`;
     let controls = [
@@ -177,6 +179,19 @@ const KeyRow = React.createClass({
               )}
             </div>
           </div>
+          {features.has('minidump') && (
+            <div className="form-group">
+              <label>{t('Minidump Endpoint')}</label>
+              <AutoSelectText className="form-control disabled">
+                {data.dsn.minidump}
+              </AutoSelectText>
+              <div className="help-block">
+                {tct('Use this endpoint to upload minidump crash reports, for example with Electron, Crashpad or Breakpad.', {
+                  /* TODO: add a link to minidump docs */
+                })}
+              </div>
+            </div>
+          )}
         </ClippedBox>
       </div>
     );

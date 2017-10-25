@@ -146,7 +146,7 @@ const KeySettings = React.createClass({
     rateLimitsEnabled: PropTypes.bool
   },
 
-  mixins: [ApiMixin],
+  mixins: [ApiMixin, ProjectState],
 
   getInitialState() {
     return {
@@ -256,6 +256,7 @@ const KeySettings = React.createClass({
   },
 
   render() {
+    let features = this.getProjectFeatures();
     let isSaving = this.state.state === FormState.SAVING;
     let {errors, formData} = this.state;
     let hasChanges = !isEqual(this.props.initialData, formData);
@@ -430,6 +431,19 @@ const KeySettings = React.createClass({
                 )}
               </div>
             </div>
+            {features.has('minidump') && (
+              <div className="form-group">
+                <label>{t('Minidump Endpoint')}</label>
+                <AutoSelectText className="form-control disabled">
+                  {data.dsn.minidump}
+                </AutoSelectText>
+                <div className="help-block">
+                  {tct('Use this endpoint to upload minidump crash reports, for example with Electron, Crashpad or Breakpad.', {
+                    /* TODO: add a link to minidump docs */
+                  })}
+                </div>
+              </div>
+            )}
             <div className="form-group">
               <label>{t('Public Key')}</label>
               <div className="controls">
