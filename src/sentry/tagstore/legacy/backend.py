@@ -265,12 +265,6 @@ class LegacyTagStorage(TagStorage):
 
         return (updated, tagkey)
 
-    def delete_group_tag_key(self, group_id, key):
-        GroupTagKey.objects.filter(
-            group_id=group_id,
-            key=key
-        ).delete()
-
     def delete_all_group_tag_keys(self, group_id):
         GroupTagKey.objects.filter(
             group_id=group_id,
@@ -308,15 +302,13 @@ class LegacyTagStorage(TagStorage):
         })
 
     def incr_group_tag_value_times_seen(self, group_id, key, value, extra=None, count=1):
-        buffer.incr(
-            GroupTagValue, {
-                'times_seen': count,
-            }, {
-                'group_id': group_id,
-                'key': key,
-                'value': value,
-            }, extra
-        )
+        buffer.incr(GroupTagValue, {
+            'times_seen': count,
+        }, {
+            'group_id': group_id,
+            'key': key,
+            'value': value,
+        }, extra)
 
     def get_group_event_ids(self, project_id, group_id, tags):
         tagkeys = dict(
@@ -373,23 +365,6 @@ class LegacyTagStorage(TagStorage):
                 return []
 
         return matches
-
-    def get_tag_value_qs(self, project_id, key, query=None):
-        queryset = TagValue.objects.filter(
-            project_id=project_id,
-            key=key,
-        )
-
-        if query:
-            queryset = queryset.filter(value__contains=query)
-
-        return queryset
-
-    def get_group_tag_value_qs(self, group_id, key):
-        return GroupTagValue.objects.filter(
-            group_id=group_id,
-            key=key,
-        )
 
     def get_group_values_seen(self, group_ids, key):
         if isinstance(group_ids, six.integer_types):
@@ -546,9 +521,6 @@ class LegacyTagStorage(TagStorage):
 
         return matches
 
-    def get_event_tag_qs(self, **kwargs):
-        return EventTag.objects.filter(**kwargs)
-
     def update_group_tag_key_values_seen(self, group_ids):
         instances = self.get_group_tag_keys(group_ids)
         for instance in instances:
@@ -559,3 +531,23 @@ class LegacyTagStorage(TagStorage):
                     key=instance.key,
                 ).count(),
             )
+
+    def get_tag_value_qs(self, project_id, key, query=None):
+        queryset = TagValue.objects.filter(
+            project_id=project_id,
+            key=key,
+        )
+
+        if query:
+            queryset = queryset.filter(value__contains=query)
+
+        return queryset
+
+    def get_group_tag_value_qs(self, group_id, key):
+        return GroupTagValue.objects.filter(
+            group_id=group_id,
+            key=key,
+        )
+
+    def get_event_tag_qs(self, **kwargs):
+        return EventTag.objects.filter(**kwargs)
