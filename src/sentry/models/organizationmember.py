@@ -216,7 +216,7 @@ class OrganizationMember(Model):
                         organizationmember=self,
                         is_active=True,
                     ).values_list('team', flat=True)
-                )
+                ).values_list('id', flat=True)
             ),
             'has_global_access':
             self.has_global_access,
