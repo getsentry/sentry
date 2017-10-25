@@ -800,6 +800,7 @@ SENTRY_INTERFACES = {
     'request': 'sentry.interfaces.http.Http',
     'sdk': 'sentry.interfaces.sdk.Sdk',
     'stacktrace': 'sentry.interfaces.stacktrace.Stacktrace',
+    'frame': 'sentry.interfaces.stacktrace.Frame',
     'template': 'sentry.interfaces.template.Template',
     'user': 'sentry.interfaces.user.User',
     'applecrashreport': 'sentry.interfaces.applecrash.AppleCrashReport',
