@@ -2,6 +2,7 @@ from __future__ import absolute_import, print_function
 
 import six
 from sentry import nodestore
+from sentry.models import MinidumpFile
 
 from ..base import (BaseDeletionTask, BaseRelation, ModelRelation, ModelDeletionTask)
 
@@ -26,7 +27,8 @@ class EventDeletionTask(ModelDeletionTask):
             by_project.setdefault(instance.project_id, []).append(instance)
 
         for project_id, events in six.iteritems(by_project):
-            rv.append(ModelRelation({'project_id': project_id,
+            rv.append(ModelRelation(MinidumpFile,
+                                    {'project_id': project_id,
                                      'event_id__in': [x.event_id for x in events]},
                                     ModelDeletionTask))
 
