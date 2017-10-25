@@ -83,7 +83,13 @@ const InviteMember = React.createClass({
           resolve();
         },
         error: err => {
-          if (err.status === 409) {
+          if (err.status === 401) {
+            AlertActions.addAlert({
+              message: "You aren't allowed to invite members.",
+              type: 'error'
+            });
+            reject(err.responseJSON);
+          } else if (err.status === 409) {
             AlertActions.addAlert({
               message: `User already exists: ${email}`,
               type: 'info'

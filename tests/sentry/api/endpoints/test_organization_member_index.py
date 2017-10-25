@@ -5,6 +5,7 @@ from django.core import mail
 
 from sentry.testutils import APITestCase
 from sentry.models import OrganizationMember, OrganizationMemberTeam
+from sentry.testutils.helpers import Feature
 
 
 class OrganizationMemberListTest(APITestCase):
@@ -237,8 +238,34 @@ class OrganizationMemberListTest(APITestCase):
 
         assert response.status_code == 403
 
-    def test_duplicate_email_invites(self):
-        pass
+    def test_respects_feature_flag(self):
+        self.login_as(user=self.owner_user)
+
+        user = self.create_user('baz@example.com')
+
+        with Feature({'organizations:invite-members': False}):
+            resp = self.client.post(
+                self.url, {'email': user.email, 'role': 'member', 'teams': [
+                    self.team.slug,
+                ]})
+
+        assert resp.status_code == 401
 
     def test_no_team_invites(self):
-        pass
+        self.login_as(user=self.owner_user)
+        response = self.client.post(
+            self.url, {
+                'email': 'eric@localhost', 'role': 'owner', 'teams': []
+            })
+
+        assert response.status_code == 201
+        assert response.data['email'] == 'eric@localhost'
+
+    def test_invalid_team_invites(self):
+        self.login_as(user=self.owner_user)
+        response = self.client.post(
+            self.url, {
+                'email': 'eric@localhost', 'role': 'owner', 'teams': ['faketeam']
+            })
+
+        assert response.status_code == 400
