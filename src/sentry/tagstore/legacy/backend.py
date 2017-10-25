@@ -10,7 +10,7 @@ from __future__ import absolute_import
 
 import six
 
-from collections import defaultdict, Iterable
+from collections import defaultdict
 from datetime import timedelta
 from django.db import connections, router, IntegrityError, transaction
 from django.db.models import Q, Sum
@@ -22,7 +22,6 @@ from sentry import buffer
 from sentry.tagstore import TagKeyStatus
 from sentry.tagstore.base import TagStorage
 from sentry.utils import db
-from sentry.utils.cache import cache
 
 from .models import EventTag, GroupTagKey, GroupTagValue, TagKey, TagValue
 
@@ -131,34 +130,16 @@ class LegacyTagStorage(TagStorage):
         except TagKey.DoesNotExist:
             raise TagKeyNotFound
 
-    def _get_tag_keys_cache_key(self, project_ids, status):
-        if isinstance(project_ids, Iterable):
-            project_ids = "-".join(sorted(project_ids))
-        return 'filterkey:all:%s:%s' % (project_ids, status)
-
     def get_tag_keys(self, project_ids, keys=None, status=TagKeyStatus.VISIBLE):
-        def _get_base_qs():
-            if isinstance(project_ids, six.integer_types):
-                qs = TagKey.objects.filter(project_id=project_ids)
-            else:
-                qs = TagKey.objects.filter(project_id__in=project_ids)
+        if isinstance(project_ids, six.integer_types):
+            qs = TagKey.objects.filter(project_id=project_ids)
+        else:
+            qs = TagKey.objects.filter(project_id__in=project_ids)
 
-            if status:
-                qs = qs.filter(status=status)
+        if status:
+            qs = qs.filter(status=status)
 
-            return qs
-
-        if not keys:
-            # TODO: cache invalidation via post_save/post_delete signals much like BaseManager
-            key = self._get_tag_keys_cache_key(project_ids, status)
-            result = cache.get(key)
-            if result is None:
-                qs = _get_base_qs()
-                result = list(qs.order_by('-values_seen')[:20])
-                cache.set(key, result, 60)
-            return result
-
-        return list(_get_base_qs())
+        return list(qs.order_by('key'))
 
     def get_tag_value(self, project_id, key, value):
         from sentry.tagstore.exceptions import TagValueNotFound
