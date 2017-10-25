@@ -1,5 +1,5 @@
 """
-sentry.tagstore.current.models.grouptagvalue
+sentry.tagstore.v2.models.grouptagvalue
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 :copyright: (c) 2010-2017 by the Sentry Team, see AUTHORS for more details.
@@ -27,7 +27,7 @@ class GroupTagValue(Model):
     project_id = BoundedPositiveIntegerField(db_index=True)
     group_id = BoundedPositiveIntegerField(db_index=True)
     environment_id = BoundedPositiveIntegerField()
-    times_seen = BoundedPositiveIntegerField(default=0)
+    # times_seen will live in Redis
     key_id = BoundedPositiveIntegerField()
     value_id = BoundedPositiveIntegerField()
     last_seen = models.DateTimeField(
@@ -39,7 +39,7 @@ class GroupTagValue(Model):
 
     class Meta:
         app_label = 'sentry'
-        db_table = 'sentry_messagefiltervalue_current'
+        db_table = 'sentry_messagefiltervalue_v2'
         unique_together = (('project_id', 'group_id', 'environment_id', 'key_id', 'value_id'), )
         # TODO: environment index(es)
         index_together = (('project_id', 'key_id', 'value_id', 'last_seen'), )
@@ -55,6 +55,7 @@ class GroupTagValue(Model):
         super(GroupTagValue, self).save(*args, **kwargs)
 
     # TODO: this will have to iterate all of the possible environments a group has?
+    # TODO: times_seen will live in Redis
     def merge_counts(self, new_group):
         try:
             with transaction.atomic(using=router.db_for_write(GroupTagValue)):

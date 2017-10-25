@@ -1,5 +1,5 @@
 """
-sentry.tagstore.current.backend
+sentry.tagstore.v2.backend
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 :copyright: (c) 2010-2017 by the Sentry Team, see AUTHORS for more details.

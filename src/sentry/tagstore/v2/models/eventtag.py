@@ -1,5 +1,5 @@
 """
-sentry.tagstore.current.models.eventtag
+sentry.tagstore.v2.models.eventtag
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
 :copyright: (c) 2010-2017 by the Sentry Team, see AUTHORS for more details.
@@ -27,7 +27,7 @@ class EventTag(Model):
 
     class Meta:
         app_label = 'sentry'
-        db_table = 'sentry_eventtag_current'
+        db_table = 'sentry_eventtag_v2'
         unique_together = (('event_id', 'key_id', 'value_id'), )
         index_together = (
             # TODO: need indexes with environment in them also

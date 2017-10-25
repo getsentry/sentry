@@ -1,5 +1,5 @@
 """
-sentry.tagstore.current.models.tagkey
+sentry.tagstore.v2.models.tagkey
 ~~~~~~~~~~~~~~~~~~~~
 
 :copyright: (c) 2010-2017 by the Sentry Team, see AUTHORS for more details.
@@ -28,7 +28,7 @@ class TagKey(Model):
     project_id = BoundedPositiveIntegerField(db_index=True)
     environment_id = BoundedPositiveIntegerField()
     key = models.CharField(max_length=MAX_TAG_KEY_LENGTH)
-    values_seen = BoundedPositiveIntegerField(default=0)
+    # values_seen will live in Redis
     status = BoundedPositiveIntegerField(
         choices=(
             (TagKeyStatus.VISIBLE, _('Visible')),
@@ -40,7 +40,7 @@ class TagKey(Model):
 
     class Meta:
         app_label = 'sentry'
-        db_table = 'sentry_filterkey_current'
+        db_table = 'sentry_filterkey_v2'
         unique_together = (('project_id', 'environment_id', 'key'), )
         # TODO: environment index(es)
 

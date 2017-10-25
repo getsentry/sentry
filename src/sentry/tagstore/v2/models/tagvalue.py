@@ -1,5 +1,5 @@
 """
-sentry.tagstore.current.models.tagvalue
+sentry.tagstore.v2.models.tagvalue
 ~~~~~~~~~~~~~~~~~~~~~~
 
 :copyright: (c) 2010-2017 by the Sentry Team, see AUTHORS for more details.
@@ -31,7 +31,7 @@ class TagValue(Model):
     value = models.CharField(max_length=MAX_TAG_VALUE_LENGTH)
     # TODO: do we even use this anymore?
     data = GzippedDictField(blank=True, null=True)
-    times_seen = BoundedPositiveIntegerField(default=0)
+    # times_seen will live in Redis
     last_seen = models.DateTimeField(
         default=timezone.now, db_index=True, null=True)
     first_seen = models.DateTimeField(
@@ -41,7 +41,7 @@ class TagValue(Model):
 
     class Meta:
         app_label = 'sentry'
-        db_table = 'sentry_filtervalue_current'
+        db_table = 'sentry_filtervalue_v2'
         unique_together = (('project_id', 'environment_id', 'key_id', 'value'), )
         # TODO: environment index(es)
         index_together = (('project_id', 'key_id', 'last_seen'), )

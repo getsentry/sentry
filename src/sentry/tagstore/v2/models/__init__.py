@@ -1,5 +1,5 @@
 """
-sentry.tagstore.current.models
+sentry.tagstore.v2.models
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 :copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
