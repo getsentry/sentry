@@ -53,15 +53,23 @@ class SetRemoteAddrFromForwardedFor(object):
 
 
 class ChunkedMiddleware(object):
+    def __init__(self):
+        if not has_uwsgi:
+            from django.core.exceptions import MiddlewareNotUsed
+            raise MiddlewareNotUsed
+
     def process_request(self, request):
         # If we are dealing with chunked data and we have uwsgi we assume
         # that we can read to the end of the input stream so we can bypass
         # the default limited stream.  We set the content length reasonably
         # high so that the reads generally succeeed.  This is ugly but with
         # Django 1.6 it seems to be the best we can easily do.
-        if has_uwsgi and request.META.get('HTTP_TRANSFER_ENCODING', '').lower() == 'chunked':
+        if 'HTTP_TRANSFER_ENCODING' not in request.META:
+            return
+
+        if request.META['HTTP_TRANSFER_ENCODING'].lower() == 'chunked':
             request._stream = io.BufferedReader(UWsgiChunkedInput())
-            request.META['CONTENT_LENGTH'] = six.binary_type(0xffffffff)
+            request.META['CONTENT_LENGTH'] = '4294967295'  # 0xffffffff
 
 
 class ContentLengthHeaderMiddleware(object):
