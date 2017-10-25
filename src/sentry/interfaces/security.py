@@ -160,7 +160,7 @@ class Hpkp(SecurityReport):
     def from_raw(cls, raw):
         # Validate the raw data against the input schema (raises on failure)
         schema = schemas.INPUT_SCHEMAS[cls.path]
-        jsonschema.validate(raw, schema)
+        jsonschema.validate(raw, schema)  # raises
 
         # Trim values and convert keys to use underscores
         kwargs = {k.replace('-', '_'): trim(v, 1024) for k, v in six.iteritems(raw)}
@@ -218,7 +218,7 @@ class Csp(SecurityReport):
     def from_raw(cls, raw):
         # Validate the raw data against the input schema (raises on failure)
         schema = schemas.INPUT_SCHEMAS[cls.path]
-        jsonschema.validate(raw, schema)
+        jsonschema.validate(raw, schema)  # raises
 
         # For CSP, the values we want are nested under the 'csp-report' key.
         raw = raw['csp-report']
@@ -290,10 +290,7 @@ class Csp(SecurityReport):
         )
 
     def should_filter(self, project=None):
-        schema = schemas.INTERFACE_SCHEMAS[self.path]
-        try:
-            jsonschema.validate(self._data, schema)
-        except jsonschema.ValidationError:
+        if not schemas.is_valid_interface(self._data, self.path):
             return True
 
         disallowed = ()
