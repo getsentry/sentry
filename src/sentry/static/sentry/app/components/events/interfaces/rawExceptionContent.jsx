@@ -24,11 +24,6 @@ const RawExceptionContent = React.createClass({
     };
   },
 
-  isNative() {
-    let { platform } = this.props;
-    return platform === 'cocoa' || platform === 'native';
-  },
-
   componentDidMount() {
     if (this.isNative()) {
       this.fetchAppleCrashReport();
@@ -39,6 +34,11 @@ const RawExceptionContent = React.createClass({
     if (this.isNative() && this.props.type !== prevProps.type) {
       this.fetchAppleCrashReport();
     }
+  },
+
+  isNative() {
+    let { platform } = this.props;
+    return platform === 'cocoa' || platform === 'native';
   },
 
   getAppleCrashReportEndpoint() {
