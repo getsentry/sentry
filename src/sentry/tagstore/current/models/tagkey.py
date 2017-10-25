@@ -41,9 +41,10 @@ class TagKey(Model):
     class Meta:
         app_label = 'sentry'
         db_table = 'sentry_filterkey_current'
-        unique_together = (('project_id', 'key'), )
+        unique_together = (('project_id', 'environment_id', 'key'), )
+        # TODO: environment index(es)
 
-    __repr__ = sane_repr('project_id', 'key')
+    __repr__ = sane_repr('project_id', 'environment_id', 'key')
 
     def get_label(self):
         from sentry import tagstore

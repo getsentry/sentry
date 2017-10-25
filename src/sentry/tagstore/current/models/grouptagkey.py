@@ -36,9 +36,10 @@ class GroupTagKey(Model):
     class Meta:
         app_label = 'sentry'
         db_table = 'sentry_grouptagkey_current'
-        unique_together = (('project_id', 'group_id', 'key_id'), )
+        unique_together = (('project_id', 'group_id', 'environment_id', 'key_id'), )
+        # TODO: environment index(es)
 
-    __repr__ = sane_repr('project_id', 'group_id', 'key_id')
+    __repr__ = sane_repr('project_id', 'group_id', 'environment_id', 'key_id')
 
     # TODO: key property to fetch actual key string?
 

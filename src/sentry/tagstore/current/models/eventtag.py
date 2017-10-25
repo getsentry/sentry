@@ -30,6 +30,7 @@ class EventTag(Model):
         db_table = 'sentry_eventtag_current'
         unique_together = (('event_id', 'key_id', 'value_id'), )
         index_together = (
+            # TODO: need indexes with environment in them also
             ('project_id', 'key_id', 'value_id'),
             ('group_id', 'key_id', 'value_id'),
         )

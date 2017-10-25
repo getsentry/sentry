@@ -42,10 +42,11 @@ class TagValue(Model):
     class Meta:
         app_label = 'sentry'
         db_table = 'sentry_filtervalue_current'
-        unique_together = (('project_id', 'key_id', 'value'), )
+        unique_together = (('project_id', 'environment_id', 'key_id', 'value'), )
+        # TODO: environment index(es)
         index_together = (('project_id', 'key_id', 'last_seen'), )
 
-    __repr__ = sane_repr('project_id', 'key_id', 'value')
+    __repr__ = sane_repr('project_id', 'environment_id', 'key_id', 'value')
 
     # TODO: key property to fetch actual key string?
 
