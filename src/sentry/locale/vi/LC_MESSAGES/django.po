@@ -4157,7 +4157,7 @@ msgid "Request Pending"
 msgstr ""
 
 #: static/sentry/app/components/missingProjectMembership.jsx:73
-msgid "Join Team"
+msgid "Join A Team"
 msgstr ""
 
 #: static/sentry/app/components/missingProjectMembership.jsx:76

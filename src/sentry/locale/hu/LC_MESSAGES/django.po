@@ -4162,7 +4162,7 @@ msgid "Request Pending"
 msgstr "Kérés függőben van"
 
 #: static/sentry/app/components/missingProjectMembership.jsx:73
-msgid "Join Team"
+msgid "Join A Team"
 msgstr "Csatlakozás a csapathoz"
 
 #: static/sentry/app/components/missingProjectMembership.jsx:76

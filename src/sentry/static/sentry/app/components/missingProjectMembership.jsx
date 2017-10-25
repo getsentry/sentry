@@ -75,7 +75,7 @@ const MissingProjectMembership = React.createClass({
                   ? <a className="btn btn-default btn-disabled">{t('Request Pending')}</a>
                   : openMembership
                       ? <a className="btn btn-default" onClick={this.joinTeam}>
-                          {t('Join Team')}
+                          {t('Join A Team')}
                         </a>
                       : <a className="btn btn-default" onClick={this.joinTeam}>
                           {t('Request Access')}
