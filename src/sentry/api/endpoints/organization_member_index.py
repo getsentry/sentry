@@ -152,6 +152,7 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
             request=request,
             organization_id=organization.id,
             target_object=om.id,
+            data=om.get_audit_log_data(),
             event=AuditLogEntryEvent.MEMBER_INVITE if settings.SENTRY_ENABLE_INVITES else AuditLogEntryEvent.MEMBER_ADD,
         )
 
