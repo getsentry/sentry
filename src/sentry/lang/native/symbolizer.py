@@ -32,7 +32,8 @@ SIM_PATH = '/Developer/CoreSimulator/Devices/'
 SIM_APP_PATH = '/Containers/Bundle/Application/'
 MAC_OS_PATH = '.app/Contents/'
 
-_internal_function_re = re.compile(r'(kscm_|kscrash_|KSCrash |SentryClient |RNSentry )')
+_internal_function_re = re.compile(
+    r'(kscm_|kscrash_|KSCrash |SentryClient |RNSentry )')
 
 KNOWN_GARBAGE_SYMBOLS = set([
     '_mh_execute_header',
@@ -105,7 +106,7 @@ class Symbolizer(object):
     """
 
     def __init__(self, project, object_lookup, referenced_images,
-                 arch=None, on_dsym_file_referenced=None):
+                 on_dsym_file_referenced=None):
         if not isinstance(object_lookup, ObjectLookup):
             object_lookup = ObjectLookup(object_lookup)
         self.object_lookup = object_lookup
@@ -113,8 +114,6 @@ class Symbolizer(object):
         self.symcaches = ProjectDSymFile.dsymcache.get_symcaches(
             project, referenced_images,
             on_dsym_file_referenced=on_dsym_file_referenced)
-
-        self.arch = arch
 
     def _process_frame(self, sym, obj, package=None, addr_off=0):
         frame = {
@@ -142,7 +141,8 @@ class Symbolizer(object):
         fn = obj.name
         if not fn:
             return False
-        is_mac_platform = (sdk_info is not None and sdk_info['sdk_name'].lower() == 'macos')
+        is_mac_platform = (
+            sdk_info is not None and sdk_info['sdk_name'].lower() == 'macos')
         if not (
             fn.startswith(APP_BUNDLE_PATHS) or (SIM_PATH in fn and SIM_APP_PATH in fn) or
             (is_mac_platform and MAC_OS_PATH in fn)
@@ -222,7 +222,8 @@ class Symbolizer(object):
             # errors.
             if self._is_optional_dsym(obj, sdk_info=sdk_info):
                 return []
-            raise SymbolicationFailed(type=EventError.NATIVE_MISSING_SYMBOL, obj=obj)
+            raise SymbolicationFailed(
+                type=EventError.NATIVE_MISSING_SYMBOL, obj=obj)
         return [self._process_frame(s, obj, addr_off=obj.addr) for s in reversed(rv)]
 
     def _convert_symbolserver_match(self, instruction_addr, symbolserver_match, obj):
@@ -244,13 +245,6 @@ class Symbolizer(object):
         ]
 
     def symbolize_frame(self, instruction_addr, sdk_info=None, symbolserver_match=None):
-        # If we do not have a CPU name we fail.  We currently only support
-        # a single cpu architecture.
-        if self.arch is None:
-            raise SymbolicationFailed(
-                type=EventError.NATIVE_INTERNAL_FAILURE, message='Found multiple architectures.'
-            )
-
         obj = self.object_lookup.find_object(instruction_addr)
         if obj is None:
             raise SymbolicationFailed(type=EventError.NATIVE_UNKNOWN_IMAGE)
