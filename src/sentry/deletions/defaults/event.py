@@ -26,8 +26,8 @@ class EventDeletionTask(ModelDeletionTask):
             by_project.setdefault(instance.project_id, []).append(instance)
 
         for project_id, events in six.iteritems(by_project):
-            rv.append(ModelRelation({'project_id', project_id,
-                                     'event_id__in', [x.event_id for x in events]},
+            rv.append(ModelRelation({'project_id': project_id,
+                                     'event_id__in': [x.event_id for x in events]},
                                     ModelDeletionTask))
 
         return rv

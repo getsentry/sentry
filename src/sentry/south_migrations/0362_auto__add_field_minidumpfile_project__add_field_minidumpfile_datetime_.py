@@ -18,7 +18,7 @@ class Migration(SchemaMigration):
         # Adding field 'MinidumpFile.project'
         db.add_column('sentry_minidumpfile', 'project',
                       self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(
-                          to=orm['sentry.Project'], null=True),
+                          to=orm['sentry.Project']),
                       keep_default=False)
 
         # Adding field 'MinidumpFile.datetime'

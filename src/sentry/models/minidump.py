@@ -29,7 +29,7 @@ class MinidumpFile(Model):
     __core__ = False
 
     file = FlexibleForeignKey('sentry.File')
-    project = FlexibleForeignKey('sentry.Project', null=True)
+    project = FlexibleForeignKey('sentry.Project')
     datetime = models.DateTimeField(default=timezone.now, db_index=True)
     event_id = models.CharField(max_length=36)
 
