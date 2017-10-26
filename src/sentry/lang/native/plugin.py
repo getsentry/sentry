@@ -48,7 +48,12 @@ class NativeStacktraceProcessor(StacktraceProcessor):
         StacktraceProcessor.close(self)
         if self.dsyms_referenced:
             metrics.incr(
-                'dsyms.processed', amount=len(self.dsyms_referenced), instance=self.project.id
+                'dsyms.processed',
+                amount=len(self.dsyms_referenced),
+                skip_internal=True,
+                tags={
+                    'project_id': self.project.id,
+                },
             )
 
     def find_best_instruction(self, processable_frame):
@@ -186,7 +191,7 @@ class NativeStacktraceProcessor(StacktraceProcessor):
         if not to_lookup:
             return
 
-        rv = lookup_system_symbols(to_lookup, self.sdk_info, self.sym.arch)
+        rv = lookup_system_symbols(to_lookup, self.sdk_info, self.arch)
         if rv is not None:
             for symrv, pf in zip(rv, pf_list):
                 if symrv is None:

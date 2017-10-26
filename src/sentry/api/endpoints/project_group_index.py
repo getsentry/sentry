@@ -10,7 +10,7 @@ from django.utils import timezone
 from rest_framework import serializers
 from rest_framework.response import Response
 
-from sentry import features, search, tagstore
+from sentry import features, search
 from sentry.api.base import DocSection
 from sentry.api.bases.project import ProjectEndpoint, ProjectEventPermission
 from sentry.api.fields import UserField
@@ -184,32 +184,8 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
     def _build_query_params_from_request(self, request, project):
         query_kwargs = {
             'project': project,
+            'sort_by': request.GET.get('sort', DEFAULT_SORT_OPTION),
         }
-
-        if request.GET.get('status'):
-            try:
-                query_kwargs['status'] = STATUS_CHOICES[request.GET['status']]
-            except KeyError:
-                raise ValidationError('invalid status')
-
-        if request.user.is_authenticated() and request.GET.get('bookmarks'):
-            query_kwargs['bookmarked_by'] = request.user
-
-        if request.user.is_authenticated() and request.GET.get('assigned'):
-            query_kwargs['assigned_to'] = request.user
-
-        sort_by = request.GET.get('sort')
-        if sort_by is None:
-            sort_by = DEFAULT_SORT_OPTION
-
-        query_kwargs['sort_by'] = sort_by
-
-        tags = {}
-        for tag_key in (tk.key for tk in tagstore.get_tag_keys(project.id)):
-            if request.GET.get(tag_key):
-                tags[tag_key] = request.GET[tag_key]
-        if tags:
-            query_kwargs['tags'] = tags
 
         limit = request.GET.get('limit')
         if limit:
@@ -248,9 +224,6 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
             if self_assign_issue == '1' and not group.assignee_set.exists():
                 result['assignedTo'] = extract_lazy_object(acting_user)
 
-    # bookmarks=0/1
-    # status=<x>
-    # <tag>=<value>
     # statsPeriod=24h
     @attach_scenarios([list_project_issues_scenario])
     def get(self, request, project):
@@ -406,7 +379,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
         :pparam string project_slug: the slug of the project the issues
                                      belong to.
         :param string status: the new status for the issues.  Valid values
-                              are ``"resolved"``, ``resolvedInNextRelease``,
+                              are ``"resolved"``, ``"resolvedInNextRelease"``,
                               ``"unresolved"``, and ``"ignored"``.
         :param int ignoreDuration: the number of minutes to ignore this issue.
         :param boolean isPublic: sets the issue to public or private.
