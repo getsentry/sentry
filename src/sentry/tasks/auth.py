@@ -26,3 +26,22 @@ def email_missing_links(org_id, actor_id, provider_key, **kwargs):
     )
     for member in member_list:
         member.send_sso_link_email(actor, provider)
+
+
+@instrumented_task(name='sentry.tasks.email_unlink_notifications', queue='auth')
+def email_unlink_notifications(org_id, disabler_id, provider_key):
+    try:
+        org = Organization.objects.get(id=org_id)
+        disabler = User.objects.get(id=disabler_id)
+        provider = manager.get(provider_key)
+    except(Organization.DoesNotExist, User.DoesNotExist, ProviderNotRegistered) as e:
+        logger.warning('Could not send SSO unlink emails: %s', e)
+        return
+
+    # Email all organization users, even if they never linked their accounts.
+    # This provides a better experience in the case where SSO is enabled and
+    # disabled in the timespan of users checking their email.
+    member_list = OrganizationMember.objects.filter(organization=org).select_related('user')
+
+    for member in member_list:
+        member.send_sso_unlink_email(disabler, provider)
