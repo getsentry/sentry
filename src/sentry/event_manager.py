@@ -872,7 +872,11 @@ class EventManager(object):
                     **kwargs
                 ), True
 
-            metrics_incr('group.created', skip_internal=True, tags={'platform': event.platform})
+            metrics_incr(
+                'group.created',
+                skip_internal=True,
+                tags={'platform': event.platform or 'unknown'}
+            )
 
         else:
             group = Group.objects.get(id=existing_group_id)
