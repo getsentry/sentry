@@ -7,8 +7,8 @@ import {
   addSuccessMessage,
 } from '../../../actionCreators/settingsIndicator';
 import AsyncView from '../../asyncView';
-import Form from '../../../components/forms/next/form';
-import JsonForm from '../../../components/forms/next/jsonForm';
+import Form from '../components/forms/form';
+import JsonForm from '../components/forms/jsonForm';
 import teamSettingsFields from '../../../data/forms/teamSettingsFields';
 import TeamModel from './model';
 

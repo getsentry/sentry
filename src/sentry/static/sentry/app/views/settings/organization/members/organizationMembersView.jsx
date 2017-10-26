@@ -10,9 +10,9 @@ import Link from '../../../../components/link';
 import OrganizationAccessRequests from './organizationAccessRequests';
 import OrganizationMemberRow from './organizationMemberRow';
 import OrganizationSettingsView from '../../../organizationSettingsView';
-import Panel from '../../../../components/forms/next/styled/panel';
-import PanelBody from '../../../../components/forms/next/styled/panelBody';
-import PanelHeader from '../../../../components/forms/next/styled/panelHeader';
+import Panel from '../../components/panel';
+import PanelBody from '../../components/panelBody';
+import PanelHeader from '../../components/panelHeader';
 import SentryTypes from '../../../../proptypes';
 import SettingsPageHeader from '../../components/settingsPageHeader';
 import recreateRoute from '../../../../utils/recreateRoute';
@@ -41,7 +41,17 @@ class OrganizationMembersView extends OrganizationSettingsView {
   getEndpoints() {
     return [
       ['members', `/organizations/${this.props.params.orgId}/members/`],
-      ['authProvider', `/organizations/${this.props.params.orgId}/auth-provider/`],
+      [
+        'authProvider',
+        `/organizations/${this.props.params.orgId}/auth-provider/`,
+        {},
+        {
+          allowError: error => {
+            // Allow for 403s
+            return error.status === 403;
+          },
+        },
+      ],
       ['requestList', `/organizations/${this.props.params.orgId}/access-requests/`],
     ];
   }

@@ -1,9 +1,9 @@
 import {observable, computed, action} from 'mobx';
 import _ from 'lodash';
 
-import {Client} from '../../../api';
-import {defined} from '../../../utils';
-import FormState from '../state';
+import {Client} from '../../../../api';
+import {defined} from '../../../../utils';
+import FormState from '../../../../components/forms/state';
 
 class FormModel {
   /**

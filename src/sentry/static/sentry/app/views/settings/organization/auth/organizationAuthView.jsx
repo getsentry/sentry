@@ -1,10 +1,15 @@
+import {Flex, Box} from 'grid-emotion';
 import React from 'react';
 
 import {t} from '../../../../locale';
 import IndicatorStore from '../../../../stores/indicatorStore';
-import OrganizationAuthList from './organizationAuthList';
-import OrganizationAuthProvider from './organizationAuthProvider';
+// import OrganizationAuthList from './organizationAuthList';
+// import OrganizationAuthProvider from './organizationAuthProvider';
 import OrganizationSettingsView from '../../../organizationSettingsView';
+import Panel from '../../components/panel';
+import PanelBody from '../../components/panelBody';
+import PanelHeader from '../../components/panelHeader';
+import SettingsPageHeader from '../../components/settingsPageHeader';
 import SentryTypes from '../../../../proptypes';
 
 class OrganizationAuthView extends OrganizationSettingsView {
@@ -84,8 +89,32 @@ class OrganizationAuthView extends OrganizationSettingsView {
   renderBody() {
     let {params} = this.props;
     let {orgId} = params;
-    let {providerList, provider, disableBusy, sendRemindersBusy} = this.state;
+    // let {providerList, provider, disableBusy, sendRemindersBusy} = this.state;
 
+    return (
+      <div>
+        <SettingsPageHeader label="Authentication" />
+        <Panel>
+          <PanelHeader disablePadding>
+            <Flex>
+              <Box px={2} flex={1}>
+                {t('Providers')}
+              </Box>
+            </Flex>
+          </PanelHeader>
+          <PanelBody>
+            <Box p={2}>
+              Not ready yet, go to <a href={`/organizations/${orgId}/auth/`}>
+                old page
+              </a>{' '}
+              for now.
+            </Box>
+          </PanelBody>
+        </Panel>
+      </div>
+    );
+
+    /*
     if (provider) {
       return (
         <OrganizationAuthProvider
@@ -105,6 +134,7 @@ class OrganizationAuthView extends OrganizationSettingsView {
         onConfigure={this.handleConfigure}
       />
     );
+  */
   }
 }
 

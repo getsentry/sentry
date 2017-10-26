@@ -6,7 +6,7 @@ import {t} from '../../../locale';
 import ExpandedTeamList from './expandedTeamList';
 import AllTeamsList from './allTeamsList';
 import ListLink from '../../../components/listLink';
-import OrganizationStatOverview from '../../organizationTeams/organizationStatOverview';
+import OrganizationStatOverview from './organizationStatOverview';
 import recreateRoute from '../../../utils/recreateRoute';
 
 class OrganizationTeamsView extends React.Component {

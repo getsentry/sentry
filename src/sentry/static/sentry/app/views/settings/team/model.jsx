@@ -1,5 +1,5 @@
 import {updateTeam} from '../../../actionCreators/teams';
-import FormModel from '../../../components/forms/next/model';
+import FormModel from '../components/forms/model';
 
 class TeamFormModel extends FormModel {
   doApiRequest({data}) {

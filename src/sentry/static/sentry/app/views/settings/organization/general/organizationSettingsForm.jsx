@@ -7,8 +7,8 @@ import {
   addSuccessMessage,
 } from '../../../../actionCreators/settingsIndicator';
 import ApiMixin from '../../../../mixins/apiMixin';
-import Form from '../../../../components/forms/next/form';
-import JsonForm from '../../../../components/forms/next/jsonForm';
+import Form from '../../components/forms/form';
+import JsonForm from '../../components/forms/jsonForm';
 import organizationSettingsFields from '../../../../data/forms/organizationGeneralSettings';
 
 const TOAST_DURATION = 10000;

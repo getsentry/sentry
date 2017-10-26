@@ -1,7 +1,7 @@
 import React from 'react';
 
 import InputField from './inputField';
-import Switch from '../../switch';
+import Switch from '../../../../components/switch';
 
 export default class BooleanField extends InputField {
   coerceValue(value) {

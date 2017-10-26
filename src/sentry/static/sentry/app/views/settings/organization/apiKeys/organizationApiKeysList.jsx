@@ -8,9 +8,9 @@ import Button from '../../../../components/buttons/button';
 import ExternalLink from '../../../../components/externalLink';
 import Link from '../../../../components/link';
 import LinkWithConfirmation from '../../../../components/linkWithConfirmation';
-import Panel from '../../../../components/forms/next/styled/panel';
-import PanelBody from '../../../../components/forms/next/styled/panelBody';
-import PanelHeader from '../../../../components/forms/next/styled/panelHeader';
+import Panel from '../../components/panel';
+import PanelBody from '../../components/panelBody';
+import PanelHeader from '../../components/panelHeader';
 import SentryTypes from '../../../../proptypes';
 import SettingsPageHeader from '../../components/settingsPageHeader';
 import recreateRoute from '../../../../utils/recreateRoute';
@@ -23,13 +23,9 @@ const Row = styled(Flex)`
   }
 `;
 
-const PlusIcon = styled.span`
-  margin-right: 4px;
-`;
+const PlusIcon = styled.span`margin-right: 4px;`;
 
-const TextBlock = styled.p`
-  line-height: 1.8;
-`;
+const TextBlock = styled.p`line-height: 1.8;`;
 
 class OrganizationApiKeysList extends React.Component {
   static propTypes = {

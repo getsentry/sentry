@@ -1,19 +1,17 @@
+import {browserHistory} from 'react-router';
 import React from 'react';
 import classNames from 'classnames';
 
-import OrganizationState from '../../mixins/organizationState';
-import ApiMixin from '../../mixins/apiMixin';
+import {t} from '../../locale';
 import AlertActions from '../../actions/alertActions';
-
+import ApiMixin from '../../mixins/apiMixin';
 import Button from '../../components/buttons/button';
+import ConfigStore from '../../stores/configStore';
 import LoadingIndicator from '../../components/loadingIndicator';
-import TextField from '../../components/forms/textField';
-
+import OrganizationState from '../../mixins/organizationState';
 import RoleSelect from './roleSelect';
 import TeamSelect from './teamSelect';
-
-import ConfigStore from '../../stores/configStore';
-import {t} from '../../locale';
+import TextField from '../../components/forms/textField';
 
 const InviteMember = React.createClass({
   mixins: [ApiMixin, OrganizationState],
@@ -72,7 +70,7 @@ const InviteMember = React.createClass({
 
   redirectToMemberPage() {
     let {slug} = this.getOrganization();
-    window.location.href = `/organizations/${slug}/members/`;
+    browserHistory.push(`/organizations/${slug}/members/`);
   },
 
   splitEmails(text) {
@@ -129,7 +127,7 @@ const InviteMember = React.createClass({
     if (!emails.length) return;
     this.setState({busy: true});
     Promise.all(emails.map(this.inviteUser))
-      .then(() => setTimeout(this.redirectToMemberPage, 3000))
+      .then(() => this.redirectToMemberPage())
       .catch(error => {
         if (!error.email && !error.role) {
           Raven.captureMessage('unkown error ', {

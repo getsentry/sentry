@@ -6,10 +6,10 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import styled, {keyframes} from 'react-emotion';
 
-import {defined} from '../../../utils';
-import FormState from '../state';
-import IconCheckmarkSm from '../../../icons/icon-checkmark-sm';
-import IconWarningSm from '../../../icons/icon-warning-sm';
+import {defined} from '../../../../utils';
+import FormState from '../../../../components/forms/state';
+import IconCheckmarkSm from '../../../../icons/icon-checkmark-sm';
+import IconWarningSm from '../../../../icons/icon-warning-sm';
 import Spinner from './styled/spinner';
 
 const SettingsPanelItemWrapper = styled(Flex)`
@@ -18,16 +18,12 @@ const SettingsPanelItemWrapper = styled(Flex)`
   align-items: center;
   transition: background 0.15s;
 
-  ${p => (p.highlighted ? css`
-          outline: 1px solid ${p.theme.purple};
-        ` : '')} &:last-child {
+  ${p => (p.highlighted ? css`outline: 1px solid ${p.theme.purple};` : '')} &:last-child {
     border-bottom: none;
   }
 `;
 
-const SettingsPanelItemLabel = styled.div`
-  color: ${p => p.theme.gray5};
-`;
+const SettingsPanelItemLabel = styled.div`color: ${p => p.theme.gray5};`;
 
 const SettingsPanelItemCtrl = styled(Box)`
   color: ${p => p.theme.gray3};
@@ -270,10 +266,11 @@ class FormField extends React.Component {
         onMouseOut={e => this.handleHover(false, e)}
       >
         <SettingsPanelItemDesc>
-          {label &&
+          {label && (
             <SettingsPanelItemLabel>
               {label} {required && <SettingsRequiredBadge />}
-            </SettingsPanelItemLabel>}
+            </SettingsPanelItemLabel>
+          )}
           {help && <SettingsPanelItemHelp>{help}</SettingsPanelItemHelp>}
         </SettingsPanelItemDesc>
         <SettingsPanelItemCtrl>
@@ -301,10 +298,11 @@ class FormField extends React.Component {
           </Observer>
 
           {disabled &&
-            disabledReason &&
-            <span className="disabled-indicator tip" title={disabledReason}>
-              <span className="icon-question" />
-            </span>}
+            disabledReason && (
+              <span className="disabled-indicator tip" title={disabledReason}>
+                <span className="icon-question" />
+              </span>
+            )}
 
           <Observer>
             {() => {

@@ -7,9 +7,9 @@ import {t} from '../../../../locale';
 import Avatar from '../../../../components/avatar';
 import DateTime from '../../../../components/dateTime';
 import Pagination from '../../../../components/pagination';
-import Panel from '../../../../components/forms/next/styled/panel';
-import PanelBody from '../../../../components/forms/next/styled/panelBody';
-import PanelHeader from '../../../../components/forms/next/styled/panelHeader';
+import Panel from '../../components/panel';
+import PanelBody from '../../components/panelBody';
+import PanelHeader from '../../components/panelHeader';
 import SelectInput from '../../../../components/selectInput';
 import SettingsPageHeader from '../../components/settingsPageHeader';
 import SpreadLayout from '../../../../components/spreadLayout';
@@ -31,9 +31,7 @@ const Name = styled.div`
   font-weight: 600;
   font-size: 15px;
 `;
-const Note = styled.div`
-  font-size: 13px;
-`;
+const Note = styled.div`font-size: 13px;`;
 
 const avatarStyle = {
   width: 36,

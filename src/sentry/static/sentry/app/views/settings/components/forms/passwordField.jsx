@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import InputField from './inputField';
-import FormState from '../state';
+import FormState from '../../../../components/forms/state';
 
 // TODO(dcramer): im not entirely sure this is working correctly with
 // value propagation in all scenarios

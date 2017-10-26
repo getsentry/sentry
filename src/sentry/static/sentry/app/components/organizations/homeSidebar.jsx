@@ -45,7 +45,10 @@ const OrgSettingsMenu = ({access, org, features}) => {
         )}
         {features.has('sso') &&
           access.has('org:admin') && (
-            <RouterOrBrowserLink isRouter={hasNewSettings} path={`${pathPrefix}/auth/`}>
+            <RouterOrBrowserLink
+              isRouter={false}
+              path={`/organizations/${org.slug}/auth/`}
+            >
               {t('Auth')}
             </RouterOrBrowserLink>
           )}

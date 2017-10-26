@@ -4,9 +4,9 @@ import React from 'react';
 import scrollToElement from 'scroll-to-element';
 
 import FieldFromConfig from './fieldFromConfig';
-import Panel from './styled/panel';
-import PanelBody from './styled/panelBody';
-import PanelHeader from './styled/panelHeader';
+import Panel from '../panel';
+import PanelBody from '../panelBody';
+import PanelHeader from '../panelHeader';
 
 class JsonForm extends React.Component {
   static propTypes = {
