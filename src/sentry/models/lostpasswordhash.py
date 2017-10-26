@@ -45,12 +45,14 @@ class LostPasswordHash(Model):
     def is_valid(self):
         return self.date_added > timezone.now() - timedelta(hours=48)
 
-    def get_absolute_url(self):
-        return absolute_uri(
-            reverse('sentry-account-recover-confirm', args=[self.user.id, self.hash])
-        )
+    def get_absolute_url(self, mode='recover'):
+        url_key = 'sentry-account-recover-confirm'
+        if mode == 'set_password':
+            url_key = 'sentry-account-set-password-confirm'
 
-    def send_recover_mail(self, request):
+        return absolute_uri(reverse(url_key, args=[self.user.id, self.hash]))
+
+    def send_email(self, request, mode='recover'):
         from sentry import options
         from sentry.http import get_server_hostname
         from sentry.utils.email import MessageBuilder
@@ -58,16 +60,28 @@ class LostPasswordHash(Model):
         context = {
             'user': self.user,
             'domain': get_server_hostname(),
-            'url': self.get_absolute_url(),
+            'url': self.get_absolute_url(mode),
             'datetime': timezone.now(),
             'ip_address': request.META['REMOTE_ADDR'],
         }
 
+        template = 'set_password' if mode == 'set_password' else 'recover_account'
+
         msg = MessageBuilder(
-            subject='%sPassword Recovery' % (options.get('mail.subject-prefix'), ),
-            template='sentry/emails/recover_account.txt',
-            html_template='sentry/emails/recover_account.html',
+            subject='{}Password Recovery'.format(options.get('mail.subject-prefix')),
+            template='sentry/emails/{name}.txt'.format(name=template),
+            html_template='sentry/emails/{name}.html'.format(name=template),
             type='user.password_recovery',
             context=context,
         )
         msg.send_async([self.user.email])
+
+    @classmethod
+    def for_user(cls, user):
+        password_hash, created = cls.objects.get_or_create(user=user)
+        if not password_hash.is_valid():
+            password_hash.date_added = timezone.now()
+            password_hash.set_hash()
+            password_hash.save()
+
+        return password_hash
