@@ -140,6 +140,8 @@ def is_newest_frame_first(event):
     return newest_first
 
 
+# Matches a URL prefixed with a scheme and authority component as defined in
+# RFC 3986, Sec. 3.1: https://tools.ietf.org/html/rfc3986#section-3.1
 scheme_prefix_re = re.compile('^([a-z]+[a-z+-\.]*)://', re.IGNORECASE)
 
 
