@@ -47,7 +47,10 @@ _STOP_WORKER = '91650ec271ae4b3e8a67cdc909d80f8c'
 
 def multiprocess_worker(task_queue):
     # Configure within each Process
+    import logging
     from sentry.utils.imports import import_string
+
+    logger = logging.getLogger('sentry.cleanup')
 
     configured = False
 
@@ -80,21 +83,26 @@ def multiprocess_worker(task_queue):
                 similarity.features,
             ] + [b[0] for b in EXTRA_BULK_QUERY_DELETES]
 
+            configured = True
+
         model, chunk = j
         model = import_string(model)
 
-        task = deletions.get(
-            model=model,
-            query={'id__in': chunk},
-            skip_models=skip_models,
-            transaction_id=uuid4().hex,
-        )
+        try:
+            task = deletions.get(
+                model=model,
+                query={'id__in': chunk},
+                skip_models=skip_models,
+                transaction_id=uuid4().hex,
+            )
 
-        while True:
-            if not task.chunk():
-                break
-
-        task_queue.task_done()
+            while True:
+                if not task.chunk():
+                    break
+        except Exception as e:
+            logger.exception(e)
+        finally:
+            task_queue.task_done()
 
 
 @click.command()
@@ -140,12 +148,12 @@ def cleanup(days, project, concurrency, max_procs, silent, model, router, timed)
         click.echo('Error: Minimum concurrency is 1', err=True)
         raise click.Abort()
 
-    pool = []
     # Make sure we fork off multiprocessing pool
     # before we import or configure out app
-    from multiprocessing import Process, JoinableQueue
+    from multiprocessing import Process, JoinableQueue as Queue
 
-    task_queue = JoinableQueue(1000)
+    pool = []
+    task_queue = Queue(1000)
     for _ in xrange(concurrency):
         p = Process(target=multiprocess_worker, args=(task_queue,))
         p.daemon = True

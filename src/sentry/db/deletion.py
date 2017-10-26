@@ -78,6 +78,10 @@ class BulkDeleteQuery(object):
             results = cursor.rowcount > 0
 
     def execute_generic(self, chunk_size=100):
+        qs = self.get_generic_queryset()
+        return self._continuous_generic_query(qs, chunk_size)
+
+    def get_generic_queryset(self):
         qs = self.model.objects.all()
 
         if self.days:
@@ -89,30 +93,7 @@ class BulkDeleteQuery(object):
             else:
                 qs = qs.filter(project_id=self.project_id)
 
-        return self._continuous_generic_query(qs, chunk_size)
-
-    def execute_sharded(self, total_shards, shard_id, chunk_size=100):
-        assert total_shards > 1
-        assert shard_id < total_shards
-        qs = self.model.objects.all().extra(
-            where=[
-                'id %% {total_shards} = {shard_id}'.format(
-                    total_shards=total_shards,
-                    shard_id=shard_id,
-                )
-            ]
-        )
-
-        if self.days:
-            cutoff = timezone.now() - timedelta(days=self.days)
-            qs = qs.filter(**{'{}__lte'.format(self.dtfield): cutoff})
-        if self.project_id:
-            if 'project' in self.model._meta.get_all_field_names():
-                qs = qs.filter(project=self.project_id)
-            else:
-                qs = qs.filter(project_id=self.project_id)
-
-        return self._continuous_generic_query(qs, chunk_size)
+        return qs
 
     def _continuous_generic_query(self, query, chunk_size):
         # XXX: we step through because the deletion collector will pull all
@@ -131,8 +112,15 @@ class BulkDeleteQuery(object):
             self.execute_generic(chunk_size)
 
     def iterator(self, chunk_size=100):
-        assert db.is_postgres()
+        if db.is_postgres():
+            g = self.iterator_postgres(chunk_size)
+        else:
+            g = self.iterator_generic(chunk_size)
 
+        for chunk in g:
+            yield chunk
+
+    def iterator_postgres(self, chunk_size):
         dbc = connections[self.using]
         quote_name = dbc.ops.quote_name
 
@@ -193,3 +181,16 @@ class BulkDeleteQuery(object):
                         chunk = []
                 if chunk:
                     yield tuple(chunk)
+
+    def iterator_generic(self, chunk_size):
+        from sentry.utils.query import RangeQuerySetWrapper
+        qs = self.get_generic_queryset()
+
+        chunk = []
+        for item in RangeQuerySetWrapper(qs):
+            chunk.append(item.id)
+            if len(chunk) == chunk_size:
+                yield tuple(chunk)
+                chunk = []
+        if chunk:
+            yield tuple(chunk)
