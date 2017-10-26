@@ -224,9 +224,6 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
             if self_assign_issue == '1' and not group.assignee_set.exists():
                 result['assignedTo'] = extract_lazy_object(acting_user)
 
-    # bookmarks=0/1
-    # status=<x>
-    # <tag>=<value>
     # statsPeriod=24h
     @attach_scenarios([list_project_issues_scenario])
     def get(self, request, project):
@@ -382,7 +379,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
         :pparam string project_slug: the slug of the project the issues
                                      belong to.
         :param string status: the new status for the issues.  Valid values
-                              are ``"resolved"``, ``resolvedInNextRelease``,
+                              are ``"resolved"``, ``"resolvedInNextRelease"``,
                               ``"unresolved"``, and ``"ignored"``.
         :param int ignoreDuration: the number of minutes to ignore this issue.
         :param boolean isPublic: sets the issue to public or private.
