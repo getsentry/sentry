@@ -1,0 +1,106 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`OrganizationAuthList renders 1`] = `
+<div
+  className="sso"
+>
+  <h2>
+    Authentication
+  </h2>
+  <div
+    className="box"
+  >
+    <div
+      className="box-header"
+    >
+      <h3>
+        Choose a provider
+      </h3>
+    </div>
+    <div
+      className="box-content with-padding"
+    >
+      <p>
+        <span>
+          <span>
+            Get started with Single Sign-on for your organization by selecting a
+                          provider. For more information on SSO please see our 
+          </span>
+          <ExternalLink
+            href="https://docs.sentry.io/learn/sso/"
+            rel="noreferrer noopener"
+            target="_blank"
+          >
+            <span>
+              documentation
+            </span>
+          </ExternalLink>
+        </span>
+        .
+      </p>
+      <ul
+        className="simple-list list-unstyled"
+      >
+        <ProviderItem
+          onConfigure={[Function]}
+          providerKey="dummy"
+          providerName="Dummy"
+        />
+      </ul>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`OrganizationAuthList renders with no providers 1`] = `
+<div
+  className="sso"
+>
+  <h2>
+    Authentication
+  </h2>
+  <div
+    className="box"
+  >
+    <div
+      className="box-header"
+    >
+      <h3>
+        Choose a provider
+      </h3>
+    </div>
+    <div
+      className="box-content with-padding"
+    >
+      <p>
+        <span>
+          <span>
+            Get started with Single Sign-on for your organization by selecting a
+                          provider. For more information on SSO please see our 
+          </span>
+          <ExternalLink
+            href="https://docs.sentry.io/learn/sso/"
+            rel="noreferrer noopener"
+            target="_blank"
+          >
+            <span>
+              documentation
+            </span>
+          </ExternalLink>
+        </span>
+        .
+      </p>
+      <p
+        style={
+          Object {
+            "padding": 50,
+            "textAlign": "center",
+          }
+        }
+      >
+        No authentication providers are available.
+      </p>
+    </div>
+  </div>
+</div>
+`;
