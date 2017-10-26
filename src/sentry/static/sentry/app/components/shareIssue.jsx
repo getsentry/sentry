@@ -11,8 +11,8 @@ import Clipboard from './clipboard';
 import Confirm from './confirm';
 import DropdownLink from './dropdownLink';
 import FlowLayout from './flowLayout';
-import IconCopy from '../icons/icon-copy';
-import IconRefresh from '../icons/icon-refresh';
+import IconCopy from '../icons/icon-copy.svg';
+import IconRefresh from '../icons/icon-refresh.svg';
 import LoadingIndicator from './loadingIndicator';
 import SpreadLayout from './spreadLayout';
 import Switch from './switch';
@@ -90,7 +90,7 @@ class ShareUrlContainer extends React.Component {
               onClick={this.handleCopyClick}
               style={{borderRadius: 0, borderRight: `1px solid ${BORDER_COLOR}`}}
             >
-              <IconCopy />
+              <IconCopy width="1em"/>
             </Button>
           </Clipboard>
 
@@ -103,7 +103,7 @@ class ShareUrlContainer extends React.Component {
             onConfirm={onShare}
           >
             <Button borderless size="xsmall">
-              <IconRefresh />
+              <IconRefresh width="1em" />
             </Button>
           </Confirm>
         </FlowLayout>

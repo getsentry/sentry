@@ -1,8 +1,8 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import IconCloseLg from '../icons/icon-close-lg';
 import ConfigStore from '../stores/configStore';
 import ApiMixin from '../mixins/apiMixin';
+import IconCloseLg from '../icons/icon-close-lg.svg';
 import {logAjaxError} from '../utils/logging';
 
 const ReleaseAnnouncement = ({close}) => {
