@@ -263,7 +263,7 @@ class RecoverPasswordTest(TestCase):
         assert 'form' in resp.context
         assert 'user' in resp.context['form'].errors
 
-    @mock.patch('sentry.models.LostPasswordHash.send_recover_mail')
+    @mock.patch('sentry.models.LostPasswordHash.send_email')
     def test_valid_username(self, send_recover_mail):
         resp = self.client.post(self.path, {
             'user': self.user.username
