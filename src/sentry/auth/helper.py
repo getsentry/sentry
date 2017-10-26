@@ -724,9 +724,7 @@ class AuthHelper(object):
             data=self.auth_provider.get_audit_log_data(),
         )
 
-        email_missing_links.delay(
-            organization_id=self.organization.id,
-        )
+        email_missing_links.delay(self.organization.id, request.user.id, self.provider.key)
 
         messages.add_message(
             self.request,
