@@ -37,6 +37,7 @@ from sentry.plugins import plugins
 from sentry.signals import first_event_received, regression_signal
 from sentry.tasks.merge import merge_group
 from sentry.tasks.post_process import post_process_group
+from sentry.utils import metrics
 from sentry.utils.cache import default_cache
 from sentry.utils.db import get_db_engine
 from sentry.utils.safe import safe_execute, trim, trim_dict
@@ -870,6 +871,12 @@ class EventManager(object):
                     ).values_list('id', flat=True).first() if first_release else None,
                     **kwargs
                 ), True
+
+            metrics.incr(
+                'group.created',
+                skip_internal=True,
+                tags={'platform': event.platform or 'unknown'}
+            )
 
         else:
             group = Group.objects.get(id=existing_group_id)
