@@ -140,8 +140,11 @@ def is_newest_frame_first(event):
     return newest_first
 
 
+scheme_prefix_re = re.compile('^([a-z]+[a-z+-\.]*)://', re.IGNORECASE)
+
+
 def is_url(filename):
-    return filename.startswith(('file:', 'http:', 'https:'))
+    return scheme_prefix_re.match(filename) is not None
 
 
 def remove_function_outliers(function):
