@@ -22,14 +22,14 @@ Subcommands
  :maxdepth: 1
 
  files <files/index>
- repair <repair/index>
+ plugins <plugins/index>
  upgrade <upgrade/index>
  run <run/index>
  help <help/index>
- exec <exec/index>
  queues <queues/index>
- plugins <plugins/index>
+ exec <exec/index>
  devserver <devserver/index>
+ repair <repair/index>
  django <django/index>
  start <start/index>
  init <init/index>
@@ -40,5 +40,4 @@ Subcommands
  shell <shell/index>
  config <config/index>
  tsdb <tsdb/index>
- dsym <dsym/index>
 
