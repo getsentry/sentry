@@ -6,7 +6,8 @@ import logging
 
 from sentry.event_manager import EventManager
 from sentry.filters.preprocess_hashes import (
-    get_preprocess_hash_inputs, get_preprocess_hashes, UnableToGenerateHash
+    get_preprocess_hash_inputs, get_preprocess_hash_inputs_with_reason,
+    get_preprocess_hashes, UnableToGenerateHash
 )
 from sentry.testutils import TestCase
 
@@ -316,3 +317,86 @@ class PreProcessingHashTest(TestCase):
 
         with self.assertRaises(UnableToGenerateHash):
             get_preprocess_hash_inputs(event_data)
+
+    def test_multiple_interfaces(self):
+        data = {
+            'exception': {
+                'values': [
+                    {
+                        'stacktrace': {
+                            'frames': [
+                                {
+                                    'abs_path':
+                                    u'http://localhost:8000/_static/373562702009df1692da6eb80a933139f29e094b/sentry/dist/vendor.js',
+                                    'colno':
+                                    22,
+                                    'filename':
+                                    u'/_static/373562702009df1692da6eb80a933139f29e094b/sentry/dist/vendor.js',
+                                    'function':
+                                    u'Object.receiveComponent',
+                                    'in_app':
+                                    True,
+                                    'lineno':
+                                    17866
+                                }, {
+                                    'abs_path':
+                                    u'http://localhost:8000/_static/373562702009df1692da6eb80a933139f29e094b/sentry/dist/vendor.js',
+                                    'colno':
+                                    10,
+                                    'filename':
+                                    u'/_static/373562702009df1692da6eb80a933139f29e094b/sentry/dist/vendor.js',
+                                    'function':
+                                    u'ReactCompositeComponentWrapper.receiveComponent',
+                                    'in_app':
+                                    True,
+                                    'lineno':
+                                    74002
+                                }, {
+                                    'abs_path':
+                                    u'http://localhost:8000/_static/373562702009df1692da6eb80a933139f29e094b/sentry/dist/app.js',
+                                    'colno':
+                                    9,
+                                    'filename':
+                                    u'/_static/373562702009df1692da6eb80a933139f29e094b/sentry/dist/app.js',
+                                    'function':
+                                    u'Constructor.render',
+                                    'in_app':
+                                    True,
+                                    'lineno':
+                                    47628
+                                }
+                            ],
+                            'frames_omitted':
+                            None,
+                            'registers':
+                            None
+                        },
+                        'thread_id': None,
+                        'type': u'TypeError',
+                        'value': u"Cannot set property 'b' of null"
+                    }
+                ]
+            }
+        }
+
+        event_data = self.make_event_data(
+            data=data,
+            platform='javascript',
+        )
+
+        assert get_preprocess_hash_inputs_with_reason(event_data) == [[
+            'sentry.interfaces.Exception', [[
+                u'/_static/373562702009df1692da6eb80a933139f29e094b/sentry/dist/vendor.js',
+                u'Object.receiveComponent',
+                22,
+                17866,
+                u'/_static/373562702009df1692da6eb80a933139f29e094b/sentry/dist/vendor.js',
+                u'ReactCompositeComponentWrapper.receiveComponent',
+                10,
+                74002,
+                u'/_static/373562702009df1692da6eb80a933139f29e094b/sentry/dist/app.js',
+                u'Constructor.render',
+                9,
+                47628, u'TypeError']]], [
+            'sentry.interfaces.Message', [['foo']]
+        ]]

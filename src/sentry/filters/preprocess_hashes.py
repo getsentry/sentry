@@ -26,12 +26,13 @@ def get_raw_cache_key(project_id, event_id):
 
 
 def get_preprocess_hash_inputs(event):
-    return get_preprocess_hash_inputs_with_reason(event)[1]
+    return get_preprocess_hash_inputs_with_reason(event)[0][1]
 
 
 def get_preprocess_hash_inputs_with_reason(data):
     interfaces = get_interfaces(data)
     platform = data['platform']
+    results = []
     for interface in six.itervalues(interfaces):
         kwargs = {'is_processed_data': False}
         if isinstance(interface, SingleException):
@@ -45,7 +46,10 @@ def get_preprocess_hash_inputs_with_reason(data):
             })
         result = interface.get_hash(**kwargs)
         if result:
-            return (interface.get_path(), [result])
+            results.append([interface.get_path(), [result]])
+
+    if results:
+        return results
 
     raise UnableToGenerateHash
 
