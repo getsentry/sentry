@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import Avatar from '../components/avatar';
-import IconFileGeneric from '../icons/icon-file-generic';
+import IconFileGeneric from '../icons/icon-file-generic.svg';
 
 import TooltipMixin from '../mixins/tooltip';
 import ApiMixin from '../mixins/apiMixin';
@@ -33,7 +33,7 @@ const FileChange = React.createClass({
       <li className="list-group-item list-group-item-sm release-file-change">
         <div className="row row-flex row-center-vertically">
           <div className="col-sm-9 truncate">
-            <IconFileGeneric className="icon-file-generic" size={15} />
+            <IconFileGeneric className="icon-file-generic" width="15px" />
             <span className="file-name">{filename}</span>
           </div>
           <div className="col-sm-3 avatar-grid align-right">

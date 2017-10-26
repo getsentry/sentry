@@ -3,7 +3,7 @@ import React from 'react';
 
 import LoadingIndicator from '../../components/loadingIndicator';
 import LoadingError from '../../components/loadingError';
-import IconOpen from '../../icons/icon-open';
+import IconOpen from '../../icons/icon-open.svg';
 import LastCommit from '../../components/lastCommit';
 import IssueList from '../../components/issueList';
 import CommitAuthorStats from '../../components/commitAuthorStats';
@@ -270,8 +270,8 @@ const ReleaseOverview = React.createClass({
                                 {deploy.environment}
                                 <IconOpen
                                   className="icon-open"
-                                  size={11}
-                                  style={{marginLeft: 6}}
+                                  width="11px"
+                                  style="marginLeft: 6;"
                                 />
                               </span>
                             </div>
