@@ -154,23 +154,16 @@ class OrganizationMember(Model):
             logger = get_logger(name='sentry.mail')
             logger.exception(e)
 
-    def send_sso_link_email(self):
+    def send_sso_link_email(self, configurer, provider):
         from sentry.utils.email import MessageBuilder
 
+        link_args = {'organization_slug': self.organization.slug}
+
         context = {
-            'email':
-            self.email,
-            'organization_name':
-            self.organization.name,
-            'url':
-            absolute_uri(
-                reverse(
-                    'sentry-auth-organization',
-                    kwargs={
-                        'organization_slug': self.organization.slug,
-                    }
-                )
-            ),
+            'organization': self.organization,
+            'configurer': configurer,
+            'provider': provider,
+            'url': absolute_uri(reverse('sentry-auth-organization', kwargs=link_args)),
         }
 
         msg = MessageBuilder(

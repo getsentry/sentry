@@ -11,7 +11,7 @@ class EmailMissingLinksTest(TestCase):
     def test_simple(self):
         user = self.create_user(email='bar@example.com')
         organization = self.create_organization(owner=user, name='Test')
-        AuthProvider.objects.create(
+        provider = AuthProvider.objects.create(
             organization=organization,
             provider='dummy',
         )
@@ -29,7 +29,7 @@ class EmailMissingLinksTest(TestCase):
             flags=0,
         )
         with self.tasks():
-            email_missing_links(organization.id)
+            email_missing_links(organization.id, user.id, provider.provider)
 
         assert len(mail.outbox) == 1
         assert mail.outbox[0].to == [user2.email]
