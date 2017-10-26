@@ -233,7 +233,11 @@ class RegistrationForm(forms.ModelForm):
 
 
 class RecoverPasswordForm(forms.Form):
-    user = forms.CharField(label=_('Username or email'))
+    user = forms.CharField(
+        label=_('Account'),
+        max_length=128,
+        widget=forms.TextInput(attrs={'placeholder': _('username or email')}),
+    )
 
     def clean_user(self):
         value = (self.cleaned_data.get('user') or '').strip()
