@@ -60,4 +60,8 @@ class ProjectTagKeyDeleteTest(APITestCase):
 
         mock_delete_tag_key.delay.assert_called_once_with(object_id=tagkey.id)
 
-        assert tagstore.get_tag_key(project.id, tagkey.key).status == TagKeyStatus.PENDING_DELETION
+        assert tagstore.get_tag_key(
+            project.id,
+            tagkey.key,
+            status=TagKeyStatus.PENDING_DELETION
+        ).status == TagKeyStatus.PENDING_DELETION
