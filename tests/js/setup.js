@@ -1,9 +1,13 @@
 import jQuery from 'jquery';
 import sinon from 'sinon';
 import ConfigStore from 'app/stores/configStore';
+import MockDate from 'mockdate';
 
 jest.mock('app/translations');
 jest.mock('app/api');
+
+const constantDate = new Date('2017-10-17T04:41:20'); //National Pasta Day
+MockDate.set(constantDate);
 
 // We generally use actual jQuery, and jest mocks takes precedence over node_modules
 jest.unmock('jquery');

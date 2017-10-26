@@ -829,7 +829,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                       dateTime="2017-07-10T18:32:43.000Z"
                                       title="July 10, 2017 6:32 PM UTC"
                                     >
-                                      4 months old
+                                      3 months old
                                     </time>
                                   </TimeSince>
                                 </li>
@@ -1894,7 +1894,7 @@ exports[`Issues Similar View renders with mocked data 2`] = `
                                       dateTime="2017-07-10T18:32:43.000Z"
                                       title="July 10, 2017 6:32 PM UTC"
                                     >
-                                      4 months old
+                                      3 months old
                                     </time>
                                   </TimeSince>
                                 </li>
