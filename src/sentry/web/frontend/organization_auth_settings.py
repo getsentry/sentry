@@ -12,7 +12,7 @@ from sentry import features, roles
 from sentry.auth import manager
 from sentry.auth.helper import AuthHelper
 from sentry.auth.providers.saml2 import SAML2Provider, HAS_SAML2
-from sentry.models import AuditLogEntryEvent, AuthProvider, OrganizationMember
+from sentry.models import AuditLogEntryEvent, AuthProvider, OrganizationMember, User
 from sentry.plugins import Response
 from sentry.tasks.auth import email_missing_links
 from sentry.utils import db
@@ -72,6 +72,9 @@ class OrganizationAuthSettingsView(OrganizationView):
                     ~getattr(OrganizationMember.flags, 'sso:invalid'),
                 ),
             )
+
+        user_ids = OrganizationMember.objects.filter(organization=organization).values('user')
+        User.objects.filter(id__in=user_ids).update(is_managed=False)
 
         auth_provider.delete()
 

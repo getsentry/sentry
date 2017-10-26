@@ -100,6 +100,7 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
         assert not getattr(member.flags, 'sso:invalid')
 
     def test_disable_provider(self):
+        self.user.update(is_managed=True)
         organization = self.create_organization(name='foo', owner=self.user)
 
         auth_provider = AuthProvider.objects.create(
@@ -135,3 +136,4 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
         om = OrganizationMember.objects.get(id=om.id)
 
         assert not getattr(om.flags, 'sso:linked')
+        assert not om.user.is_managed
