@@ -129,9 +129,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationEndpoint):
         if not serializer.is_valid():
             return Response(status=400)
 
-        has_sso = AuthProvider.objects.filter(
-            organization=organization,
-        ).exists()
+        auth_provider = AuthProvider.objects.filter(organization=organization)
 
         result = serializer.object
         # XXX(dcramer): if/when this expands beyond reinvite we need to check
@@ -139,12 +137,12 @@ class OrganizationMemberDetailsEndpoint(OrganizationEndpoint):
         if result.get('reinvite'):
             if om.is_pending:
                 om.send_invite_email()
-            elif has_sso and not getattr(om.flags, 'sso:linked'):
-                om.send_sso_link_email()
+            elif auth_provider and not getattr(om.flags, 'sso:linked'):
+                om.send_sso_link_email(request.user, auth_provider)
             else:
                 # TODO(dcramer): proper error message
                 return Response({'detail': ERR_UNINVITABLE}, status=400)
-        if has_sso:
+        if auth_provider:
             sso_enabled.send(organization=organization, sender=request.user)
 
         return Response(status=204)
