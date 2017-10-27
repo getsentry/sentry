@@ -15,7 +15,6 @@ from sentry.coreapi import (
     APIUnauthorized,
     Auth,
     ClientApiHelper,
-    InvalidFingerprint,
     InvalidTimestamp,
     get_interface,
     SecurityApiHelper,
@@ -121,29 +120,6 @@ class ProjectIdFromAuthTest(BaseAPITest):
         self.assertRaises(APIUnauthorized, self.helper.project_id_from_auth, auth)
 
 
-class ProcessFingerprintTest(BaseAPITest):
-    def test_invalid_as_string(self):
-        self.assertRaises(
-            InvalidFingerprint, self.helper._process_fingerprint, {
-                'fingerprint': '2012-01-01T10:30:45',
-            }
-        )
-
-    def test_invalid_component(self):
-        self.assertRaises(
-            InvalidFingerprint, self.helper._process_fingerprint, {
-                'fingerprint': ['foo', ['bar']],
-            }
-        )
-
-    def simple(self):
-        data = self.helper._process_fingerprint({
-            'fingerprint': ['{{default}}', 1, 'bar', 4.5],
-        })
-        self.assertTrue('fingerprint' in data)
-        self.assertEquals(data['fingerprint'], ['{{default}}', '1', 'bar', '4.5'])
-
-
 class ProcessDataTimestampTest(BaseAPITest):
     def test_iso_timestamp(self):
         d = datetime(2012, 1, 1, 10, 30, 45)
@@ -241,9 +217,6 @@ class ValidateDataTest(BaseAPITest):
         assert data['errors'][0]['type'] == 'invalid_data'
         assert data['errors'][0]['name'] == 'event_id'
         assert data['errors'][0]['value'] == 'xyz'
-
-    def test_invalid_event_id_raises(self):
-        self.assertRaises(APIError, self.helper.validate_data, self.project, {'event_id': 1})
 
     def test_unknown_attribute(self):
         data = self.helper.validate_data(self.project, {
@@ -348,11 +321,10 @@ class ValidateDataTest(BaseAPITest):
                 'tags': [('foo', 'bar'), ('biz', 'baz', 'boz')],
             }
         )
-        assert data['tags'] == [('foo', 'bar')]
         assert len(data['errors']) == 1
         assert data['errors'][0]['type'] == 'invalid_data'
         assert data['errors'][0]['name'] == 'tags'
-        assert data['errors'][0]['value'] == ('biz', 'baz', 'boz')
+        assert data['errors'][0]['value'] == [('foo', 'bar'), ('biz', 'baz', 'boz')]
 
     def test_reserved_tags(self):
         data = self.helper.validate_data(
@@ -386,9 +358,6 @@ class ValidateDataTest(BaseAPITest):
             'extra': 'bar',
         })
         assert 'extra' not in data
-
-    def test_invalid_culprit_raises(self):
-        self.assertRaises(APIError, self.helper.validate_data, self.project, {'culprit': 1})
 
     def test_release_too_long(self):
         data = self.helper.validate_data(self.project, {
@@ -506,6 +475,97 @@ class ValidateDataTest(BaseAPITest):
             'time_spent': '123',
         })
         assert data['time_spent'] == 123
+
+    def test_fingerprints(self):
+        data = self.helper.validate_data(self.project, {
+            'fingerprint': '2012-01-01T10:30:45',
+        })
+        assert not data.get('fingerprint')
+        assert data['errors'][0]['type'] == 'invalid_data'
+        assert data['errors'][0]['name'] == 'fingerprint'
+
+        data = self.helper.validate_data(self.project, {
+            'fingerprint': ['foo', ['bar']],
+        })
+        assert not data.get('fingerprint')
+        assert data['errors'][0]['type'] == 'invalid_data'
+        assert data['errors'][0]['name'] == 'fingerprint'
+
+        data = self.helper.validate_data(self.project, {
+            'fingerprint': ['{{default}}', 1, 'bar', 4.5],
+        })
+        assert data.get('fingerprint') == ['{{default}}', '1', 'bar', '4.5']
+        assert len(data['errors']) == 0
+
+    def test_messages(self):
+        # Just 'message': wrap it in interface
+        data = self.helper.validate_data(self.project, {
+            'message': 'foo is bar',
+        })
+        assert 'message' not in data
+        assert data['sentry.interfaces.Message'] == {'message': 'foo is bar'}
+
+        # both 'message' and interface with no 'formatted' value, put 'message'
+        # into 'formatted'.
+        data = self.helper.validate_data(self.project, {
+            'message': 'foo is bar',
+            'sentry.interfaces.Message': {
+                'message': 'something else',
+            }
+        })
+        assert 'message' not in data
+        assert data['sentry.interfaces.Message'] == {
+            'message': 'something else',
+            'formatted': 'foo is bar'
+        }
+
+        # both 'message' and complete interface, 'message' is discarded
+        data = self.helper.validate_data(self.project, {
+            'message': 'foo is bar',
+            'sentry.interfaces.Message': {
+                'message': 'something else',
+                'formatted': 'something else formatted',
+            }
+        })
+        assert 'message' not in data
+        assert len(data['errors']) == 0
+        assert data['sentry.interfaces.Message'] == {
+            'message': 'something else',
+            'formatted': 'something else formatted'
+        }
+
+    @pytest.mark.skip(reason="Message behavior that didn't make a lot of sense.")
+    def test_messages_old_behavior(self):
+        # both 'message' and complete valid interface but interface has the same
+        # value for both keys so the 'formatted' value is discarded and ends up
+        # being replaced with 'message'
+        data = self.helper.validate_data(self.project, {
+            'message': 'foo is bar',
+            'sentry.interfaces.Message': {
+                'message': 'something else',
+                'formatted': 'something else',
+            }
+        })
+        assert 'message' not in data
+        assert len(data['errors']) == 0
+        assert data['sentry.interfaces.Message'] == {
+            'message': 'something else',
+            'formatted': 'foo is bar'
+        }
+
+        # interface discarded as invalid, replaced by new interface containing
+        # wrapped 'message'
+        data = self.helper.validate_data(self.project, {
+            'message': 'foo is bar',
+            'sentry.interfaces.Message': {
+                'invalid': 'invalid',
+            }
+        })
+        assert 'message' not in data
+        assert len(data['errors']) == 1
+        assert data['sentry.interfaces.Message'] == {
+            'message': 'foo is bar'
+        }
 
 
 class SafelyLoadJSONStringTest(BaseAPITest):
@@ -735,7 +795,6 @@ class SecurityApiHelperTest(BaseAPITest):
         assert result['release'] == 'abc123'
         assert result['errors'] == []
         assert 'message' in result
-        assert 'culprit' in result
         assert result['tags'] == [
             ('port', '443'),
             ('include-subdomains', 'false'),

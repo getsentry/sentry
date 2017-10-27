@@ -22,6 +22,7 @@ from sentry import quotas, tsdb
 from sentry.coreapi import (
     APIError, APIForbidden, APIRateLimited, ClientApiHelper, SecurityApiHelper, LazyData,
 )
+from sentry.interfaces import schemas
 from sentry.interfaces.base import get_interface
 from sentry.models import Project, OrganizationOption, Organization
 from sentry.signals import (
@@ -490,6 +491,11 @@ class StoreView(APIView):
         )
 
         return event_id
+
+
+class StoreSchemaView(BaseView):
+    def get(self, request, **kwargs):
+        return HttpResponse(json.dumps(schemas.STORE_SCHEMA), content_type='application/json')
 
 
 class SecurityReportView(StoreView):
