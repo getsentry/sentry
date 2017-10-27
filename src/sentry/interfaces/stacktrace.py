@@ -370,7 +370,7 @@ class Frame(Interface):
 
         return cls(**kwargs)
 
-    def get_hash(self, platform=None, is_processed_data=True):
+    def get_hash(self, platform=None):
         """
         The hash of the frame varies depending on the data available.
 
@@ -413,11 +413,10 @@ class Frame(Interface):
         # XXX: hack around what appear to be non-useful lines of context
         if can_use_context:
             output.append(self.context_line)
-        elif not output and is_processed_data:
+        elif not output:
             # If we were unable to achieve any context at this point
             # (likely due to a bad JavaScript error) we should just
-            # bail on recording this frame unless we're working with
-            # unprocessed data
+            # bail on recording this frame
             return output
         elif self.symbol:
             output.append(self.symbol)
@@ -428,8 +427,6 @@ class Frame(Interface):
                 output.append(remove_function_outliers(self.function))
         elif self.lineno is not None:
             output.append(self.lineno)
-            if not is_processed_data and self.colno is not None:
-                output.append(self.colno)
         return output
 
     def get_api_context(self, is_public=False, pad_addr=None):
@@ -737,7 +734,7 @@ class Stacktrace(Interface):
 
         return [system_hash, app_hash]
 
-    def get_hash(self, platform=None, system_frames=True, is_processed_data=True):
+    def get_hash(self, platform=None, system_frames=True):
         frames = self.frames
 
         # TODO(dcramer): this should apply only to platform=javascript
@@ -762,7 +759,7 @@ class Stacktrace(Interface):
 
         output = []
         for frame in frames:
-            output.extend(frame.get_hash(platform, is_processed_data=is_processed_data))
+            output.extend(frame.get_hash(platform))
         return output
 
     def to_string(self, event, is_public=False, **kwargs):
