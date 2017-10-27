@@ -10,8 +10,17 @@ from __future__ import absolute_import
 
 import six
 import jsonschema
+import uuid
 
-from sentry.constants import VALID_PLATFORMS
+from sentry.db.models import BoundedIntegerField
+from sentry.constants import (
+    LOG_LEVELS_MAP,
+    MAX_TAG_KEY_LENGTH,
+    MAX_TAG_VALUE_LENGTH,
+    MAX_CULPRIT_LENGTH,
+    VALID_PLATFORMS,
+)
+from sentry.tagstore.base import INTERNAL_TAG_KEYS
 
 CSP_SCHEMA = {
     'type': 'object',
@@ -102,10 +111,10 @@ CSP_INTERFACE_SCHEMA = {
 HPKP_SCHEMA = {
     'type': 'object',
     'properties': {
-        'date-time': {'type': 'string', },  # TODO formate datetime (RFC3339)
+        'date-time': {'type': 'string', 'format': 'date-time'},
         'hostname': {'type': 'string'},
         'port': {'type': 'number'},
-        'effective-expiration-date': {'type': 'string', },  # TODO formate datetime (RFC3339)
+        'effective-expiration-date': {'type': 'string', 'format': 'date-time'},
         'include-subdomains': {'type': 'boolean'},
         'noted-hostname': {'type': 'string'},
         'served-certificate-chain': {
@@ -325,6 +334,168 @@ EXCEPTION_INTERFACE_SCHEMA = {
     'additionalProperties': False,  # Don't allow any other keys.
 }
 
+TEMPLATE_INTERFACE_SCHEMA = {'type': 'object'}  # TODO fill this out
+MESSAGE_INTERFACE_SCHEMA = {'type': 'object'}  # TODO fill this out
+
+TAGS_DICT_SCHEMA = {
+    'allOf': [
+        {
+            'type': 'object',
+            # TODO with draft 6 support, we can just use propertyNames/maxLength
+            'patternProperties': {
+                '^[a-zA-Z0-9_\.:-]{1,%d}$' % MAX_TAG_KEY_LENGTH: {
+                    # TODO numbers as tag values?
+                    'type': 'string',
+                    'maxLength': MAX_TAG_VALUE_LENGTH,
+                    'pattern': '^[^\n]+\Z',  # \Z because $ matches before trailing newline
+                }
+            },
+            'additionalProperties': False,
+        },
+        {
+            # This is a negative match for all the reserved tags
+            'type': 'object',
+            'patternProperties': {
+                '^(%s)$' % '|'.join(INTERNAL_TAG_KEYS): {'not': {}}
+            },
+            'additionalProperties': True,
+        },
+    ],
+}
+
+TAGS_TUPLES_SCHEMA = {
+    'type': 'array',
+    'items': {
+        'type': 'array',
+        'minItems': 2,
+        'maxItems': 2,
+        'items': [
+            # Key
+            {
+                'type': 'string',
+                'pattern': '^[a-zA-Z0-9_\.:-]+$',
+                'maxLength': MAX_TAG_KEY_LENGTH,
+                'not': {
+                    'pattern': '^(%s)$' % '|'.join(INTERNAL_TAG_KEYS),
+                },
+            },
+            # Value
+            {
+                'type': 'string',
+                'pattern': '^[^\n]+\Z',  # \Z because $ matches before a trailing newline
+                'maxLength': MAX_TAG_VALUE_LENGTH,
+            },
+        ]
+    }
+}
+
+TAGS_SCHEMA = {
+    'anyOf': [TAGS_DICT_SCHEMA, TAGS_TUPLES_SCHEMA]
+}
+
+STORE_SCHEMA = {
+    'type': 'object',
+    'properties': {
+        'event_id': {
+            'type': 'string',
+            'pattern': '^[a-fA-F0-9]+$',
+            'maxLength': 32,
+            'minLength': 32,
+            'default': lambda: uuid.uuid4().hex,
+        },
+        'timestamp': {
+            'anyOf': [
+                {'type': 'string', 'format': 'date-time'},
+                {'type': 'number'}
+            ],
+        },
+        'logger': {'type': 'string'},
+        'platform': {
+            'type': 'string',
+            'enum': list(VALID_PLATFORMS),
+            'default': 'other',
+        },
+        'sdk': {'type': 'string'},
+
+        'level': {
+            'anyOf': [
+                {'type': 'number'},
+                {
+                    'type': 'string',
+                    'pattern': '^[0-9]+$',
+                },
+                {
+                    'type': 'string',
+                    'enum': LOG_LEVELS_MAP.keys(),
+                },
+            ],
+        },
+        'culprit': {
+            'type': 'string',
+            'minLength': 1,
+            'maxLength': MAX_CULPRIT_LENGTH,
+        },
+        'server_name': {'type': 'string'},
+        'release': {
+            'type': 'string',
+            'maxLength': 64,
+        },
+        'dist': {
+            'type': 'string',
+            'pattern': '^[a-zA-Z0-9_.-]+$',
+            'maxLength': 64,
+        },
+        'tags': {
+            # This is a loose tags schema, individual tags
+            # are also validated more in depth with TAGS_SCHEMA
+            'anyOf': [
+                {'type': 'object'},
+                PAIRS,
+            ]
+        },
+        'environment': {
+            'type': 'string',
+            'maxLength': 64,
+        },
+        'modules': {'type': 'object'},
+        'extra': {'type': 'object'},
+        'fingerprint': {
+            'type': 'array',
+            'items': {'type': 'string'},
+        },
+        'time_spent': {
+            'type': 'number',
+            'maximum': BoundedIntegerField.MAX_VALUE,
+            'minimum': 1,
+        },
+
+        # Exceptions:
+        'exception': {},  # EXCEPTION_INTERFACE_SCHEMA,
+        'sentry.interfaces.Exception': {},  # EXCEPTION_INTERFACE_SCHEMA,
+
+        # Messages:
+        'message': {},
+        'logentry': {},  # MESSAGE_INTERFACE_SCHEMA,
+        'sentry.interfaces.Message': {},  # MESSAGE_INTERFACE_SCHEMA,
+
+        # Templates:
+        'template': {},  # TEMPLATE_INTERFACE_SCHEMA,
+        'sentry.interfaces.Template': {},  # TEMPLATE_INTERFACE_SCHEMA,
+
+        # Other interfaces
+        'sentry.interfaces.User': {},
+        'sentry.interfaces.Http': {},
+
+        # Other reserved keys. (some are added in processing)
+        'project': {'type': 'number'},
+        'errors': {'type': 'array'},
+        'checksum': {},
+        'site': {},
+        'received': {},
+    },
+    'required': ['platform', 'event_id', 'timestamp'],
+    'additionalProperties': True,
+}
 """
 Schemas for raw request data.
 
@@ -332,7 +503,7 @@ This is to validate input data at the very first stage of ingestion. It can
 then be transformed into the requisite interface.
 """
 INPUT_SCHEMAS = {
-    # These should match SENTRY_INTERFACES keys
+    'store': STORE_SCHEMA,  # Not an interface per se, but the main store API input.
     'sentry.interfaces.Csp': CSP_SCHEMA,
     'hpkp': HPKP_SCHEMA,
 }
@@ -353,23 +524,29 @@ INTERFACE_SCHEMAS = {
     'sentry.interfaces.Exception': EXCEPTION_INTERFACE_SCHEMA,
     'stacktrace': STACKTRACE_INTERFACE_SCHEMA,
     'sentry.interfaces.Stacktrace': STACKTRACE_INTERFACE_SCHEMA,
-    'frame': FRAME_INTERFACE_SCHEMA,
+    'frame': FRAME_INTERFACE_SCHEMA,  # Not listed in SENTRY_INTERFACES
+    'logentry': MESSAGE_INTERFACE_SCHEMA,
+    'sentry.interfaces.Message': MESSAGE_INTERFACE_SCHEMA,
+    'template': TEMPLATE_INTERFACE_SCHEMA,
+    'sentry.interfaces.Template': TEMPLATE_INTERFACE_SCHEMA,
 }
 
 
 def is_valid_input(data, interface):
     if interface in INPUT_SCHEMAS:
-        try:
-            jsonschema.validate(data, INPUT_SCHEMAS[interface])
-        except jsonschema.ValidationError:
-            return False
+        return jsonschema.Draft3Validator(
+            INPUT_SCHEMAS[interface],
+            types={'array': (list, tuple)},
+            format_checker=jsonschema.FormatChecker(),  # TODO check this works for date-time
+        ).is_valid(data)
     return True
 
 
 def is_valid_interface(data, interface):
     if interface in INTERFACE_SCHEMAS:
-        try:
-            jsonschema.validate(data, INTERFACE_SCHEMAS[interface])
-        except jsonschema.ValidationError:
-            return False
+        return jsonschema.Draft3Validator(
+            INTERFACE_SCHEMAS[interface],
+            types={'array': (list, tuple)},  # treat python tuples as arrays
+            format_checker=jsonschema.FormatChecker(),
+        ).is_valid(data)
     return True

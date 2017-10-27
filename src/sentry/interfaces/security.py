@@ -177,11 +177,11 @@ class Hpkp(SecurityReport):
         return "Public key pinning validation failed for '{self.hostname}'".format(self=self)
 
     def get_tags(self):
-        return (
+        return [
             ('port', six.text_type(self.port)),
             ('include-subdomains', json.dumps(self.include_subdomains)),
             ('hostname', self.hostname),
-        )
+        ]
 
     def get_origin(self):
         return self.hostname  # not quite origin, but the domain that failed pinning
@@ -265,15 +265,15 @@ class Csp(SecurityReport):
 
     def get_culprit(self):
         if not self.violated_directive:
-            return ''
+            return None
         bits = [d for d in self.violated_directive.split(' ') if d]
         return ' '.join([bits[0]] + [self._normalize_value(b) for b in bits[1:]])
 
     def get_tags(self):
-        return (
+        return [
             ('effective-directive', self.effective_directive),
             ('blocked-uri', self._sanitized_blocked_uri()),
-        )
+        ]
 
     def get_origin(self):
         return self.document_uri
