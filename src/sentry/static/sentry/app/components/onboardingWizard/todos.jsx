@@ -20,6 +20,7 @@ const TodoList = React.createClass({
         prereq: [],
         featureLocation: 'organization',
         location: 'projects/new/',
+        display: true
       },
       {
         task: 2,
@@ -30,6 +31,7 @@ const TodoList = React.createClass({
         prereq: [1],
         featureLocation: 'project',
         location: 'settings/install/',
+        display: true
       },
       {
         task: 3,
@@ -43,6 +45,7 @@ const TodoList = React.createClass({
         prereq: [],
         featureLocation: 'organization',
         location: 'members/',
+        display: true
       },
       {
         task: 4,
@@ -55,6 +58,7 @@ const TodoList = React.createClass({
         prereq: [1, 2],
         featureLocation: 'organization',
         location: 'projects/new/',
+        display: true
       },
       {
         task: 5,
@@ -68,6 +72,7 @@ const TodoList = React.createClass({
         prereq: [1, 2],
         featureLocation: 'absolute',
         location: 'https://docs.sentry.io/hosted/learn/context/#capturing-the-user',
+        display: true
       },
       {
         task: 6,
@@ -81,6 +86,7 @@ const TodoList = React.createClass({
         prereq: [1, 2],
         featureLocation: 'project',
         location: 'settings/release-tracking/',
+        display: true
       },
       {
         task: 7,
@@ -94,6 +100,7 @@ const TodoList = React.createClass({
         prereq: [1, 2], // Is one of the platforms javascript?
         featureLocation: 'absolute',
         location: 'https://docs.sentry.io/hosted/clients/javascript/sourcemaps/',
+        display: true
       },
       // {
       //   'task': 8,
@@ -102,7 +109,8 @@ const TodoList = React.createClass({
       //   'skippable': false,
       //   'prereq': [1, 2, 5],
       //   'featureLocation': 'project',
-      //   'location': 'settings/user-reports/'
+      //   'location': 'settings/user-reports/',
+      // display: true
       // },
       {
         task: 9,
@@ -112,6 +120,7 @@ const TodoList = React.createClass({
         prereq: [1, 2],
         featureLocation: 'project',
         location: 'settings/issue-tracking/',
+        display: false
       },
       {
         task: 10,
@@ -121,6 +130,7 @@ const TodoList = React.createClass({
         prereq: [1, 2],
         featureLocation: 'project',
         location: 'settings/alerts/',
+        display: false
       },
     ],
   },
@@ -170,7 +180,7 @@ const TodoList = React.createClass({
   },
 
   render() {
-    let nextTasks = this.state.tasks.filter(task => task.task < 9);
+    let nextTasks = this.state.tasks.filter(task => task.display);
 
     let todoListTasks = nextTasks.map(task => {
       return <TodoItem key={task.task} task={task} onSkip={this.skipTask} />;
