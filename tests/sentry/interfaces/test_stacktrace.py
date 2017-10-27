@@ -9,9 +9,20 @@ from django.template.loader import render_to_string
 from exam import fixture
 
 from sentry.interfaces.base import InterfaceValidationError
-from sentry.interfaces.stacktrace import (Frame, Stacktrace, get_context, slim_frame_data)
+from sentry.interfaces.stacktrace import (Frame, Stacktrace, get_context, is_url, slim_frame_data)
 from sentry.models import Event
 from sentry.testutils import TestCase
+
+
+def test_is_url():
+    assert is_url('http://example.org/') is True
+    assert is_url('https://example.org/') is True
+    assert is_url('file:///tmp/filename') is True
+    assert is_url('applewebdata://00000000-0000-1000-8080-808080808080') is True
+    assert is_url('app:///index.bundle') is False   # react native
+    assert is_url('webpack:///./app/index.jsx') is False  # webpack bundle
+    assert is_url('data:,') is False
+    assert is_url('blob:\x00') is False
 
 
 class GetContextTest(TestCase):
