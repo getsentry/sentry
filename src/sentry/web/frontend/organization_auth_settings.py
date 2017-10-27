@@ -92,7 +92,7 @@ class OrganizationAuthSettingsView(OrganizationView):
                 next_uri = reverse('sentry-organization-auth-settings', args=[organization.slug])
                 return self.redirect(next_uri)
             elif op == 'reinvite':
-                email_missing_links.delay(organization_id=organization.id)
+                email_missing_links.delay(organization.id, request.user.id, provider.key)
 
                 messages.add_message(
                     request,

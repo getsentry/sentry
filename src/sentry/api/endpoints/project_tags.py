@@ -10,7 +10,7 @@ from sentry.api.bases.project import ProjectEndpoint
 
 class ProjectTagsEndpoint(ProjectEndpoint):
     def get(self, request, project):
-        tag_keys = tagstore.get_tag_keys(project.id)
+        tag_keys = sorted(tagstore.get_tag_keys(project.id), key=lambda x: x.key)
 
         data = []
         for tag_key in tag_keys:

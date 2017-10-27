@@ -6,7 +6,7 @@ from sentry.web.frontend.base import ProjectView
 
 class ProjectTagsView(ProjectView):
     def get(self, request, organization, team, project):
-        tag_list = tagstore.get_tag_keys(project.id)
+        tag_list = sorted(tagstore.get_tag_keys(project.id), key=lambda x: x.key)
 
         context = {
             'tag_list': tag_list,
