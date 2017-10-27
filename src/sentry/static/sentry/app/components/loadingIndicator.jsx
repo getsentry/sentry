@@ -7,7 +7,7 @@ function LoadingIndicator(props) {
   let cx = classNames(className, {
     loading: true,
     mini,
-    triangle
+    triangle,
   });
 
   return (
@@ -21,7 +21,7 @@ function LoadingIndicator(props) {
 
 LoadingIndicator.propTypes = {
   mini: PropTypes.bool,
-  triangle: PropTypes.bool
+  triangle: PropTypes.bool,
 };
 
 export default LoadingIndicator;

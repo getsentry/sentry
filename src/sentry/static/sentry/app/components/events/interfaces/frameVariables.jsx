@@ -6,7 +6,7 @@ import KeyValueList from './keyValueList';
 
 const FrameVariables = React.createClass({
   propTypes: {
-    data: PropTypes.object.isRequired
+    data: PropTypes.object.isRequired,
   },
 
   // make sure that clicking on the variables does not actually do
@@ -21,7 +21,7 @@ const FrameVariables = React.createClass({
     return (
       <KeyValueList data={data} isContextData={true} onClick={this.preventToggling} />
     );
-  }
+  },
 });
 
 export default FrameVariables;

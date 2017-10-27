@@ -29,7 +29,11 @@ describe('SnoozeAction', function() {
         />
       );
 
-      wrapper.find('ul').childAt(0).find('a').simulate('click');
+      wrapper
+        .find('ul')
+        .childAt(0)
+        .find('a')
+        .simulate('click');
     });
 
     it('forever link should call prop w/ value undefined', function(done) {
@@ -42,7 +46,11 @@ describe('SnoozeAction', function() {
         />
       );
 
-      wrapper.find('ul').childAt(3).find('a').simulate('click');
+      wrapper
+        .find('ul')
+        .childAt(3)
+        .find('a')
+        .simulate('click');
     });
   });
 });

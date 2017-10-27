@@ -11,12 +11,11 @@ const AdminOrganizations = React.createClass({
     return [
       <td>
         <strong>
-          <Link to={`/${row.slug}/`}>
-            {row.name}
-          </Link>
-        </strong><br />
+          <Link to={`/${row.slug}/`}>{row.name}</Link>
+        </strong>
+        <br />
         <small>{row.slug}</small>
-      </td>
+      </td>,
     ];
   },
 
@@ -38,14 +37,14 @@ const AdminOrganizations = React.createClass({
             ['members', 'Members'],
             ['events', 'Events'],
             ['projects', 'Projects'],
-            ['employees', 'Employees']
+            ['employees', 'Employees'],
           ]}
           defaultSort="date"
           {...this.props}
         />
       </div>
     );
-  }
+  },
 });
 
 export default AdminOrganizations;

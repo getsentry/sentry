@@ -10,7 +10,7 @@ const TemplateInterface = React.createClass({
     group: SentryTypes.Group.isRequired,
     event: SentryTypes.Event.isRequired,
     type: PropTypes.string.isRequired,
-    data: PropTypes.object.isRequired
+    data: PropTypes.object.isRequired,
   },
 
   getInitialState() {
@@ -23,7 +23,8 @@ const TemplateInterface = React.createClass({
         group={this.props.group}
         event={this.props.event}
         type={this.props.type}
-        title={<div>{t('Template')}</div>}>
+        title={<div>{t('Template')}</div>}
+      >
         <div className="traceback no-exception">
           <ul>
             <Frame data={this.props.data} isExpanded={true} />
@@ -31,7 +32,7 @@ const TemplateInterface = React.createClass({
         </div>
       </GroupEventDataSection>
     );
-  }
+  },
 });
 
 export default TemplateInterface;

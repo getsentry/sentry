@@ -11,21 +11,21 @@ const StacktraceContent = React.createClass({
     includeSystemFrames: PropTypes.bool,
     expandFirstFrame: PropTypes.bool,
     platform: PropTypes.string,
-    newestFirst: PropTypes.bool
+    newestFirst: PropTypes.bool,
   },
   mixins: [OrganizationState],
 
   getDefaultProps() {
     return {
       includeSystemFrames: true,
-      expandFirstFrame: true
+      expandFirstFrame: true,
     };
   },
 
   renderOmittedFrames(firstFrameOmitted, lastFrameOmitted) {
     let props = {
       className: 'frame frames-omitted',
-      key: 'omitted'
+      key: 'omitted',
     };
     let text = t(
       'Frames %d until %d were omitted and not available.',
@@ -120,7 +120,7 @@ const StacktraceContent = React.createClass({
         <ul>{frames}</ul>
       </div>
     );
-  }
+  },
 });
 
 export default StacktraceContent;

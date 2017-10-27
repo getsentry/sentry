@@ -9,7 +9,7 @@ export default class TeamSettings extends AsyncView {
   static propTypes = {
     ...AsyncView.propTypes,
     team: PropTypes.object.isRequired,
-    onTeamChange: PropTypes.func.isRequired
+    onTeamChange: PropTypes.func.isRequired,
   };
 
   getTitle() {
@@ -28,10 +28,11 @@ export default class TeamSettings extends AsyncView {
             apiEndpoint={`/teams/${orgId}/${teamId}/`}
             initialData={{
               name: team.name,
-              slug: team.slug
+              slug: team.slug,
             }}
             onSubmitSuccess={this.props.onTeamChange}
-            requireChanges={true}>
+            requireChanges={true}
+          >
             <TextField
               name="name"
               label={t('Name')}

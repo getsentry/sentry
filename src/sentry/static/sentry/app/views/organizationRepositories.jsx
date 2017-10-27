@@ -14,12 +14,12 @@ import OrganizationSettingsView from './organizationSettingsView';
 import PluginComponentBase from '../components/bases/pluginComponentBase';
 
 const UNKNOWN_ERROR = {
-  error_type: 'unknown'
+  error_type: 'unknown',
 };
 
 class AddRepositoryLink extends PluginComponentBase {
   static propTypes = {
-    provider: PropTypes.object.isRequired
+    provider: PropTypes.object.isRequired,
   };
 
   constructor(props, context) {
@@ -29,7 +29,7 @@ class AddRepositoryLink extends PluginComponentBase {
       ...this.getDefaultState(),
       fieldList: null,
       loading: true,
-      state: FormState.LOADING
+      state: FormState.LOADING,
     });
 
     ['onOpen', 'onCancel', 'formSubmit', 'changeField'].forEach(method => {
@@ -41,7 +41,7 @@ class AddRepositoryLink extends PluginComponentBase {
     return {
       isModalOpen: false,
       error: {},
-      formData: {}
+      formData: {},
     };
   }
 
@@ -64,7 +64,7 @@ class AddRepositoryLink extends PluginComponentBase {
     // TODO(dcramer): set form saving state
     let formData = {
       ...this.state.formData,
-      provider: this.props.provider.id
+      provider: this.props.provider.id,
     };
     if (formData.name) {
       formData.name = parseRepo(formData.name);
@@ -72,7 +72,7 @@ class AddRepositoryLink extends PluginComponentBase {
 
     this.setState(
       {
-        state: FormState.SAVING
+        state: FormState.SAVING,
       },
       () => {
         this.api.request(`/organizations/${this.props.orgId}/repos/`, {
@@ -85,10 +85,10 @@ class AddRepositoryLink extends PluginComponentBase {
           error: this.onSaveError.bind(this, error => {
             this.setState({
               error: error.responseJSON || UNKNOWN_ERROR || UNKNOWN_ERROR,
-              state: FormState.error
+              state: FormState.error,
             });
           }),
-          complete: this.onSaveComplete
+          complete: this.onSaveComplete,
         });
       }
     );
@@ -98,8 +98,8 @@ class AddRepositoryLink extends PluginComponentBase {
     this.setState(state => ({
       formData: {
         ...state.formData,
-        [name]: value
-      }
+        [name]: value,
+      },
     }));
   }
 
@@ -108,12 +108,11 @@ class AddRepositoryLink extends PluginComponentBase {
     let provider = this.props.provider;
     return (
       <form onSubmit={this.formSubmit}>
-        {errors.__all__ &&
+        {errors.__all__ && (
           <div className="alert alert-error alert-block" key="_errors">
-            <p>
-              {errors.__all__}
-            </p>
-          </div>}
+            <p>{errors.__all__}</p>
+          </div>
+        )}
         {provider.config.map(field => {
           return (
             <div key={field.name}>
@@ -121,7 +120,7 @@ class AddRepositoryLink extends PluginComponentBase {
                 config: field,
                 formData: this.state.formData,
                 formErrors: errors,
-                onChange: this.changeField.bind(this, field.name)
+                onChange: this.changeField.bind(this, field.name),
               })}
             </div>
           );
@@ -160,7 +159,7 @@ class AddRepositoryLink extends PluginComponentBase {
               : tct(
                   'An unknown error occurred. Need help with this? [link:Contact support]',
                   {
-                    link: <a href="https://sentry.io/support/" />
+                    link: <a href="https://sentry.io/support/" />,
                   }
                 )}
           </p>
@@ -175,31 +174,29 @@ class AddRepositoryLink extends PluginComponentBase {
     return (
       <Modal show={this.state.isModalOpen} animation={false}>
         <div className="modal-header">
-          <h4>
-            {t('Add Repository')}
-          </h4>
+          <h4>{t('Add Repository')}</h4>
         </div>
-        <div className="modal-body">
-          {this.renderBody()}
-        </div>
-        {!error || error.error_type !== 'unknown' || error.message
-          ? <div className="modal-footer">
-              <button
-                type="button"
-                className="btn btn-default"
-                onClick={this.onCancel}
-                disabled={state === FormState.SAVING}>
-                {t('Cancel')}
-              </button>
-              <button
-                type="button"
-                className="btn btn-primary"
-                onClick={this.onSubmit}
-                disabled={state === FormState.SAVING}>
-                {t('Save Changes')}
-              </button>
-            </div>
-          : null}
+        <div className="modal-body">{this.renderBody()}</div>
+        {!error || error.error_type !== 'unknown' || error.message ? (
+          <div className="modal-footer">
+            <button
+              type="button"
+              className="btn btn-default"
+              onClick={this.onCancel}
+              disabled={state === FormState.SAVING}
+            >
+              {t('Cancel')}
+            </button>
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={this.onSubmit}
+              disabled={state === FormState.SAVING}
+            >
+              {t('Save Changes')}
+            </button>
+          </div>
+        ) : null}
       </Modal>
     );
   }
@@ -220,7 +217,7 @@ class OrganizationRepositories extends OrganizationSettingsView {
     let {orgId} = this.props.params;
     return [
       ['itemList', `/organizations/${orgId}/repos/`, {query: {status: ''}}],
-      ['repoConfig', `/organizations/${orgId}/config/repos/`]
+      ['repoConfig', `/organizations/${orgId}/config/repos/`],
     ];
   }
 
@@ -236,17 +233,17 @@ class OrganizationRepositories extends OrganizationSettingsView {
           }
         });
         this.setState({
-          itemList
+          itemList,
         });
       },
       error: () => {
         IndicatorStore.add(t('An error occurred.'), 'error', {
-          duration: 3000
+          duration: 3000,
         });
       },
       complete: () => {
         IndicatorStore.remove(indicator);
-      }
+      },
     });
   };
 
@@ -263,17 +260,17 @@ class OrganizationRepositories extends OrganizationSettingsView {
           }
         });
         this.setState({
-          itemList
+          itemList,
         });
       },
       error: () => {
         IndicatorStore.add(t('An error occurred.'), 'error', {
-          duration: 3000
+          duration: 3000,
         });
       },
       complete: () => {
         IndicatorStore.remove(indicator);
-      }
+      },
     });
   };
 
@@ -281,7 +278,7 @@ class OrganizationRepositories extends OrganizationSettingsView {
     let itemList = this.state.itemList;
     itemList.push(repo);
     this.setState({
-      itemList: sortArray(itemList, item => item.name)
+      itemList: sortArray(itemList, item => item.name),
     });
   };
 
@@ -313,7 +310,8 @@ class OrganizationRepositories extends OrganizationSettingsView {
             anchorRight
             alwaysRenderMenu
             className="btn btn-primary btn-sm"
-            title={t('Add Repository')}>
+            title={t('Add Repository')}
+          >
             {this.state.repoConfig.providers.map(provider => {
               return (
                 <MenuItem noAnchor={true} key={provider.id}>
@@ -327,10 +325,8 @@ class OrganizationRepositories extends OrganizationSettingsView {
             })}
           </DropdownReact>
         </div>
-        <h3 className="m-b-2">
-          {t('Repositories')}
-        </h3>
-        {itemList.length > 0 &&
+        <h3 className="m-b-2">{t('Repositories')}</h3>
+        {itemList.length > 0 && (
           <div className="m-b-2">
             <p>
               {t(
@@ -340,79 +336,75 @@ class OrganizationRepositories extends OrganizationSettingsView {
               )}
               &nbsp;
               {tct('See our [link:documentation] for more details.', {
-                link: <a href="https://docs.sentry.io/learn/releases/" />
+                link: <a href="https://docs.sentry.io/learn/releases/" />,
               })}
             </p>
-          </div>}
-        {itemList.length > 0
-          ? <div className="panel panel-default">
-              <table className="table">
-                <tbody>
-                  {itemList.map(repo => {
-                    let repoIsVisible = repo.status === 'visible';
-                    return (
-                      <tr key={repo.id}>
-                        <td>
-                          <strong>
-                            {repo.name}
-                          </strong>
-                          {!repoIsVisible &&
-                            <small>
-                              {' '}— {this.getStatusLabel(repo)}
-                            </small>}
-                          {repo.status === 'pending_deletion' &&
-                            <small>
-                              {' '}(
-                              <a onClick={() => this.cancelDelete(repo)}>
-                                {t('Cancel')}
-                              </a>
-                              )
-                            </small>}
-                          <br />
+          </div>
+        )}
+        {itemList.length > 0 ? (
+          <div className="panel panel-default">
+            <table className="table">
+              <tbody>
+                {itemList.map(repo => {
+                  let repoIsVisible = repo.status === 'visible';
+                  return (
+                    <tr key={repo.id}>
+                      <td>
+                        <strong>{repo.name}</strong>
+                        {!repoIsVisible && <small> — {this.getStatusLabel(repo)}</small>}
+                        {repo.status === 'pending_deletion' && (
                           <small>
-                            {repo.provider.name}
+                            {' '}
+                            (
+                            <a onClick={() => this.cancelDelete(repo)}>{t('Cancel')}</a>
+                            )
                           </small>
-                          {repo.url &&
-                            <small>
-                              {' '}— <a href={repo.url}>{repo.url}</a>
-                            </small>}
-                        </td>
-                        <td style={{width: 60}}>
-                          <Confirm
-                            disabled={!repoIsVisible}
-                            onConfirm={() => this.deleteRepo(repo)}
-                            message={t(
-                              'Are you sure you want to remove this repository?'
-                            )}>
-                            <Button size="xsmall">
-                              <span className="icon icon-trash" />
-                            </Button>
-                          </Confirm>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          : <div className="well blankslate align-center p-x-2 p-y-1">
-              <div className="icon icon-lg icon-git-commit" />
-              <h3>
-                {t('Sentry is better with commit data')}
-              </h3>
-              <p>
-                {t(
-                  'Adding one or more repositories will enable enhanced releases and the ability to resolve Sentry Issues via git message.'
-                )}
-              </p>
-              <p className="m-b-1">
-                <a
-                  className="btn btn-default"
-                  href="https://docs.sentry.io/learn/releases/">
-                  Learn more
-                </a>
-              </p>
-            </div>}
+                        )}
+                        <br />
+                        <small>{repo.provider.name}</small>
+                        {repo.url && (
+                          <small>
+                            {' '}
+                            — <a href={repo.url}>{repo.url}</a>
+                          </small>
+                        )}
+                      </td>
+                      <td style={{width: 60}}>
+                        <Confirm
+                          disabled={!repoIsVisible}
+                          onConfirm={() => this.deleteRepo(repo)}
+                          message={t('Are you sure you want to remove this repository?')}
+                        >
+                          <Button size="xsmall">
+                            <span className="icon icon-trash" />
+                          </Button>
+                        </Confirm>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="well blankslate align-center p-x-2 p-y-1">
+            <div className="icon icon-lg icon-git-commit" />
+            <h3>{t('Sentry is better with commit data')}</h3>
+            <p>
+              {t(
+                'Adding one or more repositories will enable enhanced releases and the ability to resolve Sentry Issues via git message.'
+              )}
+            </p>
+            <p className="m-b-1">
+              <a
+                className="btn btn-default"
+                href="https://docs.sentry.io/learn/releases/"
+              >
+                Learn more
+              </a>
+            </p>
+          </div>
+        )}
       </div>
     );
   }

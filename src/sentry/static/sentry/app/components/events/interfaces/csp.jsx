@@ -25,7 +25,7 @@ const CSPInterface = React.createClass({
     group: SentryTypes.Group.isRequired,
     event: SentryTypes.Event.isRequired,
     type: PropTypes.string.isRequired,
-    data: PropTypes.object.isRequired
+    data: PropTypes.object.isRequired,
   },
 
   getInitialState() {
@@ -35,13 +35,13 @@ const CSPInterface = React.createClass({
 
     return {
       view: 'report',
-      data
+      data,
     };
   },
 
   toggleView(value) {
     this.setState({
-      view: value
+      view: value,
     });
   },
 
@@ -54,17 +54,20 @@ const CSPInterface = React.createClass({
         <div className="btn-group">
           <a
             className={(view === 'report' ? 'active' : '') + ' btn btn-default btn-sm'}
-            onClick={this.toggleView.bind(this, 'report')}>
+            onClick={this.toggleView.bind(this, 'report')}
+          >
             {t('Report')}
           </a>
           <a
             className={(view === 'raw' ? 'active' : '') + ' btn btn-default btn-sm'}
-            onClick={this.toggleView.bind(this, 'raw')}>
+            onClick={this.toggleView.bind(this, 'raw')}
+          >
             {t('Raw')}
           </a>
           <a
             className={(view === 'help' ? 'active' : '') + ' btn btn-default btn-sm'}
-            onClick={this.toggleView.bind(this, 'help')}>
+            onClick={this.toggleView.bind(this, 'help')}
+          >
             {t('Help')}
           </a>
         </div>
@@ -80,11 +83,12 @@ const CSPInterface = React.createClass({
         event={event}
         type="csp"
         title={title}
-        wrapTitle={false}>
+        wrapTitle={false}
+      >
         {children}
       </GroupEventDataSection>
     );
-  }
+  },
 });
 
 export default CSPInterface;

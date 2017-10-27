@@ -9,7 +9,7 @@ import classNames from 'classnames';
 const SpreadLayout = ({children, className, responsive, center, ...props}) => {
   const cx = classNames('spread-layout', className, {
     center,
-    'allow-responsive': responsive
+    'allow-responsive': responsive,
   });
 
   return (
@@ -21,14 +21,14 @@ const SpreadLayout = ({children, className, responsive, center, ...props}) => {
 
 SpreadLayout.defaultProps = {
   responsive: false,
-  center: true
+  center: true,
 };
 
 SpreadLayout.propTypes = {
   children: PropTypes.node,
   style: PropTypes.object,
   center: PropTypes.bool,
-  responsive: PropTypes.bool
+  responsive: PropTypes.bool,
 };
 
 export default SpreadLayout;

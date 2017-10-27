@@ -9,6 +9,6 @@ let GroupingActions = Reflux.createActions([
   'unmerge',
   'merge',
   'toggleCollapseFingerprint',
-  'toggleCollapseFingerprints'
+  'toggleCollapseFingerprints',
 ]);
 export default GroupingActions;

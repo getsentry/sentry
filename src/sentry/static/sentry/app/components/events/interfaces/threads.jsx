@@ -83,8 +83,8 @@ function getThreadTitle(thread, event, simplified) {
           {frame.filename
             ? trimFilename(frame.filename)
             : frame.package
-                ? trimPackage(frame.package)
-                : frame.module ? frame.module : '<unknown>'}
+              ? trimPackage(frame.package)
+              : frame.module ? frame.module : '<unknown>'}
         </em>
       );
     }
@@ -131,7 +131,7 @@ const Thread = React.createClass({
     stackType: PropTypes.string,
     newestFirst: PropTypes.bool,
     exception: PropTypes.object,
-    stacktrace: PropTypes.object
+    stacktrace: PropTypes.object,
   },
 
   renderMissingStacktrace() {
@@ -164,7 +164,7 @@ const Thread = React.createClass({
       stackType,
       newestFirst,
       exception,
-      stacktrace
+      stacktrace,
     } = this.props;
     return (
       <div className="thread">
@@ -176,20 +176,22 @@ const Thread = React.createClass({
             {data.crashed ? 'yes' : 'no'}
           </Pill>
         </Pills>
-        {this.hasMissingStacktrace()
-          ? this.renderMissingStacktrace()
-          : <CrashContent
-              group={group}
-              event={event}
-              stackType={stackType}
-              stackView={stackView}
-              newestFirst={newestFirst}
-              exception={exception}
-              stacktrace={stacktrace}
-            />}
+        {this.hasMissingStacktrace() ? (
+          this.renderMissingStacktrace()
+        ) : (
+          <CrashContent
+            group={group}
+            event={event}
+            stackType={stackType}
+            stackView={stackView}
+            newestFirst={newestFirst}
+            exception={exception}
+            stacktrace={stacktrace}
+          />
+        )}
       </div>
     );
-  }
+  },
 });
 
 const ThreadsInterface = React.createClass({
@@ -198,7 +200,7 @@ const ThreadsInterface = React.createClass({
     event: SentryTypes.Event.isRequired,
     type: PropTypes.string.isRequired,
     data: PropTypes.object.isRequired,
-    platform: PropTypes.string
+    platform: PropTypes.string,
   },
 
   getInitialState() {
@@ -207,13 +209,13 @@ const ThreadsInterface = React.createClass({
       activeThread: thread,
       stackView: getIntendedStackView(thread, this.props.event),
       stackType: 'original',
-      newestFirst: isStacktraceNewestFirst()
+      newestFirst: isStacktraceNewestFirst(),
     };
   },
 
   toggleStack(value) {
     this.setState({
-      stackView: value
+      stackView: value,
     });
   },
 
@@ -237,7 +239,7 @@ const ThreadsInterface = React.createClass({
     this.setState({
       activeThread: thread,
       stackView: newStackView,
-      stackType: 'original'
+      stackType: 'original',
     });
   },
 
@@ -254,7 +256,8 @@ const ThreadsInterface = React.createClass({
           btnGroup={true}
           caret={true}
           className="btn btn-default btn-sm"
-          title={getThreadTitle(activeThread, this.props.event, true)}>
+          title={getThreadTitle(activeThread, this.props.event, true)}
+        >
           {this.props.data.values.map((thread, idx) => {
             return (
               <MenuItem key={idx} noAnchor={true}>
@@ -292,7 +295,8 @@ const ThreadsInterface = React.createClass({
         event={evt}
         type={this.props.type}
         title={title}
-        wrapTitle={false}>
+        wrapTitle={false}
+      >
         <Thread
           group={group}
           data={activeThread}
@@ -305,7 +309,7 @@ const ThreadsInterface = React.createClass({
         />
       </GroupEventDataSection>
     );
-  }
+  },
 });
 
 export default ThreadsInterface;

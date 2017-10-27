@@ -23,15 +23,13 @@ const NarryLayout = React.createClass({
                 <span className="icon-sentry-logo" />
               </a>
             </div>
-            <div className="box-content with-padding">
-              {this.props.children}
-            </div>
+            <div className="box-content with-padding">{this.props.children}</div>
           </div>
         </div>
         <Footer />
       </div>
     );
-  }
+  },
 });
 
 export default NarryLayout;

@@ -10,19 +10,19 @@ const FileChange = React.createClass({
   propTypes: {
     filename: PropTypes.string.isRequired,
     authors: PropTypes.array.isRequired,
-    types: PropTypes.object.isRequired
+    types: PropTypes.object.isRequired,
   },
 
   mixins: [
     ApiMixin,
     TooltipMixin({
-      selector: '.tip'
-    })
+      selector: '.tip',
+    }),
   ],
 
   getInitialState() {
     return {
-      loading: true
+      loading: true,
     };
   },
 
@@ -42,7 +42,8 @@ const FileChange = React.createClass({
                 <span
                   key={i}
                   className="avatar-grid-item m-b-0 tip"
-                  title={author.name + ' ' + author.email}>
+                  title={author.name + ' ' + author.email}
+                >
                   <Avatar user={author} />
                 </span>
               );
@@ -64,7 +65,7 @@ const FileChange = React.createClass({
         </div>
       </li>
     );
-  }
+  },
 });
 
 export default FileChange;

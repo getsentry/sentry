@@ -9,7 +9,7 @@ const ClippedBox = React.createClass({
     defaultClipped: PropTypes.bool,
     clipHeight: PropTypes.number,
     btnClassName: PropTypes.string,
-    btnText: PropTypes.string
+    btnText: PropTypes.string,
   },
 
   getDefaultProps() {
@@ -18,14 +18,14 @@ const ClippedBox = React.createClass({
       clipHeight: 200,
       renderedHeight: null,
       btnClassName: 'btn btn-primary btn-xs show-more',
-      btnText: t('Show More')
+      btnText: t('Show More'),
     };
   },
 
   getInitialState() {
     return {
       clipped: this.props.defaultClipped,
-      revealed: false // True once user has clicked "Show More" button
+      revealed: false, // True once user has clicked "Show More" button
     };
   },
 
@@ -37,7 +37,7 @@ const ClippedBox = React.createClass({
       // okay if this causes re-render; cannot determine until
       // rendered first anyways
       this.setState({
-        clipped: true
+        clipped: true,
       });
     }
   },
@@ -47,7 +47,7 @@ const ClippedBox = React.createClass({
 
     this.setState({
       clipped: false,
-      revealed: true
+      revealed: true,
     });
   },
 
@@ -63,19 +63,21 @@ const ClippedBox = React.createClass({
     return (
       <div
         className={className}
-        style={{maxHeight: this.state.clipped ? this.props.clipHeight : null}}>
+        style={{maxHeight: this.state.clipped ? this.props.clipHeight : null}}
+      >
         {this.props.title && <h5>{this.props.title}</h5>}
         {this.props.children}
 
-        {this.state.clipped &&
+        {this.state.clipped && (
           <div className="clip-fade">
             <a onClick={this.reveal} className={this.props.btnClassName}>
               {this.props.btnText}
             </a>
-          </div>}
+          </div>
+        )}
       </div>
     );
-  }
+  },
 });
 
 export default ClippedBox;

@@ -8,13 +8,13 @@ function isOverflowing(el) {
 
 const SummaryLine = React.createClass({
   propTypes: {
-    crumb: PropTypes.object.isRequired
+    crumb: PropTypes.object.isRequired,
   },
 
   getInitialState() {
     return {
       expanded: false,
-      hasOverflow: false
+      hasOverflow: false,
     };
   },
 
@@ -40,14 +40,14 @@ const SummaryLine = React.createClass({
     let hasOverflow = isOverflowing(this.domElement);
     if (hasOverflow !== this.state.hasOverflow) {
       this.setState({
-        hasOverflow
+        hasOverflow,
       });
     }
   },
 
   onToggle() {
     this.setState({
-      expanded: !this.state.expanded
+      expanded: !this.state.expanded,
     });
   },
 
@@ -63,11 +63,12 @@ const SummaryLine = React.createClass({
       <div
         className={className}
         onClick={this.onToggle}
-        ref={this.makeSummariesGreatAgain}>
+        ref={this.makeSummariesGreatAgain}
+      >
         {this.props.children}
       </div>
     );
-  }
+  },
 });
 
 export default SummaryLine;

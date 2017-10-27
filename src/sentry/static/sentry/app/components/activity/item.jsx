@@ -18,19 +18,19 @@ const ActivityItem = React.createClass({
     clipHeight: PropTypes.number,
     defaultClipped: PropTypes.bool,
     item: PropTypes.object.isRequired,
-    orgId: PropTypes.string.isRequired
+    orgId: PropTypes.string.isRequired,
   },
 
   getDefaultProps() {
     return {
       defaultClipped: false,
-      clipHeight: 68
+      clipHeight: 68,
     };
   },
 
   getInitialState() {
     return {
-      clipped: this.props.defaultClipped
+      clipped: this.props.defaultClipped,
     };
   },
 
@@ -43,7 +43,7 @@ const ActivityItem = React.createClass({
         // okay if this causes re-render; cannot determine until
         // rendered first anyways
         this.setState({
-          clipped: true
+          clipped: true,
         });
       }
     }
@@ -55,11 +55,11 @@ const ActivityItem = React.createClass({
     let project = item.project;
     let issue = item.issue;
 
-    let issueLink = issue
-      ? <IssueLink orgId={orgId} projectId={project.slug} issue={issue}>
-          {issue.shortId}
-        </IssueLink>
-      : null;
+    let issueLink = issue ? (
+      <IssueLink orgId={orgId} projectId={project.slug} issue={issue}>
+        {issue.shortId}
+      </IssueLink>
+    ) : null;
 
     switch (item.type) {
       case 'note':
@@ -67,20 +67,21 @@ const ActivityItem = React.createClass({
           author,
           issue: (
             <Link
-              to={`/${orgId}/${project.slug}/issues/${issue.id}/activity/#event_${item.id}`}>
+              to={`/${orgId}/${project.slug}/issues/${issue.id}/activity/#event_${item.id}`}
+            >
               {issue.shortId}
             </Link>
-          )
+          ),
         });
       case 'set_resolved':
         return tct('[author] marked [issue] as resolved', {
           author,
-          issue: issueLink
+          issue: issueLink,
         });
       case 'set_resolved_by_age':
         return tct('[author] marked [issue] as resolved due to age', {
           author,
-          issue: issueLink
+          issue: issueLink,
         });
       case 'set_resolved_in_release':
         if (data.version) {
@@ -89,12 +90,12 @@ const ActivityItem = React.createClass({
             version: (
               <Version version={data.version} orgId={orgId} projectId={project.slug} />
             ),
-            issue: issueLink
+            issue: issueLink,
           });
         }
         return tct('[author] marked [issue] as resolved in the upcoming release', {
           author,
-          issue: issueLink
+          issue: issueLink,
         });
       case 'set_resolved_in_commit':
         return tct('[author] marked [issue] as fixed in [version]', {
@@ -106,19 +107,19 @@ const ActivityItem = React.createClass({
               repository={data.commit.repository}
             />
           ),
-          issue: issueLink
+          issue: issueLink,
         });
       case 'set_unresolved':
         return tct('[author] marked [issue] as unresolved', {
           author,
-          issue: issueLink
+          issue: issueLink,
         });
       case 'set_ignored':
         if (data.ignoreDuration) {
           return tct('[author] ignored [issue] for [duration]', {
             author,
             duration: <Duration seconds={data.ignoreDuration * 60} />,
-            issue: issueLink
+            issue: issueLink,
           });
         } else if (data.ignoreCount && data.ignoreWindow) {
           return tct(
@@ -127,14 +128,14 @@ const ActivityItem = React.createClass({
               author,
               count: data.ignoreCount,
               duration: <Duration seconds={data.ignoreWindow * 3600} />,
-              issue: issueLink
+              issue: issueLink,
             }
           );
         } else if (data.ignoreCount) {
           return tct('[author] ignored [issue] until it happens [count] time(s)', {
             author,
             count: data.ignoreCount,
-            issue: issueLink
+            issue: issueLink,
           });
         } else if (data.ignoreUserCount && data.ignoreUserWindow) {
           return tct(
@@ -143,29 +144,29 @@ const ActivityItem = React.createClass({
               author,
               count: data.ignoreUserCount,
               duration: <Duration seconds={data.ignoreUserWindow * 3600} />,
-              issue: issueLink
+              issue: issueLink,
             }
           );
         } else if (data.ignoreUserCount) {
           return tct('[author] ignored [issue] until it affects [count] user(s)', {
             author,
             count: data.ignoreUserCount,
-            issue: issueLink
+            issue: issueLink,
           });
         }
         return tct('[author] ignored [issue]', {
           author,
-          issue: issueLink
+          issue: issueLink,
         });
       case 'set_public':
         return tct('[author] made [issue] public', {
           author,
-          issue: issueLink
+          issue: issueLink,
         });
       case 'set_private':
         return tct('[author] made [issue] private', {
           author,
-          issue: issueLink
+          issue: issueLink,
         });
       case 'set_regression':
         if (data.version) {
@@ -174,18 +175,18 @@ const ActivityItem = React.createClass({
             version: (
               <Version version={data.version} orgId={orgId} projectId={project.slug} />
             ),
-            issue: issueLink
+            issue: issueLink,
           });
         }
         return tct('[author] marked [issue] as a regression', {
           author,
-          issue: issueLink
+          issue: issueLink,
         });
       case 'create_issue':
         return tct('[author] linked [issue] on [provider]', {
           author,
           provider: data.provider,
-          issue: issueLink
+          issue: issueLink,
         });
       case 'unmerge_destination':
         return tn(
@@ -193,24 +194,26 @@ const ActivityItem = React.createClass({
           '%2$s migrated %1$d fingerprints from %3$s to %4$s',
           data.fingerprints.length,
           author,
-          data.source
-            ? <a href={`/${orgId}/${project.slug}/issues/${data.source.id}`}>
-                {data.source.shortId}
-              </a>
-            : t('a group'),
+          data.source ? (
+            <a href={`/${orgId}/${project.slug}/issues/${data.source.id}`}>
+              {data.source.shortId}
+            </a>
+          ) : (
+            t('a group')
+          ),
           issueLink
         );
       case 'first_seen':
         return tct('[author] saw [link:issue]', {
           author,
-          issue: issueLink
+          issue: issueLink,
         });
       case 'assigned':
         let assignee;
         if (item.user && data.assignee === item.user.id) {
           return tct('[author] assigned [issue] to themselves', {
             author,
-            issue: issueLink
+            issue: issueLink,
           });
         }
         assignee = MemberListStore.getById(data.assignee);
@@ -218,37 +221,37 @@ const ActivityItem = React.createClass({
           return tct('[author] assigned [issue] to [assignee]', {
             author,
             assignee: <span title={assignee.email}>{assignee.name}</span>,
-            issue: issueLink
+            issue: issueLink,
           });
         } else if (data.assigneeEmail) {
           return tct('[author] assigned [issue] to [assignee]', {
             author,
             assignee: data.assigneeEmail,
-            issue: issueLink
+            issue: issueLink,
           });
         }
         return tct('[author] assigned [issue] to an [help:unknown user]', {
           author,
           help: <span title={data.assignee} />,
-          issue: issueLink
+          issue: issueLink,
         });
       case 'unassigned':
         return tct('[author] unassigned [issue]', {
           author,
-          issue: issueLink
+          issue: issueLink,
         });
       case 'merge':
         return tct('[author] merged [count] [link:issues]', {
           author,
           count: data.issues.length + 1,
-          link: <Link to={`/${orgId}/${project.slug}/issues/${issue.id}/`} />
+          link: <Link to={`/${orgId}/${project.slug}/issues/${issue.id}/`} />,
         });
       case 'release':
         return tct('[author] released version [version]', {
           author,
           version: (
             <Version version={data.version} orgId={orgId} projectId={project.slug} />
-          )
+          ),
         });
       case 'deploy':
         return tct('[author] deployed version [version] to [environment].', {
@@ -256,7 +259,7 @@ const ActivityItem = React.createClass({
           version: (
             <Version version={data.version} orgId={orgId} projectId={project.slug} />
           ),
-          environment: data.environment || 'Default Environment'
+          environment: data.environment || 'Default Environment',
         });
       default:
         return ''; // should never hit (?)
@@ -272,13 +275,17 @@ const ActivityItem = React.createClass({
       bubbleClassName += ' clipped';
     }
 
-    let avatar = item.user
-      ? <Avatar user={item.user} size={64} className="avatar" />
-      : <div className="avatar sentry"><span className="icon-sentry-logo" /></div>;
+    let avatar = item.user ? (
+      <Avatar user={item.user} size={64} className="avatar" />
+    ) : (
+      <div className="avatar sentry">
+        <span className="icon-sentry-logo" />
+      </div>
+    );
 
     let author = {
       name: item.user ? item.user.name : 'Sentry',
-      avatar
+      avatar,
     };
 
     if (item.type === 'note') {
@@ -354,7 +361,7 @@ const ActivityItem = React.createClass({
         </li>
       );
     }
-  }
+  },
 });
 
 export default ActivityItem;

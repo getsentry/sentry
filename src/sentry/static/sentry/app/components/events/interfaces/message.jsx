@@ -11,7 +11,7 @@ const MessageInterface = React.createClass({
     group: SentryTypes.Group.isRequired,
     event: SentryTypes.Event.isRequired,
     type: PropTypes.string.isRequired,
-    data: PropTypes.object.isRequired
+    data: PropTypes.object.isRequired,
   },
 
   render() {
@@ -21,24 +21,26 @@ const MessageInterface = React.createClass({
         group={this.props.group}
         event={this.props.event}
         type="message"
-        title={t('Message')}>
+        title={t('Message')}
+      >
         <pre
           className="plain"
           dangerouslySetInnerHTML={{
             __html: utils.nl2br(
               utils.urlize(utils.escape(data.formatted || data.message))
-            )
+            ),
           }}
         />
         {data.params &&
-          !data.formatted &&
-          <div>
-            <h5>{t('Params')}</h5>
-            <pre className="plain">{JSON.stringify(data.params, null, 2)}</pre>
-          </div>}
+          !data.formatted && (
+            <div>
+              <h5>{t('Params')}</h5>
+              <pre className="plain">{JSON.stringify(data.params, null, 2)}</pre>
+            </div>
+          )}
       </EventDataSection>
     );
-  }
+  },
 });
 
 export default MessageInterface;

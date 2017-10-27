@@ -17,7 +17,7 @@ const RuleRow = React.createClass({
     orgId: PropTypes.string.isRequired,
     projectId: PropTypes.string.isRequired,
     data: PropTypes.object.isRequired,
-    onDelete: PropTypes.func.isRequired
+    onDelete: PropTypes.func.isRequired,
   },
 
   mixins: [ApiMixin],
@@ -25,7 +25,7 @@ const RuleRow = React.createClass({
   getInitialState() {
     return {
       loading: false,
-      error: false
+      error: false,
     };
   },
 
@@ -43,11 +43,11 @@ const RuleRow = React.createClass({
       error: () => {
         this.setState({
           error: true,
-          loading: false
+          loading: false,
         });
         IndicatorStore.remove(loadingIndicator);
         IndicatorStore.add(t('Unable to save changes. Please try again.'), 'error');
-      }
+      },
     });
   },
 
@@ -64,18 +64,21 @@ const RuleRow = React.createClass({
 
             <Confirm
               message={t('Are you sure you want to remove this rule?')}
-              onConfirm={this.onDelete}>
+              onConfirm={this.onDelete}
+            >
               <Button size="small">
                 <span className="icon-trash" />
               </Button>
             </Confirm>
           </div>
-          <h3><a href={editLink}>{data.name}</a></h3>
+          <h3>
+            <a href={editLink}>{data.name}</a>
+          </h3>
         </div>
         <div className="box-content with-padding">
           <div className="row">
             <div className="col-md-6">
-              {data.conditions.length !== 0 &&
+              {data.conditions.length !== 0 && (
                 <div>
                   <h6>
                     When <strong>{data.actionMatch}</strong> of these conditions are met:
@@ -89,16 +92,17 @@ const RuleRow = React.createClass({
                       );
                     })}
                   </table>
-                </div>}
+                </div>
+              )}
             </div>
             <div className="col-md-6">
-              {data.actions.length !== 0 &&
+              {data.actions.length !== 0 && (
                 <div>
                   <h6>
-                    Take these actions at most
-                    {' '}
-                    <strong>once every <Duration seconds={data.frequency * 60} /></strong>
-                    {' '}
+                    Take these actions at most{' '}
+                    <strong>
+                      once every <Duration seconds={data.frequency * 60} />
+                    </strong>{' '}
                     for an issue:
                   </h6>
                   <table className="actions-list table">
@@ -110,13 +114,14 @@ const RuleRow = React.createClass({
                       );
                     })}
                   </table>
-                </div>}
+                </div>
+              )}
             </div>
           </div>
         </div>
       </div>
     );
-  }
+  },
 });
 
 const ProjectAlertRules = React.createClass({
@@ -126,7 +131,7 @@ const ProjectAlertRules = React.createClass({
     return {
       loading: true,
       error: false,
-      ruleList: []
+      ruleList: [],
     };
   },
 
@@ -141,21 +146,21 @@ const ProjectAlertRules = React.createClass({
         this.setState({
           error: false,
           loading: false,
-          ruleList: data
+          ruleList: data,
         });
       },
       error: () => {
         this.setState({
           error: true,
-          loading: false
+          loading: false,
         });
-      }
+      },
     });
   },
 
   onDeleteRule(rule) {
     this.setState({
-      ruleList: this.state.ruleList.filter(r => r.id !== rule.id)
+      ruleList: this.state.ruleList.filter(r => r.id !== rule.id),
     });
   },
 
@@ -216,7 +221,8 @@ const ProjectAlertRules = React.createClass({
             href={`/${orgId}/${projectId}/settings/alerts/rules/new/`}
             priority="primary"
             size="small"
-            className="pull-right">
+            className="pull-right"
+          >
             <span className="icon-plus" />
             {t('New Alert Rule')}
           </Button>
@@ -234,7 +240,7 @@ const ProjectAlertRules = React.createClass({
         {this.renderBody()}
       </div>
     );
-  }
+  },
 });
 
 export default ProjectAlertRules;

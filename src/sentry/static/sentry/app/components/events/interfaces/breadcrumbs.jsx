@@ -29,7 +29,7 @@ function moduleToCategory(module) {
 
 Collapsed.propTypes = {
   onClick: PropTypes.func.isRequired,
-  count: PropTypes.number.isRequired
+  count: PropTypes.number.isRequired,
 };
 
 const BreadcrumbsInterface = React.createClass({
@@ -38,28 +38,28 @@ const BreadcrumbsInterface = React.createClass({
     event: SentryTypes.Event.isRequired,
     type: PropTypes.string.isRequired,
     data: PropTypes.object.isRequired,
-    isShare: PropTypes.bool
+    isShare: PropTypes.bool,
   },
 
   contextTypes: {
     organization: SentryTypes.Organization,
-    project: SentryTypes.Project
+    project: SentryTypes.Project,
   },
 
   statics: {
-    MAX_CRUMBS_WHEN_COLLAPSED: 10
+    MAX_CRUMBS_WHEN_COLLAPSED: 10,
   },
 
   getInitialState() {
     return {
       collapsed: true,
-      queryValue: ''
+      queryValue: '',
     };
   },
 
   onCollapseToggle() {
     this.setState({
-      collapsed: !this.state.collapsed
+      collapsed: !this.state.collapsed,
     });
   },
 
@@ -78,8 +78,7 @@ const BreadcrumbsInterface = React.createClass({
     return (
       <li className="crumb-empty">
         <p>
-          <span className="icon icon-exclamation" />
-          {' '}
+          <span className="icon icon-exclamation" />{' '}
           {t('Sorry, no breadcrumbs match your search query.')}
         </p>
       </li>
@@ -99,8 +98,8 @@ const BreadcrumbsInterface = React.createClass({
         category: moduleToCategory(module || null) || 'exception',
         data: {
           type,
-          value
-        }
+          value,
+        },
       };
     } else if (evt.message) {
       let levelTag = (evt.tags || []).find(tag => tag.key === 'level');
@@ -109,14 +108,14 @@ const BreadcrumbsInterface = React.createClass({
         type: 'message',
         level,
         category: 'message',
-        message: evt.message
+        message: evt.message,
       };
     }
 
     if (crumb) {
       Object.assign(crumb, {
         timestamp: evt.dateCreated,
-        last: true
+        last: true,
       });
     }
 
@@ -125,7 +124,7 @@ const BreadcrumbsInterface = React.createClass({
 
   setQuery(evt) {
     this.setState({
-      queryValue: evt.target.value
+      queryValue: evt.target.value,
     });
   },
 
@@ -142,7 +141,7 @@ const BreadcrumbsInterface = React.createClass({
   clearSearch() {
     this.setState({
       queryValue: '',
-      collapsed: true
+      collapsed: true,
     });
   },
 
@@ -158,12 +157,13 @@ const BreadcrumbsInterface = React.createClass({
           onChange={this.setQuery}
         />
         <span className="icon-search" />
-        {this.state.queryValue &&
+        {this.state.queryValue && (
           <div>
             <a className="search-clear-form" onClick={this.clearSearch}>
               <span className="icon-circle-cross" />
             </a>
-          </div>}
+          </div>
+        )}
       </div>
     );
   },
@@ -217,15 +217,17 @@ const BreadcrumbsInterface = React.createClass({
         event={evt}
         type={this.props.type}
         title={title}
-        wrapTitle={false}>
+        wrapTitle={false}
+      >
         <ul className="crumbs">
-          {numCollapsed > 0 &&
-            <Collapsed onClick={this.onCollapseToggle} count={numCollapsed} />}
+          {numCollapsed > 0 && (
+            <Collapsed onClick={this.onCollapseToggle} count={numCollapsed} />
+          )}
           {crumbContent}
         </ul>
       </GroupEventDataSection>
     );
-  }
+  },
 });
 
 export default BreadcrumbsInterface;

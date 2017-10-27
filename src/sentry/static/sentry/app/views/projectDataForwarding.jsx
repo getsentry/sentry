@@ -22,7 +22,7 @@ const DataForwardingStats = React.createClass({
       loading: true,
       error: false,
       stats: null,
-      emptyStats: false
+      emptyStats: false,
     };
   },
 
@@ -37,7 +37,7 @@ const DataForwardingStats = React.createClass({
         since: this.state.since,
         until: this.state.until,
         resolution: '1d',
-        stat: 'forwarded'
+        stat: 'forwarded',
       },
       success: data => {
         let emptyStats = true;
@@ -49,17 +49,22 @@ const DataForwardingStats = React.createClass({
           stats,
           emptyStats,
           error: false,
-          loading: false
+          loading: false,
         });
       },
       error: () => {
         this.setState({error: true, loading: false});
-      }
+      },
     });
   },
 
   render() {
-    if (this.state.loading) return <div className="box"><LoadingIndicator /></div>;
+    if (this.state.loading)
+      return (
+        <div className="box">
+          <LoadingIndicator />
+        </div>
+      );
     else if (this.state.error) return <LoadingError onRetry={this.fetchData} />;
 
     return (
@@ -67,25 +72,27 @@ const DataForwardingStats = React.createClass({
         <div className="box-header">
           <h5>{t('Forwarded events in the last 30 days (by day)')}</h5>
         </div>
-        {!this.state.emptyStats
-          ? <StackedBarChart
-              points={this.state.stats}
-              height={150}
-              label="events"
-              barClasses={['accepted']}
-              className="standard-barchart"
-            />
-          : <div className="box-content">
-              <div className="blankslate p-y-2">
-                <h5>{t('Nothing forwarded in the last 30 days.')}</h5>
-                <p className="m-b-0">
-                  {t('Total events forwarded to third party integrations.')}
-                </p>
-              </div>
-            </div>}
+        {!this.state.emptyStats ? (
+          <StackedBarChart
+            points={this.state.stats}
+            height={150}
+            label="events"
+            barClasses={['accepted']}
+            className="standard-barchart"
+          />
+        ) : (
+          <div className="box-content">
+            <div className="blankslate p-y-2">
+              <h5>{t('Nothing forwarded in the last 30 days.')}</h5>
+              <p className="m-b-0">
+                {t('Total events forwarded to third party integrations.')}
+              </p>
+            </div>
+          </div>
+        )}
       </div>
     );
-  }
+  },
 });
 
 export default React.createClass({
@@ -96,7 +103,7 @@ export default React.createClass({
       loading: true,
       error: false,
       pluginList: [],
-      hooksDisabled: HookStore.get('project:data-forwarding:disabled')
+      hooksDisabled: HookStore.get('project:data-forwarding:disabled'),
     };
   },
 
@@ -111,15 +118,15 @@ export default React.createClass({
         this.setState({
           error: false,
           loading: false,
-          pluginList: data.filter(p => p.type === 'data-forwarding')
+          pluginList: data.filter(p => p.type === 'data-forwarding'),
         });
       },
       error: () => {
         this.setState({
           error: true,
-          loading: false
+          loading: false,
         });
-      }
+      },
     });
   },
 
@@ -129,9 +136,9 @@ export default React.createClass({
         if (p.id !== plugin.id) return p;
         return {
           ...plugin,
-          enabled: true
+          enabled: true,
         };
-      })
+      }),
     });
   },
 
@@ -141,9 +148,9 @@ export default React.createClass({
         if (p.id !== plugin.id) return p;
         return {
           ...plugin,
-          enabled: false
+          enabled: false,
         };
-      })
+      }),
     });
   },
 
@@ -207,18 +214,15 @@ export default React.createClass({
               }
             </p>
             <p>
-              Learn more about this functionality in our
-              {' '}
+              Learn more about this functionality in our{' '}
               <a href="https://docs.sentry.io/learn/data-forwarding/">documentation</a>
               .
             </p>
             <p>
               <small>
-                Note: Sentry will forward
-                {' '}
-                <strong>all applicable events</strong>
-                {' '}
-                to the given provider, which in some situations may be a much more significant volume of data.
+                Note: Sentry will forward <strong>all applicable events</strong> to the
+                given provider, which in some situations may be a much more significant
+                volume of data.
               </small>
             </p>
           </div>
@@ -227,5 +231,5 @@ export default React.createClass({
         {this.renderBody()}
       </div>
     );
-  }
+  },
 });

@@ -18,7 +18,7 @@ export default React.createClass({
       loading: true,
       error: false,
       taskName: null,
-      taskList: []
+      taskList: [],
     };
   },
 
@@ -33,14 +33,14 @@ export default React.createClass({
         this.setState({
           taskList: data,
           loading: false,
-          error: false
+          error: false,
         });
       },
       error: data => {
         this.setState({
-          error: true
+          error: true,
         });
-      }
+      },
     });
   },
 
@@ -57,7 +57,7 @@ export default React.createClass({
     }
     this.setState({
       since: new Date().getTime() / 1000 - seconds,
-      timeWindow
+      timeWindow,
     });
   },
 
@@ -74,9 +74,12 @@ export default React.createClass({
           {['1h', '1d', '1w'].map(r => {
             return (
               <a
-                className={`btn btn-sm ${r == this.state.timeWindow ? 'btn-primary' : 'btn-default'}`}
+                className={`btn btn-sm ${r == this.state.timeWindow
+                  ? 'btn-primary'
+                  : 'btn-default'}`}
                 onClick={() => this.changeWindow(r)}
-                key={r}>
+                key={r}
+              >
                 {r}
               </a>
             );
@@ -86,7 +89,9 @@ export default React.createClass({
         <h3 className="no-border">Queue Overview</h3>
 
         <div className="box">
-          <div className="box-header"><h3>Global Throughput</h3></div>
+          <div className="box-header">
+            <h3>Global Throughput</h3>
+          </div>
           <InternalStatChart
             since={this.state.since}
             resolution={this.state.resolution}
@@ -97,51 +102,53 @@ export default React.createClass({
 
         <h3 className="no-border">Task Details</h3>
 
-        {this.state.loading
-          ? <LoadingIndicator />
-          : this.state.error
-              ? <LoadingError onRetry={this.fetchData} />
-              : <div>
-                  <div>
-                    <label>Show details for task:</label>
-                    <Select2Field
-                      name="task"
-                      onChange={this.changeTask}
-                      value={activeTask}
-                      allowClear={true}
-                      choices={[''].concat(...taskList).map(t => [t, t])}
-                    />
+        {this.state.loading ? (
+          <LoadingIndicator />
+        ) : this.state.error ? (
+          <LoadingError onRetry={this.fetchData} />
+        ) : (
+          <div>
+            <div>
+              <label>Show details for task:</label>
+              <Select2Field
+                name="task"
+                onChange={this.changeTask}
+                value={activeTask}
+                allowClear={true}
+                choices={[''].concat(...taskList).map(t => [t, t])}
+              />
+            </div>
+            {activeTask ? (
+              <div>
+                <div className="box box-mini" key="jobs.started">
+                  <div className="box-header">
+                    Jobs Started <small>{activeTask}</small>
                   </div>
-                  {activeTask
-                    ? <div>
-                        <div className="box box-mini" key="jobs.started">
-                          <div className="box-header">
-                            Jobs Started <small>{activeTask}</small>
-                          </div>
-                          <InternalStatChart
-                            since={this.state.since}
-                            resolution={this.state.resolution}
-                            stat={`jobs.started.${this.state.activeTask}`}
-                            label="jobs"
-                            height={100}
-                          />
-                        </div>
-                        <div className="box box-mini" key="jobs.finished">
-                          <div className="box-header">
-                            Jobs Finished <small>{activeTask}</small>
-                          </div>
-                          <InternalStatChart
-                            since={this.state.since}
-                            resolution={this.state.resolution}
-                            stat={`jobs.finished.${this.state.activeTask}`}
-                            label="jobs"
-                            height={100}
-                          />
-                        </div>
-                      </div>
-                    : null}
-                </div>}
+                  <InternalStatChart
+                    since={this.state.since}
+                    resolution={this.state.resolution}
+                    stat={`jobs.started.${this.state.activeTask}`}
+                    label="jobs"
+                    height={100}
+                  />
+                </div>
+                <div className="box box-mini" key="jobs.finished">
+                  <div className="box-header">
+                    Jobs Finished <small>{activeTask}</small>
+                  </div>
+                  <InternalStatChart
+                    since={this.state.since}
+                    resolution={this.state.resolution}
+                    stat={`jobs.finished.${this.state.activeTask}`}
+                    label="jobs"
+                    height={100}
+                  />
+                </div>
+              </div>
+            ) : null}
+          </div>
+        )}
       </div>
     );
-  }
+  },
 });

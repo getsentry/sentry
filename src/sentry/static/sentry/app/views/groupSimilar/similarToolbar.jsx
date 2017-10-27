@@ -13,21 +13,21 @@ import ToolbarHeader from '../../components/toolbarHeader';
 
 const SimilarToolbar = React.createClass({
   propTypes: {
-    onMerge: PropTypes.func.isRequired
+    onMerge: PropTypes.func.isRequired,
   },
 
   mixins: [Reflux.listenTo(GroupingStore, 'onGroupingUpdate')],
 
   getInitialState() {
     return {
-      mergeCount: 0
+      mergeCount: 0,
     };
   },
 
   onGroupingUpdate({mergeList}) {
     if (mergeList && mergeList.size !== this.state.mergedCount) {
       this.setState({
-        mergeCount: mergeList.size
+        mergeCount: mergeList.size,
       });
     }
   },
@@ -45,7 +45,8 @@ const SimilarToolbar = React.createClass({
                   title={t(`Merging ${this.state.mergeCount} issues`)}
                   message={t('Are you sure you want to merge these issues?')}
                   className="btn btn-sm btn-default"
-                  onConfirm={onMerge}>
+                  onConfirm={onMerge}
+                >
                   {t('Merge')} ({this.state.mergeCount || 0})
                 </LinkWithConfirmation>
               </div>
@@ -66,7 +67,7 @@ const SimilarToolbar = React.createClass({
         </SpreadLayout>
       </Toolbar>
     );
-  }
+  },
 });
 
 export default SimilarToolbar;

@@ -10,7 +10,7 @@ const GroupReleaseChart = React.createClass({
   propTypes: {
     group: SentryTypes.Group.isRequired,
     release: PropTypes.shape({
-      version: PropTypes.string.isRequired
+      version: PropTypes.string.isRequired,
     }),
     releaseStats: PropTypes.object,
     statsPeriod: PropTypes.string.isRequired,
@@ -18,7 +18,7 @@ const GroupReleaseChart = React.createClass({
     environmentStats: PropTypes.object,
     firstSeen: PropTypes.string,
     lastSeen: PropTypes.string,
-    title: PropTypes.string
+    title: PropTypes.string,
   },
 
   getInitialState(props) {
@@ -41,7 +41,7 @@ const GroupReleaseChart = React.createClass({
 
     return {
       releasePoints,
-      envPoints
+      envPoints,
     };
   },
 
@@ -75,13 +75,18 @@ const GroupReleaseChart = React.createClass({
       `<dd>${intcomma(totalY)} event${totalY !== 1 ? 's' : ''}</dd>` +
       (environment
         ? '<dt class="environment"><span></span></dt>' +
-            `<dd>${intcomma(envPoints[point.x] || 0)} event${envPoints[point.x] !== 1 ? 's' : ''}` +
-            `<small>in ${escape(environment)}</small></dd>`
+          `<dd>${intcomma(envPoints[point.x] || 0)} event${envPoints[point.x] !== 1
+            ? 's'
+            : ''}` +
+          `<small>in ${escape(environment)}</small></dd>`
         : '') +
       (release
         ? '<dt class="active"><span></span></dt>' +
-            `<dd>${intcomma(releasePoints[point.x] || 0)} event${releasePoints[point.x] !== 1 ? 's' : ''}` +
-            `<small>in ${escape(release.version.substr(0, 12))}</small></dd>`
+          `<dd>${intcomma(releasePoints[point.x] || 0)} event${releasePoints[point.x] !==
+          1
+            ? 's'
+            : ''}` +
+          `<small>in ${escape(release.version.substr(0, 12))}</small></dd>`
         : '') +
       '</dl>' +
       '</div>'
@@ -104,7 +109,7 @@ const GroupReleaseChart = React.createClass({
       let remaining = point[1] - rData - eData;
       return {
         x: point[0],
-        y: [rData, eData, remaining >= 0 ? remaining : 0]
+        y: [rData, eData, remaining >= 0 ? remaining : 0],
       };
     });
 
@@ -116,7 +121,7 @@ const GroupReleaseChart = React.createClass({
         markers.push({
           label: t('First seen'),
           x: firstSeenX,
-          className: 'first-seen'
+          className: 'first-seen',
         });
       }
     }
@@ -127,14 +132,16 @@ const GroupReleaseChart = React.createClass({
         markers.push({
           label: t('Last seen'),
           x: lastSeenX,
-          className: 'last-seen'
+          className: 'last-seen',
         });
       }
     }
 
     return (
       <div className={className}>
-        <h6><span>{this.props.title}</span></h6>
+        <h6>
+          <span>{this.props.title}</span>
+        </h6>
         <StackedBarChart
           points={points}
           height={40}
@@ -145,7 +152,7 @@ const GroupReleaseChart = React.createClass({
         />
       </div>
     );
-  }
+  },
 });
 
 export default GroupReleaseChart;

@@ -27,11 +27,11 @@ const StreamFilters = React.createClass({
     onSortChange: PropTypes.func,
     onSearch: PropTypes.func,
     onSidebarToggle: PropTypes.func,
-    onSavedSearchCreate: PropTypes.func.isRequired
+    onSavedSearchCreate: PropTypes.func.isRequired,
   },
 
   contextTypes: {
-    location: PropTypes.object
+    location: PropTypes.object,
   },
 
   getDefaultProps() {
@@ -42,7 +42,7 @@ const StreamFilters = React.createClass({
       query: null,
       onSortChange: function() {},
       onSearch: function() {},
-      onSidebarToggle: function() {}
+      onSidebarToggle: function() {},
     };
   },
 
@@ -64,7 +64,7 @@ const StreamFilters = React.createClass({
       onSidebarToggle,
       onSearch,
       onSavedSearchCreate,
-      onSortChange
+      onSortChange,
     } = this.props;
 
     return (
@@ -102,7 +102,8 @@ const StreamFilters = React.createClass({
               />
               <a
                 className="btn btn-default toggle-stream-sidebar"
-                onClick={onSidebarToggle}>
+                onClick={onSidebarToggle}
+              >
                 <span className="icon-filter" />
               </a>
             </div>
@@ -110,7 +111,7 @@ const StreamFilters = React.createClass({
         </div>
       </div>
     );
-  }
+  },
 });
 
 export default StreamFilters;

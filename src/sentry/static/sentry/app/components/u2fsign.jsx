@@ -7,12 +7,12 @@ import {t} from '../locale';
 const U2fSign = React.createClass({
   propTypes: {
     challengeData: PropTypes.object,
-    displayMode: PropTypes.string
+    displayMode: PropTypes.string,
   },
 
   getDefaultProps() {
     return {
-      displayMode: 'signin'
+      displayMode: 'signin',
     };
   },
 
@@ -22,7 +22,8 @@ const U2fSign = React.createClass({
       <U2fInterface
         challengeData={this.props.challengeData}
         silentIfUnsupported={displayMode === 'sudo'}
-        flowMode={'sign'}>
+        flowMode={'sign'}
+      >
         <p>
           {displayMode === 'signin'
             ? t(
@@ -32,16 +33,16 @@ const U2fSign = React.createClass({
           `
               )
             : displayMode === 'sudo'
-                ? t(
-                    `
+              ? t(
+                  `
             Alternatively you can use your U2F device to confirm the action.
           `
-                  )
-                : null}
+                )
+              : null}
         </p>
       </U2fInterface>
     );
-  }
+  },
 });
 
 export default U2fSign;

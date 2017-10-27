@@ -20,7 +20,7 @@ describe('ProjectReleases', function() {
     this.props = {
       setProjectNavSection: function() {},
       params: {orgId: '123', projectId: '456'},
-      location: {query: {per_page: 0, query: 'derp'}}
+      location: {query: {per_page: 0, query: 'derp'}},
     };
     this.projectReleases = shallow(<ProjectReleases {...this.props} />);
   });
@@ -53,7 +53,7 @@ describe('ProjectReleases', function() {
       expect(browserHistory.pushState.args[0]).toEqual([
         null,
         '/123/456/releases/',
-        {query: 'searchquery'}
+        {query: 'searchquery'},
       ]);
     });
   });
@@ -70,14 +70,14 @@ describe('ProjectReleases', function() {
         ...this.props,
         location: {
           search: '?query=newquery',
-          query: {query: 'newquery'}
-        }
+          query: {query: 'newquery'},
+        },
       };
       projectReleases.componentWillReceiveProps(newProps);
 
       expect(setState.calledOnce).toBeTruthy();
       expect(setState.getCall(0).args[0]).toEqual({
-        query: 'newquery'
+        query: 'newquery',
       });
     });
   });

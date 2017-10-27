@@ -14,7 +14,7 @@ const ActivityFeed = React.createClass({
     endpoint: PropTypes.string,
     query: PropTypes.object,
     renderEmpty: PropTypes.func,
-    pagination: PropTypes.bool
+    pagination: PropTypes.bool,
   },
 
   mixins: [ApiMixin],
@@ -22,7 +22,7 @@ const ActivityFeed = React.createClass({
   getDefaultProps() {
     return {
       pagination: true,
-      query: {}
+      query: {},
     };
   },
 
@@ -31,7 +31,7 @@ const ActivityFeed = React.createClass({
       itemList: [],
       loading: true,
       error: false,
-      pageLinks: null
+      pageLinks: null,
     };
   },
 
@@ -61,22 +61,22 @@ const ActivityFeed = React.createClass({
       method: 'GET',
       query: {
         cursor: location.query.cursor || '',
-        ...this.props.query
+        ...this.props.query,
       },
       success: (data, _, jqXHR) => {
         this.setState({
           loading: false,
           error: false,
           itemList: data,
-          pageLinks: jqXHR.getResponseHeader('Link')
+          pageLinks: jqXHR.getResponseHeader('Link'),
         });
       },
       error: () => {
         this.setState({
           loading: false,
-          error: true
+          error: true,
         });
-      }
+      },
     });
   },
 
@@ -95,7 +95,7 @@ const ActivityFeed = React.createClass({
                 return <ActivityItem key={item.id} orgId={orgId} item={item} />;
               } catch (ex) {
                 logException(ex, {
-                  itemId: item.id
+                  itemId: item.id,
                 });
                 return null;
               }
@@ -125,11 +125,12 @@ const ActivityFeed = React.createClass({
       <div>
         {this.renderResults()}
         {this.props.pagination &&
-          this.state.pageLinks &&
-          <Pagination pageLinks={this.state.pageLinks} {...this.props} />}
+          this.state.pageLinks && (
+            <Pagination pageLinks={this.state.pageLinks} {...this.props} />
+          )}
       </div>
     );
-  }
+  },
 });
 
 export default ActivityFeed;

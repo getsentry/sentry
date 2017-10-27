@@ -22,7 +22,7 @@ const SaveSearchButton = React.createClass({
     tooltip: PropTypes.string,
     buttonTitle: PropTypes.string,
 
-    onSave: PropTypes.func.isRequired
+    onSave: PropTypes.func.isRequired,
   },
 
   mixins: [ApiMixin],
@@ -31,9 +31,9 @@ const SaveSearchButton = React.createClass({
     return {
       isModalOpen: false,
       formData: {
-        query: this.props.query
+        query: this.props.query,
       },
-      errors: {}
+      errors: {},
     };
   },
 
@@ -45,8 +45,8 @@ const SaveSearchButton = React.createClass({
       isModalOpen: !this.state.isModalOpen,
       state: FormState.READY,
       formData: {
-        query: this.props.query
-      }
+        query: this.props.query,
+      },
     });
   },
 
@@ -54,7 +54,7 @@ const SaveSearchButton = React.createClass({
     let formData = this.state.formData;
     formData[name] = value;
     this.setState({
-      formData
+      formData,
     });
   },
 
@@ -74,7 +74,7 @@ const SaveSearchButton = React.createClass({
     }
     this.setState(
       {
-        state: FormState.SAVING
+        state: FormState.SAVING,
       },
       () => {
         let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
@@ -87,7 +87,7 @@ const SaveSearchButton = React.createClass({
             this.props.onSave(data);
             this.setState({
               state: FormState.READY,
-              errors: {}
+              errors: {},
             });
           },
           error: err => {
@@ -95,12 +95,12 @@ const SaveSearchButton = React.createClass({
             errors = errors.detail || true;
             this.setState({
               state: FormState.ERROR,
-              errors
+              errors,
             });
           },
           complete: () => {
             IndicatorStore.remove(loadingIndicator);
-          }
+          },
         });
       }
     );
@@ -114,7 +114,8 @@ const SaveSearchButton = React.createClass({
         className={this.props.className}
         disabled={this.props.disabled}
         onClick={this.onToggle}
-        style={this.props.style}>
+        style={this.props.style}
+      >
         {this.props.children}
 
         <Modal show={this.state.isModalOpen} animation={false} onHide={this.onToggle}>
@@ -123,10 +124,11 @@ const SaveSearchButton = React.createClass({
               <h4>{t('Save Current Search')}</h4>
             </div>
             <div className="modal-body">
-              {this.state.state === FormState.ERROR &&
+              {this.state.state === FormState.ERROR && (
                 <div className="alert alert-error alert-block">
                   {t(`Unable to save your changes. ${this.state.errors}`)}
-                </div>}
+                </div>
+              )}
               <p>
                 {t(
                   'Saving this search will give you and your team quick access to it in the future.'
@@ -154,20 +156,22 @@ const SaveSearchButton = React.createClass({
                 label={t('Make this the default view for myself.')}
                 onChange={this.onFieldChange.bind(this, 'isUserDefault')}
               />
-              {this.props.access.has('project:write') &&
+              {this.props.access.has('project:write') && (
                 <BooleanField
                   key="isDefault"
                   name="is-default"
                   label={t('Make this the default view for my team.')}
                   onChange={this.onFieldChange.bind(this, 'isDefault')}
-                />}
+                />
+              )}
             </div>
             <div className="modal-footer">
               <button
                 type="button"
                 className="btn btn-default"
                 disabled={isSaving}
-                onClick={this.onToggle}>
+                onClick={this.onToggle}
+              >
                 {t('Cancel')}
               </button>
               <button type="submit" className="btn btn-primary" disabled={isSaving}>
@@ -178,7 +182,7 @@ const SaveSearchButton = React.createClass({
         </Modal>
       </a>
     );
-  }
+  },
 });
 
 const SavedSearchSelector = React.createClass({
@@ -190,7 +194,7 @@ const SavedSearchSelector = React.createClass({
     savedSearchList: PropTypes.array.isRequired,
     queryCount: PropTypes.number,
     queryMaxCount: PropTypes.number,
-    onSavedSearchCreate: PropTypes.func.isRequired
+    onSavedSearchCreate: PropTypes.func.isRequired,
   },
 
   mixins: [ApiMixin],
@@ -224,12 +228,15 @@ const SavedSearchSelector = React.createClass({
               <span>{this.getTitle()}</span>
               <QueryCount count={queryCount} max={queryMaxCount} />
             </span>
-          }>
-          {children.length
-            ? children
-            : <li className="empty">
-                {t("There don't seem to be any saved searches yet.")}
-              </li>}
+          }
+        >
+          {children.length ? (
+            children
+          ) : (
+            <li className="empty">
+              {t("There don't seem to be any saved searches yet.")}
+            </li>
+          )}
           {access.has('project:write') && <MenuItem divider={true} />}
           <li>
             <div className="row">
@@ -237,14 +244,16 @@ const SavedSearchSelector = React.createClass({
                 <SaveSearchButton
                   className="btn btn-sm btn-default"
                   onSave={this.props.onSavedSearchCreate}
-                  {...this.props}>
+                  {...this.props}
+                >
                   {t('Save Current Search')}
                 </SaveSearchButton>
               </div>
               <div className="col-md-5">
                 <Link
                   to={`/${orgId}/${projectId}/settings/saved-searches/`}
-                  className="btn btn-sm btn-default">
+                  className="btn btn-sm btn-default"
+                >
                   {t('Manage')}
                 </Link>
               </div>
@@ -253,7 +262,7 @@ const SavedSearchSelector = React.createClass({
         </DropdownLink>
       </div>
     );
-  }
+  },
 });
 
 export default SavedSearchSelector;

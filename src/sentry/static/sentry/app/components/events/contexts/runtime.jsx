@@ -6,7 +6,7 @@ import ContextBlock from './contextBlock';
 const RuntimeContextType = React.createClass({
   propTypes: {
     alias: PropTypes.string.isRequired,
-    data: PropTypes.object.isRequired
+    data: PropTypes.object.isRequired,
   },
 
   render() {
@@ -18,7 +18,7 @@ const RuntimeContextType = React.createClass({
         alias={this.props.alias}
       />
     );
-  }
+  },
 });
 
 RuntimeContextType.getTitle = function(value) {

@@ -12,7 +12,11 @@ describe('ToolbarHeader', function() {
   });
 
   it('renders', function() {
-    let wrapper = shallow(<ToolbarHeader><div /></ToolbarHeader>);
+    let wrapper = shallow(
+      <ToolbarHeader>
+        <div />
+      </ToolbarHeader>
+    );
     expect(wrapper).toMatchSnapshot();
   });
 });
