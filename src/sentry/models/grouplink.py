@@ -19,11 +19,14 @@ class GroupLink(Model):
     """
     __core__ = False
 
-    class Status:
+    class Relationship:
+        resolves = 0
+        links = 1
+
+    class LinkedType:
         commit = 0
         pull = 1
         issue = 2
-
     group = FlexibleForeignKey('sentry.Group')
     actor_label = models.CharField(max_length=64, null=True, blank=True)
     # if the entry was created via a user
@@ -31,13 +34,23 @@ class GroupLink(Model):
         'sentry.User', related_name='audit_actors', null=True, blank=True)
     # if the entry was created via an api key
     actor_key = FlexibleForeignKey('sentry.ApiKey', null=True, blank=True)
-    link = BoundedPositiveIntegerField(
-        default=Status.commit,
-        choices=((Status.commit, _('Commit')),
-                 (Status.pull, _('Pull Request')),
-                 (Status.issue, _('Issue Tracker')), ),
+
+    linked_type = BoundedPositiveIntegerField(
+        default=LinkedType.commit,
+        choices=((LinkedType.commit, _('Commit')),
+                 (LinkedType.pull, _('Pull Request')),
+                 (LinkedType.issue, _('Tracker Issue')), ),
+    )
+
+    linked_id = BoundedPositiveIntegerField(null=False)
+
+    Relationship = BoundedPositiveIntegerField(
+        default=Relationship.links,
+        choices=((Relationship.resolves, _('Resolves')),
+                 (Relationship.links, _('Linked')), ),
     )
     data = GzippedDictField()
+
     datetime = models.DateTimeField(default=timezone.now, db_index=True)
 
     class Meta:
