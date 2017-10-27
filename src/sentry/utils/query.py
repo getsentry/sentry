@@ -334,7 +334,7 @@ def bulk_delete_objects(model, limit=10000, transaction_id=None, logger=None, **
 
     has_more = cursor.rowcount > 0
 
-    if has_more and logger is not None and not _leaf_re.search(model.__name__):
+    if has_more and logger is not None and _leaf_re.search(model.__name__) is None:
         logger.info(
             'object.delete.bulk_executed',
             extra=dict(
