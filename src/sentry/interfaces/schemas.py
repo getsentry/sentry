@@ -474,7 +474,9 @@ STORE_SCHEMA = {
         'sentry.interfaces.Exception': {},  # EXCEPTION_INTERFACE_SCHEMA,
 
         # Messages:
-        'message': {},
+        # 'message' is not an alias for the sentry.interfaces.Message interface
+        # but instead is a raw string that will be wrapped in a Message interface
+        'message': {'type': 'string'},
         'logentry': {},  # MESSAGE_INTERFACE_SCHEMA,
         'sentry.interfaces.Message': {},  # MESSAGE_INTERFACE_SCHEMA,
 

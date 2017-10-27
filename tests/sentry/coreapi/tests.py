@@ -497,6 +497,76 @@ class ValidateDataTest(BaseAPITest):
         assert data.get('fingerprint') == ['{{default}}', '1', 'bar', '4.5']
         assert len(data['errors']) == 0
 
+    def test_messages(self):
+        # Just 'message': wrap it in interface
+        data = self.helper.validate_data(self.project, {
+            'message': 'foo is bar',
+        })
+        assert 'message' not in data
+        assert data['sentry.interfaces.Message'] == {'message': 'foo is bar'}
+
+        # both 'message' and interface with no 'formatted' value, put 'message'
+        # into 'formatted'.
+        data = self.helper.validate_data(self.project, {
+            'message': 'foo is bar',
+            'sentry.interfaces.Message': {
+                'message': 'something else',
+            }
+        })
+        assert 'message' not in data
+        assert data['sentry.interfaces.Message'] == {
+            'message': 'something else',
+            'formatted': 'foo is bar'
+        }
+
+        # both 'message' and complete interface, 'message' is discarded
+        data = self.helper.validate_data(self.project, {
+            'message': 'foo is bar',
+            'sentry.interfaces.Message': {
+                'message': 'something else',
+                'formatted': 'something else formatted',
+            }
+        })
+        assert 'message' not in data
+        assert len(data['errors']) == 0
+        assert data['sentry.interfaces.Message'] == {
+            'message': 'something else',
+            'formatted': 'something else formatted'
+        }
+
+    @pytest.mark.skip(reason="Message behavior that didn't make a lot of sense.")
+    def test_messages_old_behavior(self):
+        # both 'message' and complete valid interface but interface has the same
+        # value for both keys so the 'formatted' value is discarded and ends up
+        # being replaced with 'message'
+        data = self.helper.validate_data(self.project, {
+            'message': 'foo is bar',
+            'sentry.interfaces.Message': {
+                'message': 'something else',
+                'formatted': 'something else',
+            }
+        })
+        assert 'message' not in data
+        assert len(data['errors']) == 0
+        assert data['sentry.interfaces.Message'] == {
+            'message': 'something else',
+            'formatted': 'foo is bar'
+        }
+
+        # interface discarded as invalid, replaced by new interface containing
+        # wrapped 'message'
+        data = self.helper.validate_data(self.project, {
+            'message': 'foo is bar',
+            'sentry.interfaces.Message': {
+                'invalid': 'invalid',
+            }
+        })
+        assert 'message' not in data
+        assert len(data['errors']) == 1
+        assert data['sentry.interfaces.Message'] == {
+            'message': 'foo is bar'
+        }
+
 
 class SafelyLoadJSONStringTest(BaseAPITest):
     def test_valid_payload(self):
