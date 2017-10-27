@@ -141,7 +141,7 @@ def is_newest_frame_first(event):
 
 
 def is_url(filename):
-    return filename.startswith(('file:', 'http:', 'https:'))
+    return filename.startswith(('file:', 'http:', 'https:', 'applewebdata:'))
 
 
 def remove_function_outliers(function):
