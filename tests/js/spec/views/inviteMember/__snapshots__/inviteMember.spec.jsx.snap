@@ -1,6 +1,6 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`CreateProject render() should render 1`] = `
+exports[`CreateProject render() should render loading 1`] = `
 <div>
   <h3>
     Add Member to Organization
@@ -8,229 +8,8 @@ exports[`CreateProject render() should render 1`] = `
   <p>
     Invite a member to join this organization via their email address. If they do not already have an account, they will first be asked to create one. Multiple emails delimited by commas.
   </p>
-  <div
-    className=""
-  >
-    <LoadingIndicator
-      className="pull-right"
-      mini={true}
-    />
-    <TextField
-      disabled={false}
-      hideErrorMessage={false}
-      label="Email(s)"
-      name="email"
-      onChange={[Function]}
-      placeholder="e.g. teammate@example.com"
-      required={false}
-      spellCheck="false"
-    />
-  </div>
-  <RoleSelect
-    roleList={Array []}
-    selectedRole="member"
-    setRole={[Function]}
-  />
-  <TeamSelect
-    selectedTeams={Array []}
-    teams={
-      Array [
-        Object {
-          "hasAccess": true,
-          "id": "1",
-          "name": "bar",
-          "slug": "bar",
-        },
-        Object {
-          "hasAccess": false,
-          "id": "2",
-          "name": "foo",
-          "slug": "foo",
-        },
-      ]
-    }
-    toggleTeam={[Function]}
-  />
-  <Button
-    className="invite-member-submit"
-    disabled={false}
-    onClick={[Function]}
-    priority="primary"
-  >
-    Add Member
-  </Button>
+  <LoadingIndicator />
 </div>
-`;
-
-exports[`CreateProject render() should render no team select when there is only one option 1`] = `
-<InviteMember
-  params={
-    Object {
-      "orgId": "testOrg",
-    }
-  }
->
-  <div>
-    <h3>
-      Add Member to Organization
-    </h3>
-    <p>
-      Invite a member to join this organization via their email address. If they do not already have an account, they will first be asked to create one. Multiple emails delimited by commas.
-    </p>
-    <div
-      className=""
-    >
-      <TextField
-        disabled={false}
-        hideErrorMessage={false}
-        label="Email(s)"
-        name="email"
-        onChange={[Function]}
-        placeholder="e.g. teammate@example.com"
-        required={false}
-        spellCheck="false"
-      >
-        <div
-          className="control-group"
-        >
-          <div
-            className="controls"
-          >
-            <label
-              className="control-label"
-              htmlFor="id-email"
-            >
-              Email(s)
-            </label>
-            <input
-              className="form-control"
-              disabled={false}
-              id="id-email"
-              onChange={[Function]}
-              placeholder="e.g. teammate@example.com"
-              required={false}
-              spellCheck="false"
-              type="text"
-              value=""
-            />
-          </div>
-        </div>
-      </TextField>
-    </div>
-    <RoleSelect
-      roleList={
-        Array [
-          Object {
-            "allowed": true,
-            "role": Object {
-              "desc": "a normal member",
-              "id": "1",
-              "name": "member",
-            },
-          },
-        ]
-      }
-      selectedRole="member"
-      setRole={[Function]}
-    >
-      <div
-        className="new-invite-team box"
-      >
-        <div
-          className="box-header"
-        >
-          <h4>
-            Role:
-          </h4>
-        </div>
-        <div
-          className="box-content with-padding"
-        >
-          <ul
-            className="radio-inputs"
-          >
-            <li
-              className="radio"
-              onClick={[Function]}
-              style={Object {}}
-            >
-              <label
-                style={Object {}}
-              >
-                <Radio
-                  checked={false}
-                  id="1"
-                  readOnly={true}
-                  value="member"
-                >
-                  <input
-                    checked={false}
-                    className="radio-select"
-                    id="1"
-                    readOnly={true}
-                    type="radio"
-                    value="member"
-                  />
-                </Radio>
-                member
-                <div
-                  className="help-block"
-                >
-                  a normal member
-                </div>
-              </label>
-            </li>
-          </ul>
-        </div>
-      </div>
-    </RoleSelect>
-    <TeamSelect
-      selectedTeams={
-        Array [
-          "bar",
-        ]
-      }
-      teams={
-        Array [
-          Object {
-            "hasAccess": true,
-            "id": "1",
-            "name": "bar",
-            "slug": "bar",
-          },
-        ]
-      }
-      toggleTeam={[Function]}
-    />
-    <Button
-      className="invite-member-submit"
-      disabled={false}
-      onClick={[Function]}
-      priority="primary"
-    >
-      <button
-        className="invite-member-submit button button-primary"
-        disabled={false}
-        onClick={[Function]}
-        role="button"
-      >
-        <FlowLayout
-          truncate={false}
-        >
-          <div
-            className="flow-layout"
-          >
-            <span
-              className="button-label"
-            >
-              Add Member
-            </span>
-          </div>
-        </FlowLayout>
-      </button>
-    </Button>
-  </div>
-</InviteMember>
 `;
 
 exports[`CreateProject render() should render roles when available and allowed, and handle submitting 1`] = `
@@ -248,337 +27,282 @@ exports[`CreateProject render() should render roles when available and allowed, 
     <p>
       Invite a member to join this organization via their email address. If they do not already have an account, they will first be asked to create one. Multiple emails delimited by commas.
     </p>
-    <div
-      className=""
-    >
-      <TextField
-        disabled={false}
-        hideErrorMessage={false}
-        label="Email(s)"
-        name="email"
-        onChange={[Function]}
-        placeholder="e.g. teammate@example.com"
-        required={false}
-        spellCheck="false"
+    <div>
+      <div
+        className=""
       >
-        <div
-          className="control-group"
+        <TextField
+          disabled={false}
+          hideErrorMessage={false}
+          label="Email(s)"
+          name="email"
+          onChange={[Function]}
+          placeholder="e.g. teammate@example.com"
+          required={false}
+          spellCheck="false"
         >
           <div
-            className="controls"
+            className="control-group"
           >
-            <label
-              className="control-label"
-              htmlFor="id-email"
-            >
-              Email(s)
-            </label>
-            <input
-              className="form-control"
-              disabled={false}
-              id="id-email"
-              onChange={[Function]}
-              placeholder="e.g. teammate@example.com"
-              required={false}
-              spellCheck="false"
-              type="text"
-              value=""
-            />
-          </div>
-        </div>
-      </TextField>
-    </div>
-    <RoleSelect
-      roleList={
-        Array [
-          Object {
-            "allowed": true,
-            "role": Object {
-              "desc": "a normal member",
-              "id": "1",
-              "name": "member",
-            },
-          },
-          Object {
-            "allowed": true,
-            "role": Object {
-              "desc": "another role",
-              "id": "2",
-              "name": "bar",
-            },
-          },
-        ]
-      }
-      selectedRole="1"
-      setRole={[Function]}
-    >
-      <div
-        className="new-invite-team box"
-      >
-        <div
-          className="box-header"
-        >
-          <h4>
-            Role:
-          </h4>
-        </div>
-        <div
-          className="box-content with-padding"
-        >
-          <ul
-            className="radio-inputs"
-          >
-            <li
-              className="radio"
-              onClick={[Function]}
-              style={Object {}}
+            <div
+              className="controls"
             >
               <label
+                className="control-label"
+                htmlFor="id-email"
+              >
+                Email(s)
+              </label>
+              <input
+                className="form-control"
+                disabled={false}
+                id="id-email"
+                onChange={[Function]}
+                placeholder="e.g. teammate@example.com"
+                required={false}
+                spellCheck="false"
+                type="text"
+                value=""
+              />
+            </div>
+          </div>
+        </TextField>
+      </div>
+      <RoleSelect
+        roleList={
+          Array [
+            Object {
+              "allowed": true,
+              "role": Object {
+                "desc": "a normal member",
+                "id": "1",
+                "name": "member",
+              },
+            },
+            Object {
+              "allowed": true,
+              "role": Object {
+                "desc": "another role",
+                "id": "2",
+                "name": "bar",
+              },
+            },
+          ]
+        }
+        selectedRole="1"
+        setRole={[Function]}
+      >
+        <div
+          className="new-invite-team box"
+        >
+          <div
+            className="box-header"
+          >
+            <h4>
+              Role
+            </h4>
+          </div>
+          <div
+            className="box-content with-padding"
+          >
+            <ul
+              className="radio-inputs"
+            >
+              <li
+                className="radio"
+                onClick={[Function]}
                 style={Object {}}
               >
-                <Radio
+                <label
+                  style={Object {}}
+                >
+                  <Radio
+                    checked={true}
+                    id="1"
+                    readOnly={true}
+                    value="member"
+                  >
+                    <input
+                      checked={true}
+                      className="radio-select"
+                      id="1"
+                      readOnly={true}
+                      type="radio"
+                      value="member"
+                    />
+                  </Radio>
+                  member
+                  <div
+                    className="help-block"
+                  >
+                    a normal member
+                  </div>
+                </label>
+              </li>
+              <li
+                className="radio"
+                onClick={[Function]}
+                style={Object {}}
+              >
+                <label
+                  style={Object {}}
+                >
+                  <Radio
+                    checked={false}
+                    id="2"
+                    readOnly={true}
+                    value="bar"
+                  >
+                    <input
+                      checked={false}
+                      className="radio-select"
+                      id="2"
+                      readOnly={true}
+                      type="radio"
+                      value="bar"
+                    />
+                  </Radio>
+                  bar
+                  <div
+                    className="help-block"
+                  >
+                    another role
+                  </div>
+                </label>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </RoleSelect>
+      <TeamSelect
+        selectedTeams={
+          Array [
+            "bar",
+          ]
+        }
+        teams={
+          Array [
+            Object {
+              "hasAccess": true,
+              "id": "1",
+              "name": "bar",
+              "slug": "bar",
+            },
+            Object {
+              "hasAccess": false,
+              "id": "2",
+              "name": "foo",
+              "slug": "foo",
+            },
+          ]
+        }
+        toggleTeam={[Function]}
+      >
+        <div
+          className="new-invite-team box"
+        >
+          <div
+            className="box-header"
+          >
+            <h4>
+              Team
+            </h4>
+          </div>
+          <div
+            className="grouping-controls team-choices row box-content with-padding"
+          >
+            <div
+              className="col-md-3"
+            >
+              <label
+                className="checkbox"
+              >
+                <Checkbox
                   checked={true}
-                  id="1"
-                  readOnly={true}
-                  value="member"
+                  id="bar"
+                  onChange={[Function]}
                 >
                   <input
                     checked={true}
-                    className="radio-select"
-                    id="1"
-                    readOnly={true}
-                    type="radio"
-                    value="member"
+                    className="chk-select"
+                    id="bar"
+                    onChange={[Function]}
+                    type="checkbox"
                   />
-                </Radio>
-                member
-                <div
-                  className="help-block"
+                </Checkbox>
+                bar
+                <span
+                  className="team-slug"
                 >
-                  a normal member
-                </div>
+                  bar
+                </span>
               </label>
-            </li>
-            <li
-              className="radio"
-              onClick={[Function]}
-              style={Object {}}
+            </div>
+            <div
+              className="col-md-3"
             >
               <label
-                style={Object {}}
+                className="checkbox"
               >
-                <Radio
+                <Checkbox
                   checked={false}
-                  id="2"
-                  readOnly={true}
-                  value="bar"
+                  id="foo"
+                  onChange={[Function]}
                 >
                   <input
                     checked={false}
-                    className="radio-select"
-                    id="2"
-                    readOnly={true}
-                    type="radio"
-                    value="bar"
+                    className="chk-select"
+                    id="foo"
+                    onChange={[Function]}
+                    type="checkbox"
                   />
-                </Radio>
-                bar
-                <div
-                  className="help-block"
-                >
-                  another role
-                </div>
-              </label>
-            </li>
-          </ul>
-        </div>
-      </div>
-    </RoleSelect>
-    <TeamSelect
-      selectedTeams={
-        Array [
-          "bar",
-        ]
-      }
-      teams={
-        Array [
-          Object {
-            "hasAccess": true,
-            "id": "1",
-            "name": "bar",
-            "slug": "bar",
-          },
-          Object {
-            "hasAccess": false,
-            "id": "2",
-            "name": "foo",
-            "slug": "foo",
-          },
-        ]
-      }
-      toggleTeam={[Function]}
-    >
-      <div
-        className="new-invite-team box"
-      >
-        <div
-          className="box-header"
-        >
-          <h4>
-            Team:
-          </h4>
-        </div>
-        <div
-          className="grouping-controls team-choices row box-content with-padding"
-        >
-          <div
-            className="col-md-3"
-            onClick={[Function]}
-          >
-            <label
-              className="checkbox"
-            >
-              <Checkbox
-                checked={true}
-                id="bar"
-                value="bar"
-              >
-                <input
-                  checked={true}
-                  className="chk-select"
-                  id="bar"
-                  type="checkbox"
-                  value="bar"
-                />
-              </Checkbox>
-              bar
-              <span
-                className="team-slug"
-              >
-                bar
-              </span>
-            </label>
-          </div>
-          <div
-            className="col-md-3"
-            onClick={[Function]}
-          >
-            <label
-              className="checkbox"
-            >
-              <Checkbox
-                checked={false}
-                id="foo"
-                value="foo"
-              >
-                <input
-                  checked={false}
-                  className="chk-select"
-                  id="foo"
-                  type="checkbox"
-                  value="foo"
-                />
-              </Checkbox>
-              foo
-              <span
-                className="team-slug"
-              >
+                </Checkbox>
                 foo
-              </span>
-            </label>
+                <span
+                  className="team-slug"
+                >
+                  foo
+                </span>
+              </label>
+            </div>
           </div>
         </div>
-      </div>
-    </TeamSelect>
-    <Button
-      className="invite-member-submit"
-      disabled={false}
-      onClick={[Function]}
-      priority="primary"
-    >
-      <button
-        className="invite-member-submit button button-primary"
+      </TeamSelect>
+      <Button
+        busy={false}
+        className="invite-member-submit"
         disabled={false}
         onClick={[Function]}
-        role="button"
+        priority="primary"
       >
-        <FlowLayout
-          truncate={false}
+        <button
+          className="invite-member-submit button button-primary"
+          disabled={false}
+          onClick={[Function]}
+          role="button"
         >
-          <div
-            className="flow-layout"
+          <FlowLayout
+            truncate={false}
           >
-            <span
-              className="button-label"
+            <div
+              className="flow-layout"
             >
-              Add Member
-            </span>
-          </div>
-        </FlowLayout>
-      </button>
-    </Button>
+              <span
+                className="button-label"
+              >
+                Add Member
+              </span>
+            </div>
+          </FlowLayout>
+        </button>
+      </Button>
+    </div>
   </div>
 </InviteMember>
 `;
 
 exports[`CreateProject render() should use invite/add language based on config 1`] = `
-<div>
-  <h3>
-    Add Member to Organization
-  </h3>
-  <p>
-    You may add a user by their username if they already have an account. Multiple inputs delimited by commas.
-  </p>
-  <div
-    className=""
-  >
-    <LoadingIndicator
-      className="pull-right"
-      mini={true}
-    />
-    <TextField
-      disabled={false}
-      hideErrorMessage={false}
-      label="Username(s)"
-      name="email"
-      onChange={[Function]}
-      placeholder="e.g. teammate@example.com"
-      required={false}
-      spellCheck="false"
-    />
-  </div>
-  <RoleSelect
-    roleList={Array []}
-    selectedRole="member"
-    setRole={[Function]}
-  />
-  <TeamSelect
-    selectedTeams={Array []}
-    teams={
-      Array [
-        Object {
-          "hasAccess": true,
-          "id": "1",
-          "name": "bar",
-          "slug": "bar",
-        },
-        Object {
-          "hasAccess": false,
-          "id": "2",
-          "name": "foo",
-          "slug": "foo",
-        },
-      ]
-    }
-    toggleTeam={[Function]}
-  />
-  <Button
-    className="invite-member-submit"
-    disabled={false}
-    onClick={[Function]}
-    priority="primary"
-  >
-    Add Member
-  </Button>
-</div>
+<p>
+  You may add a user by their username if they already have an account. Multiple inputs delimited by commas.
+</p>
 `;

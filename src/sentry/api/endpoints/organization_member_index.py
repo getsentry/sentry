@@ -94,7 +94,7 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
 
         if not features.has('organizations:invite-members', organization, actor=request.user):
             return Response(
-                {'organization': 'Your organization is not allowed to invite members'}, status=401)
+                {'organization': 'Your organization is not allowed to invite members'}, status=403)
 
         serializer = OrganizationMemberSerializer(data=request.DATA)
 

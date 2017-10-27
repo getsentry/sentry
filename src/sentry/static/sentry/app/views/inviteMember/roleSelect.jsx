@@ -18,7 +18,7 @@ const RoleSelect = React.createClass({
     return (
       <div className="new-invite-team box">
         <div className="box-header">
-          <h4>{t('Role') + ':'}</h4>
+          <h4>{t('Role')}</h4>
         </div>
         <div className="box-content with-padding">
           <ul className="radio-inputs">
