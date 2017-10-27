@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
 import mock
-import uuid
 
 from sentry.plugins import Plugin2
 from sentry.tasks.store import preprocess_event, process_event
@@ -43,7 +42,6 @@ class StoreTasksTest(PluginTestCase):
 
         data = {
             'project': project.id,
-            'event_id': uuid.uuid4().hex,
             'platform': 'mattlang',
             'message': 'test',
             'extra': {
