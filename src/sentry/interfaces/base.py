@@ -118,10 +118,7 @@ class Interface(object):
     def get_alias(self):
         return self.get_slug()
 
-    def get_hash(self, is_processed_data=True):
-        # is_processed_data will be false when used for
-        # hashing to check whether an event should be
-        # discarded or not
+    def get_hash(self):
         return []
 
     def compute_hashes(self, platform):
