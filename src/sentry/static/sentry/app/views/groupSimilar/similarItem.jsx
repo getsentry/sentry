@@ -102,8 +102,10 @@ const SimilarIssueItem = React.createClass({
       return null;
     }
 
+    let isResolved = issue.status === 'resolved';
+
     let cx = classNames('group', 'similar-issue', {
-      isResolved: issue.status === 'resolved',
+      isResolved,
       busy: this.state.busy
     });
 
@@ -115,7 +117,12 @@ const SimilarIssueItem = React.createClass({
               <Checkbox id={issue.id} value={issue.id} checked={this.state.checked} />
             </div>
             <div className="event-details level-error" style={{flex: 1}}>
-              <EventOrGroupHeader orgId={orgId} projectId={projectId} data={issue} />
+              <EventOrGroupHeader
+                isResolved={isResolved}
+                orgId={orgId}
+                projectId={projectId}
+                data={issue}
+              />
               <EventOrGroupExtraDetails
                 {...issue}
                 groupId={issue.id}

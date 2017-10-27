@@ -655,6 +655,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                               }
                             }
                             includeLink={true}
+                            isResolved={true}
                             orgId="orgId"
                             projectId="projectId"
                           >
@@ -721,6 +722,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                         }
                                       }
                                       includeLink={true}
+                                      isResolved={true}
                                       orgId="orgId"
                                       projectId="projectId"
                                     >
@@ -728,13 +730,22 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                         <span
                                           style={
                                             Object {
+                                              "color": "#625471",
                                               "marginRight": 10,
+                                              "textDecoration": "line-through",
                                             }
                                           }
                                         >
                                           TypeError
                                         </span>
-                                        <em>
+                                        <em
+                                          style={
+                                            Object {
+                                              "color": "#625471",
+                                              "textDecoration": "line-through",
+                                            }
+                                          }
+                                        >
                                           length(app/views/groupSimilar/groupSimilarView)
                                         </em>
                                         <br />
@@ -1720,6 +1731,7 @@ exports[`Issues Similar View renders with mocked data 2`] = `
                               }
                             }
                             includeLink={true}
+                            isResolved={true}
                             orgId="orgId"
                             projectId="projectId"
                           >
@@ -1786,6 +1798,7 @@ exports[`Issues Similar View renders with mocked data 2`] = `
                                         }
                                       }
                                       includeLink={true}
+                                      isResolved={true}
                                       orgId="orgId"
                                       projectId="projectId"
                                     >
@@ -1793,13 +1806,22 @@ exports[`Issues Similar View renders with mocked data 2`] = `
                                         <span
                                           style={
                                             Object {
+                                              "color": "#625471",
                                               "marginRight": 10,
+                                              "textDecoration": "line-through",
                                             }
                                           }
                                         >
                                           TypeError
                                         </span>
-                                        <em>
+                                        <em
+                                          style={
+                                            Object {
+                                              "color": "#625471",
+                                              "textDecoration": "line-through",
+                                            }
+                                          }
+                                        >
                                           length(app/views/groupSimilar/groupSimilarView)
                                         </em>
                                         <br />
