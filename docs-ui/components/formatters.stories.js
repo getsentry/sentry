@@ -19,6 +19,9 @@ storiesOf('Formatters', module)
         <div>
           <DateTime seconds={false} date={1500000000000} />
         </div>
+        <div>
+          <DateTime dateOnly date={1500000000000} />
+        </div>
       </div>
     ))
   )
