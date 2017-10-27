@@ -249,7 +249,7 @@ class OrganizationMemberListTest(APITestCase):
                     self.team.slug,
                 ]})
 
-        assert resp.status_code == 401
+        assert resp.status_code == 403
 
     def test_no_team_invites(self):
         self.login_as(user=self.owner_user)

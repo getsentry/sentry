@@ -19,19 +19,19 @@ const TeamSelect = React.createClass({
     return (
       <div className="new-invite-team box">
         <div className="box-header">
-          <h4>{t('Team') + ':'}</h4>
+          <h4>{t('Team')}</h4>
         </div>
         <div className="grouping-controls team-choices row box-content with-padding">
           {teams.map(({slug, name}, i) => (
-            <div
-              key={slug}
-              onClick={e => {
-                e.preventDefault();
-                toggleTeam(slug);
-              }}
-              className="col-md-3">
+            <div key={slug} className="col-md-3">
               <label className="checkbox">
-                <Checkbox id={slug} value={name} checked={selectedTeams.has(slug)} />
+                <Checkbox
+                  id={slug}
+                  checked={selectedTeams.has(slug)}
+                  onChange={e => {
+                    toggleTeam(slug);
+                  }}
+                />
                 {name}
                 <span className="team-slug">{slug}</span>
               </label>
