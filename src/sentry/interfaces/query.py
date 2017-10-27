@@ -35,7 +35,7 @@ class Query(Interface):
         }
         return cls(**kwargs)
 
-    def get_hash(self, is_processed_data=True):
+    def get_hash(self):
         return [self.query]
 
     def get_path(self):
