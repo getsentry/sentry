@@ -241,78 +241,8 @@ class PreProcessingHashTest(TestCase):
         )
 
         assert get_preprocess_hash_inputs(event_data) == [[
-            u'/_static/373562702009df1692da6eb80a933139f29e094b/sentry/dist/vendor.js',
             u'Object.receiveComponent',
-            22,
-            17866,
-            u'/_static/373562702009df1692da6eb80a933139f29e094b/sentry/dist/vendor.js',
             u'ReactCompositeComponentWrapper.receiveComponent',
-            10,
-            74002,
-            u'/_static/373562702009df1692da6eb80a933139f29e094b/sentry/dist/app.js',
             u'Constructor.render',
-            9,
-            47628,
             u'TypeError'
         ]]
-
-    def test_exception_with_stacktrace_raises(self):
-        data = {
-            'exception': {
-                'values': [
-                    {
-                        'stacktrace': {
-                            'frames': [
-                                {
-                                    'colno':
-                                    22,
-                                    'function':
-                                    u'Object.receiveComponent',
-                                    'in_app':
-                                    True,
-                                    'lineno':
-                                    17866
-                                }, {
-                                    'colno':
-                                    10,
-                                    'filename':
-                                    u'/_static/373562702009df1692da6eb80a933139f29e094b/sentry/dist/vendor.js',
-                                    'function':
-                                    u'ReactCompositeComponentWrapper.receiveComponent',
-                                    'in_app':
-                                    True,
-                                    'lineno':
-                                    74002
-                                }, {
-                                    'colno':
-                                    9,
-                                    'filename':
-                                    u'/_static/373562702009df1692da6eb80a933139f29e094b/sentry/dist/app.js',
-                                    'function':
-                                    u'Constructor.render',
-                                    'in_app':
-                                    True,
-                                    'lineno':
-                                    47628
-                                }
-                            ],
-                            'frames_omitted':
-                            None,
-                            'registers':
-                            None
-                        },
-                        'thread_id': None,
-                        'type': u'TypeError',
-                        'value': u"Cannot set property 'b' of null"
-                    }
-                ]
-            }
-        }
-
-        event_data = self.make_event_data(
-            data=data,
-            platform='javascript',
-        )
-
-        with self.assertRaises(UnableToGenerateHash):
-            get_preprocess_hash_inputs(event_data)

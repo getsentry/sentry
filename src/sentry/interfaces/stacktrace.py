@@ -370,7 +370,7 @@ class Frame(Interface):
 
         return cls(**kwargs)
 
-    def _get_processed_hash(self, platform=None):
+    def get_hash(self, platform=None, is_processed_data=True):
         """
         The hash of the frame varies depending on the data available.
 
@@ -413,10 +413,11 @@ class Frame(Interface):
         # XXX: hack around what appear to be non-useful lines of context
         if can_use_context:
             output.append(self.context_line)
-        elif not output:
+        elif not output and is_processed_data:
             # If we were unable to achieve any context at this point
             # (likely due to a bad JavaScript error) we should just
-            # bail on recording this frame
+            # bail on recording this frame unless we're working with
+            # unprocessed data
             return output
         elif self.symbol:
             output.append(self.symbol)
@@ -427,31 +428,9 @@ class Frame(Interface):
                 output.append(remove_function_outliers(self.function))
         elif self.lineno is not None:
             output.append(self.lineno)
+            if not is_processed_data and self.colno is not None:
+                output.append(self.colno)
         return output
-
-    def _get_unprocessed_hash(self, platform=None):
-        from sentry.filters.preprocess_hashes import UnableToGenerateHash
-
-        platform = self.platform or platform
-        # TODO(jess): consider special casing mobile/native
-        if platform == 'javascript':
-            # Safari throws [native code] frames in for calls like ``forEach``
-            # whereas Chrome ignores these. Let's remove it from the hashing algo
-            # so that they're more likely to group together
-            if self.filename == '[native code]':
-                return []
-
-            attrs = [self.filename, self.function, self.colno, self.lineno]
-            if all(attrs):
-                return attrs
-            raise UnableToGenerateHash
-        else:
-            return self._get_processed_hash(platform=platform)
-
-    def get_hash(self, platform=None, is_processed_data=True):
-        if is_processed_data:
-            return self._get_processed_hash(platform=platform)
-        return self._get_unprocessed_hash(platform=platform)
 
     def get_api_context(self, is_public=False, pad_addr=None):
         data = {
