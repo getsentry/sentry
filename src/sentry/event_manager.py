@@ -7,7 +7,6 @@ sentry.event_manager
 """
 from __future__ import absolute_import, print_function
 
-import functools
 import logging
 import math
 import six
@@ -104,9 +103,9 @@ def get_grouping_behavior(event):
     return ('fingerprint', get_hashes_from_fingerprint_with_reason(event, fingerprint))
 
 
-def _get_hashes_from_fingerprint(get_hash_inputs, fingerprint):
+def get_hashes_from_fingerprint(event, fingerprint):
     if any(d in fingerprint for d in DEFAULT_FINGERPRINT_VALUES):
-        default_hashes = get_hash_inputs()
+        default_hashes = get_hashes_for_event(event)
         hash_count = len(default_hashes)
     else:
         hash_count = 1
@@ -121,13 +120,6 @@ def _get_hashes_from_fingerprint(get_hash_inputs, fingerprint):
                 result.append(bit)
         hashes.append(result)
     return hashes
-
-
-def get_hashes_from_fingerprint(event, fingerprint):
-    return _get_hashes_from_fingerprint(
-        functools.partial(get_hashes_for_event, event),
-        fingerprint,
-    )
 
 
 def get_hashes_from_fingerprint_with_reason(event, fingerprint):
