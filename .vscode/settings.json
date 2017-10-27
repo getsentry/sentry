@@ -3,7 +3,7 @@
         "**/*.pyc": true,
         "**/*.min.js": true,
         "**/*.js.map": true,
-        "static/": true,
+        "/static/": true,
         "node_modules": true,
         "htmlcov": true,
         "build": true,
@@ -42,5 +42,6 @@
     // tests is often in your way and misclicked
     "python.unitTest.pyTestEnabled": false,
     "python.unitTest.unittestEnabled": false,
-    "python.unitTest.nosetestsEnabled": false
+    "python.unitTest.nosetestsEnabled": false,
+    "prettier-eslint.prettierPath": "${env.WORKON_HOME}/node_modules/prettier/bin/prettier.js"
 }
