@@ -110,7 +110,7 @@ const AllTeamsRow = React.createClass({
                       </a>
                     : openMembership
                         ? <a className="btn btn-default btn-sm" onClick={this.joinTeam}>
-                            {t('Join Team')}
+                            {t('Join This Team')}
                           </a>
                         : <a className="btn btn-default btn-sm" onClick={this.joinTeam}>
                             {t('Request Access')}

@@ -4167,7 +4167,7 @@ msgid "Request Pending"
 msgstr "Talep Bekliyor"
 
 #: static/sentry/app/components/missingProjectMembership.jsx:73
-msgid "Join Team"
+msgid "Join A Team"
 msgstr "Takıma Katıl"
 
 #: static/sentry/app/components/missingProjectMembership.jsx:76

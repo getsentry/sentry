@@ -4176,7 +4176,7 @@ msgid "Request Pending"
 msgstr "请求待处理"
 
 #: static/sentry/app/components/missingProjectMembership.jsx:73
-msgid "Join Team"
+msgid "Join A Team"
 msgstr "加入团队"
 
 #: static/sentry/app/components/missingProjectMembership.jsx:76
