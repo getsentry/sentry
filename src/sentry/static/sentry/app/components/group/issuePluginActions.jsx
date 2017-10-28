@@ -123,7 +123,7 @@ const IssuePluginActions = React.createClass({
 
     // # TODO(dcramer): remove plugin.title check in Sentry 8.22+
     return (
-      <span>
+      <div className="btn-group">
         {button}
         <Modal
           show={this.state.showModal}
@@ -147,7 +147,7 @@ const IssuePluginActions = React.createClass({
               })}
           </Modal.Body>
         </Modal>
-      </span>
+      </div>
     );
   }
 });
