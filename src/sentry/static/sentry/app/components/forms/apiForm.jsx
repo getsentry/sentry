@@ -11,7 +11,13 @@ export default class ApiForm extends Form {
     ...Form.propTypes,
     onSubmit: PropTypes.func,
     apiMethod: PropTypes.string.isRequired,
-    apiEndpoint: PropTypes.string.isRequired
+    apiEndpoint: PropTypes.string.isRequired,
+    disabledFields: PropTypes.array,
+  };
+
+  static defaultProps = {
+    ...Form.defaultProps,
+    disabledFields: [],
   };
 
   constructor(props, context) {
@@ -31,6 +37,11 @@ export default class ApiForm extends Form {
     }
 
     let {data} = this.state;
+
+    // Excludes disabled fields
+    data = Object.keys(data)
+      .filter(key => this.props.disabledFields.indexOf(key) === -1)
+      .reduce((obj, key) => Object.assign(obj, {[key]: data[key]}), {});
 
     this.props.onSubmit && this.props.onSubmit(data);
     this.setState(
