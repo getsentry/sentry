@@ -59,7 +59,7 @@ describe('EventOrGroupExtraDetails', function() {
         logger="javascript logger"
         annotations={['annotation1', 'annotation2']}
         assignedTo={{
-          name: 'Assignee Name'
+          name: 'Assignee Name',
         }}
         status="resolved"
       />
@@ -81,7 +81,7 @@ describe('EventOrGroupExtraDetails', function() {
         logger="javascript logger"
         annotations={['annotation1', 'annotation2']}
         assignedTo={{
-          name: 'Assignee Name'
+          name: 'Assignee Name',
         }}
         status="resolved"
         showAssignee

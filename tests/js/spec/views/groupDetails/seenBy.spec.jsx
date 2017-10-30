@@ -21,8 +21,8 @@ describe('GroupSeenBy', function() {
         context: {
           group: {id: '1337'},
           project: {id: '2448'},
-          team: {id: '3559'}
-        }
+          team: {id: '3559'},
+        },
       });
       expect(wrapper.children()).toHaveLength(0);
     });
@@ -34,12 +34,12 @@ describe('GroupSeenBy', function() {
             id: '1337',
             seenBy: [
               {id: 1, email: 'jane@example.com'},
-              {id: 2, email: 'john@example.com'}
-            ]
+              {id: 2, email: 'john@example.com'},
+            ],
           },
           project: {id: '2448'},
-          team: {id: '3559'}
-        }
+          team: {id: '3559'},
+        },
       });
 
       expect(wrapper.find('li')).toHaveLength(3); // +1 for "icon-eye"

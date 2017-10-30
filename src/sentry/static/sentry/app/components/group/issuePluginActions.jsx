@@ -11,7 +11,7 @@ import {toTitleCase} from '../../utils';
 
 const IssuePluginActions = React.createClass({
   propTypes: {
-    plugin: PropTypes.object.isRequired
+    plugin: PropTypes.object.isRequired,
   },
 
   mixins: [ApiMixin, GroupState],
@@ -20,7 +20,7 @@ const IssuePluginActions = React.createClass({
     return {
       showModal: false,
       actionType: null,
-      pluginLoading: false
+      pluginLoading: false,
     };
   },
 
@@ -37,13 +37,13 @@ const IssuePluginActions = React.createClass({
   ACTION_LABELS: {
     create: t('Create New Issue'),
     link: t('Link with Existing Issue'),
-    unlink: t('Unlink Issue')
+    unlink: t('Unlink Issue'),
   },
 
   loadPlugin(data) {
     this.setState(
       {
-        pluginLoading: true
+        pluginLoading: true,
       },
       () => {
         plugins.load(data, () => {
@@ -56,14 +56,14 @@ const IssuePluginActions = React.createClass({
   openModal(action) {
     this.setState({
       showModal: true,
-      actionType: action
+      actionType: action,
     });
   },
 
   closeModal() {
     this.setState({
       showModal: false,
-      actionType: null
+      actionType: null,
     });
   },
 
@@ -84,7 +84,8 @@ const IssuePluginActions = React.createClass({
       button = (
         <button
           className={'btn btn-default btn-sm btn-plugin-' + plugin.slug}
-          onClick={this.openModal.bind(this, allowedActions[0])}>
+          onClick={this.openModal.bind(this, allowedActions[0])}
+        >
           {toTitleCase(allowedActions[0]) +
             ' ' +
             (plugin.shortName || plugin.name || plugin.title) +
@@ -106,7 +107,8 @@ const IssuePluginActions = React.createClass({
                   style={{marginLeft: 3, marginRight: -3}}
                 />
               </span>
-            }>
+            }
+          >
             {allowedActions.map(action => {
               return (
                 <MenuItem key={action} noAnchor={true}>
@@ -130,7 +132,8 @@ const IssuePluginActions = React.createClass({
           onHide={this.closeModal}
           animation={false}
           backdrop="static"
-          enforceFocus={false}>
+          enforceFocus={false}
+        >
           <Modal.Header closeButton>
             <Modal.Title>{`${plugin.name || plugin.title} Issue`}</Modal.Title>
           </Modal.Header>
@@ -143,13 +146,13 @@ const IssuePluginActions = React.createClass({
                 project: this.getProject(),
                 organization: this.getOrganization(),
                 actionType: this.state.actionType,
-                onSuccess: this.closeModal
+                onSuccess: this.closeModal,
               })}
           </Modal.Body>
         </Modal>
       </span>
     );
-  }
+  },
 });
 
 export default IssuePluginActions;

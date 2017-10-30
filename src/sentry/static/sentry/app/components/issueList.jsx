@@ -15,7 +15,7 @@ const IssueList = React.createClass({
     pagination: PropTypes.bool,
     renderEmpty: PropTypes.func,
     statsPeriod: PropTypes.string,
-    showActions: PropTypes.bool
+    showActions: PropTypes.bool,
   },
 
   mixins: [ApiMixin],
@@ -23,7 +23,7 @@ const IssueList = React.createClass({
   getDefaultProps() {
     return {
       pagination: true,
-      query: {}
+      query: {},
     };
   },
 
@@ -32,7 +32,7 @@ const IssueList = React.createClass({
       issueIds: [],
       loading: true,
       error: false,
-      pageLinks: null
+      pageLinks: null,
     };
   },
 
@@ -64,7 +64,7 @@ const IssueList = React.createClass({
       method: 'GET',
       query: {
         cursor: (location && location.query && location.query.cursor) || '',
-        ...this.props.query
+        ...this.props.query,
       },
       success: (data, _, jqXHR) => {
         this.setState({
@@ -72,15 +72,15 @@ const IssueList = React.createClass({
           loading: false,
           error: false,
           issueIds: data.map(item => item.id),
-          pageLinks: jqXHR.getResponseHeader('Link')
+          pageLinks: jqXHR.getResponseHeader('Link'),
         });
       },
       error: () => {
         this.setState({
           loading: false,
-          error: true
+          error: true,
         });
-      }
+      },
     });
   },
 
@@ -129,11 +129,12 @@ const IssueList = React.createClass({
       <div>
         {this.renderResults()}
         {this.props.pagination &&
-          this.state.pageLinks &&
-          <Pagination pageLinks={this.state.pageLinks} {...this.props} />}
+          this.state.pageLinks && (
+            <Pagination pageLinks={this.state.pageLinks} {...this.props} />
+          )}
       </div>
     );
-  }
+  },
 });
 
 export default IssueList;

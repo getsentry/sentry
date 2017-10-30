@@ -16,7 +16,7 @@ const EventTags = React.createClass({
     group: SentryTypes.Group.isRequired,
     event: SentryTypes.Event.isRequired,
     orgId: PropTypes.string.isRequired,
-    projectId: PropTypes.string.isRequired
+    projectId: PropTypes.string.isRequired,
   },
 
   render() {
@@ -30,7 +30,8 @@ const EventTags = React.createClass({
         event={this.props.event}
         title={t('Tags')}
         type="tags"
-        className="p-b-1">
+        className="p-b-1"
+      >
         <Pills className="no-margin">
           {tags.map(tag => {
             return (
@@ -38,21 +39,23 @@ const EventTags = React.createClass({
                 <Link
                   to={{
                     pathname: `/${orgId}/${projectId}/`,
-                    query: {query: `${tag.key}:"${tag.value}"`}
-                  }}>
+                    query: {query: `${tag.key}:"${tag.value}"`},
+                  }}
+                >
                   {deviceNameMapper(tag.value)}
                 </Link>
-                {isUrl(tag.value) &&
+                {isUrl(tag.value) && (
                   <a href={tag.value} className="external-icon">
                     <em className="icon-open" />
-                  </a>}
+                  </a>
+                )}
               </Pill>
             );
           })}
         </Pills>
       </EventDataSection>
     );
-  }
+  },
 });
 
 export default EventTags;

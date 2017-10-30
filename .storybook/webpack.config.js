@@ -16,32 +16,32 @@ module.exports = {
         loader: 'po-catalog-loader',
         query: {
           referenceExtensions: ['.js', '.jsx'],
-          domain: 'sentry'
-        }
+          domain: 'sentry',
+        },
       },
       {
         test: /\.css$/,
-        use: ['style-loader', 'css-loader']
+        use: ['style-loader', 'css-loader'],
       },
       {
         test: /\.less$/,
         use: [
           {
-            loader: 'style-loader'
+            loader: 'style-loader',
           },
           {
-            loader: 'css-loader'
+            loader: 'css-loader',
           },
           {
-            loader: 'less-loader'
-          }
-        ]
+            loader: 'less-loader',
+          },
+        ],
       },
       {
         test: /\.(woff|woff2|ttf|eot|svg|png|gif|ico|jpg)($|\?)/,
-        loader: 'file-loader?name=' + '[name].[ext]'
-      }
-    ]
+        loader: 'file-loader?name=' + '[name].[ext]',
+      },
+    ],
   },
   plugins: [
     new webpack.ProvidePlugin({
@@ -51,18 +51,18 @@ module.exports = {
       'root.jQuery': 'jquery',
       Raven: 'raven-js',
       underscore: 'underscore',
-      _: 'underscore'
+      _: 'underscore',
     }),
     new webpack.DefinePlugin({
       'process.env': {
-        IS_PERCY: true
-      }
-    })
+        IS_PERCY: true,
+      },
+    }),
   ],
   resolve: {
     extensions: appConfig.resolve.extensions,
     alias: Object.assign({}, appConfig.resolve.alias, {
-      'sentry-ui': componentPath
-    })
-  }
+      'sentry-ui': componentPath,
+    }),
+  },
 };

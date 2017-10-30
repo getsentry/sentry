@@ -9,12 +9,12 @@ import {t, tn} from '../../locale';
 const EventErrors = React.createClass({
   propTypes: {
     group: SentryTypes.Group.isRequired,
-    event: SentryTypes.Event.isRequired
+    event: SentryTypes.Event.isRequired,
   },
 
   getInitialState() {
     return {
-      isOpen: false
+      isOpen: false,
     };
   },
 
@@ -42,7 +42,8 @@ const EventErrors = React.createClass({
         group={this.props.group}
         event={this.props.event}
         type="errors"
-        className="errors">
+        className="errors"
+      >
         <span className="icon icon-alert" />
         <p>
           <a className="pull-right" onClick={this.toggle}>
@@ -61,7 +62,7 @@ const EventErrors = React.createClass({
         </ul>
       </EventDataSection>
     );
-  }
+  },
 });
 
 export default EventErrors;

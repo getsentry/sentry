@@ -14,40 +14,44 @@ const CrashContent = React.createClass({
     stackType: PropTypes.string,
     newestFirst: PropTypes.bool.isRequired,
     exception: PropTypes.object,
-    stacktrace: PropTypes.object
+    stacktrace: PropTypes.object,
   },
 
   renderException() {
     const {event, stackView, stackType, newestFirst, exception} = this.props;
-    return stackView === 'raw'
-      ? <RawExceptionContent
-          eventId={event.id}
-          type={stackType}
-          values={exception.values}
-          platform={event.platform}
-        />
-      : <ExceptionContent
-          type={stackType}
-          view={stackView}
-          values={exception.values}
-          platform={event.platform}
-          newestFirst={newestFirst}
-        />;
+    return stackView === 'raw' ? (
+      <RawExceptionContent
+        eventId={event.id}
+        type={stackType}
+        values={exception.values}
+        platform={event.platform}
+      />
+    ) : (
+      <ExceptionContent
+        type={stackType}
+        view={stackView}
+        values={exception.values}
+        platform={event.platform}
+        newestFirst={newestFirst}
+      />
+    );
   },
 
   renderStacktrace() {
     const {event, stackView, newestFirst, stacktrace} = this.props;
-    return stackView === 'raw'
-      ? <pre className="traceback plain">
-          {rawStacktraceContent(stacktrace, event.platform)}
-        </pre>
-      : <StacktraceContent
-          data={stacktrace}
-          className="no-exception"
-          includeSystemFrames={stackView === 'full'}
-          platform={event.platform}
-          newestFirst={newestFirst}
-        />;
+    return stackView === 'raw' ? (
+      <pre className="traceback plain">
+        {rawStacktraceContent(stacktrace, event.platform)}
+      </pre>
+    ) : (
+      <StacktraceContent
+        data={stacktrace}
+        className="no-exception"
+        includeSystemFrames={stackView === 'full'}
+        platform={event.platform}
+        newestFirst={newestFirst}
+      />
+    );
   },
 
   render() {
@@ -58,7 +62,7 @@ const CrashContent = React.createClass({
       return this.renderStacktrace();
     }
     return null;
-  }
+  },
 });
 
 export default CrashContent;

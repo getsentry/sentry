@@ -38,20 +38,20 @@ class DropdownReact extends React.Component {
     alwaysRenderMenu: PropTypes.bool,
 
     topLevelClasses: PropTypes.string,
-    menuClasses: PropTypes.string
+    menuClasses: PropTypes.string,
   };
 
   static defaultProps = {
     disabled: false,
     anchorRight: false,
     keepMenuOpen: false,
-    caret: true
+    caret: true,
   };
 
   constructor(...args) {
     super(...args);
     this.state = {
-      isOpen: false
+      isOpen: false,
     };
   }
 
@@ -89,7 +89,7 @@ class DropdownReact extends React.Component {
     let isControlled = typeof isOpen !== 'undefined';
     if (!isControlled) {
       this.setState({
-        isOpen: true
+        isOpen: true,
       });
     }
 
@@ -150,7 +150,7 @@ class DropdownReact extends React.Component {
       menuClasses,
       className,
       alwaysRenderMenu,
-      topLevelClasses
+      topLevelClasses,
     } = this.props;
 
     // Default anchor = left
@@ -160,13 +160,13 @@ class DropdownReact extends React.Component {
     let cx = classNames('dropdown-actor', className, {
       'dropdown-menu-right': isRight,
       'dropdown-toggle': true,
-      disabled
+      disabled,
     });
 
     let topLevelCx = classNames('dropdown', topLevelClasses, {
       'pull-right': isRight,
       'anchor-right': isRight,
-      open: shouldShowDropdown
+      open: shouldShowDropdown,
     });
 
     // .dropdown-actor-title = flexbox to fix vertical alignment on firefox
@@ -176,19 +176,22 @@ class DropdownReact extends React.Component {
         <a
           className={cx}
           ref={ref => (this.dropdownActor = ref)}
-          onClick={this.handleToggle}>
+          onClick={this.handleToggle}
+        >
           <div className="dropdown-actor-title">
             <span>{title}</span>
             {caret && <i className="icon-arrow-down" />}
           </div>
         </a>
-        {(shouldShowDropdown || alwaysRenderMenu) &&
+        {(shouldShowDropdown || alwaysRenderMenu) && (
           <ul
             ref={this.handleMenuMount}
             onClick={this.handleDropdownMenuClick}
-            className={classNames(menuClasses, 'dropdown-menu')}>
+            className={classNames(menuClasses, 'dropdown-menu')}
+          >
             {children}
-          </ul>}
+          </ul>
+        )}
       </span>
     );
   }

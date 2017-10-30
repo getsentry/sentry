@@ -93,16 +93,16 @@ requested or loaded. When either the <code>style-src</code> or the
 <code>default-src</code> directive is included, inline use of the
 <code>&lt;style&gt;</code> element and HTML style attributes are disabled
 unless you specify 'unsafe-inline'.`
-  )
+  ),
 };
 
 const linkOverrides = {
-  'script-src': 'script-src_2'
+  'script-src': 'script-src_2',
 };
 
 function getHelp(key) {
   return {
-    __html: help[key]
+    __html: help[key],
   };
 }
 
@@ -129,7 +129,7 @@ function getLink(key) {
 
 const CSPHelp = React.createClass({
   propTypes: {
-    data: PropTypes.object.isRequired
+    data: PropTypes.object.isRequired,
   },
 
   render() {
@@ -141,12 +141,10 @@ const CSPHelp = React.createClass({
           <code>{key}</code>
         </h4>
         <blockquote dangerouslySetInnerHTML={getHelp(key)} />
-        <p style={{textAlign: 'right'}}>
-          — MDN ({getLink(key)})
-        </p>
+        <p style={{textAlign: 'right'}}>— MDN ({getLink(key)})</p>
       </div>
     );
-  }
+  },
 });
 
 export default CSPHelp;

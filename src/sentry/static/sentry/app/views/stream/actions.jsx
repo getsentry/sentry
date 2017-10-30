@@ -28,7 +28,7 @@ const getBulkConfirmMessage = action =>
     'Are you sure you want to [action] the first [bulkNumber] issues that match the search?',
     {
       action,
-      bulkNumber: BULK_LIMIT_STR
+      bulkNumber: BULK_LIMIT_STR,
     }
   );
 
@@ -49,7 +49,7 @@ const ExtraDescription = ({all, query}) => {
         {tct(
           'This will apply to the first [bulkNumber] issues matched in this project!',
           {
-            bulkNumber: BULK_LIMIT_STR
+            bulkNumber: BULK_LIMIT_STR,
           }
         )}
       </strong>
@@ -59,7 +59,7 @@ const ExtraDescription = ({all, query}) => {
 
 ExtraDescription.propTypes = {
   all: PropTypes.bool,
-  query: PropTypes.string
+  query: PropTypes.string,
 };
 
 const IgnoreActions = React.createClass({
@@ -68,12 +68,12 @@ const IgnoreActions = React.createClass({
     allInQuerySelected: PropTypes.bool.isRequired,
     pageSelected: PropTypes.bool.isRequired,
     onUpdate: PropTypes.func.isRequired,
-    query: PropTypes.string
+    query: PropTypes.string,
   },
 
   getInitialState() {
     return {
-      modal: false
+      modal: false,
     };
   },
 
@@ -91,7 +91,7 @@ const IgnoreActions = React.createClass({
 
   onCustomIgnore(statusDetails) {
     this.setState({
-      modal: false
+      modal: false,
     });
     this.onIgnore(statusDetails);
   },
@@ -99,7 +99,7 @@ const IgnoreActions = React.createClass({
   onIgnore(statusDetails) {
     return this.props.onUpdate({
       status: 'ignored',
-      statusDetails: statusDetails || {}
+      statusDetails: statusDetails || {},
     });
   },
 
@@ -123,7 +123,7 @@ const IgnoreActions = React.createClass({
             ),
       confirmLabel: allInQuerySelected
         ? t('Bulk ignore issues')
-        : count => tn('Ignore %d selected issue', 'Ignore %d selected issues', count)
+        : count => tn('Ignore %d selected issue', 'Ignore %d selected issues', count),
     };
     return (
       <div style={{display: 'inline-block'}}>
@@ -157,7 +157,8 @@ const IgnoreActions = React.createClass({
           <ActionLink
             onAction={() => onUpdate({status: 'ignored'})}
             className={linkClassName}
-            {...actionLinkProps}>
+            {...actionLinkProps}
+          >
             <span className="icon-ban" style={{marginRight: 5}} />
             {t('Ignore')}
           </ActionLink>
@@ -165,7 +166,8 @@ const IgnoreActions = React.createClass({
             caret={true}
             className={linkClassName}
             title=""
-            disabled={!anySelected}>
+            disabled={!anySelected}
+          >
             <MenuItem header={true}>Ignore Until</MenuItem>
             <li className="dropdown-submenu">
               <DropdownLink title="This occurs again after .." caret={false}>
@@ -174,9 +176,10 @@ const IgnoreActions = React.createClass({
                     <MenuItem noAnchor={true} key={duration}>
                       <ActionLink
                         onAction={this.onIgnore.bind(this, {
-                          ignoreDuration: duration
+                          ignoreDuration: duration,
                         })}
-                        {...actionLinkProps}>
+                        {...actionLinkProps}
+                      >
                         <Duration seconds={duration * 60} />
                       </ActionLink>
                     </MenuItem>
@@ -184,9 +187,7 @@ const IgnoreActions = React.createClass({
                 })}
                 <MenuItem divider={true} />
                 <MenuItem noAnchor={true}>
-                  <a onClick={() => this.setState({modal: 'duration'})}>
-                    {t('Custom')}
-                  </a>
+                  <a onClick={() => this.setState({modal: 'duration'})}>{t('Custom')}</a>
                 </MenuItem>
               </DropdownLink>
             </li>
@@ -197,13 +198,15 @@ const IgnoreActions = React.createClass({
                     <li className="dropdown-submenu" key={count}>
                       <DropdownLink
                         title={t('%s times', count.toLocaleString())}
-                        caret={false}>
+                        caret={false}
+                      >
                         <MenuItem noAnchor={true}>
                           <ActionLink
                             onAction={this.onIgnore.bind(this, {
-                              ignoreCount: count
+                              ignoreCount: count,
                             })}
-                            {...actionLinkProps}>
+                            {...actionLinkProps}
+                          >
                             {t('from now')}
                           </ActionLink>
                         </MenuItem>
@@ -213,9 +216,10 @@ const IgnoreActions = React.createClass({
                               <ActionLink
                                 onAction={this.onIgnore.bind(this, {
                                   ignoreCount: count,
-                                  ignoreWindow: hours
+                                  ignoreWindow: hours,
                                 })}
-                                {...actionLinkProps}>
+                                {...actionLinkProps}
+                              >
                                 {label}
                               </ActionLink>
                             </MenuItem>
@@ -227,9 +231,7 @@ const IgnoreActions = React.createClass({
                 })}
                 <MenuItem divider={true} />
                 <MenuItem noAnchor={true}>
-                  <a onClick={() => this.setState({modal: 'count'})}>
-                    {t('Custom')}
-                  </a>
+                  <a onClick={() => this.setState({modal: 'count'})}>{t('Custom')}</a>
                 </MenuItem>
               </DropdownLink>
             </li>
@@ -240,13 +242,15 @@ const IgnoreActions = React.createClass({
                     <li className="dropdown-submenu" key={count}>
                       <DropdownLink
                         title={t('%s users', count.toLocaleString())}
-                        caret={false}>
+                        caret={false}
+                      >
                         <MenuItem noAnchor={true}>
                           <ActionLink
                             onAction={this.onIgnore.bind(this, {
-                              ignoreUserCount: count
+                              ignoreUserCount: count,
                             })}
-                            {...actionLinkProps}>
+                            {...actionLinkProps}
+                          >
                             {t('from now')}
                           </ActionLink>
                         </MenuItem>
@@ -256,9 +260,10 @@ const IgnoreActions = React.createClass({
                               <ActionLink
                                 onAction={this.onIgnore.bind(this, {
                                   ignoreUserCount: count,
-                                  ignoreUserWindow: hours
+                                  ignoreUserWindow: hours,
                                 })}
-                                {...actionLinkProps}>
+                                {...actionLinkProps}
+                              >
                                 {label}
                               </ActionLink>
                             </MenuItem>
@@ -270,9 +275,7 @@ const IgnoreActions = React.createClass({
                 })}
                 <MenuItem divider={true} />
                 <MenuItem noAnchor={true}>
-                  <a onClick={() => this.setState({modal: 'users'})}>
-                    {t('Custom')}
-                  </a>
+                  <a onClick={() => this.setState({modal: 'users'})}>{t('Custom')}</a>
                 </MenuItem>
               </DropdownLink>
             </li>
@@ -280,7 +283,7 @@ const IgnoreActions = React.createClass({
         </div>
       </div>
     );
-  }
+  },
 });
 
 const ResolveActions = React.createClass({
@@ -293,22 +296,22 @@ const ResolveActions = React.createClass({
     allInQuerySelected: PropTypes.bool.isRequired,
     pageSelected: PropTypes.bool.isRequired,
     onUpdate: PropTypes.func.isRequired,
-    query: PropTypes.string
+    query: PropTypes.string,
   },
 
   getInitialState() {
     return {
-      modal: false
+      modal: false,
     };
   },
 
   onCustomResolution(statusDetails) {
     this.setState({
-      modal: false
+      modal: false,
     });
     this.props.onUpdate({
       status: 'resolved',
-      statusDetails
+      statusDetails,
     });
   },
 
@@ -319,7 +322,7 @@ const ResolveActions = React.createClass({
       projectId,
       orgId,
       allInQuerySelected,
-      query
+      query,
     } = this.props;
     let extraDescription = <ExtraDescription all={allInQuerySelected} query={query} />;
     let linkClassName = 'group-resolve btn btn-default btn-sm';
@@ -339,7 +342,7 @@ const ResolveActions = React.createClass({
             ),
       confirmLabel: this.props.allInQuerySelected
         ? t('Bulk resolve issues')
-        : count => tn('Resolve %d selected issue', 'Resolve %d selected issues', count)
+        : count => tn('Resolve %d selected issue', 'Resolve %d selected issues', count),
     };
     return (
       <div style={{display: 'inline-block'}}>
@@ -354,7 +357,8 @@ const ResolveActions = React.createClass({
           <ActionLink
             onAction={() => this.props.onUpdate({status: 'resolved'})}
             className={linkClassName}
-            {...actionLinkProps}>
+            {...actionLinkProps}
+          >
             <span className="icon-checkmark" style={{marginRight: 5}} />
             {t('Resolve')}
           </ActionLink>
@@ -363,16 +367,18 @@ const ResolveActions = React.createClass({
             caret={true}
             className={linkClassName}
             title=""
-            disabled={!this.props.anySelected}>
+            disabled={!this.props.anySelected}
+          >
             <MenuItem header={true}>{t('Resolved In')}</MenuItem>
             <MenuItem noAnchor={true}>
               <ActionLink
                 onAction={() =>
                   this.props.onUpdate({
                     status: 'resolved',
-                    statusDetails: {inNextRelease: true}
+                    statusDetails: {inNextRelease: true},
                   })}
-                {...actionLinkProps}>
+                {...actionLinkProps}
+              >
                 {t('The next release')}
               </ActionLink>
               <ActionLink
@@ -380,10 +386,11 @@ const ResolveActions = React.createClass({
                   this.props.onUpdate({
                     status: 'resolved',
                     statusDetails: {
-                      inRelease: latestRelease ? latestRelease.version : 'latest'
-                    }
+                      inRelease: latestRelease ? latestRelease.version : 'latest',
+                    },
                   })}
-                {...actionLinkProps}>
+                {...actionLinkProps}
+              >
                 {latestRelease
                   ? t('The current release (%s)', getShortVersion(latestRelease.version))
                   : t('The current release')}
@@ -396,7 +403,7 @@ const ResolveActions = React.createClass({
         </div>
       </div>
     );
-  }
+  },
 });
 
 const StreamActions = React.createClass({
@@ -411,7 +418,7 @@ const StreamActions = React.createClass({
     statsPeriod: PropTypes.string.isRequired,
     query: PropTypes.string.isRequired,
     hasReleases: PropTypes.bool,
-    latestRelease: PropTypes.object
+    latestRelease: PropTypes.object,
   },
 
   mixins: [
@@ -422,12 +429,12 @@ const StreamActions = React.createClass({
       container: 'body',
       constraints: [
         {
-          attachment: 'together'
-        }
-      ]
+          attachment: 'together',
+        },
+      ],
     }),
     Reflux.listenTo(SelectedGroupStore, 'onSelectedGroupChange'),
-    PureRenderMixin
+    PureRenderMixin,
   ],
 
   getDefaultProps() {
@@ -441,7 +448,7 @@ const StreamActions = React.createClass({
       anySelected: false,
       multiSelected: false, // more than one selected
       pageSelected: false, // all on current page selected (e.g. 25)
-      allInQuerySelected: false // all in current search query selected (e.g. 1000+)
+      allInQuerySelected: false, // all in current search query selected (e.g. 1000+)
     };
   },
 
@@ -455,7 +462,7 @@ const StreamActions = React.createClass({
 
   selectAll() {
     this.setState({
-      allInQuerySelected: true
+      allInQuerySelected: true,
     });
   },
 
@@ -493,12 +500,12 @@ const StreamActions = React.createClass({
           projectId: this.props.projectId,
           itemIds,
           data,
-          query: this.props.query
+          query: this.props.query,
         },
         {
           complete: () => {
             IndicatorStore.remove(loadingIndicator);
-          }
+          },
         }
       );
     });
@@ -513,12 +520,12 @@ const StreamActions = React.createClass({
           orgId: this.props.orgId,
           projectId: this.props.projectId,
           itemIds,
-          query: this.props.query
+          query: this.props.query,
         },
         {
           complete: () => {
             IndicatorStore.remove(loadingIndicator);
-          }
+          },
         }
       );
     });
@@ -533,12 +540,12 @@ const StreamActions = React.createClass({
           orgId: this.props.orgId,
           projectId: this.props.projectId,
           itemIds,
-          query: this.props.query
+          query: this.props.query,
         },
         {
           complete: () => {
             IndicatorStore.remove(loadingIndicator);
-          }
+          },
         }
       );
     });
@@ -549,7 +556,7 @@ const StreamActions = React.createClass({
       pageSelected: SelectedGroupStore.allSelected(),
       multiSelected: SelectedGroupStore.multiSelected(),
       anySelected: SelectedGroupStore.anySelected(),
-      allInQuerySelected: false // any change resets
+      allInQuerySelected: false, // any change resets
     });
   },
 
@@ -626,7 +633,8 @@ const StreamActions = React.createClass({
                 }
                 tooltip={t('Add to Bookmarks')}
                 onlyIfBulk={true}
-                selectAllActive={this.state.pageSelected}>
+                selectAllActive={this.state.pageSelected}
+              >
                 <i aria-hidden="true" className="icon-star-solid" />
               </ActionLink>
             </div>
@@ -636,7 +644,8 @@ const StreamActions = React.createClass({
                 btnGroup={true}
                 caret={false}
                 className="btn btn-sm btn-default hidden-xs action-more"
-                title={<span className="icon-ellipsis" />}>
+                title={<span className="icon-ellipsis" />}
+              >
                 <MenuItem noAnchor={true}>
                   <ActionLink
                     className="action-merge"
@@ -663,7 +672,8 @@ const StreamActions = React.createClass({
                               count
                             )
                     }
-                    selectAllActive={this.state.pageSelected}>
+                    selectAllActive={this.state.pageSelected}
+                  >
                     {t('Merge Issues')}
                   </ActionLink>
                 </MenuItem>
@@ -676,7 +686,7 @@ const StreamActions = React.createClass({
                     confirmationQuestion={
                       this.state.allInQuerySelected
                         ? getBulkConfirmMessage('remove', {
-                            append: ' from your bookmarks'
+                            append: ' from your bookmarks',
                           })
                         : count =>
                             tn(
@@ -696,7 +706,8 @@ const StreamActions = React.createClass({
                             )
                     }
                     onlyIfBulk={true}
-                    selectAllActive={this.state.pageSelected}>
+                    selectAllActive={this.state.pageSelected}
+                  >
                     {t('Remove from Bookmarks')}
                   </ActionLink>
                 </MenuItem>
@@ -729,7 +740,8 @@ const StreamActions = React.createClass({
                     }
                     onlyIfBulk={true}
                     selectAllActive={this.state.pageSelected}
-                    groupIds={this.props.groupIds}>
+                    groupIds={this.props.groupIds}
+                  >
                     {t('Set status to: Unresolved')}
                   </ActionLink>
                 </MenuItem>
@@ -748,7 +760,8 @@ const StreamActions = React.createClass({
                       )}
                     confirmLabel={count =>
                       tn('Delete %d selected issue', 'Delete %d selected issues', count)}
-                    selectAllActive={this.state.pageSelected}>
+                    selectAllActive={this.state.pageSelected}
+                  >
                     {t('Delete Issues')}
                   </ActionLink>
                 </MenuItem>
@@ -758,11 +771,16 @@ const StreamActions = React.createClass({
             <div className="btn-group">
               <a
                 className="btn btn-default btn-sm hidden-xs realtime-control tip"
-                title={`${this.props.realtimeActive ? 'Pause' : 'Enable'} real-time updates`}
-                onClick={this.onRealtimeChange}>
-                {this.props.realtimeActive
-                  ? <span className="icon icon-pause" />
-                  : <span className="icon icon-play" />}
+                title={`${this.props.realtimeActive
+                  ? 'Pause'
+                  : 'Enable'} real-time updates`}
+                onClick={this.onRealtimeChange}
+              >
+                {this.props.realtimeActive ? (
+                  <span className="icon icon-pause" />
+                ) : (
+                  <span className="icon icon-play" />
+                )}
               </a>
             </div>
           </div>
@@ -790,19 +808,20 @@ const StreamActions = React.createClass({
         </Toolbar>
 
         {!this.props.allResultsVisible &&
-          this.state.pageSelected &&
-          <div className="row stream-select-all-notice">
-            <div className="col-md-12">
-              {this.state.allInQuerySelected
-                ? <strong>
+          this.state.pageSelected && (
+            <div className="row stream-select-all-notice">
+              <div className="col-md-12">
+                {this.state.allInQuerySelected ? (
+                  <strong>
                     {tct(
                       'Selected up to the first [count] issues that match this search query.',
                       {
-                        count: BULK_LIMIT_STR
+                        count: BULK_LIMIT_STR,
                       }
                     )}
                   </strong>
-                : <span>
+                ) : (
+                  <span>
                     {tn(
                       '%d issue on this page selected.',
                       '%d issues on this page selected.',
@@ -812,16 +831,18 @@ const StreamActions = React.createClass({
                       {tct(
                         'Select the first [count] issues that match this search query.',
                         {
-                          count: BULK_LIMIT_STR
+                          count: BULK_LIMIT_STR,
                         }
                       )}
                     </a>
-                  </span>}
+                  </span>
+                )}
+              </div>
             </div>
-          </div>}
+          )}
       </div>
     );
-  }
+  },
 });
 
 export default StreamActions;

@@ -5,7 +5,7 @@ const Category = React.createClass({
   propTypes: {
     value: PropTypes.string,
     title: PropTypes.string,
-    hideIfEmpty: PropTypes.bool
+    hideIfEmpty: PropTypes.bool,
   },
 
   render() {
@@ -22,8 +22,12 @@ const Category = React.createClass({
     } else {
       title = value;
     }
-    return <span className="crumb-category" title={title}>{title}</span>;
-  }
+    return (
+      <span className="crumb-category" title={title}>
+        {title}
+      </span>
+    );
+  },
 });
 
 export default Category;

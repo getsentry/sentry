@@ -10,7 +10,7 @@ import {getOptionField, getForm} from '../options';
 
 export default class InstallWizard extends AsyncView {
   static propTypes = {
-    onConfigured: PropTypes.func.isRequired
+    onConfigured: PropTypes.func.isRequired,
   };
 
   componentWillMount() {
@@ -85,8 +85,8 @@ export default class InstallWizard extends AsyncView {
             {this.state.loading
               ? this.renderLoading()
               : this.state.error
-                  ? this.renderError(new Error('Unable to load all required endpoints'))
-                  : this.renderBody()}
+                ? this.renderError(new Error('Unable to load all required endpoints'))
+                : this.renderBody()}
           </div>
         </div>
       </DocumentTitle>
@@ -111,10 +111,9 @@ export default class InstallWizard extends AsyncView {
         apiEndpoint={this.getEndpoint()}
         submitLabel={t('Continue')}
         initialData={this.getInitialData()}
-        onSubmitSuccess={this.props.onConfigured}>
-        <p>
-          {t('Complete setup by filling out the required configuration.')}
-        </p>
+        onSubmitSuccess={this.props.onConfigured}
+      >
+        <p>{t('Complete setup by filling out the required configuration.')}</p>
 
         {this.renderFormFields()}
       </ApiForm>

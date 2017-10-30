@@ -9,7 +9,7 @@ let localStorageMock = function() {
     },
     clear: function() {
       store = {};
-    }
+    },
   };
 };
 

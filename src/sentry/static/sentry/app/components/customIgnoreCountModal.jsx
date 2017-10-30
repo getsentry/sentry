@@ -13,20 +13,20 @@ export default React.createClass({
     countLabel: PropTypes.string.isRequired,
     countName: PropTypes.string.isRequired,
     windowName: PropTypes.string.isRequired,
-    windowChoices: PropTypes.array.isRequired
+    windowChoices: PropTypes.array.isRequired,
   },
 
   getInitialState() {
     return {
       count: 100,
-      window: ''
+      window: '',
     };
   },
 
   onSubmit() {
     this.props.onSelected({
       [this.props.countName]: this.state.count,
-      [this.props.windowName]: this.state.window
+      [this.props.windowName]: this.state.window,
     });
   },
 
@@ -44,9 +44,7 @@ export default React.createClass({
         <div className="modal-body">
           <form className="m-b-1">
             <div className="control-group">
-              <h6 className="nav-header">
-                {this.props.countLabel}
-              </h6>
+              <h6 className="nav-header">{this.props.countLabel}</h6>
               <input
                 className="form-control"
                 type="number"
@@ -58,9 +56,7 @@ export default React.createClass({
               />
             </div>
             <div className="control-group m-b-1">
-              <h6 className="nav-header">
-                {t('Time window')}
-              </h6>
+              <h6 className="nav-header">{t('Time window')}</h6>
               <Select2Field
                 className="form-control"
                 value={window}
@@ -81,7 +77,8 @@ export default React.createClass({
           <button
             type="button"
             className="btn btn-default"
-            onClick={this.props.onCanceled}>
+            onClick={this.props.onCanceled}
+          >
             {t('Cancel')}
           </button>
           <button type="button" className="btn btn-primary" onClick={this.onSubmit}>
@@ -90,5 +87,5 @@ export default React.createClass({
         </div>
       </Modal>
     );
-  }
+  },
 });

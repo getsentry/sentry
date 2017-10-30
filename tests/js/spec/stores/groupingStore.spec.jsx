@@ -22,81 +22,81 @@ describe('Grouping Store', function() {
       body: [
         {
           latestEvent: {
-            eventID: 'event-1'
+            eventID: 'event-1',
           },
           state: 'locked',
-          id: '1'
+          id: '1',
         },
         {
           latestEvent: {
-            eventID: 'event-2'
+            eventID: 'event-2',
           },
           state: 'unlocked',
-          id: '2'
+          id: '2',
         },
         {
           latestEvent: {
-            eventID: 'event-3'
+            eventID: 'event-3',
           },
           state: 'unlocked',
-          id: '3'
+          id: '3',
         },
         {
           latestEvent: {
-            eventID: 'event-4'
+            eventID: 'event-4',
           },
           state: 'unlocked',
-          id: '4'
+          id: '4',
         },
         {
           latestEvent: {
-            eventID: 'event-5'
+            eventID: 'event-5',
           },
           state: 'locked',
-          id: '5'
-        }
-      ]
+          id: '5',
+        },
+      ],
     });
     Client.addMockResponse({
       url: '/issues/groupId/similar/',
       body: [
         [
           {
-            id: '274'
+            id: '274',
           },
           {
             'exception:stacktrace:pairs': 0.375,
             'exception:stacktrace:application-chunks': 0.175,
-            'message:message:character-shingles': 0.775
-          }
-        ],
-        [
-          {
-            id: '275'
+            'message:message:character-shingles': 0.775,
           },
-          {'exception:stacktrace:pairs': 1.000}
         ],
         [
           {
-            id: '216'
+            id: '275',
+          },
+          {'exception:stacktrace:pairs': 1.0},
+        ],
+        [
+          {
+            id: '216',
           },
           {
             'exception:stacktrace:application-chunks': 0.000235,
-            'exception:stacktrace:pairs': 0.001488
-          }
+            'exception:stacktrace:pairs': 0.001488,
+          },
         ],
         [
           {
-            id: '217'
+            id: '217',
           },
           {
             'exception:message:character-shingles': null,
             'exception:stacktrace:application-chunks': 0.25,
             'exception:stacktrace:pairs': 0.25,
-            'message:message:character-shingles': 0.7
-          }
-        ]
-      ]
+            'message:message:character-shingles': 0.7,
+          },
+        ],
+      ],
     });
   });
 
@@ -120,14 +120,14 @@ describe('Grouping Store', function() {
           mergedLinks: '',
           similarItems: [],
           similarLinks: '',
-          unmergeState: new Map()
+          unmergeState: new Map(),
         })
       );
     });
 
     it('fetches list of similar items', async function() {
       await GroupingStore.onFetch([
-        {dataKey: 'similar', endpoint: '/issues/groupId/similar/'}
+        {dataKey: 'similar', endpoint: '/issues/groupId/similar/'},
       ]);
 
       expect(trigger).toBeCalled();
@@ -145,31 +145,31 @@ describe('Grouping Store', function() {
           {
             isBelowThreshold: false,
             issue: {
-              id: '274'
-            }
+              id: '274',
+            },
           },
           {
             isBelowThreshold: false,
             issue: {
-              id: '275'
-            }
+              id: '275',
+            },
           },
           {
             isBelowThreshold: false,
             issue: {
-              id: '217'
-            }
-          }
+              id: '217',
+            },
+          },
         ],
         filteredSimilarItems: [
           {
             isBelowThreshold: true,
             issue: {
-              id: '216'
-            }
-          }
+              id: '216',
+            },
+          },
         ],
-        unmergeState: new Map()
+        unmergeState: new Map(),
       });
 
       expect(arg).toMatchSnapshot();
@@ -180,11 +180,11 @@ describe('Grouping Store', function() {
       Client.addMockResponse({
         url: '/issues/groupId/similar/',
         statusCode: 500,
-        body: {message: 'failed'}
+        body: {message: 'failed'},
       });
 
       let promise = GroupingStore.onFetch([
-        {dataKey: 'similar', endpoint: '/issues/groupId/similar/'}
+        {dataKey: 'similar', endpoint: '/issues/groupId/similar/'},
       ]);
 
       expect(trigger).toBeCalled();
@@ -196,14 +196,14 @@ describe('Grouping Store', function() {
           error: true,
           mergeState: new Map(),
           mergedItems: [],
-          unmergeState: new Map()
+          unmergeState: new Map(),
         });
       });
     });
 
     it('ignores null scores in aggregate', async function() {
       await GroupingStore.onFetch([
-        {dataKey: 'similar', endpoint: '/issues/groupId/similar/'}
+        {dataKey: 'similar', endpoint: '/issues/groupId/similar/'},
       ]);
 
       expect(trigger).toBeCalled();
@@ -217,7 +217,7 @@ describe('Grouping Store', function() {
 
     it('fetches list of hashes', function() {
       let promise = GroupingStore.onFetch([
-        {dataKey: 'merged', endpoint: '/issues/groupId/hashes/'}
+        {dataKey: 'merged', endpoint: '/issues/groupId/hashes/'},
       ]);
 
       expect(trigger).toBeCalled();
@@ -236,8 +236,8 @@ describe('Grouping Store', function() {
             ['2', {busy: false}],
             ['3', {busy: false}],
             ['4', {busy: false}],
-            ['5', {busy: true}]
-          ])
+            ['5', {busy: true}],
+          ]),
         });
       });
     });
@@ -247,11 +247,11 @@ describe('Grouping Store', function() {
       Client.addMockResponse({
         url: '/issues/groupId/hashes/',
         statusCode: 500,
-        body: {message: 'failed'}
+        body: {message: 'failed'},
       });
 
       let promise = GroupingStore.onFetch([
-        {dataKey: 'merged', endpoint: '/issues/groupId/hashes/'}
+        {dataKey: 'merged', endpoint: '/issues/groupId/hashes/'},
       ]);
 
       expect(trigger).toBeCalled();
@@ -263,7 +263,7 @@ describe('Grouping Store', function() {
           error: true,
           mergeState: new Map(),
           mergedItems: [],
-          unmergeState: new Map()
+          unmergeState: new Map(),
         });
       });
     });
@@ -277,7 +277,7 @@ describe('Grouping Store', function() {
       mergeList = new Set();
       mergeState = new Map();
       return GroupingStore.onFetch([
-        {dataKey: 'similar', endpoint: '/issues/groupId/similar/'}
+        {dataKey: 'similar', endpoint: '/issues/groupId/similar/'},
       ]);
     });
 
@@ -314,7 +314,7 @@ describe('Grouping Store', function() {
         expect(trigger).toHaveBeenLastCalledWith({
           mergeDisabled: false,
           mergeList,
-          mergeState
+          mergeState,
         });
       });
     });
@@ -325,7 +325,7 @@ describe('Grouping Store', function() {
         Client.clearMockResponses();
         Client.addMockResponse({
           method: 'PUT',
-          url: '/projects/orgId/projectId/issues/'
+          url: '/projects/orgId/projectId/issues/',
         });
       });
       afterEach(function() {});
@@ -336,8 +336,8 @@ describe('Grouping Store', function() {
           params: {
             orgId: 'orgId',
             projectId: 'projectId',
-            groupId: 'groupId'
-          }
+            groupId: 'groupId',
+          },
         });
 
         mergeList.add('1');
@@ -346,7 +346,7 @@ describe('Grouping Store', function() {
         expect(trigger).toHaveBeenCalledWith({
           mergeDisabled: true,
           mergeList,
-          mergeState
+          mergeState,
         });
 
         await promise;
@@ -356,19 +356,19 @@ describe('Grouping Store', function() {
             orgId: 'orgId',
             projectId: 'projectId',
             itemIds: ['1', 'groupId'],
-            query: undefined
+            query: undefined,
           },
           {
             error: expect.any(Function),
             success: expect.any(Function),
-            complete: expect.any(Function)
+            complete: expect.any(Function),
           }
         );
 
         expect(trigger).toHaveBeenLastCalledWith({
           mergeDisabled: false,
           mergeList,
-          mergeState
+          mergeState,
         });
       });
 
@@ -381,14 +381,14 @@ describe('Grouping Store', function() {
           params: {
             orgId: 'orgId',
             projectId: 'projectId',
-            groupId: 'groupId'
-          }
+            groupId: 'groupId',
+          },
         });
 
         expect(trigger).toHaveBeenCalledWith({
           mergeDisabled: true,
           mergeList,
-          mergeState
+          mergeState,
         });
 
         await promise;
@@ -396,7 +396,7 @@ describe('Grouping Store', function() {
         expect(trigger).toHaveBeenLastCalledWith({
           mergeDisabled: false,
           mergeList: new Set(),
-          mergeState
+          mergeState,
         });
       });
 
@@ -406,7 +406,7 @@ describe('Grouping Store', function() {
           method: 'PUT',
           url: '/projects/orgId/projectId/issues/',
           statusCode: 500,
-          body: {}
+          body: {},
         });
 
         GroupingStore.onToggleMerge('1');
@@ -417,14 +417,14 @@ describe('Grouping Store', function() {
           params: {
             orgId: 'orgId',
             projectId: 'projectId',
-            groupId: 'groupId'
-          }
+            groupId: 'groupId',
+          },
         });
 
         expect(trigger).toHaveBeenCalledWith({
           mergeDisabled: true,
           mergeList,
-          mergeState
+          mergeState,
         });
 
         await promise;
@@ -432,7 +432,7 @@ describe('Grouping Store', function() {
         expect(trigger).toHaveBeenLastCalledWith({
           mergeDisabled: false,
           mergeList,
-          mergeState
+          mergeState,
         });
       });
     });
@@ -446,7 +446,7 @@ describe('Grouping Store', function() {
       unmergeList = new Map();
       unmergeState = new Map();
       await GroupingStore.onFetch([
-        {dataKey: 'merged', endpoint: '/issues/groupId/hashes/'}
+        {dataKey: 'merged', endpoint: '/issues/groupId/hashes/'},
       ]);
 
       trigger.mockClear();
@@ -493,7 +493,7 @@ describe('Grouping Store', function() {
           unmergeLastCollapsed: false,
           unmergeDisabled: false,
           unmergeList,
-          unmergeState
+          unmergeState,
         });
       });
 
@@ -537,7 +537,7 @@ describe('Grouping Store', function() {
           unmergeLastCollapsed: false,
           unmergeDisabled: false,
           unmergeList,
-          unmergeState
+          unmergeState,
         });
       });
     });
@@ -547,7 +547,7 @@ describe('Grouping Store', function() {
         Client.clearMockResponses();
         Client.addMockResponse({
           method: 'DELETE',
-          url: '/issues/groupId/hashes/'
+          url: '/issues/groupId/hashes/',
         });
       });
       afterEach(function() {});
@@ -559,7 +559,7 @@ describe('Grouping Store', function() {
 
         trigger.mockClear();
         GroupingStore.onUnmerge({
-          groupId: 'groupId'
+          groupId: 'groupId',
         });
 
         expect(trigger).toHaveBeenCalledWith({
@@ -567,7 +567,7 @@ describe('Grouping Store', function() {
           unmergeLastCollapsed: false,
           unmergeDisabled: true,
           unmergeList,
-          unmergeState
+          unmergeState,
         });
       });
 
@@ -577,7 +577,7 @@ describe('Grouping Store', function() {
         unmergeState.set('1', {checked: true, busy: false});
 
         let promise = GroupingStore.onUnmerge({
-          groupId: 'groupId'
+          groupId: 'groupId',
         });
 
         expect(trigger).toHaveBeenCalledWith({
@@ -585,7 +585,7 @@ describe('Grouping Store', function() {
           unmergeLastCollapsed: false,
           unmergeDisabled: true,
           unmergeList,
-          unmergeState
+          unmergeState,
         });
 
         await promise;
@@ -595,7 +595,7 @@ describe('Grouping Store', function() {
           unmergeLastCollapsed: false,
           unmergeDisabled: false,
           unmergeList: new Map(),
-          unmergeState
+          unmergeState,
         });
       });
 
@@ -605,7 +605,7 @@ describe('Grouping Store', function() {
           method: 'DELETE',
           url: '/issues/groupId/hashes/',
           statusCode: 500,
-          body: {}
+          body: {},
         });
 
         GroupingStore.onToggleUnmerge(['2', 'event-2']);
@@ -613,7 +613,7 @@ describe('Grouping Store', function() {
         unmergeState.set('1', {checked: true, busy: false});
 
         let promise = GroupingStore.onUnmerge({
-          groupId: 'groupId'
+          groupId: 'groupId',
         });
 
         expect(trigger).toHaveBeenCalledWith({
@@ -621,7 +621,7 @@ describe('Grouping Store', function() {
           unmergeLastCollapsed: false,
           unmergeDisabled: true,
           unmergeList,
-          unmergeState
+          unmergeState,
         });
 
         await promise;
@@ -631,7 +631,7 @@ describe('Grouping Store', function() {
           unmergeLastCollapsed: false,
           unmergeDisabled: false,
           unmergeList,
-          unmergeState
+          unmergeState,
         });
       });
     });

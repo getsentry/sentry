@@ -12,7 +12,7 @@ import {t} from '../../../locale';
 
 const RichHttpContent = React.createClass({
   propTypes: {
-    data: PropTypes.object.isRequired
+    data: PropTypes.object.isRequired,
   },
 
   getBodySection(data) {
@@ -21,9 +21,9 @@ const RichHttpContent = React.createClass({
       case 'application/json':
         return <ContextData data={data.data} />;
       case 'application/x-www-form-urlencoded':
-        return <KeyValueList
-          data={objectToSortedTupleArray(data.data)}
-          isContextData={true} />;
+        return (
+          <KeyValueList data={objectToSortedTupleArray(data.data)} isContextData={true} />
+        );
       default:
         return <pre>{JSON.stringify(data.data, null, 2)}</pre>;
     }
@@ -33,9 +33,12 @@ const RichHttpContent = React.createClass({
     try {
       // Sentry API abbreviates long query string values, sometimes resulting in
       // an un-parsable querystring ... stay safe kids
-      return <KeyValueList
-        data={objectToSortedTupleArray(queryString.parse(data))}
-        isContextData={true} />;
+      return (
+        <KeyValueList
+          data={objectToSortedTupleArray(queryString.parse(data))}
+          isContextData={true}
+        />
+      );
     } catch (e) {
       return <pre>{data}</pre>;
     }
@@ -45,36 +48,40 @@ const RichHttpContent = React.createClass({
     let data = this.props.data;
     return (
       <div>
-        {data.query &&
+        {data.query && (
           <ClippedBox title={t('Query String')}>
             {this.getQueryStringOrRaw(data.query)}
-          </ClippedBox>}
-        {data.fragment &&
+          </ClippedBox>
+        )}
+        {data.fragment && (
           <ClippedBox title={t('Fragment')}>
             <pre>{data.fragment}</pre>
-          </ClippedBox>}
+          </ClippedBox>
+        )}
 
-        {data.data &&
-          <ClippedBox title={t('Body')}>
-            {this.getBodySection(data)}
-          </ClippedBox>}
+        {data.data && (
+          <ClippedBox title={t('Body')}>{this.getBodySection(data)}</ClippedBox>
+        )}
 
         {data.cookies &&
-          !objectIsEmpty(data.cookies) &&
-          <ClippedBox title={t('Cookies')} defaultCollapsed>
-            <KeyValueList data={data.cookies} />
-          </ClippedBox>}
-        {!objectIsEmpty(data.headers) &&
+          !objectIsEmpty(data.cookies) && (
+            <ClippedBox title={t('Cookies')} defaultCollapsed>
+              <KeyValueList data={data.cookies} />
+            </ClippedBox>
+          )}
+        {!objectIsEmpty(data.headers) && (
           <ClippedBox title={t('Headers')}>
             <KeyValueList data={data.headers} />
-          </ClippedBox>}
-        {!objectIsEmpty(data.env) &&
+          </ClippedBox>
+        )}
+        {!objectIsEmpty(data.env) && (
           <ClippedBox title={t('Environment')} defaultCollapsed>
             <KeyValueList data={objectToSortedTupleArray(data.env)} />
-          </ClippedBox>}
+          </ClippedBox>
+        )}
       </div>
     );
-  }
+  },
 });
 
 export default RichHttpContent;

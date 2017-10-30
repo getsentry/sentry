@@ -6,11 +6,7 @@ import React from 'react';
 
 const DynamicWrapper = ({fixed, value, ...otherProps}) => {
   // Wrap with span b/c react
-  return (
-    <span {...otherProps}>
-      {process.env.IS_PERCY ? fixed : value}
-    </span>
-  );
+  return <span {...otherProps}>{process.env.IS_PERCY ? fixed : value}</span>;
 };
 
 DynamicWrapper.propTypes = {
@@ -21,7 +17,7 @@ DynamicWrapper.propTypes = {
   /**
    * Actual value to use when not in a test environment
    */
-  value: PropTypes.string.isRequired
+  value: PropTypes.string.isRequired,
 };
 
 export default DynamicWrapper;

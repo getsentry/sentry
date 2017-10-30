@@ -58,7 +58,7 @@ const ProjectStore = Reflux.createStore({
 
   getBySlug(slug) {
     return this.items.find(project => project.slug === slug);
-  }
+  },
 });
 
 export default ProjectStore;

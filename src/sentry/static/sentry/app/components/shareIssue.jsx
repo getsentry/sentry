@@ -26,7 +26,7 @@ class ShareUrlContainer extends React.Component {
     onShare: PropTypes.func,
     onConfirming: PropTypes.func,
     onCancel: PropTypes.func,
-    busy: PropTypes.bool
+    busy: PropTypes.bool,
   };
 
   // Select URL when its container is clicked
@@ -54,9 +54,9 @@ class ShareUrlContainer extends React.Component {
           flex: 'none',
           alignItems: 'stretch',
           border: `1px solid ${BORDER_COLOR}`,
-          borderRadius: 4
-        }}>
-
+          borderRadius: 4,
+        }}
+      >
         <div
           style={{
             position: 'relative',
@@ -64,8 +64,9 @@ class ShareUrlContainer extends React.Component {
             flex: 1,
             backgroundColor: !isSharing ? '#f9f7f9' : 'transparent',
             borderRight: `1px solid ${BORDER_COLOR}`,
-            maxWidth: 288
-          }}>
+            maxWidth: 288,
+          }}
+        >
           <AutoSelectText
             ref={this.handleUrlMount}
             style={{
@@ -74,8 +75,9 @@ class ShareUrlContainer extends React.Component {
               padding: '4px 6px 4px 10px',
               textOverflow: 'ellipsis',
               whiteSpace: 'nowrap',
-              overflow: 'hidden'
-            }}>
+              overflow: 'hidden',
+            }}
+          >
             {url}
           </AutoSelectText>
         </div>
@@ -86,7 +88,8 @@ class ShareUrlContainer extends React.Component {
               borderless
               size="xsmall"
               onClick={this.handleCopyClick}
-              style={{borderRadius: 0, borderRight: `1px solid ${BORDER_COLOR}`}}>
+              style={{borderRadius: 0, borderRight: `1px solid ${BORDER_COLOR}`}}
+            >
               <IconCopy />
             </Button>
           </Clipboard>
@@ -97,13 +100,13 @@ class ShareUrlContainer extends React.Component {
             )}
             onCancel={onCancel}
             onConfirming={onConfirming}
-            onConfirm={onShare}>
+            onConfirm={onShare}
+          >
             <Button borderless size="xsmall">
               <IconRefresh />
             </Button>
           </Confirm>
         </FlowLayout>
-
       </FlowLayout>
     );
   }
@@ -115,8 +118,9 @@ const SmallHeading = ({children, ...props}) => (
     style={{
       margin: 0,
       paddingRight: 30,
-      whiteSpace: 'nowrap'
-    }}>
+      whiteSpace: 'nowrap',
+    }}
+  >
     {children}
   </h6>
 );
@@ -129,12 +133,12 @@ const IndicatorDot = ({active}) => (
       borderRadius: '50%',
       width: 10,
       height: 10,
-      background: active ? '#57be8c' : '#dfdbe4'
+      background: active ? '#57be8c' : '#dfdbe4',
     }}
   />
 );
 IndicatorDot.propTypes = {
-  active: PropTypes.bool
+  active: PropTypes.bool,
 };
 
 class ShareIssue extends React.Component {
@@ -143,7 +147,7 @@ class ShareIssue extends React.Component {
     shareUrl: PropTypes.string,
     busy: PropTypes.bool,
     onToggle: PropTypes.func.isRequired,
-    onShare: PropTypes.func.isRequired
+    onShare: PropTypes.func.isRequired,
   };
 
   constructor(props) {
@@ -208,32 +212,34 @@ class ShareIssue extends React.Component {
         shouldIgnoreClickOutside={() => this.hasConfirmModal}
         title={title}
         onOpen={this.handleOpen}
-        keepMenuOpen>
+        keepMenuOpen
+      >
         <li
           style={{
-            padding: '12px 18px'
+            padding: '12px 18px',
           }}
-          ref={ref => (this.container = ref)}>
+          ref={ref => (this.container = ref)}
+        >
           <SpreadLayout style={{marginBottom: busy || isSharing ? 12 : undefined}}>
-            <SmallHeading>
-              {t('Enable public share link')}
-            </SmallHeading>
+            <SmallHeading>{t('Enable public share link')}</SmallHeading>
             <Switch isActive={isSharing} size="sm" toggle={this.handleToggleShare} />
           </SpreadLayout>
 
-          {busy &&
+          {busy && (
             <FlowLayout center>
               <LoadingIndicator mini />
-            </FlowLayout>}
+            </FlowLayout>
+          )}
 
           {!busy &&
-            isSharing &&
-            <ShareUrlContainer
-              {...this.props}
-              onCancel={this.handleConfirmCancel}
-              onConfirming={this.handleConfirmReshare}
-              onShare={this.handleShare}
-            />}
+            isSharing && (
+              <ShareUrlContainer
+                {...this.props}
+                onCancel={this.handleConfirmCancel}
+                onConfirming={this.handleConfirmReshare}
+                onShare={this.handleShare}
+              />
+            )}
         </li>
       </DropdownReact>
     );

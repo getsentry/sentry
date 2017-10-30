@@ -6,7 +6,7 @@ import ProgressNodes from './progress';
 
 const OnboardingWizard = React.createClass({
   contextTypes: {
-    organization: PropTypes.object
+    organization: PropTypes.object,
   },
 
   render() {
@@ -15,13 +15,11 @@ const OnboardingWizard = React.createClass({
         <DocumentTitle title={'Sentry'} />
         <div className="step-container">
           <ProgressNodes params={this.props.params} />
-          <div>
-            {this.props.children}
-          </div>
+          <div>{this.props.children}</div>
         </div>
       </div>
     );
-  }
+  },
 });
 
 export default OnboardingWizard;

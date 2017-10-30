@@ -19,15 +19,15 @@ const ActionLink = React.createClass({
     onlyIfBulk: PropTypes.bool,
     selectAllActive: PropTypes.bool.isRequired, // "select all" checkbox
     tooltip: PropTypes.string,
-    extraDescription: PropTypes.node
+    extraDescription: PropTypes.node,
   },
 
   mixins: [
     PureRenderMixin,
     TooltipMixin({
       html: false,
-      container: 'body'
-    })
+      container: 'body',
+    }),
   ],
 
   getDefaultProps() {
@@ -35,13 +35,13 @@ const ActionLink = React.createClass({
       buttonTitle: null, // title="..." (optional)
       onlyIfBulk: false,
       disabled: false,
-      extraDescription: null
+      extraDescription: null,
     };
   },
 
   getInitialState() {
     return {
-      isModalOpen: false
+      isModalOpen: false,
     };
   },
 
@@ -58,14 +58,14 @@ const ActionLink = React.createClass({
       return;
     }
     this.setState({
-      isModalOpen: !this.state.isModalOpen
+      isModalOpen: !this.state.isModalOpen,
     });
   },
 
   handleAction(evt) {
     this.props.onAction(evt);
     this.setState({
-      isModalOpen: false
+      isModalOpen: false,
     });
   },
 
@@ -108,16 +108,20 @@ const ActionLink = React.createClass({
         className={className}
         disabled={this.props.disabled}
         onClick={this.handleClick}
-        data-placement="bottom">
+        data-placement="bottom"
+      >
         {this.props.children}
 
         <Modal
           show={this.state.isModalOpen}
           title={t('Please confirm')}
           animation={false}
-          onHide={this.handleToggle}>
+          onHide={this.handleToggle}
+        >
           <div className="modal-body">
-            <p><strong>{confirmationQuestion}</strong></p>
+            <p>
+              <strong>{confirmationQuestion}</strong>
+            </p>
             {this.props.extraDescription}
             <p>{t('This action cannot be undone.')}</p>
           </div>
@@ -132,7 +136,7 @@ const ActionLink = React.createClass({
         </Modal>
       </a>
     );
-  }
+  },
 });
 
 export default ActionLink;

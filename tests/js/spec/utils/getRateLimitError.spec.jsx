@@ -5,14 +5,14 @@ describe('getRateLimitError', function() {
     rateLimit: [
       {
         foo: [],
-        window: ['Ensure this value is less than or equal to 1440.']
+        window: ['Ensure this value is less than or equal to 1440.'],
       },
       {
         bar: [],
         count: ['Ensure this value is greater than or equal to 3.'],
-        window: ['Ensure this value is less than or equal to 1440.']
-      }
-    ]
+        window: ['Ensure this value is less than or equal to 1440.'],
+      },
+    ],
   };
 
   it('has no errors for keys: `foo` and `bar`', function() {

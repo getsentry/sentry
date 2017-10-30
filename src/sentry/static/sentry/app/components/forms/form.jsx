@@ -17,7 +17,7 @@ export default class Form extends React.Component {
     footerClass: PropTypes.string,
     extraButton: PropTypes.element,
     initialData: PropTypes.object,
-    requireChanges: PropTypes.bool
+    requireChanges: PropTypes.bool,
   };
 
   static defaultProps = {
@@ -26,11 +26,11 @@ export default class Form extends React.Component {
     submitDisabled: false,
     footerClass: 'form-actions align-right',
     className: 'form-stacked',
-    requireChanges: false
+    requireChanges: false,
   };
 
   static childContextTypes = {
-    form: PropTypes.object.isRequired
+    form: PropTypes.object.isRequired,
   };
 
   constructor(props, context) {
@@ -39,7 +39,7 @@ export default class Form extends React.Component {
       data: {...this.props.initialData},
       errors: {},
       initialData: {...this.props.initialData},
-      state: FormState.READY
+      state: FormState.READY,
     };
   }
 
@@ -49,8 +49,8 @@ export default class Form extends React.Component {
       form: {
         data,
         errors,
-        onFieldChange: this.onFieldChange
-      }
+        onFieldChange: this.onFieldChange,
+      },
     };
   }
 
@@ -69,7 +69,7 @@ export default class Form extends React.Component {
     this.setState({
       state: FormState.READY,
       errors: {},
-      initialData: newData
+      initialData: newData,
     });
     this.props.onSubmitSuccess && this.props.onSubmitSuccess(data);
   };
@@ -77,7 +77,7 @@ export default class Form extends React.Component {
   onSubmitError = error => {
     this.setState({
       state: FormState.ERROR,
-      errors: error.responseJSON
+      errors: error.responseJSON,
     });
     this.props.onSubmitError && this.props.onSubmitError(error);
   };
@@ -86,8 +86,8 @@ export default class Form extends React.Component {
     this.setState(state => ({
       data: {
         ...state.data,
-        [name]: value
-      }
+        [name]: value,
+      },
     }));
   };
 
@@ -100,29 +100,33 @@ export default class Form extends React.Component {
       : true;
     return (
       <form onSubmit={this.onSubmit} className={this.props.className}>
-        {this.state.state === FormState.ERROR &&
+        {this.state.state === FormState.ERROR && (
           <div className="alert alert-error alert-block">
             {t(
               'Unable to save your changes. Please ensure all fields are valid and try again.'
             )}
-          </div>}
+          </div>
+        )}
         {this.props.children}
         <div className={this.props.footerClass} style={{marginTop: 25}}>
           <button
             className="btn btn-primary"
             disabled={isSaving || this.props.submitDisabled || !hasChanges}
-            type="submit">
+            type="submit"
+          >
             {this.props.submitLabel}
           </button>
-          {this.props.onCancel &&
+          {this.props.onCancel && (
             <button
               type="button"
               className="btn btn-default"
               disabled={isSaving}
               onClick={this.props.onCancel}
-              style={{marginLeft: 5}}>
+              style={{marginLeft: 5}}
+            >
               {this.props.cancelLabel}
-            </button>}
+            </button>
+          )}
           {this.props.extraButton}
         </div>
       </form>

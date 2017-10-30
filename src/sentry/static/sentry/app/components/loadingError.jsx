@@ -5,12 +5,12 @@ import {t} from '../locale';
 const LoadingError = React.createClass({
   propTypes: {
     onRetry: PropTypes.func,
-    message: PropTypes.string
+    message: PropTypes.string,
   },
 
   getDefaultProps() {
     return {
-      message: t('There was an error loading data.')
+      message: t('There was an error loading data.'),
     };
   },
 
@@ -23,17 +23,19 @@ const LoadingError = React.createClass({
       <div className="alert alert-error alert-block">
         <p>
           {this.props.message}
-          {this.props.onRetry &&
+          {this.props.onRetry && (
             <a
               onClick={this.props.onRetry}
               className="btn btn-default btn-sm"
-              style={{marginLeft: 5}}>
+              style={{marginLeft: 5}}
+            >
               {t('Retry')}
-            </a>}
+            </a>
+          )}
         </p>
       </div>
     );
-  }
+  },
 });
 
 export default LoadingError;

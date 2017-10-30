@@ -9,12 +9,12 @@ const DateTime = React.createClass({
   propTypes: {
     date: PropTypes.any.isRequired,
     dateOnly: PropTypes.bool,
-    seconds: PropTypes.bool
+    seconds: PropTypes.bool,
   },
 
   getDefaultProps() {
     return {
-      seconds: true
+      seconds: true,
     };
   },
 
@@ -55,7 +55,7 @@ const DateTime = React.createClass({
     }
 
     return <time {...carriedProps}>{moment(date).format(format)}</time>;
-  }
+  },
 });
 
 export default DateTime;

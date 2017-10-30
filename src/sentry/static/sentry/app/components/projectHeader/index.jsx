@@ -11,7 +11,7 @@ const ProjectHeader = React.createClass({
   propTypes: {
     project: PropTypes.object.isRequired,
     organization: PropTypes.object.isRequired,
-    activeSection: PropTypes.string
+    activeSection: PropTypes.string,
   },
 
   render() {
@@ -28,20 +28,15 @@ const ProjectHeader = React.createClass({
 
           <ul className="nav nav-tabs">
             <li className={navSection == 'stream' ? 'active' : ''}>
-              <Link to={`/${org.slug}/${project.slug}/`}>
-                {t('Issues')}
-              </Link>
+              <Link to={`/${org.slug}/${project.slug}/`}>{t('Issues')}</Link>
             </li>
-            {features.has('global-events') &&
+            {features.has('global-events') && (
               <li className={navSection == 'events' ? 'active' : ''}>
-                <Link to={`/${org.slug}/${project.slug}/events/`}>
-                  {t('Events')}
-                </Link>
-              </li>}
+                <Link to={`/${org.slug}/${project.slug}/events/`}>{t('Events')}</Link>
+              </li>
+            )}
             <li className={navSection == 'dashboard' ? 'active' : ''}>
-              <Link to={`/${org.slug}/${project.slug}/dashboard/`}>
-                {t('Overview')}
-              </Link>
+              <Link to={`/${org.slug}/${project.slug}/dashboard/`}>{t('Overview')}</Link>
             </li>
             <li className={navSection == 'user-feedback' ? 'active' : ''}>
               <Link to={`/${org.slug}/${project.slug}/user-feedback/`}>
@@ -49,9 +44,7 @@ const ProjectHeader = React.createClass({
               </Link>
             </li>
             <li className={navSection == 'releases' ? 'active' : ''}>
-              <Link to={`/${org.slug}/${project.slug}/releases/`}>
-                {t('Releases')}
-              </Link>
+              <Link to={`/${org.slug}/${project.slug}/releases/`}>{t('Releases')}</Link>
             </li>
           </ul>
         </div>
@@ -66,25 +59,29 @@ const ProjectHeader = React.createClass({
                     : 'icon icon-star-solid'
                 }
               />
-              {project.isBookmarked
-                ? <span>{t('Unstar Project')}</span>
-                : <span>{t('Star Project')}</span>}
+              {project.isBookmarked ? (
+                <span>{t('Unstar Project')}</span>
+              ) : (
+                <span>{t('Star Project')}</span>
+              )}
             </a>
           </BookmarkToggle>
-          {access.has('project:write') &&
+          {access.has('project:write') && (
             <a
               className={
                 navSection == 'settings'
                   ? 'btn btn-sm btn-default active'
                   : 'btn btn-sm btn-default'
               }
-              href={`/${org.slug}/${project.slug}/settings/`}>
+              href={`/${org.slug}/${project.slug}/settings/`}
+            >
               <span className="icon icon-settings" /> {t('Project Settings')}
-            </a>}
+            </a>
+          )}
         </div>
       </div>
     );
-  }
+  },
 });
 
 export default ProjectHeader;

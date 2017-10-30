@@ -13,7 +13,7 @@ export default React.createClass({
     project: PropTypes.object.isRequired,
     pluginList: PropTypes.array.isRequired,
     onDisablePlugin: PropTypes.func.isRequired,
-    onEnablePlugin: PropTypes.func.isRequired
+    onEnablePlugin: PropTypes.func.isRequired,
   },
 
   mixins: [ApiMixin],
@@ -31,7 +31,7 @@ export default React.createClass({
         },
         complete: () => {
           IndicatorStore.remove(loadingIndicator);
-        }
+        },
       }
     );
   },
@@ -72,5 +72,5 @@ export default React.createClass({
         />
       </div>
     );
-  }
+  },
 });

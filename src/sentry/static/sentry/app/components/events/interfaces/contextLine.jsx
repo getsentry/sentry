@@ -17,14 +17,15 @@ const ContextLine = function(props) {
 
   return (
     <li className={liClassName} key={line[0]}>
-      <span className="ws">{lineWs}</span><span className="contextline">{lineCode}</span>
+      <span className="ws">{lineWs}</span>
+      <span className="contextline">{lineCode}</span>
     </li>
   );
 };
 
 ContextLine.propTypes = {
   line: PropTypes.array.isRequired,
-  isActive: PropTypes.bool
+  isActive: PropTypes.bool,
 };
 
 export default ContextLine;

@@ -46,7 +46,7 @@ describe('TagDistributionMeter', function() {
       this.element.setState(
         {
           loading: true,
-          error: false
+          error: false,
         },
         () => {
           expect(this.element.renderBody()).toBe(null);
@@ -59,7 +59,7 @@ describe('TagDistributionMeter', function() {
       this.element.setState(
         {
           error: true,
-          loading: false
+          loading: false,
         },
         () => {
           expect(this.element.renderBody()).toBe(null);
@@ -74,8 +74,8 @@ describe('TagDistributionMeter', function() {
           error: false,
           loading: false,
           data: {
-            totalValues: 0
-          }
+            totalValues: 0,
+          },
         },
         () => {
           let out = this.element.renderBody();
@@ -95,8 +95,8 @@ describe('TagDistributionMeter', function() {
           error: false,
           loading: false,
           data: {
-            totalValues: 100
-          }
+            totalValues: 100,
+          },
         },
         () => {
           this.element.renderBody();

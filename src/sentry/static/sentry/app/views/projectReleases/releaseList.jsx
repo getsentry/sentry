@@ -10,7 +10,7 @@ const ReleaseList = React.createClass({
   propTypes: {
     orgId: PropTypes.string.isRequired,
     projectId: PropTypes.string.isRequired,
-    releaseList: PropTypes.array.isRequired
+    releaseList: PropTypes.array.isRequired,
   },
 
   render() {
@@ -39,9 +39,11 @@ const ReleaseList = React.createClass({
                   <Count className="release-count" value={release.newGroups} />
                 </div>
                 <div className="col-sm-2 col-xs-3 text-light">
-                  {release.lastEvent
-                    ? <TimeSince date={release.lastEvent} />
-                    : <span>—</span>}
+                  {release.lastEvent ? (
+                    <TimeSince date={release.lastEvent} />
+                  ) : (
+                    <span>—</span>
+                  )}
                 </div>
               </div>
             </li>
@@ -49,7 +51,7 @@ const ReleaseList = React.createClass({
         })}
       </ul>
     );
-  }
+  },
 });
 
 export default ReleaseList;

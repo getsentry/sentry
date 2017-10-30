@@ -7,7 +7,7 @@ import {t} from '../../locale';
 const EventSdk = React.createClass({
   propTypes: {
     group: SentryTypes.Group.isRequired,
-    event: SentryTypes.Event.isRequired
+    event: SentryTypes.Event.isRequired,
   },
 
   render() {
@@ -20,27 +20,35 @@ const EventSdk = React.createClass({
         event={event}
         type="sdk"
         title={t('SDK')}
-        wrapTitle={true}>
+        wrapTitle={true}
+      >
         <table className="table key-value">
           <tbody>
             <tr key="name">
               <td className="key">Name</td>
-              <td className="value"><pre>{data.name}</pre></td>
+              <td className="value">
+                <pre>{data.name}</pre>
+              </td>
             </tr>
             <tr key="version">
               <td className="key">Version</td>
-              <td className="value"><pre>{data.version}</pre></td>
+              <td className="value">
+                <pre>{data.version}</pre>
+              </td>
             </tr>
-            {data.clientIP &&
+            {data.clientIP && (
               <tr key="clientIP">
                 <td className="key">Client IP</td>
-                <td className="value"><pre>{data.clientIP}</pre></td>
-              </tr>}
+                <td className="value">
+                  <pre>{data.clientIP}</pre>
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </GroupEventDataSection>
     );
-  }
+  },
 });
 
 export default EventSdk;

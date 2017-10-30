@@ -2,7 +2,7 @@ import SentryTypes from '../proptypes';
 
 let OrganizationState = {
   contextTypes: {
-    organization: SentryTypes.Organization
+    organization: SentryTypes.Organization,
   },
 
   getOrganization() {
@@ -19,7 +19,7 @@ let OrganizationState = {
 
   getOnboardingTasks() {
     return new Set(this.context.organization.onboardingTasks);
-  }
+  },
 };
 
 export default OrganizationState;

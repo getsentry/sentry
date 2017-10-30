@@ -2,15 +2,14 @@ import React from 'react';
 import {mount} from 'enzyme';
 
 import {Client} from 'app/api';
-import OrganizationApiKeyDetailsView
-  from 'app/views/settings/organization/apiKeys/organizationApiKeyDetailsView';
+import OrganizationApiKeyDetailsView from 'app/views/settings/organization/apiKeys/organizationApiKeyDetailsView';
 
 jest.mock('jquery');
 
 const childContextTypes = {
   organization: React.PropTypes.object,
   router: React.PropTypes.object,
-  location: React.PropTypes.object
+  location: React.PropTypes.object,
 };
 
 describe('OrganizationApiKeyDetailsView', function() {
@@ -19,12 +18,12 @@ describe('OrganizationApiKeyDetailsView', function() {
     Client.addMockResponse({
       url: '/organizations/org-slug/api-keys/',
       method: 'GET',
-      body: [TestStubs.ApiKey()]
+      body: [TestStubs.ApiKey()],
     });
     Client.addMockResponse({
       url: '/organizations/org-slug/api-keys/1/',
       method: 'GET',
-      body: TestStubs.ApiKey()
+      body: TestStubs.ApiKey(),
     });
   });
 
@@ -35,9 +34,9 @@ describe('OrganizationApiKeyDetailsView', function() {
         context: {
           router: TestStubs.router(),
           organization: TestStubs.Organization(),
-          location: TestStubs.location()
+          location: TestStubs.location(),
         },
-        childContextTypes
+        childContextTypes,
       }
     );
     expect(wrapper.state('loading')).toBe(false);

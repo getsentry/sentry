@@ -20,7 +20,7 @@ import {
   FormState,
   NumberField,
   Select2Field,
-  TextField
+  TextField,
 } from '../components/forms';
 import {t, tct} from '../locale';
 
@@ -45,7 +45,7 @@ const KeyStats = React.createClass({
       loading: true,
       error: false,
       stats: null,
-      emptyStats: false
+      emptyStats: false,
     };
   },
 
@@ -59,7 +59,7 @@ const KeyStats = React.createClass({
       query: {
         since: this.state.since,
         until: this.state.until,
-        resolution: '1d'
+        resolution: '1d',
       },
       success: data => {
         let emptyStats = true;
@@ -67,19 +67,19 @@ const KeyStats = React.createClass({
           if (p.total) emptyStats = false;
           return {
             x: p.ts,
-            y: [p.accepted, p.dropped]
+            y: [p.accepted, p.dropped],
           };
         });
         this.setState({
           stats,
           emptyStats,
           error: false,
-          loading: false
+          loading: false,
         });
       },
       error: () => {
         this.setState({error: true, loading: false});
-      }
+      },
     });
   },
 
@@ -104,7 +104,12 @@ const KeyStats = React.createClass({
   },
 
   render() {
-    if (this.state.loading) return <div className="box"><LoadingIndicator /></div>;
+    if (this.state.loading)
+      return (
+        <div className="box">
+          <LoadingIndicator />
+        </div>
+      );
     else if (this.state.error) return <LoadingError onRetry={this.fetchData} />;
 
     return (
@@ -112,26 +117,28 @@ const KeyStats = React.createClass({
         <div className="box-header">
           <h5>{t('Key usage in the last 30 days (by day)')}</h5>
         </div>
-        {!this.state.emptyStats
-          ? <StackedBarChart
-              points={this.state.stats}
-              height={150}
-              label="events"
-              barClasses={['accepted', 'rate-limited']}
-              className="standard-barchart"
-              tooltip={this.renderTooltip}
-            />
-          : <div className="box-content">
-              <div className="blankslate p-y-2">
-                <h5>{t('Nothing recorded in the last 30 days.')}</h5>
-                <p className="m-b-0">
-                  {t('Total events captured using these credentials.')}
-                </p>
-              </div>
-            </div>}
+        {!this.state.emptyStats ? (
+          <StackedBarChart
+            points={this.state.stats}
+            height={150}
+            label="events"
+            barClasses={['accepted', 'rate-limited']}
+            className="standard-barchart"
+            tooltip={this.renderTooltip}
+          />
+        ) : (
+          <div className="box-content">
+            <div className="blankslate p-y-2">
+              <h5>{t('Nothing recorded in the last 30 days.')}</h5>
+              <p className="m-b-0">
+                {t('Total events captured using these credentials.')}
+              </p>
+            </div>
+          </div>
+        )}
       </div>
     );
-  }
+  },
 });
 
 const KeySettings = React.createClass({
@@ -143,7 +150,7 @@ const KeySettings = React.createClass({
     initialData: PropTypes.object,
     onRemove: PropTypes.func.isRequired,
     onSave: PropTypes.func.isRequired,
-    rateLimitsEnabled: PropTypes.bool
+    rateLimitsEnabled: PropTypes.bool,
   },
 
   mixins: [ApiMixin, ProjectState],
@@ -152,7 +159,7 @@ const KeySettings = React.createClass({
     return {
       formData: Object.assign({}, this.props.initialData),
       errors: {},
-      hooksDisabled: HookStore.get('project:rate-limits:disabled')
+      hooksDisabled: HookStore.get('project:rate-limits:disabled'),
     };
   },
 
@@ -161,8 +168,8 @@ const KeySettings = React.createClass({
       return {
         formData: {
           ...state.formData,
-          [name]: value
-        }
+          [name]: value,
+        },
       };
     });
   },
@@ -174,9 +181,9 @@ const KeySettings = React.createClass({
           ...state.formData,
           rateLimit: {
             ...(state.formData.rateLimit || {}),
-            [name]: value
-          }
-        }
+            [name]: value,
+          },
+        },
       };
     });
   },
@@ -189,7 +196,7 @@ const KeySettings = React.createClass({
     }
     this.setState(
       {
-        state: FormState.SAVING
+        state: FormState.SAVING,
       },
       () => {
         let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
@@ -201,18 +208,18 @@ const KeySettings = React.createClass({
             this.props.onSave(data);
             this.setState({
               state: FormState.READY,
-              errors: {}
+              errors: {},
             });
           },
           error: error => {
             this.setState({
               state: FormState.ERROR,
-              errors: error.responseJSON
+              errors: error.responseJSON,
             });
           },
           complete: () => {
             IndicatorStore.remove(loadingIndicator);
-          }
+          },
         });
       }
     );
@@ -233,10 +240,10 @@ const KeySettings = React.createClass({
       error: () => {
         this.setState({
           error: true,
-          loading: false
+          loading: false,
         });
         IndicatorStore.remove(loadingIndicator);
-      }
+      },
     });
   },
 
@@ -251,7 +258,7 @@ const KeySettings = React.createClass({
       [14400, '4 hours'],
       [21600, '6 hours'],
       [43200, '12 hours'],
-      [86400, '24 hours']
+      [86400, '24 hours'],
     ];
   },
 
@@ -266,12 +273,13 @@ const KeySettings = React.createClass({
 
     return (
       <form onSubmit={this.onSubmit} className="form-stacked">
-        {this.state.state === FormState.ERROR &&
+        {this.state.state === FormState.ERROR && (
           <div className="alert alert-error alert-block">
             {t(
               'Unable to save your changes. Please ensure all fields are valid and try again.'
             )}
-          </div>}
+          </div>
+        )}
         <div className="box">
           <div className="box-header">
             <h3>{t('Details')}</h3>
@@ -311,83 +319,87 @@ const KeySettings = React.createClass({
               <button
                 type="submit"
                 className="btn btn-primary"
-                disabled={isSaving || !hasChanges}>
+                disabled={isSaving || !hasChanges}
+              >
                 {t('Save Changes')}
               </button>
             </fieldset>
           </div>
         </div>
 
-        {!rateLimitsEnabled
-          ? this.state.hooksDisabled
-              .map(hook => {
-                return hook(organization, project, data);
-              })
-              .shift()
-          : <div className="box">
-              <div className="box-header">
-                <h3>{t('Rate Limits')}</h3>
-              </div>
-              <div className="box-content with-padding">
-                <p>
-                  {
-                    'Rate limits provide a flexible way to manage your event volume. If you have a noisy project or environment you can configure a rate limit for this key to reduce the number of events processed.'
-                  }
-                </p>
-                <div className="form-group rate-limit-group">
-                  <label>{t('Rate Limit')}</label>
-                  <FlowLayout truncate={false}>
-                    <div style={{width: 80}}>
-                      <NumberField
-                        hideErrorMessage
-                        key="rateLimit.count"
-                        name="rateLimit.count"
-                        min={0}
-                        value={idx(formData, _ => _.rateLimit.count)}
-                        required={false}
-                        error={rateLimitCountError}
-                        placeholder={t('count')}
-                        onChange={this.onRateLimitChange.bind(this, 'count')}
-                        className=""
-                      />
-                    </div>
-                    <div style={{margin: '0 10px'}}>
-                      <small>event(s) in</small>
-                    </div>
-                    <div style={{width: 150}}>
-                      <Select2Field
-                        width="100%"
-                        hideErrorMessage
-                        key="rateLimit.window"
-                        name="rateLimit.window"
-                        choices={this.getRateLimitWindows()}
-                        value={idx(formData, _ => _.rateLimit.window)}
-                        required={false}
-                        error={rateLimitWindowError}
-                        placeholder={t('window')}
-                        allowClear={true}
-                        onChange={this.onRateLimitChange.bind(this, 'window')}
-                        className=""
-                      />
-                    </div>
-                  </FlowLayout>
-
-                  <div className="help-block">
-                    {t(
-                      'Apply a rate limit to this credential to cap the amount of events accepted during a time window.'
-                    )}
+        {!rateLimitsEnabled ? (
+          this.state.hooksDisabled
+            .map(hook => {
+              return hook(organization, project, data);
+            })
+            .shift()
+        ) : (
+          <div className="box">
+            <div className="box-header">
+              <h3>{t('Rate Limits')}</h3>
+            </div>
+            <div className="box-content with-padding">
+              <p>
+                {
+                  'Rate limits provide a flexible way to manage your event volume. If you have a noisy project or environment you can configure a rate limit for this key to reduce the number of events processed.'
+                }
+              </p>
+              <div className="form-group rate-limit-group">
+                <label>{t('Rate Limit')}</label>
+                <FlowLayout truncate={false}>
+                  <div style={{width: 80}}>
+                    <NumberField
+                      hideErrorMessage
+                      key="rateLimit.count"
+                      name="rateLimit.count"
+                      min={0}
+                      value={idx(formData, _ => _.rateLimit.count)}
+                      required={false}
+                      error={rateLimitCountError}
+                      placeholder={t('count')}
+                      onChange={this.onRateLimitChange.bind(this, 'count')}
+                      className=""
+                    />
                   </div>
+                  <div style={{margin: '0 10px'}}>
+                    <small>event(s) in</small>
+                  </div>
+                  <div style={{width: 150}}>
+                    <Select2Field
+                      width="100%"
+                      hideErrorMessage
+                      key="rateLimit.window"
+                      name="rateLimit.window"
+                      choices={this.getRateLimitWindows()}
+                      value={idx(formData, _ => _.rateLimit.window)}
+                      required={false}
+                      error={rateLimitWindowError}
+                      placeholder={t('window')}
+                      allowClear={true}
+                      onChange={this.onRateLimitChange.bind(this, 'window')}
+                      className=""
+                    />
+                  </div>
+                </FlowLayout>
+
+                <div className="help-block">
+                  {t(
+                    'Apply a rate limit to this credential to cap the amount of events accepted during a time window.'
+                  )}
                 </div>
-                <fieldset className="form-actions">
-                  <button
-                    type="submit"
-                    className="btn btn-primary"
-                    disabled={isSaving || !hasChanges}>
-                    {t('Save Changes')}
-                  </button>
-                </fieldset>
               </div>
-            </div>}
+              <fieldset className="form-actions">
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  disabled={isSaving || !hasChanges}
+                >
+                  {t('Save Changes')}
+                </button>
+              </fieldset>
+            </div>
+          </div>
+        )}
         <div className="box dsn-credentials">
           <div className="box-header">
             <h3>{t('Credentials')}</h3>
@@ -412,7 +424,9 @@ const KeySettings = React.createClass({
               </AutoSelectText>
               <div className="help-block">
                 {tct('Use your public DSN with browser-based SDKs such as [raven-js].', {
-                  'raven-js': <a href="https://github.com/getsentry/raven-js">raven-js</a>
+                  'raven-js': (
+                    <a href="https://github.com/getsentry/raven-js">raven-js</a>
+                  ),
                 })}
               </div>
             </div>
@@ -426,7 +440,7 @@ const KeySettings = React.createClass({
                   'Use your CSP endpoint in the [directive] directive in your [header] header.',
                   {
                     directive: <code>report-uri</code>,
-                    header: <code>Content-Security-Policy</code>
+                    header: <code>Content-Security-Policy</code>,
                   }
                 )}
               </div>
@@ -438,9 +452,12 @@ const KeySettings = React.createClass({
                   {data.dsn.minidump}
                 </AutoSelectText>
                 <div className="help-block">
-                  {tct('Use this endpoint to upload minidump crash reports, for example with Electron, Crashpad or Breakpad.', {
-                    /* TODO: add a link to minidump docs */
-                  })}
+                  {tct(
+                    'Use this endpoint to upload minidump crash reports, for example with Electron, Crashpad or Breakpad.',
+                    {
+                      /* TODO: add a link to minidump docs */
+                    }
+                  )}
                 </div>
               </div>
             )}
@@ -471,7 +488,7 @@ const KeySettings = React.createClass({
           </div>
         </div>
 
-        {access.has('project:admin') &&
+        {access.has('project:admin') && (
           <div className="box">
             <div className="box-header">
               <h3>{t('Revoke Key')}</h3>
@@ -489,10 +506,11 @@ const KeySettings = React.createClass({
                 </a>
               </fieldset>
             </div>
-          </div>}
+          </div>
+        )}
       </form>
     );
-  }
+  },
 });
 
 export default React.createClass({
@@ -502,7 +520,7 @@ export default React.createClass({
     return {
       loading: true,
       error: false,
-      data: null
+      data: null,
     };
   },
 
@@ -517,15 +535,15 @@ export default React.createClass({
         this.setState({
           error: false,
           loading: false,
-          data
+          data,
         });
       },
       error: () => {
         this.setState({
           error: true,
-          loading: false
+          loading: false,
         });
-      }
+      },
     });
   },
 
@@ -568,7 +586,7 @@ export default React.createClass({
             initialData={{
               isActive: data.isActive,
               name: data.name,
-              rateLimit: data.rateLimit
+              rateLimit: data.rateLimit,
             }}
             rateLimitsEnabled={this.getProjectFeatures().has('rate-limits')}
             data={data}
@@ -578,5 +596,5 @@ export default React.createClass({
         </div>
       </DocumentTitle>
     );
-  }
+  },
 });

@@ -29,7 +29,7 @@ class Select2FieldAutocomplete extends Select2Field {
         data: this.props.onQuery.bind(this),
         cache: true,
         results: this.props.onResults.bind(this),
-        delay: this.props.ajaxDelay
+        delay: this.props.ajaxDelay,
       },
       id: this.props.id,
       formatResult: this.props.formatResult
@@ -47,7 +47,7 @@ class Select2FieldAutocomplete extends Select2Field {
           }
         }
         return 'Loading failed';
-      }
+      },
     });
   }
 }
@@ -61,7 +61,7 @@ Select2FieldAutocomplete.defaultProps = Object.assign(
       return {autocomplete_query: query, autocomplete_field: this.props.name};
     },
     minimumInputLength: null,
-    ajaxDelay: 250
+    ajaxDelay: 250,
   },
   Select2Field.defaultProps
 );
@@ -74,7 +74,7 @@ Select2FieldAutocomplete.propTypes = Object.assign({}, Select2Field.propTypes, {
   onResults: PropTypes.func,
   onQuery: PropTypes.func,
   url: PropTypes.string.isRequired,
-  id: PropTypes.any
+  id: PropTypes.any,
 });
 
 delete Select2FieldAutocomplete.propTypes.choices;

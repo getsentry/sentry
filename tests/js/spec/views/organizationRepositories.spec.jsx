@@ -6,7 +6,7 @@ import OrganizationRepositories from 'app/views/organizationRepositories';
 
 const childContextTypes = {
   organization: React.PropTypes.object,
-  location: React.PropTypes.object
+  location: React.PropTypes.object,
 };
 
 describe('OrganizationRepositories', function() {
@@ -19,11 +19,11 @@ describe('OrganizationRepositories', function() {
       beforeEach(function() {
         Client.addMockResponse({
           url: '/organizations/org-slug/repos/',
-          body: []
+          body: [],
         });
         Client.addMockResponse({
           url: '/organizations/org-slug/config/repos/',
-          body: {providers: []}
+          body: {providers: []},
         });
       });
 
@@ -32,9 +32,9 @@ describe('OrganizationRepositories', function() {
           context: {
             router: TestStubs.router(),
             organization: TestStubs.Organization(),
-            location: TestStubs.location()
+            location: TestStubs.location(),
           },
-          childContextTypes
+          childContextTypes,
         });
         expect(wrapper).toMatchSnapshot();
       });
@@ -44,9 +44,9 @@ describe('OrganizationRepositories', function() {
           context: {
             router: TestStubs.router(),
             organization: TestStubs.Organization(),
-            location: TestStubs.location()
+            location: TestStubs.location(),
           },
-          childContextTypes
+          childContextTypes,
         });
         wrapper.find('.dropdown-actor').simulate('click');
         expect(wrapper.state('loading')).toBe(false);
@@ -58,21 +58,21 @@ describe('OrganizationRepositories', function() {
       beforeEach(function() {
         Client.addMockResponse({
           url: '/organizations/org-slug/config/repos/',
-          body: {providers: [TestStubs.GitHubRepositoryProvider()]}
+          body: {providers: [TestStubs.GitHubRepositoryProvider()]},
         });
       });
       it('renders', function() {
         Client.addMockResponse({
           url: '/organizations/org-slug/repos/',
-          body: []
+          body: [],
         });
         let wrapper = mount(<OrganizationRepositories params={{orgId: 'org-slug'}} />, {
           context: {
             router: TestStubs.router(),
             organization: TestStubs.Organization(),
-            location: TestStubs.location()
+            location: TestStubs.location(),
           },
-          childContextTypes
+          childContextTypes,
         });
         wrapper.find('.dropdown-actor').simulate('click');
         expect(wrapper.state('loading')).toBe(false);
@@ -81,15 +81,15 @@ describe('OrganizationRepositories', function() {
       it('renders with a repository', function() {
         Client.addMockResponse({
           url: '/organizations/org-slug/repos/',
-          body: [TestStubs.Repository()]
+          body: [TestStubs.Repository()],
         });
         let wrapper = mount(<OrganizationRepositories params={{orgId: 'org-slug'}} />, {
           context: {
             router: TestStubs.router(),
             organization: TestStubs.Organization(),
-            location: TestStubs.location()
+            location: TestStubs.location(),
           },
-          childContextTypes
+          childContextTypes,
         });
         wrapper.find('.dropdown-actor').simulate('click');
         expect(wrapper.state('loading')).toBe(false);

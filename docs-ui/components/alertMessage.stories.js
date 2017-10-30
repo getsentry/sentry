@@ -14,7 +14,7 @@ storiesOf('AlertMessage', module).add(
           id: 'id',
           message: 'Alert Message',
           type: 'success',
-          url: 'url'
+          url: 'url',
         }}
       />
 
@@ -23,7 +23,7 @@ storiesOf('AlertMessage', module).add(
           id: 'id',
           message: 'Alert Message',
           type: 'error',
-          url: 'url'
+          url: 'url',
         }}
       />
       <AlertMessage
@@ -31,7 +31,7 @@ storiesOf('AlertMessage', module).add(
           id: 'id',
           message: 'Alert Message',
           type: 'warning',
-          url: 'url'
+          url: 'url',
         }}
       />
     </div>

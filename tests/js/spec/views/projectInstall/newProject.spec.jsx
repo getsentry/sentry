@@ -21,9 +21,9 @@ describe('NewProjectPlatform', function() {
           organization: {
             id: '1337',
             slug: 'testOrg',
-            teams: [['testProject']]
-          }
-        }
+            teams: [['testProject']],
+          },
+        },
       });
       expect(wrapper).toMatchSnapshot();
     });

@@ -16,15 +16,15 @@ const CrashHeader = React.createClass({
     stackView: PropTypes.string.isRequired,
     newestFirst: PropTypes.bool.isRequired,
     stackType: PropTypes.string, // 'original', 'minified', or falsy (none)
-    onChange: PropTypes.func
+    onChange: PropTypes.func,
   },
 
   mixins: [
     TooltipMixin({
       html: false,
       selector: '.tip',
-      trigger: 'hover'
-    })
+      trigger: 'hover',
+    }),
   ],
 
   hasSystemFrames() {
@@ -66,19 +66,19 @@ const CrashHeader = React.createClass({
 
   toggleOrder() {
     this.notify({
-      newestFirst: !this.props.newestFirst
+      newestFirst: !this.props.newestFirst,
     });
   },
 
   setStackType(type) {
     this.notify({
-      stackType: type
+      stackType: type,
     });
   },
 
   setStackView(view) {
     this.notify({
-      stackView: view
+      stackView: view,
     });
   },
 
@@ -101,28 +101,33 @@ const CrashHeader = React.createClass({
               onClick={this.toggleOrder}
               className="tip"
               title={t('Toggle stacktrace order')}
-              style={{borderBottom: '1px dotted #aaa'}}>
+              style={{borderBottom: '1px dotted #aaa'}}
+            >
               {newestFirst ? t('most recent call first') : t('most recent call last')}
             </a>)
           </small>
         </h3>
         <div className="btn-group" style={{marginLeft: 10}}>
-          {this.hasSystemFrames() &&
+          {this.hasSystemFrames() && (
             <a
               className={
                 (stackView === 'app' ? 'active' : '') + ' btn btn-default btn-sm'
               }
-              onClick={this.setStackView.bind(this, 'app')}>
+              onClick={this.setStackView.bind(this, 'app')}
+            >
               {t('App Only')}
-            </a>}
+            </a>
+          )}
           <a
             className={(stackView === 'full' ? 'active' : '') + ' btn btn-default btn-sm'}
-            onClick={this.setStackView.bind(this, 'full')}>
+            onClick={this.setStackView.bind(this, 'full')}
+          >
             {t('Full')}
           </a>
           <a
             className={(stackView === 'raw' ? 'active' : '') + ' btn btn-default btn-sm'}
-            onClick={this.setStackView.bind(this, 'raw')}>
+            onClick={this.setStackView.bind(this, 'raw')}
+          >
             {t('Raw')}
           </a>
         </div>
@@ -133,7 +138,8 @@ const CrashHeader = React.createClass({
               className={
                 (stackType === 'original' ? 'active' : '') + ' btn btn-default btn-sm'
               }
-              onClick={() => this.setStackType('original')}>
+              onClick={() => this.setStackType('original')}
+            >
               {this.getOriginalButtonLabel()}
             </a>,
             <a
@@ -141,14 +147,15 @@ const CrashHeader = React.createClass({
               className={
                 (stackType === 'minified' ? 'active' : '') + ' btn btn-default btn-sm'
               }
-              onClick={() => this.setStackType('minified')}>
+              onClick={() => this.setStackType('minified')}
+            >
               {this.getMinifiedButtonLabel()}
-            </a>
+            </a>,
           ]}
         </div>
       </div>
     );
-  }
+  },
 });
 
 export default CrashHeader;

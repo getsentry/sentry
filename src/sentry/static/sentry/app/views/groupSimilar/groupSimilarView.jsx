@@ -13,7 +13,7 @@ import SimilarList from './similarList';
 
 const GroupGroupingView = React.createClass({
   propTypes: {
-    query: PropTypes.string
+    query: PropTypes.string,
   },
 
   mixins: [ProjectState, Reflux.listenTo(GroupingStore, 'onGroupingUpdate')],
@@ -24,7 +24,7 @@ const GroupGroupingView = React.createClass({
       filteredSimilarItems: [],
       similarLinks: [],
       loading: true,
-      error: false
+      error: false,
     };
   },
 
@@ -47,7 +47,7 @@ const GroupGroupingView = React.createClass({
     similarLinks,
     filteredSimilarItems,
     loading,
-    error
+    error,
   }) {
     if (similarItems) {
       this.setState({
@@ -55,7 +55,7 @@ const GroupGroupingView = React.createClass({
         similarLinks,
         filteredSimilarItems,
         loading: typeof loading !== 'undefined' ? loading : false,
-        error: typeof error !== 'undefined' ? error : false
+        error: typeof error !== 'undefined' ? error : false,
       });
     } else if (mergedParent && mergedParent !== this.props.params.groupId) {
       // Merge success, since we can't specify target, we need to redirect to new parent
@@ -67,7 +67,7 @@ const GroupGroupingView = React.createClass({
     let params = this.props.params;
     let queryParams = {
       ...this.props.location.query,
-      limit: 50
+      limit: 50,
     };
     return `/issues/${params.groupId}/${type}/?${jQuery.param(queryParams)}`;
   },
@@ -77,7 +77,7 @@ const GroupGroupingView = React.createClass({
 
     this.setState({
       loading: true,
-      error: false
+      error: false,
     });
 
     let reqs = [];
@@ -86,7 +86,7 @@ const GroupGroupingView = React.createClass({
       reqs.push({
         endpoint: this.getEndpoint('similar'),
         dataKey: 'similar',
-        queryParams: this.props.location.query
+        queryParams: this.props.location.query,
       });
     }
 
@@ -99,7 +99,7 @@ const GroupGroupingView = React.createClass({
     if (params) {
       GroupingActions.merge({
         params,
-        query
+        query,
       });
     }
   },
@@ -119,21 +119,21 @@ const GroupGroupingView = React.createClass({
     return (
       <div>
         <div className="alert alert-block alert-warning">
-          <strong>{t('Warning')}:</strong>
-          {' '}
+          <strong>{t('Warning')}:</strong>{' '}
           {t(
             'This is an experimental feature. Data may not be immediately available while we process merges.'
           )}
         </div>
 
         {isLoading && <LoadingIndicator />}
-        {isError &&
+        {isError && (
           <LoadingError
             message="Unable to load similar issues, please try again later"
             onRetry={this.fetchData}
-          />}
+          />
+        )}
 
-        {hasSimilarItems &&
+        {hasSimilarItems && (
           <SimilarList
             items={this.state.similarItems}
             filteredItems={this.state.filteredSimilarItems}
@@ -142,10 +142,11 @@ const GroupGroupingView = React.createClass({
             projectId={projectId}
             groupId={groupId}
             pageLinks={this.state.similarLinks}
-          />}
+          />
+        )}
       </div>
     );
-  }
+  },
 });
 
 export default GroupGroupingView;

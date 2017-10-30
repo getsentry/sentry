@@ -8,7 +8,7 @@ import AutoSelectText from './autoSelectText';
 const ShortId = React.createClass({
   propTypes: {
     shortId: PropTypes.string,
-    project: PropTypes.object
+    project: PropTypes.object,
   },
 
   mixins: [PureRenderMixin, ProjectState],
@@ -29,7 +29,7 @@ const ShortId = React.createClass({
         <AutoSelectText>{shortId}</AutoSelectText>
       </span>
     );
-  }
+  },
 });
 
 export default ShortId;

@@ -14,14 +14,14 @@ import {t} from '../../locale';
 const ProjectEvents = React.createClass({
   propTypes: {
     defaultQuery: PropTypes.string,
-    setProjectNavSection: PropTypes.func
+    setProjectNavSection: PropTypes.func,
   },
 
   mixins: [ApiMixin],
 
   getDefaultProps() {
     return {
-      defaultQuery: ''
+      defaultQuery: '',
     };
   },
 
@@ -33,7 +33,7 @@ const ProjectEvents = React.createClass({
       loading: true,
       error: false,
       query: queryParams.query || this.props.defaultQuery,
-      pageLinks: ''
+      pageLinks: '',
     };
   },
 
@@ -47,7 +47,7 @@ const ProjectEvents = React.createClass({
       let queryParams = nextProps.location.query;
       this.setState(
         {
-          query: queryParams.query
+          query: queryParams.query,
         },
         this.fetchData
       );
@@ -65,7 +65,7 @@ const ProjectEvents = React.createClass({
   fetchData() {
     this.setState({
       loading: true,
-      error: false
+      error: false,
     });
 
     this.api.request(this.getEndpoint(), {
@@ -74,15 +74,15 @@ const ProjectEvents = React.createClass({
           error: false,
           loading: false,
           eventList: data,
-          pageLinks: jqXHR.getResponseHeader('Link')
+          pageLinks: jqXHR.getResponseHeader('Link'),
         });
       },
       error: () => {
         this.setState({
           error: true,
-          loading: false
+          loading: false,
         });
-      }
+      },
     });
   },
 
@@ -95,10 +95,12 @@ const ProjectEvents = React.createClass({
     let queryParams = {
       ...this.props.location.query,
       limit: 50,
-      query: this.state.query
+      query: this.state.query,
     };
 
-    return `/projects/${params.orgId}/${params.projectId}/events/?${jQuery.param(queryParams)}`;
+    return `/projects/${params.orgId}/${params.projectId}/events/?${jQuery.param(
+      queryParams
+    )}`;
   },
 
   renderStreamBody() {
@@ -147,23 +149,28 @@ const ProjectEvents = React.createClass({
       return (
         <tr key={event.id}>
           <td style={{width: 240}}>
-            <small><DateTime date={event.dateCreated} /></small>
+            <small>
+              <DateTime date={event.dateCreated} />
+            </small>
           </td>
           <td>
             <h5>
               <Link
-                to={`/${orgId}/${projectId}/issues/${event.groupID}/events/${event.id}/`}>
+                to={`/${orgId}/${projectId}/issues/${event.groupID}/events/${event.id}/`}
+              >
                 {this.getEventTitle(event)}
               </Link>
             </h5>
           </td>
           <td className="event-user table-user-info" style={{textAlign: 'right'}}>
-            {event.user
-              ? <div>
-                  <Avatar user={event.user} size={64} className="avatar" />
-                  {event.user.email}
-                </div>
-              : <span>—</span>}
+            {event.user ? (
+              <div>
+                <Avatar user={event.user} size={64} className="avatar" />
+                {event.user.email}
+              </div>
+            ) : (
+              <span>—</span>
+            )}
           </td>
         </tr>
       );
@@ -172,9 +179,7 @@ const ProjectEvents = React.createClass({
     return (
       <div className="event-list">
         <table className="table">
-          <tbody>
-            {children}
-          </tbody>
+          <tbody>{children}</tbody>
         </table>
       </div>
     );
@@ -197,13 +202,14 @@ const ProjectEvents = React.createClass({
           </div>
         </div>
         <div className="alert alert-block alert-info">
-          Psst! This feature is still a work-in-progress. Thanks for being an early adopter!
+          Psst! This feature is still a work-in-progress. Thanks for being an early
+          adopter!
         </div>
         {this.renderStreamBody()}
         <Pagination pageLinks={this.state.pageLinks} />
       </div>
     );
-  }
+  },
 });
 
 export default ProjectEvents;

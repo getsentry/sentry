@@ -4,7 +4,7 @@ import classNames from 'classnames';
 const Radio = React.createClass({
   getDefaultProps() {
     return {
-      checked: false
+      checked: false,
     };
   },
 
@@ -12,7 +12,7 @@ const Radio = React.createClass({
     let {className, ...otherProps} = this.props;
     let cx = classNames('radio-select', className);
     return <input type="radio" className={cx} {...otherProps} />;
-  }
+  },
 });
 
 export default Radio;

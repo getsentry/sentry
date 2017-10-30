@@ -20,12 +20,12 @@ export default class GenericField extends React.Component {
     formData: PropTypes.object,
     formErrors: PropTypes.object,
     formState: PropTypes.string.isRequired,
-    onChange: PropTypes.func
+    onChange: PropTypes.func,
   };
 
   static defaultProps = {
     formData: {},
-    formErrors: {}
+    formErrors: {},
   };
 
   render() {
@@ -42,9 +42,10 @@ export default class GenericField extends React.Component {
       disabled: config.readonly,
       key: config.name,
       formState: this.props.formState,
-      help: defined(config.help) && config.help !== ''
-        ? <span dangerouslySetInnerHTML={{__html: config.help}} />
-        : null
+      help:
+        defined(config.help) && config.help !== '' ? (
+          <span dangerouslySetInnerHTML={{__html: config.help}} />
+        ) : null,
     });
 
     switch (config.type) {

@@ -32,7 +32,7 @@ export default class Select2TextField extends Select2Field {
           return {id: term, text: term};
         }
         return undefined;
-      }
+      },
     };
   }
 }

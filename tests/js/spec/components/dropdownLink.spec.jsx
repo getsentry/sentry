@@ -9,7 +9,7 @@ describe('DropdownLink', function() {
     onOpen: () => {},
     onClose: () => {},
     topLevelClasses: 'top-level-class',
-    menuClasses: ''
+    menuClasses: '',
   };
 
   describe('componentWillUnmount()', function() {

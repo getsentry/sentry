@@ -36,14 +36,14 @@ let GroupEventToolbar = React.createClass({
     orgId: PropTypes.string.isRequired,
     projectId: PropTypes.string.isRequired,
     group: SentryTypes.Group.isRequired,
-    event: SentryTypes.Event.isRequired
+    event: SentryTypes.Event.isRequired,
   },
 
   mixins: [
     TooltipMixin({
       html: true,
-      selector: '.tip'
-    })
+      selector: '.tip',
+    }),
   ],
 
   shouldComponentUpdate(nextProps, nextState) {
@@ -88,51 +88,67 @@ let GroupEventToolbar = React.createClass({
     let groupId = this.props.group.id;
 
     let eventNavNodes = [
-      evt.previousEventID
-        ? <Link
-            key="oldest"
-            to={`/${orgId}/${projectId}/issues/${groupId}/events/oldest/`}
-            className="btn btn-default"
-            title={t('Oldest')}>
-            <span className="icon-skip-back" />
-          </Link>
-        : <a key="oldest" className="btn btn-default disabled">
-            <span className="icon-skip-back" />
-          </a>,
-      evt.previousEventID
-        ? <Link
-            key="prev"
-            to={`/${orgId}/${projectId}/issues/${groupId}/events/${evt.previousEventID}/`}
-            className="btn btn-default">
-            {t('Older')}
-          </Link>
-        : <a key="prev" className="btn btn-default disabled">{t('Older')}</a>,
-      evt.nextEventID
-        ? <Link
-            key="next"
-            to={`/${orgId}/${projectId}/issues/${groupId}/events/${evt.nextEventID}/`}
-            className="btn btn-default">
-            {t('Newer')}
-          </Link>
-        : <a key="next" className="btn btn-default disabled">{t('Newer')}</a>,
-      evt.nextEventID
-        ? <Link
-            key="latest"
-            to={`/${orgId}/${projectId}/issues/${groupId}/events/latest/`}
-            className="btn btn-default"
-            title={t('Newest')}>
-            <span className="icon-skip-forward" />
-          </Link>
-        : <a key="latest" className="btn btn-default disabled">
-            <span className="icon-skip-forward" />
-          </a>
+      evt.previousEventID ? (
+        <Link
+          key="oldest"
+          to={`/${orgId}/${projectId}/issues/${groupId}/events/oldest/`}
+          className="btn btn-default"
+          title={t('Oldest')}
+        >
+          <span className="icon-skip-back" />
+        </Link>
+      ) : (
+        <a key="oldest" className="btn btn-default disabled">
+          <span className="icon-skip-back" />
+        </a>
+      ),
+      evt.previousEventID ? (
+        <Link
+          key="prev"
+          to={`/${orgId}/${projectId}/issues/${groupId}/events/${evt.previousEventID}/`}
+          className="btn btn-default"
+        >
+          {t('Older')}
+        </Link>
+      ) : (
+        <a key="prev" className="btn btn-default disabled">
+          {t('Older')}
+        </a>
+      ),
+      evt.nextEventID ? (
+        <Link
+          key="next"
+          to={`/${orgId}/${projectId}/issues/${groupId}/events/${evt.nextEventID}/`}
+          className="btn btn-default"
+        >
+          {t('Newer')}
+        </Link>
+      ) : (
+        <a key="next" className="btn btn-default disabled">
+          {t('Newer')}
+        </a>
+      ),
+      evt.nextEventID ? (
+        <Link
+          key="latest"
+          to={`/${orgId}/${projectId}/issues/${groupId}/events/latest/`}
+          className="btn btn-default"
+          title={t('Newest')}
+        >
+          <span className="icon-skip-forward" />
+        </Link>
+      ) : (
+        <a key="latest" className="btn btn-default disabled">
+          <span className="icon-skip-forward" />
+        </a>
+      ),
     ];
 
     // TODO: possible to define this as a route in react-router, but without a corresponding
     //       React component?
     let jsonUrl = `/${orgId}/${projectId}/issues/${groupId}/events/${evt.id}/json/`;
     let style = {
-      borderBottom: '1px dotted #dfe3ea'
+      borderBottom: '1px dotted #dfe3ea',
     };
 
     let latencyThreshold = 30 * 60 * 1000; // 30 minutes
@@ -143,16 +159,14 @@ let GroupEventToolbar = React.createClass({
     return (
       <div className="event-toolbar">
         <div className="pull-right">
-          <div className="btn-group">
-            {eventNavNodes}
-          </div>
+          <div className="btn-group">{eventNavNodes}</div>
         </div>
         <h4>
-          {t('Event')}
-          {' '}
+          {t('Event')}{' '}
           <Link
             to={`/${orgId}/${projectId}/issues/${groupId}/events/${evt.id}/`}
-            className="event-id">
+            className="event-id"
+          >
             {evt.eventID}
           </Link>
         </h4>
@@ -168,7 +182,7 @@ let GroupEventToolbar = React.createClass({
         </span>
       </div>
     );
-  }
+  },
 });
 
 export default GroupEventToolbar;

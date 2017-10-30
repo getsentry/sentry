@@ -26,22 +26,22 @@ const ResolveActions = React.createClass({
     latestRelease: PropTypes.object,
     onUpdate: PropTypes.func.isRequired,
     orgId: PropTypes.string.isRequired,
-    projectId: PropTypes.string.isRequired
+    projectId: PropTypes.string.isRequired,
   },
 
   getInitialState() {
     return {
-      modal: false
+      modal: false,
     };
   },
 
   onCustomResolution(statusDetails) {
     this.setState({
-      modal: false
+      modal: false,
     });
     this.props.onUpdate({
       status: 'resolved',
-      statusDetails
+      statusDetails,
     });
   },
 
@@ -59,7 +59,8 @@ const ResolveActions = React.createClass({
             className={resolveClassName + ' tip'}
             title={t(
               'This event is resolved due to the Auto Resolve configuration for this project'
-            )}>
+            )}
+          >
             <span className="icon-checkmark" />
           </a>
         </div>
@@ -70,7 +71,8 @@ const ResolveActions = React.createClass({
           <a
             className={resolveClassName}
             title={t('Unresolve')}
-            onClick={() => onUpdate({status: 'unresolved'})}>
+            onClick={() => onUpdate({status: 'unresolved'})}
+          >
             <span className="icon-checkmark" />
           </a>
         </div>
@@ -96,7 +98,8 @@ const ResolveActions = React.createClass({
             key="resolve-button"
             className={resolveClassName}
             title={t('Resolve')}
-            onClick={() => onUpdate({status: 'resolved'})}>
+            onClick={() => onUpdate({status: 'resolved'})}
+          >
             <span className="icon-checkmark" style={{marginRight: 5}} />
             {t('Resolve')}
           </a>
@@ -104,7 +107,8 @@ const ResolveActions = React.createClass({
             key="resolve-dropdown"
             caret={true}
             className={resolveClassName}
-            title="">
+            title=""
+          >
             <MenuItem header={true}>{t('Resolved In')}</MenuItem>
             <MenuItem noAnchor={true}>
               <a
@@ -114,13 +118,14 @@ const ResolveActions = React.createClass({
                     onUpdate({
                       status: 'resolved',
                       statusDetails: {
-                        inNextRelease: true
-                      }
+                        inNextRelease: true,
+                      },
                     })
                   );
                 }}
                 className={actionClassName}
-                title={actionTitle}>
+                title={actionTitle}
+              >
                 {t('The next release')}
               </a>
               <a
@@ -130,13 +135,14 @@ const ResolveActions = React.createClass({
                     onUpdate({
                       status: 'resolved',
                       statusDetails: {
-                        inRelease: latestRelease ? latestRelease.version : 'latest'
-                      }
+                        inRelease: latestRelease ? latestRelease.version : 'latest',
+                      },
                     })
                   );
                 }}
                 className={actionClassName}
-                title={actionTitle}>
+                title={actionTitle}
+              >
                 {latestRelease
                   ? t('The current release (%s)', getShortVersion(latestRelease.version))
                   : t('The current release')}
@@ -144,7 +150,8 @@ const ResolveActions = React.createClass({
               <a
                 onClick={() => hasRelease && this.setState({modal: true})}
                 className={actionClassName}
-                title={actionTitle}>
+                title={actionTitle}
+              >
                 {t('Another version ...')}
               </a>
             </MenuItem>
@@ -152,18 +159,18 @@ const ResolveActions = React.createClass({
         </div>
       </div>
     );
-  }
+  },
 });
 
 const IgnoreActions = React.createClass({
   propTypes: {
     group: PropTypes.object.isRequired,
-    onUpdate: PropTypes.func.isRequired
+    onUpdate: PropTypes.func.isRequired,
   },
 
   getInitialState() {
     return {
-      modal: false
+      modal: false,
     };
   },
 
@@ -181,7 +188,7 @@ const IgnoreActions = React.createClass({
 
   onCustomIgnore(statusDetails) {
     this.setState({
-      modal: false
+      modal: false,
     });
     this.onIgnore(statusDetails);
   },
@@ -189,7 +196,7 @@ const IgnoreActions = React.createClass({
   onIgnore(statusDetails) {
     return this.props.onUpdate({
       status: 'ignored',
-      statusDetails: statusDetails || {}
+      statusDetails: statusDetails || {},
     });
   },
 
@@ -206,7 +213,8 @@ const IgnoreActions = React.createClass({
           <a
             className={linkClassName + ' tip'}
             title={t('Change status to unresolved')}
-            onClick={() => onUpdate({status: 'unresolved'})}>
+            onClick={() => onUpdate({status: 'unresolved'})}
+          >
             <span className="icon-ban" />
           </a>
         </div>
@@ -244,7 +252,8 @@ const IgnoreActions = React.createClass({
           <a
             className={linkClassName}
             title={t('Ignore')}
-            onClick={() => onUpdate({status: 'ignored'})}>
+            onClick={() => onUpdate({status: 'ignored'})}
+          >
             <span className="icon-ban" style={{marginRight: 5}} />
             {t('Ignore')}
           </a>
@@ -257,8 +266,9 @@ const IgnoreActions = React.createClass({
                     <MenuItem noAnchor={true} key={duration}>
                       <a
                         onClick={this.onIgnore.bind(this, {
-                          ignoreDuration: duration
-                        })}>
+                          ignoreDuration: duration,
+                        })}
+                      >
                         <Duration seconds={duration * 60} />
                       </a>
                     </MenuItem>
@@ -266,9 +276,7 @@ const IgnoreActions = React.createClass({
                 })}
                 <MenuItem divider={true} />
                 <MenuItem noAnchor={true}>
-                  <a onClick={() => this.setState({modal: 'duration'})}>
-                    {t('Custom')}
-                  </a>
+                  <a onClick={() => this.setState({modal: 'duration'})}>{t('Custom')}</a>
                 </MenuItem>
               </DropdownLink>
             </li>
@@ -279,12 +287,14 @@ const IgnoreActions = React.createClass({
                     <li className="dropdown-submenu" key={count}>
                       <DropdownLink
                         title={t('%s times', count.toLocaleString())}
-                        caret={false}>
+                        caret={false}
+                      >
                         <MenuItem noAnchor={true}>
                           <a
                             onClick={this.onIgnore.bind(this, {
-                              ignoreCount: count
-                            })}>
+                              ignoreCount: count,
+                            })}
+                          >
                             {t('from now')}
                           </a>
                         </MenuItem>
@@ -294,8 +304,9 @@ const IgnoreActions = React.createClass({
                               <a
                                 onClick={this.onIgnore.bind(this, {
                                   ignoreCount: count,
-                                  ignoreWindow: hours
-                                })}>
+                                  ignoreWindow: hours,
+                                })}
+                              >
                                 {label}
                               </a>
                             </MenuItem>
@@ -307,9 +318,7 @@ const IgnoreActions = React.createClass({
                 })}
                 <MenuItem divider={true} />
                 <MenuItem noAnchor={true}>
-                  <a onClick={() => this.setState({modal: 'count'})}>
-                    {t('Custom')}
-                  </a>
+                  <a onClick={() => this.setState({modal: 'count'})}>{t('Custom')}</a>
                 </MenuItem>
               </DropdownLink>
             </li>
@@ -320,12 +329,14 @@ const IgnoreActions = React.createClass({
                     <li className="dropdown-submenu" key={count}>
                       <DropdownLink
                         title={t('%s users', count.toLocaleString())}
-                        caret={false}>
+                        caret={false}
+                      >
                         <MenuItem noAnchor={true}>
                           <a
                             onClick={this.onIgnore.bind(this, {
-                              ignoreUserCount: count
-                            })}>
+                              ignoreUserCount: count,
+                            })}
+                          >
                             {t('from now')}
                           </a>
                         </MenuItem>
@@ -335,8 +346,9 @@ const IgnoreActions = React.createClass({
                               <a
                                 onClick={this.onIgnore.bind(this, {
                                   ignoreUserCount: count,
-                                  ignoreUserWindow: hours
-                                })}>
+                                  ignoreUserWindow: hours,
+                                })}
+                              >
                                 {label}
                               </a>
                             </MenuItem>
@@ -348,9 +360,7 @@ const IgnoreActions = React.createClass({
                 })}
                 <MenuItem divider={true} />
                 <MenuItem noAnchor={true}>
-                  <a onClick={() => this.setState({modal: 'users'})}>
-                    {t('Custom')}
-                  </a>
+                  <a onClick={() => this.setState({modal: 'users'})}>{t('Custom')}</a>
                 </MenuItem>
               </DropdownLink>
             </li>
@@ -358,14 +368,14 @@ const IgnoreActions = React.createClass({
         </div>
       </div>
     );
-  }
+  },
 });
 
 const DeleteActions = React.createClass({
   propTypes: {
     project: PropTypes.object.isRequired,
     onDelete: PropTypes.func.isRequired,
-    onDiscard: PropTypes.func.isRequired
+    onDiscard: PropTypes.func.isRequired,
   },
 
   render() {
@@ -378,10 +388,11 @@ const DeleteActions = React.createClass({
           message={t(
             'Deleting this issue is permanent. Are you sure you wish to continue?'
           )}
-          onConfirm={this.props.onDelete}>
+          onConfirm={this.props.onDelete}
+        >
           <span className="icon-trash" />
         </LinkWithConfirmation>
-        {features.has('custom-filters') &&
+        {features.has('custom-filters') && (
           <DropdownLink caret={true} className="group-delete btn btn-default btn-sm">
             <li>
               <LinkWithConfirmation
@@ -392,14 +403,16 @@ const DeleteActions = React.createClass({
                     'events being discarded before reaching your stream. ' +
                     'Are you sure you wish to continue?'
                 )}
-                onConfirm={this.props.onDiscard}>
+                onConfirm={this.props.onDiscard}
+              >
                 <span>{t('Delete and discard future events')}</span>
               </LinkWithConfirmation>
             </li>
-          </DropdownLink>}
+          </DropdownLink>
+        )}
       </div>
     );
-  }
+  },
 });
 
 const GroupDetailsActions = React.createClass({
@@ -408,8 +421,8 @@ const GroupDetailsActions = React.createClass({
     GroupState,
     TooltipMixin({
       selector: '.tip',
-      container: 'body'
-    })
+      container: 'body',
+    }),
   ],
 
   getInitialState() {
@@ -437,14 +450,14 @@ const GroupDetailsActions = React.createClass({
       {
         orgId: org.slug,
         projectId: project.slug,
-        itemIds: [group.id]
+        itemIds: [group.id],
       },
       {
         complete: () => {
           IndicatorStore.remove(loadingIndicator);
 
           browserHistory.pushState(null, `/${org.slug}/${project.slug}/`);
-        }
+        },
       }
     );
   },
@@ -460,12 +473,12 @@ const GroupDetailsActions = React.createClass({
         orgId: org.slug,
         projectId: project.slug,
         itemIds: [group.id],
-        data
+        data,
       },
       {
         complete: () => {
           IndicatorStore.remove(loadingIndicator);
-        }
+        },
       }
     );
   },
@@ -483,8 +496,8 @@ const GroupDetailsActions = React.createClass({
         projectId: project.slug,
         itemIds: [group.id],
         data: {
-          isPublic: shared
-        }
+          isPublic: shared,
+        },
       },
       {
         error: () => {
@@ -492,7 +505,7 @@ const GroupDetailsActions = React.createClass({
         },
         complete: () => {
           this.setState({shareBusy: false});
-        }
+        },
       }
     );
   },
@@ -527,7 +540,7 @@ const GroupDetailsActions = React.createClass({
       },
       complete: () => {
         IndicatorStore.remove(loadingIndicator);
-      }
+      },
     });
   },
 
@@ -563,7 +576,8 @@ const GroupDetailsActions = React.createClass({
           <a
             className={bookmarkClassName}
             title={t('Bookmark')}
-            onClick={this.onToggleBookmark}>
+            onClick={this.onToggleBookmark}
+          >
             <span className="icon-star-solid" />
           </a>
         </div>
@@ -573,7 +587,7 @@ const GroupDetailsActions = React.createClass({
           onDiscard={this.onDiscard}
         />
 
-        {orgFeatures.has('shared-issues') &&
+        {orgFeatures.has('shared-issues') && (
           <div className="btn-group">
             <ShareIssue
               shareUrl={this.getShareUrl(group.shareId, true)}
@@ -583,43 +597,49 @@ const GroupDetailsActions = React.createClass({
               onShare={() => this.onShare(true)}
               busy={this.state.shareBusy}
             />
-          </div>}
+          </div>
+        )}
 
-        {group.pluginActions.length > 1
-          ? <div className="btn-group more">
-              <DropdownLink className="btn btn-default btn-sm" title={t('More')}>
-                {group.pluginActions.map((action, actionIdx) => {
-                  return (
-                    <MenuItem key={actionIdx} href={action[1]}>
-                      {action[0]}
-                    </MenuItem>
-                  );
-                })}
-              </DropdownLink>
-            </div>
-          : group.pluginActions.length !== 0 &&
-              group.pluginActions.map((action, actionIdx) => {
+        {group.pluginActions.length > 1 ? (
+          <div className="btn-group more">
+            <DropdownLink className="btn btn-default btn-sm" title={t('More')}>
+              {group.pluginActions.map((action, actionIdx) => {
                 return (
-                  <div className="btn-group" key={actionIdx}>
-                    <a className="btn btn-default btn-sm" href={action[1]}>
-                      {action[0]}
-                    </a>
-                  </div>
+                  <MenuItem key={actionIdx} href={action[1]}>
+                    {action[0]}
+                  </MenuItem>
                 );
               })}
+            </DropdownLink>
+          </div>
+        ) : (
+          group.pluginActions.length !== 0 &&
+          group.pluginActions.map((action, actionIdx) => {
+            return (
+              <div className="btn-group" key={actionIdx}>
+                <a className="btn btn-default btn-sm" href={action[1]}>
+                  {action[0]}
+                </a>
+              </div>
+            );
+          })
+        )}
         {group.pluginIssues &&
           group.pluginIssues.map(plugin => {
             return <IssuePluginActions key={plugin.slug} plugin={plugin} />;
           })}
-        {!hasIssueTracking &&
+        {!hasIssueTracking && (
           <a
-            href={`/${this.getOrganization().slug}/${this.getProject().slug}/settings/issue-tracking/`}
-            className={'btn btn-default btn-sm btn-config-issue-tracking'}>
+            href={`/${this.getOrganization().slug}/${this.getProject()
+              .slug}/settings/issue-tracking/`}
+            className={'btn btn-default btn-sm btn-config-issue-tracking'}
+          >
             {t('Link Issue Tracker')}
-          </a>}
+          </a>
+        )}
       </div>
     );
-  }
+  },
 });
 
 export default GroupDetailsActions;

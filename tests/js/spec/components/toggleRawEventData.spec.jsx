@@ -11,23 +11,23 @@ const data = {
     directive: 'metadata directive',
     uri: 'metadata uri',
     value: 'metadata value',
-    message: 'metadata message'
+    message: 'metadata message',
   },
-  culprit: 'culprit'
+  culprit: 'culprit',
 };
 
 describe('EventDataSection', function() {
   const groupData = {
     ...data,
     level: 'error',
-    id: 'id'
+    id: 'id',
   };
   const eventData = {
     ...data,
     id: 'id',
     eventID: 'eventID',
     groupID: 'groupID',
-    culprit: undefined
+    culprit: undefined,
   };
   it('renders formatted', function() {
     let component = shallow(
@@ -61,7 +61,7 @@ describe('KeyValueList', function() {
   const context = {
     somestuff: {andsomeotherstuff: 'here'},
     plussomeotherstuff: 'here',
-    andthis: 0
+    andthis: 0,
   };
   const extraDataArray = objectToArray(context);
 

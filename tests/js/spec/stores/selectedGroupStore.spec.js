@@ -21,7 +21,7 @@ describe('SelectedGroupStore', function() {
       expect(SelectedGroupStore.records).toEqual({3: true});
     });
 
-    it('doesn\'t have any effect when already in sync', function() {
+    it("doesn't have any effect when already in sync", function() {
       this.sandbox.stub(GroupStore, 'getAllItemIds', () => ['1', '2', '3']);
       SelectedGroupStore.records = {1: true, 2: true, 3: true};
       SelectedGroupStore.prune();
@@ -30,7 +30,7 @@ describe('SelectedGroupStore', function() {
   });
 
   describe('add()', function() {
-    it('defaults value of new ids to \'allSelected()\'', function() {
+    it("defaults value of new ids to 'allSelected()'", function() {
       SelectedGroupStore.records = {1: true};
       SelectedGroupStore.add([2]);
       expect(SelectedGroupStore.records).toEqual({1: true, 2: true});

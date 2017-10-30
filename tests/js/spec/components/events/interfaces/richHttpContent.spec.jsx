@@ -10,7 +10,7 @@ describe('RichHttpContent', function() {
       data: '',
       headers: [],
       cookies: [],
-      env: {}
+      env: {},
     };
     this.elem = shallow(<RichHttpContent data={this.data} />).instance();
     this.sandbox = sinon.sandbox.create();
@@ -24,7 +24,7 @@ describe('RichHttpContent', function() {
     it('should return plain-text when given unrecognized inferred Content-Type', function() {
       let out = this.elem.getBodySection({
         inferredContentType: null, // no inferred content type
-        data: 'helloworld'
+        data: 'helloworld',
       });
 
       expect(out.type).toEqual('pre');
@@ -33,7 +33,7 @@ describe('RichHttpContent', function() {
     it('should return a KeyValueList element when inferred Content-Type is x-www-form-urlencoded', function() {
       let out = this.elem.getBodySection({
         inferredContentType: 'application/x-www-form-urlencoded',
-        data: {foo: ['bar'], bar: ['baz']}
+        data: {foo: ['bar'], bar: ['baz']},
       });
 
       // NOTE: ContextData is stubbed in tests; instead returns <div className="ContextData"/>
@@ -44,13 +44,13 @@ describe('RichHttpContent', function() {
     it('should return a ContextData element when inferred Content-Type is application/json', function() {
       let out = this.elem.getBodySection({
         inferredContentType: 'application/json',
-        data: {foo: 'bar'}
+        data: {foo: 'bar'},
       });
 
       // NOTE: ContextData is stubbed in tests; instead returns <div className="ContextData"/>
       expect(out.type.displayName).toEqual('ContextData');
       expect(out.props.data).toEqual({
-        foo: 'bar'
+        foo: 'bar',
       });
     });
 
@@ -62,7 +62,7 @@ describe('RichHttpContent', function() {
         data: '',
         headers: [],
         cookies: [],
-        env: {}
+        env: {},
       };
       expect(() => shallow(<RichHttpContent data={data} />)).not.toThrow(URIError);
     });
@@ -73,7 +73,7 @@ describe('RichHttpContent', function() {
         data: [{foo: 'bar', baz: 1}],
         headers: [],
         cookies: [],
-        env: {}
+        env: {},
       };
 
       expect(() => mount(<RichHttpContent data={data} />)).not.toThrow();

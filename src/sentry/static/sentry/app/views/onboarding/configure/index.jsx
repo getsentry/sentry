@@ -14,7 +14,7 @@ const Configure = React.createClass({
   getInitialState() {
     return {
       isFirstTimePolling: true,
-      hasSentRealEvent: false
+      hasSentRealEvent: false,
     };
   },
 
@@ -69,15 +69,15 @@ const Configure = React.createClass({
       success: data => {
         this.setState({
           isFirstTimePolling: false,
-          hasSentRealEvent: this.sentRealEvent(data)
+          hasSentRealEvent: this.sentRealEvent(data),
         });
       },
 
       error: err => {
         Raven.captureMessage('Polling for events in onboarding configure failed', {
-          extra: err
+          extra: err,
         });
-      }
+      },
     });
   },
 
@@ -103,7 +103,8 @@ const Configure = React.createClass({
             <ProjectDocsContext>
               <ProjectInstallPlatform
                 platformData={{
-                  hack: 'actually set by ProjectDocsContext, this object is here to avoid proptypes warnings'
+                  hack:
+                    'actually set by ProjectDocsContext, this object is here to avoid proptypes warnings',
                 }}
                 params={this.props.params}
                 linkPath={(_orgId, _projectId, _platform) =>
@@ -115,7 +116,7 @@ const Configure = React.createClass({
         </div>
       </div>
     );
-  }
+  },
 });
 
 export default Configure;

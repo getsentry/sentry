@@ -12,7 +12,7 @@ export default class MultipleCheckboxField extends FormField {
   static propTypes = {
     ...FormField.propTypes,
     hideLabelDivider: PropTypes.bool,
-    choices: PropTypes.array.isRequired
+    choices: PropTypes.array.isRequired,
   };
 
   // XXX(dcramer): this comes from TooltipMixin
@@ -59,16 +59,16 @@ export default class MultipleCheckboxField extends FormField {
       help,
       choices,
       hideLabelDivider,
-      style
+      style,
     } = this.props;
     let error = this.getError();
     let cx = classNames(className, 'control-group', {
-      'has-error': error
+      'has-error': error,
     });
     // Hacky, but this isn't really a form label vs the checkbox labels, but
     // we want to treat it as one (i.e. for "required" indicator)
     let labelCx = classNames({
-      required
+      required,
     });
     let shouldShowDisabledReason = disabled && disabledReason;
 
@@ -81,13 +81,15 @@ export default class MultipleCheckboxField extends FormField {
               style={{
                 display: 'block',
                 marginBottom: !hideLabelDivider ? 10 : undefined,
-                borderBottom: !hideLabelDivider ? '1px solid #f1eff3' : undefined
-              }}>
+                borderBottom: !hideLabelDivider ? '1px solid #f1eff3' : undefined,
+              }}
+            >
               {label}
-              {shouldShowDisabledReason &&
+              {shouldShowDisabledReason && (
                 <span className="disabled-indicator tip" title={disabledReason}>
                   <span className="icon-question" />
-                </span>}
+                </span>
+              )}
             </label>
             {help && <p className="help-block">{help}</p>}
             {error && <p className="error">{error}</p>}

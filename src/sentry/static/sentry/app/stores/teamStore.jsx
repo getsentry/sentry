@@ -67,7 +67,7 @@ const TeamStore = Reflux.createStore({
 
   getAll() {
     return this.items;
-  }
+  },
 });
 
 window.TeamStore = TeamStore;

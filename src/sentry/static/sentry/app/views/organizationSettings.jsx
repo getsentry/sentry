@@ -7,7 +7,7 @@ import {
   FormState,
   Select2Field,
   TextField,
-  TextareaField
+  TextareaField,
 } from '../components/forms';
 import IndicatorStore from '../stores/indicatorStore';
 import LoadingIndicator from '../components/loadingIndicator';
@@ -20,7 +20,7 @@ const OrganizationSettingsForm = React.createClass({
     orgId: PropTypes.string.isRequired,
     access: PropTypes.object.isRequired,
     initialData: PropTypes.object.isRequired,
-    onSave: PropTypes.func.isRequired
+    onSave: PropTypes.func.isRequired,
   },
 
   mixins: [ApiMixin],
@@ -29,7 +29,7 @@ const OrganizationSettingsForm = React.createClass({
     return {
       formData: this.buildFormData(this.props.initialData),
       errors: {},
-      hasChanges: false
+      hasChanges: false,
     };
   },
 
@@ -45,7 +45,7 @@ const OrganizationSettingsForm = React.createClass({
       dataScrubberDefaults: data.dataScrubberDefaults,
       scrubIPAddresses: data.scrubIPAddresses,
       safeFields: data.safeFields.join('\n'),
-      sensitiveFields: data.sensitiveFields.join('\n')
+      sensitiveFields: data.sensitiveFields.join('\n'),
     };
     if (this.props.access.has('org:admin')) {
       result.defaultRole = data.defaultRole;
@@ -56,11 +56,11 @@ const OrganizationSettingsForm = React.createClass({
   onFieldChange(name, value) {
     let formData = {
       ...this.state.formData,
-      [name]: value
+      [name]: value,
     };
     this.setState({
       hasChanges: true,
-      formData
+      formData,
     });
   },
 
@@ -74,7 +74,7 @@ const OrganizationSettingsForm = React.createClass({
     this.setState(
       {
         state: FormState.SAVING,
-        hasChanges: false
+        hasChanges: false,
       },
       () => {
         let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
@@ -85,29 +85,29 @@ const OrganizationSettingsForm = React.createClass({
           data: {
             ...formData,
             safeFields: extractMultilineFields(formData.safeFields),
-            sensitiveFields: extractMultilineFields(formData.sensitiveFields)
+            sensitiveFields: extractMultilineFields(formData.sensitiveFields),
           },
           success: data => {
             this.props.onSave(data);
             this.setState({
               state: FormState.READY,
-              errors: {}
+              errors: {},
             });
             IndicatorStore.remove(loadingIndicator);
             IndicatorStore.add(t('Changes saved.'), 'success', {
-              duration: 1500
+              duration: 1500,
             });
           },
           error: error => {
             this.setState({
               state: FormState.ERROR,
-              errors: error.responseJSON
+              errors: error.responseJSON,
             });
             IndicatorStore.remove(loadingIndicator);
             IndicatorStore.add(t('Unable to save changes. Please try again.'), 'error', {
-              duration: 3000
+              duration: 3000,
             });
-          }
+          },
         });
       }
     );
@@ -144,12 +144,13 @@ const OrganizationSettingsForm = React.createClass({
 
     return (
       <form onSubmit={this.onSubmit} className="form-stacked ref-organization-settings">
-        {this.state.state === FormState.ERROR &&
+        {this.state.state === FormState.ERROR && (
           <div className="alert alert-error alert-block">
             {t(
               'Unable to save your changes. Please ensure all fields are valid and try again.'
             )}
-          </div>}
+          </div>
+        )}
         <fieldset>
           <legend style={{marginTop: 0}}>{t('General')}</legend>
 
@@ -186,7 +187,7 @@ const OrganizationSettingsForm = React.createClass({
 
           <legend>{t('Membership')}</legend>
 
-          {access.has('org:admin') &&
+          {access.has('org:admin') && (
             <Select2Field
               key="defaultRole"
               name="defaultRole"
@@ -197,7 +198,8 @@ const OrganizationSettingsForm = React.createClass({
               required={true}
               error={errors.defaultRole}
               onChange={this.onFieldChange.bind(this, 'defaultRole')}
-            />}
+            />
+          )}
 
           <BooleanField
             key="openMembership"
@@ -301,13 +303,14 @@ const OrganizationSettingsForm = React.createClass({
           <button
             type="submit"
             className="btn btn-primary"
-            disabled={isSaving || !this.state.hasChanges}>
+            disabled={isSaving || !this.state.hasChanges}
+          >
             {t('Save Changes')}
           </button>
         </fieldset>
       </form>
     );
-  }
+  },
 });
 
 const OrganizationSettings = React.createClass({
@@ -317,7 +320,7 @@ const OrganizationSettings = React.createClass({
     return {
       loading: true,
       error: false,
-      data: null
+      data: null,
     };
   },
 
@@ -331,15 +334,15 @@ const OrganizationSettings = React.createClass({
       success: data => {
         this.setState({
           data,
-          loading: false
+          loading: false,
         });
       },
       error: () => {
         this.setState({
           loading: false,
-          error: true
+          error: true,
         });
-      }
+      },
     });
   },
 
@@ -358,7 +361,7 @@ const OrganizationSettings = React.createClass({
       <div>
         {this.state.loading && <LoadingIndicator />}
 
-        {!this.state.loading &&
+        {!this.state.loading && (
           <div>
             <h3>{t('Organization Settings')}</h3>
             <div className="box">
@@ -373,31 +376,34 @@ const OrganizationSettings = React.createClass({
             </div>
 
             {access.has('org:admin') &&
-              !data.isDefault &&
-              <div className="box">
-                <div className="box-header">
-                  <h3>{t('Remove Organization')}</h3>
-                </div>
-                <div className="box-content with-padding">
-                  <p>
-                    {t(
-                      'Removing this organization will delete all data including projects and their associated events.'
-                    )}
-                  </p>
+              !data.isDefault && (
+                <div className="box">
+                  <div className="box-header">
+                    <h3>{t('Remove Organization')}</h3>
+                  </div>
+                  <div className="box-content with-padding">
+                    <p>
+                      {t(
+                        'Removing this organization will delete all data including projects and their associated events.'
+                      )}
+                    </p>
 
-                  <fieldset className="form-actions">
-                    <a
-                      href={`/organizations/${orgId}/remove/`}
-                      className="btn btn-danger">
-                      {t('Remove Organization')}
-                    </a>
-                  </fieldset>
+                    <fieldset className="form-actions">
+                      <a
+                        href={`/organizations/${orgId}/remove/`}
+                        className="btn btn-danger"
+                      >
+                        {t('Remove Organization')}
+                      </a>
+                    </fieldset>
+                  </div>
                 </div>
-              </div>}
-          </div>}
+              )}
+          </div>
+        )}
       </div>
     );
-  }
+  },
 });
 
 export default OrganizationSettings;

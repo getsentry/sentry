@@ -6,7 +6,7 @@ import ContextBlock from './contextBlock';
 const AppContextType = React.createClass({
   propTypes: {
     alias: PropTypes.string.isRequired,
-    data: PropTypes.object.isRequired
+    data: PropTypes.object.isRequired,
   },
 
   render() {
@@ -32,12 +32,12 @@ const AppContextType = React.createClass({
           ['?Bundle ID', app_identifier],
           ['?Bundle Name', app_name],
           ['?Version', app_version],
-          ['?Build', app_build]
+          ['?Build', app_build],
         ]}
         alias={this.props.alias}
       />
     );
-  }
+  },
 });
 
 AppContextType.getTitle = function(value) {

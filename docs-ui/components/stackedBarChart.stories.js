@@ -13,16 +13,16 @@ storiesOf('StackedBarChart', module).add(
         series={[
           {
             data: [{x: 1461099600, y: 31734}, {x: 1461103200, y: 36790}],
-            label: 'received'
+            label: 'received',
           },
           {
             data: [{x: 1461099600, y: 2867}, {x: 1461103200, y: 2742}],
-            label: 'rejected'
+            label: 'rejected',
           },
           {
             data: [{x: 1461099600, y: 0}, {x: 1461103200, y: 0}],
-            label: 'blacklisted'
-          }
+            label: 'blacklisted',
+          },
         ]}
         className="dashboard-barchart standard-barchart"
         height="100%"

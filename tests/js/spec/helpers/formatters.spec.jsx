@@ -6,7 +6,7 @@ describe('formatters', function() {
       expect(
         userDisplayName({
           name: 'foo@bar.com',
-          email: 'foo@bar.com'
+          email: 'foo@bar.com',
         })
       ).toEqual('foo@bar.com');
     });
@@ -15,7 +15,7 @@ describe('formatters', function() {
       expect(
         userDisplayName({
           name: 'user',
-          email: 'foo@bar.com'
+          email: 'foo@bar.com',
         })
       ).toEqual('user (foo@bar.com)');
     });

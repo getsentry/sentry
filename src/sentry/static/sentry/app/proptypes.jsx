@@ -6,7 +6,7 @@ export const Metadata = PropTypes.shape({
   directive: PropTypes.string,
   type: PropTypes.string,
   title: PropTypes.string,
-  uri: PropTypes.string
+  uri: PropTypes.string,
 });
 
 /**
@@ -14,7 +14,7 @@ export const Metadata = PropTypes.shape({
  *
  */
 export const User = PropTypes.shape({
-  id: PropTypes.string.isRequired
+  id: PropTypes.string.isRequired,
 });
 
 /**
@@ -27,7 +27,7 @@ export const Member = PropTypes.shape({
   name: PropTypes.string.isRequired,
   roleName: PropTypes.string.isRequired,
   pending: PropTypes.bool,
-  user: User
+  user: User,
 });
 
 export const Group = PropTypes.shape({
@@ -49,7 +49,7 @@ export const Group = PropTypes.shape({
   permalink: PropTypes.string,
   project: PropTypes.shape({
     name: PropTypes.string,
-    slug: PropTypes.string
+    slug: PropTypes.string,
   }),
   shareId: PropTypes.string,
   shortId: PropTypes.string,
@@ -57,7 +57,7 @@ export const Group = PropTypes.shape({
   statusDetails: PropTypes.object,
   title: PropTypes.string,
   type: PropTypes.oneOf(['error', 'csp', 'default']),
-  userCount: PropTypes.number
+  userCount: PropTypes.number,
 });
 
 export const Event = PropTypes.shape({
@@ -69,14 +69,14 @@ export const Event = PropTypes.shape({
   entries: PropTypes.arrayOf(
     PropTypes.shape({
       data: PropTypes.object,
-      type: PropTypes.string
+      type: PropTypes.string,
     })
   ),
   errors: PropTypes.arrayOf(
     PropTypes.shape({
       data: PropTypes.object,
       message: PropTypes.string,
-      type: PropTypes.string
+      type: PropTypes.string,
     })
   ),
   eventID: PropTypes.string,
@@ -91,41 +91,41 @@ export const Event = PropTypes.shape({
   tags: PropTypes.arrayOf(
     PropTypes.shape({
       key: PropTypes.string,
-      value: PropTypes.string
+      value: PropTypes.string,
     })
   ),
   type: PropTypes.oneOf(['error', 'csp', 'default']),
-  user: PropTypes.object
+  user: PropTypes.object,
 });
 
 export const Tag = PropTypes.shape({
   id: PropTypes.string.isRequired,
   key: PropTypes.string.isRequired,
   name: PropTypes.string.isRequired,
-  uniqueValues: PropTypes.number
+  uniqueValues: PropTypes.number,
 });
 
 let SentryTypes = {
   AnyModel: PropTypes.shape({
-    id: PropTypes.string.isRequired
+    id: PropTypes.string.isRequired,
   }),
   Group,
   Event,
   Organization: PropTypes.shape({
-    id: PropTypes.string.isRequired
+    id: PropTypes.string.isRequired,
   }),
   Tag,
   Project: PropTypes.shape({
-    id: PropTypes.string.isRequired
+    id: PropTypes.string.isRequired,
   }),
   TagKey: PropTypes.shape({
-    key: PropTypes.string.isRequired
+    key: PropTypes.string.isRequired,
   }),
   Team: PropTypes.shape({
-    id: PropTypes.string.isRequired
+    id: PropTypes.string.isRequired,
   }),
   Member,
-  User
+  User,
 };
 
 export default SentryTypes;

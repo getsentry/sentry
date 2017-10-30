@@ -8,20 +8,20 @@ import {t} from '../../locale';
 const SortOptions = React.createClass({
   propTypes: {
     sort: PropTypes.string,
-    onSelect: PropTypes.func
+    onSelect: PropTypes.func,
   },
 
   mixins: [PureRenderMixin],
 
   getInitialState() {
     return {
-      sortKey: this.props.sort || 'date'
+      sortKey: this.props.sort || 'date',
     };
   },
 
   componentWillReceiveProps(nextProps) {
     this.setState({
-      sortKey: nextProps.sort || 'date'
+      sortKey: nextProps.sort || 'date',
     });
   },
 
@@ -30,7 +30,8 @@ const SortOptions = React.createClass({
       <MenuItem
         onSelect={this.onSelect}
         eventKey={key}
-        isActive={this.state.sortKey === key}>
+        isActive={this.state.sortKey === key}
+      >
         {this.getSortLabel(key)}
       </MenuItem>
     );
@@ -73,7 +74,7 @@ const SortOptions = React.createClass({
         {this.getMenuItem('freq')}
       </DropdownLink>
     );
-  }
+  },
 });
 
 export default SortOptions;

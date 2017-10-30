@@ -4,12 +4,12 @@ import {t} from '../../locale';
 
 const EventErrorItem = React.createClass({
   propTypes: {
-    error: PropTypes.object.isRequired
+    error: PropTypes.object.isRequired,
   },
 
   getInitialState() {
     return {
-      isOpen: false
+      isOpen: false,
     };
   },
 
@@ -38,7 +38,7 @@ const EventErrorItem = React.createClass({
         </pre>
       </li>
     );
-  }
+  },
 });
 
 export default EventErrorItem;

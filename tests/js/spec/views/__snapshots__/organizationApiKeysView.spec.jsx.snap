@@ -86,8 +86,7 @@ exports[`OrganizationApiKeysView renders 1`] = `
             </a>
           </Link>
         </Link>
-         
-        instead.
+         instead.
       </div>
       <table
         className="table api-key-list"

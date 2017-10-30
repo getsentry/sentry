@@ -7,7 +7,7 @@ import FormField from './formField';
 export default class InputField extends FormField {
   static propTypes = {
     ...FormField.propTypes,
-    placeholder: PropTypes.string
+    placeholder: PropTypes.string,
   };
 
   // XXX(dcramer): this comes from TooltipMixin

@@ -13,7 +13,7 @@ export class Client {
       body: '',
       method: 'GET',
       callCount: 0,
-      ...response
+      ...response,
     });
   }
 
@@ -34,7 +34,7 @@ export class Client {
     return this.request(path, {
       method: 'PUT',
       data: {merge: 1},
-      ...options
+      ...options,
     });
   }
 
@@ -51,7 +51,7 @@ export class Client {
         options.error({
           status: 404,
           responseText: 'HTTP 404',
-          responseJSON: null
+          responseJSON: null,
         });
     } else if (response.statusCode !== 200) {
       response.callCount++;
@@ -59,7 +59,7 @@ export class Client {
         options.error({
           status: response.statusCode,
           responseText: JSON.stringify(response.body),
-          responseJSON: response.body
+          responseJSON: response.body,
         });
     } else {
       response.callCount++;

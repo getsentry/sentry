@@ -21,7 +21,7 @@ const ProjectModalStore = Reflux.createStore({
   onOpenDiffModal(props) {
     this.diffModal = props;
     this.trigger(this.diffModal);
-  }
+  },
 });
 
 export default ProjectModalStore;

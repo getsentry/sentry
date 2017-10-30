@@ -8,26 +8,26 @@ const NumberConfirm = React.createClass({
   propTypes: {
     digits: PropTypes.number.isRequired,
     show: PropTypes.bool,
-    onFinished: PropTypes.func
+    onFinished: PropTypes.func,
   },
 
   getInitialState() {
     return {
-      showModal: this.props.show || false
+      showModal: this.props.show || false,
     };
   },
 
   componentWillReceiveProps(nextProps) {
     if (nextProps.show != this.props.show) {
       this.setState({
-        showModal: nextProps.show
+        showModal: nextProps.show,
       });
     }
   },
 
   closeModal() {
     this.setState({
-      showModal: false
+      showModal: false,
     });
   },
 
@@ -51,7 +51,8 @@ const NumberConfirm = React.createClass({
         animation={true}
         backdrop="static"
         enforceFocus={true}
-        bsSize="sm">
+        bsSize="sm"
+      >
         <Modal.Header closeButton>
           <Modal.Title>{t('Please enter your code:')}</Modal.Title>
         </Modal.Header>
@@ -64,7 +65,7 @@ const NumberConfirm = React.createClass({
         </Modal.Body>
       </Modal>
     );
-  }
+  },
 });
 
 export default NumberConfirm;

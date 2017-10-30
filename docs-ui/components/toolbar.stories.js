@@ -14,7 +14,8 @@ storiesOf('Toolbar', module).add(
   )(() => (
     <Toolbar>
       <SpreadLayout>
-        <ToolbarHeader>Left</ToolbarHeader><ToolbarHeader>Right</ToolbarHeader>
+        <ToolbarHeader>Left</ToolbarHeader>
+        <ToolbarHeader>Right</ToolbarHeader>
       </SpreadLayout>
     </Toolbar>
   ))

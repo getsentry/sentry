@@ -9,7 +9,7 @@ import KeyValueList from '../interfaces/keyValueList';
 
 const UserContextType = React.createClass({
   propTypes: {
-    data: PropTypes.object.isRequired
+    data: PropTypes.object.isRequired,
   },
 
   render() {
@@ -27,7 +27,7 @@ const UserContextType = React.createClass({
           <a href={`mailto:${user.email}`} target="_blank" className="external-icon">
             <em className="icon-envelope" />
           </a>
-        </pre>
+        </pre>,
       ]);
     user.username && builtins.push(['Username', <pre>{user.username}</pre>]);
     user.ip_address && builtins.push(['IP Address', <pre>{user.ip_address}</pre>]);
@@ -48,8 +48,12 @@ const UserContextType = React.createClass({
             {builtins.map(([key, value]) => {
               return (
                 <tr key={key}>
-                  <td className="key" key="0">{key}</td>
-                  <td className="value" key="1">{value}</td>
+                  <td className="key" key="0">
+                    {key}
+                  </td>
+                  <td className="value" key="1">
+                    {value}
+                  </td>
                 </tr>
               );
             })}
@@ -58,7 +62,7 @@ const UserContextType = React.createClass({
         {children && <KeyValueList data={children} isContextData={true} />}
       </div>
     );
-  }
+  },
 });
 
 UserContextType.getTitle = function(value) {

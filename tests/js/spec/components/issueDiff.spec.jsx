@@ -25,15 +25,15 @@ describe('IssueDiff', function() {
     Client.addMockResponse({
       url: '/issues/target/events/latest/',
       body: {
-        entries: entries[0]
-      }
+        entries: entries[0],
+      },
     });
     Client.addMockResponse({
       url: '/issues/base/events/latest/',
       body: {
         platform: 'javascript',
-        entries: entries[1]
-      }
+        entries: entries[1],
+      },
     });
 
     // Need `mount` because of componentDidMount in <IssueDiff>

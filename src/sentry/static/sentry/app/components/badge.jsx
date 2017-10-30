@@ -4,7 +4,7 @@ import React from 'react';
 const Badge = React.createClass({
   propTypes: {
     text: PropTypes.string,
-    isNew: PropTypes.bool
+    isNew: PropTypes.bool,
   },
 
   render() {
@@ -13,7 +13,7 @@ const Badge = React.createClass({
       className += ' new';
     }
     return <span className={className}>{this.props.text}</span>;
-  }
+  },
 });
 
 export default Badge;

@@ -37,10 +37,8 @@ import OnboardingConfigure from './views/onboarding/configure/index';
 import OnboardingWizard from './views/onboarding/index';
 import OrganizationAuditLog from './views/organizationAuditLog';
 import OrganizationContext from './views/organizationContext';
-import OrganizationApiKeysView
-  from './views/settings/organization/apiKeys/organizationApiKeysView';
-import OrganizationApiKeyDetailsView
-  from './views/settings/organization/apiKeys/organizationApiKeyDetailsView';
+import OrganizationApiKeysView from './views/settings/organization/apiKeys/organizationApiKeysView';
+import OrganizationApiKeyDetailsView from './views/settings/organization/apiKeys/organizationApiKeyDetailsView';
 import OrganizationCreate from './views/organizationCreate';
 import OrganizationDashboard from './views/organizationDashboard';
 import OrganizationDetails from './views/organizationDetails';
@@ -126,7 +124,11 @@ const orgSettingsRoutes = [
   />,
   <Route key="members/new/" path="members/new/" component={errorHandler(InviteMember)} />,
   <Route key="repos" path="repos/" component={errorHandler(OrganizationRepositories)} />,
-  <Route key="settings" path="settings/" component={errorHandler(OrganizationSettings)} />
+  <Route
+    key="settings"
+    path="settings/"
+    component={errorHandler(OrganizationSettings)}
+  />,
 ];
 
 function routes() {
@@ -147,7 +149,6 @@ function routes() {
 
   return (
     <Route path="/" component={errorHandler(App)}>
-
       <Route path="/account/" component={errorHandler(AccountLayout)}>
         <Route path="authorizations/" component={errorHandler(AccountAuthorizations)} />
       </Route>
@@ -207,7 +208,8 @@ function routes() {
         />
         <Route
           path="/organizations/:orgId/teams/:teamId/"
-          component={errorHandler(TeamDetails)}>
+          component={errorHandler(TeamDetails)}
+        >
           <IndexRedirect to="settings/" />
           <Route path="settings/" component={errorHandler(TeamSettings)} />
           <Route path="members/" component={errorHandler(TeamMembers)} />
@@ -215,7 +217,8 @@ function routes() {
 
         <Route
           path="/organizations/:orgId/all-teams/"
-          component={errorHandler(OrganizationTeams)}>
+          component={errorHandler(OrganizationTeams)}
+        >
           <IndexRoute component={errorHandler(AllTeamsList)} />
         </Route>
         <Route
@@ -252,7 +255,8 @@ function routes() {
 
         <Route
           path=":projectId/getting-started/"
-          component={errorHandler(ProjectGettingStarted)}>
+          component={errorHandler(ProjectGettingStarted)}
+        >
           <IndexRoute component={errorHandler(ProjectInstallOverview)} />
           <Route path=":platform/" component={errorHandler(ProjectInstallPlatform)} />
         </Route>
@@ -266,7 +270,8 @@ function routes() {
           <Route
             name="releaseDetails"
             path="releases/:version/"
-            component={errorHandler(ReleaseDetails)}>
+            component={errorHandler(ReleaseDetails)}
+          >
             <IndexRoute component={errorHandler(ReleaseOverview)} />
             <Route path="new-events/" component={errorHandler(ReleaseNewEvents)} />
             <Route path="all-events/" component={errorHandler(ReleaseAllEvents)} />
@@ -311,7 +316,8 @@ function routes() {
           <Route
             path="issues/:groupId/"
             component={errorHandler(GroupDetails)}
-            ignoreScrollBehavior>
+            ignoreScrollBehavior
+          >
             <IndexRoute component={errorHandler(GroupEventDetails)} />
 
             <Route path="activity/" component={errorHandler(GroupActivity)} />
@@ -322,7 +328,6 @@ function routes() {
             <Route path="feedback/" component={errorHandler(GroupUserReports)} />
             <Route path="similar/" component={errorHandler(GroupSimilarView)} />
             <Route path="merged/" component={errorHandler(GroupMergedView)} />
-
           </Route>
         </Route>
       </Route>

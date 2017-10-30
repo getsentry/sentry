@@ -12,10 +12,9 @@ storiesOf('Clipboard', module).add(
       <Clipboard
         value="This will be copied to clipboard"
         onSuccess={action('Copied to clipboard')}
-        onError={action('Failed copy to clipboard')}>
-        <span priority="primary">
-          Click to Copy
-        </span>
+        onError={action('Failed copy to clipboard')}
+      >
+        <span priority="primary">Click to Copy</span>
       </Clipboard>
     </div>
   ))

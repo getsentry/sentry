@@ -37,7 +37,7 @@ export default class ApiNewToken extends AsyncView {
           {tct(
             'For more information on how to use the web API, see our [link:documentation].',
             {
-              link: <a href="https://docs.sentry.io/hosted/api/" />
+              link: <a href="https://docs.sentry.io/hosted/api/" />,
             }
           )}
         </p>
@@ -47,7 +47,8 @@ export default class ApiNewToken extends AsyncView {
           className="form-stacked api-new-token"
           initialData={{scopes: SORTED_DEFAULT_API_SCOPES}}
           onSubmitSuccess={this.onSubmitSuccess}
-          onCancel={this.onCancel}>
+          onCancel={this.onCancel}
+        >
           <MultipleCheckboxField
             name="scopes"
             choices={API_CHOICES}

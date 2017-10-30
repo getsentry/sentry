@@ -39,7 +39,7 @@ class AsyncComponent extends React.Component {
       loading: true,
       // is there an error loading ANY data?
       error: false,
-      errors: {}
+      errors: {},
     };
     endpoints.forEach(([stateKey, endpoint]) => {
       state[stateKey] = null;
@@ -57,7 +57,7 @@ class AsyncComponent extends React.Component {
     if (!endpoints.length) {
       this.setState({
         loading: false,
-        error: false
+        error: false,
       });
       return;
     }
@@ -65,7 +65,7 @@ class AsyncComponent extends React.Component {
     this.setState({
       loading: true,
       error: false,
-      remainingRequests: endpoints.length
+      remainingRequests: endpoints.length,
     });
     endpoints.forEach(([stateKey, endpoint, params]) => {
       this.api.request(endpoint, {
@@ -76,7 +76,7 @@ class AsyncComponent extends React.Component {
             return {
               [stateKey]: data,
               remainingRequests: prevState.remainingRequests - 1,
-              loading: prevState.remainingRequests > 1
+              loading: prevState.remainingRequests > 1,
             };
           });
         },
@@ -86,14 +86,14 @@ class AsyncComponent extends React.Component {
               [stateKey]: null,
               errors: {
                 ...prevState.errors,
-                [stateKey]: error
+                [stateKey]: error,
               },
               remainingRequests: prevState.remainingRequests - 1,
               loading: prevState.remainingRequests > 1,
-              error: true
+              error: true,
             };
           });
-        }
+        },
       });
     });
   }
@@ -133,8 +133,8 @@ class AsyncComponent extends React.Component {
     return this.state.loading
       ? this.renderLoading()
       : this.state.error
-          ? this.renderError(new Error('Unable to load all required endpoints'))
-          : this.renderBody();
+        ? this.renderError(new Error('Unable to load all required endpoints'))
+        : this.renderBody();
   }
 
   render() {
@@ -152,7 +152,7 @@ AsyncComponent.errorHandler = (component, fn) => {
         throw err;
       });
       component.setState({
-        error: err
+        error: err,
       });
       return null;
     }
@@ -160,7 +160,7 @@ AsyncComponent.errorHandler = (component, fn) => {
 };
 
 AsyncComponent.contextTypes = {
-  router: PropTypes.object.isRequired
+  router: PropTypes.object.isRequired,
 };
 
 export default AsyncComponent;

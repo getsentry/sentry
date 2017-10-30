@@ -44,7 +44,7 @@ const EVENT_TYPES = [
   'sso-identity.link',
   'api-key.create',
   'api-key.edit',
-  'api-key.remove'
+  'api-key.remove',
 ].sort();
 
 const OrganizationAuditLog = React.createClass({
@@ -54,7 +54,7 @@ const OrganizationAuditLog = React.createClass({
     return {
       loading: true,
       error: false,
-      entryList: []
+      entryList: [],
     };
   },
 
@@ -77,7 +77,7 @@ const OrganizationAuditLog = React.createClass({
 
   fetchData() {
     this.setState({
-      loading: true
+      loading: true,
     });
 
     this.api.request(this.getEndpoint(), {
@@ -87,15 +87,15 @@ const OrganizationAuditLog = React.createClass({
           loading: false,
           error: false,
           entryList: data,
-          pageLinks: jqXHR.getResponseHeader('Link')
+          pageLinks: jqXHR.getResponseHeader('Link'),
         });
       },
       error: () => {
         this.setState({
           loading: false,
-          error: true
+          error: true,
         });
-      }
+      },
     });
   },
 
@@ -114,14 +114,18 @@ const OrganizationAuditLog = React.createClass({
       return;
     }
     let queryParams = {
-      event: value
+      event: value,
     };
     browserHistory.pushState(null, this.props.location.pathname, queryParams);
   },
 
   renderResults() {
     if (this.state.entryList.length === 0) {
-      return <tr><td colSpan="4">{t('No results found.')}</td></tr>;
+      return (
+        <tr>
+          <td colSpan="4">{t('No results found.')}</td>
+        </tr>
+      );
     }
 
     return this.state.entryList.map(entry => {
@@ -158,8 +162,11 @@ const OrganizationAuditLog = React.createClass({
                     name="event"
                     onChange={this.onEventSelect}
                     value={currentEventType}
-                    style={{width: 250}}>
-                    <option key="any" value="">{t('Any')}</option>
+                    style={{width: 250}}
+                  >
+                    <option key="any" value="">
+                      {t('Any')}
+                    </option>
                     {EVENT_TYPES.map(eventType => {
                       return <option key={eventType}>{eventType}</option>;
                     })}
@@ -182,22 +189,31 @@ const OrganizationAuditLog = React.createClass({
                 </tr>
               </thead>
               <tbody>
-                {this.state.loading
-                  ? <tr><td colSpan="4"><LoadingIndicator /></td></tr>
-                  : this.state.error
-                      ? <tr>
-                          <td colSpan="4"><LoadingError onRetry={this.fetchData} /></td>
-                        </tr>
-                      : this.renderResults()}
+                {this.state.loading ? (
+                  <tr>
+                    <td colSpan="4">
+                      <LoadingIndicator />
+                    </td>
+                  </tr>
+                ) : this.state.error ? (
+                  <tr>
+                    <td colSpan="4">
+                      <LoadingError onRetry={this.fetchData} />
+                    </td>
+                  </tr>
+                ) : (
+                  this.renderResults()
+                )}
               </tbody>
             </table>
           </div>
-          {this.state.pageLinks &&
-            <Pagination pageLinks={this.state.pageLinks} {...this.props} />}
+          {this.state.pageLinks && (
+            <Pagination pageLinks={this.state.pageLinks} {...this.props} />
+          )}
         </div>
       </DocumentTitle>
     );
-  }
+  },
 });
 
 export default OrganizationAuditLog;

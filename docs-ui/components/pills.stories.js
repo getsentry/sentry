@@ -11,8 +11,12 @@ storiesOf('Pills', module).add(
   withInfo('When you have key/value data but are tight on space.')(() => (
     <Pills>
       <Pill name="key" value="value" />
-      <Pill name="good" value={true}>thing</Pill>
-      <Pill name="bad" value={false}>thing</Pill>
+      <Pill name="good" value={true}>
+        thing
+      </Pill>
+      <Pill name="bad" value={false}>
+        thing
+      </Pill>
       <Pill name="generic">thing</Pill>
     </Pills>
   ))

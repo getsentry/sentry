@@ -12,7 +12,7 @@ describe('GenericField', function() {
           config={{
             name: 'field-name',
             label: 'field label',
-            type: 'text'
+            type: 'text',
           }}
         />
       );
@@ -28,7 +28,7 @@ describe('GenericField', function() {
             name: 'field-name',
             label: 'field label',
             type: 'text',
-            choices: []
+            choices: [],
           }}
         />
       );

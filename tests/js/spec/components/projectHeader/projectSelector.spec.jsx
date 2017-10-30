@@ -15,16 +15,16 @@ describe('ProjectSelector', function() {
         projects: [
           {
             slug: 'test-project',
-            name: 'Test Project'
+            name: 'Test Project',
           },
           {
             slug: 'another-project',
-            name: 'Another Project'
-          }
-        ]
-      }
+            name: 'Another Project',
+          },
+        ],
+      },
     ],
-    access: []
+    access: [],
   };
 
   describe('render()', function() {
@@ -39,12 +39,12 @@ describe('ProjectSelector', function() {
             id: 'org',
             slug: 'org-slug',
             teams: [],
-            access: []
+            access: [],
           }}
           projectId=""
         />,
         {
-          context: {router: TestStubs.router()}
+          context: {router: TestStubs.router()},
         }
       );
       expect(wrapper).toMatchSnapshot();
@@ -57,12 +57,12 @@ describe('ProjectSelector', function() {
             id: 'org',
             slug: 'org-slug',
             teams: [],
-            access: ['project:write']
+            access: ['project:write'],
           }}
           projectId=""
         />,
         {
-          context: {router: TestStubs.router()}
+          context: {router: TestStubs.router()},
         }
       );
       expect(wrapper).toMatchSnapshot();
@@ -70,7 +70,7 @@ describe('ProjectSelector', function() {
 
     it('lists projects and has filter', function() {
       let wrapper = shallow(<ProjectSelector organization={mockOrg} projectId="" />, {
-        context: {router: TestStubs.router()}
+        context: {router: TestStubs.router()},
       });
       expect(wrapper).toMatchSnapshot();
     });
@@ -113,7 +113,10 @@ describe('ProjectSelector', function() {
       wrapper.find('.dropdown-actor').simulate('click');
 
       // Select first project
-      wrapper.find('.dropdown-menu [role="presentation"] a').first().simulate('click');
+      wrapper
+        .find('.dropdown-menu [role="presentation"] a')
+        .first()
+        .simulate('click');
       expect(wrapper.find('.dropdown-menu').length).toBe(0);
     });
 

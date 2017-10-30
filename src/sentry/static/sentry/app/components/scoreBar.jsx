@@ -13,13 +13,13 @@ const ScoreBar = React.createClass({
     paletteClassNames: PropTypes.arrayOf(PropTypes.string),
     /** Default controlled by CSS */
     size: PropTypes.number,
-    thickness: PropTypes.number
+    thickness: PropTypes.number,
   },
 
   getDefaultProps() {
     return {
       palette: [],
-      paletteClassNames: ['low', 'low-med', 'med', 'med-high', 'high']
+      paletteClassNames: ['low', 'low-med', 'med', 'med-high', 'high'],
     };
   },
 
@@ -35,13 +35,13 @@ const ScoreBar = React.createClass({
       paletteClassNames,
       score,
       size,
-      thickness
+      thickness,
     } = this.props;
     let useCss = !!paletteClassNames.length && !palette.length;
     let maxScore = useCss ? paletteClassNames.length : palette.length;
     let cx = classNames('score-bar', className, {
       vertical,
-      horizontal: !vertical
+      horizontal: !vertical,
     });
 
     // Make sure score is between 0 and maxScore
@@ -52,16 +52,16 @@ const ScoreBar = React.createClass({
     // Size of bar, depends on orientation, although we could just apply a transformation via css
     let sizeStyle = {
       [vertical ? 'width' : 'height']: size,
-      [vertical ? 'height' : 'width']: thickness
+      [vertical ? 'height' : 'width']: thickness,
     };
 
     let style = {
       ...sizeStyle,
       ...(!useCss
         ? {
-            backgroundColor: palette[paletteIndex]
+            backgroundColor: palette[paletteIndex],
           }
-        : {})
+        : {}),
     };
 
     return (
@@ -69,7 +69,7 @@ const ScoreBar = React.createClass({
         {[...Array(scoreInBounds)].map((j, i) => {
           let paletteClassName = (useCss && paletteClassNames[paletteIndex]) || '';
           let barCx = classNames('score-bar-bar', {
-            [paletteClassName]: !!paletteClassName
+            [paletteClassName]: !!paletteClassName,
           });
           return <div key={i} style={style} className={barCx} />;
         })}
@@ -82,7 +82,7 @@ const ScoreBar = React.createClass({
         ))}
       </div>
     );
-  }
+  },
 });
 
 export default ScoreBar;

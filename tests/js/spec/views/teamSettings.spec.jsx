@@ -15,8 +15,8 @@ describe('TeamSettings', function() {
         />,
         {
           context: {
-            router: TestStubs.router()
-          }
+            router: TestStubs.router(),
+          },
         }
       );
       expect(wrapper).toMatchSnapshot();

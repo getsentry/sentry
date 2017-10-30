@@ -7,9 +7,9 @@ const RuleNode = React.createClass({
   propTypes: {
     data: PropTypes.object.isRequired,
     node: PropTypes.shape({
-      html: PropTypes.string.isRequired
+      html: PropTypes.string.isRequired,
     }).isRequired,
-    onDelete: PropTypes.func.isRequired
+    onDelete: PropTypes.func.isRequired,
   },
 
   componentDidMount() {
@@ -33,7 +33,7 @@ const RuleNode = React.createClass({
         data: $el.data('choices'),
         createSearchChoice: function(term) {
           return {id: $.trim(term), text: $.trim(term)};
-        }
+        },
       });
     });
   },
@@ -53,7 +53,7 @@ const RuleNode = React.createClass({
         </td>
       </tr>
     );
-  }
+  },
 });
 
 export default RuleNode;

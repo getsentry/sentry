@@ -9,7 +9,7 @@ import React from 'react';
 const LetterAvatar = React.createClass({
   propTypes: {
     identifier: PropTypes.string.isRequired,
-    displayName: PropTypes.string.isRequired
+    displayName: PropTypes.string.isRequired,
   },
 
   COLORS: [
@@ -24,7 +24,7 @@ const LetterAvatar = React.createClass({
     '#6c5fc7', // purple
     '#4e3fb4', // purple_dark
     '#57b1be', // teal
-    '#847a8c' // gray
+    '#847a8c', // gray
   ],
 
   getColor() {
@@ -65,12 +65,13 @@ const LetterAvatar = React.createClass({
           fontSize="65"
           style={{dominantBaseline: 'central'}}
           textAnchor="middle"
-          fill="#FFFFFF">
+          fill="#FFFFFF"
+        >
           {this.getInitials()}
         </text>
       </svg>
     );
-  }
+  },
 });
 
 export default LetterAvatar;

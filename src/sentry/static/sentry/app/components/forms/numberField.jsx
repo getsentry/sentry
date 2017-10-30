@@ -5,7 +5,7 @@ export default class NumberField extends InputField {
   static propTypes = {
     ...InputField.propTypes,
     min: PropTypes.number,
-    max: PropTypes.number
+    max: PropTypes.number,
   };
 
   coerceValue(value, prevValue) {
@@ -28,7 +28,7 @@ export default class NumberField extends InputField {
   getAttributes() {
     return {
       min: this.props.min || undefined,
-      max: this.props.max || undefined
+      max: this.props.max || undefined,
     };
   }
 }

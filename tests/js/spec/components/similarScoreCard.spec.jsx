@@ -23,7 +23,7 @@ describe('SimilarScoreCard', function() {
           ['exception,message,character-shingles', null],
           ['exception,stacktrace,application-chunks', 0.8],
           ['exception,stacktrace,pairs', 1],
-          ['message,message,character-shingles', 0.5]
+          ['message,message,character-shingles', 0.5],
         ]}
       />
     );

@@ -14,7 +14,7 @@ const TeamMembers = React.createClass({
     return {
       loading: true,
       error: false,
-      memberList: null
+      memberList: null,
     };
   },
 
@@ -31,7 +31,7 @@ const TeamMembers = React.createClass({
       this.setState(
         {
           loading: true,
-          error: false
+          error: false,
         },
         this.fetchData
       );
@@ -46,15 +46,15 @@ const TeamMembers = React.createClass({
         this.setState({
           memberList: data,
           loading: false,
-          error: false
+          error: false,
         });
       },
       error: () => {
         this.setState({
           loading: false,
-          error: true
+          error: true,
         });
-      }
+      },
     });
   },
 
@@ -69,17 +69,21 @@ const TeamMembers = React.createClass({
     return (
       <div>
         <div style={{marginBottom: 20}} className="clearfix">
-          {access.has('org:write')
-            ? <a
-                className="btn btn-primary btn-sm pull-right"
-                href={`${memberPrefix}/new/`}>
-                <span className="icon-plus" /> {t('Invite Member')}
-              </a>
-            : <a
-                className="btn btn-primary btn-sm btn-disabled tip pull-right"
-                title={t('You do not have enough permission to add new members')}>
-                <span className="icon-plus" /> {t('Invite Member')}
-              </a>}
+          {access.has('org:write') ? (
+            <a
+              className="btn btn-primary btn-sm pull-right"
+              href={`${memberPrefix}/new/`}
+            >
+              <span className="icon-plus" /> {t('Invite Member')}
+            </a>
+          ) : (
+            <a
+              className="btn btn-primary btn-sm btn-disabled tip pull-right"
+              title={t('You do not have enough permission to add new members')}
+            >
+              <span className="icon-plus" /> {t('Invite Member')}
+            </a>
+          )}
         </div>
 
         <table className="table member-list">
@@ -99,7 +103,9 @@ const TeamMembers = React.createClass({
                 <tr key={i}>
                   <td className="table-user-info">
                     <Avatar user={member} size={80} />
-                    <h5><a href={`${memberPrefix}/${member.id}/`}>{member.email}</a></h5>
+                    <h5>
+                      <a href={`${memberPrefix}/${member.id}/`}>{member.email}</a>
+                    </h5>
                     {member.email}
                   </td>
                   <td>{member.roleName}</td>
@@ -110,7 +116,7 @@ const TeamMembers = React.createClass({
         </table>
       </div>
     );
-  }
+  },
 });
 
 export default TeamMembers;

@@ -8,16 +8,16 @@ describe('utils.valueIsEqual', function() {
         teams: ['bar', 'baz'],
         avatar: {
           avatarType: 'gravatar',
-          avatarUuid: null
-        }
+          avatarUuid: null,
+        },
       },
       {
         username: 'foo',
         teams: ['bar', 'baz'],
         avatar: {
           avatarType: 'gravatar',
-          avatarUuid: null
-        }
+          avatarUuid: null,
+        },
       },
       true
     );
@@ -31,16 +31,16 @@ describe('utils.valueIsEqual', function() {
         teams: ['bar', 'baz'],
         avatar: {
           avatarType: 'gravatar',
-          avatarUuid: null
-        }
+          avatarUuid: null,
+        },
       },
       {
         username: 'foo',
         teams: ['bar', 'baz'],
         avatar: {
           avatarType: 'notGravatar',
-          avatarUuid: null
-        }
+          avatarUuid: null,
+        },
       },
       true
     );
@@ -52,12 +52,12 @@ describe('utils.valueIsEqual', function() {
       {
         username: 'foo',
         team: 'bar',
-        avatar: 'gravatar'
+        avatar: 'gravatar',
       },
       {
         username: 'foo',
         team: 'bar',
-        avatar: 'gravatar'
+        avatar: 'gravatar',
       },
       false
     );
@@ -69,12 +69,12 @@ describe('utils.valueIsEqual', function() {
       {
         username: 'foo',
         team: 'bar',
-        avatar: 'gravatar'
+        avatar: 'gravatar',
       },
       {
         username: 'foo',
         team: 'bar',
-        avatar: 'notGravatar'
+        avatar: 'notGravatar',
       },
       false
     );
@@ -89,15 +89,15 @@ describe('utils.valueIsEqual', function() {
       {
         username: 'foo',
         teams: ['bar', 'baz'],
-        avatar: null
+        avatar: null,
       },
       {
         username: 'foo',
         teams: ['bar', 'baz'],
         avatar: {
           avatarType: 'notGravatar',
-          avatarUuid: null
-        }
+          avatarUuid: null,
+        },
       },
       true
     );

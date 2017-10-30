@@ -9,7 +9,7 @@ import events from '../../mocks/events';
 jest.mock('app/api');
 jest.mock('app/mixins/projectState', () => {
   return {
-    getFeatures: () => new Set(['callsigns'])
+    getFeatures: () => new Set(['callsigns']),
   };
 });
 
@@ -18,27 +18,27 @@ const mockData = {
     {
       latestEvent: events[0],
       state: 'unlocked',
-      id: '2c4887696f708c476a81ce4e834c4b02'
+      id: '2c4887696f708c476a81ce4e834c4b02',
     },
     {
       latestEvent: events[1],
       state: 'unlocked',
-      id: 'e05da55328a860b21f62e371f0a7507d'
-    }
-  ]
+      id: 'e05da55328a860b21f62e371f0a7507d',
+    },
+  ],
 };
 
 describe('Issues -> Merged View', function() {
   let context = {
     group: {
       id: 'id',
-      tags: []
-    }
+      tags: [],
+    },
   };
   beforeAll(function() {
     Client.addMockResponse({
       url: '/issues/groupId/hashes/?limit=50&query=',
-      body: mockData.merged
+      body: mockData.merged,
     });
   });
 
@@ -62,8 +62,8 @@ describe('Issues -> Merged View', function() {
       {
         context,
         childContextTypes: {
-          group: PropTypes.object
-        }
+          group: PropTypes.object,
+        },
       }
     );
 

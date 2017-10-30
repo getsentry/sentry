@@ -14,7 +14,7 @@ import SharedGroupHeader from './sharedGroupHeader';
 
 const SharedGroupDetails = React.createClass({
   childContextTypes: {
-    group: SentryTypes.Group
+    group: SentryTypes.Group,
   },
 
   mixins: [ApiMixin],
@@ -23,13 +23,13 @@ const SharedGroupDetails = React.createClass({
     return {
       group: null,
       loading: true,
-      error: false
+      error: false,
     };
   },
 
   getChildContext() {
     return {
-      group: this.state.group
+      group: this.state.group,
     };
   },
 
@@ -50,22 +50,22 @@ const SharedGroupDetails = React.createClass({
   fetchData() {
     this.setState({
       loading: true,
-      error: false
+      error: false,
     });
 
     this.api.request(this.getGroupDetailsEndpoint(), {
       success: data => {
         this.setState({
           loading: false,
-          group: data
+          group: data,
         });
       },
       error: () => {
         this.setState({
           loading: false,
-          error: true
+          error: true,
         });
-      }
+      },
     });
   },
 
@@ -98,10 +98,11 @@ const SharedGroupDetails = React.createClass({
                 <a className="logo" href="/">
                   <span className="icon-sentry-logo-full" />
                 </a>
-                {this.state.group.permalink &&
+                {this.state.group.permalink && (
                   <a className="details" href={this.state.group.permalink}>
                     {t('Details')}
-                  </a>}
+                  </a>
+                )}
               </div>
               <div className="box-content">
                 <div className="content">
@@ -125,7 +126,7 @@ const SharedGroupDetails = React.createClass({
         </div>
       </DocumentTitle>
     );
-  }
+  },
 });
 
 export default SharedGroupDetails;

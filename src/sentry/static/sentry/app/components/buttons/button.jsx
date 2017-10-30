@@ -26,12 +26,12 @@ const Button = React.createClass({
      */
     title: PropTypes.string,
     borderless: PropTypes.bool,
-    onClick: PropTypes.func
+    onClick: PropTypes.func,
   },
 
   getDefaultProps() {
     return {
-      disabled: false
+      disabled: false,
     };
   },
 
@@ -80,16 +80,14 @@ const Button = React.createClass({
       'button-xs': size === 'xsmall',
       'button-lg': size === 'large',
       'button-busy': busy,
-      'button-disabled': disabled
+      'button-disabled': disabled,
     });
 
     // This container is useless now, but leaves room for when we need to add
     // components (i.e. icons, busy indicator, etc)
     let childContainer = (
       <FlowLayout truncate={false}>
-        <span className="button-label">
-          {children}
-        </span>
+        <span className="button-label">{children}</span>
       </FlowLayout>
     );
 
@@ -105,7 +103,7 @@ const Button = React.createClass({
       onClick: this.handleClick,
       className: cx,
       role: 'button',
-      children: childContainer
+      children: childContainer,
     };
 
     // Handle react-router Links
@@ -120,7 +118,7 @@ const Button = React.createClass({
 
     // Otherwise, fall back to basic button element
     return <button {...componentProps} />;
-  }
+  },
 });
 
 export default Button;

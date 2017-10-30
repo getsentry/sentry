@@ -23,11 +23,11 @@ describe('MultipleCheckboxField', function() {
           context: {
             form: {
               data: {
-                fieldName: ['1']
+                fieldName: ['1'],
               },
-              errors: {}
-            }
-          }
+              errors: {},
+            },
+          },
         }
       );
       expect(wrapper).toMatchSnapshot();

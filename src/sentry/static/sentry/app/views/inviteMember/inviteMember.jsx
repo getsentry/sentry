@@ -31,7 +31,7 @@ const InviteMember = React.createClass({
       email: '',
       loading: true,
       busy: false,
-      error: undefined
+      error: undefined,
     };
   },
 
@@ -48,9 +48,9 @@ const InviteMember = React.createClass({
       },
       error: error => {
         Raven.captureMessage('data fetch error ', {
-          extra: {error, state: this.state}
+          extra: {error, state: this.state},
         });
-      }
+      },
     });
   },
 
@@ -60,7 +60,10 @@ const InviteMember = React.createClass({
   },
 
   splitEmails(text) {
-    return text.split(',').map(e => e.trim()).filter(e => e);
+    return text
+      .split(',')
+      .map(e => e.trim())
+      .filter(e => e);
   },
 
   inviteUser(email) {
@@ -74,12 +77,12 @@ const InviteMember = React.createClass({
           email,
           user: email,
           teams: Array.from(selectedTeams.keys()),
-          role: selectedRole
+          role: selectedRole,
         },
         success: () => {
           AlertActions.addAlert({
             message: `Added ${email}`,
-            type: 'success'
+            type: 'success',
           });
           resolve();
         },
@@ -87,19 +90,19 @@ const InviteMember = React.createClass({
           if (err.status === 403) {
             AlertActions.addAlert({
               message: "You aren't allowed to invite members.",
-              type: 'error'
+              type: 'error',
             });
             reject(err.responseJSON);
           } else if (err.status === 409) {
             AlertActions.addAlert({
               message: `User already exists: ${email}`,
-              type: 'info'
+              type: 'info',
             });
             resolve();
           } else {
             reject(err.responseJSON);
           }
-        }
+        },
       });
     });
   },
@@ -114,7 +117,7 @@ const InviteMember = React.createClass({
       .catch(error => {
         if (!error.email && !error.role) {
           Raven.captureMessage('unkown error ', {
-            extra: {error, state: this.state}
+            extra: {error, state: this.state},
           });
         }
         this.setState({error, busy: false});
@@ -130,7 +133,7 @@ const InviteMember = React.createClass({
         selectedTeams.add(slug);
       }
       return {
-        selectedTeams
+        selectedTeams,
       };
     });
   },
@@ -153,7 +156,7 @@ const InviteMember = React.createClass({
         </p>
 
         {loading && <LoadingIndicator />}
-        {!loading &&
+        {!loading && (
           <div>
             <div className={classNames({'has-error': error && error.email})}>
               <TextField
@@ -180,13 +183,15 @@ const InviteMember = React.createClass({
               priority="primary"
               busy={this.state.busy}
               className="invite-member-submit"
-              onClick={this.submit}>
+              onClick={this.submit}
+            >
               {t('Add Member')}
             </Button>
-          </div>}
+          </div>
+        )}
       </div>
     );
-  }
+  },
 });
 
 export default InviteMember;

@@ -3,12 +3,12 @@ import InputField from './inputField';
 
 export default class TextField extends InputField {
   static propTypes = {
-    spellCheck: PropTypes.string
+    spellCheck: PropTypes.string,
   };
 
   getAttributes() {
     return {
-      spellCheck: this.props.spellCheck
+      spellCheck: this.props.spellCheck,
     };
   }
 

@@ -33,7 +33,8 @@ export default class OrganizationCreate extends AsyncView {
           apiEndpoint="/organizations/"
           apiMethod="POST"
           onSubmitSuccess={this.onSubmitSuccess}
-          requireChanges={true}>
+          requireChanges={true}
+        >
           <TextField
             name="name"
             label={t('Organization Name')}

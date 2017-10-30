@@ -25,7 +25,7 @@ describe('Frame', function() {
         origFunction: 'T._updateRenderedComponent',
         origLineNo: 419,
         map: 'vendor.js.map',
-        mapUrl: 'https://beta.getsentry.com/_static/sentry/dist/vendor.js.map'
+        mapUrl: 'https://beta.getsentry.com/_static/sentry/dist/vendor.js.map',
       };
     });
 

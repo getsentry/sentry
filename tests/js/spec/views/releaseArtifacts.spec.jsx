@@ -20,8 +20,8 @@ describe('ReleaseArtifacts', function() {
           group: {id: '1337'},
           project: {id: 'foo'},
           team: {id: '1'},
-          organization: {id: 'bar'}
-        }
+          organization: {id: 'bar'},
+        },
       }
     );
 
@@ -35,8 +35,8 @@ describe('ReleaseArtifacts', function() {
           group: {id: '1337'},
           project: {id: 'foo'},
           team: {id: '1'},
-          organization: {id: 'bar', access: ['project:write']}
-        }
+          organization: {id: 'bar', access: ['project:write']},
+        },
       }
     );
   });
@@ -54,14 +54,14 @@ describe('ReleaseArtifacts', function() {
           {
             id: '1',
             name: 'foo.js',
-            size: 150000
+            size: 150000,
           },
           {
             id: '2',
             name: 'bar.js',
-            size: 30000
-          }
-        ]
+            size: 30000,
+          },
+        ],
       });
 
       expect(wrapper.find('.list-group-item')).toHaveLength(2);
@@ -75,14 +75,14 @@ describe('ReleaseArtifacts', function() {
           {
             id: '1',
             name: 'foo.js',
-            size: 150000
+            size: 150000,
           },
           {
             id: '2',
             name: 'bar.js',
-            size: 30000
-          }
-        ]
+            size: 30000,
+          },
+        ],
       });
 
       expect(wrapper.find('div.btn > .icon-open')).toHaveLength(2);
@@ -96,14 +96,14 @@ describe('ReleaseArtifacts', function() {
           {
             id: '1',
             name: 'foo.js',
-            size: 150000
+            size: 150000,
           },
           {
             id: '2',
             name: 'bar.js',
-            size: 30000
-          }
-        ]
+            size: 30000,
+          },
+        ],
       });
 
       expect(wrapper.find('a.btn > .icon-open')).toHaveLength(2);
@@ -119,14 +119,14 @@ describe('ReleaseArtifacts', function() {
           {
             id: '1',
             name: 'foo.js',
-            size: 150000
+            size: 150000,
           },
           {
             id: '2',
             name: 'bar.js',
-            size: 30000
-          }
-        ]
+            size: 30000,
+          },
+        ],
       });
 
       let instance = wrapper.instance();

@@ -30,7 +30,7 @@ const NewProject = React.createClass({
         </div>
       </div>
     );
-  }
+  },
 });
 
 export default NewProject;

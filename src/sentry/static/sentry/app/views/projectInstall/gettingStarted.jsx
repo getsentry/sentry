@@ -8,7 +8,7 @@ import ProjectSelector from '../../components/projectHeader/projectSelector';
 const GettingStartedBody = React.createClass({
   contextTypes: {
     project: PropTypes.object,
-    organization: PropTypes.object
+    organization: PropTypes.object,
   },
 
   render() {
@@ -25,14 +25,14 @@ const GettingStartedBody = React.createClass({
             <ProjectDocsContext>
               {React.cloneElement(this.props.children, {
                 linkPath: (orgId, projectId, platform) =>
-                  `/${orgId}/${projectId}/getting-started/${platform}/`
+                  `/${orgId}/${projectId}/getting-started/${platform}/`,
               })}
             </ProjectDocsContext>
           </div>
         </div>
       </div>
     );
-  }
+  },
 });
 
 const GettingStarted = React.createClass({
@@ -40,12 +40,10 @@ const GettingStarted = React.createClass({
     let {projectId, orgId} = this.props.params;
     return (
       <ProjectContext orgId={orgId} projectId={projectId}>
-        <GettingStartedBody>
-          {this.props.children}
-        </GettingStartedBody>
+        <GettingStartedBody>{this.props.children}</GettingStartedBody>
       </ProjectContext>
     );
-  }
+  },
 });
 
 export default GettingStarted;

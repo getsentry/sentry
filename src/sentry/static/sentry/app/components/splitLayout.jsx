@@ -6,7 +6,7 @@ import SpreadLayout from './spreadLayout';
 // Flexbox, use when you want your children to be equal sizes
 const SplitLayout = ({children, className, responsive, splitWidth, ...props}) => {
   let cx = classNames('split-layout', className, {
-    'allow-responsive': responsive
+    'allow-responsive': responsive,
   });
   let childCount = 0;
   let totalChildren = React.Children.count(children);
@@ -21,9 +21,9 @@ const SplitLayout = ({children, className, responsive, splitWidth, ...props}) =>
         return React.cloneElement(child, {
           style: {
             marginRight: isLastChild ? undefined : splitWidth,
-            ...((child.props && child.props.style) || {})
+            ...((child.props && child.props.style) || {}),
           },
-          className: classNames(childProps.className, 'split-layout-child')
+          className: classNames(childProps.className, 'split-layout-child'),
         });
       })}
     </SpreadLayout>
@@ -35,7 +35,7 @@ SplitLayout.propTypes = {
   /** Distance in # of pixels to separate children */
   splitWidth: PropTypes.number,
   /** Changes flex-direction to be column on smaller widths */
-  responsive: PropTypes.bool
+  responsive: PropTypes.bool,
 };
 
 export default SplitLayout;

@@ -44,7 +44,7 @@ stories
         color('Low', 'yellow'),
         color('Med', 'lime'),
         color('High', 'blue'),
-        color('Higher', 'purple')
+        color('Higher', 'purple'),
       ]);
 
       return (

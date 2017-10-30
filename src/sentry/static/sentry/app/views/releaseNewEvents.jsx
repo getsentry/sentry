@@ -6,7 +6,7 @@ import {t} from '../locale';
 
 const ReleaseNewEvents = React.createClass({
   contextTypes: {
-    release: PropTypes.object
+    release: PropTypes.object,
   },
 
   render() {
@@ -17,8 +17,9 @@ const ReleaseNewEvents = React.createClass({
           <Link
             to={{
               pathname: `/${orgId}/${projectId}/`,
-              query: {query: 'first-release:' + this.context.release.version}
-            }}>
+              query: {query: 'first-release:' + this.context.release.version},
+            }}
+          >
             <span className="icon icon-open" />
             {t('View new events seen in this release in the stream')}
           </Link>
@@ -32,7 +33,7 @@ const ReleaseNewEvents = React.createClass({
         />
       </div>
     );
-  }
+  },
 });
 
 export default ReleaseNewEvents;

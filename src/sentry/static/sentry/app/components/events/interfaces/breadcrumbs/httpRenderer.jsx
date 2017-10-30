@@ -6,7 +6,7 @@ import SummaryLine from './summaryLine';
 
 const HttpRenderer = React.createClass({
   propTypes: {
-    crumb: PropTypes.object.isRequired
+    crumb: PropTypes.object.isRequired,
   },
 
   renderUrl(url) {
@@ -31,7 +31,7 @@ const HttpRenderer = React.createClass({
     return (
       <CrumbTable title="HTTP Request" summary={summary} kvData={extra} {...this.props} />
     );
-  }
+  },
 });
 
 export default HttpRenderer;

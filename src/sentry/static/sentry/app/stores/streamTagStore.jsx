@@ -29,28 +29,28 @@ const StreamTagStore = Reflux.createStore({
           // TODO(dcramer): remove muted once data is migrated and 9.0+
           'muted',
           'assigned',
-          'unassigned'
+          'unassigned',
         ],
-        predefined: true
+        predefined: true,
       },
       has: {
         key: 'has',
         name: 'Has Tag',
         values: [],
-        predefined: true
+        predefined: true,
       },
       assigned: {
         key: 'assigned',
         name: 'Assigned To',
         values: getMemberListStoreUsernames(),
-        predefined: true
+        predefined: true,
       },
       bookmarks: {
         key: 'bookmarks',
         name: 'Bookmarked By',
         values: getMemberListStoreUsernames(),
-        predefined: true
-      }
+        predefined: true,
+      },
     };
     this.trigger(this.tags);
   },
@@ -79,7 +79,7 @@ const StreamTagStore = Reflux.createStore({
         (obj, tag) => {
           tag = Object.assign(
             {
-              values: []
+              values: [],
             },
             tag
           );
@@ -104,7 +104,7 @@ const StreamTagStore = Reflux.createStore({
     assignedTag.values.unshift('me');
     this.tags.bookmarks.values = assignedTag.values;
     this.trigger(this.tags);
-  }
+  },
 });
 
 export default StreamTagStore;

@@ -7,7 +7,7 @@ import RuleNode from './ruleNode';
 const RuleNodeList = React.createClass({
   propTypes: {
     initialItems: PropTypes.array,
-    nodes: PropTypes.array.isRequired
+    nodes: PropTypes.array.isRequired,
   },
 
   getInitialState() {
@@ -18,7 +18,7 @@ const RuleNodeList = React.createClass({
 
     return {
       items: initialItems,
-      counter
+      counter,
     };
   },
 
@@ -42,18 +42,18 @@ const RuleNodeList = React.createClass({
       // need to make sure elements aren't accidentally re-rendered. So, give each
       // row a consistent key using a counter that initializes at 0 when RuleNodeList
       // is mounted.
-      key_attr: this.state.counter
+      key_attr: this.state.counter,
     });
     this.setState({
       items: this.state.items,
-      counter: this.state.counter + 1
+      counter: this.state.counter + 1,
     });
   },
 
   onDeleteRow(idx, e) {
     this.state.items.splice(idx, 1);
     this.setState({
-      items: this.state.items
+      items: this.state.items,
     });
   },
 
@@ -82,13 +82,17 @@ const RuleNodeList = React.createClass({
           <SelectInput onChange={this.onAddRow} style={{width: '100%'}}>
             <option key="blank" />
             {this.props.nodes.map(node => {
-              return <option value={node.id} key={node.id}>{node.label}</option>;
+              return (
+                <option value={node.id} key={node.id}>
+                  {node.label}
+                </option>
+              );
             })}
           </SelectInput>
         </fieldset>
       </div>
     );
-  }
+  },
 });
 
 export default RuleNodeList;

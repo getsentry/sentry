@@ -11,13 +11,13 @@ class LinkWithConfirmation extends React.PureComponent {
     disabled: PropTypes.bool,
     message: PropTypes.string.isRequired,
     title: PropTypes.string.isRequired,
-    onConfirm: PropTypes.func.isRequired
+    onConfirm: PropTypes.func.isRequired,
   };
 
   constructor(...args) {
     super(...args);
     this.state = {
-      isModalOpen: false
+      isModalOpen: false,
     };
   }
 
@@ -32,7 +32,8 @@ class LinkWithConfirmation extends React.PureComponent {
           className={className}
           disabled={disabled}
           onClick={this.onToggle}
-          title={title}>
+          title={title}
+        >
           {children}
         </a>
       </Confirm>

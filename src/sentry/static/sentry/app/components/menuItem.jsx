@@ -18,7 +18,7 @@ const MenuItem = React.createClass({
     to: PropTypes.string,
     query: PropTypes.object,
     linkClassName: PropTypes.string,
-    onClick: PropTypes.func
+    onClick: PropTypes.func,
   },
 
   handleClick(e) {
@@ -36,7 +36,8 @@ const MenuItem = React.createClass({
           title={this.props.title}
           onClick={this.handleClick}
           className={this.props.linkClassName}
-          tabIndex="-1">
+          tabIndex="-1"
+        >
           {this.props.children}
         </Link>
       );
@@ -47,7 +48,8 @@ const MenuItem = React.createClass({
         onClick={this.handleClick}
         href={this.props.href}
         className={this.props.linkClassName}
-        tabIndex="-1">
+        tabIndex="-1"
+      >
         {this.props.children}
       </a>
     );
@@ -57,7 +59,7 @@ const MenuItem = React.createClass({
     let classes = {
       'dropdown-header': this.props.header,
       divider: this.props.divider,
-      active: this.props.isActive
+      active: this.props.isActive,
     };
 
     let children = null;
@@ -75,11 +77,12 @@ const MenuItem = React.createClass({
         title={null}
         href={null}
         className={classNames(this.props.className, classes)}
-        onClick={this.props.onClick}>
+        onClick={this.props.onClick}
+      >
         {children}
       </li>
     );
-  }
+  },
 });
 
 export default MenuItem;

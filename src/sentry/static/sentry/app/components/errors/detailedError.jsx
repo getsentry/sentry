@@ -15,12 +15,12 @@ const DetailedError = React.createClass({
     /* Detailed error explanation */
     message: PropTypes.node,
     /* Hide support links in footer of error message */
-    hideSupportLinks: PropTypes.bool
+    hideSupportLinks: PropTypes.bool,
   },
 
   getDefaultProps() {
     return {
-      hideSupportLinks: false
+      hideSupportLinks: false,
     };
   },
 
@@ -36,38 +36,33 @@ const DetailedError = React.createClass({
           <IconCircleExclamation />
         </div>
         <div className="detailed-error-content">
-          <h4>
-            {heading}
-          </h4>
+          <h4>{heading}</h4>
 
-          <div className="detailed-error-content-body">
-            {message}
-          </div>
+          <div className="detailed-error-content-body">{message}</div>
 
-          {showFooter &&
+          {showFooter && (
             <div className="detailed-error-content-footer">
               <div>
-                {onRetry &&
+                {onRetry && (
                   <a onClick={onRetry} className="btn btn-default">
                     {t('Retry')}
-                  </a>}
+                  </a>
+                )}
               </div>
 
-              {!hideSupportLinks &&
+              {!hideSupportLinks && (
                 <div className="detailed-error-support-links">
-                  <a href="https://status.sentry.io/">
-                    Service status
-                  </a>
+                  <a href="https://status.sentry.io/">Service status</a>
 
-                  <a href="https://sentry.io/support/">
-                    Contact support
-                  </a>
-                </div>}
-            </div>}
+                  <a href="https://sentry.io/support/">Contact support</a>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
     );
-  }
+  },
 });
 
 export default DetailedError;

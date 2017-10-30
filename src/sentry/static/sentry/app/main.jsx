@@ -4,10 +4,6 @@ import routes from './routes';
 
 export default class App extends React.Component {
   render() {
-    return (
-      <Router.Router history={Router.browserHistory}>
-        {routes()}
-      </Router.Router>
-    );
+    return <Router.Router history={Router.browserHistory}>{routes()}</Router.Router>;
   }
 }

@@ -10,12 +10,12 @@ import {t} from '../../locale';
 
 const ProjectSettings = React.createClass({
   propTypes: {
-    setProjectNavSection: PropTypes.func
+    setProjectNavSection: PropTypes.func,
   },
 
   contextTypes: {
     location: PropTypes.object,
-    organization: PropTypes.object
+    organization: PropTypes.object,
   },
 
   mixins: [ApiMixin, OrganizationState],
@@ -24,7 +24,7 @@ const ProjectSettings = React.createClass({
     return {
       loading: true,
       error: false,
-      project: null
+      project: null,
     };
   },
 
@@ -42,7 +42,7 @@ const ProjectSettings = React.createClass({
       this.setState(
         {
           loading: true,
-          error: false
+          error: false,
         },
         this.fetchData
       );
@@ -57,15 +57,15 @@ const ProjectSettings = React.createClass({
         this.setState({
           project: data,
           loading: false,
-          error: false
+          error: false,
         });
       },
       error: () => {
         this.setState({
           loading: false,
-          error: true
+          error: true,
         });
-      }
+      },
     });
   },
 
@@ -88,24 +88,34 @@ const ProjectSettings = React.createClass({
         <div className="col-md-2">
           <h6 className="nav-header">{t('Configuration')}</h6>
           <ul className="nav nav-stacked">
-            <li><a href={`${settingsUrlRoot}/`}>{t('General')}</a></li>
+            <li>
+              <a href={`${settingsUrlRoot}/`}>{t('General')}</a>
+            </li>
             <ListLink
               to={`/${orgId}/${projectId}/settings/alerts/`}
-              isActive={loc => path.indexOf(loc.pathname) === 0}>
+              isActive={loc => path.indexOf(loc.pathname) === 0}
+            >
               {t('Alerts')}
             </ListLink>
-            {features.has('quotas') &&
-              <li><a href={`${settingsUrlRoot}/quotas/`}>{t('Rate Limits')}</a></li>}
-            <li><a href={`${settingsUrlRoot}/tags/`}>{t('Tags')}</a></li>
+            {features.has('quotas') && (
+              <li>
+                <a href={`${settingsUrlRoot}/quotas/`}>{t('Rate Limits')}</a>
+              </li>
+            )}
+            <li>
+              <a href={`${settingsUrlRoot}/tags/`}>{t('Tags')}</a>
+            </li>
             <li>
               <a href={`${settingsUrlRoot}/issue-tracking/`}>{t('Issue Tracking')}</a>
             </li>
-            {access.has('project:write') &&
+            {access.has('project:write') && (
               <ListLink
                 to={`/${orgId}/${projectId}/settings/release-tracking/`}
-                isActive={loc => path.indexOf(loc.pathname) === 0}>
+                isActive={loc => path.indexOf(loc.pathname) === 0}
+              >
                 {t('Release Tracking')}
-              </ListLink>}
+              </ListLink>
+            )}
             <ListLink to={`/${orgId}/${projectId}/settings/data-forwarding/`}>
               {t('Data Forwarding')}
             </ListLink>
@@ -117,13 +127,15 @@ const ProjectSettings = React.createClass({
             </ListLink>
             <ListLink
               className="badged"
-              to={`/${orgId}/${projectId}/settings/processing-issues/`}>
+              to={`/${orgId}/${projectId}/settings/processing-issues/`}
+            >
               {t('Processing Issues')}
-              {processingIssues > 0 &&
+              {processingIssues > 0 && (
                 <Badge
                   text={processingIssues > 99 ? '99+' : processingIssues + ''}
                   isNew={true}
-                />}
+                />
+              )}
             </ListLink>
           </ul>
           <h6 className="nav-header">{t('Data')}</h6>
@@ -133,7 +145,8 @@ const ProjectSettings = React.createClass({
               isActive={loc => {
                 // Because react-router 1.0 removes router.isActive(route)
                 return path === rootInstallPath || /install\/[\w\-]+\/$/.test(path);
-              }}>
+              }}
+            >
               {t('Error Tracking')}
             </ListLink>
             <ListLink to={`/${orgId}/${projectId}/settings/csp/`}>
@@ -151,7 +164,9 @@ const ProjectSettings = React.createClass({
           </ul>
           <h6 className="nav-header">{t('Integrations')}</h6>
           <ul className="nav nav-stacked">
-            <li><a href={`${settingsUrlRoot}/plugins/`}>{t('All Integrations')}</a></li>
+            <li>
+              <a href={`${settingsUrlRoot}/plugins/`}>{t('All Integrations')}</a>
+            </li>
             {project.plugins.filter(p => p.enabled).map(plugin => {
               return (
                 <li key={plugin.id}>
@@ -165,12 +180,12 @@ const ProjectSettings = React.createClass({
           {React.cloneElement(this.props.children, {
             setProjectNavSection: this.props.setProjectNavSection,
             project,
-            organization: this.context.organization
+            organization: this.context.organization,
           })}
         </div>
       </div>
     );
-  }
+  },
 });
 
 export default ProjectSettings;

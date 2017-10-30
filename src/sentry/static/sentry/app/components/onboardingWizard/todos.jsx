@@ -19,7 +19,7 @@ const TodoList = React.createClass({
         skippable: false,
         prereq: [],
         featureLocation: 'organization',
-        location: 'projects/new/'
+        location: 'projects/new/',
       },
       {
         task: 2,
@@ -29,7 +29,7 @@ const TodoList = React.createClass({
         skippable: false,
         prereq: [1],
         featureLocation: 'project',
-        location: 'settings/install/'
+        location: 'settings/install/',
       },
       {
         task: 3,
@@ -42,7 +42,7 @@ const TodoList = React.createClass({
         skippable: true,
         prereq: [],
         featureLocation: 'organization',
-        location: 'members/'
+        location: 'members/',
       },
       {
         task: 4,
@@ -54,7 +54,7 @@ const TodoList = React.createClass({
         skippable: true,
         prereq: [1, 2],
         featureLocation: 'organization',
-        location: 'projects/new/'
+        location: 'projects/new/',
       },
       {
         task: 5,
@@ -67,7 +67,7 @@ const TodoList = React.createClass({
         skippable: true,
         prereq: [1, 2],
         featureLocation: 'absolute',
-        location: 'https://docs.sentry.io/hosted/learn/context/#capturing-the-user'
+        location: 'https://docs.sentry.io/hosted/learn/context/#capturing-the-user',
       },
       {
         task: 6,
@@ -80,7 +80,7 @@ const TodoList = React.createClass({
         skippable: true,
         prereq: [1, 2],
         featureLocation: 'project',
-        location: 'settings/release-tracking/'
+        location: 'settings/release-tracking/',
       },
       {
         task: 7,
@@ -93,7 +93,7 @@ const TodoList = React.createClass({
         skippable: true,
         prereq: [1, 2], // Is one of the platforms javascript?
         featureLocation: 'absolute',
-        location: 'https://docs.sentry.io/hosted/clients/javascript/sourcemaps/'
+        location: 'https://docs.sentry.io/hosted/clients/javascript/sourcemaps/',
       },
       // {
       //   'task': 8,
@@ -111,7 +111,7 @@ const TodoList = React.createClass({
         skippable: true,
         prereq: [1, 2],
         featureLocation: 'project',
-        location: 'settings/issue-tracking/'
+        location: 'settings/issue-tracking/',
       },
       {
         task: 10,
@@ -120,15 +120,15 @@ const TodoList = React.createClass({
         skippable: true,
         prereq: [1, 2],
         featureLocation: 'project',
-        location: 'settings/alerts/'
-      }
-    ]
+        location: 'settings/alerts/',
+      },
+    ],
   },
 
   getInitialState() {
     return {
       tasks: [],
-      seeAll: false // Show all tasks, included those completed
+      seeAll: false, // Show all tasks, included those completed
     };
   },
 
@@ -160,7 +160,7 @@ const TodoList = React.createClass({
           return task;
         });
         this.setState({tasks: new_state});
-      }
+      },
     });
     this.getOnboardingTasks();
   },
@@ -179,13 +179,11 @@ const TodoList = React.createClass({
     return (
       <div>
         <div onClick={this.click} className="onboarding-wrapper">
-          <ul className="list-unstyled">
-            {todoListTasks}
-          </ul>
+          <ul className="list-unstyled">{todoListTasks}</ul>
         </div>
       </div>
     );
-  }
+  },
 });
 
 export default TodoList;

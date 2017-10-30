@@ -6,7 +6,7 @@ const ProjectIssueTracking = React.createClass({
   propTypes: {
     organization: PropTypes.object.isRequired,
     project: PropTypes.object.isRequired,
-    dataList: PropTypes.array.isRequired
+    dataList: PropTypes.array.isRequired,
   },
 
   render() {
@@ -21,7 +21,7 @@ const ProjectIssueTracking = React.createClass({
         })}
       </div>
     );
-  }
+  },
 });
 
 export default ProjectIssueTracking;

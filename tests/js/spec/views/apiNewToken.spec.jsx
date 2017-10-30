@@ -8,8 +8,8 @@ describe('ApiNewToken', function() {
     it('renders', function() {
       let wrapper = shallow(<ApiNewToken params={{}} />, {
         context: {
-          router: TestStubs.router()
-        }
+          router: TestStubs.router(),
+        },
       });
       expect(wrapper).toMatchSnapshot();
     });

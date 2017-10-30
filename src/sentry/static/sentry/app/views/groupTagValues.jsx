@@ -20,7 +20,7 @@ const GroupTagValues = React.createClass({
       tagValueList: null,
       loading: true,
       error: false,
-      pageLinks: ''
+      pageLinks: '',
     };
   },
 
@@ -44,22 +44,22 @@ const GroupTagValues = React.createClass({
 
     this.setState({
       loading: true,
-      error: false
+      error: false,
     });
 
     this.api.request(`/issues/${params.groupId}/tags/${params.tagKey}/`, {
       success: data => {
         this.setState({
           tagKey: data,
-          loading: this.state.tagValueList === null
+          loading: this.state.tagValueList === null,
         });
       },
       error: error => {
         this.setState({
           error: true,
-          loading: false
+          loading: false,
         });
-      }
+      },
     });
 
     this.api.request(
@@ -69,15 +69,15 @@ const GroupTagValues = React.createClass({
           this.setState({
             tagValueList: data,
             loading: this.state.tagKey === null,
-            pageLinks: jqXHR.getResponseHeader('Link')
+            pageLinks: jqXHR.getResponseHeader('Link'),
           });
         },
         error: error => {
           this.setState({
             error: true,
-            loading: false
+            loading: false,
           });
-        }
+        },
       }
     );
   },
@@ -107,28 +107,32 @@ const GroupTagValues = React.createClass({
             <Link
               to={{
                 pathname: `/${orgId}/${projectId}/`,
-                query: {query: `${tagKey.key}:"${tagValue.value}"`}
-              }}>
+                query: {query: `${tagKey.key}:"${tagValue.value}"`},
+              }}
+            >
               {tagKey.key === 'user'
                 ? [
                     <Avatar user={tagValue} size={20} className="avatar" />,
                     <span style={{marginLeft: 10}}>
                       {this.getUserDisplayName(tagValue)}
-                    </span>
+                    </span>,
                   ]
                 : deviceNameMapper(tagValue.name)}
             </Link>
-            {tagValue.email &&
+            {tagValue.email && (
               <a
                 href={`mailto:${tagValue.email}`}
                 target="_blank"
-                className="external-icon">
+                className="external-icon"
+              >
                 <em className="icon-envelope" />
-              </a>}
-            {isUrl(tagValue.value) &&
+              </a>
+            )}
+            {isUrl(tagValue.value) && (
               <a href={tagValue.value} className="external-icon">
                 <em className="icon-open" />
-              </a>}
+              </a>
+            )}
           </td>
           <td>
             <TimeSince date={tagValue.lastSeen} />
@@ -153,9 +157,7 @@ const GroupTagValues = React.createClass({
               <th style={{width: 200}}>{t('Last Seen')}</th>
             </tr>
           </thead>
-          <tbody>
-            {children}
-          </tbody>
+          <tbody>{children}</tbody>
         </table>
         <Pagination pageLinks={this.state.pageLinks} />
         <p>
@@ -165,7 +167,7 @@ const GroupTagValues = React.createClass({
         </p>
       </div>
     );
-  }
+  },
 });
 
 export default GroupTagValues;

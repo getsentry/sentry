@@ -12,7 +12,7 @@ const AllTeamsList = React.createClass({
     access: PropTypes.object,
     organization: SentryTypes.Organization,
     teamList: PropTypes.arrayOf(SentryTypes.Team),
-    openMembership: PropTypes.bool
+    openMembership: PropTypes.bool,
   },
 
   render() {
@@ -33,9 +33,7 @@ const AllTeamsList = React.createClass({
       return (
         <div className="panel panel-default">
           <table className="table">
-            <tbody>
-              {teamNodes}
-            </tbody>
+            <tbody>{teamNodes}</tbody>
           </table>
         </div>
       );
@@ -45,10 +43,10 @@ const AllTeamsList = React.createClass({
       "You don't have any teams for this organization yet. Get started by [link:creating your first team].",
       {
         root: <p />,
-        link: <Link to={`/organizations/${organization.slug}/teams/new/`} />
+        link: <Link to={`/organizations/${organization.slug}/teams/new/`} />,
       }
     );
-  }
+  },
 });
 
 export default AllTeamsList;

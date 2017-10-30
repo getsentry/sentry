@@ -19,7 +19,7 @@ import OrganizationState from '../mixins/organizationState';
 import {t} from '../locale';
 
 let ERROR_TYPES = {
-  ORG_NOT_FOUND: 'ORG_NOT_FOUND'
+  ORG_NOT_FOUND: 'ORG_NOT_FOUND',
 };
 
 function getRequiredAdminActions(org) {
@@ -28,13 +28,13 @@ function getRequiredAdminActions(org) {
 
 const OrganizationContext = React.createClass({
   childContextTypes: {
-    organization: SentryTypes.Organization
+    organization: SentryTypes.Organization,
   },
 
   mixins: [
     ApiMixin,
     OrganizationState,
-    Reflux.listenTo(ProjectActions.createSuccess, 'onProjectCreation')
+    Reflux.listenTo(ProjectActions.createSuccess, 'onProjectCreation'),
   ],
 
   getInitialState() {
@@ -43,13 +43,13 @@ const OrganizationContext = React.createClass({
       error: false,
       errorType: null,
       organization: null,
-      showBroadcast: false
+      showBroadcast: false,
     };
   },
 
   getChildContext() {
     return {
-      organization: this.state.organization
+      organization: this.state.organization,
     };
   },
 
@@ -97,7 +97,7 @@ const OrganizationContext = React.createClass({
           error: false,
           errorType: null,
           hooks,
-          showBroadcast: this.shouldShowBroadcast(data)
+          showBroadcast: this.shouldShowBroadcast(data),
         });
 
         TeamStore.loadInitialData(data.teams);
@@ -119,9 +119,9 @@ const OrganizationContext = React.createClass({
         this.setState({
           loading: false,
           error: true,
-          errorType
+          errorType,
         });
-      }
+      },
     });
   },
 
@@ -187,13 +187,14 @@ const OrganizationContext = React.createClass({
       <DocumentTitle title={this.getTitle()}>
         <div className="app">
           {this.state.hooks}
-          {this.state.showBroadcast &&
-            <BroadcastModal closeBroadcast={this.closeBroadcast} />}
+          {this.state.showBroadcast && (
+            <BroadcastModal closeBroadcast={this.closeBroadcast} />
+          )}
           {this.props.children}
         </div>
       </DocumentTitle>
     );
-  }
+  },
 });
 
 export default OrganizationContext;

@@ -9,12 +9,12 @@ import {t} from '../../locale';
 const EventExtraData = React.createClass({
   propTypes: {
     group: SentryTypes.Group.isRequired,
-    event: SentryTypes.Event.isRequired
+    event: SentryTypes.Event.isRequired,
   },
 
   getInitialState() {
     return {
-      raw: false
+      raw: false,
     };
   },
 
@@ -24,7 +24,7 @@ const EventExtraData = React.createClass({
 
   toggleRaw(shouldBeRaw) {
     this.setState({
-      raw: shouldBeRaw
+      raw: shouldBeRaw,
     });
   },
 
@@ -38,12 +38,13 @@ const EventExtraData = React.createClass({
           type="extra"
           title={t('Additional Data')}
           toggleRaw={this.toggleRaw}
-          raw={this.state.raw}>
+          raw={this.state.raw}
+        >
           <KeyValueList data={extraDataArray} isContextData={true} raw={this.state.raw} />
         </EventDataSection>
       </div>
     );
-  }
+  },
 });
 
 export default EventExtraData;

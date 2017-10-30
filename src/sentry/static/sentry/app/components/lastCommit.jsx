@@ -9,7 +9,7 @@ import {t} from '../locale';
 const LastCommit = React.createClass({
   propTypes: {
     commit: PropTypes.object.isRequired,
-    headerClass: PropTypes.string
+    headerClass: PropTypes.string,
   },
 
   renderMessage(message) {
@@ -53,7 +53,7 @@ const LastCommit = React.createClass({
         </div>
       </div>
     );
-  }
+  },
 });
 
 export default LastCommit;

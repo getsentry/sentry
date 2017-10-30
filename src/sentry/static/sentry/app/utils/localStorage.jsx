@@ -9,7 +9,7 @@ try {
 
   functions = {
     setItem: localStorage.setItem.bind(localStorage),
-    getItem: localStorage.getItem.bind(localStorage)
+    getItem: localStorage.getItem.bind(localStorage),
   };
 } catch (e) {
   functions = {
@@ -20,7 +20,7 @@ try {
     // https://developer.mozilla.org/en-US/docs/Web/API/Storage/getItem
     getItem() {
       return null;
-    }
+    },
   };
 }
 

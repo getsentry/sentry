@@ -8,7 +8,7 @@ describe('DropdownReact', function() {
     onOpen: () => {},
     onClose: () => {},
     topLevelClasses: 'top-level-class',
-    menuClasses: ''
+    menuClasses: '',
   };
 
   describe('renders', function() {
@@ -43,7 +43,11 @@ describe('DropdownReact', function() {
         wrapper.unmount();
       }
 
-      wrapper = mount(<DropdownReact title="test"><li>hi</li></DropdownReact>);
+      wrapper = mount(
+        <DropdownReact title="test">
+          <li>hi</li>
+        </DropdownReact>
+      );
     });
 
     describe('While Closed', function() {
@@ -81,7 +85,9 @@ describe('DropdownReact', function() {
 
       it('does not close when menu is clicked and `keepMenuOpen` is on', function() {
         wrapper = mount(
-          <DropdownReact title="test" keepMenuOpen><li>hi</li></DropdownReact>
+          <DropdownReact title="test" keepMenuOpen>
+            <li>hi</li>
+          </DropdownReact>
         );
         wrapper.find('a').simulate('click');
         wrapper.find('li').simulate('click');
@@ -102,7 +108,9 @@ describe('DropdownReact', function() {
     describe('Opened', function() {
       beforeEach(function() {
         wrapper = mount(
-          <DropdownReact isOpen={true} title="test"><li>hi</li></DropdownReact>
+          <DropdownReact isOpen={true} title="test">
+            <li>hi</li>
+          </DropdownReact>
         );
       });
 
@@ -131,7 +139,9 @@ describe('DropdownReact', function() {
     describe('Closed', function() {
       beforeEach(function() {
         wrapper = mount(
-          <DropdownReact isOpen={false} title="test"><li>hi</li></DropdownReact>
+          <DropdownReact isOpen={false} title="test">
+            <li>hi</li>
+          </DropdownReact>
         );
       });
 

@@ -16,29 +16,29 @@ function Collapsed(props) {
 
 Collapsed.propTypes = {
   onClick: PropTypes.func.isRequired,
-  count: PropTypes.number.isRequired
+  count: PropTypes.number.isRequired,
 };
 
 const RepositoryFileSummary = React.createClass({
   propTypes: {
     fileChangeSummary: PropTypes.object,
-    repository: PropTypes.string
+    repository: PropTypes.string,
   },
 
   statics: {
-    MAX_WHEN_COLLAPSED: 5
+    MAX_WHEN_COLLAPSED: 5,
   },
 
   getInitialState() {
     return {
       loading: true,
-      collapsed: true
+      collapsed: true,
     };
   },
 
   onCollapseToggle() {
     this.setState({
-      collapsed: !this.state.collapsed
+      collapsed: !this.state.collapsed,
     });
   },
 
@@ -74,18 +74,20 @@ const RepositoryFileSummary = React.createClass({
               />
             );
           })}
-          {numCollapsed > 0 &&
-            <Collapsed onClick={this.onCollapseToggle} count={numCollapsed} />}
+          {numCollapsed > 0 && (
+            <Collapsed onClick={this.onCollapseToggle} count={numCollapsed} />
+          )}
           {numCollapsed === 0 &&
-            canCollapse &&
-            <li className="list-group-item list-group-item-sm align-center">
-              <span className="icon-container" />
-              <a onClick={this.onCollapseToggle}>{t('Collapse')}</a>
-            </li>}
+            canCollapse && (
+              <li className="list-group-item list-group-item-sm align-center">
+                <span className="icon-container" />
+                <a onClick={this.onCollapseToggle}>{t('Collapse')}</a>
+              </li>
+            )}
         </ul>
       </div>
     );
-  }
+  },
 });
 
 export default RepositoryFileSummary;

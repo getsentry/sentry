@@ -35,7 +35,10 @@ describe('Confirm', function() {
       </Confirm>
     );
 
-    wrapper.find('button').simulate('click').simulate('click');
+    wrapper
+      .find('button')
+      .simulate('click')
+      .simulate('click');
     wrapper.update();
     expect(wrapper.find('Modal').prop('show')).toBe(false);
   });
@@ -54,7 +57,11 @@ describe('Confirm', function() {
     wrapper.update();
 
     // Click "Confirm" button, should be last button
-    wrapper.find('Modal').find('Button').last().simulate('click');
+    wrapper
+      .find('Modal')
+      .find('Button')
+      .last()
+      .simulate('click');
     wrapper.update();
 
     expect(wrapper.find('Modal').prop('show')).toBe(false);
@@ -75,7 +82,12 @@ describe('Confirm', function() {
     wrapper.update();
 
     // Click "Confirm" button, should be last button
-    wrapper.find('Modal').find('Button').last().simulate('click').simulate('click');
+    wrapper
+      .find('Modal')
+      .find('Button')
+      .last()
+      .simulate('click')
+      .simulate('click');
     wrapper.update();
 
     expect(wrapper.find('Modal').prop('show')).toBe(false);

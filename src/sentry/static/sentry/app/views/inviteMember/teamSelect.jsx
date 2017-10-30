@@ -9,7 +9,7 @@ const TeamSelect = React.createClass({
   propTypes: {
     selectedTeams: PropTypes.instanceOf(Set),
     teams: PropTypes.array,
-    toggleTeam: PropTypes.func
+    toggleTeam: PropTypes.func,
   },
 
   render() {
@@ -40,7 +40,7 @@ const TeamSelect = React.createClass({
         </div>
       </div>
     );
-  }
+  },
 });
 
 export default TeamSelect;

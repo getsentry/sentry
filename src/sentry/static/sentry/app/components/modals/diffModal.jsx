@@ -16,7 +16,7 @@ const DiffModal = React.createClass({
     // Listen for route changes so we can dismiss modal
     this.unlisten = browserHistory.listen(() =>
       this.setState({
-        diffModal: false
+        diffModal: false,
       })
     );
   },
@@ -36,13 +36,14 @@ const DiffModal = React.createClass({
         className={cx}
         show={!!this.state.diffModal}
         animation={false}
-        onHide={ProjectActions.closeDiffModal}>
+        onHide={ProjectActions.closeDiffModal}
+      >
         <div className="modal-body">
           {this.state.diffModal ? <IssueDiff {...this.state.diffModal} /> : null}
         </div>
       </Modal>
     );
-  }
+  },
 });
 
 export default DiffModal;

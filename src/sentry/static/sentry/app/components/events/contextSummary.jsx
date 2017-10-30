@@ -16,7 +16,7 @@ const generateClassName = function(name) {
 
 const NoSummary = React.createClass({
   propTypes: {
-    title: PropTypes.string.isRequired
+    title: PropTypes.string.isRequired,
   },
 
   render() {
@@ -26,13 +26,13 @@ const NoSummary = React.createClass({
         <h3>{this.props.title}</h3>
       </div>
     );
-  }
+  },
 });
 
 const GenericSummary = React.createClass({
   propTypes: {
     data: PropTypes.object.isRequired,
-    unknownTitle: PropTypes.string.isRequired
+    unknownTitle: PropTypes.string.isRequired,
   },
 
   render() {
@@ -48,15 +48,17 @@ const GenericSummary = React.createClass({
       <div className={`context-item ${className}`}>
         <span className="context-item-icon" />
         <h3>{data.name}</h3>
-        <p><strong>{t('Version:')}</strong> {data.version || t('Unknown')}</p>
+        <p>
+          <strong>{t('Version:')}</strong> {data.version || t('Unknown')}
+        </p>
       </div>
     );
-  }
+  },
 });
 
 const UserSummary = React.createClass({
   propTypes: {
-    data: PropTypes.object.isRequired
+    data: PropTypes.object.isRequired,
   },
 
   render() {
@@ -74,28 +76,32 @@ const UserSummary = React.createClass({
 
     return (
       <div className="context-item user">
-        {userTitle
-          ? <Avatar
-              user={user}
-              size={48}
-              className="context-item-icon"
-              gravatar={false}
-            />
-          : <span className="context-item-icon" />}
+        {userTitle ? (
+          <Avatar user={user} size={48} className="context-item-icon" gravatar={false} />
+        ) : (
+          <span className="context-item-icon" />
+        )}
         <h3>{userTitle}</h3>
-        {user.id && user.id !== userTitle
-          ? <p><strong>{t('ID:')}</strong> {user.id}</p>
-          : user.username &&
-              user.username !== userTitle &&
-              <p><strong>{t('Username:')}</strong> {user.username}</p>}
+        {user.id && user.id !== userTitle ? (
+          <p>
+            <strong>{t('ID:')}</strong> {user.id}
+          </p>
+        ) : (
+          user.username &&
+          user.username !== userTitle && (
+            <p>
+              <strong>{t('Username:')}</strong> {user.username}
+            </p>
+          )
+        )}
       </div>
     );
-  }
+  },
 });
 
 const DeviceSummary = React.createClass({
   propTypes: {
-    data: PropTypes.object.isRequired
+    data: PropTypes.object.isRequired,
   },
 
   render() {
@@ -115,13 +121,13 @@ const DeviceSummary = React.createClass({
         <p>{data.arch || data.model_id || ''}</p>
       </div>
     );
-  }
+  },
 });
 
 const EventContextSummary = React.createClass({
   propTypes: {
     group: SentryTypes.Group.isRequired,
-    event: SentryTypes.Event.isRequired
+    event: SentryTypes.Event.isRequired,
   },
 
   render() {
@@ -131,7 +137,7 @@ const EventContextSummary = React.createClass({
     let children = [<UserSummary key="user" data={evt.user} />];
     switch (evt.platform) {
       case 'cocoa':
-        // fallthrough
+      // fallthrough
       case 'native':
         children.push(<DeviceSummary key="device" data={contexts.device} />);
         children.push(
@@ -155,13 +161,11 @@ const EventContextSummary = React.createClass({
           />
         );
         children.push(
-          contexts.os
-            ? <GenericSummary
-                key="os"
-                data={contexts.os}
-                unknownTitle={t('Unknown OS')}
-              />
-            : <DeviceSummary key="device" data={contexts.device} />
+          contexts.os ? (
+            <GenericSummary key="os" data={contexts.os} unknownTitle={t('Unknown OS')} />
+          ) : (
+            <DeviceSummary key="device" data={contexts.device} />
+          )
         );
         break;
       default:
@@ -173,23 +177,17 @@ const EventContextSummary = React.createClass({
           />
         );
         children.push(
-          contexts.os
-            ? <GenericSummary
-                key="os"
-                data={contexts.os}
-                unknownTitle={t('Unknown OS')}
-              />
-            : <DeviceSummary key="device" data={contexts.device} />
+          contexts.os ? (
+            <GenericSummary key="os" data={contexts.os} unknownTitle={t('Unknown OS')} />
+          ) : (
+            <DeviceSummary key="device" data={contexts.device} />
+          )
         );
         break;
     }
 
-    return (
-      <div className="context-summary">
-        {children}
-      </div>
-    );
-  }
+    return <div className="context-summary">{children}</div>;
+  },
 });
 
 export default EventContextSummary;

@@ -11,7 +11,7 @@ import {t} from '../locale';
 
 const AvatarSettings = React.createClass({
   propTypes: {
-    userId: PropTypes.number
+    userId: PropTypes.number,
   },
 
   mixins: [ApiMixin],
@@ -21,7 +21,7 @@ const AvatarSettings = React.createClass({
       user: null,
       savedDataUrl: null,
       dataUrl: null,
-      hasError: false
+      hasError: false,
     };
   },
 
@@ -31,7 +31,7 @@ const AvatarSettings = React.createClass({
       success: this.updateUserState,
       error: () => {
         this.setState({hasError: true});
-      }
+      },
     });
   },
 
@@ -50,7 +50,7 @@ const AvatarSettings = React.createClass({
   handleError(msg) {
     AlertActions.addAlert({
       message: t(msg),
-      type: 'error'
+      type: 'error',
     });
   },
 
@@ -59,7 +59,7 @@ const AvatarSettings = React.createClass({
     AlertActions.addAlert({
       message: t('Successfully saved avatar preferences'),
       type: 'success',
-      expireAfrer: 3000
+      expireAfrer: 3000,
     });
   },
 
@@ -73,13 +73,13 @@ const AvatarSettings = React.createClass({
       method: 'PUT',
       data: {
         avatar_photo: avatarPhoto,
-        avatar_type: this.state.user.avatar.avatarType
+        avatar_type: this.state.user.avatar.avatarType,
       },
       success: user => {
         this.setState({savedDataUrl: this.state.dataUrl});
         this.handleSuccess(user);
       },
-      error: this.handleError.bind(this, 'There was an error saving your preferences.')
+      error: this.handleError.bind(this, 'There was an error saving your preferences.'),
     });
   },
 
@@ -94,7 +94,9 @@ const AvatarSettings = React.createClass({
     let gravatarMessage = (
       <div className="well">
         {t('Gravatars are managed through ')}
-        <a href="http://gravatar.com" target="_blank">Gravatar.com</a>
+        <a href="http://gravatar.com" target="_blank">
+          Gravatar.com
+        </a>
       </div>
     );
 
@@ -105,13 +107,14 @@ const AvatarSettings = React.createClass({
 
           {this.state.user.avatar.avatarType === 'gravatar' && gravatarMessage}
 
-          {this.state.user.avatar.avatarType === 'upload' &&
+          {this.state.user.avatar.avatarType === 'upload' && (
             <AvatarCropper
               {...this.props}
               user={this.state.user}
               savedDataUrl={this.state.savedDataUrl}
               updateDataUrlState={this.updateDataUrlState}
-            />}
+            />
+          )}
           <fieldset className="form-actions">
             <button className="btn btn-primary" onClick={this.saveSettings}>
               {t('Done')}
@@ -120,7 +123,7 @@ const AvatarSettings = React.createClass({
         </form>
       </div>
     );
-  }
+  },
 });
 
 export default AvatarSettings;

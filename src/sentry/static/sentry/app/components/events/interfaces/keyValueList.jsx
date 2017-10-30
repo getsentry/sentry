@@ -11,14 +11,14 @@ const KeyValueList = React.createClass({
     isContextData: PropTypes.bool,
     isSorted: PropTypes.bool,
     onClick: PropTypes.func,
-    raw: PropTypes.bool
+    raw: PropTypes.bool,
   },
 
   getDefaultProps() {
     return {
       isContextData: false,
       isSorted: true,
-      raw: false
+      raw: false,
     };
   },
 
@@ -43,33 +43,27 @@ const KeyValueList = React.createClass({
             if (this.props.isContextData) {
               return [
                 <tr key={key}>
-                  <td className="key">
-                    {key}
-                  </td>
+                  <td className="key">{key}</td>
                   <td className="value">
                     <ContextData data={!raw ? value : JSON.stringify(value)} />
                   </td>
-                </tr>
+                </tr>,
               ];
             } else {
               return [
                 <tr key={key}>
-                  <td className="key">
-                    {key}
-                  </td>
+                  <td className="key">{key}</td>
                   <td className="value">
-                    <pre>
-                      {deviceNameMapper('' + value || ' ')}
-                    </pre>
+                    <pre>{deviceNameMapper('' + value || ' ')}</pre>
                   </td>
-                </tr>
+                </tr>,
               ];
             }
           })}
         </tbody>
       </table>
     );
-  }
+  },
 });
 
 export default KeyValueList;

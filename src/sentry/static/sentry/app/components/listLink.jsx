@@ -17,17 +17,17 @@ const ListLink = React.createClass({
     // If supplied by parent component, decides whether link element
     // is "active" or not ... overriding default behavior of strict
     // route matching
-    isActive: PropTypes.func
+    isActive: PropTypes.func,
   },
 
   contextTypes: {
-    router: PropTypes.object.isRequired
+    router: PropTypes.object.isRequired,
   },
 
   getDefaultProps() {
     return {
       activeClassName: 'active',
-      index: false
+      index: false,
     };
   },
 
@@ -57,7 +57,7 @@ const ListLink = React.createClass({
         </Link>
       </li>
     );
-  }
+  },
 });
 
 export default ListLink;

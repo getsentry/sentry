@@ -14,7 +14,7 @@ const ReleaseProjectStatSparkline = React.createClass({
   propTypes: {
     orgId: PropTypes.string,
     project: PropTypes.object,
-    version: PropTypes.string
+    version: PropTypes.string,
   },
 
   mixins: [ApiMixin],
@@ -24,7 +24,7 @@ const ReleaseProjectStatSparkline = React.createClass({
       loading: true,
       error: false,
       stats: [],
-      newIssueCount: null
+      newIssueCount: null,
     };
   },
 
@@ -37,35 +37,37 @@ const ReleaseProjectStatSparkline = React.createClass({
       data: 'stat=received',
       success: (data, _, jqXHR) => {
         this.setState({
-          stats: data
+          stats: data,
         });
         this.getNewIssuesCount();
       },
       error: () => {
         this.setState({
-          error: true
+          error: true,
         });
-      }
+      },
     });
   },
 
   getNewIssuesCount() {
     let {orgId, version} = this.props;
     let projectId = this.props.project.slug;
-    let issuesPath = `/projects/${orgId}/${projectId}/releases/${encodeURIComponent(version)}/`;
+    let issuesPath = `/projects/${orgId}/${projectId}/releases/${encodeURIComponent(
+      version
+    )}/`;
     this.api.request(issuesPath, {
       method: 'GET',
       success: (data, _, jqXHR) => {
         this.setState({
           newIssueCount: data.newGroups,
-          loading: false
+          loading: false,
         });
       },
       error: () => {
         this.setState({
-          error: true
+          error: true,
         });
-      }
+      },
     });
   },
 
@@ -84,9 +86,7 @@ const ReleaseProjectStatSparkline = React.createClass({
           </Sparklines>
         </div>
         <Link to={`/${orgId}/${project.slug}/releases/${encodeURIComponent(version)}/`}>
-          <h6 className="m-b-0">
-            {project.name}
-          </h6>
+          <h6 className="m-b-0">{project.name}</h6>
           <p className="m-b-0 text-muted">
             <small>
               {newIssueCount > 0
@@ -97,7 +97,7 @@ const ReleaseProjectStatSparkline = React.createClass({
         </Link>
       </li>
     );
-  }
+  },
 });
 
 export default ReleaseProjectStatSparkline;

@@ -22,7 +22,7 @@ import {t, tct, tn} from '../../locale';
 const GroupActivity = React.createClass({
   // TODO(dcramer): only re-render on group/activity change
   propTypes: {
-    group: PropTypes.object
+    group: PropTypes.object,
   },
 
   mixins: [GroupState, ApiMixin],
@@ -38,7 +38,7 @@ const GroupActivity = React.createClass({
         return t('%s marked this issue as resolved', author);
       case 'set_resolved_by_age':
         return t('%(author)s marked this issue as resolved due to inactivity', {
-          author
+          author,
         });
       case 'set_resolved_in_release':
         return data.version
@@ -46,7 +46,7 @@ const GroupActivity = React.createClass({
               author,
               version: (
                 <Version version={data.version} orgId={orgId} projectId={projectId} />
-              )
+              ),
             })
           : t('%s marked this issue as resolved in the upcoming release', author);
       case 'set_resolved_in_commit':
@@ -58,7 +58,7 @@ const GroupActivity = React.createClass({
               commitId={data.commit.id}
               repository={data.commit.repository}
             />
-          )
+          ),
         });
       case 'set_unresolved':
         return t('%s marked this issue as unresolved', author);
@@ -66,7 +66,7 @@ const GroupActivity = React.createClass({
         if (data.ignoreDuration) {
           return t('%(author)s ignored this issue for %(duration)s', {
             author,
-            duration: <Duration seconds={data.ignoreDuration * 60} />
+            duration: <Duration seconds={data.ignoreDuration * 60} />,
           });
         } else if (data.ignoreCount && data.ignoreWindow) {
           return tct(
@@ -74,13 +74,13 @@ const GroupActivity = React.createClass({
             {
               author,
               count: data.ignoreCount,
-              duration: <Duration seconds={data.ignoreWindow * 3600} />
+              duration: <Duration seconds={data.ignoreWindow * 3600} />,
             }
           );
         } else if (data.ignoreCount) {
           return tct('[author] ignored this issue until it happens [count] time(s)', {
             author,
-            count: data.ignoreCount
+            count: data.ignoreCount,
           });
         } else if (data.ignoreUserCount && data.ignoreUserWindow) {
           return tct(
@@ -88,13 +88,13 @@ const GroupActivity = React.createClass({
             {
               author,
               count: data.ignoreUserCount,
-              duration: <Duration seconds={data.ignoreUserWindow * 3600} />
+              duration: <Duration seconds={data.ignoreUserWindow * 3600} />,
             }
           );
         } else if (data.ignoreUserCount) {
           return tct('[author] ignored this issue until it affects [count] user(s)', {
             author,
-            count: data.ignoreUserCount
+            count: data.ignoreUserCount,
           });
         }
         return t('%s ignored this issue', author);
@@ -108,14 +108,14 @@ const GroupActivity = React.createClass({
               author,
               version: (
                 <Version version={data.version} orgId={orgId} projectId={projectId} />
-              )
+              ),
             })
           : t('%s marked this issue as a regression', author);
       case 'create_issue':
         return t('%(author)s created an issue on %(provider)s titled %(title)s', {
           author,
           provider: data.provider,
-          title: <a href={data.location}>{data.title}</a>
+          title: <a href={data.location}>{data.title}</a>,
         });
       case 'unmerge_source':
         return tn(
@@ -123,11 +123,13 @@ const GroupActivity = React.createClass({
           '%2$s migrated %1$d fingerprints to %3$s',
           data.fingerprints.length,
           author,
-          data.destination
-            ? <a href={`/${orgId}/${projectId}/issues/${data.destination.id}`}>
-                {data.destination.shortId}
-              </a>
-            : t('a group')
+          data.destination ? (
+            <a href={`/${orgId}/${projectId}/issues/${data.destination.id}`}>
+              {data.destination.shortId}
+            </a>
+          ) : (
+            t('a group')
+          )
         );
       case 'unmerge_destination':
         return tn(
@@ -135,11 +137,13 @@ const GroupActivity = React.createClass({
           '%2$s migrated %1$d fingerprints from %3$s',
           data.fingerprints.length,
           author,
-          data.source
-            ? <a href={`/${orgId}/${projectId}/issues/${data.source.id}`}>
-                {data.source.shortId}
-              </a>
-            : t('a group')
+          data.source ? (
+            <a href={`/${orgId}/${projectId}/issues/${data.source.id}`}>
+              {data.source.shortId}
+            </a>
+          ) : (
+            t('a group')
+          )
         );
       case 'first_seen':
         return t('%s first saw this issue', author);
@@ -153,7 +157,7 @@ const GroupActivity = React.createClass({
           if (assignee && assignee.email) {
             return t('%(author)s assigned this event to %(assignee)s', {
               author,
-              assignee: assignee.email
+              assignee: assignee.email,
             });
           } else {
             return t('%s assigned this event to an unknown user', author);
@@ -194,7 +198,7 @@ const GroupActivity = React.createClass({
       },
       complete: () => {
         IndicatorStore.remove(loadingIndicator);
-      }
+      },
     });
   },
 
@@ -204,13 +208,17 @@ const GroupActivity = React.createClass({
     let memberList = MemberListStore.getAll();
 
     let children = group.activity.map((item, itemIdx) => {
-      let avatar = item.user
-        ? <Avatar user={item.user} size={64} className="avatar" />
-        : <div className="avatar sentry"><span className="icon-sentry-logo" /></div>;
+      let avatar = item.user ? (
+        <Avatar user={item.user} size={64} className="avatar" />
+      ) : (
+        <div className="avatar sentry">
+          <span className="icon-sentry-logo" />
+        </div>
+      );
 
       let author = {
         name: item.user ? item.user.name : 'Sentry',
-        avatar
+        avatar,
       };
 
       if (item.type === 'note') {
@@ -262,7 +270,7 @@ const GroupActivity = React.createClass({
         </div>
       </div>
     );
-  }
+  },
 });
 
 export default GroupActivity;

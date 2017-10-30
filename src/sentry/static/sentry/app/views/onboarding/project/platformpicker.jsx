@@ -13,7 +13,7 @@ const PlatformPicker = React.createClass({
   propTypes: {
     setPlatform: PropTypes.func.isRequired,
     platform: PropTypes.string,
-    showOther: PropTypes.bool
+    showOther: PropTypes.bool,
   },
 
   getDefaultProps() {
@@ -23,7 +23,7 @@ const PlatformPicker = React.createClass({
   getInitialState() {
     return {
       tab: categoryList[0],
-      filter: (this.props.platform || '').split('-')[0]
+      filter: (this.props.platform || '').split('-')[0],
     };
   },
 
@@ -63,7 +63,7 @@ const PlatformPicker = React.createClass({
             <PlatformCard
               platform={platform.id}
               className={classnames({
-                selected: this.props.platform === platform.id
+                selected: this.props.platform === platform.id,
               })}
               key={platform.id}
               onClick={() => {
@@ -103,7 +103,8 @@ const PlatformPicker = React.createClass({
                   e.preventDefault();
                 }}
                 to={''}
-                isActive={() => categoryName === (filter ? 'All' : this.state.tab)}>
+                isActive={() => categoryName === (filter ? 'All' : this.state.tab)}
+              >
                 {categoryName}
               </ListLink>
             );
@@ -112,7 +113,7 @@ const PlatformPicker = React.createClass({
         {this.renderPlatformList()}
       </div>
     );
-  }
+  },
 });
 
 export default PlatformPicker;

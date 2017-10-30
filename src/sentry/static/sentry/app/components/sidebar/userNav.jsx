@@ -8,7 +8,7 @@ import {t} from '../../locale';
 
 const UserNav = React.createClass({
   contextTypes: {
-    location: PropTypes.object
+    location: PropTypes.object,
   },
 
   shouldComponentUpdate(nextProps, nextState) {
@@ -37,7 +37,7 @@ const UserNav = React.createClass({
         <MenuItem href="/auth/logout/">{t('Sign out')}</MenuItem>
       </DropdownLink>
     );
-  }
+  },
 });
 
 export default UserNav;
