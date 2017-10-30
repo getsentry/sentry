@@ -252,11 +252,6 @@ class AuthHelper(object):
         user = request.user
         organization = self.organization
 
-        # On SAML we don't have an id when doing the setup so we
-        # don't gonna attach the identity if that was not provided
-        if not identity:
-            return
-
         try:
             try:
                 # prioritize identifying by the SSO provider's user ID
