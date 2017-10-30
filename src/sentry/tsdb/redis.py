@@ -174,6 +174,8 @@ class RedisTSDB(BaseTSDB):
         return key
 
     def incr(self, model, key, timestamp=None, count=1, environment_id=None):
+        self.validate_arguments([model], [environment_id])
+
         self.incr_multi([(model, key)], timestamp, count, environment_id)
 
     def incr_multi(self, items, timestamp=None, count=1, environment_id=None):
@@ -182,6 +184,8 @@ class RedisTSDB(BaseTSDB):
 
         >>> incr_multi([(TimeSeriesModel.project, 1), (TimeSeriesModel.group, 5)])
         """
+        self.validate_arguments([model for model, _ in items], [environment_id])
+
         if timestamp is None:
             timestamp = timezone.now()
 
@@ -207,6 +211,8 @@ class RedisTSDB(BaseTSDB):
         >>>          start=now - timedelta(days=1),
         >>>          end=now)
         """
+        self.validate_arguments([model], [environment_id])
+
         rollup, series = self.get_optimal_rollup_series(start, end, rollup)
         series = map(to_datetime, series)
 
@@ -232,6 +238,8 @@ class RedisTSDB(BaseTSDB):
         environment_ids = (
             set(environment_ids) if environment_ids is not None else set()).union(
             [None])
+
+        self.validate_arguments([model], environment_ids)
 
         rollups = self.get_active_series(timestamp=timestamp)
 
@@ -287,6 +295,8 @@ class RedisTSDB(BaseTSDB):
             set(environment_ids) if environment_ids is not None else set()).union(
             [None])
 
+        self.validate_arguments(models, environment_ids)
+
         rollups = self.get_active_series(start, end, timestamp)
 
         for cluster, environment_ids in self.get_cluster_groups(environment_ids):
@@ -310,12 +320,16 @@ class RedisTSDB(BaseTSDB):
                                     )
 
     def record(self, model, key, values, timestamp=None, environment_id=None):
+        self.validate_arguments([model], [environment_id])
+
         self.record_multi(((model, key, values), ), timestamp, environment_id)
 
     def record_multi(self, items, timestamp=None, environment_id=None):
         """
         Record an occurence of an item in a distinct counter.
         """
+        self.validate_arguments([model for model, key, values in items], [environment_id])
+
         if timestamp is None:
             timestamp = timezone.now()
 
@@ -349,6 +363,8 @@ class RedisTSDB(BaseTSDB):
         """
         Fetch counts of distinct items for each rollup interval within the range.
         """
+        self.validate_arguments([model], [environment_id])
+
         rollup, series = self.get_optimal_rollup_series(start, end, rollup)
 
         responses = {}
@@ -379,6 +395,8 @@ class RedisTSDB(BaseTSDB):
         """
         Count distinct items during a time range.
         """
+        self.validate_arguments([model], [environment_id])
+
         rollup, series = self.get_optimal_rollup_series(start, end, rollup)
 
         responses = {}
@@ -400,6 +418,8 @@ class RedisTSDB(BaseTSDB):
 
     def get_distinct_counts_union(self, model, keys, start, end=None,
                                   rollup=None, environment_id=None):
+        self.validate_arguments([model], [environment_id])
+
         if not keys:
             return 0
 
@@ -485,6 +505,8 @@ class RedisTSDB(BaseTSDB):
             set(environment_ids) if environment_ids is not None else set()).union(
             [None])
 
+        self.validate_arguments([model], environment_ids)
+
         rollups = self.get_active_series(timestamp=timestamp)
 
         for cluster, environment_ids in self.get_cluster_groups(environment_ids):
@@ -550,6 +572,8 @@ class RedisTSDB(BaseTSDB):
 
     def delete_distinct_counts(self, models, keys, start=None, end=None,
                                timestamp=None, environment_ids=None):
+        self.validate_arguments(models, environment_ids)
+
         environment_ids = (
             set(environment_ids) if environment_ids is not None else set()).union(
             [None])
@@ -582,6 +606,8 @@ class RedisTSDB(BaseTSDB):
         )
 
     def record_frequency_multi(self, requests, timestamp=None, environment_id=None):
+        self.validate_arguments([model for model, request in requests], [environment_id])
+
         if not self.enable_frequency_sketches:
             return
 
@@ -625,6 +651,8 @@ class RedisTSDB(BaseTSDB):
 
     def get_most_frequent(self, model, keys, start, end=None,
                           rollup=None, limit=None, environment_id=None):
+        self.validate_arguments([model], [environment_id])
+
         if not self.enable_frequency_sketches:
             raise NotImplementedError("Frequency sketches are disabled.")
 
@@ -655,6 +683,8 @@ class RedisTSDB(BaseTSDB):
 
     def get_most_frequent_series(self, model, keys, start, end=None,
                                  rollup=None, limit=None, environment_id=None):
+        self.validate_arguments([model], [environment_id])
+
         if not self.enable_frequency_sketches:
             raise NotImplementedError("Frequency sketches are disabled.")
 
@@ -684,6 +714,8 @@ class RedisTSDB(BaseTSDB):
         return results
 
     def get_frequency_series(self, model, items, start, end=None, rollup=None, environment_id=None):
+        self.validate_arguments([model], [environment_id])
+
         if not self.enable_frequency_sketches:
             raise NotImplementedError("Frequency sketches are disabled.")
 
@@ -724,6 +756,8 @@ class RedisTSDB(BaseTSDB):
         return results
 
     def get_frequency_totals(self, model, items, start, end=None, rollup=None, environment_id=None):
+        self.validate_arguments([model], [environment_id])
+
         if not self.enable_frequency_sketches:
             raise NotImplementedError("Frequency sketches are disabled.")
 
@@ -743,6 +777,8 @@ class RedisTSDB(BaseTSDB):
         environment_ids = list(
             (set(environment_ids) if environment_ids is not None else set()).union(
                 [None]))
+
+        self.validate_arguments([model], environment_ids)
 
         if not self.enable_frequency_sketches:
             return
@@ -812,6 +848,8 @@ class RedisTSDB(BaseTSDB):
         environment_ids = (
             set(environment_ids) if environment_ids is not None else set()).union(
             [None])
+
+        self.validate_arguments(models, environment_ids)
 
         rollups = self.get_active_series(start, end, timestamp)
 
