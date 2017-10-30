@@ -244,6 +244,7 @@ _load_platform_data()
 MARKETING_SLUG_TO_INTEGRATION_ID = {
     "kotlin": "java",
     "scala": "java",
+    "spring": "java",
     "android": "java-android",
     "react": "javascript-react",
     "angular": "javascript-angular",
@@ -265,6 +266,7 @@ MARKETING_SLUG_TO_INTEGRATION_ID = {
     "symfony": "php-symfony2",
     "rails": "ruby-rails",
     "sinatra": "ruby-sinatra",
+    "dotnet": "csharp",
 }
 
 
