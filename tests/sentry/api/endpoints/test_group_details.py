@@ -38,6 +38,7 @@ class GroupDetailsTest(APITestCase):
         tagstore.create_group_tag_value(
             group_id=group.id,
             project_id=group.project_id,
+            environment_id=self.environment.id,
             key='sentry:release',
             value=release.version,
         )

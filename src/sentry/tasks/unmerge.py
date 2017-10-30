@@ -267,7 +267,8 @@ def collect_tag_data(events):
     results = {}
 
     for event in events:
-        tags = results.setdefault(event.group_id, {})
+        environment = get_environment(event)
+        tags = results.setdefault((event.group_id, environment), {})
 
         for key, value in event.get_tags():
             values = tags.setdefault(key, {})
@@ -282,11 +283,16 @@ def collect_tag_data(events):
 
 
 def repair_tag_data(caches, project, events):
-    for group_id, keys in collect_tag_data(events).items():
+    for (group_id, env_name), keys in collect_tag_data(events).items():
+        environment = caches['Environment'](
+            project.organization_id,
+            env_name,
+        )
         for key, values in keys.items():
             tagstore.get_or_create_group_tag_key(
                 project_id=project.id,
                 group_id=group_id,
+                environment_id=environment.id,
                 key=key,
             )
 
@@ -297,6 +303,7 @@ def repair_tag_data(caches, project, events):
                 instance, created = tagstore.get_or_create_group_tag_value(
                     project_id=project.id,
                     group_id=group_id,
+                    environment_id=environment.id,
                     key=key,
                     value=value,
                     defaults={

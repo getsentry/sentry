@@ -15,6 +15,7 @@ class ProjectTagKeyDetailsTest(APITestCase):
         project = self.create_project()
         tagkey = tagstore.create_tag_key(
             project_id=project.id,
+            environment_id=self.environment.id,
             key='foo',
             values_seen=16
         )
@@ -41,7 +42,10 @@ class ProjectTagKeyDeleteTest(APITestCase):
     @mock.patch('sentry.tagstore.legacy.tasks.delete_tag_key')
     def test_simple(self, mock_delete_tag_key):
         project = self.create_project()
-        tagkey = tagstore.create_tag_key(project_id=project.id, key='foo')
+        tagkey = tagstore.create_tag_key(
+            project_id=project.id,
+            environment_id=self.environment.id,
+            key='foo')
 
         self.login_as(user=self.user)
 

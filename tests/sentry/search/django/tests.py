@@ -20,8 +20,10 @@ class DjangoSearchBackendTest(TestCase):
     def setUp(self):
         self.backend = self.create_backend()
 
-        self.project1 = self.create_project(name='foo')
-        self.project2 = self.create_project(name='bar')
+        self.project1 = self.create_project(name='project1')
+        self.env1 = self.create_environment(project=self.project1, name='env1')
+        self.project2 = self.create_project(name='project2')
+        self.env2 = self.create_environment(project=self.project2, name='env2')
 
         self.group1 = self.create_group(
             project=self.project1,
@@ -75,6 +77,7 @@ class DjangoSearchBackendTest(TestCase):
             tagstore.create_group_tag_value(
                 project_id=self.group1.project_id,
                 group_id=self.group1.id,
+                environment_id=self.env1.id,
                 key=key,
                 value=value,
             )
@@ -82,6 +85,7 @@ class DjangoSearchBackendTest(TestCase):
             tagstore.create_group_tag_value(
                 project_id=self.group2.project_id,
                 group_id=self.group2.id,
+                environment_id=self.env2.id,
                 key=key,
                 value=value,
             )

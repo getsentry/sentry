@@ -18,9 +18,18 @@ class ProjectTagsTest(TestCase):
         self.assertRequiresAuthentication(self.path)
 
     def test_simple(self):
-        tagstore.create_tag_key(project_id=self.project.id, key='site')
-        tagstore.create_tag_key(project_id=self.project.id, key='url')
-        tagstore.create_tag_key(project_id=self.project.id, key='os')
+        tagstore.create_tag_key(
+            project_id=self.project.id,
+            environment_id=self.environment.id,
+            key='site')
+        tagstore.create_tag_key(
+            project_id=self.project.id,
+            environment_id=self.environment.id,
+            key='url')
+        tagstore.create_tag_key(
+            project_id=self.project.id,
+            environment_id=self.environment.id,
+            key='os')
 
         self.login_as(self.user)
 
