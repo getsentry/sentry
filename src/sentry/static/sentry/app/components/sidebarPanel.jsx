@@ -6,7 +6,7 @@ const SidebarPanel = React.createClass({
   propTypes: {
     title: PropTypes.string,
     items: PropTypes.array,
-    hidePanel: PropTypes.func
+    hidePanel: PropTypes.func,
   },
 
   render() {
@@ -19,15 +19,16 @@ const SidebarPanel = React.createClass({
           <h2>{this.props.title}</h2>
         </div>
         <div className="sidebar-panel-body">
-          {!this.props.children &&
+          {!this.props.children && (
             <div className="sidebar-panel-items">
               <SidebarPanelItem />
-            </div>}
+            </div>
+          )}
           {this.props.children}
         </div>
       </div>
     );
-  }
+  },
 });
 
 export default SidebarPanel;

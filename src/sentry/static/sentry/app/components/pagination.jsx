@@ -9,11 +9,11 @@ export default React.createClass({
   propTypes: {
     pageLinks: PropTypes.string,
     to: PropTypes.string,
-    onCursor: PropTypes.func
+    onCursor: PropTypes.func,
   },
 
   contextTypes: {
-    location: PropTypes.object
+    location: PropTypes.object,
   },
 
   getDefaultProps() {
@@ -21,9 +21,9 @@ export default React.createClass({
       onCursor: (cursor, path, query) => {
         browserHistory.pushState(null, path, {
           ...query,
-          cursor
+          cursor,
         });
-      }
+      },
     };
   },
 
@@ -57,7 +57,8 @@ export default React.createClass({
               onCursor(links.previous.cursor, path, query);
             }}
             className={previousPageClassName}
-            disabled={links.previous.results === false}>
+            disabled={links.previous.results === false}
+          >
             <span title={t('Previous')} className="icon-arrow-left" />
           </a>
           <a
@@ -65,11 +66,12 @@ export default React.createClass({
               onCursor(links.next.cursor, path, query);
             }}
             className={nextPageClassName}
-            disabled={links.next.results === false}>
+            disabled={links.next.results === false}
+          >
             <span title={t('Next')} className="icon-arrow-right" />
           </a>
         </div>
       </div>
     );
-  }
+  },
 });

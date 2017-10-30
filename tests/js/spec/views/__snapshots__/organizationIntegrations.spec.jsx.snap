@@ -205,7 +205,8 @@ exports[`OrganizationIntegrations render() with a provider renders with a reposi
                 <strong>
                   repo-name
                 </strong>
-                 — 
+                 —
+                 
                 <small>
                   GitHub
                 </small>

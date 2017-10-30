@@ -22,8 +22,8 @@ describe('CreateProject', function() {
   describe('render()', function() {
     const baseProps = {
       params: {
-        orgId: 'testOrg'
-      }
+        orgId: 'testOrg',
+      },
     };
 
     const baseContext = {
@@ -33,17 +33,17 @@ describe('CreateProject', function() {
           slug: 'testOrg',
           teams: [
             {slug: 'bar', id: '1', name: 'bar', hasAccess: true},
-            {slug: 'foo', id: '2', name: 'foo', hasAccess: false}
-          ]
+            {slug: 'foo', id: '2', name: 'foo', hasAccess: false},
+          ],
         },
         router: TestStubs.router(),
-        location: {query: {}}
+        location: {query: {}},
       },
       childContextTypes: {
         organization: React.PropTypes.object,
         location: React.PropTypes.object,
-        router: React.PropTypes.object
-      }
+        router: React.PropTypes.object,
+      },
     };
 
     it('should render loading', function() {
@@ -60,12 +60,12 @@ describe('CreateProject', function() {
               role: {
                 id: '1',
                 name: 'member',
-                desc: 'a normal member'
+                desc: 'a normal member',
               },
-              allowed: true
-            }
-          ]
-        }
+              allowed: true,
+            },
+          ],
+        },
       });
 
       let context = _.cloneDeep(baseContext);
@@ -85,7 +85,7 @@ describe('CreateProject', function() {
 
       let wrapper = shallow(<InviteMember {...baseProps} />, baseContext);
       wrapper.setState({
-        loading: false
+        loading: false,
       });
 
       // Lets just target message
@@ -101,12 +101,12 @@ describe('CreateProject', function() {
               role: {
                 id: '1',
                 name: 'member',
-                desc: 'a normal member'
+                desc: 'a normal member',
               },
-              allowed: false
-            }
-          ]
-        }
+              allowed: false,
+            },
+          ],
+        },
       });
 
       let handleSubmitStub = this.sandbox.stub(
@@ -131,21 +131,21 @@ describe('CreateProject', function() {
           allowed_roles: [
             {
               role: {id: '1', name: 'member', desc: 'a normal member'},
-              allowed: true
+              allowed: true,
             },
             {
               role: {id: '2', name: 'bar', desc: 'another role'},
-              allowed: true
-            }
-          ]
-        }
+              allowed: true,
+            },
+          ],
+        },
       });
 
       let inviteRequest = {
         url: '/organizations/testOrg/members/',
         method: 'POST',
         statusCode: 200,
-        body: {}
+        body: {},
       };
 
       Client.addMockResponse(inviteRequest);

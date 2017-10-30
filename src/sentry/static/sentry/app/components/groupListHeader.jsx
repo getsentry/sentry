@@ -23,7 +23,7 @@ const GroupListHeader = React.createClass({
         </Toolbar>
       </div>
     );
-  }
+  },
 });
 
 export default GroupListHeader;

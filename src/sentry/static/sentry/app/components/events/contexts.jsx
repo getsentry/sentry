@@ -11,7 +11,7 @@ const CONTEXT_TYPES = {
   device: require('./contexts/device').default,
   os: require('./contexts/os').default,
   runtime: require('./contexts/runtime').default,
-  user: require('./contexts/user').default
+  user: require('./contexts/user').default,
 };
 
 function getContextComponent(type) {
@@ -36,12 +36,12 @@ const ContextChunk = React.createClass({
     group: PropTypes.object.isRequired,
     type: PropTypes.string.isRequired,
     alias: PropTypes.string.isRequired,
-    value: PropTypes.object.isRequired
+    value: PropTypes.object.isRequired,
   },
 
   getInitialState() {
     return {
-      isLoading: false
+      isLoading: false,
     };
   },
 
@@ -59,12 +59,12 @@ const ContextChunk = React.createClass({
     let sourcePlugin = getSourcePlugin(this.props.group.pluginContexts, this.props.type);
     if (!sourcePlugin) {
       this.setState({
-        pluginLoading: false
+        pluginLoading: false,
       });
     } else {
       this.setState(
         {
-          pluginLoading: true
+          pluginLoading: true,
         },
         () => {
           plugins.load(sourcePlugin, () => {
@@ -119,17 +119,18 @@ const ContextChunk = React.createClass({
         event={evt}
         key={`context-${alias}`}
         type={`context-${alias}`}
-        title={this.renderTitle(Component)}>
+        title={this.renderTitle(Component)}
+      >
         <Component alias={alias} data={value} />
       </GroupEventDataSection>
     );
-  }
+  },
 });
 
 const ContextsInterface = React.createClass({
   propTypes: {
     event: PropTypes.object.isRequired,
-    group: PropTypes.object.isRequired
+    group: PropTypes.object.isRequired,
   },
 
   render() {
@@ -165,7 +166,7 @@ const ContextsInterface = React.createClass({
     }
 
     return <div>{children}</div>;
-  }
+  },
 });
 
 export default ContextsInterface;

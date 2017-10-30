@@ -35,7 +35,7 @@ export const INTERFACES = {
   csp: CspInterface,
   breadcrumbs: BreadcrumbsInterface,
   threads: ThreadsInterface,
-  debugmeta: DebugMetaInterface
+  debugmeta: DebugMetaInterface,
 };
 
 const EventEntries = React.createClass({
@@ -46,12 +46,12 @@ const EventEntries = React.createClass({
     project: PropTypes.object.isRequired,
     // TODO(dcramer): ideally isShare would be replaced with simple permission
     // checks
-    isShare: PropTypes.bool
+    isShare: PropTypes.bool,
   },
 
   getDefaultProps() {
     return {
-      isShare: false
+      isShare: false,
     };
   },
 
@@ -94,7 +94,8 @@ const EventEntries = React.createClass({
             group={group}
             event={evt}
             type={entry.type}
-            title={entry.type}>
+            title={entry.type}
+          >
             <p>{t('There was an error rendering this data.')}</p>
           </EventDataSection>
         );
@@ -115,18 +116,20 @@ const EventEntries = React.createClass({
         {evt.userReport && <EventUserReport group={group} event={evt} />}
         {!utils.objectIsEmpty(evt.errors) && <EventErrors group={group} event={evt} />}
         {!utils.objectIsEmpty(evt.sdk) &&
-          evt.sdk.upstream.isNewer &&
-          <div className="alert-block alert-info box">
-            <span className="icon-exclamation" />
-            {t(
-              'This event was reported with an old version of the %s SDK.',
-              evt.platform
-            )}
-            {evt.sdk.upstream.url &&
-              <a href={evt.sdk.upstream.url} className="btn btn-sm btn-default">
-                {t('Learn More')}
-              </a>}
-          </div>}
+          evt.sdk.upstream.isNewer && (
+            <div className="alert-block alert-info box">
+              <span className="icon-exclamation" />
+              {t(
+                'This event was reported with an old version of the %s SDK.',
+                evt.platform
+              )}
+              {evt.sdk.upstream.url && (
+                <a href={evt.sdk.upstream.url} className="btn btn-sm btn-default">
+                  {t('Learn More')}
+                </a>
+              )}
+            </div>
+          )}
         {hasContextSummary && <EventContextSummary group={group} event={evt} />}
         <EventTags
           group={group}
@@ -136,15 +139,17 @@ const EventEntries = React.createClass({
         />
         {entries}
         {hasContext && <EventContexts group={group} event={evt} />}
-        {!utils.objectIsEmpty(evt.context) &&
-          <EventExtraData group={group} event={evt} />}
-        {!utils.objectIsEmpty(evt.packages) &&
-          <EventPackageData group={group} event={evt} />}
+        {!utils.objectIsEmpty(evt.context) && (
+          <EventExtraData group={group} event={evt} />
+        )}
+        {!utils.objectIsEmpty(evt.packages) && (
+          <EventPackageData group={group} event={evt} />
+        )}
         {!utils.objectIsEmpty(evt.device) && <EventDevice group={group} event={evt} />}
         {!utils.objectIsEmpty(evt.sdk) && <EventSdk group={group} event={evt} />}
       </div>
     );
-  }
+  },
 });
 
 export default EventEntries;

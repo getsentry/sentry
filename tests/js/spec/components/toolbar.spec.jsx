@@ -12,7 +12,11 @@ describe('Toolbar', function() {
   });
 
   it('renders', function() {
-    let wrapper = shallow(<Toolbar><div /></Toolbar>);
+    let wrapper = shallow(
+      <Toolbar>
+        <div />
+      </Toolbar>
+    );
     expect(wrapper).toMatchSnapshot();
   });
 });

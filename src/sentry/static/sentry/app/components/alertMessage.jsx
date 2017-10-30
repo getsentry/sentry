@@ -11,8 +11,8 @@ const AlertMessage = React.createClass({
       id: PropTypes.string,
       message: PropTypes.string.isRequired,
       type: PropTypes.oneOf(['success', 'error', 'warning']),
-      url: PropTypes.string
-    })
+      url: PropTypes.string,
+    }),
   },
 
   mixins: [PureRenderMixin],
@@ -34,17 +34,20 @@ const AlertMessage = React.createClass({
             type="button"
             className="close"
             aria-label={t('Close')}
-            onClick={this.closeAlert}>
+            onClick={this.closeAlert}
+          >
             <span aria-hidden="true">×</span>
           </button>
           <span className="icon" />
-          {this.props.alert.url
-            ? <a href={this.props.alert.url}>{this.props.alert.message}</a>
-            : this.props.alert.message}
+          {this.props.alert.url ? (
+            <a href={this.props.alert.url}>{this.props.alert.message}</a>
+          ) : (
+            this.props.alert.message
+          )}
         </div>
       </div>
     );
-  }
+  },
 });
 
 export default AlertMessage;

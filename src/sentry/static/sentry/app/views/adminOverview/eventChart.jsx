@@ -9,7 +9,7 @@ import LoadingIndicator from '../../components/loadingIndicator';
 export default React.createClass({
   propTypes: {
     since: PropTypes.number.isRequired,
-    resolution: PropTypes.string.isRequired
+    resolution: PropTypes.string.isRequired,
   },
 
   mixins: [ApiMixin],
@@ -20,10 +20,10 @@ export default React.createClass({
       loading: true,
       rawData: {
         'events.total': null,
-        'events.dropped': null
+        'events.dropped': null,
       },
       stats: {received: [], rejected: []},
-      systemTotal: {received: 0, rejected: 0, accepted: 0}
+      systemTotal: {received: 0, rejected: 0, accepted: 0},
     };
   },
 
@@ -42,22 +42,22 @@ export default React.createClass({
         data: {
           since: this.props.since,
           resolution: this.props.resolution,
-          key: statName
+          key: statName,
         },
         success: data => {
           this.state.rawData[statName] = data;
           this.setState(
             {
-              rawData: this.state.rawData
+              rawData: this.state.rawData,
             },
             this.requestFinished
           );
         },
         error: data => {
           this.setState({
-            error: true
+            error: true,
           });
-        }
+        },
       });
     });
   },
@@ -99,7 +99,7 @@ export default React.createClass({
         received: oReceived,
         rejected: oRejected,
         accepted: oReceived - oRejected,
-        avgRate: parseInt(aReceived[0] / aReceived[1] / 60, 10)
+        avgRate: parseInt(aReceived[0] / aReceived[1] / 60, 10),
       },
       stats: {
         rejected: Object.keys(sRejected).map(ts => {
@@ -108,9 +108,9 @@ export default React.createClass({
         accepted: Object.keys(sReceived).map(ts => {
           // total number of events accepted (received - rejected)
           return {x: ts, y: sReceived[ts] - sRejected[ts]};
-        })
+        }),
       },
-      loading: false
+      loading: false,
     });
   },
 
@@ -121,13 +121,13 @@ export default React.createClass({
       {
         data: stats.accepted,
         label: 'Accepted',
-        color: 'rgba(86, 175, 232, 1)'
+        color: 'rgba(86, 175, 232, 1)',
       },
       {
         data: stats.rejected,
         color: 'rgba(244, 63, 32, 1)',
-        label: 'Dropped'
-      }
+        label: 'Dropped',
+      },
     ];
   },
 
@@ -141,5 +141,5 @@ export default React.createClass({
         className="standard-barchart"
       />
     );
-  }
+  },
 });

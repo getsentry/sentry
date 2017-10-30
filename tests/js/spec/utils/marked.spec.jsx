@@ -11,7 +11,7 @@ describe('marked', function() {
     for (let test of [
       ['[x](http://example.com)', '<a href="http://example.com">x</a>'],
       ['[x](https://example.com)', '<a href="https://example.com">x</a>'],
-      ['[x](mailto:foo@example.com)', '<a href="mailto:foo@example.com">x</a>']
+      ['[x](mailto:foo@example.com)', '<a href="mailto:foo@example.com">x</a>'],
     ]) {
       expectMarkdown(test);
     }
@@ -22,7 +22,7 @@ describe('marked', function() {
       ['[x](javascript:foo)', 'javascript:foo'],
       ['[x](java\nscript:foo)', 'java\nscript:foo'],
       ['[x](data:foo)', 'data:foo'],
-      ['[x](vbscript:foo)', 'vbscript:foo']
+      ['[x](vbscript:foo)', 'vbscript:foo'],
     ]) {
       expectMarkdown(test);
     }
@@ -32,7 +32,7 @@ describe('marked', function() {
     for (let test of [
       ['![](http://example.com)', '<img src="http://example.com" alt="">'],
       ['![x](http://example.com)', '<img src="http://example.com" alt="x">'],
-      ['![x](https://example.com)', '<img src="https://example.com" alt="x">']
+      ['![x](https://example.com)', '<img src="https://example.com" alt="x">'],
     ]) {
       expectMarkdown(test);
     }

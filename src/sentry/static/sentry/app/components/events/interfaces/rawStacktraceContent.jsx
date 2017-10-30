@@ -151,9 +151,9 @@ function getFrame(frame, frameIdx, platform) {
     case 'java':
       return getJavaFrame(frame, frameIdx);
     case 'objc':
-      // fallthrough
+    // fallthrough
     case 'cocoa':
-      // fallthrough
+    // fallthrough
     case 'native':
       return getNativeFrame(frame, frameIdx);
     default:

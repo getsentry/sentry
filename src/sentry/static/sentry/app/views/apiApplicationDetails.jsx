@@ -13,7 +13,7 @@ import {t} from '../locale';
 
 const ApiApplicationDetails = React.createClass({
   contextTypes: {
-    router: PropTypes.object.isRequired
+    router: PropTypes.object.isRequired,
   },
 
   mixins: [ApiMixin],
@@ -24,7 +24,7 @@ const ApiApplicationDetails = React.createClass({
       error: false,
       app: null,
       formData: null,
-      errors: {}
+      errors: {},
     };
   },
 
@@ -43,13 +43,13 @@ const ApiApplicationDetails = React.createClass({
       privacyUrl: app.privacyUrl,
       termsUrl: app.termsUrl,
       allowedOrigins: app.allowedOrigins.join('\n'),
-      redirectUris: app.redirectUris.join('\n')
+      redirectUris: app.redirectUris.join('\n'),
     };
   },
 
   fetchData() {
     this.setState({
-      loading: true
+      loading: true,
     });
 
     this.api.request(`/api-applications/${this.props.params.appId}/`, {
@@ -59,15 +59,15 @@ const ApiApplicationDetails = React.createClass({
           error: false,
           app: data,
           formData: {...this.getFormData(data)},
-          errors: {}
+          errors: {},
         });
       },
       error: () => {
         this.setState({
           loading: false,
-          error: true
+          error: true,
         });
-      }
+      },
     });
   },
 
@@ -75,7 +75,7 @@ const ApiApplicationDetails = React.createClass({
     let formData = this.state.formData;
     formData[name] = value;
     this.setState({
-      formData
+      formData,
     });
   },
 
@@ -87,7 +87,7 @@ const ApiApplicationDetails = React.createClass({
     }
     this.setState(
       {
-        state: FormState.SAVING
+        state: FormState.SAVING,
       },
       () => {
         let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
@@ -97,14 +97,14 @@ const ApiApplicationDetails = React.createClass({
           data: {
             ...formData,
             allowedOrigins: formData.allowedOrigins.split('\n').filter(v => v),
-            redirectUris: formData.redirectUris.split('\n').filter(v => v)
+            redirectUris: formData.redirectUris.split('\n').filter(v => v),
           },
           success: data => {
             IndicatorStore.remove(loadingIndicator);
             this.setState({
               state: FormState.READY,
               formData: {...this.getFormData(data)},
-              errors: {}
+              errors: {},
             });
             this.context.router.push('/api/applications/');
           },
@@ -112,9 +112,9 @@ const ApiApplicationDetails = React.createClass({
             IndicatorStore.remove(loadingIndicator);
             this.setState({
               state: FormState.ERROR,
-              errors: error.responseJSON
+              errors: error.responseJSON,
             });
-          }
+          },
         });
       }
     );
@@ -141,12 +141,13 @@ const ApiApplicationDetails = React.createClass({
         <div>
           <form onSubmit={this.onSubmit} className="form-stacked">
             <h4>Application Details</h4>
-            {this.state.state === FormState.ERROR &&
+            {this.state.state === FormState.ERROR && (
               <div className="alert alert-error alert-block">
                 {t(
                   'Unable to save your changes. Please ensure all fields are valid and try again.'
                 )}
-              </div>}
+              </div>
+            )}
             <fieldset>
               <TextField
                 key="name"
@@ -203,12 +204,15 @@ const ApiApplicationDetails = React.createClass({
               <div className="control-group">
                 <label htmlFor="api-key">Client Secret</label>
                 <div className="form-control disabled">
-                  {app.clientSecret
-                    ? <AutoSelectText>{app.clientSecret}</AutoSelectText>
-                    : <em>hidden</em>}
+                  {app.clientSecret ? (
+                    <AutoSelectText>{app.clientSecret}</AutoSelectText>
+                  ) : (
+                    <em>hidden</em>
+                  )}
                 </div>
                 <p className="help-block">
-                  Your secret is only available briefly after application creation. Make sure to save this value!
+                  Your secret is only available briefly after application creation. Make
+                  sure to save this value!
                 </p>
               </div>
 
@@ -260,7 +264,7 @@ const ApiApplicationDetails = React.createClass({
         </div>
       </DocumentTitle>
     );
-  }
+  },
 });
 
 export default ApiApplicationDetails;

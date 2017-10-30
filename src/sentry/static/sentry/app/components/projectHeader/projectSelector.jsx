@@ -18,18 +18,18 @@ const ProjectSelector = React.createClass({
     // Accepts a project id (slug) and not a project *object* because ProjectSelector
     // is created from Django templates, and only organization is serialized
     projectId: PropTypes.string,
-    organization: PropTypes.object.isRequired
+    organization: PropTypes.object.isRequired,
   },
 
   contextTypes: {
-    location: PropTypes.object
+    location: PropTypes.object,
   },
 
   mixins: [ApiMixin],
 
   getDefaultProps() {
     return {
-      projectId: null
+      projectId: null,
     };
   },
 
@@ -38,7 +38,7 @@ const ProjectSelector = React.createClass({
       isOpen: false,
       filter: '',
       currentIndex: -1,
-      ...this.getProjectState({filter: ''})
+      ...this.getProjectState({filter: ''}),
     };
   },
 
@@ -97,7 +97,7 @@ const ProjectSelector = React.createClass({
     return {
       projectList,
       activeTeam,
-      activeProject
+      activeProject,
     };
   },
 
@@ -116,7 +116,7 @@ const ProjectSelector = React.createClass({
     this.setState({
       filter: evt.target.value,
       currentIndex: -1,
-      ...this.getProjectState({filter: evt.target.value})
+      ...this.getProjectState({filter: evt.target.value}),
     });
   },
 
@@ -135,13 +135,13 @@ const ProjectSelector = React.createClass({
     if (evt.key === 'Down' || evt.keyCode === 40) {
       if (this.state.currentIndex + 1 < projects.length) {
         this.setState({
-          currentIndex: this.state.currentIndex + 1
+          currentIndex: this.state.currentIndex + 1,
         });
       }
     } else if (evt.key === 'Up' || evt.keyCode === 38) {
       if (this.state.currentIndex > 0) {
         this.setState({
-          currentIndex: this.state.currentIndex - 1
+          currentIndex: this.state.currentIndex - 1,
         });
       }
     } else if (evt.key === 'Enter' || evt.keyCode === 13) {
@@ -167,7 +167,7 @@ const ProjectSelector = React.createClass({
 
   onOpen() {
     this.setState({
-      isOpen: true
+      isOpen: true,
     });
     // Not sure if this is still necessary
     // this.setState(state => ({
@@ -180,7 +180,7 @@ const ProjectSelector = React.createClass({
       isOpen: false,
       filter: '',
       currentIndex: -1,
-      ...this.getProjectState({filter: ''})
+      ...this.getProjectState({filter: ''}),
     });
   },
 
@@ -197,7 +197,7 @@ const ProjectSelector = React.createClass({
       // property. For example - when project selector is loaded on
       // Django-powered Settings pages.
 
-      ...this.getProjectUrlProps(project)
+      ...this.getProjectUrlProps(project),
     };
 
     return (
@@ -213,10 +213,7 @@ const ProjectSelector = React.createClass({
     if (!hasSingleTeam && project.name.indexOf(team.name) === -1) {
       label = (
         <span>
-          {team.name}
-          {' '}
-          /
-          {' '}
+          {team.name} /{' '}
           <ProjectLabel project={project} organization={this.props.organization} />
         </span>
       );
@@ -241,9 +238,7 @@ const ProjectSelector = React.createClass({
     return (
       <span>
         {text.substr(0, idx)}
-        <strong className="highlight">
-          {text.substr(idx, highlightText.length)}
-        </strong>
+        <strong className="highlight">{text.substr(idx, highlightText.length)}</strong>
         {text.substr(idx + highlightText.length)}
       </span>
     );
@@ -262,9 +257,7 @@ const ProjectSelector = React.createClass({
 
     return (
       <span>
-        <Link to={`/${orgId}/${projectId}/`}>
-          {label}
-        </Link>
+        <Link to={`/${orgId}/${projectId}/`}>{label}</Link>
       </span>
     );
   },
@@ -290,15 +283,16 @@ const ProjectSelector = React.createClass({
           </div>
         </MenuItem>,
         showDivider ? <MenuItem key="divider" divider /> : null,
-        !hasFilter && hasProjectWrite
-          ? <MenuItem key="create-project" className="empty-projects-item" noAnchor>
-              <a
-                className="btn btn-primary btn-block"
-                href={`${this.urlPrefix()}/projects/new/`}>
-                {t('Create project')}
-              </a>
-            </MenuItem>
-          : null
+        !hasFilter && hasProjectWrite ? (
+          <MenuItem key="create-project" className="empty-projects-item" noAnchor>
+            <a
+              className="btn btn-primary btn-block"
+              href={`${this.urlPrefix()}/projects/new/`}
+            >
+              {t('Create project')}
+            </a>
+          </MenuItem>
+        ) : null,
       ];
     }
   },
@@ -324,7 +318,7 @@ const ProjectSelector = React.createClass({
     const hasFilter = !!this.state.filter;
     const hasProjects = children && !!children.length;
     const dropdownClassNames = classNames('project-dropdown', {
-      'is-empty': !hasProjects
+      'is-empty': !hasProjects,
     });
 
     return (
@@ -342,9 +336,9 @@ const ProjectSelector = React.createClass({
             topLevelClasses={dropdownClassNames}
             isOpen={this.state.isOpen}
             onOpen={this.onOpen}
-            onClose={this.onClose}>
-
-            {(hasFilter || hasProjects) &&
+            onClose={this.onClose}
+          >
+            {(hasFilter || hasProjects) && (
               <li className="project-filter" key="_filter">
                 <input
                   value={this.state.filter}
@@ -357,19 +351,20 @@ const ProjectSelector = React.createClass({
                   onClick={this.onFilterClick}
                   ref={this.onFilterMount}
                 />
-              </li>}
+              </li>
+            )}
 
             {this.renderProjectList({
               organization: org,
               hasProjectWrite: access.has('project:write'),
               projects: children,
-              filter: this.state.filter
+              filter: this.state.filter,
             })}
           </DropdownReact>
         </h3>
       </div>
     );
-  }
+  },
 });
 
 export default ProjectSelector;

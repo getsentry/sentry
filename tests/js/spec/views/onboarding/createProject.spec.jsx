@@ -19,13 +19,13 @@ describe('CreateProject', function() {
       location: {query: {}},
       params: {
         projectId: '',
-        orgId: 'testOrg'
-      }
+        orgId: 'testOrg',
+      },
     };
 
     it('should block if you have access to no teams', function() {
       let props = {
-        ...baseProps
+        ...baseProps,
       };
 
       let wrapper = shallow(<CreateProject {...props} />, {
@@ -33,21 +33,21 @@ describe('CreateProject', function() {
           organization: {
             id: '1',
             slug: 'testOrg',
-            teams: [{slug: 'test', id: '1', name: 'test', hasAccess: false}]
+            teams: [{slug: 'test', id: '1', name: 'test', hasAccess: false}],
           },
-          location: {query: {}}
+          location: {query: {}},
         },
         childContextTypes: {
           organization: React.PropTypes.object,
-          location: React.PropTypes.object
-        }
+          location: React.PropTypes.object,
+        },
       });
       expect(wrapper).toMatchSnapshot();
     });
 
     it('should fill in project name if its empty when platform is chosen', function() {
       let props = {
-        ...baseProps
+        ...baseProps,
       };
 
       let wrapper = mount(<CreateProject {...props} />, {
@@ -55,16 +55,16 @@ describe('CreateProject', function() {
           organization: {
             id: '1',
             slug: 'testOrg',
-            teams: [{slug: 'test', id: '1', name: 'test', hasAccess: true}]
+            teams: [{slug: 'test', id: '1', name: 'test', hasAccess: true}],
           },
           router: TestStubs.router(),
-          location: {query: {}}
+          location: {query: {}},
         },
         childContextTypes: {
           router: React.PropTypes.object,
           organization: React.PropTypes.object,
-          location: React.PropTypes.object
-        }
+          location: React.PropTypes.object,
+        },
       });
 
       let node = wrapper.find('PlatformCard').first();
@@ -87,7 +87,7 @@ describe('CreateProject', function() {
 
     it('should fill in platform name if its provided by url', function() {
       let props = {
-        ...baseProps
+        ...baseProps,
       };
 
       let wrapper = mount(<CreateProject {...props} />, {
@@ -95,16 +95,16 @@ describe('CreateProject', function() {
           organization: {
             id: '1',
             slug: 'testOrg',
-            teams: [{slug: 'test', id: '1', name: 'test', hasAccess: true}]
+            teams: [{slug: 'test', id: '1', name: 'test', hasAccess: true}],
           },
           router: TestStubs.router(),
-          location: {query: {platform: 'ruby'}}
+          location: {query: {platform: 'ruby'}},
         },
         childContextTypes: {
           router: React.PropTypes.object,
           organization: React.PropTypes.object,
-          location: React.PropTypes.object
-        }
+          location: React.PropTypes.object,
+        },
       });
 
       expect(wrapper.state().projectName).toBe('Ruby');
@@ -114,7 +114,7 @@ describe('CreateProject', function() {
 
     it('should deal with incorrect platform name if its provided by url', function() {
       let props = {
-        ...baseProps
+        ...baseProps,
       };
 
       let wrapper = mount(<CreateProject {...props} />, {
@@ -122,16 +122,16 @@ describe('CreateProject', function() {
           organization: {
             id: '1',
             slug: 'testOrg',
-            teams: [{slug: 'test', id: '1', name: 'test', hasAccess: true}]
+            teams: [{slug: 'test', id: '1', name: 'test', hasAccess: true}],
           },
           router: TestStubs.router(),
-          location: {query: {platform: 'XrubyROOLs'}}
+          location: {query: {platform: 'XrubyROOLs'}},
         },
         childContextTypes: {
           router: React.PropTypes.object,
           organization: React.PropTypes.object,
-          location: React.PropTypes.object
-        }
+          location: React.PropTypes.object,
+        },
       });
 
       expect(wrapper.state().projectName).toBe('');

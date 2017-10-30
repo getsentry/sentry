@@ -12,7 +12,7 @@ let validHookNames = new Set([
   'project:data-forwarding:disabled',
   'project:rate-limits:disabled',
   'project:custom-inbound-filters:disabled',
-  'issue:secondary-column'
+  'issue:secondary-column',
 ]);
 
 const HookStore = Reflux.createStore({
@@ -23,6 +23,7 @@ const HookStore = Reflux.createStore({
   add(hookName, callback) {
     // Gracefully error on invalid hooks, but maintain registration
     if (!validHookNames.has(hookName)) {
+      // eslint-disable-next-line no-console
       console.error('Invalid hook name: ' + hookName);
     }
     if (_.isUndefined(this.hooks[hookName])) {
@@ -44,7 +45,7 @@ const HookStore = Reflux.createStore({
 
   get(hookName) {
     return this.hooks[hookName] || [];
-  }
+  },
 });
 
 export default HookStore;

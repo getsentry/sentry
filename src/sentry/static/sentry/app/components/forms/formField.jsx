@@ -22,23 +22,23 @@ export default class FormField extends React.PureComponent {
     // the following should only be used without form context
     onChange: PropTypes.func,
     error: PropTypes.string,
-    value: PropTypes.any
+    value: PropTypes.any,
   };
 
   static defaultProps = {
     hideErrorMessage: false,
     disabled: false,
-    required: false
+    required: false,
   };
 
   static contextTypes = {
-    form: PropTypes.object
+    form: PropTypes.object,
   };
 
   constructor(props, context) {
     super(props, context);
     this.state = {
-      value: this.getValue(props, context)
+      value: this.getValue(props, context),
     };
   }
 
@@ -93,7 +93,7 @@ export default class FormField extends React.PureComponent {
     let form = (this.context || {}).form;
     this.setState(
       {
-        value
+        value,
       },
       () => {
         this.props.onChange && this.props.onChange(this.coerceValue(this.state.value));
@@ -115,28 +115,30 @@ export default class FormField extends React.PureComponent {
       disabledReason,
       hideErrorMessage,
       help,
-      style
+      style,
     } = this.props;
     let error = this.getError();
     let cx = classNames(className, this.getClassName(), {
       'has-error': !!error,
-      required
+      required,
     });
     let shouldShowErrorMessage = error && !hideErrorMessage;
 
     return (
       <div style={style} className={cx}>
         <div className="controls">
-          {label &&
+          {label && (
             <label htmlFor={this.getId()} className="control-label">
               {label}
-            </label>}
+            </label>
+          )}
           {this.getField()}
           {disabled &&
-            disabledReason &&
-            <span className="disabled-indicator tip" title={disabledReason}>
-              <span className="icon-question" />
-            </span>}
+            disabledReason && (
+              <span className="disabled-indicator tip" title={disabledReason}>
+                <span className="icon-question" />
+              </span>
+            )}
           {defined(help) && <p className="help-block">{help}</p>}
           {shouldShowErrorMessage && <p className="error">{error}</p>}
         </div>

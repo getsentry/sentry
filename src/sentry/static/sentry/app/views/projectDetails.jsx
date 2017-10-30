@@ -8,12 +8,10 @@ const ProjectDetails = React.createClass({
     let {projectId, orgId} = this.props.params;
     return (
       <ProjectContext orgId={orgId} projectId={projectId}>
-        <ProjectDetailsLayout>
-          {this.props.children}
-        </ProjectDetailsLayout>
+        <ProjectDetailsLayout>{this.props.children}</ProjectDetailsLayout>
       </ProjectContext>
     );
-  }
+  },
 });
 
 export default ProjectDetails;

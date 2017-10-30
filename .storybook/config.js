@@ -6,7 +6,7 @@ import './storybook.less';
 setDefaults({
   inline: true,
   header: false,
-  source: true
+  source: true,
 });
 setAddon(infoAddon);
 

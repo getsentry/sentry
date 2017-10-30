@@ -8,7 +8,7 @@ import {update as projectUpdate} from '../../actionCreators/projects';
 const BookmarkToggle = React.createClass({
   propTypes: {
     orgId: PropTypes.string.isRequired,
-    project: PropTypes.object.isRequired
+    project: PropTypes.object.isRequired,
   },
 
   mixins: [ApiMixin],
@@ -19,20 +19,16 @@ const BookmarkToggle = React.createClass({
       orgId: this.props.orgId,
       projectId: project.slug,
       data: {
-        isBookmarked: !project.isBookmarked
-      }
+        isBookmarked: !project.isBookmarked,
+      },
     });
   },
 
   render() {
     // TODO: can't guarantee that a <span> is appropriate here 100% of the time
     //       if this is to be truly re-usable
-    return (
-      <span onClick={this.handleBookmarkClick}>
-        {this.props.children}
-      </span>
-    );
-  }
+    return <span onClick={this.handleBookmarkClick}>{this.props.children}</span>;
+  },
 });
 
 export default BookmarkToggle;

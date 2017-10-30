@@ -18,17 +18,18 @@ const GroupTombstoneRow = React.createClass({
     data: PropTypes.object.isRequired,
     undiscard: PropTypes.func.isRequired,
     orgId: PropTypes.string.isRequired,
-    projectId: PropTypes.string.isRequired
+    projectId: PropTypes.string.isRequired,
   },
 
   mixins: [
     TooltipMixin({
-      selector: '.tip'
-    })
+      selector: '.tip',
+    }),
   ],
 
   render() {
-    let {data, undiscard} = this.props, actor = data.actor;
+    let {data, undiscard} = this.props,
+      actor = data.actor;
 
     return (
       <li className={`group row level-${data.level} type-${data.type}`}>
@@ -40,10 +41,11 @@ const GroupTombstoneRow = React.createClass({
           />
         </div>
         <div className="col-md-1 event-actor">
-          {actor &&
+          {actor && (
             <span className="tip" title={t('Discarded by %s', actor.name || actor.email)}>
               <Avatar user={data.actor} />
-            </span>}
+            </span>
+          )}
         </div>
         <div className="col-md-1 event-undiscard">
           <span className="tip" title={t('Undiscard')}>
@@ -58,14 +60,15 @@ const GroupTombstoneRow = React.createClass({
               )}
               onConfirm={() => {
                 undiscard(data.id);
-              }}>
+              }}
+            >
               <span className="icon-trash undiscard" />
             </LinkWithConfirmation>
           </span>
         </div>
       </li>
     );
-  }
+  },
 });
 
 const GroupTombstones = React.createClass({
@@ -74,7 +77,7 @@ const GroupTombstones = React.createClass({
     projectId: PropTypes.string.isRequired,
     tombstones: PropTypes.array.isRequired,
     tombstoneError: PropTypes.bool.isRequired,
-    fetchData: PropTypes.func.isRequired
+    fetchData: PropTypes.func.isRequired,
   },
 
   mixins: [ApiMixin],
@@ -87,15 +90,15 @@ const GroupTombstones = React.createClass({
       success: data => {
         AlertActions.addAlert({
           message: t('Events similar to these will no longer be filtered'),
-          type: 'success'
+          type: 'success',
         });
       },
       error: () => {
         AlertActions.addAlert({
           message: t('We were unable to discard this group'),
-          type: 'error'
+          type: 'error',
         });
-      }
+      },
     });
     this.props.fetchData();
   },
@@ -113,26 +116,28 @@ const GroupTombstones = React.createClass({
         <div className="row" style={{paddingTop: 10}}>
           <div className="col-md-12 discarded-groups">
             <h5>{t('Discarded Groups')}</h5>
-            {tombstones.length
-              ? <ul className="group-list">
-                  {tombstones.map(data => {
-                    return (
-                      <GroupTombstoneRow
-                        key={data.id}
-                        data={data}
-                        orgId={orgId}
-                        projectId={projectId}
-                        undiscard={this.undiscard}
-                      />
-                    );
-                  })}
-                </ul>
-              : this.renderEmpty()}
+            {tombstones.length ? (
+              <ul className="group-list">
+                {tombstones.map(data => {
+                  return (
+                    <GroupTombstoneRow
+                      key={data.id}
+                      data={data}
+                      orgId={orgId}
+                      projectId={projectId}
+                      undiscard={this.undiscard}
+                    />
+                  );
+                })}
+              </ul>
+            ) : (
+              this.renderEmpty()
+            )}
           </div>
         </div>
       </div>
     );
-  }
+  },
 });
 
 export default GroupTombstones;

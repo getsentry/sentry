@@ -16,11 +16,11 @@ const OrganizationSelector = React.createClass({
     showPanel: PropTypes.bool,
     togglePanel: PropTypes.func,
     hidePanel: PropTypes.func,
-    currentPanel: PropTypes.string
+    currentPanel: PropTypes.string,
   },
 
   contextTypes: {
-    location: PropTypes.object
+    location: PropTypes.object,
   },
 
   mixins: [AppState],
@@ -28,9 +28,17 @@ const OrganizationSelector = React.createClass({
   getLinkNode(org, child, className) {
     let url = `/${org.slug}/`;
     if (!this.context.location) {
-      return <a className={className} href={url}>{child}</a>;
+      return (
+        <a className={className} href={url}>
+          {child}
+        </a>
+      );
     }
-    return <Link className={className} to={`/${org.slug}/`}>{child}</Link>;
+    return (
+      <Link className={className} to={`/${org.slug}/`}>
+        {child}
+      </Link>
+    );
   },
 
   render() {
@@ -56,43 +64,46 @@ const OrganizationSelector = React.createClass({
         </a>
 
         {this.props.showPanel &&
-          this.props.currentPanel == 'org-selector' &&
-          <SidebarPanel title={t('Organizations')} hidePanel={this.props.hidePanel}>
-            <ul className="org-list list-unstyled">
-              {OrganizationStore.getAll().map(org => {
-                return (
-                  <li
-                    className={activeOrg.id === org.id ? 'org active' : 'org'}
-                    key={org.slug}>
-                    {this.getLinkNode(
-                      org,
-                      <LetterAvatar displayName={org.name} identifier={org.slug} />,
-                      'org-avatar'
-                    )}
-                    <h5>{this.getLinkNode(org, org.name)}</h5>
-                    <p>
-                      <a href={`/organizations/${org.slug}/settings/`}>
-                        <span className="icon-settings" /> {t('Settings')}
-                      </a>
-                      <a href={`/organizations/${org.slug}/members/`}>
-                        <span className="icon-users" /> {t('Members')}
-                      </a>
-                    </p>
-                  </li>
-                );
-              })}
+          this.props.currentPanel == 'org-selector' && (
+            <SidebarPanel title={t('Organizations')} hidePanel={this.props.hidePanel}>
+              <ul className="org-list list-unstyled">
+                {OrganizationStore.getAll().map(org => {
+                  return (
+                    <li
+                      className={activeOrg.id === org.id ? 'org active' : 'org'}
+                      key={org.slug}
+                    >
+                      {this.getLinkNode(
+                        org,
+                        <LetterAvatar displayName={org.name} identifier={org.slug} />,
+                        'org-avatar'
+                      )}
+                      <h5>{this.getLinkNode(org, org.name)}</h5>
+                      <p>
+                        <a href={`/organizations/${org.slug}/settings/`}>
+                          <span className="icon-settings" /> {t('Settings')}
+                        </a>
+                        <a href={`/organizations/${org.slug}/members/`}>
+                          <span className="icon-users" /> {t('Members')}
+                        </a>
+                      </p>
+                    </li>
+                  );
+                })}
 
-              {features.has('organizations:create') &&
-                <li className="org-create">
-                  <Link to="/organizations/new/" className="btn btn-default btn-block">
-                    {t('New Organization')}
-                  </Link>
-                </li>}
-            </ul>
-          </SidebarPanel>}
+                {features.has('organizations:create') && (
+                  <li className="org-create">
+                    <Link to="/organizations/new/" className="btn btn-default btn-block">
+                      {t('New Organization')}
+                    </Link>
+                  </li>
+                )}
+              </ul>
+            </SidebarPanel>
+          )}
       </div>
     );
-  }
+  },
 });
 
 export default OrganizationSelector;

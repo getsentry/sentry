@@ -14,11 +14,11 @@ import {t} from '../../locale';
 
 const CreateProject = React.createClass({
   propTypes: {
-    getDocsUrl: PropTypes.func
+    getDocsUrl: PropTypes.func,
   },
 
   contextTypes: {
-    location: PropTypes.object
+    location: PropTypes.object,
   },
 
   mixins: [ApiMixin, OrganizationState],
@@ -26,7 +26,7 @@ const CreateProject = React.createClass({
   getDefaultProps() {
     return {
       getDocsUrl: ({slug, projectSlug, platform}) =>
-        `/onboarding/${slug}/${projectSlug}/configure/${platform}`
+        `/onboarding/${slug}/${projectSlug}/configure/${platform}`,
     };
   },
 
@@ -44,7 +44,7 @@ const CreateProject = React.createClass({
       projectName: getPlatformName(platform) || '',
       team,
       platform,
-      inFlight: false
+      inFlight: false,
     };
   },
 
@@ -58,7 +58,7 @@ const CreateProject = React.createClass({
 
     if (!projectName) {
       Raven.captureMessage('Onboarding no project name ', {
-        extra: {props: this.props, state: this.state}
+        extra: {props: this.props, state: this.state},
       });
     }
 
@@ -66,7 +66,7 @@ const CreateProject = React.createClass({
       method: 'POST',
       data: {
         name: projectName,
-        platform
+        platform,
       },
       success: data => {
         ProjectActions.createSuccess(data);
@@ -79,7 +79,7 @@ const CreateProject = React.createClass({
       error: err => {
         this.setState({
           inFlight: false,
-          error: err.responseJSON.detail
+          error: err.responseJSON.detail,
         });
 
         if (err.status != 403) {
@@ -87,11 +87,11 @@ const CreateProject = React.createClass({
             extra: {
               err,
               props: this.props,
-              state: this.state
-            }
+              state: this.state,
+            },
           });
         }
-      }
+      },
     });
   },
 
@@ -113,27 +113,29 @@ const CreateProject = React.createClass({
       setName: n => this.setState({projectName: n}),
       team: this.state.team,
       teams: accessTeams,
-      setTeam: teamSlug => this.setState({team: teamSlug})
+      setTeam: teamSlug => this.setState({team: teamSlug}),
     };
 
     return (
       <div>
         {error && <h2 className="alert alert-error">{error}</h2>}
-        {accessTeams.length
-          ? <OnboardingProject {...stepProps} />
-          : <div>
-              <h4>
-                {t(
-                  'You cannot create a new project because there are no teams to assign it to.'
-                )}
-              </h4>
-              <Link to={`/organizations/${slug}/teams/new/`} className="btn btn-primary">
-                {t('Create a Team')}
-              </Link>
-            </div>}
+        {accessTeams.length ? (
+          <OnboardingProject {...stepProps} />
+        ) : (
+          <div>
+            <h4>
+              {t(
+                'You cannot create a new project because there are no teams to assign it to.'
+              )}
+            </h4>
+            <Link to={`/organizations/${slug}/teams/new/`} className="btn btn-primary">
+              {t('Create a Team')}
+            </Link>
+          </div>
+        )}
       </div>
     );
-  }
+  },
 });
 
 export default CreateProject;

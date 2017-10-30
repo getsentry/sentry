@@ -15,14 +15,14 @@ import ReleaseList from './releaseList';
 const ProjectReleases = React.createClass({
   propTypes: {
     defaultQuery: PropTypes.string,
-    setProjectNavSection: PropTypes.func
+    setProjectNavSection: PropTypes.func,
   },
 
   mixins: [ApiMixin],
 
   getDefaultProps() {
     return {
-      defaultQuery: ''
+      defaultQuery: '',
     };
   },
 
@@ -34,7 +34,7 @@ const ProjectReleases = React.createClass({
       loading: true,
       error: false,
       query: queryParams.query || this.props.defaultQuery,
-      pageLinks: ''
+      pageLinks: '',
     };
   },
 
@@ -48,7 +48,7 @@ const ProjectReleases = React.createClass({
       let queryParams = nextProps.location.query;
       this.setState(
         {
-          query: queryParams.query
+          query: queryParams.query,
         },
         this.fetchData
       );
@@ -66,7 +66,7 @@ const ProjectReleases = React.createClass({
   fetchData() {
     this.setState({
       loading: true,
-      error: false
+      error: false,
     });
 
     this.api.request(this.getProjectReleasesEndpoint(), {
@@ -75,15 +75,15 @@ const ProjectReleases = React.createClass({
           error: false,
           loading: false,
           releaseList: data,
-          pageLinks: jqXHR.getResponseHeader('Link')
+          pageLinks: jqXHR.getResponseHeader('Link'),
         });
       },
       error: () => {
         this.setState({
           error: true,
-          loading: false
+          loading: false,
         });
-      }
+      },
     });
   },
 
@@ -92,7 +92,7 @@ const ProjectReleases = React.createClass({
     let queryParams = {
       ...this.props.location.query,
       per_page: 20,
-      query: this.state.query
+      query: this.state.query,
     };
 
     return (
@@ -180,12 +180,8 @@ const ProjectReleases = React.createClass({
           <div className="panel-heading panel-heading-bold">
             <div className="row">
               <div className="col-sm-8 col-xs-7">{t('Version')}</div>
-              <div className="col-sm-2 col-xs-3">
-                {t('New Issues')}
-              </div>
-              <div className="col-sm-2 col-xs-2">
-                {t('Last Event')}
-              </div>
+              <div className="col-sm-2 col-xs-3">{t('New Issues')}</div>
+              <div className="col-sm-2 col-xs-2">{t('Last Event')}</div>
             </div>
           </div>
           {this.renderStreamBody()}
@@ -193,7 +189,7 @@ const ProjectReleases = React.createClass({
         <Pagination pageLinks={this.state.pageLinks} />
       </div>
     );
-  }
+  },
 });
 
 export default ProjectReleases;

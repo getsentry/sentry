@@ -6,7 +6,7 @@ import BarChart from '../barChart';
 const GroupChart = React.createClass({
   propTypes: {
     statsPeriod: PropTypes.string.isRequired,
-    data: PropTypes.object.isRequired
+    data: PropTypes.object.isRequired,
   },
 
   shouldComponentUpdate(nextProps) {
@@ -32,7 +32,7 @@ const GroupChart = React.createClass({
         <BarChart points={chartData} label="events" />
       </LazyLoad>
     );
-  }
+  },
 });
 
 export default GroupChart;

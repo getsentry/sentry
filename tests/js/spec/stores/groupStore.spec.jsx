@@ -39,7 +39,7 @@ describe('GroupStore', function() {
 
       expect(GroupStore.items).toEqual([
         {id: 1},
-        {id: 3} // parent
+        {id: 3}, // parent
       ]);
     });
   });

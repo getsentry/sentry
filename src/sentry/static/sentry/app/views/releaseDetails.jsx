@@ -15,15 +15,15 @@ import {t} from '../locale';
 
 const ReleaseDetails = React.createClass({
   propTypes: {
-    setProjectNavSection: PropTypes.func
+    setProjectNavSection: PropTypes.func,
   },
 
   contextTypes: {
-    location: PropTypes.object
+    location: PropTypes.object,
   },
 
   childContextTypes: {
-    release: PropTypes.object
+    release: PropTypes.object,
   },
 
   mixins: [ApiMixin, ProjectState],
@@ -32,13 +32,13 @@ const ReleaseDetails = React.createClass({
     return {
       release: null,
       loading: true,
-      error: false
+      error: false,
     };
   },
 
   getChildContext() {
     return {
-      release: this.state.release
+      release: this.state.release,
     };
   },
 
@@ -57,22 +57,22 @@ const ReleaseDetails = React.createClass({
   fetchData() {
     this.setState({
       loading: true,
-      error: false
+      error: false,
     });
 
     this.api.request(this.getReleaseDetailsEndpoint(), {
       success: data => {
         this.setState({
           loading: false,
-          release: data
+          release: data,
         });
       },
       error: () => {
         this.setState({
           loading: false,
-          error: true
+          error: true,
         });
-      }
+      },
     });
   },
 
@@ -106,8 +106,7 @@ const ReleaseDetails = React.createClass({
             <div className="row">
               <div className="col-sm-4 col-xs-12">
                 <h3>
-                  {t('Release')}
-                  {' '}
+                  {t('Release')}{' '}
                   <strong>
                     <Version
                       orgId={orgId}
@@ -118,8 +117,7 @@ const ReleaseDetails = React.createClass({
                   </strong>
                 </h3>
                 <div className="release-meta">
-                  <span className="icon icon-clock" />
-                  {' '}
+                  <span className="icon icon-clock" />{' '}
                   <TimeSince date={release.dateCreated} />
                 </div>
               </div>
@@ -137,59 +135,78 @@ const ReleaseDetails = React.createClass({
               <div className="col-sm-2 hidden-xs">
                 <div className="release-stats">
                   <h6 className="nav-header">{t('First Event')}</h6>
-                  {release.firstEvent
-                    ? <span className="stream-count">
-                        <TimeSince date={release.firstEvent} />
-                      </span>
-                    : <span>—</span>}
+                  {release.firstEvent ? (
+                    <span className="stream-count">
+                      <TimeSince date={release.firstEvent} />
+                    </span>
+                  ) : (
+                    <span>—</span>
+                  )}
                 </div>
               </div>
               <div className="col-sm-2 hidden-xs">
                 <div className="release-stats">
                   <h6 className="nav-header">{t('Last Event')}</h6>
-                  {release.lastEvent
-                    ? <span className="stream-count">
-                        <TimeSince date={release.lastEvent} />
-                      </span>
-                    : <span>—</span>}
+                  {release.lastEvent ? (
+                    <span className="stream-count">
+                      <TimeSince date={release.lastEvent} />
+                    </span>
+                  ) : (
+                    <span>—</span>
+                  )}
                 </div>
               </div>
             </div>
             <ul className="nav nav-tabs">
               <ListLink
-                to={`/${orgId}/${projectId}/releases/${encodeURIComponent(release.version)}/`}
+                to={`/${orgId}/${projectId}/releases/${encodeURIComponent(
+                  release.version
+                )}/`}
                 isActive={loc => {
                   // react-router isActive will return true for any route that is part of the active route
                   // e.g. parent routes. To avoid matching on sub-routes, insist on strict path equality.
                   return loc.pathname === this.props.location.pathname;
-                }}>
+                }}
+              >
                 {t('Overview')}
               </ListLink>
               <ListLink
-                to={`/${orgId}/${projectId}/releases/${encodeURIComponent(release.version)}/new-events/`}>
+                to={`/${orgId}/${projectId}/releases/${encodeURIComponent(
+                  release.version
+                )}/new-events/`}
+              >
                 {t('New Issues')}
               </ListLink>
               <ListLink
-                to={`/${orgId}/${projectId}/releases/${encodeURIComponent(release.version)}/all-events/`}>
+                to={`/${orgId}/${projectId}/releases/${encodeURIComponent(
+                  release.version
+                )}/all-events/`}
+              >
                 {t('All Issues')}
               </ListLink>
               <ListLink
-                to={`/${orgId}/${projectId}/releases/${encodeURIComponent(release.version)}/artifacts/`}>
+                to={`/${orgId}/${projectId}/releases/${encodeURIComponent(
+                  release.version
+                )}/artifacts/`}
+              >
                 {t('Artifacts')}
               </ListLink>
               <ListLink
-                to={`/${orgId}/${projectId}/releases/${encodeURIComponent(release.version)}/commits/`}>
+                to={`/${orgId}/${projectId}/releases/${encodeURIComponent(
+                  release.version
+                )}/commits/`}
+              >
                 {t('Commits')}
               </ListLink>
             </ul>
           </div>
           {React.cloneElement(this.props.children, {
-            release
+            release,
           })}
         </div>
       </DocumentTitle>
     );
-  }
+  },
 });
 
 export default ReleaseDetails;

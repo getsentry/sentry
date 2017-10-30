@@ -13,7 +13,7 @@ const MergedList = React.createClass({
     onUnmerge: PropTypes.func.isRequired,
     onToggleCollapse: PropTypes.func.isRequired,
     items: PropTypes.arrayOf(Event),
-    pageLinks: PropTypes.string
+    pageLinks: PropTypes.string,
   },
 
   renderEmpty() {
@@ -31,11 +31,7 @@ const MergedList = React.createClass({
     let hasResults = itemsWithLatestEvent.length > 0;
 
     if (!hasResults) {
-      return (
-        <div className="merged-list-container">
-          {this.renderEmpty()}
-        </div>
-      );
+      return <div className="merged-list-container">{this.renderEmpty()}</div>;
     }
 
     return (
@@ -66,7 +62,7 @@ const MergedList = React.createClass({
         <Pagination pageLinks={pageLinks} />
       </div>
     );
-  }
+  },
 });
 
 export default MergedList;

@@ -25,11 +25,11 @@ window.TestStubs = {
     goForward: sinon.spy(),
     setRouteLeaveHook: sinon.spy(),
     isActive: sinon.spy(),
-    createHref: sinon.spy()
+    createHref: sinon.spy(),
   }),
   location: () => ({
     query: {},
-    pathame: '/mock-pathname/'
+    pathame: '/mock-pathname/',
   }),
 
   ApiKey: (...params) => {
@@ -39,7 +39,7 @@ window.TestStubs = {
       key: 'aa624bcc12024702a202cd90be5feda0',
       label: 'Default',
       scope_list: ['project:read', 'event:read', 'team:read', 'member:read'],
-      status: 0
+      status: 0,
     };
   },
 
@@ -48,7 +48,7 @@ window.TestStubs = {
       id: '1',
       slug: 'team-slug',
       name: 'Team Name',
-      ...params
+      ...params,
     };
   },
   Project: (...params) => {
@@ -59,7 +59,7 @@ window.TestStubs = {
       subjectTemplate: '[$project] ${tag:level}: $title',
       digestsMinDelay: 5,
       digestsMaxDelay: 60,
-      ...params
+      ...params,
     };
   },
   Organization: (...params) => {
@@ -76,12 +76,12 @@ window.TestStubs = {
         'project:admin',
         'team:read',
         'team:write',
-        'team:admin'
+        'team:admin',
       ],
       features: [],
       onboardingTasks: [],
       teams: [],
-      ...params
+      ...params,
     };
   },
   Repository: (...params) => {
@@ -91,7 +91,7 @@ window.TestStubs = {
       provider: 'github',
       url: 'https://github.com/example/repo-name',
       status: 'visible',
-      ...params
+      ...params,
     };
   },
   GitHubRepositoryProvider: (...params) => {
@@ -105,10 +105,10 @@ window.TestStubs = {
           type: 'text',
           placeholder: 'e.g. getsentry/sentry',
           help: 'Enter your repository name, including the owner.',
-          required: true
-        }
+          required: true,
+        },
       ],
-      ...params
+      ...params,
     };
   },
   Integration: (...params) => {
@@ -117,9 +117,9 @@ window.TestStubs = {
       name: 'repo-name',
       provider: {
         id: 'github',
-        name: 'GitHub'
+        name: 'GitHub',
       },
-      ...params
+      ...params,
     };
   },
   GitHubIntegrationProvider: (...params) => {
@@ -128,9 +128,9 @@ window.TestStubs = {
       name: 'GitHub',
       config: [],
       setupUri: '/github-integration-setup-uri/',
-      ...params
+      ...params,
     };
-  }
+  },
 };
 
 // this is very commonly used, so expose it globally
@@ -142,7 +142,7 @@ ConfigStore.loadInitialData({
     isAuthenticated: true,
     email: 'foo@example.com',
     options: {
-      timezone: 'UTC'
-    }
-  }
+      timezone: 'UTC',
+    },
+  },
 });

@@ -6,7 +6,7 @@ import SummaryLine from './summaryLine';
 
 const ErrorRenderer = React.createClass({
   propTypes: {
-    crumb: PropTypes.object.isRequired
+    crumb: PropTypes.object.isRequired,
   },
 
   renderUrl(url) {
@@ -37,7 +37,7 @@ const ErrorRenderer = React.createClass({
     );
 
     return <CrumbTable title="Error" summary={summary} kvData={extra} {...this.props} />;
-  }
+  },
 });
 
 export default ErrorRenderer;

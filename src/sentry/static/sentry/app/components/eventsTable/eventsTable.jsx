@@ -10,12 +10,12 @@ const EventsTable = React.createClass({
   propTypes: {
     fixedDimensions: PropTypes.bool,
     events: PropTypes.arrayOf(CustomPropTypes.Event),
-    tagList: PropTypes.arrayOf(CustomPropTypes.Tag)
+    tagList: PropTypes.arrayOf(CustomPropTypes.Tag),
   },
 
   getDefaultProps() {
     return {
-      fixedDimensions: false
+      fixedDimensions: false,
     };
   },
 
@@ -34,11 +34,7 @@ const EventsTable = React.createClass({
             {hasUser && <th>{t('User')}</th>}
 
             {tagList.map(tag => {
-              return (
-                <th key={tag.key}>
-                  {tag.name}
-                </th>
-              );
+              return <th key={tag.key}>{tag.name}</th>;
             })}
           </tr>
         </thead>
@@ -60,7 +56,7 @@ const EventsTable = React.createClass({
         </tbody>
       </table>
     );
-  }
+  },
 });
 
 export default EventsTable;

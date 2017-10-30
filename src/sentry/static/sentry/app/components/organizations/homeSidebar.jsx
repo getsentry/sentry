@@ -9,7 +9,7 @@ import {t} from '../../locale';
 
 const HomeSidebar = React.createClass({
   contextTypes: {
-    location: PropTypes.object
+    location: PropTypes.object,
   },
 
   mixins: [OrganizationState],
@@ -23,7 +23,7 @@ const HomeSidebar = React.createClass({
     });
 
     return {
-      hooks
+      hooks,
     };
   },
 
@@ -42,7 +42,8 @@ const HomeSidebar = React.createClass({
             isActive={() => {
               // return true if path matches /organizations/slug-name/teams/ OR /organizations/slug-name/all-teams/
               return /^\/[^\/]+\/$/.test(this.context.location.pathname);
-            }}>
+            }}
+          >
             {t('Dashboard')}
           </ListLink>
           <ListLink
@@ -52,11 +53,13 @@ const HomeSidebar = React.createClass({
               return /^\/organizations\/[^\/]+\/(teams|all-teams)\/$/.test(
                 this.context.location.pathname
               );
-            }}>
+            }}
+          >
             {t('Projects & Teams')}
           </ListLink>
-          {access.has('org:read') &&
-            <ListLink to={`/organizations/${orgId}/stats/`}>{t('Stats')}</ListLink>}
+          {access.has('org:read') && (
+            <ListLink to={`/organizations/${orgId}/stats/`}>{t('Stats')}</ListLink>
+          )}
         </ul>
         <div>
           <h6 className="nav-header with-divider">{t('Issues')}</h6>
@@ -72,63 +75,76 @@ const HomeSidebar = React.createClass({
             </ListLink>
           </ul>
         </div>
-        {access.has('org:read') &&
+        {access.has('org:read') && (
           <div>
             <h6 className="nav-header with-divider">{t('Manage')}</h6>
             <ul className="nav nav-stacked">
-              {access.has('org:read') &&
+              {access.has('org:read') && (
                 <li
                   className={classnames({
                     active: /^\/organizations\/[^\/]+\/members\/new\/$/.test(
                       this.context.location.pathname
-                    )
-                  })}>
+                    ),
+                  })}
+                >
                   <a href={`/organizations/${orgId}/members/`}>
                     {t('Members')}&nbsp;
                     {access.has('org:write') &&
-                      org.pendingAccessRequests > 0 &&
-                      <span className="badge" style={{marginLeft: 5}}>
-                        {org.pendingAccessRequests}
-                      </span>}
+                      org.pendingAccessRequests > 0 && (
+                        <span className="badge" style={{marginLeft: 5}}>
+                          {org.pendingAccessRequests}
+                        </span>
+                      )}
                   </a>
-                </li>}
+                </li>
+              )}
               {features.has('sso') &&
-                access.has('org:admin') &&
-                <li><a href={`/organizations/${orgId}/auth/`}>{t('Auth')}</a></li>}
+                access.has('org:admin') && (
+                  <li>
+                    <a href={`/organizations/${orgId}/auth/`}>{t('Auth')}</a>
+                  </li>
+                )}
 
               {access.has('org:admin') &&
-                features.has('api-keys') &&
-                <ListLink to={`/organizations/${orgId}/api-keys/`}>
-                  {t('API Keys')}
-                </ListLink>}
+                features.has('api-keys') && (
+                  <ListLink to={`/organizations/${orgId}/api-keys/`}>
+                    {t('API Keys')}
+                  </ListLink>
+                )}
 
-              {access.has('org:write') &&
+              {access.has('org:write') && (
                 <ListLink to={`/organizations/${orgId}/audit-log/`}>
                   {t('Audit Log')}
-                </ListLink>}
-              {access.has('org:write') &&
+                </ListLink>
+              )}
+              {access.has('org:write') && (
                 <ListLink to={`/organizations/${orgId}/rate-limits/`}>
                   {t('Rate Limits')}
-                </ListLink>}
+                </ListLink>
+              )}
               {features.has('integrations-v3') &&
-                access.has('org:integrations') &&
-                <ListLink to={`/organizations/${orgId}/integrations/`}>
-                  {t('Integrations')}
-                </ListLink>}
-              {access.has('org:write') &&
+                access.has('org:integrations') && (
+                  <ListLink to={`/organizations/${orgId}/integrations/`}>
+                    {t('Integrations')}
+                  </ListLink>
+                )}
+              {access.has('org:write') && (
                 <ListLink to={`/organizations/${orgId}/repos/`}>
                   {t('Repositories')}
-                </ListLink>}
-              {access.has('org:write') &&
+                </ListLink>
+              )}
+              {access.has('org:write') && (
                 <ListLink to={`/organizations/${orgId}/settings/`}>
                   {t('Settings')}
-                </ListLink>}
+                </ListLink>
+              )}
             </ul>
-          </div>}
+          </div>
+        )}
         {this.state.hooks}
       </div>
     );
-  }
+  },
 });
 
 export default HomeSidebar;
