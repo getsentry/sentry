@@ -129,7 +129,10 @@ class OrganizationMemberDetailsEndpoint(OrganizationEndpoint):
         if not serializer.is_valid():
             return Response(status=400)
 
-        auth_provider = AuthProvider.objects.filter(organization=organization).first()
+        try:
+            auth_provider = AuthProvider.objects.get(organization=organization)
+        except AuthProvider.DoesNotExist:
+            auth_provider = None
 
         result = serializer.object
         # XXX(dcramer): if/when this expands beyond reinvite we need to check
