@@ -402,18 +402,18 @@ def collect_tsdb_data(caches, project, events):
     )
 
     for event in events:
-        counters[event.datetime][tsdb.models.group][event.group_id] += 1
-
-        user = event.data.get('sentry.interfaces.User')
-        if user:
-            sets[event.datetime][tsdb.models.users_affected_by_group][event.group_id].add(
-                get_event_user_from_interface(user).tag_value,
-            )
-
         environment = caches['Environment'](
             project.organization_id,
             get_environment_name(event),
         )
+
+        counters[event.datetime][tsdb.models.group][(event.group_id, environment.id)] += 1
+
+        user = event.data.get('sentry.interfaces.User')
+        if user:
+            sets[event.datetime][tsdb.models.users_affected_by_group][(event.group_id, environment.id)].add(
+                get_event_user_from_interface(user).tag_value,
+            )
 
         frequencies[event.datetime][tsdb.models.frequent_environments_by_group
                                     ][event.group_id][environment.id] += 1
@@ -442,14 +442,14 @@ def repair_tsdb_data(caches, project, events):
 
     for timestamp, data in counters.items():
         for model, keys in data.items():
-            for key, value in keys.items():
-                tsdb.incr(model, key, timestamp, value)
+            for (key, environment_id), value in keys.items():
+                tsdb.incr(model, key, timestamp, value, environment_id=environment_id)
 
     for timestamp, data in sets.items():
         for model, keys in data.items():
-            for key, values in keys.items():
+            for (key, environment_id), values in keys.items():
                 # TODO: This should use `record_multi` rather than `record`.
-                tsdb.record(model, key, values, timestamp)
+                tsdb.record(model, key, values, timestamp, environment_id=environment_id)
 
     for timestamp, data in frequencies.items():
         tsdb.record_frequency_multi(data.items(), timestamp)
