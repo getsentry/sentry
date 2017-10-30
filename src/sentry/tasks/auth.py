@@ -29,10 +29,10 @@ def email_missing_links(org_id, actor_id, provider_key, **kwargs):
 
 
 @instrumented_task(name='sentry.tasks.email_unlink_notifications', queue='auth')
-def email_unlink_notifications(org_id, disabler_id, provider_key):
+def email_unlink_notifications(org_id, actor_id, provider_key):
     try:
         org = Organization.objects.get(id=org_id)
-        disabler = User.objects.get(id=disabler_id)
+        actor = User.objects.get(id=actor_id)
         provider = manager.get(provider_key)
     except(Organization.DoesNotExist, User.DoesNotExist, ProviderNotRegistered) as e:
         logger.warning('Could not send SSO unlink emails: %s', e)
@@ -44,4 +44,4 @@ def email_unlink_notifications(org_id, disabler_id, provider_key):
     member_list = OrganizationMember.objects.filter(organization=org).select_related('user')
 
     for member in member_list:
-        member.send_sso_unlink_email(disabler, provider)
+        member.send_sso_unlink_email(actor, provider)
