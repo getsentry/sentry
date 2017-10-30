@@ -8,7 +8,7 @@ import {t} from '../locale';
 
 export default React.createClass({
   propTypes: {
-    statusDetails: PropTypes.object.isRequired
+    statusDetails: PropTypes.object.isRequired,
   },
 
   mixins: [PureRenderMixin],
@@ -18,13 +18,17 @@ export default React.createClass({
     if (details.ignoreUntil) {
       return t(
         'This issue has been ignored until %s',
-        <strong><DateTime date={details.ignoreUntil} /></strong>
+        <strong>
+          <DateTime date={details.ignoreUntil} />
+        </strong>
       );
     } else if (details.ignoreCount && details.ignoreWindow) {
       return t(
         'This issue has been ignored until it occurs %s time(s) in %s',
         <strong>{details.ignoreCount.toLocaleString()}</strong>,
-        <strong><Duration seconds={details.ignoreWindow * 3600} /></strong>
+        <strong>
+          <Duration seconds={details.ignoreWindow * 3600} />
+        </strong>
       );
     } else if (details.ignoreCount) {
       return t(
@@ -35,7 +39,9 @@ export default React.createClass({
       return t(
         'This issue has been ignored until it affects %s user(s) in %s',
         <strong>{details.ignoreUserCount.toLocaleString()}</strong>,
-        <strong><Duration seconds={details.ignoreUserWindow * 3600} /></strong>
+        <strong>
+          <Duration seconds={details.ignoreUserWindow * 3600} />
+        </strong>
       );
     } else if (details.ignoreUserCount) {
       return t(
@@ -58,5 +64,5 @@ export default React.createClass({
         </p>
       </div>
     );
-  }
+  },
 });

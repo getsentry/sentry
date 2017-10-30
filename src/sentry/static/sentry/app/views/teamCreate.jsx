@@ -33,7 +33,8 @@ export default class TeamCreate extends AsyncView {
           apiEndpoint={`/organizations/${orgId}/teams/`}
           apiMethod="POST"
           onSubmitSuccess={this.onSubmitSuccess}
-          requireChanges={true}>
+          requireChanges={true}
+        >
           <TextField
             name="name"
             label={t('Team Name')}

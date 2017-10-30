@@ -8,11 +8,11 @@ import LoadingIndicator from '../components/loadingIndicator';
 const ActionOverlay = React.createClass({
   propTypes: {
     actionId: PropTypes.string.isRequired,
-    isLoading: PropTypes.bool
+    isLoading: PropTypes.bool,
   },
 
   contextTypes: {
-    router: PropTypes.object.isRequired
+    router: PropTypes.object.isRequired,
   },
 
   mixins: [OrganizationState],
@@ -53,22 +53,22 @@ const ActionOverlay = React.createClass({
           <div className="dialog">
             <div className="dialog-contents">
               <div className="discard-bar">
-                <a href={orgUrl} onClick={this.onDoThisLater}>{t('Do this later …')}</a>
+                <a href={orgUrl} onClick={this.onDoThisLater}>
+                  {t('Do this later …')}
+                </a>
               </div>
-              <div className="content">
-                {children}
-              </div>
-              {isLoading
-                ? <div className="loading-overlay">
-                    <LoadingIndicator />
-                  </div>
-                : null}
+              <div className="content">{children}</div>
+              {isLoading ? (
+                <div className="loading-overlay">
+                  <LoadingIndicator />
+                </div>
+              ) : null}
             </div>
           </div>
         </div>
       </div>
     );
-  }
+  },
 });
 
 export default ActionOverlay;

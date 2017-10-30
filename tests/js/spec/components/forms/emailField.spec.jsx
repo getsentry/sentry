@@ -20,11 +20,11 @@ describe('EmailField', function() {
         context: {
           form: {
             data: {
-              fieldName: 'foo@example.com'
+              fieldName: 'foo@example.com',
             },
-            errors: {}
-          }
-        }
+            errors: {},
+          },
+        },
       });
       expect(wrapper).toMatchSnapshot();
     });

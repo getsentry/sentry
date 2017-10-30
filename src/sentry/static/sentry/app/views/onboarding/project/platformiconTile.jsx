@@ -5,7 +5,7 @@ const PlatformiconTile = React.createClass({
   propTypes: {
     platform: PropTypes.string,
     onClick: PropTypes.func,
-    className: PropTypes.string
+    className: PropTypes.string,
   },
 
   render() {
@@ -13,12 +13,15 @@ const PlatformiconTile = React.createClass({
 
     return (
       <li
-        className={`platform-tile list-unstyled ${platform} ${platform.split('-')[0]} ${className}`}
-        onClick={onClick}>
+        className={`platform-tile list-unstyled ${platform} ${platform.split(
+          '-'
+        )[0]} ${className}`}
+        onClick={onClick}
+      >
         <span className={`platformicon platformicon-${platform}`} />
       </li>
     );
-  }
+  },
 });
 
 export default PlatformiconTile;

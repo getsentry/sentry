@@ -10,7 +10,7 @@ import EventNode from './eventNode';
 const EventList = React.createClass({
   propTypes: {
     title: PropTypes.string.isRequired,
-    endpoint: PropTypes.string.isRequired
+    endpoint: PropTypes.string.isRequired,
   },
 
   mixins: [ApiMixin],
@@ -20,7 +20,7 @@ const EventList = React.createClass({
       groupList: [],
       loading: true,
       error: false,
-      statsPeriod: '24h'
+      statsPeriod: '24h',
     };
   },
 
@@ -32,7 +32,7 @@ const EventList = React.createClass({
     this.setState(
       {
         loading: true,
-        error: false
+        error: false,
       },
       this.fetchData
     );
@@ -56,27 +56,27 @@ const EventList = React.createClass({
     this.api.request(this.props.endpoint, {
       query: {
         limit: 5,
-        minutes
+        minutes,
       },
       success: data => {
         this.setState({
           groupList: data,
           loading: false,
-          error: false
+          error: false,
         });
       },
       error: () => {
         this.setState({
           loading: false,
-          error: true
+          error: true,
         });
-      }
+      },
     });
   },
 
   onSelectStatsPeriod(period) {
     this.setState({
-      statsPeriod: period
+      statsPeriod: period,
     });
   },
 
@@ -98,20 +98,20 @@ const EventList = React.createClass({
         </div>
         <div className="box-content">
           <div className="tab-pane active">
-            {this.state.loading
-              ? <LoadingIndicator />
-              : this.state.error
-                  ? <LoadingError onRetry={this.fetchData} />
-                  : eventNodes.length
-                      ? <ul className="group-list group-list-small">
-                          {eventNodes}
-                        </ul>
-                      : <div className="group-list-empty">{t('No data available.')}</div>}
+            {this.state.loading ? (
+              <LoadingIndicator />
+            ) : this.state.error ? (
+              <LoadingError onRetry={this.fetchData} />
+            ) : eventNodes.length ? (
+              <ul className="group-list group-list-small">{eventNodes}</ul>
+            ) : (
+              <div className="group-list-empty">{t('No data available.')}</div>
+            )}
           </div>
         </div>
       </div>
     );
-  }
+  },
 });
 
 export default EventList;

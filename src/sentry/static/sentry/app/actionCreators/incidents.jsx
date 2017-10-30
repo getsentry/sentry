@@ -20,7 +20,7 @@ function getIncidentsFromIncidentResponse(incidents) {
         return update.body;
       }),
       url: item.shortlink,
-      status: item.status
+      status: item.status,
     });
   });
 
@@ -43,15 +43,15 @@ export function load() {
           status: {
             incidents,
             indicator,
-            url: data.page.url
-          }
+            url: data.page.url,
+          },
         });
       },
       error: () => {
         IncidentActions.updateError({
-          status: null
+          status: null,
         });
-      }
+      },
     });
   }
 }

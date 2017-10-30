@@ -8,7 +8,7 @@ import SentryTypes from '../../proptypes';
 
 const EventNode = React.createClass({
   propTypes: {
-    group: SentryTypes.Group.isRequired
+    group: SentryTypes.Group.isRequired,
   },
 
   mixins: [ProjectState],
@@ -49,7 +49,7 @@ const EventNode = React.createClass({
         </div>
       </li>
     );
-  }
+  },
 });
 
 export default EventNode;

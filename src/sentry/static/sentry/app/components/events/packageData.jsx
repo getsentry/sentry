@@ -10,7 +10,7 @@ import {t} from '../../locale';
 const EventPackageData = React.createClass({
   propTypes: {
     group: SentryTypes.Group.isRequired,
-    event: SentryTypes.Event.isRequired
+    event: SentryTypes.Event.isRequired,
   },
 
   shouldComponentUpdate(nextProps, nextState) {
@@ -25,13 +25,14 @@ const EventPackageData = React.createClass({
         group={this.props.group}
         event={this.props.event}
         type="packages"
-        title={t('Packages')}>
+        title={t('Packages')}
+      >
         <ClippedBox>
           <KeyValueList data={packages} />
         </ClippedBox>
       </EventDataSection>
     );
-  }
+  },
 });
 
 export default EventPackageData;

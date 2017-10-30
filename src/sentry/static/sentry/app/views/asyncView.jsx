@@ -13,9 +13,7 @@ class AsyncView extends AsyncComponent {
   }
   render() {
     return (
-      <DocumentTitle title={this.getTitle()}>
-        {this.renderComponent()}
-      </DocumentTitle>
+      <DocumentTitle title={this.getTitle()}>{this.renderComponent()}</DocumentTitle>
     );
   }
 }

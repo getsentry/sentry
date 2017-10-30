@@ -10,8 +10,18 @@ describe('ContextData', function() {
         const URL = 'https://example.org/foo/bar/';
         let wrapper = shallow(<ContextData data={URL} />);
 
-        expect(wrapper.find('span').at(0).text()).toEqual(URL);
-        expect(wrapper.find('a').at(0).prop('href')).toEqual(URL);
+        expect(
+          wrapper
+            .find('span')
+            .at(0)
+            .text()
+        ).toEqual(URL);
+        expect(
+          wrapper
+            .find('a')
+            .at(0)
+            .prop('href')
+        ).toEqual(URL);
       });
     });
   });

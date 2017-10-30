@@ -15,11 +15,13 @@ storiesOf('Hovercard', module).add(
         height: 300,
         display: 'flex',
         justifyContent: 'center',
-        alignItems: 'center'
-      }}>
+        alignItems: 'center',
+      }}
+    >
       <Hovercard
         header={text('Header', 'Hovercard Header')}
-        body={text('Body', 'Hovercard body (can also be a React node)')}>
+        body={text('Body', 'Hovercard body (can also be a React node)')}
+      >
         Hover over me
       </Hovercard>
     </div>

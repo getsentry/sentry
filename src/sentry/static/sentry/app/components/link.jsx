@@ -1,7 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import {Link as RouterLink} from 'react-router';
-import _ from 'lodash';
 
 /**
  * A context-aware version of Link (from react-router) that falls
@@ -9,22 +8,25 @@ import _ from 'lodash';
  */
 const Link = React.createClass({
   propTypes: {
-    to: PropTypes.string.isRequired
+    to: PropTypes.string.isRequired,
   },
 
   contextTypes: {
-    location: PropTypes.object
+    location: PropTypes.object,
   },
 
   render() {
     if (this.context.location) {
       return <RouterLink {...this.props}>{this.props.children}</RouterLink>;
     } else {
-      let props = _.omit(this.props, 'to');
-      props.href = this.props.to;
-      return <a {...props}>{this.props.children}</a>;
+      let {to, ...props} = this.props;
+      return (
+        <a {...props} href={to}>
+          {this.props.children}
+        </a>
+      );
     }
-  }
+  },
 });
 
 export default Link;

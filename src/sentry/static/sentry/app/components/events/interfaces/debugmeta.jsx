@@ -10,7 +10,7 @@ const DebugMetaInterface = React.createClass({
   propTypes: {
     group: SentryTypes.Group.isRequired,
     event: SentryTypes.Event.isRequired,
-    data: PropTypes.object.isRequired
+    data: PropTypes.object.isRequired,
   },
 
   getImageDetail(img, evt) {
@@ -56,7 +56,8 @@ const DebugMetaInterface = React.createClass({
             group={this.props.group}
             event={this.props.event}
             type="packages"
-            title={t('Images Loaded')}>
+            title={t('Images Loaded')}
+          >
             <ClippedBox>
               <KeyValueList data={images} isSorted={false} />
             </ClippedBox>
@@ -66,7 +67,7 @@ const DebugMetaInterface = React.createClass({
     }
 
     return result;
-  }
+  },
 });
 
 export default DebugMetaInterface;

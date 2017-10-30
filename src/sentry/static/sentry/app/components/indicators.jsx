@@ -12,7 +12,7 @@ const Indicators = React.createClass({
 
   getInitialState() {
     return {
-      items: []
+      items: [],
     };
   },
 
@@ -22,7 +22,8 @@ const Indicators = React.createClass({
         <ReactCSSTransitionGroup
           transitionName="toast"
           transitionEnter={false}
-          transitionLeaveTimeout={500}>
+          transitionLeaveTimeout={500}
+        >
           {this.state.items.map(indicator => {
             if (indicator.type === 'error' || indicator.type === 'success') {
               return (
@@ -41,7 +42,7 @@ const Indicators = React.createClass({
         </ReactCSSTransitionGroup>
       </div>
     );
-  }
+  },
 });
 
 export default Indicators;

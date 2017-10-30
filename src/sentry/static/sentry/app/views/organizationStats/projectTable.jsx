@@ -21,7 +21,7 @@ const ProjectTable = React.createClass({
     projectMap: PropTypes.object.isRequired,
     projectTotals: PropTypes.array.isRequired,
     orgTotal: PropTypes.object.isRequired,
-    organization: PropTypes.object.isRequired
+    organization: PropTypes.object.isRequired,
   },
 
   mixins: [PureRenderMixin],
@@ -47,8 +47,16 @@ const ProjectTable = React.createClass({
           <tr>
             <th>{t('Project')}</th>
             <th className="align-right">{t('Accepted')}</th>
-            <th className="align-right">{t('Dropped')}<br />{t('(Rate Limit)')}</th>
-            <th className="align-right">{t('Dropped')}<br />{t('(Filters)')}</th>
+            <th className="align-right">
+              {t('Dropped')}
+              <br />
+              {t('(Rate Limit)')}
+            </th>
+            <th className="align-right">
+              {t('Dropped')}
+              <br />
+              {t('(Filters)')}
+            </th>
             <th className="align-right">{t('Total')}</th>
           </tr>
         </thead>
@@ -68,19 +76,23 @@ const ProjectTable = React.createClass({
                   </Link>
                 </td>
                 <td className="align-right">
-                  <Count value={item.accepted} /><br />
+                  <Count value={item.accepted} />
+                  <br />
                   <small>{getPercent(item.accepted, orgTotal.accepted)}</small>
                 </td>
                 <td className="align-right">
-                  <Count value={item.rejected} /><br />
+                  <Count value={item.rejected} />
+                  <br />
                   <small>{getPercent(item.rejected, orgTotal.rejected)}</small>
                 </td>
                 <td className="align-right">
-                  <Count value={item.blacklisted} /><br />
+                  <Count value={item.blacklisted} />
+                  <br />
                   <small>{getPercent(item.blacklisted, orgTotal.blacklisted)}</small>
                 </td>
                 <td className="align-right">
-                  <Count value={item.received} /><br />
+                  <Count value={item.received} />
+                  <br />
                   <small>{getPercent(item.received, orgTotal.received)}</small>
                 </td>
               </tr>
@@ -89,7 +101,7 @@ const ProjectTable = React.createClass({
         </tbody>
       </table>
     );
-  }
+  },
 });
 
 export default ProjectTable;

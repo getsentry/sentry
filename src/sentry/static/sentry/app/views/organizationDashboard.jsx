@@ -23,7 +23,7 @@ import {sortArray} from '../utils';
 const AssignedIssues = React.createClass({
   propTypes: {
     statsPeriod: PropTypes.string,
-    pageSize: PropTypes.number
+    pageSize: PropTypes.number,
   },
 
   getEndpoint() {
@@ -52,7 +52,8 @@ const AssignedIssues = React.createClass({
           <a
             className="btn btn-sm btn-default"
             style={{marginLeft: 5}}
-            onClick={this.refresh}>
+            onClick={this.refresh}
+          >
             <span className="icon icon-refresh" />
           </a>
         </div>
@@ -62,7 +63,7 @@ const AssignedIssues = React.createClass({
           query={{
             statsPeriod: this.props.statsPeriod,
             per_page: this.props.pageSize,
-            status: 'unresolved'
+            status: 'unresolved',
           }}
           pagination={false}
           renderEmpty={this.renderEmpty}
@@ -71,13 +72,13 @@ const AssignedIssues = React.createClass({
         />
       </div>
     );
-  }
+  },
 });
 
 const NewIssues = React.createClass({
   propTypes: {
     statsPeriod: PropTypes.string,
-    pageSize: PropTypes.number
+    pageSize: PropTypes.number,
   },
 
   getEndpoint() {
@@ -103,7 +104,8 @@ const NewIssues = React.createClass({
           <a
             className="btn btn-sm btn-default"
             style={{marginLeft: 5}}
-            onClick={this.refresh}>
+            onClick={this.refresh}
+          >
             <span className="icon icon-refresh" />
           </a>
         </div>
@@ -113,7 +115,7 @@ const NewIssues = React.createClass({
           query={{
             statsPeriod: this.props.statsPeriod,
             per_page: this.props.pageSize,
-            status: 'unresolved'
+            status: 'unresolved',
           }}
           pagination={false}
           renderEmpty={this.renderEmpty}
@@ -122,7 +124,7 @@ const NewIssues = React.createClass({
         />
       </div>
     );
-  }
+  },
 });
 
 function ProjectSparkline(props) {
@@ -138,20 +140,20 @@ function ProjectSparkline(props) {
   );
 }
 ProjectSparkline.propTypes = {
-  data: PropTypes.array.isRequired
+  data: PropTypes.array.isRequired,
 };
 
 const ProjectList = React.createClass({
   propTypes: {
     teams: PropTypes.array,
-    maxProjects: PropTypes.number
+    maxProjects: PropTypes.number,
   },
 
   mixins: [OrganizationState],
 
   getDefaultProps() {
     return {
-      maxProjects: 8
+      maxProjects: 8,
     };
   },
 
@@ -190,14 +192,13 @@ const ProjectList = React.createClass({
           View All
         </Link>
         <h6 className="nav-header">Projects</h6>
-        {bookmarkedProjects.length === 0 &&
+        {bookmarkedProjects.length === 0 && (
           <div className="alert alert-info" style={{marginBottom: 10}}>
-            Bookmark your most used
-            {' '}
-            <Link to={`/organizations/${org.slug}/teams/`}>projects</Link>
-            {' '}
-            to have them appear here.
-          </div>}
+            Bookmark your most used{' '}
+            <Link to={`/organizations/${org.slug}/teams/`}>projects</Link> to have them
+            appear here.
+          </div>
+        )}
         <ul className="nav nav-stacked">
           {projects.map(project => {
             return (
@@ -207,8 +208,9 @@ const ProjectList = React.createClass({
                 </div>
                 <Link to={`/${org.slug}/${project.slug}/`}>
                   <h4>
-                    {project.isBookmarked &&
-                      <span className="bookmark icon-star-solid" />}
+                    {project.isBookmarked && (
+                      <span className="bookmark icon-star-solid" />
+                    )}
                     {project.name}
                   </h4>
                   <h5>{project.teamName}</h5>
@@ -219,7 +221,7 @@ const ProjectList = React.createClass({
         </ul>
       </div>
     );
-  }
+  },
 });
 
 const Activity = React.createClass({
@@ -238,7 +240,8 @@ const Activity = React.createClass({
           <a
             className="btn btn-sm btn-default"
             style={{marginLeft: 5}}
-            onClick={this.refresh}>
+            onClick={this.refresh}
+          >
             <span className="icon icon-refresh" />
           </a>
         </div>
@@ -247,14 +250,14 @@ const Activity = React.createClass({
           ref="activityFeed"
           endpoint={this.getEndpoint()}
           query={{
-            per_page: 10
+            per_page: 10,
           }}
           pagination={false}
           {...this.props}
         />
       </div>
     );
-  }
+  },
 });
 
 const OrganizationDashboard = React.createClass({
@@ -263,7 +266,7 @@ const OrganizationDashboard = React.createClass({
   getDefaultProps() {
     return {
       statsPeriod: '24h',
-      pageSize: 5
+      pageSize: 5,
     };
   },
 
@@ -271,13 +274,13 @@ const OrganizationDashboard = React.createClass({
     // Allow injection via getsentry et all
     let hooks = HookStore.get('organization:dashboard:secondary-column').map(cb => {
       return cb({
-        params: this.props.params
+        params: this.props.params,
       });
     });
 
     return {
       teams: TeamStore.getAll(),
-      hooks
+      hooks,
     };
   },
 
@@ -287,8 +290,8 @@ const OrganizationDashboard = React.createClass({
       query: {
         since: new Date().getTime() / 1000 - 3600 * 24,
         stat: 'generated',
-        group: 'project'
-      }
+        group: 'project',
+      },
     });
   },
 
@@ -298,7 +301,7 @@ const OrganizationDashboard = React.createClass({
 
   onTeamListChange() {
     this.setState({
-      teams: TeamStore.getAll()
+      teams: TeamStore.getAll(),
     });
   },
 
@@ -319,7 +322,7 @@ const OrganizationDashboard = React.createClass({
         </div>
       </OrganizationHomeContainer>
     );
-  }
+  },
 });
 
 export default OrganizationDashboard;

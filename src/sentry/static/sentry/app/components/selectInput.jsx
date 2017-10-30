@@ -9,7 +9,7 @@ const SelectInput = React.createClass({
     required: PropTypes.bool,
     placeholder: PropTypes.string,
     value: PropTypes.string,
-    onChange: PropTypes.func
+    onChange: PropTypes.func,
   },
 
   getDefaultProps() {
@@ -24,7 +24,7 @@ const SelectInput = React.createClass({
 
       // Component options
       value: '',
-      onChange: $.noop
+      onChange: $.noop,
     };
   },
 
@@ -63,7 +63,7 @@ const SelectInput = React.createClass({
 
   create() {
     this.select2 = jQuery(this.refs.select).select2({
-      width: 'element'
+      width: 'element',
     });
     this.select2.on('change', this.onChange);
   },
@@ -82,7 +82,7 @@ const SelectInput = React.createClass({
         {this.props.children}
       </select>
     );
-  }
+  },
 });
 
 export default SelectInput;

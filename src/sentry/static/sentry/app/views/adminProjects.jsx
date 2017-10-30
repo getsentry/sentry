@@ -15,14 +15,13 @@ const AdminProjects = React.createClass({
     return [
       <td>
         <strong>
-          <a href={`/${row.organization.slug}/${row.slug}/`}>
-            {row.name}
-          </a>
-        </strong><br />
+          <a href={`/${row.organization.slug}/${row.slug}/`}>{row.name}</a>
+        </strong>
+        <br />
         <small>{row.organization.name}</small>
       </td>,
       <td style={{textAlign: 'center'}}>{row.status}</td>,
-      <td style={{textAlign: 'right'}}>{prettyDate(row.dateCreated)}</td>
+      <td style={{textAlign: 'right'}}>{prettyDate(row.dateCreated)}</td>,
     ];
   },
 
@@ -30,7 +29,7 @@ const AdminProjects = React.createClass({
     let columns = [
       <th>Project</th>,
       <th style={{width: 150, textAlign: 'center'}}>Status</th>,
-      <th style={{width: 200, textAlign: 'right'}}>Created</th>
+      <th style={{width: 200, textAlign: 'right'}}>Created</th>,
     ];
 
     return (
@@ -46,8 +45,8 @@ const AdminProjects = React.createClass({
           filters={{
             status: {
               name: 'Status',
-              options: [['active', 'Active'], ['deleted', 'Deleted']]
-            }
+              options: [['active', 'Active'], ['deleted', 'Deleted']],
+            },
           }}
           sortOptions={[['date', 'Date Created']]}
           defaultSort="date"
@@ -55,7 +54,7 @@ const AdminProjects = React.createClass({
         />
       </div>
     );
-  }
+  },
 });
 
 export default AdminProjects;

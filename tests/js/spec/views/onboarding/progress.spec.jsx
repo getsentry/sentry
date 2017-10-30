@@ -7,14 +7,14 @@ describe('ProgressNodes', function() {
   describe('render()', function() {
     const baseProps = {
       params: {
-        projectId: ''
-      }
+        projectId: '',
+      },
     };
 
     const baseContext = {
       context: {
-        organization: {id: '1337', slug: 'testOrg'}
-      }
+        organization: {id: '1337', slug: 'testOrg'},
+      },
     };
 
     it('should render step 0 if no projectId', function() {
@@ -22,9 +22,13 @@ describe('ProgressNodes', function() {
 
       expect(wrapper.find('.node')).toHaveLength(6);
       expect(wrapper.find('.active')).toHaveLength(2);
-      expect(wrapper.find('.active').first().last().text()).toEqual(
-        'Tell us about your project'
-      );
+      expect(
+        wrapper
+          .find('.active')
+          .first()
+          .last()
+          .text()
+      ).toEqual('Tell us about your project');
 
       expect(wrapper.find('.done')).toHaveLength(2);
 
@@ -35,17 +39,21 @@ describe('ProgressNodes', function() {
       let props = {
         ...baseProps,
         params: {
-          projectId: 'my-cool-project'
-        }
+          projectId: 'my-cool-project',
+        },
       };
 
       let wrapper = shallow(<ProgressNodes {...props} />, baseContext);
 
       expect(wrapper.find('.node')).toHaveLength(6);
       expect(wrapper.find('.active')).toHaveLength(2);
-      expect(wrapper.find('.active').first().last().text()).toEqual(
-        'Configure your application and send an event'
-      );
+      expect(
+        wrapper
+          .find('.active')
+          .first()
+          .last()
+          .text()
+      ).toEqual('Configure your application and send an event');
 
       expect(wrapper.find('.done')).toHaveLength(4);
 

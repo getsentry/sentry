@@ -9,7 +9,7 @@ const CrumbTable = React.createClass({
     crumb: PropTypes.object,
     title: PropTypes.string,
     kvData: PropTypes.object,
-    summary: PropTypes.object
+    summary: PropTypes.object,
   },
 
   renderData() {
@@ -20,7 +20,9 @@ const CrumbTable = React.createClass({
       return (
         <tr key={key}>
           <td className="key">{key}</td>
-          <td className="value"><pre>{val + ''}</pre></td>
+          <td className="value">
+            <pre>{val + ''}</pre>
+          </td>
         </tr>
       );
     });
@@ -43,7 +45,7 @@ const CrumbTable = React.createClass({
         </tbody>
       </table>
     );
-  }
+  },
 });
 
 export default CrumbTable;

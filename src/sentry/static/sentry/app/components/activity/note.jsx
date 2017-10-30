@@ -12,7 +12,7 @@ const Note = React.createClass({
     author: PropTypes.object.isRequired,
     item: PropTypes.object.isRequired,
     onEdit: PropTypes.func.isRequired,
-    onDelete: PropTypes.func.isRequired
+    onDelete: PropTypes.func.isRequired,
   },
 
   canEdit() {
@@ -29,21 +29,23 @@ const Note = React.createClass({
         <TimeSince date={item.dateCreated} />
         <div className="activity-author">
           {author.name}
-          {this.canEdit() &&
+          {this.canEdit() && (
             <span className="editor-tools">
               <a onClick={onEdit}>{t('Edit')}</a>
               <LinkWithConfirmation
                 className="danger"
                 message={t('Are you sure you wish to delete this comment?')}
-                onConfirm={onDelete}>
+                onConfirm={onDelete}
+              >
                 {t('Remove')}
               </LinkWithConfirmation>
-            </span>}
+            </span>
+          )}
         </div>
         <div dangerouslySetInnerHTML={{__html: noteBody}} />
       </div>
     );
-  }
+  },
 });
 
 export default Note;
