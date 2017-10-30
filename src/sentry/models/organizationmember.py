@@ -176,7 +176,7 @@ class OrganizationMember(Model):
         )
         msg.send_async([self.get_email()])
 
-    def send_sso_unlink_email(self, disabler, provider):
+    def send_sso_unlink_email(self, actor, provider):
         from sentry.utils.email import MessageBuilder
         from sentry.models import LostPasswordHash
 
@@ -192,7 +192,7 @@ class OrganizationMember(Model):
             'recover_url': absolute_uri(recover_uri),
             'has_password': self.user.password,
             'organization': self.organization,
-            'disabler': disabler,
+            'actor': actor,
             'provider': provider,
         }
 
