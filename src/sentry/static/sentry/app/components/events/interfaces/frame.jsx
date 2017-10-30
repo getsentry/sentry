@@ -336,14 +336,15 @@ const Frame = React.createClass({
   },
 
   renderRepeats() {
-    if (this.props.timesRepeated > 0) {
+    let timesRepeated = this.props.timesRepeated;
+    if (timesRepeated > 0) {
       return (
         <span
           className="repeated-frames"
-          title={`Frame repeated ${this.props.timesRepeated} times`}
+          title={`Frame repeated ${timesRepeated} time${timesRepeated === 1 ? '' : 's'}`}
         >
           <span className="icon-refresh" />
-          <span>{this.props.timesRepeated}</span>
+          <span>{timesRepeated}</span>
         </span>
       );
     } else return null;
