@@ -102,16 +102,16 @@ const TodoList = React.createClass({
         location: 'https://docs.sentry.io/hosted/clients/javascript/sourcemaps/',
         display: true
       },
-      // {
-      //   'task': 8,
-      //   'title': 'User crash reports',
-      //   'description': 'Collect user feedback when your application crashes',
-      //   'skippable': false,
-      //   'prereq': [1, 2, 5],
-      //   'featureLocation': 'project',
-      //   'location': 'settings/user-reports/',
-      // display: true
-      // },
+      {
+        task: 8,
+        title: 'User crash reports',
+        description: t('Collect user feedback when your application crashes'),
+        skippable: true,
+        prereq: [1, 2, 5],
+        featureLocation: 'project',
+        location: 'settings/user-reports/',
+        display: false
+      },
       {
         task: 9,
         title: t('Set up issue tracking'),
