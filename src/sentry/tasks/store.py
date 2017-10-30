@@ -66,11 +66,14 @@ def _do_preprocess_event(cache_key, data, start_time, event_id, process_event):
         process_event.delay(cache_key=cache_key, start_time=start_time, event_id=event_id)
         return
 
+    key = data.pop('key', None)
     # If we get here, that means the event had no preprocessing needed to be done
     # so we can jump directly to save_event
     if cache_key:
         data = None
-    save_event.delay(cache_key=cache_key, data=data, start_time=start_time, event_id=event_id)
+    save_event.delay(
+        cache_key=cache_key, data=data, start_time=start_time, event_id=event_id, key=key,
+    )
 
 
 @instrumented_task(
@@ -108,6 +111,7 @@ def _do_process_event(cache_key, start_time, event_id):
         return
 
     project = data['project']
+    key = data.pop('key', None)
     Raven.tags_context({
         'project': project,
     })
@@ -142,7 +146,9 @@ def _do_process_event(cache_key, start_time, event_id):
 
         default_cache.set(cache_key, data, 3600)
 
-    save_event.delay(cache_key=cache_key, data=None, start_time=start_time, event_id=event_id)
+    save_event.delay(
+        cache_key=cache_key, data=None, start_time=start_time, event_id=event_id, key=key,
+    )
 
 
 @instrumented_task(
@@ -251,12 +257,14 @@ def create_failed_event(cache_key, project_id, issues, event_id, start_time=None
 
 
 @instrumented_task(name='sentry.tasks.store.save_event', queue='events.save_event')
-def save_event(cache_key=None, data=None, start_time=None, event_id=None, **kwargs):
+def save_event(cache_key=None, data=None, start_time=None, event_id=None, key=None, **kwargs):
     """
     Saves an event to the database.
     """
     from sentry.event_manager import HashDiscarded, EventManager
     from sentry import tsdb
+    from sentry.models import ProjectKey
+    from sentry import quotas
 
     if cache_key:
         data = default_cache.get(cache_key)
@@ -291,6 +299,11 @@ def save_event(cache_key=None, data=None, start_time=None, event_id=None, **kwar
             tsdb.models.project_total_received_discarded,
             project,
             timestamp=to_datetime(start_time) if start_time is not None else None,
+        )
+        quotas.refund(
+            Project.objects.get(id=project),
+            key=ProjectKey.objects.get(id=key) if key else None,
+            timestamp=start_time,
         )
     finally:
         if cache_key:

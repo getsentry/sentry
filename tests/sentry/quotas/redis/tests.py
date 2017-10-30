@@ -25,18 +25,21 @@ def test_is_rate_limited_script():
     client = cluster.get_local_client(six.next(iter(cluster.hosts)))
 
     # The item should not be rate limited by either key.
-    assert list(map(bool, is_rate_limited(client, ('foo', 'bar'), (1, now + 60, 2, now + 120)))
+    assert list(map(bool, is_rate_limited(
+                client, ('foo', 'bar'), (1, now + 60, 'baz', 2, now + 120, 'baz')))
                 ) == [False, False]
 
     # The item should be rate limited by the first key (1).
-    assert list(map(bool, is_rate_limited(client, ('foo', 'bar'), (1, now + 60, 2, now + 120)))
+    assert list(map(bool, is_rate_limited(
+                client, ('foo', 'bar'), (1, now + 60, 'baz', 2, now + 120, 'baz')))
                 ) == [True, False]
 
     # The item should still be rate limited by the first key (1), but *not*
     # rate limited by the second key (2) even though this is the third time
     # we've checked the quotas. This ensures items that are rejected by a lower
     # quota don't affect unrelated items that share a parent quota.
-    assert list(map(bool, is_rate_limited(client, ('foo', 'bar'), (1, now + 60, 2, now + 120)))
+    assert list(map(bool, is_rate_limited(
+                client, ('foo', 'bar'), (1, now + 60, 'baz', 2, now + 120, 'baz')))
                 ) == [True, False]
 
     assert client.get('foo') == '1'
@@ -44,6 +47,21 @@ def test_is_rate_limited_script():
 
     assert client.get('bar') == '1'
     assert 119 <= client.ttl('bar') <= 120
+
+    # Test that refunded quotas work
+    client.set('apple', 5)
+    # increment
+    is_rate_limited(
+        client, ('orange',), (1, now + 60, 'baz',)
+    )
+    # test that it's rate limited without refund
+    assert list(map(bool, is_rate_limited(
+        client, ('orange',), (1, now + 60, 'baz',)
+    ))) == [True, ]
+    # test that refund key is used
+    assert list(map(bool, is_rate_limited(
+        client, ('orange',), (1, now + 60, 'apple',)
+    ))) == [False, ]
 
 
 class RedisQuotaTest(TestCase):
@@ -163,3 +181,35 @@ class RedisQuotaTest(TestCase):
             ],
             timestamp=timestamp,
         ) == [n for _ in quotas] + [None, 0]
+
+    @mock.patch.object(RedisQuota, 'get_quotas')
+    def test_refund(self, mock_get_quotas):
+        timestamp = time.time()
+
+        mock_get_quotas.return_value = (
+            BasicRedisQuota(
+                key='p:1',
+                limit=1,
+                window=1,
+                reason_code='project_quota',
+                enforce=False,
+            ), BasicRedisQuota(
+                key='p:2',
+                limit=1,
+                window=1,
+                reason_code='project_quota',
+                enforce=True,
+            ),
+        )
+
+        self.quota.refund(self.project, timestamp=timestamp)
+        client = self.quota.cluster.get_local_client_for_key(
+            six.text_type(self.project.organization.pk)
+        )
+
+        keys = client.keys('r:quota:p:?:*')
+
+        assert len(keys) == 2
+
+        for key in keys:
+            assert client.get(key) == '1'

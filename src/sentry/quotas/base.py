@@ -55,6 +55,9 @@ class Quota(Service):
     def is_rate_limited(self, project, key=None):
         return NotRateLimited()
 
+    def refund(self, project, key=None):
+        raise NotImplementedError
+
     def get_time_remaining(self):
         return 0
 
