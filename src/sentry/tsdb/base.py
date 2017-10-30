@@ -35,10 +35,6 @@ class TSDBModel(Enum):
     project_total_received = 100
     # the number of events rejected due to rate limiting
     project_total_rejected = 101
-    # the number of operations
-    project_operations = 102
-    # the number of operations with an error state
-    project_operation_errors = 103
     # the number of events blocked due to being blacklisted
     project_total_blacklisted = 104
     # the number of events forwarded to third party processors (data forwarding)
