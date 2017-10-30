@@ -28,11 +28,7 @@ class TSDBModel(Enum):
 
     # number of events seen specific to grouping
     project = 1
-    project_tag_key = 2
-    project_tag_value = 3
     group = 4
-    group_tag_key = 5
-    group_tag_value = 6
     release = 7
 
     # the number of events sent to the server
