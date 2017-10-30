@@ -25,6 +25,9 @@ EMAILS = (
     ('/debug/mail/mfa-added/', 'mfa added'),
     ('/debug/mail/mfa-removed/', 'mfa removed'),
     ('/debug/mail/password-changed/', 'password changed'),
+    ('/debug/mail/sso-linked', 'sso linked'),
+    ('/debug/mail/sso-unlinked', 'sso unlinked'),
+    ('/debug/mail/sso-unlinked/no-password', 'sso unlinked without password'),
 )
 
 
