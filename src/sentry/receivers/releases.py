@@ -61,6 +61,7 @@ def resolved_in_commit(instance, created, **kwargs):
                 GroupLink.objects.create(
                     group_id=group.id,
                     linked_type=GroupLink.LinkedType.commit,
+                    relationship=GroupLink.Relationship.resolves,
                     linked_id=instance.id,
                 )
 

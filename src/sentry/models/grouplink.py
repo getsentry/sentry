@@ -1,5 +1,5 @@
 """
-sentry.models.groupseen
+sentry.models.grouplink
 ~~~~~~~~~~~~~~~~~~~~~~~
 
 :copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
@@ -17,14 +17,14 @@ from sentry.db.models import Model, sane_repr, BoundedBigIntegerField, BoundedPo
 
 class GroupLink(Model):
     """
-    Link a group with an extenal resource like a commit, issue, or pull request
+    Link a group with an external resource like a commit, issue, or pull request
     """
     __core__ = False
 
     class Relationship:
         unknown = 0
         resolves = 1
-        links = 2
+        references = 2
 
     class LinkedType:
         unknown = 0
@@ -33,30 +33,24 @@ class GroupLink(Model):
         issue = 3
 
     group_id = BoundedBigIntegerField()
-
     linked_type = BoundedPositiveIntegerField(
         default=LinkedType.commit,
         choices=((LinkedType.commit, _('Commit')),
                  (LinkedType.pull, _('Pull Request')),
                  (LinkedType.issue, _('Tracker Issue')), ),
     )
-
     linked_id = BoundedBigIntegerField()
-
     relationship = BoundedPositiveIntegerField(
-        default=Relationship.links,
+        default=Relationship.references,
         choices=((Relationship.resolves, _('Resolves')),
-                 (Relationship.links, _('Linked')), ),
+                 (Relationship.references, _('Linked')), ),
     )
-
     data = JSONField()
-
     datetime = models.DateTimeField(default=timezone.now, db_index=True)
-
-    unique_together = (('group_id', 'linked_type', 'linked_id'), )
 
     class Meta:
         app_label = 'sentry'
         db_table = 'sentry_grouplink'
+        unique_together = (('group_id', 'linked_type', 'linked_id'), )
 
     __repr__ = sane_repr('group_id', 'link', 'datetime')
