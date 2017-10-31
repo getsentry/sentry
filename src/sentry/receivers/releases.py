@@ -63,6 +63,7 @@ def resolved_in_commit(instance, created, **kwargs):
                     linked_type=GroupLink.LinkedType.commit,
                     linked_id=instance.id,
                 )
+
                 if instance.author:
                     user_list = list(instance.author.find_users())
                 else:
