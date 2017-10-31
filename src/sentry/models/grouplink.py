@@ -60,10 +60,3 @@ class GroupLink(Model):
         db_table = 'sentry_grouplink'
 
     __repr__ = sane_repr('group_id', 'link', 'datetime')
-
-    def get_actor_name(self):
-        if self.actor:
-            return self.actor.get_display_name()
-        elif self.actor_key:
-            return self.actor_key.key + ' (api key)'
-        return self.actor_label
