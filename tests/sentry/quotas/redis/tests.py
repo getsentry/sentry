@@ -26,12 +26,12 @@ def test_is_rate_limited_script():
 
     # The item should not be rate limited by either key.
     assert list(map(bool, is_rate_limited(
-                client, ('foo', 'bar'), (1, now + 60, 'baz', 2, now + 120, 'baz')))
+                client, ('foo', 'r:foo', 'bar', 'r:bar'), (1, now + 60, 2, now + 120)))
                 ) == [False, False]
 
     # The item should be rate limited by the first key (1).
     assert list(map(bool, is_rate_limited(
-                client, ('foo', 'bar'), (1, now + 60, 'baz', 2, now + 120, 'baz')))
+                client, ('foo', 'r:foo', 'bar', 'r:bar'), (1, now + 60, 2, now + 120)))
                 ) == [True, False]
 
     # The item should still be rate limited by the first key (1), but *not*
@@ -39,7 +39,7 @@ def test_is_rate_limited_script():
     # we've checked the quotas. This ensures items that are rejected by a lower
     # quota don't affect unrelated items that share a parent quota.
     assert list(map(bool, is_rate_limited(
-                client, ('foo', 'bar'), (1, now + 60, 'baz', 2, now + 120, 'baz')))
+                client, ('foo', 'r:foo', 'bar', 'r:bar'), (1, now + 60, 2, now + 120)))
                 ) == [True, False]
 
     assert client.get('foo') == '1'
@@ -48,19 +48,23 @@ def test_is_rate_limited_script():
     assert client.get('bar') == '1'
     assert 119 <= client.ttl('bar') <= 120
 
+    # make sure "refund/negative" keys haven't been incremented
+    assert client.get('r:foo') is None
+    assert client.get('r:bar') is None
+
     # Test that refunded quotas work
     client.set('apple', 5)
     # increment
     is_rate_limited(
-        client, ('orange',), (1, now + 60, 'baz',)
+        client, ('orange', 'baz'), (1, now + 60)
     )
     # test that it's rate limited without refund
     assert list(map(bool, is_rate_limited(
-        client, ('orange',), (1, now + 60, 'baz',)
+        client, ('orange', 'baz'), (1, now + 60)
     ))) == [True, ]
     # test that refund key is used
     assert list(map(bool, is_rate_limited(
-        client, ('orange',), (1, now + 60, 'apple',)
+        client, ('orange', 'apple'), (1, now + 60)
     ))) == [False, ]
 
 

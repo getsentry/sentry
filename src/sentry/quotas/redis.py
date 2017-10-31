@@ -180,10 +180,10 @@ class RedisQuota(Quota):
         for quota in quotas:
             shift = project.organization_id % quota.window
             key = self.__get_redis_key(quota.key, timestamp, quota.window, shift)
-            keys.append(key)
-            expiry = self.get_next_period_start(quota.window, shift, timestamp) + self.grace
             return_key = self.get_refunded_quota_key(key)
-            args.extend((quota.limit, int(expiry), return_key))
+            keys.extend((key, return_key))
+            expiry = self.get_next_period_start(quota.window, shift, timestamp) + self.grace
+            args.extend((quota.limit, int(expiry)))
 
         client = self.cluster.get_local_client_for_key(six.text_type(project.organization_id))
         rejections = is_rate_limited(client, keys, args)
