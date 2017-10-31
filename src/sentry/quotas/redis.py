@@ -79,7 +79,7 @@ class RedisQuota(Quota):
                 reason_code='project_quota',
             ),
             BasicRedisQuota(
-                key='o:{}'.format(project.organization.id),
+                key='o:{}'.format(project.organization_id),
                 limit=oquota[0],
                 window=oquota[1],
                 reason_code='org_quota',
@@ -145,7 +145,7 @@ class RedisQuota(Quota):
         if not quotas:
             return
 
-        client = self.cluster.get_local_client_for_key(six.text_type(project.organization.pk))
+        client = self.cluster.get_local_client_for_key(six.text_type(project.organization_id))
         pipe = client.pipeline()
 
         for quota in quotas:
@@ -185,7 +185,7 @@ class RedisQuota(Quota):
             return_key = self.get_refunded_quota_key(key)
             args.extend((quota.limit, int(expiry), return_key))
 
-        client = self.cluster.get_local_client_for_key(six.text_type(project.organization.pk))
+        client = self.cluster.get_local_client_for_key(six.text_type(project.organization_id))
         rejections = is_rate_limited(client, keys, args)
         if any(rejections):
             enforce = False
