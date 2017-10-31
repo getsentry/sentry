@@ -276,35 +276,50 @@ def save_event(cache_key=None, data=None, start_time=None, event_id=None, key=No
         metrics.incr('events.failed', tags={'reason': 'cache', 'stage': 'post'})
         return
 
-    project = data.pop('project')
+    project_id = data.pop('project')
 
-    delete_raw_event(project, event_id, allow_hint_clear=True)
+    delete_raw_event(project_id, event_id, allow_hint_clear=True)
 
     Raven.tags_context({
-        'project': project,
+        'project': project_id,
     })
 
     try:
         manager = EventManager(data)
-        manager.save(project)
+        manager.save(project_id)
     except HashDiscarded as exc:
         # TODO(jess): remove this before it goes out to a wider audience
         info_logger.info(
             'discarded.hash', extra={
-                'project_id': project,
+                'project_id': project_id,
                 'description': exc.message,
             }
         )
+
         tsdb.incr(
             tsdb.models.project_total_received_discarded,
-            project,
+            project_id,
             timestamp=to_datetime(start_time) if start_time is not None else None,
         )
-        quotas.refund(
-            Project.objects.get(id=project),
-            key=ProjectKey.objects.get(id=key) if key else None,
-            timestamp=start_time,
-        )
+
+        try:
+            project = Project.objects.get_from_cache(id=project_id)
+        except Project.DoesNotExist:
+            pass
+        else:
+            project_key = None
+            if key is not None:
+                try:
+                    project_key = ProjectKey.objects.get_from_cache(id=key)
+                except ProjectKey.DoesNotExist:
+                    pass
+
+            quotas.refund(
+                project,
+                key=project_key,
+                timestamp=start_time,
+            )
+
     finally:
         if cache_key:
             default_cache.delete(cache_key)
