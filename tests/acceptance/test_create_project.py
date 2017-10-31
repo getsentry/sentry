@@ -8,15 +8,8 @@ class CreateProjectTest(AcceptanceTestCase):
     def setUp(self):
         super(CreateProjectTest, self).setUp()
         self.user = self.create_user('foo@example.com')
-
         self.org = self.create_organization(
             name='Rowdy Tiger',
-            owner=None,
-        )
-        self.project = self.create_project(
-            organization=self.org,
-            team=self.team,
-            name='Bengal',
         )
         self.login_as(self.user)
 
@@ -37,9 +30,12 @@ class CreateProjectTest(AcceptanceTestCase):
         self.browser.snapshot(name='create project')
 
         self.browser.click('.new-project-submit')
-        self.browser.wait_until_not('.loading')
+        self.browser.wait_until(title='Mariachi Band / Java')
 
-        assert Project.objects.get(team__organization=self.org, name='Java')
+        project = Project.objects.get(organization=self.org)
+        assert project.name == 'Java'
+        assert project.platform == 'java'
+        assert project.team_id == self.team.id
         self.browser.snapshot(name='docs redirect')
 
     def test_no_teams(self):

@@ -20,9 +20,6 @@ install-yarn:
 	@hash yarn 2> /dev/null || (echo 'Cannot continue with JavaScript dependencies. Please install yarn before proceeding. For more information refer to https://yarnpkg.com/lang/en/docs/install/'; echo 'If you are on a mac run:'; echo '  brew install yarn'; exit 1)
 	# Use NODE_ENV=development so that yarn installs both dependencies + devDependencies
 	NODE_ENV=development yarn install --pure-lockfile
-	# Fix phantomjs-prebuilt not installed via yarn
-	# See: https://github.com/karma-runner/karma-phantomjs-launcher/issues/120#issuecomment-262634703
-	node ./node_modules/phantomjs-prebuilt/install.js
 
 install-brew:
 	@hash brew 2> /dev/null && brew bundle || (echo '! Homebrew not found, skipping system dependencies.')
@@ -213,6 +210,12 @@ travis-install-mysql: travis-install-python
 	pip install mysqlclient
 	echo 'create database sentry;' | mysql -uroot
 travis-install-acceptance: install-yarn travis-install-postgres
+	wget -N http://chromedriver.storage.googleapis.com/2.33/chromedriver_linux64.zip -P ~/
+	unzip ~/chromedriver_linux64.zip -d ~/
+	rm ~/chromedriver_linux64.zip
+	chmod +x ~/chromedriver
+	mkdir -p ~/.bin
+	mv ~/chromedriver ~/.bin/
 travis-install-network: travis-install-postgres
 travis-install-js:
 	$(MAKE) travis-upgrade-pip
