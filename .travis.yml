@@ -1,6 +1,6 @@
 filter_secrets: false
 sudo: false
-dist: precise
+dist: trusty
 language: python
 rvm:
   - 2.2
@@ -19,6 +19,7 @@ addons:
     packages:
       - g++-4.8
       - libxmlsec1-dev
+  chrome: stable
 env:
   global:
     - NODE_ENV=production
@@ -29,6 +30,7 @@ env:
     - CXX=g++-4.8
     - SOUTH_TESTS_MIGRATE=1
 install:
+  - 'export PATH=$PATH:~/.bin'
   - nvm install $TRAVIS_NODE_VERSION
   - npm install -g yarn@1.3.2
   - make travis-install-$TEST_SUITE
@@ -63,17 +65,13 @@ matrix:
     - language: ruby
       rvm: 2.2
       env: TEST_SUITE=danger
-    # only the sqlite suite runs cassandra/riak tests
+    # only the sqlite suite runs riak tests
     - python: 2.7
       env: TEST_SUITE=sqlite DB=sqlite
       services:
         - memcached
         - riak
         - redis-server
-        - cassandra
-      before_script:
-        - make travis-setup-cassandra
-        - pip freeze
     - python: 2.7
       env: TEST_SUITE=postgres DB=postgres
       services:

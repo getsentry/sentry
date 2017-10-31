@@ -11,7 +11,7 @@ def enable_superuser(request, user, **kwargs):
         if user.is_superuser:
             su.set_logged_in(user)
         else:
-            su.set_logged_out()
+            su._set_logged_out()
 
 
 def disable_superuser(request, user, **kwargs):

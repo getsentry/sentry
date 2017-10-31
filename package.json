@@ -99,7 +99,7 @@
     "moduleNameMapper": {
       "\\.(css|less)$": "<rootDir>/tests/js/helpers/importStyleMock.js",
       "jquery": "<rootDir>/src/sentry/static/sentry/__mocks__/jquery.jsx",
-      "integration-docs-platforms": "<rootDir>/tests/fixtures/_platforms.json"
+      "integration-docs-platforms": "<rootDir>/tests/fixtures/integration-docs/_platforms.json"
     },
     "modulePaths": [
       "<rootDir>/src/sentry/static/sentry"
@@ -133,7 +133,6 @@
     "eslint-plugin-import": "^2.7.0",
     "eslint-plugin-react": "7.4.0",
     "jest": "21.2.1",
-    "phantomjs-prebuilt": "2.1.14",
     "prettier": "1.7.4",
     "sinon": "1.17.2",
     "sinon-chai": "2.8.0",

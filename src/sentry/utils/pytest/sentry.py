@@ -5,12 +5,32 @@ import os
 
 from django.conf import settings
 
+TEST_ROOT = os.path.normpath(
+    os.path.join(
+        os.path.dirname(__file__),
+        os.pardir,
+        os.pardir,
+        os.pardir,
+        os.pardir,
+        'tests'))
+
 
 def pytest_configure(config):
     # HACK: Only needed for testing!
     os.environ.setdefault('_SENTRY_SKIP_CONFIGURATION', '1')
 
     os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'sentry.conf.server')
+
+    # override docs which are typically synchronized from an upstream server
+    # to ensure tests are consistent
+    os.environ.setdefault(
+        'INTEGRATION_DOC_FOLDER',
+        os.path.join(
+            TEST_ROOT,
+            'fixtures',
+            'integration-docs'))
+    from sentry.utils import integrationdocs
+    integrationdocs.DOC_FOLDER = os.environ['INTEGRATION_DOC_FOLDER']
 
     if not settings.configured:
         # only configure the db if its not already done
