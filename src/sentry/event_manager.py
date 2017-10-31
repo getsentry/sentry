@@ -282,6 +282,7 @@ class EventManager(object):
             data['event_id'] = uuid4().hex
 
         data.setdefault('culprit', None)
+        data.setdefault('transaction', None)
         data.setdefault('server_name', None)
         data.setdefault('site', None)
         data.setdefault('checksum', None)
@@ -401,6 +402,9 @@ class EventManager(object):
         if data['culprit']:
             data['culprit'] = trim(data['culprit'], MAX_CULPRIT_LENGTH)
 
+        if data['transaction']:
+            data['transaction'] = trim(data['transaction'], MAX_CULPRIT_LENGTH)
+
         return data
 
     def save(self, project, raw=False):
@@ -414,7 +418,9 @@ class EventManager(object):
         event_id = data.pop('event_id')
         level = data.pop('level')
 
-        culprit = data.pop('culprit', None)
+        culprit = data.pop('transaction', None)
+        if not culprit:
+            culprit = data.pop('culprit', None)
         logger_name = data.pop('logger', None)
         server_name = data.pop('server_name', None)
         site = data.pop('site', None)
