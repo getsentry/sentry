@@ -113,7 +113,7 @@ const TagDistributionMeter = React.createClass({
                 .tag}/`}
               title={
                 '<div class="truncate">' +
-                escape(deviceNameMapper(value.name)) +
+                escape(deviceNameMapper(value.name) || '') +
                 '</div>' +
                 pctLabel +
                 '%'
