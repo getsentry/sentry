@@ -22,25 +22,19 @@ assert(#KEYS % 2 == 0, "there must be an even number of keys")
 
 local results = {}
 local failed = false
-local results_i = 1
-for i=1,#KEYS do
-    if i % 2 ~= 0 then
-        local limit = tonumber(ARGV[i])
-        local rejected = (redis.call('GET', KEYS[i]) or 0) - (redis.call('GET', KEYS[i + 1]) or 0) + 1 > limit
-        if rejected then
-            failed = true
-        end
-        results[results_i] = rejected
-        results_i = results_i + 1
+for i=1, #KEYS, 2 do
+    local limit = tonumber(ARGV[i])
+    local rejected = (redis.call('GET', KEYS[i]) or 0) - (redis.call('GET', KEYS[i + 1]) or 0) + 1 > limit
+    if rejected then
+        failed = true
     end
+    results[(i + 1) / 2] = rejected
 end
 
 if not failed then
-    for i=1,#KEYS do
-        if i % 2 ~= 0 then
-            redis.call('INCR', KEYS[i])
-            redis.call('EXPIREAT', KEYS[i], ARGV[i + 1])
-        end
+    for i=1, #KEYS, 2 do
+        redis.call('INCR', KEYS[i])
+        redis.call('EXPIREAT', KEYS[i], ARGV[i + 1])
     end
 end
 

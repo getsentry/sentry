@@ -152,12 +152,12 @@ class RedisQuota(Quota):
             shift = project.organization_id % quota.window
             # kind of arbitrary, but seems like we don't want this to expire til we're
             # sure the window is over?
-            expiry = self.get_next_period_start(quota.window, shift, timestamp) + self.grace + 5
+            expiry = self.get_next_period_start(quota.window, shift, timestamp) + self.grace
             return_key = self.get_refunded_quota_key(
                 self.__get_redis_key(quota.key, timestamp, quota.window, shift),
             )
             pipe.incr(return_key, 1)
-            pipe.expire(return_key, int(expiry))
+            pipe.expireat(return_key, int(expiry))
 
         pipe.execute()
 
