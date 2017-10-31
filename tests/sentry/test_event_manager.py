@@ -51,6 +51,17 @@ class EventManagerTest(TransactionTestCase):
 
         assert event1.group_id != event2.group_id
 
+    def test_transaction_over_culprit(self):
+        manager = EventManager(self.make_event(
+            culprit='foo',
+            transaction='bar'
+        ))
+        manager.normalize()
+        event1 = manager.save(1)
+
+        assert event1.transaction == 'bar'
+        assert event1.culprit == 'bar'
+
     @patch('sentry.signals.regression_signal.send')
     def test_broken_regression_signal(self, send):
         send.side_effect = Exception()
@@ -460,6 +471,13 @@ class EventManagerTest(TransactionTestCase):
         ))
         data = manager.normalize()
         assert len(data['culprit']) == MAX_CULPRIT_LENGTH
+
+    def test_long_transaction(self):
+        manager = EventManager(self.make_event(
+            transaction='x' * (MAX_CULPRIT_LENGTH + 1),
+        ))
+        data = manager.normalize()
+        assert len(data['transaction']) == MAX_CULPRIT_LENGTH
 
     def test_long_message(self):
         manager = EventManager(
