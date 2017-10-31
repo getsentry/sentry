@@ -10,7 +10,9 @@ from __future__ import absolute_import
 from django.db import models
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
-from sentry.db.models import FlexibleForeignKey, Model, sane_repr, BoundedPositiveIntegerField, GzippedDictField
+from jsonfield import JSONField
+
+from sentry.db.models import Model, sane_repr, BoundedBigIntegerField, BoundedPositiveIntegerField
 
 
 class GroupLink(Model):
@@ -20,20 +22,17 @@ class GroupLink(Model):
     __core__ = False
 
     class Relationship:
-        resolves = 0
-        links = 1
+        unknown = 0
+        resolves = 1
+        links = 2
 
     class LinkedType:
-        commit = 0
-        pull = 1
-        issue = 2
-    group = FlexibleForeignKey('sentry.Group')
-    actor_label = models.CharField(max_length=64, null=True, blank=True)
-    # if the entry was created via a user
-    actor = FlexibleForeignKey(
-        'sentry.User', related_name='audit_actors', null=True, blank=True)
-    # if the entry was created via an api key
-    actor_key = FlexibleForeignKey('sentry.ApiKey', null=True, blank=True)
+        unknown = 0
+        commit = 1
+        pull = 2
+        issue = 3
+
+    group_id = BoundedBigIntegerField()
 
     linked_type = BoundedPositiveIntegerField(
         default=LinkedType.commit,
@@ -42,16 +41,19 @@ class GroupLink(Model):
                  (LinkedType.issue, _('Tracker Issue')), ),
     )
 
-    linked_id = BoundedPositiveIntegerField(null=False)
+    linked_id = BoundedBigIntegerField()
 
-    Relationship = BoundedPositiveIntegerField(
+    relationship = BoundedPositiveIntegerField(
         default=Relationship.links,
         choices=((Relationship.resolves, _('Resolves')),
                  (Relationship.links, _('Linked')), ),
     )
-    data = GzippedDictField()
+
+    data = JSONField()
 
     datetime = models.DateTimeField(default=timezone.now, db_index=True)
+
+    unique_together = (('group_id', 'linked_type', 'linked_id'), )
 
     class Meta:
         app_label = 'sentry'

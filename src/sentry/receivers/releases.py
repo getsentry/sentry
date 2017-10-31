@@ -4,7 +4,7 @@ from django.db import IntegrityError, transaction
 from django.db.models.signals import post_save
 
 from sentry.models import (
-    Activity, Commit, GroupAssignee, GroupCommitResolution, Project, Release
+    Activity, Commit, GroupAssignee, GroupCommitResolution, GroupLink, Project, Release
 )
 from sentry.tasks.clear_expired_resolutions import clear_expired_resolutions
 
@@ -56,6 +56,12 @@ def resolved_in_commit(instance, created, **kwargs):
                 GroupCommitResolution.objects.create(
                     group_id=group.id,
                     commit_id=instance.id,
+                )
+                # dual write to prepare for data migration
+                GroupLink.objects.create(
+                    group_id=group.id,
+                    linked_type=GroupLink.LinkedType.commit,
+                    linked_id=instance.id,
                 )
                 if instance.author:
                     user_list = list(instance.author.find_users())
