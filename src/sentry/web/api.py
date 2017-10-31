@@ -34,6 +34,7 @@ from sentry.utils.http import (
     get_origins,
     is_same_domain,
 )
+from sentry.utils.pubsub import pubsub
 from sentry.utils.safe import safe_execute
 from sentry.web.helpers import render_to_response
 
@@ -44,6 +45,8 @@ logger = logging.getLogger('sentry')
 PIXEL = base64.b64decode('R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=')
 
 PROTOCOL_VERSIONS = frozenset(('2.0', '3', '4', '5', '6', '7'))
+
+ENABLE_PUBSUB = getattr(settings, 'ENABLE_PUBSUB', False)
 
 
 def api(func):
@@ -305,6 +308,9 @@ class StoreView(APIView):
             # sane exception to catch here. This will ultimately
             # bubble up as an APIError.
             data = None
+
+        if ENABLE_PUBSUB and data is not None:
+            pubsub.put('requests', data)
 
         response_or_event_id = self.process(request, data=data, **kwargs)
         if isinstance(response_or_event_id, HttpResponse):
