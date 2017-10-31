@@ -116,8 +116,5 @@ class Event(object):
     def from_instance(cls, instance, **kwargs):
         values = {}
         for attr in cls.attributes:
-            try:
-                values[attr.name] = kwargs[attr.name]
-            except KeyError:
-                values[attr.name] = getattr(instance, attr.name, None)
+            values[attr.name] = kwargs.get(attr.name, getattr(instance, attr.name, None))
         return cls(**values)
