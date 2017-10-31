@@ -59,6 +59,13 @@ class RedisQuota(Quota):
             int((timestamp - shift) // interval),
         )
 
+    def get_quotas_with_limits(self, project, key=None):
+        return [
+            quota for quota in self.get_quotas(project, key=key)
+            # x = (key, limit, interval)
+            if quota.limit > 0  # a zero limit means "no limit", not "reject all"
+        ]
+
     def get_quotas(self, project, key=None):
         if key:
             key.project = project
@@ -133,11 +140,7 @@ class RedisQuota(Quota):
         if timestamp is None:
             timestamp = time()
 
-        quotas = [
-            quota for quota in self.get_quotas(project, key=key)
-            # x = (key, limit, interval)
-            if quota.limit > 0  # a zero limit means "no limit", not "reject all"
-        ]
+        quotas = self.get_quotas_with_limits(project, key=key)
 
         if not quotas:
             return
@@ -166,11 +169,7 @@ class RedisQuota(Quota):
         if timestamp is None:
             timestamp = time()
 
-        quotas = [
-            quota for quota in self.get_quotas(project, key=key)
-            # x = (key, limit, interval)
-            if quota.limit > 0  # a zero limit means "no limit", not "reject all"
-        ]
+        quotas = self.get_quotas_with_limits(project, key=key)
 
         # If there are no quotas to actually check, skip the trip to the database.
         if not quotas:
