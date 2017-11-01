@@ -85,6 +85,7 @@
     "test-ci": "npm run test -- --runInBand",
     "test-watch": "npm run test -- --watch",
     "jest": "NODE_ENV=test node_modules/.bin/jest",
+    "jest-debug": "NODE_ENV=test node --inspect-brk node_modules/.bin/jest --runInBand",
     "lint": "node_modules/.bin/eslint tests/js src/sentry/static/sentry/app --ext .jsx",
     "dev-proxy": "node scripts/devproxy.js",
     "dev-server": "webpack-dev-server",
