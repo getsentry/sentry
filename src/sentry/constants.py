@@ -143,7 +143,7 @@ HTTP_METHODS = ('GET', 'POST', 'PUT', 'OPTIONS', 'HEAD',
 CLIENT_RESERVED_ATTRS = (
     'project', 'errors', 'event_id', 'message', 'checksum', 'culprit', 'fingerprint', 'level',
     'time_spent', 'logger', 'server_name', 'site', 'received', 'timestamp', 'extra', 'modules',
-    'tags', 'platform', 'release', 'dist', 'environment',
+    'tags', 'platform', 'release', 'dist', 'environment', 'transaction',
 )
 
 # XXX: Must be all lowercase
@@ -244,6 +244,7 @@ _load_platform_data()
 MARKETING_SLUG_TO_INTEGRATION_ID = {
     "kotlin": "java",
     "scala": "java",
+    "spring": "java",
     "android": "java-android",
     "react": "javascript-react",
     "angular": "javascript-angular",
@@ -265,6 +266,7 @@ MARKETING_SLUG_TO_INTEGRATION_ID = {
     "symfony": "php-symfony2",
     "rails": "ruby-rails",
     "sinatra": "ruby-sinatra",
+    "dotnet": "csharp",
 }
 
 

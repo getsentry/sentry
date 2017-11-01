@@ -7,10 +7,10 @@
 
   <p>
     <strong>{{ provider.name }}</strong> Single Sign-On has been configured for the
-    <strong>{{ organization_name }}</strong> organization. Link your Sentry account to enable
+    <strong>{{ organization.name }}</strong> organization. Link your Sentry account to enable
     signing on with your <strong>{{ provider.name }}</strong> account.
   </p>
 
   <p><a href="{{ url|safe }}" class="btn">Link Account</a></p>
-  <p><small>SSO was enabled by <strong>{{ configurer.email }}</strong></small></p>
+  <p><small>SSO link request invoked by <strong>{{ actor.email }}</strong></small></p>
 {% endblock %}

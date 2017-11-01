@@ -30,6 +30,11 @@ from sentry.web.frontend.debug.debug_new_processing_issues_email import (
     DebugNewProcessingIssuesEmailView,
     DebugNewProcessingIssuesNoReprocessingEmailView,
 )
+from sentry.web.frontend.debug.debug_sso_link_email import (
+    DebugSsoLinkedEmailView,
+    DebugSsoUnlinkedEmailView,
+    DebugSsoUnlinkedNoPasswordEmailView,
+)
 from sentry.web.frontend.debug import debug_auth_views
 from sentry.web.frontend.debug.debug_oauth_authorize import (
     DebugOAuthAuthorizeView,
@@ -71,6 +76,10 @@ urlpatterns = patterns(
         r'^debug/mail/new-processing-issues-no-reprocessing/$',
         DebugNewProcessingIssuesNoReprocessingEmailView.as_view()
     ),
+    url(r'^debug/mail/sso-linked/$', DebugSsoLinkedEmailView.as_view()),
+    url(r'^debug/mail/sso-unlinked/$', DebugSsoUnlinkedEmailView.as_view()),
+    url(r'^debug/mail/sso-unlinked/no-password$', DebugSsoUnlinkedNoPasswordEmailView.as_view()),
+
     url(r'^debug/embed/error-page/$', DebugErrorPageEmbedView.as_view()),
     url(r'^debug/trigger-error/$', DebugTriggerErrorView.as_view()),
     url(r'^debug/auth-confirm-identity/$', debug_auth_views.DebugAuthConfirmIdentity.as_view()),

@@ -197,6 +197,11 @@ urlpatterns += patterns(
         accounts.recover_confirm,
         name='sentry-account-recover-confirm'
     ),
+    url(
+        r'^account/password/confirm/(?P<user_id>[\d]+)/(?P<hash>[0-9a-zA-Z]+)/$',
+        accounts.set_password_confirm,
+        name='sentry-account-set-password-confirm'
+    ),
     url(r'^account/settings/$', accounts.account_settings,
         name='sentry-account-settings'),
     url(

@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+from django.core import mail
 from django.core.urlresolvers import reverse
 from mock import patch
 
@@ -30,8 +31,7 @@ class UpdateOrganizationMemberTest(APITestCase):
         assert resp.status_code == 204
         mock_send_invite_email.assert_called_once_with()
 
-    @patch('sentry.models.OrganizationMember.send_sso_link_email')
-    def test_reinvite_sso_link(self, mock_send_sso_link_email):
+    def test_reinvite_sso_link(self):
         self.login_as(user=self.user)
 
         organization = self.create_organization(name='foo', owner=self.user)
@@ -53,10 +53,11 @@ class UpdateOrganizationMemberTest(APITestCase):
 
         self.login_as(self.user)
 
-        resp = self.client.put(path, data={'reinvite': 1})
+        with self.tasks():
+            resp = self.client.put(path, data={'reinvite': 1})
 
         assert resp.status_code == 204
-        mock_send_sso_link_email.assert_called_once_with()
+        assert len(mail.outbox) == 1
 
     @patch('sentry.models.OrganizationMember.send_sso_link_email')
     def test_cannot_reinvite_normal_member(self, mock_send_sso_link_email):
