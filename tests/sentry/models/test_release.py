@@ -4,7 +4,7 @@ import datetime
 import six
 
 from sentry.models import (
-    Commit, CommitAuthor, Group, GroupCommitResolution, GroupRelease, GroupResolution, GroupStatus,
+    Commit, CommitAuthor, Group, GroupCommitResolution, GroupRelease, GroupResolution, GroupLink, GroupStatus,
     Release, ReleaseCommit, ReleaseEnvironment, ReleaseProject, Repository
 )
 
@@ -143,6 +143,10 @@ class SetCommitsTestCase(TestCase):
         )
 
         assert GroupCommitResolution.objects.filter(group_id=group.id, commit_id=commit.id).exists()
+        assert GroupLink.objects.filter(
+            group_id=group.id,
+            linked_type=GroupLink.LinkedType.commit,
+            linked_id=commit.id).exists()
 
         release = Release.objects.create(version='abcdabc', organization=org)
         release.add_project(project)
@@ -268,6 +272,15 @@ class SetCommitsTestCase(TestCase):
             ).id,
         ).exists()
 
+        assert GroupLink.objects.filter(
+            group_id=group.id,
+            linked_type=GroupLink.LinkedType.commit,
+            linked_id=Commit.objects.get(
+                key='c' * 40,
+                repository_id=repo.id,
+            ).id
+        ).exists()
+
         assert GroupResolution.objects.filter(group=group, release=release).exists()
         assert GroupResolution.objects.get(
             group=group,
@@ -383,6 +396,10 @@ class SetCommitsTestCase(TestCase):
         }])
 
         assert GroupCommitResolution.objects.filter(group_id=group.id, commit_id=commit.id).exists()
+        assert GroupLink.objects.filter(
+            group_id=group.id,
+            linked_type=GroupLink.LinkedType.commit,
+            linked_id=commit.id).exists()
 
         resolution = GroupResolution.objects.get(
             group=group,
@@ -417,6 +434,10 @@ class SetCommitsTestCase(TestCase):
         }])
 
         assert GroupCommitResolution.objects.filter(group_id=group.id, commit_id=commit.id).exists()
+        assert GroupLink.objects.filter(
+            group_id=group.id,
+            linked_type=GroupLink.LinkedType.commit,
+            linked_id=commit.id).exists()
 
         resolution = GroupResolution.objects.get(
             group=group,
