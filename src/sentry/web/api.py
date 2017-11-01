@@ -349,6 +349,7 @@ class StoreView(APIView):
             content_encoding=request.META.get('HTTP_CONTENT_ENCODING', ''),
             helper=helper,
             project=project,
+            key=key,
             auth=auth,
             client_ip=remote_addr,
         )

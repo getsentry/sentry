@@ -96,7 +96,7 @@ class SentryInternalClient(DjangoClient):
             # This in theory is the right way to do it because validate
             # also normalizes currently, but we just send in data already
             # normalised in the raven client now.
-            # data = helper.validate_data(project, kwargs)
+            # data = helper.validate_data(kwargs)
             data = kwargs
             manager = EventManager(data)
             data = manager.normalize()

@@ -413,10 +413,7 @@ class ClientApiHelper(object):
 
         return (False, None)
 
-    def validate_data(self, project, data):
-        # TODO(dcramer): move project out of the data packet
-        data['project'] = project.id
-
+    def validate_data(self, data):
         data['errors'] = []
 
         if data.get('culprit'):
@@ -866,7 +863,7 @@ class MinidumpApiHelper(ClientApiHelper):
         auth.client = 'sentry-minidump'
         return auth
 
-    def validate_data(self, project, data):
+    def validate_data(self, data):
         try:
             release = data.pop('release')
         except KeyError:
@@ -884,7 +881,6 @@ class MinidumpApiHelper(ClientApiHelper):
 
         validated = {
             'platform': 'native',
-            'project': project.id,
             'extra': data,
             'errors': [],
             'sentry.interfaces.User': {
@@ -952,7 +948,7 @@ class CspApiHelper(ClientApiHelper):
             return (True, FilterStatKeys.INVALID_CSP)
         return super(CspApiHelper, self).should_filter(project, data, ip_address)
 
-    def validate_data(self, project, data):
+    def validate_data(self, data):
         # pop off our meta data used to hold Sentry specific stuff
         meta = data.pop('_meta', {})
 
@@ -973,7 +969,6 @@ class CspApiHelper(ClientApiHelper):
 
         data = {
             'logger': 'csp',
-            'project': project.id,
             'message': inst.get_message(),
             'culprit': inst.get_culprit(),
             'release': meta.get('release'),
@@ -1038,11 +1033,12 @@ class CspApiHelper(ClientApiHelper):
 
 
 class LazyData(MutableMapping):
-    def __init__(self, data, content_encoding, helper, project, auth, client_ip):
+    def __init__(self, data, content_encoding, helper, project, key, auth, client_ip):
         self._data = data
         self._content_encoding = content_encoding
         self._helper = helper
         self._project = project
+        self._key = key
         self._auth = auth
         self._client_ip = client_ip
         self._decoded = False
@@ -1051,7 +1047,6 @@ class LazyData(MutableMapping):
         data = self._data
         content_encoding = self._content_encoding
         helper = self._helper
-        project = self._project
         auth = self._auth
 
         # TODO(dcramer): CSP is passing already decoded JSON, which sort of
@@ -1074,7 +1069,7 @@ class LazyData(MutableMapping):
         # version of the data
 
         # mutates data
-        data = helper.validate_data(project, data)
+        data = helper.validate_data(data)
 
         if 'sdk' not in data:
             sdk = helper.parse_client_as_sdk(auth.client)
@@ -1084,6 +1079,9 @@ class LazyData(MutableMapping):
                 data['sdk'] = {}
 
         data['sdk']['client_ip'] = self._client_ip
+
+        data['project'] = self._project.id
+        data['key_id'] = self._key.id
 
         # we always fill in the IP so that filters and other items can
         # access it (even if it eventually gets scrubbed)
