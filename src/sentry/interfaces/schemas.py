@@ -21,8 +21,12 @@ from sentry.constants import (
     MAX_CULPRIT_LENGTH,
     VALID_PLATFORMS,
 )
+from sentry.interfaces.base import InterfaceValidationError
 from sentry.models import EventError
 from sentry.tagstore.base import INTERNAL_TAG_KEYS
+
+def iverror(message="Invalid data"):
+    raise InterfaceValidationError(message)
 
 PAIRS = {
     'type': 'array',
@@ -75,7 +79,10 @@ HTTP_INTERFACE_SCHEMA = {
 FRAME_INTERFACE_SCHEMA = {
     'type': 'object',
     'properties': {
-        'abs_path': {'type': 'string'},
+        'abs_path': {
+            'type': 'string',
+            'default': iverror,
+        },
         'colno': {'type': 'number'},
         'context_line': {'type': 'string'},
         'data': {
@@ -85,13 +92,19 @@ FRAME_INTERFACE_SCHEMA = {
             ]
         },
         'errors': {},
-        'filename': {'type': 'string'},
+        'filename': {
+            'type': 'string',
+            'default': iverror,
+        },
         'function': {'type': 'string'},
         'image_addr': {},
         'in_app': {'type': 'boolean', 'default': False},
         'instruction_addr': {},
         'lineno': {'type': 'number'},
-        'module': {'type': 'string'},
+        'module': {
+            'type': 'string',
+            'default': iverror,
+        },
         'package': {'type': 'string'},
         'platform': {
             'type': 'string',
