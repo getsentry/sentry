@@ -31,7 +31,8 @@ class GetOrCreateTest(TestCase):
 
         assert env2.id == env.id
 
-        assert Environment.get_for_organization_id(
-            project.organization_id,
-            'prod',
-        ).id == env.id
+        with self.assertNumQueries(0):
+            assert Environment.get_for_organization_id(
+                project.organization_id,
+                'prod',
+            ).id == env.id
