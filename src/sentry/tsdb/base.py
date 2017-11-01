@@ -103,6 +103,14 @@ class BaseTSDB(Service):
 
     models = TSDBModel
 
+    models_with_environment_support = frozenset([
+        models.project,
+        models.group,
+        models.release,
+        models.users_affected_by_group,
+        models.users_affected_by_project,
+    ])
+
     def __init__(self, rollups=None, legacy_rollups=None):
         if rollups is None:
             rollups = settings.SENTRY_TSDB_ROLLUPS
@@ -117,6 +125,12 @@ class BaseTSDB(Service):
             legacy_rollups = getattr(settings, 'SENTRY_TSDB_LEGACY_ROLLUPS', {})
 
         self.__legacy_rollups = legacy_rollups
+
+    def validate_arguments(self, models, environment_ids):
+        if any(e is not None for e in environment_ids):
+            unsupported_models = set(models) - self.models_with_environment_support
+            if unsupported_models:
+                raise ValueError('not all models support environment parameters')
 
     def get_rollups(self):
         return self.rollups

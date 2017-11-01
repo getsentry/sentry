@@ -28,6 +28,8 @@ class InMemoryTSDB(BaseTSDB):
         self.flush()
 
     def incr(self, model, key, timestamp=None, count=1, environment_id=None):
+        self.validate_arguments([model], [environment_id])
+
         environment_ids = set([environment_id, None])
 
         if timestamp is None:
@@ -43,6 +45,8 @@ class InMemoryTSDB(BaseTSDB):
             set(environment_ids) if environment_ids is not None else set()).union(
             [None])
 
+        self.validate_arguments([model], environment_ids)
+
         for environment_id in environment_ids:
             destination = self.data[model][(destination, environment_id)]
             for source in sources:
@@ -53,6 +57,8 @@ class InMemoryTSDB(BaseTSDB):
         environment_ids = (
             set(environment_ids) if environment_ids is not None else set()).union(
             [None])
+
+        self.validate_arguments(models, environment_ids)
 
         rollups = self.get_active_series(start, end, timestamp)
 
@@ -68,6 +74,8 @@ class InMemoryTSDB(BaseTSDB):
                             )
 
     def get_range(self, model, keys, start, end, rollup=None, environment_id=None):
+        self.validate_arguments([model], [environment_id])
+
         rollup, series = self.get_optimal_rollup_series(start, end, rollup)
 
         results = []
@@ -87,6 +95,8 @@ class InMemoryTSDB(BaseTSDB):
         return dict(results_by_key)
 
     def record(self, model, key, values, timestamp=None, environment_id=None):
+        self.validate_arguments([model], [environment_id])
+
         environment_ids = set([environment_id, None])
 
         if timestamp is None:
@@ -99,6 +109,8 @@ class InMemoryTSDB(BaseTSDB):
 
     def get_distinct_counts_series(self, model, keys, start, end=None,
                                    rollup=None, environment_id=None):
+        self.validate_arguments([model], [environment_id])
+
         rollup, series = self.get_optimal_rollup_series(start, end, rollup)
 
         results = {}
@@ -113,6 +125,8 @@ class InMemoryTSDB(BaseTSDB):
 
     def get_distinct_counts_totals(self, model, keys, start, end=None,
                                    rollup=None, environment_id=None):
+        self.validate_arguments([model], [environment_id])
+
         rollup, series = self.get_optimal_rollup_series(start, end, rollup)
 
         results = {}
@@ -128,6 +142,8 @@ class InMemoryTSDB(BaseTSDB):
 
     def get_distinct_counts_union(self, model, keys, start, end=None,
                                   rollup=None, environment_id=None):
+        self.validate_arguments([model], [environment_id])
+
         rollup, series = self.get_optimal_rollup_series(start, end, rollup)
 
         values = set()
@@ -145,6 +161,8 @@ class InMemoryTSDB(BaseTSDB):
             set(environment_ids) if environment_ids is not None else set()).union(
             [None])
 
+        self.validate_arguments([model], environment_ids)
+
         for environment_id in environment_ids:
             destination = self.sets[model][(destination, environment_id)]
             for source in sources:
@@ -156,6 +174,8 @@ class InMemoryTSDB(BaseTSDB):
         environment_ids = (
             set(environment_ids) if environment_ids is not None else set()).union(
             [None])
+
+        self.validate_arguments(models, environment_ids)
 
         rollups = self.get_active_series(start, end, timestamp)
 
@@ -201,6 +221,8 @@ class InMemoryTSDB(BaseTSDB):
     def record_frequency_multi(self, requests, timestamp=None, environment_id=None):
         environment_ids = set([environment_id, None])
 
+        self.validate_arguments([model for model, request in requests], [environment_id])
+
         if timestamp is None:
             timestamp = timezone.now()
 
@@ -215,6 +237,8 @@ class InMemoryTSDB(BaseTSDB):
     def get_most_frequent(self, model, keys, start, end=None,
                           rollup=None, limit=None, environment_id=None):
         rollup, series = self.get_optimal_rollup_series(start, end, rollup)
+
+        self.validate_arguments([model], [environment_id])
 
         results = {}
         for key in keys:
@@ -232,6 +256,8 @@ class InMemoryTSDB(BaseTSDB):
                                  rollup=None, limit=None, environment_id=None):
         rollup, series = self.get_optimal_rollup_series(start, end, rollup)
 
+        self.validate_arguments([model], [environment_id])
+
         results = {}
         for key in keys:
             result = results[key] = []
@@ -243,6 +269,8 @@ class InMemoryTSDB(BaseTSDB):
         return results
 
     def get_frequency_series(self, model, items, start, end=None, rollup=None, environment_id=None):
+        self.validate_arguments([model], [environment_id])
+
         rollup, series = self.get_optimal_rollup_series(start, end, rollup)
 
         results = {}
@@ -256,6 +284,8 @@ class InMemoryTSDB(BaseTSDB):
         return results
 
     def get_frequency_totals(self, model, items, start, end=None, rollup=None, environment_id=None):
+        self.validate_arguments([model], [environment_id])
+
         results = {}
 
         for key, series in six.iteritems(
@@ -273,6 +303,8 @@ class InMemoryTSDB(BaseTSDB):
             set(environment_ids) if environment_ids is not None else set()).union(
             [None])
 
+        self.validate_arguments([model], environment_ids)
+
         for environment_id in environment_ids:
             destination = self.frequencies[model][(destination, environment_id)]
             for source in sources:
@@ -284,6 +316,8 @@ class InMemoryTSDB(BaseTSDB):
         environment_ids = (
             set(environment_ids) if environment_ids is not None else set()).union(
             [None])
+
+        self.validate_arguments(models, environment_ids)
 
         rollups = self.get_active_series(start, end, timestamp)
 
