@@ -15,6 +15,7 @@ class GroupDeletionTask(ModelDeletionTask):
             models.EventMapping,
             models.GroupAssignee,
             models.GroupCommitResolution,
+            models.GroupLink,
             models.GroupBookmark,
             models.GroupMeta,
             models.GroupRelease,

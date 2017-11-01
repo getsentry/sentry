@@ -48,6 +48,7 @@ def load_defaults():
     default_manager.register(models.GroupAssignee, BulkModelDeletionTask)
     default_manager.register(models.GroupBookmark, BulkModelDeletionTask)
     default_manager.register(models.GroupCommitResolution, BulkModelDeletionTask)
+    default_manager.register(models.GroupLink, BulkModelDeletionTask)
     default_manager.register(models.GroupEmailThread, BulkModelDeletionTask)
     default_manager.register(models.GroupHash, BulkModelDeletionTask)
     default_manager.register(models.GroupMeta, BulkModelDeletionTask)
