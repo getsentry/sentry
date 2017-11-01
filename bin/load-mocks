@@ -171,7 +171,7 @@ def create_sample_time_series(event, release=None):
 
     environment = Environment.get_or_create(
         project=project,
-        name=event.get_tag('environment') or ''
+        name=Environment.get_name_or_default(event.get_tag('environment')),
     )
 
     if release:
