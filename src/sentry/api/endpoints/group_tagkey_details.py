@@ -9,7 +9,7 @@ from sentry.api.base import DocSection
 from sentry.api.bases.group import GroupEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
-from sentry.models import Group
+from sentry.models import Environment, Group
 from sentry.utils.apidocs import scenario
 
 
@@ -41,17 +41,26 @@ class GroupTagKeyDetailsEndpoint(GroupEndpoint):
         lookup_key = tagstore.prefix_reserved_key(key)
 
         try:
-            tag_key = tagstore.get_tag_key(group.project_id, lookup_key)
+            environment = self._get_environment_from_request(request, group.project.organization_id)
+        except Environment.DoesNotExist:
+            # if the environment doesn't exist then the tag can't possibly exist
+            raise ResourceDoesNotExist
+
+        environment_id = environment and environment.id
+
+        try:
+            tag_key = tagstore.get_tag_key(group.project_id, environment_id, lookup_key)
         except tagstore.TagKeyNotFound:
             raise ResourceDoesNotExist
 
         try:
-            group_tag_key = tagstore.get_group_tag_key(group.id, lookup_key)
+            group_tag_key = tagstore.get_group_tag_key(group.id, environment_id, lookup_key)
         except tagstore.GroupTagKeyNotFound:
             raise ResourceDoesNotExist
 
-        total_values = tagstore.get_group_tag_value_count(group.id, lookup_key)
-        top_values = tagstore.get_top_group_tag_values(group.id, lookup_key, limit=9)
+        total_values = tagstore.get_group_tag_value_count(group.id, environment_id, lookup_key)
+        top_values = tagstore.get_top_group_tag_values(
+            group.id, environment_id, lookup_key, limit=9)
 
         data = {
             'id': six.text_type(tag_key.id),

@@ -121,7 +121,7 @@ class LegacyTagStorage(TagStorage):
         except IntegrityError:
             pass
 
-    def get_tag_key(self, project_id, key, status=TagKeyStatus.VISIBLE):
+    def get_tag_key(self, project_id, environment_id, key, status=TagKeyStatus.VISIBLE):
         from sentry.tagstore.exceptions import TagKeyNotFound
 
         qs = TagKey.objects.filter(
@@ -137,7 +137,7 @@ class LegacyTagStorage(TagStorage):
         except TagKey.DoesNotExist:
             raise TagKeyNotFound
 
-    def get_tag_keys(self, project_ids, keys=None, status=TagKeyStatus.VISIBLE):
+    def get_tag_keys(self, project_ids, environment_id, keys=None, status=TagKeyStatus.VISIBLE):
         if isinstance(project_ids, six.integer_types):
             qs = TagKey.objects.filter(project_id=project_ids)
         else:
@@ -151,7 +151,7 @@ class LegacyTagStorage(TagStorage):
 
         return list(qs)
 
-    def get_tag_value(self, project_id, key, value):
+    def get_tag_value(self, project_id, environment_id, key, value):
         from sentry.tagstore.exceptions import TagValueNotFound
 
         try:
@@ -163,7 +163,7 @@ class LegacyTagStorage(TagStorage):
         except TagValue.DoesNotExist:
             raise TagValueNotFound
 
-    def get_tag_values(self, project_ids, key, values=None):
+    def get_tag_values(self, project_ids, environment_id, key, values=None):
         qs = TagValue.objects.filter(key=key)
 
         if isinstance(project_ids, six.integer_types):
@@ -181,7 +181,7 @@ class LegacyTagStorage(TagStorage):
 
         return list(qs)
 
-    def get_group_tag_key(self, group_id, key):
+    def get_group_tag_key(self, group_id, environment_id, key):
         from sentry.tagstore.exceptions import GroupTagKeyNotFound
 
         try:
@@ -192,7 +192,7 @@ class LegacyTagStorage(TagStorage):
         except GroupTagKey.DoesNotExist:
             raise GroupTagKeyNotFound
 
-    def get_group_tag_keys(self, group_ids, keys=None, limit=None):
+    def get_group_tag_keys(self, group_ids, environment_id, keys=None, limit=None):
         if isinstance(group_ids, six.integer_types):
             qs = GroupTagKey.objects.filter(group_id=group_ids)
         else:
@@ -209,7 +209,7 @@ class LegacyTagStorage(TagStorage):
 
         return list(qs)
 
-    def get_group_tag_value(self, group_id, key, value):
+    def get_group_tag_value(self, group_id, environment_id, key, value):
         from sentry.tagstore.exceptions import GroupTagValueNotFound
 
         try:
@@ -221,7 +221,7 @@ class LegacyTagStorage(TagStorage):
         except GroupTagValue.DoesNotExist:
             raise GroupTagValueNotFound
 
-    def get_group_tag_values(self, group_ids, keys=None, values=None):
+    def get_group_tag_values(self, group_ids, environment_id, keys=None, values=None):
         if isinstance(group_ids, six.integer_types):
             qs = GroupTagValue.objects.filter(group_id=group_ids)
         else:

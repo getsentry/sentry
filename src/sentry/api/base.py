@@ -18,7 +18,7 @@ from rest_framework.views import APIView
 
 from sentry import tsdb
 from sentry.app import raven
-from sentry.models import ApiKey, AuditLogEntry
+from sentry.models import ApiKey, AuditLogEntry, Environment
 from sentry.utils.cursors import Cursor
 from sentry.utils.dates import to_datetime
 from sentry.utils.http import absolute_uri, is_valid_origin
@@ -246,7 +246,19 @@ class Endpoint(APIView):
         return response
 
 
-class StatsMixin(object):
+class EnvironmentMixin(object):
+    def _get_environment_from_request(self, request, organization_id):
+        environment = request.GET.get('environment')
+        if environment is None:
+            return None
+
+        return Environment.get_for_organization_id(
+            name=environment,
+            organization_id=organization_id,
+        )
+
+
+class StatsMixin(EnvironmentMixin):
     def _parse_args(self, request):
         resolution = request.GET.get('resolution')
         if resolution:

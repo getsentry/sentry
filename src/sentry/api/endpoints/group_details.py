@@ -15,6 +15,7 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.plugin import PluginSerializer
 from sentry.models import (
     Activity,
+    Environment,
     Group,
     GroupHash,
     GroupSeen,
@@ -210,7 +211,12 @@ class GroupDetailsEndpoint(GroupEndpoint):
         if last_release:
             last_release = self._get_release_info(request, group, last_release)
 
-        tags = tagstore.get_group_tag_keys(group.id, limit=100)
+        try:
+            environment = self._get_environment_from_request(request, group.project.organization_id)
+        except Environment.DoesNotExist:
+            tags = []
+        else:
+            tags = tagstore.get_group_tag_keys(group.id, environment and environment.id, limit=100)
 
         participants = list(
             User.objects.filter(
