@@ -41,9 +41,9 @@ class ProjectReleasesEndpoint(ProjectEndpoint):
 
         Retrieve a list of releases for a given project.
 
-        :pparam string organization_slug: the slug of the organization the
+        :param string organization_slug: the slug of the organization the
                                           release belongs to.
-        :pparam string project_slug: the slug of the project to list the
+        :param string project_slug: the slug of the project to list the
                                      releases of.
         :qparam string query: this parameter can be used to create a
                               "starts with" filter for the version.
@@ -87,9 +87,9 @@ class ProjectReleasesEndpoint(ProjectEndpoint):
         Releases are also necessary for sourcemaps and other debug features
         that require manual upload for functioning well.
 
-        :pparam string organization_slug: the slug of the organization the
+        :param string organization_slug: the slug of the organization the
                                           release belongs to.
-        :pparam string project_slug: the slug of the project to create a
+        :param string project_slug: the slug of the project to create a
                                      release for.
         :param string version: a version identifier for this release.  Can
                                be a version number, a commit hash etc.

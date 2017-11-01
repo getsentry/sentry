@@ -31,9 +31,9 @@ class ShortIdLookupEndpoint(OrganizationEndpoint):
 
         This resolves a short ID to the project slug and internal issue ID.
 
-        :pparam string organization_slug: the slug of the organization the
+        :param string organization_slug: the slug of the organization the
                                           short ID should be looked up in.
-        :pparam string short_id: the short ID to look up.
+        :param string short_id: the short ID to look up.
         :auth: required
         """
         try:

@@ -30,7 +30,7 @@ class GroupEventsLatestEndpoint(GroupEndpoint):
 
         Retrieves the details of the latest event for an issue.
 
-        :pparam string group_id: the ID of the issue
+        :param string group_id: the ID of the issue
         """
         event = group.get_latest_event()
         if not event:

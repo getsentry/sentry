@@ -130,9 +130,9 @@ class EventFileCommittersEndpoint(ProjectEndpoint):
 
         Return commiters on an individual event, plus a per-frame breakdown.
 
-        :pparam string project_slug: the slug of the project the event
+        :param string project_slug: the slug of the project the event
                                      belongs to.
-        :pparam string event_id: the hexadecimal ID of the event to
+        :param string event_id: the hexadecimal ID of the event to
                                  retrieve (as reported by the raven client).
         :auth: required
         """

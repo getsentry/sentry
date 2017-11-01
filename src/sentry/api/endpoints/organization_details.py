@@ -166,7 +166,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         Return details on an individual organization including various details
         such as membership access, features, and teams.
 
-        :pparam string organization_slug: the slug of the organization the
+        :param string organization_slug: the slug of the organization the
                                           team should be created for.
         :auth: required
         """
@@ -186,7 +186,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         Update various attributes and configurable settings for the given
         organization.
 
-        :pparam string organization_slug: the slug of the organization the
+        :param string organization_slug: the slug of the organization the
                                           team should be created for.
         :param string name: an optional new name for the organization.
         :param string slug: an optional new slug for the organization.  Needs
@@ -238,7 +238,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         However once deletion has begun the state of a project changes and
         will be hidden from most public views.
 
-        :pparam string organization_slug: the slug of the organization the
+        :param string organization_slug: the slug of the organization the
                                           team should be created for.
         :auth: required, user-context-needed
         """

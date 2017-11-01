@@ -99,9 +99,9 @@ class DSymFilesEndpoint(ProjectEndpoint):
 
         Retrieve a list of dsym files for a given project.
 
-        :pparam string organization_slug: the slug of the organization the
+        :param string organization_slug: the slug of the organization the
                                           release belongs to.
-        :pparam string project_slug: the slug of the project to list the
+        :param string project_slug: the slug of the project to list the
                                      dsym files of.
         :auth: required
         """
@@ -142,9 +142,9 @@ class DSymFilesEndpoint(ProjectEndpoint):
         contains the individual debug images.  Uploading through this endpoint
         will create different files for the contained images.
 
-        :pparam string organization_slug: the slug of the organization the
+        :param string organization_slug: the slug of the organization the
                                           release belongs to.
-        :pparam string project_slug: the slug of the project to change the
+        :param string project_slug: the slug of the project to change the
                                      release of.
         :param file file: the multipart encoded file.
         :auth: required

@@ -15,8 +15,8 @@ class GroupTombstoneEndpoint(ProjectEndpoint):
 
         Lists a project's `GroupTombstone` objects
 
-        :pparam string organization_id: the ID of the organization.
-        :pparam string project_id: the ID of the project to get the tombstones for
+        :param string organization_id: the ID of the organization.
+        :param string project_id: the ID of the project to get the tombstones for
         :auth: required
         """
         queryset = GroupTombstone.objects.filter(project=project)

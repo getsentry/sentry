@@ -82,7 +82,7 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
 
         Invite a member to the organization.
 
-        :pparam string organization_slug: the slug of the organization the member will belong to
+        :param string organization_slug: the slug of the organization the member will belong to
         :param string email: the email address to invite
         :param string role: the role of the new member
         :param array teams: the slugs of the teams the member should belong to.

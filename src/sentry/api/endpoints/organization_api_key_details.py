@@ -23,9 +23,9 @@ class OrganizationApiKeyDetailsEndpoint(OrganizationEndpoint):
         Retrieves API Key details
         `````````````````````````
 
-        :pparam string organization_slug: the slug of the organization the
+        :param string organization_slug: the slug of the organization the
                                           team belongs to.
-        :pparam string api_key_id: the ID of the api key to delete
+        :param string api_key_id: the ID of the api key to delete
         :auth: required
         """
         try:
@@ -43,9 +43,9 @@ class OrganizationApiKeyDetailsEndpoint(OrganizationEndpoint):
         Update an API Key
         `````````````````
 
-        :pparam string organization_slug: the slug of the organization the
+        :param string organization_slug: the slug of the organization the
                                           team belongs to.
-        :pparam string api_key_id: the ID of the api key to delete
+        :param string api_key_id: the ID of the api key to delete
         :param string label: the new label for the api key
         :param array scope_list: an array of scopes available for api key
         :param string allowed_origins: list of allowed origins
@@ -82,9 +82,9 @@ class OrganizationApiKeyDetailsEndpoint(OrganizationEndpoint):
         Deletes an API Key
         ``````````````````
 
-        :pparam string organization_slug: the slug of the organization the
+        :param string organization_slug: the slug of the organization the
                                           team belongs to.
-        :pparam string api_key_id: the ID of the api key to delete
+        :param string api_key_id: the ID of the api key to delete
         :auth: required
         """
         try:

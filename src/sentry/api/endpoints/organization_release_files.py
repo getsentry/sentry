@@ -28,9 +28,9 @@ class OrganizationReleaseFilesEndpoint(OrganizationReleasesBaseEndpoint):
 
         Retrieve a list of files for a given release.
 
-        :pparam string organization_slug: the slug of the organization the
+        :param string organization_slug: the slug of the organization the
                                           release belongs to.
-        :pparam string version: the version identifier of the release.
+        :param string version: the version identifier of the release.
         :auth: required
         """
         try:
@@ -70,9 +70,9 @@ class OrganizationReleaseFilesEndpoint(OrganizationReleasesBaseEndpoint):
         that this file will be referenced as. For example, in the case of
         JavaScript you might specify the full web URI.
 
-        :pparam string organization_slug: the slug of the organization the
+        :param string organization_slug: the slug of the organization the
                                           release belongs to.
-        :pparam string version: the version identifier of the release.
+        :param string version: the version identifier of the release.
         :param string name: the name (full path) of the file.
         :param file file: the multipart encoded file.
         :param string dist: the name of the dist.

@@ -31,7 +31,7 @@ class GroupEventsEndpoint(GroupEndpoint):
 
         This endpoint lists an issue's events.
 
-        :pparam string issue_id: the ID of the issue to retrieve.
+        :param string issue_id: the ID of the issue to retrieve.
         :auth: required
         """
 

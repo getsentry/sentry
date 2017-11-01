@@ -253,9 +253,9 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
         :qparam querystring query: an optional Sentry structured search
                                    query.  If not provided an implied
                                    ``"is:unresolved"`` is assumed.)
-        :pparam string organization_slug: the slug of the organization the
+        :param string organization_slug: the slug of the organization the
                                           issues belong to.
-        :pparam string project_slug: the slug of the project the issues
+        :param string project_slug: the slug of the project the issues
                                      belong to.
         :auth: required
         """
@@ -374,9 +374,9 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
                                specified status.  Valid values are
                                ``"resolved"``, ``"unresolved"`` and
                                ``"ignored"``.
-        :pparam string organization_slug: the slug of the organization the
+        :param string organization_slug: the slug of the organization the
                                           issues belong to.
-        :pparam string project_slug: the slug of the project the issues
+        :param string project_slug: the slug of the project the issues
                                      belong to.
         :param string status: the new status for the issues.  Valid values
                               are ``"resolved"``, ``"resolvedInNextRelease"``,
@@ -855,9 +855,9 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
 
         :qparam int id: a list of IDs of the issues to be removed.  This
                         parameter shall be repeated for each issue.
-        :pparam string organization_slug: the slug of the organization the
+        :param string organization_slug: the slug of the organization the
                                           issues belong to.
-        :pparam string project_slug: the slug of the project the issues
+        :param string project_slug: the slug of the project the issues
                                      belong to.
         :auth: required
         """

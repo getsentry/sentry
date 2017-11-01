@@ -31,11 +31,11 @@ class ProjectEventDetailsEndpoint(ProjectEndpoint):
 
         Return details on an individual event.
 
-        :pparam string organization_slug: the slug of the organization the
+        :param string organization_slug: the slug of the organization the
                                           event belongs to.
-        :pparam string project_slug: the slug of the project the event
+        :param string project_slug: the slug of the project the event
                                      belongs to.
-        :pparam string event_id: the hexadecimal ID of the event to
+        :param string event_id: the hexadecimal ID of the event to
                                  retrieve (as reported by the raven client).
         :auth: required
         """

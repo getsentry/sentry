@@ -62,9 +62,9 @@ class TeamDetailsEndpoint(TeamEndpoint):
 
         Return details on an individual team.
 
-        :pparam string organization_slug: the slug of the organization the
+        :param string organization_slug: the slug of the organization the
                                           team belongs to.
-        :pparam string team_slug: the slug of the team to get.
+        :param string team_slug: the slug of the team to get.
         :auth: required
         """
         context = serialize(team, request.user)
@@ -81,9 +81,9 @@ class TeamDetailsEndpoint(TeamEndpoint):
         Update various attributes and configurable settings for the given
         team.
 
-        :pparam string organization_slug: the slug of the organization the
+        :param string organization_slug: the slug of the organization the
                                           team belongs to.
-        :pparam string team_slug: the slug of the team to get.
+        :param string team_slug: the slug of the team to get.
         :param string name: the new name for the team.
         :param string slug: a new slug for the team.  It has to be unique
                             and available.

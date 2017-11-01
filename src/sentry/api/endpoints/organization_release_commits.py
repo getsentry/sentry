@@ -17,9 +17,9 @@ class OrganizationReleaseCommitsEndpoint(OrganizationReleasesBaseEndpoint):
 
         Retrieve a list of commits for a given release.
 
-        :pparam string organization_slug: the slug of the organization the
+        :param string organization_slug: the slug of the organization the
                                           release belongs to.
-        :pparam string version: the version identifier of the release.
+        :param string version: the version identifier of the release.
         :auth: required
         """
         try:

@@ -45,10 +45,10 @@ class OrganizationReleaseFileDetailsEndpoint(OrganizationReleasesBaseEndpoint):
         not actually return the contents of the file, just the associated
         metadata.
 
-        :pparam string organization_slug: the slug of the organization the
+        :param string organization_slug: the slug of the organization the
                                           release belongs to.
-        :pparam string version: the version identifier of the release.
-        :pparam string file_id: the ID of the file to retrieve.
+        :param string version: the version identifier of the release.
+        :param string file_id: the ID of the file to retrieve.
         :auth: required
         """
         try:
@@ -85,10 +85,10 @@ class OrganizationReleaseFileDetailsEndpoint(OrganizationReleasesBaseEndpoint):
         Update metadata of an existing file.  Currently only the name of
         the file can be changed.
 
-        :pparam string organization_slug: the slug of the organization the
+        :param string organization_slug: the slug of the organization the
                                           release belongs to.
-        :pparam string version: the version identifier of the release.
-        :pparam string file_id: the ID of the file to update.
+        :param string version: the version identifier of the release.
+        :param string file_id: the ID of the file to update.
         :param string name: the new name of the file.
         :param string dist: the name of the dist.
         :auth: required
@@ -134,10 +134,10 @@ class OrganizationReleaseFileDetailsEndpoint(OrganizationReleasesBaseEndpoint):
 
         This will also remove the physical file from storage.
 
-        :pparam string organization_slug: the slug of the organization the
+        :param string organization_slug: the slug of the organization the
                                           release belongs to.
-        :pparam string version: the version identifier of the release.
-        :pparam string file_id: the ID of the file to delete.
+        :param string version: the version identifier of the release.
+        :param string file_id: the ID of the file to delete.
         :auth: required
         """
         try:

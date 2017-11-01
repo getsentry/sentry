@@ -54,7 +54,7 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
 
         Return a list of teams bound to a organization.
 
-        :pparam string organization_slug: the slug of the organization for
+        :param string organization_slug: the slug of the organization for
                                           which the teams should be listed.
         :auth: required
         """
@@ -81,7 +81,7 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
         Create a new team bound to an organization.  Only the name of the
         team is needed to create it, the slug can be auto generated.
 
-        :pparam string organization_slug: the slug of the organization the
+        :param string organization_slug: the slug of the organization the
                                           team should be created for.
         :param string name: the name of the organization.
         :param string slug: the optional slug for this organization.  If

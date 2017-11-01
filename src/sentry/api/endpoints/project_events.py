@@ -29,9 +29,9 @@ class ProjectEventsEndpoint(ProjectEndpoint):
 
         Note: This endpoint is experimental and may be removed without notice.
 
-        :pparam string organization_slug: the slug of the organization the
+        :param string organization_slug: the slug of the organization the
                                           groups belong to.
-        :pparam string project_slug: the slug of the project the groups
+        :param string project_slug: the slug of the project the groups
                                      belong to.
         """
 

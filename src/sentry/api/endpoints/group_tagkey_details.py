@@ -34,8 +34,8 @@ class GroupTagKeyDetailsEndpoint(GroupEndpoint):
 
         Returns details for given tag key related to an issue.
 
-        :pparam string issue_id: the ID of the issue to retrieve.
-        :pparam string key: the tag key to look the values up for.
+        :param string issue_id: the ID of the issue to retrieve.
+        :param string key: the tag key to look the values up for.
         :auth: required
         """
         lookup_key = tagstore.prefix_reserved_key(key)
