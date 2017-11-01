@@ -46,7 +46,7 @@ PIXEL = base64.b64decode('R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=')
 
 PROTOCOL_VERSIONS = frozenset(('2.0', '3', '4', '5', '6', '7'))
 
-ENABLE_PUBSUB = getattr(settings, 'ENABLE_PUBSUB', False)
+PUBSUB_ENABLED = getattr(settings, 'PUBSUB_ENABLED', False)
 
 
 def api(func):
@@ -309,7 +309,7 @@ class StoreView(APIView):
             # bubble up as an APIError.
             data = None
 
-        if ENABLE_PUBSUB and data is not None:
+        if PUBSUB_ENABLED and data is not None:
             pubsub.put('requests', data)
 
         response_or_event_id = self.process(request, data=data, **kwargs)
