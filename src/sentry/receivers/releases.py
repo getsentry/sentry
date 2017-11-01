@@ -60,6 +60,7 @@ def resolved_in_commit(instance, created, **kwargs):
                 # dual write to prepare for data migration
                 GroupLink.objects.create(
                     group_id=group.id,
+                    project_id=group.project_id,
                     linked_type=GroupLink.LinkedType.commit,
                     relationship=GroupLink.Relationship.resolves,
                     linked_id=instance.id,

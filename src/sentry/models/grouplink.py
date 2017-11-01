@@ -33,6 +33,7 @@ class GroupLink(Model):
         issue = 3
 
     group_id = BoundedBigIntegerField()
+    project_id = BoundedBigIntegerField(db_index=True)
     linked_type = BoundedPositiveIntegerField(
         default=LinkedType.commit,
         choices=((LinkedType.commit, _('Commit')),
