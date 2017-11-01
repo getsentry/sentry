@@ -1,9 +1,7 @@
 from __future__ import absolute_import, print_function
 
 import base64
-import datetime
 import logging
-import pytz
 import six
 import traceback
 
@@ -33,6 +31,7 @@ from sentry.quotas.base import RateLimit
 from sentry.utils import json, metrics
 from sentry.utils.data_filters import FILTER_STAT_KEYS_TO_VALUES
 from sentry.utils.data_scrubber import SensitiveDataFilter
+from sentry.utils.dates import to_datetime
 from sentry.utils.http import (
     is_valid_origin,
     get_origins,
@@ -358,7 +357,7 @@ class StoreView(APIView):
             sender=type(self),
         )
         start_time = time()
-        tsdb_start_time = datetime.datetime.fromtimestamp(start_time).replace(tzinfo=pytz.utc)
+        tsdb_start_time = to_datetime(start_time)
         should_filter, filter_reason = helper.should_filter(
             project, data, ip_address=remote_addr)
         if should_filter:
