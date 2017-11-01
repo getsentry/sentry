@@ -168,7 +168,7 @@ class GroupDetailsEndpoint(GroupEndpoint):
         the issue (title, last seen, first seen), some overall numbers (number
         of comments, user reports) as well as the summarized event data.
 
-        :pparam string issue_id: the ID of the issue to retrieve.
+        :param string issue_id: the ID of the issue to retrieve.
         :auth: required
         """
         # TODO(dcramer): handle unauthenticated/public response
@@ -249,7 +249,7 @@ class GroupDetailsEndpoint(GroupEndpoint):
         Updates an individual issues's attributes.  Only the attributes
         submitted are modified.
 
-        :pparam string issue_id: the ID of the group to retrieve.
+        :param string issue_id: the ID of the group to retrieve.
         :param string status: the new status for the issue.  Valid values
                               are ``"resolved"``, ``resolvedInNextRelease``,
                               ``"unresolved"``, and ``"ignored"``.
@@ -304,7 +304,7 @@ class GroupDetailsEndpoint(GroupEndpoint):
 
         Removes an individual issue.
 
-        :pparam string issue_id: the ID of the issue to delete.
+        :param string issue_id: the ID of the issue to delete.
         :auth: required
         """
         from sentry.tasks.deletion import delete_group

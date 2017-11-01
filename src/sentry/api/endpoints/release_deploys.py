@@ -33,8 +33,8 @@ class ReleaseDeploysEndpoint(OrganizationReleasesBaseEndpoint):
 
         Return a list of deploys for a given release.
 
-        :pparam string organization_slug: the organization short name
-        :pparam string version: the version identifier of the release.
+        :param string organization_slug: the organization short name
+        :param string version: the version identifier of the release.
         """
         try:
             release = Release.objects.get(
@@ -67,8 +67,8 @@ class ReleaseDeploysEndpoint(OrganizationReleasesBaseEndpoint):
 
         Create a deploy for a given release.
 
-        :pparam string organization_slug: the organization short name
-        :pparam string version: the version identifier of the release.
+        :param string organization_slug: the organization short name
+        :param string version: the version identifier of the release.
         :param string environment: the environment you're deploying to
         :param string name: the optional name of the deploy
         :param url url: the optional url that points to the deploy

@@ -30,11 +30,11 @@ class ProjectReleaseDetailsEndpoint(ProjectEndpoint):
 
         Return details on an individual release.
 
-        :pparam string organization_slug: the slug of the organization the
+        :param string organization_slug: the slug of the organization the
                                           release belongs to.
-        :pparam string project_slug: the slug of the project to retrieve the
+        :param string project_slug: the slug of the project to retrieve the
                                      release of.
-        :pparam string version: the version identifier of the release.
+        :param string version: the version identifier of the release.
         :auth: required
         """
         try:
@@ -56,11 +56,11 @@ class ProjectReleaseDetailsEndpoint(ProjectEndpoint):
         Update a release.  This can change some metadata associated with
         the release (the ref, url, and dates).
 
-        :pparam string organization_slug: the slug of the organization the
+        :param string organization_slug: the slug of the organization the
                                           release belongs to.
-        :pparam string project_slug: the slug of the project to change the
+        :param string project_slug: the slug of the project to change the
                                      release of.
-        :pparam string version: the version identifier of the release.
+        :param string version: the version identifier of the release.
         :param string ref: an optional commit reference.  This is useful if
                            a tagged version has been provided.
         :param url url: a URL that points to the release.  This can be the
@@ -124,11 +124,11 @@ class ProjectReleaseDetailsEndpoint(ProjectEndpoint):
 
         Permanently remove a release and all of its files.
 
-        :pparam string organization_slug: the slug of the organization the
+        :param string organization_slug: the slug of the organization the
                                           release belongs to.
-        :pparam string project_slug: the slug of the project to delete the
+        :param string project_slug: the slug of the project to delete the
                                      release of.
-        :pparam string version: the version identifier of the release.
+        :param string version: the version identifier of the release.
         :auth: required
         """
         try:

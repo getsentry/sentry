@@ -29,7 +29,7 @@ class OrganizationStatsEndpoint(OrganizationEndpoint, StatsMixin):
         Return a set of points representing a normalized timestamp and the
         number of events seen in the period.
 
-        :pparam string organization_slug: the slug of the organization for
+        :param string organization_slug: the slug of the organization for
                                           which the stats should be
                                           retrieved.
         :qparam string stat: the name of the stat to query (``"received"``,

@@ -28,7 +28,7 @@ class GroupHashesEndpoint(GroupEndpoint):
         This endpoint lists an issue's hashes, which are the generated
         checksums used to aggregate individual events.
 
-        :pparam string issue_id: the ID of the issue to retrieve.
+        :param string issue_id: the ID of the issue to retrieve.
         :auth: required
         """
 

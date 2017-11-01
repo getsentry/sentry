@@ -130,9 +130,9 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
 
         Return details on an individual project.
 
-        :pparam string organization_slug: the slug of the organization the
+        :param string organization_slug: the slug of the organization the
                                           project belongs to.
-        :pparam string project_slug: the slug of the project to delete.
+        :param string project_slug: the slug of the project to delete.
         :auth: required
         """
         data = serialize(project, request.user, DetailedProjectSerializer())
@@ -154,9 +154,9 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         Update various attributes and configurable settings for the given
         project.  Only supplied values are updated.
 
-        :pparam string organization_slug: the slug of the organization the
+        :param string organization_slug: the slug of the organization the
                                           project belongs to.
-        :pparam string project_slug: the slug of the project to delete.
+        :param string project_slug: the slug of the project to delete.
         :param string name: the new name for the project.
         :param string slug: the new slug for the project.
         :param string team: the slug of new team for the project.
@@ -374,9 +374,9 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         However once deletion has begun the state of a project changes and
         will be hidden from most public views.
 
-        :pparam string organization_slug: the slug of the organization the
+        :param string organization_slug: the slug of the organization the
                                           project belongs to.
-        :pparam string project_slug: the slug of the project to delete.
+        :param string project_slug: the slug of the project to delete.
         :auth: required
         """
         if project.is_internal_project():

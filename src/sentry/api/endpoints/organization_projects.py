@@ -29,7 +29,7 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint):
 
         Return a list of projects bound to a organization.
 
-        :pparam string organization_slug: the slug of the organization for
+        :param string organization_slug: the slug of the organization for
                                           which the projects should be listed.
         :auth: required
         """

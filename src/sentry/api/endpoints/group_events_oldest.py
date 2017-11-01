@@ -30,7 +30,7 @@ class GroupEventsOldestEndpoint(GroupEndpoint):
 
         Retrieves the details of the oldest event for an issue.
 
-        :pparam string group_id: the ID of the issue
+        :param string group_id: the ID of the issue
         """
         event = group.get_oldest_event()
         if not event:

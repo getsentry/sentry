@@ -67,9 +67,9 @@ class OrganizationReleaseDetailsEndpoint(OrganizationReleasesBaseEndpoint):
 
         Return details on an individual release.
 
-        :pparam string organization_slug: the slug of the organization the
+        :param string organization_slug: the slug of the organization the
                                           release belongs to.
-        :pparam string version: the version identifier of the release.
+        :param string version: the version identifier of the release.
         :auth: required
         """
         try:
@@ -94,9 +94,9 @@ class OrganizationReleaseDetailsEndpoint(OrganizationReleasesBaseEndpoint):
         Update a release. This can change some metadata associated with
         the release (the ref, url, and dates).
 
-        :pparam string organization_slug: the slug of the organization the
+        :param string organization_slug: the slug of the organization the
                                           release belongs to.
-        :pparam string version: the version identifier of the release.
+        :param string version: the version identifier of the release.
         :param string ref: an optional commit reference.  This is useful if
                            a tagged version has been provided.
         :param url url: a URL that points to the release.  This can be the
@@ -195,9 +195,9 @@ class OrganizationReleaseDetailsEndpoint(OrganizationReleasesBaseEndpoint):
 
         Permanently remove a release and all of its files.
 
-        :pparam string organization_slug: the slug of the organization the
+        :param string organization_slug: the slug of the organization the
                                           release belongs to.
-        :pparam string version: the version identifier of the release.
+        :param string version: the version identifier of the release.
         :auth: required
         """
         try:

@@ -24,7 +24,7 @@ class OrganizationApiKeyIndexEndpoint(OrganizationEndpoint):
         List an Organization's API Keys
         ```````````````````````````````````
 
-        :pparam string organization_slug: the organization short name
+        :param string organization_slug: the organization short name
         :auth: required
         """
         queryset = sorted(
@@ -40,7 +40,7 @@ class OrganizationApiKeyIndexEndpoint(OrganizationEndpoint):
         Create an Organization API Key
         ```````````````````````````````````
 
-        :pparam string organization_slug: the organization short name
+        :param string organization_slug: the organization short name
         :auth: required
         """
         key = ApiKey.objects.create(

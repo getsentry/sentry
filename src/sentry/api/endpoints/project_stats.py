@@ -36,8 +36,8 @@ class ProjectStatsEndpoint(ProjectEndpoint, StatsMixin):
         Query ranges are limited to Sentry's configured time-series
         resolutions.
 
-        :pparam string organization_slug: the slug of the organization.
-        :pparam string project_slug: the slug of the project.
+        :param string organization_slug: the slug of the organization.
+        :param string project_slug: the slug of the project.
         :qparam string stat: the name of the stat to query (``"received"``,
                              ``"rejected"``, ``"blacklisted"``, ``generated``)
         :qparam timestamp since: a timestamp to set the start of the query

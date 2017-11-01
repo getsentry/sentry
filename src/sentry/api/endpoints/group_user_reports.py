@@ -14,8 +14,8 @@ class GroupUserReportsEndpoint(GroupEndpoint):
 
         Returns a list of user reports for an issue.
 
-        :pparam string issue_id: the ID of the issue to retrieve.
-        :pparam string key: the tag key to look the values up for.
+        :param string issue_id: the ID of the issue to retrieve.
+        :param string key: the tag key to look the values up for.
         :auth: required
         """
 

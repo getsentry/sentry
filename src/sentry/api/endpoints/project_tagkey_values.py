@@ -20,9 +20,9 @@ class ProjectTagKeyValuesEndpoint(ProjectEndpoint):
         parameter can be used to to perform a "contains" match on
         values.
 
-        :pparam string organization_slug: the slug of the organization.
-        :pparam string project_slug: the slug of the project.
-        :pparam string key: the tag key to look up.
+        :param string organization_slug: the slug of the organization.
+        :param string project_slug: the slug of the project.
+        :param string key: the tag key to look up.
         :auth: required
         """
         lookup_key = tagstore.prefix_reserved_key(key)

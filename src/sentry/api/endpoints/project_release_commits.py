@@ -18,11 +18,11 @@ class ProjectReleaseCommitsEndpoint(ProjectEndpoint):
 
         Retrieve a list of commits for a given release.
 
-        :pparam string organization_slug: the slug of the organization the
+        :param string organization_slug: the slug of the organization the
                                           release belongs to.
-        :pparam string project_slug: the slug of the project to list the
+        :param string project_slug: the slug of the project to list the
                                      release files of.
-        :pparam string version: the version identifier of the release.
+        :param string version: the version identifier of the release.
         :auth: required
         """
         try:

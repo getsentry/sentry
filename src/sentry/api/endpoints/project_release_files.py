@@ -61,11 +61,11 @@ class ProjectReleaseFilesEndpoint(ProjectEndpoint):
 
         Retrieve a list of files for a given release.
 
-        :pparam string organization_slug: the slug of the organization the
+        :param string organization_slug: the slug of the organization the
                                           release belongs to.
-        :pparam string project_slug: the slug of the project to list the
+        :param string project_slug: the slug of the project to list the
                                      release files of.
-        :pparam string version: the version identifier of the release.
+        :param string version: the version identifier of the release.
         :auth: required
         """
         try:
@@ -104,11 +104,11 @@ class ProjectReleaseFilesEndpoint(ProjectEndpoint):
         that this file will be referenced as. For example, in the case of
         JavaScript you might specify the full web URI.
 
-        :pparam string organization_slug: the slug of the organization the
+        :param string organization_slug: the slug of the organization the
                                           release belongs to.
-        :pparam string project_slug: the slug of the project to change the
+        :param string project_slug: the slug of the project to change the
                                      release of.
-        :pparam string version: the version identifier of the release.
+        :param string version: the version identifier of the release.
         :param string name: the name (full path) of the file.
         :param string dist: the name of the dist.
         :param file file: the multipart encoded file.

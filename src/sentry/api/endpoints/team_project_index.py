@@ -63,9 +63,9 @@ class TeamProjectIndexEndpoint(TeamEndpoint):
 
         Return a list of projects bound to a team.
 
-        :pparam string organization_slug: the slug of the organization the
+        :param string organization_slug: the slug of the organization the
                                           team belongs to.
-        :pparam string team_slug: the slug of the team to list the projects of.
+        :param string team_slug: the slug of the team to list the projects of.
         :auth: required
         """
         if request.user.is_authenticated():
@@ -87,9 +87,9 @@ class TeamProjectIndexEndpoint(TeamEndpoint):
 
         Create a new project bound to a team.
 
-        :pparam string organization_slug: the slug of the organization the
+        :param string organization_slug: the slug of the organization the
                                           team belongs to.
-        :pparam string team_slug: the slug of the team to create a new project
+        :param string team_slug: the slug of the team to create a new project
                                   for.
         :param string name: the name for the new project.
         :param string slug: optionally a slug for the new project.  If it's

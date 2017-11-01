@@ -27,10 +27,10 @@ class IssuesResolvedInReleaseEndpoint(ProjectEndpoint):
 
         Retrieve a list of issues to be resolved in a given release.
 
-        :pparam string organization_slug: the slug of the organization the
+        :param string organization_slug: the slug of the organization the
                                           release belongs to.
-        :pparam string project_slug: the slug of the project associated with the release.
-        :pparam string version: the version identifier of the release.
+        :param string project_slug: the slug of the project associated with the release.
+        :param string version: the version identifier of the release.
         :auth: required
         """
         try:

@@ -45,8 +45,8 @@ class ProjectUserReportsEndpoint(ProjectEndpoint):
 
         Return a list of user feedback items within this project.
 
-        :pparam string organization_slug: the slug of the organization.
-        :pparam string project_slug: the slug of the project.
+        :param string organization_slug: the slug of the organization.
+        :param string project_slug: the slug of the project.
         :auth: required
         """
         queryset = UserReport.objects.filter(
@@ -78,8 +78,8 @@ class ProjectUserReportsEndpoint(ProjectEndpoint):
 
         Submit and associate user feedback with an issue.
 
-        :pparam string organization_slug: the slug of the organization.
-        :pparam string project_slug: the slug of the project.
+        :param string organization_slug: the slug of the organization.
+        :param string project_slug: the slug of the project.
         :auth: required
         :param string event_id: the event ID
         :param string name: user's name

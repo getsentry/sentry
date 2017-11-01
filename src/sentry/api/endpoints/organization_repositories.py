@@ -21,7 +21,7 @@ class OrganizationRepositoriesEndpoint(OrganizationEndpoint):
 
         Return a list of version control repositories for a given organization.
 
-        :pparam string organization_slug: the organization short name
+        :param string organization_slug: the organization short name
         :auth: required
         """
         queryset = Repository.objects.filter(
