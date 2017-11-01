@@ -143,7 +143,7 @@ HTTP_METHODS = ('GET', 'POST', 'PUT', 'OPTIONS', 'HEAD',
 CLIENT_RESERVED_ATTRS = (
     'project', 'errors', 'event_id', 'message', 'checksum', 'culprit', 'fingerprint', 'level',
     'time_spent', 'logger', 'server_name', 'site', 'received', 'timestamp', 'extra', 'modules',
-    'tags', 'platform', 'release', 'dist', 'environment', 'transaction',
+    'tags', 'platform', 'release', 'dist', 'environment', 'transaction', 'key_id',
 )
 
 # XXX: Must be all lowercase
