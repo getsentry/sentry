@@ -249,13 +249,19 @@ def truncate_denormalizations(group):
         group_id=group.id,
     ).delete()
 
+    environment_ids = list(
+        Environment.objects.filter(
+            projects=group.project
+        ).values_list('id', flat=True)
+    )
+
     tsdb.delete([
         tsdb.models.group,
-    ], [group.id])
+    ], [group.id], environment_ids=environment_ids)
 
     tsdb.delete_distinct_counts([
         tsdb.models.users_affected_by_group,
-    ], [group.id])
+    ], [group.id], environment_ids=environment_ids)
 
     tsdb.delete_frequencies(
         [
