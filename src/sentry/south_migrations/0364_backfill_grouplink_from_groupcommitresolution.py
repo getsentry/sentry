@@ -32,7 +32,6 @@ class Migration(DataMigration):
 
         queryset = GroupCommitResolution.objects.all()
 
-        # as of writing this, there are 2000 rows in GroupCommitResolution
         group_to_project_ids = dict(Group.objects.filter(
             id__in=queryset.values_list('group_id', flat=True)
         ).values_list("id", "project_id"))
@@ -47,7 +46,7 @@ class Migration(DataMigration):
 
                         project_id=group_to_project_ids[group_commit_resolution.group_id],
 
-                        linked_type=1,
+                        linked_type=1,  # literal value used because we don't have access to the actual class
                         relationship=1
                     )
 
