@@ -313,15 +313,8 @@ def repair_tag_data(caches, project, events):
                     )
 
 
-def get_environment(event):
-    environment = event.get_tag('environment')
-
-    # NOTE: ``GroupRelease.environment`` is not nullable, but an empty
-    # string is OK.
-    if environment is None:
-        environment = ''
-
-    return environment
+def get_environment_name(event):
+    return Environment.get_name_or_default(event.get_tag('environment'))
 
 
 def collect_release_data(caches, project, events):
@@ -334,7 +327,7 @@ def collect_release_data(caches, project, events):
             continue
 
         key = (
-            event.group_id, get_environment(event), caches['Release'](
+            event.group_id, get_environment_name(event), caches['Release'](
                 project.organization_id,
                 release,
             ).id,
@@ -408,7 +401,7 @@ def collect_tsdb_data(caches, project, events):
 
         environment = caches['Environment'](
             project.organization_id,
-            get_environment(event),
+            get_environment_name(event),
         )
 
         frequencies[event.datetime][tsdb.models.frequent_environments_by_group
@@ -420,7 +413,7 @@ def collect_tsdb_data(caches, project, events):
             # similar comment above during creation.
             grouprelease = caches['GroupRelease'](
                 event.group_id,
-                get_environment(event),
+                get_environment_name(event),
                 caches['Release'](
                     project.organization_id,
                     release,
