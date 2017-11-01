@@ -430,6 +430,7 @@ const ProjectFilters = React.createClass({
       'web-crawlers': 'Web Crawler',
       'invalid-csp': 'Invalid CSP',
       cors: 'CORS',
+      'discarded-hash': 'Discarded Group'
     };
   },
 

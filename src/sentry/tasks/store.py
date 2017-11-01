@@ -256,6 +256,7 @@ def save_event(cache_key=None, data=None, start_time=None, event_id=None, **kwar
     Saves an event to the database.
     """
     from sentry.event_manager import HashDiscarded, EventManager
+    from sentry import tsdb
 
     if cache_key:
         data = default_cache.get(cache_key)
@@ -286,6 +287,7 @@ def save_event(cache_key=None, data=None, start_time=None, event_id=None, **kwar
                 'description': exc.message,
             }
         )
+        tsdb.incr(tsdb.models.project_total_received_discarded, project, timestamp=start_time)
     finally:
         if cache_key:
             default_cache.delete(cache_key)

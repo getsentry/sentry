@@ -26,6 +26,7 @@ class FilterStatKeys(object):
     WEB_CRAWLER = 'web-crawlers'
     INVALID_CSP = 'invalid-csp'
     CORS = 'cors'
+    DISCARDED_HASH = 'discarded-hash'
 
 FILTER_STAT_KEYS_TO_VALUES = {
     FilterStatKeys.IP_ADDRESS: tsdb.models.project_total_received_ip_address,
@@ -37,6 +38,7 @@ FILTER_STAT_KEYS_TO_VALUES = {
     FilterStatKeys.WEB_CRAWLER: tsdb.models.project_total_received_web_crawlers,
     FilterStatKeys.INVALID_CSP: tsdb.models.project_total_received_invalid_csp,
     FilterStatKeys.CORS: tsdb.models.project_total_received_cors,
+    FilterStatKeys.DISCARDED_HASH: tsdb.models.project_total_received_discarded,
 }
 
 

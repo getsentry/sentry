@@ -93,6 +93,8 @@ class TSDBModel(Enum):
     project_total_received_invalid_csp = 608
     # the number of events filtered by invalid origin
     project_total_received_cors = 609
+    # the number of events filtered because their group was discarded
+    project_total_received_discarded = 610
 
 
 class BaseTSDB(Service):
