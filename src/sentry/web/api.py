@@ -1,9 +1,13 @@
 from __future__ import absolute_import, print_function
 
 import base64
+import datetime
 import logging
+import pytz
 import six
 import traceback
+
+from time import time
 
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
@@ -353,7 +357,8 @@ class StoreView(APIView):
             project=project,
             sender=type(self),
         )
-
+        start_time = time()
+        tsdb_start_time = datetime.datetime.fromtimestamp(start_time).replace(tzinfo=pytz.utc)
         should_filter, filter_reason = helper.should_filter(
             project, data, ip_address=remote_addr)
         if should_filter:
@@ -375,7 +380,8 @@ class StoreView(APIView):
                 pass
 
             tsdb.incr_multi(
-                increment_list
+                increment_list,
+                timestamp=tsdb_start_time,
             )
 
             metrics.incr('events.blacklisted', tags={
@@ -410,7 +416,8 @@ class StoreView(APIView):
                      project.organization_id),
                     (tsdb.models.key_total_received, key.id),
                     (tsdb.models.key_total_rejected, key.id),
-                ]
+                ],
+                timestamp=tsdb_start_time,
             )
             metrics.incr(
                 'events.dropped',
@@ -433,7 +440,8 @@ class StoreView(APIView):
                     (tsdb.models.organization_total_received,
                      project.organization_id),
                     (tsdb.models.key_total_received, key.id),
-                ]
+                ],
+                timestamp=tsdb_start_time,
             )
 
         org_options = OrganizationOption.objects.get_all_values(
@@ -492,7 +500,7 @@ class StoreView(APIView):
             helper.ensure_does_not_have_ip(data)
 
         # mutates data (strips a lot of context if not queued)
-        helper.insert_data_to_database(data)
+        helper.insert_data_to_database(data, start_time=start_time)
 
         cache.set(cache_key, '', 60 * 5)
 
