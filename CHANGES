@@ -15,6 +15,10 @@ Schema Changes
 - Added index on ``TagValue(project_id, key, last_seen)``
 - Add ``GroupShare`` model.
 
+API Changes
+~~~~~~~~~~~
+- Added API endpoint to list members awaiting access
+
 Version 8.21
 ------------
 
