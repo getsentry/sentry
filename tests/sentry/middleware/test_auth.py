@@ -5,6 +5,7 @@ from exam import fixture
 
 from sentry.testutils import TestCase
 from sentry.middleware.auth import AuthenticationMiddleware
+from sentry.models import UserIP
 from sentry.utils.auth import login
 
 
@@ -28,6 +29,10 @@ class AuthenticationMiddlewareTestCase(TestCase):
         assert request.user.is_authenticated()
         assert request.user == self.user
         assert '_nonce' not in request.session
+        assert UserIP.objects.filter(
+            user=self.user,
+            ip_address='127.0.0.1',
+        ).exists()
 
     def test_process_request_good_nonce(self):
         request = self.request
