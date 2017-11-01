@@ -5,7 +5,7 @@ import six
 from rest_framework.response import Response
 
 from sentry import tagstore
-from sentry.api.base import DocSection
+from sentry.api.base import DocSection, EnvironmentMixin
 from sentry.api.bases.group import GroupEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
@@ -22,7 +22,7 @@ def list_tag_details_scenario(runner):
     )
 
 
-class GroupTagKeyDetailsEndpoint(GroupEndpoint):
+class GroupTagKeyDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
     doc_section = DocSection.EVENTS
 
     # XXX: this scenario does not work for some inexplicable reasons

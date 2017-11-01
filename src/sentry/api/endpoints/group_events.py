@@ -3,7 +3,7 @@ from __future__ import absolute_import
 import six
 
 from sentry import tagstore
-from sentry.api.base import DocSection
+from sentry.api.base import DocSection, EnvironmentMixin
 from sentry.api.bases import GroupEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.paginator import DateTimePaginator
@@ -20,7 +20,7 @@ def list_available_samples_scenario(runner):
     runner.request(method='GET', path='/issues/%s/events/' % group.id)
 
 
-class GroupEventsEndpoint(GroupEndpoint):
+class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):
     doc_section = DocSection.EVENTS
 
     @attach_scenarios([list_available_samples_scenario])

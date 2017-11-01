@@ -27,7 +27,7 @@ from .authentication import ApiKeyAuthentication, TokenAuthentication
 from .paginator import Paginator
 from .permissions import NoPermission
 
-__all__ = ['DocSection', 'Endpoint', 'StatsMixin']
+__all__ = ['DocSection', 'Endpoint', 'EnvironmentMixin', 'StatsMixin']
 
 ONE_MINUTE = 60
 ONE_HOUR = ONE_MINUTE * 60
@@ -258,7 +258,7 @@ class EnvironmentMixin(object):
         )
 
 
-class StatsMixin(EnvironmentMixin):
+class StatsMixin(object):
     def _parse_args(self, request):
         resolution = request.GET.get('resolution')
         if resolution:

@@ -9,7 +9,7 @@ from rest_framework.response import Response
 
 from sentry import tsdb, tagstore
 from sentry.api import client
-from sentry.api.base import DocSection
+from sentry.api.base import DocSection, EnvironmentMixin
 from sentry.api.bases import GroupEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.plugin import PluginSerializer
@@ -67,7 +67,7 @@ STATUS_CHOICES = {
 }
 
 
-class GroupDetailsEndpoint(GroupEndpoint):
+class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
     doc_section = DocSection.EVENTS
 
     def _get_activity(self, request, group, num):
