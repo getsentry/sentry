@@ -26,7 +26,7 @@ default_manager.add('projects:rate-limits', ProjectFeature)  # NOQA
 default_manager.add('workflow:release-emails', ProjectFeature)  # NOQA
 default_manager.add('projects:sample-events', ProjectFeature)  # NOQA
 default_manager.add('projects:similarity-indexing', ProjectFeature)  # NOQA
-default_manager.add('projects:custom-filters', ProjectFeature)  # NOQA
+default_manager.add('projects:discard-groups', ProjectFeature)  # NOQA
 default_manager.add('projects:custom-inbound-filters', ProjectFeature)  # NOQA
 default_manager.add('projects:minidump', ProjectFeature)  # NOQA
 

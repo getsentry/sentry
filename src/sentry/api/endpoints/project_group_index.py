@@ -442,7 +442,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
         discard = result.get('discard')
         if discard:
 
-            if not features.has('projects:custom-filters', project, actor=request.user):
+            if not features.has('projects:discard-groups', project, actor=request.user):
                 return Response({'detail': ['You do not have that feature enabled']}, status=400)
 
             group_list = list(queryset)
