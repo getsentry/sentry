@@ -123,22 +123,22 @@ class GroupManager(BaseManager):
         Resolves the 32 character event_id string into
         a Group for which it is found.
         """
-        from sentry import features
+        from sentry.models import EventMapping, Event
+        group_id = None
 
-        if features.has('projects:sample-events', project=self):
-            from sentry.models import EventMapping as Model
-        else:
-            from sentry.models import Event as Model
+        for model in Event, EventMapping:
+            try:
+                group_id = model.objects.filter(
+                    project_id=self.id,
+                    event_id=event_id,
+                ).values_list('group_id', flat=True)[0]
+            except IndexError:
+                # Raise a Group.DoesNotExist here since it makes
+                # more logical sense since this is intending to resolve
+                # a group_id.
+                pass
 
-        try:
-            group_id = Model.objects.filter(
-                project_id=self.id,
-                event_id=event_id,
-            ).values_list('group_id', flat=True)[0]
-        except IndexError:
-            # Raise a Group.DoesNotExist here since it makes
-            # more logical sense since this is intending to resolve
-            # a group_id.
+        if group_id is None:
             raise Group.DoesNotExist()
 
         return Group.objects.get(id=group_id)
