@@ -35,7 +35,9 @@ class Migration(DataMigration):
         for group_commit_resolution in RangeQuerySetWrapperWithProgressBar(queryset):
             try:
 
-                project_id = Group.objects.filter(id=1).values_list('project_id', flat=True)[0]
+                project_id = Group.objects.filter(
+                    id=group_commit_resolution.group_id).values_list(
+                    'project_id', flat=True)[0]
 
                 with transaction.atomic():
                     GroupLink.objects.create(
