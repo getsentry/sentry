@@ -18,15 +18,20 @@ from sentry.constants import (
     LOG_LEVELS_MAP,
     MAX_TAG_KEY_LENGTH,
     MAX_TAG_VALUE_LENGTH,
-    MAX_CULPRIT_LENGTH,
     VALID_PLATFORMS,
 )
 from sentry.interfaces.base import InterfaceValidationError
 from sentry.models import EventError
 from sentry.tagstore.base import INTERNAL_TAG_KEYS
 
+
 def iverror(message="Invalid data"):
     raise InterfaceValidationError(message)
+
+
+def apierror(message="Invalid data"):
+    from sentry.coreapi import APIForbidden
+    raise APIForbidden(message)
 
 PAIRS = {
     'type': 'array',
@@ -43,17 +48,11 @@ HTTP_INTERFACE_SCHEMA = {
     'properties': {
         'url': {'type': 'string'},
         'method': {'type': 'string'},
-        'query_string': {
-            'anyOf': [
-                {'type': 'string'},
-                {'type': 'object'},
-            ],
-        },
+        'query_string': {'type': ['string', 'object']},
         'inferred_content_type': {'type': 'string'},
         'cookies': {
             'anyOf': [
-                {'type': 'object'},  # either an object
-                {'type': 'string'},  # or a query string
+                {'type': ['string', 'object']},  # either a string of object
                 PAIRS,  # or a list of 2-tuples
             ]
         },
@@ -64,12 +63,7 @@ HTTP_INTERFACE_SCHEMA = {
                 PAIRS,  # or a list of 2-tuples
             ]
         },
-        'data': {
-            'anyOf': [
-                {'type': 'string'},
-                {'type': 'object'},
-            ],
-        },
+        'data': {'type': ['string', 'object']},
         'fragment': {'type': 'string'},
     },
     'required': ['url'],
@@ -165,8 +159,15 @@ STACKTRACE_INTERFACE_SCHEMA = {
 EXCEPTION_INTERFACE_SCHEMA = {
     'type': 'object',
     'properties': {
-        'type': {'type': 'string'},
-        'value': {},  # any type
+        'type': {
+            'type': 'string',
+            # 'minLength': 1,
+        },
+        'value': {
+            # 'minProperties': 1,
+            # 'minItems': 1,
+            # 'minLength': 1,
+        },
         'module': {'type': 'string'},
         'mechanism': {'type': 'object'},
         'stacktrace': {
@@ -191,11 +192,13 @@ EXCEPTION_INTERFACE_SCHEMA = {
         {'required': ['type']},
         {'required': ['value']},
     ],
-    'additionalProperties': False,  # Don't allow any other keys.
+    # TODO should be false but allowing extra garbage for now
+    # for compatibility
+    'additionalProperties': True,
 }
 
 TEMPLATE_INTERFACE_SCHEMA = {'type': 'object'}  # TODO fill this out
-MESSAGE_INTERFACE_SCHEMA = {'type': 'object'}  # TODO fill this out
+MESSAGE_INTERFACE_SCHEMA = {'type': 'object'}
 
 TAGS_DICT_SCHEMA = {
     'allOf': [
@@ -204,7 +207,6 @@ TAGS_DICT_SCHEMA = {
             # TODO with draft 6 support, we can just use propertyNames/maxLength
             'patternProperties': {
                 '^[a-zA-Z0-9_\.:-]{1,%d}$' % MAX_TAG_KEY_LENGTH: {
-                    # TODO numbers as tag values?
                     'type': 'string',
                     'maxLength': MAX_TAG_VALUE_LENGTH,
                     'pattern': '^[^\n]+\Z',  # \Z because $ matches before trailing newline
@@ -242,7 +244,8 @@ TAGS_TUPLES_SCHEMA = {
             # Value
             {
                 'type': 'string',
-                'pattern': '^[^\n]+\Z',  # \Z because $ matches before a trailing newline
+                'pattern': '^[^\n]*\Z',  # \Z because $ matches before a trailing newline
+                # 'minLength': 1,
                 'maxLength': MAX_TAG_VALUE_LENGTH,
             },
         ]
@@ -275,8 +278,15 @@ EVENT_SCHEMA = {
             'enum': list(VALID_PLATFORMS),
             'default': 'other',
         },
-        'sdk': {'type': 'string'},
-
+        'sdk': {
+            'type': 'object',
+            'properties': {
+                'name': {'type': 'string'},
+                'version': {},
+                'integrations': {},
+            },
+            'additionalProperties': True,
+        },
         'level': {
             'anyOf': [
                 {'type': 'number'},
@@ -292,8 +302,9 @@ EVENT_SCHEMA = {
         },
         'culprit': {
             'type': 'string',
-            'minLength': 1,
-            'maxLength': MAX_CULPRIT_LENGTH,
+            # 'minLength': 1,
+            # 'maxLength': MAX_CULPRIT_LENGTH,
+            'default': lambda: apierror('Invalid value for culprit'),
         },
         'server_name': {'type': 'string'},
         'release': {

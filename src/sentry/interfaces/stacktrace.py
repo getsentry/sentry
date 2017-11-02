@@ -21,7 +21,7 @@ from six.moves.urllib.parse import urlparse
 from sentry.app import env
 from sentry.interfaces.base import Interface, InterfaceValidationError
 from sentry.interfaces.schemas import \
-    validate_and_default_from_schema, is_valid_interface, INTERFACE_SCHEMAS
+    INTERFACE_SCHEMAS, is_valid_interface, validate_and_default_from_schema
 from sentry.models import UserOption
 from sentry.utils.safe import trim, trim_dict
 from sentry.web.helpers import render_to_string
@@ -259,8 +259,7 @@ class Frame(Interface):
 
     @classmethod
     def to_python(cls, data, raw=False):
-        schema = INTERFACE_SCHEMAS[cls.path]
-        validate_and_default_from_schema(data, schema)
+        validate_and_default_from_schema(data, INTERFACE_SCHEMAS[cls.path])
         if not is_valid_interface(data, cls.path):
             raise InterfaceValidationError("Invalid stack frame data.")
 
@@ -648,10 +647,9 @@ class Stacktrace(Interface):
 
     @classmethod
     def to_python(cls, data, slim_frames=True, raw=False):
-        schema = INTERFACE_SCHEMAS[cls.path]
-        validate_and_default_from_schema(data, schema)
+        validate_and_default_from_schema(data, INTERFACE_SCHEMAS[cls.path])
         if not is_valid_interface(data, cls.path):
-            raise InterfaceValidationError("Invalid exception data.")
+            raise InterfaceValidationError("Invalid stacktrace data.")
 
         frame_list = [
             # XXX(dcramer): handle PHP sending an empty array for a frame

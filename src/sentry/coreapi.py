@@ -26,7 +26,12 @@ from time import time
 
 from sentry import filters
 from sentry.cache import default_cache
-from sentry.constants import CLIENT_RESERVED_ATTRS, DEFAULT_LOG_LEVEL, LOG_LEVELS_MAP
+from sentry.constants import (
+    CLIENT_RESERVED_ATTRS,
+    DEFAULT_LOG_LEVEL,
+    LOG_LEVELS_MAP,
+    VALID_PLATFORMS,
+)
 from sentry.interfaces.base import get_interface, InterfaceValidationError
 from sentry.interfaces.csp import Csp
 from sentry.interfaces.schemas import \
@@ -403,20 +408,31 @@ class ClientApiHelper(object):
         # so that the schema doesn't have to take every type variation into account.
         text = six.text_type
         fingerprint_types = six.string_types + six.integer_types + (float, )
+
+        def to_values(v):
+            return {'values': v} if v and isinstance(v, (tuple, list)) else v
+
         casts = {
-            'environment': lambda v: text(v),
+            'environment': lambda v: text(v) if v is not None else v,
             'fingerprint': lambda v: map(text, v) if isinstance(v, list) and all(isinstance(f, fingerprint_types) for f in v) else v,
-            'release': lambda v: six.text_type(v),
+            'release': lambda v: text(v) if v is not None else v,
             'dist': lambda v: text(v).strip(),
             'time_spent': lambda v: int(v),
-            'exception': lambda v: {'values': v} if isinstance(v, (tuple, list)) else v,
-            'breadcrumbs': lambda v: {'values': v} if isinstance(v, (tuple, list)) else v,
             'tags': lambda v: [(text(v_k.replace(' ', '-')), text(v_v)) for (v_k, v_v) in dict(v).items()],
             'timestamp': lambda v: self._process_timestamp(v),
+            'platform': lambda v: v if v in VALID_PLATFORMS else 'other',
+
+            # These can be sent as lists and need to be converted to {'values': list}
+            'exception': to_values,
+            'sentry.interfaces.Exception': to_values,
+            'breadcrumbs': to_values,
+            'sentry.interfaces.Breadcrumbs': to_values,
+            'threads': to_values,
+            'sentry.interfaces.Threads': to_values,
         }
 
         for c in casts:
-            if data.get(c):
+            if c in data:
                 try:
                     data[c] = casts[c](data[c])
                 except Exception:
@@ -434,7 +450,8 @@ class ClientApiHelper(object):
         msg_str = data.pop('message', None)
         if msg_str:
             msg_if = data.setdefault('sentry.interfaces.Message', {'message': msg_str})
-            msg_if.setdefault('formatted', msg_str)
+            if msg_if.get('message') != msg_str:
+                msg_if.setdefault('formatted', msg_str)
 
         main_errors = validate_and_default_from_schema(data, EVENT_SCHEMA)
         errors.extend(main_errors)
@@ -443,8 +460,6 @@ class ClientApiHelper(object):
             tag_errors = validate_and_default_from_schema(
                 data['tags'], TAGS_TUPLES_SCHEMA, name='tags')
             errors.extend(tag_errors)
-            if not data['tags']:
-                del data['tags']
 
         for k in list(iter(data)):
             if k in CLIENT_RESERVED_ATTRS:
