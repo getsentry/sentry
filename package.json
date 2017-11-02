@@ -23,6 +23,7 @@
     "classnames": "2.2.0",
     "clipboard": "^1.7.1",
     "compression-webpack-plugin": "^1.0.0",
+    "create-react-class": "^15.6.2",
     "crypto-js": "3.1.5",
     "css-loader": "^0.28.2",
     "diff": "^3.3.0",
