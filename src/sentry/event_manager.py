@@ -608,12 +608,12 @@ class EventManager(object):
         # store a reference to the group id to guarantee validation of isolation
         event.data.bind_ref(event)
 
-        # When sampling is enabled, the only canonical source of truth
-        # is the EventMapping table. Otherwise, without sampling enabled,
-        # the source of truth can be relied on the Event table itself.
-        # As a bonus, when sampling is not enabled, we can avoid writing
-        # an EventMapping row entirely since it's redundant to the Event table.
-        if features.has('projects:sample-events', project=project):
+        # When an event was sampled, the canonical source of truth
+        # is the EventMapping table since we aren't going to be writing out an actual
+        # Event row. Otherwise, if the Event isn't being sampled, we can safely
+        # rely on the Event table itself as the source of truth and ignore
+        # EventMapping since it's redundant information.
+        if is_sample:
             try:
                 with transaction.atomic(using=router.db_for_write(EventMapping)):
                     EventMapping.objects.create(project=project, group=group, event_id=event_id)
