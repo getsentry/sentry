@@ -406,7 +406,7 @@ const DeleteActions = React.createClass({
         >
           <span className="icon-trash" />
         </LinkWithConfirmation>
-        {features.has('custom-filters') && (
+        {features.has('discard-groups') && (
           <DropdownLink
             caret={true}
             className="group-delete btn btn-default btn-sm"

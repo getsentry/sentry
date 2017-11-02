@@ -1284,7 +1284,7 @@ class GroupUpdateTest(APITestCase):
             group1=group1,
         )
         with self.tasks():
-            with self.feature('projects:custom-filters'):
+            with self.feature('projects:discard-groups'):
                 response = self.client.put(
                     url, data={
                         'discard': True,
