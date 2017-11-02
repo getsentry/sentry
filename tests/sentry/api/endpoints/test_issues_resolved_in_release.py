@@ -5,7 +5,7 @@ import six
 
 from sentry.models import (
     Commit,
-    GroupCommitResolution,
+    GroupLink,
     GroupResolution,
     Release,
     ReleaseCommit,
@@ -52,10 +52,10 @@ class IssuesResolvedInReleaseEndpointTest(APITestCase):
         assert len(response.data) == 1
         assert response.data[0]['id'] == six.text_type(group.id)
 
-    def test_shows_issues_from_groupcommitresolution(self):
+    def test_shows_issues_from_grouplink(self):
         """
         tests that the endpoint will correctly retrieve issues resolved
-        in a release from the GroupCommitResolution model
+        in a release from the GroupLink model
         """
         user = self.create_user('foo@example.com', is_superuser=True)
         project = self.create_project(
@@ -94,7 +94,13 @@ class IssuesResolvedInReleaseEndpointTest(APITestCase):
             commit=commit2,
             order=0,
         )
-        GroupCommitResolution.objects.create(group_id=group.id, commit_id=commit.id)
+        GroupLink.objects.create(
+            group_id=group.id,
+            project_id=group.project_id,
+            linked_type=GroupLink.LinkedType.commit,
+            relationship=GroupLink.Relationship.resolves,
+            linked_id=commit.id,
+        )
         url = reverse(
             'sentry-api-0-release-resolved',
             kwargs={
@@ -113,7 +119,7 @@ class IssuesResolvedInReleaseEndpointTest(APITestCase):
     def test_does_not_return_duplicate_groups(self):
         """
         tests that the endpoint will correctly retrieve issues resolved
-        in a release from the GroupCommitResolution and GroupResolution model
+        in a release from the GroupLink and GroupResolution model
         but will not return the groups twice if they appear in both
         """
         user = self.create_user('foo@example.com', is_superuser=True)
@@ -153,7 +159,13 @@ class IssuesResolvedInReleaseEndpointTest(APITestCase):
             commit=commit2,
             order=0,
         )
-        GroupCommitResolution.objects.create(group_id=group.id, commit_id=commit.id)
+        GroupLink.objects.create(
+            group_id=group.id,
+            project_id=group.project_id,
+            linked_type=GroupLink.LinkedType.commit,
+            relationship=GroupLink.Relationship.resolves,
+            linked_id=commit.id,
+        )
         GroupResolution.objects.create(
             group=group,
             release=release,
@@ -177,7 +189,7 @@ class IssuesResolvedInReleaseEndpointTest(APITestCase):
     def test_return_groups_from_both_types(self):
         """
         tests that the endpoint will correctly retrieve issues resolved
-        in a release from both the GroupCommitResolution and GroupResolution model
+        in a release from both the GroupLink and GroupResolution model
         """
         user = self.create_user('foo@example.com', is_superuser=True)
         project = self.create_project(
@@ -217,7 +229,13 @@ class IssuesResolvedInReleaseEndpointTest(APITestCase):
             commit=commit2,
             order=0,
         )
-        GroupCommitResolution.objects.create(group_id=group.id, commit_id=commit.id)
+        GroupLink.objects.create(
+            group_id=group.id,
+            project_id=group.project_id,
+            linked_type=GroupLink.LinkedType.commit,
+            relationship=GroupLink.Relationship.resolves,
+            linked_id=commit.id,
+        )
         GroupResolution.objects.create(
             group=group2,
             release=release,
