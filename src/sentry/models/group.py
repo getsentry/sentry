@@ -126,19 +126,23 @@ class GroupManager(BaseManager):
         from sentry.models import EventMapping, Event
         group_id = None
 
+        # Look up event_id in both Event and EventMapping,
+        # and bail when it matches one of them, prioritizing
+        # Event since it contains more history.
         for model in Event, EventMapping:
             try:
                 group_id = model.objects.filter(
                     project_id=self.id,
                     event_id=event_id,
                 ).values_list('group_id', flat=True)[0]
+                break
             except IndexError:
-                # Raise a Group.DoesNotExist here since it makes
-                # more logical sense since this is intending to resolve
-                # a group_id.
                 pass
 
         if group_id is None:
+            # Raise a Group.DoesNotExist here since it makes
+            # more logical sense since this is intending to resolve
+            # a Group.
             raise Group.DoesNotExist()
 
         return Group.objects.get(id=group_id)
