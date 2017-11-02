@@ -608,21 +608,42 @@ class EventManager(object):
         # store a reference to the group id to guarantee validation of isolation
         event.data.bind_ref(event)
 
-        try:
-            with transaction.atomic(using=router.db_for_write(EventMapping)):
-                EventMapping.objects.create(project=project, group=group, event_id=event_id)
-        except IntegrityError:
-            self.logger.info(
-                'duplicate.found',
-                exc_info=True,
-                extra={
-                    'event_uuid': event_id,
-                    'project_id': project.id,
-                    'group_id': group.id,
-                    'model': EventMapping.__name__,
-                }
-            )
-            return event
+        # When sampling is enabled, the only canonical source of truth
+        # is the EventMapping table. Otherwise, without sampling enabled,
+        # the source of truth can be relied on the Event table itself.
+        # As a bonus, when sampling is not enabled, we can avoid writing
+        # an EventMapping row entirely since it's redundant to the Event table.
+        if features.has('projects:sample-events', project=project):
+            try:
+                with transaction.atomic(using=router.db_for_write(EventMapping)):
+                    EventMapping.objects.create(project=project, group=group, event_id=event_id)
+            except IntegrityError:
+                self.logger.info(
+                    'duplicate.found',
+                    exc_info=True,
+                    extra={
+                        'event_uuid': event_id,
+                        'project_id': project.id,
+                        'group_id': group.id,
+                        'model': EventMapping.__name__,
+                    }
+                )
+                return event
+        else:
+            if Event.objects.filter(
+                project_id=project.id,
+                event_id=event_id,
+            ).exists():
+                self.logger.info(
+                    'duplicate.found',
+                    exc_info=True,
+                    extra={
+                        'event_uuid': event_id,
+                        'project_id': project.id,
+                        'model': Event.__name__,
+                    }
+                )
+                return event
 
         environment = Environment.get_or_create(
             project=project,

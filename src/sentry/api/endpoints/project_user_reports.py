@@ -10,7 +10,7 @@ from sentry.api.base import DocSection
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize, ProjectUserReportSerializer
 from sentry.api.paginator import DateTimePaginator
-from sentry.models import (Event, EventMapping, EventUser, Group, GroupStatus, UserReport)
+from sentry.models import (Event, EventUser, Group, GroupStatus, UserReport)
 from sentry.utils.apidocs import scenario, attach_scenarios
 
 
@@ -102,15 +102,9 @@ class ProjectUserReportsEndpoint(ProjectEndpoint):
             report.event_user_id = euser.id
 
         try:
-            mapping = EventMapping.objects.get(
-                event_id=report.event_id,
-                project_id=project.id,
-            )
-        except EventMapping.DoesNotExist:
-            # XXX(dcramer): the system should fill this in later
+            report.group = Group.objects.from_event_id(project, report.event_id)
+        except Group.DoesNotExist:
             pass
-        else:
-            report.group = Group.objects.get(id=mapping.group_id)
 
         try:
             with transaction.atomic():
