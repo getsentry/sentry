@@ -5,22 +5,20 @@ import _ from 'lodash';
 import ContextData from '../../contextData';
 import {deviceNameMapper} from '../../../utils';
 
-const KeyValueList = React.createClass({
-  propTypes: {
+class KeyValueList extends React.Component {
+  static propTypes = {
     data: PropTypes.any.isRequired,
     isContextData: PropTypes.bool,
     isSorted: PropTypes.bool,
     onClick: PropTypes.func,
     raw: PropTypes.bool,
-  },
+  };
 
-  getDefaultProps() {
-    return {
-      isContextData: false,
-      isSorted: true,
-      raw: false,
-    };
-  },
+  static defaultProps = {
+    isContextData: false,
+    isSorted: true,
+    raw: false,
+  };
 
   render() {
     // TODO(dcramer): use non-string keys as reserved words ("unauthorized")
@@ -63,7 +61,9 @@ const KeyValueList = React.createClass({
         </tbody>
       </table>
     );
-  },
-});
+  }
+}
+
+KeyValueList.displayName = 'KeyValueList';
 
 export default KeyValueList;
