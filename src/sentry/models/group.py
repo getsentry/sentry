@@ -132,7 +132,7 @@ class GroupManager(BaseManager):
         for model in Event, EventMapping:
             try:
                 group_id = model.objects.filter(
-                    project_id=self.id,
+                    project_id=project.id,
                     event_id=event_id,
                 ).values_list('group_id', flat=True)[0]
                 break
