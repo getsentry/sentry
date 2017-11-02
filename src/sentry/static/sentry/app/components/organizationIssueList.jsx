@@ -18,6 +18,8 @@ const OrganizationIssueList = React.createClass({
     return this.getQueryStringState(this.props);
   },
 
+  state = this.getQueryStringState(this.props),
+
   componentWillReceiveProps(nextProps) {
     if (nextProps.location.search !== this.props.location.search) {
       this.setState(this.getQueryStringState(nextProps), this.fetchData);
@@ -28,7 +30,7 @@ const OrganizationIssueList = React.createClass({
     GroupStore.reset();
   },
 
-  getQueryStringState(props) {
+  getQueryStringState = props => {
     let location = props.location;
     let status = location.query.hasOwnProperty('status')
       ? location.query.status
