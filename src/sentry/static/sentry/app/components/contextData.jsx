@@ -219,4 +219,6 @@ class ContextData extends React.Component {
   }
 }
 
+ContextData.displayName = 'ContextData';
+
 export default ContextData;

@@ -64,4 +64,6 @@ class KeyValueList extends React.Component {
   }
 }
 
+KeyValueList.displayName = 'KeyValueList';
+
 export default KeyValueList;
