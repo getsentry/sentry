@@ -38,19 +38,26 @@ class Migration(DataMigration):
 
         for group_commit_resolution in RangeQuerySetWrapperWithProgressBar(queryset):
             try:
+                project_id = group_to_project_ids.get(group_commit_resolution.group_id)
+
+                if not project_id:
+                    project_id = Group.objects.get(
+                        id=group_commit_resolution.group_id
+                    ).project_id
+
                 with transaction.atomic():
                     GroupLink.objects.create(
                         group_id=group_commit_resolution.group_id,
                         linked_id=group_commit_resolution.commit_id,
                         datetime=group_commit_resolution.datetime,
 
-                        project_id=group_to_project_ids[group_commit_resolution.group_id],
+                        project_id=project_id,
 
                         linked_type=1,  # literal value used because we don't have access to the actual class
                         relationship=1
                     )
 
-            except IntegrityError:
+            except IntegrityError, Group.DoesNotExist:
                 pass
 
     def backwards(self, orm):
