@@ -53,6 +53,7 @@ var appEntry = {
     'bootstrap/js/tab',
     'bootstrap/js/tooltip',
     'bootstrap/js/alert',
+    'create-react-class',
     'crypto-js/md5',
     'jed',
     'jquery',
@@ -117,6 +118,7 @@ var appConfig = {
       {
         test: /\.json$/,
         loader: 'json-loader',
+<<<<<<< HEAD
       },
       {
         test: /app\/icons\/.*\.svg$/,
@@ -128,6 +130,8 @@ var appConfig = {
             loader: 'svgo-loader',
           },
         ],
+=======
+>>>>>>> use crc in layout.html
       },
       // loader for dynamic styles imported into components (embedded as js)
       {
@@ -149,7 +153,10 @@ var appConfig = {
       },
       {
         test: /\.(woff|woff2|ttf|eot|svg|png|gif|ico|jpg)($|\?)/,
+<<<<<<< HEAD
         exclude: /app\/icons\/.*\.svg$/,
+=======
+>>>>>>> use crc in layout.html
         loader: 'file-loader?name=' + '[name].[ext]',
       },
     ],
@@ -269,6 +276,7 @@ var legacyCssConfig = {
             {
               loader: 'css-loader',
               options: {
+<<<<<<< HEAD
                 sourceMap: WITH_CSS_SOURCEMAPS,
                 minimize: IS_PRODUCTION,
               },
@@ -279,6 +287,12 @@ var legacyCssConfig = {
                 sourceMap: WITH_CSS_SOURCEMAPS,
               },
             },
+=======
+                minimize: IS_PRODUCTION,
+              },
+            },
+            'less-loader',
+>>>>>>> use crc in layout.html
           ],
         }),
       },
@@ -288,7 +302,10 @@ var legacyCssConfig = {
       },
     ],
   },
+<<<<<<< HEAD
   devtool: WITH_CSS_SOURCEMAPS ? '#source-map' : undefined,
+=======
+>>>>>>> use crc in layout.html
 };
 
 // Dev only! Hot module reloading
