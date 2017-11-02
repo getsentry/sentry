@@ -32,18 +32,10 @@ class Migration(DataMigration):
 
         queryset = GroupCommitResolution.objects.all()
 
-        group_to_project_ids = dict(Group.objects.filter(
-            id__in=queryset.values_list('group_id', flat=True)
-        ).values_list("id", "project_id"))
-
         for group_commit_resolution in RangeQuerySetWrapperWithProgressBar(queryset):
             try:
-                project_id = group_to_project_ids.get(group_commit_resolution.group_id)
 
-                if not project_id:
-                    project_id = Group.objects.get(
-                        id=group_commit_resolution.group_id
-                    ).project_id
+                project_id = Group.objects.filter(id=1).values_list('project_id', flat=True)[0]
 
                 with transaction.atomic():
                     GroupLink.objects.create(
@@ -57,7 +49,7 @@ class Migration(DataMigration):
                         relationship=1
                     )
 
-            except IntegrityError, Group.DoesNotExist:
+            except (IntegrityError, IndexError):
                 pass
 
     def backwards(self, orm):
