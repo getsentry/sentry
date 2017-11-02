@@ -4,10 +4,10 @@ import Avatar from '../../components/avatar';
 import TimeSince from '../../components/timeSince';
 import utils from '../../utils';
 
-const EventUserReport = React.createClass({
-  propTypes: {
+class EventUserReport extends React.Component {
+  static propTypes = {
     event: PropTypes.object.isRequired,
-  },
+  };
 
   render() {
     let report = this.props.event.userReport;
@@ -34,7 +34,7 @@ const EventUserReport = React.createClass({
         </div>
       </div>
     );
-  },
-});
+  }
+}
 
 export default EventUserReport;

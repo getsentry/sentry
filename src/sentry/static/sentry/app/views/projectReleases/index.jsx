@@ -1,6 +1,7 @@
 import jQuery from 'jquery';
 import PropTypes from 'prop-types';
 import React from 'react';
+import createReactClass from 'create-react-class';
 import {browserHistory} from 'react-router';
 
 import ApiMixin from '../../mixins/apiMixin';
@@ -12,7 +13,9 @@ import {t} from '../../locale';
 
 import ReleaseList from './releaseList';
 
-const ProjectReleases = React.createClass({
+const ProjectReleases = createReactClass({
+  displayName: 'ProjectReleases',
+
   propTypes: {
     defaultQuery: PropTypes.string,
     setProjectNavSection: PropTypes.func,

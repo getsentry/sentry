@@ -2,20 +2,20 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import LetterAvatar from './letterAvatar';
 
-const UserLetterAvatar = React.createClass({
-  propTypes: {
+class UserLetterAvatar extends React.Component {
+  static propTypes = {
     user: PropTypes.object.isRequired,
-  },
+  };
 
-  getIdentifier() {
+  getIdentifier = () => {
     let user = this.props.user;
     return user.email || user.username || user.id || user.ip_address;
-  },
+  };
 
-  getDisplayName() {
+  getDisplayName = () => {
     let user = this.props.user;
     return user.name || user.email || user.username || '';
-  },
+  };
 
   render() {
     return (
@@ -24,7 +24,7 @@ const UserLetterAvatar = React.createClass({
         displayName={this.getDisplayName()}
       />
     );
-  },
-});
+  }
+}
 
 export default UserLetterAvatar;

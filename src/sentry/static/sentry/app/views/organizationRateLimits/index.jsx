@@ -1,19 +1,21 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
+import createReactClass from 'create-react-class';
+
 import ApiMixin from '../../mixins/apiMixin';
 import IndicatorStore from '../../stores/indicatorStore';
 import OrganizationState from '../../mixins/organizationState';
 import {RangeField} from '../../components/forms';
 import {t} from '../../locale';
 
-const AccountLimit = React.createClass({
-  propTypes: {
+class AccountLimit extends React.Component {
+  static propTypes = {
     value: PropTypes.number,
     onChange: PropTypes.func.isRequired,
-  },
+  };
 
-  getRateLimitValues() {
+  getRateLimitValues = () => {
     let steps = [];
     let i = 0;
     while (i <= 1000000) {
@@ -27,7 +29,7 @@ const AccountLimit = React.createClass({
       }
     }
     return steps;
-  },
+  };
 
   render() {
     return (
@@ -46,10 +48,12 @@ const AccountLimit = React.createClass({
         }}
       />
     );
-  },
-});
+  }
+}
 
-const RateLimitEditor = React.createClass({
+const RateLimitEditor = createReactClass({
+  displayName: 'RateLimitEditor',
+
   propTypes: {
     organization: PropTypes.object.isRequired,
   },
@@ -187,7 +191,8 @@ const RateLimitEditor = React.createClass({
   },
 });
 
-const OrganizationRateLimits = React.createClass({
+const OrganizationRateLimits = createReactClass({
+  displayName: 'OrganizationRateLimits',
   mixins: [OrganizationState],
 
   render() {

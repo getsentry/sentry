@@ -1,4 +1,5 @@
 import React from 'react';
+import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
 import ReactCSSTransitionGroup from 'react-addons-css-transition-group';
 
@@ -7,7 +8,8 @@ import ToastIndicator from '../components/alerts/toastIndicator';
 
 import IndicatorStore from '../stores/indicatorStore';
 
-const Indicators = React.createClass({
+const Indicators = createReactClass({
+  displayName: 'Indicators',
   mixins: [Reflux.connect(IndicatorStore, 'items')],
 
   getInitialState() {

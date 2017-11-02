@@ -1,35 +1,31 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-const Truncate = React.createClass({
-  propTypes: {
+class Truncate extends React.Component {
+  static propTypes = {
     value: PropTypes.string.isRequired,
     leftTrim: PropTypes.bool,
     maxLength: PropTypes.number,
-  },
+  };
 
-  getDefaultProps() {
-    return {
-      leftTrim: false,
-      maxLength: 50,
-    };
-  },
+  static defaultProps = {
+    leftTrim: false,
+    maxLength: 50,
+  };
 
-  getInitialState() {
-    return {
-      isExpanded: false,
-    };
-  },
+  state = {
+    isExpanded: false,
+  };
 
-  onFocus(e) {
+  onFocus = (e) => {
     let {value, maxLength} = this.props;
     if (value.length <= maxLength) return;
     this.setState({isExpanded: true});
-  },
+  };
 
-  onBlur(e) {
+  onBlur = (e) => {
     if (this.state.isExpanded) this.setState({isExpanded: false});
-  },
+  };
 
   render() {
     let {leftTrim, maxLength, value} = this.props;
@@ -64,7 +60,7 @@ const Truncate = React.createClass({
         {isTruncated && <span className="full-value">{value}</span>}
       </span>
     );
-  },
-});
+  }
+}
 
 export default Truncate;

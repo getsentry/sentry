@@ -5,12 +5,12 @@ import Radio from '../../components/radio';
 
 import {t} from '../../locale';
 
-const RoleSelect = React.createClass({
-  propTypes: {
+class RoleSelect extends React.Component {
+  static propTypes = {
     selectedRole: PropTypes.string,
     roleList: PropTypes.array,
     setRole: PropTypes.func,
-  },
+  };
 
   render() {
     let {roleList, selectedRole} = this.props;
@@ -43,7 +43,7 @@ const RoleSelect = React.createClass({
         </div>
       </div>
     );
-  },
-});
+  }
+}
 
 export default RoleSelect;

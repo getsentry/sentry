@@ -3,14 +3,14 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import $ from 'jquery';
 
-const RuleNode = React.createClass({
-  propTypes: {
+class RuleNode extends React.Component {
+  static propTypes = {
     data: PropTypes.object.isRequired,
     node: PropTypes.shape({
       html: PropTypes.string.isRequired,
     }).isRequired,
     onDelete: PropTypes.func.isRequired,
-  },
+  };
 
   componentDidMount() {
     let $html = $(ReactDOM.findDOMNode(this.refs.html));
@@ -36,7 +36,7 @@ const RuleNode = React.createClass({
         },
       });
     });
-  },
+  }
 
   render() {
     let {data, node} = this.props;
@@ -53,7 +53,7 @@ const RuleNode = React.createClass({
         </td>
       </tr>
     );
-  },
-});
+  }
+}
 
 export default RuleNode;

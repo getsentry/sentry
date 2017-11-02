@@ -1,11 +1,14 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import createReactClass from 'create-react-class';
 import PureRenderMixin from 'react-addons-pure-render-mixin';
 
 import AlertActions from '../actions/alertActions';
 import {t} from '../locale';
 
-const AlertMessage = React.createClass({
+const AlertMessage = createReactClass({
+  displayName: 'AlertMessage',
+
   propTypes: {
     alert: PropTypes.shape({
       id: PropTypes.string,

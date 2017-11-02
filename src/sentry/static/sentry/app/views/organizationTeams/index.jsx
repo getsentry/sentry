@@ -1,4 +1,5 @@
 import React from 'react';
+import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
 
 import {t} from '../../locale';
@@ -12,7 +13,8 @@ import ExpandedTeamList from './expandedTeamList';
 import OrganizationStatOverview from './organizationStatOverview';
 import {loadStats} from '../../actionCreators/projects';
 
-const OrganizationTeams = React.createClass({
+const OrganizationTeams = createReactClass({
+  displayName: 'OrganizationTeams',
   mixins: [ApiMixin, OrganizationState, Reflux.listenTo(TeamStore, 'onTeamListChange')],
 
   getInitialState() {

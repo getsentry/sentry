@@ -9,10 +9,10 @@ function getUserDisplayName(name) {
   return parts[0].toLowerCase().replace(/[\.-_]+/, ' ');
 }
 
-const UserInfo = React.createClass({
-  propTypes: {
+class UserInfo extends React.Component {
+  static propTypes = {
     user: PropTypes.any.isRequired,
-  },
+  };
 
   render() {
     // XXX(dcramer): not supported by babel
@@ -33,7 +33,7 @@ const UserInfo = React.createClass({
         {displayName}
       </span>
     );
-  },
-});
+  }
+}
 
 export default UserInfo;

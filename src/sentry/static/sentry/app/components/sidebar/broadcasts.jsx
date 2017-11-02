@@ -1,6 +1,8 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
+import createReactClass from 'create-react-class';
+
 import ApiMixin from '../../mixins/apiMixin';
 import LoadingIndicator from '../loadingIndicator';
 import {t} from '../../locale';
@@ -11,7 +13,9 @@ import SidebarPanelItem from '../sidebarPanelItem';
 const MARK_SEEN_DELAY = 1000;
 const POLLER_DELAY = 60000;
 
-const Broadcasts = React.createClass({
+const Broadcasts = createReactClass({
+  displayName: 'Broadcasts',
+
   propTypes: {
     showPanel: PropTypes.bool,
     currentPanel: PropTypes.string,
