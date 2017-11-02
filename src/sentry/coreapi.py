@@ -472,7 +472,7 @@ class ClientApiHelper(object):
 
         if 'fingerprint' in data:
             try:
-                self._process_fingerprint(data)
+                data['fingerprint'] = self._process_fingerprint(data)
             except InvalidFingerprint as e:
                 self.log.debug(
                     'Discarded invalid value for fingerprint: %r',
