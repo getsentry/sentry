@@ -728,7 +728,7 @@ const ProjectFilters = React.createClass({
             </div>
           )}
         </div>
-        {features.has('custom-filters') && (
+        {features.has('discard-groups') && (
           <div className="sub-header flex flex-container flex-vertically-centered">
             <div className="p-t-1">
               <ul className="nav nav-tabs">

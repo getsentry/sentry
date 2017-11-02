@@ -104,7 +104,7 @@ class ProjectSerializer(Serializer):
 
         feature_list = []
         for feature in (
-            'global-events', 'data-forwarding', 'rate-limits', 'custom-filters', 'similarity-view',
+            'global-events', 'data-forwarding', 'rate-limits', 'discard-groups', 'similarity-view',
             'custom-inbound-filters', 'minidump',
         ):
             if features.has('projects:' + feature, obj, actor=user):
