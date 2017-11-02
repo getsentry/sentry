@@ -118,6 +118,31 @@ class GroupManager(BaseManager):
                 }
             )
 
+    def from_event_id(self, project, event_id):
+        """
+        Resolves the 32 character event_id string into
+        a Group for which it is found.
+        """
+        from sentry import features
+
+        if features.has('projects:sample-events', project=self):
+            from sentry.models import EventMapping as Model
+        else:
+            from sentry.models import Event as Model
+
+        try:
+            group_id = Model.objects.filter(
+                project_id=self.id,
+                event_id=event_id,
+            ).values_list('group_id', flat=True)[0]
+        except IndexError:
+            # Raise a Group.DoesNotExist here since it makes
+            # more logical sense since this is intending to resolve
+            # a group_id.
+            raise Group.DoesNotExist()
+
+        return Group.objects.get(id=group_id)
+
     def add_tags(self, group, tags):
         project_id = group.project_id
         date = group.last_seen
