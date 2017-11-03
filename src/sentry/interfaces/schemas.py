@@ -77,7 +77,7 @@ FRAME_INTERFACE_SCHEMA = {
             'type': 'string',
             'default': iverror,
         },
-        'colno': {'type': 'number'},
+        'colno': {'type': ['number', 'string']},
         'context_line': {'type': 'string'},
         'data': {
             'anyOf': [
@@ -94,7 +94,7 @@ FRAME_INTERFACE_SCHEMA = {
         'image_addr': {},
         'in_app': {'type': 'boolean', 'default': False},
         'instruction_addr': {},
-        'lineno': {'type': 'number'},
+        'lineno': {'type': ['number', 'string']},
         'module': {
             'type': 'string',
             'default': iverror,
