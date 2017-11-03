@@ -2,9 +2,9 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import _ from 'lodash';
 
-import AlertActions from '../actions/alertActions';
 import Avatar from '../components/avatar';
 import EventOrGroupHeader from '../components/eventOrGroupHeader';
+import IndicatorStore from '../stores/indicatorStore';
 import LoadingError from '../components/loadingError';
 import LinkWithConfirmation from '../components/linkWithConfirmation';
 import TooltipMixin from '../mixins/tooltip';
@@ -88,16 +88,18 @@ const GroupTombstones = React.createClass({
     this.api.request(path, {
       method: 'DELETE',
       success: data => {
-        AlertActions.addAlert({
-          message: t('Events similar to these will no longer be filtered'),
-          type: 'success',
-        });
+        IndicatorStore.add(
+          t('Events similar to these will no longer be filtered'),
+          'success',
+          {duration: 4000}
+        );
       },
       error: () => {
-        AlertActions.addAlert({
-          message: t('We were unable to discard this group'),
-          type: 'error',
-        });
+        IndicatorStore.add(
+          t('We were unable to undiscard this group'),
+          'error',
+          {duration: 4000}
+        );
       },
     });
     this.props.fetchData();
