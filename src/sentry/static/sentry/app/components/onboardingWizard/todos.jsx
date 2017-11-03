@@ -65,7 +65,7 @@ const TodoList = React.createClass({
         title: t('Add user context'),
         description: t('Know who is being affected by crashes'),
         detailedDescription: t(
-          `Unlock features that let you 
+          `Unlock features that let you
           drill down into the number of users affected by an issue as well as get a broader sense about the quality of the application.`
         ),
         skippable: true,
@@ -79,7 +79,7 @@ const TodoList = React.createClass({
         title: t('Set up release tracking'),
         description: t('See what releases are generating errors'),
         detailedDescription: t(
-          `Set up commits for additional context when determining the cause of an issue 
+          `Set up commits for additional context when determining the cause of an issue
           e.g. suggested owners and resolve issues via commit messages`
         ),
         skippable: true,

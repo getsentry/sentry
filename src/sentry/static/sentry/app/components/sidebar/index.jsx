@@ -31,8 +31,9 @@ const OnboardingStatus = React.createClass({
     let org = this.props.org;
     if (org.features.indexOf('onboarding') === -1) return null;
 
-    let doneTasks = (org.onboardingTasks || [])
-      .filter(task => task.status === 'complete' || task.status === 'skipped');
+    let doneTasks = (org.onboardingTasks || []).filter(
+      task => task.status === 'complete' || task.status === 'skipped'
+    );
 
     let percentage = Math.round(
       doneTasks.length / TodoList.TASKS.length * 100
