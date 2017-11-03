@@ -629,21 +629,24 @@ class EventManager(object):
                     }
                 )
                 return event
-        else:
-            if Event.objects.filter(
-                project_id=project.id,
-                event_id=event_id,
-            ).exists():
-                self.logger.info(
-                    'duplicate.found',
-                    exc_info=True,
-                    extra={
-                        'event_uuid': event_id,
-                        'project_id': project.id,
-                        'model': Event.__name__,
-                    }
-                )
-                return event
+
+        # We now always need to check the Event table for dupes
+        # since EventMapping isn't exactly the canonical source of truth.
+        if Event.objects.filter(
+            project_id=project.id,
+            event_id=event_id,
+        ).exists():
+            self.logger.info(
+                'duplicate.found',
+                exc_info=True,
+                extra={
+                    'event_uuid': event_id,
+                    'project_id': project.id,
+                    'group_id': group.id,
+                    'model': Event.__name__,
+                }
+            )
+            return event
 
         environment = Environment.get_or_create(
             project=project,
