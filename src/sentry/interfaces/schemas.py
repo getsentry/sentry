@@ -483,10 +483,10 @@ CSP_INTERFACE_SCHEMA = {
 HPKP_SCHEMA = {
     'type': 'object',
     'properties': {
-        'date-time': {'type': 'string', },  # TODO formate datetime (RFC3339)
+        'date-time': {'type': 'string', },  # TODO validate (RFC3339)
         'hostname': {'type': 'string'},
         'port': {'type': 'number'},
-        'effective-expiration-date': {'type': 'string', },  # TODO formate datetime (RFC3339)
+        'effective-expiration-date': {'type': 'string', },  # TODO validate (RFC3339)
         'include-subdomains': {'type': 'boolean'},
         'noted-hostname': {'type': 'string'},
         'served-certificate-chain': {
@@ -513,6 +513,58 @@ HPKP_INTERFACE_SCHEMA = {
     'additionalProperties': False,  # Don't allow any other keys.
 }
 
+EXPECT_CT_SCHEMA = {
+    'type': 'object',
+    'properties': {
+        'expect-ct-report': {
+            'type': 'object',
+            'properties': {
+                'date-time': {'type': 'string', },  # TODO validate (RFC3339)
+                'hostname': {'type': 'string'},
+                'port': {'type': 'number'},
+                'effective-expiration-date': {'type': 'string', },  # TODO validate (RFC3339)
+                'served-certificate-chain': {
+                    'type': 'array',
+                    'items': {'type': 'string'}
+                },
+                'validated-certificate-chain': {
+                    'type': 'array',
+                    'items': {'type': 'string'}
+                },
+                'scts': {
+                    'type': 'array',
+                    'items': {
+                        'type': 'object',
+                        'properties': {
+                            'version': {'type': 'number'},
+                            'status': {
+                                'type': 'string',
+                                'enum': ['unknown', 'valid', 'invalid'],
+                            },
+                            'source': {
+                                'type': 'string',
+                                'enum': ['tls-extension', 'ocsp', 'embedded'],
+                            },
+                            'serialized_sct': {'type': 'string'},  # Base64
+                        },
+                        'additionalProperties': False,
+                    },
+                },
+            },
+            'required': ['hostname'],
+            'additionalProperties': False,
+        },
+    },
+    'additionalProperties': False,
+}
+
+EXPECT_CT_INTERFACE_SCHEMA = {
+    'type': 'object',
+    'properties': {k.replace('-', '_'): v for k, v in six.iteritems(EXPECT_CT_SCHEMA['properties']['expect-ct-report']['properties'])},
+    'required': ['hostname'],
+    'additionalProperties': False,
+}
+
 """
 Schemas for raw request data.
 
@@ -522,6 +574,7 @@ then be transformed into the requisite interface.
 INPUT_SCHEMAS = {
     'sentry.interfaces.Csp': CSP_SCHEMA,
     'hpkp': HPKP_SCHEMA,
+    'expectct': EXPECT_CT_SCHEMA,
 }
 
 """
@@ -548,6 +601,7 @@ INTERFACE_SCHEMAS = {
     # Security reports
     'sentry.interfaces.Csp': CSP_INTERFACE_SCHEMA,
     'hpkp': HPKP_INTERFACE_SCHEMA,
+    'expectct': EXPECT_CT_INTERFACE_SCHEMA,
 
     # Not interfaces per se, but looked up as if they were.
     'event': EVENT_SCHEMA,

@@ -193,6 +193,66 @@ class Hpkp(SecurityReport):
         return False
 
 
+class ExpectCT(SecurityReport):
+    """
+    A Certificate Transparency violation report.
+
+    See also: http://httpwg.org/http-extensions/expect-ct.html
+    >>> {
+    >>>     "date-time": "2014-04-06T13:00:50Z",
+    >>>     "hostname": "www.example.com",
+    >>>     "port": 443,
+    >>>     "effective-expiration-date": "2014-05-01T12:40:50Z",
+    >>>     "served-certificate-chain": [],
+    >>>     "validated-certificate-chain": [],
+    >>>     "scts-pins": [],
+    >>> }
+    """
+
+    score = 1300
+    display_score = 1300
+
+    path = 'expectct'
+    title = 'Expect-CT Report'
+
+    @classmethod
+    def from_raw(cls, raw):
+        # Validate the raw data against the input schema (raises on failure)
+        schema = schemas.INPUT_SCHEMAS[cls.path]
+        jsonschema.validate(raw, schema)
+
+        # For Expect-CT, the values we want are nested under the 'expect-ct-report' key.
+        raw = raw['expect-ct-report']
+        # Trim values and convert keys to use underscores
+        kwargs = {k.replace('-', '_'): trim(v, 1024) for k, v in six.iteritems(raw)}
+
+        return cls.to_python(kwargs)
+
+    def get_culprit(self):
+        return self.hostname
+
+    def get_hash(self, is_processed_data=True):
+        return [self.hostname]
+
+    def get_message(self):
+        return "Expect-CT failed for '{self.hostname}'".format(self=self)
+
+    def get_tags(self):
+        return (
+            ('port', six.text_type(self.port)),
+            ('hostname', self.hostname),
+        )
+
+    def get_origin(self):
+        return self.hostname  # not quite origin, but the domain that failed pinning
+
+    def get_referrer(self):
+        return None
+
+    def should_filter(self, project=None):
+        return False
+
+
 class Csp(SecurityReport):
     """
     A CSP violation report.

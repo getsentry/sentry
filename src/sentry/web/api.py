@@ -596,8 +596,11 @@ class StoreSchemaView(BaseView):
 
 class SecurityReportView(StoreView):
     helper_cls = SecurityApiHelper
-    # TODO additional types required for other reports?
-    content_types = ('application/csp-report', 'application/json')
+    content_types = (
+        'application/csp-report',
+        'application/json',
+        'application/expect-ct-report+json',
+    )
 
     def _dispatch(self, request, helper, project_id=None, origin=None, *args, **kwargs):
         # A CSP report is sent as a POST request with no Origin or Referer
