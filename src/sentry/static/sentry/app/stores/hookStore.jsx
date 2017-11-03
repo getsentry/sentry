@@ -12,6 +12,7 @@ let validHookNames = new Set([
   'project:data-forwarding:disabled',
   'project:rate-limits:disabled',
   'project:custom-inbound-filters:disabled',
+  'project:discard-groups:disabled',
   'issue:secondary-column',
   'analytics:onboarding-complete',
 ]);

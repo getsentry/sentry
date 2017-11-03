@@ -43,6 +43,12 @@ exports[`GroupActions render() renders correctly 1`] = `
   <DeleteActions
     onDelete={[Function]}
     onDiscard={[Function]}
+    organization={
+      Object {
+        "id": "4660",
+        "slug": "org",
+      }
+    }
     project={
       Object {
         "id": "2448",
