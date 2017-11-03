@@ -572,11 +572,11 @@ class RedisTSDB(BaseTSDB):
 
     def delete_distinct_counts(self, models, keys, start=None, end=None,
                                timestamp=None, environment_ids=None):
-        self.validate_arguments(models, environment_ids)
-
         environment_ids = (
             set(environment_ids) if environment_ids is not None else set()).union(
             [None])
+
+        self.validate_arguments(models, environment_ids)
 
         rollups = self.get_active_series(start, end, timestamp)
 
