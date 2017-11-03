@@ -135,7 +135,10 @@ class GroupManager(BaseManager):
                     project_id=project.id,
                     event_id=event_id,
                 ).values_list('group_id', flat=True)[0]
-                break
+
+                # It's possible that group_id is NULL
+                if group_id is not None:
+                    break
             except IndexError:
                 pass
 
