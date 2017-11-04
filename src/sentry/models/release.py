@@ -473,12 +473,12 @@ class Release(Model):
                 linked_type=GroupLink.LinkedType.commit,
                 linked_id__in=ReleaseCommit.objects.filter(release=self)
                 .values_list('commit_id', flat=True),
-            ).extra(select={'commit_id': 'linked_id'}).values_list('group_id', 'commit_id')
+            ).values_list('group_id', 'linked_id')
         )
 
         user_by_author = {None: None}
-        for group_id, commit_id in commit_resolutions:
-            author = commit_author_by_commit.get(commit_id)
+        for group_id, linked_id in commit_resolutions:
+            author = commit_author_by_commit.get(linked_id)
             if author not in user_by_author:
                 try:
                     user_by_author[author] = author.find_users()[0]
