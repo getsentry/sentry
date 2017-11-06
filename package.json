@@ -70,6 +70,7 @@
     "select2": "3.5.1",
     "sprintf-js": "1.0.3",
     "style-loader": "0.12.4",
+    "svg-sprite-loader": "^3.4.1",
     "svg-to-jsx-loader": "^2.0.1",
     "u2f-api": "0.2.3",
     "url-loader": "0.5.6",

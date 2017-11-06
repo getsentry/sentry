@@ -2,7 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import ConfigStore from '../stores/configStore';
 import ApiMixin from '../mixins/apiMixin';
-import IconCloseLg from '../icons/icon-close-lg.svg';
+//import IconCloseLg from '../icons/icon-close-lg.svg';
 import {logAjaxError} from '../utils/logging';
 
 const ReleaseAnnouncement = ({close}) => {
@@ -126,7 +126,6 @@ const BroadcastModal = React.createClass({
                     this.setState({index: this.state.index + 1});
                   }}
                 >
-                  <IconCloseLg />
                 </span>
               </div>
               {message({close: this.close})}
