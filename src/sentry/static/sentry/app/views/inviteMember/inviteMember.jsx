@@ -139,7 +139,7 @@ const InviteMember = React.createClass({
   },
 
   render() {
-    let {error, loading, roleList, selectedRole, selectedTeams} = this.state;
+    let {error, busy, loading, roleList, selectedRole, selectedTeams} = this.state;
     let {teams} = this.getOrganization();
     let {invitesEnabled} = ConfigStore.getConfig();
     return (
@@ -159,6 +159,7 @@ const InviteMember = React.createClass({
         {!loading && (
           <div>
             <div className={classNames({'has-error': error && error.email})}>
+              {busy && <LoadingIndicator mini className="pull-right" />}
               <TextField
                 name="email"
                 label={invitesEnabled ? t('Email') + '(s)' : t('Username') + '(s)'}
@@ -181,7 +182,7 @@ const InviteMember = React.createClass({
             />
             <Button
               priority="primary"
-              busy={this.state.busy}
+              busy={busy}
               className="invite-member-submit"
               onClick={this.submit}
             >
