@@ -315,7 +315,7 @@ class MessageBuilder(object):
             reply_to = headers['X-Sentry-Reply-To']
         else:
             reply_to = set(reply_to or ())
-            reply_to.remove(to)
+            reply_to.discard(to)
             reply_to = ', '.join(reply_to)
 
         if reply_to:
