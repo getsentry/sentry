@@ -28,8 +28,6 @@ env:
     - TRAVIS_NODE_VERSION=4
     - CXX=g++-4.8
     - SOUTH_TESTS_MIGRATE=1
-before_install:
-  - bin/update-zeus-job in_progress unknown || echo "failed to report build to Zeus; continuing"
 install:
   - nvm install $TRAVIS_NODE_VERSION
   - npm install -g yarn@0.27.5
@@ -41,14 +39,14 @@ script:
   - make travis-test-$TEST_SUITE
 after_success:
   - codecov -e TEST_SUITE
-  - bin/upload-zeus-artifact junit.xml
-  - bin/upload-zeus-artifact coverage.xml
-  - bin/update-zeus-job finished passed
+  - bin/upload-zeus-artifact junit.xml "text/xml+xunit"
+  - bin/upload-zeus-artifact coverage.xml "text/xml+coverage"
+  - bin/upload-zeus-artifact pytest.html "text/html+pytest"
 after_failure:
   - dmesg | tail -n 100
-  - bin/upload-zeus-artifact junit.xml
-  - bin/upload-zeus-artifact coverage.xml
-  - bin/update-zeus-job finished failed
+  - bin/upload-zeus-artifact junit.xml "text/xml+xunit"
+  - bin/upload-zeus-artifact coverage.xml "text/xml+coverage"
+  - bin/upload-zeus-artifact pytest.html "text/html+pytest"
 # each attribute in the matrix will override the global attribute
 matrix:
   fast_finish: true
@@ -108,3 +106,12 @@ matrix:
         - memcached
         - redis-server
         - postgresql
+notifications:
+  webhooks:
+    urls:
+      - https://zeus.ci/hooks/fa079cf6-8e6b-11e7-9155-0a580a28081c/public/provider/travis/webhook
+    on_success: always
+    on_failure: always
+    on_start: always
+    on_cancel: always
+    on_error: always
