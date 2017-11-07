@@ -56,7 +56,7 @@ class AuthLoginView(BaseView):
         return bool(auth.has_user_registration() or request.session.get('can_register'))
 
     def get_next_uri(self, request, *args, **kwargs):
-        return request.GET.get(REDIRECT_FIELD_NAME, None)
+        return request.GET.get(REDIRECT_FIELD_NAME, request.session.pop('_next'))
 
     def respond_login(self, request, context, *args, **kwargs):
         return self.respond('sentry/login.html', context)
