@@ -74,6 +74,7 @@ class SetupWizard extends React.Component {
           this.setState({
             finished: true,
           });
+          setTimeout(() => window.close(), 10000);
         },
       });
     });
@@ -205,6 +206,7 @@ class SetupWizard extends React.Component {
       <div className="row">
         <h3>Success!</h3>
         <h3>Return to your terminal to complete your setup</h3>
+        <h5>(This window will close in 10sec)</h5>
         <button className="btn btn-default" onClick={() => window.close()}>
           Close browser tab
         </button>
@@ -232,6 +234,7 @@ class SetupWizard extends React.Component {
       </ul>
     );
   }
+
   render() {
     const {hash} = this.props;
     return (
