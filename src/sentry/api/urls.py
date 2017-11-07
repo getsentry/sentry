@@ -127,6 +127,8 @@ from .endpoints.user_index import UserIndexEndpoint
 from .endpoints.user_details import UserDetailsEndpoint
 from .endpoints.user_organizations import UserOrganizationsEndpoint
 from .endpoints.event_file_committers import EventFileCommittersEndpoint
+from .endpoints.setup_wizard import SetupWizard, SetupWizardSecured
+
 
 urlpatterns = patterns(
     '',
@@ -761,6 +763,27 @@ urlpatterns = patterns(
     url(r'^internal/queue/tasks/$', InternalQueueTasksEndpoint.as_view()),
     url(r'^internal/stats/$', InternalStatsEndpoint.as_view(),
         name='sentry-api-0-internal-stats'),
+
+    # Project Wizard
+    url(
+        r'^wizard$',
+        SetupWizard.as_view(),
+        name='sentry-api-0-project-wizard-new'
+    ),
+
+    url(
+        r'^wizard/(?P<wizard_hash>[^\/]+)/$',
+        SetupWizard.as_view(),
+        name='sentry-api-0-project-wizard'
+    ),
+
+    url(
+        r'^wizard/secure/(?P<wizard_hash>[^\/]+)/$',
+        SetupWizardSecured.as_view(),
+        name='sentry-api-0-project-wizard-update'
+    ),
+
+    # Catch all
     url(r'^$', IndexEndpoint.as_view(), name='sentry-api-index'),
     url(r'^', CatchallEndpoint.as_view(), name='sentry-api-catchall'),
 
