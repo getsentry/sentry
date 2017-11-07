@@ -9,42 +9,31 @@ from threading import Thread
 from six.moves.queue import Queue
 
 
-class PubSub():
+class QueuedPublisher():
     """
-    Poster for a redis pubsub instance.
+    A publisher that queues items locally and publishes them to a
+    remote pubsub service on a background thread.
 
-    put(channel, data) to send data to a redis pubsub
-    channel. Maintains an internal queue for posting, will discard the
-    value if the queue is full or not immediately available.
+    Maintains a lossy internal queue for posting, will discard the
+    value if the queue is full or not immediately available. Will also
+    drop items if the publish operation to the remote service fails.
     """
 
-    def __init__(self):
+    def __init__(self, publisher):
         self._started = False
+        self.publisher = publisher
 
     def _start(self):
         if self._started:
             return True
 
-        connection = getattr(settings, 'PUBSUB_CONNECTION', None)
-        try:
-            host, port, db = connection
-        except (TypeError, ValueError):
-            return False
-        self.rds = redis.StrictRedis(
-            host=host,
-            port=port,
-            db=db,
-            socket_timeout=0.2,
-            socket_connect_timeout=1,
-        )
-
         self.q = q = Queue(maxsize=100)
 
         def worker():
             while True:
-                (channel, data) = q.get()
+                (channel, item) = q.get()
                 try:
-                    self.rds.publish(channel, data)
+                    self.publisher.publish(channel, item)
                 except Exception:
                     logger = logging.getLogger('sentry.errors')
                     logger.debug('could not submit event to pubsub')
@@ -58,15 +47,22 @@ class PubSub():
         self._started = True
         return True
 
-    def put(self, channel, data):
+    def publish(self, channel, item):
         if not self._start():
             return
 
-        sample_channel = getattr(settings, 'PUBSUB_SAMPLING', {}).get(channel, 1.0)
+        sample_channel = getattr(settings, 'PUBSUB_SAMPLING', 1.0)
         if random.random() <= sample_channel:
             try:
-                self.q.put((channel, data), block=False)
+                self.q.put((channel, item), block=False)
             except Queue.Full:
                 return
 
-pubsub = PubSub()
+
+class RedisPublisher():
+    def __init__(self, connection):
+        self.rds = None if connection is None else redis.StrictRedis(**connection)
+
+    def publish(self, channel, item):
+        if self.rds is not None:
+            self.rds.publish(channel, item)
