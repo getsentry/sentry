@@ -22,7 +22,7 @@ class ProjectTriageStatsEndpoint(ProjectEndpoint):
 
     def process_activity_set(self, group, dates):
 
-        activity_set = Activity.objects.filter(
+        activity_set = Activity.objects.using('default_analytics').filter(
             type__in=[Activity.SET_RESOLVED, Activity.SET_RESOLVED_IN_RELEASE,
                       Activity.SET_RESOLVED_BY_AGE, Activity.SET_RESOLVED_IN_COMMIT, Activity.SET_UNRESOLVED, Activity.SET_REGRESSION, Activity.SET_IGNORED, Activity.ASSIGNED, Activity.UNASSIGNED],
             group=group[0]).order_by('datetime').values('type', 'datetime')
@@ -74,7 +74,7 @@ class ProjectTriageStatsEndpoint(ProjectEndpoint):
         now = timezone.now()
         dates = [now - timedelta(days=i) for i in range(30)]
 
-        groups = Group.objects.filter(
+        groups = Group.objects.using('default_analytics').filter(
             project=project.id,
             last_seen__gte=now - timedelta(days=30)
         ).values_list('id', 'first_seen')
