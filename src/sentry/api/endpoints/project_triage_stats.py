@@ -72,7 +72,11 @@ class ProjectTriageStatsEndpoint(ProjectEndpoint):
         now = timezone.now()
         dates = [now - timedelta(days=i) for i in range(30)]
 
-        groups = Group.objects.all()
+        groups = Group.objects.filter(
+            project=project.id,
+            last_seen__gte=now - timedelta(days=30)
+        )
+
         processed_groups = [self.processSet(group, dates) for group in groups]
 
         stat_table = {int(to_timestamp(date)): {} for date in dates}

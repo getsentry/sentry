@@ -155,6 +155,7 @@ const ProjectDashboard = React.createClass({
           </div>
           <h3>{t('Overview')}</h3>
         </div>
+        <h4>Triage Status:</h4>
         <BurnDown dateSince={dateSince} resolution={resolution} />
         <ProjectChart dateSince={dateSince} resolution={resolution} />
         <div className="row">
