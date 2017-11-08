@@ -6,7 +6,7 @@ import random
 
 from django.conf import settings
 from threading import Thread
-from six.moves.queue import Queue
+from six.moves.queue import Queue, Full
 
 
 class QueuedPublisher():
@@ -55,7 +55,7 @@ class QueuedPublisher():
         if random.random() <= sample_channel:
             try:
                 self.q.put((channel, item), block=False)
-            except Queue.Full:
+            except Full:
                 return
 
 
