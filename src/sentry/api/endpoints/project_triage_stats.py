@@ -6,8 +6,7 @@ from datetime import timedelta
 from django.utils import timezone
 
 from sentry.api.bases.project import ProjectEndpoint
-# from sentry.api.serializers import serialize
-from sentry.models import Group, GroupStatus, Activity  # GroupResolution, GroupSeen,
+from sentry.models import Group, GroupStatus, Activity
 from sentry.utils.dates import to_timestamp
 
 
@@ -89,18 +88,3 @@ class ProjectTriageStatsEndpoint(ProjectEndpoint):
                 stat_table[data_point['timestamp']][status] = ov + 1
 
         return Response(stat_table)
-
-        resolved = Group.objects.filter(status=GroupStatus.RESOLVED)
-        ignored = Group.objects.filter(status=GroupStatus.IGNORED)
-        unresolved = Group.objects.filter(status=GroupStatus.UNRESOLVED)
-
-        assigned = [
-            group for group in unresolved if group.assignee_set.count() > 0]
-
-        data = {
-            'resolved': len(resolved),
-            'ignored': len(ignored),
-            'unresolved': len(unresolved) - len(assigned),
-            'assigned': len(assigned)
-        }
-        return Response(data)
