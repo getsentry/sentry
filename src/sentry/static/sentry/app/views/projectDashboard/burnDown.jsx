@@ -29,16 +29,6 @@ const BurnDown = React.createClass({
     this.fetchData();
   },
 
-  componentWillReceiveProps() {
-    // this.setState(
-    // {
-    // loading: true,
-    // error: false,
-    // }
-    // this.fetchData
-    // );
-  },
-
   getStatsEndpoint() {
     let org = this.getOrganization();
     let project = this.getProject();

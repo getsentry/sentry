@@ -110,6 +110,7 @@ const ProjectDashboard = React.createClass({
     let {orgId, projectId} = this.props.params;
     let url = `/${orgId}/${projectId}/dashboard/`;
     let routeQuery = this.props.location.query;
+    let now = new Date().getTime() / 1000;
 
     return (
       <div>
@@ -155,8 +156,8 @@ const ProjectDashboard = React.createClass({
           </div>
           <h3>{t('Overview')}</h3>
         </div>
-        <h4>Triage Status:</h4>
-        <BurnDown dateSince={dateSince} resolution={resolution} />
+        <h4>Triage Status (30 days)</h4>
+        <BurnDown dateSince={now - 3600 * 24 * 30} resolution={resolution} />
         <ProjectChart dateSince={dateSince} resolution={resolution} />
         <div className="row">
           <div className="col-md-6">

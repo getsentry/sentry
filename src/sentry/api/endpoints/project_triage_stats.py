@@ -18,38 +18,43 @@ class TriageStatus(GroupStatus):
 class ProjectTriageStatsEndpoint(ProjectEndpoint):
 
     def filter_activity_set(self, set, cutoff):
-        return [ai for ai in set if ai.datetime < cutoff]
+        return [ai for ai in set if ai['datetime'] < cutoff]
 
     def process_activity_set(self, group, dates):
 
         activity_set = Activity.objects.filter(
-            group=group.id).order_by('datetime')
+            type__in=[Activity.SET_RESOLVED, Activity.SET_RESOLVED_IN_RELEASE,
+                      Activity.SET_RESOLVED_BY_AGE, Activity.SET_RESOLVED_IN_COMMIT, Activity.SET_UNRESOLVED, Activity.SET_REGRESSION, Activity.SET_IGNORED, Activity.ASSIGNED, Activity.UNASSIGNED],
+            group=group[0]).order_by('datetime').values('type', 'datetime')
 
         status = GroupStatus.UNRESOLVED
         statuses = []
+        seen_activities = 0
         for date in dates:
             ts = int(to_timestamp(date))
-            if date < group.first_seen:
+            if date < group[1]:
                 statuses.append({'timestamp': ts, 'status': TriageStatus.DNE})
                 continue
-            sliced = self.filter_activity_set(activity_set, date)
+            sliced = self.filter_activity_set(
+                activity_set[seen_activities:], date)
 
             for activity in sliced:
-                if activity.type in set([Activity.SET_RESOLVED, Activity.SET_RESOLVED_IN_RELEASE,
-                                         Activity.SET_RESOLVED_BY_AGE, Activity.SET_RESOLVED_IN_COMMIT]):
+                seen_activities += 1
+                if activity['type'] in set([Activity.SET_RESOLVED, Activity.SET_RESOLVED_IN_RELEASE,
+                                            Activity.SET_RESOLVED_BY_AGE, Activity.SET_RESOLVED_IN_COMMIT]):
                     status = GroupStatus.RESOLVED
 
-                elif activity.type in set([Activity.SET_UNRESOLVED, Activity.SET_REGRESSION]):
+                elif activity['type'] in set([Activity.SET_UNRESOLVED, Activity.SET_REGRESSION]):
                     status = GroupStatus.UNRESOLVED
 
-                elif activity.type is Activity.SET_IGNORED:
+                elif activity['type'] is Activity.SET_IGNORED:
                     status = GroupStatus.IGNORED
 
-                elif activity.type is Activity.ASSIGNED:
+                elif activity['type'] is Activity.ASSIGNED:
                     if status == GroupStatus.UNRESOLVED:
                         status = TriageStatus.ASSIGNED
 
-                elif activity.type is Activity.UNASSIGNED:
+                elif activity['type'] is Activity.UNASSIGNED:
                     if status == TriageStatus.ASSIGNED:
                         prev_statuses = filter(
                             lambda s: s['status'] != TriageStatus.ASSIGNED, statuses)
@@ -57,9 +62,6 @@ class ProjectTriageStatsEndpoint(ProjectEndpoint):
                             prev_statuses = [
                                 {'status': GroupStatus.UNRESOLVED}]
                         status = prev_statuses[-1]['status']
-
-                elif activity.type in set([Activity.MERGE, Activity.NOTE]):
-                    pass
                 else:
                     pass
 
@@ -75,7 +77,7 @@ class ProjectTriageStatsEndpoint(ProjectEndpoint):
         groups = Group.objects.filter(
             project=project.id,
             last_seen__gte=now - timedelta(days=30)
-        )
+        ).values_list('id', 'first_seen')
 
         processed_groups = [self.process_activity_set(
             group, dates) for group in groups]
