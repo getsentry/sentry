@@ -17,12 +17,13 @@ class TriageStatus(GroupStatus):
 
 class ProjectTriageStatsEndpoint(ProjectEndpoint):
 
-    def filterActivitySet(self, set, cutoff):
+    def filter_activity_set(self, set, cutoff):
         return [ai for ai in set if ai.datetime < cutoff]
 
-    def processSet(self, group, dates):
+    def process_activity_set(self, group, dates):
 
-        activity_set = group.activity_set.all()
+        activity_set = Activity.objects.filter(
+            group=group.id).order_by('datetime')
 
         status = GroupStatus.UNRESOLVED
         statuses = []
@@ -31,7 +32,7 @@ class ProjectTriageStatsEndpoint(ProjectEndpoint):
             if date < group.first_seen:
                 statuses.append({'timestamp': ts, 'status': TriageStatus.DNE})
                 continue
-            sliced = self.filterActivitySet(activity_set, date)
+            sliced = self.filter_activity_set(activity_set, date)
 
             for activity in sliced:
                 if activity.type in set([Activity.SET_RESOLVED, Activity.SET_RESOLVED_IN_RELEASE,
@@ -76,7 +77,8 @@ class ProjectTriageStatsEndpoint(ProjectEndpoint):
             last_seen__gte=now - timedelta(days=30)
         )
 
-        processed_groups = [self.processSet(group, dates) for group in groups]
+        processed_groups = [self.process_activity_set(
+            group, dates) for group in groups]
 
         stat_table = {int(to_timestamp(date)): {} for date in dates}
 
