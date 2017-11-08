@@ -37,7 +37,7 @@ from sentry.utils.http import (
     get_origins,
     is_same_domain,
 )
-from sentry.utils.pubsub import pubsub
+from sentry.utils.pubsub import QueuedPublisher, RedisPublisher
 from sentry.utils.safe import safe_execute
 from sentry.web.helpers import render_to_response
 
@@ -49,7 +49,9 @@ PIXEL = base64.b64decode('R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=')
 
 PROTOCOL_VERSIONS = frozenset(('2.0', '3', '4', '5', '6', '7'))
 
-PUBSUB_ENABLED = getattr(settings, 'PUBSUB_ENABLED', False)
+pubsub = QueuedPublisher(
+    RedisPublisher(getattr(settings, 'REQUESTS_PUBSUB_CONNECTION', None))
+) if getattr(settings, 'REQUESTS_PUBSUB_ENABLED', False) else None
 
 
 def api(func):
@@ -312,8 +314,8 @@ class StoreView(APIView):
             # bubble up as an APIError.
             data = None
 
-        if PUBSUB_ENABLED and data is not None:
-            pubsub.put('requests', data)
+        if pubsub is not None and data is not None:
+            pubsub.publish('requests', data)
 
         response_or_event_id = self.process(request, data=data, **kwargs)
         if isinstance(response_or_event_id, HttpResponse):
