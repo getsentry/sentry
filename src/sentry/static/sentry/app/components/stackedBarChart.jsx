@@ -228,12 +228,17 @@ const StackedBarChart = React.createClass({
   },
 
   maxPointValue() {
-    return Math.max(
-      10,
-      this.state.series
-        .map(s => Math.max(...s.data.map(p => p.y)))
-        .reduce((a, b) => a + b)
-    );
+    let max = this.state.series
+      .map(s => Math.max(...s.data.map(p => p.y)))
+      .reduce((sum, b) => sum + Math.max(b, 0));
+    return Math.max(10, max);
+  },
+
+  minPointValue() {
+    let min = this.state.series
+      .map(s => Math.min(...s.data.map(p => p.y)))
+      .reduce((sum, b) => sum + Math.min(b, 0));
+    return Math.min(-1, min);
   },
 
   renderMarker(marker) {
@@ -254,7 +259,7 @@ const StackedBarChart = React.createClass({
 
   renderTooltip(point, pointIdx) {
     let timeLabel = this.getTimeLabel(point);
-    let totalY = point.y.reduce((a, b) => a + b);
+    let totalY = point.y.reduce((a, b) => Math.abs(a) + Math.abs(b));
     let title =
       '<div style="width:130px">' +
       `<div class="time-label">${timeLabel}</div>` +
@@ -266,33 +271,58 @@ const StackedBarChart = React.createClass({
     point.y.forEach((y, i) => {
       let s = this.state.series[i];
       if (s.label) {
-        title += `<div><span style="color:${s.color}">${s.label}:</span> ${(y || 0
+        title += `<div><span style="color:${s.color}">${s.label}:</span> ${(Math.abs(y) ||
+          0
         ).toLocaleString()}</div>`;
       }
     });
     return title;
   },
 
-  renderChartColumn(point, maxval, pointWidth) {
-    let totalY = point.y.reduce((a, b) => a + b);
-    let totalPct = totalY / maxval;
+  renderChartColumn(point, maxval, minval, pointWidth) {
+    let totalY = point.y.reduce((a, b) => a + Math.abs(b));
+    let range = maxval - minval;
+
+    let totalPct = totalY / range;
+    let basePct = this.floatFormat(99 * Math.abs(minval) / range, 2);
+
     let prevPct = 0;
+    let nPrevPct = 0;
+
     let pts = point.y.map((y, i) => {
       let pct = totalY && this.floatFormat(y / totalY * totalPct * 99, 2);
-      let pt = (
-        <span
-          key={i}
-          className={this.props.barClasses[i]}
-          style={{
-            height: pct + '%',
-            bottom: prevPct + '%',
-            backgroundColor: this.state.series[i].color || null,
-          }}
-        >
-          {y}
-        </span>
-      );
-      prevPct += pct;
+      let pt;
+      if (pct < 0) {
+        pt = (
+          <span
+            key={i}
+            className={this.props.barClasses[i]}
+            style={{
+              height: pct * -1 + '%',
+              top: 99 - basePct + nPrevPct + '%',
+              backgroundColor: this.state.series[i].color || null,
+            }}
+          >
+            {y}
+          </span>
+        );
+        nPrevPct += pct;
+      } else {
+        pt = (
+          <span
+            key={i}
+            className={this.props.barClasses[i]}
+            style={{
+              height: pct + '%',
+              bottom: basePct + prevPct + '%',
+              backgroundColor: this.state.series[i].color || null,
+            }}
+          >
+            {y}
+          </span>
+        );
+        prevPct += pct;
+      }
       return pt;
     });
     return (
@@ -313,6 +343,8 @@ const StackedBarChart = React.createClass({
     let pointWidth = this.floatFormat(100.0 / totalPoints, 2) + '%';
 
     let maxval = this.maxPointValue();
+    let minval = this.minPointValue();
+
     let markers = this.props.markers.slice();
 
     // group points, then resort
@@ -331,7 +363,7 @@ const StackedBarChart = React.createClass({
         children.push(this.renderMarker(markers.shift()));
       }
 
-      children.push(this.renderChartColumn(point, maxval, pointWidth));
+      children.push(this.renderChartColumn(point, maxval, minval, pointWidth));
     });
 
     // in bizarre case where markers never got rendered, render them last
@@ -346,6 +378,7 @@ const StackedBarChart = React.createClass({
   render() {
     let figureClass = [this.props.className, 'barchart'].join(' ');
     let maxval = this.maxPointValue();
+    let minval = this.minPointValue();
 
     return (
       <figure
@@ -355,7 +388,9 @@ const StackedBarChart = React.createClass({
         <span className="max-y">
           <Count value={maxval} />
         </span>
-        <span className="min-y">0</span>
+        <span className="min-y">
+          <Count value={minval} />
+        </span>
         <span>{this.renderChart()}</span>
       </figure>
     );

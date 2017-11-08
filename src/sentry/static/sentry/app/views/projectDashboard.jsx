@@ -6,6 +6,8 @@ import {Link} from 'react-router';
 import EventList from './projectDashboard/eventList';
 import ProjectState from '../mixins/projectState';
 import ProjectChart from './projectDashboard/chart';
+import BurnDown from './projectDashboard/burnDown';
+
 import {t} from '../locale';
 
 const PERIOD_HOUR = '1h';
@@ -153,6 +155,7 @@ const ProjectDashboard = React.createClass({
           </div>
           <h3>{t('Overview')}</h3>
         </div>
+        <BurnDown dateSince={dateSince} resolution={resolution} />
         <ProjectChart dateSince={dateSince} resolution={resolution} />
         <div className="row">
           <div className="col-md-6">
