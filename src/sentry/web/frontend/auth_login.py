@@ -16,7 +16,8 @@ from sentry.web.forms.accounts import AuthenticationForm, RegistrationForm
 from sentry.web.frontend.base import BaseView
 from sentry.utils import auth
 
-ERR_NO_SSO = _('The organization does not exist or does not have Single Sign-On enabled.')
+ERR_NO_SSO = _(
+    'The organization does not exist or does not have Single Sign-On enabled.')
 
 
 class AuthLoginView(BaseView):
@@ -56,7 +57,10 @@ class AuthLoginView(BaseView):
         return bool(auth.has_user_registration() or request.session.get('can_register'))
 
     def get_next_uri(self, request, *args, **kwargs):
-        return request.GET.get(REDIRECT_FIELD_NAME, request.session.pop('_next'))
+        next_uri_fallback = None
+        if request.session.get('_next') is not None:
+            next_uri_fallback = request.session.pop('_next')
+        return request.GET.get(REDIRECT_FIELD_NAME, next_uri_fallback)
 
     def respond_login(self, request, context, *args, **kwargs):
         return self.respond('sentry/login.html', context)
@@ -75,7 +79,8 @@ class AuthLoginView(BaseView):
         login_form = self.get_login_form(request)
         if can_register:
             register_form = self.get_register_form(
-                request, initial={'username': request.session.get('invite_email', '')}
+                request, initial={
+                    'username': request.session.get('invite_email', '')}
             )
         else:
             register_form = None
@@ -169,7 +174,8 @@ class AuthLoginView(BaseView):
 
         session_expired = 'session_expired' in request.COOKIES
         if session_expired:
-            messages.add_message(request, messages.WARNING, WARN_SESSION_EXPIRED)
+            messages.add_message(request, messages.WARNING,
+                                 WARN_SESSION_EXPIRED)
 
         response = self.handle_basic_auth(request, *args, **kwargs)
 
@@ -182,9 +188,11 @@ class AuthLoginView(BaseView):
     def post(self, request, *args, **kwargs):
         op = request.POST.get('op')
         if op == 'sso' and request.POST.get('organization'):
-            auth_provider = self.get_auth_provider(request.POST['organization'])
+            auth_provider = self.get_auth_provider(
+                request.POST['organization'])
             if auth_provider:
-                next_uri = reverse('sentry-auth-organization', args=[request.POST['organization']])
+                next_uri = reverse('sentry-auth-organization',
+                                   args=[request.POST['organization']])
             else:
                 next_uri = request.get_full_path()
                 messages.add_message(request, messages.ERROR, ERR_NO_SSO)

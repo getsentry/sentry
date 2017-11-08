@@ -11,20 +11,29 @@ from sentry.api.serializers import serialize
 from django.utils.crypto import get_random_string
 
 logger = logging.getLogger('sentry.api')
+SETUP_WIZARD_CACHE_KEY = 'setup-wizard-keys:v1:'
+SETUP_WIZARD_CACHE_TIMEOUT = 600
 
 
 class SetupWizard(Endpoint):
     permission_classes = ()
 
     def delete(self, request, wizard_hash=None):
+        """
+        This removes the cache content for a specific hash
+        """
         if wizard_hash is not None:
-            key = 'setup-wizard-keys:v1:%s' % wizard_hash
-            cache.set(key, True, 7200)
+            key = '%s%s' % (SETUP_WIZARD_CACHE_KEY, wizard_hash)
+            cache.set(key, True, SETUP_WIZARD_CACHE_TIMEOUT)
             return Response(status=200)
 
     def get(self, request, wizard_hash=None):
+        """
+        This tries to retrieve and return the cache content if possible
+        otherwise creates new cache
+        """
         if wizard_hash is not None:
-            key = 'setup-wizard-keys:v1:%s' % wizard_hash
+            key = '%s%s' % (SETUP_WIZARD_CACHE_KEY, wizard_hash)
             wizard_data = cache.get(key)
             # If wizard_data is true, it's still not filled from the
             # users requests
@@ -36,9 +45,7 @@ class SetupWizard(Endpoint):
 
             return Response(status=400)
         else:
-            """
-            This creates a new available hash url for the project wizard
-            """
+            # This creates a new available hash url for the project wizard
             rate_limited = ratelimits.is_limited(
                 key='rl:setup-wizard',
                 limit=10,
@@ -53,9 +60,8 @@ class SetupWizard(Endpoint):
             wizard_hash = get_random_string(
                 64, allowed_chars='abcdefghijklmnopqrstuvwxyz0123456790')
 
-            # TODO(hazat): extract into global hash
-            key = 'setup-wizard-keys:v1:%s' % wizard_hash
-            cache.set(key, False, 7200)
+            key = '%s%s' % (SETUP_WIZARD_CACHE_KEY, wizard_hash)
+            cache.set(key, False, SETUP_WIZARD_CACHE_TIMEOUT)
             return Response(serialize({'hash': wizard_hash}))
 
 
@@ -63,6 +69,9 @@ class SetupWizardSecured(Endpoint):
     permission_classes = (IsAuthenticated, )
 
     def post(self, request, wizard_hash):
-        key = 'setup-wizard-keys:v1:%s' % wizard_hash
-        cache.set(key, request.DATA, 7200)
+        """
+        This will be called from the frontend to set stuff in the cache
+        """
+        key = '%s%s' % (SETUP_WIZARD_CACHE_KEY, wizard_hash)
+        cache.set(key, request.DATA, SETUP_WIZARD_CACHE_TIMEOUT)
         return Response(serialize({'hash': wizard_hash}))
