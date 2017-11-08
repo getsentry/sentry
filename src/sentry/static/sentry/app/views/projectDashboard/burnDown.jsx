@@ -84,7 +84,7 @@ const BurnDown = React.createClass({
     return [
       {
         data: this.processRawSeries(stats, 0),
-        color: '#E54E39',
+        color: '#EC5E44',
         label: 'Unresolved',
       },
       {
