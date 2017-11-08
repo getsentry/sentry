@@ -120,9 +120,9 @@ const BurnDown = React.createClass({
       <div className="chart-wrapper">
         <StackedBarChart
           series={this.getChartSeries()}
-          label="events"
+          className="dashboard-barchart standard-barchart"
+          label="Issues"
           height={150}
-          className="triage-stats"
         />
         <small className="date-legend">
           <DynamicWrapper

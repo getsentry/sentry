@@ -389,7 +389,7 @@ const StackedBarChart = React.createClass({
           <Count value={maxval} />
         </span>
         <span className="min-y">
-          <Count value={minval} />
+          <Count value={Math.abs(minval)} />
         </span>
         <span>{this.renderChart()}</span>
       </figure>
