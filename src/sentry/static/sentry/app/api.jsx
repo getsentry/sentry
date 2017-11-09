@@ -16,10 +16,25 @@ export class Request {
   }
 }
 
-function demo_response(response) {
+let RESPONSES = {GET: {}, POST: {}, PUT: {}, DELETE: {}};
+
+function demo_response_for_url(method, url, original) {
+  let response;
+
+  if (url === '/api/0/projects/sentry/earth/' && method == 'PUT') {
+    response = RESPONSES.GET[url];
+    _.merge(response, original);
+  }
+
+  return response;
+}
+
+function demo_response(method, url, response) {
   let deferred = $.Deferred();
+  let mocked = demo_response_for_url(method, url, response) || response;
+
   setTimeout(function() {
-      deferred.resolve(response);
+    deferred.resolve(mocked);
   }, 500);
   return deferred.promise();
 }
@@ -66,6 +81,9 @@ export class Client {
         delete this.activeRequests[id];
       }
       if (req && req.alive) {
+        if (window.demo && req.xhr.url) {
+          RESPONSES[req.xhr.method][req.xhr.url] = req.xhr.responseJSON;
+        }
         return func.apply(req, args);
       }
     };
@@ -117,6 +135,7 @@ export class Client {
           data,
           contentType: 'application/json',
           headers,
+          beforeSend: function(jqxhr, settings) { jqxhr.url = fullUrl; jqxhr.method = method; },
           success: this.wrapCallback(id, options.success),
           error: this.wrapCallback(id, options.error),
           complete: this.wrapCallback(id, options.complete, true),
@@ -124,7 +143,7 @@ export class Client {
       );
     } else {
       this.activeRequests[id] = new Request(
-        demo_response(options.data).then(
+        demo_response(method, fullUrl, options.data).then(
           this.wrapCallback(id, options.success)
         ).always(
           this.wrapCallback(id, options.complete, true)
