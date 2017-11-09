@@ -288,8 +288,8 @@ const StackedBarChart = React.createClass({
   },
 
   renderChartColumn(point, maxval, minval, pointWidth) {
-    let totalY = point.y.reduce((a, b) => a + Math.abs(b));
-    let range = maxval - minval;
+    let totalY = point.y.reduce((a, b) => Math.abs(a) + Math.abs(b));
+    let range = maxval + Math.abs(minval);
 
     let totalPct = totalY / range;
     let basePct = this.floatFormat(99 * Math.abs(minval) / range, 3);
