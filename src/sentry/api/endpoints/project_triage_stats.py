@@ -29,17 +29,17 @@ class ProjectTriageStatsEndpoint(ProjectEndpoint):
 
         status = GroupStatus.UNRESOLVED
         statuses = []
-        seen_activities = 0
+
         for date in dates:
             ts = int(to_timestamp(date))
             if date < group[1]:
                 statuses.append({'timestamp': ts, 'status': TriageStatus.DNE})
                 continue
             sliced = self.filter_activity_set(
-                activity_set[seen_activities:], date)
+                activity_set, date)
 
             for activity in sliced:
-                seen_activities += 1
+                activity_set = activity_set[1:]
                 if activity['type'] in set([Activity.SET_RESOLVED, Activity.SET_RESOLVED_IN_RELEASE,
                                             Activity.SET_RESOLVED_BY_AGE, Activity.SET_RESOLVED_IN_COMMIT]):
                     status = GroupStatus.RESOLVED
@@ -73,6 +73,7 @@ class ProjectTriageStatsEndpoint(ProjectEndpoint):
 
         now = timezone.now()
         dates = [now - timedelta(days=i) for i in range(30)]
+        dates.reverse()
 
         groups = Group.objects.filter(
             project=project.id,
