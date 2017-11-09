@@ -104,12 +104,27 @@ const BurnDown = React.createClass({
       },
     ];
   },
-
+  getReleaseList() {
+    let startX = new Date().getTime() / 1000 - 3600 * 24 * 30;
+    let markers = this.state.releaseList
+      .filter(release => {
+        let date = new Date(release.dateCreated).getTime() / 1000;
+        return date >= startX;
+      })
+      .map(release => {
+        return {
+          label: 'Version ' + release.shortVersion,
+          x: new Date(release.dateCreated).getTime() / 1000,
+        };
+      });
+    return markers;
+  },
   renderChart() {
     return (
       <div className="chart-wrapper">
         <StackedBarChart
           series={this.getChartSeries()}
+          markers={this.getReleaseList()}
           className="dashboard-barchart standard-barchart"
           label="Issues"
           height={150}
