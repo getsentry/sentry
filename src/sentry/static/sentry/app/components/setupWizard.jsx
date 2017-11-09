@@ -3,8 +3,6 @@ import React from 'react';
 import {Client} from '../api';
 import LoadingIndicator from './loadingIndicator';
 
-import {t} from '../locale';
-
 class SetupWizard extends React.Component {
   static propTypes = {
     hash: PropTypes.string.isRequired,
@@ -18,13 +16,6 @@ class SetupWizard extends React.Component {
     super(props, context);
 
     this.state = this.getDefaultState();
-  }
-
-  getDefaultState() {
-    return {
-      log: [],
-      finished: false,
-    };
   }
 
   componentWillMount() {
@@ -53,7 +44,7 @@ class SetupWizard extends React.Component {
             let log = this.state.log;
             log.push('Waiting for Wizard to complete');
             this.setState({
-              log: log,
+              log,
             });
             this.pollFinished();
           });
@@ -61,12 +52,18 @@ class SetupWizard extends React.Component {
       });
   }
 
+  getDefaultState() {
+    return {
+      log: [],
+      finished: false,
+    };
+  }
+
   pollFinished() {
     return new Promise((resolve, reject) => {
       this.api.request(`/wizard/${this.props.hash}/`, {
         method: 'GET',
         success: data => {
-          console.log('polling', data);
           setTimeout(() => this.pollFinished(), 1000);
         },
         error: err => {
@@ -84,7 +81,7 @@ class SetupWizard extends React.Component {
     let log = this.state.log;
     log.push('Caching results');
     this.setState({
-      log: log,
+      log,
     });
     return new Promise((resolve, reject) => {
       this.api.request(`/wizard/secure/${this.props.hash}/`, {
@@ -105,10 +102,10 @@ class SetupWizard extends React.Component {
     let log = this.state.log;
     log.push('Fetching API keys');
     this.setState({
-      log: log,
+      log,
     });
     return new Promise((resolve, reject) => {
-      this.api.request(`/api-tokens/`, {
+      this.api.request('/api-tokens/', {
         method: 'GET',
         success: data => resolve(data),
         error: err => {
@@ -123,19 +120,19 @@ class SetupWizard extends React.Component {
     let log = this.state.log;
     log.push(`Fetching keys for ${project.organization.name}/${project.name}`);
     this.setState({
-      log: log,
+      log,
     });
     return new Promise((resolve, reject) => {
       this.api.request(`/projects/${project.organization.slug}/${project.slug}/keys/`, {
         method: 'GET',
         success: data => {
-          let log = this.state.log;
+          log = this.state.log;
           log.push(
             `Fetched ${data.length} key(s) for ${project.organization
               .name}/${project.name}`
           );
           this.setState({
-            log: log,
+            log,
           });
           resolve({...project, keys: data});
         },
@@ -151,16 +148,16 @@ class SetupWizard extends React.Component {
     let log = this.state.log;
     log.push(`Fetching projects for ${organization.name}`);
     this.setState({
-      log: log,
+      log,
     });
     return new Promise((resolve, reject) => {
       this.api.request(`/organizations/${organization.slug}/projects/`, {
         method: 'GET',
         success: data => {
-          let log = this.state.log;
+          log = this.state.log;
           log.push(`Fetched ${data.length} project(s) for ${organization.name}`);
           this.setState({
-            log: log,
+            log,
           });
           resolve(
             data.map(project => {
@@ -180,16 +177,16 @@ class SetupWizard extends React.Component {
     let log = this.state.log;
     log.push('Fetching organizations');
     this.setState({
-      log: log,
+      log,
     });
     return new Promise((resolve, reject) => {
       this.api.request('/organizations/', {
         method: 'GET',
         success: data => {
-          let log = this.state.log;
+          log = this.state.log;
           log.push(`Fetched ${data.length} organization(s)`);
           this.setState({
-            log: log,
+            log,
           });
           resolve(data);
         },
@@ -206,7 +203,7 @@ class SetupWizard extends React.Component {
       <div className="row">
         <h3>Success!</h3>
         <h3>Return to your terminal to complete your setup</h3>
-        <h5>(This window will close in 10sec)</h5>
+        <h5>(This window will close in 10 sec)</h5>
         <button className="btn btn-default" onClick={() => window.close()}>
           Close browser tab
         </button>
@@ -236,7 +233,6 @@ class SetupWizard extends React.Component {
   }
 
   render() {
-    const {hash} = this.props;
     return (
       <div className="container">
         {this.state.finished ? this.renderSuccess() : this.renderLog()}
