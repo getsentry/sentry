@@ -546,3 +546,53 @@ class ProjectView(TeamView):
         kwargs['organization'] = active_organization
 
         return (args, kwargs)
+
+
+class DemoBaseView(BaseView):
+    pass
+
+
+class DemoOrganizationView(OrganizationView):
+    """
+    Any view acting on behalf of an organization should inherit from this base.
+
+    The 'organization' keyword argument is automatically injected into the
+    resulting dispatch.
+    """
+    required_scope = None
+    valid_sso_required = False
+
+    def get_access(self, request, organization, *args, **kwargs):
+        return access.DEFAULT
+
+    def get_context_data(self, request, organization, **kwargs):
+        context = super(OrganizationView, self).get_context_data(request)
+        context['organization'] = organization
+        context['TEAM_LIST'] = self.get_team_list(request.user, organization)
+        context['ACCESS'] = request.access.to_django_context()
+        return context
+
+    def has_permission(self, request, organization, *args, **kwargs):
+        return True
+
+    def is_auth_required(self, request, organization_slug=None, *args, **kwargs):
+        return False
+
+    def handle_permission_required(self, request, organization, *args, **kwargs):
+        return None
+
+    def needs_sso(self, request, organization):
+        return False
+
+    def convert_args(self, request, organization_slug=None, *args, **kwargs):
+        active_organization = self.get_active_organization(
+            request=request,
+            organization_slug=organization_slug,
+        )
+
+        kwargs['organization'] = active_organization
+
+        return (args, kwargs)
+
+    def get_allowed_roles(self, request, organization, member=None):
+        return (True, [], )

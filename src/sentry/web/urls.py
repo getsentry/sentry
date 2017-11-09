@@ -12,6 +12,7 @@ from django.conf.urls import include, patterns, url
 from django.http import HttpResponse
 from django.views.generic import RedirectView
 
+from sentry import options
 from sentry.web import api
 from sentry.web.frontend import accounts, admin, generic, accounts_twofactor
 from sentry.web.frontend.accept_organization_invite import \
@@ -54,7 +55,7 @@ from sentry.web.frontend.project_plugins import ProjectPluginsView
 from sentry.web.frontend.project_rule_edit import ProjectRuleEditView
 from sentry.web.frontend.project_settings import ProjectSettingsView
 from sentry.web.frontend.project_tags import ProjectTagsView
-from sentry.web.frontend.react_page import GenericReactPageView, ReactPageView
+from sentry.web.frontend.react_page import DemoReactPageView, GenericReactPageView, ReactPageView
 from sentry.web.frontend.reactivate_account import ReactivateAccountView
 from sentry.web.frontend.release_webhook import ReleaseWebhookView
 from sentry.web.frontend.remove_account import RemoveAccountView
@@ -90,12 +91,24 @@ init_all_applications()
 # Only create one instance of the ReactPageView since it's duplicated errywhere
 generic_react_page_view = GenericReactPageView.as_view()
 react_page_view = ReactPageView.as_view()
+demo_react_page_view = DemoReactPageView.as_view()
 
 urlpatterns = patterns('')
 
 if getattr(settings, 'DEBUG_VIEWS', settings.DEBUG):
     from sentry.web.debug_urls import urlpatterns as debug_urls
     urlpatterns += debug_urls
+
+if options.get('auth.demo-user'):
+    urlpatterns += patterns(
+        '',
+        # Demo URLs kick in first
+        url(
+            r'^sentry/earth/(.*)$',
+            demo_react_page_view,
+            name='sentry-demo-stream'
+        ),
+    )
 
 urlpatterns += patterns(
     '',

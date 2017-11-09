@@ -36,6 +36,7 @@
   <script>
   window.csrfCookieName = '{{ CSRF_COOKIE_NAME }}';
   window.globalStaticUrl = '{% asset_url "sentry" "dist/" %}';
+  window.demo = {{ is_demo|lower }};
   </script>
 
   {% block scripts %}

@@ -7,13 +7,14 @@ from django.template import loader, Context
 
 from sentry.models import Project
 from sentry.signals import first_event_pending
-from sentry.web.frontend.base import BaseView, OrganizationView
+from sentry.web.frontend.base import BaseView, DemoBaseView, DemoOrganizationView, OrganizationView
 
 
 class ReactMixin(object):
     def get_context(self, request):
         # this hook is utilized by getsentry
         return {
+            'is_demo': request.path.startswith('/sentry/earth/'),
             'request': request,
             'CSRF_COOKIE_NAME': settings.CSRF_COOKIE_NAME,
         }
@@ -50,3 +51,15 @@ class ReactPageView(OrganizationView, ReactMixin):
 class GenericReactPageView(BaseView, ReactMixin):
     def handle(self, request, **kwargs):
         return self.handle_react(request)
+
+
+class DemoReactPageView(DemoOrganizationView, ReactMixin):
+    def handle(self, request, organization, **kwargs):
+        response = self.handle_react(request)
+        return response
+
+
+class GenericDemoReactPageView(DemoBaseView, ReactMixin):
+    def handle(self, request, **kwargs):
+        response = self.handle_react(request)
+        return response

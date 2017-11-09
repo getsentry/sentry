@@ -16,6 +16,14 @@ export class Request {
   }
 }
 
+function demo_response(response) {
+  let deferred = $.Deferred();
+  setTimeout(function() {
+      deferred.resolve(response);
+  }, 500);
+  return deferred.promise();
+}
+
 /**
  * Converts input parameters to API-compatible query arguments
  * @param params
@@ -93,20 +101,36 @@ export class Client {
       }
     }
 
-    this.activeRequests[id] = new Request(
-      $.ajax({
-        url: fullUrl,
-        method,
-        data,
-        contentType: 'application/json',
-        headers: {
-          Accept: 'application/json; charset=utf-8',
-        },
-        success: this.wrapCallback(id, options.success),
-        error: this.wrapCallback(id, options.error),
-        complete: this.wrapCallback(id, options.complete, true),
-      })
-    );
+    let headers = {
+      'Accept': 'application/json; charset=utf-8'
+    };
+
+    if (window.demo) {
+      headers['X-Demo'] = true;
+    }
+
+    if (!window.demo || (window.demo && method === 'GET')) {
+      this.activeRequests[id] = new Request(
+        $.ajax({
+          url: fullUrl,
+          method,
+          data,
+          contentType: 'application/json',
+          headers,
+          success: this.wrapCallback(id, options.success),
+          error: this.wrapCallback(id, options.error),
+          complete: this.wrapCallback(id, options.complete, true),
+        })
+      );
+    } else {
+      this.activeRequests[id] = new Request(
+        demo_response(options.data).then(
+          this.wrapCallback(id, options.success)
+        ).always(
+          this.wrapCallback(id, options.complete, true)
+        )
+      );
+    }
 
     return this.activeRequests[id];
   }
