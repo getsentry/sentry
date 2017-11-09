@@ -1,6 +1,8 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import moment from 'moment';
+import {reverse} from 'lodash';
+
 import ApiMixin from '../../mixins/apiMixin';
 import StackedBarChart from '../../components/stackedBarChart';
 import DynamicWrapper from '../../components/dynamicWrapper';
@@ -75,7 +77,6 @@ const BurnDown = React.createClass({
     return Object.keys(stats).map(key => {
       let data = stats[key];
       let value = data[type] || 0;
-
       return {x: parseInt(key, 10), y: value * (type === 0 ? -1 : 1)};
     });
   },
@@ -105,7 +106,9 @@ const BurnDown = React.createClass({
     ];
   },
   getReleaseList() {
-    let startX = new Date().getTime() / 1000 - 3600 * 24 * 30;
+    let startX = new Date().getTime() / 1000;
+    startX -= 3600 * 24 * 30;
+
     let markers = this.state.releaseList
       .filter(release => {
         let date = new Date(release.dateCreated).getTime() / 1000;
@@ -117,6 +120,7 @@ const BurnDown = React.createClass({
           x: new Date(release.dateCreated).getTime() / 1000,
         };
       });
+    reverse(markers);
     return markers;
   },
   renderChart() {

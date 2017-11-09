@@ -98,7 +98,6 @@ const ProjectChart = React.createClass({
           x: new Date(release.dateCreated).getTime() / 1000,
         };
       });
-
     return (
       <div className="chart-wrapper">
         <BarChart
