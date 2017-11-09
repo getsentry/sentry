@@ -99,12 +99,16 @@ if getattr(settings, 'DEBUG_VIEWS', settings.DEBUG):
     from sentry.web.debug_urls import urlpatterns as debug_urls
     urlpatterns += debug_urls
 
-if options.get('auth.demo-user'):
+
+demo_user = options.get('auth.demo-user')
+demo_org = options.get('auth.demo-org')
+demo_project = options.get('auth.demo-project')
+if all([demo_user, demo_org, demo_project]):
     urlpatterns += patterns(
         '',
         # Demo URLs kick in first
         url(
-            r'^sentry/earth/(.*)$',
+            r'^{0}/{1}/(.*)$'.format(demo_org, demo_project),
             demo_react_page_view,
             name='sentry-demo-stream'
         ),
