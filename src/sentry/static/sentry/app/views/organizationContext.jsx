@@ -139,6 +139,11 @@ const OrganizationContext = React.createClass({
     let options = user ? user.options : {};
     let seen = options.seenReleaseBroadcast;
     let tasks = data.onboardingTasks;
+    // don't show broadcast if empty user
+    if (!user) {
+      return false;
+    }
+
     // don't show broadcast they've seen it
     if (seen) {
       return false;
