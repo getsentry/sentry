@@ -2,6 +2,9 @@ from __future__ import absolute_import
 
 from django.conf import settings
 from django.http import HttpResponse
+from django.contrib import messages
+from django.utils.safestring import mark_safe
+from django.utils.translation import ugettext_lazy as _
 from django.middleware.csrf import get_token as get_csrf_token
 from django.template import loader, Context
 
@@ -56,6 +59,9 @@ class GenericReactPageView(BaseView, ReactMixin):
 class DemoReactPageView(DemoOrganizationView, ReactMixin):
     def handle(self, request, organization, **kwargs):
         response = self.handle_react(request)
+        messages.add_message(
+            request, messages.WARNING, _('This is a DEMO. Data will not be written to database and you are logged in as dummy user. This is a Sentry playground with dummy/demo data! Feel free to mess around!')
+        )
         return response
 
 
