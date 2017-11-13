@@ -20,6 +20,7 @@ class TagValueSerializerTest(TestCase):
         )
         tagvalue = tagstore.create_tag_value(
             project_id=project.id,
+            environment_id=self.environment.id,
             key='sentry:user',
             value=euser.tag_value,
         )
@@ -35,6 +36,7 @@ class TagValueSerializerTest(TestCase):
         project = self.create_project()
         tagvalue = tagstore.create_tag_value(
             project_id=project.id,
+            environment_id=self.environment.id,
             key='sentry:user',
             value='email:foo@example.com',
         )
@@ -50,6 +52,7 @@ class TagValueSerializerTest(TestCase):
         project = self.create_project()
         tagvalue = tagstore.create_tag_value(
             project_id=project.id,
+            environment_id=self.environment.id,
             key='sentry:release',
             value='df84bccbb23ca15f2868be1f2a5f7c7a6464fadd',
         )

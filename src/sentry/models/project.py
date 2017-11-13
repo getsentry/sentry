@@ -14,7 +14,6 @@ import six
 from bitfield import BitField
 from django.conf import settings
 from django.db import IntegrityError, models, transaction
-from django.db.models import F
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
@@ -166,20 +165,9 @@ class Project(Model):
                     group_id=group.id,
                 ).update(group_id=other.id)
 
-                for obj in tagstore.get_group_tag_values(group_id=group.id):
-                    obj2, created = tagstore.get_or_create_group_tag_value(
-                        project_id=project.id,
-                        group_id=group.id,
-                        key=obj.key,
-                        value=obj.value,
-                        defaults={'times_seen': obj.times_seen}
-                    )
-                    if not created:
-                        obj2.update(times_seen=F('times_seen') + obj.times_seen)
+                tagstore.merge_group_tag_values_to_project(project.id, group.id)
 
-        for fv in tagstore.get_tag_values(self.id):
-            tagstore.get_or_create_tag_value(project_id=project.id, key=fv.key, value=fv.value)
-            fv.delete()
+        tagstore.merge_tag_values_to_project(self.id, project.id)
         self.delete()
 
     def is_internal_project(self):

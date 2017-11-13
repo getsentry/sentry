@@ -16,15 +16,17 @@ class GroupTagExportTest(TestCase):
 
         project = self.create_project()
         group = self.create_group(project=project)
-        tagstore.create_tag_key(project_id=project.id, key=key)
+        tagstore.create_tag_key(project_id=project.id, environment_id=self.environment.id, key=key)
         tagstore.create_tag_value(
             project_id=project.id,
+            environment_id=self.environment.id,
             key=key,
             value=value,
         )
         group_tag_value = tagstore.create_group_tag_value(
             project_id=project.id,
             group_id=group.id,
+            environment_id=self.environment.id,
             key=key,
             value=value,
             times_seen=1,

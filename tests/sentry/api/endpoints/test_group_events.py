@@ -33,11 +33,29 @@ class GroupEventsTest(APITestCase):
         event_1 = self.create_event('a' * 32, group=group)
         event_2 = self.create_event('b' * 32, group=group)
 
-        tagkey_1 = tagstore.create_tag_key(project_id=group.project_id, key='foo')
-        tagkey_2 = tagstore.create_tag_key(project_id=group.project_id, key='bar')
-        tagvalue_1 = tagstore.create_tag_value(project_id=group.project_id, key='foo', value='baz')
-        tagvalue_2 = tagstore.create_tag_value(project_id=group.project_id, key='bar', value='biz')
-        tagvalue_3 = tagstore.create_tag_value(project_id=group.project_id, key='bar', value='buz')
+        tagkey_1 = tagstore.create_tag_key(
+            project_id=group.project_id,
+            environment_id=self.environment.id,
+            key='foo')
+        tagkey_2 = tagstore.create_tag_key(
+            project_id=group.project_id,
+            environment_id=self.environment.id,
+            key='bar')
+        tagvalue_1 = tagstore.create_tag_value(
+            project_id=group.project_id,
+            environment_id=self.environment.id,
+            key='foo',
+            value='baz')
+        tagvalue_2 = tagstore.create_tag_value(
+            project_id=group.project_id,
+            environment_id=self.environment.id,
+            key='bar',
+            value='biz')
+        tagvalue_3 = tagstore.create_tag_value(
+            project_id=group.project_id,
+            environment_id=self.environment.id,
+            key='bar',
+            value='buz')
 
         tagstore.create_event_tag(
             project_id=group.project_id,

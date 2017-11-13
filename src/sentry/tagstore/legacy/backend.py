@@ -13,7 +13,7 @@ import six
 from collections import defaultdict
 from datetime import timedelta
 from django.db import connections, router, IntegrityError, transaction
-from django.db.models import Q, Sum
+from django.db.models import F, Q, Sum
 from django.utils import timezone
 from operator import or_
 from six.moves import reduce
@@ -71,32 +71,33 @@ class LegacyTagStorage(TagStorage):
             GroupTagKey,
         ]
 
-    def create_tag_key(self, project_id, key, **kwargs):
+    def create_tag_key(self, project_id, environment_id, key, **kwargs):
         return TagKey.objects.create(project_id=project_id, key=key, **kwargs)
 
-    def get_or_create_tag_key(self, project_id, key, **kwargs):
+    def get_or_create_tag_key(self, project_id, environment_id, key, **kwargs):
         return TagKey.objects.get_or_create(project_id=project_id, key=key, **kwargs)
 
-    def create_tag_value(self, project_id, key, value, **kwargs):
+    def create_tag_value(self, project_id, environment_id, key, value, **kwargs):
         return TagValue.objects.create(project_id=project_id, key=key, value=value, **kwargs)
 
-    def get_or_create_tag_value(self, project_id, key, value, **kwargs):
+    def get_or_create_tag_value(self, project_id, environment_id, key, value, **kwargs):
         return TagValue.objects.get_or_create(
             project_id=project_id, key=key, value=value, **kwargs)
 
-    def create_group_tag_key(self, project_id, group_id, key, **kwargs):
+    def create_group_tag_key(self, project_id, group_id, environment_id, key, **kwargs):
         return GroupTagKey.objects.create(project_id=project_id, group_id=group_id,
                                           key=key, **kwargs)
 
-    def get_or_create_group_tag_key(self, project_id, group_id, key, **kwargs):
+    def get_or_create_group_tag_key(self, project_id, group_id, environment_id, key, **kwargs):
         return GroupTagKey.objects.get_or_create(project_id=project_id, group_id=group_id,
                                                  key=key, **kwargs)
 
-    def create_group_tag_value(self, project_id, group_id, key, value, **kwargs):
+    def create_group_tag_value(self, project_id, group_id, environment_id, key, value, **kwargs):
         return GroupTagValue.objects.create(
             project_id=project_id, group_id=group_id, key=key, value=value, **kwargs)
 
-    def get_or_create_group_tag_value(self, project_id, group_id, key, value, **kwargs):
+    def get_or_create_group_tag_value(self, project_id, group_id,
+                                      environment_id, key, value, **kwargs):
         return GroupTagValue.objects.get_or_create(
             project_id=project_id, group_id=group_id, key=key, value=value, **kwargs)
 
@@ -515,6 +516,29 @@ class LegacyTagStorage(TagStorage):
                     key=instance.key,
                 ).count(),
             )
+
+    def merge_tag_values_to_project(self, source_project_id, target_project_id):
+        for tv in self.get_tag_values(source_project_id):
+            self.get_or_create_tag_value(
+                project_id=target_project_id,
+                environment_id=None,
+                key=tv.key,
+                value=tv.value)
+            tv.delete()
+
+    def merge_group_tag_values_to_project(self, target_project_id, group_id):
+        for gtv in self.get_group_tag_values(group_id=group_id):
+            gtv2, created = self.get_or_create_group_tag_value(
+                project_id=target_project_id,
+                group_id=group_id,
+                environment_id=None,
+                key=gtv.key,
+                value=gtv.value,
+                defaults={'times_seen': gtv.times_seen},
+            )
+
+            if not created:
+                gtv2.update(times_seen=F('times_seen') + gtv.times_seen)
 
     def get_tag_value_qs(self, project_id, key, query=None):
         queryset = TagValue.objects.filter(

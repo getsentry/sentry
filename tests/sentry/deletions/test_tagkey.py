@@ -13,11 +13,22 @@ class DeleteTagKeyTest(TestCase):
         group = self.create_group(project=project)
         key = 'foo'
         value = 'bar'
-        tk = tagstore.create_tag_key(key=key, project_id=project.id)
-        tagstore.create_tag_value(key=key, value=value, project_id=project.id)
-        tagstore.create_group_tag_key(key=key, group_id=group.id, project_id=project.id)
+        tk = tagstore.create_tag_key(
+            key=key,
+            project_id=project.id,
+            environment_id=self.environment.id)
+        tagstore.create_tag_value(
+            key=key,
+            value=value,
+            project_id=project.id,
+            environment_id=self.environment.id)
+        tagstore.create_group_tag_key(
+            key=key,
+            group_id=group.id,
+            project_id=project.id,
+            environment_id=self.environment.id)
         tagstore.create_group_tag_value(
-            key=key, value=value, group_id=group.id, project_id=project.id
+            key=key, value=value, group_id=group.id, project_id=project.id, environment_id=self.environment.id
         )
         tagstore.create_event_tag(
             key_id=tk.id,
@@ -29,10 +40,14 @@ class DeleteTagKeyTest(TestCase):
 
         project2 = self.create_project(team=team, name='test2')
         group2 = self.create_group(project=project2)
-        tk2 = tagstore.create_tag_key(project2.id, key)
-        tagstore.create_group_tag_key(key=key, group_id=group2.id, project_id=project2.id)
+        tk2 = tagstore.create_tag_key(project2.id, self.environment.id, key)
+        tagstore.create_group_tag_key(
+            key=key,
+            group_id=group2.id,
+            project_id=project2.id,
+            environment_id=self.environment.id)
         tagstore.create_group_tag_value(
-            key=key, value=value, group_id=group2.id, project_id=project2.id
+            key=key, value=value, group_id=group2.id, project_id=project2.id, environment_id=self.environment.id
         )
         tagstore.create_event_tag(
             key_id=tk2.id,

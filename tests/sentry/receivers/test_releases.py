@@ -17,6 +17,7 @@ class EnsureReleaseExistsTest(TestCase):
     def test_simple(self):
         tv = tagstore.create_tag_value(
             project_id=self.project.id,
+            environment_id=self.environment.id,
             key='sentry:release',
             value='1.0',
         )

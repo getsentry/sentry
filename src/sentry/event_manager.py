@@ -710,6 +710,7 @@ class EventManager(object):
                 organization_id=project.organization_id,
                 project_id=project.id,
                 group_id=group.id,
+                environment_id=environment.id,
                 event_id=event.id,
                 tags=tags,
             )

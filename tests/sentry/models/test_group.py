@@ -180,7 +180,8 @@ class GroupTest(TestCase):
         )
 
         tagstore.create_group_tag_value(
-            project_id=project.id, group_id=group.id, key='sentry:release', value=release.version
+            project_id=project.id, group_id=group.id, environment_id=self.environment.id,
+            key='sentry:release', value=release.version
         )
 
         assert group.first_release == release
@@ -200,7 +201,8 @@ class GroupTest(TestCase):
         )
 
         tagstore.create_group_tag_value(
-            project_id=project.id, group_id=group.id, key='sentry:release', value=release.version
+            project_id=project.id, group_id=group.id, environment_id=self.environment.id,
+            key='sentry:release', value=release.version
         )
 
         assert group.first_release is None
