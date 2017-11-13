@@ -684,13 +684,11 @@ table.integrations {
 * ============================================================================
 */
 
-@brand-success: #5cb85c;
 @loader-size: 64px;
 @check-height: 32px;
 @check-width: 16px;
 @check-left: (@loader-size/6 + @loader-size/12);
 @check-thickness: 3px;
-@check-color: @brand-success;
 
 .loading {
   margin: 6em auto;
@@ -717,8 +715,8 @@ table.integrations {
         height: @check-height;
         width: @check-width;
         transform-origin: left top;
-        border-right: @check-thickness solid @check-color;
-        border-top: @check-thickness solid @check-color;
+        border-right: @check-thickness solid @green;
+        border-top: @check-thickness solid @green;
         content: '';
         left: 10px;
         top: 30px;
@@ -742,7 +740,7 @@ table.integrations {
   .load-complete {
     -webkit-animation: none;
     animation: none;
-    border-color: @check-color;
+    border-color: @green;
     transition: border 500ms ease-out;
   }
 }
