@@ -5,6 +5,8 @@ import logging
 import six
 import traceback
 
+from time import time
+
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.core.cache import cache
@@ -29,12 +31,13 @@ from sentry.quotas.base import RateLimit
 from sentry.utils import json, metrics
 from sentry.utils.data_filters import FILTER_STAT_KEYS_TO_VALUES
 from sentry.utils.data_scrubber import SensitiveDataFilter
+from sentry.utils.dates import to_datetime
 from sentry.utils.http import (
     is_valid_origin,
     get_origins,
     is_same_domain,
 )
-from sentry.utils.pubsub import pubsub
+from sentry.utils.pubsub import QueuedPublisher, RedisPublisher
 from sentry.utils.safe import safe_execute
 from sentry.web.helpers import render_to_response
 
@@ -46,7 +49,9 @@ PIXEL = base64.b64decode('R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=')
 
 PROTOCOL_VERSIONS = frozenset(('2.0', '3', '4', '5', '6', '7'))
 
-PUBSUB_ENABLED = getattr(settings, 'PUBSUB_ENABLED', False)
+pubsub = QueuedPublisher(
+    RedisPublisher(getattr(settings, 'REQUESTS_PUBSUB_CONNECTION', None))
+) if getattr(settings, 'REQUESTS_PUBSUB_ENABLED', False) else None
 
 
 def api(func):
@@ -309,8 +314,8 @@ class StoreView(APIView):
             # bubble up as an APIError.
             data = None
 
-        if PUBSUB_ENABLED and data is not None:
-            pubsub.put('requests', data)
+        if pubsub is not None and data is not None:
+            pubsub.publish('requests', data)
 
         response_or_event_id = self.process(request, data=data, **kwargs)
         if isinstance(response_or_event_id, HttpResponse):
@@ -353,7 +358,8 @@ class StoreView(APIView):
             project=project,
             sender=type(self),
         )
-
+        start_time = time()
+        tsdb_start_time = to_datetime(start_time)
         should_filter, filter_reason = helper.should_filter(
             project, data, ip_address=remote_addr)
         if should_filter:
@@ -375,7 +381,8 @@ class StoreView(APIView):
                 pass
 
             tsdb.incr_multi(
-                increment_list
+                increment_list,
+                timestamp=tsdb_start_time,
             )
 
             metrics.incr('events.blacklisted', tags={
@@ -410,7 +417,8 @@ class StoreView(APIView):
                      project.organization_id),
                     (tsdb.models.key_total_received, key.id),
                     (tsdb.models.key_total_rejected, key.id),
-                ]
+                ],
+                timestamp=tsdb_start_time,
             )
             metrics.incr(
                 'events.dropped',
@@ -433,7 +441,8 @@ class StoreView(APIView):
                     (tsdb.models.organization_total_received,
                      project.organization_id),
                     (tsdb.models.key_total_received, key.id),
-                ]
+                ],
+                timestamp=tsdb_start_time,
             )
 
         org_options = OrganizationOption.objects.get_all_values(
@@ -492,7 +501,7 @@ class StoreView(APIView):
             helper.ensure_does_not_have_ip(data)
 
         # mutates data (strips a lot of context if not queued)
-        helper.insert_data_to_database(data)
+        helper.insert_data_to_database(data, start_time=start_time)
 
         cache.set(cache_key, '', 60 * 5)
 

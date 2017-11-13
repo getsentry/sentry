@@ -368,6 +368,11 @@ class RedisTSDBTest(TestCase):
         now = datetime.utcnow().replace(tzinfo=pytz.UTC)
         model = TSDBModel.frequent_projects_by_organization
 
+        # None of the registered frequency tables actually support
+        # environments, so we have to pretend like one actually does
+        self.db.models_with_environment_support = self.db.models_with_environment_support | set([
+                                                                                                model])
+
         rollup = 3600
 
         self.db.record_frequency_multi(

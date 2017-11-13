@@ -7,7 +7,7 @@ from uuid import uuid4
 
 from sentry import tagstore
 from sentry.models import (
-    Activity, Commit, CommitAuthor, GroupAssignee, GroupCommitResolution, OrganizationMember,
+    Activity, Commit, CommitAuthor, GroupAssignee, GroupCommitResolution, GroupLink, OrganizationMember,
     Release, Repository, UserEmail
 )
 from sentry.testutils import TestCase
@@ -70,6 +70,11 @@ class ResolvedInCommitTest(TestCase):
             commit_id=commit.id,
         ).exists()
 
+        assert GroupLink.objects.filter(
+            group_id=group.id,
+            linked_type=GroupLink.LinkedType.commit,
+            linked_id=commit.id).exists()
+
     def test_no_matching_group(self):
         repo = Repository.objects.create(
             name='example',
@@ -87,6 +92,10 @@ class ResolvedInCommitTest(TestCase):
         assert not GroupCommitResolution.objects.filter(
             commit_id=commit.id,
         ).exists()
+
+        assert not GroupLink.objects.filter(
+            linked_type=GroupLink.LinkedType.commit,
+            linked_id=commit.id).exists()
 
     def test_matching_author(self):
         group = self.create_group()
@@ -112,6 +121,11 @@ class ResolvedInCommitTest(TestCase):
             group_id=group.id,
             commit_id=commit.id,
         ).exists()
+
+        assert GroupLink.objects.filter(
+            group_id=group.id,
+            linked_type=GroupLink.LinkedType.commit,
+            linked_id=commit.id).exists()
 
     def test_assigns_author(self):
         group = self.create_group()
@@ -142,6 +156,11 @@ class ResolvedInCommitTest(TestCase):
             group_id=group.id,
             commit_id=commit.id,
         ).exists()
+
+        assert GroupLink.objects.filter(
+            group_id=group.id,
+            linked_type=GroupLink.LinkedType.commit,
+            linked_id=commit.id).exists()
 
         assert GroupAssignee.objects.filter(group=group, user=user).exists()
 
