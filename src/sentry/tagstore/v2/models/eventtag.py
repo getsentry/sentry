@@ -16,9 +16,8 @@ from sentry.db.models import (Model, BoundedPositiveIntegerField, sane_repr)
 class EventTag(Model):
     __core__ = False
 
-    # TODO: drop PK in favor of composite PK of (event, key, id)?
-
     project_id = BoundedPositiveIntegerField()
+    environment_id = BoundedPositiveIntegerField()
     group_id = BoundedPositiveIntegerField()
     event_id = BoundedPositiveIntegerField()
     key_id = BoundedPositiveIntegerField()
@@ -30,9 +29,9 @@ class EventTag(Model):
         db_table = 'sentry_eventtag_v2'
         unique_together = (('event_id', 'key_id', 'value_id'), )
         index_together = (
-            # TODO: need indexes with environment in them also
             ('project_id', 'key_id', 'value_id'),
             ('group_id', 'key_id', 'value_id'),
+            ('environment_id', 'key_id', 'value_id'),
         )
 
     __repr__ = sane_repr('event_id', 'key_id', 'value_id')
