@@ -325,6 +325,10 @@ const StackedBarChart = React.createClass({
         return a.x - b.x;
       });
 
+    markers.sort((a, b) => {
+      return a.x - b.x;
+    });
+
     let children = [];
     points.forEach(point => {
       while (markers.length && markers[0].x <= point.x) {
