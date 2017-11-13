@@ -267,7 +267,7 @@ def collect_tag_data(events):
     results = {}
 
     for event in events:
-        environment = get_environment(event)
+        environment = get_environment_name(event)
         tags = results.setdefault((event.group_id, environment), {})
 
         for key, value in event.get_tags():
