@@ -98,7 +98,26 @@ class SetupWizard extends React.Component {
     });
   }
 
-  fetchApiKeys() {
+  createApiKey() {
+    let log = this.state.log;
+    log.push('No API key found, creating');
+    this.setState({
+      log,
+    });
+    return new Promise((resolve, reject) => {
+      this.api.request('/api-tokens/', {
+        method: 'POST',
+        data: {scopes: ['project:releases']},
+        success: data => resolve(data),
+        error: err => {
+          let error = (err.responseJSON && err.responseJSON.detail) || true;
+          reject(error);
+        },
+      });
+    });
+  }
+
+  fetchApiKeys(newResolve) {
     let log = this.state.log;
     log.push('Fetching API keys');
     this.setState({
@@ -107,7 +126,18 @@ class SetupWizard extends React.Component {
     return new Promise((resolve, reject) => {
       this.api.request('/api-tokens/', {
         method: 'GET',
-        success: data => resolve(data),
+        success: data => {
+          if (data.length === 0) {
+            this.createApiKey().then(() => {
+              this.fetchApiKeys(resolve);
+            });
+          } else if (newResolve) {
+            newResolve(resolve);
+            resolve(data);
+          } else {
+            resolve(data);
+          }
+        },
         error: err => {
           let error = (err.responseJSON && err.responseJSON.detail) || true;
           reject(error);

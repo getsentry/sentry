@@ -57,7 +57,7 @@ class SetupWizard(Endpoint):
                     }, status=403
                 )
             wizard_hash = get_random_string(
-                64, allowed_chars='abcdefghijklmnopqrstuvwxyz0123456790')
+                64, allowed_chars='abcdefghijklmnopqrstuvwxyz012345679')
 
             key = '%s%s' % (SETUP_WIZARD_CACHE_KEY, wizard_hash)
             cache.set(key, 'empty', SETUP_WIZARD_CACHE_TIMEOUT)
