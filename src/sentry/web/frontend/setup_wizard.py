@@ -19,12 +19,6 @@ class SetupWizardView(BaseView):
         }
         key = '%s%s' % (SETUP_WIZARD_CACHE_KEY, wizard_hash)
         wizard_data = cache.get(key)
-        # If wizard_data is true, it's still not filled from the
-        # users requests
-        if wizard_data is not None and wizard_data is not 0:
-            # We reach this when the wizard pulled the data
-            if wizard_data is 1:
-                # We can delete the cache here
-                cache.delete(key)
-                return self.redirect_to_org(request)
+        if wizard_data is None:
+            return self.redirect_to_org(request)
         return render_to_response('sentry/setup-wizard.html', context, self.request)

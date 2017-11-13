@@ -24,7 +24,7 @@ class SetupWizard(Endpoint):
         """
         if wizard_hash is not None:
             key = '%s%s' % (SETUP_WIZARD_CACHE_KEY, wizard_hash)
-            cache.set(key, True, SETUP_WIZARD_CACHE_TIMEOUT)
+            cache.delete(key)
             return Response(status=200)
 
     def get(self, request, wizard_hash=None):
@@ -35,15 +35,14 @@ class SetupWizard(Endpoint):
         if wizard_hash is not None:
             key = '%s%s' % (SETUP_WIZARD_CACHE_KEY, wizard_hash)
             wizard_data = cache.get(key)
-            # If wizard_data is true, it's still not filled from the
-            # users requests
-            if wizard_data is not None and wizard_data is not 0:
-                # We reach this when the wizard pulled the data
-                if wizard_data is 1:
-                    return Response(status=404)
-                return Response(serialize(wizard_data))
 
-            return Response(status=400)
+            if wizard_data is None:
+                return Response(status=404)
+            elif wizard_data == 'empty':
+                # when we just created a clean cache
+                return Response(status=400)
+
+            return Response(serialize(wizard_data))
         else:
             # This creates a new available hash url for the project wizard
             rate_limited = ratelimits.is_limited(
@@ -61,7 +60,7 @@ class SetupWizard(Endpoint):
                 64, allowed_chars='abcdefghijklmnopqrstuvwxyz0123456790')
 
             key = '%s%s' % (SETUP_WIZARD_CACHE_KEY, wizard_hash)
-            cache.set(key, False, SETUP_WIZARD_CACHE_TIMEOUT)
+            cache.set(key, 'empty', SETUP_WIZARD_CACHE_TIMEOUT)
             return Response(serialize({'hash': wizard_hash}))
 
 
