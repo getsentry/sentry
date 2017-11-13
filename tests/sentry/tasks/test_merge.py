@@ -103,6 +103,7 @@ class MergeGroupTest(TestCase):
             tagstore.create_group_tag_key(
                 project_id=project.id,
                 group_id=group.id,
+                environment_id=self.environment.id,
                 key=key,
                 values_seen=values_seen,
             )
@@ -111,6 +112,7 @@ class MergeGroupTest(TestCase):
             tagstore.create_group_tag_value(
                 project_id=project.id,
                 group_id=group.id,
+                environment_id=self.environment.id,
                 key=key,
                 value=value,
                 times_seen=times_seen,
