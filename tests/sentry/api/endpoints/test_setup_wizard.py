@@ -60,23 +60,3 @@ class SetupWizardTest(APITestCase):
 
         response2 = self.client.get(url2)
         assert response2.status_code == 400, response2.content
-
-        url3 = '/api/0/wizard/secure/{}/'.format(wizard_hash)
-
-        response3 = self.client.post(url3,
-                                     format='json',
-                                     data={
-                                         'text': 'hello world',
-                                     })
-        assert response3.status_code == 200, response3.content
-        assert response3.data['hash']
-
-        response4 = self.client.get(url2)
-        assert response4.status_code == 200, response4.content
-        assert response4.data['text'] == 'hello world'
-
-        # Delete content of cache
-        self.client.delete(url2)
-
-        response5 = self.client.get(url2)
-        assert response5.status_code == 404, response5.content

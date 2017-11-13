@@ -62,15 +62,3 @@ class SetupWizard(Endpoint):
             key = '%s%s' % (SETUP_WIZARD_CACHE_KEY, wizard_hash)
             cache.set(key, 'empty', SETUP_WIZARD_CACHE_TIMEOUT)
             return Response(serialize({'hash': wizard_hash}))
-
-
-class SetupWizardSecured(Endpoint):
-    permission_classes = (IsAuthenticated, )
-
-    def post(self, request, wizard_hash):
-        """
-        This will be called from the frontend to set stuff in the cache
-        """
-        key = '%s%s' % (SETUP_WIZARD_CACHE_KEY, wizard_hash)
-        cache.set(key, request.DATA, SETUP_WIZARD_CACHE_TIMEOUT)
-        return Response(serialize({'hash': wizard_hash}))

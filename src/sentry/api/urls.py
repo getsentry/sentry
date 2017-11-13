@@ -127,7 +127,7 @@ from .endpoints.user_index import UserIndexEndpoint
 from .endpoints.user_details import UserDetailsEndpoint
 from .endpoints.user_organizations import UserOrganizationsEndpoint
 from .endpoints.event_file_committers import EventFileCommittersEndpoint
-from .endpoints.setup_wizard import SetupWizard, SetupWizardSecured
+from .endpoints.setup_wizard import SetupWizard
 
 
 urlpatterns = patterns(
@@ -775,12 +775,6 @@ urlpatterns = patterns(
         r'^wizard/(?P<wizard_hash>[^\/]+)/$',
         SetupWizard.as_view(),
         name='sentry-api-0-project-wizard'
-    ),
-
-    url(
-        r'^wizard/secure/(?P<wizard_hash>[^\/]+)/$',
-        SetupWizardSecured.as_view(),
-        name='sentry-api-0-project-wizard-update'
     ),
 
     # Catch all
