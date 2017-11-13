@@ -12,7 +12,7 @@ describe('NoteInput', function() {
   beforeAll(function() {
     Client.addMockResponse({
       url: '/issues/groupId/comments/',
-      method: 'POST'
+      method: 'POST',
     });
   });
 

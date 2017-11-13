@@ -12,9 +12,9 @@ from sentry import features, roles
 from sentry.auth import manager
 from sentry.auth.helper import AuthHelper
 from sentry.auth.providers.saml2 import SAML2Provider, HAS_SAML2
-from sentry.models import AuditLogEntryEvent, AuthProvider, OrganizationMember
+from sentry.models import AuditLogEntryEvent, AuthProvider, OrganizationMember, User
 from sentry.plugins import Response
-from sentry.tasks.auth import email_missing_links
+from sentry.tasks.auth import email_missing_links, email_unlink_notifications
 from sentry.utils import db
 from sentry.utils.http import absolute_uri
 from sentry.web.frontend.base import OrganizationView
@@ -73,6 +73,10 @@ class OrganizationAuthSettingsView(OrganizationView):
                 ),
             )
 
+        user_ids = OrganizationMember.objects.filter(organization=organization).values('user')
+        User.objects.filter(id__in=user_ids).update(is_managed=False)
+
+        email_unlink_notifications.delay(organization.id, request.user.id, auth_provider.provider)
         auth_provider.delete()
 
     def handle_existing_provider(self, request, organization, auth_provider):
@@ -92,7 +96,7 @@ class OrganizationAuthSettingsView(OrganizationView):
                 next_uri = reverse('sentry-organization-auth-settings', args=[organization.slug])
                 return self.redirect(next_uri)
             elif op == 'reinvite':
-                email_missing_links.delay(organization_id=organization.id)
+                email_missing_links.delay(organization.id, request.user.id, provider.key)
 
                 messages.add_message(
                     request,

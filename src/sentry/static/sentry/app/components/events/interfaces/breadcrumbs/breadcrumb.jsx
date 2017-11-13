@@ -8,12 +8,12 @@ import DefaultRenderer from './defaultRenderer';
 
 const CUSTOM_RENDERERS = {
   http: HttpRenderer,
-  error: ErrorRenderer
+  error: ErrorRenderer,
 };
 
 const Breadcrumb = React.createClass({
   propTypes: {
-    crumb: PropTypes.object.isRequired
+    crumb: PropTypes.object.isRequired,
   },
 
   getClassName() {
@@ -58,7 +58,7 @@ const Breadcrumb = React.createClass({
         {this.renderType()}
       </li>
     );
-  }
+  },
 });
 
 export default Breadcrumb;

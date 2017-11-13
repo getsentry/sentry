@@ -9,7 +9,7 @@ const RoleSelect = React.createClass({
   propTypes: {
     selectedRole: PropTypes.string,
     roleList: PropTypes.array,
-    setRole: PropTypes.func
+    setRole: PropTypes.func,
   },
 
   render() {
@@ -18,7 +18,7 @@ const RoleSelect = React.createClass({
     return (
       <div className="new-invite-team box">
         <div className="box-header">
-          <h4>{t('Role') + ':'}</h4>
+          <h4>{t('Role')}</h4>
         </div>
         <div className="box-content with-padding">
           <ul className="radio-inputs">
@@ -29,7 +29,8 @@ const RoleSelect = React.createClass({
                   className="radio"
                   key={id}
                   onClick={() => allowed && this.props.setRole(id)}
-                  style={allowed ? {} : {color: 'grey', cursor: 'default'}}>
+                  style={allowed ? {} : {color: 'grey', cursor: 'default'}}
+                >
                   <label style={allowed ? {} : {cursor: 'default'}}>
                     <Radio id={id} value={name} checked={id === selectedRole} readOnly />
                     {name}
@@ -42,7 +43,7 @@ const RoleSelect = React.createClass({
         </div>
       </div>
     );
-  }
+  },
 });
 
 export default RoleSelect;

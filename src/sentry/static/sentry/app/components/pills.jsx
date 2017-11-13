@@ -9,7 +9,7 @@ const Pills = React.createClass({
         {children}
       </div>
     );
-  }
+  },
 });
 
 export default Pills;

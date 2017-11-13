@@ -141,7 +141,7 @@ def is_newest_frame_first(event):
 
 
 def is_url(filename):
-    return filename.startswith(('file:', 'http:', 'https:'))
+    return filename.startswith(('file:', 'http:', 'https:', 'applewebdata:'))
 
 
 def remove_function_outliers(function):
@@ -370,7 +370,7 @@ class Frame(Interface):
 
         return cls(**kwargs)
 
-    def _get_processed_hash(self, platform=None):
+    def get_hash(self, platform=None):
         """
         The hash of the frame varies depending on the data available.
 
@@ -428,30 +428,6 @@ class Frame(Interface):
         elif self.lineno is not None:
             output.append(self.lineno)
         return output
-
-    def _get_unprocessed_hash(self, platform=None):
-        from sentry.filters.preprocess_hashes import UnableToGenerateHash
-
-        platform = self.platform or platform
-        # TODO(jess): consider special casing mobile/native
-        if platform == 'javascript':
-            # Safari throws [native code] frames in for calls like ``forEach``
-            # whereas Chrome ignores these. Let's remove it from the hashing algo
-            # so that they're more likely to group together
-            if self.filename == '[native code]':
-                return []
-
-            attrs = [self.filename, self.function, self.colno, self.lineno]
-            if all(attrs):
-                return attrs
-            raise UnableToGenerateHash
-        else:
-            return self._get_processed_hash(platform=platform)
-
-    def get_hash(self, platform=None, is_processed_data=True):
-        if is_processed_data:
-            return self._get_processed_hash(platform=platform)
-        return self._get_unprocessed_hash(platform=platform)
 
     def get_api_context(self, is_public=False, pad_addr=None):
         data = {
@@ -758,7 +734,7 @@ class Stacktrace(Interface):
 
         return [system_hash, app_hash]
 
-    def get_hash(self, platform=None, system_frames=True, is_processed_data=True):
+    def get_hash(self, platform=None, system_frames=True):
         frames = self.frames
 
         # TODO(dcramer): this should apply only to platform=javascript
@@ -783,7 +759,7 @@ class Stacktrace(Interface):
 
         output = []
         for frame in frames:
-            output.extend(frame.get_hash(platform, is_processed_data=is_processed_data))
+            output.extend(frame.get_hash(platform))
         return output
 
     def to_string(self, event, is_public=False, **kwargs):

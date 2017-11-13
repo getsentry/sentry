@@ -15,7 +15,7 @@ const GroupTags = React.createClass({
     return {
       tagList: null,
       loading: true,
-      error: false
+      error: false,
     };
   },
 
@@ -26,7 +26,7 @@ const GroupTags = React.createClass({
   fetchData() {
     this.setState({
       loading: true,
-      error: false
+      error: false,
     });
 
     // TODO(dcramer): each tag should be a separate query as the tags endpoint
@@ -39,7 +39,7 @@ const GroupTags = React.createClass({
         this.setState({
           tagList: data,
           error: false,
-          loading: false
+          loading: false,
         });
       },
       error: error => {
@@ -48,9 +48,9 @@ const GroupTags = React.createClass({
         }
         this.setState({
           error: true,
-          loading: false
+          loading: false,
         });
-      }
+      },
     });
   },
 
@@ -81,8 +81,9 @@ const GroupTags = React.createClass({
                 className="tag-bar"
                 to={{
                   pathname: `/${orgId}/${projectId}/issues/${groupId}/events/`,
-                  query: {query: tag.key + ':' + '"' + tagValue.value + '"'}
-                }}>
+                  query: {query: tag.key + ':' + '"' + tagValue.value + '"'},
+                }}
+              >
                 <span className="tag-bar-background" style={{width: pct + '%'}} />
                 <span className="tag-bar-label">{deviceNameMapper(tagValue.name)}</span>
                 <span className="tag-bar-count">
@@ -100,7 +101,8 @@ const GroupTags = React.createClass({
                 <span className="pull-right">
                   <Link
                     className="btn btn-default btn-sm"
-                    to={`/${orgId}/${projectId}/issues/${groupId}/tags/${tag.key}/`}>
+                    to={`/${orgId}/${projectId}/issues/${groupId}/tags/${tag.key}/`}
+                  >
                     {t('More Details')}
                   </Link>
                 </span>
@@ -127,7 +129,7 @@ const GroupTags = React.createClass({
         </div>
       </div>
     );
-  }
+  },
 });
 
 export default GroupTags;

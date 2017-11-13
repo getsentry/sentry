@@ -17,7 +17,7 @@ const ProjectUserReports = React.createClass({
   propTypes: {
     defaultQuery: PropTypes.string,
     defaultStatus: PropTypes.string,
-    setProjectNavSection: PropTypes.func
+    setProjectNavSection: PropTypes.func,
   },
 
   mixins: [ApiMixin],
@@ -25,7 +25,7 @@ const ProjectUserReports = React.createClass({
   getDefaultProps() {
     return {
       defaultQuery: '',
-      defaultStatus: 'unresolved'
+      defaultStatus: 'unresolved',
     };
   },
 
@@ -37,7 +37,7 @@ const ProjectUserReports = React.createClass({
       pageLinks: '',
       query: this.props.defaultQuery,
       status: this.props.defaultStatus,
-      ...this.getQueryStringState(this.props)
+      ...this.getQueryStringState(this.props),
     };
   },
 
@@ -62,7 +62,7 @@ const ProjectUserReports = React.createClass({
       : this.props.defaultQuery;
     return {
       query,
-      status
+      status,
     };
   },
 
@@ -83,7 +83,7 @@ const ProjectUserReports = React.createClass({
   fetchData() {
     this.setState({
       loading: true,
-      error: false
+      error: false,
     });
 
     this.api.request(this.getEndpoint(), {
@@ -94,15 +94,15 @@ const ProjectUserReports = React.createClass({
           error: false,
           loading: false,
           reportList: data,
-          pageLinks: jqXHR.getResponseHeader('Link')
+          pageLinks: jqXHR.getResponseHeader('Link'),
         });
       },
       error: () => {
         this.setState({
           error: true,
-          loading: false
+          loading: false,
         });
-      }
+      },
     });
   },
 
@@ -112,10 +112,12 @@ const ProjectUserReports = React.createClass({
       ...this.props.location.query,
       limit: 50,
       query: this.state.query,
-      status: this.state.status
+      status: this.state.status,
     };
 
-    return `/projects/${params.orgId}/${params.projectId}/user-reports/?${jQuery.param(queryParams)}`;
+    return `/projects/${params.orgId}/${params.projectId}/user-reports/?${jQuery.param(
+      queryParams
+    )}`;
   },
 
   getUserReportsUrl() {
@@ -180,7 +182,8 @@ const ProjectUserReports = React.createClass({
           id={issue.id}
           data={issue}
           orgId={orgId}
-          projectId={projectId}>
+          projectId={projectId}
+        >
           <div className="activity-container" style={{margin: '10px 0 5px'}}>
             <ul className="activity">
               <li className="activity-note" style={{paddingBottom: 0}}>
@@ -199,11 +202,7 @@ const ProjectUserReports = React.createClass({
       );
     });
 
-    return (
-      <ul className="issue-list">
-        {children}
-      </ul>
-    );
+    return <ul className="issue-list">{children}</ul>;
   },
 
   render() {
@@ -221,25 +220,28 @@ const ProjectUserReports = React.createClass({
                 to={path}
                 className={
                   'btn btn-sm btn-default' + (status === 'unresolved' ? ' active' : '')
-                }>
+                }
+              >
                 {t('Unresolved')}
               </Link>
               <Link
                 to={{pathname: path, query: {status: ''}}}
-                className={'btn btn-sm btn-default' + (status === '' ? ' active' : '')}>
+                className={'btn btn-sm btn-default' + (status === '' ? ' active' : '')}
+              >
                 {t('All Issues')}
               </Link>
             </div>
           </div>
         </div>
         <div className="alert alert-block alert-info">
-          Psst! This feature is still a work-in-progress. Thanks for being an early adopter!
+          Psst! This feature is still a work-in-progress. Thanks for being an early
+          adopter!
         </div>
         {this.renderStreamBody()}
         <Pagination pageLinks={this.state.pageLinks} />
       </div>
     );
-  }
+  },
 });
 
 export default ProjectUserReports;

@@ -18,7 +18,7 @@ const GroupUserReports = React.createClass({
       loading: true,
       error: false,
       reportList: [],
-      pageLinks: ''
+      pageLinks: '',
     };
   },
 
@@ -38,7 +38,7 @@ const GroupUserReports = React.createClass({
 
     this.setState({
       loading: true,
-      error: false
+      error: false,
     });
 
     this.api.request('/issues/' + this.getGroup().id + '/user-reports/?' + querystring, {
@@ -47,15 +47,15 @@ const GroupUserReports = React.createClass({
           error: false,
           loading: false,
           reportList: data,
-          pageLinks: jqXHR.getResponseHeader('Link')
+          pageLinks: jqXHR.getResponseHeader('Link'),
         });
       },
       error: error => {
         this.setState({
           error: true,
-          loading: false
+          loading: false,
         });
-      }
+      },
     });
   },
 
@@ -80,7 +80,9 @@ const GroupUserReports = React.createClass({
           <Avatar user={item} size={64} className="avatar" />
           <div className="activity-bubble">
             <TimeSince date={item.dateCreated} />
-            <div className="activity-author">{item.name} <small>{item.email}</small></div>
+            <div className="activity-author">
+              {item.name} <small>{item.email}</small>
+            </div>
             <p dangerouslySetInnerHTML={{__html: body}} />
           </div>
         </li>
@@ -92,9 +94,7 @@ const GroupUserReports = React.createClass({
         <div className="row">
           <div className="col-md-9">
             <div className="activity-container">
-              <ul className="activity">
-                {children}
-              </ul>
+              <ul className="activity">{children}</ul>
             </div>
           </div>
         </div>
@@ -111,7 +111,7 @@ const GroupUserReports = React.createClass({
         </p>
       </div>
     );
-  }
+  },
 });
 
 export default GroupUserReports;

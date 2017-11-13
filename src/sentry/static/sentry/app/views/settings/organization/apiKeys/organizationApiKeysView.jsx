@@ -12,7 +12,7 @@ import OrganizationSettingsView from '../../../organizationSettingsView';
 
 class OrganizationApiKeysView extends OrganizationSettingsView {
   static contextTypes = {
-    organization: SentryTypes.Organization
+    organization: SentryTypes.Organization,
   };
 
   getEndpoints() {
@@ -31,19 +31,19 @@ class OrganizationApiKeysView extends OrganizationSettingsView {
       data: {},
       success: data => {
         this.setState(state => ({
-          keys: state.keys.filter(({id: existingId}) => existingId !== id)
+          keys: state.keys.filter(({id: existingId}) => existingId !== id),
         }));
       },
       error: () => {
         this.setState({busy: false});
-      }
+      },
     });
   };
 
   handleAddApiKey = () => {
     const api = new Client();
     this.setState({
-      busy: true
+      busy: true,
     });
     api.request(`/organizations/${this.props.params.orgId}/api-keys/`, {
       method: 'POST',
@@ -56,7 +56,7 @@ class OrganizationApiKeysView extends OrganizationSettingsView {
       },
       error: () => {
         this.setState({busy: false});
-      }
+      },
     });
   };
 
@@ -73,29 +73,27 @@ class OrganizationApiKeysView extends OrganizationSettingsView {
             priority="primary"
             busy={this.state.busy}
             disabled={this.state.busy}
-            onClick={this.handleAddApiKey}>
+            onClick={this.handleAddApiKey}
+          >
             New API Key
           </Button>
         </SpreadLayout>
 
         <p>
-          API keys grant access to the
-          {' '}
+          API keys grant access to the{' '}
           <a target="_blank" rel="nofollow" href="https://docs.sentry.io/hosted/api/">
             developer web API
           </a>
-          . If you're looking to configure a Sentry client, you'll need a client key which is available in your project settings.
+          . If you're looking to configure a Sentry client, you'll need a client key which
+          is available in your project settings.
         </p>
 
         <div className="alert alert-block alert-info">
-          psst. Until Sentry supports OAuth, you might want to switch to using
-          {' '}
-          <Link to="/api/">Auth Tokens</Link>
-          {' '}
-          instead.
+          psst. Until Sentry supports OAuth, you might want to switch to using{' '}
+          <Link to="/api/">Auth Tokens</Link> instead.
         </div>
 
-        {keyList &&
+        {keyList && (
           <table className="table api-key-list">
             <colgroup>
               <col style={{width: '40%'}} />
@@ -104,14 +102,13 @@ class OrganizationApiKeysView extends OrganizationSettingsView {
             </colgroup>
             <tbody>
               {keyList.map(({id, key, label}) => {
-                let apiDetailsUrl = `/organizations/${this.props.params.orgId}/api-keys/${id}`;
+                let apiDetailsUrl = `/organizations/${this.props.params
+                  .orgId}/api-keys/${id}`;
                 return (
                   <tr key={key}>
                     <td>
                       <h5>
-                        <Link to={apiDetailsUrl}>
-                          {label}
-                        </Link>
+                        <Link to={apiDetailsUrl}>{label}</Link>
                       </h5>
                     </td>
                     <td>
@@ -121,14 +118,16 @@ class OrganizationApiKeysView extends OrganizationSettingsView {
                       <Link
                         to={apiDetailsUrl}
                         className="btn btn-default btn-sm"
-                        style={{marginRight: 4}}>
+                        style={{marginRight: 4}}
+                      >
                         Edit Key
                       </Link>
                       <LinkWithConfirmation
                         className="btn btn-default btn-sm"
                         onConfirm={this.handleRemove.bind(this, id)}
                         message="Are you sure you want to remove this API key?"
-                        title="Remove API Key?">
+                        title="Remove API Key?"
+                      >
                         <span className="icon-trash" />
                       </LinkWithConfirmation>
                     </td>
@@ -136,13 +135,14 @@ class OrganizationApiKeysView extends OrganizationSettingsView {
                 );
               })}
             </tbody>
-          </table>}
+          </table>
+        )}
 
-        {!keyList &&
+        {!keyList && (
           <div className="blankslate well">
             There are no API keys for this organization.
-          </div>}
-
+          </div>
+        )}
       </div>
     );
   }

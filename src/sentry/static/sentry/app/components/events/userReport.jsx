@@ -6,7 +6,7 @@ import utils from '../../utils';
 
 const EventUserReport = React.createClass({
   propTypes: {
-    event: PropTypes.object.isRequired
+    event: PropTypes.object.isRequired,
   },
 
   render() {
@@ -25,7 +25,7 @@ const EventUserReport = React.createClass({
                 </div>
                 <p
                   dangerouslySetInnerHTML={{
-                    __html: utils.nl2br(utils.urlize(utils.escape(report.comments)))
+                    __html: utils.nl2br(utils.urlize(utils.escape(report.comments))),
                   }}
                 />
               </div>
@@ -34,7 +34,7 @@ const EventUserReport = React.createClass({
         </div>
       </div>
     );
-  }
+  },
 });
 
 export default EventUserReport;

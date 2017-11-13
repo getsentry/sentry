@@ -6,9 +6,7 @@ import AsyncView from './asyncView';
 class OrganizationSettingsView extends AsyncView {
   render() {
     return (
-      <DocumentTitle title={this.getTitle()}>
-        {this.renderComponent()}
-      </DocumentTitle>
+      <DocumentTitle title={this.getTitle()}>{this.renderComponent()}</DocumentTitle>
     );
   }
 }

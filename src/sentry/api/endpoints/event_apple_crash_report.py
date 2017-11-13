@@ -38,7 +38,7 @@ class EventAppleCrashReportEndpoint(Endpoint):
 
         Event.objects.bind_nodes([event], 'data')
 
-        if event.platform != 'cocoa':
+        if event.platform not in ('cocoa', 'native'):
             return HttpResponse(
                 {
                     'message': 'Only cocoa events can return an apple crash report',

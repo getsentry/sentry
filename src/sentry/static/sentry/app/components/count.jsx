@@ -3,7 +3,7 @@ import React from 'react';
 
 export default React.createClass({
   propTypes: {
-    value: PropTypes.any.isRequired
+    value: PropTypes.any.isRequired,
   },
 
   shouldComponentUpdate(nextProps, nextState) {
@@ -40,5 +40,5 @@ export default React.createClass({
     let {value, className} = this.props;
 
     return <span className={className}>{this.formatNumber(value)}</span>;
-  }
+  },
 });

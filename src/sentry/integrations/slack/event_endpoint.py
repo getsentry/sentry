@@ -41,7 +41,7 @@ class SlackEventEndpoint(Endpoint):
 
     def _attachment_for(self, group):
         return {
-            'fallback': '[{}] {}'.format(group.project.slug, group.title),
+            'fallback': u'[{}] {}'.format(group.project.slug, group.title),
             'title': group.title,
             'title_link': self._add_notification_referrer_param(group.get_absolute_url()),
         }

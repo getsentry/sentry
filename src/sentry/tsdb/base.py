@@ -28,21 +28,13 @@ class TSDBModel(Enum):
 
     # number of events seen specific to grouping
     project = 1
-    project_tag_key = 2
-    project_tag_value = 3
     group = 4
-    group_tag_key = 5
-    group_tag_value = 6
     release = 7
 
     # the number of events sent to the server
     project_total_received = 100
     # the number of events rejected due to rate limiting
     project_total_rejected = 101
-    # the number of operations
-    project_operations = 102
-    # the number of operations with an error state
-    project_operation_errors = 103
     # the number of events blocked due to being blacklisted
     project_total_blacklisted = 104
     # the number of events forwarded to third party processors (data forwarding)
@@ -101,6 +93,8 @@ class TSDBModel(Enum):
     project_total_received_invalid_csp = 608
     # the number of events filtered by invalid origin
     project_total_received_cors = 609
+    # the number of events filtered because their group was discarded
+    project_total_received_discarded = 610
 
 
 class BaseTSDB(Service):
@@ -110,6 +104,14 @@ class BaseTSDB(Service):
     )
 
     models = TSDBModel
+
+    models_with_environment_support = frozenset([
+        models.project,
+        models.group,
+        models.release,
+        models.users_affected_by_group,
+        models.users_affected_by_project,
+    ])
 
     def __init__(self, rollups=None, legacy_rollups=None):
         if rollups is None:
@@ -125,6 +127,12 @@ class BaseTSDB(Service):
             legacy_rollups = getattr(settings, 'SENTRY_TSDB_LEGACY_ROLLUPS', {})
 
         self.__legacy_rollups = legacy_rollups
+
+    def validate_arguments(self, models, environment_ids):
+        if any(e is not None for e in environment_ids):
+            unsupported_models = set(models) - self.models_with_environment_support
+            if unsupported_models:
+                raise ValueError('not all models support environment parameters')
 
     def get_rollups(self):
         return self.rollups

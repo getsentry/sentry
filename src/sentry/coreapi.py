@@ -472,7 +472,7 @@ class ClientApiHelper(object):
 
         if 'fingerprint' in data:
             try:
-                self._process_fingerprint(data)
+                data['fingerprint'] = self._process_fingerprint(data)
             except InvalidFingerprint as e:
                 self.log.debug(
                     'Discarded invalid value for fingerprint: %r',
@@ -838,7 +838,9 @@ class ClientApiHelper(object):
             data.setdefault('sentry.interfaces.User', {})[
                 'ip_address'] = ip_address
 
-    def insert_data_to_database(self, data, from_reprocessing=False):
+    def insert_data_to_database(self, data, start_time=None, from_reprocessing=False):
+        if start_time is None:
+            start_time = time()
         # we might be passed LazyData
         if isinstance(data, LazyData):
             data = dict(data.items())
@@ -846,7 +848,7 @@ class ClientApiHelper(object):
         default_cache.set(cache_key, data, timeout=3600)
         task = from_reprocessing and \
             preprocess_event_from_reprocessing or preprocess_event
-        task.delay(cache_key=cache_key, start_time=time(),
+        task.delay(cache_key=cache_key, start_time=start_time,
                    event_id=data['event_id'])
 
 
@@ -904,7 +906,7 @@ class MinidumpApiHelper(ClientApiHelper):
 
         return validated
 
-    def insert_data_to_database(self, data, from_reprocessing=False):
+    def insert_data_to_database(self, data, start_time=None, from_reprocessing=False):
         # Seems like the event is valid and we can do some more expensive
         # work on the minidump. That is, persisting the file itself for
         # later postprocessing and extracting some more information from
@@ -924,7 +926,7 @@ class MinidumpApiHelper(ClientApiHelper):
         # Continue with persisting the event in the usual manner and
         # schedule default preprocessing tasks
         super(MinidumpApiHelper, self).insert_data_to_database(
-            data, from_reprocessing)
+            data, start_time, from_reprocessing)
 
 
 class CspApiHelper(ClientApiHelper):

@@ -7,7 +7,6 @@ sentry.event_manager
 """
 from __future__ import absolute_import, print_function
 
-import functools
 import logging
 import math
 import six
@@ -37,6 +36,7 @@ from sentry.plugins import plugins
 from sentry.signals import first_event_received, regression_signal
 from sentry.tasks.merge import merge_group
 from sentry.tasks.post_process import post_process_group
+from sentry.utils import metrics
 from sentry.utils.cache import default_cache
 from sentry.utils.db import get_db_engine
 from sentry.utils.safe import safe_execute, trim, trim_dict
@@ -103,9 +103,9 @@ def get_grouping_behavior(event):
     return ('fingerprint', get_hashes_from_fingerprint_with_reason(event, fingerprint))
 
 
-def _get_hashes_from_fingerprint(get_hash_inputs, fingerprint):
+def get_hashes_from_fingerprint(event, fingerprint):
     if any(d in fingerprint for d in DEFAULT_FINGERPRINT_VALUES):
-        default_hashes = get_hash_inputs()
+        default_hashes = get_hashes_for_event(event)
         hash_count = len(default_hashes)
     else:
         hash_count = 1
@@ -120,13 +120,6 @@ def _get_hashes_from_fingerprint(get_hash_inputs, fingerprint):
                 result.append(bit)
         hashes.append(result)
     return hashes
-
-
-def get_hashes_from_fingerprint(event, fingerprint):
-    return _get_hashes_from_fingerprint(
-        functools.partial(get_hashes_for_event, event),
-        fingerprint,
-    )
 
 
 def get_hashes_from_fingerprint_with_reason(event, fingerprint):
@@ -289,6 +282,7 @@ class EventManager(object):
             data['event_id'] = uuid4().hex
 
         data.setdefault('culprit', None)
+        data.setdefault('transaction', None)
         data.setdefault('server_name', None)
         data.setdefault('site', None)
         data.setdefault('checksum', None)
@@ -408,6 +402,9 @@ class EventManager(object):
         if data['culprit']:
             data['culprit'] = trim(data['culprit'], MAX_CULPRIT_LENGTH)
 
+        if data['transaction']:
+            data['transaction'] = trim(data['transaction'], MAX_CULPRIT_LENGTH)
+
         return data
 
     def save(self, project, raw=False):
@@ -421,7 +418,9 @@ class EventManager(object):
         event_id = data.pop('event_id')
         level = data.pop('level')
 
-        culprit = data.pop('culprit', None)
+        culprit = data.pop('transaction', None)
+        if not culprit:
+            culprit = data.pop('culprit', None)
         logger_name = data.pop('logger', None)
         server_name = data.pop('server_name', None)
         site = data.pop('site', None)
@@ -870,6 +869,12 @@ class EventManager(object):
                     ).values_list('id', flat=True).first() if first_release else None,
                     **kwargs
                 ), True
+
+            metrics.incr(
+                'group.created',
+                skip_internal=True,
+                tags={'platform': event.platform or 'unknown'}
+            )
 
         else:
             group = Group.objects.get(id=existing_group_id)

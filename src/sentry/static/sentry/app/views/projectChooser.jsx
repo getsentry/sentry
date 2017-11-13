@@ -70,9 +70,7 @@ const ProjectChooser = React.createClass({
             </div>
             <div className="box-content">
               <table className="table">
-                <tbody>
-                  {projectList}
-                </tbody>
+                <tbody>{projectList}</tbody>
               </table>
             </div>
           </div>
@@ -83,12 +81,10 @@ const ProjectChooser = React.createClass({
     return (
       <div className="container">
         <h3>{t('Choose a project')}</h3>
-        <div className="team-list">
-          {teamProjectList}
-        </div>
+        <div className="team-list">{teamProjectList}</div>
       </div>
     );
-  }
+  },
 });
 
 export default ProjectChooser;

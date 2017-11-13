@@ -19,7 +19,7 @@ const Popular = [
   'ruby',
   'node',
   'cocoa',
-  'javascript-angular'
+  'javascript-angular',
 ];
 
 const Frontend = [
@@ -29,7 +29,7 @@ const Frontend = [
   'javascript-angularjs',
   'javascript-backbone',
   'javascript-ember',
-  'javascript-vue'
+  'javascript-vue',
 ];
 
 const Mobile = ['objc', 'swift', 'java-android', 'cocoa'];
@@ -64,14 +64,14 @@ const Backend = [
   'ruby',
   'ruby-rails',
   'ruby-rack',
-  'exilir'
+  'exilir',
 ];
 
 const categoryLists = {
   Popular,
   Frontend,
   Mobile,
-  Backend
+  Backend,
 };
 
 const additional = platforms.concat({
@@ -80,11 +80,11 @@ const additional = platforms.concat({
       link: 'https://docs.getsentry.com/hosted/clients/',
       type: 'language',
       id: 'other',
-      name: 'Other'
-    }
+      name: 'Other',
+    },
   ],
   id: 'other',
-  name: 'Other'
+  name: 'Other',
 });
 
 const flattenedPlatforms = [].concat(
@@ -101,7 +101,7 @@ const onboardingSteps = {organization: 0, project: 1, configure: 2};
 const stepDescriptions = {
   organization: 'Create an organization in Sentry',
   project: 'Tell us about your project',
-  configure: 'Configure your application and send an event'
+  configure: 'Configure your application and send an event',
 };
 
 function getPlatformName(platform) {
@@ -114,5 +114,5 @@ export {
   stepDescriptions,
   flattenedPlatforms,
   categoryLists,
-  getPlatformName
+  getPlatformName,
 };

@@ -21,15 +21,15 @@ class EventOrGroupHeader extends React.Component {
       title: PropTypes.string,
       metadata: Metadata,
       groupID: PropTypes.string,
-      culprit: PropTypes.string
+      culprit: PropTypes.string,
     }),
     includeLink: PropTypes.bool,
     hideIcons: PropTypes.bool,
-    hideLevel: PropTypes.bool
+    hideLevel: PropTypes.bool,
   };
 
   static defaultProps = {
-    includeLink: true
+    includeLink: true,
   };
 
   getMessage() {
@@ -54,7 +54,9 @@ class EventOrGroupHeader extends React.Component {
     let props = {};
     let Wrapper;
     if (includeLink) {
-      props.to = `/${orgId}/${projectId}/issues/${isEvent ? groupID : id}/${isEvent ? `events/${data.id}/` : ''}`;
+      props.to = `/${orgId}/${projectId}/issues/${isEvent ? groupID : id}/${isEvent
+        ? `events/${data.id}/`
+        : ''}`;
       Wrapper = Link;
     } else {
       Wrapper = 'span';
@@ -77,13 +79,12 @@ class EventOrGroupHeader extends React.Component {
 
     return (
       <div className={cx}>
-        <h3 className="truncate">
-          {this.getTitle()}
-        </h3>
-        {message &&
+        <h3 className="truncate">{this.getTitle()}</h3>
+        {message && (
           <div className="event-message truncate">
             <span className="message">{message}</span>
-          </div>}
+          </div>
+        )}
       </div>
     );
   }

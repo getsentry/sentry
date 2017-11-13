@@ -9,7 +9,7 @@ describe('StackedBarChart', function() {
       let points = [
         {x: 1439766000, y: [10]},
         {x: 1439769600, y: [20]},
-        {x: 1439773200, y: [30]}
+        {x: 1439773200, y: [30]},
       ];
 
       let wrapper = shallow(<StackedBarChart points={points} />);
@@ -25,11 +25,11 @@ describe('StackedBarChart', function() {
       let points = [
         {x: 1439769600, y: [10]},
         {x: 1439773200, y: [20]},
-        {x: 1439776800, y: [30]}
+        {x: 1439776800, y: [30]},
       ];
       let markers = [
         {x: 1439769600, className: 'first-seen', label: 'first seen'}, // matches first point
-        {x: 1439776800, className: 'last-seen', label: 'last seen'} // matches last point
+        {x: 1439776800, className: 'last-seen', label: 'last seen'}, // matches last point
       ];
 
       let wrapper = shallow(<StackedBarChart points={points} markers={markers} />);
@@ -49,7 +49,7 @@ describe('StackedBarChart', function() {
       let points = [{x: 1439776800, y: [30]}];
       let markers = [
         {x: 1439776800, className: 'first-seen', label: 'first seen'},
-        {x: 1439776800, className: 'last-seen', label: 'last seen'}
+        {x: 1439776800, className: 'last-seen', label: 'last seen'},
       ];
 
       let wrapper = shallow(<StackedBarChart points={points} markers={markers} />);

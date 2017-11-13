@@ -8,34 +8,54 @@ import ConfigStore from '../stores/configStore';
 const DateTime = React.createClass({
   propTypes: {
     date: PropTypes.any.isRequired,
-    seconds: PropTypes.bool
+    dateOnly: PropTypes.bool,
+    seconds: PropTypes.bool,
   },
 
   getDefaultProps() {
     return {
-      seconds: true
+      seconds: true,
     };
   },
 
-  getDefaultFormat() {
-    return this.props.seconds ? 'll LTS z' : 'lll';
+  getFormat({clock24Hours}) {
+    let {dateOnly, seconds} = this.props;
+
+    // October 26, 2017
+    if (dateOnly) {
+      return 'LL';
+    }
+
+    if (clock24Hours) {
+      return 'MMMM D YYYY HH:mm:ss z';
+    }
+
+    // Oct 26, 2017 11:30:30 AM
+    if (seconds) {
+      return 'll LTS z';
+    }
+
+    // Default is Oct 26, 2017 11:30 AM
+    return 'lll';
   },
 
   render() {
-    let date = this.props.date;
+    let {
+      date,
+      // eslint-disable-next-line no-unused-vars
+      seconds,
+      ...carriedProps
+    } = this.props;
     let user = ConfigStore.get('user');
     let options = user ? user.options : {};
-    let format = options.clock24Hours
-      ? 'MMMM D YYYY HH:mm:ss z'
-      : this.getDefaultFormat();
+    let format = this.getFormat(options);
 
     if (_.isString(date) || _.isNumber(date)) {
       date = new Date(date);
     }
 
-    let carriedProps = _.omit(this.props, 'date', 'seconds');
     return <time {...carriedProps}>{moment(date).format(format)}</time>;
-  }
+  },
 });
 
 export default DateTime;

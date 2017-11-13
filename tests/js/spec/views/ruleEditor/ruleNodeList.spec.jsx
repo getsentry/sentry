@@ -9,14 +9,15 @@ describe('RuleNodeList', function() {
       {
         id: 'sentry.rules.conditions.every_event.EveryEventCondition',
         label: 'An event is seen',
-        html: 'An event is seen'
+        html: 'An event is seen',
       },
       {
         id: 'sentry.rules.conditions.event_frequency.EventFrequencyCondition',
         label: 'An event is seen more than {value} times in {interval}',
-        html: 'An event is seen more than <input id="id_value" name="value" placeholder="100" type="number" /> times ' +
-          'in <select id="id_interval" name="interval">↵<option value="1m">one minute</option>↵<option value="1h">one hour</option>↵</select>'
-      }
+        html:
+          'An event is seen more than <input id="id_value" name="value" placeholder="100" type="number" /> times ' +
+          'in <select id="id_interval" name="interval">↵<option value="1m">one minute</option>↵<option value="1h">one hour</option>↵</select>',
+      },
     ];
   });
 
@@ -26,11 +27,11 @@ describe('RuleNodeList', function() {
         {
           id: 'sentry.rules.conditions.event_frequency.EventFrequencyCondition',
           value: 50,
-          interval: '1m'
+          interval: '1m',
         },
         {
-          id: 'sentry.rules.conditions.every_event.EveryEventCondition'
-        }
+          id: 'sentry.rules.conditions.every_event.EveryEventCondition',
+        },
       ];
 
       let wrapper = shallow(
@@ -48,18 +49,18 @@ describe('RuleNodeList', function() {
       let wrapper = shallow(<RuleNodeList nodes={this.sampleNodes} />);
 
       wrapper.setState({
-        counter: 5
+        counter: 5,
       });
 
       wrapper.instance().onAddRow({
         val: function() {
           return 'sentry.rules.conditions.every_event.EveryEventCondition';
-        }
+        },
       });
 
       expect(wrapper.state('items')[0]).toEqual({
         id: 'sentry.rules.conditions.every_event.EveryEventCondition',
-        key_attr: 5
+        key_attr: 5,
       });
       expect(wrapper.state('counter')).toEqual(6);
     });

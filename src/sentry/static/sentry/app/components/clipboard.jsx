@@ -17,13 +17,13 @@ class Clipboard extends React.Component {
      */
     hideUnsupported: PropTypes.bool,
     onSuccess: PropTypes.func,
-    onError: PropTypes.func
+    onError: PropTypes.func,
   };
 
   static defaultProps = {
     hideMessages: false,
     successMessage: 'Copied to clipboard',
-    errorMessage: 'Error copying to clipboard'
+    errorMessage: 'Error copying to clipboard',
   };
 
   componentWillUnmount() {
@@ -41,7 +41,7 @@ class Clipboard extends React.Component {
     let bindEventHandlers = !hideMessages || hasSuccessCb || hasErrorCb;
 
     this.clipboard = new Clip(ReactDOM.findDOMNode(ref), {
-      text: () => this.props.value
+      text: () => this.props.value,
     });
 
     if (!bindEventHandlers) return;
@@ -74,7 +74,7 @@ class Clipboard extends React.Component {
     }
 
     return React.cloneElement(children, {
-      ref: this.handleMount
+      ref: this.handleMount,
     });
   }
 }

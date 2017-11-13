@@ -6,7 +6,7 @@ const Pill = React.createClass({
   propTypes: {
     className: PropTypes.string,
     name: PropTypes.string,
-    value: PropTypes.any
+    value: PropTypes.any,
   },
 
   renderValue() {
@@ -35,10 +35,13 @@ const Pill = React.createClass({
     return (
       <li className={classNames(className, extraClass)} {...props}>
         <span className="key">{name}</span>
-        <span className="value">{renderedValue}{children}</span>
+        <span className="value">
+          {renderedValue}
+          {children}
+        </span>
       </li>
     );
-  }
+  },
 });
 
 export default Pill;

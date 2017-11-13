@@ -30,7 +30,8 @@ const InviteMember = React.createClass({
       selectedRole: 'member',
       email: '',
       loading: true,
-      error: undefined
+      busy: false,
+      error: undefined,
     };
   },
 
@@ -47,9 +48,9 @@ const InviteMember = React.createClass({
       },
       error: error => {
         Raven.captureMessage('data fetch error ', {
-          extra: {error, state: this.state}
+          extra: {error, state: this.state},
         });
-      }
+      },
     });
   },
 
@@ -59,7 +60,10 @@ const InviteMember = React.createClass({
   },
 
   splitEmails(text) {
-    return text.split(',').map(e => e.trim()).filter(e => e);
+    return text
+      .split(',')
+      .map(e => e.trim())
+      .filter(e => e);
   },
 
   inviteUser(email) {
@@ -73,26 +77,32 @@ const InviteMember = React.createClass({
           email,
           user: email,
           teams: Array.from(selectedTeams.keys()),
-          role: selectedRole
+          role: selectedRole,
         },
         success: () => {
           AlertActions.addAlert({
             message: `Added ${email}`,
-            type: 'success'
+            type: 'success',
           });
           resolve();
         },
         error: err => {
-          if (err.status === 409) {
+          if (err.status === 403) {
+            AlertActions.addAlert({
+              message: "You aren't allowed to invite members.",
+              type: 'error',
+            });
+            reject(err.responseJSON);
+          } else if (err.status === 409) {
             AlertActions.addAlert({
               message: `User already exists: ${email}`,
-              type: 'info'
+              type: 'info',
             });
             resolve();
           } else {
             reject(err.responseJSON);
           }
-        }
+        },
       });
     });
   },
@@ -101,28 +111,31 @@ const InviteMember = React.createClass({
     let {email} = this.state;
     let emails = this.splitEmails(email);
     if (!emails.length) return;
-    this.setState({loading: true});
-
+    this.setState({busy: true});
     Promise.all(emails.map(this.inviteUser))
       .then(() => setTimeout(this.redirectToMemberPage, 3000))
       .catch(error => {
         if (!error.email && !error.role) {
           Raven.captureMessage('unkown error ', {
-            extra: {error, state: this.state}
+            extra: {error, state: this.state},
           });
         }
-        this.setState({error, loading: false});
+        this.setState({error, busy: false});
       });
   },
 
   toggleTeam(slug) {
-    let {selectedTeams} = this.state;
-    if (selectedTeams.has(slug)) {
-      selectedTeams.delete(slug);
-    } else {
-      selectedTeams.add(slug);
-    }
-    this.setState({selectedTeams});
+    this.setState(state => {
+      let {selectedTeams} = state;
+      if (selectedTeams.has(slug)) {
+        selectedTeams.delete(slug);
+      } else {
+        selectedTeams.add(slug);
+      }
+      return {
+        selectedTeams,
+      };
+    });
   },
 
   render() {
@@ -141,34 +154,44 @@ const InviteMember = React.createClass({
                 'You may add a user by their username if they already have an account. Multiple inputs delimited by commas.'
               )}
         </p>
-        <div className={classNames({'has-error': error && error.email})}>
-          {loading && <LoadingIndicator mini className="pull-right" />}
-          <TextField
-            name="email"
-            label={invitesEnabled ? t('Email') + '(s)' : t('Username') + '(s)'}
-            placeholder="e.g. teammate@example.com"
-            spellCheck="false"
-            onChange={v => this.setState({email: v})}
-          />
-          {error && error.email && <p className="error">{error.email}</p>}
-        </div>
-        {error && error.role && <p className="error alert-error">{error.role}</p>}
-        <RoleSelect
-          roleList={roleList}
-          selectedRole={selectedRole}
-          setRole={slug => this.setState({selectedRole: slug})}
-        />
-        <TeamSelect
-          teams={teams}
-          selectedTeams={selectedTeams}
-          toggleTeam={this.toggleTeam}
-        />
-        <Button priority="primary" className="invite-member-submit" onClick={this.submit}>
-          {t('Add Member')}
-        </Button>
+
+        {loading && <LoadingIndicator />}
+        {!loading && (
+          <div>
+            <div className={classNames({'has-error': error && error.email})}>
+              <TextField
+                name="email"
+                label={invitesEnabled ? t('Email') + '(s)' : t('Username') + '(s)'}
+                placeholder="e.g. teammate@example.com"
+                spellCheck="false"
+                onChange={v => this.setState({email: v})}
+              />
+              {error && error.email && <p className="error">{error.email}</p>}
+            </div>
+            {error && error.role && <p className="error alert-error">{error.role}</p>}
+            <RoleSelect
+              roleList={roleList}
+              selectedRole={selectedRole}
+              setRole={slug => this.setState({selectedRole: slug})}
+            />
+            <TeamSelect
+              teams={teams}
+              selectedTeams={selectedTeams}
+              toggleTeam={this.toggleTeam}
+            />
+            <Button
+              priority="primary"
+              busy={this.state.busy}
+              className="invite-member-submit"
+              onClick={this.submit}
+            >
+              {t('Add Member')}
+            </Button>
+          </div>
+        )}
       </div>
     );
-  }
+  },
 });
 
 export default InviteMember;

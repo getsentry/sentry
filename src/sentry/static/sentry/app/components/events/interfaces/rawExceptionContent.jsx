@@ -11,7 +11,7 @@ const RawExceptionContent = React.createClass({
     type: PropTypes.oneOf(['original', 'minified']),
     platform: PropTypes.string,
     eventId: PropTypes.string,
-    values: PropTypes.array.isRequired
+    values: PropTypes.array.isRequired,
   },
 
   mixins: [ApiMixin],
@@ -20,20 +20,25 @@ const RawExceptionContent = React.createClass({
     return {
       loading: false,
       error: false,
-      crashReport: ''
+      crashReport: '',
     };
   },
 
   componentDidMount() {
-    if (this.props.platform == 'cocoa') {
+    if (this.isNative()) {
       this.fetchAppleCrashReport();
     }
   },
 
   componentDidUpdate(prevProps) {
-    if (this.props.platform == 'cocoa' && this.props.type !== prevProps.type) {
+    if (this.isNative() && this.props.type !== prevProps.type) {
       this.fetchAppleCrashReport();
     }
+  },
+
+  isNative() {
+    let {platform} = this.props;
+    return platform === 'cocoa' || platform === 'native';
   },
 
   getAppleCrashReportEndpoint() {
@@ -45,7 +50,7 @@ const RawExceptionContent = React.createClass({
     this.setState({
       loading: true,
       error: false,
-      crashReport: ''
+      crashReport: '',
     });
     this.api.request(this.getAppleCrashReportEndpoint(), {
       method: 'GET',
@@ -53,15 +58,15 @@ const RawExceptionContent = React.createClass({
         this.setState({
           error: false,
           loading: false,
-          crashReport: data
+          crashReport: data,
         });
       },
       error: () => {
         this.setState({
           error: true,
-          loading: false
+          loading: false,
         });
-      }
+      },
     });
   },
 
@@ -76,19 +81,16 @@ const RawExceptionContent = React.createClass({
           this.props.platform,
           exc
         );
-      if (this.props.platform == 'cocoa') {
+      if (this.isNative()) {
         if (this.state.loading) content = <LoadingIndicator />;
         else if (this.state.error) content = <LoadingError onRetry={this.fetchData} />;
         else if (!this.state.loading && this.state.crashReport != '') {
-          content = (
-            <ClippedBox clipHeight={250}>
-              {this.state.crashReport}
-            </ClippedBox>
-          );
+          content = <ClippedBox clipHeight={250}>{this.state.crashReport}</ClippedBox>;
           downloadButton = (
             <a
               href={this.api.baseUrl + this.getAppleCrashReportEndpoint() + '&download=1'}
-              className="btn btn-default btn-sm pull-right">
+              className="btn btn-default btn-sm pull-right"
+            >
               Download
             </a>
           );
@@ -98,19 +100,13 @@ const RawExceptionContent = React.createClass({
       return (
         <div key={excIdx}>
           {downloadButton}
-          <pre className="traceback plain">
-            {content}
-          </pre>
+          <pre className="traceback plain">{content}</pre>
         </div>
       );
     });
 
-    return (
-      <div>
-        {children}
-      </div>
-    );
-  }
+    return <div>{children}</div>;
+  },
 });
 
 export default RawExceptionContent;

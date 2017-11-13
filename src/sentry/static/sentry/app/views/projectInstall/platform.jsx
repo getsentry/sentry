@@ -12,7 +12,7 @@ import {t, tct} from '../../locale';
 const ProjectInstallPlatform = React.createClass({
   propTypes: {
     platformData: PropTypes.object.isRequired,
-    linkPath: PropTypes.func
+    linkPath: PropTypes.func,
   },
 
   mixins: [ApiMixin],
@@ -20,7 +20,7 @@ const ProjectInstallPlatform = React.createClass({
   getDefaultProps() {
     return {
       linkPath: (orgId, projectId, platform) =>
-        `/${orgId}/${projectId}/settings/install/${platform}/`
+        `/${orgId}/${projectId}/settings/install/${platform}/`,
     };
   },
 
@@ -48,7 +48,7 @@ const ProjectInstallPlatform = React.createClass({
       error: false,
       integration,
       platform,
-      html: null
+      html: null,
     };
   },
 
@@ -75,15 +75,15 @@ const ProjectInstallPlatform = React.createClass({
         this.setState({
           loading: false,
           error: false,
-          html: data.html
+          html: data.html,
         });
       },
       error: () => {
         this.setState({
           loading: false,
-          error: true
+          error: true,
         });
-      }
+      },
     });
   },
 
@@ -106,7 +106,8 @@ const ProjectInstallPlatform = React.createClass({
             <LanguageNav
               key={p_item.id}
               name={p_item.name}
-              active={platform && platform.id === p_item.id}>
+              active={platform && platform.id === p_item.id}
+            >
               {p_item.integrations.map(i_item => {
                 return this.getPlatformLink(
                   i_item.id,
@@ -149,25 +150,29 @@ const ProjectInstallPlatform = React.createClass({
             `,
               {
                 integration: integration.name,
-                docLink: <a href={integration.link} />
+                docLink: <a href={integration.link} />,
               }
             )}
           </p>
 
-          {this.state.loading
-            ? <LoadingIndicator />
-            : this.state.error
-                ? <LoadingError onRetry={this.fetchData} />
-                : <div dangerouslySetInnerHTML={{__html: this.state.html}} />}
+          {this.state.loading ? (
+            <LoadingIndicator />
+          ) : this.state.error ? (
+            <LoadingError onRetry={this.fetchData} />
+          ) : (
+            <div dangerouslySetInnerHTML={{__html: this.state.html}} />
+          )}
 
-          {this.isGettingStarted() &&
+          {this.isGettingStarted() && (
             <p>
               <Link
                 to={`/${orgId}/${projectId}/#welcome`}
-                className="btn btn-primary btn-lg">
+                className="btn btn-primary btn-lg"
+              >
                 {t('Got it! Take me to the Issue Stream.')}
               </Link>
-            </p>}
+            </p>
+          )}
         </div>
       </div>
     );
@@ -176,13 +181,11 @@ const ProjectInstallPlatform = React.createClass({
   render() {
     return (
       <div className="install row">
-        <div className="install-content col-md-10">
-          {this.renderBody()}
-        </div>
+        <div className="install-content col-md-10">{this.renderBody()}</div>
         {this.renderSidebar()}
       </div>
     );
-  }
+  },
 });
 
 export default ProjectInstallPlatform;

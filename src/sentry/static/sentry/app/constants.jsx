@@ -16,7 +16,7 @@ export const API_SCOPES = [
   'org:write',
   'org:admin',
   'member:read',
-  'member:admin'
+  'member:admin',
 ];
 
 // Default API scopes when adding a new API token or org API token
@@ -27,5 +27,5 @@ export const DEFAULT_API_SCOPES = [
   'project:releases',
   'org:read',
   'team:read',
-  'member:read'
+  'member:read',
 ];

@@ -29,21 +29,21 @@ const Frame = React.createClass({
     isExpanded: PropTypes.bool,
     emptySourceNotation: PropTypes.bool,
     isOnlyFrame: PropTypes.bool,
-    timesRepeated: PropTypes.number
+    timesRepeated: PropTypes.number,
   },
 
   mixins: [
     TooltipMixin({
       html: true,
       selector: '.tip',
-      trigger: 'hover'
-    })
+      trigger: 'hover',
+    }),
   ],
 
   getDefaultProps() {
     return {
       isExpanded: false,
-      emptySourceNotation: false
+      emptySourceNotation: false,
     };
   },
 
@@ -52,7 +52,7 @@ const Frame = React.createClass({
     // data synchronization is not important
     // https://facebook.github.io/react/tips/props-in-getInitialState-as-anti-pattern.html
     return {
-      isExpanded: this.props.isExpanded
+      isExpanded: this.props.isExpanded,
     };
   },
 
@@ -60,7 +60,7 @@ const Frame = React.createClass({
     evt && evt.preventDefault();
 
     this.setState({
-      isExpanded: !this.state.isExpanded
+      isExpanded: !this.state.isExpanded,
     });
   },
 
@@ -145,7 +145,8 @@ const Frame = React.createClass({
           <a
             key="real-filename"
             className="in-at tip real-filename"
-            data-title={_.escape(data.filename)}>
+            data-title={_.escape(data.filename)}
+          >
             <span className="icon-question" />
           </a>
         );
@@ -163,19 +164,33 @@ const Frame = React.createClass({
         );
       }
       if (defined(data.function)) {
-        title.push(<span className="in-at" key="in"> in </span>);
+        title.push(
+          <span className="in-at" key="in">
+            {' '}
+            in{' '}
+          </span>
+        );
       }
     }
 
     if (defined(data.function)) {
-      title.push(<code key="function" className="function">{data.function}</code>);
+      title.push(
+        <code key="function" className="function">
+          {data.function}
+        </code>
+      );
     }
 
     // we don't want to render out zero line numbers which are used to
     // indicate lack of source information for native setups.  We could
     // TODO(mitsuhiko): only do this for events from native platforms?
     if (defined(data.lineNo) && data.lineNo != 0) {
-      title.push(<span className="in-at in-at-line" key="no"> at line </span>);
+      title.push(
+        <span className="in-at in-at-line" key="no">
+          {' '}
+          at line{' '}
+        </span>
+      );
       title.push(
         <code key="line" className="lineno">
           {defined(data.colNo) ? `${data.lineNo}:${data.colNo}` : data.lineNo}
@@ -184,7 +199,12 @@ const Frame = React.createClass({
     }
 
     if (defined(data.package)) {
-      title.push(<span className="within" key="within"> within </span>);
+      title.push(
+        <span className="within" key="within">
+          {' '}
+          within{' '}
+        </span>
+      );
       title.push(
         <code title={data.package} className="package" key="package">
           {trimPackage(data.package)}
@@ -197,7 +217,8 @@ const Frame = React.createClass({
         <a
           key="original-src"
           className="in-at tip original-src"
-          data-title={this.renderOriginalSourceInfo()}>
+          data-title={this.renderOriginalSourceInfo()}
+        >
           <span className="icon-question" />
         </a>
       );
@@ -230,10 +251,11 @@ const Frame = React.createClass({
       let startLineNo = hasContextSource ? data.context[0][0] : '';
       context = (
         <ol start={startLineNo} className={outerClassName}>
-          {defined(data.errors) &&
+          {defined(data.errors) && (
             <li className={expandable ? 'expandable error' : 'error'} key="errors">
               {data.errors.join(', ')}
-            </li>}
+            </li>
+          )}
 
           {data.context &&
             contextLines.map((line, index) => {
@@ -242,10 +264,11 @@ const Frame = React.createClass({
               );
             })}
 
-          {hasContextVars &&
+          {hasContextVars && (
             <ClippedBox clipHeight={100}>
               <FrameVariables data={data.vars} key="vars" />
-            </ClippedBox>}
+            </ClippedBox>
+          )}
         </ol>
       );
     } else if (this.props.emptySourceNotation) {
@@ -268,7 +291,8 @@ const Frame = React.createClass({
         key="expander"
         title={t('Toggle context')}
         onClick={this.toggleContext}
-        className="btn btn-sm btn-default btn-toggle">
+        className="btn btn-sm btn-default btn-toggle"
+      >
         <span className={this.state.isExpanded ? 'icon-minus' : 'icon-plus'} />
       </a>
     );
@@ -307,22 +331,20 @@ const Frame = React.createClass({
 
   renderLeadHint() {
     if (this.leadsToApp() && !this.state.isExpanded) {
-      return (
-        <span className="leads-to-app-hint">
-          {'Called from: '}
-        </span>
-      );
+      return <span className="leads-to-app-hint">{'Called from: '}</span>;
     } else return null;
   },
 
   renderRepeats() {
-    if (this.props.timesRepeated > 0) {
+    let timesRepeated = this.props.timesRepeated;
+    if (timesRepeated > 0) {
       return (
         <span
           className="repeated-frames"
-          title={`Frame repeated ${this.props.timesRepeated} times`}>
+          title={`Frame repeated ${timesRepeated} time${timesRepeated === 1 ? '' : 's'}`}
+        >
           <span className="icon-refresh" />
-          <span>{this.props.timesRepeated}</span>
+          <span>{timesRepeated}</span>
         </span>
       );
     } else return null;
@@ -347,26 +369,28 @@ const Frame = React.createClass({
       <StrictClick onClick={this.isExpandable() ? this.toggleContext : null}>
         <div className="title as-table">
           {this.renderLeadHint()}
-          {defined(data.package)
-            ? <span className="package" title={data.package}>
-                {trimPackage(data.package)}
-              </span>
-            : <span className="package">{'<unknown>'}</span>}
-          <span className="address">
-            {data.instructionAddr}
-          </span>
+          {defined(data.package) ? (
+            <span className="package" title={data.package}>
+              {trimPackage(data.package)}
+            </span>
+          ) : (
+            <span className="package">{'<unknown>'}</span>
+          )}
+          <span className="address">{data.instructionAddr}</span>
           <span className="symbol">
             <code>{data.function || '<unknown>'}</code>
-            {data.filename &&
+            {data.filename && (
               <span className="filename">
                 {data.filename}
                 {data.lineNo ? ':' + data.lineNo : ''}
-              </span>}
-            {hint !== null
-              ? <a key="inline" className="tip" data-title={_.escape(hint)}>
-                  {' '}<span className="icon-question" />
-                </a>
-              : null}
+              </span>
+            )}
+            {hint !== null ? (
+              <a key="inline" className="tip" data-title={_.escape(hint)}>
+                {' '}
+                <span className="icon-question" />
+              </a>
+            ) : null}
             {this.renderExpander()}
           </span>
         </div>
@@ -377,9 +401,9 @@ const Frame = React.createClass({
   renderLine() {
     switch (this.getPlatform()) {
       case 'objc':
-        // fallthrough
+      // fallthrough
       case 'cocoa':
-        // fallthrough
+      // fallthrough
       case 'native':
         return this.renderNativeLine();
       default:
@@ -397,7 +421,7 @@ const Frame = React.createClass({
       'system-frame': !data.inApp,
       'frame-errors': data.errors,
       'leads-to-app': this.leadsToApp(),
-      [this.getPlatform()]: true
+      [this.getPlatform()]: true,
     });
     let props = {className};
 
@@ -409,7 +433,7 @@ const Frame = React.createClass({
         {context}
       </li>
     );
-  }
+  },
 });
 
 export default Frame;

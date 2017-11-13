@@ -8,7 +8,6 @@ sentry.tasks.store
 
 from __future__ import absolute_import
 
-import six
 import logging
 from datetime import datetime
 
@@ -17,7 +16,6 @@ from time import time
 from django.utils import timezone
 
 from sentry.cache import default_cache
-from sentry.filters.preprocess_hashes import get_raw_cache_key, hash_cache
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
 from sentry.utils.safe import safe_execute
@@ -59,22 +57,12 @@ def _do_preprocess_event(cache_key, data, start_time, event_id, process_event):
         error_logger.error('preprocess.failed.empty', extra={'cache_key': cache_key})
         return
 
-    project_id = data['project']
+    project = data['project']
     Raven.tags_context({
-        'project': project_id,
+        'project': project,
     })
 
     if should_process(data):
-        # save another version of data for some projects to generate
-        # preprocessing hash that won't be modified by pipeline
-        try:
-            hash_cache.set(get_raw_cache_key(project_id, data['event_id']), data)
-        except Exception as e:
-            error_logger.exception(
-                'Could not save raw event for preprocess hash '
-                'generation due to error: %s' % six.text_type(e)
-            )
-
         process_event.delay(cache_key=cache_key, start_time=start_time, event_id=event_id)
         return
 
@@ -268,6 +256,7 @@ def save_event(cache_key=None, data=None, start_time=None, event_id=None, **kwar
     Saves an event to the database.
     """
     from sentry.event_manager import HashDiscarded, EventManager
+    from sentry import tsdb
 
     if cache_key:
         data = default_cache.get(cache_key)
@@ -298,6 +287,7 @@ def save_event(cache_key=None, data=None, start_time=None, event_id=None, **kwar
                 'description': exc.message,
             }
         )
+        tsdb.incr(tsdb.models.project_total_received_discarded, project, timestamp=start_time)
     finally:
         if cache_key:
             default_cache.delete(cache_key)

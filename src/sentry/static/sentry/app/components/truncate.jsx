@@ -5,19 +5,19 @@ const Truncate = React.createClass({
   propTypes: {
     value: PropTypes.string.isRequired,
     leftTrim: PropTypes.bool,
-    maxLength: PropTypes.number
+    maxLength: PropTypes.number,
   },
 
   getDefaultProps() {
     return {
       leftTrim: false,
-      maxLength: 50
+      maxLength: 50,
     };
   },
 
   getInitialState() {
     return {
-      isExpanded: false
+      isExpanded: false,
     };
   },
 
@@ -58,12 +58,13 @@ const Truncate = React.createClass({
         onMouseOver={this.onFocus}
         onMouseOut={this.onBlur}
         onFocus={this.onFocus}
-        onBlur={this.onBlur}>
+        onBlur={this.onBlur}
+      >
         <span className="short-value">{shortValue}</span>
         {isTruncated && <span className="full-value">{value}</span>}
       </span>
     );
-  }
+  },
 });
 
 export default Truncate;

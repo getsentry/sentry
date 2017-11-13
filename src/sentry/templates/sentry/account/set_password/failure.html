@@ -1,0 +1,14 @@
+{% extends "sentry/bases/auth.html" %}
+
+{% load crispy_forms_tags %}
+{% load i18n %}
+
+{% block title %}{% trans "Set Password" %} | {{ block.super }}{% endblock %}
+
+{% block auth_main %}
+	<h3>{% trans "Set Password" %}</h3>
+	<p>{% blocktrans %}This password link has expired. Request a new password recovery code to set
+	your account password{% endblocktrans %}</p>
+
+	<p><a href="{% url 'sentry-account-recover' %}" class="btn btn-primary">Request Reset Code</a></p>
+{% endblock %}

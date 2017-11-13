@@ -17,7 +17,7 @@ export default React.createClass({
     onCanceled: PropTypes.func.isRequired,
     orgId: PropTypes.string.isRequired,
     projectId: PropTypes.string.isRequired,
-    show: PropTypes.bool
+    show: PropTypes.bool,
   },
 
   getInitialState() {
@@ -33,7 +33,7 @@ export default React.createClass({
 
   onSubmit() {
     this.props.onSelected({
-      inRelease: this.state.version
+      inRelease: this.state.version,
     });
   },
 
@@ -74,7 +74,9 @@ export default React.createClass({
                         <Version version={release.version} anchor={false} />
                       </strong>
                       <br />
-                      <small>Created <TimeSince date={release.dateCreated} /></small>
+                      <small>
+                        Created <TimeSince date={release.dateCreated} />
+                      </small>
                     </div>
                   );
                 }}
@@ -88,7 +90,8 @@ export default React.createClass({
           <button
             type="button"
             className="btn btn-default"
-            onClick={this.props.onCanceled}>
+            onClick={this.props.onCanceled}
+          >
             {t('Cancel')}
           </button>
           <button type="button" className="btn btn-primary" onClick={this.onSubmit}>
@@ -97,5 +100,5 @@ export default React.createClass({
         </div>
       </Modal>
     );
-  }
+  },
 });

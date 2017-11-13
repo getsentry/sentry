@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import {browserHistory} from 'react-router';
+import {browserHistory, Link} from 'react-router';
 
 import AutoSelectText from '../../components/autoSelectText';
 import PlatformPicker from '../onboarding/project/platformpicker';
@@ -9,12 +9,12 @@ import {t, tct} from '../../locale';
 
 const ProjectInstallOverview = React.createClass({
   propTypes: {
-    platformData: PropTypes.object
+    platformData: PropTypes.object,
   },
 
   getInitialState() {
     return {
-      data: this.props.platformData
+      data: this.props.platformData,
     };
   },
 
@@ -39,6 +39,7 @@ const ProjectInstallOverview = React.createClass({
 
   render() {
     let {data} = this.state;
+    let {orgId, projectId} = this.props.params;
 
     return (
       <div>
@@ -49,32 +50,40 @@ const ProjectInstallOverview = React.createClass({
           )}
         </p>
 
-        {this.state.showDsn
-          ? <div>
-              <div className="control-group">
-                <label>{t('DSN')}</label>
-                <AutoSelectText className="form-control disabled">
-                  {data.dsn}
-                </AutoSelectText>
-              </div>
-
-              <div className="control-group">
-                <label>{t('Public DSN')}</label>
-                <AutoSelectText className="form-control disabled">
-                  {data.dsnPublic}
-                </AutoSelectText>
-                <div className="help-block">
-                  {t('Your public DSN should be used with JavaScript and ActionScript.')}
-                </div>
-              </div>
+        {this.state.showDsn ? (
+          <div>
+            <div className="control-group">
+              <label>{t('DSN')}</label>
+              <AutoSelectText className="form-control disabled">
+                {data.dsn}
+              </AutoSelectText>
             </div>
-          : <p>
-              <small>
-                {tct('Already have things setup? [link:Get your DSN].', {
-                  link: <a onClick={this.toggleDsn} />
-                })}
-              </small>
-            </p>}
+
+            <div className="control-group">
+              <label>{t('Public DSN')}</label>
+              <AutoSelectText className="form-control disabled">
+                {data.dsnPublic}
+              </AutoSelectText>
+              <div className="help-block m-b-1">
+                {t('The public DSN should be used with JavaScript.')}
+              </div>
+              <Link
+                to={`/${orgId}/${projectId}/#welcome`}
+                className="btn btn-primary m-b-1"
+              >
+                {t('Got it! Take me to the Issue Stream.')}
+              </Link>
+            </div>
+          </div>
+        ) : (
+          <p>
+            <small>
+              {tct('Already have things setup? [link:Get your DSN]', {
+                link: <a className="btn-xsmall" onClick={this.toggleDsn} />,
+              })}.
+            </small>
+          </p>
+        )}
         <PlatformPicker setPlatform={this.redirectToDocs} showOther={false} />
         <p>
           {tct(
@@ -83,13 +92,13 @@ const ProjectInstallOverview = React.createClass({
              client integrations, please visit see [docLink:our in-depth documentation].
           `,
             {
-              docLink: <a href="https://docs.sentry.io" />
+              docLink: <a href="https://docs.sentry.io" />,
             }
           )}
         </p>
       </div>
     );
-  }
+  },
 });
 
 export default ProjectInstallOverview;

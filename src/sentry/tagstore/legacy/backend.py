@@ -10,7 +10,7 @@ from __future__ import absolute_import
 
 import six
 
-from collections import defaultdict, Iterable
+from collections import defaultdict
 from datetime import timedelta
 from django.db import connections, router, IntegrityError, transaction
 from django.db.models import Q, Sum
@@ -22,7 +22,6 @@ from sentry import buffer
 from sentry.tagstore import TagKeyStatus
 from sentry.tagstore.base import TagStorage
 from sentry.utils import db
-from sentry.utils.cache import cache
 
 from .models import EventTag, GroupTagKey, GroupTagValue, TagKey, TagValue
 
@@ -123,7 +122,7 @@ class LegacyTagStorage(TagStorage):
             key=key,
         )
 
-        if status:
+        if status is not None:
             qs = qs.filter(status=status)
 
         try:
@@ -131,34 +130,19 @@ class LegacyTagStorage(TagStorage):
         except TagKey.DoesNotExist:
             raise TagKeyNotFound
 
-    def _get_tag_keys_cache_key(self, project_ids, status):
-        if isinstance(project_ids, Iterable):
-            project_ids = "-".join(sorted(project_ids))
-        return 'filterkey:all:%s:%s' % (project_ids, status)
-
     def get_tag_keys(self, project_ids, keys=None, status=TagKeyStatus.VISIBLE):
-        def _get_base_qs():
-            if isinstance(project_ids, six.integer_types):
-                qs = TagKey.objects.filter(project_id=project_ids)
-            else:
-                qs = TagKey.objects.filter(project_id__in=project_ids)
+        if isinstance(project_ids, six.integer_types):
+            qs = TagKey.objects.filter(project_id=project_ids)
+        else:
+            qs = TagKey.objects.filter(project_id__in=project_ids)
 
-            if status:
-                qs = qs.filter(status=status)
+        if status is not None:
+            qs = qs.filter(status=status)
 
-            return qs
+        if keys is not None:
+            qs = qs.filter(key__in=keys)
 
-        if not keys:
-            # TODO: cache invalidation via post_save/post_delete signals much like BaseManager
-            key = self._get_tag_keys_cache_key(project_ids, status)
-            result = cache.get(key)
-            if result is None:
-                qs = _get_base_qs()
-                result = list(qs.order_by('-values_seen')[:20])
-                cache.set(key, result, 60)
-            return result
-
-        return list(_get_base_qs())
+        return list(qs)
 
     def get_tag_value(self, project_id, key, value):
         from sentry.tagstore.exceptions import TagValueNotFound
@@ -265,12 +249,6 @@ class LegacyTagStorage(TagStorage):
 
         return (updated, tagkey)
 
-    def delete_group_tag_key(self, group_id, key):
-        GroupTagKey.objects.filter(
-            group_id=group_id,
-            key=key
-        ).delete()
-
     def delete_all_group_tag_keys(self, group_id):
         GroupTagKey.objects.filter(
             group_id=group_id,
@@ -308,15 +286,13 @@ class LegacyTagStorage(TagStorage):
         })
 
     def incr_group_tag_value_times_seen(self, group_id, key, value, extra=None, count=1):
-        buffer.incr(
-            GroupTagValue, {
-                'times_seen': count,
-            }, {
-                'group_id': group_id,
-                'key': key,
-                'value': value,
-            }, extra
-        )
+        buffer.incr(GroupTagValue, {
+            'times_seen': count,
+        }, {
+            'group_id': group_id,
+            'key': key,
+            'value': value,
+        }, extra)
 
     def get_group_event_ids(self, project_id, group_id, tags):
         tagkeys = dict(
@@ -373,23 +349,6 @@ class LegacyTagStorage(TagStorage):
                 return []
 
         return matches
-
-    def get_tag_value_qs(self, project_id, key, query=None):
-        queryset = TagValue.objects.filter(
-            project_id=project_id,
-            key=key,
-        )
-
-        if query:
-            queryset = queryset.filter(value__contains=query)
-
-        return queryset
-
-    def get_group_tag_value_qs(self, group_id, key):
-        return GroupTagValue.objects.filter(
-            group_id=group_id,
-            key=key,
-        )
 
     def get_group_values_seen(self, group_ids, key):
         if isinstance(group_ids, six.integer_types):
@@ -546,9 +505,6 @@ class LegacyTagStorage(TagStorage):
 
         return matches
 
-    def get_event_tag_qs(self, **kwargs):
-        return EventTag.objects.filter(**kwargs)
-
     def update_group_tag_key_values_seen(self, group_ids):
         instances = self.get_group_tag_keys(group_ids)
         for instance in instances:
@@ -559,3 +515,23 @@ class LegacyTagStorage(TagStorage):
                     key=instance.key,
                 ).count(),
             )
+
+    def get_tag_value_qs(self, project_id, key, query=None):
+        queryset = TagValue.objects.filter(
+            project_id=project_id,
+            key=key,
+        )
+
+        if query:
+            queryset = queryset.filter(value__contains=query)
+
+        return queryset
+
+    def get_group_tag_value_qs(self, group_id, key):
+        return GroupTagValue.objects.filter(
+            group_id=group_id,
+            key=key,
+        )
+
+    def get_event_tag_qs(self, **kwargs):
+        return EventTag.objects.filter(**kwargs)

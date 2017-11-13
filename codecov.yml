@@ -11,6 +11,11 @@ coverage:
   ignore:
   - src/sentry/lint/.*
   - src/sentry/runner/.*
+  - src/sentry/debug/.*
   - src/.*?/migrations/.*
   - src/.*?/south_migrations/.*
+  - src/bitfield/.*
+  - src/debug_toolbar/.*
+  - src/social_auth/.*
+  - src/south/.*
 comment: false

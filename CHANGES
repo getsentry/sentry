@@ -1,5 +1,8 @@
-Version 8.22 (Unreleased)
+Version 8.23 (Unreleased)
 -------------------------
+
+Version 8.22
+------------
 
 - BREAKING: Members will no longer be automatically granted membership to the
   default organization. You should use SSO or the invite flows.
@@ -14,6 +17,10 @@ Schema Changes
 - Added ``ProjectSymCacheFile`` model.
 - Added index on ``TagValue(project_id, key, last_seen)``
 - Add ``GroupShare`` model.
+
+API Changes
+~~~~~~~~~~~
+- Added API endpoint to list members awaiting access
 
 Version 8.21
 ------------

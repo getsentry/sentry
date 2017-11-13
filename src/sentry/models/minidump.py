@@ -8,12 +8,20 @@ sentry.models.minidump
 
 from __future__ import absolute_import
 
+import re
+import six
 from django.db import models, transaction
 from symbolic import ProcessState
 
 from sentry.constants import LOG_LEVELS_MAP
 from sentry.db.models import FlexibleForeignKey, Model, sane_repr
 from sentry.models.file import File
+
+_version_re = re.compile(r'(\d+\.\d+\.\d+)\s+(.*)')
+
+_minidump_os_mapping = {
+    'Mac OS X': 'macOS',
+}
 
 
 class MinidumpFile(Model):
@@ -67,9 +75,17 @@ def merge_minidump_event(data, minidump_path):
     context = data.setdefault('contexts', {})
     os = context.setdefault('os', {})
     device = context.setdefault('device', {})
-    os['name'] = info.os_name
-    os['version'] = info.os_version
+    os['type'] = 'os'  # Required by "get_sdk_from_event"
+    os['name'] = _minidump_os_mapping.get(info.os_name, info.os_name)
     device['arch'] = info.cpu_family
+
+    # Breakpad reports the version and build number always in one string,
+    # but a version number is guaranteed even on certain linux distros.
+    match = _version_re.search(info.os_version)
+    if match is not None:
+        version, build = match.groups()
+        os['version'] = version
+        os['build'] = build
 
     # We can extract stack traces here already but since CFI is not
     # available yet (without debug symbols), the stackwalker will
@@ -81,7 +97,7 @@ def merge_minidump_event(data, minidump_path):
         'crashed': False,
         'stacktrace': {
             'frames': [{
-                'instruction_addr': frame.instruction,
+                'instruction_addr': '0x%x' % frame.instruction,
                 'function': '<unknown>',  # Required by interface
             } for frame in thread.frames()],
         },
@@ -101,16 +117,16 @@ def merge_minidump_event(data, minidump_path):
         'stacktrace': crashed_thread.pop('stacktrace'),
     }
 
-    data.setdefault('exception', {}) \
+    data.setdefault('sentry.interfaces.Exception', {}) \
         .setdefault('values', []) \
         .append(exception)
 
     # Extract referenced (not all loaded) images
     images = [{
         'type': 'apple',  # Required by interface
-        'uuid': module.uuid,
-        'image_addr': module.addr,
-        'image_size': module.size,
+        'uuid': six.text_type(module.uuid),
+        'image_addr': '0x%x' % module.addr,
+        'image_size': '0x%x' % module.size,
         'name': module.name,
     } for module in state.modules()]
     data.setdefault('debug_meta', {})['images'] = images

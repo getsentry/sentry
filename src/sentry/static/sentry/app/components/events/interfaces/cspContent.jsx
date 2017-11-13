@@ -6,7 +6,7 @@ import KeyValueList from './keyValueList';
 
 const CSPContent = React.createClass({
   propTypes: {
-    data: PropTypes.object.isRequired
+    data: PropTypes.object.isRequired,
   },
 
   render() {
@@ -19,7 +19,7 @@ const CSPContent = React.createClass({
         <KeyValueList data={objectToArray(data)} isContextData={true} />
       </div>
     );
-  }
+  },
 });
 
 export default CSPContent;

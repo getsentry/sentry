@@ -11,7 +11,7 @@ import ProjectState from '../../mixins/projectState';
 const ProjectChart = React.createClass({
   propTypes: {
     dateSince: PropTypes.number.isRequired,
-    resolution: PropTypes.string.isRequired
+    resolution: PropTypes.string.isRequired,
   },
 
   mixins: [ApiMixin, ProjectState],
@@ -21,7 +21,7 @@ const ProjectChart = React.createClass({
       loading: true,
       error: false,
       stats: [],
-      releaseList: []
+      releaseList: [],
     };
   },
 
@@ -33,7 +33,7 @@ const ProjectChart = React.createClass({
     this.setState(
       {
         loading: true,
-        error: false
+        error: false,
       },
       this.fetchData
     );
@@ -56,29 +56,29 @@ const ProjectChart = React.createClass({
       query: {
         since: this.props.dateSince,
         resolution: this.props.resolution,
-        stat: 'generated'
+        stat: 'generated',
       },
       success: data => {
         this.setState({
           stats: data,
           error: false,
-          loading: false
+          loading: false,
         });
       },
       error: () => {
         this.setState({
           error: true,
-          loading: false
+          loading: false,
         });
-      }
+      },
     });
 
     this.api.request(this.getProjectReleasesEndpoint(), {
       success: (data, _, jqXHR) => {
         this.setState({
-          releaseList: data
+          releaseList: data,
         });
-      }
+      },
     });
   },
 
@@ -95,7 +95,7 @@ const ProjectChart = React.createClass({
       .map(release => {
         return {
           label: 'Version ' + release.shortVersion,
-          x: new Date(release.dateCreated).getTime() / 1000
+          x: new Date(release.dateCreated).getTime() / 1000,
         };
       });
 
@@ -119,10 +119,14 @@ const ProjectChart = React.createClass({
   },
 
   render() {
-    return this.state.loading
-      ? <LoadingIndicator />
-      : this.state.error ? <LoadingError onRetry={this.fetchData} /> : this.renderChart();
-  }
+    return this.state.loading ? (
+      <LoadingIndicator />
+    ) : this.state.error ? (
+      <LoadingError onRetry={this.fetchData} />
+    ) : (
+      this.renderChart()
+    );
+  },
 });
 
 export default ProjectChart;

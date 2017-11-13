@@ -31,7 +31,7 @@ const OrganizationStore = Reflux.createStore({
   load(items) {
     this.items = items;
     this.trigger(items);
-  }
+  },
 });
 
 export default OrganizationStore;

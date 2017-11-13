@@ -7,7 +7,7 @@ import {defined, formatBytes} from '../../../utils';
 const DeviceContextType = React.createClass({
   propTypes: {
     alias: PropTypes.string.isRequired,
-    data: PropTypes.object.isRequired
+    data: PropTypes.object.isRequired,
   },
 
   formatMemory(memory_size, free_memory, usable_memory) {
@@ -45,7 +45,9 @@ const DeviceContextType = React.createClass({
       Number.isInteger(external_free_storage) &&
       external_free_storage > 0
     )
-      storage += ` (External Total: ${formatBytes(external_storage_size)} / Free: ${formatBytes(external_free_storage)})`;
+      storage += ` (External Total: ${formatBytes(
+        external_storage_size
+      )} / Free: ${formatBytes(external_free_storage)})`;
 
     return storage;
   },
@@ -92,12 +94,12 @@ const DeviceContextType = React.createClass({
           ['?Capacity', storage],
           ['?Simulator', simulator],
           ['?Boot Time', boot_time],
-          ['?Timezone', timezone]
+          ['?Timezone', timezone],
         ]}
         alias={this.props.alias}
       />
     );
-  }
+  },
 });
 
 DeviceContextType.getTitle = function(value) {
