@@ -18,6 +18,7 @@ class SetupWizardView(BaseView):
             'hash': wizard_hash
         }
         key = '%s%s' % (SETUP_WIZARD_CACHE_KEY, wizard_hash)
+
         wizard_data = cache.get(key)
         if wizard_data is None:
             return self.redirect_to_org(request)
