@@ -1,5 +1,5 @@
-Version 8.22 (Unreleased)
--------------------------
+Version 8.22
+------------
 
 - BREAKING: Members will no longer be automatically granted membership to the
   default organization. You should use SSO or the invite flows.
