@@ -287,7 +287,11 @@ def save_event(cache_key=None, data=None, start_time=None, event_id=None, **kwar
                 'description': exc.message,
             }
         )
-        tsdb.incr(tsdb.models.project_total_received_discarded, project, timestamp=start_time)
+        tsdb.incr(
+            tsdb.models.project_total_received_discarded,
+            project,
+            timestamp=to_datetime(start_time) if start_time is not None else None,
+        )
     finally:
         if cache_key:
             default_cache.delete(cache_key)
