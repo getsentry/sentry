@@ -98,26 +98,12 @@ export default class Form extends React.Component {
     let hasChanges = requireChanges
       ? Object.keys(data).length && !_.isEqual(data, initialData)
       : true;
-    let isError = this.state.state == FormState.ERROR;
     return (
       <form onSubmit={this.onSubmit} className={this.props.className}>
-        {isError && (
+        {this.state.state === FormState.ERROR && (
           <div className="alert alert-error alert-block">
-            {this.state.errors.non_field_errors ? (
-              <div>
-                <p>
-                  {t(
-                    'Unable to save your changes. Please correct the following errors try again.'
-                  )}
-                </p>
-                <ul>
-                  {this.state.errors.non_field_errors.map((e, i) => <li key={i}>{e}</li>)}
-                </ul>
-              </div>
-            ) : (
-              t(
-                'Unable to save your changes. Please ensure all fields are valid and try again.'
-              )
+            {t(
+              'Unable to save your changes. Please ensure all fields are valid and try again.'
             )}
           </div>
         )}

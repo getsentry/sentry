@@ -61,7 +61,7 @@ export default class MultipleCheckboxField extends FormField {
       hideLabelDivider,
       style,
     } = this.props;
-    let {error} = this.state;
+    let error = this.getError();
     let cx = classNames(className, 'control-group', {
       'has-error': error,
     });
