@@ -41,6 +41,8 @@
 
     "python.linting.pylintEnabled": false,
     "python.linting.flake8Enabled": true,
+    "python.formatting.provider": "autopep8",
+    "python.formatting.autopep8Args": ["--global-config", "${workspaceRoot}/setup.cfg"],
     // https://github.com/DonJayamanne/pythonVSCode/issues/992
     "python.pythonPath": "${env.WORKON_HOME}/sentry/bin/python",
     // test discovery is sluggish and the UI around running
