@@ -36,7 +36,7 @@
     },
 
     "[python]": {
-        "editor.formatOnSave": true
+        "editor.formatOnSave": false
     },
 
     "python.linting.pylintEnabled": false,

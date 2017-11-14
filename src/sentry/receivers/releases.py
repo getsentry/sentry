@@ -53,6 +53,7 @@ def resolved_in_commit(instance, created, **kwargs):
     for group in groups:
         try:
             with transaction.atomic():
+                # TODO(maxbittker) remove this call after new grouplink is confirmed working
                 GroupCommitResolution.objects.create(
                     group_id=group.id,
                     commit_id=instance.id,
