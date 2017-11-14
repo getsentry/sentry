@@ -57,26 +57,22 @@ class GroupEventsTest(APITestCase):
             key='bar',
             value='buz')
 
-        tagstore.create_event_tag(
+        tagstore.create_event_tags(
             project_id=group.project_id,
             group_id=group.id,
             event_id=event_1.id,
-            key_id=tagkey_1.id,
-            value_id=tagvalue_1.id,
+            tags=[
+                (tagkey_1.id, tagvalue_1.id),
+                (tagkey_2.id, tagvalue_3.id),
+            ],
         )
-        tagstore.create_event_tag(
+        tagstore.create_event_tags(
             project_id=group.project_id,
             group_id=group.id,
             event_id=event_2.id,
-            key_id=tagkey_2.id,
-            value_id=tagvalue_2.id,
-        )
-        tagstore.create_event_tag(
-            project_id=group.project_id,
-            group_id=group.id,
-            event_id=event_1.id,
-            key_id=tagkey_2.id,
-            value_id=tagvalue_3.id,
+            tags=[
+                (tagkey_2.id, tagvalue_2.id),
+            ],
         )
 
         url = '/api/0/issues/{}/events/'.format(group.id)
