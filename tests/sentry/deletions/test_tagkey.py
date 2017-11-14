@@ -83,9 +83,9 @@ class DeleteTagKeyTest(TestCase):
             assert False  # verify exception thrown
         except tagstore.TagKeyNotFound:
             pass
-        assert not tagstore.get_event_tag_qs(key_id=tk.id).exists()
 
         assert tagstore.get_tag_key(project2.id, key) is not None
         assert tagstore.get_group_tag_key(group2.id, key) is not None
         assert tagstore.get_group_tag_value(group2.id, key, value) is not None
+        assert tagstore.get_event_tag_qs(key_id=tk.id).exists()
         assert tagstore.get_event_tag_qs(key_id=tk2.id).exists()
