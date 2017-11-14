@@ -58,14 +58,14 @@ class DeleteRepositoryTest(TestCase):
         deletion = ScheduledDeletion.schedule(repo, actor=self.user, days=0)
         deletion.update(in_progress=True)
 
-        with self.assertRaises(PluginError):
-            with self.tasks():
-                run_deletion(deletion.id)
+        with self.tasks():
+            run_deletion(deletion.id)
 
         msg = mail.outbox[-1]
-        assert msg.subject == 'Unable to Delete Repository'
+        assert msg.subject == 'Unable to Delete Repository Webhooks'
         assert msg.to == [self.user.email]
         assert 'foo' in msg.body
+        assert not Repository.objects.filter(id=repo.id).exists()
 
     @patch('sentry.plugins.providers.dummy.repository.DummyRepositoryProvider.delete_repository')
     def test_delete_fail_email_random(self, mock_delete_repo):
@@ -81,11 +81,11 @@ class DeleteRepositoryTest(TestCase):
         deletion = ScheduledDeletion.schedule(repo, actor=self.user, days=0)
         deletion.update(in_progress=True)
 
-        with self.assertRaises(Exception):
-            with self.tasks():
-                run_deletion(deletion.id)
+        with self.tasks():
+            run_deletion(deletion.id)
 
         msg = mail.outbox[-1]
-        assert msg.subject == 'Unable to Delete Repository'
+        assert msg.subject == 'Unable to Delete Repository Webhooks'
         assert msg.to == [self.user.email]
         assert 'secrets' not in msg.body
+        assert not Repository.objects.filter(id=repo.id).exists()
