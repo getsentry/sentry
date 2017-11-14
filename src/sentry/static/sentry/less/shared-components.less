@@ -688,7 +688,7 @@ table.integrations {
 @check-height: 32px;
 @check-width: 16px;
 @check-left: (@loader-size/6 + @loader-size/12);
-@check-thickness: 3px;
+@check-thickness: 6px;
 
 .loading {
   margin: 6em auto;
@@ -696,7 +696,7 @@ table.integrations {
 
   .loading-indicator {
     position: relative;
-    border: 6px solid @white-darker;
+    border: @check-thickness solid @white-darker;
     border-left-color: @gray;
     -webkit-animation: loading 0.5s infinite linear;
     animation: loading 0.55s infinite linear;
