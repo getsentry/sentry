@@ -60,3 +60,9 @@ class SetupWizardTest(APITestCase):
 
         response2 = self.client.get(url2)
         assert response2.status_code == 400, response2.content
+
+        # Delete content of cache
+        self.client.delete(url2)
+
+        response5 = self.client.get(url2)
+        assert response5.status_code == 404, response5.content
