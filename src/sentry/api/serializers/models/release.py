@@ -120,7 +120,7 @@ class ReleaseSerializer(Serializer):
             item_authors = []
             seen_authors = set()
             for user in (users_by_author.get(a) for a in item.authors):
-                if user['email'] not in seen_authors:
+                if user and user['email'] not in seen_authors:
                     seen_authors.add(user['email'])
                     item_authors.append(user)
 
