@@ -2,7 +2,6 @@ from __future__ import absolute_import
 import logging
 
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
 
 from sentry import ratelimits
 from django.core.cache import cache
