@@ -239,6 +239,7 @@ class DeleteTagKeyTest(TestCase):
         with self.tasks():
             delete_tag_key(object_id=tk.id)
 
+            assert tagstore.get_event_tag_qs(key_id=tk.id).exists()
             try:
                 tagstore.get_group_tag_value(group.id, key, value)
                 assert False  # verify exception thrown
@@ -254,7 +255,6 @@ class DeleteTagKeyTest(TestCase):
                 assert False  # verify exception thrown
             except tagstore.TagValueNotFound:
                 pass
-            assert not tagstore.get_event_tag_qs(key_id=tk.id).exists()
             try:
                 tagstore.get_tag_key(project.id, key)
                 assert False  # verify exception thrown
