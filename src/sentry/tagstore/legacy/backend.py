@@ -101,17 +101,23 @@ class LegacyTagStorage(TagStorage):
         return GroupTagValue.objects.get_or_create(
             project_id=project_id, group_id=group_id, key=key, value=value, **kwargs)
 
-    def create_event_tag(self, project_id, group_id, event_id, key_id, value_id):
+    def create_event_tags(self, project_id, group_id, event_id, tags):
         try:
             # don't let a duplicate break the outer transaction
             with transaction.atomic():
-                EventTag.objects.create(
-                    project_id=project_id,
-                    group_id=group_id,
-                    event_id=event_id,
-                    key_id=key_id,
-                    value_id=value_id,
-                )
+                # Tags are bulk inserted because this is an all-or-nothing situation.
+                # Either the whole transaction works, or it doesn't. There's no value
+                # in a partial success where we'd need to replay half of the rows.
+                EventTag.objects.bulk_create([
+                    EventTag(
+                        project_id=project_id,
+                        group_id=group_id,
+                        event_id=event_id,
+                        key_id=key_id,
+                        value_id=value_id,
+                    )
+                    for key_id, value_id in tags
+                ])
         except IntegrityError:
             pass
 

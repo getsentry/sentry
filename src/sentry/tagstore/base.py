@@ -47,7 +47,7 @@ class TagStorage(Service):
         'get_or_create_group_tag_key',
         'create_group_tag_value',
         'get_or_create_group_tag_value',
-        'create_event_tag',
+        'create_event_tags',
 
         'get_tag_key',
         'get_tag_keys',
@@ -176,9 +176,9 @@ class TagStorage(Service):
         """
         raise NotImplementedError
 
-    def create_event_tag(self, project_id, group_id, event_id, key_id, value_id):
+    def create_event_tags(self, project_id, group_id, event_id, tags):
         """
-        >>> create_event_tag(1, 2, 3, 4, 5)
+        >>> create_event_tags(1, 2, 3, [(4, 5)])
         """
         raise NotImplementedError
 

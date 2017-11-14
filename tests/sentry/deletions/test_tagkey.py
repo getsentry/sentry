@@ -30,12 +30,13 @@ class DeleteTagKeyTest(TestCase):
         tagstore.create_group_tag_value(
             key=key, value=value, group_id=group.id, project_id=project.id, environment_id=self.environment.id
         )
-        tagstore.create_event_tag(
-            key_id=tk.id,
+        tagstore.create_event_tags(
             group_id=group.id,
-            value_id=1,
             project_id=project.id,
             event_id=1,
+            tags=[
+                (tk.id, 1),
+            ]
         )
 
         project2 = self.create_project(team=team, name='test2')
@@ -49,12 +50,13 @@ class DeleteTagKeyTest(TestCase):
         tagstore.create_group_tag_value(
             key=key, value=value, group_id=group2.id, project_id=project2.id, environment_id=self.environment.id
         )
-        tagstore.create_event_tag(
-            key_id=tk2.id,
+        tagstore.create_event_tags(
             group_id=group2.id,
-            value_id=1,
             project_id=project.id,
             event_id=1,
+            tags=[
+                (tk2.id, 1),
+            ],
         )
 
         deletion = ScheduledDeletion.schedule(tk, days=0)

@@ -23,12 +23,13 @@ class DeleteGroupTest(TestCase):
             event_id='a' * 32,
             group_id=group.id,
         )
-        tagstore.create_event_tag(
+        tagstore.create_event_tags(
             event_id=event.id,
             group_id=group.id,
             project_id=project.id,
-            key_id=1,
-            value_id=1,
+            tags=[
+                (1, 1),
+            ],
         )
         GroupAssignee.objects.create(
             group=group,
