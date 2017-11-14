@@ -55,13 +55,11 @@ describe('CreateProject', function() {
       Client.addMockResponse({
         url: '/organizations/testOrg/members/me/',
         body: {
-          allowed_roles: [
+          roles: [
             {
-              role: {
-                id: '1',
-                name: 'member',
-                desc: 'a normal member',
-              },
+              id: '1',
+              name: 'member',
+              desc: 'a normal member',
               allowed: true,
             },
           ],
@@ -96,13 +94,11 @@ describe('CreateProject', function() {
       Client.addMockResponse({
         url: '/organizations/testOrg/members/me/',
         body: {
-          allowed_roles: [
+          roles: [
             {
-              role: {
-                id: '1',
-                name: 'member',
-                desc: 'a normal member',
-              },
+              id: '1',
+              name: 'member',
+              desc: 'a normal member',
               allowed: false,
             },
           ],
@@ -128,15 +124,9 @@ describe('CreateProject', function() {
       Client.addMockResponse({
         url: '/organizations/testOrg/members/me/',
         body: {
-          allowed_roles: [
-            {
-              role: {id: '1', name: 'member', desc: 'a normal member'},
-              allowed: true,
-            },
-            {
-              role: {id: '2', name: 'bar', desc: 'another role'},
-              allowed: true,
-            },
+          roles: [
+            {id: '1', name: 'member', desc: 'a normal member', allowed: true},
+            {id: '2', name: 'bar', desc: 'another role', allowed: true},
           ],
         },
       });
