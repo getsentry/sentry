@@ -11,7 +11,7 @@ class Migration(SchemaMigration):
 
     # Flag to indicate if this migration is too risky
     # to run online and needs to be coordinated for offline
-    is_dangerous = False
+    is_dangerous = True
 
     def forwards(self, orm):
         # Removing index on 'EventTag', fields ['project_id', 'key_id', 'value_id']
