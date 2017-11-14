@@ -38,7 +38,6 @@ export default class FormField extends React.PureComponent {
   constructor(props, context) {
     super(props, context);
     this.state = {
-      error: null,
       value: this.getValue(props, context),
     };
   }
@@ -46,13 +45,11 @@ export default class FormField extends React.PureComponent {
   componentDidMount() {}
 
   componentWillReceiveProps(nextProps, nextContext) {
-    let newError = this.getError(nextProps, nextContext);
-    let newValue = this.getValue(nextProps, nextContext);
-    if (newError != this.state.error) {
-      this.setState({error: newError});
-    }
-    if (newValue !== this.state.value) {
-      this.setValue(newValue);
+    if (
+      this.props.value !== nextProps.value ||
+      (!defined(this.context.form) && defined(nextContext.form))
+    ) {
+      this.setValue(this.getValue(nextProps, nextContext));
     }
   }
 
@@ -120,7 +117,7 @@ export default class FormField extends React.PureComponent {
       help,
       style,
     } = this.props;
-    let {error} = this.state;
+    let error = this.getError();
     let cx = classNames(className, this.getClassName(), {
       'has-error': !!error,
       required,
