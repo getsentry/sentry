@@ -67,7 +67,7 @@ HTTP_INTERFACE_SCHEMA = {
         'fragment': {'type': 'string'},
     },
     'required': ['url'],
-    'additionalProperties': False,  # Don't allow any other keys.
+    'additionalProperties': True,
 }
 
 FRAME_INTERFACE_SCHEMA = {
@@ -407,7 +407,7 @@ def is_valid_input(data, interface):
     return jsonschema.Draft4Validator(
         INPUT_SCHEMAS[interface],
         types={'array': (list, tuple)},
-        format_checker=jsonschema.FormatChecker(),  # TODO check this works for date-time
+        format_checker=jsonschema.FormatChecker(),
     ).is_valid(data)
 
 
