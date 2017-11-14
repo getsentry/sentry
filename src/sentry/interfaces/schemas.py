@@ -46,7 +46,10 @@ PAIRS = {
 HTTP_INTERFACE_SCHEMA = {
     'type': 'object',
     'properties': {
-        'url': {'type': 'string'},
+        'url': {
+            'type': 'string',
+            'minLength': 1,
+        },
         'method': {'type': 'string'},
         'query_string': {'type': ['string', 'object']},
         'inferred_content_type': {'type': 'string'},
@@ -63,7 +66,7 @@ HTTP_INTERFACE_SCHEMA = {
                 PAIRS,  # or a list of 2-tuples
             ]
         },
-        'data': {'type': ['string', 'object']},
+        'data': {'type': ['string', 'object', 'array']},
         'fragment': {'type': 'string'},
     },
     'required': ['url'],
@@ -337,7 +340,7 @@ EVENT_SCHEMA = {
         'time_spent': {
             'type': 'number',
             'maximum': BoundedIntegerField.MAX_VALUE,
-            'minimum': 1,
+            'minimum': 0,
         },
 
         # Exceptions:
