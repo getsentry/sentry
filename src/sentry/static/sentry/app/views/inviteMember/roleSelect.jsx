@@ -22,8 +22,8 @@ const RoleSelect = React.createClass({
         </div>
         <div className="box-content with-padding">
           <ul className="radio-inputs">
-            {roleList.map(({role, allowed}, i) => {
-              let {desc, name, id} = role;
+            {roleList.map((role, i) => {
+              let {desc, name, id, allowed} = role;
               return (
                 <li
                   className="radio"

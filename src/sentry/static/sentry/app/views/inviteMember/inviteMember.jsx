@@ -39,10 +39,10 @@ const InviteMember = React.createClass({
     let {slug} = this.getOrganization();
     this.api.request(`/organizations/${slug}/members/me/`, {
       method: 'GET',
-      success: ({allowed_roles}) => {
-        this.setState({roleList: allowed_roles, loading: false});
-        if (allowed_roles.filter(({_, allowed}) => allowed).length === 0) {
-          //not allowed to invite, redirect
+      success: ({roles}) => {
+        this.setState({roleList: roles, loading: false});
+        if (!roles || roles.filter(({allowed}) => allowed).length === 0) {
+          // not allowed to invite, redirect
           this.redirectToMemberPage();
         }
       },
