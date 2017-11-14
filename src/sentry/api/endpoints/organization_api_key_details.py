@@ -3,7 +3,7 @@ from __future__ import absolute_import
 from rest_framework import serializers, status
 from rest_framework.response import Response
 
-from sentry.api.bases.organization import OrganizationEndpoint, OrganizationApiKeysPermission
+from sentry.api.bases.organization import OrganizationEndpoint, OrganizationAdminPermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.models import ApiKey, AuditLogEntryEvent
@@ -16,7 +16,7 @@ class ApiKeySerializer(serializers.ModelSerializer):
 
 
 class OrganizationApiKeyDetailsEndpoint(OrganizationEndpoint):
-    permission_classes = (OrganizationApiKeysPermission, )
+    permission_classes = (OrganizationAdminPermission, )
 
     def get(self, request, organization, api_key_id):
         """

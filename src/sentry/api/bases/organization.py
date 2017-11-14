@@ -92,9 +92,18 @@ class OrganizationIntegrationsPermission(OrganizationPermission):
     }
 
 
-class OrganizationApiKeysPermission(OrganizationPermission):
+class OrganizationAdminPermission(OrganizationPermission):
     scope_map = {
         'GET': ['org:admin'],
+        'POST': ['org:admin'],
+        'PUT': ['org:admin'],
+        'DELETE': ['org:admin'],
+    }
+
+
+class OrganizationAuthProviderPermission(OrganizationPermission):
+    scope_map = {
+        'GET': ['org:read'],
         'POST': ['org:admin'],
         'PUT': ['org:admin'],
         'DELETE': ['org:admin'],
