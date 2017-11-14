@@ -193,6 +193,70 @@ class Hpkp(SecurityReport):
         return False
 
 
+class ExpectStaple(SecurityReport):
+    """
+    An OCSP Stapling violation report
+
+    See: https://docs.google.com/document/d/1aISglJIIwglcOAhqNfK-2vtQl-_dWAapc-VLDh-9-BE
+    >>> {
+    >>>     "date-time": date-time,
+    >>>     "hostname": hostname,
+    >>>     "port": port,
+    >>>     "effective-expiration-date": date-time,
+    >>>     "response-status": ResponseStatus,
+    >>>     "ocsp-response": ocsp,
+    >>>     "cert-status": CertStatus,
+    >>>     "served-certificate-chain": [pem1, ... pemN],(MUST be in the order served)
+    >>>     "validated-certificate-chain": [pem1, ... pemN](MUST be in the order served)
+    >>> }
+    """
+
+    score = 1300
+    display_score = 1300
+
+    path = 'expectstaple'
+    title = 'Expect-Staple Report'
+
+    @classmethod
+    def from_raw(cls, raw):
+        # Validate the raw data against the input schema (raises on failure)
+        schema = schemas.INPUT_SCHEMAS[cls.path]
+        jsonschema.validate(raw, schema)
+
+        # For Expect-Staple, the values we want are nested under # the 'expect-staple-report' key.
+        raw = raw['expect-staple-report']
+        # Trim values and convert keys to use underscores
+        kwargs = {k.replace('-', '_'): trim(v, 1024) for k, v in six.iteritems(raw)}
+
+        return cls.to_python(kwargs)
+
+    def get_culprit(self):
+        return self.hostname
+
+    def get_hash(self, is_processed_data=True):
+        return [self.hostname]
+
+    def get_message(self):
+        return "Expect-Staple failed for '{self.hostname}'".format(self=self)
+
+    def get_tags(self):
+        return (
+            ('port', six.text_type(self.port)),
+            ('hostname', self.hostname),
+            ('response_status', self.response_status),
+            ('cert_status', self.cert_status),
+        )
+
+    def get_origin(self):
+        return self.hostname
+
+    def get_referrer(self):
+        return None
+
+    def should_filter(self, project=None):
+        return False
+
+
 class ExpectCT(SecurityReport):
     """
     A Certificate Transparency violation report.

@@ -560,7 +560,64 @@ EXPECT_CT_SCHEMA = {
 
 EXPECT_CT_INTERFACE_SCHEMA = {
     'type': 'object',
-    'properties': {k.replace('-', '_'): v for k, v in six.iteritems(EXPECT_CT_SCHEMA['properties']['expect-ct-report']['properties'])},
+    'properties': {k.replace('-', '_'): v for k, v in
+                   six.iteritems(EXPECT_CT_SCHEMA['properties']['expect-ct-report']['properties'])},
+    'required': ['hostname'],
+    'additionalProperties': False,
+}
+
+EXPECT_STAPLE_SCHEMA = {
+    'type': 'object',
+    'properties': {
+        'expect-staple-report': {
+            'type': 'object',
+            'properties': {
+                'date-time': {'type': 'string', },  # TODO validate (RFC3339)
+                'hostname': {'type': 'string'},
+                'port': {'type': 'number'},
+                'effective-expiration-date': {'type': 'string', },  # TODO validate (RFC3339)
+                'response-status': {
+                    'type': 'string',
+                    'enum': [
+                        'MISSING',
+                        'PROVIDED',
+                        'ERROR_RESPONSE',
+                        'BAD_PRODUCED_AT',
+                        'NO_MATCHING_RESPONSE',
+                        'INVALID_DATE',
+                        'PARSE_RESPONSE_ERROR',
+                        'PARSE_RESPONSE_DATA_ERROR',
+                    ],
+                },
+                'ocsp-response': {},
+                'cert-status': {
+                    'type': 'string',
+                    'enum': [
+                        'GOOD',
+                        'REVOKED',
+                        'UNKNOWN',
+                    ],
+                },
+                'served-certificate-chain': {
+                    'type': 'array',
+                    'items': {'type': 'string'}
+                },
+                'validated-certificate-chain': {
+                    'type': 'array',
+                    'items': {'type': 'string'}
+                },
+            },
+            'required': ['hostname'],
+            'additionalProperties': False,
+        },
+    },
+    'additionalProperties': False,
+}
+
+EXPECT_STAPLE_INTERFACE_SCHEMA = {
+    'type': 'object',
+    'properties': {k.replace('-', '_'): v for k, v in
+                   six.iteritems(EXPECT_STAPLE_SCHEMA['properties']['expect-staple-report']['properties'])},
     'required': ['hostname'],
     'additionalProperties': False,
 }
@@ -575,6 +632,7 @@ INPUT_SCHEMAS = {
     'sentry.interfaces.Csp': CSP_SCHEMA,
     'hpkp': HPKP_SCHEMA,
     'expectct': EXPECT_CT_SCHEMA,
+    'expectstaple': EXPECT_STAPLE_SCHEMA,
 }
 
 """
@@ -602,6 +660,7 @@ INTERFACE_SCHEMAS = {
     'sentry.interfaces.Csp': CSP_INTERFACE_SCHEMA,
     'hpkp': HPKP_INTERFACE_SCHEMA,
     'expectct': EXPECT_CT_INTERFACE_SCHEMA,
+    'expectstaple': EXPECT_STAPLE_INTERFACE_SCHEMA,
 
     # Not interfaces per se, but looked up as if they were.
     'event': EVENT_SCHEMA,

@@ -121,6 +121,12 @@ urlpatterns += patterns(
         name='sentry-api-expectct-report'
     ),
     url(
+        r'^api/(?P<project_id>\d+)/expectstaple-report/$',
+        api.SecurityReportView.as_view(),
+        kwargs={'report_type': 'expectstaple'},
+        name='sentry-api-expectstaple-report'
+    ),
+    url(
         r'^api/(?P<project_id>[\w_-]+)/crossdomain\.xml$',
         api.crossdomain_xml,
         name='sentry-api-crossdomain-xml'

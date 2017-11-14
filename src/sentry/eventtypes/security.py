@@ -60,3 +60,21 @@ class ExpectCTEvent(BaseEvent):
 
     def to_string(self, metadata):
         return metadata['message']
+
+
+class ExpectStapleEvent(BaseEvent):
+    key = 'expectstaple'
+
+    def has_metadata(self):
+        return 'expectstaple' in self.data
+
+    def get_metadata(self):
+        from sentry.interfaces.security import ExpectStaple
+        expectstaple = ExpectStaple.to_python(self.data['expectstaple'])
+        return {
+            'origin': expectstaple.get_origin(),
+            'message': expectstaple.get_message(),
+        }
+
+    def to_string(self, metadata):
+        return metadata['message']

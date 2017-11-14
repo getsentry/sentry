@@ -137,6 +137,36 @@ class SecurityReportExpectCTTest(TestCase):
         assert resp.status_code == 201, resp.content
 
 
+class SecurityReportExpectStapleTest(TestCase):
+    @fixture
+    def path(self):
+        path = reverse('sentry-api-expectstaple-report', kwargs={'project_id': self.project.id})
+        return path + '?sentry_key=%s' % self.projectkey.public_key
+
+    @mock.patch('sentry.web.api.is_valid_origin', mock.Mock(return_value=True))
+    @mock.patch('sentry.web.api.SecurityReportView.process')
+    def test_post_success(self, process):
+        process.return_value = 'ok'
+        resp = self.client.post(
+            self.path,
+            content_type='application/expect-staple-report',
+            data=json.dumps({
+                "expect-staple-report": {
+                    "date-time": "2014-04-06T13:00:50Z",
+                    "hostname": "www.example.com",
+                    "port": 443,
+                    "response-status": "ERROR_RESPONSE",
+                    "cert-status": "REVOKED",
+                    "effective-expiration-date": "2014-05-01T12:40:50Z",
+                    "served-certificate-chain": ["-----BEGIN CERTIFICATE-----\n-----END CERTIFICATE-----"],
+                    "validated-certificate-chain": ["-----BEGIN CERTIFICATE-----\n-----END CERTIFICATE-----"],
+                }
+            }),
+            HTTP_USER_AGENT='awesome',
+        )
+        assert resp.status_code == 201, resp.content
+
+
 class StoreViewTest(TestCase):
     @fixture
     def path(self):
