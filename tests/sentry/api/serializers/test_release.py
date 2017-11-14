@@ -403,6 +403,27 @@ class ReleaseSerializerTest(TestCase):
         assert result['deployCount'] == 1
         assert result['lastDeploy']['id'] == six.text_type(deploy.id)
 
+    def test_release_no_users(self):
+        """
+        Testing when a repo gets deleted leaving dangling last commit id and author_ids
+        Made the decision that the Serializer must handle the data even in the case that the
+        commit_id or the author_ids point to records that do not exist.
+        """
+        commit_id = 9999999
+        commit_author_id = 9999999
+
+        project = self.create_project()
+        release = Release.objects.create(
+            organization_id=project.organization_id, version=uuid4().hex,
+            authors=[
+                six.text_type(commit_author_id),
+            ],
+            commit_count=1,
+            last_commit_id=commit_id,
+        )
+        release.add_project(project)
+        serialize(release)
+
 
 class ReleaseRefsSerializerTest(TestCase):
     def test_simple(self):
