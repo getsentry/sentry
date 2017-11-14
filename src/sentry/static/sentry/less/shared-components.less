@@ -269,7 +269,9 @@ fieldset[disabled] .btn-danger.active,
   .icon-refresh {
     position: relative;
     font-size: 14px !important;
-    top: 2px;
+    display: block;
+    line-height: 18px;
+    top: 0;
   }
 }
 
@@ -1398,6 +1400,7 @@ table.integrations {
       left: 2px;
       font-size: 15px !important;
       color: @gray;
+      top: 1px;
     }
   }
 
@@ -1898,8 +1901,8 @@ ul.faces {
   }
 
   .icon-arrow-down {
-    top: 3px;
     right: -2px;
+    top: 0;
   }
 
   .avatar {
@@ -2611,7 +2614,8 @@ header + .alert {
     .transition(none);
     color: @gray-dark;
 
-    &:hover {
+    &:hover,
+    &.active {
       background: #f7f8f9;
       color: darken(@gray-dark, 10);
     }
@@ -2658,6 +2662,9 @@ header + .alert {
 
 .dropdown-actor-title {
   display: flex;
+  align-items: center;
+  height: 100%;
+  min-height: 18px;
 }
 
 /**

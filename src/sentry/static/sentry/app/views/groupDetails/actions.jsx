@@ -9,6 +9,7 @@ import CustomIgnoreCountModal from '../../components/customIgnoreCountModal';
 import CustomIgnoreDurationModal from '../../components/customIgnoreDurationModal';
 import CustomResolutionModal from '../../components/customResolutionModal';
 import DropdownLink from '../../components/dropdownLink';
+import DropdownReact from '../../components/dropdownReact';
 import Duration from '../../components/duration';
 import GroupActions from '../../actions/groupActions';
 import GroupState from '../../mixins/groupState';
@@ -103,7 +104,7 @@ const ResolveActions = React.createClass({
             <span className="icon-checkmark" style={{marginRight: 5}} />
             {t('Resolve')}
           </a>
-          <DropdownLink
+          <DropdownReact
             key="resolve-dropdown"
             caret={true}
             className={resolveClassName}
@@ -155,7 +156,7 @@ const ResolveActions = React.createClass({
                 {t('Another version ...')}
               </a>
             </MenuItem>
-          </DropdownLink>
+          </DropdownReact>
         </div>
       </div>
     );
