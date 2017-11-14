@@ -359,7 +359,7 @@ EVENT_SCHEMA = {
         'sentry.interfaces.Template': {},  # TEMPLATE_INTERFACE_SCHEMA,
 
         # Other interfaces
-        'sentry.interfaces.User': {},
+        'sentry.interfaces.User': {'type': 'object'},
         'sentry.interfaces.Http': {},
 
         # Other reserved keys. (some are added in processing)
@@ -472,7 +472,7 @@ def validate_and_default_from_schema(data, schema, name=None, strip_nones=True):
             del data[key]
 
     # Values that are missing entirely, but are required and should be defaulted
-    if 'properties' in schema and 'required' in schema:
+    if 'properties' in schema and 'required' in schema and isinstance(data, dict):
         for p in schema['required']:
             if p not in data:
                 if p in schema['properties'] and 'default' in schema['properties'][p]:
