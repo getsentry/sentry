@@ -684,27 +684,87 @@ table.integrations {
 * ============================================================================
 */
 
+@loader-size: 64px;
+@check-height: 32px;
+@check-width: 16px;
+@check-left: (@loader-size/6 + @loader-size/12);
+@check-thickness: 6px;
+
 .loading {
   margin: 6em auto;
   position: relative;
 
   .loading-indicator {
-    text-indent: -9999em;
-    border-top: 6px solid @white-darker;
-    border-right: 6px solid @white-darker;
-    border-bottom: 6px solid @white-darker;
-    border-left: 6px solid @gray;
+    position: relative;
+    border: @check-thickness solid @white-darker;
+    border-left-color: @gray;
     -webkit-animation: loading 0.5s infinite linear;
     animation: loading 0.55s infinite linear;
-    border-radius: 50%;
-    width: 64px;
-    height: 64px;
     margin: 0 auto;
+
+    .checkmark {
+      &.draw:after {
+        animation-duration: 800ms;
+        animation-timing-function: ease;
+        animation-name: checkmark;
+        transform: scaleX(-1) rotate(135deg);
+      }
+
+      &:after {
+        opacity: 1;
+        height: @check-height;
+        width: @check-width;
+        transform-origin: left top;
+        border-right: @check-thickness solid @green;
+        border-top: @check-thickness solid @green;
+        content: '';
+        left: 10px;
+        top: 30px;
+        position: absolute;
+      }
+    }
+  }
+
+  .loading-indicator,
+  .loading-indicator:after {
+    border-radius: 50%;
+    width: @loader-size;
+    height: @loader-size;
   }
 
   .loading-message {
     margin-top: 20px;
     text-align: center;
+  }
+
+  .load-complete {
+    -webkit-animation: none;
+    animation: none;
+    border-color: @green;
+    transition: border 500ms ease-out;
+  }
+}
+
+@keyframes checkmark {
+  0% {
+    height: 0;
+    width: 0;
+    opacity: 1;
+  }
+  20% {
+    height: 0;
+    width: @check-width;
+    opacity: 1;
+  }
+  40% {
+    height: @check-height;
+    width: @check-width;
+    opacity: 1;
+  }
+  100% {
+    height: @check-height;
+    width: @check-width;
+    opacity: 1;
   }
 }
 

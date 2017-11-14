@@ -22,6 +22,10 @@ storiesOf('LoadingIndicator', module)
           Triangle
           <LoadingIndicator triangle />
         </div>
+        <div style={{position: 'relative'}}>
+          Finished
+          <LoadingIndicator finished />
+        </div>
       </div>
     ))
   )
@@ -42,6 +46,14 @@ storiesOf('LoadingIndicator', module)
     withInfo('Triangle loading indicator. Be aware it has negative margins.')(() => (
       <div style={{paddingBottom: 300}}>
         <LoadingIndicator triangle>Loading message</LoadingIndicator>
+      </div>
+    ))
+  )
+  .add(
+    'finished',
+    withInfo('Add finished loading')(() => (
+      <div style={{paddingBottom: 300}}>
+        <LoadingIndicator finished>Finished message</LoadingIndicator>
       </div>
     ))
   );
