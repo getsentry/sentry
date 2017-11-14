@@ -137,10 +137,10 @@ class Csp(Interface):
         return self._normalize_directive(self.violated_directive)
 
     def get_tags(self):
-        return (
+        return [
             ('effective-directive', self.effective_directive),
             ('blocked-uri', self.sanitized_blocked_uri()),
-        )
+        ]
 
     def sanitized_blocked_uri(self):
         # HACK: This is 100% to work around Stripe urls

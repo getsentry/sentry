@@ -144,9 +144,9 @@ class CspTest(TestCase):
         assert result.get_hash() == ['img-src', 'ftp://example.com']
 
     def test_get_tags(self):
-        assert self.interface.get_tags() == (
+        assert self.interface.get_tags() == [
             ('effective-directive', 'style-src'), ('blocked-uri', 'http://example.com/lol.css'),
-        )
+        ]
 
     def test_get_tags_stripe(self):
         result = Csp.to_python(
@@ -155,10 +155,10 @@ class CspTest(TestCase):
                 effective_directive='script-src',
             )
         )
-        assert result.get_tags() == (
+        assert result.get_tags() == [
             ('effective-directive', 'script-src'),
             ('blocked-uri', 'https://api.stripe.com/v1/tokens'),
-        )
+        ]
 
     def test_get_message(self):
         result = Csp.to_python(
