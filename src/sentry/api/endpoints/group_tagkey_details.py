@@ -41,12 +41,11 @@ class GroupTagKeyDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
         lookup_key = tagstore.prefix_reserved_key(key)
 
         try:
-            environment = self._get_environment_from_request(request, group.project.organization_id)
+            environment_id = self._get_environment_id_from_request(
+                request, group.project.organization_id)
         except Environment.DoesNotExist:
             # if the environment doesn't exist then the tag can't possibly exist
             raise ResourceDoesNotExist
-
-        environment_id = environment and environment.id
 
         try:
             tag_key = tagstore.get_tag_key(group.project_id, environment_id, lookup_key)

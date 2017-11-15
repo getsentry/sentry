@@ -244,7 +244,7 @@ class LegacyTagStorage(TagStorage):
     def delete_tag_key(self, project_id, key):
         from .tasks import delete_tag_key
 
-        tagkey = self.get_tag_key(project_id, key, status=None)
+        tagkey = self.get_tag_key(project_id, environment_id=None, key=key, status=None)
 
         updated = TagKey.objects.filter(
             id=tagkey.id,

@@ -3,8 +3,9 @@ from __future__ import absolute_import
 from django.http import Http404
 
 from sentry import tagstore
+from sentry.api.base import EnvironmentMixin
 from sentry.models import (
-    EventUser, Group, get_group_with_redirect
+    Environment, EventUser, Group, get_group_with_redirect
 )
 from sentry.web.frontend.base import ProjectView
 from sentry.web.frontend.mixins.csv import CsvMixin
@@ -20,7 +21,7 @@ def attach_eventuser(project_id):
     return wrapped
 
 
-class GroupTagExportView(ProjectView, CsvMixin):
+class GroupTagExportView(ProjectView, CsvMixin, EnvironmentMixin):
     required_scope = 'event:read'
 
     def get_header(self, key):
@@ -73,9 +74,15 @@ class GroupTagExportView(ProjectView, CsvMixin):
         else:
             lookup_key = key
 
+        try:
+            environment_id = self._get_environment_id_from_request(request, project.organization_id)
+        except Environment.DoesNotExist:
+            # if the environment doesn't exist then the tag can't possibly exist
+            raise Http404
+
         # validate existance as it may be deleted
         try:
-            tagstore.get_tag_key(group.project_id, lookup_key)
+            tagstore.get_tag_key(project.id, environment_id, lookup_key)
         except tagstore.TagKeyNotFound:
             raise Http404
 

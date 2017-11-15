@@ -53,13 +53,13 @@ class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):
 
             if query_kwargs['tags']:
                 try:
-                    environment = self._get_environment_from_request(
+                    environment_id = self._get_environment_id_from_request(
                         request, group.project.organization_id)
                 except Environment.DoesNotExist:
                     event_ids = []
                 else:
                     event_ids = tagstore.get_group_event_ids(
-                        group.project_id, group.id, environment and environment.id, query_kwargs['tags'])
+                        group.project_id, group.id, environment_id, query_kwargs['tags'])
 
                 if event_ids:
                     events = events.filter(

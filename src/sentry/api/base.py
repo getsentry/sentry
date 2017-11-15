@@ -247,6 +247,11 @@ class Endpoint(APIView):
 
 
 class EnvironmentMixin(object):
+    def _get_environment_id_from_request(self, request, organization_id):
+        environment = self._get_environment_from_request(request, organization_id)
+
+        return environment and environment.id
+
     def _get_environment_from_request(self, request, organization_id):
         # TODO: cache env on request to avoid hitting memcached over and over
 

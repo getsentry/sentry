@@ -212,11 +212,12 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
             last_release = self._get_release_info(request, group, last_release)
 
         try:
-            environment = self._get_environment_from_request(request, group.project.organization_id)
+            environment_id = self._get_environment_id_from_request(
+                request, group.project.organization_id)
         except Environment.DoesNotExist:
             tags = []
         else:
-            tags = tagstore.get_group_tag_keys(group.id, environment and environment.id, limit=100)
+            tags = tagstore.get_group_tag_keys(group.id, environment_id, limit=100)
 
         participants = list(
             User.objects.filter(
