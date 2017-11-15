@@ -77,7 +77,6 @@ class TagStorage(Service):
         'get_group_tag_values_for_users',
         'get_tags_for_search_filter',
         'update_group_tag_key_values_seen',
-        'merge_group_tag_values_to_project',
 
         'get_tag_value_qs',
         'get_group_tag_value_qs',
@@ -279,18 +278,6 @@ class TagStorage(Service):
     def get_group_event_ids(self, project_id, group_id, tags):
         """
         >>> get_group_event_ids(1, 2, {'key1': 'value1', 'key2': 'value2'})
-        """
-        raise NotImplementedError
-
-    def merge_tag_values_to_project(self, source_project_id, target_project_id):
-        """
-        >>> merge_tag_values_to_project(1, 2)
-        """
-        raise NotImplementedError
-
-    def merge_group_tag_values_to_project(self, target_project_id, group_id):
-        """
-        >>> merge_group_tag_values_to_project(1, 2)
         """
         raise NotImplementedError
 
