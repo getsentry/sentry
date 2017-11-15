@@ -19,7 +19,7 @@ from django.utils.encoding import force_text
 from django.utils.safestring import mark_safe
 
 from sentry import features, options
-from sentry.models import ProjectOwnership, User
+from sentry.models import Environment, ProjectOwnership, User
 
 from sentry.digests.utilities import get_digest_metadata, get_personalized_digests
 from sentry.plugins import register
@@ -272,6 +272,7 @@ class MailPlugin(NotificationPlugin):
             'X-Sentry-Logger-Level': group.get_level_display(),
             'X-Sentry-Project': project.slug,
             'X-Sentry-Reply-To': group_id_to_email(group.id),
+            'X-Sentry-Environment': Environment.get_name_or_default(event.get_tag('environment')),
         }
 
         for user_id in self.get_send_to(project=project, event=event):
