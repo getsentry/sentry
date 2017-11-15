@@ -727,6 +727,7 @@ SENTRY_FEATURES = {
     'organizations:group-unmerge': False,
     'organizations:integrations-v3': False,
     'organizations:invite-members': True,
+    'organizations:new-settings': False,
     'projects:global-events': False,
     'projects:plugins': True,
     'projects:dsym': False,
