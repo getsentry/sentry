@@ -6,7 +6,7 @@
 
 {% block title %}{% trans "Confirm Password" %} | {{ block.super }}{% endblock %}
 
-{% block wrapperclass %}{{block.super }} windowed-small{% endblock %}
+{% block wrapperclass %}{{block.super }} narrow auth{% endblock %}
 
 {% block global_sidebar %}{% endblock %}
 {% block header %}{% endblock %}
@@ -34,24 +34,23 @@
           </a>
         </div>
         <div class="box-content with-padding">
-            <h4 class="m-b-1 p-b-1 b-b-1">
-              {% blocktrans %}Help us keep your account safe by confirming your password.{% endblocktrans %}
-            </h4>
-            <form action="" method="post" autocomplete="off">
+          <h4>{% blocktrans %}Confirm your Identity{% endblocktrans %}</h4>
+
+          <p>
+            {% blocktrans %}Help us keep your account safe by confirming your identity.{% endblocktrans %}
+          </p>
+            <form class="form-stacked" action="" method="post" autocomplete="off">
                 {% csrf_token %}
 
                 {% if form.password.errors %}
                     <div class="help-block error">{% trans "Your password was not valid." %}</div>
                 {% endif %}
 
-                <div class="form-group">
-                    <label class="control-label" for="id_password">
-                        Password:
-                    </label>
+                <div class="control-group required">
+                  <div class="controls">
+                    <label class="control-label" for="id_password">Password</label>
                     <input type="password" name="password" placeholder="Password" id="id_password" class="form-control">
-                    <p class="help-block">
-                        <a href="{% url 'sentry-account-recover' %}">Forgot your password?</a>
-                    </p>
+                  </div>
                 </div>
 
                 {% if u2f_challenge %}
@@ -65,7 +64,8 @@
                 {% endif %}
 
                 <div class="form-actions">
-                    <button type="submit" class="btn btn-primary">{% trans "Continue" %}</button>
+                   <button type="submit" class="btn btn-primary">{% trans "Continue" %}</button>
+                   <a class="pull-right" style="margin-top: 7px" href="{% url 'sentry-account-recover' %}">{% trans "Lost your password?" %}</a>
                 </div>
             </form>
         </div>
