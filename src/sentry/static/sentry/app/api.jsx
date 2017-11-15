@@ -2,7 +2,6 @@ import $ from 'jquery';
 import _ from 'lodash';
 
 import GroupActions from './actions/groupActions';
-import TeamActions from './actions/teamActions';
 
 export class Request {
   constructor(xhr) {
@@ -109,6 +108,20 @@ export class Client {
     );
 
     return this.activeRequests[id];
+  }
+
+  requestPromise(path, options = {}) {
+    return new Promise((resolve, reject) => {
+      this.request(path, {
+        ...options,
+        success: (data, ...args) => {
+          resolve(data);
+        },
+        error: (error, ...args) => {
+          reject(error);
+        },
+      });
+    });
   }
 
   _chain(...funcs) {
@@ -224,62 +237,6 @@ export class Client {
         },
         error: error => {
           GroupActions.assignToError(id, params.id, error);
-        },
-      },
-      options
-    );
-  }
-
-  joinTeam(params, options) {
-    let path =
-      '/organizations/' +
-      params.orgId +
-      '/members/' +
-      (params.memberId || 'me') +
-      '/teams/' +
-      params.teamId +
-      '/';
-    let id = this.uniqueId();
-
-    TeamActions.update(id, params.teamId);
-
-    return this._wrapRequest(
-      path,
-      {
-        method: 'POST',
-        success: response => {
-          TeamActions.updateSuccess(id, params.teamId, response);
-        },
-        error: error => {
-          TeamActions.updateError(id, params.teamId, error);
-        },
-      },
-      options
-    );
-  }
-
-  leaveTeam(params, options) {
-    let path =
-      '/organizations/' +
-      params.orgId +
-      '/members/' +
-      (params.memberId || 'me') +
-      '/teams/' +
-      params.teamId +
-      '/';
-    let id = this.uniqueId();
-
-    TeamActions.update(id, params.teamId);
-
-    return this._wrapRequest(
-      path,
-      {
-        method: 'DELETE',
-        success: response => {
-          TeamActions.updateSuccess(id, params.teamId, response);
-        },
-        error: error => {
-          TeamActions.updateError(id, params.teamId, error);
         },
       },
       options
