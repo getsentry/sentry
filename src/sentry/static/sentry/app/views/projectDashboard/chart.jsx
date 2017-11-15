@@ -86,7 +86,7 @@ const ProjectChart = React.createClass({
     let points = this.state.stats.map(point => {
       return {x: point[0], y: point[1]};
     });
-    let startX = new Date().getTime() / 1000 - 3600 * 24 * 7;
+    let startX = this.props.dateSince;
     let markers = this.state.releaseList
       .filter(release => {
         let date = new Date(release.dateCreated).getTime() / 1000;
