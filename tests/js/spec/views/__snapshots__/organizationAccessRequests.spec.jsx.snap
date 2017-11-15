@@ -1,0 +1,68 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`OrganizationAccessRequests renders empty 1`] = `null`;
+
+exports[`OrganizationAccessRequests renders list 1`] = `
+<div
+  className="panel panel-default horizontal-scroll"
+>
+  <table
+    className="table"
+    id="access_request_list"
+  >
+    <thead>
+      <tr>
+        <th
+          colSpan="2"
+        >
+          Pending Access Requests
+        </th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>
+          <span>
+            <strong>
+              sentry@test.com
+            </strong>
+            <span>
+               requests access to the 
+            </span>
+            <strong>
+              Team Name
+            </strong>
+            <span>
+               team.
+            </span>
+          </span>
+        </td>
+        <td
+          className="align-right"
+        >
+          <Button
+            disabled={false}
+            onClick={[Function]}
+            priority="primary"
+            size="small"
+            style={
+              Object {
+                "marginRight": 4,
+              }
+            }
+          >
+            Approve
+          </Button>
+          <Button
+            disabled={false}
+            onClick={[Function]}
+            size="small"
+          >
+            Deny
+          </Button>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+`;
