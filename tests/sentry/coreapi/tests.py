@@ -219,6 +219,9 @@ class ValidateDataTest(BaseAPITest):
         assert data['errors'][0]['name'] == 'event_id'
         assert data['errors'][0]['value'] == 'xyz'
 
+    def test_invalid_event_id_raises(self):
+        self.assertRaises(APIError, self.helper.validate_data, self.project, {'event_id': 1})
+
     def test_unknown_attribute(self):
         data = self.helper.validate_data(self.project, {
             'message': 'foo',
@@ -322,10 +325,11 @@ class ValidateDataTest(BaseAPITest):
                 'tags': [('foo', 'bar'), ('biz', 'baz', 'boz')],
             }
         )
+        assert data['tags'] == [('foo', 'bar')]
         assert len(data['errors']) == 1
         assert data['errors'][0]['type'] == 'invalid_data'
         assert data['errors'][0]['name'] == 'tags'
-        assert data['errors'][0]['value'] == [('foo', 'bar'), ('biz', 'baz', 'boz')]
+        assert data['errors'][0]['value'] == ('biz', 'baz', 'boz')
 
     def test_reserved_tags(self):
         data = self.helper.validate_data(
@@ -359,6 +363,9 @@ class ValidateDataTest(BaseAPITest):
             'extra': 'bar',
         })
         assert 'extra' not in data
+
+    def test_invalid_culprit_raises(self):
+        self.assertRaises(APIError, self.helper.validate_data, self.project, {'culprit': 1})
 
     def test_release_too_long(self):
         data = self.helper.validate_data(self.project, {
@@ -535,7 +542,6 @@ class ValidateDataTest(BaseAPITest):
             'formatted': 'something else formatted'
         }
 
-    @pytest.mark.skip(reason="Message behavior that didn't make a lot of sense.")
     def test_messages_old_behavior(self):
         # both 'message' and complete valid interface but interface has the same
         # value for both keys so the 'formatted' value is discarded and ends up
