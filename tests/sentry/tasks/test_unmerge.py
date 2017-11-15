@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import functools
+import hashlib
 import itertools
 import logging
 import uuid
@@ -31,6 +32,29 @@ from six.moves import xrange
 
 # Use the default redis client as a cluster client in the similarity index
 index = _make_index_backend(redis.clusters.get('default').get_local_client(0))
+
+
+def test_get_fingerprint():
+    assert get_fingerprint(
+        Event(
+            data={
+                'sentry.interfaces.Message': {
+                    'message': 'Hello world',
+                },
+            },
+        )
+    ) == hashlib.md5('Hello world').hexdigest()
+
+    assert get_fingerprint(
+        Event(
+            data={
+                'fingerprint': ['Not hello world'],
+                'sentry.interfaces.Message': {
+                    'message': 'Hello world',
+                },
+            },
+        )
+    ) == hashlib.md5('Not hello world').hexdigest()
 
 
 @patch('sentry.similarity.features.index', new=index)
