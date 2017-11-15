@@ -4,7 +4,7 @@ import mock
 import uuid
 from time import time
 
-from sentry import tsdb
+from sentry import quotas, tsdb
 from sentry.event_manager import EventManager, HashDiscarded
 from sentry.plugins import Plugin2
 from sentry.tasks.store import preprocess_event, process_event, save_event
@@ -171,7 +171,8 @@ class StoreTasksTest(PluginTestCase):
         )
 
     @mock.patch.object(tsdb, 'incr')
-    def test_hash_discarded_raised(self, mock_incr):
+    @mock.patch.object(quotas, 'refund')
+    def test_hash_discarded_raised(self, mock_refund, mock_incr):
         project = self.create_project()
 
         data = {
