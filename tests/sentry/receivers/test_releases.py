@@ -7,7 +7,7 @@ from uuid import uuid4
 
 from sentry import tagstore
 from sentry.models import (
-    Activity, Commit, CommitAuthor, GroupAssignee, GroupCommitResolution, GroupLink, OrganizationMember,
+    Activity, Commit, CommitAuthor, GroupAssignee, GroupLink, OrganizationMember,
     Release, Repository, UserEmail
 )
 from sentry.testutils import TestCase
@@ -65,11 +65,6 @@ class ResolvedInCommitTest(TestCase):
             message='Foo Biz\n\nFixes {}'.format(group.qualified_short_id),
         )
 
-        assert GroupCommitResolution.objects.filter(
-            group_id=group.id,
-            commit_id=commit.id,
-        ).exists()
-
         assert GroupLink.objects.filter(
             group_id=group.id,
             linked_type=GroupLink.LinkedType.commit,
@@ -88,10 +83,6 @@ class ResolvedInCommitTest(TestCase):
             message='Foo Biz\n\nFixes {}-12F'.format(
                 self.project.slug.upper()),
         )
-
-        assert not GroupCommitResolution.objects.filter(
-            commit_id=commit.id,
-        ).exists()
 
         assert not GroupLink.objects.filter(
             linked_type=GroupLink.LinkedType.commit,
@@ -116,11 +107,6 @@ class ResolvedInCommitTest(TestCase):
                 email=self.user.email,
             )
         )
-
-        assert GroupCommitResolution.objects.filter(
-            group_id=group.id,
-            commit_id=commit.id,
-        ).exists()
 
         assert GroupLink.objects.filter(
             group_id=group.id,
@@ -151,11 +137,6 @@ class ResolvedInCommitTest(TestCase):
                 email=user.email,
             )
         )
-
-        assert GroupCommitResolution.objects.filter(
-            group_id=group.id,
-            commit_id=commit.id,
-        ).exists()
 
         assert GroupLink.objects.filter(
             group_id=group.id,

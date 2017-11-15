@@ -4,7 +4,7 @@ from django.db import IntegrityError, transaction
 from django.db.models.signals import post_save
 
 from sentry.models import (
-    Activity, Commit, GroupAssignee, GroupCommitResolution, GroupLink, Project, Release
+    Activity, Commit, GroupAssignee, GroupLink, Project, Release
 )
 from sentry.tasks.clear_expired_resolutions import clear_expired_resolutions
 
@@ -53,12 +53,6 @@ def resolved_in_commit(instance, created, **kwargs):
     for group in groups:
         try:
             with transaction.atomic():
-                # TODO(maxbittker) remove this call after new grouplink is confirmed working
-                GroupCommitResolution.objects.create(
-                    group_id=group.id,
-                    commit_id=instance.id,
-                )
-                # dual write to prepare for data migration
                 GroupLink.objects.create(
                     group_id=group.id,
                     project_id=group.project_id,

@@ -4,7 +4,7 @@ import datetime
 import six
 
 from sentry.models import (
-    Commit, CommitAuthor, Group, GroupCommitResolution, GroupRelease, GroupResolution, GroupLink, GroupStatus,
+    Commit, CommitAuthor, Group, GroupRelease, GroupResolution, GroupLink, GroupStatus,
     Release, ReleaseCommit, ReleaseEnvironment, ReleaseProject, Repository
 )
 
@@ -142,7 +142,6 @@ class SetCommitsTestCase(TestCase):
             key='lskfslknsdkcsnlkdflksfdkls',
         )
 
-        assert GroupCommitResolution.objects.filter(group_id=group.id, commit_id=commit.id).exists()
         assert GroupLink.objects.filter(
             group_id=group.id,
             linked_type=GroupLink.LinkedType.commit,
@@ -262,14 +261,6 @@ class SetCommitsTestCase(TestCase):
             commit__key='c' * 40,
             commit__repository_id=repo.id,
             release=release,
-        ).exists()
-
-        assert GroupCommitResolution.objects.filter(
-            group_id=group.id,
-            commit_id=Commit.objects.get(
-                key='c' * 40,
-                repository_id=repo.id,
-            ).id,
         ).exists()
 
         assert GroupLink.objects.filter(
@@ -395,7 +386,6 @@ class SetCommitsTestCase(TestCase):
             'repository': repo.name,
         }])
 
-        assert GroupCommitResolution.objects.filter(group_id=group.id, commit_id=commit.id).exists()
         assert GroupLink.objects.filter(
             group_id=group.id,
             linked_type=GroupLink.LinkedType.commit,
@@ -433,7 +423,6 @@ class SetCommitsTestCase(TestCase):
             'repository': repo.name,
         }])
 
-        assert GroupCommitResolution.objects.filter(group_id=group.id, commit_id=commit.id).exists()
         assert GroupLink.objects.filter(
             group_id=group.id,
             linked_type=GroupLink.LinkedType.commit,
