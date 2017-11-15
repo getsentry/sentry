@@ -75,7 +75,7 @@ class GroupSerializer(Serializer):
                 group__in=list(
                     itertools.chain.from_iterable(
                         itertools.imap(
-                            lambda (project, groups): groups if not options.get(
+                            lambda project, groups: groups if not options.get(
                                 project.id,
                                 options.get(None)
                             ) == UserOptionValue.no_conversations else [],

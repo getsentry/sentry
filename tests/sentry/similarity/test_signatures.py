@@ -22,7 +22,7 @@ class MinHashSignatureBuilderTestCase(TestCase):
 
         results = Counter(
             map(
-                lambda (l, r): l == r,
+                lambda l, r: l == r,
                 zip(
                     get_signature(a),
                     get_signature(b),
