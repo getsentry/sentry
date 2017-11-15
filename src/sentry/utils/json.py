@@ -37,8 +37,6 @@ def better_default_encoder(o):
         return list(o)
     elif isinstance(o, decimal.Decimal):
         return six.text_type(o)
-    elif callable(o):
-        return '<function>'
     raise TypeError(repr(o) + ' is not JSON serializable')
 
 
