@@ -262,9 +262,8 @@ def save_event(cache_key=None, data=None, start_time=None, event_id=None, key=No
     Saves an event to the database.
     """
     from sentry.event_manager import HashDiscarded, EventManager
-    from sentry import tsdb
+    from sentry import quotas, tsdb
     from sentry.models import ProjectKey
-    from sentry import quotas
 
     if cache_key:
         data = default_cache.get(cache_key)

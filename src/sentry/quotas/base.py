@@ -46,7 +46,7 @@ class Quota(Service):
     """
     __all__ = (
         'get_maximum_quota', 'get_organization_quota', 'get_project_quota', 'is_rate_limited',
-        'translate_quota', 'validate',
+        'translate_quota', 'validate', 'refund',
     )
 
     def __init__(self, **options):
@@ -55,7 +55,7 @@ class Quota(Service):
     def is_rate_limited(self, project, key=None):
         return NotRateLimited()
 
-    def refund(self, project, key=None):
+    def refund(self, project, key=None, timestamp=None):
         raise NotImplementedError
 
     def get_time_remaining(self):
