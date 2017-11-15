@@ -131,6 +131,89 @@ const orgSettingsRoutes = [
   />,
 ];
 
+const projectSettingsRoutes = [
+  <Route
+    key="alerts/"
+    name="Alerts"
+    path="alerts/"
+    component={errorHandler(ProjectAlertSettings)}
+  />,
+  <Route
+    key="alerts/rules/"
+    path="alerts/rules/"
+    name="Alert Rules"
+    component={errorHandler(ProjectAlertRules)}
+  />,
+  <Route
+    key="release-tracking/"
+    path="release-tracking/"
+    name="Release Tracking"
+    component={errorHandler(ProjectReleaseTracking)}
+  />,
+  <Route
+    key="data-forwarding/"
+    path="data-forwarding/"
+    name="Data Forwarding"
+    component={errorHandler(ProjectDataForwarding)}
+  />,
+  <Route
+    key="saved-searches/"
+    path="saved-searches/"
+    name="Saved Searches"
+    component={errorHandler(ProjectSavedSearches)}
+  />,
+  <Route
+    key="debug-symbols/"
+    path="debug-symbols/"
+    name="Debug Information Files"
+    component={errorHandler(ProjectDebugSymbols)}
+  />,
+  <Route
+    key="processing-issues/"
+    path="processing-issues/"
+    name="Processing Issues"
+    component={errorHandler(ProjectProcessingIssues)}
+  />,
+  <Route
+    key="filters/"
+    path="filters/"
+    name="Inbound Filters"
+    component={errorHandler(ProjectFilters)}
+  />,
+  <Route
+    key="keys/"
+    path="keys/"
+    name="Client Keys"
+    component={errorHandler(ProjectKeys)}
+  />,
+  <Route
+    key="keys/:keyId/"
+    path="keys/:keyId/"
+    name="Client Key Details"
+    component={errorHandler(ProjectKeyDetails)}
+  />,
+  <Route
+    key="user-feedback/"
+    path="user-feedback/"
+    name="User Feedback"
+    component={errorHandler(ProjectUserReportSettings)}
+  />,
+  <Route
+    key="csp/"
+    path="csp/"
+    name="CSP Reports"
+    component={errorHandler(ProjectCspSettings)}
+  />,
+  <Route
+    key="install/"
+    path="install/"
+    name="Basic Configuration"
+    component={errorHandler(ProjectDocsContext)}>
+    <IndexRoute component={errorHandler(ProjectInstallOverview)} />
+    <Route path=":platform/" component={errorHandler(ProjectInstallPlatform)} />
+  </Route>
+];
+
 function routes() {
   let hooksRoutes = [];
   HookStore.get('routes').forEach(cb => {
@@ -279,39 +362,11 @@ function routes() {
             <Route path="commits/" component={errorHandler(ReleaseCommits)} />
           </Route>
           <Route path="user-feedback/" component={errorHandler(ProjectUserReports)} />
+
           <Route path="settings/" component={errorHandler(ProjectSettings)}>
-            <Route path="alerts/" component={errorHandler(ProjectAlertSettings)} />
-            <Route path="alerts/rules/" component={errorHandler(ProjectAlertRules)} />
-            <Route
-              path="release-tracking/"
-              component={errorHandler(ProjectReleaseTracking)}
-            />
-            <Route
-              path="data-forwarding/"
-              component={errorHandler(ProjectDataForwarding)}
-            />
-            <Route path="debug-symbols/" component={errorHandler(ProjectDebugSymbols)} />
-            <Route path="filters/" component={errorHandler(ProjectFilters)} />
-            <Route
-              path="saved-searches/"
-              component={errorHandler(ProjectSavedSearches)}
-            />
-            <Route path="keys/" component={errorHandler(ProjectKeys)} />
-            <Route path="keys/:keyId/" component={errorHandler(ProjectKeyDetails)} />
-            <Route
-              path="processing-issues/"
-              component={errorHandler(ProjectProcessingIssues)}
-            />
-            <Route
-              path="user-feedback/"
-              component={errorHandler(ProjectUserReportSettings)}
-            />
-            <Route path="csp/" component={errorHandler(ProjectCspSettings)} />
-            <Route path="install/" component={errorHandler(ProjectDocsContext)}>
-              <IndexRoute component={errorHandler(ProjectInstallOverview)} />
-              <Route path=":platform/" component={errorHandler(ProjectInstallPlatform)} />
-            </Route>
+            {projectSettingsRoutes}
           </Route>
+
           <Redirect from="group/:groupId/" to="issues/:groupId/" />
           <Route
             path="issues/:groupId/"
