@@ -28,7 +28,7 @@ exports[`OrganizationRepositories render() with a provider renders 1`] = `
             className="dropdown pull-right anchor-right open"
           >
             <a
-              className="dropdown-actor btn btn-primary btn-sm dropdown-menu-right dropdown-toggle"
+              className="dropdown-actor btn btn-primary btn-sm dropdown-menu-right dropdown-toggle hover"
               onClick={[Function]}
             >
               <div
@@ -196,7 +196,7 @@ exports[`OrganizationRepositories render() with a provider renders with a reposi
             className="dropdown pull-right anchor-right open"
           >
             <a
-              className="dropdown-actor btn btn-primary btn-sm dropdown-menu-right dropdown-toggle"
+              className="dropdown-actor btn btn-primary btn-sm dropdown-menu-right dropdown-toggle hover"
               onClick={[Function]}
             >
               <div
@@ -535,7 +535,7 @@ exports[`OrganizationRepositories render() without any providers renders 1`] = `
             className="dropdown pull-right anchor-right open"
           >
             <a
-              className="dropdown-actor btn btn-primary btn-sm dropdown-menu-right dropdown-toggle"
+              className="dropdown-actor btn btn-primary btn-sm dropdown-menu-right dropdown-toggle hover"
               onClick={[Function]}
             >
               <div

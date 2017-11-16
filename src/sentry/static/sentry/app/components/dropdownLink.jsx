@@ -84,8 +84,10 @@ const DropdownLink = React.createClass({
     return (
       <span className={topLevelClasses}>
         <a className={className} data-toggle="dropdown" ref="dropdownToggle">
-          {this.props.title}
-          {this.props.caret && <i className="icon-arrow-down" />}
+          <div className="dropdown-actor-title">
+            {this.props.title}
+            {this.props.caret && <i className="icon-arrow-down" />}
+          </div>
         </a>
         <ul className={classNames(this.props.menuClasses, 'dropdown-menu')}>
           {this.props.children}

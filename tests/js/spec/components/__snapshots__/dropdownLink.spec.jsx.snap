@@ -8,10 +8,14 @@ exports[`DropdownLink renders and anchors to left by default 1`] = `
     className="dropdown-toggle"
     data-toggle="dropdown"
   >
-    test
-    <i
-      className="icon-arrow-down"
-    />
+    <div
+      className="dropdown-actor-title"
+    >
+      test
+      <i
+        className="icon-arrow-down"
+      />
+    </div>
   </a>
   <ul
     className="dropdown-menu"
@@ -34,10 +38,14 @@ exports[`DropdownLink renders and anchors to right 1`] = `
     className="dropdown-menu-right dropdown-toggle"
     data-toggle="dropdown"
   >
-    test
-    <i
-      className="icon-arrow-down"
-    />
+    <div
+      className="dropdown-actor-title"
+    >
+      test
+      <i
+        className="icon-arrow-down"
+      />
+    </div>
   </a>
   <ul
     className="dropdown-menu"
