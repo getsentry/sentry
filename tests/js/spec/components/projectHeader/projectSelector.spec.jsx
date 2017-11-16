@@ -111,7 +111,6 @@ describe('ProjectSelector', function() {
     it('closes dropdown when project is selected', function() {
       let wrapper = mount(<ProjectSelector organization={mockOrg} projectId="" />, {});
       wrapper.find('.dropdown-actor').simulate('click');
-
       // Select first project
       wrapper
         .find('.dropdown-menu [role="presentation"] a')

@@ -39,6 +39,12 @@ class DropdownReact extends React.Component {
 
     topLevelClasses: PropTypes.string,
     menuClasses: PropTypes.string,
+
+    /**
+     * If this is set to true, the dropdown behaves as a "nested dropdown" and is
+     * triggered on mouse enter and mouse leave
+     */
+    isNestedDropdown: PropTypes.bool,
   };
 
   static defaultProps = {
@@ -98,6 +104,15 @@ class DropdownReact extends React.Component {
     }
   };
 
+  // Decide whether dropdown should be closed when mouse leaves element
+  handleMouseLeave = e => {
+    const toElement = e.toElement || e.relatedTarget;
+
+    if (this.dropdownMenu && !this.dropdownMenu.contains(toElement)) {
+      this.handleClose(e);
+    }
+  };
+
   // Closes dropdown menu
   handleClose = e => {
     let {onClose, isOpen} = this.props;
@@ -151,6 +166,7 @@ class DropdownReact extends React.Component {
       className,
       alwaysRenderMenu,
       topLevelClasses,
+      isNestedDropdown,
     } = this.props;
 
     // Default anchor = left
@@ -160,6 +176,7 @@ class DropdownReact extends React.Component {
     let cx = classNames('dropdown-actor', className, {
       'dropdown-menu-right': isRight,
       'dropdown-toggle': true,
+      hover: shouldShowDropdown,
       disabled,
     });
 
@@ -176,7 +193,9 @@ class DropdownReact extends React.Component {
         <a
           className={cx}
           ref={ref => (this.dropdownActor = ref)}
-          onClick={this.handleToggle}
+          onClick={!isNestedDropdown && this.handleToggle}
+          onMouseEnter={isNestedDropdown && this.handleOpen}
+          onMouseLeave={isNestedDropdown && this.handleMouseLeave}
         >
           <div className="dropdown-actor-title">
             <span>{title}</span>
@@ -188,6 +207,7 @@ class DropdownReact extends React.Component {
             ref={this.handleMenuMount}
             onClick={this.handleDropdownMenuClick}
             className={classNames(menuClasses, 'dropdown-menu')}
+            onMouseLeave={isNestedDropdown && this.handleMouseLeave}
           >
             {children}
           </ul>
