@@ -64,7 +64,7 @@ class JavaStacktraceProcessor(StacktraceProcessor):
             self.data.setdefault('errors',
                                  []).append({
                                      'type': error_type,
-                                     'mapping_uuid': image_uuid,
+                                     'mapping_uuid': six.text_type(image_uuid),
                                  })
             report_processing_issue(
                 self.data,
@@ -72,9 +72,11 @@ class JavaStacktraceProcessor(StacktraceProcessor):
                 object='mapping:%s' % image_uuid,
                 type=error_type,
                 data={
-                    'mapping_uuid': image_uuid,
+                    'mapping_uuid': six.text_type(image_uuid),
                 }
             )
+
+        return True
 
     def process_frame(self, processable_frame, processing_task):
         new_module = None
