@@ -66,13 +66,12 @@ def _do_preprocess_event(cache_key, data, start_time, event_id, process_event):
         process_event.delay(cache_key=cache_key, start_time=start_time, event_id=event_id)
         return
 
-    key_id = data.pop('key_id', None)
     # If we get here, that means the event had no preprocessing needed to be done
     # so we can jump directly to save_event
     if cache_key:
         data = None
     save_event.delay(
-        cache_key=cache_key, data=data, start_time=start_time, event_id=event_id, key_id=key_id,
+        cache_key=cache_key, data=data, start_time=start_time, event_id=event_id,
     )
 
 
@@ -111,7 +110,6 @@ def _do_process_event(cache_key, start_time, event_id):
         return
 
     project = data['project']
-    key_id = data.pop('key_id', None)
     Raven.tags_context({
         'project': project,
     })
@@ -147,7 +145,7 @@ def _do_process_event(cache_key, start_time, event_id):
         default_cache.set(cache_key, data, 3600)
 
     save_event.delay(
-        cache_key=cache_key, data=None, start_time=start_time, event_id=event_id, key_id=key_id,
+        cache_key=cache_key, data=None, start_time=start_time, event_id=event_id,
     )
 
 
@@ -257,7 +255,7 @@ def create_failed_event(cache_key, project_id, issues, event_id, start_time=None
 
 
 @instrumented_task(name='sentry.tasks.store.save_event', queue='events.save_event')
-def save_event(cache_key=None, data=None, start_time=None, event_id=None, key_id=None, **kwargs):
+def save_event(cache_key=None, data=None, start_time=None, event_id=None, **kwargs):
     """
     Saves an event to the database.
     """
@@ -307,9 +305,9 @@ def save_event(cache_key=None, data=None, start_time=None, event_id=None, key_id
             pass
         else:
             project_key = None
-            if key_id is not None:
+            if data.get('key_id') is not None:
                 try:
-                    project_key = ProjectKey.objects.get_from_cache(id=key_id)
+                    project_key = ProjectKey.objects.get_from_cache(id=data['key_id'])
                 except ProjectKey.DoesNotExist:
                     pass
 
