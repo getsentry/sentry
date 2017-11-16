@@ -6,7 +6,7 @@ from six import BytesIO
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.core.urlresolvers import reverse
 
-from sentry.models import Event, ProcessingIssue
+from sentry.models import Event
 from sentry.testutils import TestCase
 
 PROGUARD_UUID = '6dc7fdb0-d2fb-4c8e-9d6b-bb1aa98929b1'
