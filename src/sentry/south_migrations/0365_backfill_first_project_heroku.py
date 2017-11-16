@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from sentry.models.organizationonboardingtask import OnboardingTask, OnboardingTaskStatus
+from django.db import IntegrityError, transaction
 from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
 from south.db import db
 from south.v2 import DataMigration
@@ -16,7 +16,6 @@ class Migration(DataMigration):
         db.start_transaction()
 
     def _forwards(self, orm):
-        feature_id = 60  # From featureadoption.py (there's no constant defined).
         FeatureAdoption = orm['sentry.FeatureAdoption']
         OrganizationOnboardingTask = orm['sentry.OrganizationOnboardingTask']
         Organization = orm['sentry.Organization']
@@ -25,16 +24,26 @@ class Migration(DataMigration):
         queryset = Organization.objects.all()
         for org in RangeQuerySetWrapperWithProgressBar(queryset):
             if Project.objects.filter(organization=org).exists():
-                FeatureAdoption.objects.create(
-                    feature_id=feature_id,
-                    organization_id=org.id,
-                    complete=True,
-                )
-                OrganizationOnboardingTask.objects.create(
-                    organization=org,
-                    task=OnboardingTask.FIRST_PROJECT,
-                    status=OnboardingTaskStatus.COMPLETE,
-                )
+                try:
+                    with transaction.atomic():
+                        FeatureAdoption.objects.create(
+                            feature_id=60,  # first_project, from featureadoption.py
+                            organization_id=org.id,
+                            complete=True,
+                        )
+                except IntegrityError:
+                    # Already exists.
+                    pass
+                try:
+                    with transaction.atomic():
+                        OrganizationOnboardingTask.objects.create(
+                            organization=org,
+                            task=1,  # OnboardingTask.FIRST_PROJECT
+                            status=1,  # OnboardingTaskStatus.COMPLETE
+                        )
+                except IntegrityError:
+                    # Already exists.
+                    pass
 
     def backwards(self, orm):
         pass
