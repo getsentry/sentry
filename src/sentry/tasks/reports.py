@@ -697,7 +697,7 @@ def deliver_organization_user_report(timestamp, duration, organization_id, user_
     projects = list(projects)
 
     inclusion_predicates = [
-        lambda interval, project__report: project__report[1] is not None,
+        lambda interval____project__report: interval____project__report[1][1] is not None,
         has_valid_aggregates,
     ]
 
@@ -770,7 +770,7 @@ def build_project_breakdown_series(reports):
         operator.itemgetter(0),
         sorted(
             reports.items(),
-            key=lambda instance, report: sum(sum(values) for timestamp, values in report[0]),
+            key=lambda instance__report: sum(sum(values) for timestamp, values in instance__report[1][0]),
             reverse=True,
         ),
     )[:len(colors)]
@@ -781,12 +781,12 @@ def build_project_breakdown_series(reports):
     # largest color blocks are at the bottom and it feels appropriately
     # weighted.)
     selections = map(
-        lambda instance, color: (
+        lambda instance__color: (
             Key(
-                instance.slug,
-                instance.get_absolute_url(),
-                color,
-                get_legend_data(reports[instance]),
+                instance__color[0].slug,
+                instance__color[0].get_absolute_url(),
+                instance__color[1],
+                get_legend_data(reports[instance__color[0]]),
             ),
             reports[instance],
         ),
