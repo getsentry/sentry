@@ -45,10 +45,6 @@ def resolve_group_resolutions(instance, created, **kwargs):
 
 
 def resolved_in_commit(instance, created, **kwargs):
-    # TODO(dcramer): we probably should support an updated message
-    if not created:
-        return
-
     groups = instance.find_referenced_groups()
     for group in groups:
         try:
