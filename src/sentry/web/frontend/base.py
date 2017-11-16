@@ -14,10 +14,11 @@ from sudo.views import redirect_to_sudo
 from sentry import roles
 from sentry.auth import access
 from sentry.models import (
-    AuditLogEntry, Organization, OrganizationMember, OrganizationStatus, Project, ProjectStatus,
+    Organization, OrganizationMember, OrganizationStatus, Project, ProjectStatus,
     Team, TeamStatus
 )
 from sentry.utils import auth
+from sentry.utils.audit import create_audit_entry
 from sentry.web.helpers import render_to_response
 from sentry.api.serializers import serialize
 
@@ -275,32 +276,7 @@ class BaseView(View, OrganizationMixin):
         )
 
     def create_audit_entry(self, request, transaction_id=None, **kwargs):
-        entry = AuditLogEntry(
-            actor=request.user if request.user.is_authenticated() else None,
-            # TODO(jtcunning): assert that REMOTE_ADDR is a real IP.
-            ip_address=request.META['REMOTE_ADDR'],
-            **kwargs
-        )
-
-        # Only create a real AuditLogEntry record if we are passing an event type
-        # otherwise, we want to still log to our actual logging
-        if entry.event is not None:
-            entry.save()
-
-        extra = {
-            'ip_address': entry.ip_address,
-            'organization_id': entry.organization_id,
-            'object_id': entry.target_object,
-            'entry_id': entry.id,
-            'actor_label': entry.actor_label
-        }
-
-        if transaction_id is not None:
-            extra['transaction_id'] = transaction_id
-
-        audit_logger.info(entry.get_event_display(), extra=extra)
-
-        return entry
+        return create_audit_entry(request, transaction_id, **kwargs)
 
 
 class OrganizationView(BaseView):
