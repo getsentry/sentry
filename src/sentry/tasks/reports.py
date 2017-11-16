@@ -697,7 +697,7 @@ def deliver_organization_user_report(timestamp, duration, organization_id, user_
     projects = list(projects)
 
     inclusion_predicates = [
-        lambda interval____project__report: interval____project__report[1][1] is not None,
+        lambda interval, project__report: project__report[1] is not None,
         has_valid_aggregates,
     ]
 
