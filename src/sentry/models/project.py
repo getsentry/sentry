@@ -17,7 +17,6 @@ from django.db import IntegrityError, models, transaction
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
-from sentry import tagstore
 from sentry.app import locks
 from sentry.constants import ObjectStatus
 from sentry.db.models import (
@@ -142,33 +141,6 @@ class Project(Model):
 
     def get_absolute_url(self):
         return absolute_uri('/{}/{}/'.format(self.organization.slug, self.slug))
-
-    def merge_to(self, project):
-        from sentry.models import (Group, Event)
-
-        if not isinstance(project, Project):
-            project = Project.objects.get_from_cache(pk=project)
-
-        for group in Group.objects.filter(project=self):
-            try:
-                other = Group.objects.get(
-                    project=project,
-                )
-            except Group.DoesNotExist:
-                group.update(project=project)
-                tagstore.update_project_for_group(
-                    group_id=group.id,
-                    old_project_id=self.id,
-                    new_project_id=project.id)
-            else:
-                Event.objects.filter(
-                    group_id=group.id,
-                ).update(group_id=other.id)
-
-                tagstore.merge_group_tag_values_to_project(project.id, group.id)
-
-        tagstore.merge_tag_values_to_project(self.id, project.id)
-        self.delete()
 
     def is_internal_project(self):
         for value in (settings.SENTRY_FRONTEND_PROJECT, settings.SENTRY_PROJECT):
