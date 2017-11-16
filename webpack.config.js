@@ -256,10 +256,16 @@ var legacyCssConfig = {
             {
               loader: 'css-loader',
               options: {
+                sourceMap: true,
                 minimize: IS_PRODUCTION
               }
             },
-            'less-loader'
+            {
+              loader: 'less-loader',
+              options: {
+                sourceMap: true
+              }
+            },
           ]
         })
       },
@@ -268,7 +274,8 @@ var legacyCssConfig = {
         loader: 'file-loader?name=' + '[name].[ext]'
       }
     ]
-  }
+  },
+  devtool: '#source-map'
 };
 
 // Dev only! Hot module reloading
