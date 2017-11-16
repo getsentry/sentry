@@ -181,7 +181,7 @@ class FeatureSet(object):
 
         return map(
             lambda key__scores: (
-                int(key__score[0],
+                int(key__scores[0]),
                 dict(zip(labels, key__scores[1])),
             ),
             self.index.classify(

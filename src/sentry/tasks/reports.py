@@ -788,7 +788,7 @@ def build_project_breakdown_series(reports):
                 instance__color[1],
                 get_legend_data(reports[instance__color[0]]),
             ),
-            reports[instance],
+            reports[instance__color[0]],
         ),
         zip(
             instances,
