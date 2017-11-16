@@ -46,6 +46,18 @@ def resolve_group_resolutions(instance, created, **kwargs):
 
 def resolved_in_commit(instance, created, **kwargs):
     groups = instance.find_referenced_groups()
+
+    # Delete GroupLinks where message may have changed
+    group_ids = {g.id for g in groups}
+    group_links = GroupLink.objects.filter(
+        linked_type=GroupLink.LinkedType.commit,
+        relationship=GroupLink.Relationship.resolves,
+        linked_id=instance.id,
+    )
+    for link in group_links:
+        if link.group_id not in group_ids:
+            link.delete()
+
     for group in groups:
         try:
             with transaction.atomic():
