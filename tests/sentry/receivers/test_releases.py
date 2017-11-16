@@ -125,6 +125,34 @@ class ResolvedInCommitTest(TestCase):
             linked_type=GroupLink.LinkedType.commit,
             linked_id=commit.id).count() == 1
 
+    def test_removes_group_link_when_message_changes(self):
+        group = self.create_group()
+
+        repo = Repository.objects.create(
+            name='example',
+            organization_id=self.group.organization.id,
+        )
+
+        commit = Commit.objects.create(
+            key=sha1(uuid4().hex).hexdigest(),
+            repository_id=repo.id,
+            organization_id=group.organization.id,
+            message='Foo Biz\n\nFixes {}'.format(group.qualified_short_id),
+        )
+
+        assert GroupLink.objects.filter(
+            group_id=group.id,
+            linked_type=GroupLink.LinkedType.commit,
+            linked_id=commit.id).exists()
+
+        commit.message = 'no groups here'
+        commit.save()
+
+        assert not GroupLink.objects.filter(
+            group_id=group.id,
+            linked_type=GroupLink.LinkedType.commit,
+            linked_id=commit.id).exists()
+
     def test_no_matching_group(self):
         repo = Repository.objects.create(
             name='example',
