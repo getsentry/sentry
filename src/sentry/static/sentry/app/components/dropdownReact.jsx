@@ -197,10 +197,10 @@ class DropdownReact extends React.Component {
           onMouseEnter={isNestedDropdown && this.handleOpen}
           onMouseLeave={isNestedDropdown && this.handleMouseLeave}
         >
-          <div className="dropdown-actor-title">
+          <span className="dropdown-actor-title">
             <span>{title}</span>
             {caret && <i className="icon-arrow-down" />}
-          </div>
+          </span>
         </a>
         {(shouldShowDropdown || alwaysRenderMenu) && (
           <ul

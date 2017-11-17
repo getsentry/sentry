@@ -8,7 +8,7 @@ exports[`DropdownReact renders and anchors to left by default 1`] = `
     className="dropdown-actor dropdown-toggle"
     onClick={[Function]}
   >
-    <div
+    <span
       className="dropdown-actor-title"
     >
       <span>
@@ -17,7 +17,7 @@ exports[`DropdownReact renders and anchors to left by default 1`] = `
       <i
         className="icon-arrow-down"
       />
-    </div>
+    </span>
   </a>
 </span>
 `;
@@ -30,7 +30,7 @@ exports[`DropdownReact renders and anchors to right 1`] = `
     className="dropdown-actor dropdown-menu-right dropdown-toggle"
     onClick={[Function]}
   >
-    <div
+    <span
       className="dropdown-actor-title"
     >
       <span>
@@ -39,7 +39,7 @@ exports[`DropdownReact renders and anchors to right 1`] = `
       <i
         className="icon-arrow-down"
       />
-    </div>
+    </span>
   </a>
 </span>
 `;

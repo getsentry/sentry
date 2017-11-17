@@ -64,14 +64,14 @@ exports[`ProjectSelector render() can filter projects by project name 1`] = `
             className="dropdown-actor dropdown-toggle hover"
             onClick={[Function]}
           >
-            <div
+            <span
               className="dropdown-actor-title"
             >
               <span />
               <i
                 className="icon-arrow-down"
               />
-            </div>
+            </span>
           </a>
           <ul
             className="dropdown-menu"
@@ -191,14 +191,14 @@ exports[`ProjectSelector render() can filter projects by team name/project name 
             className="dropdown-actor dropdown-toggle hover"
             onClick={[Function]}
           >
-            <div
+            <span
               className="dropdown-actor-title"
             >
               <span />
               <i
                 className="icon-arrow-down"
               />
-            </div>
+            </span>
           </a>
           <ul
             className="dropdown-menu"
@@ -495,14 +495,14 @@ exports[`ProjectSelector render() shows empty filter message when filtering has 
             className="dropdown-actor dropdown-toggle hover"
             onClick={[Function]}
           >
-            <div
+            <span
               className="dropdown-actor-title"
             >
               <span />
               <i
                 className="icon-arrow-down"
               />
-            </div>
+            </span>
           </a>
           <ul
             className="dropdown-menu"

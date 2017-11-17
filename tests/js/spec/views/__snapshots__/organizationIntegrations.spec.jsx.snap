@@ -33,7 +33,7 @@ exports[`OrganizationIntegrations render() with a provider renders 1`] = `
               className="dropdown-actor btn btn-primary btn-sm dropdown-menu-right dropdown-toggle hover"
               onClick={[Function]}
             >
-              <div
+              <span
                 className="dropdown-actor-title"
               >
                 <span>
@@ -42,7 +42,7 @@ exports[`OrganizationIntegrations render() with a provider renders 1`] = `
                 <i
                   className="icon-arrow-down"
                 />
-              </div>
+              </span>
             </a>
             <ul
               className="dropdown-menu"
@@ -134,7 +134,7 @@ exports[`OrganizationIntegrations render() with a provider renders with a reposi
               className="dropdown-actor btn btn-primary btn-sm dropdown-menu-right dropdown-toggle hover"
               onClick={[Function]}
             >
-              <div
+              <span
                 className="dropdown-actor-title"
               >
                 <span>
@@ -143,7 +143,7 @@ exports[`OrganizationIntegrations render() with a provider renders with a reposi
                 <i
                   className="icon-arrow-down"
                 />
-              </div>
+              </span>
             </a>
             <ul
               className="dropdown-menu"
@@ -377,7 +377,7 @@ exports[`OrganizationIntegrations render() without any providers renders 1`] = `
               className="dropdown-actor btn btn-primary btn-sm dropdown-menu-right dropdown-toggle hover"
               onClick={[Function]}
             >
-              <div
+              <span
                 className="dropdown-actor-title"
               >
                 <span>
@@ -386,7 +386,7 @@ exports[`OrganizationIntegrations render() without any providers renders 1`] = `
                 <i
                   className="icon-arrow-down"
                 />
-              </div>
+              </span>
             </a>
             <ul
               className="dropdown-menu"
