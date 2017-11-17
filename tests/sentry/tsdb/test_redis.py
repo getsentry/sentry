@@ -1,7 +1,9 @@
 from __future__ import absolute_import
 
+import pytest
 import pytz
 
+from contextlib import contextmanager
 from datetime import (
     datetime,
     timedelta,
@@ -9,8 +11,27 @@ from datetime import (
 
 from sentry.testutils import TestCase
 from sentry.tsdb.base import TSDBModel, ONE_MINUTE, ONE_HOUR, ONE_DAY
-from sentry.tsdb.redis import RedisTSDB, CountMinScript
+from sentry.tsdb.redis import RedisTSDB, CountMinScript, SuppressionWrapper
 from sentry.utils.dates import to_datetime, to_timestamp
+
+
+def test_suppression_wrapper():
+
+    @contextmanager
+    def wrapper():
+        yield
+        raise Exception('Boom!')
+
+    with pytest.raises(Exception):
+        with wrapper():
+            pass
+
+    with pytest.raises(RuntimeError):
+        with SuppressionWrapper(wrapper()):
+            raise RuntimeError
+
+    with SuppressionWrapper(wrapper()):
+        pass
 
 
 class RedisTSDBTest(TestCase):
