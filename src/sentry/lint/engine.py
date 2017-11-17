@@ -103,7 +103,8 @@ def get_python_files(file_list=None):
     ]
 
 
-def py_lint(file_list):
+# parseable is a no-op
+def py_lint(file_list, parseable=False):
     from flake8.engine import get_style_guide
 
     file_list = get_python_files(file_list)
@@ -113,7 +114,7 @@ def py_lint(file_list):
     return report.total_errors != 0
 
 
-def js_lint(file_list=None):
+def js_lint(file_list=None, parseable=False, format=False):
 
     project_root = get_project_root()
     eslint_path = get_node_modules_bin('eslint')
@@ -128,8 +129,12 @@ def js_lint(file_list=None):
 
     has_errors = False
     if js_file_list:
-        status = Popen([eslint_path, '--config', eslint_config, '--ext', '.jsx', '--fix']
-                       + js_file_list).wait()
+        cmd = [eslint_path, '--config', eslint_config, '--ext', '.jsx']
+        if format:
+            cmd.append('--fix')
+        if parseable:
+            cmd.append('--format=checkstyle')
+        status = Popen(cmd + js_file_list).wait()
         has_errors = status != 0
 
     return has_errors
@@ -297,7 +302,8 @@ def run_formatter(cmd, file_list, prompt_on_changes=True):
     return has_errors
 
 
-def run(file_list=None, format=True, lint=True, js=True, py=True, less=True, yarn=True, test=False):
+def run(file_list=None, format=True, lint=True, js=True, py=True,
+        less=True, yarn=True, test=False, parseable=False):
     # pep8.py uses sys.argv to find setup.cfg
     old_sysargv = sys.argv
 
@@ -330,9 +336,9 @@ def run(file_list=None, format=True, lint=True, js=True, py=True, less=True, yar
 
         if lint:
             if py:
-                results.append(py_lint(file_list))
+                results.append(py_lint(file_list, parseable=True))
             if js:
-                results.append(js_lint(file_list))
+                results.append(js_lint(file_list, parseable=True, format=format))
 
         if test:
             if js:
