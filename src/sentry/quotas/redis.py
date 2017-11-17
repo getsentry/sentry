@@ -59,6 +59,13 @@ class RedisQuota(Quota):
             int((timestamp - shift) // interval),
         )
 
+    def get_quotas_with_limits(self, project, key=None):
+        return [
+            quota for quota in self.get_quotas(project, key=key)
+            # x = (key, limit, interval)
+            if quota.limit > 0  # a zero limit means "no limit", not "reject all"
+        ]
+
     def get_quotas(self, project, key=None):
         if key:
             key.project = project
@@ -72,7 +79,7 @@ class RedisQuota(Quota):
                 reason_code='project_quota',
             ),
             BasicRedisQuota(
-                key='o:{}'.format(project.organization.id),
+                key='o:{}'.format(project.organization_id),
                 limit=oquota[0],
                 window=oquota[1],
                 reason_code='org_quota',
@@ -96,19 +103,20 @@ class RedisQuota(Quota):
 
         def get_usage_for_quota(client, quota):
             if quota.limit == 0:
-                return None
+                return (None, None)
 
-            return client.get(
-                self.__get_redis_key(
-                    quota.key, timestamp, quota.window, organization_id % quota.window
-                ),
+            key = self.__get_redis_key(
+                quota.key, timestamp, quota.window, organization_id % quota.window
             )
+            refund_key = self.get_refunded_quota_key(key)
 
-        def get_value_for_result(result):
+            return (client.get(key), client.get(refund_key))
+
+        def get_value_for_result(result, refund_result):
             if result is None:
                 return None
 
-            return int(result.value or 0)
+            return int(result.value or 0) - int(refund_result.value or 0)
 
         with self.cluster.fanout() as client:
             results = map(
@@ -121,38 +129,63 @@ class RedisQuota(Quota):
                 quotas,
             )
 
-        return map(
-            get_value_for_result,
-            results,
-        )
+        return [
+            get_value_for_result(*r) for r in results
+        ]
+
+    def get_refunded_quota_key(self, key):
+        return 'r:{}'.format(key)
+
+    def refund(self, project, key=None, timestamp=None):
+        if timestamp is None:
+            timestamp = time()
+
+        quotas = self.get_quotas_with_limits(project, key=key)
+
+        if not quotas:
+            return
+
+        client = self.cluster.get_local_client_for_key(six.text_type(project.organization_id))
+        pipe = client.pipeline()
+
+        for quota in quotas:
+            shift = project.organization_id % quota.window
+            # kind of arbitrary, but seems like we don't want this to expire til we're
+            # sure the window is over?
+            expiry = self.get_next_period_start(quota.window, shift, timestamp) + self.grace
+            return_key = self.get_refunded_quota_key(
+                self.__get_redis_key(quota.key, timestamp, quota.window, shift),
+            )
+            pipe.incr(return_key, 1)
+            pipe.expireat(return_key, int(expiry))
+
+        pipe.execute()
+
+    def get_next_period_start(self, interval, shift, timestamp):
+        """Return the timestamp when the next rate limit period begins for an interval."""
+        return (((timestamp - shift) // interval) + 1) * interval + shift
 
     def is_rate_limited(self, project, key=None, timestamp=None):
         if timestamp is None:
             timestamp = time()
 
-        quotas = [
-            quota for quota in self.get_quotas(project, key=key)
-            # x = (key, limit, interval)
-            if quota.limit > 0  # a zero limit means "no limit", not "reject all"
-        ]
+        quotas = self.get_quotas_with_limits(project, key=key)
 
         # If there are no quotas to actually check, skip the trip to the database.
         if not quotas:
             return NotRateLimited()
 
-        def get_next_period_start(interval, shift):
-            """Return the timestamp when the next rate limit period begins for an interval."""
-            return (((timestamp - shift) // interval) + 1) * interval + shift
-
         keys = []
         args = []
         for quota in quotas:
             shift = project.organization_id % quota.window
-            keys.append(self.__get_redis_key(quota.key, timestamp, quota.window, shift))
-            expiry = get_next_period_start(quota.window, shift) + self.grace
+            key = self.__get_redis_key(quota.key, timestamp, quota.window, shift)
+            return_key = self.get_refunded_quota_key(key)
+            keys.extend((key, return_key))
+            expiry = self.get_next_period_start(quota.window, shift, timestamp) + self.grace
             args.extend((quota.limit, int(expiry)))
 
-        client = self.cluster.get_local_client_for_key(six.text_type(project.organization.pk))
+        client = self.cluster.get_local_client_for_key(six.text_type(project.organization_id))
         rejections = is_rate_limited(client, keys, args)
         if any(rejections):
             enforce = False
@@ -163,7 +196,7 @@ class RedisQuota(Quota):
                 if quota.enforce:
                     enforce = True
                     shift = project.organization_id % quota.window
-                    delay = get_next_period_start(quota.window, shift) - timestamp
+                    delay = self.get_next_period_start(quota.window, shift, timestamp) - timestamp
                     if delay > worst_case[0]:
                         worst_case = (delay, quota.reason_code)
             if enforce:
