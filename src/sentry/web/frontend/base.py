@@ -276,7 +276,7 @@ class BaseView(View, OrganizationMixin):
         )
 
     def create_audit_entry(self, request, transaction_id=None, **kwargs):
-        return create_audit_entry(request, transaction_id, **kwargs)
+        return create_audit_entry(request, transaction_id, audit_logger, **kwargs)
 
 
 class OrganizationView(BaseView):

@@ -93,7 +93,7 @@ class Endpoint(APIView):
             return Response(context, status=500)
 
     def create_audit_entry(self, request, transaction_id=None, **kwargs):
-        return create_audit_entry(request, transaction_id, **kwargs)
+        return create_audit_entry(request, transaction_id, audit_logger, **kwargs)
 
     def initialize_request(self, request, *args, **kwargs):
         rv = super(Endpoint, self).initialize_request(request, *args, **kwargs)

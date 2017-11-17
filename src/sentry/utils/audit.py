@@ -1,11 +1,8 @@
 from __future__ import absolute_import
 from sentry.models import ApiKey, AuditLogEntry
 
-import logging
-audit_logger = logging.getLogger('sentry.audit.api')
 
-
-def create_audit_entry(request, transaction_id=None, **kwargs):
+def create_audit_entry(request, transaction_id=None, logger=None, **kwargs):
 
     user = request.user if request.user.is_authenticated() else None
     api_key = request.auth if hasattr(request, 'auth') \
@@ -34,6 +31,7 @@ def create_audit_entry(request, transaction_id=None, **kwargs):
     if transaction_id is not None:
         extra['transaction_id'] = transaction_id
 
-    audit_logger.info(entry.get_event_display(), extra=extra)
+    if logger:
+        logger.info(entry.get_event_display(), extra=extra)
 
     return entry
