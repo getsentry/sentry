@@ -3,14 +3,12 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import {browserHistory, Link} from 'react-router';
 import ApiMixin from '../mixins/apiMixin';
-import Avatar from '../components/avatar';
 import GroupStore from '../stores/groupStore';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
 import Pagination from '../components/pagination';
 import CompactIssue from '../components/compactIssue';
-import TimeSince from '../components/timeSince';
-import utils from '../utils';
+import EventUserReport from '../components/events/userReport';
 import {t} from '../locale';
 
 const ProjectUserReports = React.createClass({
@@ -173,7 +171,6 @@ const ProjectUserReports = React.createClass({
   renderResults() {
     let {orgId, projectId} = this.props.params;
     let children = this.state.reportList.map((item, itemIdx) => {
-      let body = utils.nl2br(utils.urlize(utils.escape(item.comments)));
       let issue = item.issue;
 
       return (
@@ -184,20 +181,7 @@ const ProjectUserReports = React.createClass({
           orgId={orgId}
           projectId={projectId}
         >
-          <div className="activity-container" style={{margin: '10px 0 5px'}}>
-            <ul className="activity">
-              <li className="activity-note" style={{paddingBottom: 0}}>
-                <Avatar user={item} size={64} className="avatar" />
-                <div className="activity-bubble">
-                  <TimeSince date={item.dateCreated} />
-                  <div className="activity-author">
-                    {item.name} <small>{item.email}</small>
-                  </div>
-                  <p dangerouslySetInnerHTML={{__html: body}} />
-                </div>
-              </li>
-            </ul>
-          </div>
+          <EventUserReport report={item} />
         </CompactIssue>
       );
     });

@@ -113,7 +113,7 @@ const EventEntries = React.createClass({
 
     return (
       <div className="entries">
-        {evt.userReport && <EventUserReport group={group} event={evt} />}
+        {evt.userReport && <EventUserReport report={evt.userReport} />}
         {!utils.objectIsEmpty(evt.errors) && <EventErrors group={group} event={evt} />}
         {!utils.objectIsEmpty(evt.sdk) &&
           evt.sdk.upstream.isNewer && (

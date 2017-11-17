@@ -6,11 +6,11 @@ import utils from '../../utils';
 
 const EventUserReport = React.createClass({
   propTypes: {
-    event: PropTypes.object.isRequired,
+    report: PropTypes.object.isRequired,
   },
 
   render() {
-    let report = this.props.event.userReport;
+    let report = this.props.report;
 
     return (
       <div className="user-report">
