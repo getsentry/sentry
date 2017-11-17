@@ -253,16 +253,19 @@ class EnvironmentMixin(object):
         return environment and environment.id
 
     def _get_environment_from_request(self, request, organization_id):
-        # TODO: cache env on request to avoid hitting memcached over and over
+        if not hasattr(request, '_cached_environment'):
+            environment_param = request.GET.get('environment')
+            if environment_param is None:
+                environment = None
+            else:
+                environment = Environment.get_for_organization_id(
+                    name=environment_param,
+                    organization_id=organization_id,
+                )
 
-        environment = request.GET.get('environment')
-        if environment is None:
-            return None
+            request._cached_environment = environment
 
-        return Environment.get_for_organization_id(
-            name=environment,
-            organization_id=organization_id,
-        )
+        return request._cached_environment
 
 
 class StatsMixin(object):
