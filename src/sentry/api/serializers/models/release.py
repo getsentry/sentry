@@ -171,8 +171,10 @@ class ReleaseSerializer(Serializer):
             ).distinct())
 
         tags = {}
-        tvs = tagstore.get_tag_values(project_ids, 'sentry:release',
-                                      [o.version for o in item_list])
+        tvs = tagstore.get_tag_values(project_ids,
+                                      environment_id=None,
+                                      key='sentry:release',
+                                      values=[o.version for o in item_list])
         for tv in tvs:
             val = tags.get(tv.value)
             tags[tv.value] = {

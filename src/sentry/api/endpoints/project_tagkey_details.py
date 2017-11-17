@@ -3,18 +3,25 @@ from __future__ import absolute_import
 from rest_framework.response import Response
 
 from sentry import tagstore
+from sentry.api.base import EnvironmentMixin
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
-from sentry.models import AuditLogEntryEvent
+from sentry.models import AuditLogEntryEvent, Environment
 
 
-class ProjectTagKeyDetailsEndpoint(ProjectEndpoint):
+class ProjectTagKeyDetailsEndpoint(ProjectEndpoint, EnvironmentMixin):
     def get(self, request, project, key):
         lookup_key = tagstore.prefix_reserved_key(key)
 
         try:
-            tagkey = tagstore.get_tag_key(project.id, lookup_key)
+            environment_id = self._get_environment_id_from_request(request, project.organization_id)
+        except Environment.DoesNotExist:
+            # if the environment doesn't exist then the tag can't possibly exist
+            raise ResourceDoesNotExist
+
+        try:
+            tagkey = tagstore.get_tag_key(project.id, environment_id, lookup_key)
         except tagstore.TagKeyNotFound:
             raise ResourceDoesNotExist
 

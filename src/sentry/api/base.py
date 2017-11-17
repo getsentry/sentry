@@ -18,7 +18,7 @@ from rest_framework.views import APIView
 
 from sentry import tsdb
 from sentry.app import raven
-from sentry.models import ApiKey, AuditLogEntry
+from sentry.models import ApiKey, AuditLogEntry, Environment
 from sentry.utils.cursors import Cursor
 from sentry.utils.dates import to_datetime
 from sentry.utils.http import absolute_uri, is_valid_origin
@@ -27,7 +27,7 @@ from .authentication import ApiKeyAuthentication, TokenAuthentication
 from .paginator import Paginator
 from .permissions import NoPermission
 
-__all__ = ['DocSection', 'Endpoint', 'StatsMixin']
+__all__ = ['DocSection', 'Endpoint', 'EnvironmentMixin', 'StatsMixin']
 
 ONE_MINUTE = 60
 ONE_HOUR = ONE_MINUTE * 60
@@ -244,6 +244,28 @@ class Endpoint(APIView):
         response = Response(results)
         self.add_cursor_headers(request, response, cursor_result)
         return response
+
+
+class EnvironmentMixin(object):
+    def _get_environment_id_from_request(self, request, organization_id):
+        environment = self._get_environment_from_request(request, organization_id)
+
+        return environment and environment.id
+
+    def _get_environment_from_request(self, request, organization_id):
+        if not hasattr(request, '_cached_environment'):
+            environment_param = request.GET.get('environment')
+            if environment_param is None:
+                environment = None
+            else:
+                environment = Environment.get_for_organization_id(
+                    name=environment_param,
+                    organization_id=organization_id,
+                )
+
+            request._cached_environment = environment
+
+        return request._cached_environment
 
 
 class StatsMixin(object):

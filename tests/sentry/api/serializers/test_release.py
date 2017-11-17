@@ -88,8 +88,8 @@ class ReleaseSerializerTest(TestCase):
         # should be sum of all projects
         assert result['newGroups'] == 2
         # should be tags from all projects
-        tagvalue1 = tagstore.get_tag_value(project.id, key, value)
-        tagvalue2 = tagstore.get_tag_value(project2.id, key, value)
+        tagvalue1 = tagstore.get_tag_value(project.id, None, key, value)
+        tagvalue2 = tagstore.get_tag_value(project2.id, None, key, value)
         assert result['firstEvent'] == tagvalue2.first_seen
         assert result['lastEvent'] == tagvalue1.last_seen
         assert result['commitCount'] == 1

@@ -1,14 +1,15 @@
 from __future__ import absolute_import
 
 from sentry import tagstore
-from sentry.api.base import DocSection
+from sentry.api.base import DocSection, EnvironmentMixin
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import DateTimePaginator
 from sentry.api.serializers import serialize
+from sentry.models import Environment
 
 
-class ProjectTagKeyValuesEndpoint(ProjectEndpoint):
+class ProjectTagKeyValuesEndpoint(ProjectEndpoint, EnvironmentMixin):
     doc_section = DocSection.PROJECTS
 
     def get(self, request, project, key):
@@ -28,7 +29,13 @@ class ProjectTagKeyValuesEndpoint(ProjectEndpoint):
         lookup_key = tagstore.prefix_reserved_key(key)
 
         try:
-            tagkey = tagstore.get_tag_key(project.id, lookup_key)
+            environment_id = self._get_environment_id_from_request(request, project.organization_id)
+        except Environment.DoesNotExist:
+            # if the environment doesn't exist then the tag can't possibly exist
+            raise ResourceDoesNotExist
+
+        try:
+            tagkey = tagstore.get_tag_key(project.id, environment_id, lookup_key)
         except tagstore.TagKeyNotFound:
             raise ResourceDoesNotExist
 
