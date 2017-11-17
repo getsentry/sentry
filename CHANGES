@@ -1,6 +1,11 @@
 Version 8.23 (Unreleased)
 -------------------------
 
+Schema Changes
+~~~~~~~~~~~~~~
+
+- Drop index on ``EventTag(project_id, key_id, value_id)``
+
 Version 8.22
 ------------
 
