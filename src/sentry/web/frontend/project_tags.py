@@ -16,7 +16,7 @@ class ProjectTagsView(ProjectView, EnvironmentMixin):
             tag_list = sorted(
                 tagstore.get_tag_keys(
                     project.id,
-                    environment_id
+                    environment_id,
                 ),
                 key=lambda x: x.key)
 

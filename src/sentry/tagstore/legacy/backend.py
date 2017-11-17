@@ -301,7 +301,7 @@ class LegacyTagStorage(TagStorage):
             'value': value,
         }, extra)
 
-    def get_group_event_ids(self, project_id, group_id, tags):
+    def get_group_event_ids(self, project_id, group_id, environment_id, tags):
         tagkeys = dict(
             TagKey.objects.filter(
                 project_id=project_id,
@@ -367,7 +367,7 @@ class LegacyTagStorage(TagStorage):
             key=key,
         ).values_list('group_id', 'values_seen'))
 
-    def get_group_tag_value_count(self, group_id, key):
+    def get_group_tag_value_count(self, group_id, environment_id, key):
         if db.is_postgres():
             # This doesnt guarantee percentage is accurate, but it does ensure
             # that the query has a maximum cost
@@ -395,7 +395,7 @@ class LegacyTagStorage(TagStorage):
             last_seen__gte=cutoff,
         ).aggregate(t=Sum('times_seen'))['t']
 
-    def get_top_group_tag_values(self, group_id, key, limit=3):
+    def get_top_group_tag_values(self, group_id, environment_id, key, limit=3):
         if db.is_postgres():
             # This doesnt guarantee percentage is accurate, but it does ensure
             # that the query has a maximum cost
@@ -513,7 +513,7 @@ class LegacyTagStorage(TagStorage):
         return matches
 
     def update_group_tag_key_values_seen(self, group_ids):
-        instances = self.get_group_tag_keys(group_ids)
+        instances = self.get_group_tag_keys(group_ids, environment_id=None)
         for instance in instances:
             instance.update(
                 values_seen=GroupTagValue.objects.filter(

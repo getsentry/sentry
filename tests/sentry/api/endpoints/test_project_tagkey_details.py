@@ -66,6 +66,7 @@ class ProjectTagKeyDeleteTest(APITestCase):
 
         assert tagstore.get_tag_key(
             project.id,
+            None,  # environment_id
             tagkey.key,
             status=TagKeyStatus.PENDING_DELETION
         ).status == TagKeyStatus.PENDING_DELETION

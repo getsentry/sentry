@@ -66,28 +66,28 @@ class DeleteTagKeyTest(TestCase):
             run_deletion(deletion.id)
 
         try:
-            tagstore.get_group_tag_value(group.id, key, value)
+            tagstore.get_group_tag_value(group.id, None, key, value)
             assert False  # verify exception thrown
         except tagstore.GroupTagValueNotFound:
             pass
         try:
-            tagstore.get_group_tag_key(group.id, key)
+            tagstore.get_group_tag_key(group.id, None, key)
             assert False  # verify exception thrown
         except tagstore.GroupTagKeyNotFound:
             pass
         try:
-            tagstore.get_tag_value(project.id, key, value)
+            tagstore.get_tag_value(project.id, None, key, value)
             assert False  # verify exception thrown
         except tagstore.TagValueNotFound:
             pass
         try:
-            tagstore.get_tag_key(project.id, key)
+            tagstore.get_tag_key(project.id, None, key)
             assert False  # verify exception thrown
         except tagstore.TagKeyNotFound:
             pass
 
-        assert tagstore.get_tag_key(project2.id, key) is not None
-        assert tagstore.get_group_tag_key(group2.id, key) is not None
-        assert tagstore.get_group_tag_value(group2.id, key, value) is not None
+        assert tagstore.get_tag_key(project2.id, None, key) is not None
+        assert tagstore.get_group_tag_key(group2.id, None, key) is not None
+        assert tagstore.get_group_tag_value(group2.id, None, key, value) is not None
         assert tagstore.get_event_tag_qs(key_id=tk.id).exists()
         assert tagstore.get_event_tag_qs(key_id=tk2.id).exists()

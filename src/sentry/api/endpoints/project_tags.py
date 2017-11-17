@@ -20,7 +20,7 @@ class ProjectTagsEndpoint(ProjectEndpoint, EnvironmentMixin):
             tag_keys = sorted(
                 tagstore.get_tag_keys(
                     project.id,
-                    environment_id
+                    environment_id,
                 ),
                 key=lambda x: x.key)
 
