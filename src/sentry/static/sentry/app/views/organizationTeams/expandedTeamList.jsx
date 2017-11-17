@@ -5,6 +5,8 @@ import LazyLoad from 'react-lazy-load';
 
 import ApiMixin from '../../mixins/apiMixin';
 import {update as projectUpdate} from '../../actionCreators/projects';
+import {leaveTeam} from '../../actionCreators/teams';
+import IndicatorStore from '../../stores/indicatorStore';
 import BarChart from '../../components/barChart';
 import ProjectLabel from '../../components/projectLabel';
 import SentryTypes from '../../proptypes';
@@ -37,10 +39,21 @@ const ExpandedTeamList = React.createClass({
 
   leaveTeam(team) {
     // TODO(dcramer): handle loading indicator
-    this.api.leaveTeam({
-      orgId: this.props.organization.slug,
-      teamId: team.slug,
-    });
+    leaveTeam(
+      this.api,
+      {
+        orgId: this.props.organization.slug,
+        teamId: team.slug,
+      },
+      {
+        error: () => {
+          IndicatorStore.add(
+            t('There was an error while trying to leave the team.'),
+            'error'
+          );
+        },
+      }
+    );
   },
 
   urlPrefix() {

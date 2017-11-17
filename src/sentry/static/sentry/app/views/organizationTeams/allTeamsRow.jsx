@@ -3,7 +3,8 @@ import React from 'react';
 import {Link} from 'react-router';
 
 import ApiMixin from '../../mixins/apiMixin';
-import AlertActions from '../../actions/alertActions';
+import IndicatorStore from '../../stores/indicatorStore';
+import {joinTeam, leaveTeam} from '../../actionCreators/teams';
 import {t} from '../../locale';
 
 // TODO(dcramer): this isnt great UX
@@ -30,7 +31,8 @@ const AllTeamsRow = React.createClass({
       loading: true,
     });
 
-    this.api.joinTeam(
+    joinTeam(
+      this.api,
       {
         orgId: this.props.organization.slug,
         teamId: this.props.team.slug,
@@ -47,10 +49,10 @@ const AllTeamsRow = React.createClass({
             loading: false,
             error: true,
           });
-          AlertActions.addAlert({
-            message: t('There was an error while trying to join the team.'),
-            type: 'error',
-          });
+          IndicatorStore.add(
+            t('There was an error while trying to join the team.'),
+            'error'
+          );
         },
       }
     );
@@ -61,7 +63,8 @@ const AllTeamsRow = React.createClass({
       loading: true,
     });
 
-    this.api.leaveTeam(
+    leaveTeam(
+      this.api,
       {
         orgId: this.props.organization.slug,
         teamId: this.props.team.slug,
@@ -78,10 +81,10 @@ const AllTeamsRow = React.createClass({
             loading: false,
             error: true,
           });
-          AlertActions.addAlert({
-            message: t('There was an error while trying to leave the team.'),
-            type: 'error',
-          });
+          IndicatorStore.add(
+            t('There was an error while trying to leave the team.'),
+            'error'
+          );
         },
       }
     );
