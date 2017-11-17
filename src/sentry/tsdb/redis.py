@@ -137,6 +137,15 @@ class RedisTSDB(BaseTSDB):
         )
 
     def get_cluster(self, environment_id):
+        """\
+        Returns a 2-tuple of the form ``(cluster, durable)``.
+
+        When a cluster is marked as "durable", any exception raised while
+        attempting to write data to the cluster is propagated. When the cluster
+        is *not* marked as "durable", exceptions raised while attempting to
+        write data to the cluster are *not* propagated. This flag does not have
+        an effect on read operations.
+        """
         return self.cluster, True
 
     def get_cluster_groups(self, environment_ids):
