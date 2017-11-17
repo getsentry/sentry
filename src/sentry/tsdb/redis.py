@@ -111,7 +111,7 @@ class RedisTSDB(BaseTSDB):
         )
 
     def get_cluster(self, environment_id):
-        return self.cluster
+        return self.cluster, True
 
     def get_cluster_groups(self, environment_ids):
         results = defaultdict(list)
@@ -189,7 +189,8 @@ class RedisTSDB(BaseTSDB):
         if timestamp is None:
             timestamp = timezone.now()
 
-        for cluster, environment_ids in self.get_cluster_groups(set([None, environment_id])):
+        for (cluster, durable), environment_ids in self.get_cluster_groups(
+                set([None, environment_id])):
             with cluster.map() as client:
                 for rollup, max_values in six.iteritems(self.rollups):
                     for model, key in items:
@@ -217,7 +218,8 @@ class RedisTSDB(BaseTSDB):
         series = map(to_datetime, series)
 
         results = []
-        with self.get_cluster(environment_id).map() as client:
+        cluster, _ = self.get_cluster(environment_id)
+        with cluster.map() as client:
             for key in keys:
                 for timestamp in series:
                     hash_key, hash_field = self.make_counter_key(
@@ -243,7 +245,7 @@ class RedisTSDB(BaseTSDB):
 
         rollups = self.get_active_series(timestamp=timestamp)
 
-        for cluster, environment_ids in self.get_cluster_groups(environment_ids):
+        for (cluster, durable), environment_ids in self.get_cluster_groups(environment_ids):
             with cluster.map() as client:
                 data = {}
                 for rollup, series in rollups.items():
@@ -299,7 +301,7 @@ class RedisTSDB(BaseTSDB):
 
         rollups = self.get_active_series(start, end, timestamp)
 
-        for cluster, environment_ids in self.get_cluster_groups(environment_ids):
+        for (cluster, durable), environment_ids in self.get_cluster_groups(environment_ids):
             with cluster.map() as client:
                 for rollup, series in rollups.items():
                     for timestamp in series:
@@ -335,7 +337,8 @@ class RedisTSDB(BaseTSDB):
 
         ts = int(to_timestamp(timestamp))  # ``timestamp`` is not actually a timestamp :(
 
-        for cluster, environment_ids in self.get_cluster_groups(set([None, environment_id])):
+        for (cluster, durable), environment_ids in self.get_cluster_groups(
+                set([None, environment_id])):
             with cluster.fanout() as client:
                 for model, key, values in items:
                     c = client.target_key(key)
@@ -368,7 +371,8 @@ class RedisTSDB(BaseTSDB):
         rollup, series = self.get_optimal_rollup_series(start, end, rollup)
 
         responses = {}
-        with self.get_cluster(environment_id).fanout() as client:
+        cluster, _ = self.get_cluster(environment_id)
+        with cluster.fanout() as client:
             for key in keys:
                 c = client.target_key(key)
                 r = responses[key] = []
@@ -400,7 +404,8 @@ class RedisTSDB(BaseTSDB):
         rollup, series = self.get_optimal_rollup_series(start, end, rollup)
 
         responses = {}
-        with self.get_cluster(environment_id).fanout() as client:
+        cluster, _ = self.get_cluster(environment_id)
+        with cluster.fanout() as client:
             for key in keys:
                 # XXX: The current versions of the Redis driver don't implement
                 # ``PFCOUNT`` correctly (although this is fixed in the Git
@@ -437,7 +442,7 @@ class RedisTSDB(BaseTSDB):
             return [self.make_key(model, rollup, timestamp, key, environment_id)
                     for timestamp in series]
 
-        cluster = self.get_cluster(environment_id)
+        cluster, _ = self.get_cluster(environment_id)
         router = cluster.get_router()
 
         def map_key_to_host(hosts, key):
@@ -509,7 +514,7 @@ class RedisTSDB(BaseTSDB):
 
         rollups = self.get_active_series(timestamp=timestamp)
 
-        for cluster, environment_ids in self.get_cluster_groups(environment_ids):
+        for (cluster, durable), environment_ids in self.get_cluster_groups(environment_ids):
             temporary_id = uuid.uuid1().hex
 
             def make_temporary_key(key):
@@ -580,7 +585,7 @@ class RedisTSDB(BaseTSDB):
 
         rollups = self.get_active_series(start, end, timestamp)
 
-        for cluster, environment_ids in self.get_cluster_groups(environment_ids):
+        for (cluster, duraable), environment_ids in self.get_cluster_groups(environment_ids):
             with cluster.fanout() as client:
                 for rollup, series in rollups.items():
                     for timestamp in series:
@@ -616,7 +621,8 @@ class RedisTSDB(BaseTSDB):
 
         ts = int(to_timestamp(timestamp))  # ``timestamp`` is not actually a timestamp :(
 
-        for cluster, environment_ids in self.get_cluster_groups(set([None, environment_id])):
+        for (cluster, durable), environment_ids in self.get_cluster_groups(
+                set([None, environment_id])):
             commands = {}
 
             for model, request in requests:
@@ -676,7 +682,8 @@ class RedisTSDB(BaseTSDB):
             commands[key] = [(CountMinScript, ks, arguments)]
 
         results = {}
-        for key, responses in self.get_cluster(environment_id).execute_commands(commands).items():
+        cluster, _ = self.get_cluster(environment_id)
+        for key, responses in cluster.execute_commands(commands).items():
             results[key] = [(member, float(score)) for member, score in responses[0].value]
 
         return results
@@ -708,7 +715,8 @@ class RedisTSDB(BaseTSDB):
             return {item: float(score) for item, score in response.value}
 
         results = {}
-        for key, responses in self.get_cluster(environment_id).execute_commands(commands).items():
+        cluster, _ = self.get_cluster(environment_id)
+        for key, responses in cluster.execute_commands(commands).items():
             results[key] = zip(series, map(unpack_response, responses))
 
         return results
@@ -746,7 +754,8 @@ class RedisTSDB(BaseTSDB):
 
         results = {}
 
-        for key, responses in self.get_cluster(environment_id).execute_commands(commands).items():
+        cluster, _ = self.get_cluster(environment_id)
+        for key, responses in cluster.execute_commands(commands).items():
             members = items[key]
 
             chunk = results[key] = []
@@ -792,7 +801,7 @@ class RedisTSDB(BaseTSDB):
             )
             rollups.append((rollup, map(to_datetime, series), ))
 
-        for cluster, environment_ids in self.get_cluster_groups(environment_ids):
+        for (cluster, durable), environment_ids in self.get_cluster_groups(environment_ids):
             exports = defaultdict(list)
 
             for source in sources:
@@ -853,7 +862,7 @@ class RedisTSDB(BaseTSDB):
 
         rollups = self.get_active_series(start, end, timestamp)
 
-        for cluster, environment_ids in self.get_cluster_groups(environment_ids):
+        for (cluster, durable), environment_ids in self.get_cluster_groups(environment_ids):
             with cluster.fanout() as client:
                 for rollup, series in rollups.items():
                     for timestamp in series:
