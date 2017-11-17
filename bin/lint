@@ -1,29 +1,38 @@
 #!/usr/bin/env python
 from __future__ import absolute_import
 
+import click
 import os
 import sys
 
 # This is to avoid needing to have the `sentry` package explicitly installed.
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), os.pardir, 'src'))
 
-from sentry.lint.engine import run
 
-offset = 1
-js = True
-py = True
+@click.command()
+@click.argument('files', nargs=-1)
+@click.option('--js', default=None, is_flag=True)
+@click.option('--python', default=None, is_flag=True)
+@click.option('--format', default=False, is_flag=True)
+@click.option('--parseable', default=False, is_flag=True)
+def run(files, js, python, format, parseable):
+    from sentry.lint import engine
 
-# Allow passing a flag for --js or --python only
-if len(sys.argv) > 1:
-    if sys.argv[1] == '--js':
-        offset = 2
-        py = False
-    elif sys.argv[1] == '--python':
-        offset = 2
+    if js and not python:
+        python = False
+    elif python and not js:
         js = False
+    else:
+        js = True
+        python = True
 
-file_list = sys.argv[offset:]
-if not file_list:
-    file_list = None
+    if not files:
+        files = None
 
-sys.exit(run(file_list, js=js, py=py, format=False))
+    results = engine.run(files, js=js, py=python, format=format, parseable=parseable)
+    if results:
+        raise click.Abort
+
+
+if __name__ == '__main__':
+    run()
