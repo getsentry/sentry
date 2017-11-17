@@ -9,6 +9,7 @@ import CustomIgnoreCountModal from '../../components/customIgnoreCountModal';
 import CustomIgnoreDurationModal from '../../components/customIgnoreDurationModal';
 import CustomResolutionModal from '../../components/customResolutionModal';
 import DropdownReact from '../../components/dropdownReact';
+import DropdownLink from '../../components/dropdownLink';
 import Duration from '../../components/duration';
 import GroupActions from '../../actions/groupActions';
 import GroupState from '../../mixins/groupState';
@@ -407,7 +408,7 @@ const DeleteActions = React.createClass({
           <span className="icon-trash" />
         </LinkWithConfirmation>
         {features.has('custom-filters') && (
-          <DropdownReact caret={true} className="group-delete btn btn-default btn-sm">
+          <DropdownLink caret={true} className="group-delete btn btn-default btn-sm">
             <li>
               <LinkWithConfirmation
                 title={t('Discard')}
@@ -422,7 +423,7 @@ const DeleteActions = React.createClass({
                 <span>{t('Delete and discard future events')}</span>
               </LinkWithConfirmation>
             </li>
-          </DropdownReact>
+          </DropdownLink>
         )}
       </div>
     );
