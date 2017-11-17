@@ -3,6 +3,7 @@ from south.utils import datetime_utils as datetime
 from south.db import db
 from south.v2 import SchemaMigration
 from django.db import models
+from django.db.utils import ProgrammingError
 
 from sentry.utils.db import is_postgres
 
@@ -17,11 +18,22 @@ class Migration(SchemaMigration):
         # Removing index on 'EventTag', fields ['project_id', 'key_id', 'value_id']
         if is_postgres():
             db.commit_transaction()
-            db.execute(
-                "DROP INDEX CONCURRENTLY {}".format(
-                    db.create_index_name(u'sentry_eventtag', ['project_id', 'key_id', 'value_id']),
+            try:
+                db.execute(
+                    "DROP INDEX CONCURRENTLY {}".format(
+                        db.create_index_name(
+                            u'sentry_eventtag', [
+                                'project_id', 'key_id', 'value_id']),
+                    )
                 )
-            )
+            except ProgrammingError:
+                db.execute(
+                    "DROP INDEX {}".format(
+                        db.create_index_name(
+                            u'sentry_eventtag', [
+                                'project_id', 'key_id', 'value_id']),
+                    )
+                )
             db.start_transaction()
         else:
             db.delete_index(u'sentry_eventtag', ['project_id', 'key_id', 'value_id'])
@@ -30,11 +42,22 @@ class Migration(SchemaMigration):
         # Adding index on 'EventTag', fields ['project_id', 'key_id', 'value_id']
         if is_postgres():
             db.commit_transaction()
-            db.execute(
-                "CREATE INDEX CONCURRENTLY {} ON sentry_eventtag (project_id, key_id, value_id)".format(
-                    db.create_index_name(u'sentry_eventtag', ['project_id', 'key_id', 'value_id']),
+            try:
+                db.execute(
+                    "CREATE INDEX CONCURRENTLY {} ON sentry_eventtag (project_id, key_id, value_id)".format(
+                        db.create_index_name(
+                            u'sentry_eventtag', [
+                                'project_id', 'key_id', 'value_id']),
+                    )
                 )
-            )
+            except ProgrammingError:
+                db.execute(
+                    "CREATE INDEX {} ON sentry_eventtag (project_id, key_id, value_id)".format(
+                        db.create_index_name(
+                            u'sentry_eventtag', [
+                                'project_id', 'key_id', 'value_id']),
+                    )
+                )
             db.start_transaction()
         else:
             db.create_index(u'sentry_eventtag', ['project_id', 'key_id', 'value_id'])
