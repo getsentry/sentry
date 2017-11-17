@@ -12,18 +12,25 @@ import IconCheckmarkSm from '../../../../icons/icon-checkmark-sm';
 import IconWarningSm from '../../../../icons/icon-warning-sm';
 import Spinner from './styled/spinner';
 
-const SettingsPanelItemWrapper = styled(Flex)`
+const SettingsPanelItemWrapper = styled(({highlighted, ...props}) => <Flex {...props} />)`
   padding: 15px 20px;
   border-bottom: 1px solid ${p => p.theme.borderLight};
   align-items: center;
   transition: background 0.15s;
 
-  ${p => (p.highlighted ? css`outline: 1px solid ${p.theme.purple};` : '')} &:last-child {
+  ${p =>
+    p.highlighted
+      ? css`
+          outline: 1px solid ${p.theme.purple};
+        `
+      : ''} &:last-child {
     border-bottom: none;
   }
 `;
 
-const SettingsPanelItemLabel = styled.div`color: ${p => p.theme.gray5};`;
+const SettingsPanelItemLabel = styled.div`
+  color: ${p => p.theme.gray5};
+`;
 
 const SettingsPanelItemCtrl = styled(Box)`
   color: ${p => p.theme.gray3};
