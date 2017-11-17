@@ -19,10 +19,10 @@ const StyledSettingsContainer = styled.div`
 
 class SettingsWrapper extends React.Component {
   componentWillMount() {
-    $(document.body).addClass('settings');
+    $(document.body).addClass('new-settings');
   }
   componentWillUnmount() {
-    $(document.body).removeClass('settings');
+    $(document.body).removeClass('new-settings');
   }
 
   render() {
