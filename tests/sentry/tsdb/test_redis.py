@@ -18,20 +18,19 @@ from sentry.utils.dates import to_datetime, to_timestamp
 def test_suppression_wrapper():
 
     @contextmanager
-    def wrapper():
+    def raise_after():
         yield
         raise Exception('Boom!')
 
     with pytest.raises(Exception):
-        with wrapper():
+        with raise_after():
             pass
 
-    with pytest.raises(RuntimeError):
-        with SuppressionWrapper(wrapper()):
-            raise RuntimeError
-
-    with SuppressionWrapper(wrapper()):
+    with SuppressionWrapper(raise_after()):
         pass
+
+    with SuppressionWrapper(raise_after()):
+        raise Exception('should not propagate')
 
 
 class RedisTSDBTest(TestCase):

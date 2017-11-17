@@ -39,28 +39,28 @@ CountMinScript = Script(
 
 class SuppressionWrapper(object):
     """\
-    Wraps a context manager and prevents exceptions raised by exiting the
-    wrapped context manager from propagating. Exceptions that were raised in
-    the context, however, are still propagated.
+    Wraps a context manager and prevents any exceptions raised either during
+    the managed block or the exiting of the wrapped manager from propagating.
+
+    You probably shouldn't use this.
     """
 
-    def __init__(self, wrapped, types=(Exception,)):
+    def __init__(self, wrapped):
         self.wrapped = wrapped
-        self.types = types
 
     def __enter__(self):
         return self.wrapped.__enter__()
 
     def __exit__(self, *args):
-        if any(arg is not None for arg in args):
-            # propagate exception raised in managed context
-            return
-
         try:
-            return self.wrapped.__exit__(*args)
-        except self.types:
-            # suppress exception raised when exiting wrapped manager
-            return True
+            # allow the wrapped manager to perform any cleanup tasks regardless
+            # of whether or not we are suppressing an exception raised within
+            # the managed block
+            self.wrapped.__exit__(*args)
+        except Exception:
+            pass
+
+        return True
 
 
 class RedisTSDB(BaseTSDB):
