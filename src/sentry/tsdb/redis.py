@@ -638,8 +638,12 @@ class RedisTSDB(BaseTSDB):
 
         rollups = self.get_active_series(start, end, timestamp)
 
-        for (cluster, duraable), environment_ids in self.get_cluster_groups(environment_ids):
-            with cluster.fanout() as client:
+        for (cluster, durable), environment_ids in self.get_cluster_groups(environment_ids):
+            manager = cluster.fanout()
+            if not durable:
+                manager = SuppressionWrapper(manager)
+
+            with manager as client:
                 for rollup, series in rollups.items():
                     for timestamp in series:
                         for model in models:
