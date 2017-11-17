@@ -173,10 +173,10 @@ class SentryRemoteTest(TestCase):
 
         assert instance.message == 'hello'
 
-        assert tagstore.get_tag_key(self.project.id, 'foo') is not None
-        assert tagstore.get_tag_value(self.project.id, 'foo', 'bar') is not None
-        assert tagstore.get_group_tag_key(instance.group_id, 'foo') is not None
-        assert tagstore.get_group_tag_value(instance.group_id, 'foo', 'bar') is not None
+        assert tagstore.get_tag_key(self.project.id, None, 'foo') is not None
+        assert tagstore.get_tag_value(self.project.id, None, 'foo', 'bar') is not None
+        assert tagstore.get_group_tag_key(instance.group_id, None, 'foo') is not None
+        assert tagstore.get_group_tag_value(instance.group_id, None, 'foo', 'bar') is not None
 
     def test_timestamp(self):
         timestamp = timezone.now().replace(

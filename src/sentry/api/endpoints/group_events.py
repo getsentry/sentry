@@ -3,11 +3,11 @@ from __future__ import absolute_import
 import six
 
 from sentry import tagstore
-from sentry.api.base import DocSection
+from sentry.api.base import DocSection, EnvironmentMixin
 from sentry.api.bases import GroupEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.paginator import DateTimePaginator
-from sentry.models import Event, Group
+from sentry.models import Environment, Event, Group
 from sentry.search.utils import parse_query
 from sentry.utils.apidocs import scenario, attach_scenarios
 from rest_framework.response import Response
@@ -20,7 +20,7 @@ def list_available_samples_scenario(runner):
     runner.request(method='GET', path='/issues/%s/events/' % group.id)
 
 
-class GroupEventsEndpoint(GroupEndpoint):
+class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):
     doc_section = DocSection.EVENTS
 
     @attach_scenarios([list_available_samples_scenario])
@@ -52,8 +52,15 @@ class GroupEventsEndpoint(GroupEndpoint):
                 )
 
             if query_kwargs['tags']:
-                event_ids = tagstore.get_group_event_ids(
-                    group.project_id, group.id, query_kwargs['tags'])
+                try:
+                    environment_id = self._get_environment_id_from_request(
+                        request, group.project.organization_id)
+                except Environment.DoesNotExist:
+                    event_ids = []
+                else:
+                    event_ids = tagstore.get_group_event_ids(
+                        group.project_id, group.id, environment_id, query_kwargs['tags'])
+
                 if event_ids:
                     events = events.filter(
                         id__in=event_ids,
