@@ -38,6 +38,12 @@ CountMinScript = Script(
 
 
 class SuppressionWrapper(object):
+    """\
+    Wraps a context manager and prevents exceptions raised by exiting the
+    wrapped context manager from propagating. Exceptions that were raised in
+    the context, however, are still propagated.
+    """
+
     def __init__(self, wrapped, types=(Exception,)):
         self.wrapped = wrapped
         self.types = types
