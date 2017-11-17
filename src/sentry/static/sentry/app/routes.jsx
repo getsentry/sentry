@@ -50,7 +50,7 @@ import OrganizationMembersView from './views/settings/organization/members/organ
 import OrganizationPicker from './views/settings/components/organizationPicker';
 import OrganizationProjectsView from './views/settings/organization/projects/organizationProjectsView';
 import OrganizationRateLimits from './views/organizationRateLimits';
-import OrganizationRepositories from './views/organizationRepositories';
+import OrganizationRepositoriesView from './views/organizationRepositoriesView';
 import OrganizationGeneralSettingsView from './views/settings/organization/general/organizationGeneralSettingsView';
 import OrganizationSettingsLayout from './views/settings/organization/organizationSettingsLayout';
 import OrganizationStats from './views/organizationStats';
@@ -173,7 +173,7 @@ const orgSettingsRoutes = [
     key="repos"
     path="repos/"
     name="Repositories"
-    component={errorHandler(OrganizationRepositories)}
+    component={errorHandler(OrganizationRepositoriesView)}
   />,
   <Route key="members/new/" path="members/new/" component={errorHandler(InviteMember)} />,
   <Route
@@ -181,7 +181,7 @@ const orgSettingsRoutes = [
     path="members/:memberId/"
     component={errorHandler(OrganizationMemberDetail)}
   />,
-  <Route key="repos" path="repos/" component={errorHandler(OrganizationRepositories)} />,
+
   <Route
     key="settings"
     path="settings/"

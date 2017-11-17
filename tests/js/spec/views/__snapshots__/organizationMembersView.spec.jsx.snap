@@ -72,7 +72,7 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
 
 .glamor-5 {
   box-sizing: border-box;
-  width: 80px;
+  width: 180px;
   padding-left: 16px;
   padding-right: 16px;
 }
@@ -285,12 +285,12 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
                           </Box>
                           <Box
                             px={2}
-                            w={80}
+                            w={180}
                           >
                             <Base
                               className="glamor-5"
                               px={2}
-                              w={80}
+                              w={180}
                             >
                               <div
                                 className="glamor-5"
@@ -510,41 +510,28 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
                       </Box>
                       <Box
                         px={2}
-                        style={
-                          Object {
-                            "textAlign": "center",
-                          }
-                        }
-                        w={80}
+                        w={180}
                       >
                         <Base
                           className="glamor-5"
                           px={2}
-                          style={
-                            Object {
-                              "textAlign": "center",
-                            }
-                          }
-                          w={80}
+                          w={180}
                         >
                           <div
                             className="glamor-5"
                             is={null}
-                            style={
-                              Object {
-                                "textAlign": "center",
-                              }
-                            }
                           >
-                            <span
-                              className="icon-exclamation tip"
-                              style={
-                                Object {
-                                  "color": "#B64236",
+                            <div>
+                              <span
+                                className="icon-exclamation tip"
+                                style={
+                                  Object {
+                                    "color": "#B64236",
+                                  }
                                 }
-                              }
-                              title="Two-factor auth not enabled"
-                            />
+                                title="Two-factor auth not enabled"
+                              />
+                            </div>
                           </div>
                         </Base>
                       </Box>
@@ -777,40 +764,27 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
                       </Box>
                       <Box
                         px={2}
-                        style={
-                          Object {
-                            "textAlign": "center",
-                          }
-                        }
-                        w={80}
+                        w={180}
                       >
                         <Base
                           className="glamor-5"
                           px={2}
-                          style={
-                            Object {
-                              "textAlign": "center",
-                            }
-                          }
-                          w={80}
+                          w={180}
                         >
                           <div
                             className="glamor-5"
                             is={null}
-                            style={
-                              Object {
-                                "textAlign": "center",
-                              }
-                            }
                           >
-                            <span
-                              className="icon-check"
-                              style={
-                                Object {
-                                  "color": "green",
+                            <div>
+                              <span
+                                className="icon-check"
+                                style={
+                                  Object {
+                                    "color": "green",
+                                  }
                                 }
-                              }
-                            />
+                              />
+                            </div>
                           </div>
                         </Base>
                       </Box>
@@ -1043,40 +1017,27 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
                       </Box>
                       <Box
                         px={2}
-                        style={
-                          Object {
-                            "textAlign": "center",
-                          }
-                        }
-                        w={80}
+                        w={180}
                       >
                         <Base
                           className="glamor-5"
                           px={2}
-                          style={
-                            Object {
-                              "textAlign": "center",
-                            }
-                          }
-                          w={80}
+                          w={180}
                         >
                           <div
                             className="glamor-5"
                             is={null}
-                            style={
-                              Object {
-                                "textAlign": "center",
-                              }
-                            }
                           >
-                            <span
-                              className="icon-check"
-                              style={
-                                Object {
-                                  "color": "green",
+                            <div>
+                              <span
+                                className="icon-check"
+                                style={
+                                  Object {
+                                    "color": "green",
+                                  }
                                 }
-                              }
-                            />
+                              />
+                            </div>
                           </div>
                         </Base>
                       </Box>
@@ -1226,7 +1187,7 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
 
 .glamor-5 {
   box-sizing: border-box;
-  width: 80px;
+  width: 180px;
   padding-left: 16px;
   padding-right: 16px;
 }
@@ -1439,12 +1400,12 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
                           </Box>
                           <Box
                             px={2}
-                            w={80}
+                            w={180}
                           >
                             <Base
                               className="glamor-5"
                               px={2}
-                              w={80}
+                              w={180}
                             >
                               <div
                                 className="glamor-5"
@@ -1664,31 +1625,16 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
                       </Box>
                       <Box
                         px={2}
-                        style={
-                          Object {
-                            "textAlign": "center",
-                          }
-                        }
-                        w={80}
+                        w={180}
                       >
                         <Base
                           className="glamor-5"
                           px={2}
-                          style={
-                            Object {
-                              "textAlign": "center",
-                            }
-                          }
-                          w={80}
+                          w={180}
                         >
                           <div
                             className="glamor-5"
                             is={null}
-                            style={
-                              Object {
-                                "textAlign": "center",
-                              }
-                            }
                           >
                             <div>
                               <div>
@@ -1968,31 +1914,16 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
                       </Box>
                       <Box
                         px={2}
-                        style={
-                          Object {
-                            "textAlign": "center",
-                          }
-                        }
-                        w={80}
+                        w={180}
                       >
                         <Base
                           className="glamor-5"
                           px={2}
-                          style={
-                            Object {
-                              "textAlign": "center",
-                            }
-                          }
-                          w={80}
+                          w={180}
                         >
                           <div
                             className="glamor-5"
                             is={null}
-                            style={
-                              Object {
-                                "textAlign": "center",
-                              }
-                            }
                           >
                             <div>
                               <div>
@@ -2272,40 +2203,27 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
                       </Box>
                       <Box
                         px={2}
-                        style={
-                          Object {
-                            "textAlign": "center",
-                          }
-                        }
-                        w={80}
+                        w={180}
                       >
                         <Base
                           className="glamor-5"
                           px={2}
-                          style={
-                            Object {
-                              "textAlign": "center",
-                            }
-                          }
-                          w={80}
+                          w={180}
                         >
                           <div
                             className="glamor-5"
                             is={null}
-                            style={
-                              Object {
-                                "textAlign": "center",
-                              }
-                            }
                           >
-                            <span
-                              className="icon-check"
-                              style={
-                                Object {
-                                  "color": "green",
+                            <div>
+                              <span
+                                className="icon-check"
+                                style={
+                                  Object {
+                                    "color": "green",
+                                  }
                                 }
-                              }
-                            />
+                              />
+                            </div>
                           </div>
                         </Base>
                       </Box>

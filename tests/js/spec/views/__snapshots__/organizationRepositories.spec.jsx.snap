@@ -605,3 +605,183 @@ exports[`OrganizationRepositories render() without any providers renders 1`] = `
   </DocumentTitle>
 </OrganizationRepositories>
 `;
+
+exports[`OrganizationRepositories renders with a repository 1`] = `
+<div>
+  <SettingsPageHeading
+    action={
+      <DropdownLink
+        alwaysRenderMenu={true}
+        anchorRight={true}
+        caret={true}
+        className="btn btn-primary btn-sm"
+        disabled={false}
+        title="Add Repository"
+      >
+        <MenuItem
+          noAnchor={true}
+        >
+          <AddRepositoryLink
+            orgId="org-slug"
+            provider={
+              Object {
+                "config": Array [
+                  Object {
+                    "help": "Enter your repository name, including the owner.",
+                    "label": "Repository Name",
+                    "name": "name",
+                    "placeholder": "e.g. getsentry/sentry",
+                    "required": true,
+                    "type": "text",
+                  },
+                ],
+                "id": "github",
+                "name": "GitHub",
+              }
+            }
+          />
+        </MenuItem>
+      </DropdownLink>
+    }
+    label="Repositories"
+  />
+  <div
+    className="m-b-2"
+  >
+    <p>
+      Connecting a repository allows Sentry to capture commit data via webhooks. This enables features like suggested assignees and resolving issues via commit message. Once you've connected a repository, you can associate commits with releases via the API.
+       
+      <span>
+        <span>
+          See our 
+        </span>
+        <a
+          href="https://docs.sentry.io/learn/releases/"
+        >
+          <span>
+            documentation
+          </span>
+        </a>
+        <span>
+           for more details.
+        </span>
+      </span>
+    </p>
+  </div>
+  <div
+    className="well blankslate align-center p-x-2 p-y-1"
+  >
+    <div
+      className="icon icon-lg icon-git-commit"
+    />
+    <h3>
+      Sentry is better with commit data
+    </h3>
+    <p>
+      Adding one or more repositories will enable enhanced releases and the ability to resolve Sentry Issues via git message.
+    </p>
+    <p
+      className="m-b-1"
+    >
+      <a
+        className="btn btn-default"
+        href="https://docs.sentry.io/learn/releases/"
+      >
+        Learn more
+      </a>
+    </p>
+  </div>
+</div>
+`;
+
+exports[`OrganizationRepositories renders with github provider 1`] = `
+<div>
+  <SettingsPageHeading
+    action={
+      <DropdownLink
+        alwaysRenderMenu={true}
+        anchorRight={true}
+        caret={true}
+        className="btn btn-primary btn-sm"
+        disabled={false}
+        title="Add Repository"
+      >
+        <MenuItem
+          noAnchor={true}
+        >
+          <AddRepositoryLink
+            orgId="org-slug"
+            provider={
+              Object {
+                "config": Array [
+                  Object {
+                    "help": "Enter your repository name, including the owner.",
+                    "label": "Repository Name",
+                    "name": "name",
+                    "placeholder": "e.g. getsentry/sentry",
+                    "required": true,
+                    "type": "text",
+                  },
+                ],
+                "id": "github",
+                "name": "GitHub",
+              }
+            }
+          />
+        </MenuItem>
+      </DropdownLink>
+    }
+    label="Repositories"
+  />
+  <Styled(div)>
+    <PanelHeader
+      disablePadding={true}
+    >
+      <Flex>
+        <Box
+          px={2}
+        >
+          Added Repositories
+        </Box>
+      </Flex>
+    </PanelHeader>
+    <Styled(div)>
+      <Box />
+    </Styled(div)>
+  </Styled(div)>
+</div>
+`;
+
+exports[`OrganizationRepositories renders without providers 1`] = `
+<div>
+  <SettingsPageHeading
+    action={
+      <DropdownLink
+        alwaysRenderMenu={true}
+        anchorRight={true}
+        caret={true}
+        className="btn btn-primary btn-sm"
+        disabled={false}
+        title="Add Repository"
+      />
+    }
+    label="Repositories"
+  />
+  <Styled(div)>
+    <PanelHeader
+      disablePadding={true}
+    >
+      <Flex>
+        <Box
+          px={2}
+        >
+          Added Repositories
+        </Box>
+      </Flex>
+    </PanelHeader>
+    <Styled(div)>
+      <Box />
+    </Styled(div)>
+  </Styled(div)>
+</div>
+`;
