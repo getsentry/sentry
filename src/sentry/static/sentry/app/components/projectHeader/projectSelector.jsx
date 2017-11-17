@@ -6,7 +6,7 @@ import classNames from 'classnames';
 import ApiMixin from '../../mixins/apiMixin';
 
 import ProjectLabel from '../../components/projectLabel';
-import DropdownReact from '../dropdownReact';
+import DropdownLink from '../dropdownLink';
 import MenuItem from '../menuItem';
 import Link from '../link';
 
@@ -330,7 +330,7 @@ const ProjectSelector = React.createClass({
           {this.state.activeProject
             ? this.getLinkNode(this.state.activeTeam, this.state.activeProject)
             : t('Select a project')}
-          <DropdownReact
+          <DropdownLink
             ref="dropdownLink"
             title=""
             topLevelClasses={dropdownClassNames}
@@ -360,7 +360,7 @@ const ProjectSelector = React.createClass({
               projects: children,
               filter: this.state.filter,
             })}
-          </DropdownReact>
+          </DropdownLink>
         </h3>
       </div>
     );

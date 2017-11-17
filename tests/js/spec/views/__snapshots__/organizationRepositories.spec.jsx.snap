@@ -15,7 +15,7 @@ exports[`OrganizationRepositories render() with a provider renders 1`] = `
       <div
         className="pull-right"
       >
-        <DropdownReact
+        <DropdownLink
           alwaysRenderMenu={true}
           anchorRight={true}
           caret={true}
@@ -133,7 +133,7 @@ exports[`OrganizationRepositories render() with a provider renders 1`] = `
               </MenuItem>
             </ul>
           </span>
-        </DropdownReact>
+        </DropdownLink>
       </div>
       <h3
         className="m-b-2"
@@ -183,7 +183,7 @@ exports[`OrganizationRepositories render() with a provider renders with a reposi
       <div
         className="pull-right"
       >
-        <DropdownReact
+        <DropdownLink
           alwaysRenderMenu={true}
           anchorRight={true}
           caret={true}
@@ -301,7 +301,7 @@ exports[`OrganizationRepositories render() with a provider renders with a reposi
               </MenuItem>
             </ul>
           </span>
-        </DropdownReact>
+        </DropdownLink>
       </div>
       <h3
         className="m-b-2"
@@ -465,7 +465,7 @@ exports[`OrganizationRepositories render() without any providers is loading when
     <div
       className="pull-right"
     >
-      <DropdownReact
+      <DropdownLink
         alwaysRenderMenu={true}
         anchorRight={true}
         caret={true}
@@ -522,7 +522,7 @@ exports[`OrganizationRepositories render() without any providers renders 1`] = `
       <div
         className="pull-right"
       >
-        <DropdownReact
+        <DropdownLink
           alwaysRenderMenu={true}
           anchorRight={true}
           caret={true}
@@ -554,7 +554,7 @@ exports[`OrganizationRepositories render() without any providers renders 1`] = `
               onClick={[Function]}
             />
           </span>
-        </DropdownReact>
+        </DropdownLink>
       </div>
       <h3
         className="m-b-2"
