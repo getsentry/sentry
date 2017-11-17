@@ -43,12 +43,16 @@ after_success:
   - zeus upload -t "text/xml+xunit" junit.xml
   - zeus upload -t "text/xml+coverage" coverage.xml
   - zeus upload -t "text/html+pytest" pytest.html
+  - zeus upload -t "text/plain+pycodestyle" flake8.pycodestyle.log
+  - zeus upload -t "text/xml+checkstyle" eslint.checkstyle.xml
 after_failure:
-  - dmesg | tail -n 100
+  - codecov -e TEST_SUITE
   - npm install -g @zeus-ci/cli
   - zeus upload -t "text/xml+xunit" junit.xml
   - zeus upload -t "text/xml+coverage" coverage.xml
   - zeus upload -t "text/html+pytest" pytest.html
+  - zeus upload -t "text/plain+pycodestyle" flake8.pycodestyle.log
+  - zeus upload -t "text/xml+checkstyle" eslint.checkstyle.xml
 # each attribute in the matrix will override the global attribute
 matrix:
   fast_finish: true
