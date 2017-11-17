@@ -103,19 +103,20 @@ class RedisQuota(Quota):
 
         def get_usage_for_quota(client, quota):
             if quota.limit == 0:
-                return None
+                return (None, None)
 
-            return client.get(
-                self.__get_redis_key(
-                    quota.key, timestamp, quota.window, organization_id % quota.window
-                ),
+            key = self.__get_redis_key(
+                quota.key, timestamp, quota.window, organization_id % quota.window
             )
+            refund_key = self.get_refunded_quota_key(key)
 
-        def get_value_for_result(result):
+            return (client.get(key), client.get(refund_key))
+
+        def get_value_for_result(result, refund_result):
             if result is None:
                 return None
 
-            return int(result.value or 0)
+            return int(result.value or 0) - int(refund_result.value or 0)
 
         with self.cluster.fanout() as client:
             results = map(
@@ -128,10 +129,9 @@ class RedisQuota(Quota):
                 quotas,
             )
 
-        return map(
-            get_value_for_result,
-            results,
-        )
+        return [
+            get_value_for_result(*r) for r in results
+        ]
 
     def get_refunded_quota_key(self, key):
         return 'r:{}'.format(key)

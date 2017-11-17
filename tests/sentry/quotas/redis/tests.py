@@ -217,3 +217,37 @@ class RedisQuotaTest(TestCase):
 
         for key in keys:
             assert client.get(key) == '1'
+
+    def test_get_usage_uses_refund(self):
+        timestamp = time.time()
+
+        self.get_project_quota.return_value = (200, 60)
+        self.get_organization_quota.return_value = (300, 60)
+
+        n = 10
+        for _ in xrange(n):
+            self.quota.is_rate_limited(self.project, timestamp=timestamp)
+
+        self.quota.refund(self.project, timestamp=timestamp)
+
+        quotas = self.quota.get_quotas(self.project)
+
+        assert self.quota.get_usage(
+            self.project.organization_id,
+            quotas + [
+                BasicRedisQuota(
+                    key='unlimited',
+                    limit=0,
+                    window=60,
+                    reason_code='unlimited',
+                ),
+                BasicRedisQuota(
+                    key='dummy',
+                    limit=10,
+                    window=60,
+                    reason_code='dummy',
+                ),
+            ],
+            timestamp=timestamp,
+            # the - 1 is because we refunded once
+        ) == [n - 1 for _ in quotas] + [None, 0]
