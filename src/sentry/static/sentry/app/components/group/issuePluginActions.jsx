@@ -100,7 +100,7 @@ const IssuePluginActions = React.createClass({
             caret={false}
             className="btn btn-default btn-sm"
             title={
-              <span>
+              <span style={{display: 'flex'}}>
                 {plugin.shortName || plugin.name || plugin.title}
                 <span
                   className="icon-arrow-down"
