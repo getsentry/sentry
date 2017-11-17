@@ -12,9 +12,7 @@ import LoadingIndicator from '../../../../components/loadingIndicator';
 import SentryTypes from '../../../../proptypes';
 import recreateRoute from '../../../../utils/recreateRoute';
 
-const UserName = styled(Link)`
-  font-size: 16px;
-`;
+const UserName = styled(Link)`font-size: 16px;`;
 
 const Email = styled.div`
   color: ${p => p.theme.gray3};
@@ -28,6 +26,8 @@ const Row = styled(Flex)`
     border: 0;
   }
 `;
+
+const TextCenter = styled.div`text-align: center;`;
 
 export default class OrganizationMemberRow extends React.PureComponent {
   static propTypes = {
@@ -119,7 +119,7 @@ export default class OrganizationMemberRow extends React.PureComponent {
           <Email>{email}</Email>
         </Box>
 
-        <Box px={2} w={80} style={{textAlign: 'center'}}>
+        <Box px={2} w={180}>
           {needsSso || pending ? (
             <div>
               <div>
@@ -153,14 +153,18 @@ export default class OrganizationMemberRow extends React.PureComponent {
                   </Button>
                 )}
             </div>
-          ) : !has2fa ? (
-            <span
-              style={{color: '#B64236'}}
-              className="icon-exclamation tip"
-              title={t('Two-factor auth not enabled')}
-            />
           ) : (
-            <span style={{color: 'green'}} className="icon-check" />
+            <div>
+              {!has2fa ? (
+                <span
+                  style={{color: '#B64236'}}
+                  className="icon-exclamation tip"
+                  title={t('Two-factor auth not enabled')}
+                />
+              ) : (
+                <span style={{color: 'green'}} className="icon-check" />
+              )}
+            </div>
           )}
         </Box>
 
