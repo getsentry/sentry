@@ -46,7 +46,7 @@ after_success:
   - zeus upload -t "text/plain+pycodestyle" flake8.pycodestyle.log
   - zeus upload -t "text/xml+checkstyle" eslint.checkstyle.xml
 after_failure:
-  - codecov -e TEST_SUITE
+  - dmesg | tail -n 100
   - npm install -g @zeus-ci/cli
   - zeus upload -t "text/xml+xunit" junit.xml
   - zeus upload -t "text/xml+coverage" coverage.xml
