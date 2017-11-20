@@ -7,6 +7,7 @@ import ApiMixin from '../../../mixins/apiMixin';
 import ProjectContext from '../../projects/projectContext';
 import ProjectDocsContext from '../../projectInstall/docsContext';
 import ProjectInstallPlatform from '../../projectInstall/platform';
+import HookStore from '../../../stores/hookStore';
 
 const Configure = React.createClass({
   mixins: [ApiMixin],
@@ -83,6 +84,7 @@ const Configure = React.createClass({
 
   submit() {
     this.redirectUrl();
+    HookStore.get('analytics:onboarding-complete').forEach(cb => cb());
   },
 
   redirectToNeutralDocs() {
