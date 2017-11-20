@@ -17,11 +17,18 @@ class SentryManagerTest(TestCase):
     def test_add_tags(self):
         event = Group.objects.from_kwargs(1, message='rrr')
         group = event.group
+        environment = self.create_environment()
 
         with self.tasks():
-            Group.objects.add_tags(group, tags=(('foo', 'bar'), ('foo', 'baz'), ('biz', 'boz')))
+            Group.objects.add_tags(group, environment, tags=(
+                ('foo', 'bar'), ('foo', 'baz'), ('biz', 'boz')))
 
-        results = sorted(tagstore.get_group_tag_values(group.id, None, 'foo'), key=lambda x: x.id)
+        results = sorted(
+            tagstore.get_group_tag_values(
+                group.id,
+                environment_id=None,
+                keys=['foo']),
+            key=lambda x: x.id)
         assert len(results) == 2
         res = results[0]
         self.assertEquals(res.value, 'bar')
@@ -30,7 +37,12 @@ class SentryManagerTest(TestCase):
         self.assertEquals(res.value, 'baz')
         self.assertEquals(res.times_seen, 1)
 
-        results = sorted(tagstore.get_group_tag_values(group.id, None, 'biz'), key=lambda x: x.id)
+        results = sorted(
+            tagstore.get_group_tag_values(
+                group.id,
+                environment_id=None,
+                keys=['biz']),
+            key=lambda x: x.id)
         assert len(results) == 1
         res = results[0]
         self.assertEquals(res.value, 'boz')

@@ -92,17 +92,6 @@ def post_process_group(event, is_new, is_regression, is_sample, **kwargs):
     )
 
 
-def record_additional_tags(event):
-    from sentry.models import Group
-
-    added_tags = []
-    for plugin in plugins.for_project(event.project, version=2):
-        added_tags.extend(safe_execute(
-            plugin.get_tags, event, _with_transaction=False) or ())
-    if added_tags:
-        Group.objects.add_tags(event.group, added_tags)
-
-
 def process_snoozes(group):
     from sentry.models import GroupSnooze, GroupStatus
 

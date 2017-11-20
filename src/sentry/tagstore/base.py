@@ -233,9 +233,9 @@ class TagStorage(Service):
         """
         raise NotImplementedError
 
-    def delete_tag_key(self, project_id, key):
+    def delete_tag_key(self, project_id, environment_id, key):
         """
-        >>> delete_tag_key(1, "key1")
+        >>> delete_tag_key(1, 2, "key1")
         """
         raise NotImplementedError
 
@@ -251,27 +251,29 @@ class TagStorage(Service):
         """
         raise NotImplementedError
 
-    def incr_tag_key_values_seen(self, project_id, key, count=1):
+    def incr_tag_key_values_seen(self, project_id, environment_id, key, count=1):
         """
-        >>> incr_tag_key_values_seen(1, "key1")
-        """
-        raise NotImplementedError
-
-    def incr_tag_value_times_seen(self, project_id, key, value, extra=None, count=1):
-        """
-        >>> incr_tag_value_times_seen(1, "key1", "value1")
+        >>> incr_tag_key_values_seen(1, 2, "key1")
         """
         raise NotImplementedError
 
-    def incr_group_tag_key_values_seen(self, project_id, group_id, key, count=1):
+    def incr_tag_value_times_seen(self, project_id, environment_id,
+                                  key, value, extra=None, count=1):
         """
-        >>> incr_group_tag_key_values_seen(1, 2, "key1")
+        >>> incr_tag_value_times_seen(1, 2, "key1", "value1")
         """
         raise NotImplementedError
 
-    def incr_group_tag_value_times_seen(self, group_id, key, value, extra=None, count=1):
+    def incr_group_tag_key_values_seen(self, project_id, group_id, environment_id, key, count=1):
         """
-        >>> incr_group_tag_value_times_seen(1, "key1", "value1")
+        >>> incr_group_tag_key_values_seen(1, 2, 3, "key1")
+        """
+        raise NotImplementedError
+
+    def incr_group_tag_value_times_seen(
+            self, group_id, environment_id, key, value, extra=None, count=1):
+        """
+        >>> incr_group_tag_value_times_seen(1, 2, "key1", "value1")
         """
         raise NotImplementedError
 
@@ -281,21 +283,21 @@ class TagStorage(Service):
         """
         raise NotImplementedError
 
-    def get_tag_value_qs(self, project_id, key, query=None):
+    def get_tag_value_qs(self, project_id, environment_id, key, query=None):
         """
-        >>> get_tag_value_qs(1, 'environment', query='prod')
-        """
-        raise NotImplementedError
-
-    def get_group_tag_value_qs(self, group_id, key):
-        """
-        >>> get_group_tag_value_qs(1, 'environment')
+        >>> get_tag_value_qs(1, 2, 'environment', query='prod')
         """
         raise NotImplementedError
 
-    def get_group_values_seen(self, group_ids, key):
+    def get_group_tag_value_qs(self, group_id, environment_id, key):
         """
-        >>> get_group_values_seen([1, 2], 'key1')
+        >>> get_group_tag_value_qs(1, 2, 'environment')
+        """
+        raise NotImplementedError
+
+    def get_group_values_seen(self, group_ids, environment_id, key):
+        """
+        >>> get_group_values_seen([1, 2], 3, 'key1')
         """
         raise NotImplementedError
 

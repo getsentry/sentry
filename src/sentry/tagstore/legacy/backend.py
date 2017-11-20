@@ -241,7 +241,7 @@ class LegacyTagStorage(TagStorage):
 
         return list(qs)
 
-    def delete_tag_key(self, project_id, key):
+    def delete_tag_key(self, project_id, environment_id, key):
         from .tasks import delete_tag_key
 
         tagkey = self.get_tag_key(project_id, environment_id=None, key=key, status=None)
@@ -266,7 +266,7 @@ class LegacyTagStorage(TagStorage):
             group_id=group_id,
         ).delete()
 
-    def incr_tag_key_values_seen(self, project_id, key, count=1):
+    def incr_tag_key_values_seen(self, project_id, environment_id, key, count=1):
         buffer.incr(TagKey, {
             'values_seen': count,
         }, {
@@ -274,7 +274,8 @@ class LegacyTagStorage(TagStorage):
             'key': key,
         })
 
-    def incr_tag_value_times_seen(self, project_id, key, value, extra=None, count=1):
+    def incr_tag_value_times_seen(self, project_id, environment_id,
+                                  key, value, extra=None, count=1):
         buffer.incr(TagValue, {
             'times_seen': count,
         }, {
@@ -283,7 +284,7 @@ class LegacyTagStorage(TagStorage):
             'value': value,
         }, extra)
 
-    def incr_group_tag_key_values_seen(self, project_id, group_id, key, count=1):
+    def incr_group_tag_key_values_seen(self, project_id, group_id, environment_id, key, count=1):
         buffer.incr(GroupTagKey, {
             'values_seen': count,
         }, {
@@ -292,7 +293,8 @@ class LegacyTagStorage(TagStorage):
             'key': key,
         })
 
-    def incr_group_tag_value_times_seen(self, group_id, key, value, extra=None, count=1):
+    def incr_group_tag_value_times_seen(
+            self, group_id, environment_id, key, value, extra=None, count=1):
         buffer.incr(GroupTagValue, {
             'times_seen': count,
         }, {
@@ -357,7 +359,7 @@ class LegacyTagStorage(TagStorage):
 
         return matches
 
-    def get_group_values_seen(self, group_ids, key):
+    def get_group_values_seen(self, group_ids, environment_id, key):
         if isinstance(group_ids, six.integer_types):
             qs = GroupTagKey.objects.filter(group_id=group_ids)
         else:
@@ -523,7 +525,7 @@ class LegacyTagStorage(TagStorage):
                 ).count(),
             )
 
-    def get_tag_value_qs(self, project_id, key, query=None):
+    def get_tag_value_qs(self, project_id, environment_id, key, query=None):
         queryset = TagValue.objects.filter(
             project_id=project_id,
             key=key,
@@ -534,7 +536,7 @@ class LegacyTagStorage(TagStorage):
 
         return queryset
 
-    def get_group_tag_value_qs(self, group_id, key):
+    def get_group_tag_value_qs(self, group_id, environment_id, key):
         return GroupTagValue.objects.filter(
             group_id=group_id,
             key=key,

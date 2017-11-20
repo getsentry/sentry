@@ -241,7 +241,8 @@ def _rehash_group_events(group, limit=100):
             )
             event.update(group_id=new_group.id)
             if event.data.get('tags'):
-                Group.objects.add_tags(new_group, event.data['tags'])
+                Group.objects.add_tags(new_group, event.environment, event.data['tags'])
+
     return bool(event_list)
 
 

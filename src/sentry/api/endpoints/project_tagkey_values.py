@@ -39,7 +39,11 @@ class ProjectTagKeyValuesEndpoint(ProjectEndpoint, EnvironmentMixin):
         except tagstore.TagKeyNotFound:
             raise ResourceDoesNotExist
 
-        queryset = tagstore.get_tag_value_qs(project.id, tagkey.key, query=request.GET.get('query'))
+        queryset = tagstore.get_tag_value_qs(
+            project.id,
+            environment_id,
+            tagkey.key,
+            query=request.GET.get('query'))
 
         return self.paginate(
             request=request,
