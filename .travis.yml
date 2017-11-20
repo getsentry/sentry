@@ -39,14 +39,16 @@ script:
   - make travis-test-$TEST_SUITE
 after_success:
   - codecov -e TEST_SUITE
-  - bin/upload-zeus-artifact junit.xml "text/xml+xunit"
-  - bin/upload-zeus-artifact coverage.xml "text/xml+coverage"
-  - bin/upload-zeus-artifact pytest.html "text/html+pytest"
+  - npm install -g @zeus-ci/cli
+  - zeus upload -t "text/xml+xunit" junit.xml
+  - zeus upload -t "text/xml+coverage" coverage.xml
+  - zeus upload -t "text/html+pytest" pytest.html
 after_failure:
   - dmesg | tail -n 100
-  - bin/upload-zeus-artifact junit.xml "text/xml+xunit"
-  - bin/upload-zeus-artifact coverage.xml "text/xml+coverage"
-  - bin/upload-zeus-artifact pytest.html "text/html+pytest"
+  - npm install -g @zeus-ci/cli
+  - zeus upload -t "text/xml+xunit" junit.xml
+  - zeus upload -t "text/xml+coverage" coverage.xml
+  - zeus upload -t "text/html+pytest" pytest.html
 # each attribute in the matrix will override the global attribute
 matrix:
   fast_finish: true
