@@ -410,7 +410,7 @@ const DeleteActions = React.createClass({
           <DropdownLink
             caret={true}
             className="group-delete btn btn-default btn-sm"
-            keepMenuOpen={true}
+            alwaysRenderMenu
           >
             <li>
               <LinkWithConfirmation
