@@ -70,7 +70,9 @@ def _do_preprocess_event(cache_key, data, start_time, event_id, process_event):
     # so we can jump directly to save_event
     if cache_key:
         data = None
-    save_event.delay(cache_key=cache_key, data=data, start_time=start_time, event_id=event_id)
+    save_event.delay(
+        cache_key=cache_key, data=data, start_time=start_time, event_id=event_id,
+    )
 
 
 @instrumented_task(
@@ -142,7 +144,9 @@ def _do_process_event(cache_key, start_time, event_id):
 
         default_cache.set(cache_key, data, 3600)
 
-    save_event.delay(cache_key=cache_key, data=None, start_time=start_time, event_id=event_id)
+    save_event.delay(
+        cache_key=cache_key, data=None, start_time=start_time, event_id=event_id,
+    )
 
 
 @instrumented_task(
@@ -256,7 +260,8 @@ def save_event(cache_key=None, data=None, start_time=None, event_id=None, **kwar
     Saves an event to the database.
     """
     from sentry.event_manager import HashDiscarded, EventManager
-    from sentry import tsdb
+    from sentry import quotas, tsdb
+    from sentry.models import ProjectKey
 
     if cache_key:
         data = default_cache.get(cache_key)
@@ -268,26 +273,50 @@ def save_event(cache_key=None, data=None, start_time=None, event_id=None, **kwar
         metrics.incr('events.failed', tags={'reason': 'cache', 'stage': 'post'})
         return
 
-    project = data.pop('project')
+    project_id = data.pop('project')
 
-    delete_raw_event(project, event_id, allow_hint_clear=True)
+    delete_raw_event(project_id, event_id, allow_hint_clear=True)
 
     Raven.tags_context({
-        'project': project,
+        'project': project_id,
     })
 
     try:
         manager = EventManager(data)
-        manager.save(project)
+        manager.save(project_id)
     except HashDiscarded as exc:
         # TODO(jess): remove this before it goes out to a wider audience
         info_logger.info(
             'discarded.hash', extra={
-                'project_id': project,
+                'project_id': project_id,
                 'description': exc.message,
             }
         )
-        tsdb.incr(tsdb.models.project_total_received_discarded, project, timestamp=start_time)
+
+        tsdb.incr(
+            tsdb.models.project_total_received_discarded,
+            project_id,
+            timestamp=to_datetime(start_time) if start_time is not None else None,
+        )
+
+        try:
+            project = Project.objects.get_from_cache(id=project_id)
+        except Project.DoesNotExist:
+            pass
+        else:
+            project_key = None
+            if data.get('key_id') is not None:
+                try:
+                    project_key = ProjectKey.objects.get_from_cache(id=data['key_id'])
+                except ProjectKey.DoesNotExist:
+                    pass
+
+            quotas.refund(
+                project,
+                key=project_key,
+                timestamp=start_time,
+            )
+
     finally:
         if cache_key:
             default_cache.delete(cache_key)

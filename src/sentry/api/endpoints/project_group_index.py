@@ -20,7 +20,7 @@ from sentry.api.serializers.models.group import (
 from sentry.constants import DEFAULT_SORT_OPTION
 from sentry.db.models.query import create_or_update
 from sentry.models import (
-    Activity, EventMapping, Group, GroupAssignee, GroupBookmark, GroupHash, GroupResolution,
+    Activity, Group, GroupAssignee, GroupBookmark, GroupHash, GroupResolution,
     GroupSeen, GroupShare, GroupSnooze, GroupStatus, GroupSubscription, GroupSubscriptionReason,
     GroupTombstone, Release, TOMBSTONE_FIELDS_FROM_GROUP, UserOption
 )
@@ -277,14 +277,10 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
             if len(query) == 32:
                 # check to see if we've got an event ID
                 try:
-                    mapping = EventMapping.objects.get(
-                        project_id=project.id,
-                        event_id=query,
-                    )
-                except EventMapping.DoesNotExist:
+                    matching_group = Group.objects.from_event_id(project, query)
+                except Group.DoesNotExist:
                     pass
                 else:
-                    matching_group = Group.objects.get(id=mapping.group_id)
                     try:
                         matching_event = Event.objects.get(
                             event_id=query, project_id=project.id)

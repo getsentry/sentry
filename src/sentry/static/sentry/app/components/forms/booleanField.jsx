@@ -28,7 +28,7 @@ export default class BooleanField extends InputField {
   }
 
   render() {
-    let error = this.getError();
+    let {error} = this.state;
     let className = this.getClassName();
     if (error) {
       className += ' has-error';

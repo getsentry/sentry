@@ -20,12 +20,14 @@ class GroupTagValueSerializerTest(TestCase):
         )
         tagvalue = tagstore.create_tag_value(
             project_id=project.id,
+            environment_id=self.environment.id,
             key='sentry:user',
             value=euser.tag_value,
         )
         grouptagvalue = tagstore.create_group_tag_value(
             project_id=project.id,
             group_id=self.create_group(project=project).id,
+            environment_id=self.environment.id,
             key=tagvalue.key,
             value=tagvalue.value,
         )

@@ -73,19 +73,15 @@ exports[`CreateProject render() should render roles when available and allowed, 
           Array [
             Object {
               "allowed": true,
-              "role": Object {
-                "desc": "a normal member",
-                "id": "1",
-                "name": "member",
-              },
+              "desc": "a normal member",
+              "id": "1",
+              "name": "member",
             },
             Object {
               "allowed": true,
-              "role": Object {
-                "desc": "another role",
-                "id": "2",
-                "name": "bar",
-              },
+              "desc": "another role",
+              "id": "2",
+              "name": "bar",
             },
           ]
         }

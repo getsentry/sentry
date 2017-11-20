@@ -47,7 +47,7 @@ class TagStorage(Service):
         'get_or_create_group_tag_key',
         'create_group_tag_value',
         'get_or_create_group_tag_value',
-        'create_event_tag',
+        'create_event_tags',
 
         'get_tag_key',
         'get_tag_keys',
@@ -126,109 +126,110 @@ class TagStorage(Service):
 
         return label
 
-    def create_tag_key(self, project_id, key, **kwargs):
+    def create_tag_key(self, project_id, environment_id, key, **kwargs):
         """
-        >>> create_tag_key(1, "key1")
-        """
-        raise NotImplementedError
-
-    def get_or_create_tag_key(self, project_id, key, **kwargs):
-        """
-        >>> get_or_create_tag_key(1, "key1")
+        >>> create_tag_key(1, 2, "key1")
         """
         raise NotImplementedError
 
-    def create_tag_value(self, project_id, key, value, **kwargs):
+    def get_or_create_tag_key(self, project_id, environment_id, key, **kwargs):
         """
-        >>> create_tag_key(1, "key1", "value1")
-        """
-        raise NotImplementedError
-
-    def get_or_create_tag_value(self, project_id, key, value, **kwargs):
-        """
-        >>> get_or_create_tag_key(1, "key1", "value1")
+        >>> get_or_create_tag_key(1, 2, "key1")
         """
         raise NotImplementedError
 
-    def create_group_tag_key(self, project_id, group_id, key, **kwargs):
+    def create_tag_value(self, project_id, environment_id, key, value, **kwargs):
         """
-        >>> create_group_tag_key(1, 2, "key1")
-        """
-        raise NotImplementedError
-
-    def get_or_create_group_tag_key(self, project_id, group_id, key, **kwargs):
-        """
-        >>> get_or_create_group_tag_key(1, 2, "key1")
+        >>> create_tag_key(1, 2, "key1", "value1")
         """
         raise NotImplementedError
 
-    def create_group_tag_value(self, project_id, group_id, key, value, **kwargs):
+    def get_or_create_tag_value(self, project_id, environment_id, key, value, **kwargs):
         """
-        >>> create_group_tag_value(1, 2, "key1", "value1")
-        """
-        raise NotImplementedError
-
-    def get_or_create_group_tag_value(self, project_id, group_id, key, value, **kwargs):
-        """
-        >>> get_or_create_group_tag_value(1, 2, "key1", "value1")
+        >>> get_or_create_tag_key(1, 2, "key1", "value1")
         """
         raise NotImplementedError
 
-    def create_event_tag(self, project_id, group_id, event_id, key_id, value_id):
+    def create_group_tag_key(self, project_id, group_id, environment_id, key, **kwargs):
         """
-        >>> create_event_tag(1, 2, 3, 4, 5)
-        """
-        raise NotImplementedError
-
-    def get_tag_key(self, project_id, key, status=TagKeyStatus.VISIBLE):
-        """
-        >>> get_tag_key(1, "key1")
+        >>> create_group_tag_key(1, 2, 3, "key1")
         """
         raise NotImplementedError
 
-    def get_tag_keys(self, project_ids, keys=None, status=TagKeyStatus.VISIBLE):
+    def get_or_create_group_tag_key(self, project_id, group_id, environment_id, key, **kwargs):
         """
-        >>> get_tag_key([1, 2], ["key1", "key2"])
-        >>> get_tag_key(1, ["key1", "key2"])
-        """
-        raise NotImplementedError
-
-    def get_tag_value(self, project_id, key, value):
-        """
-        >>> get_tag_value(1, "key1", "value1")
+        >>> get_or_create_group_tag_key(1, 2, 3, "key1")
         """
         raise NotImplementedError
 
-    def get_tag_values(self, project_ids, key, values=None):
+    def create_group_tag_value(self, project_id, group_id, environment_id, key, value, **kwargs):
+        """
+        >>> create_group_tag_value(1, 2, 3, "key1", "value1")
+        """
+        raise NotImplementedError
+
+    def get_or_create_group_tag_value(self, project_id, group_id,
+                                      environment_id, key, value, **kwargs):
+        """
+        >>> get_or_create_group_tag_value(1, 2, 3, "key1", "value1")
+        """
+        raise NotImplementedError
+
+    def create_event_tags(self, project_id, group_id, event_id, tags):
+        """
+        >>> create_event_tags(1, 2, 3, [(4, 5)])
+        """
+        raise NotImplementedError
+
+    def get_tag_key(self, project_id, environment_id, key, status=TagKeyStatus.VISIBLE):
+        """
+        >>> get_tag_key(1, 2, "key1")
+        """
+        raise NotImplementedError
+
+    def get_tag_keys(self, project_ids, environment_id, keys=None, status=TagKeyStatus.VISIBLE):
+        """
+        >>> get_tag_key([1, 2], 3, ["key1", "key2"])
+        >>> get_tag_key(1, 3, ["key1", "key2"])
+        """
+        raise NotImplementedError
+
+    def get_tag_value(self, project_id, environment_id, key, value):
+        """
+        >>> get_tag_value(1, 2, "key1", "value1")
+        """
+        raise NotImplementedError
+
+    def get_tag_values(self, project_ids, environment_id, key, values=None):
         """
         >>> get_tag_values([1, 2], "key1", ["value1, "value2"])
         >>> get_tag_values(1, "key1", ["value1, "value2"])
         """
         raise NotImplementedError
 
-    def get_group_tag_key(self, group_id, key):
+    def get_group_tag_key(self, group_id, environment_id, key):
         """
-        >>> get_group_tag_key(1, "key1")
-        """
-        raise NotImplementedError
-
-    def get_group_tag_keys(self, group_ids, keys=None, limit=None):
-        """
-        >>> get_group_tag_keys([1, 2], ["key1", "key2"])
-        >>> get_group_tag_keys(1, ["key1", "key2"])
+        >>> get_group_tag_key(1, 2, "key1")
         """
         raise NotImplementedError
 
-    def get_group_tag_value(self, group_id, key, value):
+    def get_group_tag_keys(self, group_ids, environment_id, keys=None, limit=None):
         """
-        >>> get_group_tag_value(1, "key1", "value1")
+        >>> get_group_tag_keys([1, 2], 3, ["key1", "key2"])
+        >>> get_group_tag_keys(1, 3, ["key1", "key2"])
         """
         raise NotImplementedError
 
-    def get_group_tag_values(self, group_ids, keys=None, values=None):
+    def get_group_tag_value(self, group_id, environment_id, key, value):
         """
-        >>> get_group_tag_values([1, 2], ["key1", "key2"], ["value1", "value2"])
-        >>> get_group_tag_values(1, ["key1", "key2"], ["value1", "value2"])
+        >>> get_group_tag_value(1, 2, "key1", "value1")
+        """
+        raise NotImplementedError
+
+    def get_group_tag_values(self, group_ids, environment_id, keys=None, values=None):
+        """
+        >>> get_group_tag_values([1, 2], 3, ["key1", "key2"], ["value1", "value2"])
+        >>> get_group_tag_values(1, 3, ["key1", "key2"], ["value1", "value2"])
         """
         raise NotImplementedError
 
@@ -274,9 +275,9 @@ class TagStorage(Service):
         """
         raise NotImplementedError
 
-    def get_group_event_ids(self, project_id, group_id, tags):
+    def get_group_event_ids(self, project_id, group_id, environment_id, tags):
         """
-        >>> get_group_event_ids(1, 2, {'key1': 'value1', 'key2': 'value2'})
+        >>> get_group_event_ids(1, 2, 3, {'key1': 'value1', 'key2': 'value2'})
         """
         raise NotImplementedError
 
@@ -298,15 +299,15 @@ class TagStorage(Service):
         """
         raise NotImplementedError
 
-    def get_group_tag_value_count(self, group_id, key):
+    def get_group_tag_value_count(self, group_id, environment_id, key):
         """
-        >>> get_group_tag_value_count(1, 'key1')
+        >>> get_group_tag_value_count(1, 2, 'key1')
         """
         raise NotImplementedError
 
-    def get_top_group_tag_values(self, group_id, key, limit=3):
+    def get_top_group_tag_values(self, group_id, environment_id, key, limit=3):
         """
-        >>> get_top_group_tag_values(1, 'key1')
+        >>> get_top_group_tag_values(1, 2, 'key1')
         """
         raise NotImplementedError
 

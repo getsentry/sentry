@@ -7,7 +7,7 @@ import Button from './buttons/button';
 class Confirm extends React.PureComponent {
   static propTypes = {
     disabled: PropTypes.bool,
-    message: PropTypes.string.isRequired,
+    message: PropTypes.node.isRequired,
     onConfirm: PropTypes.func.isRequired,
     onConfirming: PropTypes.func,
     onCancel: PropTypes.func,

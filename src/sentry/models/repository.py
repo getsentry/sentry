@@ -46,10 +46,11 @@ class Repository(Model):
         new_context = {
             'repo': self,
             'error_message': error_message,
+            'provider_name': self.get_provider().name,
         }
 
         return MessageBuilder(
-            subject='Unable to Delete Repository',
+            subject='Unable to Delete Repository Webhooks',
             context=new_context,
             template='sentry/emails/unable-to-delete-repo.txt',
             html_template='sentry/emails/unable-to-delete-repo.html',
@@ -68,10 +69,10 @@ def on_delete(instance, actor=None, **kwargs):
             error = exc.message
         else:
             error = 'An unknown error occurred'
+
         if actor is not None:
             msg = instance.generate_delete_fail_email(error)
             msg.send_async(to=[actor.email])
-        raise
 
 
 pending_delete.connect(on_delete, sender=Repository, weak=False)

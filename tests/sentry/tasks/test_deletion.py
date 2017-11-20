@@ -191,63 +191,81 @@ class DeleteTagKeyTest(TestCase):
         group = self.create_group(project=project)
         key = 'foo'
         value = 'bar'
-        tk = tagstore.create_tag_key(key=key, project_id=project.id)
-        tagstore.create_tag_value(key=key, value=value, project_id=project.id)
-        tagstore.create_group_tag_key(key=key, group_id=group.id, project_id=project.id)
-        tagstore.create_group_tag_value(
-            key=key, value=value, group_id=group.id, project_id=project.id
-        )
-        tagstore.create_event_tag(
-            key_id=tk.id,
+        tk = tagstore.create_tag_key(
+            key=key,
+            project_id=project.id,
+            environment_id=self.environment.id)
+        tagstore.create_tag_value(
+            key=key,
+            value=value,
+            project_id=project.id,
+            environment_id=self.environment.id)
+        tagstore.create_group_tag_key(
+            key=key,
             group_id=group.id,
-            value_id=1,
+            project_id=project.id,
+            environment_id=self.environment.id)
+        tagstore.create_group_tag_value(
+            key=key, value=value, group_id=group.id, project_id=project.id, environment_id=self.environment.id
+        )
+        tagstore.create_event_tags(
+            group_id=group.id,
             project_id=project.id,
             event_id=1,
+            tags=[
+                (tk.id, 1),
+            ],
         )
 
         project2 = self.create_project(team=team, name='test2')
         group2 = self.create_group(project=project2)
-        tk2 = tagstore.create_tag_key(key=key, project_id=project2.id)
-        tagstore.create_group_tag_key(key=key, group_id=group2.id, project_id=project2.id)
-        tagstore.create_group_tag_value(
-            key=key, value=value, group_id=group2.id, project_id=project2.id
-        )
-        tagstore.create_event_tag(
-            key_id=tk2.id,
+        tk2 = tagstore.create_tag_key(key=key, project_id=project2.id,
+                                      environment_id=self.environment.id)
+        tagstore.create_group_tag_key(
+            key=key,
             group_id=group2.id,
-            value_id=1,
+            project_id=project2.id,
+            environment_id=self.environment.id)
+        tagstore.create_group_tag_value(
+            key=key, value=value, group_id=group2.id, project_id=project2.id, environment_id=self.environment.id
+        )
+        tagstore.create_event_tags(
+            group_id=group2.id,
             project_id=project.id,
             event_id=1,
+            tags=[
+                (tk2.id, 1)
+            ],
         )
 
         with self.tasks():
             delete_tag_key(object_id=tk.id)
 
+            assert tagstore.get_event_tag_qs(key_id=tk.id).exists()
             try:
-                tagstore.get_group_tag_value(group.id, key, value)
+                tagstore.get_group_tag_value(group.id, None, key, value)
                 assert False  # verify exception thrown
             except tagstore.GroupTagValueNotFound:
                 pass
             try:
-                tagstore.get_group_tag_key(group.id, key)
+                tagstore.get_group_tag_key(group.id, None, key)
                 assert False  # verify exception thrown
             except tagstore.GroupTagKeyNotFound:
                 pass
             try:
-                tagstore.get_tag_value(project.id, key, value)
+                tagstore.get_tag_value(project.id, None, key, value)
                 assert False  # verify exception thrown
             except tagstore.TagValueNotFound:
                 pass
-            assert not tagstore.get_event_tag_qs(key_id=tk.id).exists()
             try:
-                tagstore.get_tag_key(project.id, key)
+                tagstore.get_tag_key(project.id, None, key)
                 assert False  # verify exception thrown
             except tagstore.TagKeyNotFound:
                 pass
 
-        assert tagstore.get_tag_key(project2.id, key) is not None
-        assert tagstore.get_group_tag_key(group2.id, key) is not None
-        assert tagstore.get_group_tag_value(group2.id, key, value) is not None
+        assert tagstore.get_tag_key(project2.id, None, key) is not None
+        assert tagstore.get_group_tag_key(group2.id, None, key) is not None
+        assert tagstore.get_group_tag_value(group2.id, None, key, value) is not None
         assert tagstore.get_event_tag_qs(key_id=tk2.id).exists()
 
 
@@ -264,12 +282,13 @@ class DeleteGroupTest(TestCase):
             event_id='a' * 32,
             group_id=group.id,
         )
-        tagstore.create_event_tag(
+        tagstore.create_event_tags(
             event_id=event.id,
             group_id=group.id,
             project_id=project.id,
-            key_id=1,
-            value_id=1,
+            tags=[
+                (1, 1),
+            ],
         )
         GroupAssignee.objects.create(
             group=group,

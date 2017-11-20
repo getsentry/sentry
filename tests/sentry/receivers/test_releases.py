@@ -7,7 +7,7 @@ from uuid import uuid4
 
 from sentry import tagstore
 from sentry.models import (
-    Activity, Commit, CommitAuthor, GroupAssignee, GroupCommitResolution, GroupLink, OrganizationMember,
+    Activity, Commit, CommitAuthor, GroupAssignee, GroupLink, OrganizationMember,
     Release, Repository, UserEmail
 )
 from sentry.testutils import TestCase
@@ -17,11 +17,12 @@ class EnsureReleaseExistsTest(TestCase):
     def test_simple(self):
         tv = tagstore.create_tag_value(
             project_id=self.project.id,
+            environment_id=self.environment.id,
             key='sentry:release',
             value='1.0',
         )
 
-        tv = tagstore.get_tag_value(self.project.id, 'sentry:release', '1.0')
+        tv = tagstore.get_tag_value(self.project.id, None, 'sentry:release', '1.0')
         assert tv.data['release_id']
 
         release = Release.objects.get(id=tv.data['release_id'])
@@ -64,12 +65,90 @@ class ResolvedInCommitTest(TestCase):
             message='Foo Biz\n\nFixes {}'.format(group.qualified_short_id),
         )
 
-        assert GroupCommitResolution.objects.filter(
+        assert GroupLink.objects.filter(
             group_id=group.id,
-            commit_id=commit.id,
-        ).exists()
+            linked_type=GroupLink.LinkedType.commit,
+            linked_id=commit.id).exists()
+
+    def test_updating_commit(self):
+        group = self.create_group()
+
+        repo = Repository.objects.create(
+            name='example',
+            organization_id=self.group.organization.id,
+        )
+
+        commit = Commit.objects.create(
+            key=sha1(uuid4().hex).hexdigest(),
+            repository_id=repo.id,
+            organization_id=group.organization.id,
+        )
+
+        assert not GroupLink.objects.filter(
+            group_id=group.id,
+            linked_type=GroupLink.LinkedType.commit,
+            linked_id=commit.id).exists()
+
+        commit.message = 'Foo Biz\n\nFixes {}'.format(group.qualified_short_id)
+        commit.save()
 
         assert GroupLink.objects.filter(
+            group_id=group.id,
+            linked_type=GroupLink.LinkedType.commit,
+            linked_id=commit.id).exists()
+
+    def test_updating_commit_with_existing_grouplink(self):
+        group = self.create_group()
+
+        repo = Repository.objects.create(
+            name='example',
+            organization_id=self.group.organization.id,
+        )
+
+        commit = Commit.objects.create(
+            key=sha1(uuid4().hex).hexdigest(),
+            repository_id=repo.id,
+            organization_id=group.organization.id,
+            message='Foo Biz\n\nFixes {}'.format(group.qualified_short_id),
+        )
+
+        assert GroupLink.objects.filter(
+            group_id=group.id,
+            linked_type=GroupLink.LinkedType.commit,
+            linked_id=commit.id).exists()
+
+        commit.message = 'Foo Bar Biz\n\nFixes {}'.format(group.qualified_short_id)
+        commit.save()
+
+        assert GroupLink.objects.filter(
+            group_id=group.id,
+            linked_type=GroupLink.LinkedType.commit,
+            linked_id=commit.id).count() == 1
+
+    def test_removes_group_link_when_message_changes(self):
+        group = self.create_group()
+
+        repo = Repository.objects.create(
+            name='example',
+            organization_id=self.group.organization.id,
+        )
+
+        commit = Commit.objects.create(
+            key=sha1(uuid4().hex).hexdigest(),
+            repository_id=repo.id,
+            organization_id=group.organization.id,
+            message='Foo Biz\n\nFixes {}'.format(group.qualified_short_id),
+        )
+
+        assert GroupLink.objects.filter(
+            group_id=group.id,
+            linked_type=GroupLink.LinkedType.commit,
+            linked_id=commit.id).exists()
+
+        commit.message = 'no groups here'
+        commit.save()
+
+        assert not GroupLink.objects.filter(
             group_id=group.id,
             linked_type=GroupLink.LinkedType.commit,
             linked_id=commit.id).exists()
@@ -87,10 +166,6 @@ class ResolvedInCommitTest(TestCase):
             message='Foo Biz\n\nFixes {}-12F'.format(
                 self.project.slug.upper()),
         )
-
-        assert not GroupCommitResolution.objects.filter(
-            commit_id=commit.id,
-        ).exists()
 
         assert not GroupLink.objects.filter(
             linked_type=GroupLink.LinkedType.commit,
@@ -115,11 +190,6 @@ class ResolvedInCommitTest(TestCase):
                 email=self.user.email,
             )
         )
-
-        assert GroupCommitResolution.objects.filter(
-            group_id=group.id,
-            commit_id=commit.id,
-        ).exists()
 
         assert GroupLink.objects.filter(
             group_id=group.id,
@@ -150,11 +220,6 @@ class ResolvedInCommitTest(TestCase):
                 email=user.email,
             )
         )
-
-        assert GroupCommitResolution.objects.filter(
-            group_id=group.id,
-            commit_id=commit.id,
-        ).exists()
 
         assert GroupLink.objects.filter(
             group_id=group.id,

@@ -39,15 +39,31 @@ const InviteMember = React.createClass({
     let {slug} = this.getOrganization();
     this.api.request(`/organizations/${slug}/members/me/`, {
       method: 'GET',
-      success: ({allowed_roles}) => {
-        this.setState({roleList: allowed_roles, loading: false});
-        if (allowed_roles.filter(({_, allowed}) => allowed).length === 0) {
-          //not allowed to invite, redirect
-          this.redirectToMemberPage();
+      success: resp => {
+        let {roles} = resp || {};
+
+        if (!resp || !roles) {
+          this.setState({
+            loading: false,
+            error: {
+              role: 'Error loading roles, will default to "member"',
+            },
+          });
+
+          Raven.captureMessage('[members]: data fetch invalid response', {
+            extra: {resp, state: this.state},
+          });
+        } else {
+          this.setState({roleList: roles, loading: false});
+
+          if (roles.filter(({allowed}) => allowed).length === 0) {
+            // not allowed to invite, redirect
+            this.redirectToMemberPage();
+          }
         }
       },
       error: error => {
-        Raven.captureMessage('data fetch error ', {
+        Raven.captureMessage('[members]: data fetch error ', {
           extra: {error, state: this.state},
         });
       },

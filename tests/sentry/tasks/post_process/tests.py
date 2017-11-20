@@ -120,6 +120,7 @@ class IndexEventTagsTest(TestCase):
                 event_id=event.id,
                 group_id=group.id,
                 project_id=self.project.id,
+                environment_id=self.environment.id,
                 organization_id=self.project.organization_id,
                 tags=[('foo', 'bar'), ('biz', 'baz')],
             )
@@ -130,24 +131,28 @@ class IndexEventTagsTest(TestCase):
         assert len(tags) == 2
 
         tagkey = tagstore.get_tag_key(
-            key='foo',
             project_id=self.project.id,
+            environment_id=None,
+            key='foo',
         )
         tagvalue = tagstore.get_tag_value(
+            project_id=self.project.id,
+            environment_id=None,
             key='foo',
             value='bar',
-            project_id=self.project.id,
         )
         assert (tagkey.id, tagvalue.id) in tags
 
         tagkey = tagstore.get_tag_key(
-            key='biz',
             project_id=self.project.id,
+            environment_id=None,
+            key='biz',
         )
         tagvalue = tagstore.get_tag_value(
+            project_id=self.project.id,
+            environment_id=None,
             key='biz',
             value='baz',
-            project_id=self.project.id,
         )
         assert (tagkey.id, tagvalue.id) in tags
 
@@ -157,6 +162,7 @@ class IndexEventTagsTest(TestCase):
                 event_id=event.id,
                 group_id=group.id,
                 project_id=self.project.id,
+                environment_id=self.environment.id,
                 organization_id=self.project.organization_id,
                 tags=[('foo', 'bar'), ('biz', 'baz')],
             )

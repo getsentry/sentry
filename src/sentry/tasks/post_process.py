@@ -136,21 +136,23 @@ def plugin_post_process_group(plugin_slug, event, **kwargs):
 @instrumented_task(
     name='sentry.tasks.index_event_tags', default_retry_delay=60 * 5, max_retries=None
 )
-def index_event_tags(organization_id, project_id, event_id, tags, group_id=None, **kwargs):
+def index_event_tags(organization_id, project_id, event_id, tags,
+                     group_id=None, environment_id=None, **kwargs):
     from sentry import tagstore
 
     Raven.tags_context({
         'project': project_id,
     })
 
+    tag_ids = []
     for key, value in tags:
-        tagkey, _ = tagstore.get_or_create_tag_key(project_id, key)
-        tagvalue, _ = tagstore.get_or_create_tag_value(project_id, key, value)
+        tagkey, _ = tagstore.get_or_create_tag_key(project_id, environment_id, key)
+        tagvalue, _ = tagstore.get_or_create_tag_value(project_id, environment_id, key, value)
+        tag_ids.append((tagkey.id, tagvalue.id))
 
-        tagstore.create_event_tag(
-            project_id=project_id,
-            group_id=group_id,
-            event_id=event_id,
-            key_id=tagkey.id,
-            value_id=tagvalue.id,
-        )
+    tagstore.create_event_tags(
+        project_id=project_id,
+        group_id=group_id,
+        event_id=event_id,
+        tags=tag_ids,
+    )

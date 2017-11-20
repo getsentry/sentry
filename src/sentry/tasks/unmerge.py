@@ -10,7 +10,7 @@ from sentry import tagstore
 from sentry.app import tsdb
 from sentry.constants import DEFAULT_LOGGER_NAME, LOG_LEVELS_MAP
 from sentry.event_manager import (
-    ScoreClause, generate_culprit, get_hashes_for_event, md5_from_hash
+    ScoreClause, generate_culprit, get_fingerprint_for_event, get_hashes_from_fingerprint, md5_from_hash
 )
 from sentry.models import (
     Activity, Environment, Event, EventMapping, EventUser, Group, GroupHash, GroupRelease,
@@ -18,6 +18,7 @@ from sentry.models import (
 )
 from sentry.similarity import features
 from sentry.tasks.base import instrumented_task
+from six.moves import reduce
 
 
 def cache(function):
@@ -141,7 +142,10 @@ def get_group_backfill_attributes(caches, group, events):
 
 def get_fingerprint(event):
     # TODO: This *might* need to be protected from an IndexError?
-    primary_hash = get_hashes_for_event(event)[0]
+    primary_hash = get_hashes_from_fingerprint(
+        event,
+        get_fingerprint_for_event(event),
+    )[0]
     return md5_from_hash(primary_hash)
 
 
@@ -267,7 +271,8 @@ def collect_tag_data(events):
     results = {}
 
     for event in events:
-        tags = results.setdefault(event.group_id, {})
+        environment = get_environment_name(event)
+        tags = results.setdefault((event.group_id, environment), {})
 
         for key, value in event.get_tags():
             values = tags.setdefault(key, {})
@@ -282,11 +287,16 @@ def collect_tag_data(events):
 
 
 def repair_tag_data(caches, project, events):
-    for group_id, keys in collect_tag_data(events).items():
+    for (group_id, env_name), keys in collect_tag_data(events).items():
+        environment = caches['Environment'](
+            project.organization_id,
+            env_name,
+        )
         for key, values in keys.items():
             tagstore.get_or_create_group_tag_key(
                 project_id=project.id,
                 group_id=group_id,
+                environment_id=environment.id,
                 key=key,
             )
 
@@ -297,6 +307,7 @@ def repair_tag_data(caches, project, events):
                 instance, created = tagstore.get_or_create_group_tag_value(
                     project_id=project.id,
                     group_id=group_id,
+                    environment_id=environment.id,
                     key=key,
                     value=value,
                     defaults={

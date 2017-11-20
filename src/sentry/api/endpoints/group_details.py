@@ -9,12 +9,13 @@ from rest_framework.response import Response
 
 from sentry import tsdb, tagstore
 from sentry.api import client
-from sentry.api.base import DocSection
+from sentry.api.base import DocSection, EnvironmentMixin
 from sentry.api.bases import GroupEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.plugin import PluginSerializer
 from sentry.models import (
     Activity,
+    Environment,
     Group,
     GroupHash,
     GroupSeen,
@@ -66,7 +67,7 @@ STATUS_CHOICES = {
 }
 
 
-class GroupDetailsEndpoint(GroupEndpoint):
+class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
     doc_section = DocSection.EVENTS
 
     def _get_activity(self, request, group, num):
@@ -210,7 +211,13 @@ class GroupDetailsEndpoint(GroupEndpoint):
         if last_release:
             last_release = self._get_release_info(request, group, last_release)
 
-        tags = tagstore.get_group_tag_keys(group.id, limit=100)
+        try:
+            environment_id = self._get_environment_id_from_request(
+                request, group.project.organization_id)
+        except Environment.DoesNotExist:
+            tags = []
+        else:
+            tags = tagstore.get_group_tag_keys(group.id, environment_id, limit=100)
 
         participants = list(
             User.objects.filter(

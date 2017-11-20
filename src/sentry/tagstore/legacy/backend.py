@@ -71,50 +71,57 @@ class LegacyTagStorage(TagStorage):
             GroupTagKey,
         ]
 
-    def create_tag_key(self, project_id, key, **kwargs):
+    def create_tag_key(self, project_id, environment_id, key, **kwargs):
         return TagKey.objects.create(project_id=project_id, key=key, **kwargs)
 
-    def get_or_create_tag_key(self, project_id, key, **kwargs):
+    def get_or_create_tag_key(self, project_id, environment_id, key, **kwargs):
         return TagKey.objects.get_or_create(project_id=project_id, key=key, **kwargs)
 
-    def create_tag_value(self, project_id, key, value, **kwargs):
+    def create_tag_value(self, project_id, environment_id, key, value, **kwargs):
         return TagValue.objects.create(project_id=project_id, key=key, value=value, **kwargs)
 
-    def get_or_create_tag_value(self, project_id, key, value, **kwargs):
+    def get_or_create_tag_value(self, project_id, environment_id, key, value, **kwargs):
         return TagValue.objects.get_or_create(
             project_id=project_id, key=key, value=value, **kwargs)
 
-    def create_group_tag_key(self, project_id, group_id, key, **kwargs):
+    def create_group_tag_key(self, project_id, group_id, environment_id, key, **kwargs):
         return GroupTagKey.objects.create(project_id=project_id, group_id=group_id,
                                           key=key, **kwargs)
 
-    def get_or_create_group_tag_key(self, project_id, group_id, key, **kwargs):
+    def get_or_create_group_tag_key(self, project_id, group_id, environment_id, key, **kwargs):
         return GroupTagKey.objects.get_or_create(project_id=project_id, group_id=group_id,
                                                  key=key, **kwargs)
 
-    def create_group_tag_value(self, project_id, group_id, key, value, **kwargs):
+    def create_group_tag_value(self, project_id, group_id, environment_id, key, value, **kwargs):
         return GroupTagValue.objects.create(
             project_id=project_id, group_id=group_id, key=key, value=value, **kwargs)
 
-    def get_or_create_group_tag_value(self, project_id, group_id, key, value, **kwargs):
+    def get_or_create_group_tag_value(self, project_id, group_id,
+                                      environment_id, key, value, **kwargs):
         return GroupTagValue.objects.get_or_create(
             project_id=project_id, group_id=group_id, key=key, value=value, **kwargs)
 
-    def create_event_tag(self, project_id, group_id, event_id, key_id, value_id):
+    def create_event_tags(self, project_id, group_id, event_id, tags):
         try:
             # don't let a duplicate break the outer transaction
             with transaction.atomic():
-                EventTag.objects.create(
-                    project_id=project_id,
-                    group_id=group_id,
-                    event_id=event_id,
-                    key_id=key_id,
-                    value_id=value_id,
-                )
+                # Tags are bulk inserted because this is an all-or-nothing situation.
+                # Either the whole transaction works, or it doesn't. There's no value
+                # in a partial success where we'd need to replay half of the rows.
+                EventTag.objects.bulk_create([
+                    EventTag(
+                        project_id=project_id,
+                        group_id=group_id,
+                        event_id=event_id,
+                        key_id=key_id,
+                        value_id=value_id,
+                    )
+                    for key_id, value_id in tags
+                ])
         except IntegrityError:
             pass
 
-    def get_tag_key(self, project_id, key, status=TagKeyStatus.VISIBLE):
+    def get_tag_key(self, project_id, environment_id, key, status=TagKeyStatus.VISIBLE):
         from sentry.tagstore.exceptions import TagKeyNotFound
 
         qs = TagKey.objects.filter(
@@ -130,7 +137,7 @@ class LegacyTagStorage(TagStorage):
         except TagKey.DoesNotExist:
             raise TagKeyNotFound
 
-    def get_tag_keys(self, project_ids, keys=None, status=TagKeyStatus.VISIBLE):
+    def get_tag_keys(self, project_ids, environment_id, keys=None, status=TagKeyStatus.VISIBLE):
         if isinstance(project_ids, six.integer_types):
             qs = TagKey.objects.filter(project_id=project_ids)
         else:
@@ -144,7 +151,7 @@ class LegacyTagStorage(TagStorage):
 
         return list(qs)
 
-    def get_tag_value(self, project_id, key, value):
+    def get_tag_value(self, project_id, environment_id, key, value):
         from sentry.tagstore.exceptions import TagValueNotFound
 
         try:
@@ -156,7 +163,7 @@ class LegacyTagStorage(TagStorage):
         except TagValue.DoesNotExist:
             raise TagValueNotFound
 
-    def get_tag_values(self, project_ids, key, values=None):
+    def get_tag_values(self, project_ids, environment_id, key, values=None):
         qs = TagValue.objects.filter(key=key)
 
         if isinstance(project_ids, six.integer_types):
@@ -174,7 +181,7 @@ class LegacyTagStorage(TagStorage):
 
         return list(qs)
 
-    def get_group_tag_key(self, group_id, key):
+    def get_group_tag_key(self, group_id, environment_id, key):
         from sentry.tagstore.exceptions import GroupTagKeyNotFound
 
         try:
@@ -185,7 +192,7 @@ class LegacyTagStorage(TagStorage):
         except GroupTagKey.DoesNotExist:
             raise GroupTagKeyNotFound
 
-    def get_group_tag_keys(self, group_ids, keys=None, limit=None):
+    def get_group_tag_keys(self, group_ids, environment_id, keys=None, limit=None):
         if isinstance(group_ids, six.integer_types):
             qs = GroupTagKey.objects.filter(group_id=group_ids)
         else:
@@ -202,7 +209,7 @@ class LegacyTagStorage(TagStorage):
 
         return list(qs)
 
-    def get_group_tag_value(self, group_id, key, value):
+    def get_group_tag_value(self, group_id, environment_id, key, value):
         from sentry.tagstore.exceptions import GroupTagValueNotFound
 
         try:
@@ -214,7 +221,7 @@ class LegacyTagStorage(TagStorage):
         except GroupTagValue.DoesNotExist:
             raise GroupTagValueNotFound
 
-    def get_group_tag_values(self, group_ids, keys=None, values=None):
+    def get_group_tag_values(self, group_ids, environment_id, keys=None, values=None):
         if isinstance(group_ids, six.integer_types):
             qs = GroupTagValue.objects.filter(group_id=group_ids)
         else:
@@ -237,7 +244,7 @@ class LegacyTagStorage(TagStorage):
     def delete_tag_key(self, project_id, key):
         from .tasks import delete_tag_key
 
-        tagkey = self.get_tag_key(project_id, key, status=None)
+        tagkey = self.get_tag_key(project_id, environment_id=None, key=key, status=None)
 
         updated = TagKey.objects.filter(
             id=tagkey.id,
@@ -294,7 +301,7 @@ class LegacyTagStorage(TagStorage):
             'value': value,
         }, extra)
 
-    def get_group_event_ids(self, project_id, group_id, tags):
+    def get_group_event_ids(self, project_id, group_id, environment_id, tags):
         tagkeys = dict(
             TagKey.objects.filter(
                 project_id=project_id,
@@ -360,7 +367,7 @@ class LegacyTagStorage(TagStorage):
             key=key,
         ).values_list('group_id', 'values_seen'))
 
-    def get_group_tag_value_count(self, group_id, key):
+    def get_group_tag_value_count(self, group_id, environment_id, key):
         if db.is_postgres():
             # This doesnt guarantee percentage is accurate, but it does ensure
             # that the query has a maximum cost
@@ -388,7 +395,7 @@ class LegacyTagStorage(TagStorage):
             last_seen__gte=cutoff,
         ).aggregate(t=Sum('times_seen'))['t']
 
-    def get_top_group_tag_values(self, group_id, key, limit=3):
+    def get_top_group_tag_values(self, group_id, environment_id, key, limit=3):
         if db.is_postgres():
             # This doesnt guarantee percentage is accurate, but it does ensure
             # that the query has a maximum cost
@@ -506,7 +513,7 @@ class LegacyTagStorage(TagStorage):
         return matches
 
     def update_group_tag_key_values_seen(self, group_ids):
-        instances = self.get_group_tag_keys(group_ids)
+        instances = self.get_group_tag_keys(group_ids, environment_id=None)
         for instance in instances:
             instance.update(
                 values_seen=GroupTagValue.objects.filter(

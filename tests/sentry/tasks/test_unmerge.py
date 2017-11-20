@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import functools
+import hashlib
 import itertools
 import logging
 import uuid
@@ -31,6 +32,29 @@ from six.moves import xrange
 
 # Use the default redis client as a cluster client in the similarity index
 index = _make_index_backend(redis.clusters.get('default').get_local_client(0))
+
+
+def test_get_fingerprint():
+    assert get_fingerprint(
+        Event(
+            data={
+                'sentry.interfaces.Message': {
+                    'message': 'Hello world',
+                },
+            },
+        )
+    ) == hashlib.md5('Hello world').hexdigest()
+
+    assert get_fingerprint(
+        Event(
+            data={
+                'fingerprint': ['Not hello world'],
+                'sentry.interfaces.Message': {
+                    'message': 'Hello world',
+                },
+            },
+        )
+    ) == hashlib.md5('Not hello world').hexdigest()
 
 
 @patch('sentry.similarity.features.index', new=index)
@@ -272,7 +296,7 @@ class UnmergeTestCase(TestCase):
             )
 
         assert set(
-            [(gtk.key, gtk.values_seen) for gtk in tagstore.get_group_tag_keys(source.id)]
+            [(gtk.key, gtk.values_seen) for gtk in tagstore.get_group_tag_keys(source.id, None)]
         ) == set([
             (u'color', 3),
             (u'environment', 1),
@@ -281,7 +305,7 @@ class UnmergeTestCase(TestCase):
 
         assert set(
             [(gtv.key, gtv.value, gtv.times_seen)
-             for gtv in tagstore.get_group_tag_values(source.id)]
+             for gtv in tagstore.get_group_tag_values(source.id, environment_id=None)]
         ) == set([
             (u'color', u'red', 6),
             (u'color', u'green', 6),
@@ -382,7 +406,7 @@ class UnmergeTestCase(TestCase):
         ])
 
         assert set(
-            [(gtk.key, gtk.values_seen) for gtk in tagstore.get_group_tag_keys(source.id)]
+            [(gtk.key, gtk.values_seen) for gtk in tagstore.get_group_tag_keys(source.id, None)]
         ) == set([
             (u'color', 3),
             (u'environment', 1),
@@ -391,7 +415,8 @@ class UnmergeTestCase(TestCase):
 
         assert set(
             [(gtv.key, gtv.value, gtv.times_seen,
-              gtv.first_seen, gtv.last_seen) for gtv in tagstore.get_group_tag_values(source.id)]
+              gtv.first_seen, gtv.last_seen)
+             for gtv in tagstore.get_group_tag_values(source.id, environment_id=None)]
         ) == set([
             (u'color', u'red', 4, now + shift(0), now + shift(9), ),
             (u'color', u'green', 3, now + shift(1), now + shift(7), ),
@@ -433,7 +458,7 @@ class UnmergeTestCase(TestCase):
             (u'production', now + shift(10), now + shift(16), ),
         ])
 
-        assert set([(gtk.key, gtk.values_seen) for gtk in tagstore.get_group_tag_keys(source.id)]
+        assert set([(gtk.key, gtk.values_seen) for gtk in tagstore.get_group_tag_keys(source.id, None)]
                    ) == set(
             [
                 (u'color', 3),
@@ -444,7 +469,8 @@ class UnmergeTestCase(TestCase):
 
         assert set(
             [(gtv.key, gtv.value, gtv.times_seen,
-              gtv.first_seen, gtv.last_seen) for gtv in tagstore.get_group_tag_values(destination.id)]
+              gtv.first_seen, gtv.last_seen)
+             for gtv in tagstore.get_group_tag_values(destination.id, environment_id=None)]
         ) == set([
             (u'color', u'red', 2, now + shift(12), now + shift(15), ),
             (u'color', u'green', 3, now + shift(10), now + shift(16), ),

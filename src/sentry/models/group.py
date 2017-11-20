@@ -118,6 +118,38 @@ class GroupManager(BaseManager):
                 }
             )
 
+    def from_event_id(self, project, event_id):
+        """
+        Resolves the 32 character event_id string into
+        a Group for which it is found.
+        """
+        from sentry.models import EventMapping, Event
+        group_id = None
+
+        # Look up event_id in both Event and EventMapping,
+        # and bail when it matches one of them, prioritizing
+        # Event since it contains more history.
+        for model in Event, EventMapping:
+            try:
+                group_id = model.objects.filter(
+                    project_id=project.id,
+                    event_id=event_id,
+                ).values_list('group_id', flat=True)[0]
+
+                # It's possible that group_id is NULL
+                if group_id is not None:
+                    break
+            except IndexError:
+                pass
+
+        if group_id is None:
+            # Raise a Group.DoesNotExist here since it makes
+            # more logical sense since this is intending to resolve
+            # a Group.
+            raise Group.DoesNotExist()
+
+        return Group.objects.get(id=group_id)
+
     def add_tags(self, group, tags):
         project_id = group.project_id
         date = group.last_seen
@@ -322,7 +354,8 @@ class Group(Model):
 
     def get_tags(self):
         if not hasattr(self, '_tag_cache'):
-            group_tags = [gtk.key for gtk in tagstore.get_group_tag_keys(self.id)]
+            group_tags = set(
+                [gtk.key for gtk in tagstore.get_group_tag_keys(self.id, environment_id=None)])
 
             results = []
             for key in group_tags:

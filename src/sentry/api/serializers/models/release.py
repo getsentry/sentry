@@ -120,7 +120,7 @@ class ReleaseSerializer(Serializer):
             item_authors = []
             seen_authors = set()
             for user in (users_by_author.get(a) for a in item.authors):
-                if user['email'] not in seen_authors:
+                if user and user['email'] not in seen_authors:
                     seen_authors.add(user['email'])
                     item_authors.append(user)
 
@@ -171,8 +171,10 @@ class ReleaseSerializer(Serializer):
             ).distinct())
 
         tags = {}
-        tvs = tagstore.get_tag_values(project_ids, 'sentry:release',
-                                      [o.version for o in item_list])
+        tvs = tagstore.get_tag_values(project_ids,
+                                      environment_id=None,
+                                      key='sentry:release',
+                                      values=[o.version for o in item_list])
         for tv in tvs:
             val = tags.get(tv.value)
             tags[tv.value] = {

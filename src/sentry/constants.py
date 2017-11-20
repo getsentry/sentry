@@ -83,7 +83,8 @@ RESERVED_ORGANIZATION_SLUGS = frozenset(
         'remote', 'get-cli', 'blog', 'welcome', 'features', 'customers', 'integrations', 'signup',
         'pricing', 'subscribe', 'enterprise', 'about', 'jobs', 'thanks', 'guide', 'privacy',
         'security', 'terms', 'from', 'sponsorship', 'for', 'at', 'platforms', 'branding', 'vs',
-        'answers', '_admin', 'support', 'contact', 'onboarding', 'ext', 'extension', 'extensions', 'plugins', 'themonitor',
+        'answers', '_admin', 'support', 'contact', 'onboarding', 'ext', 'extension', 'extensions',
+        'plugins', 'themonitor', 'settings',
     )
 )
 
@@ -143,7 +144,7 @@ HTTP_METHODS = ('GET', 'POST', 'PUT', 'OPTIONS', 'HEAD',
 CLIENT_RESERVED_ATTRS = (
     'project', 'errors', 'event_id', 'message', 'checksum', 'culprit', 'fingerprint', 'level',
     'time_spent', 'logger', 'server_name', 'site', 'received', 'timestamp', 'extra', 'modules',
-    'tags', 'platform', 'release', 'dist', 'environment', 'transaction',
+    'tags', 'platform', 'release', 'dist', 'environment', 'transaction', 'key_id',
 )
 
 # XXX: Must be all lowercase

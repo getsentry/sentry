@@ -13,7 +13,8 @@
         "src/sentry/static/sentry/dist/": true
     },
     "files.trimTrailingWhitespace": true,
-    "files.ensureSingleFinalNewline": true,
+    "files.trimFinalNewlines": true,
+    "files.insertFinalNewline": true,
 
     "eslint.options": {
         "configFile": ".eslintrc"
@@ -42,8 +43,8 @@
     "python.linting.pylintEnabled": false,
     "python.linting.flake8Enabled": true,
     "python.formatting.provider": "autopep8",
+    "python.formatting.autopep8Args": ["--global-config", "${workspaceRoot}/setup.cfg"],
     // https://github.com/DonJayamanne/pythonVSCode/issues/992
-    "python.formatting.yapfArgs": ["--style", "${workspaceRoot}/setup.cfg"],
     "python.pythonPath": "${env.WORKON_HOME}/sentry/bin/python",
     // test discovery is sluggish and the UI around running
     // tests is often in your way and misclicked

@@ -95,12 +95,12 @@ const IssuePluginActions = React.createClass({
     } else {
       // # TODO(dcramer): remove plugin.title check in Sentry 8.22+
       button = (
-        <div className={'btn-group btn-plugin-' + plugin.slug}>
+        <div className={'btn-plugin-' + plugin.slug}>
           <DropdownLink
             caret={false}
             className="btn btn-default btn-sm"
             title={
-              <span>
+              <span style={{display: 'flex'}}>
                 {plugin.shortName || plugin.name || plugin.title}
                 <span
                   className="icon-arrow-down"

@@ -1,7 +1,8 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import AlertActions from '../actions/alertActions';
+import IndicatorStore from '../stores/indicatorStore';
+import {joinTeam} from '../actionCreators/teams';
 import ApiMixin from '../mixins/apiMixin';
 import {t} from '../locale';
 
@@ -25,7 +26,8 @@ const MissingProjectMembership = React.createClass({
       loading: true,
     });
 
-    this.api.joinTeam(
+    joinTeam(
+      this.api,
       {
         orgId: this.props.organization.slug,
         teamId: this.props.team.slug,
@@ -42,10 +44,10 @@ const MissingProjectMembership = React.createClass({
             loading: false,
             error: true,
           });
-          AlertActions.addAlert({
-            message: 'There was an error while trying to join the team.',
-            type: 'error',
-          });
+          IndicatorStore.add(
+            t('There was an error while trying to leave the team.'),
+            'error'
+          );
         },
       }
     );

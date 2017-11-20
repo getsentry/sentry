@@ -9,7 +9,7 @@ from django.db.models import Count
 
 from sentry.db.models.query import in_iexact
 from sentry.models import (
-    CommitFileChange, Deploy, Environment, Group, GroupSubscriptionReason, GroupCommitResolution,
+    CommitFileChange, Deploy, Environment, Group, GroupSubscriptionReason, GroupLink,
     Release, ReleaseCommit, Repository, Team, User, UserEmail, UserOption, UserOptionValue
 )
 from sentry.utils.http import absolute_uri
@@ -86,8 +86,9 @@ class ReleaseActivityEmail(ActivityEmail):
                 row['project']: row['num_groups']
                 for row in Group.objects.filter(
                     project__in=self.projects,
-                    id__in=GroupCommitResolution.objects.filter(
-                        commit_id__in=ReleaseCommit.objects.filter(
+                    id__in=GroupLink.objects.filter(
+                        linked_type=GroupLink.LinkedType.commit,
+                        linked_id__in=ReleaseCommit.objects.filter(
                             release=self.release,
                         ).values_list('commit_id', flat=True),
                     ).values_list('group_id', flat=True),
