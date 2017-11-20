@@ -18,6 +18,7 @@ from rest_framework.views import APIView
 
 from sentry import tsdb
 from sentry.app import raven
+from sentry.models import Environment
 from sentry.utils.cursors import Cursor
 from sentry.utils.dates import to_datetime
 from sentry.utils.http import absolute_uri, is_valid_origin
@@ -26,6 +27,7 @@ from sentry.utils.audit import create_audit_entry
 from .authentication import ApiKeyAuthentication, TokenAuthentication
 from .paginator import Paginator
 from .permissions import NoPermission
+
 
 __all__ = ['DocSection', 'Endpoint', 'EnvironmentMixin', 'StatsMixin']
 
