@@ -11,7 +11,7 @@ exports[`BooleanField render() renders with form context 1`] = `
       className="control-label"
     >
       <input
-        defaultChecked={true}
+        checked={true}
         disabled={false}
         id="id-fieldName"
         onChange={[Function]}
@@ -33,7 +33,7 @@ exports[`BooleanField render() renders without form context 1`] = `
       className="control-label"
     >
       <input
-        defaultChecked=""
+        checked=""
         disabled={false}
         id="id-fieldName"
         onChange={[Function]}
