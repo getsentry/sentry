@@ -101,7 +101,7 @@ class LegacyTagStorage(TagStorage):
         return GroupTagValue.objects.get_or_create(
             project_id=project_id, group_id=group_id, key=key, value=value, **kwargs)
 
-    def create_event_tags(self, project_id, group_id, event_id, tags):
+    def create_event_tags(self, project_id, group_id, environment_id, event_id, tags):
         try:
             # don't let a duplicate break the outer transaction
             with transaction.atomic():
@@ -449,12 +449,6 @@ class LegacyTagStorage(TagStorage):
             return None
 
         return last_release.value
-
-    def update_project_for_group(self, group_id, old_project_id, new_project_id):
-        GroupTagValue.objects.filter(
-            project_id=old_project_id,
-            group_id=group_id,
-        ).update(project_id=new_project_id)
 
     def get_group_ids_for_users(self, project_ids, event_users, limit=100):
         return list(GroupTagValue.objects.filter(

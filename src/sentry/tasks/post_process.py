@@ -142,6 +142,7 @@ def index_event_tags(organization_id, project_id, event_id, tags,
     tagstore.create_event_tags(
         project_id=project_id,
         group_id=group_id,
+        environment_id=environment_id,
         event_id=event_id,
         tags=tag_ids,
     )

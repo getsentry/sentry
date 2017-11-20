@@ -72,7 +72,6 @@ class TagStorage(Service):
         'incr_tag_value_times_seen',
         'incr_group_tag_key_values_seen',
         'incr_group_tag_value_times_seen',
-        'update_project_for_group',
         'get_group_ids_for_users',
         'get_group_tag_values_for_users',
         'get_tags_for_search_filter',
@@ -175,9 +174,9 @@ class TagStorage(Service):
         """
         raise NotImplementedError
 
-    def create_event_tags(self, project_id, group_id, event_id, tags):
+    def create_event_tags(self, project_id, group_id, environment_id, event_id, tags):
         """
-        >>> create_event_tags(1, 2, 3, [(4, 5)])
+        >>> create_event_tags(1, 2, 3, 4, [(5, 6)])
         """
         raise NotImplementedError
 
@@ -322,12 +321,6 @@ class TagStorage(Service):
     def get_last_release(self, group_id):
         """
         >>> get_last_release(1)
-        """
-        raise NotImplementedError
-
-    def update_project_for_group(self, group_id, old_project_id, new_project_id):
-        """
-        >>> update_project_for_group(1, 2, 3)
         """
         raise NotImplementedError
 
