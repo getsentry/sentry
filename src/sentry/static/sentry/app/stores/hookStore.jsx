@@ -13,6 +13,7 @@ let validHookNames = new Set([
   'project:rate-limits:disabled',
   'project:custom-inbound-filters:disabled',
   'issue:secondary-column',
+  'analytics:onboarding-complete',
 ]);
 
 const HookStore = Reflux.createStore({
