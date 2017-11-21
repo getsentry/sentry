@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-from django.core.cache import cache
+from sentry.cache import default_cache
 from django.core.urlresolvers import reverse
 
 from sentry.api import client
@@ -23,7 +23,7 @@ class SetupWizardView(BaseView):
         }
         key = '%s%s' % (SETUP_WIZARD_CACHE_KEY, wizard_hash)
 
-        wizard_data = cache.get(key)
+        wizard_data = default_cache.get(key)
         if wizard_data is None:
             return self.redirect_to_org(request)
 
@@ -68,6 +68,6 @@ class SetupWizardView(BaseView):
         }
 
         key = '%s%s' % (SETUP_WIZARD_CACHE_KEY, wizard_hash)
-        cache.set(key, result, SETUP_WIZARD_CACHE_TIMEOUT)
+        default_cache.set(key, result, SETUP_WIZARD_CACHE_TIMEOUT)
 
         return render_to_response('sentry/setup-wizard.html', context, request)

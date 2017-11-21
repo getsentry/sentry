@@ -766,7 +766,7 @@ urlpatterns = patterns(
 
     # Project Wizard
     url(
-        r'^wizard$',
+        r'^wizard/$',
         SetupWizard.as_view(),
         name='sentry-api-0-project-wizard-new'
     ),
