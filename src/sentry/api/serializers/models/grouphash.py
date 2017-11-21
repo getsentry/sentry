@@ -12,18 +12,19 @@ def get_latest_events(group_hash_list):
     Returns a list of events (or ``None``) in the same order as the input
     sequence.
     """
-    group_hashes_by_group_id = defaultdict(list)
+    group_hashes_by_group = defaultdict(list)
     for group_hash in group_hash_list:
-        group_hashes_by_group_id[group_hash.group_id].append(group_hash)
+        group_hashes_by_group[(group_hash.project_id, group_hash.group_id)].append(group_hash)
 
     events_by_group_hash = {}
-    for group_id, group_hash_list_chunk in group_hashes_by_group_id.items():
+    for (project_id, group_id), group_hash_list_chunk in group_hashes_by_group.items():
         event_id_list = GroupHash.fetch_last_processed_event_id(
             group_id, [i.id for i in group_hash_list_chunk]
         )
         event_by_event_id = {
             event.event_id: event
             for event in Event.objects.filter(
+                project_id=project_id,
                 group_id=group_id,
                 event_id__in=filter(None, event_id_list),
             )
