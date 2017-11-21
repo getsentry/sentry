@@ -8,7 +8,6 @@ import ApiMixin from '../../mixins/apiMixin';
 import CustomIgnoreCountModal from '../../components/customIgnoreCountModal';
 import CustomIgnoreDurationModal from '../../components/customIgnoreDurationModal';
 import CustomResolutionModal from '../../components/customResolutionModal';
-import DropdownReact from '../../components/dropdownReact';
 import DropdownLink from '../../components/dropdownLink';
 import Duration from '../../components/duration';
 import GroupActions from '../../actions/groupActions';
@@ -104,7 +103,7 @@ const ResolveActions = React.createClass({
             <span className="icon-checkmark" style={{marginRight: 5}} />
             {t('Resolve')}
           </a>
-          <DropdownReact
+          <DropdownLink
             key="resolve-dropdown"
             caret={true}
             className={resolveClassName}
@@ -156,7 +155,7 @@ const ResolveActions = React.createClass({
                 {t('Another version ...')}
               </a>
             </MenuItem>
-          </DropdownReact>
+          </DropdownLink>
         </div>
       </div>
     );
@@ -258,10 +257,10 @@ const IgnoreActions = React.createClass({
             <span className="icon-ban" style={{marginRight: 5}} />
             {t('Ignore')}
           </a>
-          <DropdownReact caret={true} className={linkClassName} title="">
+          <DropdownLink caret={true} className={linkClassName} title="">
             <MenuItem header={true}>Ignore Until</MenuItem>
             <li className="dropdown-submenu">
-              <DropdownReact
+              <DropdownLink
                 title="This occurs again after .."
                 caret={false}
                 isNestedDropdown={true}
@@ -283,10 +282,10 @@ const IgnoreActions = React.createClass({
                 <MenuItem noAnchor={true}>
                   <a onClick={() => this.setState({modal: 'duration'})}>{t('Custom')}</a>
                 </MenuItem>
-              </DropdownReact>
+              </DropdownLink>
             </li>
             <li className="dropdown-submenu">
-              <DropdownReact
+              <DropdownLink
                 title="This occurs again .."
                 caret={false}
                 isNestedDropdown={true}
@@ -294,7 +293,7 @@ const IgnoreActions = React.createClass({
                 {this.getIgnoreCounts().map(count => {
                   return (
                     <li className="dropdown-submenu" key={count}>
-                      <DropdownReact
+                      <DropdownLink
                         title={t('%s times', count.toLocaleString())}
                         caret={false}
                         isNestedDropdown={true}
@@ -322,7 +321,7 @@ const IgnoreActions = React.createClass({
                             </MenuItem>
                           );
                         })}
-                      </DropdownReact>
+                      </DropdownLink>
                     </li>
                   );
                 })}
@@ -330,10 +329,10 @@ const IgnoreActions = React.createClass({
                 <MenuItem noAnchor={true}>
                   <a onClick={() => this.setState({modal: 'count'})}>{t('Custom')}</a>
                 </MenuItem>
-              </DropdownReact>
+              </DropdownLink>
             </li>
             <li className="dropdown-submenu">
-              <DropdownReact
+              <DropdownLink
                 title="This affects an additional .."
                 caret={false}
                 isNestedDropdown={true}
@@ -341,7 +340,7 @@ const IgnoreActions = React.createClass({
                 {this.getIgnoreCounts().map(count => {
                   return (
                     <li className="dropdown-submenu" key={count}>
-                      <DropdownReact
+                      <DropdownLink
                         title={t('%s users', count.toLocaleString())}
                         caret={false}
                         isNestedDropdown={true}
@@ -369,7 +368,7 @@ const IgnoreActions = React.createClass({
                             </MenuItem>
                           );
                         })}
-                      </DropdownReact>
+                      </DropdownLink>
                     </li>
                   );
                 })}
@@ -377,9 +376,9 @@ const IgnoreActions = React.createClass({
                 <MenuItem noAnchor={true}>
                   <a onClick={() => this.setState({modal: 'users'})}>{t('Custom')}</a>
                 </MenuItem>
-              </DropdownReact>
+              </DropdownLink>
             </li>
-          </DropdownReact>
+          </DropdownLink>
         </div>
       </div>
     );
@@ -408,7 +407,11 @@ const DeleteActions = React.createClass({
           <span className="icon-trash" />
         </LinkWithConfirmation>
         {features.has('custom-filters') && (
-          <DropdownLink caret={true} className="group-delete btn btn-default btn-sm">
+          <DropdownLink
+            caret={true}
+            className="group-delete btn btn-default btn-sm"
+            alwaysRenderMenu
+          >
             <li>
               <LinkWithConfirmation
                 title={t('Discard')}
@@ -617,7 +620,7 @@ const GroupDetailsActions = React.createClass({
 
         {group.pluginActions.length > 1 ? (
           <div className="btn-group more">
-            <DropdownReact className="btn btn-default btn-sm" title={t('More')}>
+            <DropdownLink className="btn btn-default btn-sm" title={t('More')}>
               {group.pluginActions.map((action, actionIdx) => {
                 return (
                   <MenuItem key={actionIdx} href={action[1]}>
@@ -625,7 +628,7 @@ const GroupDetailsActions = React.createClass({
                   </MenuItem>
                 );
               })}
-            </DropdownReact>
+            </DropdownLink>
           </div>
         ) : (
           group.pluginActions.length !== 0 &&
