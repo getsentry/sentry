@@ -19,4 +19,7 @@ class BuildIntegrationDocsCommand(BaseBuildCommand):
     def _build(self):
         from sentry.utils.integrationdocs import sync_docs
         log.info('downloading integration docs')
-        sync_docs()
+        try:
+            sync_docs()
+        except IOError:
+            pass

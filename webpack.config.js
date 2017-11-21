@@ -19,6 +19,7 @@ var IS_TEST = process.env.NODE_ENV === 'TEST' || process.env.TEST_SUITE;
 var WEBPACK_DEV_PORT = process.env.WEBPACK_DEV_PORT;
 var SENTRY_DEVSERVER_PORT = process.env.SENTRY_DEVSERVER_PORT;
 var USE_HOT_MODULE_RELOAD = !IS_PRODUCTION && WEBPACK_DEV_PORT && SENTRY_DEVSERVER_PORT;
+var SKIP_DOCS_PLATFORM = process.env.SKIP_DOCS_PLATFORM;
 
 var babelConfig = JSON.parse(fs.readFileSync(path.join(__dirname, '.babelrc')));
 babelConfig.cacheDirectory = true;
@@ -185,7 +186,7 @@ var appConfig = {
   resolve: {
     alias: {
       'sentry-locale': path.join(__dirname, 'src', 'sentry', 'locale'),
-      'integration-docs-platforms': IS_TEST
+      'integration-docs-platforms': IS_TEST || SKIP_DOCS_PLATFORM
         ? path.join(__dirname, 'tests/fixtures/_platforms.json')
         : path.join(__dirname, 'src/sentry/integration-docs/_platforms.json')
     },
