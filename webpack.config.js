@@ -19,6 +19,7 @@ var IS_TEST = process.env.NODE_ENV === 'TEST' || process.env.TEST_SUITE;
 var WEBPACK_DEV_PORT = process.env.WEBPACK_DEV_PORT;
 var SENTRY_DEVSERVER_PORT = process.env.SENTRY_DEVSERVER_PORT;
 var USE_HOT_MODULE_RELOAD = !IS_PRODUCTION && WEBPACK_DEV_PORT && SENTRY_DEVSERVER_PORT;
+var WITH_SOURCEMAPS = !!process.env.WITH_SOURCEMAPS;
 
 var babelConfig = JSON.parse(fs.readFileSync(path.join(__dirname, '.babelrc')));
 babelConfig.cacheDirectory = true;
@@ -256,10 +257,16 @@ var legacyCssConfig = {
             {
               loader: 'css-loader',
               options: {
+                sourceMap: WITH_SOURCEMAPS,
                 minimize: IS_PRODUCTION
               }
             },
-            'less-loader'
+            {
+              loader: 'less-loader',
+              options: {
+                sourceMap: WITH_SOURCEMAPS
+              }
+            },
           ]
         })
       },
@@ -268,7 +275,8 @@ var legacyCssConfig = {
         loader: 'file-loader?name=' + '[name].[ext]'
       }
     ]
-  }
+  },
+  devtool: WITH_SOURCEMAPS ? '#source-map' : undefined
 };
 
 // Dev only! Hot module reloading
