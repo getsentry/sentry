@@ -28,7 +28,6 @@ class GroupHashSerializerTest(TestCase):
         )
 
         GroupHash.record_last_processed_event_id(
-            group.project_id,
             hash.id,
             ['invalid'],
         )
@@ -47,7 +46,6 @@ class GroupHashSerializerTest(TestCase):
         event = self.create_event(group=self.create_group())
 
         GroupHash.record_last_processed_event_id(
-            group.project_id,
             hash.id,
             event.event_id,
         )
@@ -66,7 +64,6 @@ class GroupHashSerializerTest(TestCase):
         event = Event.objects.get(id=self.create_event(group=group).id)
 
         GroupHash.record_last_processed_event_id(
-            group.project_id,
             hash.id,
             event.event_id,
         )

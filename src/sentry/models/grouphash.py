@@ -38,22 +38,14 @@ class GroupHash(Model):
         unique_together = (('project', 'hash'), )
 
     @staticmethod
-    def fetch_last_processed_event_id(group_id, group_hash_ids):
+    def fetch_last_processed_event_id(group_hash_ids):
         with redis.clusters.get('default').map() as client:
-            result = client.hmget(
-                'gh:lp:{}'.format(group_id),
-                map('{}'.format, group_hash_ids),
-            )
-
-        return result.value
+            results = [client.get('gh:lp:{}'.format(id)) for id in group_hash_ids]
+        return [result.value for result in results]
 
     @staticmethod
-    def record_last_processed_event_id(group_id, group_hash_id, event_id):
+    def record_last_processed_event_id(group_hash_id, event_id):
         with redis.clusters.get('default').map() as client:
-            key = 'gh:lp:{}'.format(group_id)
-            client.hset(
-                key,
-                '{}'.format(group_hash_id),
-                '{}'.format(event_id),
-            )
+            key = 'gh:lp:{}'.format(group_hash_id)
+            client.set(key, '{}'.format(event_id))
             client.expire(key, 7776000)  # 90d

@@ -1031,7 +1031,6 @@ class EventManager(object):
 
         if not is_sample:
             GroupHash.record_last_processed_event_id(
-                group.id,
                 all_hashes[0].id,
                 event.event_id,
             )
