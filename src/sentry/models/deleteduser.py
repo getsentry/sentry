@@ -21,7 +21,5 @@ class DeletedUser(DeletedEntry):
     class Meta:
         app_label = 'sentry'
         db_table = 'sentry_project'
-        # Is this needed? not sure?
-        unique_together = (('team', 'slug'), ('organization', 'slug'))
 
     __repr__ = sane_repr('date_deleted', 'team_id', 'name', 'reason')
