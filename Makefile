@@ -1,5 +1,3 @@
-CPUS ?= $(shell sysctl -n hw.ncpu 2> /dev/null || echo 1)
-MAKEFLAGS += --jobs=$(CPUS)
 NPM_ROOT = ./node_modules
 STATIC_DIR = src/sentry/static/sentry
 
