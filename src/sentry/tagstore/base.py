@@ -232,9 +232,9 @@ class TagStorage(Service):
         """
         raise NotImplementedError
 
-    def delete_tag_keys(self, project_id, key, environment_id=None):
+    def delete_tag_keys(self, project_id, keys, environment_id=None):
         """
-        >>> delete_tag_keys(1, "key1")
+        >>> delete_tag_keys(1, ["key1"])
         """
         raise NotImplementedError
 
