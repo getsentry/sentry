@@ -83,17 +83,6 @@ class Event(Model):
 
     project = property(_get_project, _set_project)
 
-    @property
-    def environment(self):
-        from sentry.models import Environment
-
-        if not hasattr(self, '_environment_cache'):
-            self._environment_cache = Environment.get_or_create(
-                project=self.project,
-                name=self.get_tag('environment'),
-            )
-        return self._environment_cache
-
     def get_legacy_message(self):
         msg_interface = self.data.get('sentry.interfaces.Message', {
             'message': self.message,
