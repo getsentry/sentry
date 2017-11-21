@@ -7,7 +7,7 @@ import {sortArray, parseRepo} from '../utils';
 import {t, tct} from '../locale';
 import Button from '../components/buttons/button';
 import Confirm from '../components/confirm';
-import DropdownReact from '../components/dropdownReact';
+import DropdownLink from '../components/dropdownLink';
 import IndicatorStore from '../stores/indicatorStore';
 import MenuItem from '../components/menuItem';
 import OrganizationSettingsView from './organizationSettingsView';
@@ -307,7 +307,7 @@ class OrganizationRepositories extends OrganizationSettingsView {
     return (
       <div>
         <div className="pull-right">
-          <DropdownReact
+          <DropdownLink
             anchorRight
             alwaysRenderMenu
             className="btn btn-primary btn-sm"
@@ -324,7 +324,7 @@ class OrganizationRepositories extends OrganizationSettingsView {
                 </MenuItem>
               );
             })}
-          </DropdownReact>
+          </DropdownLink>
         </div>
         <h3 className="m-b-2">{t('Repositories')}</h3>
         {hasItemList && (
