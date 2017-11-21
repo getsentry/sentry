@@ -336,9 +336,9 @@ def run(file_list=None, format=True, lint=True, js=True, py=True,
 
         if lint:
             if py:
-                results.append(py_lint(file_list, parseable=True))
+                results.append(py_lint(file_list, parseable=parseable))
             if js:
-                results.append(js_lint(file_list, parseable=True, format=format))
+                results.append(js_lint(file_list, parseable=parseable, format=format))
 
         if test:
             if js:
