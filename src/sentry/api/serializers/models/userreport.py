@@ -15,7 +15,10 @@ class UserReportSerializer(Serializer):
 
         event_users = {e.id: d for e, d in zip(queryset, serialize(queryset, user))}
 
+        # If a event list with multiple project IDs is passed to this and event IDs are not unique
+        # this could return the wrong eventIDs
         events_list = Event.objects.filter(
+            project_id__in={i.project_id for i in item_list},
             event_id__in=[i.event_id for i in item_list]
         ).values('id', 'event_id')
 
@@ -44,7 +47,10 @@ class UserReportSerializer(Serializer):
             'comments': obj.comments,
             'dateCreated': obj.date_added,
             'user': attrs['event_user'],
-            'event_id': six.text_type(attrs['event_id'])
+            'event': {
+                'id': six.text_type(attrs['event_id']) if attrs['event_id'] else None
+            }
+
         }
 
 
