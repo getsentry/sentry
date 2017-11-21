@@ -16,6 +16,7 @@ import Pagination from '../components/pagination';
 import StreamGroup from '../components/stream/group';
 import StreamActions from './stream/actions';
 import StreamTagActions from '../actions/streamTagActions';
+import AlertActions from '../actions/alertActions';
 import StreamTagStore from '../stores/streamTagStore';
 import StreamFilters from './stream/filters';
 import StreamSidebar from './stream/sidebar';
@@ -24,6 +25,8 @@ import utils from '../utils';
 import {logAjaxError} from '../utils/logging';
 import parseLinkHeader from '../utils/parseLinkHeader';
 import {t, tn, tct} from '../locale';
+
+const MAX_TAGS = 500;
 
 const Stream = React.createClass({
   propTypes: {
@@ -232,13 +235,14 @@ const Stream = React.createClass({
     let params = this.props.params;
     this.api.request(`/projects/${params.orgId}/${params.projectId}/tags/`, {
       success: tags => {
-        let trimmedTags = tags;
+        let trimmedTags = tags.slice(0, MAX_TAGS);
 
-        if (trimmedTags.length > 500) {
-          trimmedTags = trimmedTags.slice(0, 500);
-          Raven.captureMessage('High Tag Number', {level: 'info', tags: tags.length});
+        if (tags.length > MAX_TAGS) {
+          AlertActions.addAlert({
+            message: t('You have too many unique tags and some have been truncated'),
+            type: 'warn',
+          });
         }
-
         this.setState({tagsLoading: false});
         StreamTagActions.loadTagsSuccess(trimmedTags);
       },
