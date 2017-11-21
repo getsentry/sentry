@@ -8,6 +8,7 @@ sentry.models.grouphash
 from __future__ import absolute_import
 
 from django.db import models
+from django.db.models.signals import post_delete
 from django.utils.translation import ugettext_lazy as _
 
 from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, Model
@@ -49,3 +50,15 @@ class GroupHash(Model):
             key = 'gh:lp:{}'.format(group_hash_id)
             client.set(key, '{}'.format(event_id))
             client.expire(key, 7776000)  # 90d
+
+    @staticmethod
+    def delete_last_processed_event_id(group_hash_id):
+        with redis.clusters.get('default').map() as client:
+            client.delete('gh:lp:{}'.format(group_hash_id))
+
+
+post_delete.connect(
+    lambda instance, **kwargs: GroupHash.delete_last_processed_event_id(instance.id),
+    sender=GroupHash,
+    weak=False,
+)
