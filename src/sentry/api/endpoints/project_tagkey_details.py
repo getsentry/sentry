@@ -43,11 +43,11 @@ class ProjectTagKeyDetailsEndpoint(ProjectEndpoint, EnvironmentMixin):
             raise ResourceDoesNotExist
 
         try:
-            updated, tagkey = tagstore.delete_tag_key(project.id, environment_id, lookup_key)
+            deleted = tagstore.delete_tag_keys(project.id, environment_id, lookup_key)
         except tagstore.TagKeyNotFound:
             raise ResourceDoesNotExist
 
-        if updated:
+        for tagkey in deleted:
             self.create_audit_entry(
                 request=request,
                 organization=project.organization,

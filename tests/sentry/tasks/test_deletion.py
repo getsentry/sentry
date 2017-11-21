@@ -184,7 +184,7 @@ class DeleteProjectTest(TestCase):
 
 class DeleteTagKeyTest(TestCase):
     def test_simple(self):
-        from sentry.tagstore.legacy.tasks import delete_tag_key
+        from sentry.tagstore.legacy.tasks import delete_tag_key as delete_tag_key_task
 
         team = self.create_team(name='test', slug='test')
         project = self.create_project(team=team, name='test1', slug='test1')
@@ -241,7 +241,7 @@ class DeleteTagKeyTest(TestCase):
         )
 
         with self.tasks():
-            delete_tag_key(object_id=tk.id)
+            delete_tag_key_task(object_id=tk.id)
 
             assert tagstore.get_event_tag_qs(key_id=tk.id).exists()
             try:

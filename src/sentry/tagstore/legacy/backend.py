@@ -241,20 +241,22 @@ class LegacyTagStorage(TagStorage):
 
         return list(qs)
 
-    def delete_tag_key(self, project_id, environment_id, key):
-        from .tasks import delete_tag_key
+    def delete_tag_keys(self, project_id, key, environment_id=None):
+        from .tasks import delete_tag_key as delete_tag_key_task
 
-        tagkey = self.get_tag_key(project_id, environment_id=None, key=key, status=None)
+        deleted = []
 
-        updated = TagKey.objects.filter(
-            id=tagkey.id,
-            status=TagKeyStatus.VISIBLE,
-        ).update(status=TagKeyStatus.PENDING_DELETION)
+        for tagkey in self.get_tag_keys(project_id, environment_id, key, status=None):
+            updated = TagKey.objects.filter(
+                id=tagkey.id,
+                status=TagKeyStatus.VISIBLE,
+            ).update(status=TagKeyStatus.PENDING_DELETION)
 
-        if updated:
-            delete_tag_key.delay(object_id=tagkey.id)
+            if updated:
+                delete_tag_key_task.delay(object_id=tagkey.id)
+                deleted.append(tagkey)
 
-        return (updated, tagkey)
+        return deleted
 
     def delete_all_group_tag_keys(self, group_id):
         GroupTagKey.objects.filter(
