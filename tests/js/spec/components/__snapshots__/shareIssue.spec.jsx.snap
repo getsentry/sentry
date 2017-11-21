@@ -2,6 +2,7 @@
 
 exports[`ShareIssue renders when busy 1`] = `
 <DropdownLink
+  alwaysRenderMenu={true}
   anchorRight={false}
   caret={true}
   className="share-issue btn-sm btn btn-default"
@@ -57,6 +58,7 @@ exports[`ShareIssue renders when busy 1`] = `
 
 exports[`ShareIssue renders when not shared 1`] = `
 <DropdownLink
+  alwaysRenderMenu={true}
   anchorRight={false}
   caret={true}
   className="share-issue btn-sm btn btn-default"
@@ -115,6 +117,7 @@ exports[`ShareIssue renders when not shared 1`] = `
 
 exports[`ShareIssue renders when not shared 2`] = `
 <DropdownLink
+  alwaysRenderMenu={true}
   anchorRight={false}
   caret={true}
   className="share-issue btn-sm btn btn-default"
