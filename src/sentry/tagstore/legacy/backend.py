@@ -147,7 +147,10 @@ class LegacyTagStorage(TagStorage):
             qs = qs.filter(status=status)
 
         if keys is not None:
-            qs = qs.filter(key__in=keys)
+            if isinstance(keys, six.string_types):
+                qs = qs.filter(key=keys)
+            else:
+                qs = qs.filter(key__in=keys)
 
         return list(qs)
 
