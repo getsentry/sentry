@@ -15,12 +15,12 @@ class GroupTest(TestCase):
         )
 
         GroupHash.record_last_processed_event_id(
-            grouphash.project_id,
-            [grouphash.id],
+            grouphash.group_id,
+            grouphash.id,
             'event',
         )
 
         assert GroupHash.fetch_last_processed_event_id(
-            grouphash.project_id,
+            grouphash.group_id,
             [grouphash.id, -1],
         ) == ['event', None]

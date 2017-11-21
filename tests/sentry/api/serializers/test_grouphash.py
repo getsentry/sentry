@@ -29,7 +29,7 @@ class GroupHashSerializerTest(TestCase):
 
         GroupHash.record_last_processed_event_id(
             group.project_id,
-            [hash.id],
+            hash.id,
             ['invalid'],
         )
 
@@ -48,7 +48,7 @@ class GroupHashSerializerTest(TestCase):
 
         GroupHash.record_last_processed_event_id(
             group.project_id,
-            [hash.id],
+            hash.id,
             event.event_id,
         )
 
@@ -67,7 +67,7 @@ class GroupHashSerializerTest(TestCase):
 
         GroupHash.record_last_processed_event_id(
             group.project_id,
-            [hash.id],
+            hash.id,
             event.event_id,
         )
 

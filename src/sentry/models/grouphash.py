@@ -48,11 +48,12 @@ class GroupHash(Model):
         return result.value
 
     @staticmethod
-    def record_last_processed_event_id(group_id, group_hash_ids, event_id):
+    def record_last_processed_event_id(group_id, group_hash_id, event_id):
         with redis.clusters.get('default').map() as client:
             key = 'gh:lp:{}'.format(group_id)
-            client.hmset(
+            client.hset(
                 key,
-                {k: event_id for k in map('{}'.format, group_hash_ids)}
+                '{}'.format(group_hash_id),
+                '{}'.format(event_id),
             )
             client.expire(key, 7776000)  # 90d
