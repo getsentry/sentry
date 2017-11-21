@@ -2,8 +2,9 @@ from __future__ import absolute_import
 from django.utils.translation import ugettext_lazy as _
 from django.db import models
 from sentry.db.models import (
-    FlexibleForeignKey, sane_repr, DeletedEntry
+    FlexibleForeignKey, sane_repr
 )
+from sentry.models.deletedentry import DeletedEntry
 
 
 class DeletedUser(DeletedEntry):

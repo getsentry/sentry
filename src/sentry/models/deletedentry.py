@@ -12,6 +12,9 @@ audit_logger = logging.getLogger('sentry.audit.deleted')
 
 
 class DeletedEntry(Model):
+    # Can't find documentation as to what this means?
+    __core__ = False
+
     actor_label = models.CharField(max_length=64, null=True, blank=True)
     # if the entry was created via a user
     actor = FlexibleForeignKey('sentry.User', related_name='audit_actors', null=True, blank=True)

@@ -1,8 +1,9 @@
 from __future__ import absolute_import
 from django.db import models
 from sentry.db.models import (
-    FlexibleForeignKey, sane_repr, DeletedEntry
+    FlexibleForeignKey, sane_repr
 )
+from sentry.models.deletedentry import DeletedEntry
 
 
 class DeletedProject(DeletedEntry):
