@@ -232,15 +232,15 @@ const Stream = React.createClass({
     let params = this.props.params;
     this.api.request(`/projects/${params.orgId}/${params.projectId}/tags/`, {
       success: tags => {
-        let tagCopy = tags.slice();
+        let trimmedTags = tags;
 
-        if (tagCopy.length > 500) {
-          tagCopy = tagCopy.slice(0, 500);
-          Raven.captureMessage('High Tag Number', {level: 'info'});
+        if (trimmedTags.length > 500) {
+          trimmedTags = trimmedTags.slice(0, 500);
+          Raven.captureMessage('High Tag Number', {level: 'info', tags: tags.length});
         }
 
         this.setState({tagsLoading: false});
-        StreamTagActions.loadTagsSuccess(tagCopy);
+        StreamTagActions.loadTagsSuccess(trimmedTags);
       },
       error: error => {
         this.setState({tagsLoading: false});
