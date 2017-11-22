@@ -205,11 +205,12 @@ class UnmergeTestCase(TestCase):
             },
         ])
 
+        environment = Environment.objects.create(
+            organization_id=project.organization_id,
+            name='production',
+        )
         EnvironmentProject.objects.create(
-            environment=Environment.objects.create(
-                organization_id=project.organization_id,
-                name='production',
-            ),
+            environment=environment,
             project=project,
         )
 
@@ -252,6 +253,7 @@ class UnmergeTestCase(TestCase):
             with self.tasks():
                 Group.objects.add_tags(
                     source,
+                    environment,
                     tags=event.get_tags(),
                 )
 

@@ -150,7 +150,7 @@ class GroupManager(BaseManager):
 
         return Group.objects.get(id=group_id)
 
-    def add_tags(self, group, tags):
+    def add_tags(self, group, environment, tags):
         project_id = group.project_id
         date = group.last_seen
 
@@ -160,12 +160,12 @@ class GroupManager(BaseManager):
             else:
                 key, value, data = tag_item
 
-            tagstore.incr_tag_value_times_seen(project_id, key, value, {
+            tagstore.incr_tag_value_times_seen(project_id, environment.id, key, value, {
                 'last_seen': date,
                 'data': data,
             })
 
-            tagstore.incr_group_tag_value_times_seen(group.id, key, value, {
+            tagstore.incr_group_tag_value_times_seen(group.id, environment.id, key, value, {
                 'project_id': project_id,
                 'last_seen': date,
             })
@@ -437,4 +437,5 @@ class Group(Model):
         )
 
     def count_users_seen(self):
-        return tagstore.get_group_values_seen(self.id, 'sentry:user')[self.id]
+        return tagstore.get_group_values_seen(
+            self.id, environment_id=None, key='sentry:user')[self.id]
