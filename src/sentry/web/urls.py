@@ -68,6 +68,8 @@ from sentry.web.frontend.sudo import SudoView
 from sentry.web.frontend.unsubscribe_issue_notifications import \
     UnsubscribeIssueNotificationsView
 from sentry.web.frontend.user_avatar import UserAvatarPhotoView
+from sentry.web.frontend.setup_wizard import SetupWizardView
+
 
 __all__ = ('urlpatterns', )
 
@@ -264,6 +266,13 @@ urlpatterns += patterns(
     ),
     url(r'^account/settings/emails/$', accounts.show_emails,
         name='sentry-account-settings-emails'),
+
+    # Project Wizard
+    url(
+        r'^account/settings/wizard/(?P<wizard_hash>[^\/]+)/$',
+        SetupWizardView.as_view(),
+        name='sentry-project-wizard-fetch'
+    ),
 
     # compatibility
     url(
