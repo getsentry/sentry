@@ -214,6 +214,13 @@ def _get_event_environment(event, project, cache):
             environment = Environment.get_for_organization_id(
                 project.organization_id, environment_name)
         except Environment.DoesNotExist:
+            logger.warn(
+                'event.environment.does_not_exist',
+                extra={
+                    'project_id': project.id,
+                    'environment_name': environment_name,
+                }
+            )
             environment = Environment.get_or_create(project, environment_name)
 
         cache[environment_name] = environment
