@@ -108,8 +108,16 @@ class DropdownLink extends React.Component {
   handleMouseLeave = e => {
     const toElement = e.toElement || e.relatedTarget;
 
-    if (this.dropdownMenu && !this.dropdownMenu.contains(toElement)) {
-      this.handleClose(e);
+    try {
+      if (this.dropdownMenu && !this.dropdownMenu.contains(toElement)) {
+        this.handleClose(e);
+      }
+    } catch (err) {
+      Raven.captureException(err, {
+        event: e,
+        toElement: e.toElement,
+        relatedTarget: e.relatedTarget,
+      });
     }
   };
 
