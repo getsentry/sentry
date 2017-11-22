@@ -7,8 +7,8 @@ from sentry.db.models import (
 )
 
 # Should we use python logger as well?
-import logging
-audit_logger = logging.getLogger('sentry.audit.deleted')
+# import logging
+# audit_logger = logging.getLogger('sentry.audit.deleted')
 
 
 class DeletedEntry(Model):
@@ -20,7 +20,7 @@ class DeletedEntry(Model):
         null=True,
         blank=True)
     # if the entry was created via an api key
-    actor_key = models.CharField(max_length=32, unique=True)
+    actor_key = models.CharField(max_length=32, blank=True, null=True)
 
     ip_address = models.GenericIPAddressField(null=True, unpack_ipv4=True)
     date_deleted = models.DateTimeField(default=timezone.now)

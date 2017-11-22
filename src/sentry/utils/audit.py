@@ -1,5 +1,5 @@
 from __future__ import absolute_import
-from sentry.models import ApiKey, AuditLogEntry
+from sentry.models import ApiKey, AuditLogEntry, AuditLogEntryEvent, DeletedOrganization
 
 
 def create_audit_entry(request, transaction_id=None, logger=None, **kwargs):
@@ -16,6 +16,19 @@ def create_audit_entry(request, transaction_id=None, logger=None, **kwargs):
     # otherwise, we want to still log to our actual logging
     if entry.event is not None:
         entry.save()
+
+    if entry.event == AuditLogEntryEvent.ORG_REMOVE:
+        delete_log = DeletedOrganization()
+        delete_log.name = entry.organization.name
+        delete_log.slug = entry.organization.slug
+        delete_log.date_created = entry.organization.date_added
+
+        delete_log.actor_label = entry.actor_label
+        delete_log.actor_id = entry.actor_id
+        delete_log.actor_key = entry.actor_key
+        delete_log.ip_address = entry.ip_address
+
+        delete_log.save()
 
     extra = {
         'ip_address': entry.ip_address,
