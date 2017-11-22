@@ -14,10 +14,11 @@ class DeletedProject(DeletedEntry):
     organization_name = models.CharField(max_length=64)
     organization_slug = models.SlugField(null=True)
 
-    # Not certain this is needed?
     team_id = BoundedBigIntegerField(null=True, blank=True)
     team_name = models.CharField(max_length=64)
     team_slug = models.SlugField(null=True)
+
+    platform = models.CharField(max_length=64, null=True)
 
     class Meta:
         app_label = 'sentry'
