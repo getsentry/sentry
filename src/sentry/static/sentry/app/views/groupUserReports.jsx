@@ -65,6 +65,7 @@ const GroupUserReports = React.createClass({
 
   render() {
     let {reportList} = this.state;
+    let {projectId, orgId, groupId} = this.props.params;
 
     if (this.state.loading) {
       return <LoadingIndicator />;
@@ -77,7 +78,15 @@ const GroupUserReports = React.createClass({
         <div className="row">
           <div className="col-md-9">
             {reportList.map((item, idx) => {
-              return <EventUserReport key={idx} report={item} />;
+              return (
+                <EventUserReport
+                  key={idx}
+                  report={item}
+                  projectId={projectId}
+                  orgId={orgId}
+                  issueId={groupId}
+                />
+              );
             })}
           </div>
         </div>

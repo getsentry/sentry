@@ -170,6 +170,7 @@ const ProjectUserReports = React.createClass({
 
   renderResults() {
     let {orgId, projectId} = this.props.params;
+
     let children = this.state.reportList.map((item, itemIdx) => {
       let issue = item.issue;
 
@@ -181,7 +182,12 @@ const ProjectUserReports = React.createClass({
           orgId={orgId}
           projectId={projectId}
         >
-          <EventUserReport report={item} />
+          <EventUserReport
+            report={item}
+            orgId={orgId}
+            projectId={projectId}
+            issueId={issue.id}
+          />
         </CompactIssue>
       );
     });

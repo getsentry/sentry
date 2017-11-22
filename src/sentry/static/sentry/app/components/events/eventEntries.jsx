@@ -62,12 +62,9 @@ const EventEntries = React.createClass({
   interfaces: INTERFACES,
 
   render() {
-    let group = this.props.group;
-    let evt = this.props.event;
-    let isShare = this.props.isShare;
-    let project = this.props.project;
+    let {group, isShare, project, event, orgId} = this.props;
 
-    let entries = evt.entries.map((entry, entryIdx) => {
+    let entries = event.entries.map((entry, entryIdx) => {
       try {
         let Component = this.interfaces[entry.type];
         if (!Component) {
@@ -81,7 +78,7 @@ const EventEntries = React.createClass({
           <Component
             key={'entry-' + entryIdx}
             group={group}
-            event={evt}
+            event={event}
             type={entry.type}
             data={entry.data}
             isShare={isShare}
@@ -92,7 +89,7 @@ const EventEntries = React.createClass({
         return (
           <EventDataSection
             group={group}
-            event={evt}
+            event={event}
             type={entry.type}
             title={entry.type}
           >
@@ -102,51 +99,58 @@ const EventEntries = React.createClass({
       }
     });
 
-    let hasContext = !utils.objectIsEmpty(evt.user) || !utils.objectIsEmpty(evt.contexts);
+    let hasContext =
+      !utils.objectIsEmpty(event.user) || !utils.objectIsEmpty(event.contexts);
 
     let hasContextSummary =
       hasContext &&
-      (evt.platform === 'cocoa' ||
-        evt.platform === 'native' ||
-        evt.platform === 'javascript' ||
-        evt.platform === 'java');
+      (event.platform === 'cocoa' ||
+        event.platform === 'native' ||
+        event.platform === 'javascript' ||
+        event.platform === 'java');
 
     return (
       <div className="entries">
-        {evt.userReport && <EventUserReport report={evt.userReport} />}
-        {!utils.objectIsEmpty(evt.errors) && <EventErrors group={group} event={evt} />}
-        {!utils.objectIsEmpty(evt.sdk) &&
-          evt.sdk.upstream.isNewer && (
+        {event.userReport && (
+          <EventUserReport
+            report={event.userReport}
+            orgId={orgId}
+            projectId={project.slug}
+            issueId={group.id}
+          />
+        )}
+        {!utils.objectIsEmpty(event.errors) && (
+          <EventErrors group={group} event={event} />
+        )}
+        {!utils.objectIsEmpty(event.sdk) &&
+          event.sdk.upstream.isNewer && (
             <div className="alert-block alert-info box">
               <span className="icon-exclamation" />
               {t(
                 'This event was reported with an old version of the %s SDK.',
-                evt.platform
+                event.platform
               )}
-              {evt.sdk.upstream.url && (
-                <a href={evt.sdk.upstream.url} className="btn btn-sm btn-default">
+              {event.sdk.upstream.url && (
+                <a href={event.sdk.upstream.url} className="btn btn-sm btn-default">
                   {t('Learn More')}
                 </a>
               )}
             </div>
           )}
-        {hasContextSummary && <EventContextSummary group={group} event={evt} />}
-        <EventTags
-          group={group}
-          event={evt}
-          orgId={this.props.orgId}
-          projectId={project.slug}
-        />
+        {hasContextSummary && <EventContextSummary group={group} event={event} />}
+        <EventTags group={group} event={event} orgId={orgId} projectId={project.slug} />
         {entries}
-        {hasContext && <EventContexts group={group} event={evt} />}
-        {!utils.objectIsEmpty(evt.context) && (
-          <EventExtraData group={group} event={evt} />
+        {hasContext && <EventContexts group={group} event={event} />}
+        {!utils.objectIsEmpty(event.context) && (
+          <EventExtraData group={group} event={event} />
         )}
-        {!utils.objectIsEmpty(evt.packages) && (
-          <EventPackageData group={group} event={evt} />
+        {!utils.objectIsEmpty(event.packages) && (
+          <EventPackageData group={group} event={event} />
         )}
-        {!utils.objectIsEmpty(evt.device) && <EventDevice group={group} event={evt} />}
-        {!utils.objectIsEmpty(evt.sdk) && <EventSdk group={group} event={evt} />}
+        {!utils.objectIsEmpty(event.device) && (
+          <EventDevice group={group} event={event} />
+        )}
+        {!utils.objectIsEmpty(event.sdk) && <EventSdk group={group} event={event} />}
       </div>
     );
   },
