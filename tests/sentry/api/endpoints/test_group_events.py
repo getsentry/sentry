@@ -60,6 +60,7 @@ class GroupEventsTest(APITestCase):
         tagstore.create_event_tags(
             project_id=group.project_id,
             group_id=group.id,
+            environment_id=self.environment.id,
             event_id=event_1.id,
             tags=[
                 (tagkey_1.id, tagvalue_1.id),
@@ -69,6 +70,7 @@ class GroupEventsTest(APITestCase):
         tagstore.create_event_tags(
             project_id=group.project_id,
             group_id=group.id,
+            environment_id=self.environment.id,
             event_id=event_2.id,
             tags=[
                 (tagkey_2.id, tagvalue_2.id),

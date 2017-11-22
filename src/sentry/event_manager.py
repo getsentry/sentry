@@ -756,7 +756,7 @@ class EventManager(object):
                 }
             )
 
-        safe_execute(Group.objects.add_tags, group, tags, _with_transaction=False)
+        safe_execute(Group.objects.add_tags, group, environment, tags, _with_transaction=False)
 
         if not raw:
             if not project.first_event:

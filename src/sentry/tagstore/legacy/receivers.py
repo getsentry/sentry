@@ -27,7 +27,9 @@ def record_project_tag_count(filters, created, **kwargs):
     if not project_id:
         project_id = filters['project'].id
 
-    tagstore.incr_tag_key_values_seen(project_id, filters['key'])
+    environment_id = filters.get('environment_id')
+
+    tagstore.incr_tag_key_values_seen(project_id, environment_id, filters['key'])
 
 
 @buffer_incr_complete.connect(sender=GroupTagValue, weak=False)
@@ -42,8 +44,9 @@ def record_group_tag_count(filters, created, extra, **kwargs):
         project_id = extra['project']
 
     group_id = filters['group_id']
+    environment_id = filters.get('environment_id')
 
-    tagstore.incr_group_tag_key_values_seen(project_id, group_id, filters['key'])
+    tagstore.incr_group_tag_key_values_seen(project_id, group_id, environment_id, filters['key'])
 
 
 post_save.connect(

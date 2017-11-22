@@ -101,7 +101,7 @@ class LegacyTagStorage(TagStorage):
         return GroupTagValue.objects.get_or_create(
             project_id=project_id, group_id=group_id, key=key, value=value, **kwargs)
 
-    def create_event_tags(self, project_id, group_id, event_id, tags):
+    def create_event_tags(self, project_id, group_id, environment_id, event_id, tags):
         try:
             # don't let a duplicate break the outer transaction
             with transaction.atomic():
@@ -147,7 +147,10 @@ class LegacyTagStorage(TagStorage):
             qs = qs.filter(status=status)
 
         if keys is not None:
-            qs = qs.filter(key__in=keys)
+            if isinstance(keys, six.string_types):
+                qs = qs.filter(key=keys)
+            else:
+                qs = qs.filter(key__in=keys)
 
         return list(qs)
 
@@ -241,20 +244,22 @@ class LegacyTagStorage(TagStorage):
 
         return list(qs)
 
-    def delete_tag_key(self, project_id, key):
-        from .tasks import delete_tag_key
+    def delete_tag_keys(self, project_id, keys, environment_id=None):
+        from .tasks import delete_tag_key as delete_tag_key_task
 
-        tagkey = self.get_tag_key(project_id, environment_id=None, key=key, status=None)
+        deleted = []
 
-        updated = TagKey.objects.filter(
-            id=tagkey.id,
-            status=TagKeyStatus.VISIBLE,
-        ).update(status=TagKeyStatus.PENDING_DELETION)
+        for tagkey in self.get_tag_keys(project_id, environment_id, keys, status=None):
+            updated = TagKey.objects.filter(
+                id=tagkey.id,
+                status=TagKeyStatus.VISIBLE,
+            ).update(status=TagKeyStatus.PENDING_DELETION)
 
-        if updated:
-            delete_tag_key.delay(object_id=tagkey.id)
+            if updated:
+                delete_tag_key_task.delay(object_id=tagkey.id)
+                deleted.append(tagkey)
 
-        return (updated, tagkey)
+        return deleted
 
     def delete_all_group_tag_keys(self, group_id):
         GroupTagKey.objects.filter(
@@ -266,7 +271,7 @@ class LegacyTagStorage(TagStorage):
             group_id=group_id,
         ).delete()
 
-    def incr_tag_key_values_seen(self, project_id, key, count=1):
+    def incr_tag_key_values_seen(self, project_id, environment_id, key, count=1):
         buffer.incr(TagKey, {
             'values_seen': count,
         }, {
@@ -274,7 +279,8 @@ class LegacyTagStorage(TagStorage):
             'key': key,
         })
 
-    def incr_tag_value_times_seen(self, project_id, key, value, extra=None, count=1):
+    def incr_tag_value_times_seen(self, project_id, environment_id,
+                                  key, value, extra=None, count=1):
         buffer.incr(TagValue, {
             'times_seen': count,
         }, {
@@ -283,7 +289,7 @@ class LegacyTagStorage(TagStorage):
             'value': value,
         }, extra)
 
-    def incr_group_tag_key_values_seen(self, project_id, group_id, key, count=1):
+    def incr_group_tag_key_values_seen(self, project_id, group_id, environment_id, key, count=1):
         buffer.incr(GroupTagKey, {
             'values_seen': count,
         }, {
@@ -292,7 +298,8 @@ class LegacyTagStorage(TagStorage):
             'key': key,
         })
 
-    def incr_group_tag_value_times_seen(self, group_id, key, value, extra=None, count=1):
+    def incr_group_tag_value_times_seen(
+            self, group_id, environment_id, key, value, extra=None, count=1):
         buffer.incr(GroupTagValue, {
             'times_seen': count,
         }, {
@@ -357,7 +364,7 @@ class LegacyTagStorage(TagStorage):
 
         return matches
 
-    def get_group_values_seen(self, group_ids, key):
+    def get_group_values_seen(self, group_ids, environment_id, key):
         if isinstance(group_ids, six.integer_types):
             qs = GroupTagKey.objects.filter(group_id=group_ids)
         else:
@@ -448,12 +455,6 @@ class LegacyTagStorage(TagStorage):
 
         return last_release.value
 
-    def update_project_for_group(self, group_id, old_project_id, new_project_id):
-        GroupTagValue.objects.filter(
-            project_id=old_project_id,
-            group_id=group_id,
-        ).update(project_id=new_project_id)
-
     def get_group_ids_for_users(self, project_ids, event_users, limit=100):
         return list(GroupTagValue.objects.filter(
             key='sentry:user',
@@ -523,7 +524,7 @@ class LegacyTagStorage(TagStorage):
                 ).count(),
             )
 
-    def get_tag_value_qs(self, project_id, key, query=None):
+    def get_tag_value_qs(self, project_id, environment_id, key, query=None):
         queryset = TagValue.objects.filter(
             project_id=project_id,
             key=key,
@@ -534,7 +535,7 @@ class LegacyTagStorage(TagStorage):
 
         return queryset
 
-    def get_group_tag_value_qs(self, group_id, key):
+    def get_group_tag_value_qs(self, group_id, environment_id, key):
         return GroupTagValue.objects.filter(
             group_id=group_id,
             key=key,

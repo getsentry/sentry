@@ -27,6 +27,7 @@ class DeleteGroupTest(TestCase):
             event_id=event.id,
             group_id=group.id,
             project_id=project.id,
+            environment_id=self.environment.id,
             tags=[
                 (1, 1),
             ],
