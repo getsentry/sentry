@@ -3,9 +3,10 @@ from __future__ import absolute_import
 from rest_framework.response import Response
 
 from sentry import tsdb
-from sentry.api.base import DocSection, StatsMixin
+from sentry.api.base import DocSection, EnvironmentMixin, StatsMixin
 from sentry.api.bases.organization import OrganizationEndpoint
-from sentry.models import Project, Team
+from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.models import Environment, Project, Team
 from sentry.utils.apidocs import attach_scenarios, scenario
 
 
@@ -14,7 +15,7 @@ def retrieve_event_counts_organization(runner):
     runner.request(method='GET', path='/organizations/%s/stats/' % runner.org.slug)
 
 
-class OrganizationStatsEndpoint(OrganizationEndpoint, StatsMixin):
+class OrganizationStatsEndpoint(OrganizationEndpoint, EnvironmentMixin, StatsMixin):
     doc_section = DocSection.ORGANIZATIONS
 
     @attach_scenarios([retrieve_event_counts_organization])
@@ -73,6 +74,7 @@ class OrganizationStatsEndpoint(OrganizationEndpoint, StatsMixin):
 
         stat_model = None
         stat = request.GET.get('stat', 'received')
+        query_kwargs = {}
         if stat == 'received':
             if group == 'project':
                 stat_model = tsdb.models.project_total_received
@@ -91,11 +93,19 @@ class OrganizationStatsEndpoint(OrganizationEndpoint, StatsMixin):
         elif stat == 'generated':
             if group == 'project':
                 stat_model = tsdb.models.project
+                try:
+                    query_kwargs['environment_id'] = self._get_environment_id_from_request(
+                        request,
+                        organization.id,
+                    )
+                except Environment.DoesNotExist:
+                    raise ResourceDoesNotExist
 
         if stat_model is None:
             raise ValueError('Invalid group: %s, stat: %s' % (group, stat))
 
-        data = tsdb.get_range(model=stat_model, keys=keys, **self._parse_args(request))
+        data = tsdb.get_range(model=stat_model, keys=keys, **
+                              self._parse_args(request, **query_kwargs))
 
         if group == 'organization':
             data = data[organization.id]
