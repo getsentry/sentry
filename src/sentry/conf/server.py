@@ -264,6 +264,10 @@ if django.VERSION < (1, 7):
 STATIC_ROOT = os.path.realpath(os.path.join(PROJECT_ROOT, 'static'))
 STATIC_URL = '/_static/{version}/'
 
+# various middleware will use this to identify resources which should not access
+# cookies
+ANONYMOUS_STATIC_PREFIXES = ('/_static/', '/avatar/')
+
 STATICFILES_FINDERS = (
     "django.contrib.staticfiles.finders.FileSystemFinder",
     "django.contrib.staticfiles.finders.AppDirectoriesFinder",
