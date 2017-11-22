@@ -18,7 +18,7 @@ class UserListTest(APITestCase):
         assert response.status_code == 403
 
     def test_simple(self):
-        self.login_as(user=self.user)
+        self.login_as(user=self.user, superuser=True)
         response = self.client.get(self.path)
         assert response.status_code == 200
         assert len(response.data) >= 1

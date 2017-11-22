@@ -1,7 +1,5 @@
 from __future__ import absolute_import
 
-from mock import Mock
-
 from sentry.api.bases.team import TeamPermission
 from sentry.models import ApiKey
 from sentry.testutils import TestCase
@@ -15,11 +13,9 @@ class TeamPermissionBase(TestCase):
 
     def has_object_perm(self, method, obj, auth=None, user=None, is_superuser=None):
         perm = TeamPermission()
-        request = Mock()
-        request.auth = auth
-        request.user = user
-        request.method = method
-        request.is_superuser = lambda: is_superuser if is_superuser is not None else user.is_superuser
+        request = self.make_request(user=user, auth=auth, method=method)
+        if is_superuser:
+            request.superuser.set_logged_in(request.user)
         return (
             perm.has_permission(request, None) and perm.has_object_permission(request, None, obj)
         )
@@ -32,7 +28,7 @@ class TeamPermissionTest(TeamPermissionBase):
 
     def test_get_superuser(self):
         user = self.create_user(is_superuser=True)
-        assert self.has_object_perm('GET', self.team, user=user)
+        assert self.has_object_perm('GET', self.team, user=user, is_superuser=True)
 
     def test_get_without_team_membership(self):
         user = self.create_user()

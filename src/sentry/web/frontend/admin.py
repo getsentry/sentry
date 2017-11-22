@@ -57,9 +57,6 @@ def configure_plugin(request, slug):
 @transaction.atomic
 @csrf_protect
 def create_new_user(request):
-    if not request.is_superuser():
-        return HttpResponseRedirect(auth.get_login_url())
-
     form = NewUserForm(
         request.POST or None, initial={
             'send_welcome_mail': True,
@@ -107,9 +104,6 @@ def create_new_user(request):
 @requires_admin
 @csrf_protect
 def edit_user(request, user_id):
-    if not request.is_superuser():
-        return HttpResponseRedirect(auth.get_login_url())
-
     try:
         user = User.objects.get(pk=user_id)
     except User.DoesNotExist:

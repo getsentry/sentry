@@ -44,7 +44,7 @@ class UserDetailsTest(APITestCase):
         user = self.create_user(email='a@example.com')
         superuser = self.create_user(email='b@example.com', is_superuser=True)
 
-        self.login_as(user=superuser)
+        self.login_as(user=superuser, superuser=True)
 
         url = reverse(
             'sentry-api-0-user-details', kwargs={
@@ -97,7 +97,7 @@ class UserUpdateTest(APITestCase):
         user = self.create_user(email='a@example.com')
         superuser = self.create_user(email='b@example.com', is_superuser=True)
 
-        self.login_as(user=superuser)
+        self.login_as(user=superuser, superuser=True)
 
         url = reverse(
             'sentry-api-0-user-details', kwargs={
