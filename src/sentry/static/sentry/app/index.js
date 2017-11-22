@@ -152,6 +152,7 @@ export default {
     Badge: require('./components/badge').default,
     Switch: require('./components/switch').default,
     NumberConfirm: require('./components/confirms/numberConfirm').default,
+    SetupWizard: require('./components/setupWizard').default,
     utils: {
       errorHandler: require('./utils/errorHandler').default,
       logging: require('./utils/logging'),
