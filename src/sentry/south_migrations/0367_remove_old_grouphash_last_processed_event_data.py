@@ -1,8 +1,11 @@
 # -*- coding: utf-8 -*-
+from __future__ import print_function
+from functools import partial
 from south.utils import datetime_utils as datetime
 from south.db import db
 from south.v2 import DataMigration
 from django.db import models
+from sentry.utils.iterators import chunked
 
 
 class Migration(DataMigration):
@@ -21,13 +24,21 @@ class Migration(DataMigration):
         db.start_transaction()
 
     def _forwards(self, orm):
-        "Write your forwards methods here."
-        # Note: Don't use "from appname.models import ModelName".
-        # Use orm.ModelName to refer to models in this application,
-        # and orm['appname.ModelName'] for models in other applications.
+        from sentry.utils import redis
+
+        cluster = redis.clusters.get('default')
+        for host_id, host_info in cluster.hosts.items():
+            print('Cleaning obsolete data from {!r}...'.format(host_info))
+            client = cluster.get_local_client(host_id)
+            key_iterator = client.scan_iter(match='last-processed-event:*')
+            affected = 0
+            for chunk in chunked(key_iterator, 100):
+                client.delete(*chunk)
+                affected += len(chunk)
+            print('Done cleaning {} obsolete entries from {!r}.'.format(affected, host_info))
 
     def backwards(self, orm):
-        "Write your backwards methods here."
+        pass
 
     models = {
         'sentry.activity': {
