@@ -17,7 +17,7 @@ from django.conf import settings
 
 from sentry.interfaces.base import Interface, InterfaceValidationError
 from sentry.interfaces.schemas import \
-    INTERFACE_SCHEMAS, is_valid_interface, validate_and_default_from_schema
+    INTERFACE_SCHEMAS, validate_and_default_from_schema
 from sentry.interfaces.stacktrace import Stacktrace, slim_frame_data
 from sentry.utils import json
 from sentry.utils.safe import trim
@@ -49,8 +49,8 @@ class SingleException(Interface):
 
     @classmethod
     def to_python(cls, data, slim_frames=True):
-        validate_and_default_from_schema(data, INTERFACE_SCHEMAS[cls.path])
-        if not is_valid_interface(data, cls.path):
+        is_valid, errors = validate_and_default_from_schema(data, INTERFACE_SCHEMAS[cls.path])
+        if not is_valid:
             raise InterfaceValidationError("Invalid exception")
 
         if not (data.get('type') or data.get('value')):

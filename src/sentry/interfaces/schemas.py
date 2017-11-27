@@ -116,7 +116,7 @@ FRAME_INTERFACE_SCHEMA = {
         'symbol_addr': {},
         'vars': {
             'anyOf': [
-                {'type': 'object'},
+                {'type': ['object', 'array']},
                 PAIRS,
             ]
         },
@@ -214,6 +214,7 @@ TAGS_DICT_SCHEMA = {
             'patternProperties': {
                 '^[a-zA-Z0-9_\.:-]{1,%d}$' % MAX_TAG_KEY_LENGTH: {
                     'type': 'string',
+                    'minLength': 1,
                     'maxLength': MAX_TAG_VALUE_LENGTH,
                     'pattern': '^[^\n]+\Z',  # \Z because $ matches before trailing newline
                 }
@@ -242,6 +243,7 @@ TAGS_TUPLES_SCHEMA = {
             {
                 'type': 'string',
                 'pattern': '^[a-zA-Z0-9_\.:-]+$',
+                'minLength': 1,
                 'maxLength': MAX_TAG_KEY_LENGTH,
                 'not': {
                     'pattern': '^(%s)$' % '|'.join(INTERNAL_TAG_KEYS),
@@ -251,7 +253,7 @@ TAGS_TUPLES_SCHEMA = {
             {
                 'type': 'string',
                 'pattern': '^[^\n]*\Z',  # \Z because $ matches before a trailing newline
-                # 'minLength': 1,
+                'minLength': 1,
                 'maxLength': MAX_TAG_VALUE_LENGTH,
             },
         ]
@@ -278,7 +280,11 @@ EVENT_SCHEMA = {
                 {'type': 'number'}
             ],
         },
-        'logger': {'type': 'string'},
+        'logger': {
+            'type': 'string',
+            'pattern': r'^[a-zA-Z0-9_\.:-]+$',
+            'default': '',
+        },
         'platform': {
             'type': 'string',
             'enum': list(VALID_PLATFORMS),
@@ -366,7 +372,7 @@ EVENT_SCHEMA = {
         'sentry.interfaces.Http': {},
 
         # Other reserved keys. (some are added in processing)
-        'project': {'type': 'number'},
+        'project': {'type': ['number', 'string']},
         'errors': {'type': 'array'},
         'checksum': {},
         'site': {},
@@ -427,7 +433,8 @@ def is_valid_interface(data, interface):
     ).is_valid(data)
 
 
-def validate_and_default_from_schema(data, schema, name=None, strip_nones=True):
+def validate_and_default_from_schema(
+        data, schema, name=None, strip_nones=True, raise_on_invalid=False):
     """
     Modify data to conform to schema.
 
@@ -436,43 +443,18 @@ def validate_and_default_from_schema(data, schema, name=None, strip_nones=True):
     and adding defaults for any keys that are required by (and
     have a default value in) the schema.
 
-    This functon does not guarantee that the resulting data will
-    validate against the schema. For example, if there were
-    required keys missing that had no default in the schema.
-
-    Returns a list of the validation errors encountered.
+    Returns whether the resulting modified data is valid against the schema and
+    a list of any validation errors encountered in processing.
     """
-
+    is_valid = True
+    needs_revalidation = False
     errors = []
 
+    # Strip Nones so we don't have to take null into account for all schemas.
     if strip_nones and isinstance(data, dict):
         for k in data.keys():
             if data[k] is None:
                 del data[k]
-
-    validator = jsonschema.Draft4Validator(
-        schema,
-        types={'array': (list, tuple)},
-        format_checker=jsonschema.FormatChecker(),
-    )
-    val_errors = validator.iter_errors(data)
-    keyed_errors = reversed([e for e in val_errors if len(e.path)])
-    # TODO raise any non-keyed errors? (eg disallowed keys)
-
-    # Values that need to be defaulted or deleted because they are not valid.
-    for key, group in groupby(keyed_errors, lambda e: e.path[0]):
-        ve = six.next(group)
-        errors.append({
-            'type': EventError.VALUE_TOO_LONG if ve.validator.startswith('max') else EventError.INVALID_DATA,
-            'name': name or key,
-            'value': data[key],
-        })
-
-        if 'default' in ve.schema:
-            default = ve.schema['default']
-            data[key] = default() if callable(default) else default
-        else:
-            del data[key]
 
     # Values that are missing entirely, but are required and should be defaulted
     if 'properties' in schema and 'required' in schema and isinstance(data, dict):
@@ -482,9 +464,30 @@ def validate_and_default_from_schema(data, schema, name=None, strip_nones=True):
                     default = schema['properties'][p]['default']
                     data[p] = default() if callable(default) else default
                 else:
-                    errors.append({
-                        'type': EventError.MISSING_ATTRIBUTE,
-                        'name': p,
-                    })
+                    # TODO raise as shortcut?
+                    errors.append({'type': EventError.MISSING_ATTRIBUTE, 'name': p})
 
-    return errors
+    validator = jsonschema.Draft4Validator(schema, types={'array': (list, tuple)})
+    validator_errors = list(validator.iter_errors(data))
+    keyed_errors = [e for e in reversed(validator_errors) if len(e.path)]
+    if len(validator_errors) > len(keyed_errors):
+        needs_revalidation = True
+
+    # Values that need to be defaulted or deleted because they are not valid.
+    for key, group in groupby(keyed_errors, lambda e: e.path[0]):
+        ve = six.next(group)
+        error_type = EventError.VALUE_TOO_LONG if ve.validator.startswith(
+            'max') else EventError.INVALID_DATA
+        errors.append({'type': error_type, 'name': name or key, 'value': data[key]})
+
+        if 'default' in ve.schema:
+            default = ve.schema['default']
+            data[key] = default() if callable(default) else default
+        else:
+            needs_revalidation = True
+            del data[key]
+
+    if needs_revalidation:
+        is_valid = validator.is_valid(data)
+
+    return is_valid, errors

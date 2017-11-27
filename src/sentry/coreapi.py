@@ -17,7 +17,6 @@ import zlib
 import re
 
 from collections import MutableMapping
-from datetime import datetime, timedelta
 from django.core.exceptions import SuspiciousOperation
 from django.utils.crypto import constant_time_compare
 from gzip import GzipFile
@@ -26,17 +25,7 @@ from time import time
 
 from sentry import filters
 from sentry.cache import default_cache
-from sentry.constants import (
-    CLIENT_RESERVED_ATTRS,
-    DEFAULT_LOG_LEVEL,
-    LOG_LEVELS_MAP,
-    VALID_PLATFORMS,
-    VERSION_LENGTH,
-)
-from sentry.interfaces.base import get_interface, InterfaceValidationError
 from sentry.interfaces.csp import Csp
-from sentry.interfaces.schemas import \
-    EVENT_SCHEMA, TAGS_TUPLES_SCHEMA, validate_and_default_from_schema
 from sentry.event_manager import EventManager
 from sentry.models import EventError, ProjectKey, upload_minidump, merge_minidump_event
 from sentry.tasks.store import preprocess_event, \
@@ -48,7 +37,6 @@ from sentry.utils.http import origin_from_request
 from sentry.utils.data_filters import is_valid_ip, \
     is_valid_release, is_valid_error_message, FilterStatKeys
 from sentry.utils.strings import decompress
-from sentry.utils.validators import is_float
 
 try:
     # Attempt to load ujson if it's installed.
@@ -94,10 +82,6 @@ class APIRateLimited(APIError):
 
     def __init__(self, retry_after=None):
         self.retry_after = retry_after
-
-
-class InvalidTimestamp(Exception):
-    pass
 
 
 class Auth(object):
@@ -311,52 +295,6 @@ class ClientApiHelper(object):
                            (type(e).__name__, e))
         return obj
 
-    def _process_data_timestamp(self, data, current_datetime=None):
-        value = data['timestamp']
-        if not value:
-            del data['timestamp']
-            return data
-        data['timestamp'] = self._process_timestamp(data['timestamp'], current_datetime)
-        return data
-
-    def _process_timestamp(self, value, current_datetime=None):
-        if is_float(value):
-            try:
-                value = datetime.fromtimestamp(float(value))
-            except Exception:
-                raise InvalidTimestamp(
-                    'Invalid value for timestamp: %r' % value)
-        elif not isinstance(value, datetime):
-            # all timestamps are in UTC, but the marker is optional
-            if value.endswith('Z'):
-                value = value[:-1]
-            if '.' in value:
-                # Python doesn't support long microsecond values
-                # https://github.com/getsentry/sentry/issues/1610
-                ts_bits = value.split('.', 1)
-                value = '%s.%s' % (ts_bits[0], ts_bits[1][:2])
-                fmt = '%Y-%m-%dT%H:%M:%S.%f'
-            else:
-                fmt = '%Y-%m-%dT%H:%M:%S'
-            try:
-                value = datetime.strptime(value, fmt)
-            except Exception:
-                raise InvalidTimestamp(
-                    'Invalid value for timestamp: %r' % value)
-
-        if current_datetime is None:
-            current_datetime = datetime.now()
-
-        if value > current_datetime + timedelta(minutes=1):
-            raise InvalidTimestamp(
-                'Invalid value for timestamp (in future): %r' % value)
-
-        if value < current_datetime - timedelta(days=30):
-            raise InvalidTimestamp(
-                'Invalid value for timestamp (too old): %r' % value)
-
-        return float(value.strftime('%s'))
-
     def parse_client_as_sdk(self, value):
         if not value:
             return
@@ -400,111 +338,6 @@ class ClientApiHelper(object):
         return (False, None)
 
     def validate_data(self, data):
-        errors = []
-
-        # Before validating with a schema, attempt to cast values to their desired types
-        # so that the schema doesn't have to take every type variation into account.
-        text = six.text_type
-        fingerprint_types = six.string_types + six.integer_types + (float, )
-
-        def to_values(v):
-            return {'values': v} if v and isinstance(v, (tuple, list)) else v
-
-        casts = {
-            'environment': lambda v: text(v) if v is not None else v,
-            'fingerprint': lambda v: map(text, v) if isinstance(v, list) and all(isinstance(f, fingerprint_types) for f in v) else v,
-            'release': lambda v: text(v) if v is not None else v,
-            'dist': lambda v: text(v).strip() if v is not None else v,
-            'time_spent': lambda v: int(v) if v is not None else v,
-            'tags': lambda v: [(text(v_k.replace(' ', '-')), text(v_v)) for (v_k, v_v) in dict(v).items()],
-            'timestamp': lambda v: self._process_timestamp(v),
-            'platform': lambda v: v if v in VALID_PLATFORMS else 'other',
-
-            # These can be sent as lists and need to be converted to {'values': list}
-            'exception': to_values,
-            'sentry.interfaces.Exception': to_values,
-            'breadcrumbs': to_values,
-            'sentry.interfaces.Breadcrumbs': to_values,
-            'threads': to_values,
-            'sentry.interfaces.Threads': to_values,
-        }
-
-        for c in casts:
-            if c in data:
-                try:
-                    data[c] = casts[c](data[c])
-                except Exception:
-                    errors.append({
-                        'type': EventError.INVALID_DATA,
-                        'name': c,
-                        'value': data[c],
-                    })
-                    del data[c]
-
-        # raw 'message' is coerced to the Message interface, as its used for pure index of
-        # searchable strings. If both a raw 'message' and a Message interface exist, try and
-        # add the former as the 'formatted' attribute of the latter.
-        # See GH-3248
-        msg_str = data.pop('message', None)
-        if msg_str:
-            msg_if = data.setdefault('sentry.interfaces.Message', {'message': msg_str})
-            if msg_if.get('message') != msg_str:
-                msg_if.setdefault('formatted', msg_str)
-
-        main_errors = validate_and_default_from_schema(data, EVENT_SCHEMA)
-        errors.extend(main_errors)
-
-        if 'tags' in data:
-            tag_errors = validate_and_default_from_schema(
-                data['tags'], TAGS_TUPLES_SCHEMA, name='tags')
-            errors.extend(tag_errors)
-
-        for k in list(iter(data)):
-            if k in CLIENT_RESERVED_ATTRS:
-                continue
-
-            value = data.pop(k)
-
-            if not value:
-                self.log.debug('Ignored empty interface value: %s', k)
-                continue
-
-            try:
-                interface = get_interface(k)
-            except ValueError:
-                self.log.debug('Ignored unknown attribute: %s', k)
-                errors.append({
-                    'type': EventError.INVALID_ATTRIBUTE,
-                    'name': k,
-                })
-                continue
-
-            try:
-                inst = interface.to_python(value)
-                data[inst.get_path()] = inst.to_json()
-            except Exception as e:
-                if isinstance(e, InterfaceValidationError):
-                    log = self.log.debug
-                else:
-                    log = self.log.error
-                log('Discarded invalid value for interface: %s (%r)',
-                    k, value, exc_info=True)
-                errors.append(
-                    {
-                        'type': EventError.INVALID_DATA,
-                        'name': k,
-                        'value': value,
-                    }
-                )
-
-        level = data.get('level') or DEFAULT_LOG_LEVEL
-        if isinstance(level, six.string_types) and not level.isdigit():
-            data['level'] = LOG_LEVELS_MAP.get(level, LOG_LEVELS_MAP[DEFAULT_LOG_LEVEL])
-
-        if data.get('dist') and not data.get('release'):
-            data['dist'] = None
-
-        data['errors'] = errors
         return data
 
     def ensure_does_not_have_ip(self, data):
@@ -686,19 +519,6 @@ class CspApiHelper(ClientApiHelper):
             },
         }
 
-        errors = []
-
-        main_errors = validate_and_default_from_schema(data, EVENT_SCHEMA)
-        errors.extend(main_errors)
-
-        if 'tags' in data:
-            tag_errors = validate_and_default_from_schema(
-                data['tags'], TAGS_TUPLES_SCHEMA, name='tags')
-            errors.extend(tag_errors)
-            if not data['tags']:
-                del data['tags']  # TODO could solve empty tags by validating tags first
-
-        data['errors'] = errors
         return data
 
 

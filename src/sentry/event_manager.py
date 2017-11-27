@@ -20,17 +20,20 @@ from django.utils.encoding import force_bytes, force_text
 from hashlib import md5
 from uuid import uuid4
 
-from sentry import eventtypes, features, buffer, tagstore
+from sentry import eventtypes, features, buffer
 # we need a bunch of unexposed functions from tsdb
 from sentry.tsdb import backend as tsdb
 from sentry.constants import (
-    CLIENT_RESERVED_ATTRS, LOG_LEVELS, DEFAULT_LOGGER_NAME, MAX_CULPRIT_LENGTH
+    CLIENT_RESERVED_ATTRS, LOG_LEVELS, LOG_LEVELS_MAP, DEFAULT_LOG_LEVEL,
+    DEFAULT_LOGGER_NAME, MAX_CULPRIT_LENGTH, VALID_PLATFORMS
 )
-from sentry.interfaces.base import get_interface
+from sentry.interfaces.base import get_interface, InterfaceValidationError
+from sentry.interfaces.schemas import \
+    EVENT_SCHEMA, TAGS_TUPLES_SCHEMA, validate_and_default_from_schema
 from sentry.models import (
-    Activity, Environment, Event, EventMapping, EventUser, Group, GroupHash, GroupRelease,
-    GroupResolution, GroupStatus, Project, Release, ReleaseEnvironment, ReleaseProject,
-    UserReport
+    Activity, Environment, Event, EventError, EventMapping, EventUser, Group,
+    GroupHash, GroupRelease, GroupResolution, GroupStatus, Project, Release,
+    ReleaseEnvironment, ReleaseProject, UserReport
 )
 from sentry.plugins import plugins
 from sentry.signals import first_event_received, regression_signal
@@ -41,7 +44,7 @@ from sentry.utils.cache import default_cache
 from sentry.utils.db import get_db_engine
 from sentry.utils.safe import safe_execute, trim, trim_dict
 from sentry.utils.strings import truncatechars
-from sentry.utils.validators import validate_ip
+from sentry.utils.validators import is_float, validate_ip
 from sentry.stacktraces import normalize_in_app
 
 
@@ -195,6 +198,54 @@ def plugin_is_regression(group, event):
     return True
 
 
+def process_data_timestamp(data, current_datetime=None):
+    value = data['timestamp']
+    if not value:
+        del data['timestamp']
+        return data
+    data['timestamp'] = process_timestamp(data['timestamp'], current_datetime)
+    return data
+
+
+def process_timestamp(value, current_datetime=None):
+    if is_float(value):
+        try:
+            value = datetime.fromtimestamp(float(value))
+        except Exception:
+            raise InvalidTimestamp(
+                'Invalid value for timestamp: %r' % value)
+    elif not isinstance(value, datetime):
+        # all timestamps are in UTC, but the marker is optional
+        if value.endswith('Z'):
+            value = value[:-1]
+        if '.' in value:
+            # Python doesn't support long microsecond values
+            # https://github.com/getsentry/sentry/issues/1610
+            ts_bits = value.split('.', 1)
+            value = '%s.%s' % (ts_bits[0], ts_bits[1][:2])
+            fmt = '%Y-%m-%dT%H:%M:%S.%f'
+        else:
+            fmt = '%Y-%m-%dT%H:%M:%S'
+        try:
+            value = datetime.strptime(value, fmt)
+        except Exception:
+            raise InvalidTimestamp(
+                'Invalid value for timestamp: %r' % value)
+
+    if current_datetime is None:
+        current_datetime = datetime.now()
+
+    if value > current_datetime + timedelta(minutes=1):
+        raise InvalidTimestamp(
+            'Invalid value for timestamp (in future): %r' % value)
+
+    if value < current_datetime - timedelta(days=30):
+        raise InvalidTimestamp(
+            'Invalid value for timestamp (too old): %r' % value)
+
+    return float(value.strftime('%s'))
+
+
 class HashDiscarded(Exception):
     pass
 
@@ -231,6 +282,10 @@ class ScoreClause(object):
         return math.log(times_seen) * 600 + float(last_seen.strftime('%s'))
 
 
+class InvalidTimestamp(Exception):
+    pass
+
+
 class EventManager(object):
     logger = logging.getLogger('sentry.events')
 
@@ -239,32 +294,107 @@ class EventManager(object):
         self.version = version
 
     def normalize(self):
-        # TODO(dcramer): store http.env.REMOTE_ADDR as user.ip
-        # First we pull out our top-level (non-data attr) kwargs
         data = self.data
+        errors = data.get('errors', [])
 
-        if not isinstance(data.get('level'), (six.string_types, int)):
-            data['level'] = logging.ERROR
-        elif data['level'] not in LOG_LEVELS:
-            data['level'] = logging.ERROR
+        # Before validating with a schema, attempt to cast values to their desired types
+        # so that the schema doesn't have to take every type variation into account.
+        text = six.text_type
+        fingerprint_types = six.string_types + six.integer_types + (float, )
 
-        if not data.get('logger') or not isinstance(data.get('logger'), six.string_types):
-            data['logger'] = DEFAULT_LOGGER_NAME
-        else:
-            logger = trim(data['logger'].strip(), 64)
-            if tagstore.is_valid_key(logger):
-                data['logger'] = logger
-            else:
-                data['logger'] = DEFAULT_LOGGER_NAME
+        def to_values(v):
+            return {'values': v} if v and isinstance(v, (tuple, list)) else v
 
-        if data.get('platform'):
-            data['platform'] = trim(data['platform'], 64)
+        casts = {
+            'environment': lambda v: text(v) if v is not None else v,
+            'fingerprint': lambda v: map(text, v) if isinstance(v, list) and all(isinstance(f, fingerprint_types) for f in v) else v,
+            'release': lambda v: text(v) if v is not None else v,
+            'dist': lambda v: text(v).strip() if v is not None else v,
+            'time_spent': lambda v: int(v) if v is not None else v,
+            'tags': lambda v: [(text(v_k.replace(' ', '-')), text(v_v)) for (v_k, v_v) in dict(v).items()],
+            'timestamp': lambda v: process_timestamp(v),
+            'platform': lambda v: v if v in VALID_PLATFORMS else 'other',
 
-        current_timestamp = timezone.now()
+            # These can be sent as lists and need to be converted to {'values': list}
+            'exception': to_values,
+            'sentry.interfaces.Exception': to_values,
+            'breadcrumbs': to_values,
+            'sentry.interfaces.Breadcrumbs': to_values,
+            'threads': to_values,
+            'sentry.interfaces.Threads': to_values,
+        }
+
+        for c in casts:
+            if c in data:
+                try:
+                    data[c] = casts[c](data[c])
+                except Exception:
+                    errors.append({'type': EventError.INVALID_DATA, 'name': c, 'value': data[c]})
+                    del data[c]
+
+        # raw 'message' is coerced to the Message interface, as its used for pure index of
+        # searchable strings. If both a raw 'message' and a Message interface exist, try and
+        # add the former as the 'formatted' attribute of the latter.
+        # See GH-3248
+        msg_str = data.pop('message', None)
+        if msg_str:
+            msg_if = data.setdefault('sentry.interfaces.Message', {'message': msg_str})
+            if msg_if.get('message') != msg_str:
+                msg_if.setdefault('formatted', msg_str)
+
+        # Validate main event body and tags against schema
+        is_valid, main_errors = validate_and_default_from_schema(data, EVENT_SCHEMA)
+        errors.extend(main_errors)
+
+        if 'tags' in data:
+            is_valid, tag_errors = validate_and_default_from_schema(
+                data['tags'], TAGS_TUPLES_SCHEMA, name='tags')
+            errors.extend(tag_errors)
+
+        # Validate interfaces
+        for k in list(iter(data)):
+            if k in CLIENT_RESERVED_ATTRS:
+                continue
+
+            value = data.pop(k)
+
+            if not value:
+                self.logger.debug('Ignored empty interface value: %s', k)
+                continue
+
+            try:
+                interface = get_interface(k)
+            except ValueError:
+                self.logger.debug('Ignored unknown attribute: %s', k)
+                errors.append({'type': EventError.INVALID_ATTRIBUTE, 'name': k})
+                continue
+
+            try:
+                inst = interface.to_python(value)
+                data[inst.get_path()] = inst.to_json()
+            except Exception as e:
+                log = self.logger.debug if isinstance(
+                    e, InterfaceValidationError) else self.logger.error
+                log('Discarded invalid value for interface: %s (%r)', k, value, exc_info=True)
+                errors.append({'type': EventError.INVALID_DATA, 'name': k, 'value': value})
+
+        level = data.get('level') or DEFAULT_LOG_LEVEL
+        if isinstance(level, six.string_types) and not level.isdigit():
+            data['level'] = LOG_LEVELS_MAP.get(level, LOG_LEVELS_MAP[DEFAULT_LOG_LEVEL])
+        # TODO (alex) handle integer string case
+        # TODO (alex) strip whitespace from tags after they have been validated?
+
+        if data.get('dist') and not data.get('release'):
+            data['dist'] = None
+
         timestamp = data.get('timestamp')
         if not timestamp:
-            timestamp = current_timestamp
+            timestamp = timezone.now()
 
+        # TODO (alex) can this all be replaced by utcnow?
+        # it looks like the only time that this would even be hit is when timestamp
+        # is not defined, as the earlier process_timestamp already converts existing
+        # timestamps to floats.
         if isinstance(timestamp, datetime):
             # We must convert date to local time so Django doesn't mess it up
             # based on TIME_ZONE
@@ -278,9 +408,6 @@ class EventManager(object):
         data['timestamp'] = timestamp
         data['received'] = float(timezone.now().strftime('%s'))
 
-        if not data.get('event_id'):
-            data['event_id'] = uuid4().hex
-
         data.setdefault('culprit', None)
         data.setdefault('transaction', None)
         data.setdefault('server_name', None)
@@ -291,96 +418,23 @@ class EventManager(object):
         data.setdefault('dist', None)
         data.setdefault('environment', None)
         data.setdefault('extra', {})
-        data.setdefault('errors', [])
+        data.setdefault('tags', [])
 
-        tags = data.get('tags')
-        if not tags:
-            tags = []
-        # full support for dict syntax
-        elif isinstance(tags, dict):
-            tags = list(tags.items())
-        # prevent [tag, tag, tag] (invalid) syntax
-        elif not all(len(t) == 2 for t in tags):
-            tags = []
-        else:
-            tags = list(tags)
-
-        data['tags'] = []
-        for key, value in tags:
-            key = six.text_type(key).strip()
-            value = six.text_type(value).strip()
-            if not (key and value):
-                continue
-
-            # XXX(dcramer): many legacy apps are using the environment tag
-            # rather than the key itself
-            if key == 'environment' and not data.get('environment'):
-                data['environment'] = value
-            else:
-                data['tags'].append((key, value))
-
-        if not isinstance(data['extra'], dict):
-            # throw it away
-            data['extra'] = {}
-
-        trim_dict(data['extra'], max_size=settings.SENTRY_MAX_EXTRA_VARIABLE_SIZE)
-
-        # TODO(dcramer): more of validate data needs stuffed into the manager
-        for key in list(iter(data)):
-            if key in CLIENT_RESERVED_ATTRS:
-                continue
-
-            value = data.pop(key)
-
-            try:
-                interface = get_interface(key)()
-            except ValueError:
-                continue
-
-            try:
-                inst = interface.to_python(value)
-                data[inst.get_path()] = inst.to_json()
-            except Exception:
-                # XXX: we should consider logging this.
-                pass
-
-        # TODO(dcramer): this logic is duplicated in ``validate_data`` from
-        # coreapi
-
-        # message is coerced to an interface, as its used for pure
-        # index of searchable strings
-        # See GH-3248
-        message = data.pop('message', None)
-        if message:
-            if 'sentry.interfaces.Message' not in data:
-                interface = get_interface('sentry.interfaces.Message')
-                try:
-                    inst = interface.to_python({
-                        'message': message,
-                    })
-                    data[inst.get_path()] = inst.to_json()
-                except Exception:
-                    pass
-            elif not data['sentry.interfaces.Message'].get('formatted'):
-                interface = get_interface('sentry.interfaces.Message')
-                try:
-                    inst = interface.to_python(
-                        dict(
-                            data['sentry.interfaces.Message'],
-                            formatted=message,
-                        )
-                    )
-                    data[inst.get_path()] = inst.to_json()
-                except Exception:
-                    pass
+        # Fix case where legacy apps pass 'environment' as a tag
+        # instead of a top level key.
+        # TODO (alex) save() just reinserts the environment into the tags
+        if not data.get('environment'):
+            tagsdict = dict(data['tags'])
+            if 'environment' in tagsdict:
+                data['environment'] = tagsdict['environment']
+                del tagsdict['environment']
+                data['tags'] = tagsdict.items()
 
         # the SDKs currently do not describe event types, and we must infer
         # them from available attributes
         data['type'] = eventtypes.infer(data).key
-
         data['version'] = self.version
 
-        # TODO(dcramer): find a better place for this logic
         exception = data.get('sentry.interfaces.Exception')
         stacktrace = data.get('sentry.interfaces.Stacktrace')
         if exception and len(exception['values']) == 1 and stacktrace:
@@ -393,17 +447,28 @@ class EventManager(object):
                     data['sentry.interfaces.Http'].get('env', {}).get('REMOTE_ADDR'),
                     required=False,
                 )
+                if ip_address:
+                    data.setdefault(
+                        'sentry.interfaces.User',
+                        {}).setdefault(
+                        'ip_address',
+                        ip_address)
             except ValueError:
-                ip_address = None
-            if ip_address:
-                data.setdefault('sentry.interfaces.User', {})
-                data['sentry.interfaces.User'].setdefault('ip_address', ip_address)
+                pass
+
+        # Trim values
+        logger = data.get('logger', DEFAULT_LOGGER_NAME)
+        data['logger'] = trim(logger.strip(), 64)
+
+        trim_dict(data['extra'], max_size=settings.SENTRY_MAX_EXTRA_VARIABLE_SIZE)
 
         if data['culprit']:
             data['culprit'] = trim(data['culprit'], MAX_CULPRIT_LENGTH)
 
         if data['transaction']:
             data['transaction'] = trim(data['transaction'], MAX_CULPRIT_LENGTH)
+
+        data['errors'] = errors
 
         return data
 

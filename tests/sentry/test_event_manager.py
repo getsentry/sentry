@@ -5,7 +5,7 @@ from __future__ import absolute_import, print_function
 import logging
 import pytest
 
-from datetime import timedelta
+from datetime import datetime, timedelta
 from django.conf import settings
 from django.utils import timezone
 from mock import patch
@@ -14,12 +14,13 @@ from time import time
 from sentry.app import tsdb
 from sentry.constants import MAX_CULPRIT_LENGTH, DEFAULT_LOGGER_NAME, VERSION_LENGTH
 from sentry.event_manager import (
-    HashDiscarded, EventManager, EventUser, get_hashes_for_event, get_hashes_from_fingerprint,
-    generate_culprit, md5_from_hash
+    HashDiscarded, EventManager, EventUser, InvalidTimestamp,
+    get_hashes_for_event, get_hashes_from_fingerprint, generate_culprit,
+    md5_from_hash, process_data_timestamp
 )
 from sentry.models import (
-    Activity, Environment, Event, Group, GroupHash, GroupRelease, GroupResolution, GroupStatus, GroupTombstone,
-    EventMapping, Release
+    Activity, Environment, Event, Group, GroupHash, GroupRelease, GroupResolution,
+    GroupStatus, GroupTombstone, EventMapping, Release
 )
 from sentry.testutils import TestCase, TransactionTestCase
 
@@ -965,6 +966,65 @@ class EventManagerTest(TransactionTestCase):
         with self.tasks():
             with self.assertRaises(HashDiscarded):
                 event = manager.save(1)
+
+
+class ProcessDataTimestampTest(TestCase):
+    def test_iso_timestamp(self):
+        d = datetime(2012, 1, 1, 10, 30, 45)
+        data = process_data_timestamp(
+            {
+                'timestamp': '2012-01-01T10:30:45'
+            }, current_datetime=d
+        )
+        self.assertTrue('timestamp' in data)
+        self.assertEquals(data['timestamp'], 1325413845.0)
+
+    def test_iso_timestamp_with_ms(self):
+        d = datetime(2012, 1, 1, 10, 30, 45, 434000)
+        data = process_data_timestamp(
+            {
+                'timestamp': '2012-01-01T10:30:45.434'
+            }, current_datetime=d
+        )
+        self.assertTrue('timestamp' in data)
+        self.assertEquals(data['timestamp'], 1325413845.0)
+
+    def test_timestamp_iso_timestamp_with_Z(self):
+        d = datetime(2012, 1, 1, 10, 30, 45)
+        data = process_data_timestamp(
+            {
+                'timestamp': '2012-01-01T10:30:45Z'
+            }, current_datetime=d
+        )
+        self.assertTrue('timestamp' in data)
+        self.assertEquals(data['timestamp'], 1325413845.0)
+
+    def test_invalid_timestamp(self):
+        self.assertRaises(
+            InvalidTimestamp, process_data_timestamp, {'timestamp': 'foo'}
+        )
+
+    def test_invalid_numeric_timestamp(self):
+        self.assertRaises(
+            InvalidTimestamp, process_data_timestamp,
+            {'timestamp': '100000000000000000000.0'}
+        )
+
+    def test_future_timestamp(self):
+        self.assertRaises(
+            InvalidTimestamp, process_data_timestamp,
+            {'timestamp': '2052-01-01T10:30:45Z'}
+        )
+
+    def test_long_microseconds_value(self):
+        d = datetime(2012, 1, 1, 10, 30, 45)
+        data = process_data_timestamp(
+            {
+                'timestamp': '2012-01-01T10:30:45.341324Z'
+            }, current_datetime=d
+        )
+        self.assertTrue('timestamp' in data)
+        self.assertEquals(data['timestamp'], 1325413845.0)
 
 
 class GetHashesFromEventTest(TestCase):
