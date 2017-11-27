@@ -4,7 +4,7 @@ from django.contrib.auth.models import AnonymousUser
 
 from sentry.models import (
     ApiKey, AuditLogEntryEvent,
-    DeletedOrganization, DeletedProject, DeletedTeam, DeletedUser,
+    DeletedOrganization, DeletedProject, DeletedTeam,
     Organization, User, Project, Team,
     OrganizationStatus, ProjectStatus, TeamStatus,
 
@@ -164,25 +164,6 @@ class DeletedEntryTest(APITestCase):
 
         assert Project.objects.get(id=project.id).status == ProjectStatus.PENDING_DELETION
         DeletedEntryTest.check_deleted_log(deleted_project, project)
-
-    def test_deleted_user(self):
-        user = self.create_user()
-        organization = self.create_organization(slug='slug123456789', owner=user)
-        user.save()
-        organization.save()
-
-        assert User.objects.filter(id=user.id).exists()
-        assert Organization.objects.filter(id=organization.id).exists()
-
-        path = '/api/0/users/%s/%s/' % (organization.slug, user.id)
-
-        self.login_as(user)
-        self.client.delete(path)
-
-        deleted_user = DeletedUser.objects.get(username=user.username)
-
-        assert User.objects.get(id=user.id).is_active is False
-        DeletedEntryTest.check_deleted_log(deleted_user, user)
 
     @staticmethod
     def check_deleted_log(deleted_log, original_object):
