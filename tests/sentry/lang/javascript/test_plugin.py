@@ -1078,3 +1078,173 @@ class JavascriptIntegrationTest(TestCase):
                 'type': 'js_invalid_content'
             }
         ]
+
+    @patch('sentry.lang.javascript.processor.fetch_file')
+    def test_foo(self, mock_fetch_file):
+        data = {
+            'message': 'hello',
+            'platform': 'node',
+            'sentry.interfaces.Exception': {
+                'values': [
+                    {
+                        'type': 'Error',
+                        'stacktrace': {
+                            'frames': [
+                                {
+                                    'abs_path': 'node_bootstrap.js',
+                                    'filename': 'node_bootstrap.js',
+                                    'lineno': 1,
+                                    'colno': 38,
+                                },
+                                {
+                                    'abs_path': 'timers.js',
+                                    'filename': 'timers.js',
+                                    'lineno': 1,
+                                    'colno': 39,
+                                },
+                                {
+                                    'abs_path': 'webpack:///internal',
+                                    'filename': 'internal',
+                                    'lineno': 1,
+                                    'colno': 43,
+                                },
+                                {
+                                    'abs_path': 'webpack:///~/some_dep/file.js',
+                                    'filename': 'file.js',
+                                    'lineno': 1,
+                                    'colno': 41,
+                                },
+                                {
+                                    'abs_path': 'webpack:///./node_modules/file.js',
+                                    'filename': 'file.js',
+                                    'lineno': 1,
+                                    'colno': 42,
+                                },
+                                {
+                                    'abs_path': 'app:///file.js',
+                                    'filename': 'file.js',
+                                    'lineno': 1,
+                                    'colno': 40,
+                                },
+                            ],
+                        },
+                    }
+                ],
+            }
+        }
+
+        mock_fetch_file.return_value.body = '\n'.join('hello world')
+        mock_fetch_file.return_value.encoding = None
+
+        resp = self._postWithHeader(data)
+        assert resp.status_code, 200
+
+        assert mock_fetch_file.call_count == 3
+
+        args, kwargs = mock_fetch_file.call_args_list[0]
+        assert args[0] == 'app:///file.js'
+        args, kwargs = mock_fetch_file.call_args_list[1]
+        assert args[0] == 'webpack:///~/some_dep/file.js'
+        args, kwargs = mock_fetch_file.call_args_list[2]
+        assert args[0] == 'webpack:///./node_modules/file.js'
+        args, kwargs = mock_fetch_file.call_args_list[3]
+        assert args[0] == 'webpack:///internal',
+
+        event = Event.objects.get()
+
+        exception = event.interfaces['sentry.interfaces.Exception']
+        frame_list = exception.values[0].stacktrace.frames
+
+        assert not frame_list[0].in_app
+        assert not frame_list[1].in_app
+        assert not frame_list[2].in_app
+        assert not frame_list[3].in_app
+        assert not frame_list[4].in_app
+        assert frame_list[5].in_app
+
+    @responses.activate
+    def test_bar(self):
+        responses.add(
+            responses.GET,
+            'http://example.com/node_app.min.js',
+            body=load_fixture('node_app.min.js'),
+            content_type='application/javascript; charset=utf-8'
+        )
+        responses.add(
+            responses.GET,
+            'http://example.com/node_app.min.js.map',
+            body=load_fixture('node_app.min.js.map'),
+            content_type='application/javascript; charset=utf-8'
+        )
+
+        data = {
+            'message': 'hello',
+            'platform': 'node',
+            'sentry.interfaces.Exception': {
+                'values': [
+                    {
+                        'type': 'Error',
+                        'stacktrace': {
+                            'frames': [
+                                {
+                                    'abs_path': 'node_bootstrap.js',
+                                    'filename': 'node_bootstrap.js',
+                                    'lineno': 1,
+                                    'colno': 38,
+                                },
+                                {
+                                    'abs_path': 'timers.js',
+                                    'filename': 'timers.js',
+                                    'lineno': 1,
+                                    'colno': 39,
+                                },
+                                {
+                                    'abs_path': 'webpack:///internal',
+                                    'filename': 'internal',
+                                    'lineno': 1,
+                                    'colno': 43,
+                                },
+                                {
+                                    'abs_path': 'webpack:///~/some_dep/file.js',
+                                    'filename': 'file.js',
+                                    'lineno': 1,
+                                    'colno': 41,
+                                },
+                                {
+                                    'abs_path': 'webpack:///./node_modules/file.js',
+                                    'filename': 'file.js',
+                                    'lineno': 1,
+                                    'colno': 42,
+                                },
+                                {
+                                    'abs_path': 'http://example.com/node_app.min.js',
+                                    'filename': 'node_app.min.js',
+                                    'lineno': 1,
+                                    'colno': 40,
+                                },
+                            ],
+                        },
+                    }
+                ],
+            }
+        }
+
+        resp = self._postWithHeader(data)
+        assert resp.status_code, 200
+
+        event = Event.objects.get()
+        exception = event.interfaces['sentry.interfaces.Exception']
+        frame_list = exception.values[0].stacktrace.frames
+        raw_frame_list = exception.values[0].raw_stacktrace.frames
+
+        assert not frame_list[0].in_app
+        assert not frame_list[1].in_app
+        assert not frame_list[2].in_app
+        assert not frame_list[3].in_app
+        assert not frame_list[4].in_app
+        assert frame_list[5].in_app
+
+        # Since we couldn't expand source for the 1st and 2nd frame, both
+        # its raw and original form should be identical
+        assert raw_frame_list[0] == frame_list[0]
+        assert raw_frame_list[1] == frame_list[1]
