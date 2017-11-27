@@ -37,6 +37,32 @@ CountMinScript = Script(
 )
 
 
+class SuppressionWrapper(object):
+    """\
+    Wraps a context manager and prevents any exceptions raised either during
+    the managed block or the exiting of the wrapped manager from propagating.
+
+    You probably shouldn't use this.
+    """
+
+    def __init__(self, wrapped):
+        self.wrapped = wrapped
+
+    def __enter__(self):
+        return self.wrapped.__enter__()
+
+    def __exit__(self, *args):
+        try:
+            # allow the wrapped manager to perform any cleanup tasks regardless
+            # of whether or not we are suppressing an exception raised within
+            # the managed block
+            self.wrapped.__exit__(*args)
+        except Exception:
+            pass
+
+        return True
+
+
 class RedisTSDB(BaseTSDB):
     """
     A time series storage backend for Redis.
@@ -111,7 +137,16 @@ class RedisTSDB(BaseTSDB):
         )
 
     def get_cluster(self, environment_id):
-        return self.cluster
+        """\
+        Returns a 2-tuple of the form ``(cluster, durable)``.
+
+        When a cluster is marked as "durable", any exception raised while
+        attempting to write data to the cluster is propagated. When the cluster
+        is *not* marked as "durable", exceptions raised while attempting to
+        write data to the cluster are *not* propagated. This flag does not have
+        an effect on read operations.
+        """
+        return self.cluster, True
 
     def get_cluster_groups(self, environment_ids):
         results = defaultdict(list)
@@ -189,8 +224,13 @@ class RedisTSDB(BaseTSDB):
         if timestamp is None:
             timestamp = timezone.now()
 
-        for cluster, environment_ids in self.get_cluster_groups(set([None, environment_id])):
-            with cluster.map() as client:
+        for (cluster, durable), environment_ids in self.get_cluster_groups(
+                set([None, environment_id])):
+            manager = cluster.map()
+            if not durable:
+                manager = SuppressionWrapper(manager)
+
+            with manager as client:
                 for rollup, max_values in six.iteritems(self.rollups):
                     for model, key in items:
                         for environment_id in environment_ids:
@@ -217,7 +257,8 @@ class RedisTSDB(BaseTSDB):
         series = map(to_datetime, series)
 
         results = []
-        with self.get_cluster(environment_id).map() as client:
+        cluster, _ = self.get_cluster(environment_id)
+        with cluster.map() as client:
             for key in keys:
                 for timestamp in series:
                     hash_key, hash_field = self.make_counter_key(
@@ -243,8 +284,12 @@ class RedisTSDB(BaseTSDB):
 
         rollups = self.get_active_series(timestamp=timestamp)
 
-        for cluster, environment_ids in self.get_cluster_groups(environment_ids):
-            with cluster.map() as client:
+        for (cluster, durable), environment_ids in self.get_cluster_groups(environment_ids):
+            manager = cluster.map()
+            if not durable:
+                manager = SuppressionWrapper(manager)
+
+            with manager as client:
                 data = {}
                 for rollup, series in rollups.items():
                     data[rollup] = {}
@@ -299,8 +344,12 @@ class RedisTSDB(BaseTSDB):
 
         rollups = self.get_active_series(start, end, timestamp)
 
-        for cluster, environment_ids in self.get_cluster_groups(environment_ids):
-            with cluster.map() as client:
+        for (cluster, durable), environment_ids in self.get_cluster_groups(environment_ids):
+            manager = cluster.map()
+            if not durable:
+                manager = SuppressionWrapper(manager)
+
+            with manager as client:
                 for rollup, series in rollups.items():
                     for timestamp in series:
                         for model in models:
@@ -335,8 +384,13 @@ class RedisTSDB(BaseTSDB):
 
         ts = int(to_timestamp(timestamp))  # ``timestamp`` is not actually a timestamp :(
 
-        for cluster, environment_ids in self.get_cluster_groups(set([None, environment_id])):
-            with cluster.fanout() as client:
+        for (cluster, durable), environment_ids in self.get_cluster_groups(
+                set([None, environment_id])):
+            manager = cluster.fanout()
+            if not durable:
+                manager = SuppressionWrapper(manager)
+
+            with manager as client:
                 for model, key, values in items:
                     c = client.target_key(key)
                     for rollup, max_values in six.iteritems(self.rollups):
@@ -368,7 +422,8 @@ class RedisTSDB(BaseTSDB):
         rollup, series = self.get_optimal_rollup_series(start, end, rollup)
 
         responses = {}
-        with self.get_cluster(environment_id).fanout() as client:
+        cluster, _ = self.get_cluster(environment_id)
+        with cluster.fanout() as client:
             for key in keys:
                 c = client.target_key(key)
                 r = responses[key] = []
@@ -400,7 +455,8 @@ class RedisTSDB(BaseTSDB):
         rollup, series = self.get_optimal_rollup_series(start, end, rollup)
 
         responses = {}
-        with self.get_cluster(environment_id).fanout() as client:
+        cluster, _ = self.get_cluster(environment_id)
+        with cluster.fanout() as client:
             for key in keys:
                 # XXX: The current versions of the Redis driver don't implement
                 # ``PFCOUNT`` correctly (although this is fixed in the Git
@@ -437,7 +493,7 @@ class RedisTSDB(BaseTSDB):
             return [self.make_key(model, rollup, timestamp, key, environment_id)
                     for timestamp in series]
 
-        cluster = self.get_cluster(environment_id)
+        cluster, _ = self.get_cluster(environment_id)
         router = cluster.get_router()
 
         def map_key_to_host(hosts, key):
@@ -509,7 +565,9 @@ class RedisTSDB(BaseTSDB):
 
         rollups = self.get_active_series(timestamp=timestamp)
 
-        for cluster, environment_ids in self.get_cluster_groups(environment_ids):
+        for (cluster, durable), environment_ids in self.get_cluster_groups(environment_ids):
+            wrapper = SuppressionWrapper if not durable else lambda value: value
+
             temporary_id = uuid.uuid1().hex
 
             def make_temporary_key(key):
@@ -519,7 +577,7 @@ class RedisTSDB(BaseTSDB):
             for rollup, series in rollups.items():
                 data[rollup] = {timestamp: {e: [] for e in environment_ids} for timestamp in series}
 
-            with cluster.fanout() as client:
+            with wrapper(cluster.fanout()) as client:
                 for source in sources:
                     c = client.target_key(source)
                     for rollup, series in data.items():
@@ -535,7 +593,7 @@ class RedisTSDB(BaseTSDB):
                                 results[environment_id].append(c.get(key))
                                 c.delete(key)
 
-            with cluster.fanout() as client:
+            with wrapper(cluster.fanout()) as client:
                 c = client.target_key(destination)
 
                 temporary_key_sequence = itertools.count()
@@ -580,8 +638,12 @@ class RedisTSDB(BaseTSDB):
 
         rollups = self.get_active_series(start, end, timestamp)
 
-        for cluster, environment_ids in self.get_cluster_groups(environment_ids):
-            with cluster.fanout() as client:
+        for (cluster, durable), environment_ids in self.get_cluster_groups(environment_ids):
+            manager = cluster.fanout()
+            if not durable:
+                manager = SuppressionWrapper(manager)
+
+            with manager as client:
                 for rollup, series in rollups.items():
                     for timestamp in series:
                         for model in models:
@@ -616,7 +678,8 @@ class RedisTSDB(BaseTSDB):
 
         ts = int(to_timestamp(timestamp))  # ``timestamp`` is not actually a timestamp :(
 
-        for cluster, environment_ids in self.get_cluster_groups(set([None, environment_id])):
+        for (cluster, durable), environment_ids in self.get_cluster_groups(
+                set([None, environment_id])):
             commands = {}
 
             for model, request in requests:
@@ -647,7 +710,11 @@ class RedisTSDB(BaseTSDB):
                     for k, t in expirations.items():
                         cmds.append(('EXPIREAT', k, t))
 
-            cluster.execute_commands(commands)
+            try:
+                cluster.execute_commands(commands)
+            except Exception:
+                if durable:
+                    raise
 
     def get_most_frequent(self, model, keys, start, end=None,
                           rollup=None, limit=None, environment_id=None):
@@ -676,7 +743,8 @@ class RedisTSDB(BaseTSDB):
             commands[key] = [(CountMinScript, ks, arguments)]
 
         results = {}
-        for key, responses in self.get_cluster(environment_id).execute_commands(commands).items():
+        cluster, _ = self.get_cluster(environment_id)
+        for key, responses in cluster.execute_commands(commands).items():
             results[key] = [(member, float(score)) for member, score in responses[0].value]
 
         return results
@@ -708,7 +776,8 @@ class RedisTSDB(BaseTSDB):
             return {item: float(score) for item, score in response.value}
 
         results = {}
-        for key, responses in self.get_cluster(environment_id).execute_commands(commands).items():
+        cluster, _ = self.get_cluster(environment_id)
+        for key, responses in cluster.execute_commands(commands).items():
             results[key] = zip(series, map(unpack_response, responses))
 
         return results
@@ -746,7 +815,8 @@ class RedisTSDB(BaseTSDB):
 
         results = {}
 
-        for key, responses in self.get_cluster(environment_id).execute_commands(commands).items():
+        cluster, _ = self.get_cluster(environment_id)
+        for key, responses in cluster.execute_commands(commands).items():
             members = items[key]
 
             chunk = results[key] = []
@@ -792,7 +862,7 @@ class RedisTSDB(BaseTSDB):
             )
             rollups.append((rollup, map(to_datetime, series), ))
 
-        for cluster, environment_ids in self.get_cluster_groups(environment_ids):
+        for (cluster, durable), environment_ids in self.get_cluster_groups(environment_ids):
             exports = defaultdict(list)
 
             for source in sources:
@@ -817,9 +887,17 @@ class RedisTSDB(BaseTSDB):
                             ]
                         )
 
+            try:
+                responses = cluster.execute_commands(exports)
+            except Exception:
+                if durable:
+                    raise
+                else:
+                    continue
+
             imports = []
 
-            for source, results in cluster.execute_commands(exports).items():
+            for source, results in responses.items():
                 results = iter(results)
                 for rollup, series in rollups:
                     for timestamp in series:
@@ -839,9 +917,13 @@ class RedisTSDB(BaseTSDB):
                             )
                         next(results)  # pop off the result of DEL
 
-            cluster.execute_commands({
-                destination: imports,
-            })
+            try:
+                cluster.execute_commands({
+                    destination: imports,
+                })
+            except Exception:
+                if durable:
+                    raise
 
     def delete_frequencies(self, models, keys, start=None, end=None,
                            timestamp=None, environment_ids=None):
@@ -853,8 +935,12 @@ class RedisTSDB(BaseTSDB):
 
         rollups = self.get_active_series(start, end, timestamp)
 
-        for cluster, environment_ids in self.get_cluster_groups(environment_ids):
-            with cluster.fanout() as client:
+        for (cluster, durable), environment_ids in self.get_cluster_groups(environment_ids):
+            manager = cluster.fanout()
+            if not durable:
+                manager = SuppressionWrapper(manager)
+
+            with manager as client:
                 for rollup, series in rollups.items():
                     for timestamp in series:
                         for model in models:
