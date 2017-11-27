@@ -5,7 +5,7 @@ from mock import patch
 
 from sentry import tagstore
 from sentry.tasks.merge import merge_group, rehash_group_events
-from sentry.models import Event, Group, GroupMeta, GroupRedirect
+from sentry.models import Event, Group, GroupMeta, GroupRedirect, UserReport
 from sentry.similarity import _make_index_backend
 from sentry.testutils import TestCase
 from sentry.utils import redis
@@ -181,6 +181,21 @@ class MergeGroupTest(TestCase):
         assert not GroupMeta.objects.get_value(group1, 'other:tid')
         assert GroupMeta.objects.get_value(group2, 'github:tid') == '134'
         assert GroupMeta.objects.get_value(group2, 'other:tid') == 'abc'
+
+    def test_user_report_merge(self):
+        project1 = self.create_project()
+        group1 = self.create_group(project1)
+        event1 = self.create_event('a' * 32, group=group1, data={'foo': 'bar'})
+        project2 = self.create_project()
+        group2 = self.create_group(project2)
+        ur = UserReport.objects.create(project=project1, group=group1, event_id=event1.event_id)
+
+        with self.tasks():
+            merge_group(group1.id, group2.id)
+
+        assert not Group.objects.filter(id=group1.id).exists()
+
+        assert UserReport.objects.get(id=ur.id).group_id == group2.id
 
 
 class RehashGroupEventsTest(TestCase):
