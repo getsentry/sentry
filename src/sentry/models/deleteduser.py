@@ -9,7 +9,6 @@ from sentry.models.deletedentry import DeletedEntry
 
 
 class DeletedUser(DeletedEntry):
-    # In User model this is the convention. Not sure what the library does
     username = models.CharField(_('username'), max_length=128, unique=True)
     name = models.CharField(_('name'), max_length=200, blank=True)
     email = models.EmailField(_('email address'), blank=True)
@@ -34,4 +33,4 @@ class DeletedUser(DeletedEntry):
         app_label = 'sentry'
         db_table = 'sentry_deleteduser'
 
-    __repr__ = sane_repr('date_deleted', 'team_id', 'name', 'reason')
+    __repr__ = sane_repr('date_deleted', 'username', 'reason')

@@ -6,10 +6,6 @@ from sentry.db.models import (
     Model, BoundedBigIntegerField
 )
 
-# Should we use python logger as well?
-# import logging
-# audit_logger = logging.getLogger('sentry.audit.deleted')
-
 
 class DeletedEntry(Model):
     __core__ = False
@@ -24,7 +20,7 @@ class DeletedEntry(Model):
 
     ip_address = models.GenericIPAddressField(null=True, unpack_ipv4=True)
     date_deleted = models.DateTimeField(default=timezone.now)
-    # Would knowing when it was created be useful?
+
     date_created = models.DateTimeField()
 
     reason = models.TextField(blank=True, null=True)

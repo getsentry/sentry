@@ -18,4 +18,4 @@ class DeletedTeam(DeletedEntry):
         app_label = 'sentry'
         db_table = 'sentry_deletedteam'
 
-    __repr__ = sane_repr('date_deleted', 'organization_id', 'reason')
+    __repr__ = sane_repr('date_deleted', 'slug', 'reason')
