@@ -168,8 +168,12 @@ lint-js:
 
 scan-python:
 	@echo "--> Running Python vulnerability scanner"
-	pip install --upgrade safety
-	safety check --full-report
+	python -m pip install safety
+	safety check --full-report \
+		--ignore=25804 \
+		--ignore=25715 \
+		--ignore=25725 \
+		--ignore=33073
 	@echo ""
 
 coverage: develop
