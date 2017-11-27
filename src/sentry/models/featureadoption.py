@@ -50,7 +50,7 @@ manager.add(
 )
 manager.add(43, "user_tracking", "User Tracking", "code", prerequisite=["first_event"])
 manager.add(44, "custom_tags", "Custom Tags", "code", prerequisite=["first_event"])
-manager.add(45, "source_maps", "Source Maps", "code", prerequisite=["first_event", "javascript"])
+manager.add(45, "source_maps", "Source Maps", "code", prerequisite=["first_event", ("javascript", "node")])
 manager.add(46, "user_feedback", "User Feedback", "code", prerequisite=["user_tracking"])
 # manager.add(47, "api", "API", "code", prerequisite=["first_event"])  #
 # Challenging to determine what organization (i.e. api/0/organizations/)

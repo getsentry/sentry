@@ -9,7 +9,7 @@ from __future__ import absolute_import
 
 
 def has_sourcemap(event):
-    if event.platform != 'javascript':
+    if event.platform not in ('javascript', 'node'):
         return False
     data = event.data
 
