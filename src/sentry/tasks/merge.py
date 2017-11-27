@@ -204,12 +204,38 @@ def rehash_group_events(group_id, transaction_id=None, **kwargs):
     delete_group.delay(group.id)
 
 
+def _get_event_environment(event, project, cache):
+    from sentry.models import Environment
+
+    environment_name = event.get_tag('environment')
+
+    if environment_name not in cache:
+        try:
+            environment = Environment.get_for_organization_id(
+                project.organization_id, environment_name)
+        except Environment.DoesNotExist:
+            logger.warn(
+                'event.environment.does_not_exist',
+                extra={
+                    'project_id': project.id,
+                    'environment_name': environment_name,
+                }
+            )
+            environment = Environment.get_or_create(project, environment_name)
+
+        cache[environment_name] = environment
+
+    return cache[environment_name]
+
+
 def _rehash_group_events(group, limit=100):
     from sentry.event_manager import (
         EventManager, get_hashes_from_fingerprint, generate_culprit, md5_from_hash
     )
     from sentry.models import Event, Group
 
+    environment_cache = {}
+    project = group.project
     event_list = list(Event.objects.filter(group_id=group.id)[:limit])
     Event.objects.bind_nodes(event_list, 'data')
 
@@ -241,7 +267,11 @@ def _rehash_group_events(group, limit=100):
             )
             event.update(group_id=new_group.id)
             if event.data.get('tags'):
-                Group.objects.add_tags(new_group, event.data['tags'])
+                Group.objects.add_tags(
+                    new_group,
+                    _get_event_environment(event, project, environment_cache),
+                    event.data['tags'])
+
     return bool(event_list)
 
 

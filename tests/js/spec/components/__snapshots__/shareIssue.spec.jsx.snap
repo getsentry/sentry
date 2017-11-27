@@ -1,7 +1,8 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`ShareIssue renders when busy 1`] = `
-<DropdownReact
+<DropdownLink
+  alwaysRenderMenu={true}
   anchorRight={false}
   caret={true}
   className="share-issue btn-sm btn btn-default"
@@ -52,11 +53,12 @@ exports[`ShareIssue renders when busy 1`] = `
       />
     </SpreadLayout>
   </li>
-</DropdownReact>
+</DropdownLink>
 `;
 
 exports[`ShareIssue renders when not shared 1`] = `
-<DropdownReact
+<DropdownLink
+  alwaysRenderMenu={true}
   anchorRight={false}
   caret={true}
   className="share-issue btn-sm btn btn-default"
@@ -110,11 +112,12 @@ exports[`ShareIssue renders when not shared 1`] = `
       />
     </SpreadLayout>
   </li>
-</DropdownReact>
+</DropdownLink>
 `;
 
 exports[`ShareIssue renders when not shared 2`] = `
-<DropdownReact
+<DropdownLink
+  alwaysRenderMenu={true}
   anchorRight={false}
   caret={true}
   className="share-issue btn-sm btn btn-default"
@@ -176,5 +179,5 @@ exports[`ShareIssue renders when not shared 2`] = `
       shareUrl="http://sentry.io/share/test/"
     />
   </li>
-</DropdownReact>
+</DropdownLink>
 `;

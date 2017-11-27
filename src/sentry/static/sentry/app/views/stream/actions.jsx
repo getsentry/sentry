@@ -170,7 +170,11 @@ const IgnoreActions = React.createClass({
           >
             <MenuItem header={true}>Ignore Until</MenuItem>
             <li className="dropdown-submenu">
-              <DropdownLink title="This occurs again after .." caret={false}>
+              <DropdownLink
+                title="This occurs again after .."
+                caret={false}
+                isNestedDropdown={true}
+              >
                 {this.getIgnoreDurations().map(duration => {
                   return (
                     <MenuItem noAnchor={true} key={duration}>
@@ -192,13 +196,18 @@ const IgnoreActions = React.createClass({
               </DropdownLink>
             </li>
             <li className="dropdown-submenu">
-              <DropdownLink title="This occurs again .." caret={false}>
+              <DropdownLink
+                title="This occurs again .."
+                caret={false}
+                isNestedDropdown={true}
+              >
                 {this.getIgnoreCounts().map(count => {
                   return (
                     <li className="dropdown-submenu" key={count}>
                       <DropdownLink
                         title={t('%s times', count.toLocaleString())}
                         caret={false}
+                        isNestedDropdown={true}
                       >
                         <MenuItem noAnchor={true}>
                           <ActionLink
@@ -236,13 +245,18 @@ const IgnoreActions = React.createClass({
               </DropdownLink>
             </li>
             <li className="dropdown-submenu">
-              <DropdownLink title="This affects an additional .." caret={false}>
+              <DropdownLink
+                title="This affects an additional .."
+                caret={false}
+                isNestedDropdown={true}
+              >
                 {this.getIgnoreCounts().map(count => {
                   return (
                     <li className="dropdown-submenu" key={count}>
                       <DropdownLink
                         title={t('%s users', count.toLocaleString())}
                         caret={false}
+                        isNestedDropdown={true}
                       >
                         <MenuItem noAnchor={true}>
                           <ActionLink
@@ -645,6 +659,7 @@ const StreamActions = React.createClass({
                 caret={false}
                 className="btn btn-sm btn-default hidden-xs action-more"
                 title={<span className="icon-ellipsis" />}
+                alwaysRenderMenu
               >
                 <MenuItem noAnchor={true}>
                   <ActionLink

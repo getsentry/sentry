@@ -1,5 +1,3 @@
-CPUS ?= $(shell sysctl -n hw.ncpu 2> /dev/null || echo 1)
-MAKEFLAGS += --jobs=$(CPUS)
 NPM_ROOT = ./node_modules
 STATIC_DIR = src/sentry/static/sentry
 
@@ -163,12 +161,12 @@ lint: lint-python lint-js
 
 lint-python:
 	@echo "--> Linting python"
-	bin/lint --python
+	bin/lint --python --parseable | tee flake8.pycodestyle.log
 	@echo ""
 
 lint-js:
 	@echo "--> Linting javascript"
-	bin/lint --js
+	bin/lint --js --parseable | tee eslint.codestyle.xml
 	@echo ""
 
 coverage: develop

@@ -229,6 +229,7 @@ const SavedSearchSelector = React.createClass({
               <QueryCount count={queryCount} max={queryMaxCount} />
             </span>
           }
+          alwaysRenderMenu
         >
           {children.length ? (
             children

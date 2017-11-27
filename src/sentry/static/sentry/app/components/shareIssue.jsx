@@ -9,7 +9,7 @@ import AutoSelectText from './autoSelectText';
 import Button from './buttons/button';
 import Clipboard from './clipboard';
 import Confirm from './confirm';
-import DropdownReact from './dropdownReact';
+import DropdownLink from './dropdownLink';
 import FlowLayout from './flowLayout';
 import IconCopy from '../icons/icon-copy';
 import IconRefresh from '../icons/icon-refresh';
@@ -195,7 +195,7 @@ class ShareIssue extends React.Component {
 
     let shareTitle = 'Share';
 
-    // Needs to wrap in an inline block for DropdownReact,
+    // Needs to wrap in an inline block for DropdownLink,
     // or else dropdown icon gets wrapped?
     const title = (
       <div style={{marginRight: 4}}>
@@ -207,12 +207,13 @@ class ShareIssue extends React.Component {
     );
 
     return (
-      <DropdownReact
+      <DropdownLink
         className={cx}
         shouldIgnoreClickOutside={() => this.hasConfirmModal}
         title={title}
         onOpen={this.handleOpen}
         keepMenuOpen
+        alwaysRenderMenu
       >
         <li
           style={{
@@ -241,7 +242,7 @@ class ShareIssue extends React.Component {
               />
             )}
         </li>
-      </DropdownReact>
+      </DropdownLink>
     );
   }
 }

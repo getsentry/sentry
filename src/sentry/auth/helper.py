@@ -13,6 +13,7 @@ from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
 from sentry.app import locks
+from sentry.auth.provider import MigratingIdentityId
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.models import (
     AuditLogEntry, AuditLogEntryEvent, AuthIdentity, AuthProvider, Organization, OrganizationMember,
@@ -646,10 +647,12 @@ class AuthHelper(object):
         their account.
         """
         auth_provider = self.auth_provider
+        user_id = identity['id']
+
         lock = locks.get(
             'sso:auth:{}:{}'.format(
                 auth_provider.id,
-                md5_text(identity['id']).hexdigest(),
+                md5_text(user_id).hexdigest(),
             ),
             duration=5,
         )
@@ -657,9 +660,23 @@ class AuthHelper(object):
             try:
                 auth_identity = AuthIdentity.objects.select_related('user').get(
                     auth_provider=auth_provider,
-                    ident=identity['id'],
+                    ident=user_id,
                 )
             except AuthIdentity.DoesNotExist:
+                auth_identity = None
+
+            # Handle migration of identity keys
+            if not auth_identity and isinstance(user_id, MigratingIdentityId):
+                try:
+                    auth_identity = AuthIdentity.objects.select_related('user').get(
+                        auth_provider=auth_provider,
+                        ident=user_id.legacy_id,
+                    )
+                    auth_identity.update(ident=user_id.id)
+                except AuthIdentity.DoesNotExist:
+                    auth_identity = None
+
+            if not auth_identity:
                 return self._handle_unknown_identity(identity)
 
             # If the User attached to this AuthIdentity is not active,

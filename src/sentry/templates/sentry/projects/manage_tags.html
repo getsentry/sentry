@@ -54,6 +54,9 @@
     $.ajax({
       url: '/api/0/projects/{{ organization.slug }}/{{ project.slug }}/tags/' + keyName + '/',
       method: 'DELETE',
+      success: function () {
+        location.reload();
+      }
     });
     $('.tag-list tr').each(function(_, el){
       var $el = $(el);

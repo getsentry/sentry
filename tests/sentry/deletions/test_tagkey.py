@@ -34,6 +34,7 @@ class DeleteTagKeyTest(TestCase):
             group_id=group.id,
             project_id=project.id,
             event_id=1,
+            environment_id=self.environment.id,
             tags=[
                 (tk.id, 1),
             ]
@@ -53,6 +54,7 @@ class DeleteTagKeyTest(TestCase):
         tagstore.create_event_tags(
             group_id=group2.id,
             project_id=project.id,
+            environment_id=self.environment.id,
             event_id=1,
             tags=[
                 (tk2.id, 1),
