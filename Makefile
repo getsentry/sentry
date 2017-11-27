@@ -166,6 +166,12 @@ lint-js:
 	bash -eo pipefail -c "bin/lint --js --parseable | tee eslint.checkstyle.xml"
 	@echo ""
 
+scan-python:
+	@echo "--> Running Python vulnerability scanner"
+	pip install --upgrade safety
+	safety check --full-report
+	@echo ""
+
 coverage: develop
 	$(MAKE) test-python
 	coverage html
@@ -178,7 +184,7 @@ extract-api-docs:
 	cd api-docs; python generator.py
 
 
-.PHONY: develop dev-postgres dev-docs setup-git build clean locale update-transifex update-submodules test testloop test-cli test-js test-styleguide test-python test-acceptance lint lint-python lint-js coverage publish
+.PHONY: develop dev-postgres dev-docs setup-git build clean locale update-transifex update-submodules test testloop test-cli test-js test-styleguide test-python test-acceptance lint lint-python lint-js coverage publish scan-python
 
 
 ############################
@@ -261,3 +267,18 @@ travis-test-dist:
 travis-test-django-18: travis-test-postgres
 
 .PHONY: travis-test-danger travis-test-sqlite travis-test-postgres travis-test-mysql travis-test-js travis-test-cli travis-test-dist
+
+
+# Scan steps
+travis-scan-danger: travis-noop
+travis-scan-sqlite: scan-python
+travis-scan-postgres: scan-python
+travis-scan-mysql: scan-python
+travis-scan-acceptance: travis-noop
+travis-scan-network: travis-noop
+travis-scan-js: travis-noop
+travis-scan-cli: travis-noop
+travis-scan-dist: travis-noop
+travis-scan-django-18: travis-noop
+
+.PHONY: travis-scan-danger travis-scan-sqlite travis-scan-postgres travis-scan-mysql travis-scan-acceptance travis-scan-network travis-scan-js travis-scan-cli travis-scan-dist travis-scan-django-18
