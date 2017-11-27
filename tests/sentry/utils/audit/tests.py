@@ -141,30 +141,6 @@ class DeletedEntryTest(APITestCase):
         assert Team.objects.get(id=team.id).status == TeamStatus.PENDING_DELETION
         DeletedEntryTest.check_deleted_log(deleted_team, team)
 
-    def test_deleted_member(self):
-        user = self.create_user()
-        organization = self.create_organization(slug='slug123456789', owner=user)
-        team = self.create_team(organization=organization)
-        project = self.create_project(team=team)
-
-        user.save()
-        organization.save()
-        team.save()
-        project.save()
-
-        assert User.objects.filter(id=user.id).exists()
-        assert Project.objects.filter(id=project.id).exists()
-
-        path = '/api/0/projects/%s/%s/' % (organization.slug, project.slug)
-
-        self.login_as(user)
-        self.client.delete(path)
-
-        deleted_project = DeletedProject.objects.get(slug=project.slug)
-
-        assert Project.objects.get(id=project.id).status == ProjectStatus.PENDING_DELETION
-        DeletedEntryTest.check_deleted_log(deleted_project, project)
-
     @staticmethod
     def check_deleted_log(deleted_log, original_object):
         assert deleted_log is not None

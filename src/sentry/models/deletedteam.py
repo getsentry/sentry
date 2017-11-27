@@ -8,7 +8,7 @@ from sentry.models.deletedentry import DeletedEntry
 
 class DeletedTeam(DeletedEntry):
     name = models.CharField(max_length=64)
-    slug = models.SlugField(unique=True)
+    slug = models.SlugField()
 
     organization_id = BoundedBigIntegerField(null=True, blank=True)
     organization_name = models.CharField(max_length=64)
