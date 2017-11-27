@@ -143,3 +143,10 @@ class AuthLoginTest(TestCase):
         assert resp.status_code == 302
         assert next not in resp['Location']
         assert resp['Location'] == 'http://testserver/auth/login/'
+
+    def test_doesnt_redirect_with_superuser(self):
+        self.login_as(self.user, superuser=False)
+
+        resp = self.client.get(self.path)
+
+        assert resp.status_code == 200
