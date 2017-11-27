@@ -243,7 +243,7 @@ class EnvironmentMixin(object):
 
 
 class StatsMixin(object):
-    def _parse_args(self, request):
+    def _parse_args(self, request, environment_id=None):
         resolution = request.GET.get('resolution')
         if resolution:
             resolution = self._parse_resolution(resolution)
@@ -266,6 +266,7 @@ class StatsMixin(object):
             'start': start,
             'end': end,
             'rollup': resolution,
+            'environment_id': environment_id,
         }
 
     def _parse_resolution(self, value):
