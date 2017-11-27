@@ -25,8 +25,7 @@ class EventTag(Model):
     date_added = models.DateTimeField(default=timezone.now, db_index=True)
 
     class Meta:
-        app_label = 'sentry'
-        db_table = 'sentry_eventtag_v2'
+        app_label = 'tagstore'
         unique_together = (('event_id', 'key_id', 'value_id'), )
         index_together = (
             ('project_id', 'key_id', 'value_id'),

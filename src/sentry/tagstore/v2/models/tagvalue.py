@@ -40,8 +40,7 @@ class TagValue(Model):
     objects = BaseManager()
 
     class Meta:
-        app_label = 'sentry'
-        db_table = 'sentry_filtervalue_v2'
+        app_label = 'tagstore'
         unique_together = (('project_id', 'environment_id', 'key_id', 'value'), )
         # TODO: environment index(es)
         index_together = (('project_id', 'key_id', 'last_seen'), )

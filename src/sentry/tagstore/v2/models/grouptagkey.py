@@ -34,8 +34,7 @@ class GroupTagKey(Model):
     objects = BaseManager()
 
     class Meta:
-        app_label = 'sentry'
-        db_table = 'sentry_grouptagkey_v2'
+        app_label = 'tagstore'
         unique_together = (('project_id', 'group_id', 'environment_id', 'key_id'), )
         # TODO: environment index(es)
 

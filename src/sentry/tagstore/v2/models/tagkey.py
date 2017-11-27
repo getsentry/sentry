@@ -39,8 +39,7 @@ class TagKey(Model):
     )
 
     class Meta:
-        app_label = 'sentry'
-        db_table = 'sentry_filterkey_v2'
+        app_label = 'tagstore'
         unique_together = (('project_id', 'environment_id', 'key'), )
         # TODO: environment index(es)
 
