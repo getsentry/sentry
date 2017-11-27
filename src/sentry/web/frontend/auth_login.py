@@ -159,7 +159,10 @@ class AuthLoginView(BaseView):
     def get(self, request, *args, **kwargs):
         next_uri = self.get_next_uri(request, *args, **kwargs)
         if request.user.is_authenticated():
-            return self.handle_authenticated(request, *args, **kwargs)
+            # if the user is a superuser, but not 'superuser authenticated'
+            # we allow them to re-authenticate to gain superuser status
+            if not request.user.is_superuser or request.is_superuser():
+                return self.handle_authenticated(request, *args, **kwargs)
 
         request.session.set_test_cookie()
 
