@@ -4,7 +4,7 @@ from django.contrib.auth.models import AnonymousUser
 
 from sentry.models import (
     ApiKey, AuditLogEntryEvent,
-    DeletedOrganization, DeletedProject, DeletedTeam,
+    DeletedOrganization, DeletedProject, DeletedTeam, DeletedUser,
     Organization, User, Project, Team,
     OrganizationStatus, ProjectStatus, TeamStatus,
 
@@ -46,6 +46,7 @@ class CreateAuditEntryTest(APITestCase):
 
 
 class DeletedEntryTest(APITestCase):
+
     def test_audit_entry_delete_organization(self):
         user = self.create_user()
         organization = self.create_organization(slug='slug123456789', owner=user)
@@ -54,7 +55,7 @@ class DeletedEntryTest(APITestCase):
 
         assert User.objects.get(id=user.id) is not None
         assert Organization.objects.get(id=organization.id) is not None
-        assert DeletedOrganization.objects.filter(slug=organization.slug).exists()
+        assert not DeletedOrganization.objects.filter(slug=organization.slug).exists()
 
         req = FakeHttpRequest(user)
         req.method = 'POST'
@@ -80,8 +81,8 @@ class DeletedEntryTest(APITestCase):
         user.save()
         organization.save()
 
-        assert User.objects.get(id=user.id) is not None
-        assert Organization.objects.get(id=organization.id) is not None
+        assert User.objects.filter(id=user.id).exists()
+        assert Organization.objects.filter(id=organization.id).exists()
 
         path = '/organizations/%s/remove/' % (organization.slug)
 
@@ -92,10 +93,7 @@ class DeletedEntryTest(APITestCase):
 
         assert Organization.objects.get(
             id=organization.id).status == OrganizationStatus.PENDING_DELETION
-        assert deleted_org is not None
-        assert deleted_org.date_created == organization.date_added
-        assert deleted_org.date_deleted > deleted_org.date_created
-        assert organization.name == deleted_org.name
+        DeletedEntryTest.check_deleted_log(deleted_org, organization)
 
     def test_deleted_project(self):
         user = self.create_user()
@@ -108,8 +106,8 @@ class DeletedEntryTest(APITestCase):
         team.save()
         project.save()
 
-        assert User.objects.get(id=user.id) is not None
-        assert Project.objects.get(id=project.id) is not None
+        assert User.objects.filter(id=user.id).exists()
+        assert Project.objects.filter(id=project.id).exists()
 
         path = '/api/0/projects/%s/%s/' % (organization.slug, project.slug)
 
@@ -119,10 +117,7 @@ class DeletedEntryTest(APITestCase):
         deleted_project = DeletedProject.objects.get(slug=project.slug)
 
         assert Project.objects.get(id=project.id).status == ProjectStatus.PENDING_DELETION
-        assert deleted_project is not None
-        assert deleted_project.date_created == project.date_added
-        assert deleted_project.date_deleted > deleted_project.date_created
-        assert project.name == deleted_project.name
+        DeletedEntryTest.check_deleted_log(deleted_project, project)
 
     def test_deleted_team(self):
         user = self.create_user()
@@ -133,7 +128,8 @@ class DeletedEntryTest(APITestCase):
         organization.save()
         team.save()
 
-        assert Team.objects.get(id=team.id) is not None
+        assert User.objects.filter(id=user.id).exists()
+        assert Team.objects.filter(id=team.id).exists()
 
         path = '/api/0/teams/%s/%s/' % (organization.slug, team.slug)
 
@@ -143,7 +139,54 @@ class DeletedEntryTest(APITestCase):
         deleted_team = DeletedTeam.objects.get(slug=team.slug)
 
         assert Team.objects.get(id=team.id).status == TeamStatus.PENDING_DELETION
-        assert deleted_team is not None
-        assert deleted_team.date_created == team.date_added
-        assert deleted_team.date_deleted > deleted_team.date_created
-        assert team.name == deleted_team.name
+        DeletedEntryTest.check_deleted_log(deleted_team, team)
+
+    def test_deleted_member(self):
+        user = self.create_user()
+        organization = self.create_organization(slug='slug123456789', owner=user)
+        team = self.create_team(organization=organization)
+        project = self.create_project(team=team)
+
+        user.save()
+        organization.save()
+        team.save()
+        project.save()
+
+        assert User.objects.filter(id=user.id).exists()
+        assert Project.objects.filter(id=project.id).exists()
+
+        path = '/api/0/projects/%s/%s/' % (organization.slug, project.slug)
+
+        self.login_as(user)
+        self.client.delete(path)
+
+        deleted_project = DeletedProject.objects.get(slug=project.slug)
+
+        assert Project.objects.get(id=project.id).status == ProjectStatus.PENDING_DELETION
+        DeletedEntryTest.check_deleted_log(deleted_project, project)
+
+    def test_deleted_user(self):
+        user = self.create_user()
+        organization = self.create_organization(slug='slug123456789', owner=user)
+        user.save()
+        organization.save()
+
+        assert User.objects.filter(id=user.id).exists()
+        assert Organization.objects.filter(id=organization.id).exists()
+
+        path = '/api/0/users/%s/%s/' % (organization.slug, user.id)
+
+        self.login_as(user)
+        self.client.delete(path)
+
+        deleted_user = DeletedUser.objects.get(username=user.username)
+
+        assert User.objects.get(id=user.id).is_active is False
+        DeletedEntryTest.check_deleted_log(deleted_user, user)
+
+    @staticmethod
+    def check_deleted_log(deleted_log, original_object):
+        assert deleted_log is not None
+        assert deleted_log.date_created == original_object.date_added
+        assert deleted_log.date_deleted > deleted_log.date_created
+        assert original_object.name == deleted_log.name
