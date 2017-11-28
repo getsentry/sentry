@@ -8,14 +8,14 @@ from sentry.models.deletedentry import DeletedEntry
 
 class DeletedProject(DeletedEntry):
     slug = models.SlugField(null=True)
-    name = models.CharField(max_length=200)
+    name = models.CharField(max_length=200, null=True)
 
-    organization_id = BoundedBigIntegerField(null=True, blank=True)
-    organization_name = models.CharField(max_length=64)
+    organization_id = BoundedBigIntegerField(null=True)
+    organization_name = models.CharField(max_length=64, null=True)
     organization_slug = models.SlugField(null=True)
 
-    team_id = BoundedBigIntegerField(null=True, blank=True)
-    team_name = models.CharField(max_length=64)
+    team_id = BoundedBigIntegerField(null=True)
+    team_name = models.CharField(max_length=64, null=True)
     team_slug = models.SlugField(null=True)
 
     platform = models.CharField(max_length=64, null=True)

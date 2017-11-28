@@ -9,8 +9,8 @@ from sentry.models.deletedentry import DeletedEntry
 
 
 class DeletedUser(DeletedEntry):
-    name = models.CharField(_('name'), max_length=200, blank=True)
-    email = models.EmailField(_('email address'), blank=True)
+    name = models.CharField(_('name'), max_length=200, null=True)
+    email = models.EmailField(_('email address'), null=True)
 
     is_staff = is_staff = models.BooleanField(
         _('staff status'),

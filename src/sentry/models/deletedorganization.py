@@ -7,8 +7,8 @@ from sentry.models.deletedentry import DeletedEntry
 
 
 class DeletedOrganization(DeletedEntry):
-    name = models.CharField(max_length=64)
-    slug = models.SlugField()
+    name = models.CharField(max_length=64, null=True)
+    slug = models.SlugField(null=True)
 
     class Meta:
         app_label = 'sentry'
