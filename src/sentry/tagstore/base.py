@@ -92,7 +92,7 @@ class TagStorage(Service):
         from .deletions import tagkeydeletiontask_factory
 
         TagKeyDeletionTask = tagkeydeletiontask_factory(
-            tagvalue_model, grouptagkey_model, grouptagvalue_model)
+            tagvalue_model=tagvalue_model, grouptagkey_model=grouptagkey_model, grouptagvalue_model=grouptagvalue_model)
 
         default_manager.register(tagkey_model, TagKeyDeletionTask)
         default_manager.register(tagvalue_model, BulkModelDeletionTask)

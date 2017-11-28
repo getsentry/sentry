@@ -28,10 +28,24 @@ from .models import EventTag, GroupTagKey, GroupTagValue, TagKey, TagValue
 
 class LegacyTagStorage(TagStorage):
     def setup(self):
-        self.setup_deletions(TagKey, TagValue, GroupTagKey,
-                             GroupTagValue, EventTag)
-        self.setup_cleanup(TagValue, GroupTagValue, EventTag)
-        self.setup_merge(GroupTagKey, GroupTagValue)
+        self.setup_deletions(
+            tagkey_model=TagKey,
+            tagvalue_model=TagValue,
+            grouptagkey_model=GroupTagKey,
+            grouptagvalue_model=GroupTagValue,
+            eventtag_model=EventTag
+        )
+
+        self.setup_cleanup(
+            tagvalue_model=TagValue,
+            grouptagvalue_model=GroupTagValue,
+            eventtag_model=EventTag
+        )
+
+        self.setup_merge(
+            grouptagkey_model=GroupTagKey,
+            grouptagvalue_model=GroupTagValue
+        )
 
     def create_tag_key(self, project_id, environment_id, key, **kwargs):
         return TagKey.objects.create(project_id=project_id, key=key, **kwargs)
