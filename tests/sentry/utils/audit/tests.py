@@ -73,9 +73,12 @@ class DeletedEntryTest(APITestCase):
 
         assert deleted_org is not None
         assert deleted_org.ip_address == req.META['REMOTE_ADDR']
+
+        # Truncating datetime for mysql compatibility
         assert deleted_org.date_created.replace(
             microsecond=0) == organization.date_added.replace(
             microsecond=0)
+
         assert organization.name == deleted_org.name
 
     def test_deleted_organization(self):
@@ -161,7 +164,9 @@ class DeletedEntryTest(APITestCase):
     def check_deleted_log(deleted_log, original_object):
         assert deleted_log is not None
 
+        # Truncating datetime for mysql compatibility
         assert deleted_log.date_created.replace(
             microsecond=0) == original_object.date_added.replace(microsecond=0)
-        assert deleted_log.date_deleted > deleted_log.date_created
+        assert deleted_log.date_deleted >= deleted_log.date_created
+
         assert original_object.name == deleted_log.name
