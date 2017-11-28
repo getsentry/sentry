@@ -29,3 +29,5 @@ def tagkeydeletiontask_factory(tagvalue_model, grouptagkey_model, grouptagvalue_
             for instance in instance_list:
                 if instance.status != TagKeyStatus.DELETION_IN_PROGRESS:
                     instance.update(status=TagKeyStatus.DELETION_IN_PROGRESS)
+
+    return TagKeyDeletionTask
