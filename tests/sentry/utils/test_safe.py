@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+from functools import partial
+
 from sentry.testutils import TestCase
 from sentry.utils.safe import safe_execute, trim, trim_dict
 
@@ -18,6 +20,12 @@ class TrimTest(TestCase):
     def test_nonascii(self):
         assert trim({'x': '\xc3\xbc'}) == {'x': '\xc3\xbc'}
         assert trim(['x', '\xc3\xbc']) == ['x', '\xc3\xbc']
+
+    def test_idempotent(self):
+        trim2 = partial(trim, max_depth=2)
+        a = {'a': {'b': {'c': {'d': 1}}}}
+        assert trim2(a) == {'a': {'b': {'c': "{'d': 1}"}}}
+        assert trim2(trim2(trim2(trim2(a)))) == trim2(a)
 
 
 class TrimDictTest(TestCase):

@@ -64,7 +64,9 @@ def trim(
     }
 
     if _depth > max_depth:
-        return trim(repr(value), _size=_size, max_size=max_size)
+        if not isinstance(value, six.string_types):
+            value = repr(value)
+        return trim(value, _size=_size, max_size=max_size)
 
     elif isinstance(value, dict):
         result = {}
