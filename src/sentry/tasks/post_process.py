@@ -126,7 +126,7 @@ def plugin_post_process_group(plugin_slug, event, **kwargs):
     name='sentry.tasks.index_event_tags', default_retry_delay=60 * 5, max_retries=None
 )
 def index_event_tags(organization_id, project_id, event_id, tags,
-                     group_id=None, environment_id=None, **kwargs):
+                     group_id, environment_id, **kwargs):
     from sentry import tagstore
 
     Raven.tags_context({

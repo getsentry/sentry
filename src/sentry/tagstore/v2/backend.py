@@ -19,6 +19,14 @@ from .models import EventTag, GroupTagKey, GroupTagValue, TagKey, TagValue
 
 
 class TagStorage(TagStorage):
+    """\
+    The v2 tagstore backend stores and respects ``environment_id`` arguments and stores
+    ``times_seen`` and ``values_seen`` in Redis for cheap incr/decrs.
+
+    An ``environment_id`` value of ``None`` is used to keep track of the aggregate value across
+    all environments.
+    """
+
     def setup(self):
         self.setup_deletions(
             tagkey_model=TagKey,
@@ -43,6 +51,8 @@ class TagStorage(TagStorage):
             tagvalue_model=TagValue,
             grouptagvalue_model=GroupTagValue,
         )
+
+        # TODO: hook other receivers to ensure environment_id=None is created and updated?
 
         self.setup_tasks(
             tagkey_model=TagKey,

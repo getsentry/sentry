@@ -27,6 +27,11 @@ from .models import EventTag, GroupTagKey, GroupTagValue, TagKey, TagValue
 
 
 class LegacyTagStorage(TagStorage):
+    """\
+    The legacy tagstore backend ignores the ``environment_id`` (because it doesn't store this information
+    in its models) and stores ``times_seen`` and ``values_seen`` in Postgres.
+    """
+
     def setup(self):
         self.setup_deletions(
             tagkey_model=TagKey,
