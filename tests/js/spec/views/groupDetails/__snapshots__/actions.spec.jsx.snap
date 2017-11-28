@@ -13,13 +13,7 @@ exports[`GroupActions render() renders correctly 1`] = `
     projectId="project"
   />
   <IgnoreActions
-    group={
-      Object {
-        "id": "1337",
-        "pluginActions": Array [],
-        "pluginIssues": Array [],
-      }
-    }
+    isIgnored={false}
     onUpdate={[Function]}
   />
   <div
