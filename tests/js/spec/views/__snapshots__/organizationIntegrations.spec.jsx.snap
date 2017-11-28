@@ -23,49 +23,55 @@ exports[`OrganizationIntegrations render() with a provider renders 1`] = `
           caret={true}
           className="btn btn-primary btn-sm"
           disabled={false}
-          keepMenuOpen={false}
           title="Add Integration"
         >
-          <span
-            className="dropdown pull-right anchor-right open"
+          <DropdownMenu
+            keepMenuOpen={false}
           >
-            <a
-              className="dropdown-actor btn btn-primary btn-sm dropdown-menu-right dropdown-toggle hover"
-              onClick={[Function]}
+            <span
+              className="dropdown pull-right anchor-right open"
             >
-              <span
-                className="dropdown-actor-title"
+              <a
+                className="dropdown-actor btn btn-primary btn-sm dropdown-menu-right dropdown-toggle hover"
+                onClick={[Function]}
+                onMouseEnter={[Function]}
+                onMouseLeave={[Function]}
               >
-                <span>
-                  Add Integration
-                </span>
-                <i
-                  className="icon-arrow-down"
-                />
-              </span>
-            </a>
-            <ul
-              className="dropdown-menu"
-              onClick={[Function]}
-            >
-              <MenuItem
-                noAnchor={true}
-              >
-                <li
-                  className=""
-                  href={null}
-                  role="presentation"
-                  title={null}
+                <div
+                  className="dropdown-actor-title"
                 >
-                  <a
-                    onClick={[Function]}
+                  <span>
+                    Add Integration
+                  </span>
+                  <i
+                    className="icon-arrow-down"
+                  />
+                </div>
+              </a>
+              <ul
+                className="dropdown-menu"
+                onClick={[Function]}
+                onMouseLeave={[Function]}
+              >
+                <MenuItem
+                  noAnchor={true}
+                >
+                  <li
+                    className=""
+                    href={null}
+                    role="presentation"
+                    title={null}
                   >
-                    GitHub
-                  </a>
-                </li>
-              </MenuItem>
-            </ul>
-          </span>
+                    <a
+                      onClick={[Function]}
+                    >
+                      GitHub
+                    </a>
+                  </li>
+                </MenuItem>
+              </ul>
+            </span>
+          </DropdownMenu>
         </DropdownLink>
       </div>
       <h3
@@ -124,49 +130,55 @@ exports[`OrganizationIntegrations render() with a provider renders with a reposi
           caret={true}
           className="btn btn-primary btn-sm"
           disabled={false}
-          keepMenuOpen={false}
           title="Add Integration"
         >
-          <span
-            className="dropdown pull-right anchor-right open"
+          <DropdownMenu
+            keepMenuOpen={false}
           >
-            <a
-              className="dropdown-actor btn btn-primary btn-sm dropdown-menu-right dropdown-toggle hover"
-              onClick={[Function]}
+            <span
+              className="dropdown pull-right anchor-right open"
             >
-              <span
-                className="dropdown-actor-title"
+              <a
+                className="dropdown-actor btn btn-primary btn-sm dropdown-menu-right dropdown-toggle hover"
+                onClick={[Function]}
+                onMouseEnter={[Function]}
+                onMouseLeave={[Function]}
               >
-                <span>
-                  Add Integration
-                </span>
-                <i
-                  className="icon-arrow-down"
-                />
-              </span>
-            </a>
-            <ul
-              className="dropdown-menu"
-              onClick={[Function]}
-            >
-              <MenuItem
-                noAnchor={true}
-              >
-                <li
-                  className=""
-                  href={null}
-                  role="presentation"
-                  title={null}
+                <div
+                  className="dropdown-actor-title"
                 >
-                  <a
-                    onClick={[Function]}
+                  <span>
+                    Add Integration
+                  </span>
+                  <i
+                    className="icon-arrow-down"
+                  />
+                </div>
+              </a>
+              <ul
+                className="dropdown-menu"
+                onClick={[Function]}
+                onMouseLeave={[Function]}
+              >
+                <MenuItem
+                  noAnchor={true}
+                >
+                  <li
+                    className=""
+                    href={null}
+                    role="presentation"
+                    title={null}
                   >
-                    GitHub
-                  </a>
-                </li>
-              </MenuItem>
-            </ul>
-          </span>
+                    <a
+                      onClick={[Function]}
+                    >
+                      GitHub
+                    </a>
+                  </li>
+                </MenuItem>
+              </ul>
+            </span>
+          </DropdownMenu>
         </DropdownLink>
       </div>
       <h3
@@ -308,7 +320,6 @@ exports[`OrganizationIntegrations render() without any providers is loading when
         caret={true}
         className="btn btn-primary btn-sm"
         disabled={false}
-        keepMenuOpen={false}
         title="Add Integration"
       />
     </div>
@@ -367,32 +378,38 @@ exports[`OrganizationIntegrations render() without any providers renders 1`] = `
           caret={true}
           className="btn btn-primary btn-sm"
           disabled={false}
-          keepMenuOpen={false}
           title="Add Integration"
         >
-          <span
-            className="dropdown pull-right anchor-right open"
+          <DropdownMenu
+            keepMenuOpen={false}
           >
-            <a
-              className="dropdown-actor btn btn-primary btn-sm dropdown-menu-right dropdown-toggle hover"
-              onClick={[Function]}
+            <span
+              className="dropdown pull-right anchor-right open"
             >
-              <span
-                className="dropdown-actor-title"
+              <a
+                className="dropdown-actor btn btn-primary btn-sm dropdown-menu-right dropdown-toggle hover"
+                onClick={[Function]}
+                onMouseEnter={[Function]}
+                onMouseLeave={[Function]}
               >
-                <span>
-                  Add Integration
-                </span>
-                <i
-                  className="icon-arrow-down"
-                />
-              </span>
-            </a>
-            <ul
-              className="dropdown-menu"
-              onClick={[Function]}
-            />
-          </span>
+                <div
+                  className="dropdown-actor-title"
+                >
+                  <span>
+                    Add Integration
+                  </span>
+                  <i
+                    className="icon-arrow-down"
+                  />
+                </div>
+              </a>
+              <ul
+                className="dropdown-menu"
+                onClick={[Function]}
+                onMouseLeave={[Function]}
+              />
+            </span>
+          </DropdownMenu>
         </DropdownLink>
       </div>
       <h3
