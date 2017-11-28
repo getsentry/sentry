@@ -8,5 +8,3 @@ sentry.tagstore.v2
 from __future__ import absolute_import
 
 from .backend import TagStorage  # NOQA
-# from .receivers import *  # NOQA
-# from .tasks import *  # NOQA

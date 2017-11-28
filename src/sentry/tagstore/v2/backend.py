@@ -25,18 +25,27 @@ class TagStorage(TagStorage):
             tagvalue_model=TagValue,
             grouptagkey_model=GroupTagKey,
             grouptagvalue_model=GroupTagValue,
-            eventtag_model=EventTag
+            eventtag_model=EventTag,
         )
 
         self.setup_cleanup(
             tagvalue_model=TagValue,
             grouptagvalue_model=GroupTagValue,
-            eventtag_model=EventTag
+            eventtag_model=EventTag,
         )
 
         self.setup_merge(
             grouptagkey_model=GroupTagKey,
-            grouptagvalue_model=GroupTagValue
+            grouptagvalue_model=GroupTagValue,
+        )
+
+        self.setup_receivers(
+            tagvalue_model=TagValue,
+            grouptagvalue_model=GroupTagValue,
+        )
+
+        self.setup_tasks(
+            tagkey_model=TagKey,
         )
 
     def create_tag_key(self, project_id, environment_id, key, **kwargs):
@@ -133,7 +142,6 @@ class TagStorage(TagStorage):
         except IntegrityError:
             pass
 
-    # TODO is env required?
     def get_tag_key(self, project_id, environment_id, key, status=TagKeyStatus.VISIBLE):
         from sentry.tagstore.exceptions import TagKeyNotFound
 
@@ -153,8 +161,6 @@ class TagStorage(TagStorage):
         except TagKey.DoesNotExist:
             raise TagKeyNotFound
 
-    # TODO if env isn't provided do we return duplicate tagkeys (one for each
-    # env)? or the aggregate key?
     def get_tag_keys(self, project_ids, environment_id, keys=None, status=TagKeyStatus.VISIBLE):
         if isinstance(project_ids, six.integer_types):
             qs = TagKey.objects.filter(project_id=project_ids)

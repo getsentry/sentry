@@ -48,7 +48,6 @@ class GroupTagKeyDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
             raise ResourceDoesNotExist
 
         try:
-            # TODO env required? use some 'aggregate' for None?
             tag_key = tagstore.get_tag_key(group.project_id, environment_id, lookup_key)
         except tagstore.TagKeyNotFound:
             raise ResourceDoesNotExist

@@ -184,7 +184,7 @@ class DeleteProjectTest(TestCase):
 
 class DeleteTagKeyTest(TestCase):
     def test_simple(self):
-        from sentry.tagstore.legacy.tasks import delete_tag_key as delete_tag_key_task
+        from sentry.tagstore.tasks import delete_tag_key as delete_tag_key_task
 
         team = self.create_team(name='test', slug='test')
         project = self.create_project(team=team, name='test1', slug='test1')

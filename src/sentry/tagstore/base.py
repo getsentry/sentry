@@ -134,6 +134,16 @@ class TagStorage(Service):
             grouptagkey_model,
         ]
 
+    def setup_receivers(self, tagvalue_model, grouptagvalue_model):
+        from .receivers import setup_receivers
+
+        setup_receivers(tagvalue_model=tagvalue_model, grouptagvalue_model=grouptagvalue_model)
+
+    def setup_tasks(self, tagkey_model):
+        from .tasks import setup_tasks
+
+        setup_tasks(tagkey_model=tagkey_model)
+
     def is_valid_key(self, key):
         return bool(TAG_KEY_RE.match(key))
 

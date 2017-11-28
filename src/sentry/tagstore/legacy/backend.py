@@ -33,18 +33,27 @@ class LegacyTagStorage(TagStorage):
             tagvalue_model=TagValue,
             grouptagkey_model=GroupTagKey,
             grouptagvalue_model=GroupTagValue,
-            eventtag_model=EventTag
+            eventtag_model=EventTag,
         )
 
         self.setup_cleanup(
             tagvalue_model=TagValue,
             grouptagvalue_model=GroupTagValue,
-            eventtag_model=EventTag
+            eventtag_model=EventTag,
         )
 
         self.setup_merge(
             grouptagkey_model=GroupTagKey,
-            grouptagvalue_model=GroupTagValue
+            grouptagvalue_model=GroupTagValue,
+        )
+
+        self.setup_receivers(
+            tagvalue_model=TagValue,
+            grouptagvalue_model=GroupTagValue,
+        )
+
+        self.setup_tasks(
+            tagkey_model=TagKey,
         )
 
     def create_tag_key(self, project_id, environment_id, key, **kwargs):
@@ -221,7 +230,7 @@ class LegacyTagStorage(TagStorage):
         return list(qs)
 
     def delete_tag_keys(self, project_id, keys, environment_id=None):
-        from .tasks import delete_tag_key as delete_tag_key_task
+        from sentry.tagstore.tasks import delete_tag_key as delete_tag_key_task
 
         deleted = []
 
