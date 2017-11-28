@@ -38,6 +38,7 @@ def load_defaults():
     default_manager.register(models.ApiKey, BulkModelDeletionTask)
     default_manager.register(models.ApiGrant, BulkModelDeletionTask)
     default_manager.register(models.ApiToken, BulkModelDeletionTask)
+    default_manager.register(models.ChangeRequest, BulkModelDeletionTask)
     default_manager.register(models.CommitAuthor, BulkModelDeletionTask)
     default_manager.register(models.CommitFileChange, BulkModelDeletionTask)
     default_manager.register(models.EnvironmentProject, BulkModelDeletionTask)
