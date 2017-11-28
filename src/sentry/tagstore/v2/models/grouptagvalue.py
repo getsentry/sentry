@@ -26,7 +26,7 @@ class GroupTagValue(Model):
 
     project_id = BoundedPositiveIntegerField(db_index=True)
     group_id = BoundedPositiveIntegerField(db_index=True)
-    environment_id = BoundedPositiveIntegerField()
+    environment_id = BoundedPositiveIntegerField(null=True)
     # times_seen will live in Redis
     key_id = BoundedPositiveIntegerField()
     value_id = BoundedPositiveIntegerField()

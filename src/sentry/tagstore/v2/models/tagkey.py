@@ -26,7 +26,7 @@ class TagKey(Model):
     __core__ = False
 
     project_id = BoundedPositiveIntegerField(db_index=True)
-    environment_id = BoundedPositiveIntegerField()
+    environment_id = BoundedPositiveIntegerField(null=True)
     key = models.CharField(max_length=MAX_TAG_KEY_LENGTH)
     # values_seen will live in Redis
     status = BoundedPositiveIntegerField(

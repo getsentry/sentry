@@ -26,7 +26,7 @@ class TagValue(Model):
     __core__ = False
 
     project_id = BoundedPositiveIntegerField(db_index=True)
-    environment_id = BoundedPositiveIntegerField()
+    environment_id = BoundedPositiveIntegerField(null=True)
     key_id = BoundedPositiveIntegerField()
     value = models.CharField(max_length=MAX_TAG_VALUE_LENGTH)
     # TODO: do we even use this anymore?

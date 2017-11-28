@@ -27,7 +27,7 @@ class GroupTagKey(Model):
 
     project_id = BoundedPositiveIntegerField(db_index=True)
     group_id = BoundedPositiveIntegerField(db_index=True)
-    environment_id = BoundedPositiveIntegerField()
+    environment_id = BoundedPositiveIntegerField(null=True)
     key_id = BoundedPositiveIntegerField()
     # values_seen will be in Redis
 
