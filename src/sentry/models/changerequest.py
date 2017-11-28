@@ -18,8 +18,8 @@ class ChangeRequest(Model):
     date_added = models.DateTimeField(default=timezone.now)
 
     commits = models.ManyToManyField('sentry.Commit')
-    title = models.TextField()
-    message = models.TextField()
+    title = models.TextField(null=True)
+    message = models.TextField(null=True)
     author = FlexibleForeignKey('sentry.CommitAuthor', null=True)
 
     class Meta:
