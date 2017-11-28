@@ -324,6 +324,7 @@ def repair_tag_data(caches, project, events):
                 )
 
                 if not created:
+                    # TODO
                     instance.update(
                         first_seen=first_seen,
                         times_seen=F('times_seen') + times_seen,

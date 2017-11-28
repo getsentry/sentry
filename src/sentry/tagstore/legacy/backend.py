@@ -28,48 +28,10 @@ from .models import EventTag, GroupTagKey, GroupTagValue, TagKey, TagValue
 
 class LegacyTagStorage(TagStorage):
     def setup(self):
-        from sentry.deletions import default_manager
-        from sentry.deletions.defaults import BulkModelDeletionTask
-        from sentry.deletions.base import ModelRelation, ModelDeletionTask
-        from sentry.models import Group, Project, Event
-        from sentry.runner.commands import cleanup
-        from sentry.tasks import merge
-
-        from .deletions import TagKeyDeletionTask
-
-        default_manager.register(TagKey, TagKeyDeletionTask)
-        default_manager.register(TagValue, BulkModelDeletionTask)
-        default_manager.register(GroupTagKey, BulkModelDeletionTask)
-        default_manager.register(GroupTagValue, BulkModelDeletionTask)
-        default_manager.register(EventTag, BulkModelDeletionTask)
-
-        default_manager.add_dependencies(Group, [
-            lambda instance: ModelRelation(EventTag, {'group_id': instance.id}),
-            lambda instance: ModelRelation(GroupTagKey, {'group_id': instance.id}),
-            lambda instance: ModelRelation(GroupTagValue, {'group_id': instance.id}),
-        ])
-        default_manager.add_dependencies(Project, [
-            lambda instance: ModelRelation(TagKey, {'project_id': instance.id}),
-            lambda instance: ModelRelation(TagValue, {'project_id': instance.id}),
-            lambda instance: ModelRelation(GroupTagKey, {'project_id': instance.id}),
-            lambda instance: ModelRelation(GroupTagValue, {'project_id': instance.id}),
-        ])
-        default_manager.add_bulk_dependencies(Event, [
-            lambda instance_list: ModelRelation(EventTag,
-                                                {'event_id__in': [i.id for i in instance_list]},
-                                                ModelDeletionTask),
-        ])
-
-        cleanup.EXTRA_BULK_QUERY_DELETES += [
-            (GroupTagValue, 'last_seen', None),
-            (TagValue, 'last_seen', None),
-            (EventTag, 'date_added', 'date_added'),
-        ]
-
-        merge.EXTRA_MERGE_MODELS += [
-            GroupTagValue,
-            GroupTagKey,
-        ]
+        self.setup_deletions(TagKey, TagValue, GroupTagKey,
+                             GroupTagValue, EventTag)
+        self.setup_cleanup(TagValue, GroupTagValue, EventTag)
+        self.setup_merge(GroupTagKey, GroupTagValue)
 
     def create_tag_key(self, project_id, environment_id, key, **kwargs):
         return TagKey.objects.create(project_id=project_id, key=key, **kwargs)

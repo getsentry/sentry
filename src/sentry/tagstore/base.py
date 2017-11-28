@@ -82,6 +82,58 @@ class TagStorage(Service):
         'get_event_tag_qs',
     )
 
+    def setup_deletions(self, tagkey_model, tagvalue_model, grouptagkey_model,
+                        grouptagvalue_model, eventtag_model):
+        from sentry.deletions import default_manager
+        from sentry.deletions.defaults import BulkModelDeletionTask
+        from sentry.deletions.base import ModelRelation, ModelDeletionTask
+        from sentry.models import Group, Project, Event
+
+        from .deletions import tagkeydeletiontask_factory
+
+        TagKeyDeletionTask = tagkeydeletiontask_factory(
+            tagvalue_model, grouptagkey_model, grouptagvalue_model)
+
+        default_manager.register(tagkey_model, TagKeyDeletionTask)
+        default_manager.register(tagvalue_model, BulkModelDeletionTask)
+        default_manager.register(grouptagkey_model, BulkModelDeletionTask)
+        default_manager.register(grouptagvalue_model, BulkModelDeletionTask)
+        default_manager.register(eventtag_model, BulkModelDeletionTask)
+
+        default_manager.add_dependencies(Group, [
+            lambda instance: ModelRelation(eventtag_model, {'group_id': instance.id}),
+            lambda instance: ModelRelation(grouptagkey_model, {'group_id': instance.id}),
+            lambda instance: ModelRelation(grouptagvalue_model, {'group_id': instance.id}),
+        ])
+        default_manager.add_dependencies(Project, [
+            lambda instance: ModelRelation(tagkey_model, {'project_id': instance.id}),
+            lambda instance: ModelRelation(tagvalue_model, {'project_id': instance.id}),
+            lambda instance: ModelRelation(grouptagkey_model, {'project_id': instance.id}),
+            lambda instance: ModelRelation(grouptagvalue_model, {'project_id': instance.id}),
+        ])
+        default_manager.add_bulk_dependencies(Event, [
+            lambda instance_list: ModelRelation(eventtag_model,
+                                                {'event_id__in': [i.id for i in instance_list]},
+                                                ModelDeletionTask),
+        ])
+
+    def setup_cleanup(self, tagvalue_model, grouptagvalue_model, eventtag_model):
+        from sentry.runner.commands import cleanup
+
+        cleanup.EXTRA_BULK_QUERY_DELETES += [
+            (grouptagvalue_model, 'last_seen', None),
+            (tagvalue_model, 'last_seen', None),
+            (eventtag_model, 'date_added', 'date_added'),
+        ]
+
+    def setup_merge(self, grouptagkey_model, grouptagvalue_model):
+        from sentry.tasks import merge
+
+        merge.EXTRA_MERGE_MODELS += [
+            grouptagvalue_model,
+            grouptagkey_model,
+        ]
+
     def is_valid_key(self, key):
         return bool(TAG_KEY_RE.match(key))
 
