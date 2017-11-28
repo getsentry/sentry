@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 from sentry.models import (
-    ApiKey, AuditLogEntry, AuditLogEntryEvent, DeletedOrganization, DeletedProject, DeletedTeam, Project, Team, User
+    ApiKey, AuditLogEntry, AuditLogEntryEvent, DeletedOrganization, DeletedProject, DeletedTeam, Project, Team
 )
 
 
@@ -29,9 +29,6 @@ def create_audit_entry(request, transaction_id=None, logger=None, **kwargs):
 
     elif entry.event == AuditLogEntryEvent.TEAM_REMOVE:
         create_team_delete_log(entry)
-
-    elif entry.event == AuditLogEntryEvent.MEMBER_REMOVE:
-        create_member_delete_log(entry)
 
     extra = {
         'ip_address': entry.ip_address,
@@ -67,7 +64,7 @@ def create_project_delete_log(entry):
     """ Creates a log of deleted project """
     delete_log = DeletedProject()
 
-    project = Project.objects.select_related('team').get(id=entry.target_object)
+    project = Project.objects.select_related('team').get(id=entry.target_object.id)
     delete_log.name = project.name
     delete_log.slug = project.slug
     delete_log.date_created = project.date_added
@@ -96,20 +93,6 @@ def create_team_delete_log(entry):
     delete_log.organization_id = entry.organization.id
     delete_log.organization_name = entry.organization.name
     delete_log.organization_slug = entry.organization.slug
-
-    complete_delete_log(delete_log, entry)
-
-
-def create_member_delete_log(entry):
-    """ Creates a log of the deleted user """
-    delete_log = DeletedProject()
-
-    user = User.objects.get(id=entry.target_object)
-    delete_log.username = user.username
-    delete_log.email = user.email
-    delete_log.is_staff = user.is_staff
-    delete_log.is_superuser = user.is_superuser
-    delete_log.date_created = user.date_joined
 
     complete_delete_log(delete_log, entry)
 
