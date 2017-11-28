@@ -15,15 +15,6 @@ class Migration(DataMigration):
     is_dangerous = False
 
     def forwards(self, orm):
-        db.commit_transaction()
-        try:
-            self._forwards(orm)
-        except Exception:
-            db.start_transaction()
-            raise
-        db.start_transaction()
-
-    def _forwards(self, orm):
         from sentry.utils import redis
 
         cluster = redis.clusters.get('default')
