@@ -34,7 +34,7 @@ class BaseAPITest(TestCase):
         self.helper = self.helper_cls(agent='Awesome Browser', ip_address='198.51.100.0')
 
     def validate_and_normalize(self, data):
-        data = self.helper.validate_data(self.project, data)
+        data = self.helper.validate_data(data)
         return EventManager(data).normalize()
 
 
@@ -270,13 +270,13 @@ class ValidateDataTest(BaseAPITest):
     def test_tag_value(self):
         data = self.validate_and_normalize({
             'message': 'foo',
-            'tags': [('foo', 'bar\n'), ('biz', 'baz')],
+            'tags': [('foo', 'b\nar'), ('biz', 'baz')],
         })
         assert data['tags'] == [('biz', 'baz')]
         assert len(data['errors']) == 1
         assert data['errors'][0]['type'] == 'invalid_data'
         assert data['errors'][0]['name'] == 'tags'
-        assert data['errors'][0]['value'] == ('foo', 'bar\n')
+        assert data['errors'][0]['value'] == ('foo', 'b\nar')
 
     def test_extra_as_string(self):
         data = self.validate_and_normalize({
@@ -631,7 +631,6 @@ class CspApiHelperTest(BaseAPITest):
         }
         result = self.validate_and_normalize(report)
         assert result['logger'] == 'csp'
-        assert result['project'] == self.project.id
         assert result['release'] == 'abc123'
         assert result['errors'] == []
         assert 'sentry.interfaces.Message' in result
@@ -691,7 +690,7 @@ class CspApiHelperTest(BaseAPITest):
             "original-policy":
             "default-src  https://45.55.25.245:8123/; child-src  https://45.55.25.245:8123/; connect-src  https://45.55.25.245:8123/; font-src  https://45.55.25.245:8123/; img-src  https://45.55.25.245:8123/; media-src  https://45.55.25.245:8123/; object-src  https://45.55.25.245:8123/; script-src  https://45.55.25.245:8123/; style-src  https://45.55.25.245:8123/; form-action  https://45.55.25.245:8123/; frame-ancestors 'none'; plugin-types 'none'; report-uri http://45.55.25.245:8123/csp-report?os=OS%20X&device=&browser_version=43.0&browser=chrome&os_version=Lion",
             "blocked-uri":
-            "http://google.com\n",
+            "http://google.com",
             "status-code":
             200,
             "_meta": {
@@ -701,8 +700,9 @@ class CspApiHelperTest(BaseAPITest):
         result = self.validate_and_normalize(report)
         assert result['tags'] == [
             ('effective-directive', 'img-src'),
+            ('blocked-uri', 'http://google.com'),
         ]
-        assert len(result['errors']) == 1
+        assert len(result['errors']) == 0
 
     def test_no_tags(self):
         report = {
@@ -717,7 +717,7 @@ class CspApiHelperTest(BaseAPITest):
             "original-policy":
             "default-src  https://45.55.25.245:8123/; child-src  https://45.55.25.245:8123/; connect-src  https://45.55.25.245:8123/; font-src  https://45.55.25.245:8123/; img-src  https://45.55.25.245:8123/; media-src  https://45.55.25.245:8123/; object-src  https://45.55.25.245:8123/; script-src  https://45.55.25.245:8123/; style-src  https://45.55.25.245:8123/; form-action  https://45.55.25.245:8123/; frame-ancestors 'none'; plugin-types 'none'; report-uri http://45.55.25.245:8123/csp-report?os=OS%20X&device=&browser_version=43.0&browser=chrome&os_version=Lion",
             "blocked-uri":
-            "http://google.com\n",
+            "http://goo\ngle.com",
             "status-code":
             200,
             "_meta": {

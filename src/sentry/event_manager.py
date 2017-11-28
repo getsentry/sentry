@@ -311,7 +311,7 @@ class EventManager(object):
             'release': lambda v: text(v) if v is not None else v,
             'dist': lambda v: text(v).strip() if v is not None else v,
             'time_spent': lambda v: int(v) if v is not None else v,
-            'tags': lambda v: [(text(v_k.replace(' ', '-')), text(v_v)) for (v_k, v_v) in dict(v).items()],
+            'tags': lambda v: [(text(v_k.replace(' ', '-')).strip(), text(v_v).strip()) for (v_k, v_v) in dict(v).items()],
             'timestamp': lambda v: process_timestamp(v),
             'platform': lambda v: v if v in VALID_PLATFORMS else 'other',
 
