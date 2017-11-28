@@ -1,45 +1,109 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`DropdownLink renders and anchors to left by default 1`] = `
-<span
-  className="dropdown top-level-class"
+<DropdownLink
+  alwaysRenderMenu={true}
+  anchorRight={false}
+  caret={true}
+  disabled={false}
+  menuClasses=""
+  onClose={[Function]}
+  onOpen={[Function]}
+  title="test"
+  topLevelClasses="top-level-class"
 >
-  <a
-    className="dropdown-actor dropdown-toggle"
-    onClick={[Function]}
+  <DropdownMenu
+    keepMenuOpen={false}
+    onClose={[Function]}
+    onOpen={[Function]}
   >
     <span
-      className="dropdown-actor-title"
+      className="dropdown top-level-class"
     >
-      <span>
-        test
-      </span>
-      <i
-        className="icon-arrow-down"
-      />
+      <a
+        className="dropdown-actor dropdown-toggle"
+        onClick={[Function]}
+        onMouseEnter={[Function]}
+        onMouseLeave={[Function]}
+      >
+        <div
+          className="dropdown-actor-title"
+        >
+          <span>
+            test
+          </span>
+          <i
+            className="icon-arrow-down"
+          />
+        </div>
+      </a>
+      <ul
+        className="dropdown-menu"
+        onClick={[Function]}
+        onMouseLeave={[Function]}
+      >
+        <div>
+          1
+        </div>
+        <div>
+          2
+        </div>
+      </ul>
     </span>
-  </a>
-</span>
+  </DropdownMenu>
+</DropdownLink>
 `;
 
 exports[`DropdownLink renders and anchors to right 1`] = `
-<span
-  className="dropdown top-level-class pull-right anchor-right"
+<DropdownLink
+  alwaysRenderMenu={true}
+  anchorRight={true}
+  caret={true}
+  disabled={false}
+  menuClasses=""
+  onClose={[Function]}
+  onOpen={[Function]}
+  title="test"
+  topLevelClasses="top-level-class"
 >
-  <a
-    className="dropdown-actor dropdown-menu-right dropdown-toggle"
-    onClick={[Function]}
+  <DropdownMenu
+    keepMenuOpen={false}
+    onClose={[Function]}
+    onOpen={[Function]}
   >
     <span
-      className="dropdown-actor-title"
+      className="dropdown top-level-class pull-right anchor-right"
     >
-      <span>
-        test
-      </span>
-      <i
-        className="icon-arrow-down"
-      />
+      <a
+        className="dropdown-actor dropdown-menu-right dropdown-toggle"
+        onClick={[Function]}
+        onMouseEnter={[Function]}
+        onMouseLeave={[Function]}
+      >
+        <div
+          className="dropdown-actor-title"
+        >
+          <span>
+            test
+          </span>
+          <i
+            className="icon-arrow-down"
+          />
+        </div>
+      </a>
+      <ul
+        className="dropdown-menu"
+        onClick={[Function]}
+        onMouseLeave={[Function]}
+      >
+        <div>
+          1
+        </div>
+        <div>
+          2
+        </div>
+      </ul>
     </span>
-  </a>
-</span>
+  </DropdownMenu>
+</DropdownLink>
 `;
