@@ -1,8 +1,13 @@
 # -*- coding: utf-8 -*-
+from __future__ import print_function
+
+import itertools
 from south.utils import datetime_utils as datetime
 from south.db import db
 from south.v2 import DataMigration
 from django.db import models
+
+from sentry.utils.iterators import chunked
 
 
 class Migration(DataMigration):
@@ -12,22 +17,60 @@ class Migration(DataMigration):
     is_dangerous = False
 
     def forwards(self, orm):
-        db.commit_transaction()
-        try:
-            self._forwards(orm)
-        except Exception:
-            db.start_transaction()
-            raise
-        db.start_transaction()
+        from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
 
-    def _forwards(self, orm):
-        "Write your forwards methods here."
-        # Note: Don't use "from appname.models import ModelName".
-        # Use orm.ModelName to refer to models in this application,
-        # and orm['appname.ModelName'] for models in other applications.
+        try:
+            from sentry.models import Event, GroupHash
+        except ImportError:
+            # If the model(s) don't exist, we can safely skip the migration.
+            return
+
+        try:
+            record_last_processed_event_id = GroupHash.record_last_processed_event_id
+        except AttributeError:
+            # If the class method doesn't exist, we can safely skip the migration.
+            return
+
+        from sentry.tasks.unmerge import get_fingerprint
+
+        step = 500
+        queryset = RangeQuerySetWrapperWithProgressBar(
+            Event.objects.all(),
+            step=step * -1,
+        )
+
+        def attach_event_data(chunk):
+            chunk = list(chunk)
+            Event.objects.bind_nodes(chunk, 'data')
+            return chunk
+
+        events_with_data = itertools.chain.from_iterable(
+            itertools.imap(
+                attach_event_data,
+                chunked(queryset, step),
+            )
+        )
+
+        recorded = set()
+        for event in events_with_data:
+            key = (event.project_id, get_fingerprint(event))
+            if key not in recorded:
+                try:
+                    grouphash = orm.GroupHash.objects.get(
+                        project_id=key[0],
+                        hash=key[1],
+                    )
+                except orm.GroupHash.DoesNotExist:
+                    print('Missing group hash record for {!r}! Skipping...'.format(key))
+                else:
+                    record_last_processed_event_id(
+                        grouphash.id,
+                        event.event_id,
+                    )
+                recorded.add(key)
 
     def backwards(self, orm):
-        "Write your backwards methods here."
+        pass
 
     models = {
         'sentry.activity': {
