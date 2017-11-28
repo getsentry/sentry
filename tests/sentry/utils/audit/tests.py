@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 from django.contrib.auth.models import AnonymousUser
+from django.core.urlresolvers import reverse
 
 from sentry.models import (
     ApiKey, AuditLogEntryEvent,
@@ -72,7 +73,9 @@ class DeletedEntryTest(APITestCase):
 
         assert deleted_org is not None
         assert deleted_org.ip_address == req.META['REMOTE_ADDR']
-        assert deleted_org.date_created == organization.date_added
+        assert deleted_org.date_created.replace(
+            microsecond=0) == organization.date_added.replace(
+            microsecond=0)
         assert organization.name == deleted_org.name
 
     def test_deleted_organization(self):
@@ -141,9 +144,24 @@ class DeletedEntryTest(APITestCase):
         assert Team.objects.get(id=team.id).status == TeamStatus.PENDING_DELETION
         DeletedEntryTest.check_deleted_log(deleted_team, team)
 
+    def test_deleted_user(self):
+        user = self.create_user()
+        user.save()
+
+        assert User.objects.get(id=user.id).is_active
+
+        self.login_as(user)
+        self.client.post(reverse('sentry-remove-account'))
+
+        assert not User.objects.get(id=user.id).is_active
+        # deleted_user = DeletedUser.objects.get(email=user.email)
+        # DeletedEntryTest.check_deleted_log(deleted_user, user)
+
     @staticmethod
     def check_deleted_log(deleted_log, original_object):
         assert deleted_log is not None
-        assert deleted_log.date_created == original_object.date_added
+
+        assert deleted_log.date_created.replace(
+            microsecond=0) == original_object.date_added.replace(microsecond=0)
         assert deleted_log.date_deleted > deleted_log.date_created
         assert original_object.name == deleted_log.name

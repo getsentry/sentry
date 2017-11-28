@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 from sentry.models import (
-    ApiKey, AuditLogEntry, AuditLogEntryEvent, DeletedOrganization, DeletedProject, DeletedTeam, Project, Team
+    ApiKey, AuditLogEntry, AuditLogEntryEvent, DeletedOrganization, DeletedProject, DeletedTeam, Organization, Project, Team
 )
 
 
@@ -53,9 +53,11 @@ def create_audit_entry(request, transaction_id=None, logger=None, **kwargs):
 def create_org_delete_log(entry):
     """ Creates a log of deleted organization """
     delete_log = DeletedOrganization()
-    delete_log.name = entry.organization.name
-    delete_log.slug = entry.organization.slug
-    delete_log.date_created = entry.organization.date_added
+    organization = Organization.objects.get(id=entry.target_object)
+
+    delete_log.name = organization.name
+    delete_log.slug = organization.slug
+    delete_log.date_created = organization.date_added
 
     complete_delete_log(delete_log, entry)
 
