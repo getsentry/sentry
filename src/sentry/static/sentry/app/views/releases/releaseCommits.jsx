@@ -214,16 +214,8 @@ const ReleaseCommits = React.createClass({
             <div className="commits-dropdown align-left">
               <div className="commits-dropdowng">
                 <DropdownLink
-                  caret={false}
-                  title={
-                    <h5>
-                      {this.state.activeRepo || 'All Repositories'}
-                      <span
-                        className="icon-arrow-down dropdown"
-                        style={{marginLeft: 3, marginRight: -3}}
-                      />
-                    </h5>
-                  }
+                  caret={true}
+                  title={this.state.activeRepo || 'All Repositories'}
                 >
                   <MenuItem
                     key="all"
