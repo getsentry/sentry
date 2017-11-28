@@ -450,15 +450,18 @@ const GroupDetailsActions = React.createClass({
     // account for both old and new style plugins
     let hasIssueTracking = group.pluginActions.length || group.pluginIssues.length;
 
+    let isResolved = group.status === 'resolved';
+
     return (
       <div className="group-actions">
         <ResolveActions
-          group={group}
           hasRelease={hasRelease}
           latestRelease={project.latestRelease}
           onUpdate={this.onUpdate}
           orgId={org.slug}
           projectId={project.slug}
+          isResolved={isResolved}
+          isAutoResolved={isResolved && group.statusDetails.autoResolved}
         />
         <IgnoreActions group={group} onUpdate={this.onUpdate} />
 

@@ -1,20 +1,29 @@
-import PropTypes from 'prop-types';
 import React from 'react';
-
+import PropTypes from 'prop-types';
 import {getShortVersion} from '../../utils';
 import {t} from '../../locale';
 import CustomResolutionModal from '../customResolutionModal';
 import MenuItem from '../menuItem';
 import DropdownLink from '../dropdownLink';
+import ActionLink from './actionLink';
 
 export default class ResolveActions extends React.Component {
   static propTypes = {
-    group: PropTypes.object.isRequired,
     hasRelease: PropTypes.bool.isRequired,
     latestRelease: PropTypes.object,
     onUpdate: PropTypes.func.isRequired,
     orgId: PropTypes.string.isRequired,
     projectId: PropTypes.string.isRequired,
+    shouldConfirm: PropTypes.bool,
+    confirmMessage: PropTypes.any,
+    disabled: PropTypes.bool,
+    isResolved: PropTypes.bool,
+    isAutoResolved: PropTypes.bool,
+  };
+
+  static defaultProps = {
+    isResolved: false,
+    isAutoResolved: false,
   };
 
   constructor(props) {
@@ -32,18 +41,19 @@ export default class ResolveActions extends React.Component {
     });
   }
 
-  render() {
-    let {group, hasRelease, latestRelease, onUpdate} = this.props;
-    let resolveClassName = 'group-resolve btn btn-default btn-sm';
-    if (group.status === 'resolved') {
-      resolveClassName += ' active';
-    }
+  getButtonClass() {
+    return 'group-resolve btn btn-default btn-sm';
+  }
 
-    if (group.status === 'resolved' && group.statusDetails.autoResolved) {
+  renderResolved() {
+    let {isAutoResolved, onUpdate} = this.props;
+    let buttonClass = `${this.getButtonClass()} active`;
+
+    if (isAutoResolved) {
       return (
         <div className="btn-group">
           <a
-            className={resolveClassName + ' tip'}
+            className={buttonClass + ' tip'}
             title={t(
               'This event is resolved due to the Auto Resolve configuration for this project'
             )}
@@ -52,11 +62,11 @@ export default class ResolveActions extends React.Component {
           </a>
         </div>
       );
-    } else if (group.status === 'resolved') {
+    } else {
       return (
         <div className="btn-group">
           <a
-            className={resolveClassName}
+            className={buttonClass}
             title={t('Unresolve')}
             onClick={() => onUpdate({status: 'unresolved'})}
           >
@@ -65,11 +75,37 @@ export default class ResolveActions extends React.Component {
         </div>
       );
     }
+  }
+
+  render() {
+    let {
+      isResolved,
+      hasRelease,
+      latestRelease,
+      onUpdate,
+      orgId,
+      projectId,
+      confirmMessage,
+      shouldConfirm,
+      disabled,
+    } = this.props;
+
+    let buttonClass = `${this.getButtonClass()} ${disabled && 'disabled'}`;
+
+    if (isResolved) {
+      return this.renderResolved();
+    }
 
     let actionClassName = `tip ${!hasRelease ? 'disabled' : ''}`;
     let actionTitle = !hasRelease
       ? t('Set up release tracking in order to use this feature.')
       : '';
+
+    let actionLinkProps = {
+      shouldConfirm,
+      title: actionTitle,
+      confirmationQuestion: confirmMessage,
+    };
 
     return (
       <div style={{display: 'inline-block'}}>
@@ -77,29 +113,32 @@ export default class ResolveActions extends React.Component {
           show={this.state.modal}
           onSelected={statusDetails => this.onCustomResolution(statusDetails)}
           onCanceled={() => this.setState({modal: false})}
-          orgId={this.props.orgId}
-          projectId={this.props.projectId}
+          orgId={orgId}
+          projectId={projectId}
         />
         <div className="btn-group">
-          <a
-            key="resolve-button"
-            className={resolveClassName}
-            title={t('Resolve')}
-            onClick={() => onUpdate({status: 'resolved'})}
+          <ActionLink
+            {...actionLinkProps}
+            className={buttonClass}
+            onAction={() => onUpdate({status: 'resolved'})}
           >
             <span className="icon-checkmark" style={{marginRight: 5}} />
             {t('Resolve')}
-          </a>
+          </ActionLink>
+
           <DropdownLink
             key="resolve-dropdown"
             caret={true}
-            className={resolveClassName}
+            className={buttonClass}
             title=""
+            alwaysRenderMenu
           >
             <MenuItem header={true}>{t('Resolved In')}</MenuItem>
             <MenuItem noAnchor={true}>
-              <a
-                onClick={() => {
+              <ActionLink
+                {...actionLinkProps}
+                className={actionClassName}
+                onAction={() => {
                   return (
                     hasRelease &&
                     onUpdate({
@@ -110,13 +149,12 @@ export default class ResolveActions extends React.Component {
                     })
                   );
                 }}
-                className={actionClassName}
-                title={actionTitle}
               >
                 {t('The next release')}
-              </a>
-              <a
-                onClick={() => {
+              </ActionLink>
+              <ActionLink
+                {...actionLinkProps}
+                onAction={() => {
                   return (
                     hasRelease &&
                     onUpdate({
@@ -128,19 +166,20 @@ export default class ResolveActions extends React.Component {
                   );
                 }}
                 className={actionClassName}
-                title={actionTitle}
               >
                 {latestRelease
                   ? t('The current release (%s)', getShortVersion(latestRelease.version))
                   : t('The current release')}
-              </a>
-              <a
-                onClick={() => hasRelease && this.setState({modal: true})}
+              </ActionLink>
+
+              <ActionLink
+                {...actionLinkProps}
+                onAction={() => hasRelease && this.setState({modal: true})}
                 className={actionClassName}
-                title={actionTitle}
+                shouldConfirm={false}
               >
                 {t('Another version ...')}
-              </a>
+              </ActionLink>
             </MenuItem>
           </DropdownLink>
         </div>

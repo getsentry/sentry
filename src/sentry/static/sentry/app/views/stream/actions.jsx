@@ -12,14 +12,13 @@ import IndicatorStore from '../../stores/indicatorStore';
 import MenuItem from '../../components/menuItem';
 import SelectedGroupStore from '../../stores/selectedGroupStore';
 import {t, tct, tn} from '../../locale';
-import {getShortVersion} from '../../utils';
 
 import CustomIgnoreCountModal from '../../components/customIgnoreCountModal';
 import CustomIgnoreDurationModal from '../../components/customIgnoreDurationModal';
-import CustomResolutionModal from '../../components/customResolutionModal';
 import Checkbox from '../../components/checkbox';
 import Toolbar from '../../components/toolbar';
 import ToolbarHeader from '../../components/toolbarHeader';
+import ResolveActions from '../../components/actions/resolve';
 
 const BULK_LIMIT_STR = '1,000';
 
@@ -300,126 +299,6 @@ const IgnoreActions = React.createClass({
   },
 });
 
-const ResolveActions = React.createClass({
-  propTypes: {
-    orgId: PropTypes.string.isRequired,
-    projectId: PropTypes.string.isRequired,
-    hasRelease: PropTypes.bool.isRequired,
-    latestRelease: PropTypes.object,
-    anySelected: PropTypes.bool.isRequired,
-    allInQuerySelected: PropTypes.bool.isRequired,
-    pageSelected: PropTypes.bool.isRequired,
-    onUpdate: PropTypes.func.isRequired,
-    query: PropTypes.string,
-  },
-
-  getInitialState() {
-    return {
-      modal: false,
-    };
-  },
-
-  onCustomResolution(statusDetails) {
-    this.setState({
-      modal: false,
-    });
-    this.props.onUpdate({
-      status: 'resolved',
-      statusDetails,
-    });
-  },
-
-  render() {
-    let {
-      hasRelease,
-      latestRelease,
-      projectId,
-      orgId,
-      allInQuerySelected,
-      query,
-    } = this.props;
-    let extraDescription = <ExtraDescription all={allInQuerySelected} query={query} />;
-    let linkClassName = 'group-resolve btn btn-default btn-sm';
-    let actionLinkProps = {
-      onlyIfBulk: true,
-      disabled: !this.props.anySelected,
-      selectAllActive: this.props.pageSelected,
-      extraDescription,
-      buttonTitle: t('Resolve'),
-      confirmationQuestion: allInQuerySelected
-        ? getBulkConfirmMessage('resolve')
-        : count =>
-            tn(
-              'Are you sure you want to resolve this %d issue?',
-              'Are you sure you want to resolve these %d issues?',
-              count
-            ),
-      confirmLabel: this.props.allInQuerySelected
-        ? t('Bulk resolve issues')
-        : count => tn('Resolve %d selected issue', 'Resolve %d selected issues', count),
-    };
-    return (
-      <div style={{display: 'inline-block'}}>
-        <CustomResolutionModal
-          show={this.state.modal}
-          onSelected={this.onCustomResolution}
-          onCanceled={() => this.setState({modal: false})}
-          orgId={orgId}
-          projectId={projectId}
-        />
-        <div className="btn-group">
-          <ActionLink
-            onAction={() => this.props.onUpdate({status: 'resolved'})}
-            className={linkClassName}
-            {...actionLinkProps}
-          >
-            <span className="icon-checkmark" style={{marginRight: 5}} />
-            {t('Resolve')}
-          </ActionLink>
-          <DropdownLink
-            key="resolve-dropdown"
-            caret={true}
-            className={linkClassName}
-            title=""
-            disabled={!this.props.anySelected}
-          >
-            <MenuItem header={true}>{t('Resolved In')}</MenuItem>
-            <MenuItem noAnchor={true}>
-              <ActionLink
-                onAction={() =>
-                  this.props.onUpdate({
-                    status: 'resolved',
-                    statusDetails: {inNextRelease: true},
-                  })}
-                {...actionLinkProps}
-              >
-                {t('The next release')}
-              </ActionLink>
-              <ActionLink
-                onAction={() =>
-                  this.props.onUpdate({
-                    status: 'resolved',
-                    statusDetails: {
-                      inRelease: latestRelease ? latestRelease.version : 'latest',
-                    },
-                  })}
-                {...actionLinkProps}
-              >
-                {latestRelease
-                  ? t('The current release (%s)', getShortVersion(latestRelease.version))
-                  : t('The current release')}
-              </ActionLink>
-              <a onClick={() => hasRelease && this.setState({modal: true})}>
-                {t('Another version ...')}
-              </a>
-            </MenuItem>
-          </DropdownLink>
-        </div>
-      </div>
-    );
-  },
-});
-
 const StreamActions = React.createClass({
   propTypes: {
     allResultsVisible: PropTypes.bool,
@@ -504,7 +383,7 @@ const StreamActions = React.createClass({
     this.setState({allInQuerySelected: false});
   },
 
-  onUpdate(data, event) {
+  onUpdate(data) {
     this.actionSelectedGroups(itemIds => {
       let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
 
@@ -582,12 +461,33 @@ const StreamActions = React.createClass({
     this.props.onRealtimeChange(!this.props.realtimeActive);
   },
 
+  shouldConfirm(action) {
+    let selectedItems = SelectedGroupStore.getSelectedIds();
+    switch (action) {
+      case 'resolve':
+        return this.state.pageSelected && selectedItems.size > 1;
+      default:
+        // By default, should confirm ...
+        return true;
+    }
+  },
+
   render() {
     // TODO(mitsuhiko): very unclear how to translate this
-    let numIssues = SelectedGroupStore.getSelectedIds().size;
+    let issues = SelectedGroupStore.getSelectedIds();
+    let numIssues = issues.size;
     let extraDescription = (
       <ExtraDescription all={this.state.allInQuerySelected} query={this.props.query} />
     );
+
+    let resolveBulkConfirmMessage = this.state.allInQuerySelected
+      ? getBulkConfirmMessage('resolve')
+      : count =>
+          tn(
+            'Are you sure you want to resolve this %d issue?',
+            'Are you sure you want to resolve these %d issues?',
+            numIssues
+          );
 
     return (
       <div>
@@ -603,13 +503,12 @@ const StreamActions = React.createClass({
             <ResolveActions
               hasRelease={this.props.hasReleases}
               latestRelease={this.props.latestRelease}
-              anySelected={this.state.anySelected}
               onUpdate={this.onUpdate}
-              allInQuerySelected={this.state.allInQuerySelected}
-              pageSelected={this.state.pageSelected}
-              query={this.props.query}
               orgId={this.props.orgId}
               projectId={this.props.projectId}
+              disabled={issues.size === 0}
+              shouldConfirm={this.shouldConfirm('resolve')}
+              confirmMessage={resolveBulkConfirmMessage()}
             />
             <IgnoreActions
               anySelected={this.state.anySelected}
