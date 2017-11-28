@@ -4,7 +4,6 @@ import logging
 from collections import defaultdict
 
 from django.db import transaction
-from django.db.models import F
 
 from sentry import tagstore
 from sentry.app import tsdb
@@ -324,10 +323,13 @@ def repair_tag_data(caches, project, events):
                 )
 
                 if not created:
-                    # TODO
-                    instance.update(
-                        first_seen=first_seen,
-                        times_seen=F('times_seen') + times_seen,
+                    tagstore.incr_group_tag_value_times_seen(
+                        group_id=group_id,
+                        environment_id=environment.id,
+                        key=key,
+                        value=value,
+                        count=times_seen,
+                        extra={'first_seen': first_seen}
                     )
 
 
