@@ -94,14 +94,6 @@ class AuthLoginTest(TestCase):
         assert resp.context['op'] == 'register'
         self.assertTemplateUsed('sentry/login.html')
 
-    def test_already_logged_in(self):
-        self.login_as(self.user)
-        with self.feature('organizations:create'):
-            resp = self.client.get(self.path)
-
-        assert resp.status_code == 302
-        assert resp['Location'] == 'http://testserver/organizations/new/'
-
     def test_register_prefills_invite_email(self):
         self.session['invite_email'] = 'foo@example.com'
         self.session['can_register'] = True
@@ -144,7 +136,16 @@ class AuthLoginTest(TestCase):
         assert next not in resp['Location']
         assert resp['Location'] == 'http://testserver/auth/login/'
 
-    def test_doesnt_redirect_with_superuser(self):
+    def test_redirects_already_authed_non_superuser(self):
+        self.user.update(is_superuser=False)
+        self.login_as(self.user)
+        with self.feature('organizations:create'):
+            resp = self.client.get(self.path)
+
+        assert resp.status_code == 302
+        assert resp['Location'] == 'http://testserver/organizations/new/'
+
+    def test_doesnt_redirect_already_authed_superuser(self):
         self.login_as(self.user, superuser=False)
 
         resp = self.client.get(self.path)

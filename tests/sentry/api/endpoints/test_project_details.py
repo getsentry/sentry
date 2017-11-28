@@ -90,7 +90,7 @@ class ProjectUpdateTest(APITestCase):
 
     def test_team_changes(self):
         project = self.create_project()
-        team = self.create_team()
+        team = self.create_team(members=[self.user])
         self.login_as(user=self.user)
         url = reverse(
             'sentry-api-0-project-details',
