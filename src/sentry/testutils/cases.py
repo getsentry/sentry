@@ -129,7 +129,7 @@ class BaseTestCase(Fixtures, Exam):
 
     # TODO(dcramer): we want to make the default behavior be ``superuser=False``
     # but for compatibility reasons we need to update other projects first
-    def login_as(self, user, organization_id=None, superuser=True):
+    def login_as(self, user, organization_id=None, superuser=False):
         user.backend = settings.AUTHENTICATION_BACKENDS[0]
 
         request = self.make_request()
@@ -141,7 +141,8 @@ class BaseTestCase(Fixtures, Exam):
         # want that action to be explicit to avoid accidentally testing
         # superuser-only code
         if not superuser:
-            request.superuser.set_logged_out()
+            # XXX(dcramer): we're calling the internal method to avoid logging
+            request.superuser._set_logged_out()
         elif request.user.is_superuser and superuser:
             request.superuser.set_logged_in(request.user)
             # XXX(dcramer): awful hack to ensure future attempts to instantiate

@@ -350,7 +350,7 @@ class SetCommitsTestCase(TestCase):
         assert release.last_commit_id == latest_commit.id
 
     def test_resolution_support_full_featured(self):
-        org = self.create_organization()
+        org = self.create_organization(owner=self.user)
         project = self.create_project(organization=org, name='foo')
         group = self.create_group(project=project)
 
