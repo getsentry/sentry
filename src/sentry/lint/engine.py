@@ -116,7 +116,6 @@ def py_lint(file_list, parseable=False):
 
 def js_lint(file_list=None, parseable=False, format=False):
 
-    project_root = get_project_root()
     eslint_path = get_node_modules_bin('eslint')
 
     if not os.path.exists(eslint_path):
@@ -124,12 +123,11 @@ def js_lint(file_list=None, parseable=False, format=False):
         echo('!! Skipping JavaScript linting because eslint is not installed.')
         return False
 
-    eslint_config = os.path.join(project_root, '.eslintrc')
     js_file_list = get_js_files(file_list)
 
     has_errors = False
     if js_file_list:
-        cmd = [eslint_path, '--config', eslint_config, '--ext', '.jsx']
+        cmd = [eslint_path, '--ext', '.js,.jsx']
         if format:
             cmd.append('--fix')
         if parseable:
