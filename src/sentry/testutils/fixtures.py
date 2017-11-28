@@ -216,15 +216,11 @@ class Fixtures(object):
             group=self.group, project=self.project, type=Activity.NOTE, user=self.user, data={}
         )
 
-    def create_organization(self, **kwargs):
-        if not kwargs.get('name'):
-            kwargs['name'] = petname.Generate(2, ' ', letters=10).title()
+    def create_organization(self, name=None, owner=None, **kwargs):
+        if not name:
+            name = petname.Generate(2, ' ', letters=10).title()
 
-        owner = kwargs.pop('owner', -1)
-        if owner is -1:
-            owner = self.user
-
-        org = Organization.objects.create(**kwargs)
+        org = Organization.objects.create(name=name, **kwargs)
         if owner:
             self.create_member(
                 organization=org,
@@ -239,12 +235,27 @@ class Fixtures(object):
         om = OrganizationMember.objects.create(**kwargs)
         if teams:
             for team in teams:
-                OrganizationMemberTeam.objects.create(
+                self.create_team_membership(
                     team=team,
-                    organizationmember=om,
-                    is_active=True,
+                    member=om,
                 )
         return om
+
+    def create_team_membership(self, team, member=None, user=None):
+        if member is None:
+            member, _ = OrganizationMember.objects.get_or_create(
+                user=user,
+                organization=team.organization,
+                defaults={
+                    'role': 'member',
+                }
+            )
+
+        return OrganizationMemberTeam.objects.create(
+            team=team,
+            organizationmember=member,
+            is_active=True,
+        )
 
     def create_team(self, **kwargs):
         if not kwargs.get('name'):
@@ -253,8 +264,13 @@ class Fixtures(object):
             kwargs['slug'] = slugify(six.text_type(kwargs['name']))
         if not kwargs.get('organization'):
             kwargs['organization'] = self.organization
+        members = kwargs.pop('members', None)
 
-        return Team.objects.create(**kwargs)
+        team = Team.objects.create(**kwargs)
+        if members:
+            for user in members:
+                self.create_team_membership(team=team, user=user)
+        return team
 
     def create_environment(self, **kwargs):
         project = kwargs.get('project', self.project)
