@@ -94,7 +94,7 @@ const AvatarSettings = React.createClass({
     let gravatarMessage = (
       <div className="well">
         {t('Gravatars are managed through ')}
-        <a href="http://gravatar.com" target="_blank">
+        <a href="http://gravatar.com" target="_blank" rel="noreferrer noopener">
           Gravatar.com
         </a>
       </div>

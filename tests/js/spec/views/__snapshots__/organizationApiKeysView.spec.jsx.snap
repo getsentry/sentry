@@ -56,13 +56,19 @@ exports[`OrganizationApiKeysView renders 1`] = `
       <p>
         API keys grant access to the
          
-        <a
+        <ExternalLink
           href="https://docs.sentry.io/hosted/api/"
-          rel="nofollow"
+          rel="noreferrer noopener"
           target="_blank"
         >
-          developer web API
-        </a>
+          <a
+            href="https://docs.sentry.io/hosted/api/"
+            rel="noreferrer noopener"
+            target="_blank"
+          >
+            developer web API
+          </a>
+        </ExternalLink>
         . If you're looking to configure a Sentry client, you'll need a client key which is available in your project settings.
       </p>
       <div

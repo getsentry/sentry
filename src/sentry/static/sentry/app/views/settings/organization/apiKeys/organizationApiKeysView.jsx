@@ -5,6 +5,7 @@ import {Client} from '../../../../api';
 import {t} from '../../../../locale';
 import Button from '../../../../components/buttons/button';
 import Link from '../../../../components/link';
+import ExternalLink from '../../../../components/externalLink';
 import LinkWithConfirmation from '../../../../components/linkWithConfirmation';
 import SentryTypes from '../../../../proptypes';
 import SpreadLayout from '../../../../components/spreadLayout';
@@ -81,9 +82,9 @@ class OrganizationApiKeysView extends OrganizationSettingsView {
 
         <p>
           API keys grant access to the{' '}
-          <a target="_blank" rel="nofollow" href="https://docs.sentry.io/hosted/api/">
+          <ExternalLink href="https://docs.sentry.io/hosted/api/">
             developer web API
-          </a>
+          </ExternalLink>
           . If you're looking to configure a Sentry client, you'll need a client key which
           is available in your project settings.
         </p>
