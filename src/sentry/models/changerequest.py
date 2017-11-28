@@ -4,41 +4,32 @@ from django.db import models
 from django.utils import timezone
 
 from sentry.db.models import (BoundedPositiveIntegerField, FlexibleForeignKey, Model, sane_repr)
-from sentry.utils.cache import memoize
 from sentry.utils.grouprefence import find_referenced_groups
 
 
-class Commit(Model):
+class ChangeRequest(Model):
     __core__ = False
 
     organization_id = BoundedPositiveIntegerField(db_index=True)
     repository_id = BoundedPositiveIntegerField()
-    key = models.CharField(max_length=64)
+
+    key = models.CharField(max_length=64)  # example, 5131 on github
+
     date_added = models.DateTimeField(default=timezone.now)
-    # all commit metadata must be optional, as it may not be available
-    # when the initial commit object is referenced (and thus created)
+
+    commits = models.ManyToManyField('sentry.Commit')
+    title = models.TextField()
+    message = models.TextField()
     author = FlexibleForeignKey('sentry.CommitAuthor', null=True)
-    message = models.TextField(null=True)
 
     class Meta:
         app_label = 'sentry'
-        db_table = 'sentry_commit'
+        db_table = 'sentry_change_request'
         index_together = (('repository_id', 'date_added'), )
         unique_together = (('repository_id', 'key'), )
 
     __repr__ = sane_repr('organization_id', 'repository_id', 'key')
 
-    @memoize
-    def title(self):
-        if not self.message:
-            return ''
-        return self.message.splitlines()[0]
-
-    @memoize
-    def short_id(self):
-        if len(self.key) == 40:
-            return self.key[:7]
-        return self.key
-
     def find_referenced_groups(self):
-        return find_referenced_groups(self.message, self.organization_id)
+        text = "{} {}".format(self.message, self.title)
+        return find_referenced_groups(text, self.organization_id)
