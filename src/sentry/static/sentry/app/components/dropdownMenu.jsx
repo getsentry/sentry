@@ -5,6 +5,10 @@ class DropdownMenu extends React.Component {
   static propTypes = {
     onOpen: PropTypes.func,
     onClose: PropTypes.func,
+    /**
+     * Callback for when we get a click outside of dropdown menus.
+     * Useful for when menu is controlled.
+     */
     onClickOutside: PropTypes.func,
 
     /**
@@ -176,9 +180,9 @@ class DropdownMenu extends React.Component {
         this.handleMouseLeave(...args);
       },
       onClick: (...args) => {
-        if (!isNestedDropdown) {
-          this.handleToggle(...args);
-        }
+        // Note: clicking on an actor that has a nested menu will close the dropdown menus
+        // This is because we currently do not try to find the deepest non-nested dropdown menu
+        this.handleToggle(...args);
 
         if (typeof onClick === 'function') {
           onClick(...args);
@@ -197,11 +201,10 @@ class DropdownMenu extends React.Component {
         this.handleMouseLeave(...args);
       },
       onClick: e => {
-        if (!isNestedDropdown) {
-          this.handleDropdownMenuClick(e);
-        } else {
-          e.stopPropagation();
-        }
+        // Note: clicking on an actor that has a nested menu will close the dropdown menus
+        // This is because we currently do not try to find the deepest non-nested dropdown menu
+        this.handleDropdownMenuClick(e);
+
         if (typeof onClick === 'function') {
           onClick(e);
         }

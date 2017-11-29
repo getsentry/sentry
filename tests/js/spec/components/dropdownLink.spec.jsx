@@ -160,21 +160,60 @@ describe('DropdownLink', function() {
 
       wrapper = mount(
         <DropdownLink title="parent">
-          <DropdownLink title="nested" isNestedDropdown={true}>
-            Test
-          </DropdownLink>
+          <li id="nested-actor">
+            <DropdownLink className="nested-menu" title="nested" isNestedDropdown={true}>
+              <li id="nested-actor-2">
+                <DropdownLink
+                  className="nested-menu-2"
+                  title="nested #2"
+                  isNestedDropdown={true}
+                >
+                  <li id="nested-actor-3">Hello</li>
+                </DropdownLink>
+              </li>
+            </DropdownLink>
+          </li>
+          <li id="no-nest">Item 2</li>
         </DropdownLink>
       );
+
+      // Start when menu open
+      wrapper.find('a').simulate('click');
+    });
+
+    it('closes when top-level actor is clicked', function() {
+      wrapper
+        .find('a')
+        .first()
+        .simulate('click');
+      expect(wrapper.find('.dropdown-menu')).toHaveLength(0);
     });
 
     it('Opens / closes on mouse enter and leave', function() {
-      wrapper.find('a').simulate('click');
       wrapper.find('.dropdown-menu a').simulate('mouseEnter');
       expect(wrapper.find('.dropdown-menu').length).toBe(2);
 
-      wrapper.find('.dropdown-menu a').simulate('mouseLeave');
+      wrapper.find('.nested-menu').simulate('mouseLeave');
 
       expect(wrapper.find('.dropdown-menu').length).toBe(1);
+    });
+
+    it('closes when first level nested actor is clicked', function() {
+      wrapper.find('#nested-actor').simulate('click');
+      expect(wrapper.find('.dropdown-menu')).toHaveLength(0);
+    });
+
+    it('closes when second level nested actor is clicked', function() {
+      wrapper.find('.nested-menu').simulate('mouseEnter');
+      wrapper.find('.nested-menu-2 span').simulate('click');
+      expect(wrapper.find('.dropdown-menu')).toHaveLength(0);
+    });
+
+    it('closes when third level nested actor is clicked', function() {
+      wrapper.find('.nested-menu').simulate('mouseEnter');
+      wrapper.find('.nested-menu-2').simulate('mouseEnter');
+      wrapper.find('#nested-actor-3').simulate('click');
+      expect(wrapper.find('.dropdown-menu')).toHaveLength(0);
     });
   });
 });
