@@ -5,6 +5,7 @@ Schema Changes
 ~~~~~~~~~~~~~~
 
 - Drop index on ``EventTag(project_id, key_id, value_id)``
+- Increased length of ``Release.ref`` and ``Release.version`` to 250
 
 Version 8.22
 ------------
