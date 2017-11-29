@@ -10,6 +10,7 @@ from __future__ import absolute_import
 
 __all__ = ('Exception', )
 
+import re
 import six
 
 from django.conf import settings
@@ -18,6 +19,8 @@ from sentry.interfaces.base import Interface, InterfaceValidationError
 from sentry.interfaces.stacktrace import Stacktrace, slim_frame_data
 from sentry.utils import json
 from sentry.utils.safe import trim
+
+_type_value_re = re.compile('^(\w+):(.*)$')
 
 
 class SingleException(Interface):
@@ -64,10 +67,11 @@ class SingleException(Interface):
         type = data.get('type')
         value = data.get('value')
         if isinstance(value, six.string_types):
-            if type is None and ':' in value.split(' ', 1)[0]:
-                type, value = value.split(':', 1)
-                # in case of TypeError: foo (no space)
-                value = value.strip()
+            if type is None:
+                m = _type_value_re.match(value)
+                if m:
+                    type = m.group(1)
+                    value = m.group(2).strip()
         elif value is not None:
             value = json.dumps(value)
 
