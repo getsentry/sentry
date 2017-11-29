@@ -1,3 +1,14 @@
+"""
+Superuser in Sentry works differently than the native Django implementation.
+
+In Sentry a user must achieve the following to be treated as a superuser:
+
+- ``User.is_superuser`` must be True
+- If configured, the user must be accessing Sentry from a privileged IP (``SUPERUSER_ALLOWED_IPS``)
+- The user must have a valid 'superuser session', which is a secondary session on top of their
+  standard auth. This session has a shorter lifespan.
+"""
+
 from __future__ import absolute_import
 
 import ipaddress
