@@ -12,7 +12,6 @@ from django.conf import settings
 
 # HACK: This was taken from nodestore.models. Django doesn't play well with our
 # naming schemes, and we prefer our methods ways over Django's limited scoping
-# from .django.models import *  # NOQA
 if settings.SENTRY_TAGSTORE.startswith('sentry.tagstore.legacy.LegacyTagStorage'):
     from sentry.tagstore.legacy.models import *  # NOQA
 elif settings.SENTRY_TAGSTORE.startswith('sentry.tagstore.v2'):
