@@ -13,9 +13,9 @@ from sentry import tagstore, tsdb
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.constants import LOG_LEVELS, StatsPeriod
 from sentry.models import (
-    Group, GroupAssignee, GroupBookmark, GroupMeta, GroupResolution, GroupSeen, GroupSnooze,
-    GroupShare, GroupStatus, GroupSubscription, GroupSubscriptionReason, User, UserOption,
-    UserOptionValue
+    Environment, Group, GroupAssignee, GroupBookmark, GroupMeta, GroupResolution,
+    GroupSeen, GroupSnooze, GroupShare, GroupStatus, GroupSubscription,
+    GroupSubscriptionReason, User, UserOption, UserOptionValue
 )
 from sentry.utils.db import attach_foreignkey
 from sentry.utils.http import absolute_uri
@@ -329,12 +329,17 @@ class StreamGroupSerializer(GroupSerializer):
         '24h': StatsPeriod(24, timedelta(hours=1)),
     }
 
-    def __init__(self, stats_period=None, matching_event_id=None):
+    def __init__(self, stats_period=None, matching_event_id=None, get_environment_id=None):
         if stats_period is not None:
             assert stats_period in self.STATS_PERIOD_CHOICES
 
+        if get_environment_id is None:
+            def get_environment_id():
+                return None
+
         self.stats_period = stats_period
         self.matching_event_id = matching_event_id
+        self.get_environment_id = get_environment_id
 
     def get_attrs(self, item_list, user):
         attrs = super(StreamGroupSerializer, self).get_attrs(item_list, user)
@@ -345,13 +350,23 @@ class StreamGroupSerializer(GroupSerializer):
 
             segments, interval = self.STATS_PERIOD_CHOICES[self.stats_period]
             now = timezone.now()
-            stats = tsdb.get_range(
-                model=tsdb.models.group,
-                keys=group_ids,
-                end=now,
-                start=now - ((segments - 1) * interval),
-                rollup=int(interval.total_seconds()),
-            )
+            try:
+                stats = tsdb.get_range(
+                    model=tsdb.models.group,
+                    keys=group_ids,
+                    end=now,
+                    start=now - ((segments - 1) * interval),
+                    rollup=int(interval.total_seconds()),
+                    environment_id=self.get_environment_id(),
+                )
+            except Environment.DoesNotExist:
+                stats = {
+                    key: tsdb.make_series(
+                        start=now - ((segments - 1) * interval),
+                        end=now,
+                        rollup=int(interval.total_seconds()),
+                    ) for key in group_ids
+                }
 
             for item in item_list:
                 attrs[item].update({
