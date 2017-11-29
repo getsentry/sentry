@@ -53,7 +53,6 @@ from sentry.web.frontend.project_plugin_reset import ProjectPluginResetView
 from sentry.web.frontend.project_plugins import ProjectPluginsView
 from sentry.web.frontend.project_rule_edit import ProjectRuleEditView
 from sentry.web.frontend.project_settings import ProjectSettingsView
-from sentry.web.frontend.project_tags import ProjectTagsView
 from sentry.web.frontend.react_page import GenericReactPageView, ReactPageView
 from sentry.web.frontend.reactivate_account import ReactivateAccountView
 from sentry.web.frontend.release_webhook import ReleaseWebhookView
@@ -459,11 +458,6 @@ urlpatterns += patterns(
         r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/settings/transfer/$',
         TransferProjectView.as_view(),
         name='sentry-transfer-project'
-    ),
-    url(
-        r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/settings/tags/$',
-        ProjectTagsView.as_view(),
-        name='sentry-manage-project-tags'
     ),
     url(
         r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/settings/alerts/rules/new/$',

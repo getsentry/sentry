@@ -51,6 +51,7 @@ import OrganizationStats from './views/organizationStats';
 import OrganizationTeams from './views/organizationTeams';
 import ProjectAlertRules from './views/projectAlertRules';
 import ProjectAlertSettings from './views/projectAlertSettings';
+import ProjectTags from './views/projectTags';
 import ProjectChooser from './views/projectChooser';
 import ProjectCspSettings from './views/projectCspSettings';
 import ProjectDashboard from './views/projectDashboard';
@@ -150,6 +151,7 @@ const projectSettingsRoutes = [
     path="alerts/"
     component={errorHandler(ProjectAlertSettings)}
   />,
+  <Route key="tags/" name="Tags" path="tags/" component={errorHandler(ProjectTags)} />,
   <Route
     key="alerts/rules/"
     path="alerts/rules/"
@@ -220,10 +222,11 @@ const projectSettingsRoutes = [
     key="install/"
     path="install/"
     name="Basic Configuration"
-    component={errorHandler(ProjectDocsContext)}>
+    component={errorHandler(ProjectDocsContext)}
+  >
     <IndexRoute component={errorHandler(ProjectInstallOverview)} />
     <Route path=":platform/" component={errorHandler(ProjectInstallPlatform)} />
-  </Route>
+  </Route>,
 ];
 
 function routes() {
