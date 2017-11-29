@@ -38,10 +38,10 @@ COOKIE_PATH = getattr(settings, 'SUPERUSER_COOKIE_PATH', settings.SESSION_COOKIE
 COOKIE_HTTPONLY = getattr(settings, 'SUPERUSER_COOKIE_HTTPONLY', True)
 
 # the maximum time the session can stay alive
-MAX_AGE = getattr(settings, 'SUPERUSER_MAX_AGE', timedelta(hours=6))
+MAX_AGE = getattr(settings, 'SUPERUSER_MAX_AGE', timedelta(hours=4))
 
 # the maximum time the session can stay alive without making another request
-IDLE_MAX_AGE = getattr(settings, 'SUPERUSER_IDLE_MAX_AGE', timedelta(minutes=15))
+IDLE_MAX_AGE = getattr(settings, 'SUPERUSER_IDLE_MAX_AGE', timedelta(minutes=30))
 
 ALLOWED_IPS = frozenset(getattr(settings, 'SUPERUSER_ALLOWED_IPS', settings.INTERNAL_IPS) or ())
 
