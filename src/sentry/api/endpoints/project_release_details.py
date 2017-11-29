@@ -9,13 +9,12 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import CommitSerializer, ListField
 from sentry.models import Activity, Group, Release, ReleaseFile
 from sentry.plugins.interfaces.releasehook import ReleaseHook
-from sentry.constants import VERSION_LENGTH
 
 ERR_RELEASE_REFERENCED = "This release is referenced by active issues and cannot be removed."
 
 
 class ReleaseSerializer(serializers.Serializer):
-    ref = serializers.CharField(max_length=VERSION_LENGTH, required=False)
+    ref = serializers.CharField(max_length=64, required=False)
     url = serializers.URLField(required=False)
     dateReleased = serializers.DateTimeField(required=False)
     commits = ListField(child=CommitSerializer(), required=False, allow_null=False)

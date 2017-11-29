@@ -9,25 +9,13 @@ class Migration(SchemaMigration):
 
     # Flag to indicate if this migration is too risky
     # to run online and needs to be coordinated for offline
-    is_dangerous = True
+    is_dangerous = False
 
     def forwards(self, orm):
-        db.alter_column(
-            'sentry_release',
-            'ref',
-            self.gf('django.db.models.fields.CharField')(
-                max_length=250,
-                null=True))
         db.alter_column('sentry_release', 'version', self.gf(
             'django.db.models.fields.CharField')(max_length=250))
 
     def backwards(self, orm):
-        db.alter_column(
-            'sentry_release',
-            'ref',
-            self.gf('django.db.models.fields.CharField')(
-                max_length=64,
-                null=True))
         db.alter_column('sentry_release', 'version', self.gf(
             'django.db.models.fields.CharField')(max_length=64))
 
