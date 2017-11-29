@@ -14,7 +14,11 @@ class OrganizationIssueList extends React.Component {
     pageSize: PropTypes.number,
   };
 
-  state = this.getQueryStringState(this.props),
+  constructor(props, ...args) {
+    super(props, ...args);
+
+    this.state = this.getQueryStringState(props);
+  }
 
   componentWillReceiveProps(nextProps) {
     if (nextProps.location.search !== this.props.location.search) {
@@ -26,7 +30,7 @@ class OrganizationIssueList extends React.Component {
     GroupStore.reset();
   }
 
-  getQueryStringState = (props) => {
+  getQueryStringState = props => {
     let location = props.location;
     let status = location.query.hasOwnProperty('status')
       ? location.query.status
@@ -35,8 +39,6 @@ class OrganizationIssueList extends React.Component {
       status,
     };
   };
-
-  state = this.getQueryStringState(this.props);
 
   render() {
     let path = this.props.location.pathname;
