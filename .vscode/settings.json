@@ -45,7 +45,7 @@
     "python.formatting.provider": "autopep8",
     "python.formatting.autopep8Args": ["--global-config", "${workspaceRoot}/setup.cfg"],
     // https://github.com/DonJayamanne/pythonVSCode/issues/992
-    "python.pythonPath": "${env.WORKON_HOME}/sentry/bin/python",
+    "python.pythonPath": "/usr/bin/python",
     // test discovery is sluggish and the UI around running
     // tests is often in your way and misclicked
     "python.unitTest.pyTestEnabled": false,

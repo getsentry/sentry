@@ -5,150 +5,152 @@ import ApiMixin from '../mixins/apiMixin';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
 import InternalStatChart from '../components/internalStatChart';
-import {Select2Field} from '../components/forms';
+import { Select2Field } from '../components/forms';
+
+import { t } from '../locale';
 
 export default React.createClass({
-  mixins: [ApiMixin],
+    mixins: [ApiMixin],
 
-  getInitialState() {
-    return {
-      timeWindow: '1w',
-      since: new Date().getTime() / 1000 - 3600 * 24 * 7,
-      resolution: '1h',
-      loading: true,
-      error: false,
-      taskName: null,
-      taskList: [],
-    };
-  },
+    getInitialState() {
+        return {
+            timeWindow: '1w',
+            since: new Date().getTime() / 1000 - 3600 * 24 * 7,
+            resolution: '1h',
+            loading: true,
+            error: false,
+            taskName: null,
+            taskList: [],
+        };
+    },
 
-  componentDidMount() {
-    this.fetchData();
-  },
+    componentDidMount() {
+        this.fetchData();
+    },
 
-  fetchData() {
-    this.api.request('/internal/queue/tasks/', {
-      method: 'GET',
-      success: data => {
-        this.setState({
-          taskList: data,
-          loading: false,
-          error: false,
+    fetchData() {
+        this.api.request('/internal/queue/tasks/', {
+            method: 'GET',
+            success: data => {
+                this.setState({
+                    taskList: data,
+                    loading: false,
+                    error: false,
+                });
+            },
+            error: data => {
+                this.setState({
+                    error: true,
+                });
+            },
         });
-      },
-      error: data => {
+    },
+
+    changeWindow(timeWindow) {
+        let seconds;
+        if (timeWindow === '1h') {
+            seconds = 3600;
+        } else if (timeWindow === '1d') {
+            seconds = 3600 * 24;
+        } else if (timeWindow === '1w') {
+            seconds = 3600 * 24 * 7;
+        } else {
+            throw new Error('Invalid time window');
+        }
         this.setState({
-          error: true,
+            since: new Date().getTime() / 1000 - seconds,
+            timeWindow,
         });
-      },
-    });
-  },
+    },
 
-  changeWindow(timeWindow) {
-    let seconds;
-    if (timeWindow === '1h') {
-      seconds = 3600;
-    } else if (timeWindow === '1d') {
-      seconds = 3600 * 24;
-    } else if (timeWindow === '1w') {
-      seconds = 3600 * 24 * 7;
-    } else {
-      throw new Error('Invalid time window');
-    }
-    this.setState({
-      since: new Date().getTime() / 1000 - seconds,
-      timeWindow,
-    });
-  },
+    changeTask(value) {
+        this.setState({ activeTask: value });
+    },
 
-  changeTask(value) {
-    this.setState({activeTask: value});
-  },
+    render() {
+        let { activeTask, taskList } = this.state;
 
-  render() {
-    let {activeTask, taskList} = this.state;
-
-    return (
-      <div>
-        <div className="btn-group pull-right">
-          {['1h', '1d', '1w'].map(r => {
-            return (
-              <a
-                className={`btn btn-sm ${r == this.state.timeWindow
-                  ? 'btn-primary'
-                  : 'btn-default'}`}
-                onClick={() => this.changeWindow(r)}
-                key={r}
-              >
-                {r}
-              </a>
-            );
-          })}
-        </div>
-
-        <h3 className="no-border">Queue Overview</h3>
-
-        <div className="box">
-          <div className="box-header">
-            <h3>Global Throughput</h3>
-          </div>
-          <InternalStatChart
-            since={this.state.since}
-            resolution={this.state.resolution}
-            stat="jobs.all.started"
-            label="jobs started"
-          />
-        </div>
-
-        <h3 className="no-border">Task Details</h3>
-
-        {this.state.loading ? (
-          <LoadingIndicator />
-        ) : this.state.error ? (
-          <LoadingError onRetry={this.fetchData} />
-        ) : (
-          <div>
+        return (
             <div>
-              <label>Show details for task:</label>
-              <Select2Field
-                name="task"
-                onChange={this.changeTask}
-                value={activeTask}
-                allowClear={true}
-                choices={[''].concat(...taskList).map(t => [t, t])}
-              />
+                <div className="btn-group pull-right">
+                    {['1h', '1d', '1w'].map(r => {
+                        return (
+                            <a
+                                className={`btn btn-sm ${r == this.state.timeWindow
+                                    ? 'btn-primary'
+                                    : 'btn-default'}`}
+                                onClick={() => this.changeWindow(r)}
+                                key={r}
+                            >
+                                {r}
+                            </a>
+                        );
+                    })}
+                </div>
+
+                <h3 className="no-border">{t('Queue Overview')}</h3>
+
+                <div className="box">
+                    <div className="box-header">
+                        <h3>{t('Global Throughput')}</h3>
+                    </div>
+                    <InternalStatChart
+                        since={this.state.since}
+                        resolution={this.state.resolution}
+                        stat="jobs.all.started"
+                        label={t('jobs started')}
+                    />
+                </div>
+
+                <h3 className="no-border">{t('Task Details')}</h3>
+
+                {this.state.loading ? (
+                    <LoadingIndicator />
+                ) : this.state.error ? (
+                    <LoadingError onRetry={this.fetchData} />
+                ) : (
+                            <div>
+                                <div>
+                                    <label>{t('Show details for task:')}</label>
+                                    <Select2Field
+                                        name="task"
+                                        onChange={this.changeTask}
+                                        value={activeTask}
+                                        allowClear={true}
+                                        choices={[''].concat(...taskList).map(t => [t, t])}
+                                    />
+                                </div>
+                                {activeTask ? (
+                                    <div>
+                                        <div className="box box-mini" key="jobs.started">
+                                            <div className="box-header">
+                                                {t('Jobs Started')} <small>{activeTask}</small>
+                                            </div>
+                                            <InternalStatChart
+                                                since={this.state.since}
+                                                resolution={this.state.resolution}
+                                                stat={`jobs.started.${this.state.activeTask}`}
+                                                label={t('jobs')}
+                                                height={100}
+                                            />
+                                        </div>
+                                        <div className="box box-mini" key="jobs.finished">
+                                            <div className="box-header">
+                                                {t('Jobs Finished')} <small>{activeTask}</small>
+                                            </div>
+                                            <InternalStatChart
+                                                since={this.state.since}
+                                                resolution={this.state.resolution}
+                                                stat={`jobs.finished.${this.state.activeTask}`}
+                                                label={t('jobs')}
+                                                height={100}
+                                            />
+                                        </div>
+                                    </div>
+                                ) : null}
+                            </div>
+                        )}
             </div>
-            {activeTask ? (
-              <div>
-                <div className="box box-mini" key="jobs.started">
-                  <div className="box-header">
-                    Jobs Started <small>{activeTask}</small>
-                  </div>
-                  <InternalStatChart
-                    since={this.state.since}
-                    resolution={this.state.resolution}
-                    stat={`jobs.started.${this.state.activeTask}`}
-                    label="jobs"
-                    height={100}
-                  />
-                </div>
-                <div className="box box-mini" key="jobs.finished">
-                  <div className="box-header">
-                    Jobs Finished <small>{activeTask}</small>
-                  </div>
-                  <InternalStatChart
-                    since={this.state.since}
-                    resolution={this.state.resolution}
-                    stat={`jobs.finished.${this.state.activeTask}`}
-                    label="jobs"
-                    height={100}
-                  />
-                </div>
-              </div>
-            ) : null}
-          </div>
-        )}
-      </div>
-    );
-  },
+        );
+    },
 });

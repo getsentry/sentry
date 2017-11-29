@@ -11,20 +11,20 @@
 {% block header_nav %}
   <ul class="nav nav-tabs">
     <li>
-      <a href="{% absolute_uri '/{}/{}/' project.organization.slug project.slug %}">Issues</a>
+      <a href="{% absolute_uri '/{}/{}/' project.organization.slug project.slug %}">{% trans "Issues" %}</a>
     </li>
     <li>
-      <a href="{% absolute_uri '/{}/{}/dashboard/' project.organization.slug project.slug %}">Overview</a>
+      <a href="{% absolute_uri '/{}/{}/dashboard/' project.organization.slug project.slug %}">{% trans "Overview" %}</a>
     </li>
     <li>
-      <a href="{% absolute_uri '/{}/{}/releases/' project.organization.slug project.slug %}">Releases</a>
+      <a href="{% absolute_uri '/{}/{}/releases/' project.organization.slug project.slug %}">{% trans "Releases" %}</a>
     </li>
   </ul>
 {% endblock %}
 
 {% block header_action %}
   <a class="btn btn-sm btn-default active" href="{% absolute_uri '/{}/{}/settings/' project.organization.slug project.slug %}">
-    <span class="icon icon-settings"></span> Project Settings
+    <span class="icon icon-settings"></span> {% trans "Project Settings" %}
   </a>
 {% endblock %}
 
