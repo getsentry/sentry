@@ -9,7 +9,7 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import CommitSerializer, ListField
 from sentry.models import Activity, Group, Release, ReleaseFile
 from sentry.plugins.interfaces.releasehook import ReleaseHook
-from sentry.contants import VERSION_LENGTH
+from sentry.constants import VERSION_LENGTH
 
 ERR_RELEASE_REFERENCED = "This release is referenced by active issues and cannot be removed."
 
