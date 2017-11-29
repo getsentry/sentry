@@ -37,6 +37,8 @@ def get_all_languages():
 MODULE_ROOT = os.path.dirname(__import__('sentry').__file__)
 DATA_ROOT = os.path.join(MODULE_ROOT, 'data')
 
+VERSION_LENGTH = 250
+
 SORT_OPTIONS = OrderedDict(
     (
         ('priority', _('Priority')),

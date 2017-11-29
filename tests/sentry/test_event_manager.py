@@ -12,7 +12,7 @@ from mock import patch
 from time import time
 
 from sentry.app import tsdb
-from sentry.constants import MAX_CULPRIT_LENGTH, DEFAULT_LOGGER_NAME
+from sentry.constants import MAX_CULPRIT_LENGTH, DEFAULT_LOGGER_NAME, VERSION_LENGTH
 from sentry.event_manager import (
     HashDiscarded, EventManager, EventUser, get_hashes_for_event, get_hashes_from_fingerprint,
     generate_culprit, md5_from_hash
@@ -565,17 +565,17 @@ class EventManagerTest(TransactionTestCase):
     def test_release_project_slug_long(self):
         project = self.create_project(name='foo')
         release = Release.objects.create(
-            version='foo-%s' % ('a' * 60, ), organization=project.organization
+            version='foo-%s' % ('a' * (VERSION_LENGTH - 4), ), organization=project.organization
         )
         release.add_project(project)
 
-        manager = EventManager(self.make_event(release=('a' * 61)))
+        manager = EventManager(self.make_event(release=('a' * (VERSION_LENGTH - 3))))
         event = manager.save(project.id)
 
         group = event.group
-        assert group.first_release.version == 'foo-%s' % ('a' * 60, )
+        assert group.first_release.version == 'foo-%s' % ('a' * (VERSION_LENGTH - 4), )
         release_tag = [v for k, v in event.tags if k == 'sentry:release'][0]
-        assert release_tag == 'foo-%s' % ('a' * 60, )
+        assert release_tag == 'foo-%s' % ('a' * (VERSION_LENGTH - 4), )
 
     def test_group_release_no_env(self):
         manager = EventManager(self.make_event(release='1.0'))

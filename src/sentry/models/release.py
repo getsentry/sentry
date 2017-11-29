@@ -23,6 +23,7 @@ from sentry.db.models import (
 
 from sentry.models import CommitFileChange
 
+from sentry.constants import VERSION_LENGTH
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import md5_text
 from sentry.utils.retries import TimedRetryPolicy
@@ -60,9 +61,9 @@ class Release(Model):
     )
     # DEPRECATED
     project_id = BoundedPositiveIntegerField(null=True)
-    version = models.CharField(max_length=64)
+    version = models.CharField(max_length=VERSION_LENGTH)
     # ref might be the branch name being released
-    ref = models.CharField(max_length=64, null=True, blank=True)
+    ref = models.CharField(max_length=VERSION_LENGTH, null=True, blank=True)
     url = models.URLField(null=True, blank=True)
     date_added = models.DateTimeField(default=timezone.now)
     # DEPRECATED - not available in UI or editable from API
@@ -135,7 +136,7 @@ class Release(Model):
         if release in (None, -1):
             # TODO(dcramer): if the cache result is -1 we could attempt a
             # default create here instead of default get
-            project_version = ('%s-%s' % (project.slug, version))[:64]
+            project_version = ('%s-%s' % (project.slug, version))[:VERSION_LENGTH]
             releases = list(
                 cls.objects.filter(
                     organization_id=project.organization_id,

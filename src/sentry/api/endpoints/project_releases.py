@@ -12,13 +12,14 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import CommitSerializer, ListField
 from sentry.models import Activity, Release
 from sentry.plugins.interfaces.releasehook import ReleaseHook
+from sentry.constants import VERSION_LENGTH
 
 BAD_RELEASE_CHARS = '\n\f\t/'
 
 
 class ReleaseSerializer(serializers.Serializer):
-    version = serializers.CharField(max_length=64, required=True)
-    ref = serializers.CharField(max_length=64, required=False)
+    version = serializers.CharField(max_length=VERSION_LENGTH, required=True)
+    ref = serializers.CharField(max_length=VERSION_LENGTH, required=False)
     url = serializers.URLField(required=False)
     owner = UserField(required=False)
     dateReleased = serializers.DateTimeField(required=False)
