@@ -25,12 +25,12 @@ env:
     - PIP_DISABLE_PIP_VERSION_CHECK=on
     - SENTRY_LIGHT_BUILD=1
     - SENTRY_SKIP_BACKEND_VALIDATION=1
-    - TRAVIS_NODE_VERSION=4
+    - TRAVIS_NODE_VERSION=8.9.1
     - CXX=g++-4.8
     - SOUTH_TESTS_MIGRATE=1
 install:
   - nvm install $TRAVIS_NODE_VERSION
-  - npm install -g yarn@0.27.5
+  - npm install -g yarn@1.3.2
   - make travis-install-$TEST_SUITE
 before_script:
   - pip freeze
