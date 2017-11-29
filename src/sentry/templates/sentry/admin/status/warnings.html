@@ -5,10 +5,10 @@
 {% load i18n %}
 {% load sentry_helpers %}
 
-{% block title %}System Warnings | {{ block.super }}{% endblock %}
+{% block title %}{% trans "System Warnings" %} | {{ block.super }}{% endblock %}
 
 {% block main %}
-    <h3>System Warnings</h3>
+    <h3>{% trans "System Warnings" %}</h3>
     {% if groups or warnings %}
         <p><a href="https://docs.sentry.io/on-premise/server/warnings/">Check out our guide</a> for more information on how to resolve these issues.</p>
         {% for group, items in groups %}
@@ -20,7 +20,7 @@
             </ul>
         {% endfor %}
         {% if warnings %}
-            <h4>Miscellaneous</h4>
+            <h4>{% trans "Miscellaneous" %}</h4>
             <ul>
                 {% for warning in warnings %}
                     <li>{{ warning }}</li>
@@ -28,6 +28,6 @@
             </ul>
         {% endif %}
     {% else %}
-        There are no warnings at this time.
+        {% trans "There are no warnings at this time." %}
     {% endif %}
 {% endblock %}

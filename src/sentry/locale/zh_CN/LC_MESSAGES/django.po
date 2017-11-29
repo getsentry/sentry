@@ -22,6 +22,7 @@
 # Wang Xuerui <idontknw.wang+transifex@gmail.com>, 2014
 # 文瑞 徐 <WenryXu@outlook.com>, 2015
 # yanyaoer <transifex@fouland.com>, 2014
+# bukas <yhz1219@gmail.com>, 2017
 msgid ""
 msgstr ""
 "Project-Id-Version: sentry\n"
@@ -815,6 +816,30 @@ msgstr "加入 %(org_name)s 组织"
 #: templates/sentry/admin-queue.html:8 templates/sentry/bases/admin.html:14
 msgid "Queue"
 msgstr "队列"
+
+#: static/app/views/adminQueue.jsx:91
+msgid "Queue Overview"
+msgstr "队列概览"
+
+#: static/app/views/adminQueue.jsx:105
+msgid "Task Details"
+msgstr "任务详情"
+
+#: static/app/views/adminQueue.jsx:95
+msgid "Global Throughput"
+msgstr "整体吞吐量"
+
+#: static/app/views/adminQueue.jsx:114
+msgid "Show details for task:"
+msgstr "显示任务详情："
+
+#: static/app/views/adminQueue.jsx:101
+msgid "jobs started"
+msgstr "作业开始"
+
+#: static/app/views/adminQueue.jsx:127
+msgid "Jobs Started"
+msgstr "作业开始"
 
 #: templates/sentry/auth-confirm-identity.html:7
 #: templates/sentry/auth-confirm-link.html:7
@@ -1714,6 +1739,27 @@ msgstr "新用户"
 msgid "Settings"
 msgstr "设置"
 
+#: static/app/views/adminSettings.jsx:62
+msgid "Security & Abuse"
+msgstr "安全与滥用"
+
+#: templates/sentry/bases/admin.html:19
+msgid "Warnings"
+msgstr "警告"
+
+#: templates/sentry/admin/status/warnings.html:8
+#: templates/sentry/admin/status/warnings.html:11
+msgid "System Warnings"
+msgstr "系统警告"
+
+#: templates/sentry/admin/status/warnings.html:23
+msgid "Miscellaneous"
+msgstr "其他"
+
+#: templates/sentry/admin/status/warnings.html:31
+msgid "There are no warnings at this time."
+msgstr "没有警告。"
+
 #: static/sentry/app/components/sidebar/userNav.jsx:44
 #: templates/sentry/bases/account.html:16 templates/sentry/bases/modal.html:18
 msgid "Sign out"
@@ -1755,9 +1801,46 @@ msgstr "系统"
 msgid "Overview"
 msgstr "概览"
 
+#: static/sentry/app/views/adminOverview/index.jsx:20
+msgid "System Overview"
+msgstr "系统概览"
+
+#: static/sentry/app/views/adminOverview/index.jsx:25
+msgid "Event Throughput"
+msgstr "事件吞吐量"
+
+#: static/sentry/app/views/adminOverview/index.jsx:34
+msgid "API Responses"
+msgstr "接口响应"
+
 #: templates/sentry/bases/admin.html:13
 msgid "Buffer"
 msgstr "缓冲"
+
+#: static/sentry/app/views/adminBuffer.jsx:20
+msgid "Buffers"
+msgstr "缓冲"
+
+#: static/sentry/app/views/adminBuffer.jsx:24
+msgid "About"
+msgstr "关于"
+
+#: static/sentry/app/views/adminBuffer.jsx:40
+msgid "Updates Processed"
+msgstr "已处理的更新"
+
+#: static/sentry/app/views/adminBuffer.jsx:52
+msgid "Revoked Updates"
+msgstr "撤销的更新"
+
+#: static/sentry/app/views/adminBuffer.jsx:46
+msgid "Jobs"
+msgstr "作业"
+
+#: static/app/views/adminQueue.jsx:133
+#: static/app/views/adminQueue.jsx:145
+msgid "jobs"
+msgstr "作业"
 
 #: templates/sentry/bases/admin.html:17
 msgid "Mail"
@@ -1805,6 +1888,14 @@ msgstr "问题"
 #: templates/sentry/bases/organization.html:38
 msgid "Assigned to Me"
 msgstr "分配给我的"
+
+#: static/sentry/app/views/organizationDashboard.jsx:112
+msgid "New this week"
+msgstr "本周新增"
+
+#: static/sentry/app/views/organizationDashboard.jsx:248
+msgid "Recent activity"
+msgstr "近期活动"
 
 #: static/sentry/app/components/organizations/homeSidebar.jsx:53
 #: templates/sentry/bases/organization.html:39
@@ -3594,6 +3685,10 @@ msgstr "配置 %(integration)s"
 msgid "Got it! Take me to the Issue Stream."
 msgstr ""
 
+#: static/app/views/organizationDashboard.jsx:192
+msgid "View all"
+msgstr "查看所有"
+
 #: static/sentry/app/views/releaseAllEvents.jsx:21
 msgid "View all events seen in this release in the stream"
 msgstr "在流中查看此版本的所有事件"
@@ -4217,7 +4312,7 @@ msgstr "成功！"
 
 #: static/sentry/app/components/events/eventsPerHour.jsx:124
 msgid "View Stats"
-msgstr ""
+msgstr "查看统计"
 
 #: static/sentry/app/components/events/eventsPerHour.jsx:125
 msgid "Events Per Hour"
