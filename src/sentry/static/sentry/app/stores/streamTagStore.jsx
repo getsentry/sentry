@@ -4,8 +4,12 @@ import _ from 'lodash';
 import StreamTagActions from '../actions/streamTagActions';
 import MemberListStore from './memberListStore';
 
+const getUsername = ({isManaged, username, email}) => {
+  return !isManaged && username ? username : email;
+};
+
 const getMemberListStoreUsernames = () => {
-  return MemberListStore.getAll().map(user => user.username || user.email);
+  return MemberListStore.getAll().map(getUsername);
 };
 
 const StreamTagStore = Reflux.createStore({
