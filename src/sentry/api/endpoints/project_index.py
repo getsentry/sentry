@@ -8,6 +8,7 @@ from sentry.api.base import DocSection, Endpoint
 from sentry.api.bases.project import ProjectPermission
 from sentry.api.paginator import DateTimePaginator
 from sentry.api.serializers import serialize, ProjectWithOrganizationSerializer
+from sentry.auth.superuser import is_active_superuser
 from sentry.db.models.query import in_iexact
 from sentry.models import (Project, ProjectPlatform, ProjectStatus)
 from sentry.search.utils import tokenize_query
@@ -59,7 +60,7 @@ class ProjectIndexEndpoint(Endpoint):
                 )
             else:
                 queryset = queryset.none()
-        elif not request.is_superuser():
+        elif not is_active_superuser(request):
             queryset = queryset.filter(
                 team__organizationmember__user=request.user,
             )

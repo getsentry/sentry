@@ -7,6 +7,7 @@ import warnings
 from django.conf import settings
 
 from sentry import roles
+from sentry.auth.superuser import is_active_superuser
 from sentry.models import AuthIdentity, AuthProvider, OrganizationMember
 
 
@@ -107,7 +108,7 @@ def from_request(request, organization, scopes=None):
     if not organization:
         return DEFAULT
 
-    if request.is_superuser():
+    if is_active_superuser(request):
         # we special case superuser so that if they're a member of the org
         # they must still follow SSO checks, but they gain global access
         try:
