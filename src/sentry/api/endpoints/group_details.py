@@ -198,11 +198,8 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
             environment_id = self._get_environment_id_from_request(
                 request, group.project.organization_id)
         except Environment.DoesNotExist:
-            # TODO(tkaemming): Find a less insane way to do this
-            # TODO(tkaemming): This method isn't actually exposed on the backend, lol
             get_range = lambda model, keys, start, end, **kwargs: \
-                {k: [(t, 0) for t in tsdb.backend.get_optimal_rollup_series(start, end)[1]]
-                 for k in keys}
+                {k: tsdb.make_series(0, start, end) for k in keys}
             tags = []
         else:
             get_range = functools.partial(tsdb.get_range, environment_id=environment_id)
