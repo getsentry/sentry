@@ -135,7 +135,8 @@ class ProjectUserReportsEndpoint(ProjectEndpoint):
             backfill_group.apply_async(
                 kwargs={
                     'report_id': report.id,
-                }
+                },
+                countdown=30,
             )
 
         return Response(serialize(report, request.user, ProjectUserReportSerializer()))

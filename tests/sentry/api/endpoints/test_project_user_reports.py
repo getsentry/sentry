@@ -242,5 +242,6 @@ class CreateProjectUserReportTest(APITestCase):
         mock_backfill_group.apply_async.assert_called_with(
             kwargs={
                 'report_id': int(response.data['id']),
-            }
+            },
+            countdown=30,
         )
