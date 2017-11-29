@@ -5,7 +5,7 @@ import functools
 
 from sentry.utils.strings import (
     is_valid_dot_atom, iter_callsign_choices, soft_break, soft_hyphenate,
-    tokens_from_name, codec_lookup
+    tokens_from_name, codec_lookup, truncatechars
 )
 
 ZWSP = u'\u200b'  # zero width space
@@ -97,3 +97,21 @@ def test_is_valid_dot_atom():
     assert not is_valid_dot_atom('.foo.bar')
     assert not is_valid_dot_atom('foo.bar.')
     assert not is_valid_dot_atom('foo.\x00')
+
+
+def test_truncatechars():
+    assert truncatechars("12345", 6) == "12345"
+    assert truncatechars("12345", 5) == "12345"
+    assert truncatechars("12345", 4) == "1..."
+    assert truncatechars("12345", 3) == "..."
+    assert truncatechars("12345", 2) == "..."
+    assert truncatechars("12345", 1) == "..."
+    assert truncatechars("12345", 0) == "..."
+
+    assert truncatechars("12345", 6, ellipsis=u"\u2026") == u"12345"
+    assert truncatechars("12345", 5, ellipsis=u"\u2026") == u"12345"
+    assert truncatechars("12345", 4, ellipsis=u"\u2026") == u"123\u2026"
+    assert truncatechars("12345", 3, ellipsis=u"\u2026") == u"12\u2026"
+    assert truncatechars("12345", 2, ellipsis=u"\u2026") == u"1\u2026"
+    assert truncatechars("12345", 1, ellipsis=u"\u2026") == u"\u2026"
+    assert truncatechars("12345", 0, ellipsis=u"\u2026") == u"\u2026"
