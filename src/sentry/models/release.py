@@ -63,7 +63,7 @@ class Release(Model):
     project_id = BoundedPositiveIntegerField(null=True)
     version = models.CharField(max_length=VERSION_LENGTH)
     # ref might be the branch name being released
-    ref = models.CharField(max_length=64, null=True, blank=True)
+    ref = models.CharField(max_length=VERSION_LENGTH, null=True, blank=True)
     url = models.URLField(null=True, blank=True)
     date_added = models.DateTimeField(default=timezone.now)
     # DEPRECATED - not available in UI or editable from API

@@ -19,7 +19,7 @@ BAD_RELEASE_CHARS = '\n\f\t/'
 
 class ReleaseSerializer(serializers.Serializer):
     version = serializers.CharField(max_length=VERSION_LENGTH, required=True)
-    ref = serializers.CharField(max_length=64, required=False)
+    ref = serializers.CharField(max_length=VERSION_LENGTH, required=False)
     url = serializers.URLField(required=False)
     owner = UserField(required=False)
     dateReleased = serializers.DateTimeField(required=False)
