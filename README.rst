@@ -1,8 +1,13 @@
-Sentry
-======
+.. raw:: html
 
-Sentry is a modern error logging and aggregation platform.
-
+   <p align="center">
+     <p align="center">
+       <img src="https://sentry-brand.storage.googleapis.com/sentry-logo-black.png" alt="Sentry" height="72"
+     </p>
+     <p align="center">
+       Sentry is a modern error logging and aggregation platform.
+     </p>
+   </p>
 
 Sentry is a Server
 ------------------
@@ -13,6 +18,15 @@ all of the logic behind storage and aggregation, and alerting team members.
 
 That said, Sentry is not limited to Python. The server is in Python, but it contains
 a full API for sending events from any language, in any application.
+
+.. raw:: html
+
+   <p align="center">
+     <img src="https://github.com/getsentry/sentry/raw/pretty-readme/src/sentry/static/sentry/images/sentry-product-issue-screenshot.png" width="288">
+     <img src="https://github.com/getsentry/sentry/raw/pretty-readme/src/sentry/static/sentry/images/sentry-product-project-screenshot.png" width="288">
+     <img src="https://github.com/getsentry/sentry/raw/pretty-readme/src/sentry/static/sentry/images/sentry-product-releases-screenshot.png" width="288">
+   </p>
+
 
 Official Sentry SDKs
 ~~~~~~~~~~~~~~~~~~~~
