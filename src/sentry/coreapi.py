@@ -34,6 +34,7 @@ from sentry.constants import (
     MAX_TAG_VALUE_LENGTH,
     MAX_TAG_KEY_LENGTH,
     VALID_PLATFORMS,
+    VERSION_LENGTH,
 )
 from sentry.db.models import BoundedIntegerField
 from sentry.interfaces.base import get_interface, InterfaceValidationError
@@ -738,7 +739,7 @@ class ClientApiHelper(object):
 
         if data.get('release'):
             data['release'] = six.text_type(data['release'])
-            if len(data['release']) > 64:
+            if len(data['release']) > VERSION_LENGTH:
                 data['errors'].append(
                     {
                         'type': EventError.VALUE_TOO_LONG,
@@ -891,7 +892,7 @@ class MinidumpApiHelper(ClientApiHelper):
         # Copy/pasted from above in ClientApiHelper.validate_data
         if release:
             release = six.text_type(release)
-            if len(release) <= 64:
+            if len(release) <= VERSION_LENGTH:
                 validated['release'] = release
             else:
                 validated['errors'].append({
@@ -990,7 +991,7 @@ class CspApiHelper(ClientApiHelper):
         # Copy/pasted from above in ClientApiHelper.validate_data
         if data.get('release'):
             data['release'] = six.text_type(data['release'])
-            if len(data['release']) > 64:
+            if len(data['release']) > VERSION_LENGTH:
                 data['errors'].append(
                     {
                         'type': EventError.VALUE_TOO_LONG,

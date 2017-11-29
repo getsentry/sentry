@@ -8,6 +8,7 @@ import pytest
 
 from datetime import datetime
 from django.core.exceptions import SuspiciousOperation
+from sentry.constants import VERSION_LENGTH
 from uuid import UUID
 
 from sentry.coreapi import (
@@ -362,13 +363,13 @@ class ValidateDataTest(BaseAPITest):
 
     def test_release_too_long(self):
         data = self.helper.validate_data({
-            'release': 'a' * 65,
+            'release': 'a' * (VERSION_LENGTH + 1),
         })
         assert not data.get('release')
         assert len(data['errors']) == 1
         assert data['errors'][0]['type'] == 'value_too_long'
         assert data['errors'][0]['name'] == 'release'
-        assert data['errors'][0]['value'] == 'a' * 65
+        assert data['errors'][0]['value'] == 'a' * (VERSION_LENGTH + 1)
 
     def test_release_as_non_string(self):
         data = self.helper.validate_data({
