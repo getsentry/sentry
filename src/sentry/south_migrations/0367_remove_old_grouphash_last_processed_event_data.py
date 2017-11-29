@@ -12,7 +12,7 @@ class Migration(DataMigration):
 
     # Flag to indicate if this migration is too risky
     # to run online and needs to be coordinated for offline
-    is_dangerous = False
+    is_dangerous = True
 
     def forwards(self, orm):
         from sentry.utils import redis
