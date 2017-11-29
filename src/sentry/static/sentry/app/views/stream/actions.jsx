@@ -7,29 +7,47 @@ import ApiMixin from '../../mixins/apiMixin';
 import TooltipMixin from '../../mixins/tooltip';
 import ActionLink from './actionLink';
 import DropdownLink from '../../components/dropdownLink';
-import Duration from '../../components/duration';
 import IndicatorStore from '../../stores/indicatorStore';
 import MenuItem from '../../components/menuItem';
 import SelectedGroupStore from '../../stores/selectedGroupStore';
 import {t, tct, tn} from '../../locale';
 
-import CustomIgnoreCountModal from '../../components/customIgnoreCountModal';
-import CustomIgnoreDurationModal from '../../components/customIgnoreDurationModal';
 import Checkbox from '../../components/checkbox';
 import Toolbar from '../../components/toolbar';
 import ToolbarHeader from '../../components/toolbarHeader';
 import ResolveActions from '../../components/actions/resolve';
+import IgnoreActions from '../../components/actions/ignore';
 
 const BULK_LIMIT_STR = '1,000';
 
-const getBulkConfirmMessage = action =>
-  tct(
+const getBulkConfirmMessage = action => {
+  return tct(
     'Are you sure you want to [action] the first [bulkNumber] issues that match the search?',
     {
       action,
       bulkNumber: BULK_LIMIT_STR,
     }
   );
+};
+
+const getConfirm = (action, numIssues, allInQuerySelected, query) => {
+  let question = allInQuerySelected
+    ? getBulkConfirmMessage(action)
+    : tn(
+        `Are you sure you want to ${action} this %d issue?`,
+        `Are you sure you want to ${action} these %d issues`,
+        numIssues
+      );
+
+  return (
+    <div>
+      <p style={{marginBottom: '20px'}}>
+        <strong>{question}</strong>
+      </p>
+      <ExtraDescription all={allInQuerySelected} query={query} />
+    </div>
+  );
+};
 
 const ExtraDescription = ({all, query}) => {
   if (!all) return null;
@@ -60,244 +78,6 @@ ExtraDescription.propTypes = {
   all: PropTypes.bool,
   query: PropTypes.string,
 };
-
-const IgnoreActions = React.createClass({
-  propTypes: {
-    anySelected: PropTypes.bool.isRequired,
-    allInQuerySelected: PropTypes.bool.isRequired,
-    pageSelected: PropTypes.bool.isRequired,
-    onUpdate: PropTypes.func.isRequired,
-    query: PropTypes.string,
-  },
-
-  getInitialState() {
-    return {
-      modal: false,
-    };
-  },
-
-  getIgnoreDurations() {
-    return [30, 120, 360, 60 * 24, 60 * 24 * 7];
-  },
-
-  getIgnoreCounts() {
-    return [100, 1000, 10000, 100000];
-  },
-
-  getIgnoreWindows() {
-    return [[60, 'per hour'], [24 * 60, 'per day'], [24 * 7 * 60, 'per week']];
-  },
-
-  onCustomIgnore(statusDetails) {
-    this.setState({
-      modal: false,
-    });
-    this.onIgnore(statusDetails);
-  },
-
-  onIgnore(statusDetails) {
-    return this.props.onUpdate({
-      status: 'ignored',
-      statusDetails: statusDetails || {},
-    });
-  },
-
-  render() {
-    let {allInQuerySelected, query, anySelected, pageSelected, onUpdate} = this.props;
-    let extraDescription = <ExtraDescription all={allInQuerySelected} query={query} />;
-    let linkClassName = 'group-ignore btn btn-default btn-sm';
-    let actionLinkProps = {
-      onlyIfBulk: true,
-      disabled: !anySelected,
-      selectAllActive: pageSelected,
-      extraDescription,
-      buttonTitle: t('Ignore'),
-      confirmationQuestion: allInQuerySelected
-        ? getBulkConfirmMessage('ignore')
-        : count =>
-            tn(
-              'Are you sure you want to ignore this %d issue?',
-              'Are you sure you want to ignore these %d issues?',
-              count
-            ),
-      confirmLabel: allInQuerySelected
-        ? t('Bulk ignore issues')
-        : count => tn('Ignore %d selected issue', 'Ignore %d selected issues', count),
-    };
-    return (
-      <div style={{display: 'inline-block'}}>
-        <CustomIgnoreDurationModal
-          show={this.state.modal === 'duration'}
-          onSelected={this.onCustomIgnore}
-          onCanceled={() => this.setState({modal: null})}
-          label={t('Ignore the selected issue(s) until they occur after ..')}
-        />
-        <CustomIgnoreCountModal
-          show={this.state.modal === 'count'}
-          onSelected={this.onCustomIgnore}
-          onCanceled={() => this.setState({modal: null})}
-          label={t('Ignore the selected issue(s) until they occur again .. ')}
-          countLabel={t('Number of times')}
-          countName="ignoreCount"
-          windowName="ignoreWindow"
-          windowChoices={this.getIgnoreWindows()}
-        />
-        <CustomIgnoreCountModal
-          show={this.state.modal === 'users'}
-          onSelected={this.onCustomIgnore}
-          onCanceled={() => this.setState({modal: null})}
-          label={t('Ignore the selected issue(s) until they affect an additional .. ')}
-          countLabel={t('Numbers of users')}
-          countName="ignoreUserCount"
-          windowName="ignoreUserWindow"
-          windowChoices={this.getIgnoreWindows()}
-        />
-        <div className="btn-group">
-          <ActionLink
-            onAction={() => onUpdate({status: 'ignored'})}
-            className={linkClassName}
-            {...actionLinkProps}
-          >
-            <span className="icon-ban" style={{marginRight: 5}} />
-            {t('Ignore')}
-          </ActionLink>
-          <DropdownLink
-            caret={true}
-            className={linkClassName}
-            title=""
-            disabled={!anySelected}
-          >
-            <MenuItem header={true}>Ignore Until</MenuItem>
-            <li className="dropdown-submenu">
-              <DropdownLink
-                title="This occurs again after .."
-                caret={false}
-                isNestedDropdown={true}
-              >
-                {this.getIgnoreDurations().map(duration => {
-                  return (
-                    <MenuItem noAnchor={true} key={duration}>
-                      <ActionLink
-                        onAction={this.onIgnore.bind(this, {
-                          ignoreDuration: duration,
-                        })}
-                        {...actionLinkProps}
-                      >
-                        <Duration seconds={duration * 60} />
-                      </ActionLink>
-                    </MenuItem>
-                  );
-                })}
-                <MenuItem divider={true} />
-                <MenuItem noAnchor={true}>
-                  <a onClick={() => this.setState({modal: 'duration'})}>{t('Custom')}</a>
-                </MenuItem>
-              </DropdownLink>
-            </li>
-            <li className="dropdown-submenu">
-              <DropdownLink
-                title="This occurs again .."
-                caret={false}
-                isNestedDropdown={true}
-              >
-                {this.getIgnoreCounts().map(count => {
-                  return (
-                    <li className="dropdown-submenu" key={count}>
-                      <DropdownLink
-                        title={t('%s times', count.toLocaleString())}
-                        caret={false}
-                        isNestedDropdown={true}
-                      >
-                        <MenuItem noAnchor={true}>
-                          <ActionLink
-                            onAction={this.onIgnore.bind(this, {
-                              ignoreCount: count,
-                            })}
-                            {...actionLinkProps}
-                          >
-                            {t('from now')}
-                          </ActionLink>
-                        </MenuItem>
-                        {this.getIgnoreWindows().map(([hours, label]) => {
-                          return (
-                            <MenuItem noAnchor={true} key={hours}>
-                              <ActionLink
-                                onAction={this.onIgnore.bind(this, {
-                                  ignoreCount: count,
-                                  ignoreWindow: hours,
-                                })}
-                                {...actionLinkProps}
-                              >
-                                {label}
-                              </ActionLink>
-                            </MenuItem>
-                          );
-                        })}
-                      </DropdownLink>
-                    </li>
-                  );
-                })}
-                <MenuItem divider={true} />
-                <MenuItem noAnchor={true}>
-                  <a onClick={() => this.setState({modal: 'count'})}>{t('Custom')}</a>
-                </MenuItem>
-              </DropdownLink>
-            </li>
-            <li className="dropdown-submenu">
-              <DropdownLink
-                title="This affects an additional .."
-                caret={false}
-                isNestedDropdown={true}
-              >
-                {this.getIgnoreCounts().map(count => {
-                  return (
-                    <li className="dropdown-submenu" key={count}>
-                      <DropdownLink
-                        title={t('%s users', count.toLocaleString())}
-                        caret={false}
-                        isNestedDropdown={true}
-                      >
-                        <MenuItem noAnchor={true}>
-                          <ActionLink
-                            onAction={this.onIgnore.bind(this, {
-                              ignoreUserCount: count,
-                            })}
-                            {...actionLinkProps}
-                          >
-                            {t('from now')}
-                          </ActionLink>
-                        </MenuItem>
-                        {this.getIgnoreWindows().map(([hours, label]) => {
-                          return (
-                            <MenuItem noAnchor={true} key={hours}>
-                              <ActionLink
-                                onAction={this.onIgnore.bind(this, {
-                                  ignoreUserCount: count,
-                                  ignoreUserWindow: hours,
-                                })}
-                                {...actionLinkProps}
-                              >
-                                {label}
-                              </ActionLink>
-                            </MenuItem>
-                          );
-                        })}
-                      </DropdownLink>
-                    </li>
-                  );
-                })}
-                <MenuItem divider={true} />
-                <MenuItem noAnchor={true}>
-                  <a onClick={() => this.setState({modal: 'users'})}>{t('Custom')}</a>
-                </MenuItem>
-              </DropdownLink>
-            </li>
-          </DropdownLink>
-        </div>
-      </div>
-    );
-  },
-});
 
 const StreamActions = React.createClass({
   propTypes: {
@@ -465,6 +245,7 @@ const StreamActions = React.createClass({
     let selectedItems = SelectedGroupStore.getSelectedIds();
     switch (action) {
       case 'resolve':
+      case 'ignore':
         return this.state.pageSelected && selectedItems.size > 1;
       default:
         // By default, should confirm ...
@@ -476,18 +257,24 @@ const StreamActions = React.createClass({
     // TODO(mitsuhiko): very unclear how to translate this
     let issues = SelectedGroupStore.getSelectedIds();
     let numIssues = issues.size;
+    let {allInQuerySelected} = this.state;
     let extraDescription = (
       <ExtraDescription all={this.state.allInQuerySelected} query={this.props.query} />
     );
 
-    let resolveBulkConfirmMessage = this.state.allInQuerySelected
-      ? getBulkConfirmMessage('resolve')
-      : count =>
-          tn(
-            'Are you sure you want to resolve this %d issue?',
-            'Are you sure you want to resolve these %d issues?',
-            numIssues
-          );
+    let resolveBulkConfirmMessage = getConfirm(
+      'resolve',
+      numIssues,
+      allInQuerySelected,
+      this.props.query
+    );
+
+    let ignoreBulkConfirmMessage = getConfirm(
+      'ignore',
+      numIssues,
+      allInQuerySelected,
+      this.props.query
+    );
 
     return (
       <div>
@@ -503,19 +290,18 @@ const StreamActions = React.createClass({
             <ResolveActions
               hasRelease={this.props.hasReleases}
               latestRelease={this.props.latestRelease}
-              onUpdate={this.onUpdate}
               orgId={this.props.orgId}
               projectId={this.props.projectId}
-              disabled={issues.size === 0}
+              onUpdate={this.onUpdate}
               shouldConfirm={this.shouldConfirm('resolve')}
-              confirmMessage={resolveBulkConfirmMessage()}
+              confirmMessage={resolveBulkConfirmMessage}
+              disabled={!this.state.anySelected}
             />
             <IgnoreActions
-              anySelected={this.state.anySelected}
               onUpdate={this.onUpdate}
-              allInQuerySelected={this.state.allInQuerySelected}
-              pageSelected={this.state.pageSelected}
-              query={this.props.query}
+              shouldConfirm={this.shouldConfirm('ignore')}
+              confirmMessage={ignoreBulkConfirmMessage}
+              disabled={!this.state.anySelected}
             />
             <div className="btn-group">
               <ActionLink

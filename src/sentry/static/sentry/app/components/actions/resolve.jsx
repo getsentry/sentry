@@ -15,7 +15,7 @@ export default class ResolveActions extends React.Component {
     orgId: PropTypes.string.isRequired,
     projectId: PropTypes.string.isRequired,
     shouldConfirm: PropTypes.bool,
-    confirmMessage: PropTypes.any,
+    confirmMessage: PropTypes.node,
     disabled: PropTypes.bool,
     isResolved: PropTypes.bool,
     isAutoResolved: PropTypes.bool,
@@ -42,7 +42,7 @@ export default class ResolveActions extends React.Component {
   }
 
   getButtonClass() {
-    return 'group-resolve btn btn-default btn-sm';
+    return 'btn btn-default btn-sm';
   }
 
   renderResolved() {
@@ -90,7 +90,11 @@ export default class ResolveActions extends React.Component {
       disabled,
     } = this.props;
 
-    let buttonClass = `${this.getButtonClass()} ${disabled && 'disabled'}`;
+    let buttonClass = this.getButtonClass();
+
+    if (disabled) {
+      buttonClass += ' disabled';
+    }
 
     if (isResolved) {
       return this.renderResolved();
@@ -104,7 +108,7 @@ export default class ResolveActions extends React.Component {
     let actionLinkProps = {
       shouldConfirm,
       title: actionTitle,
-      confirmationQuestion: confirmMessage,
+      message: confirmMessage,
     };
 
     return (

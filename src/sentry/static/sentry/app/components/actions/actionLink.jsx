@@ -6,8 +6,7 @@ import {t} from '../../locale';
 export default class ActionLink extends React.Component {
   static propTypes = {
     shouldConfirm: PropTypes.bool,
-    confirmationQuestion: PropTypes.node,
-    extraDescription: PropTypes.node,
+    message: PropTypes.node,
     className: PropTypes.any,
     onAction: PropTypes.func.isRequired,
     title: PropTypes.string,
@@ -18,33 +17,23 @@ export default class ActionLink extends React.Component {
   };
 
   render() {
-    let {
-      shouldConfirm,
-      confirmationQuestion,
-      extraDescription,
-      className,
-      title,
-      onAction,
-      children,
-    } = this.props;
+    let {shouldConfirm, message, className, title, onAction, children} = this.props;
 
-    let message = (
+    let confirmMessage = (
       <div>
-        <p>
-          <strong>{confirmationQuestion}</strong>
-        </p>
-        {extraDescription}
+        {message}
         <p>{t('This action cannot be undone.')}</p>
       </div>
     );
 
     if (shouldConfirm) {
       return (
-        <a className={className} title={title}>
-          <Confirm message={message} confirmText={t('Resolve')} onConfirm={onAction}>
-            <span>{children}</span>
-          </Confirm>
-        </a>
+        <Confirm message={confirmMessage} confirmText={t('Resolve')} onConfirm={onAction}>
+          <a className={className} title={title}>
+            {' '}
+            {children}
+          </a>
+        </Confirm>
       );
     } else {
       return (

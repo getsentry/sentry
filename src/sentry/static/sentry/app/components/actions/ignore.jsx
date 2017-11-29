@@ -6,11 +6,15 @@ import DropdownLink from '../dropdownLink';
 import Duration from '../duration';
 import CustomIgnoreCountModal from '../customIgnoreCountModal';
 import CustomIgnoreDurationModal from '../customIgnoreDurationModal';
+import ActionLink from './actionLink';
 
 export default class IgnoreActions extends React.Component {
   static propTypes = {
     isIgnored: PropTypes.bool,
     onUpdate: PropTypes.func.isRequired,
+    disabled: PropTypes.bool,
+    shouldConfirm: PropTypes.bool,
+    confirmMessage: PropTypes.node,
   };
 
   static defaultProps = {
@@ -48,8 +52,19 @@ export default class IgnoreActions extends React.Component {
   }
 
   render() {
-    let {isIgnored, onUpdate} = this.props;
-    let linkClassName = 'group-ignore btn btn-default btn-sm';
+    let {isIgnored, onUpdate, disabled, shouldConfirm, confirmMessage} = this.props;
+    let linkClassName = 'btn btn-default btn-sm';
+
+    if (disabled) {
+      linkClassName += ' disabled';
+    }
+
+    let actionLinkProps = {
+      shouldConfirm,
+      title: 'Ignore',
+      message: confirmMessage,
+    };
+
     if (isIgnored) {
       linkClassName += ' active';
       return (
@@ -69,12 +84,12 @@ export default class IgnoreActions extends React.Component {
       <div style={{display: 'inline-block'}}>
         <CustomIgnoreDurationModal
           show={this.state.modal === 'duration'}
-          onSelected={this.onCustomIgnore}
+          onSelected={details => this.onCustomIgnore(details)}
           onCanceled={() => this.setState({modal: null})}
         />
         <CustomIgnoreCountModal
           show={this.state.modal === 'count'}
-          onSelected={this.onCustomIgnore}
+          onSelected={details => this.onCustomIgnore(details)}
           onCanceled={() => this.setState({modal: null})}
           label={t('Ignore this issue until it occurs again .. ')}
           countLabel={t('Number of times')}
@@ -84,7 +99,7 @@ export default class IgnoreActions extends React.Component {
         />
         <CustomIgnoreCountModal
           show={this.state.modal === 'users'}
-          onSelected={this.onCustomIgnore}
+          onSelected={details => this.onCustomIgnore(details)}
           onCanceled={() => this.setState({modal: null})}
           label={t('Ignore this issue until it affects an additional .. ')}
           countLabel={t('Numbers of users')}
@@ -93,32 +108,33 @@ export default class IgnoreActions extends React.Component {
           windowChoices={this.getIgnoreWindows()}
         />
         <div className="btn-group">
-          <a
+          <ActionLink
+            {...actionLinkProps}
             className={linkClassName}
-            title={t('Ignore')}
-            onClick={() => onUpdate({status: 'ignored'})}
+            onAction={() => onUpdate({status: 'ignored'})}
           >
             <span className="icon-ban" style={{marginRight: 5}} />
             {t('Ignore')}
-          </a>
-          <DropdownLink caret={true} className={linkClassName} title="">
+          </ActionLink>
+
+          <DropdownLink caret={true} className={linkClassName} title="" alwaysRenderMenu>
             <MenuItem header={true}>Ignore Until</MenuItem>
             <li className="dropdown-submenu">
               <DropdownLink
                 title="This occurs again after .."
                 caret={false}
                 isNestedDropdown={true}
+                alwaysRenderMenu
               >
                 {this.getIgnoreDurations().map(duration => {
                   return (
                     <MenuItem noAnchor={true} key={duration}>
-                      <a
-                        onClick={this.onIgnore.bind(this, {
-                          ignoreDuration: duration,
-                        })}
+                      <ActionLink
+                        {...actionLinkProps}
+                        onAction={() => this.onIgnore({ignoreDuration: duration})}
                       >
                         <Duration seconds={duration * 60} />
-                      </a>
+                      </ActionLink>
                     </MenuItem>
                   );
                 })}
@@ -133,6 +149,7 @@ export default class IgnoreActions extends React.Component {
                 title="This occurs again .."
                 caret={false}
                 isNestedDropdown={true}
+                alwaysRenderMenu
               >
                 {this.getIgnoreCounts().map(count => {
                   return (
@@ -141,27 +158,29 @@ export default class IgnoreActions extends React.Component {
                         title={t('%s times', count.toLocaleString())}
                         caret={false}
                         isNestedDropdown={true}
+                        alwaysRenderMenu
                       >
                         <MenuItem noAnchor={true}>
-                          <a
-                            onClick={this.onIgnore.bind(this, {
-                              ignoreCount: count,
-                            })}
+                          <ActionLink
+                            {...actionLinkProps}
+                            onAction={() => this.onIgnore({ignoreCount: count})}
                           >
                             {t('from now')}
-                          </a>
+                          </ActionLink>
                         </MenuItem>
                         {this.getIgnoreWindows().map(([hours, label]) => {
                           return (
                             <MenuItem noAnchor={true} key={hours}>
-                              <a
-                                onClick={this.onIgnore.bind(this, {
-                                  ignoreCount: count,
-                                  ignoreWindow: hours,
-                                })}
+                              <ActionLink
+                                {...actionLinkProps}
+                                onAction={() =>
+                                  this.onIgnore({
+                                    ignoreCount: count,
+                                    ignoreWindow: hours,
+                                  })}
                               >
                                 {label}
-                              </a>
+                              </ActionLink>
                             </MenuItem>
                           );
                         })}
@@ -180,6 +199,7 @@ export default class IgnoreActions extends React.Component {
                 title="This affects an additional .."
                 caret={false}
                 isNestedDropdown={true}
+                alwaysRenderMenu
               >
                 {this.getIgnoreCounts().map(count => {
                   return (
@@ -188,27 +208,29 @@ export default class IgnoreActions extends React.Component {
                         title={t('%s users', count.toLocaleString())}
                         caret={false}
                         isNestedDropdown={true}
+                        alwaysRenderMenu
                       >
                         <MenuItem noAnchor={true}>
-                          <a
-                            onClick={this.onIgnore.bind(this, {
-                              ignoreUserCount: count,
-                            })}
+                          <ActionLink
+                            {...actionLinkProps}
+                            onAction={() => this.onIgnore({ignoreUserCount: count})}
                           >
                             {t('from now')}
-                          </a>
+                          </ActionLink>
                         </MenuItem>
                         {this.getIgnoreWindows().map(([hours, label]) => {
                           return (
                             <MenuItem noAnchor={true} key={hours}>
-                              <a
-                                onClick={this.onIgnore.bind(this, {
-                                  ignoreUserCount: count,
-                                  ignoreUserWindow: hours,
-                                })}
+                              <ActionLink
+                                {...actionLinkProps}
+                                onAction={() =>
+                                  this.onIgnore({
+                                    ignoreUserCount: count,
+                                    ignoreUserWindow: hours,
+                                  })}
                               >
                                 {label}
-                              </a>
+                              </ActionLink>
                             </MenuItem>
                           );
                         })}
