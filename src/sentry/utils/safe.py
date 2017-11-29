@@ -71,7 +71,8 @@ def trim(
     elif isinstance(value, dict):
         result = {}
         _size += 2
-        for k, v in six.iteritems(value):
+        for k in sorted(value.keys()):
+            v = value[k]
             trim_v = trim(v, _size=_size, **options)
             result[k] = trim_v
             _size += len(force_text(trim_v)) + 1

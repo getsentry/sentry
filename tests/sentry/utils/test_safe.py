@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+from collections import OrderedDict
 from functools import partial
 
 from sentry.testutils import TestCase
@@ -22,10 +23,21 @@ class TrimTest(TestCase):
         assert trim(['x', '\xc3\xbc']) == ['x', '\xc3\xbc']
 
     def test_idempotent(self):
-        trim2 = partial(trim, max_depth=2)
+        trm = partial(trim, max_depth=2)
         a = {'a': {'b': {'c': {'d': 1}}}}
-        assert trim2(a) == {'a': {'b': {'c': "{'d': 1}"}}}
-        assert trim2(trim2(trim2(trim2(a)))) == trim2(a)
+        assert trm(a) == {'a': {'b': {'c': "{'d': 1}"}}}
+        assert trm(trm(trm(trm(a)))) == trm(a)
+
+    def test_sorted_trim(self):
+        # Trim should always trim the keys in alpha order
+        # regardless of the original order.
+        alpha = OrderedDict([('a', '12345'), ('z', '12345')])
+        reverse = OrderedDict([('z', '12345'), ('a', '12345')])
+        trm = partial(trim, max_size=12)
+        expected = {'a': '12345', 'z': '1...'}
+
+        assert trm(alpha) == expected
+        assert trm(reverse) == expected
 
 
 class TrimDictTest(TestCase):
