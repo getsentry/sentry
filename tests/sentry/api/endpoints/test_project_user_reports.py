@@ -1,6 +1,8 @@
 from __future__ import absolute_import
 
+import mock
 import six
+import uuid
 
 from sentry.testutils import APITestCase
 from sentry.models import EventUser, GroupStatus, UserReport
@@ -214,3 +216,31 @@ class CreateProjectUserReportTest(APITestCase):
 
         euser = EventUser.objects.get(id=euser.id)
         assert euser.name == 'Foo Bar'
+
+    @mock.patch('sentry.api.endpoints.project_user_reports.backfill_group')
+    def test_backfill_group_called(self, mock_backfill_group):
+        self.login_as(user=self.user)
+        project = self.create_project()
+
+        url = '/api/0/projects/{}/{}/user-feedback/'.format(
+            project.organization.slug,
+            project.slug,
+        )
+
+        response = self.client.post(
+            url,
+            data={
+                'event_id': uuid.uuid4().hex,
+                'email': 'foo@example.com',
+                'name': 'Foo Bar',
+                'comments': 'It broke!',
+            }
+        )
+
+        assert response.status_code == 200, response.content
+
+        mock_backfill_group.apply_async.assert_called_with(
+            kwargs={
+                'report_id': int(response.data['id']),
+            }
+        )
