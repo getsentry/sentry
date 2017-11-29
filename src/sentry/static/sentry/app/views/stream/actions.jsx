@@ -2,6 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import PureRenderMixin from 'react-addons-pure-render-mixin';
 import Reflux from 'reflux';
+import {capitalize} from 'lodash';
 
 import ApiMixin from '../../mixins/apiMixin';
 import TooltipMixin from '../../mixins/tooltip';
@@ -30,23 +31,38 @@ const getBulkConfirmMessage = action => {
   );
 };
 
-const getConfirm = (action, numIssues, allInQuerySelected, query) => {
-  let question = allInQuerySelected
-    ? getBulkConfirmMessage(action)
-    : tn(
-        `Are you sure you want to ${action} this %d issue?`,
-        `Are you sure you want to ${action} these %d issues`,
-        numIssues
-      );
+const getConfirm = (numIssues, allInQuerySelected, query) => {
+  return function(action) {
+    let question = allInQuerySelected
+      ? getBulkConfirmMessage(action)
+      : tn(
+          `Are you sure you want to ${action} this %d issue?`,
+          `Are you sure you want to ${action} these %d issues`,
+          numIssues
+        );
 
-  return (
-    <div>
-      <p style={{marginBottom: '20px'}}>
-        <strong>{question}</strong>
-      </p>
-      <ExtraDescription all={allInQuerySelected} query={query} />
-    </div>
-  );
+    return (
+      <div>
+        <p style={{marginBottom: '20px'}}>
+          <strong>{question}</strong>
+        </p>
+        <ExtraDescription all={allInQuerySelected} query={query} />
+      </div>
+    );
+  };
+};
+
+const getLabel = (numIssues, allInQuerySelected) => {
+  return function(action) {
+    let capitalized = capitalize(action);
+    return allInQuerySelected
+      ? t(`Bulk ${action} issues`)
+      : tn(
+          `${capitalized} %d selected issue`,
+          `${capitalized} %d selected issues`,
+          numIssues
+        );
+  };
 };
 
 const ExtraDescription = ({all, query}) => {
@@ -262,19 +278,8 @@ const StreamActions = React.createClass({
       <ExtraDescription all={this.state.allInQuerySelected} query={this.props.query} />
     );
 
-    let resolveBulkConfirmMessage = getConfirm(
-      'resolve',
-      numIssues,
-      allInQuerySelected,
-      this.props.query
-    );
-
-    let ignoreBulkConfirmMessage = getConfirm(
-      'ignore',
-      numIssues,
-      allInQuerySelected,
-      this.props.query
-    );
+    let confirm = getConfirm(numIssues, allInQuerySelected, this.props.query);
+    let label = getLabel(numIssues, allInQuerySelected);
 
     return (
       <div>
@@ -294,13 +299,15 @@ const StreamActions = React.createClass({
               projectId={this.props.projectId}
               onUpdate={this.onUpdate}
               shouldConfirm={this.shouldConfirm('resolve')}
-              confirmMessage={resolveBulkConfirmMessage}
+              confirmMessage={confirm('resolve')}
+              confirmLabel={label('resolve')}
               disabled={!this.state.anySelected}
             />
             <IgnoreActions
               onUpdate={this.onUpdate}
               shouldConfirm={this.shouldConfirm('ignore')}
-              confirmMessage={ignoreBulkConfirmMessage}
+              confirmMessage={confirm('ignore')}
+              confirmLabel={label('ignore')}
               disabled={!this.state.anySelected}
             />
             <div className="btn-group">

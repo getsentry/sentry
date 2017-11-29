@@ -10,6 +10,7 @@ export default class ActionLink extends React.Component {
     className: PropTypes.any,
     onAction: PropTypes.func.isRequired,
     title: PropTypes.string,
+    confirmLabel: PropTypes.string.isRequired,
   };
 
   static defaultProps = {
@@ -17,7 +18,15 @@ export default class ActionLink extends React.Component {
   };
 
   render() {
-    let {shouldConfirm, message, className, title, onAction, children} = this.props;
+    let {
+      shouldConfirm,
+      message,
+      className,
+      title,
+      onAction,
+      confirmLabel,
+      children,
+    } = this.props;
 
     let confirmMessage = (
       <div>
@@ -28,7 +37,7 @@ export default class ActionLink extends React.Component {
 
     if (shouldConfirm) {
       return (
-        <Confirm message={confirmMessage} confirmText={t('Resolve')} onConfirm={onAction}>
+        <Confirm message={confirmMessage} confirmText={confirmLabel} onConfirm={onAction}>
           <a className={className} title={title}>
             {' '}
             {children}

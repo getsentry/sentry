@@ -5,6 +5,7 @@ exports[`GroupActions render() renders correctly 1`] = `
   className="group-actions"
 >
   <ResolveActions
+    confirmLabel="Resolve"
     hasRelease={false}
     isAutoResolved={false}
     isResolved={false}
@@ -13,6 +14,7 @@ exports[`GroupActions render() renders correctly 1`] = `
     projectId="project"
   />
   <IgnoreActions
+    confirmLabel="Ignore"
     isIgnored={false}
     onUpdate={[Function]}
   />

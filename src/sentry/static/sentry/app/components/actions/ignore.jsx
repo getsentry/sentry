@@ -15,10 +15,12 @@ export default class IgnoreActions extends React.Component {
     disabled: PropTypes.bool,
     shouldConfirm: PropTypes.bool,
     confirmMessage: PropTypes.node,
+    confirmLabel: PropTypes.string,
   };
 
   static defaultProps = {
     isIgnored: false,
+    confirmLabel: 'Ignore',
   };
 
   constructor(props) {
@@ -52,7 +54,14 @@ export default class IgnoreActions extends React.Component {
   }
 
   render() {
-    let {isIgnored, onUpdate, disabled, shouldConfirm, confirmMessage} = this.props;
+    let {
+      isIgnored,
+      onUpdate,
+      disabled,
+      shouldConfirm,
+      confirmMessage,
+      confirmLabel,
+    } = this.props;
     let linkClassName = 'btn btn-default btn-sm';
 
     if (disabled) {
@@ -63,6 +72,7 @@ export default class IgnoreActions extends React.Component {
       shouldConfirm,
       title: 'Ignore',
       message: confirmMessage,
+      confirmLabel,
     };
 
     if (isIgnored) {

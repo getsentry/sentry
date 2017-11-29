@@ -19,11 +19,13 @@ export default class ResolveActions extends React.Component {
     disabled: PropTypes.bool,
     isResolved: PropTypes.bool,
     isAutoResolved: PropTypes.bool,
+    confirmLabel: PropTypes.string,
   };
 
   static defaultProps = {
     isResolved: false,
     isAutoResolved: false,
+    confirmLabel: 'Resolve',
   };
 
   constructor(props) {
@@ -88,6 +90,7 @@ export default class ResolveActions extends React.Component {
       confirmMessage,
       shouldConfirm,
       disabled,
+      confirmLabel,
     } = this.props;
 
     let buttonClass = this.getButtonClass();
@@ -109,6 +112,7 @@ export default class ResolveActions extends React.Component {
       shouldConfirm,
       title: actionTitle,
       message: confirmMessage,
+      confirmLabel,
     };
 
     return (
