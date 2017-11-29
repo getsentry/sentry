@@ -3,10 +3,12 @@ from __future__ import absolute_import
 from copy import copy
 from django.contrib import admin
 
+from sentry.auth.superuser import is_active_superuser
+
 
 class RestrictiveAdminSite(admin.AdminSite):
     def has_permission(self, request):
-        return request.is_superuser()
+        return is_active_superuser(request)
 
 
 def make_site():

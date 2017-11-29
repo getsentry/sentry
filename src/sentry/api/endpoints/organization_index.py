@@ -13,6 +13,7 @@ from sentry.api.base import DocSection, Endpoint
 from sentry.api.bases.organization import OrganizationPermission
 from sentry.api.paginator import DateTimePaginator, OffsetPaginator
 from sentry.api.serializers import serialize
+from sentry.auth.superuser import is_active_superuser
 from sentry.db.models.query import in_iexact
 from sentry.models import (
     AuditLogEntryEvent, Organization, OrganizationMember, OrganizationMemberTeam,
@@ -64,7 +65,7 @@ class OrganizationIndexEndpoint(Endpoint):
                 queryset = queryset.filter(id=request.auth.project.organization_id)
             elif request.auth.organization is not None:
                 queryset = queryset.filter(id=request.auth.organization.id)
-        elif member_only or not request.is_superuser():
+        elif member_only or not is_active_superuser(request):
             queryset = queryset.filter(
                 id__in=OrganizationMember.objects.filter(
                     user=request.user,

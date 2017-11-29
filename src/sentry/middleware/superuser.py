@@ -11,7 +11,10 @@ class SuperuserMiddleware(object):
         # setting `Vary: Cookie` as a response header which will
         # break HTTP caching entirely.
         self.__skip_caching = request.path_info.startswith(settings.ANONYMOUS_STATIC_PREFIXES)
+
         if self.__skip_caching:
+            # XXX(dcramer): support legacy is_superuser calls for unauthenticated requests
+            request.is_superuser = lambda: False
             return
 
         su = Superuser(request)

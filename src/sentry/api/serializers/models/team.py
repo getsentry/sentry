@@ -7,6 +7,7 @@ from six.moves import zip
 
 from sentry.app import env
 from sentry.api.serializers import Serializer, register, serialize
+from sentry.auth.superuser import is_active_superuser
 from sentry.models import (
     OrganizationAccessRequest, OrganizationMemberTeam, Project, ProjectStatus, Team
 )
@@ -36,7 +37,7 @@ class TeamSerializer(Serializer):
         else:
             access_requests = frozenset()
 
-        is_superuser = (request and request.is_superuser() and request.user == user)
+        is_superuser = (request and is_active_superuser(request) and request.user == user)
         result = {}
         for team in item_list:
             is_member = team.id in memberships

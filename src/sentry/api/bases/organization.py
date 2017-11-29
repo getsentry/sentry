@@ -7,6 +7,7 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.permissions import ScopedPermission
 from sentry.app import raven
 from sentry.auth import access
+from sentry.auth.superuser import is_active_superuser
 from sentry.models import (
     ApiKey, Organization, OrganizationMemberTeam, OrganizationStatus, Project, ReleaseProject, Team
 )
@@ -148,7 +149,7 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
         if not (has_valid_api_key or request.user.is_authenticated()):
             return []
 
-        if has_valid_api_key or request.is_superuser() or organization.flags.allow_joinleave:
+        if has_valid_api_key or is_active_superuser(request) or organization.flags.allow_joinleave:
             allowed_teams = Team.objects.filter(organization=organization).values_list(
                 'id', flat=True
             )

@@ -13,6 +13,7 @@ from sudo.views import redirect_to_sudo
 
 from sentry import roles
 from sentry.auth import access
+from sentry.auth.superuser import is_active_superuser
 from sentry.models import (
     Organization, OrganizationMember, OrganizationStatus, Project, ProjectStatus,
     Team, TeamStatus
@@ -55,7 +56,7 @@ class OrganizationMixin(object):
             organization_slug = request.session.get('activeorg')
 
         if organization_slug is not None:
-            if request.is_superuser():
+            if is_active_superuser(request):
                 try:
                     active_organization = Organization.objects.get_from_cache(
                         slug=organization_slug,
@@ -386,7 +387,7 @@ class OrganizationView(BaseView):
         can_admin = request.access.has_scope('member:admin')
 
         allowed_roles = []
-        if can_admin and not request.is_superuser():
+        if can_admin and not is_active_superuser(request):
             acting_member = OrganizationMember.objects.get(
                 user=request.user,
                 organization=organization,
@@ -399,7 +400,7 @@ class OrganizationView(BaseView):
                     if r.priority <= roles.get(acting_member.role).priority
                 ]
                 can_admin = bool(allowed_roles)
-        elif request.is_superuser():
+        elif is_active_superuser(request):
             allowed_roles = roles.get_all()
         return (can_admin, allowed_roles, )
 

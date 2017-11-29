@@ -11,7 +11,7 @@ from sentry.api.bases.organization import (
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize, RoleSerializer, OrganizationMemberWithTeamsSerializer
 from sentry.api.serializers.rest_framework import ListField
-
+from sentry.auth.superuser import is_active_superuser
 from sentry.models import (
     AuditLogEntryEvent, AuthIdentity, AuthProvider, OrganizationMember, OrganizationMemberTeam, Team, TeamStatus)
 from sentry.signals import sso_enabled
@@ -31,7 +31,7 @@ def get_allowed_roles(request, organization, member=None):
     can_admin = request.access.has_scope('member:admin')
 
     allowed_roles = []
-    if can_admin and not request.is_superuser():
+    if can_admin and not is_active_superuser(request):
         acting_member = member or OrganizationMember.objects.get(
             user=request.user,
             organization=organization,
@@ -44,7 +44,7 @@ def get_allowed_roles(request, organization, member=None):
                 if r.priority <= roles.get(acting_member.role).priority
             ]
             can_admin = bool(allowed_roles)
-    elif request.is_superuser():
+    elif is_active_superuser(request):
         allowed_roles = roles.get_all()
     return (can_admin, allowed_roles, )
 
@@ -210,7 +210,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationEndpoint):
         except OrganizationMember.DoesNotExist:
             raise ResourceDoesNotExist
 
-        if request.user.is_authenticated() and not request.is_superuser():
+        if request.user.is_authenticated() and not is_active_superuser(request):
             try:
                 acting_member = OrganizationMember.objects.get(
                     organization=organization,

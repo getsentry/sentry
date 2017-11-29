@@ -6,6 +6,7 @@ from django.http import HttpResponseRedirect
 from django.contrib import messages
 from django.utils.translation import ugettext_lazy as _
 
+from sentry.auth.superuser import is_active_superuser
 from sentry.utils import auth
 from sentry.web.helpers import render_to_response
 
@@ -43,7 +44,7 @@ def signed_auth_required(func):
 def requires_admin(func):
     @wraps(func)
     def wrapped(request, *args, **kwargs):
-        if not request.is_superuser():
+        if not is_active_superuser(request):
             return render_to_response('sentry/missing_permissions.html', {}, request, status=400)
         return func(request, *args, **kwargs)
 
