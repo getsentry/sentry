@@ -18,7 +18,7 @@ from sentry.event_manager import (
     generate_culprit, md5_from_hash
 )
 from sentry.models import (
-    Activity, Event, Group, GroupHash, GroupRelease, GroupResolution, GroupStatus, GroupTombstone,
+    Activity, Environment, Event, Group, GroupHash, GroupRelease, GroupResolution, GroupStatus, GroupTombstone,
     EventMapping, Release
 )
 from sentry.testutils import TestCase, TransactionTestCase
@@ -625,6 +625,27 @@ class EventManagerTest(TransactionTestCase):
         data = manager.normalize()
         assert data['logger'] == DEFAULT_LOGGER_NAME
 
+    def test_tsdb(self):
+        project = self.project
+        manager = EventManager(self.make_event(
+            fingerprint=['totally unique super duper fingerprint'],
+            environment='totally unique super duper environment',
+        ))
+        event = manager.save(project)
+
+        def query(model, key, **kwargs):
+            return tsdb.get_sums(model, [key], event.datetime, event.datetime, **kwargs)[key]
+
+        assert query(tsdb.models.project, project.id) == 1
+        assert query(tsdb.models.group, event.group.id) == 1
+
+        environment_id = Environment.get_for_organization_id(
+            event.project.organization_id,
+            'totally unique super duper environment',
+        ).id
+        assert query(tsdb.models.project, project.id, environment_id=environment_id) == 1
+        assert query(tsdb.models.group, event.group.id, environment_id=environment_id) == 1
+
     @pytest.mark.xfail
     def test_record_frequencies(self):
         project = self.project
@@ -652,12 +673,20 @@ class EventManagerTest(TransactionTestCase):
         }
 
     def test_event_user(self):
-        manager = EventManager(self.make_event(**{'sentry.interfaces.User': {
-            'id': '1',
-        }}))
+        manager = EventManager(self.make_event(
+            environment='totally unique environment',
+            **{'sentry.interfaces.User': {
+                'id': '1',
+            }}
+        ))
         manager.normalize()
         with self.tasks():
             event = manager.save(self.project.id)
+
+        environment_id = Environment.get_for_organization_id(
+            event.project.organization_id,
+            'totally unique environment',
+        ).id
 
         assert tsdb.get_distinct_counts_totals(
             tsdb.models.users_affected_by_group,
@@ -673,6 +702,26 @@ class EventManagerTest(TransactionTestCase):
             (event.project.id, ),
             event.datetime,
             event.datetime,
+        ) == {
+            event.project.id: 1,
+        }
+
+        assert tsdb.get_distinct_counts_totals(
+            tsdb.models.users_affected_by_group,
+            (event.group.id, ),
+            event.datetime,
+            event.datetime,
+            environment_id=environment_id,
+        ) == {
+            event.group.id: 1,
+        }
+
+        assert tsdb.get_distinct_counts_totals(
+            tsdb.models.users_affected_by_project,
+            (event.project.id, ),
+            event.datetime,
+            event.datetime,
+            environment_id=environment_id,
         ) == {
             event.project.id: 1,
         }

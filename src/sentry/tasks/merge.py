@@ -42,6 +42,7 @@ def merge_group(
         GroupHash,
         GroupRuleStatus,
         GroupSubscription,
+        Environment,
         EventMapping,
         Event,
         UserReport,
@@ -120,16 +121,37 @@ def merge_group(
 
     features.merge(new_group, [group], allow_unsafe=True)
 
+    environment_ids = list(
+        Environment.objects.filter(
+            projects=group.project
+        ).values_list('id', flat=True)
+    )
+
     for model in [tsdb.models.group]:
-        tsdb.merge(model, new_group.id, [group.id])
+        tsdb.merge(
+            model,
+            new_group.id,
+            [group.id],
+            environment_ids=environment_ids if model in tsdb.models_with_environment_support else None
+        )
 
     for model in [tsdb.models.users_affected_by_group]:
-        tsdb.merge_distinct_counts(model, new_group.id, [group.id])
+        tsdb.merge_distinct_counts(
+            model,
+            new_group.id,
+            [group.id],
+            environment_ids=environment_ids if model in tsdb.models_with_environment_support else None,
+        )
 
     for model in [
         tsdb.models.frequent_releases_by_group, tsdb.models.frequent_environments_by_group
     ]:
-        tsdb.merge_frequencies(model, new_group.id, [group.id])
+        tsdb.merge_frequencies(
+            model,
+            new_group.id,
+            [group.id],
+            environment_ids=environment_ids if model in tsdb.models_with_environment_support else None,
+        )
 
     previous_group_id = group.id
 

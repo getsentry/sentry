@@ -676,7 +676,7 @@ class EventManager(object):
         if release:
             counters.append((tsdb.models.release, release.id))
 
-        tsdb.incr_multi(counters, timestamp=event.datetime)
+        tsdb.incr_multi(counters, timestamp=event.datetime, environment_id=environment.id)
 
         frequencies = [
             # (tsdb.models.frequent_projects_by_organization, {
@@ -745,7 +745,8 @@ class EventManager(object):
                     (tsdb.models.users_affected_by_group, group.id, (event_user.tag_value, )),
                     (tsdb.models.users_affected_by_project, project.id, (event_user.tag_value, )),
                 ),
-                timestamp=event.datetime
+                timestamp=event.datetime,
+                environment_id=environment.id,
             )
 
         if is_new and release:
