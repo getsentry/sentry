@@ -21,13 +21,11 @@ def setup_receivers(tagvalue_model, grouptagvalue_model):
         if not created:
             return
 
-        # TODO(dcramer): remove in 7.6.x
-        project_id = filters.get('project_id')
-        if not project_id:
-            project_id = filters['project'].id
-
+        project_id = filters['project_id']
         environment_id = filters.get('environment_id')
 
+        # a TagValue was created for this environment,
+        # so we incr the values_seen for the TagKey in that environment
         tagstore.incr_tag_key_values_seen(project_id, environment_id, filters['key'])
 
     @buffer_incr_complete.connect(sender=grouptagvalue_model, weak=False)
@@ -37,13 +35,12 @@ def setup_receivers(tagvalue_model, grouptagvalue_model):
         if not created:
             return
 
-        project_id = extra.get('project_id')
-        if not project_id:
-            project_id = extra['project']
-
+        project_id = extra['project_id']
         group_id = filters['group_id']
         environment_id = filters.get('environment_id')
 
+        # a GroupTagValue was created for this environment,
+        # so we incr the values_seen for the GroupTagKey in that environment
         tagstore.incr_group_tag_key_values_seen(
             project_id, group_id, environment_id, filters['key'])
 

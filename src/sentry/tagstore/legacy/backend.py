@@ -262,41 +262,51 @@ class LegacyTagStorage(TagStorage):
         ).delete()
 
     def incr_tag_key_values_seen(self, project_id, environment_id, key, count=1):
-        buffer.incr(TagKey, {
-            'values_seen': count,
-        }, {
-            'project_id': project_id,
-            'key': key,
-        })
+        buffer.incr(TagKey,
+                    columns={
+                        'values_seen': count,
+                    },
+                    filters={
+                        'project_id': project_id,
+                        'key': key,
+                    })
 
     def incr_tag_value_times_seen(self, project_id, environment_id,
                                   key, value, extra=None, count=1):
-        buffer.incr(TagValue, {
-            'times_seen': count,
-        }, {
-            'project_id': project_id,
-            'key': key,
-            'value': value,
-        }, extra)
+        buffer.incr(TagValue,
+                    columns={
+                        'times_seen': count,
+                    },
+                    filters={
+                        'project_id': project_id,
+                        'key': key,
+                        'value': value,
+                    },
+                    extra=extra)
 
     def incr_group_tag_key_values_seen(self, project_id, group_id, environment_id, key, count=1):
-        buffer.incr(GroupTagKey, {
-            'values_seen': count,
-        }, {
-            'project_id': project_id,
-            'group_id': group_id,
-            'key': key,
-        })
+        buffer.incr(GroupTagKey,
+                    columns={
+                        'values_seen': count,
+                    },
+                    filters={
+                        'project_id': project_id,
+                        'group_id': group_id,
+                        'key': key,
+                    })
 
-    def incr_group_tag_value_times_seen(
-            self, group_id, environment_id, key, value, extra=None, count=1):
-        buffer.incr(GroupTagValue, {
-            'times_seen': count,
-        }, {
-            'group_id': group_id,
-            'key': key,
-            'value': value,
-        }, extra)
+    def incr_group_tag_value_times_seen(self, project_id, group_id, environment_id,
+                                        key, value, extra=None, count=1):
+        buffer.incr(GroupTagValue,
+                    columns={
+                        'times_seen': count,
+                    },
+                    filters={
+                        'group_id': group_id,
+                        'key': key,
+                        'value': value,
+                    },
+                    extra=extra)
 
     def get_group_event_ids(self, project_id, group_id, environment_id, tags):
         tagkeys = dict(

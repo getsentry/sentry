@@ -332,9 +332,9 @@ class TagStorage(Service):
         raise NotImplementedError
 
     def incr_group_tag_value_times_seen(
-            self, group_id, environment_id, key, value, extra=None, count=1):
+            self, project_id, group_id, environment_id, key, value, extra=None, count=1):
         """
-        >>> incr_group_tag_value_times_seen(1, 2, "key1", "value1")
+        >>> incr_group_tag_value_times_seen(1, 2, 3, "key1", "value1")
         """
         raise NotImplementedError
 

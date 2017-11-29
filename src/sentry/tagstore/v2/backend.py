@@ -12,6 +12,7 @@ import six
 
 from django.db import IntegrityError, transaction
 
+from sentry.signals import buffer_incr_complete
 from sentry.tagstore import TagKeyStatus
 from sentry.tagstore.base import TagStorage
 
@@ -52,11 +53,14 @@ class TagStorage(TagStorage):
             grouptagvalue_model=GroupTagValue,
         )
 
-        # TODO: hook other receivers to ensure environment_id=None is created and updated?
-
         self.setup_tasks(
             tagkey_model=TagKey,
         )
+
+        # v2-specific receivers for keeping environment aggregates up to date
+        @buffer_incr_complete.connect(sender=GroupTagKey, weak=False)
+        def todo(filters, created, extra, **kwargs):
+            pass
 
     def create_tag_key(self, project_id, environment_id, key, **kwargs):
         return TagKey.objects.create(

@@ -324,6 +324,7 @@ def repair_tag_data(caches, project, events):
 
                 if not created:
                     tagstore.incr_group_tag_value_times_seen(
+                        project_id=project.id,
                         group_id=group_id,
                         environment_id=environment.id,
                         key=key,
