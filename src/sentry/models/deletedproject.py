@@ -15,16 +15,16 @@ class DeletedProject(DeletedEntry):
     and is currently unable to log deletions that occur implicity
     (i.e. when the sole parent object is deleted, the child is also marked for deletion as well).
     """
-    slug = models.SlugField(null=True)
+    slug = models.CharField(max_length=50, null=True)
     name = models.CharField(max_length=200, null=True)
 
     organization_id = BoundedBigIntegerField(null=True)
     organization_name = models.CharField(max_length=64, null=True)
-    organization_slug = models.SlugField(null=True)
+    organization_slug = models.CharField(max_length=50, null=True)
 
     team_id = BoundedBigIntegerField(null=True)
     team_name = models.CharField(max_length=64, null=True)
-    team_slug = models.SlugField(null=True)
+    team_slug = models.CharField(max_length=50, null=True)
 
     platform = models.CharField(max_length=64, null=True)
 

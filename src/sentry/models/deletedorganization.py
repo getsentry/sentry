@@ -16,7 +16,7 @@ class DeletedOrganization(DeletedEntry):
     (i.e. when the sole parent object is deleted, the child is also marked for deletion as well).
     """
     name = models.CharField(max_length=64, null=True)
-    slug = models.SlugField(null=True)
+    slug = models.CharField(max_length=50, null=True)
 
     class Meta:
         app_label = 'sentry'
