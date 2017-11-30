@@ -4,7 +4,7 @@ import React from 'react';
 import {t, tct} from '../locale';
 import Button from '../components/buttons/button';
 import Confirm from '../components/confirm';
-import DropdownReact from '../components/dropdownReact';
+import DropdownLink from '../components/dropdownLink';
 import MenuItem from '../components/menuItem';
 import AddRepositoryLink from './settings/organization/repositories/addRepositoryLink';
 
@@ -45,7 +45,7 @@ class OrganizationRepositories extends React.Component {
     return (
       <div>
         <div className="pull-right">
-          <DropdownReact
+          <DropdownLink
             anchorRight
             alwaysRenderMenu
             className="btn btn-primary btn-sm"
@@ -64,7 +64,7 @@ class OrganizationRepositories extends React.Component {
                   </MenuItem>
                 );
               })}
-          </DropdownReact>
+          </DropdownLink>
         </div>
         <h3 className="m-b-2">{t('Repositories')}</h3>
         {hasItemList && (
