@@ -98,7 +98,7 @@ exports[`OrganizationMembersView No Require Link does not have 2fa warning if us
         </div>
       </SpreadLayout>
       <OrganizationAccessRequests
-        accessRequestBusy={Array []}
+        accessRequestBusy={Map {}}
         onApprove={[Function]}
         onDeny={[Function]}
         requestList={Array []}
@@ -800,7 +800,7 @@ exports[`OrganizationMembersView Require Link does not have 2fa warning if user 
         </div>
       </SpreadLayout>
       <OrganizationAccessRequests
-        accessRequestBusy={Array []}
+        accessRequestBusy={Map {}}
         onApprove={[Function]}
         onDeny={[Function]}
         requestList={Array []}
